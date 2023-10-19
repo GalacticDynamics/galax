@@ -15,7 +15,6 @@ from jax.config import config
 config.update("jax_enable_x64", True)
 import jax.random as random 
 from jax_cosmo.scipy.interpolate import InterpolatedUnivariateSpline
-
 usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian)
 
 class Potential:
@@ -117,7 +116,7 @@ class Potential:
         return L_close, L_far
     
     @partial(jax.jit,static_argnums=(0,))
-    def release_model(self, x, v, Msat, pos_disp, vel_disp,i, t):
+    def release_model(self, x, v, Msat,i, t):
         """
         Simplification of particle spray: just release particles in gaussian blob at each lagrange point.
         User sets the spatial and velocity dispersion for the "leaking" of particles
@@ -189,12 +188,12 @@ class Potential:
         return pos_lead, pos_trail, v_lead, v_trail
     
     @partial(jax.jit,static_argnums=(0,))
-    def gen_stream_ics(self, ts, prog_w0, Msat, pos_disp, vel_disp):
+    def gen_stream_ics(self, ts, prog_w0, Msat):
         ws_jax = leapfrog_run(prog_w0, ts, self.gradient)
         
         def scan_fun(carry, t):
             i, pos_close, pos_far, vel_close, vel_far = carry
-            pos_close_new, pos_far_new, vel_close_new, vel_far_new = self.release_model(ws_jax[i,:3], ws_jax[i,3:], Msat, pos_disp, vel_disp,i, t)
+            pos_close_new, pos_far_new, vel_close_new, vel_far_new = self.release_model(ws_jax[i,:3], ws_jax[i,3:], Msat,i, t)
             return [i+1, pos_close_new, pos_far_new, vel_close_new, vel_far_new], [pos_close_new, pos_far_new, vel_close_new, vel_far_new]#[i+1, pos_close_new, pos_far_new, vel_close_new, vel_far_new]
             
             
@@ -205,8 +204,8 @@ class Potential:
         return pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr
     
     @partial(jax.jit,static_argnums=(0,))
-    def gen_stream(self, ts, prog_w0, Msat, pos_disp, vel_disp):
-        pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr = self.gen_stream_ics(ts, prog_w0, Msat, pos_disp, vel_disp)
+    def gen_stream(self, ts, prog_w0, Msat):
+        pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr = self.gen_stream_ics(ts, prog_w0, Msat)
         
         def scan_fun(carry, particle_idx):
             i, pos_close_curr, pos_far_curr, vel_close_curr, vel_far_curr = carry
@@ -229,8 +228,8 @@ class Potential:
         return lead_arm, trail_arm
             
     @partial(jax.jit,static_argnums=(0,))
-    def gen_stream_final(self, ts, prog_w0, Msat, pos_disp, vel_disp):
-        pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr = self.gen_stream_ics(ts, prog_w0, Msat, pos_disp, vel_disp)
+    def gen_stream_final(self, ts, prog_w0, Msat):
+        pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr = self.gen_stream_ics(ts, prog_w0, Msat,)
         
         def scan_fun(carry, particle_idx):
             i, pos_close_curr, pos_far_curr, vel_close_curr, vel_far_curr = carry
@@ -244,14 +243,14 @@ class Potential:
             minval, maxval =  ts[i],ts[-1]#jnp.min(jax.lax.dynamic_slice(ts,(i,),(len(ts)-i,))), jnp.max(jax.lax.dynamic_slice(ts,(i,),(len(ts)-i,)))
             ###t_particle = ts.at[:i].set( jnp.nan )
             #######################t_particle = jnp.linspace(minval,maxval,len(ts))#jax.lax.dynamic_slice(ts,minval,(len(ts)-i,))##jax.lax.dynamic_slice(ts,(i+1,),(len(ts)-1,))
-            t_particle = get_t_arr(ts,ts[i])
+            t_particle = jax.vmap(ts_func,in_axes=(0,None),)(ts,ts[i])
+            ###################################t_particle = get_t_arr(ts,ts[i]) OLD
             ##print(t_particle)
             w_particle_close = leapfrog_run(curr_particle_w0_close, t_particle, self.gradient)
             w_particle_far = leapfrog_run(curr_particle_w0_far, t_particle, self.gradient)
             
             w_particle_close = w_particle_close[-1,:]#w_particle_close[-1,:]
             w_particle_far = w_particle_far[-1,:]#w_particle_far[-1,:]
-            
             
             
             return [i+1, pos_close_arr[i+1,:], pos_far_arr[i+1,:], vel_close_arr[i+1,:], vel_far_arr[i+1,:]], [w_particle_close, w_particle_far]
@@ -262,7 +261,26 @@ class Potential:
         #print(final_state)
         lead_arm, trail_arm = all_states
         return lead_arm, trail_arm##lead_arm, trail_arm
+    
+    @partial(jax.jit,static_argnums=(0,))
+    def gen_stream_vmapped(self, ts, prog_w0, Msat):
+        pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr = self.gen_stream_ics(ts, prog_w0, Msat)
+        @jax.jit
+        def single_particle_integrate(particle_number,pos_close_curr,pos_far_curr,vel_close_curr,vel_far_curr):
+            curr_particle_w0_close = jnp.hstack([pos_close_curr,vel_close_curr])
+            curr_particle_w0_far = jnp.hstack([pos_far_curr,vel_far_curr])
+            t_particle = jax.vmap(ts_func,in_axes=(0,None),)(ts,ts[particle_number])
+            w_particle_close = leapfrog_run(curr_particle_w0_close, t_particle, self.gradient)
+            w_particle_far = leapfrog_run(curr_particle_w0_far, t_particle, self.gradient)
+            
+            w_particle_close = w_particle_close[-1,:]
+            w_particle_far = w_particle_far[-1,:]
+            
+            
+            return w_particle_close, w_particle_far
+        particle_ids = jnp.arange(len(pos_close_arr))
         
+        return jax.vmap(single_particle_integrate,in_axes=(0,0,0,0,0,))(particle_ids,pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr)
 
     
 
@@ -446,12 +464,11 @@ def get_stripping_time_arr(ts):
         t_release_arr.append( ts[i:] )
     return t_release_arr
 
-from jax_cosmo.scipy.interpolate import InterpolatedUnivariateSpline
-def get_spl_funcs(ts,ws):
-    return [InterpolatedUnivariateSpline(ts,ws[:,i],k=3) for i in range(3)]
+#def get_spl_funcs(ts,ws):
+#    return [InterpolatedUnivariateSpline(ts,ws[:,i],k=3) for i in range(3)]
 
-def eval_spl_funcs(ts, spl_funcs):
-    return jnp.array([spl_funcs[i](ts) for i in range(3)])
+#def eval_spl_funcs(ts, spl_funcs):
+#    return jnp.array([spl_funcs[i](ts) for i in range(3)])
 
 @jax.jit
 def get_t_arr(ts,t_min):
@@ -471,6 +488,17 @@ def get_t_arr(ts,t_min):
     return t_particle
 
 @jax.jit
+def ts_func(t,t_min):
+    def true_func(ts_curr):
+        return ts_curr
+    def false_func(ts_curr):
+        return 0.0
+    is_cond_met = t > t_min
+    return jax.lax.cond(pred=is_cond_met, true_fun=true_func, false_fun=false_func,operand=t)
+
+
+
+@jax.jit
 def get_rot_mat(n_hat):
     """
     Get rotation matrix that transforms from INERTIAL coordinates to SATELLITE coordinates
@@ -481,7 +509,7 @@ def get_rot_mat(n_hat):
     return jnp.array([[ny/nx_ny, -nx/nx_ny, 0], [nx*nz/nx_ny, ny*nz/nx_ny, -nx_ny], [nx,ny,nz]])
 
 def get_spl_funcs(ts,ws):
-    return [InterpolatedUnivariateSpline(ts,ws[:,i],k=3) for i in range(3)]
+    return [InterpolatedUnivariateSpline(ts,ws[:,0],k=3),InterpolatedUnivariateSpline(ts,ws[:,1],k=3), InterpolatedUnivariateSpline(ts,ws[:,2],k=3)]
 
 def eval_spl_funcs(ts, spl_funcs):
-    return jnp.array([spl_funcs[i](ts) for i in range(3)])
+    return jnp.array([spl_funcs[0](ts),spl_funcs[1](ts),spl_funcs[2](ts)])

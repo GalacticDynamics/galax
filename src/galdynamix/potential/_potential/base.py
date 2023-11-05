@@ -169,7 +169,7 @@ class PotentialBase(eqx.Module):  # type: ignore[misc]
         from galdynamix.potential._hamiltonian import Hamiltonian
 
         return Hamiltonian(self).integrate_orbit(
-            w0, Integrator=DiffraxIntegrator, t0=t0, t1=t1, ts=ts
+            w0, t0, t1, ts, Integrator=DiffraxIntegrator
         )
 
     @jit_method()

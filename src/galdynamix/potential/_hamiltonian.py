@@ -18,11 +18,10 @@ class Hamiltonian(eqx.Module):  # type: ignore[misc]
     def integrate_orbit(
         self,
         w0: jt.Array,
-        /,
-        Integrator: type[Integrator],
-        *,
         t0: jt.Array,
         t1: jt.Array,
         ts: jt.Array | None,
+        *,
+        Integrator: type[Integrator],
     ) -> jt.Array:
         return Integrator(self.potential._velocity_acceleration).run(w0, t0, t1, ts)

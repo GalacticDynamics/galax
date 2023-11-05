@@ -12,7 +12,6 @@ import jax
 import jax.numpy as xp
 import jax.typing as jt
 
-from galdynamix.potential._hamiltonian import Hamiltonian
 from galdynamix.potential._potential.base import PotentialBase
 from galdynamix.utils import jit_method
 
@@ -21,7 +20,7 @@ from ._df import BaseStreamDF
 
 class MockStreamGenerator(eqx.Module):
     df: BaseStreamDF
-    hamiltonian: Hamiltonian
+    potential: PotentialBase
     progenitor_potential: PotentialBase | None = None
 
     def __post_init__(self) -> None:
@@ -33,12 +32,20 @@ class MockStreamGenerator(eqx.Module):
     def _gen_stream_ics(
         self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
     ) -> jt.Array:
-        ws_jax = self.hamiltonian.integrate_orbit(prog_w0, t0=xp.min(ts), t1=xp.max(ts), ts=ts)
+        ws_jax = self.potential.integrate_orbit(
+            prog_w0, t0=xp.min(ts), t1=xp.max(ts), ts=ts
+        )
 
         def scan_fun(carry: Any, t: Any) -> Any:
             i, pos_close, pos_far, vel_close, vel_far = carry
             sample_outputs = self.df.sample(
-                ws_jax[i, :3], ws_jax[i, 3:], prog_mass, i, t, hamiltonian=self.hamiltonian, seed_num=seed_num
+                ws_jax[i, :3],
+                ws_jax[i, 3:],
+                prog_mass,
+                i,
+                t,
+                potential=self.potential,
+                seed_num=seed_num,
             )
             return [i + 1, *sample_outputs], list(sample_outputs)
 
@@ -74,11 +81,13 @@ class MockStreamGenerator(eqx.Module):
             minval, maxval = ts[i], ts[-1]
 
             def integrate_different_ics(ics: jt.Array) -> jt.Array:
-                return self.hamiltonian.integrate_orbit(ics, minval, maxval, None)[0]
+                return self.potential.integrate_orbit(ics, minval, maxval, None)[0]
 
             w_particle_close, w_particle_far = jax.vmap(
                 integrate_different_ics, in_axes=(0,)
-            )(w0_lead_trail)  # vmap over leading and trailing arm
+            )(
+                w0_lead_trail
+            )  # vmap over leading and trailing arm
 
             return [
                 i + 1,

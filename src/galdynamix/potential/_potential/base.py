@@ -82,24 +82,8 @@ class PotentialBase(eqx.Module):  # type: ignore[misc]
     def integrate_orbit(
         self, w0: jt.Array, t0: jt.Array, t1: jt.Array, ts: jt.Array | None
     ) -> jt.Array:
-        # from galdynamix.integrate._builtin.diffrax import DiffraxIntegrator
-        # from galdynamix.potential._hamiltonian import Hamiltonian
-
-        # return Hamiltonian(self).integrate_orbit(
-        #     w0, t0, t1, ts, Integrator=DiffraxIntegrator
-        # )
-        from diffrax import Dopri5, ODETerm, PIDController, SaveAt, diffeqsolve
-
-        solution = diffeqsolve(
-            terms=ODETerm(self._velocity_acceleration),
-            solver=Dopri5(),
-            t0=t0,
-            t1=t1,
-            y0=w0,
-            dt0=None,
-            saveat=SaveAt(t0=False, t1=True, ts=ts, dense=False),
-            stepsize_controller=PIDController(rtol=1e-7, atol=1e-7),
-            discrete_terminating_event=None,
-            max_steps=None,
+        from galdynamix.integrate._builtin.diffrax import (
+            DiffraxIntegrator as Integrator,
         )
-        return solution.ys
+
+        return Integrator(self._velocity_acceleration).run(w0, t0, t1, ts)

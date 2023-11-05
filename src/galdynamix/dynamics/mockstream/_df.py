@@ -12,7 +12,7 @@ import jax
 import jax.numpy as xp
 import jax.typing as jt
 
-from galdynamix.potential._hamiltonian import Hamiltonian
+from galdynamix.potential._potential.base import PotentialBase
 from galdynamix.utils import jit_method
 
 
@@ -34,7 +34,7 @@ class BaseStreamDF(eqx.Module):
         i: int,
         t: jt.Array,
         *,
-        hamiltonian: Hamiltonian,
+        potential: PotentialBase,
         seed_num: int,
     ) -> tuple[jt.Array, jt.Array, jt.Array, jt.Array]:
         """Sample the DF."""
@@ -54,7 +54,7 @@ class FardalStreamDF(BaseStreamDF):
         i: int,
         t: jt.Array,
         *,
-        hamiltonian: Hamiltonian,
+        potential: PotentialBase,
         seed_num: int,
     ) -> tuple[jt.Array, jt.Array, jt.Array, jt.Array]:
         """
@@ -75,18 +75,18 @@ class FardalStreamDF(BaseStreamDF):
         keye = jax.random.PRNGKey(i * random_ints[4])  # jax.random.PRNGKey(i*17)
 
         L_close, L_far = self._lagrange_pts(
-            x, v, prog_mass, t, hamiltonian=hamiltonian
+            x, v, prog_mass, t, potential=potential
         )  # each is an xyz array
 
         omega_val = self._omega(x, v)
 
         r = xp.linalg.norm(x)
         r_hat = x / r
-        r_tidal = self._tidalr_mw(x, v, prog_mass, t, hamiltonian=hamiltonian)
+        r_tidal = self._tidalr_mw(x, v, prog_mass, t, potential=potential)
         rel_v = omega_val * r_tidal  # relative velocity
 
         # circlar_velocity
-        dphi_dr = xp.sum(hamiltonian.potential.gradient(x, t) * r_hat)
+        dphi_dr = xp.sum(potential.gradient(x, t) * r_hat)
         v_circ = rel_v  ##xp.sqrt( r*dphi_dr )
 
         L_vec = xp.cross(x, v)
@@ -151,9 +151,9 @@ class FardalStreamDF(BaseStreamDF):
         Msat: jt.Array,
         t: jt.Array,
         *,
-        hamiltonian: Hamiltonian,
+        potential: PotentialBase,
     ) -> tuple[jt.Array, jt.Array]:
-        r_tidal = self._tidalr_mw(x, v, Msat, t, hamiltonian=hamiltonian)
+        r_tidal = self._tidalr_mw(x, v, Msat, t, potential=potential)
         r_hat = x / xp.linalg.norm(x)
         L_close = x - r_hat * r_tidal
         L_far = x + r_hat * r_tidal
@@ -161,7 +161,7 @@ class FardalStreamDF(BaseStreamDF):
 
     @jit_method()
     def _d2phidr2_mw(
-        self, x: jt.Array, /, t: jt.Array, *, hamiltonian: Hamiltonian
+        self, x: jt.Array, /, t: jt.Array, *, potential: PotentialBase
     ) -> jt.Array:
         """
         Computes the second derivative of the potential at a position x (in the simulation frame)
@@ -181,7 +181,7 @@ class FardalStreamDF(BaseStreamDF):
         """
         rad = xp.linalg.norm(x)
         r_hat = x / rad
-        dphi_dr_func = lambda x: xp.sum(hamiltonian.potential.gradient(x, t) * r_hat)  # noqa: E731
+        dphi_dr_func = lambda x: xp.sum(potential.gradient(x, t) * r_hat)  # noqa: E731
         return xp.sum(jax.grad(dphi_dr_func)(x) * r_hat)
 
     @jit_method()
@@ -218,7 +218,7 @@ class FardalStreamDF(BaseStreamDF):
         Msat: jt.Array,
         t: jt.Array,
         *,
-        hamiltonian: Hamiltonian,
+        potential: PotentialBase,
     ) -> jt.Array:
         """Computes the tidal radius of a cluster in the potential.
 
@@ -238,10 +238,7 @@ class FardalStreamDF(BaseStreamDF):
         >>> _tidalr_mw(x=xp.array([8.0, 0.0, 0.0]), v=xp.array([8.0, 0.0, 0.0]), Msat=1e4)
         """
         return (
-            hamiltonian.potential._G
+            potential._G
             * Msat
-            / (
-                self._omega(x, v) ** 2
-                - self._d2phidr2_mw(x, t, hamiltonian=hamiltonian)
-            )
+            / (self._omega(x, v) ** 2 - self._d2phidr2_mw(x, t, potential=potential))
         ) ** (1.0 / 3.0)

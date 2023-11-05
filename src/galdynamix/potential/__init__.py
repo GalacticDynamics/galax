@@ -3,12 +3,10 @@
 
 from __future__ import annotations
 
-from . import _base, _builtin, _composite
-from ._base import *
-from ._builtin import *
-from ._composite import *
+from . import _hamiltonian, _potential
+from ._hamiltonian import *
+from ._potential import *
 
 __all__: list[str] = []
-__all__ += _base.__all__
-__all__ += _composite.__all__
-__all__ += _builtin.__all__
+__all__ += _potential.__all__
+__all__ += _hamiltonian.__all__

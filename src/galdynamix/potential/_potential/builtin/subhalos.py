@@ -12,9 +12,10 @@ import jax.typing as jt
 from gala.units import UnitSystem
 from jax_cosmo.scipy.interpolate import InterpolatedUnivariateSpline
 
-from galdynamix.potential._base import PotentialBase
-from galdynamix.potential._builtin.isochrone import Isochrone
+from galdynamix.potential._potential.base import PotentialBase
 from galdynamix.utils import jit_method
+
+from .isochrone import Isochrone
 
 usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian)
 
@@ -38,32 +39,17 @@ def single_subhalo_potential(
 
 
 class SubHaloPopulation(PotentialBase):
-    def __init__(
-        self,
-        m: jt.Array,
-        a: jt.Array,
-        tq_subhalo_arr: jt.Array,
-        t_orbit: jt.Array,
-        units: UnitSystem | None = None,
-    ) -> None:
-        """
-        m has length n_subhalo
-        a has length n_subhalo
-        tq_subhalo_arr has shape t_orbit x n_subhalo x 3
-        t_orbit is the array of times the subhalos are integrated over
-        """
-        self.m: jt.Array
-        self.a: jt.Array
-        self.tq_subhalo_arr: jt.Array
-        self.t_orbit: jt.Array
-        super().__init__(
-            units,
-            {"m": m, "a": a, "tq_subhalo_arr": tq_subhalo_arr, "t_orbit": t_orbit},
-        )
-        self.dct = {
-            "m": self.m,
-            "a": self.a,
-        }
+    """
+    m has length n_subhalo
+    a has length n_subhalo
+    tq_subhalo_arr has shape t_orbit x n_subhalo x 3
+    t_orbit is the array of times the subhalos are integrated over
+    """
+
+    m: jt.Array
+    a: jt.Array
+    tq_subhalo_arr: jt.Array
+    t_orbit: jt.Array
 
     @jit_method()
     def energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
@@ -87,15 +73,6 @@ class SubHaloPopulation(PotentialBase):
         return xp.sum(
             jax.vmap(
                 single_subhalo_potential,
-                in_axes=(
-                    (
-                        {
-                            "m": 0,
-                            "a": 0,
-                        },
-                        0,
-                        None,
-                    )
-                ),
-            )(self.dct, delta_position, t)
+                in_axes=(({"m": 0, "a": 0}, 0, None)),
+            )({"m": self.m, "a": self.a}, delta_position, t)
         )

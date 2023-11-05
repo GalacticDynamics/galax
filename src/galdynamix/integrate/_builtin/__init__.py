@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from . import _core
-from ._core import *
+from . import diffrax
+from .diffrax import *
 
-__all__ = _core.__all__
+__all__: list[str] = []
+__all__ += diffrax.__all__

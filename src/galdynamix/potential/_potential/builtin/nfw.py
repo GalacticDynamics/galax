@@ -5,9 +5,8 @@ __all__ = ["NFWPotential", "NFWPotential_holder"]
 
 import jax.numpy as xp
 import jax.typing as jt
-from gala.units import UnitSystem
 
-from galdynamix.potential._base import PotentialBase
+from galdynamix.potential._potential.base import PotentialBase
 from galdynamix.utils import jit_method
 
 
@@ -17,13 +16,9 @@ class NFWPotential_holder(PotentialBase):
     Form from http://gala.adrian.pw/en/v0.1.2/api/gala.potential.FlattenedNFWPotential.html
     """
 
-    def __init__(
-        self, v_c: jt.Array, r_s: jt.Array, q: jt.Array, units: UnitSystem | None = None
-    ) -> None:
-        self.v_c: jt.Array
-        self.r_s: jt.Array
-        self.q: jt.Array
-        super().__init__(units, {"v_c": v_c, "r_s": r_s, "q": q})
+    v_c: jt.Array
+    r_s: jt.Array
+    q: jt.Array
 
     @jit_method()
     def energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
@@ -40,12 +35,8 @@ class NFWPotential(PotentialBase):
     standard def see spherical model @ https://github.com/adrn/gala/blob/main/gala/potential/potential/builtin/builtin_potentials.c
     """
 
-    def __init__(
-        self, m: jt.Array, r_s: jt.Array, units: UnitSystem | None = None
-    ) -> None:
-        self.m: jt.Array
-        self.r_s: jt.Array
-        super().__init__(units, {"m": m, "r_s": r_s})
+    m: jt.Array
+    r_s: jt.Array
 
     @jit_method()
     def energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:

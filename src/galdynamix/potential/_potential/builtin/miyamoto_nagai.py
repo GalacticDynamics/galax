@@ -5,9 +5,8 @@ __all__ = ["MiyamotoNagaiDisk"]
 
 import jax.numpy as xp
 import jax.typing as jt
-from gala.units import UnitSystem
 
-from galdynamix.potential._base import PotentialBase
+from galdynamix.potential._potential.base import PotentialBase
 from galdynamix.utils import jit_method
 
 
@@ -15,11 +14,6 @@ class MiyamotoNagaiDisk(PotentialBase):
     m: jt.Array
     a: jt.Array
     b: jt.Array
-
-    def __init__(
-        self, m: jt.Array, a: jt.Array, b: jt.Array, units: UnitSystem | None = None
-    ) -> None:
-        super().__init__(units, {"m": m, "a": a, "b": b})
 
     @jit_method()
     def energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:

@@ -7,19 +7,14 @@ from typing import Any, Callable
 import jax
 import jax.numpy as xp
 import jax.typing as jt
-from gala.units import UnitSystem
 
-from galdynamix.potential._base import PotentialBase
+from galdynamix.potential._potential.base import PotentialBase
 from galdynamix.utils import jit_method
 
 
 class Isochrone(PotentialBase):
-    def __init__(
-        self, m: jt.Array, a: jt.Array, units: UnitSystem | None = None
-    ) -> None:
-        self.m: jt.Array
-        self.a: jt.Array
-        super().__init__(units, {"m": m, "a": a})
+    m: jt.Array
+    a: jt.Array
 
     @jit_method()
     def energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
@@ -28,39 +23,14 @@ class Isochrone(PotentialBase):
 
 
 class Isochrone_centered(PotentialBase):
-    def __init__(
-        self,
-        m: jt.Array,
-        a: jt.Array,
-        spline_eval_func: Callable[[jt.Array, Any], jt.Array],
-        splines: Any,
-        t_min: jt.Array,
-        t_max: jt.Array,
-        m_ext: jt.Array,
-        a_ext: jt.Array,
-        units: UnitSystem | None = None,
-    ) -> None:
-        self.m: jt.Array
-        self.a: jt.Array
-        self.spline_eval_func: Callable[[jt.Array, Any], jt.Array]
-        self.splines: Any
-        self.t_min: jt.Array
-        self.t_max: jt.Array
-        self.m_ext: jt.Array
-        self.a_ext: jt.Array
-        super().__init__(
-            units,
-            {
-                "m": m,
-                "a": a,
-                "spline_eval_func": spline_eval_func,
-                "splines": splines,
-                "t_min": t_min,
-                "t_max": t_max,
-                "m_ext": m_ext,
-                "a_ext": a_ext,
-            },
-        )
+    m: jt.Array
+    a: jt.Array
+    spline_eval_func: Callable[[jt.Array, Any], jt.Array]
+    splines: Any
+    t_min: jt.Array
+    t_max: jt.Array
+    m_ext: jt.Array
+    a_ext: jt.Array
 
     @jit_method()
     def energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:

@@ -3,39 +3,38 @@ from __future__ import annotations
 __all__ = ["PotentialBase"]
 
 import abc
+from dataclasses import KW_ONLY, fields
 from typing import Any
 
+import equinox as eqx
 import jax
 import jax.numpy as xp
 import jax.typing as jt
-from astropy.constants import G
-from diffrax import Dopri5, ODETerm, PIDController, SaveAt, diffeqsolve
+from astropy.constants import G as apy_G
 from gala.units import UnitSystem, dimensionless
 
 from galdynamix.utils import jit_method
 
 
-class PotentialBase(metaclass=abc.ABCMeta):
+class PotentialBase(eqx.Module):  # type: ignore[misc]
     """Potential Class."""
 
-    units: UnitSystem
-    _G: float
+    _: KW_ONLY
+    units: UnitSystem = eqx.field(default=None, static=True)
+    _G: float = eqx.field(init=False)
 
-    def __init__(self, units: UnitSystem | None, params: dict[str, Any]) -> None:
-        if units is None:
-            units = dimensionless
+    def __post_init__(self) -> None:
+        units = dimensionless if self.units is None else self.units
+        object.__setattr__(self, "units", UnitSystem(units))
 
-        self.units = UnitSystem(units)
+        G = 1 if self.units == dimensionless else apy_G.decompose(self.units).value
+        object.__setattr__(self, "_G", G)
 
-        if self.units == dimensionless:
-            self._G = 1
-        else:
-            self._G = G.decompose(self.units).value
-
-        for name, param in params.items():
+        for f in fields(self):
+            param = getattr(self, f.name)
             if hasattr(param, "unit"):
-                param = param.decompose(self.units).value  # noqa: PLW2901
-            setattr(self, name, param)
+                param = xp.asarray(param.decompose(self.units).value)
+                object.__setattr__(self, f.name, param)
 
     ###########################################################################
     # Abstract methods that must be implemented by subclasses
@@ -69,14 +68,14 @@ class PotentialBase(metaclass=abc.ABCMeta):
 
     ###########################################################################
 
-    @jit_method()
-    def _jacobian_force_mw(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-        return jax.jacfwd(self.gradient)(q, t)
+    # @jit_method()
+    # def _jacobian_force_mw(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+    #     return jax.jacfwd(self.gradient)(q, t)
 
     @jit_method()
-    def d2phidr2_mw(self, x: jt.Array, /, t: jt.Array) -> jt.Array:
+    def _d2phidr2_mw(self, x: jt.Array, /, t: jt.Array) -> jt.Array:
         """
-        Computes the second derivative of the Milky Way potential at a position x (in the simulation frame)
+        Computes the second derivative of the potential at a position x (in the simulation frame)
 
         Parameters
         ----------
@@ -89,24 +88,22 @@ class PotentialBase(metaclass=abc.ABCMeta):
 
         Examples
         --------
-        >>> d2phidr2_mw(x=xp.array([8.0, 0.0, 0.0]))
+        >>> _d2phidr2_mw(x=xp.array([8.0, 0.0, 0.0]))
         """
         rad = xp.linalg.norm(x)
         r_hat = x / rad
         dphi_dr_func = lambda x: xp.sum(self.gradient(x, t) * r_hat)  # noqa: E731
         return xp.sum(jax.grad(dphi_dr_func)(x) * r_hat)
 
-        ##return xp.matmul(xp.transpose(x), xp.matmul(self._jacobian_force_mw(x, t), x)) / rad**2
-
     @jit_method()
-    def omega(self, x: jt.Array, v: jt.Array) -> jt.Array:
+    def _omega(self, x: jt.Array, v: jt.Array) -> jt.Array:
         """
         Computes the magnitude of the angular momentum in the simulation frame
 
         Arguments
         ---------
         Array
-          3d position (x, y, z) in [kpc]
+            3d position (x, y, z) in [kpc]
         Array
             3d velocity (v_x, v_y, v_z) in [kpc/Myr]
 
@@ -117,14 +114,14 @@ class PotentialBase(metaclass=abc.ABCMeta):
 
         Examples
         --------
-        >>> omega(x=xp.array([8.0, 0.0, 0.0]), v=xp.array([8.0, 0.0, 0.0]))
+        >>> _omega(x=xp.array([8.0, 0.0, 0.0]), v=xp.array([8.0, 0.0, 0.0]))
         """
         rad = xp.sqrt(x[0] ** 2 + x[1] ** 2 + x[2] ** 2)
         omega_vec = xp.cross(x, v) / (rad**2)
         return xp.linalg.norm(omega_vec)
 
     @jit_method()
-    def tidalr_mw(
+    def _tidalr_mw(
         self, x: jt.Array, v: jt.Array, /, Msat: jt.Array, t: jt.Array
     ) -> jt.Array:
         """Computes the tidal radius of a cluster in the potential.
@@ -142,57 +139,38 @@ class PotentialBase(metaclass=abc.ABCMeta):
 
         Examples
         --------
-        >>> tidalr_mw(x=xp.array([8.0, 0.0, 0.0]), v=xp.array([8.0, 0.0, 0.0]), Msat=1e4)
+        >>> _tidalr_mw(x=xp.array([8.0, 0.0, 0.0]), v=xp.array([8.0, 0.0, 0.0]), Msat=1e4)
         """
-        return (self._G * Msat / (self.omega(x, v) ** 2 - self.d2phidr2_mw(x, t))) ** (
-            1.0 / 3.0
-        )
+        return (
+            self._G * Msat / (self._omega(x, v) ** 2 - self._d2phidr2_mw(x, t))
+        ) ** (1.0 / 3.0)
 
     @jit_method()
-    def lagrange_pts(
+    def _lagrange_pts(
         self, x: jt.Array, v: jt.Array, Msat: jt.Array, t: jt.Array
     ) -> tuple[jt.Array, jt.Array]:
-        r_tidal = self.tidalr_mw(x, v, Msat, t)
+        r_tidal = self._tidalr_mw(x, v, Msat, t)
         r_hat = x / xp.linalg.norm(x)
         L_close = x - r_hat * r_tidal
         L_far = x + r_hat * r_tidal
         return L_close, L_far
 
     @jit_method()
-    def velocity_acceleration(self, t: jt.Array, xv: jt.Array, args: Any) -> jt.Array:
+    def _velocity_acceleration(self, t: jt.Array, xv: jt.Array, args: Any) -> jt.Array:
         x, v = xv[:3], xv[3:]
         acceleration = -self.gradient(x, t)
         return xp.hstack([v, acceleration])
 
     @jit_method()
-    def orbit_integrator_run(
-        self, w0: jt.Array, t0: jt.Array, t1: jt.Array, ts: jt.Array
+    def integrate_orbit(
+        self, w0: jt.Array, t0: jt.Array, t1: jt.Array, ts: jt.Array | None
     ) -> jt.Array:
-        term = ODETerm(self.velocity_acceleration)
-        solver = Dopri5()
-        saveat = SaveAt(t0=False, t1=True, ts=ts, dense=False)
-        rtol: float = 1e-7
-        atol: float = 1e-7
-        stepsize_controller = PIDController(rtol=rtol, atol=atol)
-        max_steps: int = 16**3
-        # t0 = t0  # 0.0
-        # t1 = t1  # 4000.
-        dense = False
-        # y0= w_init
+        from galdynamix.integrate._builtin.diffrax import DiffraxIntegrator
+        from galdynamix.potential._hamiltonian import Hamiltonian
 
-        solution = diffeqsolve(
-            terms=term,
-            solver=solver,
-            t0=t0,
-            t1=t1,
-            y0=w0,
-            dt0=None,
-            saveat=saveat,
-            stepsize_controller=stepsize_controller,
-            discrete_terminating_event=None,
-            max_steps=(max_steps if dense else None),
+        return Hamiltonian(self).integrate_orbit(
+            w0, Integrator=DiffraxIntegrator, t0=t0, t1=t1, ts=ts
         )
-        return solution.ys
 
     @jit_method()
     def release_model(
@@ -221,13 +199,13 @@ class PotentialBase(metaclass=abc.ABCMeta):
         keyd = jax.random.PRNGKey(i * random_ints[3])  # jax.random.PRNGKey(i*3)
         keye = jax.random.PRNGKey(i * random_ints[4])  # jax.random.PRNGKey(i*17)
 
-        L_close, L_far = self.lagrange_pts(x, v, Msat, t)  # each is an xyz array
+        L_close, L_far = self._lagrange_pts(x, v, Msat, t)  # each is an xyz array
 
-        omega_val = self.omega(x, v)
+        omega_val = self._omega(x, v)
 
         r = xp.linalg.norm(x)
         r_hat = x / r
-        r_tidal = self.tidalr_mw(x, v, Msat, t)
+        r_tidal = self._tidalr_mw(x, v, Msat, t)
         rel_v = omega_val * r_tidal  # relative velocity
 
         # circlar_velocity
@@ -292,7 +270,7 @@ class PotentialBase(metaclass=abc.ABCMeta):
     def gen_stream_ics(
         self, ts: jt.Array, prog_w0: jt.Array, Msat: jt.Array, seed_num: int
     ) -> jt.Array:
-        ws_jax = self.orbit_integrator_run(prog_w0, xp.min(ts), xp.max(ts), ts)
+        ws_jax = self.integrate_orbit(prog_w0, xp.min(ts), xp.max(ts), ts)
 
         def scan_fun(carry: Any, t: Any) -> Any:
             i, pos_close, pos_far, vel_close, vel_far = carry
@@ -339,7 +317,7 @@ class PotentialBase(metaclass=abc.ABCMeta):
             minval, maxval = ts[i], ts[-1]
 
             def integrate_different_ics(ics: jt.Array) -> jt.Array:
-                return self.orbit_integrator_run(ics, minval, maxval, None)[0]
+                return self.integrate_orbit(ics, minval, maxval, None)[0]
 
             w_particle_close, w_particle_far = jax.vmap(
                 integrate_different_ics, in_axes=(0,)
@@ -391,10 +369,10 @@ class PotentialBase(metaclass=abc.ABCMeta):
             t_release = ts[particle_number]
             t_final = ts[-1] + 0.01
 
-            w_particle_close = self.orbit_integrator_run(
+            w_particle_close = self.integrate_orbit(
                 curr_particle_w0_close, t_release, t_final, None
             )[0]
-            w_particle_far = self.orbit_integrator_run(
+            w_particle_far = self.integrate_orbit(
                 curr_particle_w0_far, t_release, t_final, None
             )[0]
 

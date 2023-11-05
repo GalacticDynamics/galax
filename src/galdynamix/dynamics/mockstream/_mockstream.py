@@ -39,12 +39,12 @@ class MockStreamGenerator(eqx.Module):
         def scan_fun(carry: Any, t: Any) -> Any:
             i, pos_close, pos_far, vel_close, vel_far = carry
             sample_outputs = self.df.sample(
+                self.potential,
                 ws_jax[i, :3],
                 ws_jax[i, 3:],
                 prog_mass,
                 i,
                 t,
-                potential=self.potential,
                 seed_num=seed_num,
             )
             return [i + 1, *sample_outputs], list(sample_outputs)

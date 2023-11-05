@@ -28,13 +28,13 @@ class BaseStreamDF(eqx.Module):
     @abc.abstractmethod
     def sample(
         self,
+        potential: PotentialBase,
         x: jt.Array,
         v: jt.Array,
         prog_mass: jt.Array,
         i: int,
         t: jt.Array,
         *,
-        potential: PotentialBase,
         seed_num: int,
     ) -> tuple[jt.Array, jt.Array, jt.Array, jt.Array]:
         """Sample the DF."""
@@ -48,13 +48,13 @@ class FardalStreamDF(BaseStreamDF):
     @jit_method(static_argnames=("seed_num",))
     def sample(
         self,
+        potential: PotentialBase,
         x: jt.Array,
         v: jt.Array,
         prog_mass: jt.Array,
         i: int,
         t: jt.Array,
         *,
-        potential: PotentialBase,
         seed_num: int,
     ) -> tuple[jt.Array, jt.Array, jt.Array, jt.Array]:
         """
@@ -74,15 +74,14 @@ class FardalStreamDF(BaseStreamDF):
         keyd = jax.random.PRNGKey(i * random_ints[3])  # jax.random.PRNGKey(i*3)
         keye = jax.random.PRNGKey(i * random_ints[4])  # jax.random.PRNGKey(i*17)
 
-        L_close, L_far = self._lagrange_pts(
-            x, v, prog_mass, t, potential=potential
-        )  # each is an xyz array
+        # each is an xyz array
+        L_close, L_far = self._lagrange_pts(potential, x, v, prog_mass, t)
 
         omega_val = self._omega(x, v)
 
         r = xp.linalg.norm(x)
         r_hat = x / r
-        r_tidal = self._tidalr_mw(x, v, prog_mass, t, potential=potential)
+        r_tidal = self._tidalr_mw(potential, x, v, prog_mass, t)
         rel_v = omega_val * r_tidal  # relative velocity
 
         # circlar_velocity
@@ -146,14 +145,13 @@ class FardalStreamDF(BaseStreamDF):
     @jit_method()
     def _lagrange_pts(
         self,
+        potential: PotentialBase,
         x: jt.Array,
         v: jt.Array,
         Msat: jt.Array,
         t: jt.Array,
-        *,
-        potential: PotentialBase,
     ) -> tuple[jt.Array, jt.Array]:
-        r_tidal = self._tidalr_mw(x, v, Msat, t, potential=potential)
+        r_tidal = self._tidalr_mw(potential, x, v, Msat, t)
         r_hat = x / xp.linalg.norm(x)
         L_close = x - r_hat * r_tidal
         L_far = x + r_hat * r_tidal
@@ -161,7 +159,7 @@ class FardalStreamDF(BaseStreamDF):
 
     @jit_method()
     def _d2phidr2_mw(
-        self, x: jt.Array, /, t: jt.Array, *, potential: PotentialBase
+        self, potential: PotentialBase, x: jt.Array, /, t: jt.Array
     ) -> jt.Array:
         """
         Computes the second derivative of the potential at a position x (in the simulation frame)
@@ -212,13 +210,12 @@ class FardalStreamDF(BaseStreamDF):
     @jit_method()
     def _tidalr_mw(
         self,
+        potential: PotentialBase,
         x: jt.Array,
         v: jt.Array,
         /,
         Msat: jt.Array,
         t: jt.Array,
-        *,
-        potential: PotentialBase,
     ) -> jt.Array:
         """Computes the tidal radius of a cluster in the potential.
 
@@ -240,5 +237,5 @@ class FardalStreamDF(BaseStreamDF):
         return (
             potential._G
             * Msat
-            / (self._omega(x, v) ** 2 - self._d2phidr2_mw(x, t, potential=potential))
+            / (self._omega(x, v) ** 2 - self._d2phidr2_mw(potential, x, t))
         ) ** (1.0 / 3.0)

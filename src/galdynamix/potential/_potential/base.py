@@ -46,7 +46,6 @@ class PotentialBase(eqx.Module):  # type: ignore[misc]
 
     ###########################################################################
     # Core methods that use the above implemented functions
-    #
 
     @jit_method()
     def gradient(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
@@ -68,15 +67,9 @@ class PotentialBase(eqx.Module):  # type: ignore[misc]
 
     ###########################################################################
 
-    # @jit_method()
-    # def _jacobian_force_mw(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-    #     return jax.jacfwd(self.gradient)(q, t)
-
     @jit_method()
-    def _velocity_acceleration(self, t: jt.Array, xv: jt.Array, args: Any) -> jt.Array:
-        x, v = xv[:3], xv[3:]
-        acceleration = -self.gradient(x, t)
-        return xp.hstack([v, acceleration])
+    def _vel_acc(self, t: jt.Array, xv: jt.Array, args: Any) -> jt.Array:
+        return xp.hstack([xv[3:], -self.gradient(xv[:3], t)])
 
     @jit_method()
     def integrate_orbit(
@@ -86,4 +79,4 @@ class PotentialBase(eqx.Module):  # type: ignore[misc]
             DiffraxIntegrator as Integrator,
         )
 
-        return Integrator(self._velocity_acceleration).run(w0, t0, t1, ts)
+        return Integrator(self._vel_acc).run(w0, t0, t1, ts)

@@ -9,6 +9,7 @@ import equinox as eqx
 import jax.typing as jt
 
 from galdynamix.integrate._base import Integrator
+from galdynamix.integrate._builtin.diffrax import DiffraxIntegrator
 from galdynamix.potential._potential.base import PotentialBase
 
 
@@ -22,6 +23,6 @@ class Hamiltonian(eqx.Module):  # type: ignore[misc]
         t1: jt.Array,
         ts: jt.Array | None,
         *,
-        Integrator: type[Integrator],
+        Integrator: type[Integrator] = DiffraxIntegrator,
     ) -> jt.Array:
         return Integrator(self.potential._velocity_acceleration).run(w0, t0, t1, ts)

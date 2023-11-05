@@ -17,4 +17,4 @@ R = TypeVar("R")
 def jit_method(
     **kwargs: Any,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    return partial(jax.jit, static_argnums=(0,), **kwargs)
+    return partial(jax.jit, **kwargs)

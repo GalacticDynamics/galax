@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 2023.10.27
+_src_path: gh:scientific-python/cookie
+backend: hatch
+email: nstarman@users.noreply.github.com
+full_name: Nathaniel Starkman
+license: BSD
+org: nstarman
+project_name: galdynamix
+project_short_description: Galactic Dynamix in Jax
+url: https://github.com/nstarman/galdynamix
+vcs: true

@@ -29,7 +29,15 @@ classifiers = [
   "Typing :: Typed",
 ]
 dynamic = ["version"]
-dependencies = []
+dependencies = [
+  "astropy >= 5.3",
+  "diffrax",
+  "equinox",
+  "gala >= 1.7",
+  "jax",
+  "jax_cosmo",
+  "typing_extensions",
+]
 
 [project.optional-dependencies]
 test = [
@@ -101,6 +109,10 @@ module = "galdynamix.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
+[[tool.mypy.overrides]]
+module = ["astropy.*", "diffrax.*", "gala.*", "jax.*", "jax_cosmo.*"]
+ignore_missing_imports = true
+
 
 [tool.ruff]
 src = ["src"]
@@ -131,6 +143,10 @@ extend-select = [
 ]
 ignore = [
   "PLR",    # Design related pylint codes
+  # TODO! fix these
+  "ARG001",
+  "ARG002",
+  "F841",
 ]
 isort.required-imports = ["from __future__ import annotations"]
 # Uncomment if using a _compat.typing backport

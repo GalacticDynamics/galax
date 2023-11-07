@@ -12,9 +12,11 @@ import jax
 import jax.numpy as xp
 import jax.typing as jt
 from astropy.constants import G as apy_G
-from gala.units import UnitSystem, dimensionless
 
+from galdynamix.integrate._base import AbstractIntegrator
+from galdynamix.integrate._builtin import DiffraxIntegrator
 from galdynamix.potential._potential.param.field import ParameterField
+from galdynamix.units import UnitSystem, dimensionless
 from galdynamix.utils import partial_jit
 
 
@@ -94,17 +96,21 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
     # Convenience methods
 
     @partial_jit()
-    def _vel_acc(self, t: jt.Array, qp: jt.Array, args: Any) -> jt.Array:
+    def _vel_acc(self, t: jt.Array, qp: jt.Array, args: tuple[Any, ...]) -> jt.Array:
         return xp.hstack([qp[3:], self.acceleration(qp[:3], t)])
 
-    @partial_jit()
+    @partial_jit(static_argnames=("Integrator", "integrator_kw"))
     def integrate_orbit(
-        self, w0: jt.Array, t0: jt.Array, t1: jt.Array, ts: jt.Array | None
+        self,
+        w0: jt.Array,
+        t0: jt.Array,
+        t1: jt.Array,
+        ts: jt.Array | None,
+        *,
+        Integrator: type[AbstractIntegrator] = DiffraxIntegrator,
+        integrator_kw: dict[str, Any] | None = None,
     ) -> jt.Array:
-        # TODO: allow passing in integrator options
-        from galdynamix.integrate._builtin import DiffraxIntegrator as Integrator
-
-        return Integrator(self._vel_acc).run(w0, t0, t1, ts)
+        return Integrator(self._vel_acc, **(integrator_kw or {})).run(w0, t0, t1, ts)
 
 
 # ===========================================================================

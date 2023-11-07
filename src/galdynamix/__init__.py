@@ -3,7 +3,7 @@ from __future__ import annotations
 
 __all__ = ["__version__"]
 
-from jax.config import config
+from jax import config
 
 from ._version import version as __version__
 

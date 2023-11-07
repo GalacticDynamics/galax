@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Galactic Dynamix in Jax"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 classifiers = [
   "Development Status :: 1 - Planning",
   "Intended Audience :: Science/Research",
@@ -20,9 +20,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
@@ -33,7 +30,6 @@ dependencies = [
   "astropy >= 5.3",
   "diffrax",
   "equinox",
-  "gala >= 1.7",
   "jax",
   "jax_cosmo",
   "typing_extensions",
@@ -110,7 +106,7 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
 [[tool.mypy.overrides]]
-module = ["astropy.*", "diffrax.*", "equinox.*", "gala.*", "jax.*", "jax_cosmo.*"]
+module = ["astropy.*", "diffrax.*", "equinox.*", "jax.*", "jax_cosmo.*"]
 ignore_missing_imports = true
 
 
@@ -158,7 +154,7 @@ isort.required-imports = ["from __future__ import annotations"]
 
 
 [tool.pylint]
-py-version = "3.8"
+py-version = "3.11"
 ignore-paths = [".*/_version.py"]
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"

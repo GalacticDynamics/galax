@@ -4,14 +4,10 @@ from __future__ import annotations
 
 __all__ = ["ImmutableDict"]
 
-from collections.abc import Mapping
+from collections.abc import ItemsView, Iterator, KeysView, Mapping, ValuesView
 from typing import (
-    ItemsView,
-    Iterator,
-    KeysView,
     Self,
     TypeVar,
-    ValuesView,
 )
 
 from jax.tree_util import register_pytree_node_class
@@ -78,4 +74,4 @@ class ImmutableDict(Mapping[str, V]):
         a re-constructed object of the registered type, using the specified
         children and auxiliary data.
         """
-        return cls(tuple(zip(aux_data, children)))  # type: ignore[arg-type]
+        return cls(tuple(zip(aux_data, children, strict=True)))  # type: ignore[arg-type]

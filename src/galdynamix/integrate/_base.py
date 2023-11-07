@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ["Integrator"]
+__all__ = ["AbstractIntegrator"]
 
 import abc
 from typing import Any, Protocol
@@ -14,8 +14,12 @@ class FCallable(Protocol):
         ...
 
 
-class Integrator(eqx.Module):  # type: ignore[misc]
+class AbstractIntegrator(eqx.Module):  # type: ignore[misc]
+    """Integrator Class."""
+
     F: FCallable
+    """The function to integrate."""
+    # TODO: should this be moved to be the first argument of the run method?
 
     @abc.abstractmethod
     def run(

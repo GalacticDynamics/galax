@@ -15,16 +15,15 @@ __all__ = [
 
 from dataclasses import KW_ONLY
 
-import astropy.units as u
 import equinox as eqx
 import jax
 import jax.numpy as xp
 import jax.typing as jt
-from gala.units import UnitSystem
 from jax_cosmo.scipy.interpolate import InterpolatedUnivariateSpline
 
 from galdynamix.potential._potential.base import AbstractPotential
 from galdynamix.potential._potential.param import AbstractParameter, ParameterField
+from galdynamix.units import galactic
 from galdynamix.utils import partial_jit
 from galdynamix.utils.dataclasses import field
 
@@ -135,9 +134,6 @@ class NFWPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
-usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian)
-
-
 @jax.jit  # type: ignore[misc]
 def get_splines(x_eval: jt.Array, x: jt.Array, y: jt.Array) -> Any:
     return InterpolatedUnivariateSpline(x, y, k=3)(x_eval)
@@ -152,7 +148,7 @@ def single_subhalo_potential(
     TODO: custom unit specification/subhalo potential specficiation.
     Currently supports units kpc, Myr, Msun, rad.
     """
-    pot_single = Isochrone(m=params["m"], a=params["a"], units=usys)
+    pot_single = Isochrone(m=params["m"], a=params["a"], units=galactic)
     return pot_single.potential_energy(q, t)
 
 

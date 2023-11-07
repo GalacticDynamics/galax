@@ -17,10 +17,10 @@ from diffrax import (
 )
 from diffrax import SaveAt as DiffraxSaveAt
 
-from galdynamix.integrate._base import Integrator
+from galdynamix.integrate._base import AbstractIntegrator
 
 
-class DiffraxIntegrator(Integrator):
+class DiffraxIntegrator(AbstractIntegrator):
     """Thin wrapper around ``diffrax.diffeqsolve``."""
 
     _: KW_ONLY

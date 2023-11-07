@@ -5,7 +5,8 @@ from __future__ import annotations
 __all__ = ["field"]
 
 import dataclasses
-from typing import Any, Callable, Generic, Mapping, NotRequired, TypedDict, TypeVar
+from collections.abc import Callable, Mapping
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar
 
 import astropy.units as u
 from typing_extensions import ParamSpec, Unpack

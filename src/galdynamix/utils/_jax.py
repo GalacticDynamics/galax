@@ -4,11 +4,10 @@ from __future__ import annotations
 
 __all__ = ["partial_jit"]
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from functools import partial
 from typing import (
     Any,
-    Callable,
     NotRequired,
     TypedDict,
     TypeVar,

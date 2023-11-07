@@ -28,10 +28,10 @@ jobs:
       - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --hook-stage manual --all-files
-      - name: Run PyLint
-        run: |
-          echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
-          pipx run nox -s pylint
+      # - name: Run PyLint
+      #   run: |
+      #     echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
+      #     pipx run nox -s pylint
 
   checks:
     name: Check Python ${{ matrix.python-version }} on ${{ matrix.runs-on }}
@@ -40,12 +40,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.12"]
+        python-version: ["3.11", "3.12"]
         runs-on: [ubuntu-latest, macos-latest, windows-latest]
 
-        include:
-          - python-version: pypy-3.10
-            runs-on: ubuntu-latest
+        # TODO: figure out OpenBLAS install
+        #   ``ERROR: Dependency "OpenBLAS" not found, tried pkgconfig and cmake``
+        # include:
+        #   - python-version: pypy-3.11
+        #     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4

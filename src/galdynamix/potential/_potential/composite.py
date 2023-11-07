@@ -9,8 +9,8 @@ from typing import TypeVar, final
 import equinox as eqx
 import jax.numpy as xp
 import jax.typing as jt
-from gala.units import UnitSystem, dimensionless
 
+from galdynamix.units import UnitSystem, dimensionless
 from galdynamix.utils import ImmutableDict, partial_jit
 
 from .base import AbstractPotentialBase
@@ -25,7 +25,9 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
 
     _data: dict[str, AbstractPotentialBase]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(static=True)
+    units: UnitSystem = eqx.field(
+        static=True, converter=lambda x: dimensionless if x is None else UnitSystem(x)
+    )
     _G: float = eqx.field(init=False, static=True)
 
     def __init__(
@@ -37,7 +39,7 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
         **kwargs: AbstractPotentialBase,
     ) -> None:
         super().__init__(potentials, **kwargs)  # type: ignore[arg-type]
-        self.units = dimensionless if units is None else UnitSystem(units)
+        self.units = self.__dataclass_fields__["units"].metadata["converter"](units)
         # TODO: check unit systems of contained potentials to make sure they match.
 
         self._init_units()

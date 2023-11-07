@@ -3,78 +3,51 @@ from __future__ import annotations
 __all__ = ["CompositePotential"]
 
 
-from collections.abc import Mapping
-from typing import TypeVar
+from dataclasses import KW_ONLY
+from typing import TypeVar, final
 
 import equinox as eqx
 import jax.numpy as xp
 import jax.typing as jt
+from gala.units import UnitSystem, dimensionless
 
-from galdynamix.utils import jit_method
+from galdynamix.utils import ImmutableDict, partial_jit
 
-from .base import PotentialBase
+from .base import AbstractPotentialBase
 
+K = TypeVar("K")
 V = TypeVar("V")
 
 
-class FrozenDict(Mapping[str, V]):
-    def __init__(self, *args: V, **kwargs: V) -> None:
-        self._data: dict[str, V] = dict(*args, **kwargs)
-
-    def __getitem__(self, key: str) -> V:
-        return self._data[key]
-
-    def __iter__(self) -> iter[str]:
-        return iter(self._data)
-
-    def __len__(self) -> int:
-        return len(self._data)
-
-    def __hash__(self) -> int:
-        return hash(tuple(self._data.items()))
-
-    def keys(self) -> iter[str]:
-        return self._data.keys()
-
-    def values(self) -> iter[V]:
-        return self._data.values()
-
-    def items(self) -> iter[tuple[str, V]]:
-        return self._data.items()
-
-
-class CompositePotential(PotentialBase):
+@final
+class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotentialBase):
     """Composite Potential."""
 
-    # potentials: FrozenDict[str, PotentialBase] = eqx.field(converter=FrozenDict)
+    _data: dict[str, AbstractPotentialBase]
+    _: KW_ONLY
+    units: UnitSystem = eqx.field(static=True)
+    _G: float = eqx.field(init=False, static=True)
 
-    potentials: tuple[PotentialBase] = eqx.field(converter=tuple)
+    def __init__(
+        self,
+        potentials: dict[str, AbstractPotentialBase]
+        | tuple[tuple[str, AbstractPotentialBase], ...] = (),
+        /,
+        units: UnitSystem | None = None,
+        **kwargs: AbstractPotentialBase,
+    ) -> None:
+        super().__init__(potentials, **kwargs)  # type: ignore[arg-type]
+        self.units = dimensionless if units is None else UnitSystem(units)
+        # TODO: check unit systems of contained potentials to make sure they match.
 
-    # def __post_init__(self) -> None:
-    #     super().__post_init__()
-    #     self._potentials: dict[str, PotentialBase]
-    #     object.__setattr__(self, "_potentials", list(self.potentials.values()))
-
-    # === Mapping ===
-
-    def __getitem__(self, key: str) -> PotentialBase:
-        return self.potentials[key]
-
-    def __iter__(self) -> iter[str]:
-        return iter(self.potentials)
-
-    def __len__(self) -> int:
-        return len(self.potentials)
+        self._init_units()
 
     # === Potential ===
 
-    @jit_method()
-    def energy(
+    @partial_jit()
+    def potential_energy(
         self,
         q: jt.Array,
         t: jt.Array,
     ) -> jt.Array:
-        output = []
-        for p in self.potentials:
-            output.append(p.energy(q, t))
-        return xp.sum(xp.array(output))
+        return xp.sum(xp.array([p.potential_energy(q, t) for p in self.values()]))

@@ -5,151 +5,147 @@ from __future__ import annotations
 
 __all__ = ["MockStreamGenerator"]
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import equinox as eqx
 import jax
 import jax.numpy as xp
 import jax.typing as jt
 
-from galdynamix.potential._potential.base import PotentialBase
-from galdynamix.utils import jit_method
+from galdynamix.potential._potential.base import AbstractPotentialBase
+from galdynamix.utils import partial_jit
 
 from ._df import BaseStreamDF
 
+if TYPE_CHECKING:
+    _wifT: TypeAlias = tuple[jt.Array, jt.Array, jt.Array, jt.Array]
+    _carryT: TypeAlias = tuple[int, jt.Array, jt.Array, jt.Array, jt.Array]
 
-class MockStreamGenerator(eqx.Module):
+
+class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     df: BaseStreamDF
-    potential: PotentialBase
-    progenitor_potential: PotentialBase | None = None
+    potential: AbstractPotentialBase
+    progenitor_potential: AbstractPotentialBase | None = None
 
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "self_gravity", self.progenitor_potential is not None)
+    @property
+    def self_gravity(self) -> bool:
+        return self.progenitor_potential is not None
 
     # ==========================================================================
 
-    @jit_method(static_argnames=("seed_num",))
-    def _gen_stream_ics(
-        self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
+    @partial_jit(static_argnames=("seed_num",))
+    def _stream_ics(
+        self, ts: jt.Array, w0: jt.Array, mass: jt.Array, *, seed_num: int
     ) -> jt.Array:
-        ws_jax = self.potential.integrate_orbit(
-            prog_w0, t0=xp.min(ts), t1=xp.max(ts), ts=ts
-        )
+        """Stream Initial Conditions.
 
-        def scan_fun(carry: Any, t: Any) -> Any:
-            i, pos_close, pos_far, vel_close, vel_far = carry
-            sample_outputs = self.df.sample(
-                self.potential,
-                ws_jax[i, :3],
-                ws_jax[i, 3:],
-                prog_mass,
-                i,
-                t,
-                seed_num=seed_num,
+        Parameters
+        ----------
+        ts : array_like
+            Array of times to release particles.
+        w0 : array_like
+            q, p of the progenitor.
+        mass : array_like
+            Mass of the progenitor.
+        """
+        ws = self.potential.integrate_orbit(w0, xp.min(ts), xp.max(ts), ts)
+
+        def scan_fun(carry: _carryT, t: Any) -> tuple[_carryT, _wifT]:
+            i = carry[0]
+            output = self.df.sample(
+                self.potential, ws[i, :3], ws[i, 3:], mass, i, t, seed_num=seed_num
             )
-            return [i + 1, *sample_outputs], list(sample_outputs)
+            return (i + 1, *output), tuple(output)  # type: ignore[return-value]
 
-        init_carry = [
+        init_carry = (
             0,
             xp.array([0.0, 0.0, 0.0]),
             xp.array([0.0, 0.0, 0.0]),
             xp.array([0.0, 0.0, 0.0]),
             xp.array([0.0, 0.0, 0.0]),
-        ]
-        # final_state, all_states = jax.lax.scan(scan_fun, init_carry, ts[1:])
-        # pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr = all_states
+        )
         return jax.lax.scan(scan_fun, init_carry, ts[1:])[1]
 
-    @jit_method(static_argnames=("seed_num",))
+    @partial_jit(static_argnames=("seed_num",))
     def _run_scan(
         self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
     ) -> tuple[jt.Array, jt.Array]:
         """
         Generate stellar stream by scanning over the release model/integration. Better for CPU usage.
         """
-        pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr = self._gen_stream_ics(
+        q_close, q_far, p_close, p_far = self._stream_ics(
             ts, prog_w0, prog_mass, seed_num=seed_num
         )
 
+        # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
-        def scan_fun(carry: Any, particle_idx: Any) -> Any:
-            i, pos_close_curr, pos_far_curr, vel_close_curr, vel_far_curr = carry
-            curr_particle_w0_close = xp.hstack([pos_close_curr, vel_close_curr])
-            curr_particle_w0_far = xp.hstack([pos_far_curr, vel_far_curr])
-            w0_lead_trail = xp.vstack([curr_particle_w0_close, curr_particle_w0_far])
+        def scan_fun(
+            carry: _carryT, particle_idx: int
+        ) -> tuple[_carryT, tuple[jt.Array, jt.Array]]:
+            i, q_close_i, q_far_i, p_close_i, p_far_i = carry
+            w0_close_i = xp.hstack([q_close_i, p_close_i])
+            w0_far_i = xp.hstack([q_far_i, p_far_i])
+            w0_lead_trail = xp.vstack([w0_close_i, w0_far_i])
 
             minval, maxval = ts[i], ts[-1]
-
-            def integrate_different_ics(ics: jt.Array) -> jt.Array:
-                return self.potential.integrate_orbit(ics, minval, maxval, None)[0]
-
-            w_particle_close, w_particle_far = jax.vmap(
-                integrate_different_ics, in_axes=(0,)
-            )(
-                w0_lead_trail
-            )  # vmap over leading and trailing arm
-
-            return [
+            integ_ics = lambda ics: self.potential.integrate_orbit(  # noqa: E731
+                ics, minval, maxval, None
+            )[0]
+            # vmap over leading and trailing arm
+            w_close, w_far = jax.vmap(integ_ics, in_axes=(0,))(w0_lead_trail)
+            carry_out = (
                 i + 1,
-                pos_close_arr[i + 1, :],
-                pos_far_arr[i + 1, :],
-                vel_close_arr[i + 1, :],
-                vel_far_arr[i + 1, :],
-            ], [w_particle_close, w_particle_far]
+                q_close[i + 1, :],
+                q_far[i + 1, :],
+                p_close[i + 1, :],
+                p_far[i + 1, :],
+            )
+            return carry_out, (w_close, w_far)
 
-        init_carry = [
-            0,
-            pos_close_arr[0, :],
-            pos_far_arr[0, :],
-            vel_close_arr[0, :],
-            vel_far_arr[0, :],
-        ]
-        particle_ids = xp.arange(len(pos_close_arr))
-        final_state, all_states = jax.lax.scan(scan_fun, init_carry, particle_ids)
-        lead_arm, trail_arm = all_states
+        carry_init = (0, q_close[0, :], q_far[0, :], p_close[0, :], p_far[0, :])
+        particle_ids = xp.arange(len(q_close))
+        lead_arm, trail_arm = jax.lax.scan(scan_fun, carry_init, particle_ids)[1]
         return lead_arm, trail_arm
 
-    @jit_method(static_argnames=("seed_num",))
+    @partial_jit(static_argnames=("seed_num",))
     def _run_vmap(
         self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
     ) -> tuple[jt.Array, jt.Array]:
         """
         Generate stellar stream by vmapping over the release model/integration. Better for GPU usage.
         """
-        pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr = self._gen_stream_ics(
-            ts, prog_w0, prog_mass, seed_num
+        q_close_arr, q_far_arr, p_close_arr, p_far_arr = self._stream_ics(
+            ts, prog_w0, prog_mass, seed_num=seed_num
         )
 
+        # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
         def single_particle_integrate(
-            particle_number: int,
-            pos_close_curr: jt.Array,
-            pos_far_curr: jt.Array,
-            vel_close_curr: jt.Array,
-            vel_far_curr: jt.Array,
+            i: int,
+            q_close_i: jt.Array,
+            q_far_i: jt.Array,
+            p_close_i: jt.Array,
+            p_far_i: jt.Array,
         ) -> tuple[jt.Array, jt.Array]:
-            curr_particle_w0_close = xp.hstack([pos_close_curr, vel_close_curr])
-            curr_particle_w0_far = xp.hstack([pos_far_curr, vel_far_curr])
-            t_release = ts[particle_number]
-            t_final = ts[-1] + 0.01
+            w0_close_i = xp.hstack([q_close_i, p_close_i])
+            w0_far_i = xp.hstack([q_far_i, p_far_i])
+            t_i = ts[i]
+            t_f = ts[-1] + 0.01
 
-            w_particle_close = self.integrate_orbit(
-                curr_particle_w0_close, t_release, t_final, None
-            )[0]
-            w_particle_far = self.integrate_orbit(
-                curr_particle_w0_far, t_release, t_final, None
-            )[0]
+            w_close = self.integrate_orbit(w0_close_i, t_i, t_f, None)[0]
+            w_far = self.integrate_orbit(w0_far_i, t_i, t_f, None)[0]
 
-            return w_particle_close, w_particle_far
+            return w_close, w_far
 
-        particle_ids = xp.arange(len(pos_close_arr))
+        particle_ids = xp.arange(len(q_close_arr))
 
-        return jax.vmap(
-            single_particle_integrate,
-            in_axes=(0, 0, 0, 0, 0),
-        )(particle_ids, pos_close_arr, pos_far_arr, vel_close_arr, vel_far_arr)
+        integrator = jax.vmap(single_particle_integrate, in_axes=(0, 0, 0, 0, 0))
+        w_close, w_far = integrator(
+            particle_ids, q_close_arr, q_far_arr, p_close_arr, p_far_arr
+        )
+        return w_close, w_far
 
-    @jit_method(static_argnames=("seed_num", "vmapped"))
+    @partial_jit(static_argnames=("seed_num", "vmapped"))
     def run(
         self,
         ts: jt.Array,
@@ -161,7 +157,6 @@ class MockStreamGenerator(eqx.Module):
     ) -> tuple[jt.Array, jt.Array]:
         if vmapped:
             return self._run_vmap(ts, prog_w0, prog_mass, seed_num=seed_num)
-        else:
-            return self._run_scan(ts, prog_w0, prog_mass, seed_num=seed_num)
+        return self._run_scan(ts, prog_w0, prog_mass, seed_num=seed_num)
 
     # ==========================================================================

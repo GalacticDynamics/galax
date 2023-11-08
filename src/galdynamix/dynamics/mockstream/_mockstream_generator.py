@@ -1,5 +1,4 @@
 """galdynamix: Galactic Dynamix in Jax"""
-# ruff: noqa: F403
 
 from __future__ import annotations
 
@@ -45,9 +44,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_ws = self.potential.integrate_orbit(prog_w0, xp.min(ts), xp.max(ts), ts)
 
         # Generate stream initial conditions along the integrated progenitor orbit
-        x_lead, x_trail, v_lead, v_trail = self.df.sample(
+        mock_lead, mock_trail = self.df.sample(
             self.potential, prog_ws, ts, prog_mass, seed_num=seed_num
         )
+        x_lead, v_lead = mock_lead.q, mock_lead.p
+        x_trail, v_trail = mock_trail.q, mock_trail.p
 
         def scan_fn(
             carry: _carryT, particle_idx: int
@@ -88,9 +89,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_ws = self.potential.integrate_orbit(prog_w0, xp.min(ts), xp.max(ts), ts)
 
         # Generate stream initial conditions along the integrated progenitor orbit
-        x_lead, x_trail, v_lead, v_trail = self.df.sample(
+        mock_lead, mock_trail = self.df.sample(
             self.potential, prog_ws, ts, prog_mass, seed_num=seed_num
         )
+        x_lead, v_lead = mock_lead.q, mock_lead.p
+        x_trail, v_trail = mock_trail.q, mock_trail.p
 
         # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]

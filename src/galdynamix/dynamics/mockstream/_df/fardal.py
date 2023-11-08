@@ -1,5 +1,4 @@
 """galdynamix: Galactic Dynamix in Jax"""
-# ruff: noqa: F403
 
 from __future__ import annotations
 
@@ -22,8 +21,7 @@ class FardalStreamDF(AbstractStreamDF):
         self,
         # parts of gala's ``prog_orbit``
         potential: AbstractPotentialBase,
-        x: jt.Array,
-        v: jt.Array,
+        w: jt.Array,
         prog_mass: jt.Array,
         i: int,
         t: jt.Array,
@@ -46,6 +44,8 @@ class FardalStreamDF(AbstractStreamDF):
         keyd = jax.random.PRNGKey(i * random_ints[3])
 
         # ---------------------------
+
+        x, v = w[:3], w[3:]
 
         omega_val = orbital_angular_velocity_mag(x, v)
 
@@ -85,8 +85,8 @@ class FardalStreamDF(AbstractStreamDF):
         ########kvt_samp = kvt_bar + jax.random.normal(keye,shape=(1,))*sigma_kvt
 
         ## Trailing arm
-        pos_trail = x + kr_samp * r_hat * (r_tidal)  # nudge out
-        pos_trail = pos_trail + z_hat * kz_samp * (
+        x_trail = x + kr_samp * r_hat * (r_tidal)  # nudge out
+        x_trail = x_trail + z_hat * kz_samp * (
             r_tidal / 1.0
         )  # r #nudge above/below orbital plane
         v_trail = (
@@ -97,8 +97,8 @@ class FardalStreamDF(AbstractStreamDF):
         )  # v_trail + (kvz_samp*v_circ*(-r_tidal/r))*z_hat #nudge velocity along vertical direction
 
         ## Leading arm
-        pos_lead = x + kr_samp * r_hat * (-r_tidal)  # nudge in
-        pos_lead = pos_lead + z_hat * kz_samp * (
+        x_lead = x + kr_samp * r_hat * (-r_tidal)  # nudge in
+        x_lead = x_lead + z_hat * kz_samp * (
             -r_tidal / 1.0
         )  # r #nudge above/below orbital plane
         v_lead = (
@@ -108,7 +108,7 @@ class FardalStreamDF(AbstractStreamDF):
             v_lead + (kvz_samp * v_circ * (-1.0)) * z_hat
         )  # v_lead + (kvz_samp*v_circ*(r_tidal/r))*z_hat #nudge velocity against vertical direction
 
-        return pos_lead, pos_trail, v_lead, v_trail
+        return x_lead, x_trail, v_lead, v_trail
 
 
 #####################################################################

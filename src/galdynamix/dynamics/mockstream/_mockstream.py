@@ -15,7 +15,7 @@ import jax.typing as jt
 from galdynamix.potential._potential.base import AbstractPotentialBase
 from galdynamix.utils import partial_jit
 
-from ._df import BaseStreamDF
+from ._df import AbstractStreamDF
 
 if TYPE_CHECKING:
     _wifT: TypeAlias = tuple[jt.Array, jt.Array, jt.Array, jt.Array]
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
-    df: BaseStreamDF
+    df: AbstractStreamDF
     potential: AbstractPotentialBase
     # progenitor_potential: AbstractPotentialBase | None = None
 

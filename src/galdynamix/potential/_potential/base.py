@@ -110,7 +110,8 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         Integrator: type[AbstractIntegrator] = DiffraxIntegrator,
         integrator_kw: dict[str, Any] | None = None,
     ) -> jt.Array:
-        return Integrator(self._vel_acc, **(integrator_kw or {})).run(w0, t0, t1, ts)
+        integrator = Integrator(self._vel_acc, **(integrator_kw or {}))
+        return integrator.run(w0, t0, t1, ts)
 
 
 # ===========================================================================

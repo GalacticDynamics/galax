@@ -1,10 +1,12 @@
+"""Sphinx configuration."""
+
 from __future__ import annotations
 
 import importlib.metadata
 
 project = "galdynamix"
-copyright = "2023, Nathaniel Starkman"
-author = "Nathaniel Starkman"
+copyright = "2023, galdynamix maintainers"
+author = "galdynamix maintainers"
 version = release = importlib.metadata.version("galdynamix")
 
 extensions = [

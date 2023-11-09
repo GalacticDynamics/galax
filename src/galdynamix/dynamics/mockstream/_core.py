@@ -1,4 +1,4 @@
-"""galdynamix: Galactic Dynamix in Jax"""
+"""galdynamix: Galactic Dynamix in Jax."""
 
 from __future__ import annotations
 
@@ -12,7 +12,8 @@ import jax.typing as jt
 class MockStream(eqx.Module):  # type: ignore[misc]
     """Mock stream object.
 
-    TODO:
+    Todo:
+    ----
     - units stuff
     - change this to be a collection of sub-objects: progenitor, leading arm,
       trailing arm, 3-body ejecta, etc.

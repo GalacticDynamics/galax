@@ -29,7 +29,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import ClassVar
 
 __all__ = [
     "UnitSystem",
@@ -56,14 +56,14 @@ class UnitSystem:
         u.get_physical_type("angle"),
     ]
 
-    def __init__(self, units: UnitSystem | u.UnitBase, *args: u.UnitBase):
+    def __init__(self, units: UnitSystem | u.UnitBase, *args: u.UnitBase) -> None:
         if isinstance(units, UnitSystem):
             if len(args) > 0:
-                msg = "If passing in a UnitSystem instance, you cannot pass in additional units."
+                msg = "If passing in a UnitSystem, cannot pass in additional units."
                 raise ValueError(msg)
 
-            self._registry = units._registry.copy()
-            self._core_units = units._core_units
+            self._registry = units._registry.copy()  # noqa: SLF001
+            self._core_units = units._core_units  # noqa: SLF001
             return
 
         units = (units, *args)
@@ -98,14 +98,18 @@ class UnitSystem:
     def __repr__(self) -> str:
         return f"UnitSystem({', '.join(str(uu) for uu in self._core_units)})"
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, UnitSystem):
+            return NotImplemented
         return bool(self._registry == other._registry)
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
 
 class DimensionlessUnitSystem(UnitSystem):
+    """A unit system with only dimensionless units."""
+
     _required_physical_types: ClassVar[list[u.PhysicalType]] = []
 
     def __init__(self) -> None:

@@ -49,7 +49,7 @@ class AbstractParameter(eqx.Module):  # type: ignore[misc]
     """
 
     _: KW_ONLY
-    unit: u.Unit = eqx.field(static=True)  # TODO? move this to an annotation?
+    unit: u.Unit = eqx.field(static=True)  # TODO: move this to an annotation?
 
     @abc.abstractmethod
     def __call__(self, t: jt.Array) -> jt.Array:

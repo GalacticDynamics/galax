@@ -12,12 +12,12 @@
 <!-- SPHINX-START -->
 
 <!-- prettier-ignore-start -->
-[actions-badge]:            https://github.com/nstarman/galdynamix/workflows/CI/badge.svg
-[actions-link]:             https://github.com/nstarman/galdynamix/actions
+[actions-badge]:            https://github.com/galdynamix/galdynamix/workflows/CI/badge.svg
+[actions-link]:             https://github.com/galdynamix/galdynamix/actions
 [conda-badge]:              https://img.shields.io/conda/vn/conda-forge/galdynamix
 [conda-link]:               https://github.com/conda-forge/galdynamix-feedstock
 [github-discussions-badge]: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
-[github-discussions-link]:  https://github.com/nstarman/galdynamix/discussions
+[github-discussions-link]:  https://github.com/galdynamix/galdynamix/discussions
 [pypi-link]:                https://pypi.org/project/galdynamix/
 [pypi-platforms]:           https://img.shields.io/pypi/pyversions/galdynamix
 [pypi-version]:             https://img.shields.io/pypi/v/galdynamix

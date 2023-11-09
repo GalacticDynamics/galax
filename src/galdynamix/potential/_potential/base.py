@@ -4,20 +4,22 @@ __all__ = ["AbstractPotentialBase", "AbstractPotential"]
 
 import abc
 from dataclasses import KW_ONLY, fields
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import astropy.units as u
 import equinox as eqx
 import jax
 import jax.numpy as xp
 import jax.typing as jt
-from astropy.constants import G as apy_G
+from astropy.constants import G as _G
 
-from galdynamix.integrate._base import AbstractIntegrator
 from galdynamix.integrate._builtin import DiffraxIntegrator
 from galdynamix.potential._potential.param.field import ParameterField
 from galdynamix.units import UnitSystem, dimensionless
 from galdynamix.utils import partial_jit
+
+if TYPE_CHECKING:
+    from galdynamix.integrate._base import AbstractIntegrator
 
 
 class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
@@ -37,7 +39,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
     # Parsing
 
     def _init_units(self) -> None:
-        G = 1 if self.units == dimensionless else apy_G.decompose(self.units).value
+        G = 1 if self.units == dimensionless else _G.decompose(self.units).value
         object.__setattr__(self, "_G", G)
 
         # Handle unit conversion for all ParameterField
@@ -49,7 +51,8 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
             value = getattr(self, f.name)
             if isinstance(value, u.Quantity):
                 value = value.to_value(
-                    self.units[param.physical_type], equivalencies=param.equivalencies
+                    self.units[param.physical_type],
+                    equivalencies=param.equivalencies,
                 )
                 object.__setattr__(self, f.name, value)
 

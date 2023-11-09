@@ -30,7 +30,7 @@ class ParameterField:
 
     name: str = field(init=False)
     _: KW_ONLY
-    physical_type: u.PhysicalType  # TODO add a converter_argument
+    physical_type: u.PhysicalType  # TODO: add a converter_argument
     equivalencies: u.Equivalency | tuple[u.Equivalency, ...] | None = None
 
     def __post_init__(self) -> None:
@@ -41,7 +41,10 @@ class ParameterField:
                 self, "physical_type", u.get_physical_type(self.physical_type)
             )
         elif not isinstance(self.physical_type, u.PhysicalType):
-            msg = f"Expected physical_type to be a PhysicalType, got {self.physical_type!r}"
+            msg = (
+                "Expected physical_type to be a PhysicalType, "
+                f"got {self.physical_type!r}"
+            )
             raise TypeError(msg)
 
     # ===========================================
@@ -81,16 +84,16 @@ class ParameterField:
     def __set__(
         self,
         potential: AbstractPotential,
-        value: AbstractParameter | ParameterCallable | Any,
+        value: AbstractParameter | ParameterCallable | Any,  # noqa: ANN401
     ) -> None:
         # Convert
         if isinstance(value, AbstractParameter):
-            # TODO! use the physical_type information to check the parameters.
-            # TODO! use the units on the `potential` to convert the parameter value.
+            # TODO: use the physical_type information to check the parameters.
+            # TODO: use the units on the `potential` to convert the parameter value.
             pass
         elif callable(value):
-            # TODO! use the physical_type information to check the parameters.
-            # TODO! use the units on the `potential` to convert the parameter value.
+            # TODO: use the physical_type information to check the parameters.
+            # TODO: use the units on the `potential` to convert the parameter value.
             value = UserParameter(func=value)
         else:
             unit = potential.units[self.physical_type]

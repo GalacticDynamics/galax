@@ -1,4 +1,4 @@
-"""galdynamix: Galactic Dynamix in Jax"""
+"""galdynamix: Galactic Dynamix in Jax."""
 # ruff: noqa: F403
 
 from __future__ import annotations

@@ -28,7 +28,8 @@ class DiffraxIntegrator(AbstractIntegrator):
     Solver: AbstractSolver = eqx.field(default=Dopri5, static=True)
     SaveAt: DiffraxSaveAt = eqx.field(default=DiffraxSaveAt, static=True)
     stepsize_controller: AbstractStepSizeController = eqx.field(
-        default=PIDController(rtol=1e-7, atol=1e-7), static=True
+        default=PIDController(rtol=1e-7, atol=1e-7),
+        static=True,
     )
     diffeq_kw: tuple[tuple[str, Any], ...] = eqx.field(
         default_factory=lambda: (
@@ -38,7 +39,8 @@ class DiffraxIntegrator(AbstractIntegrator):
         static=True,
     )
     solver_kw: tuple[tuple[str, Any], ...] = eqx.field(
-        default_factory=lambda: (("scan_kind", "bounded"),), static=True
+        default_factory=lambda: (("scan_kind", "bounded"),),
+        static=True,
     )
 
     def run(

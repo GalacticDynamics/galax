@@ -1,4 +1,4 @@
-"""galdynamix: Galactic Dynamix in Jax"""
+"""galdynamix: Galactic Dynamix in Jax."""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ class ImmutableDict(Mapping[str, V]):
     # === PyTree ===
 
     def tree_flatten(self) -> tuple[tuple[V, ...], tuple[str, ...]]:
-        """Specifies a flattening recipe.
+        """Flatten to a dict.
 
         Returns
         -------
@@ -61,16 +61,19 @@ class ImmutableDict(Mapping[str, V]):
 
     @classmethod
     def tree_unflatten(
-        cls: type[Self], aux_data: tuple[str, ...], children: tuple[V, ...]
+        cls: type[Self],
+        aux_data: tuple[str, ...],
+        children: tuple[V, ...],
     ) -> Self[str, V]:  # type: ignore[misc]
-        """Specifies an unflattening recipe.
+        """Unflatten.
 
         Params:
         aux_data: the opaque data that was specified during flattening of the
             current treedef.
         children: the unflattened children
 
-        Returns:
+        Returns
+        -------
         a re-constructed object of the registered type, using the specified
         children and auxiliary data.
         """

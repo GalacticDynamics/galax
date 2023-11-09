@@ -6,16 +6,18 @@ build-backend = "hatchling.build"
 [project]
 name = "galdynamix"
 authors = [
+  { name = "galdynamix maintainers", email = "nstarman@users.noreply.github.com" },
+  { name = "Jake Nibauer", email = "jnibauer@princeton.edu" },
   { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
 ]
-description = "Galactic Dynamix in Jax"
+description = "Galactic Dynamix in Jax."
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
   "Development Status :: 1 - Planning",
   "Intended Audience :: Science/Research",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: BSD License",
+  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
@@ -53,10 +55,10 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nstarman/galdynamix"
-"Bug Tracker" = "https://github.com/nstarman/galdynamix/issues"
-Discussions = "https://github.com/nstarman/galdynamix/discussions"
-Changelog = "https://github.com/nstarman/galdynamix/releases"
+Homepage = "https://github.com/galdynamix/galdynamix"
+"Bug Tracker" = "https://github.com/galdynamix/galdynamix/issues"
+Discussions = "https://github.com/galdynamix/galdynamix/discussions"
+Changelog = "https://github.com/galdynamix/galdynamix/releases"
 
 
 [tool.hatch]
@@ -114,32 +116,22 @@ ignore_missing_imports = true
 src = ["src"]
 
 [tool.ruff.lint]
-extend-select = [
-  "B",           # flake8-bugbear
-  "I",           # isort
-  "ARG",         # flake8-unused-arguments
-  "C4",          # flake8-comprehensions
-  "EM",          # flake8-errmsg
-  "ICN",         # flake8-import-conventions
-  "G",           # flake8-logging-format
-  "PGH",         # pygrep-hooks
-  "PIE",         # flake8-pie
-  "PL",          # pylint
-  "PT",          # flake8-pytest-style
-  "PTH",         # flake8-use-pathlib
-  "RET",         # flake8-return
-  "RUF",         # Ruff-specific
-  "SIM",         # flake8-simplify
-  "T20",         # flake8-print
-  "UP",          # pyupgrade
-  "YTT",         # flake8-2020
-  "EXE",         # flake8-executable
-  "NPY",         # NumPy specific rules
-]
+extend-select = ["ALL"]
 ignore = [
-  "PD",  # pandas-vet
-  "PLR",    # Design related pylint codes
-  # TODO! fix these
+  "ANN101",  # Missing type annotation for self in method
+  "COM812",  # Missing trailing comma in Python 3.6+
+  "D203",    # 1 blank line required before class docstring
+  "D105",    # Missing docstring in magic method
+  "D107",    # Missing docstring in `__init__`
+  "D213",    # Multi-line docstring summary should start at the second line
+  "FIX002",  # Line contains TODO, consider resolving the issue
+  "N80",     # Naming conventions.
+  "PD",      # pandas-vet
+  "PLR",     # Design related pylint codes
+  "TCH00",   # Move into a type-checking block
+  "TD002",   # Missing author in TODO
+  "TD003",   # Missing issue link on the line following this TODO
+  # TODO: fix these
   "ARG001",
   "ARG002",
   "F841",
@@ -149,8 +141,12 @@ isort.required-imports = ["from __future__ import annotations"]
 # typing-modules = ["galdynamix._compat.typing"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["T20"]
-"noxfile.py" = ["T20"]
+"tests/**" = ["ANN", "D10", "INP001", "S101", "T20"]
+"noxfile.py" = ["ERA001", "T20"]
+"docs/conf.py" = [
+  "A001",  # Variable `copyright` is shadowing a Python builtin
+  "INP001",  # implicit namespace package
+]
 
 
 [tool.pylint]

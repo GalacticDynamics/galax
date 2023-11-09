@@ -10,7 +10,7 @@ import jax.typing as jt
 
 
 class FCallable(Protocol):
-    def __call__(self, t: jt.Array, xv: jt.Array, args: Any) -> jt.Array:
+    def __call__(self, t: jt.Array, xv: jt.Array, args: tuple[Any, ...]) -> jt.Array:
         ...
 
 

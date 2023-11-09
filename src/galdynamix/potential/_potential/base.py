@@ -96,7 +96,9 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
     # Convenience methods
 
     @partial_jit()
-    def _vel_acc(self, t: jt.Array, qp: jt.Array, args: tuple[Any, ...]) -> jt.Array:
+    def _integrator_F(
+        self, t: jt.Array, qp: jt.Array, args: tuple[Any, ...]
+    ) -> jt.Array:
         return xp.hstack([qp[3:], self.acceleration(qp[:3], t)])
 
     @partial_jit(static_argnames=("Integrator", "integrator_kw"))
@@ -110,8 +112,11 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         Integrator: type[AbstractIntegrator] = DiffraxIntegrator,
         integrator_kw: dict[str, Any] | None = None,
     ) -> jt.Array:
-        integrator = Integrator(self._vel_acc, **(integrator_kw or {}))
-        return integrator.run(w0, t0, t1, ts)
+        from galdynamix.dynamics._orbit import Orbit
+
+        integrator = Integrator(self._integrator_F, **(integrator_kw or {}))
+        ws = integrator.run(w0, t0, t1, ts)
+        return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)
 
 
 # ===========================================================================

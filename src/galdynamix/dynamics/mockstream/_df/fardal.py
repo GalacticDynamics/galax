@@ -23,9 +23,9 @@ class FardalStreamDF(AbstractStreamDF):
         potential: AbstractPotentialBase,
         w: jt.Array,
         prog_mass: jt.Array,
-        i: int,
         t: jt.Array,
         *,
+        i: int,
         seed_num: int,
     ) -> tuple[jt.Array, jt.Array, jt.Array, jt.Array]:
         """

@@ -74,8 +74,8 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
                 # prog_ws[i, :3],
                 # prog_ws[i, 3:],
                 prog_mass,
-                i,
                 t,
+                i=i,
                 seed_num=seed_num,
             )
             return (i + 1, *output), tuple(output)  # type: ignore[return-value]
@@ -100,9 +100,9 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
         potential: AbstractPotentialBase,
         w: jt.Array,
         prog_mass: jt.Numeric,
-        i: int,
         t: jt.Numeric,
         *,
+        i: int,
         seed_num: int,
     ) -> tuple[jt.Array, jt.Array, jt.Array, jt.Array]:
         """Generate stream particle initial conditions.

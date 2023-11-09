@@ -12,6 +12,7 @@ import jax
 import jax.numpy as xp
 import jax.typing as jt
 
+from galdynamix.dynamics._orbit import Orbit
 from galdynamix.dynamics.mockstream._core import MockStream
 from galdynamix.potential._potential.base import AbstractPotentialBase
 from galdynamix.utils import partial_jit
@@ -35,8 +36,7 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
         self,
         # <\ parts of gala's ``prog_orbit``
         potential: AbstractPotentialBase,
-        prog_ws: jt.Array,
-        ts: jt.Numeric,
+        prog_orbit: Orbit,
         # />
         prog_mass: jt.Numeric,
         *,
@@ -48,14 +48,11 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
         ----------
         potential : AbstractPotentialBase
             The potential of the host galaxy.
-        prog_ws : Array[(N, 6), float]
-            Columns are (x, y, z) [kpc], (v_x, v_y, v_z) [kpc/Myr]
-            Rows are at times `ts`.
+        prog_orbit : Orbit
+            The orbit of the progenitor.
         prog_mass : Numeric
             Mass of the progenitor in [Msol].
             TODO: allow this to be an array or function of time.
-        ts : Numeric
-            Times in [Myr]
 
         seed_num : int, keyword-only
             PRNG seed
@@ -65,14 +62,14 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
         mock_lead, mock_trail : MockStream
             Positions and velocities of the leading and trailing tails.
         """
+        prog_ws = prog_orbit.to_w()[:, :-1]  # -1 is time
+        ts = prog_orbit.t
 
         def scan_fn(carry: _carryT, t: Any) -> tuple[_carryT, _wifT]:
             i = carry[0]
             output = self._sample(
                 potential,
                 prog_ws[i],
-                # prog_ws[i, :3],
-                # prog_ws[i, 3:],
                 prog_mass,
                 t,
                 i=i,

@@ -135,9 +135,9 @@ extend-select = [
   "YTT",         # flake8-2020
   "EXE",         # flake8-executable
   "NPY",         # NumPy specific rules
-  "PD",          # pandas-vet
 ]
 ignore = [
+  "PD",  # pandas-vet
   "PLR",    # Design related pylint codes
   # TODO! fix these
   "ARG001",

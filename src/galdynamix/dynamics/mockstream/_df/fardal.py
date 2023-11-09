@@ -19,7 +19,6 @@ class FardalStreamDF(AbstractStreamDF):
     @partial_jit(static_argnums=(0,), static_argnames=("seed_num",))
     def _sample(
         self,
-        # parts of gala's ``prog_orbit``
         potential: AbstractPotentialBase,
         w: jt.Array,
         prog_mass: jt.Array,

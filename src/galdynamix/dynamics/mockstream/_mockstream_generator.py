@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     _wifT: TypeAlias = tuple[jt.Array, jt.Array, jt.Array, jt.Array]
     _carryT: TypeAlias = tuple[int, jt.Array, jt.Array, jt.Array, jt.Array]
 
+    from galdynamix.dynamics._orbit import Orbit
+
 
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     df: AbstractStreamDF
@@ -35,17 +37,17 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial_jit(static_argnames=("seed_num",))
     def _run_scan(
         self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
-    ) -> tuple[tuple[jt.Array, jt.Array], jt.Array]:
+    ) -> tuple[tuple[jt.Array, jt.Array], Orbit]:
         """Generate stellar stream by scanning over the release model/integration.
 
         Better for CPU usage.
         """
         # Integrate the progenitor orbit
-        prog_ws = self.potential.integrate_orbit(prog_w0, xp.min(ts), xp.max(ts), ts)
+        prog_o = self.potential.integrate_orbit(prog_w0, xp.min(ts), xp.max(ts), ts)
 
         # Generate stream initial conditions along the integrated progenitor orbit
         mock_lead, mock_trail = self.df.sample(
-            self.potential, prog_ws, ts, prog_mass, seed_num=seed_num
+            self.potential, prog_o, prog_mass, seed_num=seed_num
         )
         x_lead, v_lead = mock_lead.q, mock_lead.p
         x_trail, v_trail = mock_trail.q, mock_trail.p
@@ -61,7 +63,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             minval, maxval = ts[i], ts[-1]
             integ_ics = lambda ics: self.potential.integrate_orbit(  # noqa: E731
                 ics, minval, maxval, None
-            )[0]
+            ).to_w()[0, :-1]
             # vmap over leading and trailing arm
             w_lead, w_trail = jax.vmap(integ_ics, in_axes=(0,))(w0_lead_trail)
             carry_out = (
@@ -76,21 +78,21 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         carry_init = (0, x_lead[0, :], x_trail[0, :], v_lead[0, :], v_trail[0, :])
         particle_ids = xp.arange(len(x_lead))
         lead_arm, trail_arm = jax.lax.scan(scan_fn, carry_init, particle_ids)[1]
-        return (lead_arm, trail_arm), prog_ws
+        return (lead_arm, trail_arm), prog_o
 
     @partial_jit(static_argnames=("seed_num",))
     def _run_vmap(
         self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
-    ) -> tuple[tuple[jt.Array, jt.Array], jt.Array]:
+    ) -> tuple[tuple[jt.Array, jt.Array], Orbit]:
         """
         Generate stellar stream by vmapping over the release model/integration. Better for GPU usage.
         """
         # Integrate the progenitor orbit
-        prog_ws = self.potential.integrate_orbit(prog_w0, xp.min(ts), xp.max(ts), ts)
+        prog_o = self.potential.integrate_orbit(prog_w0, xp.min(ts), xp.max(ts), ts)
 
         # Generate stream initial conditions along the integrated progenitor orbit
         mock_lead, mock_trail = self.df.sample(
-            self.potential, prog_ws, ts, prog_mass, seed_num=seed_num
+            self.potential, prog_o, prog_mass, seed_num=seed_num
         )
         x_lead, v_lead = mock_lead.q, mock_lead.p
         x_trail, v_trail = mock_trail.q, mock_trail.p
@@ -118,7 +120,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         integrator = jax.vmap(single_particle_integrate, in_axes=(0, 0, 0, 0, 0))
         w_lead, w_trail = integrator(particle_ids, x_lead, x_trail, v_lead, v_trail)
-        return (w_lead, w_trail), prog_ws
+        return (w_lead, w_trail), prog_o
 
     @partial_jit(static_argnames=("seed_num", "vmapped"))
     def run(

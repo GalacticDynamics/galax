@@ -27,10 +27,7 @@ class FardalStreamDF(AbstractStreamDF):
         i: int,
         seed_num: int,
     ) -> tuple[jt.Array, jt.Array, jt.Array, jt.Array]:
-        """
-        Simplification of particle spray: just release particles in gaussian blob at each lagrange point.
-        User sets the spatial and velocity dispersion for the "leaking" of particles
-        """
+        """Generate stream particle initial conditions."""
         # Random number generation
         # TODO: change random key handling... need to do all of the sampling up front...
         key_master = jax.random.PRNGKey(seed_num)

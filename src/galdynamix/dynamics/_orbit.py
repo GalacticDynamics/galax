@@ -34,8 +34,9 @@ class Orbit(eqx.Module):  # type: ignore[misc]
     potential: AbstractPotentialBase
     """Potential in which the orbit was integrated."""
 
+    @property
     @partial_jit()
-    def to_w(self) -> jt.Array:
+    def w(self) -> jt.Array:
         """Return as a single Array[(N, Q + P + T),]."""
         # Reshape t to (N, 1) if necessary
         t = self.t[:, None] if self.t.ndim == 1 else self.t

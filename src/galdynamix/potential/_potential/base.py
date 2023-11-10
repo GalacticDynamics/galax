@@ -51,8 +51,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
             value = getattr(self, f.name)
             if isinstance(value, u.Quantity):
                 value = value.to_value(
-                    self.units[param.physical_type],
-                    equivalencies=param.equivalencies,
+                    self.units[param.physical_type], equivalencies=param.equivalencies
                 )
                 object.__setattr__(self, f.name, value)
 

@@ -35,7 +35,7 @@ class MockStream(eqx.Module):  # type: ignore[misc]
     @property
     @partial_jit()
     def qp(self) -> jt.Array:
-        """Return as a single Array[(N, Q + P + T),]."""
+        """Return as a single Array[(N, Q + P),]."""
         # Determine output shape
         qd = self.q.shape[1]  # dimensionality of q
         shape = (self.q.shape[0], qd + self.p.shape[1])

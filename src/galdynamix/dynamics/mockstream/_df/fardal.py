@@ -81,8 +81,9 @@ class FardalStreamDF(AbstractStreamDF):
         kvz_samp = kvz_bar + jax.random.normal(keyd, shape=(1,)) * sigma_kvz
 
         # Trailing arm
-        x_trail = x + kr_samp * r_hat * (r_tidal)  # nudge out
-        x_trail = x_trail + z_hat * kz_samp * (r_tidal / 1.0)
+        x_trail = (
+            x + (kr_samp * r_hat * (r_tidal)) + (z_hat * kz_samp * (r_tidal / 1.0))
+        )
         v_trail = (
             v
             + (0.0 + kvphi_samp * v_circ * (1.0)) * phi_hat
@@ -90,8 +91,9 @@ class FardalStreamDF(AbstractStreamDF):
         )
 
         # Leading arm
-        x_lead = x + kr_samp * r_hat * (-r_tidal)  # nudge in
-        x_lead = x_lead + z_hat * kz_samp * (-r_tidal / 1.0)
+        x_lead = (
+            x + (kr_samp * r_hat * (-r_tidal)) + (z_hat * kz_samp * (-r_tidal / 1.0))
+        )
         v_lead = (
             v
             + (0.0 + kvphi_samp * v_circ * (-1.0)) * phi_hat

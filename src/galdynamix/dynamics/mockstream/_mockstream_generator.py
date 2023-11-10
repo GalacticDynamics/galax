@@ -30,12 +30,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial_jit(static_argnames=("seed_num",))
     def _run_scan(
-        self,
-        ts: jt.Array,
-        prog_w0: jt.Array,
-        prog_mass: jt.Array,
-        *,
-        seed_num: int,
+        self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
     ) -> tuple[tuple[jt.Array, jt.Array], Orbit]:
         """Generate stellar stream by scanning over the release model/integration.
 

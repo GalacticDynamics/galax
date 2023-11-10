@@ -46,10 +46,7 @@ def docs(session: nox.Session) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--serve", action="store_true", help="Serve after building")
     parser.add_argument(
-        "-b",
-        dest="builder",
-        default="html",
-        help="Build target (default: html)",
+        "-b", dest="builder", default="html", help="Build target (default: html)"
     )
     args, posargs = parser.parse_known_args(session.posargs)
 

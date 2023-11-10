@@ -36,15 +36,29 @@ class Orbit(eqx.Module):  # type: ignore[misc]
 
     @property
     @partial_jit()
+    def qp(self) -> jt.Array:
+        """Return as a single Array[(N, Q + P + T),]."""
+        # Determine output shape
+        qd = self.q.shape[1]  # dimensionality of q
+        shape = (self.q.shape[0], qd + self.p.shape[1])
+        # Create output array (jax will fuse these ops)
+        out = xp.empty(shape)
+        out = out.at[:, :qd].set(self.q)
+        out = out.at[:, qd:].set(self.p)
+        return out  # noqa: RET504
+
+    @property
+    @partial_jit()
     def w(self) -> jt.Array:
         """Return as a single Array[(N, Q + P + T),]."""
+        qp = self.qp
+        qpd = qp.shape[1]  # dimensionality of qp
         # Reshape t to (N, 1) if necessary
         t = self.t[:, None] if self.t.ndim == 1 else self.t
         # Determine output shape
-        shape = (self.q.shape[0], self.q.shape[1] + self.p.shape[1] + t.shape[1])
+        shape = (qp.shape[0], qpd + t.shape[1])
         # Create output array (jax will fuse these ops)
         out = xp.empty(shape)
-        out = out.at[:, : self.q.shape[1]].set(self.q)
-        out = out.at[:, self.q.shape[1] : -t.shape[1]].set(self.p)
-        out = out.at[:, -t.shape[1] :].set(t)
+        out = out.at[:, :qpd].set(qp)
+        out = out.at[:, qpd:].set(t)
         return out  # noqa: RET504

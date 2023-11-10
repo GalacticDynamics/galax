@@ -63,14 +63,14 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
         mock_lead, mock_trail : MockStream
             Positions and velocities of the leading and trailing tails.
         """
-        prog_ws = prog_orbit.w[:, :-1]  # -1 is time
+        prog_qps = prog_orbit.qp
         ts = prog_orbit.t
 
         def scan_fn(carry: Carry, t: jt.Numeric) -> tuple[Carry, Wif]:
             i = carry[0]
             output = self._sample(
                 potential,
-                prog_ws[i],
+                prog_qps[i],
                 prog_mass,
                 t,
                 i=i,

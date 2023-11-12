@@ -1,20 +1,17 @@
-"""galdynamix: Galactic Dynamix in Jax"""
+"""galdynamix: Galactic Dynamix in Jax."""
 
 from __future__ import annotations
 
 __all__ = ["partial_jit"]
 
-from collections.abc import Callable, Iterable, Sequence
 from functools import partial
-from typing import (
-    Any,
-    NotRequired,
-    TypedDict,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, TypeVar
 
 import jax
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, Unpack
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Sequence
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -34,6 +31,6 @@ class JITKwargs(TypedDict):
 
 
 def partial_jit(
-    **kwargs: Any,
+    **kwargs: Unpack[JITKwargs],
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     return partial(jax.jit, **kwargs)

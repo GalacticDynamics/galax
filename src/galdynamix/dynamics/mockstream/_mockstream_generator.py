@@ -1,4 +1,4 @@
-"""galdynamix: Galactic Dynamix in Jax"""
+"""galdynamix: Galactic Dynamix in Jax."""
 
 from __future__ import annotations
 
@@ -17,8 +17,7 @@ from galdynamix.utils import partial_jit
 from ._df import AbstractStreamDF
 
 if TYPE_CHECKING:
-    _wifT: TypeAlias = tuple[jt.Array, jt.Array, jt.Array, jt.Array]
-    _carryT: TypeAlias = tuple[int, jt.Array, jt.Array, jt.Array, jt.Array]
+    Carry: TypeAlias = tuple[int, jt.Array, jt.Array]
 
     from galdynamix.dynamics._orbit import Orbit
 
@@ -26,11 +25,6 @@ if TYPE_CHECKING:
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     df: AbstractStreamDF
     potential: AbstractPotentialBase
-    # progenitor_potential: AbstractPotentialBase | None = None
-
-    # @property
-    # def self_gravity(self) -> bool:
-    #     return self.progenitor_potential is not None
 
     # ==========================================================================
 
@@ -46,37 +40,27 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_o = self.potential.integrate_orbit(prog_w0, xp.min(ts), xp.max(ts), ts)
 
         # Generate stream initial conditions along the integrated progenitor orbit
-        mock_lead, mock_trail = self.df.sample(
+        mock0_lead, mock0_trail = self.df.sample(
             self.potential, prog_o, prog_mass, seed_num=seed_num
         )
-        x_lead, v_lead = mock_lead.q, mock_lead.p
-        x_trail, v_trail = mock_trail.q, mock_trail.p
+        qp0_lead = mock0_lead.qp
+        qp0_trail = mock0_trail.qp
 
-        def scan_fn(
-            carry: _carryT, particle_idx: int
-        ) -> tuple[_carryT, tuple[jt.Array, jt.Array]]:
-            i, x_lead_i, x_trail_i, v_lead_i, v_trail_i = carry
-            w0_lead_i = xp.hstack([x_lead_i, v_lead_i])
-            w0_trail_i = xp.hstack([x_trail_i, v_trail_i])
-            w0_lead_trail = xp.vstack([w0_lead_i, w0_trail_i])
+        def scan_fn(carry: Carry, idx: int) -> tuple[Carry, tuple[jt.Array, jt.Array]]:
+            i, qp0_lead_i, qp0_trail_i = carry
+            qp0_lead_trail = xp.vstack([qp0_lead_i, qp0_trail_i])
+            t_i, t_f = ts[i], ts[-1]
 
-            minval, maxval = ts[i], ts[-1]
-            integ_ics = lambda ics: self.potential.integrate_orbit(  # noqa: E731
-                ics, minval, maxval, None
-            ).to_w()[0, :-1]
+            def integ_ics(ics: jt.Array) -> jt.Array:
+                return self.potential.integrate_orbit(ics, t_i, t_f, None).qp[0]
+
             # vmap over leading and trailing arm
-            w_lead, w_trail = jax.vmap(integ_ics, in_axes=(0,))(w0_lead_trail)
-            carry_out = (
-                i + 1,
-                x_lead[i + 1, :],
-                x_trail[i + 1, :],
-                v_lead[i + 1, :],
-                v_trail[i + 1, :],
-            )
-            return carry_out, (w_lead, w_trail)
+            qp_lead, qp_trail = jax.vmap(integ_ics, in_axes=(0,))(qp0_lead_trail)
+            carry_out = (i + 1, qp0_lead[i + 1, :], qp0_trail[i + 1, :])
+            return carry_out, (qp_lead, qp_trail)
 
-        carry_init = (0, x_lead[0, :], x_trail[0, :], v_lead[0, :], v_trail[0, :])
-        particle_ids = xp.arange(len(x_lead))
+        carry_init = (0, qp0_lead[0, :], qp0_trail[0, :])
+        particle_ids = xp.arange(len(qp0_lead))
         lead_arm, trail_arm = jax.lax.scan(scan_fn, carry_init, particle_ids)[1]
         return (lead_arm, trail_arm), prog_o
 
@@ -84,8 +68,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     def _run_vmap(
         self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
     ) -> tuple[tuple[jt.Array, jt.Array], Orbit]:
-        """
-        Generate stellar stream by vmapping over the release model/integration. Better for GPU usage.
+        """Generate stellar stream by vmapping over the release model/integration.
+
+        Better for GPU usage.
         """
         # Integrate the progenitor orbit
         prog_o = self.potential.integrate_orbit(prog_w0, xp.min(ts), xp.max(ts), ts)
@@ -94,33 +79,24 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         mock_lead, mock_trail = self.df.sample(
             self.potential, prog_o, prog_mass, seed_num=seed_num
         )
-        x_lead, v_lead = mock_lead.q, mock_lead.p
-        x_trail, v_trail = mock_trail.q, mock_trail.p
+        qp0_lead = mock_lead.qp
+        qp0_trail = mock_trail.qp
+        t_f = ts[-1] + 0.01
 
         # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
         def single_particle_integrate(
-            i: int,
-            x_lead_i: jt.Array,
-            x_trail_i: jt.Array,
-            v_lead_i: jt.Array,
-            v_trail_i: jt.Array,
+            i: int, qp0_lead_i: jt.Array, qp0_trail_i: jt.Array
         ) -> tuple[jt.Array, jt.Array]:
-            w0_lead_i = xp.hstack([x_lead_i, v_lead_i])
-            w0_trail_i = xp.hstack([x_trail_i, v_trail_i])
             t_i = ts[i]
-            t_f = ts[-1] + 0.01
+            qp_lead = self.integrate_orbit(qp0_lead_i, t_i, t_f, None).qp[0]
+            qp_trail = self.integrate_orbit(qp0_trail_i, t_i, t_f, None).qp[0]
+            return qp_lead, qp_trail
 
-            w_lead = self.integrate_orbit(w0_lead_i, t_i, t_f, None)[0]
-            w_trail = self.integrate_orbit(w0_trail_i, t_i, t_f, None)[0]
-
-            return w_lead, w_trail
-
-        particle_ids = xp.arange(len(x_lead))
-
-        integrator = jax.vmap(single_particle_integrate, in_axes=(0, 0, 0, 0, 0))
-        w_lead, w_trail = integrator(particle_ids, x_lead, x_trail, v_lead, v_trail)
-        return (w_lead, w_trail), prog_o
+        particle_ids = xp.arange(len(qp0_lead))
+        integrator = jax.vmap(single_particle_integrate, in_axes=(0, 0, 0))
+        qp_lead, qp_trail = integrator(particle_ids, qp0_lead, qp0_trail)
+        return (qp_lead, qp_trail), prog_o
 
     @partial_jit(static_argnames=("seed_num", "vmapped"))
     def run(
@@ -132,6 +108,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         seed_num: int,
         vmapped: bool = False,
     ) -> tuple[jt.Array, jt.Array]:
+        # TODO: figure out better return type: MockStream?
         if vmapped:
             return self._run_vmap(ts, prog_w0, prog_mass, seed_num=seed_num)
         return self._run_scan(ts, prog_w0, prog_mass, seed_num=seed_num)

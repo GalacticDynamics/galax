@@ -1,8 +1,6 @@
-"""galdynamix: Galactic Dynamix in Jax"""
+"""galdynamix: Galactic Dynamix in Jax."""
 
 from __future__ import annotations
-
-from typing import Any
 
 __all__ = [
     "MiyamotoNagaiDisk",
@@ -13,6 +11,7 @@ __all__ = [
 ]
 
 from dataclasses import KW_ONLY
+from typing import Any
 
 import equinox as eqx
 import jax
@@ -48,8 +47,8 @@ class MiyamotoNagaiDisk(AbstractPotential):
 
 
 class BarPotential(AbstractPotential):
-    """
-    Rotating bar potentil, with hard-coded rotation.
+    """Rotating bar potentil, with hard-coded rotation.
+
     Eq 8a in https://articles.adsabs.harvard.edu/pdf/1992ApJ...397...44L
     Rz according to https://en.wikipedia.org/wiki/Rotation_matrix
     """
@@ -64,15 +63,14 @@ class BarPotential(AbstractPotential):
     def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
-        Rot_mat = xp.array(
+        rotation_matrix = xp.array(
             [
                 [xp.cos(ang), -xp.sin(ang), 0],
                 [xp.sin(ang), xp.cos(ang), 0.0],
                 [0.0, 0.0, 1.0],
-            ]
+            ],
         )
-        # Rot_inv = xp.linalg.inv(Rot_mat)
-        q_corot = xp.matmul(Rot_mat, q)
+        q_corot = xp.matmul(rotation_matrix, q)
 
         a = self.a(t)
         b = self.b(t)
@@ -90,7 +88,7 @@ class BarPotential(AbstractPotential):
 
         # potential in a corotating frame
         return (self._G * self.m(t) / (2.0 * a)) * xp.log(
-            (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus)
+            (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus),
         )
 
 
@@ -125,7 +123,7 @@ class NFWPotential(AbstractPotential):
     def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
         v_h2 = -self._G * self.m(t) / self.r_s(t)
         m = xp.sqrt(
-            q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + self.softening_length
+            q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + self.softening_length,
         ) / self.r_s(t)
         return v_h2 * xp.log(1.0 + m) / m
 
@@ -134,7 +132,7 @@ class NFWPotential(AbstractPotential):
 
 
 @jax.jit  # type: ignore[misc]
-def get_splines(x_eval: jt.Array, x: jt.Array, y: jt.Array) -> Any:
+def get_splines(x_eval: jt.Array, x: jt.Array, y: jt.Array) -> Any:  # noqa: ANN401
     return InterpolatedUnivariateSpline(x, y, k=3)(x_eval)
 
 
@@ -142,8 +140,8 @@ def get_splines(x_eval: jt.Array, x: jt.Array, y: jt.Array) -> Any:
 def single_subhalo_potential(
     params: dict[str, jt.Array], q: jt.Array, /, t: jt.Array
 ) -> jt.Array:
-    """
-    Potential for a single subhalo
+    """Potential for a single subhalo.
+
     TODO: custom unit specification/subhalo potential specficiation.
     Currently supports units kpc, Myr, Msun, rad.
     """
@@ -152,8 +150,8 @@ def single_subhalo_potential(
 
 
 class SubHaloPopulation(AbstractPotential):
-    """
-    m has length n_subhalo
+    """m has length n_subhalo.
+
     a has length n_subhalo
     tq_subhalo_arr has shape t_orbit x n_subhalo x 3
     t_orbit is the array of times the subhalos are integrated over
@@ -166,26 +164,22 @@ class SubHaloPopulation(AbstractPotential):
 
     @partial_jit()
     def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-        x_at_t_eval = get_splines(
-            t, self.t_orbit, self.tq_subhalo_arr[:, :, 0]
-        )  # expect n_subhalo x-positions
-        y_at_t_eval = get_splines(
-            t, self.t_orbit, self.tq_subhalo_arr[:, :, 1]
-        )  # expect n_subhalo y-positions
-        z_at_t_eval = get_splines(
-            t, self.t_orbit, self.tq_subhalo_arr[:, :, 2]
-        )  # expect n_subhalo z-positions
+        # expect n_subhalo x-positions
+        x_at_t_eval = get_splines(t, self.t_orbit, self.tq_subhalo_arr[:, :, 0])
+        # expect n_subhalo y-positions
+        y_at_t_eval = get_splines(t, self.t_orbit, self.tq_subhalo_arr[:, :, 1])
+        # expect n_subhalo z-positions
+        z_at_t_eval = get_splines(t, self.t_orbit, self.tq_subhalo_arr[:, :, 2])
 
-        subhalo_locations = xp.vstack(
-            [x_at_t_eval, y_at_t_eval, z_at_t_eval]
-        ).T  # n_subhalo x 3: the position of all subhalos at time t
+        # n_subhalo x 3: the position of all subhalos at time t
+        subhalo_locations = xp.vstack([x_at_t_eval, y_at_t_eval, z_at_t_eval]).T
 
         delta_position = q - subhalo_locations  # n_subhalo x 3
-        # sum over potential due to all subhalos in the field by vmapping over m, a, and delta_position
-        ##dct = {'m': self.m, 'a': self.a,}
+        # sum over potential due to all subhalos in the field by vmapping over
+        # m, a, and delta_position
         return xp.sum(
             jax.vmap(
                 single_subhalo_potential,
                 in_axes=(({"m": 0, "a": 0}, 0, None)),
-            )({"m": self.m(t), "a": self.a(t)}, delta_position, t)
+            )({"m": self.m(t), "a": self.a(t)}, delta_position, t),
         )

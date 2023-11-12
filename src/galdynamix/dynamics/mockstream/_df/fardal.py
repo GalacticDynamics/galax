@@ -1,18 +1,21 @@
-"""galdynamix: Galactic Dynamix in Jax"""
+"""galdynamix: Galactic Dynamix in Jax."""
 
 from __future__ import annotations
 
 __all__ = ["FardalStreamDF"]
 
+from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as xp
 import jax.typing as jt
 
-from galdynamix.potential._potential.base import AbstractPotentialBase
 from galdynamix.utils import partial_jit
 
 from .base import AbstractStreamDF
+
+if TYPE_CHECKING:
+    from galdynamix.potential._potential.base import AbstractPotentialBase
 
 
 class FardalStreamDF(AbstractStreamDF):
@@ -51,7 +54,7 @@ class FardalStreamDF(AbstractStreamDF):
         rel_v = omega_val * r_tidal  # relative velocity
 
         # circlar_velocity
-        v_circ = rel_v  ##xp.sqrt( r*dphi_dr )
+        v_circ = rel_v
 
         L_vec = xp.cross(x, v)
         z_hat = L_vec / xp.linalg.norm(L_vec)
@@ -61,7 +64,6 @@ class FardalStreamDF(AbstractStreamDF):
 
         kr_bar = 2.0
         kvphi_bar = 0.3
-        ####################kvt_bar = 0.3 ## FROM GALA
 
         kz_bar = 0.0
         kvz_bar = 0.0
@@ -70,7 +72,6 @@ class FardalStreamDF(AbstractStreamDF):
         sigma_kvphi = 0.5
         sigma_kz = 0.5
         sigma_kvz = 0.5
-        ##############sigma_kvt = 0.5 ##FROM GALA
 
         kr_samp = kr_bar + jax.random.normal(keya, shape=(1,)) * sigma_kr
         kvphi_samp = kr_samp * (
@@ -78,31 +79,26 @@ class FardalStreamDF(AbstractStreamDF):
         )
         kz_samp = kz_bar + jax.random.normal(keyc, shape=(1,)) * sigma_kz
         kvz_samp = kvz_bar + jax.random.normal(keyd, shape=(1,)) * sigma_kvz
-        ########kvt_samp = kvt_bar + jax.random.normal(keye,shape=(1,))*sigma_kvt
 
-        ## Trailing arm
-        x_trail = x + kr_samp * r_hat * (r_tidal)  # nudge out
-        x_trail = x_trail + z_hat * kz_samp * (
-            r_tidal / 1.0
-        )  # r #nudge above/below orbital plane
+        # Trailing arm
+        x_trail = (
+            x + (kr_samp * r_hat * (r_tidal)) + (z_hat * kz_samp * (r_tidal / 1.0))
+        )
         v_trail = (
-            v + (0.0 + kvphi_samp * v_circ * (1.0)) * phi_hat
-        )  # v + (0.0 + kvphi_samp*v_circ*(-r_tidal/r))*phi_hat #nudge velocity along tangential direction
-        v_trail = (
-            v_trail + (kvz_samp * v_circ * (1.0)) * z_hat
-        )  # v_trail + (kvz_samp*v_circ*(-r_tidal/r))*z_hat #nudge velocity along vertical direction
+            v
+            + (0.0 + kvphi_samp * v_circ * (1.0)) * phi_hat
+            + (kvz_samp * v_circ * (1.0)) * z_hat
+        )
 
-        ## Leading arm
-        x_lead = x + kr_samp * r_hat * (-r_tidal)  # nudge in
-        x_lead = x_lead + z_hat * kz_samp * (
-            -r_tidal / 1.0
-        )  # r #nudge above/below orbital plane
+        # Leading arm
+        x_lead = (
+            x + (kr_samp * r_hat * (-r_tidal)) + (z_hat * kz_samp * (-r_tidal / 1.0))
+        )
         v_lead = (
-            v + (0.0 + kvphi_samp * v_circ * (-1.0)) * phi_hat
-        )  # v + (0.0 + kvphi_samp*v_circ*(r_tidal/r))*phi_hat #nudge velocity along tangential direction
-        v_lead = (
-            v_lead + (kvz_samp * v_circ * (-1.0)) * z_hat
-        )  # v_lead + (kvz_samp*v_circ*(r_tidal/r))*z_hat #nudge velocity against vertical direction
+            v
+            + (0.0 + kvphi_samp * v_circ * (-1.0)) * phi_hat
+            + (kvz_samp * v_circ * (-1.0)) * z_hat
+        )
 
         return x_lead, x_trail, v_lead, v_trail
 
@@ -113,7 +109,7 @@ class FardalStreamDF(AbstractStreamDF):
 
 @partial_jit()
 def dphidr(potential: AbstractPotentialBase, x: jt.Array, t: jt.Numeric) -> jt.Array:
-    """Computes the derivative of the potential at a position x.
+    """Compute the derivative of the potential at a position x.
 
     Parameters
     ----------
@@ -135,7 +131,9 @@ def dphidr(potential: AbstractPotentialBase, x: jt.Array, t: jt.Numeric) -> jt.A
 
 @partial_jit()
 def d2phidr2(potential: AbstractPotentialBase, x: jt.Array, t: jt.Numeric) -> jt.Array:
-    """Computes the second derivative of the potential at a position x (in the simulation frame).
+    """Compute the second derivative of the potential.
+
+    At a position x (in the simulation frame).
 
     Parameters
     ----------
@@ -162,23 +160,25 @@ def d2phidr2(potential: AbstractPotentialBase, x: jt.Array, t: jt.Numeric) -> jt
 
 @partial_jit()
 def orbital_angular_velocity(x: jt.Array, v: jt.Array, /) -> jt.Array:
-    """Computes the orbital angular velocity about the origin.
+    """Compute the orbital angular velocity about the origin.
 
-    Arguments
+    Arguments:
     ---------
     x: Array[(3,), Any]
         3d position (x, y, z) in [length]
     v: Array[(3,), Any]
         3d velocity (v_x, v_y, v_z) in [length/time]
 
-    Returns
+    Returns:
     -------
     Array
         Angular velocity in [rad/time]
 
-    Examples
+    Examples:
     --------
-    >>> orbital_angular_velocity(x=xp.array([8.0, 0.0, 0.0]), v=xp.array([8.0, 0.0, 0.0]))
+    >>> x = xp.array([8.0, 0.0, 0.0])
+    >>> v = xp.array([8.0, 0.0, 0.0])
+    >>> orbital_angular_velocity(x=x, v=v)
     """
     r = xp.linalg.norm(x)
     return xp.cross(x, v) / r**2
@@ -186,23 +186,25 @@ def orbital_angular_velocity(x: jt.Array, v: jt.Array, /) -> jt.Array:
 
 @partial_jit()
 def orbital_angular_velocity_mag(x: jt.Array, v: jt.Array, /) -> jt.Array:
-    """Computes the magnitude of the angular momentum in the simulation frame.
+    """Compute the magnitude of the angular momentum in the simulation frame.
 
-    Arguments
+    Arguments:
     ---------
     x: Array[(3,), Any]
         3d position (x, y, z) in [kpc]
     v: Array[(3,), Any]
         3d velocity (v_x, v_y, v_z) in [kpc/Myr]
 
-    Returns
+    Returns:
     -------
     Array
         Magnitude of angular momentum in [rad/Myr]
 
-    Examples
+    Examples:
     --------
-    >>> orbital_angular_velocity_mag(x=xp.array([8.0, 0.0, 0.0]), v=xp.array([8.0, 0.0, 0.0]))
+    >>> x = xp.array([8.0, 0.0, 0.0])
+    >>> v = xp.array([8.0, 0.0, 0.0])
+    >>> orbital_angular_velocity_mag(x=x, v=v)
     """
     return xp.linalg.norm(orbital_angular_velocity(x, v))
 
@@ -216,10 +218,12 @@ def tidal_radius(
     prog_mass: jt.Array,
     t: jt.Array,
 ) -> jt.Array:
-    """Computes the tidal radius of a cluster in the potential.
+    """Compute the tidal radius of a cluster in the potential.
 
     Parameters
     ----------
+    potential: AbstractPotentialBase
+        The gravitational potential of the host.
     x: Array
         3d position (x, y, z) in [kpc]
     v: Array
@@ -236,10 +240,12 @@ def tidal_radius(
 
     Examples
     --------
-    >>> tidal_radius(x=xp.array([8.0, 0.0, 0.0]), v=xp.array([8.0, 0.0, 0.0]), prog_mass=1e4)
+    >>> x=xp.array([8.0, 0.0, 0.0])
+    >>> v=xp.array([8.0, 0.0, 0.0]
+    >>> tidal_radius(x=x, v=v, prog_mass=1e4)
     """
     return (
-        potential._G
+        potential._G  # noqa: SLF001
         * prog_mass
         / (orbital_angular_velocity_mag(x, v) ** 2 - d2phidr2(potential, x, t))
     ) ** (1.0 / 3.0)
@@ -253,7 +259,7 @@ def lagrange_points(
     prog_mass: jt.Array,
     t: jt.Array,
 ) -> tuple[jt.Array, jt.Array]:
-    """Computes the lagrange points of a cluster in a host potential.
+    """Compute the lagrange points of a cluster in a host potential.
 
     Parameters
     ----------

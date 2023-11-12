@@ -1,11 +1,12 @@
-"""galdynamix: Galactic Dynamix in Jax"""
+"""galdynamix: Galactic Dynamix in Jax."""
+# ruff: noqa: F403
 
 from __future__ import annotations
 
 __all__ = ["AbstractStreamDF"]
 
 import abc
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
 
 import equinox as eqx
 import jax
@@ -18,8 +19,8 @@ from galdynamix.potential._potential.base import AbstractPotentialBase
 from galdynamix.utils import partial_jit
 
 if TYPE_CHECKING:
-    _wifT: TypeAlias = tuple[jt.Array, jt.Array, jt.Array, jt.Array]
-    _carryT: TypeAlias = tuple[int, jt.Array, jt.Array, jt.Array, jt.Array]
+    Wif: TypeAlias = tuple[jt.Array, jt.Array, jt.Array, jt.Array]
+    Carry: TypeAlias = tuple[int, jt.Array, jt.Array, jt.Array, jt.Array]
 
 
 class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
@@ -62,14 +63,14 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
         mock_lead, mock_trail : MockStream
             Positions and velocities of the leading and trailing tails.
         """
-        prog_ws = prog_orbit.to_w()[:, :-1]  # -1 is time
+        prog_qps = prog_orbit.qp
         ts = prog_orbit.t
 
-        def scan_fn(carry: _carryT, t: Any) -> tuple[_carryT, _wifT]:
+        def scan_fn(carry: Carry, t: jt.Numeric) -> tuple[Carry, Wif]:
             i = carry[0]
             output = self._sample(
                 potential,
-                prog_ws[i],
+                prog_qps[i],
                 prog_mass,
                 t,
                 i=i,

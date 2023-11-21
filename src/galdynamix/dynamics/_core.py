@@ -77,6 +77,7 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
     # ==========================================================================
     # Dynamical quantities
 
+    @partial_jit()
     def kinetic_energy(self) -> jt.Array:
         r"""Return the specific kinetic energy.
 
@@ -93,7 +94,7 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
         return 0.5 * xp.sum(self.p**2, axis=-1)
 
     @partial_jit()
-    def potential_energy(self, potential: AbstractPotentialBase) -> jt.Array:
+    def potential_energy(self, potential: AbstractPotentialBase, /) -> jt.Array:
         r"""Return the specific potential energy.
 
         .. math::
@@ -111,6 +112,23 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
             The specific potential energy.
         """
         return potential.potential_energy(self, self.t)
+
+    @partial_jit()
+    def energy(self, potential: AbstractPotentialBase, /) -> jt.Array:
+        r"""Return the specific total energy.
+
+        .. math::
+
+            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
+            E_\Phi = \Phi(\boldsymbol{q})
+            E = E_K + E_\Phi
+
+        Returns
+        -------
+        E : :class:`~astropy.units.Quantity`
+            The kinetic energy.
+        """
+        return self.kinetic_energy() + self.potential_energy(potential)
 
     @partial_jit()
     def angular_momentum(self) -> jt.Array:

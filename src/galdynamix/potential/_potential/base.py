@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ["AbstractPotentialBase", "AbstractPotential"]
 
 import abc
+import uuid
 from dataclasses import KW_ONLY, fields
 from typing import TYPE_CHECKING, Any
 
@@ -20,6 +21,7 @@ from galdynamix.utils import partial_jit
 
 if TYPE_CHECKING:
     from galdynamix.integrate._base import AbstractIntegrator
+    from galdynamix.potential._potential.composite import CompositePotential
 
 
 class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
@@ -32,7 +34,20 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
 
     @abc.abstractmethod
     def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-        """Compute the potential energy at the given position(s)."""
+        """Compute the potential energy at the given position(s).
+
+        Parameters
+        ----------
+        q : :class:`~jax.Array`
+            The position to compute the value of the potential.
+        t : :class:`~jax.Array`
+            The time at which to compute the value of the potential.
+
+        Returns
+        -------
+        E : :class:`~jax.Array`
+            The potential energy per unit mass or value of the potential.
+        """
         raise NotImplementedError
 
     ###########################################################################
@@ -73,29 +88,98 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
 
     @partial_jit()
     def __call__(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-        """Compute the potential energy at the given position(s)."""
+        """Compute the potential energy at the given position(s).
+
+        See Also
+        --------
+        potential_energy
+        """
         return self.potential_energy(q, t)
 
     @partial_jit()
     def gradient(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-        """Compute the gradient."""
+        """Compute the gradient of the potential at the given position(s).
+
+        Parameters
+        ----------
+        q : :class:`~jax.Array`
+            The position to compute the value of the potential. If the
+            input position object has no units (i.e. is an `~numpy.ndarray`),
+            it is assumed to be in the same unit system as the potential.
+        t : :class:`~jax.Array`
+            The time at which to compute the value of the potential.
+
+        Returns
+        -------
+        :class:`~jax.Array`
+            The gradient of the potential.
+        """
         return jax.grad(self.potential_energy)(q, t)
 
     @partial_jit()
     def density(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+        """Compute the density value at the given position(s).
+
+        Parameters
+        ----------
+        q : :class:`~jax.Array`
+            The position to compute the value of the potential. If the
+            input position object has no units (i.e. is an `~numpy.ndarray`),
+            it is assumed to be in the same unit system as the potential.
+        t : :class:`~jax.Array`
+            The time at which to compute the value of the potential.
+
+        Returns
+        -------
+        :class:`~jax.Array`
+            The potential energy or value of the potential.
+        """
         lap = xp.trace(jax.hessian(self.potential_energy)(q, t))
         return lap / (4 * xp.pi * self._G)
 
     @partial_jit()
     def hessian(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-        return jax.hessian(self.potential_energy)(q, t)
+        """Compute the Hessian of the potential at the given position(s).
 
-    @partial_jit()
-    def acceleration(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-        return -self.gradient(q, t)
+        Parameters
+        ----------
+        q : :class:`~jax.Array`
+            The position to compute the value of the potential. If the
+            input position object has no units (i.e. is an `~numpy.ndarray`),
+            it is assumed to be in the same unit system as the potential.
+        t : :class:`~jax.Array`
+            The time at which to compute the value of the potential.
+
+        Returns
+        -------
+        :class:`~jax.Array`
+            The Hessian matrix of second derivatives of the potential.
+        """
+        return jax.hessian(self.potential_energy)(q, t)
 
     ###########################################################################
     # Convenience methods
+
+    @partial_jit()
+    def acceleration(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+        """Compute the acceleration due to the potential at the given position(s).
+
+        Parameters
+        ----------
+        q : :class:`~jax.Array`
+            Position to compute the acceleration at.
+        t : :class:`~jax.Array`
+            Time at which to compute the acceleration.
+
+        Returns
+        -------
+        :class:`~jax.Array`
+            The acceleration. Will have the same shape as the input
+            position array, ``q``.
+        """
+        return -self.gradient(q, t)
+
+    # =========================================================================
 
     @partial_jit()
     def _integrator_F(
@@ -119,6 +203,20 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         integrator = Integrator(self._integrator_F, **(integrator_kw or {}))
         ws = integrator.run(w0, t0, t1, ts)
         return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)
+
+    ###########################################################################
+    # Composite potentials
+
+    def __add__(self, other: Any) -> CompositePotential:
+        if not isinstance(other, AbstractPotentialBase):
+            return NotImplemented
+
+        from galdynamix.potential._potential.composite import CompositePotential
+
+        if isinstance(other, CompositePotential):
+            return other.__ror__(self)
+
+        return CompositePotential({str(uuid.uuid4()): self, str(uuid.uuid4()): other})
 
 
 # ===========================================================================

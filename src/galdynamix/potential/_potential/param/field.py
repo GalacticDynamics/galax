@@ -84,7 +84,7 @@ class ParameterField:
     def __set__(
         self,
         potential: AbstractPotential,
-        value: AbstractParameter | ParameterCallable | Any,  # noqa: ANN401
+        value: AbstractParameter | ParameterCallable | Any,
     ) -> None:
         # Convert
         if isinstance(value, AbstractParameter):

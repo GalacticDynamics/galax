@@ -132,7 +132,7 @@ class NFWPotential(AbstractPotential):
 
 
 @jax.jit  # type: ignore[misc]
-def get_splines(x_eval: jt.Array, x: jt.Array, y: jt.Array) -> Any:  # noqa: ANN401
+def get_splines(x_eval: jt.Array, x: jt.Array, y: jt.Array) -> Any:
     return InterpolatedUnivariateSpline(x, y, k=3)(x_eval)
 
 

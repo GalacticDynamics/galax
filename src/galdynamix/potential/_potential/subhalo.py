@@ -49,8 +49,8 @@ class SubHaloPopulation(AbstractPotential):
     t_orbit is the array of times the subhalos are integrated over
     """
 
-    m: AbstractParameter = ParameterField(physical_type="mass")  # type: ignore[assignment]
-    a: AbstractParameter = ParameterField(physical_type="length")  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     tq_subhalo_arr: jt.Array = eqx.field(converter=xp.asarray)
     t_orbit: jt.Array = eqx.field(converter=xp.asarray)
 

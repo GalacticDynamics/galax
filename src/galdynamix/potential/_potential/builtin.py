@@ -23,9 +23,9 @@ from galdynamix.utils.dataclasses import field
 
 
 class MiyamotoNagaiDisk(AbstractPotential):
-    m: AbstractParameter = ParameterField(physical_type="mass")  # type: ignore[assignment]
-    a: AbstractParameter = ParameterField(physical_type="length")  # type: ignore[assignment]
-    b: AbstractParameter = ParameterField(physical_type="length")  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial_jit()
     def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
@@ -47,11 +47,11 @@ class BarPotential(AbstractPotential):
     Rz according to https://en.wikipedia.org/wiki/Rotation_matrix
     """
 
-    m: AbstractParameter = ParameterField(physical_type="mass")  # type: ignore[assignment]
-    a: AbstractParameter = ParameterField(physical_type="length")  # type: ignore[assignment]
-    b: AbstractParameter = ParameterField(physical_type="length")  # type: ignore[assignment]
-    c: AbstractParameter = ParameterField(physical_type="length")  # type: ignore[assignment]
-    Omega: AbstractParameter = ParameterField(physical_type="frequency")  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    Omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
 
     @partial_jit()
     def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
@@ -90,8 +90,8 @@ class BarPotential(AbstractPotential):
 
 
 class Isochrone(AbstractPotential):
-    m: AbstractParameter = ParameterField(physical_type="mass")  # type: ignore[assignment]
-    a: AbstractParameter = ParameterField(physical_type="length")  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial_jit()
     def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
@@ -106,12 +106,10 @@ class Isochrone(AbstractPotential):
 class NFWPotential(AbstractPotential):
     """NFW Potential."""
 
-    m: AbstractParameter = ParameterField(physical_type="mass")  # type: ignore[assignment]
-    r_s: AbstractParameter = ParameterField(physical_type="length")  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    softening_length: jt.Array = field(
-        default=0.001, static=True, physical_type="length"
-    )
+    softening_length: jt.Array = field(default=0.001, static=True, dimensions="length")
 
     @partial_jit()
     def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:

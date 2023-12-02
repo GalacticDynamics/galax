@@ -34,7 +34,7 @@ def field(
     converter: Callable[[Any], R] | None = None,
     static: bool = False,
     # Units stuff
-    physical_type: str | u.PhysicalType | None = None,
+    dimensions: str | u.PhysicalType | None = None,
     equivalencies: u.Equivalency | tuple[u.Equivalency, ...] | None = None,
     # Dataclass stuff
     **kwargs: Unpack[_DataclassFieldKwargsDefault[R]],
@@ -42,10 +42,8 @@ def field(
     """See Equinox for `field` documentation."""
     metadata = dict(kwargs.pop("metadata", {}) or {})  # safety copy
 
-    metadata["physical_type"] = (
-        u.get_physical_type(physical_type)
-        if isinstance(physical_type, str)
-        else physical_type
+    metadata["dimensions"] = (
+        u.get_physical_type(dimensions) if isinstance(dimensions, str) else dimensions
     )
     metadata["equivalencies"] = equivalencies
 

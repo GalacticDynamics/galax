@@ -20,8 +20,8 @@ class ParameterField:
 
     Parameters
     ----------
-    physical_type : PhysicalType
-        Physical type of the parameter.
+    dimensions : PhysicalType
+        Dimensions (unit-wise) of the parameter.
     equivalencies : Equivalency or tuple[Equivalency, ...], optional
         Equivalencies to use when converting the parameter value to the
         physical type. If not specified, the default equivalencies for the
@@ -30,21 +30,17 @@ class ParameterField:
 
     name: str = field(init=False)
     _: KW_ONLY
-    physical_type: u.PhysicalType  # TODO: add a converter_argument
+    dimensions: u.PhysicalType  # TODO: add a converter_argument
     equivalencies: u.Equivalency | tuple[u.Equivalency, ...] | None = None
 
     def __post_init__(self) -> None:
+        # Process the physical type
         # TODO: move this to a ``converter`` argument for a custom
         # ``dataclass_transform``'s ``__init__`` method.
-        if isinstance(self.physical_type, str):
-            object.__setattr__(
-                self, "physical_type", u.get_physical_type(self.physical_type)
-            )
-        elif not isinstance(self.physical_type, u.PhysicalType):
-            msg = (
-                "Expected physical_type to be a PhysicalType, "
-                f"got {self.physical_type!r}"
-            )
+        if isinstance(self.dimensions, str):
+            object.__setattr__(self, "dimensions", u.get_physical_type(self.dimensions))
+        elif not isinstance(self.dimensions, u.PhysicalType):
+            msg = f"Expected dimensions to be a PhysicalType, got {self.dimensions!r}"
             raise TypeError(msg)
 
     # ===========================================
@@ -88,18 +84,25 @@ class ParameterField:
     ) -> None:
         # Convert
         if isinstance(value, AbstractParameter):
-            # TODO: use the physical_type information to check the parameters.
+            # TODO: use the dimensions & equivalencies info to check the parameters.
             # TODO: use the units on the `potential` to convert the parameter value.
             pass
         elif callable(value):
-            # TODO: use the physical_type information to check the parameters.
+            # TODO: use the dimensions & equivalencies info to check the parameters.
             # TODO: use the units on the `potential` to convert the parameter value.
             value = UserParameter(func=value)
         else:
-            unit = potential.units[self.physical_type]
+            # TODO: the issue here is that ``units`` hasn't necessarily been set
+            #       on the potential yet. What is needed is to possibly bail out
+            #       here and defer the conversion until the units are set.
+            #       AbstractPotentialBase has the ``_init_units`` method that
+            #       can then call this method, hitting ``AbstractParameter``
+            #       this time.
+            unit = potential.units[self.dimensions]
             if isinstance(value, u.Quantity):
                 value = value.to_value(unit, equivalencies=self.equivalencies)
 
             value = ConstantParameter(xp.asarray(value), unit=unit)
+
         # Set
         potential.__dict__[self.name] = value

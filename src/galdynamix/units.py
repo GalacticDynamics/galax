@@ -49,7 +49,7 @@ class UnitSystem:
     _core_units: list[u.UnitBase]
     _registry: dict[u.PhysicalType, u.UnitBase]
 
-    _required_physical_types: ClassVar[list[u.PhysicalType]] = [
+    _required_dimensions: ClassVar[list[u.PhysicalType]] = [
         u.get_physical_type("length"),
         u.get_physical_type("time"),
         u.get_physical_type("mass"),
@@ -70,7 +70,7 @@ class UnitSystem:
 
         self._registry = {}
         for unit in units:
-            unit_ = (
+            unit_ = (  # TODO: better detection of allowed unit base classes
                 unit if isinstance(unit, u.UnitBase) else u.def_unit(f"{unit!s}", unit)
             )
             if unit_.physical_type in self._registry:
@@ -79,7 +79,7 @@ class UnitSystem:
             self._registry[unit_.physical_type] = unit_
 
         self._core_units = []
-        for phys_type in self._required_physical_types:
+        for phys_type in self._required_dimensions:
             if phys_type not in self._registry:
                 msg = f"You must specify a unit for the physical type {phys_type!r}"
                 raise ValueError(msg)
@@ -110,7 +110,7 @@ class UnitSystem:
 class DimensionlessUnitSystem(UnitSystem):
     """A unit system with only dimensionless units."""
 
-    _required_physical_types: ClassVar[list[u.PhysicalType]] = []
+    _required_dimensions: ClassVar[list[u.PhysicalType]] = []
 
     def __init__(self) -> None:
         self._core_units = [u.one]

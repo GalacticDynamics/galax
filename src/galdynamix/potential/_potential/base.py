@@ -42,31 +42,23 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         G = 1 if self.units == dimensionless else _G.decompose(self.units).value
         object.__setattr__(self, "_G", G)
 
-        # Handle unit conversion for all ParameterField
+        # Handle unit conversion for all fields, e.g. the parameters.
         for f in fields(self):
+            # Process ParameterFields
             param = getattr(self.__class__, f.name, None)
-            if not isinstance(param, ParameterField):
-                continue
+            if isinstance(param, ParameterField):
+                # Set, since the ``.units`` are now known
+                param.__set__(self, getattr(self, f.name))
 
-            value = getattr(self, f.name)
-            if isinstance(value, u.Quantity):
-                value = value.to_value(
-                    self.units[param.physical_type], equivalencies=param.equivalencies
-                )
-                object.__setattr__(self, f.name, value)
-
-        # other parameters, check their metadata
-        for f in fields(self):
-            if "physical_type" not in f.metadata:
-                continue
-
-            value = getattr(self, f.name)
-            if isinstance(value, u.Quantity):
-                value = value.to_value(
-                    self.units[f.metadata["physical_type"]],
-                    equivalencies=f.metadata.get("equivalencies", None),
-                )
-                object.__setattr__(self, f.name, value)
+            # Other fields, check their metadata
+            elif "dimensions" in f.metadata:
+                value = getattr(self, f.name)
+                if isinstance(value, u.Quantity):
+                    value = value.to_value(
+                        self.units[f.metadata["dimensions"]],
+                        equivalencies=f.metadata.get("equivalencies", None),
+                    )
+                    object.__setattr__(self, f.name, value)
 
     ###########################################################################
     # Core methods that use the above implemented functions
@@ -79,11 +71,12 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
     @partial_jit()
     def gradient(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
         """Compute the gradient."""
-        return jax.grad(self.potential_energy)(q, t)
+        return jax.grad(self.potential_energy, argnums=0)(q, t)
 
     @partial_jit()
     def density(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-        lap = xp.trace(jax.hessian(self.potential_energy)(q, t))
+        # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
+        lap = xp.trace(jax.jacfwd(self.gradient)(q, t))
         return lap / (4 * xp.pi * self._G)
 
     @partial_jit()

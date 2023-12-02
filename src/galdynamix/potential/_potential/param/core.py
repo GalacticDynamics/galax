@@ -13,28 +13,6 @@ import jax.typing as jt
 from galdynamix.utils import partial_jit
 
 
-class ParameterCallable(Protocol):
-    """Protocol for a Parameter callable."""
-
-    def __call__(self, t: jt.Array) -> jt.Array:
-        """Compute the parameter value at the given time(s).
-
-        Parameters
-        ----------
-        t : Array
-            Time(s) at which to compute the parameter value.
-
-        Returns
-        -------
-        Array
-            Parameter value(s) at the given time(s).
-        """
-        ...
-
-
-# ====================================================================
-
-
 class AbstractParameter(eqx.Module):  # type: ignore[misc]
     """Abstract Base Class for Parameters on a Potential.
 
@@ -53,6 +31,18 @@ class AbstractParameter(eqx.Module):  # type: ignore[misc]
 
     @abc.abstractmethod
     def __call__(self, t: jt.Array) -> jt.Array:
+        """Compute the parameter value at the given time(s).
+
+        Parameters
+        ----------
+        t : Array
+            The time(s) at which to compute the parameter value.
+
+        Returns
+        -------
+        Array
+            The parameter value at times ``t``.
+        """
         ...
 
 
@@ -63,8 +53,45 @@ class ConstantParameter(AbstractParameter):
     value: jt.Array
 
     @partial_jit()
-    def __call__(self, t: jt.Array) -> jt.Array:
+    def __call__(self, t: jt.Array = 0) -> jt.Array:
+        """Return the constant parameter value.
+
+        Parameters
+        ----------
+        t : Array, optional
+            This is ignored and is thus optional.
+            Note that for most :class:`~galdynamix.potential.AbstractParameter`
+            the time is required.
+
+        Returns
+        -------
+        Array
+            The constant parameter value.
+        """
         return self.value
+
+
+#####################################################################
+# User-defined Parameter
+
+
+class ParameterCallable(Protocol):
+    """Protocol for a Parameter callable."""
+
+    def __call__(self, t: jt.Array) -> jt.Array:
+        """Compute the parameter value at the given time(s).
+
+        Parameters
+        ----------
+        t : Array
+            Time(s) at which to compute the parameter value.
+
+        Returns
+        -------
+        Array
+            Parameter value(s) at the given time(s).
+        """
+        ...
 
 
 class UserParameter(AbstractParameter):

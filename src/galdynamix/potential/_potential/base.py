@@ -71,11 +71,12 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
     @partial_jit()
     def gradient(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
         """Compute the gradient."""
-        return jax.grad(self.potential_energy)(q, t)
+        return jax.grad(self.potential_energy, argnums=0)(q, t)
 
     @partial_jit()
     def density(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
-        lap = xp.trace(jax.hessian(self.potential_energy)(q, t))
+        # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
+        lap = xp.trace(jax.jacfwd(self.gradient)(q, t))
         return lap / (4 * xp.pi * self._G)
 
     @partial_jit()

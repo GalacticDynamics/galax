@@ -92,7 +92,7 @@ class UnitSystem:
 
         units = (units, *args)
 
-        self._registry = {}
+        self._registry = {u.get_physical_type("dimensionless"): u.one}
         for unit in units:
             unit_ = (  # TODO: better detection of allowed unit base classes
                 unit if isinstance(unit, u.UnitBase) else u.def_unit(f"{unit!s}", unit)

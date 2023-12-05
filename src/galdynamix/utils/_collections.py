@@ -17,6 +17,23 @@ V = TypeVar("V")
 
 @register_pytree_node_class
 class ImmutableDict(Mapping[str, V]):
+    """Immutable string-keyed dictionary.
+
+    Parameters
+    ----------
+    *args : tuple[str, V]
+        Key-value pairs.
+    **kwargs : V
+        Key-value pairs.
+
+    Examples
+    --------
+    >>> from galdynamix.utils import ImmutableDict
+    >>> d = ImmutableDict(a=1, b=2)
+    >>> d
+    ImmutableDict({'a': 1, 'b': 2})
+    """
+
     def __init__(self, /, *args: tuple[str, V], **kwargs: V) -> None:
         self._data: dict[str, V] = dict(*args, **kwargs)
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__all__ = ["partial_jit", "partial_vmap"]
+__all__ = ["partial_jit", "partial_vmap", "partial_vectorize"]
 
 from collections.abc import Hashable
 from functools import partial
@@ -19,6 +19,8 @@ R = TypeVar("R")
 
 
 class JITKwargs(TypedDict):
+    """Keyword arguments for :func:`jax.jit`."""
+
     in_shardings: NotRequired[Any]
     out_shardings: NotRequired[Any]
     static_argnums: NotRequired[int | Sequence[int] | None]
@@ -50,3 +52,14 @@ def partial_vmap(
     **kwargs: Unpack[VMapKwargs],
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     return partial(jax.vmap, **kwargs)
+
+
+class VectorizeKwargs(TypedDict):
+    excluded: NotRequired[Sequence[int] | None]
+    signature: NotRequired[str | None]
+
+
+def partial_vectorize(
+    **kwargs: Unpack[VMapKwargs],
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    return partial(jax.numpy.vectorize, **kwargs)

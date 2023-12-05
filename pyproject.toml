@@ -119,6 +119,7 @@ src = ["src"]
 extend-select = ["ALL"]
 ignore = [
   "ANN101",  # Missing type annotation for self in method
+  "ANN102",  # Missing type annotation for cls in classmethod
   "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in `*args`
   "COM812",  # Missing trailing comma in Python 3.6+
   "D203",    # 1 blank line required before class docstring

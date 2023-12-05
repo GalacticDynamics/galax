@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-__all__ = ["partial_jit"]
+__all__ = ["partial_jit", "partial_vmap"]
 
+from collections.abc import Hashable
 from functools import partial
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, TypeVar
 
@@ -34,3 +35,18 @@ def partial_jit(
     **kwargs: Unpack[JITKwargs],
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     return partial(jax.jit, **kwargs)
+
+
+# TODO: nest the definitions properly
+class VMapKwargs(TypedDict):
+    in_axes: NotRequired[int | Sequence[Any] | dict[str, Any] | None]
+    out_axes: NotRequired[Any]
+    axis_name: NotRequired[Hashable | None]
+    axis_size: NotRequired[int | None]
+    spmd_axis_name: NotRequired[Hashable | tuple[Hashable, ...] | None]
+
+
+def partial_vmap(
+    **kwargs: Unpack[VMapKwargs],
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    return partial(jax.vmap, **kwargs)

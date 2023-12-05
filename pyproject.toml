@@ -39,6 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
+  "hypothsis[numpy]",
   "pytest >=6",
   "pytest-cov >=3",
 ]
@@ -92,7 +93,7 @@ port.exclude_lines = [
 ]
 
 [tool.mypy]
-files = ["src", "tests"]
+files = ["src"]
 python_version = "3.11"
 warn_unused_configs = true
 strict = true
@@ -108,7 +109,19 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
 [[tool.mypy.overrides]]
-module = ["astropy.*", "diffrax.*", "equinox.*", "jax.*", "jax_cosmo.*"]
+module = [
+  "astropy.*",
+  "diffrax.*",
+  "equinox.*",
+  "hypothesis.*",
+  "jax.*",
+  "jax_cosmo.*",
+  "jaxtyping.*",
+  "numpy.*",
+  "scipy.*",
+  "sympy.*",
+  "sympy2jax.*"
+]
 ignore_missing_imports = true
 
 
@@ -126,6 +139,8 @@ ignore = [
   "D105",    # Missing docstring in magic method
   "D107",    # Missing docstring in `__init__`
   "D213",    # Multi-line docstring summary should start at the second line
+  "E741",    # Ambiguous variable name
+  "F821",    # undefined name  <- jaxtyping
   "FIX002",  # Line contains TODO, consider resolving the issue
   "N80",     # Naming conventions.
   "PD",      # pandas-vet
@@ -133,6 +148,7 @@ ignore = [
   "TCH00",   # Move into a type-checking block
   "TD002",   # Missing author in TODO
   "TD003",   # Missing issue link on the line following this TODO
+  "UP037",   # Remove quote from type annotation  <- jaxtyping
   # TODO: fix these
   "ARG001",
   "ARG002",
@@ -145,7 +161,7 @@ isort.required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"]
-"tests/**" = ["ANN", "D10", "INP001", "S101", "T20"]
+"tests/**" = ["ANN", "D10", "E731", "INP001", "S101", "SLF001", "T20"]
 "noxfile.py" = ["ERA001", "T20"]
 "docs/conf.py" = [
   "A001",  # Variable `copyright` is shadowing a Python builtin

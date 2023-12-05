@@ -54,7 +54,7 @@ repos:
     rev: "v1.6.1"
     hooks:
       - id: mypy
-        files: src|tests
+        files: src
         args: ["--enable-incomplete-feature=Unpack"]
         additional_dependencies:
           - pytest

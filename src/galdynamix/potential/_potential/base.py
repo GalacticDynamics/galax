@@ -70,7 +70,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
                 value = getattr(self, f.name)
                 if isinstance(value, u.Quantity):
                     value = value.to_value(
-                        self.units[f.metadata["dimensions"]],
+                        self.units[f.metadata.get("dimensions")],
                         equivalencies=f.metadata.get("equivalencies", None),
                     )
                     object.__setattr__(self, f.name, value)

@@ -30,6 +30,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
   "astropy >= 5.3",
+  "beartype",
   "diffrax",
   "equinox",
   "jax",

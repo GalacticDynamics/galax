@@ -1,9 +1,8 @@
-__all__ = ["AbstractPotentialBase", "AbstractPotential"]
+__all__ = ["AbstractPotentialBase"]
 
 import abc
-import uuid
-from dataclasses import KW_ONLY, fields
-from typing import TYPE_CHECKING, Any
+from dataclasses import fields
+from typing import Any
 
 import astropy.units as u
 import equinox as eqx
@@ -17,9 +16,6 @@ from galdynamix.integrate._builtin import DiffraxIntegrator
 from galdynamix.typing import FloatScalar, Vector3, Vector6, VectorN
 from galdynamix.units import UnitSystem, dimensionless
 from galdynamix.utils import partial_jit
-
-if TYPE_CHECKING:
-    from galdynamix.potential._potential.composite import CompositePotential
 
 
 class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
@@ -196,33 +192,3 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         integrator = Integrator(self._integrator_F, **(integrator_kw or {}))
         ws = integrator.run(qp0, t0, t1, ts)
         return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)
-
-    ###########################################################################
-    # Composite potentials
-
-    def __add__(self, other: Any) -> "CompositePotential":
-        if not isinstance(other, AbstractPotentialBase):
-            return NotImplemented
-
-        from galdynamix.potential._potential.composite import CompositePotential
-
-        if isinstance(other, CompositePotential):
-            return other.__ror__(self)
-
-        return CompositePotential({str(uuid.uuid4()): self, str(uuid.uuid4()): other})
-
-
-# ===========================================================================
-
-
-class AbstractPotential(AbstractPotentialBase):
-    _: KW_ONLY
-    units: UnitSystem = eqx.field(
-        default=None,
-        converter=lambda x: dimensionless if x is None else UnitSystem(x),
-        static=True,
-    )
-    _G: float = eqx.field(init=False, static=True, repr=False)
-
-    def __post_init__(self) -> None:
-        self._init_units()

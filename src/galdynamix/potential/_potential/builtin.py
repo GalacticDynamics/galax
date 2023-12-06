@@ -12,7 +12,7 @@ from dataclasses import KW_ONLY
 
 import jax.numpy as xp
 
-from galdynamix.potential._potential.base import AbstractPotential
+from galdynamix.potential._potential.core import AbstractPotential
 from galdynamix.potential._potential.param import AbstractParameter, ParameterField
 from galdynamix.typing import FloatScalar, Vector3
 from galdynamix.utils import partial_jit

@@ -13,8 +13,8 @@ import jax.numpy as xp
 import jax.typing as jt
 from jax_cosmo.scipy.interpolate import InterpolatedUnivariateSpline
 
-from galdynamix.potential._potential.base import AbstractPotential
 from galdynamix.potential._potential.builtin import Isochrone
+from galdynamix.potential._potential.core import AbstractPotential
 from galdynamix.potential._potential.param import AbstractParameter, ParameterField
 from galdynamix.units import galactic
 from galdynamix.utils import partial_jit

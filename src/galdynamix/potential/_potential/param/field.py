@@ -6,7 +6,7 @@ from typing import Any, Self, cast, overload
 import astropy.units as u
 import jax.numpy as xp
 
-from galdynamix.potential._potential.base import AbstractPotential
+from galdynamix.potential._potential.core import AbstractPotential
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 

@@ -75,7 +75,7 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
                 i=i,
                 seed_num=seed_num,
             )
-            return (i + 1, *output), tuple(output)  # type: ignore[return-value]
+            return (i + 1, *output), tuple(output)
 
         init_carry = (
             0,

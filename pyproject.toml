@@ -39,7 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-  "hypothsis[numpy]",
+  "hypothesis[numpy]",
   "pytest >=6",
   "pytest-cov >=3",
 ]

@@ -1,18 +1,17 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
-
 __all__ = ["Orbit"]
 
-import jax.typing as jt
+from typing_extensions import override
 
 from galdynamix.potential._potential.base import AbstractPotentialBase
+from galdynamix.typing import FloatScalar
 from galdynamix.utils._jax import partial_jit
 
-from ._core import PhaseSpacePosition
+from ._core import AbstractPhaseSpacePosition
 
 
-class Orbit(PhaseSpacePosition):
+class Orbit(AbstractPhaseSpacePosition):
     """Represents an orbit.
 
     Represents an orbit: positions and velocities (conjugate momenta) as a
@@ -26,10 +25,11 @@ class Orbit(PhaseSpacePosition):
     # ==========================================================================
     # Dynamical quantities
 
+    @override
     @partial_jit()
     def potential_energy(
         self, potential: AbstractPotentialBase | None = None, /
-    ) -> jt.Array:
+    ) -> FloatScalar:
         r"""Return the specific potential energy.
 
         .. math::
@@ -49,20 +49,3 @@ class Orbit(PhaseSpacePosition):
         if potential is None:
             return self.potential.potential_energy(self, self.t)
         return potential.potential_energy(self, self.t)
-
-    @partial_jit()
-    def energy(self, potential: AbstractPotentialBase | None = None, /) -> jt.Array:
-        r"""Return the specific total energy.
-
-        .. math::
-
-            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
-            E_\Phi = \Phi(\boldsymbol{q})
-            E = E_K + E_\Phi
-
-        Returns
-        -------
-        E : :class:`~astropy.units.Quantity`
-            The kinetic energy.
-        """
-        return self.kinetic_energy() + self.potential_energy(potential)

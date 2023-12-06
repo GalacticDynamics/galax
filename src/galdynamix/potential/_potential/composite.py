@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 __all__ = ["CompositePotential"]
 
 
@@ -9,8 +7,8 @@ from typing import Any, TypeVar, final
 
 import equinox as eqx
 import jax.numpy as xp
-import jax.typing as jt
 
+from galdynamix.typing import FloatScalar, Vector3
 from galdynamix.units import UnitSystem, dimensionless
 from galdynamix.utils import ImmutableDict, partial_jit
 from galdynamix.utils._misc import first
@@ -58,17 +56,13 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
     # === Potential ===
 
     @partial_jit()
-    def potential_energy(
-        self,
-        q: jt.Array,
-        t: jt.Array,
-    ) -> jt.Array:
+    def potential_energy(self, q: Vector3, t: FloatScalar) -> FloatScalar:
         return xp.sum(xp.array([p.potential_energy(q, t) for p in self.values()]))
 
     ###########################################################################
     # Composite potentials
 
-    def __or__(self, other: Any) -> CompositePotential:
+    def __or__(self, other: Any) -> "CompositePotential":
         if not isinstance(other, AbstractPotentialBase):
             return NotImplemented
 
@@ -81,7 +75,7 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
             )
         )
 
-    def __ror__(self, other: Any) -> CompositePotential:
+    def __ror__(self, other: Any) -> "CompositePotential":
         if not isinstance(other, AbstractPotentialBase):
             return NotImplemented
 
@@ -94,5 +88,5 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
             | self._data
         )
 
-    def __add__(self, other: AbstractPotentialBase) -> CompositePotential:
+    def __add__(self, other: AbstractPotentialBase) -> "CompositePotential":
         return self | other

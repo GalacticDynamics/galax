@@ -1,7 +1,5 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
-
 from . import _df, _mockstream_generator
 from ._df import *
 from ._mockstream_generator import *

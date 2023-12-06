@@ -1,17 +1,14 @@
-from __future__ import annotations
-
 __all__ = ["ParameterField"]
 
 from dataclasses import KW_ONLY, dataclass, field, is_dataclass
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import Any, Self, cast, overload
 
 import astropy.units as u
 import jax.numpy as xp
 
-from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
+from galdynamix.potential._potential.base import AbstractPotential
 
-if TYPE_CHECKING:
-    from galdynamix.potential._potential.base import AbstractPotential
+from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,7 +49,7 @@ class ParameterField:
     # -----------------------------
 
     @overload
-    def __get__(self, instance: None, owner: type[AbstractPotential]) -> ParameterField:
+    def __get__(self, instance: None, owner: type[AbstractPotential]) -> Self:
         ...
 
     @overload
@@ -61,7 +58,7 @@ class ParameterField:
 
     def __get__(
         self, instance: AbstractPotential | None, owner: type[AbstractPotential] | None
-    ) -> ParameterField | AbstractParameter:
+    ) -> Self | AbstractParameter:
         # Get from class
         if instance is None:
             # If the Parameter is being set as part of a dataclass constructor,

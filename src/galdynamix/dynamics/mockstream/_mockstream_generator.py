@@ -1,25 +1,28 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
-
 __all__ = ["MockStreamGenerator"]
 
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TypeAlias
 
 import equinox as eqx
 import jax
 import jax.numpy as xp
-import jax.typing as jt
+from jaxtyping import Float
 
+from galdynamix.dynamics._orbit import Orbit
 from galdynamix.potential._potential.base import AbstractPotentialBase
+from galdynamix.typing import (
+    FloatScalar,
+    IntegerScalar,
+    TimeVector,
+    Vector6,
+    VectorN,
+)
 from galdynamix.utils import partial_jit
 
 from ._df import AbstractStreamDF
 
-if TYPE_CHECKING:
-    Carry: TypeAlias = tuple[int, jt.Array, jt.Array]
-
-    from galdynamix.dynamics._orbit import Orbit
+Carry: TypeAlias = tuple[IntegerScalar, VectorN, VectorN]
 
 
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
@@ -30,8 +33,13 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial_jit(static_argnames=("seed_num",))
     def _run_scan(
-        self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
-    ) -> tuple[tuple[jt.Array, jt.Array], Orbit]:
+        self,
+        ts: TimeVector,
+        prog_w0: Vector6,
+        prog_mass: FloatScalar,
+        *,
+        seed_num: int,
+    ) -> tuple[tuple[Float[Vector6, "time"], Float[Vector6, "time"]], Orbit]:
         """Generate stellar stream by scanning over the release model/integration.
 
         Better for CPU usage.
@@ -46,12 +54,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         qp0_lead = mock0_lead.qp
         qp0_trail = mock0_trail.qp
 
-        def scan_fn(carry: Carry, idx: int) -> tuple[Carry, tuple[jt.Array, jt.Array]]:
+        def scan_fn(
+            carry: Carry, idx: IntegerScalar
+        ) -> tuple[Carry, tuple[VectorN, VectorN]]:
             i, qp0_lead_i, qp0_trail_i = carry
             qp0_lead_trail = xp.vstack([qp0_lead_i, qp0_trail_i])
             t_i, t_f = ts[i], ts[-1]
 
-            def integ_ics(ics: jt.Array) -> jt.Array:
+            def integ_ics(ics: Vector6) -> VectorN:
                 return self.potential.integrate_orbit(ics, t_i, t_f, None).qp[0]
 
             # vmap over leading and trailing arm
@@ -66,8 +76,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial_jit(static_argnames=("seed_num",))
     def _run_vmap(
-        self, ts: jt.Array, prog_w0: jt.Array, prog_mass: jt.Array, *, seed_num: int
-    ) -> tuple[tuple[jt.Array, jt.Array], Orbit]:
+        self, ts: TimeVector, prog_w0: Vector6, prog_mass: FloatScalar, *, seed_num: int
+    ) -> tuple[tuple[Float[Vector6, "time"], Float[Vector6, "time"]], Orbit]:
         """Generate stellar stream by vmapping over the release model/integration.
 
         Better for GPU usage.
@@ -86,8 +96,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
         def single_particle_integrate(
-            i: int, qp0_lead_i: jt.Array, qp0_trail_i: jt.Array
-        ) -> tuple[jt.Array, jt.Array]:
+            i: int, qp0_lead_i: Vector6, qp0_trail_i: Vector6
+        ) -> tuple[Vector6, Vector6]:
             t_i = ts[i]
             qp_lead = self.integrate_orbit(qp0_lead_i, t_i, t_f, None).qp[0]
             qp_trail = self.integrate_orbit(qp0_trail_i, t_i, t_f, None).qp[0]
@@ -101,13 +111,13 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial_jit(static_argnames=("seed_num", "vmapped"))
     def run(
         self,
-        ts: jt.Array,
-        prog_w0: jt.Array,
-        prog_mass: jt.Array,
+        ts: TimeVector,
+        prog_w0: Vector6,
+        prog_mass: FloatScalar,
         *,
         seed_num: int,
         vmapped: bool = False,
-    ) -> tuple[jt.Array, jt.Array]:
+    ) -> tuple[tuple[Float[Vector6, "time"], Float[Vector6, "time"]], Orbit]:
         # TODO: figure out better return type: MockStream?
         if vmapped:
             return self._run_vmap(ts, prog_w0, prog_mass, seed_num=seed_num)

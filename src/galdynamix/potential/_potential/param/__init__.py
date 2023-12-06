@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from . import core, field
 from .core import *
 from .field import *

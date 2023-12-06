@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
@@ -25,7 +23,7 @@ def test_partial_jit():
 def test_partial_vmap():
     """Test the partial_vmap function."""
 
-    def func(x: Float[Array, "batch", "N"]) -> Float[Array, "batch"]:
+    def func(x: Float[Array, "batch N"]) -> Float[Array, "batch"]:
         return jnp.sum(x)
 
     vmap_func = partial_vmap(in_axes=0)(func)
@@ -39,7 +37,7 @@ def test_partial_vmap():
 def test_partial_vectorize():
     """Test the partial_vectorize function."""
 
-    def func(x: Float[Array, "batch", "N"]) -> Float[Array, "batch"]:
+    def func(x: Float[Array, "batch N"]) -> Float[Array, "batch"]:
         return jnp.sum(x)
 
     vectorize_func = partial_vectorize(signature="(3)->()")(func)

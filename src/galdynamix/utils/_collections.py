@@ -1,14 +1,10 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
 
 __all__ = ["ImmutableDict"]
 
-from collections.abc import ItemsView, Iterator, KeysView, Mapping, ValuesView
-from typing import (
-    Self,
-    TypeVar,
-)
+from collections.abc import ItemsView, Iterable, Iterator, KeysView, Mapping, ValuesView
+from typing import TypeVar
 
 from jax.tree_util import register_pytree_node_class
 
@@ -34,7 +30,9 @@ class ImmutableDict(Mapping[str, V]):
     ImmutableDict({'a': 1, 'b': 2})
     """
 
-    def __init__(self, /, *args: tuple[str, V], **kwargs: V) -> None:
+    def __init__(
+        self, /, *args: tuple[str, V] | Iterable[tuple[str, V]], **kwargs: V
+    ) -> None:
         self._data: dict[str, V] = dict(*args, **kwargs)
 
     def __getitem__(self, key: str) -> V:
@@ -81,10 +79,10 @@ class ImmutableDict(Mapping[str, V]):
 
     @classmethod
     def tree_unflatten(
-        cls: type[Self],
+        cls,
         aux_data: tuple[str, ...],
         children: tuple[V, ...],
-    ) -> Self[str, V]:  # type: ignore[misc]
+    ) -> "ImmutableDict[V]":
         """Unflatten.
 
         Params:
@@ -97,4 +95,4 @@ class ImmutableDict(Mapping[str, V]):
         a re-constructed object of the registered type, using the specified
         children and auxiliary data.
         """
-        return cls(tuple(zip(aux_data, children, strict=True)))  # type: ignore[arg-type]
+        return cls(tuple(zip(aux_data, children, strict=True)))

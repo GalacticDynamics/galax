@@ -30,6 +30,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
   "astropy >= 5.3",
+  "beartype",
   "diffrax",
   "equinox",
   "jax",
@@ -77,6 +78,7 @@ addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
 filterwarnings = [
   "error",
+  "ignore:ast\\.Str is deprecated:DeprecationWarning",
 ]
 log_cli_level = "INFO"
 testpaths = [
@@ -103,26 +105,27 @@ warn_unreachable = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
-[[tool.mypy.overrides]]
-module = "galdynamix.*"
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
+  [[tool.mypy.overrides]]
+  module = "galdynamix.*"
+  disallow_untyped_defs = true
+  disallow_incomplete_defs = true
+  disable_error_code = ["name-defined"]  # <- jaxtyping
 
-[[tool.mypy.overrides]]
-module = [
-  "astropy.*",
-  "diffrax.*",
-  "equinox.*",
-  "hypothesis.*",
-  "jax.*",
-  "jax_cosmo.*",
-  "jaxtyping.*",
-  "numpy.*",
-  "scipy.*",
-  "sympy.*",
-  "sympy2jax.*"
-]
-ignore_missing_imports = true
+  [[tool.mypy.overrides]]
+  module = [
+    "astropy.*",
+    "diffrax.*",
+    "equinox.*",
+    "hypothesis.*",
+    "jax.*",
+    "jax_cosmo.*",
+    "jaxtyping.*",
+    "numpy.*",
+    "scipy.*",
+    "sympy.*",
+    "sympy2jax.*"
+  ]
+  ignore_missing_imports = true
 
 
 [tool.ruff]
@@ -140,6 +143,7 @@ ignore = [
   "D107",    # Missing docstring in `__init__`
   "D213",    # Multi-line docstring summary should start at the second line
   "E741",    # Ambiguous variable name
+  "F722",    # Syntax error in forward annotation  <- jaxtyping
   "F821",    # undefined name  <- jaxtyping
   "FIX002",  # Line contains TODO, consider resolving the issue
   "N80",     # Naming conventions.
@@ -155,7 +159,6 @@ ignore = [
   "ERA001",  # commented-out code
   "F841",
 ]
-isort.required-imports = ["from __future__ import annotations"]
 # Uncomment if using a _compat.typing backport
 # typing-modules = ["galdynamix._compat.typing"]
 

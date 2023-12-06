@@ -1,23 +1,27 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
+__all__ = ["AbstractPhaseSpacePosition", "PhaseSpacePosition"]
 
-__all__ = ["PhaseSpacePosition"]
-
-from typing import TYPE_CHECKING, cast
+from typing import Any, cast
 
 import equinox as eqx
 import jax.numpy as xp
-import jax.typing as jt
 
+from galdynamix.typing import VectorN, VectorN3, VectorN6, VectorN7
 from galdynamix.utils._jax import partial_jit
-
-if TYPE_CHECKING:
-    from galdynamix.potential._potential.base import AbstractPotentialBase
+from galdynamix.utils.dataclasses import field
 
 
-class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
-    """Orbit.
+def convert_to_N3(x: Any) -> VectorN3:
+    """Convert to a 3-vector."""
+    out = xp.asarray(x)
+    if out.ndim == 1:
+        out = out[None, :]
+    return out  # shape checking done by jaxtyping + beartype
+
+
+class AbstractPhaseSpacePosition(eqx.Module):  # type: ignore[misc]
+    """Abstract Base Class of Phase-Space Positions.
 
     Todo:
     ----
@@ -25,18 +29,18 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
     - GR stuff
     """
 
-    q: jt.Array
+    q: VectorN3 = field(converter=convert_to_N3)
     """Position of the stream particles (x, y, z) [kpc]."""
 
-    p: jt.Array
+    p: VectorN3 = field(converter=convert_to_N3)
     """Position of the stream particles (x, y, z) [kpc/Myr]."""
 
-    t: jt.Array
+    t: VectorN
     """Array of times [Myr]."""
 
     @property
     @partial_jit()
-    def qp(self) -> jt.Array:
+    def qp(self) -> VectorN6:
         """Return as a single Array[(N, Q + P),]."""
         # Determine output shape
         qd = self.q.shape[1]  # dimensionality of q
@@ -49,7 +53,7 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
 
     @property
     @partial_jit()
-    def w(self) -> jt.Array:
+    def w(self) -> VectorN7:
         """Return as a single Array[(N, Q + P + T),]."""
         qp = self.qp
         qpd = qp.shape[1]  # dimensionality of qp
@@ -78,7 +82,7 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
     # Dynamical quantities
 
     @partial_jit()
-    def kinetic_energy(self) -> jt.Array:
+    def kinetic_energy(self) -> VectorN:
         r"""Return the specific kinetic energy.
 
         .. math::
@@ -93,8 +97,8 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
         # TODO: use a ``norm`` function
         return 0.5 * xp.sum(self.p**2, axis=-1)
 
-    @partial_jit()
-    def potential_energy(self, potential: AbstractPotentialBase, /) -> jt.Array:
+    @partial_jit()  # TODO: annotate as AbstractPotentialBase
+    def potential_energy(self, potential: Any, /) -> VectorN:
         r"""Return the specific potential energy.
 
         .. math::
@@ -113,8 +117,8 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
         """
         return potential.potential_energy(self, self.t)
 
-    @partial_jit()
-    def energy(self, potential: AbstractPotentialBase, /) -> jt.Array:
+    @partial_jit()  # TODO: annotate as AbstractPotentialBase
+    def energy(self, potential: Any, /) -> VectorN:
         r"""Return the specific total energy.
 
         .. math::
@@ -131,7 +135,7 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
         return self.kinetic_energy() + self.potential_energy(potential)
 
     @partial_jit()
-    def angular_momentum(self) -> jt.Array:
+    def angular_momentum(self) -> VectorN3:
         r"""Compute the angular momentum.
 
         .. math::
@@ -158,3 +162,7 @@ class PhaseSpacePosition(eqx.Module):  # type: ignore[misc]
         """
         # TODO: when q, p are not Cartesian.
         return xp.cross(self.q, self.p)
+
+
+class PhaseSpacePosition(AbstractPhaseSpacePosition):
+    pass

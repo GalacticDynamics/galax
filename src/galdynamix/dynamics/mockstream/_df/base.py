@@ -1,25 +1,29 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
 
 __all__ = ["AbstractStreamDF"]
 
 import abc
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TypeAlias
 
 import equinox as eqx
 import jax
 import jax.numpy as xp
-import jax.typing as jt
 
 from galdynamix.dynamics._orbit import Orbit
 from galdynamix.dynamics.mockstream._core import MockStream
 from galdynamix.potential._potential.base import AbstractPotentialBase
+from galdynamix.typing import (
+    FloatScalar,
+    IntegerLike,
+    Vector6,
+    VectorN,
+    VectorN3,
+)
 from galdynamix.utils import partial_jit
 
-if TYPE_CHECKING:
-    Wif: TypeAlias = tuple[jt.Array, jt.Array, jt.Array, jt.Array]
-    Carry: TypeAlias = tuple[int, jt.Array, jt.Array, jt.Array, jt.Array]
+Wif: TypeAlias = tuple[VectorN, VectorN, VectorN, VectorN]
+Carry: TypeAlias = tuple[IntegerLike, VectorN, VectorN, VectorN, VectorN]
 
 
 class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
@@ -38,7 +42,7 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
         potential: AbstractPotentialBase,
         prog_orbit: Orbit,
         # />
-        prog_mass: jt.Numeric,
+        prog_mass: FloatScalar,
         *,
         seed_num: int,
     ) -> tuple[MockStream, MockStream]:
@@ -65,7 +69,7 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
         prog_qps = prog_orbit.qp
         ts = prog_orbit.t
 
-        def scan_fn(carry: Carry, t: jt.Numeric) -> tuple[Carry, Wif]:
+        def scan_fn(carry: Carry, t: FloatScalar) -> tuple[Carry, Wif]:
             i = carry[0]
             output = self._sample(
                 potential,
@@ -95,20 +99,20 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
     def _sample(
         self,
         potential: AbstractPotentialBase,
-        w: jt.Array,
-        prog_mass: jt.Numeric,
-        t: jt.Numeric,
+        qp: Vector6,
+        prog_mass: FloatScalar,
+        t: FloatScalar,
         *,
-        i: int,
+        i: IntegerLike,
         seed_num: int,
-    ) -> tuple[jt.Array, jt.Array, jt.Array, jt.Array]:
+    ) -> tuple[VectorN3, VectorN3, VectorN3, VectorN3]:
         """Generate stream particle initial conditions.
 
         Parameters
         ----------
         potential : AbstractPotentialBase
             The potential of the host galaxy.
-        w : Array
+        qp : Array
             6d position (x, y, z) [kpc], (v_x, v_y, v_z) [kpc/Myr]
         prog_mass : Numeric
             Mass of the progenitor in [Msol]

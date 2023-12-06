@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 __all__ = ["AbstractPotentialBase", "AbstractPotential"]
 
 import abc
@@ -9,18 +7,18 @@ from typing import TYPE_CHECKING, Any
 
 import astropy.units as u
 import equinox as eqx
-import jax
 import jax.numpy as xp
-import jax.typing as jt
 from astropy.constants import G as _G
+from jax import grad, hessian, jacfwd
+from jaxtyping import Array, Float
 
+from galdynamix.integrate._base import AbstractIntegrator
 from galdynamix.integrate._builtin import DiffraxIntegrator
-from galdynamix.potential._potential.param.field import ParameterField
+from galdynamix.typing import FloatScalar, Vector3, Vector6, VectorN
 from galdynamix.units import UnitSystem, dimensionless
 from galdynamix.utils import partial_jit
 
 if TYPE_CHECKING:
-    from galdynamix.integrate._base import AbstractIntegrator
     from galdynamix.potential._potential.composite import CompositePotential
 
 
@@ -33,7 +31,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
     # Abstract methods that must be implemented by subclasses
 
     @abc.abstractmethod
-    def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+    def potential_energy(self, q: Vector3, /, t: FloatScalar) -> FloatScalar:
         """Compute the potential energy at the given position(s).
 
         Parameters
@@ -57,6 +55,8 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         G = 1 if self.units == dimensionless else _G.decompose(self.units).value
         object.__setattr__(self, "_G", G)
 
+        from galdynamix.potential._potential.param.field import ParameterField
+
         # Handle unit conversion for all fields, e.g. the parameters.
         for f in fields(self):
             # Process ParameterFields
@@ -79,7 +79,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
     # Core methods that use the above implemented functions
 
     @partial_jit()
-    def __call__(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+    def __call__(self, q: Vector3, /, t: FloatScalar) -> FloatScalar:
         """Compute the potential energy at the given position(s).
 
         See Also
@@ -89,7 +89,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         return self.potential_energy(q, t)
 
     @partial_jit()
-    def gradient(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+    def gradient(self, q: Vector3, /, t: FloatScalar) -> Vector3:
         """Compute the gradient of the potential at the given position(s).
 
         Parameters
@@ -106,10 +106,10 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         :class:`~jax.Array`
             The gradient of the potential.
         """
-        return jax.grad(self.potential_energy)(q, t)
+        return grad(self.potential_energy)(q, t)
 
     @partial_jit()
-    def density(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+    def density(self, q: Vector3, /, t: FloatScalar) -> Vector3:
         """Compute the density value at the given position(s).
 
         Parameters
@@ -127,11 +127,11 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
             The potential energy or value of the potential.
         """
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
-        lap = xp.trace(jax.jacfwd(self.gradient)(q, t))
+        lap = xp.trace(jacfwd(self.gradient)(q, t))
         return lap / (4 * xp.pi * self._G)
 
     @partial_jit()
-    def hessian(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+    def hessian(self, q: Vector3, /, t: FloatScalar) -> Vector3:
         """Compute the Hessian of the potential at the given position(s).
 
         Parameters
@@ -148,13 +148,13 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         :class:`~jax.Array`
             The Hessian matrix of second derivatives of the potential.
         """
-        return jax.hessian(self.potential_energy)(q, t)
+        return hessian(self.potential_energy)(q, t)
 
     ###########################################################################
     # Convenience methods
 
     @partial_jit()
-    def acceleration(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+    def acceleration(self, q: Vector3, /, t: FloatScalar) -> Vector3:
         """Compute the acceleration due to the potential at the given position(s).
 
         Parameters
@@ -176,31 +176,31 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
 
     @partial_jit()
     def _integrator_F(
-        self, t: jt.Array, qp: jt.Array, args: tuple[Any, ...]
-    ) -> jt.Array:
-        return xp.hstack([qp[3:], self.acceleration(qp[:3], t)])
+        self, t: FloatScalar, xv: Vector6, args: tuple[Any, ...]
+    ) -> FloatScalar:
+        return xp.hstack([xv[3:6], self.acceleration(xv[:3], t)])
 
     @partial_jit(static_argnames=("Integrator", "integrator_kw"))
     def integrate_orbit(
         self,
-        w0: jt.Array,
-        t0: jt.Array,
-        t1: jt.Array,
-        ts: jt.Array | None,
+        qp0: Vector6,
+        t0: FloatScalar,
+        t1: FloatScalar,
+        ts: Float[Array, "time"] | None,
         *,
         Integrator: type[AbstractIntegrator] = DiffraxIntegrator,
         integrator_kw: dict[str, Any] | None = None,
-    ) -> jt.Array:
+    ) -> VectorN:
         from galdynamix.dynamics._orbit import Orbit
 
         integrator = Integrator(self._integrator_F, **(integrator_kw or {}))
-        ws = integrator.run(w0, t0, t1, ts)
+        ws = integrator.run(qp0, t0, t1, ts)
         return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)
 
     ###########################################################################
     # Composite potentials
 
-    def __add__(self, other: Any) -> CompositePotential:
+    def __add__(self, other: Any) -> "CompositePotential":
         if not isinstance(other, AbstractPotentialBase):
             return NotImplemented
 

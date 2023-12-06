@@ -1,18 +1,14 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
 
 __all__ = ["partial_jit", "partial_vmap", "partial_vectorize"]
 
-from collections.abc import Hashable
+from collections.abc import Callable, Hashable, Iterable, Sequence
 from functools import partial
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, TypeVar
+from typing import Any, NotRequired, TypedDict, TypeVar
 
 import jax
 from typing_extensions import ParamSpec, Unpack
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Sequence
 
 P = ParamSpec("P")
 R = TypeVar("R")

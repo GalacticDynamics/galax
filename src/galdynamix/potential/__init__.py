@@ -1,6 +1,5 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
 
 from . import _potential
 from ._potential import *

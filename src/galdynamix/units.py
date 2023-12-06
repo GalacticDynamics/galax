@@ -27,10 +27,6 @@ SOFTWARE.
 ```
 """
 
-from __future__ import annotations
-
-from typing import ClassVar
-
 __all__ = [
     "UnitSystem",
     "DimensionlessUnitSystem",
@@ -39,6 +35,7 @@ __all__ = [
     "solarsystem",
 ]
 
+from typing import ClassVar, Self
 
 import astropy.units as u
 
@@ -56,7 +53,7 @@ class UnitSystem:
         u.get_physical_type("angle"),
     ]
 
-    def __init__(self, units: UnitSystem | u.UnitBase, *args: u.UnitBase) -> None:
+    def __init__(self, units: Self | u.UnitBase, *args: u.UnitBase) -> None:
         if isinstance(units, UnitSystem):
             if len(args) > 0:
                 msg = "If passing in a UnitSystem, cannot pass in additional units."

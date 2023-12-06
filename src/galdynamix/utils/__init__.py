@@ -1,6 +1,5 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
 
 from . import _collections, _jax, dataclasses
 from ._collections import *

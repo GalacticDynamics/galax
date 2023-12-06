@@ -1,17 +1,16 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
-
 __all__ = ["MockStream"]
 
 
 import equinox as eqx
 import jax.numpy as xp
-import jax.typing as jt
 
+from galdynamix.typing import VectorN, VectorN3, VectorN6, VectorN7
 from galdynamix.utils._jax import partial_jit
 
 
+# TODO: make a subclass of AbstractPhaseSpacePosition?
 class MockStream(eqx.Module):  # type: ignore[misc]
     """Mock stream object.
 
@@ -23,18 +22,18 @@ class MockStream(eqx.Module):  # type: ignore[misc]
     - GR 4-vector stuff
     """
 
-    q: jt.Array
+    q: VectorN3
     """Position of the stream particles (x, y, z) [kpc]."""
 
-    p: jt.Array
+    p: VectorN3
     """Position of the stream particles (x, y, z) [kpc/Myr]."""
 
-    release_time: jt.Array
+    release_time: VectorN
     """Release time of the stream particles [Myr]."""
 
     @property
     @partial_jit()
-    def qp(self) -> jt.Array:
+    def qp(self) -> VectorN6:
         """Return as a single Array[(N, Q + P),]."""
         # Determine output shape
         qd = self.q.shape[1]  # dimensionality of q
@@ -47,7 +46,7 @@ class MockStream(eqx.Module):  # type: ignore[misc]
 
     @property
     @partial_jit()
-    def w(self) -> jt.Array:
+    def w(self) -> VectorN7:
         """Return as a single Array[(N, Q + P + T),]."""
         qp = self.qp
         qpd = qp.shape[1]  # dimensionality of qp

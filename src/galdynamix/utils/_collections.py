@@ -1,6 +1,5 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
 
 __all__ = ["ImmutableDict"]
 
@@ -84,7 +83,7 @@ class ImmutableDict(Mapping[str, V]):
         cls: type[Self],
         aux_data: tuple[str, ...],
         children: tuple[V, ...],
-    ) -> Self[str, V]:  # type: ignore[misc]
+    ) -> Self:  # Sels[str, V]
         """Unflatten.
 
         Params:

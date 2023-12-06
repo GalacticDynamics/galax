@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 __all__ = ["DiffraxIntegrator"]
 
 from dataclasses import KW_ONLY
@@ -7,7 +5,6 @@ from typing import Any
 
 import equinox as eqx
 import jax.numpy as xp
-import jax.typing as jt
 from diffrax import (
     AbstractSolver,
     AbstractStepSizeController,
@@ -17,16 +14,18 @@ from diffrax import (
     diffeqsolve,
 )
 from diffrax import SaveAt as DiffraxSaveAt
+from jaxtyping import Array, Float
 
 from galdynamix.integrate._base import AbstractIntegrator
+from galdynamix.typing import FloatScalar, Vector6
 
 
 class DiffraxIntegrator(AbstractIntegrator):
     """Thin wrapper around ``diffrax.diffeqsolve``."""
 
     _: KW_ONLY
-    Solver: AbstractSolver = eqx.field(default=Dopri5, static=True)
-    SaveAt: DiffraxSaveAt = eqx.field(default=DiffraxSaveAt, static=True)
+    Solver: type[AbstractSolver] = eqx.field(default=Dopri5, static=True)
+    SaveAt: type[DiffraxSaveAt] = eqx.field(default=DiffraxSaveAt, static=True)
     stepsize_controller: AbstractStepSizeController = eqx.field(
         default=PIDController(rtol=1e-7, atol=1e-7), static=True
     )
@@ -42,14 +41,18 @@ class DiffraxIntegrator(AbstractIntegrator):
     )
 
     def run(
-        self, w0: jt.Array, t0: jt.Array, t1: jt.Array, ts: jt.Array | None
-    ) -> jt.Array:
+        self,
+        qp0: Vector6,
+        t0: FloatScalar,
+        t1: FloatScalar,
+        ts: Float[Array, "T"] | None,
+    ) -> Float[Array, "R 7"]:
         solution = diffeqsolve(
             terms=ODETerm(self.F),
             solver=self.Solver(**dict(self.solver_kw)),
             t0=t0,
             t1=t1,
-            y0=w0,
+            y0=qp0,
             dt0=None,
             saveat=self.SaveAt(t0=False, t1=True, ts=ts, dense=False),
             stepsize_controller=self.stepsize_controller,

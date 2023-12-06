@@ -1,6 +1,5 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
 
 from . import base, builtin, composite, param
 from .base import *

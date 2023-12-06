@@ -1,15 +1,15 @@
-from __future__ import annotations
+"""Parameters on a Potential."""
 
 __all__ = ["AbstractParameter", "ConstantParameter", "UserParameter"]
 
 import abc
 from dataclasses import KW_ONLY
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 import astropy.units as u
 import equinox as eqx
-import jax.typing as jt
 
+from galdynamix.typing import ArrayAnyShape, FloatScalar
 from galdynamix.utils import partial_jit
 
 
@@ -30,7 +30,7 @@ class AbstractParameter(eqx.Module):  # type: ignore[misc]
     unit: u.Unit = eqx.field(static=True)  # TODO: move this to an annotation?
 
     @abc.abstractmethod
-    def __call__(self, t: jt.Array) -> jt.Array:
+    def __call__(self, t: FloatScalar) -> ArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
@@ -50,10 +50,11 @@ class ConstantParameter(AbstractParameter):
     """Time-independent potential parameter."""
 
     # TODO: unit handling
-    value: jt.Array
+    # TODO: link this shape to the return shape from __call__
+    value: ArrayAnyShape
 
     @partial_jit()
-    def __call__(self, t: jt.Array = 0) -> jt.Array:
+    def __call__(self, t: FloatScalar = 0) -> ArrayAnyShape:
         """Return the constant parameter value.
 
         Parameters
@@ -75,10 +76,11 @@ class ConstantParameter(AbstractParameter):
 # User-defined Parameter
 
 
+@runtime_checkable
 class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
-    def __call__(self, t: jt.Array) -> jt.Array:
+    def __call__(self, t: FloatScalar) -> ArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
@@ -101,5 +103,5 @@ class UserParameter(AbstractParameter):
     func: ParameterCallable
 
     @partial_jit()
-    def __call__(self, t: jt.Array) -> jt.Array:
+    def __call__(self, t: FloatScalar) -> ArrayAnyShape:
         return self.func(t)

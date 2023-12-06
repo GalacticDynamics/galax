@@ -1,17 +1,14 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
-from __future__ import annotations
 
 __all__ = ["field"]
 
 import dataclasses
-from typing import TYPE_CHECKING, Any, Generic, NotRequired, TypedDict, TypeVar
+from collections.abc import Callable, Mapping
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar
 
 import astropy.units as u
 from typing_extensions import ParamSpec, Unpack
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
 
 P = ParamSpec("P")
 R = TypeVar("R")

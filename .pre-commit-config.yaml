@@ -43,6 +43,7 @@ repos:
       - id: prettier
         types_or: [yaml, markdown, html, css, scss, javascript, json]
         args: [--prose-wrap=always]
+        entry: env PRETTIER_LEGACY_CLI=1 prettier
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: "v0.1.3"

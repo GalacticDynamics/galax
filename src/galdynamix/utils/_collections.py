@@ -47,6 +47,11 @@ class ImmutableDict(Mapping[str, V]):
         return len(self._data)
 
     def __hash__(self) -> int:
+        """Hash.
+
+        Normally, dictionaries are not hashable because they are mutable.
+        However, this dictionary is immutable, so we can hash it.
+        """
         return hash(tuple(self._data.items()))
 
     def keys(self) -> KeysView[str]:
@@ -64,15 +69,13 @@ class ImmutableDict(Mapping[str, V]):
     # === PyTree ===
 
     def tree_flatten(self) -> tuple[tuple[V, ...], tuple[str, ...]]:
-        """Flatten to a dict.
+        """Flatten dict to the values (and keys).
 
         Returns
         -------
         tuple[V, ...] tuple[str, ...]
-            a pair of an iterable with the children to be flattened recursively,
-            and some opaque auxiliary data to pass back to the unflattening recipe.
-            The auxiliary data is stored in the treedef for use during unflattening.
-            The auxiliary data could be used, e.g., for dictionary keys.
+            A pair of an iterable with the values to be flattened recursively,
+            and the keys to pass back to the unflattening recipe.
         """
         return (tuple(self._data.values()), tuple(self._data.keys()))
 

@@ -42,16 +42,20 @@ def field(
     """See Equinox for `field` documentation."""
     metadata = dict(kwargs.pop("metadata", {}) or {})  # safety copy
 
-    metadata["dimensions"] = (
-        u.get_physical_type(dimensions) if isinstance(dimensions, str) else dimensions
-    )
-    metadata["equivalencies"] = equivalencies
+    if dimensions is not None:
+        metadata["dimensions"] = (
+            u.get_physical_type(dimensions)
+            if isinstance(dimensions, str)
+            else dimensions
+        )
+    if equivalencies is not None:
+        metadata["equivalencies"] = equivalencies
 
     # --------------------------------
     # Equinox stuff
 
     if "converter" in metadata:
-        msg = "Cannot use metadata with `static` already set."
+        msg = "Cannot use metadata with `converter` already set."
         raise ValueError(msg)
     if "static" in metadata:
         "Cannot use metadata with `static` already set."

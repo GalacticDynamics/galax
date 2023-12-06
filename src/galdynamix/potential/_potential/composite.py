@@ -13,6 +13,7 @@ import jax.typing as jt
 
 from galdynamix.units import UnitSystem, dimensionless
 from galdynamix.utils import ImmutableDict, partial_jit
+from galdynamix.utils._misc import first
 
 from .base import AbstractPotentialBase
 
@@ -40,12 +41,12 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
         /,
         **kwargs: AbstractPotentialBase,
     ) -> None:
+        kwunits = kwargs.pop("units", None)
         super().__init__(potentials, **kwargs)  # type: ignore[arg-type]
-        self.__post_init__()
 
-    def __post_init__(self) -> None:
+        # __post_init__ stuff:
         # Check that all potentials have the same unit system
-        units = next(iter(self.values())).units
+        units = kwunits if kwunits is not None else first(self.values()).units
         if not all(p.units == units for p in self.values()):
             msg = "all potentials must have the same unit system"
             raise ValueError(msg)

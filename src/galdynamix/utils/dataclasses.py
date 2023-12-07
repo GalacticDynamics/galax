@@ -4,12 +4,25 @@
 __all__ = ["field"]
 
 import dataclasses
+import functools
+import inspect
 from collections.abc import Callable, Mapping
-from typing import Any, Generic, NotRequired, TypedDict, TypeVar
+from typing import (
+    Any,
+    ClassVar,
+    Generic,
+    NotRequired,
+    Protocol,
+    TypedDict,
+    TypeVar,
+    dataclass_transform,
+    runtime_checkable,
+)
 
 import astropy.units as u
 from typing_extensions import ParamSpec, Unpack
 
+T = TypeVar("T")
 P = ParamSpec("P")
 R = TypeVar("R")
 
@@ -69,3 +82,51 @@ def field(
 
     out: R = dataclasses.field(**kwargs)
     return out
+
+
+@runtime_checkable
+class DataclassInstance(Protocol):
+    __dataclass_fields__: ClassVar[dict[str, Any]]
+
+
+def _identity(x: T) -> T:
+    return x
+
+
+def _dataclass_with_converter(
+    **kwargs_for_dataclass: Any,
+) -> Callable[[type[T]], type[T]]:
+    """Dataclass decorator that allows for custom converters.
+
+    Example:
+    -------
+    >>> @dataclass_with_converter()
+    ... class A:
+    ... x: int = field(converter=int)
+
+    >>> a = A("1.0")
+    >>> print(a)
+    A(x=1)
+    """
+
+    @dataclass_transform()
+    def dataclass_with_converter(cls: type[T]) -> type[T]:
+        cls = dataclasses.dataclass(**kwargs_for_dataclass)(cls)
+
+        sig = inspect.signature(cls.__init__)
+
+        def init_with_converter(
+            self: DataclassInstance, *args: Any, **kwargs: Any
+        ) -> None:
+            ba = sig.bind(self, *args, **kwargs)
+            ba.apply_defaults()
+            for f in dataclasses.fields(self):
+                converter = f.metadata.get("converter", _identity)
+                ba.arguments[f.name] = converter(ba.arguments[f.name])
+            cls.__init__.__wrapped__(*ba.args, **ba.kwargs)  # type: ignore[attr-defined]
+
+        cls.__init__ = functools.wraps(cls.__init__)(init_with_converter)  # type: ignore[assignment]
+
+        return cls
+
+    return dataclass_with_converter

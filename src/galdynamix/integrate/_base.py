@@ -6,14 +6,28 @@ from typing import Any, Protocol, runtime_checkable
 import equinox as eqx
 from jaxtyping import Array, Float
 
-from galdynamix.typing import FloatScalar, Vector6
+from galdynamix.typing import FloatScalar, Vec6, Vec7
 
 
 @runtime_checkable
 class FCallable(Protocol):
-    def __call__(
-        self, t: FloatScalar, qp: Vector6, args: tuple[Any, ...]
-    ) -> FloatScalar:
+    def __call__(self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]) -> Vec7:
+        """Integration function.
+
+        Parameters
+        ----------
+        t : float
+            The time.
+        qp : Array[float, (6,)]
+            The position and velocity.
+        args : tuple
+            Additional arguments.
+
+        Returns
+        -------
+        Array[float, (7,)]
+            [qp, t].
+        """
         ...
 
 
@@ -27,7 +41,7 @@ class AbstractIntegrator(eqx.Module):  # type: ignore[misc]
     @abc.abstractmethod
     def run(
         self,
-        qp0: Vector6,
+        qp0: Vec6,
         t0: FloatScalar,
         t1: FloatScalar,
         ts: Float[Array, "T"] | None,

@@ -114,6 +114,7 @@ disallow_incomplete_defs = false
   [[tool.mypy.overrides]]
   module = [
     "astropy.*",
+    "beartype.*",
     "diffrax.*",
     "equinox.*",
     "hypothesis.*",

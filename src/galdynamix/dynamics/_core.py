@@ -2,87 +2,74 @@
 
 __all__ = ["AbstractPhaseSpacePosition", "PhaseSpacePosition"]
 
-from typing import Any, cast
+from abc import abstractmethod
+from typing import TYPE_CHECKING, Any
 
 import equinox as eqx
 import jax.numpy as xp
+from jaxtyping import Array, Float
 
-from galdynamix.typing import VectorN, VectorN3, VectorN6, VectorN7
-from galdynamix.utils._jax import partial_jit
-from galdynamix.utils.dataclasses import field
+from galdynamix.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
+from galdynamix.utils import partial_jit
+from galdynamix.utils._shape import atleast_batched, batched_shape
+
+if TYPE_CHECKING:
+    from galdynamix.potential._potential.base import AbstractPotentialBase
 
 
-def convert_to_N3(x: Any) -> VectorN3:
-    """Convert to a 3-vector."""
+def converter_batchvec(x: Any) -> Float[Array, "*batch _"]:
+    """Convert to a batched vector."""
     out = xp.asarray(x)
-    if out.ndim == 1:
-        out = out[None, :]
+    if out.ndim == 0:
+        out = out[None]
     return out  # shape checking done by jaxtyping + beartype
 
 
-class AbstractPhaseSpacePosition(eqx.Module):  # type: ignore[misc]
+class AbstractPhaseSpacePositionBase(eqx.Module):  # type: ignore[misc]
     """Abstract Base Class of Phase-Space Positions.
 
     Todo:
     ----
     - Units stuff
-    - GR stuff
+    - GR stuff (note that then this will include time and can be merged with
+      ``AbstractPhaseSpacePosition``)
     """
 
-    q: VectorN3 = field(converter=convert_to_N3)
-    """Position of the stream particles (x, y, z) [kpc]."""
+    q: BatchVec3 = eqx.field(converter=converter_batchvec)
+    """Positions (x, y, z)."""
 
-    p: VectorN3 = field(converter=convert_to_N3)
-    """Position of the stream particles (x, y, z) [kpc/Myr]."""
-
-    t: VectorN
-    """Array of times [Myr]."""
+    p: BatchVec3 = eqx.field(converter=converter_batchvec)
+    r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     @property
-    @partial_jit()
-    def qp(self) -> VectorN6:
-        """Return as a single Array[(N, Q + P),]."""
-        # Determine output shape
-        qd = self.q.shape[1]  # dimensionality of q
-        shape = (self.q.shape[0], qd + self.p.shape[1])
-        # Create output array (jax will fuse these ops)
-        out = xp.empty(shape)
-        out = out.at[:, :qd].set(self.q)
-        out = out.at[:, qd:].set(self.p)
-        return out  # noqa: RET504
-
-    @property
-    @partial_jit()
-    def w(self) -> VectorN7:
-        """Return as a single Array[(N, Q + P + T),]."""
-        qp = self.qp
-        qpd = qp.shape[1]  # dimensionality of qp
-        # Reshape t to (N, 1) if necessary
-        t = self.t[:, None] if self.t.ndim == 1 else self.t
-        # Determine output shape
-        shape = (qp.shape[0], qpd + t.shape[1])
-        # Create output array (jax will fuse these ops)
-        out = xp.empty(shape)
-        out = out.at[:, :qpd].set(qp)
-        out = out.at[:, qpd:].set(t)
-        return out  # noqa: RET504
-
-    # ==========================================================================
-    # Array stuff
+    @abstractmethod
+    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
+        """Batch, component shape."""
+        raise NotImplementedError
 
     @property
     def shape(self) -> tuple[int, ...]:
         """Shape of the position and velocity arrays."""
-        return cast(
-            tuple[int, ...],
-            xp.broadcast_shapes(self.q.shape, self.p.shape, self.t.shape),
-        )
+        batch_shape, component_shapes = self._shape_tuple
+        return (*batch_shape, sum(component_shapes))
+
+    # ==========================================================================
+    # Convenience properties
+
+    @property
+    @partial_jit()
+    def qp(self) -> BatchVec6:
+        """Return as a single Array[(*batch, Q + P),]."""
+        batch_shape, component_shapes = self._shape_tuple
+        q = xp.broadcast_to(self.q, batch_shape + component_shapes[0:1])
+        p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])
+        return xp.concatenate((q, p), axis=-1)
 
     # ==========================================================================
     # Dynamical quantities
 
     @partial_jit()
-    def kinetic_energy(self) -> VectorN:
+    def kinetic_energy(self) -> BatchFloatScalar:
         r"""Return the specific kinetic energy.
 
         .. math::
@@ -91,51 +78,45 @@ class AbstractPhaseSpacePosition(eqx.Module):  # type: ignore[misc]
 
         Returns
         -------
-        E : :class:`~astropy.units.Quantity`
+        E : Array[float, (*batch,)]
             The kinetic energy.
         """
-        # TODO: use a ``norm`` function
+        # TODO: use a ``norm`` function so that this works for non-Cartesian.
         return 0.5 * xp.sum(self.p**2, axis=-1)
 
-    @partial_jit()  # TODO: annotate as AbstractPotentialBase
-    def potential_energy(self, potential: Any, /) -> VectorN:
-        r"""Return the specific potential energy.
 
-        .. math::
+class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
+    """Abstract Base Class of Phase-Space Positions."""
 
-            E_\Phi = \Phi(\boldsymbol{q})
+    t: BatchFloatScalar = eqx.field(converter=converter_batchvec)
+    """Array of times."""
 
-        Parameters
-        ----------
-        potential : `galdynamix.potential.AbstractPotentialBase`
-            The potential object to compute the energy from.
+    @property
+    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
+        """Batch ."""
+        qbatch, qshape = batched_shape(self.q, expect_scalar=False)
+        pbatch, pshape = batched_shape(self.p, expect_scalar=False)
+        tbatch, tshape = batched_shape(self.t, expect_scalar=True)
+        batch_shape = xp.broadcast_shapes(qbatch, pbatch, tbatch)
+        return batch_shape, (qshape, pshape, tshape)
 
-        Returns
-        -------
-        E : :class:`~jax.Array`
-            The specific potential energy.
-        """
-        return potential.potential_energy(self, self.t)
+    # ==========================================================================
+    # Convenience properties
 
-    @partial_jit()  # TODO: annotate as AbstractPotentialBase
-    def energy(self, potential: Any, /) -> VectorN:
-        r"""Return the specific total energy.
-
-        .. math::
-
-            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
-            E_\Phi = \Phi(\boldsymbol{q})
-            E = E_K + E_\Phi
-
-        Returns
-        -------
-        E : :class:`~astropy.units.Quantity`
-            The kinetic energy.
-        """
-        return self.kinetic_energy() + self.potential_energy(potential)
+    @property
+    @partial_jit()
+    def w(self) -> BatchVec7:
+        """Return as a single Array[(*batch, Q + P + T),]."""
+        batch_shape, component_shapes = self._shape_tuple
+        q = xp.broadcast_to(self.q, batch_shape + component_shapes[0:1])
+        p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])
+        t = xp.broadcast_to(
+            atleast_batched(self.t), batch_shape + component_shapes[2:3]
+        )
+        return xp.concatenate((q, p, t), axis=-1)
 
     @partial_jit()
-    def angular_momentum(self) -> VectorN3:
+    def angular_momentum(self) -> BatchVec3:
         r"""Compute the angular momentum.
 
         .. math::
@@ -147,7 +128,7 @@ class AbstractPhaseSpacePosition(eqx.Module):  # type: ignore[misc]
 
         Returns
         -------
-        L : :class:`~astropy.units.Quantity`
+        L : Array[float, (*batch,3)]
             Array of angular momentum vectors.
 
         Examples
@@ -162,6 +143,48 @@ class AbstractPhaseSpacePosition(eqx.Module):  # type: ignore[misc]
         """
         # TODO: when q, p are not Cartesian.
         return xp.cross(self.q, self.p)
+
+    # ==========================================================================
+    # Dynamical quantities
+
+    @partial_jit()
+    def potential_energy(
+        self, potential: "AbstractPotentialBase", /
+    ) -> BatchFloatScalar:
+        r"""Return the specific potential energy.
+
+        .. math::
+
+            E_\Phi = \Phi(\boldsymbol{q})
+
+        Parameters
+        ----------
+        potential : `galdynamix.potential.AbstractPotentialBase`
+            The potential object to compute the energy from.
+
+        Returns
+        -------
+        E : Array[float, (*batch,)]
+            The specific potential energy.
+        """
+        return potential.potential_energy(self.q, t=self.t)
+
+    @partial_jit()
+    def energy(self, potential: "AbstractPotentialBase", /) -> BatchFloatScalar:
+        r"""Return the specific total energy.
+
+        .. math::
+
+            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
+            E_\Phi = \Phi(\boldsymbol{q})
+            E = E_K + E_\Phi
+
+        Returns
+        -------
+        E : Array[float, (*batch,)]
+            The kinetic energy.
+        """
+        return self.kinetic_energy() + self.potential_energy(potential)
 
 
 class PhaseSpacePosition(AbstractPhaseSpacePosition):

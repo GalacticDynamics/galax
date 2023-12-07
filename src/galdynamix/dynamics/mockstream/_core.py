@@ -2,16 +2,16 @@
 
 __all__ = ["MockStream"]
 
-
 import equinox as eqx
 import jax.numpy as xp
 
-from galdynamix.typing import VectorN, VectorN3, VectorN6, VectorN7
-from galdynamix.utils._jax import partial_jit
+from galdynamix.dynamics._core import AbstractPhaseSpacePositionBase, converter_batchvec
+from galdynamix.typing import BatchFloatScalar, BatchVec7
+from galdynamix.utils import partial_jit
+from galdynamix.utils._shape import atleast_batched, batched_shape
 
 
-# TODO: make a subclass of AbstractPhaseSpacePosition?
-class MockStream(eqx.Module):  # type: ignore[misc]
+class MockStream(AbstractPhaseSpacePositionBase):
     """Mock stream object.
 
     Todo:
@@ -22,44 +22,26 @@ class MockStream(eqx.Module):  # type: ignore[misc]
     - GR 4-vector stuff
     """
 
-    q: VectorN3
-    """Position of the stream particles (x, y, z) [kpc]."""
-
-    p: VectorN3
-    """Position of the stream particles (x, y, z) [kpc/Myr]."""
-
-    release_time: VectorN
+    release_time: BatchFloatScalar = eqx.field(converter=converter_batchvec)
     """Release time of the stream particles [Myr]."""
 
     @property
-    @partial_jit()
-    def qp(self) -> VectorN6:
-        """Return as a single Array[(N, Q + P),]."""
-        # Determine output shape
-        qd = self.q.shape[1]  # dimensionality of q
-        shape = (self.q.shape[0], qd + self.p.shape[1])
-        # Create output array (jax will fuse these ops)
-        out = xp.empty(shape)
-        out = out.at[:, :qd].set(self.q)
-        out = out.at[:, qd:].set(self.p)
-        return out  # noqa: RET504
+    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
+        """Batch ."""
+        qbatch, qshape = batched_shape(self.q, expect_scalar=False)
+        pbatch, pshape = batched_shape(self.p, expect_scalar=False)
+        tbatch, tshape = batched_shape(self.release_time, expect_scalar=True)
+        batch_shape = xp.broadcast_shapes(qbatch, pbatch, tbatch)
+        return batch_shape, (qshape, pshape, tshape)
 
     @property
     @partial_jit()
-    def w(self) -> VectorN7:
-        """Return as a single Array[(N, Q + P + T),]."""
-        qp = self.qp
-        qpd = qp.shape[1]  # dimensionality of qp
-        # Reshape t to (N, 1) if necessary
-        t = (
-            self.release_time[:, None]
-            if self.release_time.ndim == 1
-            else self.release_time
+    def w(self) -> BatchVec7:
+        """Return as a single Array[(*batch, Q + P + T),]."""
+        batch_shape, component_shapes = self._shape_tuple
+        q = xp.broadcast_to(self.q, batch_shape + component_shapes[0:1])
+        p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])
+        t = xp.broadcast_to(
+            atleast_batched(self.release_time), batch_shape + component_shapes[2:3]
         )
-        # Determine output shape
-        shape = (qp.shape[0], qpd + t.shape[1])
-        # Create output array (jax will fuse these ops)
-        out = xp.empty(shape)
-        out = out.at[:, :qpd].set(qp)
-        out = out.at[:, qpd:].set(t)
-        return out  # noqa: RET504
+        return xp.concatenate((q, p, t), axis=-1)

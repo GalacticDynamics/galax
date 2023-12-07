@@ -1,7 +1,12 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
 
-__all__ = ["partial_jit", "partial_vmap", "partial_vectorize"]
+__all__ = [
+    "partial_jit",
+    "partial_vmap",
+    "partial_vectorize",
+    "vectorize_method",
+]
 
 from collections.abc import Callable, Hashable, Iterable, Sequence
 from functools import partial
@@ -56,6 +61,13 @@ class VectorizeKwargs(TypedDict):
 
 
 def partial_vectorize(
-    **kwargs: Unpack[VMapKwargs],
+    **kwargs: Unpack[VectorizeKwargs],
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     return partial(jax.numpy.vectorize, **kwargs)
+
+
+def vectorize_method(
+    **kwargs: Unpack[VectorizeKwargs],
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    kwargs.setdefault("excluded", (0, *tuple(kwargs.get("excluded") or ())))
+    return partial_vectorize(**kwargs)

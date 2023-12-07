@@ -54,7 +54,7 @@ class SubHaloPopulation(AbstractPotential):
     t_orbit: jt.Array = eqx.field(converter=xp.asarray)
 
     @partial_jit()
-    def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+    def _potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
         # expect n_subhalo x-positions
         x_at_t_eval = get_splines(t, self.t_orbit, self.tq_subhalo_arr[:, :, 0])
         # expect n_subhalo y-positions

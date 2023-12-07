@@ -5,7 +5,7 @@ __all__ = ["Orbit"]
 from typing_extensions import override
 
 from galdynamix.potential._potential.base import AbstractPotentialBase
-from galdynamix.typing import FloatScalar
+from galdynamix.typing import BatchFloatScalar
 from galdynamix.utils._jax import partial_jit
 
 from ._core import AbstractPhaseSpacePosition
@@ -29,7 +29,7 @@ class Orbit(AbstractPhaseSpacePosition):
     @partial_jit()
     def potential_energy(
         self, potential: AbstractPotentialBase | None = None, /
-    ) -> FloatScalar:
+    ) -> BatchFloatScalar:
         r"""Return the specific potential energy.
 
         .. math::
@@ -43,9 +43,9 @@ class Orbit(AbstractPhaseSpacePosition):
 
         Returns
         -------
-        E : :class:`~jax.Array`
+        E : Array[float, (*batch,)]
             The specific potential energy.
         """
         if potential is None:
-            return self.potential.potential_energy(self, self.t)
-        return potential.potential_energy(self, self.t)
+            return self.potential.potential_energy(self.q, t=self.t)
+        return potential.potential_energy(self.q, t=self.t)

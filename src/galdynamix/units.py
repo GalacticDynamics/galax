@@ -35,11 +35,13 @@ __all__ = [
     "solarsystem",
 ]
 
-from typing import ClassVar, Self
+from collections.abc import Iterator
+from typing import Any, ClassVar, no_type_check
 
 import astropy.units as u
 
 
+@no_type_check  # TODO: get beartype working with this
 class UnitSystem:
     """Represents a system of units."""
 
@@ -53,7 +55,8 @@ class UnitSystem:
         u.get_physical_type("angle"),
     ]
 
-    def __init__(self, units: Self | u.UnitBase, *args: u.UnitBase) -> None:
+    # TODO: type hint `units`
+    def __init__(self, units: Any, *args: u.UnitBase) -> None:
         if isinstance(units, UnitSystem):
             if len(args) > 0:
                 msg = "If passing in a UnitSystem, cannot pass in additional units."
@@ -89,7 +92,7 @@ class UnitSystem:
     def __len__(self) -> int:
         return len(self._core_units)
 
-    def __iter__(self) -> u.UnitBase:
+    def __iter__(self) -> Iterator[u.UnitBase]:
         yield from self._core_units
 
     def __repr__(self) -> str:

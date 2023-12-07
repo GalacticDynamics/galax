@@ -1,6 +1,16 @@
 """Copyright (c) 2023 galdynamix maintainers. All rights reserved."""
+# ruff:noqa: F401
 
-__all__ = ["__version__"]
+__all__ = [
+    "__version__",
+    # modules
+    "units",
+    "potential",
+    "integrator",
+    "dynamics",
+    "utils",
+    "typing",
+]
 
 import os
 
@@ -11,5 +21,11 @@ from ._version import version as __version__
 
 config.update("jax_enable_x64", True)  # noqa: FBT003
 
+typechecker: str | None
 if os.environ.get("GALDYNAMIX_ENABLE_RUNTIME_TYPECHECKS", "1") == "1":
-    install_import_hook(["galdynamix"], "beartype.beartype")
+    typechecker = "beartype.beartype"
+else:
+    typechecker = None
+
+with install_import_hook("galdynamix", typechecker):
+    from galdynamix import dynamics, integrate, potential, typing, units, utils

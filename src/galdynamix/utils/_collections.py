@@ -82,7 +82,7 @@ class ImmutableDict(Mapping[str, V]):
         cls,
         aux_data: tuple[str, ...],
         children: tuple[V, ...],
-    ) -> "ImmutableDict[V]":
+    ) -> "ImmutableDict":  # type: ignore[type-arg] # TODO: upstream beartype fix for ImmutableDict[V]
         """Unflatten.
 
         Params:

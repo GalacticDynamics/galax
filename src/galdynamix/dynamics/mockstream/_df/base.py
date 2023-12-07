@@ -13,17 +13,11 @@ import jax.numpy as xp
 from galdynamix.dynamics._orbit import Orbit
 from galdynamix.dynamics.mockstream._core import MockStream
 from galdynamix.potential._potential.base import AbstractPotentialBase
-from galdynamix.typing import (
-    FloatScalar,
-    IntegerLike,
-    Vector6,
-    VectorN,
-    VectorN3,
-)
+from galdynamix.typing import BatchVec3, FloatScalar, IntegerLike, Vec3, Vec6
 from galdynamix.utils import partial_jit
 
-Wif: TypeAlias = tuple[VectorN, VectorN, VectorN, VectorN]
-Carry: TypeAlias = tuple[IntegerLike, VectorN, VectorN, VectorN, VectorN]
+Wif: TypeAlias = tuple[Vec3, Vec3, Vec3, Vec3]
+Carry: TypeAlias = tuple[IntegerLike, Vec3, Vec3, Vec3, Vec3]
 
 
 class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
@@ -99,13 +93,13 @@ class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
     def _sample(
         self,
         potential: AbstractPotentialBase,
-        qp: Vector6,
+        qp: Vec6,
         prog_mass: FloatScalar,
         t: FloatScalar,
         *,
         i: IntegerLike,
         seed_num: int,
-    ) -> tuple[VectorN3, VectorN3, VectorN3, VectorN3]:
+    ) -> tuple[BatchVec3, BatchVec3, BatchVec3, BatchVec3]:
         """Generate stream particle initial conditions.
 
         Parameters

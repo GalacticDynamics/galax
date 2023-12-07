@@ -8,7 +8,7 @@ import jax
 import jax.numpy as xp
 
 from galdynamix.potential._potential.base import AbstractPotentialBase
-from galdynamix.typing import FloatScalar, IntegerLike, Vector3, Vector6
+from galdynamix.typing import FloatScalar, IntegerLike, Vec3, Vec6
 from galdynamix.utils import partial_jit
 
 from .base import AbstractStreamDF
@@ -19,13 +19,13 @@ class FardalStreamDF(AbstractStreamDF):
     def _sample(
         self,
         potential: AbstractPotentialBase,
-        w: Vector6,
+        w: Vec6,
         prog_mass: FloatScalar,
         t: FloatScalar,
         *,
         i: IntegerLike,
         seed_num: int,
-    ) -> tuple[Vector3, Vector3, Vector3, Vector3]:
+    ) -> tuple[Vec3, Vec3, Vec3, Vec3]:
         """Generate stream particle initial conditions."""
         # Random number generation
         # TODO: change random key handling... need to do all of the sampling up front...
@@ -104,7 +104,7 @@ class FardalStreamDF(AbstractStreamDF):
 
 
 @partial_jit()
-def dphidr(potential: AbstractPotentialBase, x: Vector3, t: FloatScalar) -> Vector3:
+def dphidr(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Vec3:
     """Compute the derivative of the potential at a position x.
 
     Parameters
@@ -126,9 +126,7 @@ def dphidr(potential: AbstractPotentialBase, x: Vector3, t: FloatScalar) -> Vect
 
 
 @partial_jit()
-def d2phidr2(
-    potential: AbstractPotentialBase, x: Vector3, t: FloatScalar
-) -> FloatScalar:
+def d2phidr2(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> FloatScalar:
     """Compute the second derivative of the potential.
 
     At a position x (in the simulation frame).
@@ -157,7 +155,7 @@ def d2phidr2(
 
 
 @partial_jit()
-def orbital_angular_velocity(x: Vector3, v: Vector3, /) -> Vector3:
+def orbital_angular_velocity(x: Vec3, v: Vec3, /) -> Vec3:
     """Compute the orbital angular velocity about the origin.
 
     Arguments:
@@ -183,7 +181,7 @@ def orbital_angular_velocity(x: Vector3, v: Vector3, /) -> Vector3:
 
 
 @partial_jit()
-def orbital_angular_velocity_mag(x: Vector3, v: Vector3, /) -> FloatScalar:
+def orbital_angular_velocity_mag(x: Vec3, v: Vec3, /) -> FloatScalar:
     """Compute the magnitude of the angular momentum in the simulation frame.
 
     Arguments:
@@ -210,8 +208,8 @@ def orbital_angular_velocity_mag(x: Vector3, v: Vector3, /) -> FloatScalar:
 @partial_jit()
 def tidal_radius(
     potential: AbstractPotentialBase,
-    x: Vector3,
-    v: Vector3,
+    x: Vec3,
+    v: Vec3,
     /,
     prog_mass: FloatScalar,
     t: FloatScalar,
@@ -252,11 +250,11 @@ def tidal_radius(
 @partial_jit()
 def lagrange_points(
     potential: AbstractPotentialBase,
-    x: Vector3,
-    v: Vector3,
+    x: Vec3,
+    v: Vec3,
     prog_mass: FloatScalar,
     t: FloatScalar,
-) -> tuple[Vector3, Vector3]:
+) -> tuple[Vec3, Vec3]:
     """Compute the lagrange points of a cluster in a host potential.
 
     Parameters

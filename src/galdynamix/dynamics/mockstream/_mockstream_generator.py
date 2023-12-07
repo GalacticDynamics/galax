@@ -15,14 +15,14 @@ from galdynamix.typing import (
     FloatScalar,
     IntegerScalar,
     TimeVector,
-    Vector6,
-    VectorN,
+    Vec6,
+    VecN,
 )
 from galdynamix.utils import partial_jit
 
 from ._df import AbstractStreamDF
 
-Carry: TypeAlias = tuple[IntegerScalar, VectorN, VectorN]
+Carry: TypeAlias = tuple[IntegerScalar, VecN, VecN]
 
 
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
@@ -35,11 +35,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     def _run_scan(
         self,
         ts: TimeVector,
-        prog_w0: Vector6,
+        prog_w0: Vec6,
         prog_mass: FloatScalar,
         *,
         seed_num: int,
-    ) -> tuple[tuple[Float[Vector6, "time"], Float[Vector6, "time"]], Orbit]:
+    ) -> tuple[tuple[Float[Vec6, "time"], Float[Vec6, "time"]], Orbit]:
         """Generate stellar stream by scanning over the release model/integration.
 
         Better for CPU usage.
@@ -56,12 +56,12 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         def scan_fn(
             carry: Carry, idx: IntegerScalar
-        ) -> tuple[Carry, tuple[VectorN, VectorN]]:
+        ) -> tuple[Carry, tuple[VecN, VecN]]:
             i, qp0_lead_i, qp0_trail_i = carry
             qp0_lead_trail = xp.vstack([qp0_lead_i, qp0_trail_i])
             t_i, t_f = ts[i], ts[-1]
 
-            def integ_ics(ics: Vector6) -> VectorN:
+            def integ_ics(ics: Vec6) -> VecN:
                 return self.potential.integrate_orbit(ics, t_i, t_f, None).qp[0]
 
             # vmap over leading and trailing arm
@@ -76,8 +76,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial_jit(static_argnames=("seed_num",))
     def _run_vmap(
-        self, ts: TimeVector, prog_w0: Vector6, prog_mass: FloatScalar, *, seed_num: int
-    ) -> tuple[tuple[Float[Vector6, "time"], Float[Vector6, "time"]], Orbit]:
+        self, ts: TimeVector, prog_w0: Vec6, prog_mass: FloatScalar, *, seed_num: int
+    ) -> tuple[tuple[Float[Vec6, "time"], Float[Vec6, "time"]], Orbit]:
         """Generate stellar stream by vmapping over the release model/integration.
 
         Better for GPU usage.
@@ -96,8 +96,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
         def single_particle_integrate(
-            i: int, qp0_lead_i: Vector6, qp0_trail_i: Vector6
-        ) -> tuple[Vector6, Vector6]:
+            i: int, qp0_lead_i: Vec6, qp0_trail_i: Vec6
+        ) -> tuple[Vec6, Vec6]:
             t_i = ts[i]
             qp_lead = self.integrate_orbit(qp0_lead_i, t_i, t_f, None).qp[0]
             qp_trail = self.integrate_orbit(qp0_trail_i, t_i, t_f, None).qp[0]
@@ -112,12 +112,12 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     def run(
         self,
         ts: TimeVector,
-        prog_w0: Vector6,
+        prog_w0: Vec6,
         prog_mass: FloatScalar,
         *,
         seed_num: int,
         vmapped: bool = False,
-    ) -> tuple[tuple[Float[Vector6, "time"], Float[Vector6, "time"]], Orbit]:
+    ) -> tuple[tuple[Float[Vec6, "time"], Float[Vec6, "time"]], Orbit]:
         # TODO: figure out better return type: MockStream?
         if vmapped:
             return self._run_vmap(ts, prog_w0, prog_mass, seed_num=seed_num)

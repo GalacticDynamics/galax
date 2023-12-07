@@ -17,7 +17,7 @@ from diffrax import SaveAt as DiffraxSaveAt
 from jaxtyping import Array, Float
 
 from galdynamix.integrate._base import AbstractIntegrator
-from galdynamix.typing import FloatScalar, Vector6
+from galdynamix.typing import FloatScalar, Vec6
 
 
 class DiffraxIntegrator(AbstractIntegrator):
@@ -42,7 +42,7 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     def run(
         self,
-        qp0: Vector6,
+        qp0: Vec6,
         t0: FloatScalar,
         t1: FloatScalar,
         ts: Float[Array, "T"] | None,
@@ -54,6 +54,7 @@ class DiffraxIntegrator(AbstractIntegrator):
             t1=t1,
             y0=qp0,
             dt0=None,
+            args=(),
             saveat=self.SaveAt(t0=False, t1=True, ts=ts, dense=False),
             stepsize_controller=self.stepsize_controller,
             **dict(self.diffeq_kw),

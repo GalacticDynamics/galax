@@ -13,8 +13,8 @@ import jax.numpy as xp
 import jax.typing as jt
 from jax_cosmo.scipy.interpolate import InterpolatedUnivariateSpline
 
-from galdynamix.potential._potential.base import AbstractPotential
 from galdynamix.potential._potential.builtin import Isochrone
+from galdynamix.potential._potential.core import AbstractPotential
 from galdynamix.potential._potential.param import AbstractParameter, ParameterField
 from galdynamix.units import galactic
 from galdynamix.utils import partial_jit
@@ -54,7 +54,7 @@ class SubHaloPopulation(AbstractPotential):
     t_orbit: jt.Array = eqx.field(converter=xp.asarray)
 
     @partial_jit()
-    def potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
+    def _potential_energy(self, q: jt.Array, /, t: jt.Array) -> jt.Array:
         # expect n_subhalo x-positions
         x_at_t_eval = get_splines(t, self.t_orbit, self.tq_subhalo_arr[:, :, 0])
         # expect n_subhalo y-positions

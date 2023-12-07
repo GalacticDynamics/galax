@@ -9,11 +9,12 @@ import equinox as eqx
 import jax.numpy as xp
 
 from galdynamix.typing import BatchableFloatLike, BatchFloatScalar, BatchVec3
-from galdynamix.units import UnitSystem, dimensionless
+from galdynamix.units import UnitSystem
 from galdynamix.utils import ImmutableDict, partial_jit
 from galdynamix.utils._misc import first
 
 from .base import AbstractPotentialBase
+from .utils import converter_to_usys
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -25,12 +26,8 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
 
     _data: dict[str, AbstractPotentialBase]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(
-        init=False,
-        static=True,
-        converter=lambda x: dimensionless if x is None else UnitSystem(x),
-    )
-    _G: float = eqx.field(init=False, static=True, repr=False)
+    units: UnitSystem = eqx.field(init=False, static=True, converter=converter_to_usys)
+    _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
     def __init__(
         self,

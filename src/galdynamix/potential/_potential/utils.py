@@ -4,7 +4,7 @@
 from functools import singledispatch
 from typing import Any
 
-from galdynamix.units import UnitSystem
+from galdynamix.units import UnitSystem, dimensionless, galactic, solarsystem
 
 
 @singledispatch
@@ -21,8 +21,6 @@ def _from_usys(value: UnitSystem, /) -> UnitSystem:
 
 @converter_to_usys.register
 def _from_none(value: None, /) -> UnitSystem:
-    from galdynamix.units import dimensionless
-
     return dimensionless
 
 
@@ -34,16 +32,10 @@ def _from_args(value: tuple[Any, ...], /) -> UnitSystem:
 @converter_to_usys.register
 def _from_named(value: str, /) -> UnitSystem:
     if value == "dimensionless":
-        from galdynamix.units import dimensionless
-
         return dimensionless
     if value == "solarsystem":
-        from galdynamix.units import solarsystem
-
         return solarsystem
     if value == "galactic":
-        from galdynamix.units import galactic
-
         return galactic
 
     msg = f"cannot convert {value} to a UnitSystem"

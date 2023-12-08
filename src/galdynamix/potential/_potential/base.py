@@ -1,6 +1,7 @@
 __all__ = ["AbstractPotentialBase"]
 
 import abc
+from collections.abc import Mapping
 from dataclasses import fields
 from typing import TYPE_CHECKING, Any
 
@@ -253,11 +254,13 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         t1: FloatScalar,
         ts: Float[Array, "time"] | None,
         *,
-        Integrator: type[AbstractIntegrator] = DiffraxIntegrator,
-        integrator_kw: dict[str, Any] | None = None,
+        Integrator: type[AbstractIntegrator] | None = None,
+        integrator_kw: Mapping[str, Any] | None = None,
     ) -> "Orbit":
         from galdynamix.dynamics._orbit import Orbit
 
-        integrator = Integrator(self._integrator_F, **(integrator_kw or {}))
+        integrator_cls = Integrator if Integrator is not None else DiffraxIntegrator
+
+        integrator = integrator_cls(self._integrator_F, **(integrator_kw or {}))
         ws = integrator.run(qp0, t0, t1, ts)
         return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)

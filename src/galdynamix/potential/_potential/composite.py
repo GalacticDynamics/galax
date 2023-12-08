@@ -7,6 +7,7 @@ from typing import Any, TypeVar, final
 
 import equinox as eqx
 import jax.numpy as xp
+from typing_extensions import override
 
 from galdynamix.typing import BatchableFloatLike, BatchFloatScalar, BatchVec3
 from galdynamix.units import UnitSystem
@@ -61,6 +62,7 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
     ###########################################################################
     # Composite potentials
 
+    @override
     def __or__(self, other: Any) -> "CompositePotential":
         if not isinstance(other, AbstractPotentialBase):
             return NotImplemented

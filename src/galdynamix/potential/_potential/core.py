@@ -6,20 +6,19 @@ from typing import Any
 
 import equinox as eqx
 
-from galdynamix.units import UnitSystem, dimensionless
+from galdynamix.units import UnitSystem
 
 from .base import AbstractPotentialBase
 from .composite import CompositePotential
+from .utils import converter_to_usys
 
 
 class AbstractPotential(AbstractPotentialBase):
     _: KW_ONLY
     units: UnitSystem = eqx.field(
-        default=None,
-        converter=lambda x: dimensionless if x is None else UnitSystem(x),
-        static=True,
+        default=None, converter=converter_to_usys, static=True
     )
-    _G: float = eqx.field(init=False, static=True, repr=False)
+    _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
     def __post_init__(self) -> None:
         self._init_units()

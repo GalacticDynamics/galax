@@ -4,11 +4,12 @@
 __all__ = ["ImmutableDict"]
 
 from collections.abc import ItemsView, Iterable, Iterator, KeysView, Mapping, ValuesView
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from jax.tree_util import register_pytree_node_class
 
 V = TypeVar("V")
+T = TypeVar("T")
 
 
 @register_pytree_node_class
@@ -63,6 +64,15 @@ class ImmutableDict(Mapping[str, V]):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self._data!r})"
+
+    def __or__(self, value: Any, /) -> "ImmutableDict[V]":
+        if not isinstance(value, Mapping):
+            return NotImplemented
+
+        return type(self)(self._data | dict(value))
+
+    def __ror__(self, value: Any) -> Any:
+        return value | self._data
 
     # === PyTree ===
 

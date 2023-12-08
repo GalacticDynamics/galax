@@ -1,3 +1,6 @@
+from collections import OrderedDict
+from types import MappingProxyType
+
 import pytest
 
 from galdynamix.utils import ImmutableDict
@@ -68,6 +71,20 @@ class TestImmutableDict:
         """Test `__repr__`."""
         d = ImmutableDict(a=1, b=2)
         assert repr(d) == "ImmutableDict({'a': 1, 'b': 2})"
+
+    def test_or(self):
+        """Test `__or__`."""
+        d = ImmutableDict(a=1, b=2)
+        assert d | ImmutableDict(c=3) == ImmutableDict(a=1, b=2, c=3)
+        assert d | {"c": 3} == ImmutableDict(a=1, b=2, c=3)
+        assert d | OrderedDict([("c", 3)]) == ImmutableDict(a=1, b=2, c=3)
+        assert d | MappingProxyType({"c": 3}) == ImmutableDict(a=1, b=2, c=3)
+
+        # Reverse order
+        assert {"c": 3} | d == {"c": 3, "a": 1, "b": 2}
+        assert OrderedDict([("c", 3)]) | d == OrderedDict(
+            [("c", 3), ("a", 1), ("b", 2)]
+        )
 
     # === Test pytree methods ===
 

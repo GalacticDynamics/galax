@@ -30,7 +30,7 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
         static=True,
         converter=lambda x: dimensionless if x is None else UnitSystem(x),
     )
-    _G: float = eqx.field(init=False, static=True)
+    _G: float = eqx.field(init=False, static=True, repr=False)
 
     def __init__(
         self,

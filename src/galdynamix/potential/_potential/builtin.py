@@ -1,9 +1,9 @@
 """galdynamix: Galactic Dynamix in Jax."""
 
 __all__ = [
-    "MiyamotoNagaiDisk",
+    "MiyamotoNagaiPotential",
     "BarPotential",
-    "Isochrone",
+    "IsochronePotential",
     "NFWPotential",
 ]
 
@@ -33,7 +33,7 @@ frequency = u.get_physical_type("frequency")
 # -------------------------------------------------------------------
 
 
-class MiyamotoNagaiDisk(AbstractPotential):
+class MiyamotoNagaiPotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
     a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
@@ -104,7 +104,7 @@ class BarPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
-class Isochrone(AbstractPotential):
+class IsochronePotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
     a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 

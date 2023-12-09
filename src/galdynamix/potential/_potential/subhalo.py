@@ -13,7 +13,7 @@ import jax.numpy as xp
 import jax.typing as jt
 from jax_cosmo.scipy.interpolate import InterpolatedUnivariateSpline
 
-from galdynamix.potential._potential.builtin import Isochrone
+from galdynamix.potential._potential.builtin import IsochronePotential
 from galdynamix.potential._potential.core import AbstractPotential
 from galdynamix.potential._potential.param import AbstractParameter, ParameterField
 from galdynamix.units import galactic
@@ -36,7 +36,7 @@ def single_subhalo_potential(
     TODO: custom unit specification/subhalo potential specficiation.
     Currently supports units kpc, Myr, Msun, rad.
     """
-    pot_single = Isochrone(m=params["m"], a=params["a"], units=galactic)
+    pot_single = IsochronePotential(m=params["m"], a=params["a"], units=galactic)
     return pot_single.potential_energy(q, t)
 
 

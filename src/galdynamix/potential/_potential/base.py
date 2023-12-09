@@ -17,8 +17,10 @@ from galdynamix.integrate._builtin import DiffraxIntegrator
 from galdynamix.typing import (
     BatchableFloatLike,
     BatchFloatScalar,
+    BatchMatrix33,
     BatchVec3,
     FloatScalar,
+    Matrix33,
     Vec3,
     Vec6,
 )
@@ -187,13 +189,11 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
 
     @partial_jit()
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: Vec3, /, t: FloatScalar) -> Float[Array, "3 3"]:
+    def _hessian(self, q: Vec3, /, t: FloatScalar) -> Matrix33:
         """See ``hessian``."""
         return hessian(self.potential_energy)(q, t)
 
-    def hessian(
-        self, q: BatchVec3, /, t: BatchableFloatLike
-    ) -> Float[Array, "*batch 3 3"]:
+    def hessian(self, q: BatchVec3, /, t: BatchableFloatLike) -> BatchMatrix33:
         """Compute the Hessian of the potential at the given position(s).
 
         Parameters

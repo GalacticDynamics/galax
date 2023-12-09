@@ -116,6 +116,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         )
         return xp.concatenate((q, p, t), axis=-1)
 
+    @property
     @partial_jit()
     def angular_momentum(self) -> BatchVec3:
         r"""Compute the angular momentum.
@@ -138,9 +139,9 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
             >>> import astropy.units as u
             >>> pos = np.array([1., 0, 0]) * u.au
             >>> vel = np.array([0, 2*np.pi, 0]) * u.au/u.yr
-            >>> w = PhaseSpacePosition(pos, vel)
-            >>> w.angular_momentum() # doctest: +FLOAT_CMP
-            <Quantity [0.        ,0.        ,6.28318531] AU2 / yr>
+            >>> w = PhaseSpacePosition(pos, vel, t=0)
+            >>> w.angular_momentum
+            Array([0.        , 0.        , 6.28318531], dtype=float64)
         """
         # TODO: when q, p are not Cartesian.
         return xp.cross(self.q, self.p)

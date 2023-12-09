@@ -17,7 +17,7 @@ from galdynamix.integrate._builtin import DiffraxIntegrator
 from galdynamix.potential._potential.base import AbstractPotentialBase
 from galdynamix.typing import (
     FloatScalar,
-    IntegerScalar,
+    IntScalar,
     TimeVector,
     Vec6,
     VecN,
@@ -27,7 +27,7 @@ from galdynamix.utils._collections import ImmutableDict
 
 from ._df import AbstractStreamDF
 
-Carry: TypeAlias = tuple[IntegerScalar, VecN, VecN]
+Carry: TypeAlias = tuple[IntScalar, VecN, VecN]
 
 
 def _converter_immutabledict_or_none(x: Any) -> ImmutableDict[Any] | None:
@@ -92,9 +92,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         qp0_lead = mock0_lead.qp
         qp0_trail = mock0_trail.qp
 
-        def scan_fn(
-            carry: Carry, idx: IntegerScalar
-        ) -> tuple[Carry, tuple[VecN, VecN]]:
+        def scan_fn(carry: Carry, idx: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
             i, qp0_lead_i, qp0_trail_i = carry
             qp0_lead_trail = xp.vstack([qp0_lead_i, qp0_trail_i])
             t_i, t_f = ts[i], ts[-1]

@@ -8,7 +8,7 @@ import jax
 import jax.numpy as xp
 
 from galdynamix.potential._potential.base import AbstractPotentialBase
-from galdynamix.typing import FloatScalar, IntegerLike, Vec3, Vec6
+from galdynamix.typing import FloatScalar, IntLike, Vec3, Vec6
 from galdynamix.utils import partial_jit
 
 from .base import AbstractStreamDF
@@ -23,7 +23,7 @@ class FardalStreamDF(AbstractStreamDF):
         prog_mass: FloatScalar,
         t: FloatScalar,
         *,
-        i: IntegerLike,
+        i: IntLike,
         seed_num: int,
     ) -> tuple[Vec3, Vec3, Vec3, Vec3]:
         """Generate stream particle initial conditions."""

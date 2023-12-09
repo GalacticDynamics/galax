@@ -5,10 +5,11 @@ __all__ = ["MockStream"]
 import equinox as eqx
 import jax.numpy as xp
 
-from galdynamix.dynamics._core import AbstractPhaseSpacePositionBase, converter_batchvec
+from galdynamix.dynamics._core import AbstractPhaseSpacePositionBase
 from galdynamix.typing import BatchFloatScalar, BatchVec7
 from galdynamix.utils import partial_jit
 from galdynamix.utils._shape import atleast_batched, batched_shape
+from galdynamix.utils.dataclasses import converter_float_array
 
 
 class MockStream(AbstractPhaseSpacePositionBase):
@@ -22,7 +23,7 @@ class MockStream(AbstractPhaseSpacePositionBase):
     - GR 4-vector stuff
     """
 
-    release_time: BatchFloatScalar = eqx.field(converter=converter_batchvec)
+    release_time: BatchFloatScalar = eqx.field(converter=converter_float_array)
     """Release time of the stream particles [Myr]."""
 
     @property

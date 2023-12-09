@@ -48,7 +48,8 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
 
     Examples
     --------
-    >>> class Class(eqx.Module, metaclass=CustomMeta):
+    >>> import equinox as eqx
+    >>> class Class(eqx.Module, metaclass=ModuleMeta):
     ...     a: int = eqx.field(default=1.0, converter=int)
     ...     def __post_init__(self): pass
 

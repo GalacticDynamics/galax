@@ -48,7 +48,7 @@ class TestConverterToUtils:
 
 
 class FieldUnitSystemMixin:
-    """Mixin for testing ``units`` field."""
+    """Mixin for testing the ``units`` field on a ``Potential``."""
 
     def test_init_units_invalid(self, pot_cls, fields):
         """Test invalid unit system."""

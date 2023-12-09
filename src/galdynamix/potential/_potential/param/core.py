@@ -6,6 +6,7 @@ import abc
 from dataclasses import KW_ONLY
 from typing import Any, Protocol, runtime_checkable
 
+import astropy.units as u
 import equinox as eqx
 
 from galdynamix.typing import (

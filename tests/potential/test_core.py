@@ -1,3 +1,4 @@
+from dataclasses import field
 from typing import Any
 
 import equinox as eqx
@@ -7,13 +8,14 @@ import pytest
 import galdynamix.potential as gp
 from galdynamix.potential._potential.utils import converter_to_usys
 from galdynamix.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
-from galdynamix.units import UnitSystem, galactic
+from galdynamix.units import UnitSystem, dimensionless, galactic
 from galdynamix.utils import partial_jit, vectorize_method
 
 from .test_base import TestAbstractPotentialBase
+from .test_utils import FieldUnitSystemMixin
 
 
-class TestAbstractPotential(TestAbstractPotentialBase):
+class TestAbstractPotential(TestAbstractPotentialBase, FieldUnitSystemMixin):
     """Test the `galdynamix.potential.AbstractPotentialBase` class."""
 
     @pytest.fixture(scope="class")
@@ -43,3 +45,21 @@ class TestAbstractPotential(TestAbstractPotentialBase):
     @pytest.fixture(scope="class")
     def fields_(self, field_units) -> dict[str, Any]:
         return {"units": field_units}
+
+    ###########################################################################
+
+    def test_init(self):
+        """Test the initialization of `AbstractPotentialBase`."""
+        # Test that the abstract class cannot be instantiated
+        with pytest.raises(TypeError):
+            gp.AbstractPotentialBase()
+
+        # Test that the concrete class can be instantiated
+        class TestPotential(gp.AbstractPotentialBase):
+            units: UnitSystem = field(default_factory=lambda: dimensionless)
+
+            def _potential_energy(self, q, t):
+                return xp.sum(q, axis=-1)
+
+        pot = TestPotential()
+        assert isinstance(pot, gp.AbstractPotentialBase)

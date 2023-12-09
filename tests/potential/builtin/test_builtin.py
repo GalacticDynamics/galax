@@ -5,7 +5,7 @@ import pytest
 
 import galdynamix.potential as gp
 
-from .test_core import TestAbstractPotential
+from ..test_core import TestAbstractPotential
 
 
 class TestMiyamotoNagaiPotential(TestAbstractPotential):

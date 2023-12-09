@@ -150,6 +150,7 @@ ignore = [
   "N80",     # Naming conventions.
   "PD",      # pandas-vet
   "PLR",     # Design related pylint codes
+  "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict
   "TCH00",   # Move into a type-checking block
   "TD002",   # Missing author in TODO
   "TD003",   # Missing issue link on the line following this TODO

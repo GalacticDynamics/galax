@@ -3,10 +3,20 @@
 # TODO: Finalize variable names and make everything public.
 __all__: list[str] = []
 
+from typing import TypeAlias
+
+import astropy.units as u
 from jaxtyping import Array, Float, Integer, Shaped
 
 # =============================================================================
+
+Unit: TypeAlias = u.Unit | u.UnitBase | u.CompositeUnit
+
+# =============================================================================
 # Scalars
+
+AnyScalar = Shaped[Array, ""]
+"""Any scalar."""
 
 IntScalar = Integer[Array, ""]
 """An integer scalar."""
@@ -64,7 +74,7 @@ BatchFloatOrIntScalar = Shaped[FloatOrIntScalar, "*batch"]
 BatchableFloatOrIntScalarLike = BatchFloatOrIntScalar | FloatOrIntScalarLike
 
 # -----------------
-# Shaped
+# Batched
 
 BatchVec3 = Shaped[Vec3, "*batch"]
 """Zero or more batches of 3-vectors."""
@@ -78,8 +88,16 @@ BatchVec6 = Shaped[Vec6, "*batch"]
 BatchVec7 = Shaped[Vec7, "*batch"]
 """Zero or more batches of 7-vectors."""
 
-ArrayAnyShape = Float[Array, "..."]
-"""An array with any shape."""
+# -----------------
+# Any Shape
+
+FloatArrayAnyShape = Float[Array, "..."]
+"""A float array with any shape."""
+
+IntArrayAnyShape = Integer[Array, "..."]
+"""An integer array with any shape."""
+
+ArrayAnyShape = Shaped[Array, "..."]
 
 # =============================================================================
 # Specific Vectors

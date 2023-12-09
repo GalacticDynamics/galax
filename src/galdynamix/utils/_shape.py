@@ -2,12 +2,12 @@
 
 __all__: list[str] = []
 
-from typing import overload
+from typing import Literal, overload
 
 import jax.numpy as xp
 from jaxtyping import Array, ArrayLike
 
-from galdynamix.typing import ArrayAnyShape
+from galdynamix.typing import ArrayAnyShape, FloatLike
 
 from ._jax import partial_jit
 
@@ -41,12 +41,84 @@ def atleast_batched(*arys: ArrayLike) -> Array | tuple[Array, ...]:
     return tuple(atleast_batched(arr) for arr in arys)
 
 
+@overload
 def batched_shape(
-    arr: ArrayAnyShape, /, *, expect_scalar: bool
-) -> tuple[tuple[int, ...], int]:
-    """Return the shape of the batch dimensions of an array."""
-    if arr.ndim == 0:
-        raise NotImplementedError
-    if arr.ndim == 1:
-        return (arr.shape, 1) if expect_scalar else ((), arr.shape[0])
-    return arr.shape[:-1], arr.shape[-1]
+    arr: ArrayAnyShape | FloatLike, /, *, expect_ndim: Literal[0]
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    ...
+
+
+@overload
+def batched_shape(
+    arr: ArrayAnyShape | FloatLike, /, *, expect_ndim: Literal[1]
+) -> tuple[tuple[int, ...], tuple[int]]:
+    ...
+
+
+@overload
+def batched_shape(
+    arr: ArrayAnyShape | FloatLike, /, *, expect_ndim: Literal[2]
+) -> tuple[tuple[int, ...], tuple[int, int]]:
+    ...
+
+
+@overload
+def batched_shape(
+    arr: ArrayAnyShape | FloatLike, /, *, expect_ndim: int
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    ...
+
+
+def batched_shape(
+    arr: ArrayAnyShape | FloatLike, /, *, expect_ndim: int
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Return the (batch_shape, arr_shape) an array.
+
+    Parameters
+    ----------
+    arr : array-like
+        The array to get the shape of.
+    expect_ndim : int
+        The expected dimensionality of the array.
+
+    Returns
+    -------
+    batch_shape : tuple[int, ...]
+        The shape of the batch.
+    arr_shape : tuple[int, ...]
+        The shape of the array.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> from galdynamix.utils._shape import batched_shape
+
+    Expecting a scalar:
+    >>> batched_shape(0, expect_ndim=0)
+    ((), ())
+    >>> batched_shape(jnp.array([1]), expect_ndim=0)
+    ((1,), ())
+    >>> batched_shape(jnp.array([1, 2, 3]), expect_ndim=0)
+    ((3,), ())
+
+    Expecting a 1D vector:
+    >>> batched_shape(jnp.array(0), expect_ndim=1)
+    ((), (1,))
+    >>> batched_shape(jnp.array([1]), expect_ndim=1)
+    ((), (1,))
+    >>> batched_shape(jnp.array([1, 2, 3]), expect_ndim=1)
+    ((), (3,))
+    >>> batched_shape(jnp.array([[1, 2, 3]]), expect_ndim=1)
+    ((1,), (3,))
+
+    Expecting a 2D matrix:
+    >>> batched_shape(jnp.array([[1]]), expect_ndim=2)
+    ((), (1, 1))
+    >>> batched_shape(jnp.array([[[1]]]), expect_ndim=2)
+    ((1,), (1, 1))
+    >>> batched_shape(jnp.array([[[1]], [[1]]]), expect_ndim=2)
+    ((2,), (1, 1))
+    """
+    shape: tuple[int, ...] = xp.shape(arr)
+    ndim = len(shape)
+    return shape[: ndim - expect_ndim], shape[ndim - expect_ndim :]

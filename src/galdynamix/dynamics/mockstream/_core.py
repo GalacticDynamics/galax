@@ -28,11 +28,11 @@ class MockStream(AbstractPhaseSpacePositionBase):
     @property
     def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
         """Batch ."""
-        qbatch, qshape = batched_shape(self.q, expect_scalar=False)
-        pbatch, pshape = batched_shape(self.p, expect_scalar=False)
-        tbatch, tshape = batched_shape(self.release_time, expect_scalar=True)
+        qbatch, qshape = batched_shape(self.q, expect_ndim=1)
+        pbatch, pshape = batched_shape(self.p, expect_ndim=1)
+        tbatch, _ = batched_shape(self.release_time, expect_ndim=0)
         batch_shape = xp.broadcast_shapes(qbatch, pbatch, tbatch)
-        return batch_shape, (qshape, pshape, tshape)
+        return batch_shape, qshape + pshape + (1,)
 
     @property
     @partial_jit()

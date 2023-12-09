@@ -20,6 +20,8 @@ from typing import (
 )
 
 import astropy.units as u
+import jax.numpy as xp
+from jaxtyping import Array, Float, Integer
 from typing_extensions import ParamSpec, Unpack
 
 T = TypeVar("T")

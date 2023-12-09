@@ -12,6 +12,7 @@ import equinox as eqx
 from galdynamix.typing import (
     ArrayAnyShape,
     BatchableFloatOrIntScalarLike,
+    FloatArrayAnyShape,
     FloatOrIntScalar,
     FloatScalar,
 )

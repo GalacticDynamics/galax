@@ -39,6 +39,7 @@ from collections.abc import Iterator
 from typing import Any, ClassVar, no_type_check
 
 import astropy.units as u
+from astropy.units.physical import _physical_unit_mapping
 
 
 @no_type_check  # TODO: get beartype working with this
@@ -86,8 +87,22 @@ class UnitSystem:
             self._core_units.append(self._registry[phys_type])
 
     def __getitem__(self, key: str | u.PhysicalType) -> u.UnitBase:
-        key = u.get_physical_type(key)
-        return self._registry[key]
+        if key in self._registry:
+            return self._registry[key]
+
+        unit = None
+        for k, v in _physical_unit_mapping.items():
+            if v == key:
+                unit = u.Unit(" ".join([f"{x}**{y}" for x, y in k]))
+                break
+
+        if unit is None:
+            msg = f"Physical type '{key}' doesn't exist in unit registry."
+            raise ValueError(msg)
+
+        unit = unit.decompose(self._core_units)
+        unit._scale = 1.0  # noqa: SLF001
+        return unit
 
     def __len__(self) -> int:
         return len(self._core_units)
@@ -106,6 +121,10 @@ class UnitSystem:
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
+    def __hash__(self) -> int:
+        """Hash the unit system."""
+        return hash(tuple(self._core_units) + tuple(self._required_dimensions))
+
 
 class DimensionlessUnitSystem(UnitSystem):
     """A unit system with only dimensionless units."""
@@ -116,11 +135,14 @@ class DimensionlessUnitSystem(UnitSystem):
         self._core_units = [u.one]
         self._registry = {"dimensionless": u.one}
 
-    def __getitem__(self, key: str) -> u.UnitBase:
+    def __getitem__(self, key: str | u.PhysicalType) -> u.UnitBase:
         return u.one
 
     def __str__(self) -> str:
         return "UnitSystem(dimensionless)"
+
+    def __repr__(self) -> str:
+        return "DimensionlessUnitSystem()"
 
 
 # define galactic unit system

@@ -61,6 +61,9 @@ BatchableFloatLike = BatchFloatScalar | FloatLike
 BatchVec3 = Shaped[Vec3, "*batch"]
 """Zero or more batches of 3-vectors."""
 
+BatchMatrix33 = Shaped[Matrix33, "*batch"]
+"""Zero or more batches of 3x3 matrices."""
+
 BatchVec6 = Shaped[Vec6, "*batch"]
 """Zero or more batches of 6-vectors."""
 

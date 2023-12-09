@@ -94,11 +94,12 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
     @property
     def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
         """Batch ."""
-        qbatch, qshape = batched_shape(self.q, expect_scalar=False)
-        pbatch, pshape = batched_shape(self.p, expect_scalar=False)
-        tbatch, tshape = batched_shape(self.t, expect_scalar=True)
-        batch_shape = xp.broadcast_shapes(qbatch, pbatch, tbatch)
-        return batch_shape, (qshape, pshape, tshape)
+        qbatch, qshape = batched_shape(self.q, expect_ndim=1)
+        pbatch, pshape = batched_shape(self.p, expect_ndim=1)
+        tbatch, _ = batched_shape(self.t, expect_ndim=0)
+        batch_shape: tuple[int, ...] = xp.broadcast_shapes(qbatch, pbatch, tbatch)
+        array_shape: tuple[int, int, int] = qshape + pshape + (1,)
+        return batch_shape, array_shape
 
     # ==========================================================================
     # Convenience properties

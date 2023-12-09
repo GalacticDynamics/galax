@@ -3,7 +3,7 @@
 __all__ = [
     "MiyamotoNagaiDisk",
     "BarPotential",
-    "Isochrone",
+    "IsochronePotential",
     "NFWPotential",
 ]
 
@@ -104,7 +104,7 @@ class BarPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
-class Isochrone(AbstractPotential):
+class IsochronePotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
     a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 

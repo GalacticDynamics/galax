@@ -130,3 +130,11 @@ def _dataclass_with_converter(
         return cls
 
     return dataclass_with_converter
+
+
+def converter_float_array(
+    x: Any, /
+) -> Float[Array, "*shape"] | Integer[Array, "*shape"]:
+    """Convert to a batched vector."""
+    x = xp.array(x, dtype=None)
+    return xp.array(x, dtype=xp.promote_types(x.dtype, float))

@@ -3,26 +3,18 @@
 __all__ = ["AbstractPhaseSpacePosition", "PhaseSpacePosition"]
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import equinox as eqx
 import jax.numpy as xp
-from jaxtyping import Array, Float
 
 from galdynamix.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
 from galdynamix.utils import partial_jit
 from galdynamix.utils._shape import atleast_batched, batched_shape
+from galdynamix.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
     from galdynamix.potential._potential.base import AbstractPotentialBase
-
-
-def converter_batchvec(x: Any) -> Float[Array, "*batch _"]:
-    """Convert to a batched vector."""
-    out = xp.asarray(x)
-    if out.ndim == 0:
-        out = out[None]
-    return out  # shape checking done by jaxtyping + beartype
 
 
 class AbstractPhaseSpacePositionBase(eqx.Module):  # type: ignore[misc]
@@ -35,10 +27,10 @@ class AbstractPhaseSpacePositionBase(eqx.Module):  # type: ignore[misc]
       ``AbstractPhaseSpacePosition``)
     """
 
-    q: BatchVec3 = eqx.field(converter=converter_batchvec)
+    q: BatchVec3 = eqx.field(converter=converter_float_array)
     """Positions (x, y, z)."""
 
-    p: BatchVec3 = eqx.field(converter=converter_batchvec)
+    p: BatchVec3 = eqx.field(converter=converter_float_array)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     @property
@@ -88,7 +80,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module):  # type: ignore[misc]
 class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
     """Abstract Base Class of Phase-Space Positions."""
 
-    t: BatchFloatScalar = eqx.field(converter=converter_batchvec)
+    t: BatchFloatScalar = eqx.field(converter=converter_float_array)
     """Array of times."""
 
     @property

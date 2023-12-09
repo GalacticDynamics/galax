@@ -16,6 +16,7 @@ from galdynamix.typing import (
     FloatScalar,
 )
 from galdynamix.utils import partial_jit, vectorize_method
+from galdynamix.utils.dataclasses import converter_float_array
 
 
 class AbstractParameter(eqx.Module):  # type: ignore[misc]
@@ -58,7 +59,7 @@ class ConstantParameter(AbstractParameter):
 
     # TODO: unit handling
     # TODO: link this shape to the return shape from __call__
-    value: ArrayAnyShape
+    value: FloatArrayAnyShape = eqx.field(converter=converter_float_array)
 
     @partial_jit()
     @vectorize_method(signature="()->()")

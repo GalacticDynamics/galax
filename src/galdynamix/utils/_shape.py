@@ -41,6 +41,9 @@ def atleast_batched(*arys: ArrayLike) -> Array | tuple[Array, ...]:
     return tuple(atleast_batched(arr) for arr in arys)
 
 
+# =============================================================================
+
+
 @overload
 def batched_shape(
     arr: ArrayAnyShape | FloatLike, /, *, expect_ndim: Literal[0]

@@ -4,7 +4,7 @@ __all__ = ["AbstractParameter", "ConstantParameter", "UserParameter"]
 
 import abc
 from dataclasses import KW_ONLY
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 import astropy.units as u
 import equinox as eqx
@@ -30,13 +30,15 @@ class AbstractParameter(eqx.Module):  # type: ignore[misc]
     unit: u.Unit = eqx.field(static=True)  # TODO: move this to an annotation?
 
     @abc.abstractmethod
-    def __call__(self, t: FloatScalar) -> ArrayAnyShape:
+    def __call__(self, t: FloatScalar, **kwargs: Any) -> ArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
         t : Array
             The time(s) at which to compute the parameter value.
+        **kwargs
+            Additional parameters to pass to the parameter function.
 
         Returns
         -------
@@ -54,7 +56,7 @@ class ConstantParameter(AbstractParameter):
     value: ArrayAnyShape
 
     @partial_jit()
-    def __call__(self, t: FloatScalar = 0) -> ArrayAnyShape:
+    def __call__(self, t: FloatScalar = 0, **kwargs: Any) -> ArrayAnyShape:
         """Return the constant parameter value.
 
         Parameters
@@ -63,6 +65,8 @@ class ConstantParameter(AbstractParameter):
             This is ignored and is thus optional.
             Note that for most :class:`~galdynamix.potential.AbstractParameter`
             the time is required.
+        **kwargs : Any
+            This is ignored.
 
         Returns
         -------
@@ -80,13 +84,15 @@ class ConstantParameter(AbstractParameter):
 class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
-    def __call__(self, t: FloatScalar) -> ArrayAnyShape:
+    def __call__(self, t: FloatScalar, **kwargs: Any) -> ArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
         t : Array
             Time(s) at which to compute the parameter value.
+        **kwargs : Any
+            Additional parameters to pass to the parameter function.
 
         Returns
         -------
@@ -103,5 +109,5 @@ class UserParameter(AbstractParameter):
     func: ParameterCallable
 
     @partial_jit()
-    def __call__(self, t: FloatScalar) -> ArrayAnyShape:
-        return self.func(t)
+    def __call__(self, t: FloatScalar, **kwargs: Any) -> ArrayAnyShape:
+        return self.func(t, **kwargs)

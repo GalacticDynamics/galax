@@ -25,7 +25,8 @@ def _from_none(value: None, /) -> UnitSystem:
 
 
 @converter_to_usys.register(tuple)
-def _from_args(value: tuple[Any, ...], /) -> UnitSystem:
+@converter_to_usys.register(list)
+def _from_args(value: tuple[Any, ...] | list[Any], /) -> UnitSystem:
     return UnitSystem(*value)
 
 

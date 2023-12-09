@@ -15,10 +15,11 @@ from jaxtyping import Array, Float
 from galdynamix.integrate._base import AbstractIntegrator
 from galdynamix.integrate._builtin import DiffraxIntegrator
 from galdynamix.typing import (
-    BatchableFloatLike,
+    BatchableFloatOrIntScalarLike,
     BatchFloatScalar,
     BatchMatrix33,
     BatchVec3,
+    FloatOrIntScalar,
     FloatScalar,
     Matrix33,
     Vec3,
@@ -42,7 +43,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
     @abc.abstractmethod
     # @partial_jit()
     # @vectorize_method(signature="(3),()->()")
-    def _potential_energy(self, q: Vec3, /, t: FloatScalar) -> FloatScalar:
+    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.
@@ -86,7 +87,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
     # Potential energy
 
     def potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatLike
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
         """Compute the potential energy at the given position(s).
 
@@ -94,7 +95,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         ----------
         q : Array[float, (*batch, 3)]
             The position to compute the value of the potential.
-        t : float | Array[float, *batch]
+        t : Array[float | int, *batch] | float | int
             The time at which to compute the value of the potential.
 
         Returns
@@ -105,14 +106,16 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         return self._potential_energy(q, t)
 
     @partial_jit()
-    def __call__(self, q: BatchVec3, /, t: BatchableFloatLike) -> BatchFloatScalar:
+    def __call__(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
         """Compute the potential energy at the given position(s).
 
         Parameters
         ----------
         q : Array[float, (*batch, 3)]
             The position to compute the value of the potential.
-        t : float | Array[float, *batch]
+        t : Array[float | int, *batch] | float | int
             The time at which to compute the value of the potential.
 
         Returns
@@ -131,11 +134,11 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
 
     @partial_jit()
     @vectorize_method(signature="(3),()->(3)")
-    def _gradient(self, q: Vec3, /, t: FloatScalar) -> Vec3:
+    def _gradient(self, q: Vec3, /, t: FloatOrIntScalar) -> Vec3:
         """See ``gradient``."""
-        return grad(self.potential_energy)(q, t)
+        return grad(self._potential_energy)(q, t)
 
-    def gradient(self, q: BatchVec3, /, t: BatchableFloatLike) -> BatchVec3:
+    def gradient(self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike) -> BatchVec3:
         """Compute the gradient of the potential at the given position(s).
 
         Parameters
@@ -144,7 +147,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
             The position to compute the value of the potential. If the
             input position object has no units (i.e. is an `~numpy.ndarray`),
             it is assumed to be in the same unit system as the potential.
-        t : float | Array[float, *batch]
+        t : Array[float | int, *batch] | float | int
             The time at which to compute the value of the potential.
 
         Returns
@@ -165,7 +168,9 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         lap = xp.trace(jacfwd(self.gradient)(q, t))
         return lap / (4 * xp.pi * self._G)
 
-    def density(self, q: BatchVec3, /, t: BatchableFloatLike) -> BatchFloatScalar:
+    def density(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
         """Compute the density value at the given position(s).
 
         Parameters
@@ -174,7 +179,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
             The position to compute the value of the potential. If the
             input position object has no units (i.e. is an `~numpy.ndarray`),
             it is assumed to be in the same unit system as the potential.
-        t : float | Array[float, *batch]
+        t : Array[float | int, *batch] | float | int
             The time at which to compute the value of the potential.
 
         Returns
@@ -189,11 +194,13 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
 
     @partial_jit()
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: Vec3, /, t: FloatScalar) -> Matrix33:
+    def _hessian(self, q: Vec3, /, t: FloatOrIntScalar) -> Matrix33:
         """See ``hessian``."""
-        return hessian(self.potential_energy)(q, t)
+        return hessian(self._potential_energy)(q, t)
 
-    def hessian(self, q: BatchVec3, /, t: BatchableFloatLike) -> BatchMatrix33:
+    def hessian(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchMatrix33:
         """Compute the Hessian of the potential at the given position(s).
 
         Parameters
@@ -202,7 +209,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
             The position to compute the value of the potential. If the
             input position object has no units (i.e. is an `~numpy.ndarray`),
             it is assumed to be in the same unit system as the potential.
-        t : float | Array[float, *batch]
+        t : Array[float | int, *batch] | float | int
             The time at which to compute the value of the potential.
 
         Returns
@@ -221,14 +228,16 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
         """See ``acceleration``."""
         return -self.gradient(q, t)
 
-    def acceleration(self, q: BatchVec3, /, t: BatchableFloatLike) -> BatchVec3:
+    def acceleration(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchVec3:
         """Compute the acceleration due to the potential at the given position(s).
 
         Parameters
         ----------
         q : Array[float, (*batch, 3)]
             Position to compute the acceleration at.
-        t : float | Array[float, *batch]
+        t : Array[float | int, *batch] | float | int
             Time at which to compute the acceleration.
 
         Returns

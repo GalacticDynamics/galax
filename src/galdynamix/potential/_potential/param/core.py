@@ -9,8 +9,13 @@ from typing import Any, Protocol, runtime_checkable
 import astropy.units as u
 import equinox as eqx
 
-from galdynamix.typing import ArrayAnyShape, FloatScalar
-from galdynamix.utils import partial_jit
+from galdynamix.typing import (
+    ArrayAnyShape,
+    BatchableFloatOrIntScalarLike,
+    FloatOrIntScalar,
+    FloatScalar,
+)
+from galdynamix.utils import partial_jit, vectorize_method
 
 
 class AbstractParameter(eqx.Module):  # type: ignore[misc]
@@ -56,7 +61,14 @@ class ConstantParameter(AbstractParameter):
     value: ArrayAnyShape
 
     @partial_jit()
-    def __call__(self, t: FloatScalar = 0, **kwargs: Any) -> ArrayAnyShape:
+    @vectorize_method(signature="()->()")
+    def _call_helper(self, _: FloatOrIntScalar) -> ArrayAnyShape:
+        return self.value
+
+    @partial_jit()
+    def __call__(
+        self, t: BatchableFloatOrIntScalarLike = 0, **kwargs: Any
+    ) -> ArrayAnyShape:
         """Return the constant parameter value.
 
         Parameters
@@ -73,7 +85,7 @@ class ConstantParameter(AbstractParameter):
         Array
             The constant parameter value.
         """
-        return self.value
+        return self._call_helper(t)
 
 
 #####################################################################

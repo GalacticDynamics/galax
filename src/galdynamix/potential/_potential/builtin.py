@@ -14,8 +14,16 @@ import jax.numpy as xp
 
 from galdynamix.potential._potential.core import AbstractPotential
 from galdynamix.potential._potential.param import AbstractParameter, ParameterField
-from galdynamix.typing import FloatLike, FloatScalar, Vec3
-from galdynamix.utils import partial_jit
+from galdynamix.typing import (
+    BatchableFloatOrIntScalarLike,
+    BatchFloatScalar,
+    BatchVec3,
+    FloatLike,
+    FloatOrIntScalarLike,
+    FloatScalar,
+    Vec3,
+)
+from galdynamix.utils import partial_jit, vectorize_method
 from galdynamix.utils.dataclasses import field
 
 mass = u.get_physical_type("mass")
@@ -31,12 +39,15 @@ class MiyamotoNagaiDisk(AbstractPotential):
     b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 
     @partial_jit()
-    def _potential_energy(self, q: Vec3, /, t: FloatScalar) -> FloatScalar:
-        R2 = q[0] ** 2 + q[1] ** 2
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        x, y, z = q[..., 0], q[..., 1], q[..., 2]
+        R2 = x**2 + y**2
         return (
             -self._G
             * self.m(t)
-            / xp.sqrt(R2 + xp.square(xp.sqrt(q[2] ** 2 + self.b(t) ** 2) + self.a(t)))
+            / xp.sqrt(R2 + xp.square(xp.sqrt(z**2 + self.b(t) ** 2) + self.a(t)))
         )
 
 
@@ -57,7 +68,8 @@ class BarPotential(AbstractPotential):
     Omega: AbstractParameter = ParameterField(dimensions=frequency)  # type: ignore[assignment]
 
     @partial_jit()
-    def _potential_energy(self, q: Vec3, /, t: FloatScalar) -> FloatScalar:
+    @vectorize_method(signature="(3),()->()")
+    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalarLike) -> FloatScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
         rotation_matrix = xp.array(
@@ -97,8 +109,10 @@ class Isochrone(AbstractPotential):
     a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 
     @partial_jit()
-    def _potential_energy(self, q: Vec3, /, t: FloatScalar) -> FloatScalar:
-        r = xp.linalg.norm(q, axis=0)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        r = xp.linalg.norm(q, axis=-1)
         a = self.a(t)
         return -self._G * self.m(t) / (a + xp.sqrt(r**2 + a**2))
 
@@ -115,9 +129,10 @@ class NFWPotential(AbstractPotential):
     softening_length: FloatLike = field(default=0.001, static=True, dimensions=length)
 
     @partial_jit()
-    def _potential_energy(self, q: Vec3, /, t: FloatScalar) -> FloatScalar:
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
         v_h2 = -self._G * self.m(t) / self.r_s(t)
-        m = xp.sqrt(
-            q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + self.softening_length,
-        ) / self.r_s(t)
+        r2 = q[..., 0] ** 2 + q[..., 1] ** 2 + q[..., 2] ** 2
+        m = xp.sqrt(r2 + self.softening_length) / self.r_s(t)
         return v_h2 * xp.log(1.0 + m) / m

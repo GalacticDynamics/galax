@@ -43,6 +43,7 @@ test = [
   "hypothesis[numpy]",
   "pytest >=6",
   "pytest-cov >=3",
+  "sybil",
 ]
 dev = [
   "pytest >=6",

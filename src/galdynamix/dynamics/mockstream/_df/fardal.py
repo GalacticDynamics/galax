@@ -8,7 +8,13 @@ import jax
 import jax.numpy as xp
 
 from galdynamix.potential._potential.base import AbstractPotentialBase
-from galdynamix.typing import FloatScalar, IntLike, Vec3, Vec6
+from galdynamix.typing import (
+    FloatOrIntScalarLike,
+    FloatScalar,
+    IntLike,
+    Vec3,
+    Vec6,
+)
 from galdynamix.utils import partial_jit
 
 from .base import AbstractStreamDF
@@ -126,7 +132,9 @@ def dphidr(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Vec3:
 
 
 @partial_jit()
-def d2phidr2(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> FloatScalar:
+def d2phidr2(
+    potential: AbstractPotentialBase, x: Vec3, /, t: FloatOrIntScalarLike
+) -> FloatScalar:
     """Compute the second derivative of the potential.
 
     At a position x (in the simulation frame).
@@ -147,7 +155,11 @@ def d2phidr2(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Float
 
     Examples
     --------
-    >>> d2phidr2(x=xp.array([8.0, 0.0, 0.0]))
+    >>> from galdynamix.potential import NFWPotential
+    >>> from galdynamix.units import galactic
+    >>> pot = NFWPotential(m=1e12, r_s=20.0, units=galactic)
+    >>> d2phidr2(pot, xp.array([8.0, 0.0, 0.0]), t=0)
+    Array(-0.00017469, dtype=float64)
     """
     r_hat = x / xp.linalg.norm(x)
     dphi_dr_func = lambda x: xp.sum(potential.gradient(x, t) * r_hat)  # noqa: E731
@@ -174,7 +186,8 @@ def orbital_angular_velocity(x: Vec3, v: Vec3, /) -> Vec3:
     --------
     >>> x = xp.array([8.0, 0.0, 0.0])
     >>> v = xp.array([8.0, 0.0, 0.0])
-    >>> orbital_angular_velocity(x=x, v=v)
+    >>> orbital_angular_velocity(x, v)
+    Array([0., 0., 0.], dtype=float64)
     """
     r = xp.linalg.norm(x)
     return xp.cross(x, v) / r**2
@@ -200,7 +213,8 @@ def orbital_angular_velocity_mag(x: Vec3, v: Vec3, /) -> FloatScalar:
     --------
     >>> x = xp.array([8.0, 0.0, 0.0])
     >>> v = xp.array([8.0, 0.0, 0.0])
-    >>> orbital_angular_velocity_mag(x=x, v=v)
+    >>> orbital_angular_velocity_mag(x, v)
+    Array(0., dtype=float64)
     """
     return xp.linalg.norm(orbital_angular_velocity(x, v))
 
@@ -212,7 +226,7 @@ def tidal_radius(
     v: Vec3,
     /,
     prog_mass: FloatScalar,
-    t: FloatScalar,
+    t: FloatOrIntScalarLike,
 ) -> FloatScalar:
     """Compute the tidal radius of a cluster in the potential.
 
@@ -220,25 +234,29 @@ def tidal_radius(
     ----------
     potential: AbstractPotentialBase
         The gravitational potential of the host.
-    x: Array
+    x: Array[float, (3,)]
         3d position (x, y, z) in [kpc]
-    v: Array
+    v: Array[float, (3,)]
         3d velocity (v_x, v_y, v_z) in [kpc/Myr]
-    prog_mass:
+    prog_mass : Array[float, ()]
         Cluster mass in [Msol]
-    t: Array
+    t: Array[float | int, ()] | float | int
         Time in [Myr]
 
     Returns
     -------
-    Array:
+    Array[float, ""]] :
         Tidal radius of the cluster in [kpc]
 
     Examples
     --------
+    >>> from galdynamix.potential import NFWPotential
+    >>> from galdynamix.units import galactic
+    >>> pot = NFWPotential(m=1e12, r_s=20.0, units=galactic)
     >>> x=xp.array([8.0, 0.0, 0.0])
-    >>> v=xp.array([8.0, 0.0, 0.0]
-    >>> tidal_radius(x=x, v=v, prog_mass=1e4)
+    >>> v=xp.array([8.0, 0.0, 0.0])
+    >>> tidal_radius(pot, x, v, prog_mass=1e4, t=0)
+    Array(0.06362136, dtype=float64)
     """
     return (
         potential._G  # noqa: SLF001

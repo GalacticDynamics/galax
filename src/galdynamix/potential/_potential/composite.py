@@ -9,7 +9,11 @@ import equinox as eqx
 import jax.numpy as xp
 from typing_extensions import override
 
-from galdynamix.typing import BatchableFloatLike, BatchFloatScalar, BatchVec3
+from galdynamix.typing import (
+    BatchableFloatOrIntScalarLike,
+    BatchFloatScalar,
+    BatchVec3,
+)
 from galdynamix.units import UnitSystem
 from galdynamix.utils import ImmutableDict, partial_jit
 from galdynamix.utils._misc import first
@@ -55,7 +59,7 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
 
     @partial_jit()
     def _potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatLike
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
         return xp.sum(xp.array([p.potential_energy(q, t) for p in self.values()]))
 

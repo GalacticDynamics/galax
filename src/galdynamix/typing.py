@@ -3,18 +3,18 @@
 # TODO: Finalize variable names and make everything public.
 __all__: list[str] = []
 
-from jaxtyping import Array, Float, Integer, Scalar, Shaped
+from jaxtyping import Array, Float, Integer, Shaped
 
 # =============================================================================
 # Scalars
 
-IntScalar = Integer[Scalar, ""]
+IntScalar = Integer[Array, ""]
 """An integer scalar."""
 
 IntLike = IntScalar | int
 """An integer or integer scalar."""
 
-FloatScalar = Float[Scalar, ""]
+FloatScalar = Float[Array, ""]
 """A float scalar."""
 
 FloatLike = FloatScalar | float | int
@@ -51,9 +51,17 @@ Vec7 = Float[Array, "7"]
 # -----------------
 # Scalars
 
+BatchIntScalar = Shaped[IntScalar, "*batch"]
+
+BatchableIntLike = BatchIntScalar | IntLike
+
 BatchFloatScalar = Shaped[FloatScalar, "*batch"]
 
 BatchableFloatLike = BatchFloatScalar | FloatLike
+
+BatchFloatOrIntScalar = Shaped[FloatOrIntScalar, "*batch"]
+
+BatchableFloatOrIntScalarLike = BatchFloatOrIntScalar | FloatOrIntScalarLike
 
 # -----------------
 # Shaped

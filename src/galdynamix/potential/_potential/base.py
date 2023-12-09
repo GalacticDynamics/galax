@@ -27,12 +27,13 @@ from galdynamix.typing import (
 )
 from galdynamix.units import UnitSystem, dimensionless
 from galdynamix.utils import partial_jit, vectorize_method
+from galdynamix.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
     from galdynamix.dynamics._orbit import Orbit
 
 
-class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
+class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
     """Potential Class."""
 
     units: eqx.AbstractVar[UnitSystem]
@@ -162,7 +163,7 @@ class AbstractPotentialBase(eqx.Module):  # type: ignore[misc]
 
     @partial_jit()
     @vectorize_method(signature="(3),()->()")
-    def _density(self, q: Vec3, /, t: FloatScalar) -> FloatScalar:
+    def _density(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
         lap = xp.trace(jacfwd(self.gradient)(q, t))

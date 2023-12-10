@@ -79,6 +79,12 @@ class ParameterField:
 
     def _check_unit(self, potential: AbstractPotential, unit: Unit) -> None:
         """Check that the given unit is compatible with the parameter's."""
+        # When the potential is being constructed, the units may not have been
+        # set yet, so we don't check the unit.
+        if not hasattr(potential, "units"):
+            return
+
+        # Check the unit is compatible
         if not unit.is_equivalent(
             potential.units[self.dimensions],
             equivalencies=self.equivalencies,
@@ -98,7 +104,8 @@ class ParameterField:
         if isinstance(value, AbstractParameter):
             # TODO: this doesn't handle the correct output unit, a. la.
             # potential.units[self.dimensions]
-            self._check_unit(potential, value.unit)  # Check the unit is compatible
+            # Check the unit is compatible
+            self._check_unit(potential, value.unit)
         elif callable(value):
             # TODO: this only gets the existing unit, it doesn't handle the
             # correct output unit, a. la. potential.units[self.dimensions]

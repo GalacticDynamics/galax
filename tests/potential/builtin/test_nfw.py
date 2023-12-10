@@ -29,21 +29,21 @@ class ScaleRadiusParameterMixin(ParameterFieldMixin):
         fields["r_s"] = 1.0 * u.Unit(10 * u.kpc)
         fields["units"] = galactic
         pot = pot_cls(**fields)
-        assert isinstance(pot.m, ConstantParameter)
-        assert pot.m.value == 10
+        assert isinstance(pot.r_s, ConstantParameter)
+        assert xp.isclose(pot.r_s.value, 10)
 
     def test_r_s_constant(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["r_s"] = 1.0
         pot = pot_cls(**fields)
-        assert pot.m(t=0) == 1.0
+        assert pot.r_s(t=0) == 1.0
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_s_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["r_s"] = lambda t: t + 2
         pot = pot_cls(**fields)
-        assert pot.m(t=0) == 2
+        assert pot.r_s(t=0) == 2
 
 
 class TestNFWPotential(

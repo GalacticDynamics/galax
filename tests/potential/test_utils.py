@@ -52,6 +52,15 @@ class TestConverterToUtils:
 class FieldUnitSystemMixin:
     """Mixin for testing the ``units`` field on a ``Potential``."""
 
+    @pytest.fixture()
+    def fields_unitless(self, fields):
+        """Fields with no units."""
+        return {
+            k: (v.value if isinstance(v, u.Quantity) else v) for k, v in fields.items()
+        }
+
+    # ===========================================
+
     def test_init_units_invalid(self, pot):
         """Test invalid unit system."""
         msg = "cannot convert 1234567890 to a UnitSystem"
@@ -63,26 +72,34 @@ class FieldUnitSystemMixin:
         usys = UnitSystem(u.km, u.s, u.Msun, u.radian)
         assert replace(pot, units=usys).units == usys
 
-    def test_init_units_from_args(self, pot):
+    def test_init_units_from_args(self, pot_cls, fields_unitless):
         """Test unit system from None."""
-        assert replace(pot, units=None).units == dimensionless
+        # strip the units from the fields otherwise the test will fail
+        # because the units are not equal and we just want to check that
+        # when the units aren't specified, the default is dimensionless
+        # and a numeric value works.
+        fields_unitless.pop("units")
+        pot = pot_cls(**fields_unitless, units=None)
+        assert pot.units == dimensionless
 
     def test_init_units_from_tuple(self, pot):
         """Test unit system from tuple."""
         units = (u.km, u.s, u.Msun, u.radian)
         assert replace(pot, units=units).units == UnitSystem(*units)
 
-    def test_init_units_from_name(self, pot):
+    def test_init_units_from_name(self, pot_cls, fields_unitless):
         """Test unit system from named string."""
-        pot = replace(pot, units="dimensionless")
+        fields_unitless.pop("units")
+
+        pot = pot_cls(**fields_unitless, units="dimensionless")
         assert pot.units == dimensionless
 
-        pot = replace(pot, units="solarsystem")
+        pot = pot_cls(**fields_unitless, units="solarsystem")
         assert pot.units == solarsystem
 
-        pot = replace(pot, units="galactic")
+        pot = pot_cls(**fields_unitless, units="galactic")
         assert pot.units == galactic
 
         msg = "cannot convert invalid_value to a UnitSystem"
         with pytest.raises(NotImplementedError, match=msg):
-            replace(pot, units="invalid_value")
+            pot_cls(**fields_unitless, units="invalid_value")

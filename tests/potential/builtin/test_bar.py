@@ -6,7 +6,12 @@ import pytest
 import galdynamix.potential as gp
 
 from ..test_core import TestAbstractPotential
-from .test_common import MassParameterMixin, ShapeAParameterMixin, ShapeBParameterMixin
+from .test_common import (
+    MassParameterMixin,
+    ShapeAParameterMixin,
+    ShapeBParameterMixin,
+    ShapeCParameterMixin,
+)
 
 
 class TestBarPotential(
@@ -15,6 +20,7 @@ class TestBarPotential(
     MassParameterMixin,
     ShapeAParameterMixin,
     ShapeBParameterMixin,
+    ShapeCParameterMixin,
 ):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.BarPotential]:

@@ -15,6 +15,7 @@ from galdynamix.typing import (
     FloatArrayAnyShape,
     FloatOrIntScalar,
     FloatScalar,
+    Unit,
 )
 from galdynamix.utils import partial_jit, vectorize_method
 from galdynamix.utils.dataclasses import converter_float_array
@@ -34,7 +35,7 @@ class AbstractParameter(eqx.Module):  # type: ignore[misc]
     """
 
     _: KW_ONLY
-    unit: u.Unit = eqx.field(static=True)  # TODO: move this to an annotation?
+    unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @abc.abstractmethod
     def __call__(self, t: FloatScalar, **kwargs: Any) -> ArrayAnyShape:

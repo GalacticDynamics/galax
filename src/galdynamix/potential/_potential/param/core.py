@@ -63,6 +63,7 @@ class ConstantParameter(AbstractParameter):
     # TODO: link this shape to the return shape from __call__
     value: FloatArrayAnyShape = eqx.field(converter=converter_float_array)
 
+    # This is a workaround since vectorized methods don't support kwargs.
     @partial_jit()
     @vectorize_method(signature="()->()")
     def _call_helper(self, _: FloatOrIntScalar) -> ArrayAnyShape:
@@ -93,6 +94,7 @@ class ConstantParameter(AbstractParameter):
 
 #####################################################################
 # User-defined Parameter
+# For passing a function as a parameter.
 
 
 @runtime_checkable
@@ -118,11 +120,19 @@ class ParameterCallable(Protocol):
 
 
 class UserParameter(AbstractParameter):
-    """User-defined Parameter."""
+    """User-defined Parameter.
+
+    Parameters
+    ----------
+    func : Callable[[Array[float, ()] | float | int], Array[float, (*shape,)]]
+        The function to use to compute the parameter value.
+    unit : Unit, keyword-only
+        The output unit of the parameter.
+    """
 
     # TODO: unit handling
-    func: ParameterCallable
+    func: ParameterCallable = eqx.field(static=True)
 
     @partial_jit()
-    def __call__(self, t: FloatScalar, **kwargs: Any) -> ArrayAnyShape:
+    def __call__(self, t: FloatOrIntScalar, **kwargs: Any) -> FloatArrayAnyShape:
         return self.func(t, **kwargs)

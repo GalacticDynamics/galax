@@ -27,6 +27,7 @@ from galdynamix.typing import (
 )
 from galdynamix.units import UnitSystem, dimensionless
 from galdynamix.utils import partial_jit, vectorize_method
+from galdynamix.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galdynamix.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
@@ -248,6 +249,40 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
             position array, ``q``.
         """
         return -self.gradient(q, t)
+
+    @partial_jit()
+    def tidal_tensor(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchMatrix33:
+        """Compute the tidal tensor.
+
+        See https://en.wikipedia.org/wiki/Tidal_tensor
+
+        .. note::
+
+            This is in cartesian coordinates with the Euclidean metric tensor.
+            Also, this isn't correct for GR.
+
+        Parameters
+        ----------
+        q : Array[float, (*batch, 3,)]
+            Position to compute the tidal tensor at.
+        t : Array[float | int, *batch] | float | int
+            Time at which to compute the tidal tensor.
+
+        Returns
+        -------
+        Array[float, (*batch, 3, 3)]
+            The tidal tensor.
+        """
+        J = self.hessian(q, t)  # (*batch, 3, 3)
+        batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)
+        traced = (
+            expand_batch_dims(xp.eye(3), ndim=len(batch_shape))
+            * expand_arr_dims(xp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
+            / 3
+        )
+        return J - traced
 
     # =========================================================================
     # Integrating orbits

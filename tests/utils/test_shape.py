@@ -1,11 +1,11 @@
-"""Test the `galdynamix.utils._shape` module."""
+"""Test the `galax.utils._shape` module."""
 
 import re
 
 import jax.numpy as xp
 import pytest
 
-from galdynamix.utils._shape import atleast_batched, batched_shape
+from galax.utils._shape import atleast_batched, batched_shape
 
 
 class TestAtleastBatched:
@@ -54,7 +54,7 @@ class TestAtleastBatched:
 
 
 class TestBatchedShape:
-    """Test the `galdynamix.utils._shape.batched_shape` function."""
+    """Test the `galax.utils._shape.batched_shape` function."""
 
     @pytest.mark.parametrize(
         ("arr", "expect_ndim", "expect"),
@@ -67,7 +67,7 @@ class TestBatchedShape:
         ],
     )
     def test_batched_shape(self, arr, expect_ndim, expect):
-        """Test the `galdynamix.utils._shape.batched_shape` function."""
+        """Test the `galax.utils._shape.batched_shape` function."""
         batch, shape = batched_shape(arr, expect_ndim=expect_ndim)
         assert batch == expect[0]
         assert shape == expect[1]

@@ -5,18 +5,18 @@ import equinox as eqx
 import jax.numpy as xp
 import pytest
 
-import galdynamix.potential as gp
-from galdynamix.potential._potential.utils import converter_to_usys
-from galdynamix.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
-from galdynamix.units import UnitSystem, dimensionless, galactic
-from galdynamix.utils import partial_jit, vectorize_method
+import galax.potential as gp
+from galax.potential._potential.utils import converter_to_usys
+from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
+from galax.units import UnitSystem, dimensionless, galactic
+from galax.utils import partial_jit, vectorize_method
 
 from .test_base import TestAbstractPotentialBase
 from .test_utils import FieldUnitSystemMixin
 
 
 class TestAbstractPotential(TestAbstractPotentialBase, FieldUnitSystemMixin):
-    """Test the `galdynamix.potential.AbstractPotentialBase` class."""
+    """Test the `galax.potential.AbstractPotentialBase` class."""
 
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.AbstractPotentialBase]:

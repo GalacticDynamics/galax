@@ -1,9 +1,9 @@
-import galdynamix.potential as gp
-from galdynamix.potential import _potential
+import galax.potential as gp
+from galax.potential import _potential
 
 
 def test_all():
-    """Test the `galdynamix.potential` package contents."""
+    """Test the `galax.potential` package contents."""
     # Test correct dumping of contents
     assert gp.__all__ == _potential.__all__
 

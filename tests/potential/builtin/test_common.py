@@ -1,9 +1,9 @@
 import astropy.units as u
 import pytest
 
-import galdynamix.potential as gp
-from galdynamix.potential import ConstantParameter
-from galdynamix.units import galactic
+import galax.potential as gp
+from galax.potential import ConstantParameter
+from galax.units import galactic
 
 from ..params.test_field import ParameterFieldMixin
 

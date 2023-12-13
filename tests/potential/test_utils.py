@@ -1,11 +1,11 @@
-"""Tests for `galdynamix.potential._potential.utils` package."""
+"""Tests for `galax.potential._potential.utils` package."""
 
 from dataclasses import replace
 
 import astropy.units as u
 import pytest
 
-from galdynamix.potential._potential.utils import (
+from galax.potential._potential.utils import (
     UnitSystem,
     converter_to_usys,
     dimensionless,
@@ -15,7 +15,7 @@ from galdynamix.potential._potential.utils import (
 
 
 class TestConverterToUtils:
-    """Tests for `galdynamix.potential._potential.utils.converter_to_usys`."""
+    """Tests for `galax.potential._potential.utils.converter_to_usys`."""
 
     def test_invalid(self):
         """Test conversion from unsupported value."""

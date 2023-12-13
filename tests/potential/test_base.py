@@ -6,14 +6,14 @@ import jax.numpy as xp
 import pytest
 from jaxtyping import Array, Float
 
-import galdynamix.dynamics as gd
-import galdynamix.potential as gp
-from galdynamix.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
-from galdynamix.utils import partial_jit, vectorize_method
+import galax.dynamics as gd
+import galax.potential as gp
+from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
+from galax.utils import partial_jit, vectorize_method
 
 
 class TestAbstractPotentialBase:
-    """Test the `galdynamix.potential.AbstractPotentialBase` class."""
+    """Test the `galax.potential.AbstractPotentialBase` class."""
 
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.AbstractPotentialBase]:

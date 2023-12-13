@@ -2,7 +2,7 @@ import dataclasses
 
 import equinox as eqx
 
-from galdynamix.utils.dataclasses import field
+from galax.utils.dataclasses import field
 
 COMP_FIELDS: tuple[str, ...] = (
     "name",

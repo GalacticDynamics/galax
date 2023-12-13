@@ -1,7 +1,7 @@
 from importlib.metadata import version
 
-import galdynamix as pkg
+import galax as pkg
 
 
 def test_version():
-    assert version("galdynamix") == pkg.__version__
+    assert version("galax") == pkg.__version__

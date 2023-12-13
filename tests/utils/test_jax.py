@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from galdynamix.utils import (
+from galax.utils import (
     partial_jit,
     partial_vectorize,
     partial_vmap,

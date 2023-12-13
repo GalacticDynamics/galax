@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from galdynamix.utils._misc import first
+from galax.utils._misc import first
 
 
 @pytest.mark.parametrize(

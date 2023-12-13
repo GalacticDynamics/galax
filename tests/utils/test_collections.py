@@ -3,7 +3,7 @@ from types import MappingProxyType
 
 import pytest
 
-from galdynamix.utils import ImmutableDict
+from galax.utils import ImmutableDict
 
 
 class TestImmutableDict:

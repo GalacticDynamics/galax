@@ -1,4 +1,4 @@
-# galdynamix
+# galax
 
 ```{toctree}
 :maxdepth: 2

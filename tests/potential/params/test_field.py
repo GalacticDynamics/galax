@@ -1,5 +1,5 @@
-"""Test :mod:`galdynamix.potential._potential.param.core`."""
+"""Test :mod:`galax.potential._potential.param.core`."""
 
 
 class ParameterFieldMixin:
-    """Test the `galdynamix.potential.ParameterField` class."""
+    """Test the `galax.potential.ParameterField` class."""

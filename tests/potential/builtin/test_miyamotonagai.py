@@ -3,7 +3,7 @@ from typing import Any
 import jax.numpy as xp
 import pytest
 
-import galdynamix.potential as gp
+import galax.potential as gp
 
 from ..test_core import TestAbstractPotential
 from .test_common import (
@@ -20,7 +20,7 @@ class TestMiyamotoNagaiPotential(
     ShapeAParameterMixin,
     ShapeBParameterMixin,
 ):
-    """Test the `galdynamix.potential.MiyamotoNagaiPotential` class."""
+    """Test the `galax.potential.MiyamotoNagaiPotential` class."""
 
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.MiyamotoNagaiPotential]:

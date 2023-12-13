@@ -2,10 +2,10 @@
 
 import importlib.metadata
 
-project = "galdynamix"
-copyright = "2023, galdynamix maintainers"
-author = "galdynamix maintainers"
-version = release = importlib.metadata.version("galdynamix")
+project = "galax"
+copyright = "2023, galax maintainers"
+author = "galax maintainers"
+version = release = importlib.metadata.version("galax")
 
 extensions = [
     "myst_parser",

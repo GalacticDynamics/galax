@@ -1,4 +1,4 @@
-"""Test :mod:`galdynamix.potential._potential.param.core`."""
+"""Test :mod:`galax.potential._potential.param.core`."""
 
 
 import astropy.units as u
@@ -6,13 +6,13 @@ import jax.numpy as xp
 import jaxtyping
 import pytest
 
-from galdynamix.potential import AbstractParameter, ConstantParameter, UserParameter
-from galdynamix.potential._potential.param.core import ParameterCallable
-from galdynamix.typing import Unit
+from galax.potential import AbstractParameter, ConstantParameter, UserParameter
+from galax.potential._potential.param.core import ParameterCallable
+from galax.typing import Unit
 
 
 class TestAbstractParameter:
-    """Test the `galdynamix.potential.AbstractParameter` class."""
+    """Test the `galax.potential.AbstractParameter` class."""
 
     @pytest.fixture(scope="class")
     def param_cls(self) -> type[AbstractParameter]:
@@ -35,19 +35,19 @@ class TestAbstractParameter:
     # ==========================================================================
 
     def test_init(self):
-        """Test init `galdynamix.potential.AbstractParameter` method."""
+        """Test init `galax.potential.AbstractParameter` method."""
         # Test that the abstract class cannot be instantiated
         with pytest.raises(TypeError):
             AbstractParameter()
 
     def test_call(self):
-        """Test `galdynamix.potential.AbstractParameter` call method."""
+        """Test `galax.potential.AbstractParameter` call method."""
         # Test that the abstract class cannot be instantiated
         with pytest.raises(TypeError):
             AbstractParameter()()
 
     def test_unit_field(self, param, field_unit):
-        """Test `galdynamix.potential.AbstractParameter` unit field."""
+        """Test `galax.potential.AbstractParameter` unit field."""
         assert param.unit == field_unit
 
 
@@ -55,7 +55,7 @@ class TestAbstractParameter:
 
 
 class TestConstantParameter(TestAbstractParameter):
-    """Test the `galdynamix.potential.ConstantParameter` class."""
+    """Test the `galax.potential.ConstantParameter` class."""
 
     @pytest.fixture(scope="class")
     def param_cls(self) -> type[AbstractParameter]:
@@ -72,7 +72,7 @@ class TestConstantParameter(TestAbstractParameter):
     # ==========================================================================
 
     def test_call(self, param, field_value):
-        """Test `galdynamix.potential.ConstantParameter` call method."""
+        """Test `galax.potential.ConstantParameter` call method."""
         assert param(t=1.0) == field_value
         assert param(t=1.0 * u.s) == field_value
         assert xp.array_equal(param(t=xp.array([1.0, 2.0])), [field_value, field_value])
@@ -82,7 +82,7 @@ class TestConstantParameter(TestAbstractParameter):
 
 
 class TestParameterCallable:
-    """Test the `galdynamix.potential.ParameterCallable` class."""
+    """Test the `galax.potential.ParameterCallable` class."""
 
     def test_issubclass(self):
         assert issubclass(AbstractParameter, ParameterCallable)
@@ -98,7 +98,7 @@ class TestParameterCallable:
 
 
 class TestUserParameter(TestAbstractParameter):
-    """Test the `galdynamix.potential.UserParameter` class."""
+    """Test the `galax.potential.UserParameter` class."""
 
     @pytest.fixture(scope="class")
     def param_cls(self) -> type[AbstractParameter]:
@@ -118,7 +118,7 @@ class TestUserParameter(TestAbstractParameter):
     # ==========================================================================
 
     def test_call(self, param):
-        """Test `galdynamix.potential.UserParameter` call method."""
+        """Test `galax.potential.UserParameter` call method."""
         assert param(t=1.0) == 1.0
         assert param(t=1.0 * u.s) == 1.0 * u.s
 

@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 
 [project]
-name = "galdynamix"
+name = "galax"
 authors = [
-  { name = "galdynamix maintainers", email = "nstarman@users.noreply.github.com" },
+  { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
   { name = "Jake Nibauer", email = "jnibauer@princeton.edu" },
   { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
 ]
@@ -58,15 +58,15 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/galdynamix/galdynamix"
-"Bug Tracker" = "https://github.com/galdynamix/galdynamix/issues"
-Discussions = "https://github.com/galdynamix/galdynamix/discussions"
-Changelog = "https://github.com/galdynamix/galdynamix/releases"
+Homepage = "https://github.com/GalacticDynamics/galax"
+"Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
+Discussions = "https://github.com/GalacticDynamics/galax/discussions"
+Changelog = "https://github.com/GalacticDynamics/galax/releases"
 
 
 [tool.hatch]
 version.source = "vcs"
-build.hooks.vcs.version-file = "src/galdynamix/_version.py"
+build.hooks.vcs.version-file = "src/galax/_version.py"
 envs.default.dependencies = [
   "pytest",
   "pytest-cov",
@@ -88,7 +88,7 @@ testpaths = [
 
 
 [tool.coverage]
-run.source = ["galdynamix"]
+run.source = ["galax"]
 port.exclude_lines = [
   'pragma: no cover',
   '\.\.\.',
@@ -107,7 +107,7 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
   [[tool.mypy.overrides]]
-  module = "galdynamix.*"
+  module = "galax.*"
   disallow_untyped_defs = true
   disallow_incomplete_defs = true
   disable_error_code = ["name-defined"]  # <- jaxtyping
@@ -163,7 +163,7 @@ ignore = [
   "F841",
 ]
 # Uncomment if using a _compat.typing backport
-# typing-modules = ["galdynamix._compat.typing"]
+# typing-modules = ["galax._compat.typing"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"]

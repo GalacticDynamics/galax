@@ -3,10 +3,10 @@ _commit: 2023.10.27
 _src_path: gh:scientific-python/cookie
 backend: hatch
 email: nstarman@users.noreply.github.com
-full_name: galdynamix maintainers
+full_name: galax maintainers
 license: MIT
-org: galdynamix
-project_name: galdynamix
+org: galax
+project_name: galax
 project_short_description: Galactic Dynamix in Jax.
-url: https://github.com/galdynamix/galdynamix
+url: https://github.com/GalacticDynamics/galax
 vcs: true

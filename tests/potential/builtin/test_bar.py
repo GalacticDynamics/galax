@@ -3,7 +3,7 @@ from typing import Any
 import jax.numpy as xp
 import pytest
 
-import galdynamix.potential as gp
+import galax.potential as gp
 
 from ..test_core import TestAbstractPotential
 from .test_common import (

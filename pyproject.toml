@@ -58,10 +58,10 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/galax/galax"
-"Bug Tracker" = "https://github.com/galax/galax/issues"
-Discussions = "https://github.com/galax/galax/discussions"
-Changelog = "https://github.com/galax/galax/releases"
+Homepage = "https://github.com/GalacticDynamics/galax"
+"Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
+Discussions = "https://github.com/GalacticDynamics/galax/discussions"
+Changelog = "https://github.com/GalacticDynamics/galax/releases"
 
 
 [tool.hatch]

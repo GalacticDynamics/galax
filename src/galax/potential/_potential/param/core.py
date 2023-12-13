@@ -8,6 +8,7 @@ from typing import Any, Protocol, runtime_checkable
 
 import astropy.units as u
 import equinox as eqx
+from jax.numpy import vectorize
 
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
@@ -16,7 +17,7 @@ from galax.typing import (
     FloatScalar,
     Unit,
 )
-from galax.utils import partial_jit, vectorize_method
+from galax.utils import partial_jit
 from galax.utils.dataclasses import converter_float_array
 
 
@@ -62,9 +63,6 @@ class ConstantParameter(AbstractParameter):
     # TODO: link this shape to the return shape from __call__
     value: FloatArrayAnyShape = eqx.field(converter=converter_float_array)
 
-    # This is a workaround since vectorized methods don't support kwargs.
-    @partial_jit()
-    @vectorize_method(signature="()->()")
     def _call_helper(self, _: FloatOrIntScalar) -> FloatArrayAnyShape:
         return self.value
 
@@ -88,7 +86,11 @@ class ConstantParameter(AbstractParameter):
         Array[float, "*shape"]
             The constant parameter value.
         """
-        return self._call_helper(t)
+        # Vectorization to enable broadcasting over the time dimension.
+        # We can't vectorize a method since the output shape depends on the
+        # input shape, so we have to do it this way.
+        signature = "()->" + str(self.value.shape).replace(" ", "")
+        return vectorize(self._call_helper, signature=signature)(t)
 
 
 #####################################################################

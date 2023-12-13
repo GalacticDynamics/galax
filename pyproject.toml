@@ -43,6 +43,7 @@ test = [
   "hypothesis[numpy]",
   "pytest >=6",
   "pytest-cov >=3",
+  "sybil",
 ]
 dev = [
   "pytest >=6",
@@ -166,7 +167,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"]
-"tests/**" = ["ANN", "D10", "E731", "INP001", "S101", "SLF001", "T20"]
+"tests/**" = [
+  "ANN", "D10", "E731", "INP001", "S101", "SLF001", "T20",
+  "TID252",  # Relative imports from parent modules are banned
+]
 "noxfile.py" = ["ERA001", "T20"]
 "docs/conf.py" = [
   "A001",  # Variable `copyright` is shadowing a Python builtin

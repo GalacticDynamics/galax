@@ -7,6 +7,10 @@ from galdynamix.utils import ImmutableDict
 
 
 class TestImmutableDict:
+    @pytest.fixture(scope="class")
+    def d(self):
+        return ImmutableDict(a=1, b=2)
+
     @pytest.mark.parametrize(
         ("arg", "kwargs"),
         [
@@ -26,25 +30,21 @@ class TestImmutableDict:
         assert isinstance(d, ImmutableDict)
         assert d._data == dict(arg, **kwargs)
 
-    def test_getitem(self):
+    def test_getitem(self, d):
         """Test `__getitem__`."""
-        d = ImmutableDict(a=1, b=2)
         assert d["a"] == 1
         assert d["b"] == 2
 
-    def test_iter(self):
+    def test_iter(self, d):
         """Test `__iter__`."""
-        d = ImmutableDict(a=1, b=2)
         assert list(d) == ["a", "b"]
 
-    def test_len(self):
+    def test_len(self, d):
         """Test `__len__`."""
-        d = ImmutableDict(a=1, b=2)
         assert len(d) == 2
 
-    def test_hash(self):
+    def test_hash(self, d):
         """Test `__hash__`."""
-        d = ImmutableDict(a=1, b=2)
         assert hash(d) == hash(tuple(d.items()))
 
         # Not hashable if values aren't hashable.
@@ -52,34 +52,31 @@ class TestImmutableDict:
         with pytest.raises(TypeError, match="unhashable type: 'set'"):
             hash(d)
 
-    def test_keys(self):
+    def test_keys(self, d):
         """Test `keys`."""
-        d = ImmutableDict(a=1, b=2)
         assert list(d.keys()) == ["a", "b"]
 
-    def test_values(self):
+    def test_values(self, d):
         """Test `values`."""
-        d = ImmutableDict(a=1, b=2)
         assert list(d.values()) == [1, 2]
 
-    def test_items(self):
+    def test_items(self, d):
         """Test `items`."""
-        d = ImmutableDict(a=1, b=2)
         assert list(d.items()) == [("a", 1), ("b", 2)]
 
-    def test_repr(self):
+    def test_repr(self, d):
         """Test `__repr__`."""
-        d = ImmutableDict(a=1, b=2)
         assert repr(d) == "ImmutableDict({'a': 1, 'b': 2})"
 
-    def test_or(self):
+    def test_or(self, d):
         """Test `__or__`."""
-        d = ImmutableDict(a=1, b=2)
         assert d | ImmutableDict(c=3) == ImmutableDict(a=1, b=2, c=3)
         assert d | {"c": 3} == ImmutableDict(a=1, b=2, c=3)
         assert d | OrderedDict([("c", 3)]) == ImmutableDict(a=1, b=2, c=3)
         assert d | MappingProxyType({"c": 3}) == ImmutableDict(a=1, b=2, c=3)
 
+    def test_ror(self, d):
+        """Test `__ror__`."""
         # Reverse order
         assert {"c": 3} | d == {"c": 3, "a": 1, "b": 2}
         assert OrderedDict([("c", 3)]) | d == OrderedDict(
@@ -88,15 +85,14 @@ class TestImmutableDict:
 
     # === Test pytree methods ===
 
-    def test_tree_flatten(self):
+    def test_tree_flatten(self, d):
         """Test `tree_flatten`."""
-        d = ImmutableDict(a=1, b=2)
         assert d.tree_flatten() == ((1, 2), ("a", "b"))
 
-    def test_tree_unflatten(self):
+    def test_tree_unflatten(self, d):
         """Test `tree_unflatten`."""
-        d = ImmutableDict.tree_unflatten(("a", "b"), (1, 2))
-        assert d == ImmutableDict(a=1, b=2)
+        d1 = ImmutableDict.tree_unflatten(("a", "b"), (1, 2))
+        assert d1 == ImmutableDict(a=1, b=2)
 
         # round-trip
         d = ImmutableDict(a=1, b=2)

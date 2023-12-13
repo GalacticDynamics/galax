@@ -10,7 +10,6 @@ import astropy.units as u
 import equinox as eqx
 
 from galdynamix.typing import (
-    ArrayAnyShape,
     BatchableFloatOrIntScalarLike,
     FloatArrayAnyShape,
     FloatOrIntScalar,
@@ -38,7 +37,7 @@ class AbstractParameter(eqx.Module):  # type: ignore[misc]
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @abc.abstractmethod
-    def __call__(self, t: FloatScalar, **kwargs: Any) -> ArrayAnyShape:
+    def __call__(self, t: FloatScalar, **kwargs: Any) -> FloatArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
@@ -66,13 +65,13 @@ class ConstantParameter(AbstractParameter):
     # This is a workaround since vectorized methods don't support kwargs.
     @partial_jit()
     @vectorize_method(signature="()->()")
-    def _call_helper(self, _: FloatOrIntScalar) -> ArrayAnyShape:
+    def _call_helper(self, _: FloatOrIntScalar) -> FloatArrayAnyShape:
         return self.value
 
     @partial_jit()
     def __call__(
         self, t: BatchableFloatOrIntScalarLike = 0, **kwargs: Any
-    ) -> ArrayAnyShape:
+    ) -> FloatArrayAnyShape:
         """Return the constant parameter value.
 
         Parameters
@@ -101,7 +100,7 @@ class ConstantParameter(AbstractParameter):
 class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
-    def __call__(self, t: FloatScalar, **kwargs: Any) -> ArrayAnyShape:
+    def __call__(self, t: FloatScalar, **kwargs: Any) -> FloatArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters

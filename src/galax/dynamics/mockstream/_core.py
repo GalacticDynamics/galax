@@ -44,7 +44,7 @@ class MockStream(AbstractPhaseSpacePositionBase):
     @property
     @partial_jit()
     def w(self) -> BatchVec7:
-        """Return as a single Array[(*batch, Q + P + T),]."""
+        """Return as a single Array[float, (*batch, Q + P + T)]."""
         batch_shape, component_shapes = self._shape_tuple
         q = xp.broadcast_to(self.q, batch_shape + component_shapes[0:1])
         p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])

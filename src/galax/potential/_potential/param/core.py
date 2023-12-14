@@ -42,14 +42,14 @@ class AbstractParameter(eqx.Module):  # type: ignore[misc]
 
         Parameters
         ----------
-        t : Array
+        t : float | Array[float, ()]
             The time(s) at which to compute the parameter value.
-        **kwargs
+        **kwargs : Any
             Additional parameters to pass to the parameter function.
 
         Returns
         -------
-        Array
+        Array[float, "*shape"]
             The parameter value at times ``t``.
         """
         ...
@@ -76,7 +76,7 @@ class ConstantParameter(AbstractParameter):
 
         Parameters
         ----------
-        t : Array, optional
+        t : float | Array[float, ()], optional
             This is ignored and is thus optional.
             Note that for most :class:`~galax.potential.AbstractParameter`
             the time is required.
@@ -85,7 +85,7 @@ class ConstantParameter(AbstractParameter):
 
         Returns
         -------
-        Array
+        Array[float, "*shape"]
             The constant parameter value.
         """
         return self._call_helper(t)
@@ -105,14 +105,14 @@ class ParameterCallable(Protocol):
 
         Parameters
         ----------
-        t : Array
+        t : float | Array[float, ()]
             Time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
 
         Returns
         -------
-        Array
+        Array[float, "*shape"]
             Parameter value(s) at the given time(s).
         """
         ...

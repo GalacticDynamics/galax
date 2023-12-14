@@ -117,7 +117,7 @@ def dphidr(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Vec3:
     ----------
     potential: AbstractPotentialBase
         The gravitational potential.
-    x: Array[(3,), Any]
+    x: Array[Any, (3,)]
         3d position (x, y, z) in [kpc]
     t: Numeric
         Time in [Myr]
@@ -143,7 +143,7 @@ def d2phidr2(
     ----------
     potential: AbstractPotentialBase
         The gravitational potential.
-    x: Array[(3,), Any]
+    x: Array[Any, (3,)]
         3d position (x, y, z) in [kpc]
     t: Numeric
         Time in [Myr]
@@ -172,9 +172,9 @@ def orbital_angular_velocity(x: Vec3, v: Vec3, /) -> Vec3:
 
     Arguments:
     ---------
-    x: Array[(3,), Any]
+    x: Array[Any, (3,)]
         3d position (x, y, z) in [length]
-    v: Array[(3,), Any]
+    v: Array[Any, (3,)]
         3d velocity (v_x, v_y, v_z) in [length/time]
 
     Returns:
@@ -199,9 +199,9 @@ def orbital_angular_velocity_mag(x: Vec3, v: Vec3, /) -> FloatScalar:
 
     Arguments:
     ---------
-    x: Array[(3,), Any]
+    x: Array[Any, (3,)]
         3d position (x, y, z) in [kpc]
-    v: Array[(3,), Any]
+    v: Array[Any, (3,)]
         3d velocity (v_x, v_y, v_z) in [kpc/Myr]
 
     Returns:

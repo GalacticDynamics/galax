@@ -17,7 +17,6 @@ from galax.typing import (
     Unit,
 )
 from galax.utils import partial_jit, vectorize_method
-from galax.utils.dataclasses import converter_float_array
 
 
 class AbstractParameter(eqx.Module):  # type: ignore[misc]
@@ -60,7 +59,7 @@ class ConstantParameter(AbstractParameter):
 
     # TODO: unit handling
     # TODO: link this shape to the return shape from __call__
-    value: FloatArrayAnyShape = eqx.field(converter=converter_float_array)
+    value: FloatArrayAnyShape
 
     # This is a workaround since vectorized methods don't support kwargs.
     @partial_jit()

@@ -160,6 +160,7 @@ ignore = [
   "F821",    # undefined name  <- jaxtyping
   "FIX002",  # Line contains TODO, consider resolving the issue
   "N80",     # Naming conventions.
+  "N816",    # Variable in global scope should not be mixedCase
   "PD",      # pandas-vet
   "PLR",     # Design related pylint codes
   "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict

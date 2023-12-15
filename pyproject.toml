@@ -83,7 +83,9 @@ filterwarnings = [
 ]
 log_cli_level = "INFO"
 testpaths = [
-  "tests",
+  "tests/",
+  "docs",
+  "src/galax",
 ]
 
 

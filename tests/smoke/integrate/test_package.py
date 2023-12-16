@@ -3,7 +3,7 @@
 from galax import integrate
 
 
-def test_version():
+def test_all():
     """Test the API."""
     assert set(integrate.__all__) == set(
         integrate._base.__all__ + integrate._builtin.__all__

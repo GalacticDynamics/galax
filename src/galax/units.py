@@ -160,6 +160,10 @@ class UnitSystem:
             return self._registry[key]
         return self[key]
 
+    def as_preferred(self, quantity: u.Quantity) -> u.Quantity:
+        """Convert a quantity to the preferred unit for this unit system."""
+        return quantity.to(self.preferred(quantity.unit.physical_type))
+
 
 class DimensionlessUnitSystem(UnitSystem):
     """A unit system with only dimensionless units."""

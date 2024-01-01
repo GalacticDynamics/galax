@@ -156,6 +156,7 @@ ignore = [
   "TD002",   # Missing author in TODO
   "TD003",   # Missing issue link on the line following this TODO
   "UP037",   # Remove quote from type annotation  <- jaxtyping
+  "S301",    # Pickle unsafe
   # TODO: fix these
   "ARG001",
   "ARG002",

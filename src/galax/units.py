@@ -9,13 +9,12 @@ __all__ = [
 ]
 
 from collections.abc import Iterator
-from typing import ClassVar, Union, no_type_check
+from typing import ClassVar, Union
 
 import astropy.units as u
 from astropy.units.physical import _physical_unit_mapping
 
 
-@no_type_check  # TODO: get beartype working with this
 class UnitSystem:
     """Represents a system of units.
 

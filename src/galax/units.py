@@ -112,7 +112,8 @@ class UnitSystem:
             self._core_units.append(self._registry[phys_type])
 
     def __getitem__(self, key: str | u.PhysicalType) -> u.UnitBase:
-        if key in self._registry:
+        key = u.get_physical_type(key)
+        if key in self._required_dimensions:
             return self._registry[key]
 
         unit = None
@@ -150,6 +151,13 @@ class UnitSystem:
     def __hash__(self) -> int:
         """Hash the unit system."""
         return hash(tuple(self._core_units) + tuple(self._required_dimensions))
+
+    def preferred(self, key: str | u.PhysicalType) -> u.UnitBase:
+        """Return the preferred unit for a given physical type."""
+        key = u.get_physical_type(key)
+        if key in self._registry:
+            return self._registry[key]
+        return self[key]
 
 
 class DimensionlessUnitSystem(UnitSystem):

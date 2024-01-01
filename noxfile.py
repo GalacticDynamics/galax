@@ -38,6 +38,21 @@ def tests(session: nox.Session) -> None:
     session.run("pytest", *session.posargs)
 
 
+@nox.session
+def doctests(session: nox.Session) -> None:
+    """Run the regular tests and doctests."""
+    session.install(".[test]")
+    session.run(
+        "pytest",
+        "--doctest-modules",
+        '--doctest-glob="*.rst"',
+        '--doctest-glob="*.md"',
+        "docs",
+        "src/galax",
+        *session.posargs,
+    )
+
+
 @nox.session(reuse_venv=True)
 def docs(session: nox.Session) -> None:
     """Build the docs. Pass "--serve" to serve. Pass "-b linkcheck" to check links."""

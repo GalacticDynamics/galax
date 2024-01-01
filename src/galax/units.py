@@ -31,9 +31,10 @@ class UnitSystem:
 
     Parameters
     ----------
-    **units, *units
+    *units, **units
         The units that define the unit system. At minimum, this must contain length,
-        time, mass, and angle units.
+        time, mass, and angle units. If passing in keyword arguments, the keys must be
+        valid :mod:`astropy.units` physical types.
 
     Examples
     --------
@@ -78,7 +79,9 @@ class UnitSystem:
     ]
 
     def __init__(
-        self, units: Union[dict[str, u.UnitBase], "UnitSystem"], *args: u.UnitBase
+        self,
+        units: Union[u.UnitBase, dict[str, u.UnitBase], "UnitSystem"],
+        *args: u.UnitBase,
     ) -> None:
         if isinstance(units, UnitSystem):
             if len(args) > 0:
@@ -127,6 +130,7 @@ class UnitSystem:
         return unit
 
     def __len__(self) -> int:
+        # Note: This is required for q.decompose(usys) to work, where q is a Quantity
         return len(self._core_units)
 
     def __iter__(self) -> Iterator[u.UnitBase]:

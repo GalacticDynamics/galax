@@ -45,23 +45,18 @@ class UnitSystem:
         >>> usys["velocity"]
         Unit("m / s")
 
-    However, preferred representations for composite units can also be specified when
-    initializing, either as a positional argument::
+    However, preferred representations for composite units can also be specified::
 
         >>> usys = UnitSystem(u.m, u.s, u.kg, u.radian, u.erg)
-        >>> usys.preferred("energy")
-        Unit("erg")
-
-    Or as a keyword argument::
-
-        >>> usys = UnitSystem(u.m, u.s, u.kg, u.radian, energy=u.erg)
+        >>> usys["energy"]
+        Unit("m2 kg / s2")
         >>> usys.preferred("energy")
         Unit("erg")
 
     This is useful for Galactic dynamics where lengths and times are usually given in
     terms of ``kpc`` and ``Myr``, but velocities are often specified in ``km/s``::
 
-        >>> usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian, velocity=u.km/u.s)
+        >>> usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian, u.km/u.s)
         >>> usys["velocity"]
         Unit("kpc / Myr")
         >>> usys.preferred("velocity")

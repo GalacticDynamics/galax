@@ -75,8 +75,14 @@ class UnitSystem:
 
     def __init__(
         self,
-        units: Union[u.UnitBase, dict[str, u.UnitBase], "UnitSystem"],
-        *args: u.UnitBase,
+        units: Union[
+            u.UnitBase,
+            u.Quantity,
+            dict[str, u.UnitBase],
+            dict[str, u.Quantity],
+            "UnitSystem",
+        ],
+        *args: u.UnitBase | u.Quantity,
     ) -> None:
         if isinstance(units, UnitSystem):
             if len(args) > 0:

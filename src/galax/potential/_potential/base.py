@@ -293,7 +293,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
     def _integrator_F(self, t: FloatScalar, xv: Vec6, args: tuple[Any, ...]) -> Vec6:
         return xp.hstack([xv[3:6], self.acceleration(xv[0:3], t)])  # v, a
 
-    @partial_jit(static_argnames=("Integrator", "integrator_kw"))
+    @partial_jit(static_argnames=("integrator"))
     def integrate_orbit(
         self,
         qp0: Vec6,

@@ -8,7 +8,7 @@ import nox
 
 DIR = Path(__file__).parent.resolve()
 
-nox.options.sessions = ["lint", "tests"]
+nox.options.sessions = ["lint", "tests", "doctests"]
 
 
 @nox.session
@@ -36,6 +36,21 @@ def tests(session: nox.Session) -> None:
     """Run the unit and regular tests."""
     session.install(".[test]")
     session.run("pytest", *session.posargs)
+
+
+@nox.session
+def doctests(session: nox.Session) -> None:
+    """Run the regular tests and doctests."""
+    session.install(".[test]")
+    session.run(
+        "pytest",
+        "--doctest-modules",
+        '--doctest-glob="*.rst"',
+        '--doctest-glob="*.md"',
+        "docs",
+        "src/galax",
+        *session.posargs,
+    )
 
 
 @nox.session(reuse_venv=True)

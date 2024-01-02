@@ -168,7 +168,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"]
 "tests/**" = [
-  "ANN", "D10", "E731", "INP001", "S101", "SLF001", "T20",
+  "ANN", "D10", "E731", "INP001", "S101", "S301", "SLF001", "T20",
   "TID252",  # Relative imports from parent modules are banned
 ]
 "noxfile.py" = ["ERA001", "T20"]

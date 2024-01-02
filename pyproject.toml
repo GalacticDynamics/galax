@@ -34,7 +34,7 @@ dependencies = [
   "diffrax",
   "equinox",
   "jax",
-  "jax_cosmo",
+  "jaxlib",
   "typing_extensions",
 ]
 

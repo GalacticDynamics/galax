@@ -6,12 +6,12 @@ from typing import Any, Protocol, runtime_checkable
 import equinox as eqx
 from jaxtyping import Array, Float
 
-from galax.typing import FloatScalar, Vec6, Vec7
+from galax.typing import FloatScalar, Vec6
 
 
 @runtime_checkable
 class FCallable(Protocol):
-    def __call__(self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]) -> Vec7:
+    def __call__(self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]) -> Vec6:
         """Integration function.
 
         Parameters
@@ -25,22 +25,28 @@ class FCallable(Protocol):
 
         Returns
         -------
-        Array[float, (7,)]
-            [qp, t].
+        Array[float, (6,)]
+            [v (3,), a (3,)].
         """
         ...
 
 
 class AbstractIntegrator(eqx.Module):  # type: ignore[misc]
-    """Integrator Class."""
+    """Integrator Class.
 
-    F: FCallable
-    """The function to integrate."""
-    # TODO: should this be moved to be the first argument of the run method?
+    The integrators are classes that are used to integrate the equations of
+    motion.
+    They must not be stateful since they are used in a functional way.
+    """
+
+    # F: FCallable
+    # """The function to integrate."""
+    # # TODO: should this be moved to be the first argument of the run method?
 
     @abc.abstractmethod
     def run(
         self,
+        F: FCallable,
         qp0: Vec6,
         t0: FloatScalar,
         t1: FloatScalar,
@@ -54,6 +60,8 @@ class AbstractIntegrator(eqx.Module):  # type: ignore[misc]
 
         Parameters
         ----------
+        F : FCallable
+            The function to integrate.
         qp0 : Array[float, (6,)]
             Initial conditions ``[q, p]``.
         t0 : float

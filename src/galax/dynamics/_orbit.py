@@ -2,11 +2,13 @@
 
 __all__ = ["Orbit"]
 
+import equinox as eqx
 from typing_extensions import override
 
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchFloatScalar
+from galax.typing import BatchFloatScalar, BatchVec3
 from galax.utils._jax import partial_jit
+from galax.utils.dataclasses import converter_float_array
 
 from ._core import AbstractPhaseSpacePosition
 
@@ -18,6 +20,15 @@ class Orbit(AbstractPhaseSpacePosition):
     function of time.
 
     """
+
+    q: BatchVec3 = eqx.field(converter=converter_float_array)
+    """Positions (x, y, z)."""
+
+    p: BatchVec3 = eqx.field(converter=converter_float_array)
+    r"""Conjugate momenta (v_x, v_y, v_z)."""
+
+    t: BatchFloatScalar = eqx.field(converter=converter_float_array)
+    """Array of times."""
 
     potential: AbstractPotentialBase
     """Potential in which the orbit was integrated."""

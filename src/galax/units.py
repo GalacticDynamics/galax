@@ -77,8 +77,6 @@ class UnitSystem:
         units: Union[
             u.UnitBase,
             u.Quantity,
-            dict[str, u.UnitBase],
-            dict[str, u.Quantity],
             "UnitSystem",
         ],
         *args: u.UnitBase | u.Quantity,

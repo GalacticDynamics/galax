@@ -2,7 +2,6 @@
 
 __all__ = ["MockStreamGenerator"]
 
-from collections.abc import Mapping
 from dataclasses import KW_ONLY
 from typing import Any, TypeAlias
 
@@ -53,11 +52,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     stream_integrator: AbstractIntegrator = eqx.field(
         default=DiffraxIntegrator(), static=True
     )
-
-    stream_integrator_kw: Mapping[str, Any] | None = eqx.field(
-        default=None, static=True, converter=_converter_immutabledict_or_none
-    )
-    """Keyword arguments for the stream integrator."""
+    """Integrator for the stream."""
 
     # ==========================================================================
 

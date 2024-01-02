@@ -39,10 +39,6 @@ class AbstractIntegrator(eqx.Module):  # type: ignore[misc]
     They must not be stateful since they are used in a functional way.
     """
 
-    # F: FCallable
-    # """The function to integrate."""
-    # # TODO: should this be moved to be the first argument of the run method?
-
     @abc.abstractmethod
     def run(
         self,

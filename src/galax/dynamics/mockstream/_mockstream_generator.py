@@ -45,20 +45,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     """Potential in which the progenitor orbits and creates a stream."""
 
     _: KW_ONLY
-    progenitor_integrator_cls: type[AbstractIntegrator] = eqx.field(
-        default=DiffraxIntegrator, static=True
+    progenitor_integrator: AbstractIntegrator = eqx.field(
+        default=DiffraxIntegrator(), static=True
     )
-    """Integrator class for integrating the progenitor orbit."""
+    """Integrator for the progenitor orbit."""
 
-    progenitor_integrator_kw: Mapping[str, Any] | None = eqx.field(
-        default=None, static=True, converter=_converter_immutabledict_or_none
+    stream_integrator: AbstractIntegrator = eqx.field(
+        default=DiffraxIntegrator(), static=True
     )
-    """Keyword arguments for the progenitor integrator."""
-
-    stream_integrator_cls: type[AbstractIntegrator] = eqx.field(
-        default=DiffraxIntegrator, static=True
-    )
-    """Integrator class for integrating the stream."""
 
     stream_integrator_kw: Mapping[str, Any] | None = eqx.field(
         default=None, static=True, converter=_converter_immutabledict_or_none
@@ -77,12 +71,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         # Integrate the progenitor orbit
         prog_o = self.potential.integrate_orbit(
-            prog_w0,
-            xp.min(ts),
-            xp.max(ts),
-            ts,
-            Integrator=self.progenitor_integrator_cls,
-            integrator_kw=self.progenitor_integrator_kw,
+            prog_w0, xp.min(ts), xp.max(ts), ts, integrator=self.progenitor_integrator
         )
 
         # Generate stream initial conditions along the integrated progenitor orbit
@@ -99,12 +88,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
             def integ_ics(ics: Vec6) -> VecN:
                 return self.potential.integrate_orbit(
-                    ics,
-                    t_i,
-                    t_f,
-                    None,
-                    Integrator=self.stream_integrator_cls,
-                    integrator_kw=self.stream_integrator_kw,
+                    ics, t_i, t_f, None, integrator=self.stream_integrator
                 ).qp[0]
 
             # vmap over leading and trailing arm
@@ -127,12 +111,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         # Integrate the progenitor orbit
         prog_o = self.potential.integrate_orbit(
-            prog_w0,
-            xp.min(ts),
-            xp.max(ts),
-            ts,
-            Integrator=self.progenitor_integrator_cls,
-            integrator_kw=self.progenitor_integrator_kw,
+            prog_w0, xp.min(ts), xp.max(ts), ts, integrator=self.progenitor_integrator
         )
 
         # Generate stream initial conditions along the integrated progenitor orbit
@@ -149,21 +128,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             i: int, qp0_lead_i: Vec6, qp0_trail_i: Vec6
         ) -> tuple[Vec6, Vec6]:
             t_i = ts[i]
-            qp_lead = self.integrate_orbit(
-                qp0_lead_i,
-                t_i,
-                t_f,
-                None,
-                Integrator=self.stream_integrator_cls,
-                integrator_kw=self.stream_integrator_kw,
+            qp_lead = self.potential.integrate_orbit(
+                qp0_lead_i, t_i, t_f, None, integrator=self.stream_integrator
             ).qp[0]
-            qp_trail = self.integrate_orbit(
-                qp0_trail_i,
-                t_i,
-                t_f,
-                None,
-                Integrator=self.stream_integrator_cls,
-                integrator_kw=self.stream_integrator_kw,
+            qp_trail = self.potential.integrate_orbit(
+                qp0_trail_i, t_i, t_f, None, integrator=self.stream_integrator
             ).qp[0]
             return qp_lead, qp_trail
 

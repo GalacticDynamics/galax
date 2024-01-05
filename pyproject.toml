@@ -39,7 +39,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+scf = [
+  "sympy",
+  "sympy2jax",
+]
 test = [
+  "gala",
   "hypothesis[numpy]",
   "pytest >=6",
   "pytest-cov >=3",
@@ -55,6 +60,12 @@ docs = [
   "sphinx_copybutton",
   "sphinx_autodoc_typehints",
   "furo>=2023.08.17",
+]
+all = [
+  "galax[scf]",
+  "galax[test]",
+  "galax[dev]",
+  "galax[docs]",
 ]
 
 [project.urls]
@@ -149,6 +160,7 @@ ignore = [
   "F821",    # undefined name  <- jaxtyping
   "FIX002",  # Line contains TODO, consider resolving the issue
   "N80",     # Naming conventions.
+  "N816",    # Variable in global scope should not be mixedCase
   "PD",      # pandas-vet
   "PLR",     # Design related pylint codes
   "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict

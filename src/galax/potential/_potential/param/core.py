@@ -8,6 +8,7 @@ from typing import Any, Protocol, runtime_checkable
 
 import astropy.units as u
 import equinox as eqx
+from jax.numpy import vectorize
 
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
@@ -16,7 +17,7 @@ from galax.typing import (
     FloatScalar,
     Unit,
 )
-from galax.utils import partial_jit, vectorize_method
+from galax.utils import partial_jit
 from galax.utils.dataclasses import converter_float_array
 
 
@@ -42,14 +43,14 @@ class AbstractParameter(eqx.Module):  # type: ignore[misc]
 
         Parameters
         ----------
-        t : Array
+        t : float | Array[float, ()]
             The time(s) at which to compute the parameter value.
-        **kwargs
+        **kwargs : Any
             Additional parameters to pass to the parameter function.
 
         Returns
         -------
-        Array
+        Array[float, "*shape"]
             The parameter value at times ``t``.
         """
         ...
@@ -62,9 +63,6 @@ class ConstantParameter(AbstractParameter):
     # TODO: link this shape to the return shape from __call__
     value: FloatArrayAnyShape = eqx.field(converter=converter_float_array)
 
-    # This is a workaround since vectorized methods don't support kwargs.
-    @partial_jit()
-    @vectorize_method(signature="()->()")
     def _call_helper(self, _: FloatOrIntScalar) -> FloatArrayAnyShape:
         return self.value
 
@@ -76,7 +74,7 @@ class ConstantParameter(AbstractParameter):
 
         Parameters
         ----------
-        t : Array, optional
+        t : float | Array[float, ()], optional
             This is ignored and is thus optional.
             Note that for most :class:`~galax.potential.AbstractParameter`
             the time is required.
@@ -85,10 +83,14 @@ class ConstantParameter(AbstractParameter):
 
         Returns
         -------
-        Array
+        Array[float, "*shape"]
             The constant parameter value.
         """
-        return self._call_helper(t)
+        # Vectorization to enable broadcasting over the time dimension.
+        # We can't vectorize a method since the output shape depends on the
+        # input shape, so we have to do it this way.
+        signature = "()->" + str(self.value.shape).replace(" ", "")
+        return vectorize(self._call_helper, signature=signature)(t)
 
 
 #####################################################################
@@ -105,14 +107,14 @@ class ParameterCallable(Protocol):
 
         Parameters
         ----------
-        t : Array
+        t : float | Array[float, ()]
             Time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
 
         Returns
         -------
-        Array
+        Array[float, "*shape"]
             Parameter value(s) at the given time(s).
         """
         ...

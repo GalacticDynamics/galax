@@ -290,8 +290,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
     # Integrating orbits
 
     @partial_jit()
-    def _integrator_F(self, t: FloatScalar, xv: Vec6, args: tuple[Any, ...]) -> Vec6:
-        return xp.hstack([xv[3:6], self.acceleration(xv[0:3], t)])  # v, a
+    def _integrator_F(self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]) -> Vec6:
+        return xp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a
 
     @partial_jit(static_argnames=("integrator"))
     def integrate_orbit(
@@ -307,5 +307,5 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
 
         integrator_ = default_integrator if integrator is None else replace(integrator)
 
-        ws = integrator_.run(self._integrator_F, qp0, t0, t1, ts)  # type: ignore[arg-type]
+        ws = integrator_.run(self._integrator_F, qp0, t0, t1, ts)
         return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)

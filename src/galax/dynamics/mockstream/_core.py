@@ -6,7 +6,7 @@ import equinox as eqx
 import jax.numpy as xp
 
 from galax.dynamics._core import AbstractPhaseSpacePositionBase
-from galax.typing import BatchFloatScalar, BatchVec7
+from galax.typing import BatchFloatScalar, BatchVec3, BatchVec7
 from galax.utils import partial_jit
 from galax.utils._shape import atleast_batched, batched_shape
 from galax.utils.dataclasses import converter_float_array
@@ -22,6 +22,12 @@ class MockStream(AbstractPhaseSpacePositionBase):
       trailing arm, 3-body ejecta, etc.
     - GR 4-vector stuff
     """
+
+    q: BatchVec3 = eqx.field(converter=converter_float_array)
+    """Positions (x, y, z)."""
+
+    p: BatchVec3 = eqx.field(converter=converter_float_array)
+    r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     release_time: BatchFloatScalar = eqx.field(converter=converter_float_array)
     """Release time of the stream particles [Myr]."""

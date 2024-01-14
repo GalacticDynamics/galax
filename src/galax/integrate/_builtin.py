@@ -21,6 +21,8 @@ from galax.integrate._base import AbstractIntegrator
 from galax.typing import FloatScalar, Vec6
 from galax.utils import ImmutableDict
 
+from ._base import FCallable
+
 
 class DiffraxIntegrator(AbstractIntegrator):
     """Thin wrapper around ``diffrax.diffeqsolve``."""
@@ -45,13 +47,14 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     def run(
         self,
+        F: FCallable,
         qp0: Vec6,
         t0: FloatScalar,
         t1: FloatScalar,
         ts: Float[Array, "T"] | None,
     ) -> Float[Array, "R 7"]:
         solution = diffeqsolve(
-            terms=ODETerm(self.F),
+            terms=ODETerm(F),
             solver=self.Solver(**self.solver_kw),
             t0=t0,
             t1=t1,

@@ -1,8 +1,7 @@
 __all__ = ["AbstractPotentialBase"]
 
 import abc
-from collections.abc import Mapping
-from dataclasses import fields
+from dataclasses import fields, replace
 from typing import TYPE_CHECKING, Any
 
 import astropy.units as u
@@ -32,6 +31,9 @@ from galax.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
     from galax.dynamics._orbit import Orbit
+
+
+default_integrator = DiffraxIntegrator()
 
 
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
@@ -288,24 +290,22 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
     # Integrating orbits
 
     @partial_jit()
-    def _integrator_F(self, t: FloatScalar, xv: Vec6, args: tuple[Any, ...]) -> Vec6:
-        return xp.hstack([xv[3:6], self.acceleration(xv[:3], t)])
+    def _integrator_F(self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]) -> Vec6:
+        return xp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a
 
-    @partial_jit(static_argnames=("Integrator", "integrator_kw"))
+    @partial_jit(static_argnames=("integrator"))
     def integrate_orbit(
         self,
         qp0: Vec6,
-        t0: FloatScalar,
+        t0: FloatScalar,  # TODO: better time parsing
         t1: FloatScalar,
         ts: Float[Array, "time"] | None,
         *,
-        Integrator: type[AbstractIntegrator] | None = None,
-        integrator_kw: Mapping[str, Any] | None = None,
+        integrator: AbstractIntegrator | None = None,
     ) -> "Orbit":
         from galax.dynamics._orbit import Orbit
 
-        integrator_cls = Integrator if Integrator is not None else DiffraxIntegrator
+        integrator_ = default_integrator if integrator is None else replace(integrator)
 
-        integrator = integrator_cls(self._integrator_F, **(integrator_kw or {}))
-        ws = integrator.run(qp0, t0, t1, ts)
+        ws = integrator_.run(self._integrator_F, qp0, t0, t1, ts)
         return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)

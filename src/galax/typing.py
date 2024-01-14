@@ -91,6 +91,8 @@ BatchVec7 = Shaped[Vec7, "*batch"]
 # -----------------
 # Any Shape
 
+VecShape = Float[Array, "*shape"]
+
 FloatArrayAnyShape = Float[Array, "..."]
 """A float array with any shape."""
 

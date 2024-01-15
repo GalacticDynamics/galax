@@ -35,6 +35,7 @@ dependencies = [
   "equinox != 0.11.3",
   "jax",
   "jaxlib",
+  "plum-dispatch",
   "typing_extensions",
 ]
 

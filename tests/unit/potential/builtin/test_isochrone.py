@@ -6,26 +6,22 @@ import pytest
 import galax.potential as gp
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import MassParameterMixin, ShapeAParameterMixin
+from .test_common import MassParameterMixin, ShapeBParameterMixin
 
 
 class TestIsochronePotential(
     AbstractPotential_Test,
     # Parameters
     MassParameterMixin,
-    ShapeAParameterMixin,
+    ShapeBParameterMixin,
 ):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.IsochronePotential]:
         return gp.IsochronePotential
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_m, field_a, field_units) -> dict[str, Any]:
-        return {
-            "m": field_m,
-            "a": field_a,
-            "units": field_units,
-        }
+    def fields_(self, field_m, field_b, field_units) -> dict[str, Any]:
+        return {"m": field_m, "b": field_b, "units": field_units}
 
     # ==========================================================================
 

@@ -6,7 +6,7 @@ into an array of times.
 
 __all__ = ["parse_time_specification"]
 
-from typing import NoReturn, TypeVar, cast, overload
+from typing import TypeVar, cast, overload
 
 import jax
 import jax.numpy as jnp

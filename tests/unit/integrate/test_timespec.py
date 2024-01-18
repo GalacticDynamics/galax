@@ -1,7 +1,5 @@
 import re
 
-import astropy.units as u
-import jax.experimental.array_api as xp
 import pytest
 
 from galax.integrate import parse_time_specification

@@ -160,7 +160,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         # TODO: a discussion about the stripping times
 
-        # Integrate the progenitor orbit
+        # Integrate the progenitor orbit to the stripping times
         prog_o = self.potential.integrate_orbit(
             prog_w0, ts, integrator=self.progenitor_integrator
         )

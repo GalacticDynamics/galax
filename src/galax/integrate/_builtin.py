@@ -20,6 +20,7 @@ from jaxtyping import Array, Float
 from galax.integrate._base import AbstractIntegrator
 from galax.typing import Vec6
 from galax.utils import ImmutableDict
+from galax.utils._jax import vectorize_method
 
 from ._base import FCallable
 
@@ -45,12 +46,10 @@ class DiffraxIntegrator(AbstractIntegrator):
         default=(("scan_kind", "bounded"),), static=True, converter=ImmutableDict
     )
 
+    @vectorize_method(excluded=(0,), signature="(6),(T)->(T,7)")
     def run(
-        self,
-        F: FCallable,
-        qp0: Vec6,
-        ts: Float[Array, "T"],
-    ) -> Float[Array, "R 7"]:
+        self, F: FCallable, qp0: Vec6, ts: Float[Array, "T"], /
+    ) -> Float[Array, "T 7"]:
         solution = diffeqsolve(
             terms=ODETerm(F),
             solver=self.Solver(**self.solver_kw),

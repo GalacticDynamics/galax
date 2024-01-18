@@ -18,6 +18,7 @@ from galax.typing import (
     BatchFloatScalar,
     BatchMatrix33,
     BatchVec3,
+    BatchVec6,
     FloatOrIntScalar,
     FloatScalar,
     Matrix33,
@@ -297,7 +298,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
     @partial_jit(static_argnames=("integrator"))
     def integrate_orbit(
         self,
-        qp0: Vec6,
+        qp0: BatchVec6,
         t: Float[Array, "time"],
         *,
         integrator: AbstractIntegrator | None = None,
@@ -369,6 +370,15 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
         Orbit(
             q=f64[10,3], p=f64[10,3], t=f64[10], potential=KeplerPotential(...)
         )
+
+        We can also integrate a batch of orbits at once:
+
+        >>> xv0 = xp.asarray([[10., 0., 0., 0., 0.1, 0.], [10., 0., 0., 0., 0.2, 0.]])
+        >>> orbit = potential.integrate_orbit(xv0, ts)
+        >>> orbit
+        Orbit(
+            q=f64[2,10,3], p=f64[2,10,3], t=f64[2,10], potential=KeplerPotential(...)
+        )
         """
         # TODO: ꜛ get NORMALIZE_WHITESPACE to work correctly so Orbit is 1 line
         from galax.dynamics._orbit import Orbit
@@ -376,4 +386,4 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
         integrator_ = default_integrator if integrator is None else replace(integrator)
 
         ws = integrator_.run(self._integrator_F, qp0, t)
-        return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)
+        return Orbit(q=ws[..., :3], p=ws[..., 3:-1], t=ws[..., -1], potential=self)

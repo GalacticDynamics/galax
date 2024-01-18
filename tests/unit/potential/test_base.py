@@ -130,4 +130,5 @@ class TestAbstractPotentialBase:
 
         orbit = pot.integrate_orbit(xv, t0=min(ts), t1=max(ts), ts=ts)
         assert isinstance(orbit, gd.Orbit)
-        assert orbit.shape == (101, 7)
+        assert orbit.shape == (len(ts), 7)
+        assert xp.array_equal(orbit.t, ts)

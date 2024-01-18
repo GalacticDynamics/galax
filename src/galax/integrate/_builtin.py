@@ -61,7 +61,7 @@ class DiffraxIntegrator(AbstractIntegrator):
             y0=qp0,
             dt0=None,
             args=(),
-            saveat=DiffraxSaveAt(t0=False, t1=True, ts=ts, dense=False),
+            saveat=DiffraxSaveAt(t0=False, t1=False, ts=ts, dense=False),
             stepsize_controller=self.stepsize_controller,
             **self.diffeq_kw,
         )

@@ -104,7 +104,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
         def single_particle_integrate(
-            i: int, qp0_lead_i: Vec6, qp0_trail_i: Vec6
+            i: IntScalar, qp0_lead_i: Vec6, qp0_trail_i: Vec6
         ) -> tuple[Vec6, Vec6]:
             t_i = ts[i]
             qp_lead = self.potential.integrate_orbit(

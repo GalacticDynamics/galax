@@ -141,7 +141,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         )
 
         if vmapped:
-            lead_arm_qp, trail_arm_qp = self._run_vmap(ts, prog_w0, prog_mass)
+            lead_arm_qp, trail_arm_qp = self._run_vmap(ts, mock0_lead, mock0_trail)
         else:
             lead_arm_qp, trail_arm_qp = self._run_scan(ts, mock0_lead, mock0_trail)
 

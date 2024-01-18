@@ -291,21 +291,89 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
 
     @partial_jit()
     def _integrator_F(self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]) -> Vec6:
+        """Return the derivative of the phase-space position."""
         return xp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a
 
     @partial_jit(static_argnames=("integrator"))
     def integrate_orbit(
         self,
         qp0: Vec6,
-        t0: FloatScalar,  # TODO: better time parsing
-        t1: FloatScalar,
-        ts: Float[Array, "time"] | None,
+        ts: Float[Array, "time"],
         *,
         integrator: AbstractIntegrator | None = None,
     ) -> "Orbit":
+        """Integrate an orbit in the potential.
+
+        Parameters
+        ----------
+        qp0 : Array[float, (6,)]
+            Initial position and velocity.
+        ts : float
+            Array of times at which to compute the orbit. The first element
+            should be the initial time and the last element should be the final
+            time and the array should be monotonically moving from the first to
+            final time.  See the Examples section for options when constructing
+            this argument.
+
+            .. note::
+
+                To integrate backwards in time, ...
+
+            .. warning::
+
+                This is NOT the timesteps to use for integration, which are
+                controlled by the `integrator`; the default integrator
+                :class:`~galax.integrator.DiffraxIntegrator` uses adaptive
+                timesteps.
+
+        integrator : AbstractIntegrator, keyword-only
+            Integrator to use. If `None`, the default integrator
+            :class:`~galax.integrator.DiffraxIntegrator` is used.
+
+        Returns
+        -------
+        orbit : Orbit
+            The integrated orbit evaluated at the given times.
+
+        Examples
+        --------
+        We start by integrating a single orbit in the potential of a point mass.
+        A few standard imports are needed:
+
+        >>> import astropy.units as u
+        >>> import jax.experimental.array_api as xp  # preferred over `jax.numpy`
+        >>> import galax.potential as gp
+        >>> from galax.units import galactic
+
+        We can then create the point-mass' potential, with galactic units:
+
+        >>> potential = gp.KeplerPotential(m=1e12 * u.Msun, units=galactic)
+
+        We can then integrate an initial phase-space position in this potential
+        to get an orbit:
+
+        >>> xv0 = xp.asarray([10., 0., 0., 0., 0.1, 0.])  # (x, v) galactic units
+        >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
+        >>> orbit = potential.integrate_orbit(xv0, ts)
+        >>> orbit
+        Orbit(
+            q=f64[4,3], p=f64[4,3], t=f64[4], potential=KeplerPotential(...)
+        )
+
+        Note how there are 4 points in the orbit, corresponding to the 4 steps.
+        Changing the number of steps is easy:
+
+        >>> ts = xp.linspace(0., 1000, 10)  # (1 Gyr, 4 steps)
+        >>> orbit = potential.integrate_orbit(xv0, ts)
+        >>> orbit
+        Orbit(
+            q=f64[10,3], p=f64[10,3], t=f64[10], potential=KeplerPotential(...)
+        )
+        """
+        # TODO: ꜛ get NORMALIZE_WHITESPACE to work correctly so Orbit is 1 line
         from galax.dynamics._orbit import Orbit
 
         integrator_ = default_integrator if integrator is None else replace(integrator)
 
-        ws = integrator_.run(self._integrator_F, qp0, t0, t1, ts)
+        ws = integrator_.run(self._integrator_F, qp0, ts)
         return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)

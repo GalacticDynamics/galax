@@ -71,11 +71,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         def scan_fn(carry: Carry, idx: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
             i, qp0_lead_i, qp0_trail_i = carry
             qp0_lead_trail = xp.vstack([qp0_lead_i, qp0_trail_i])
-            t_i, t_f = ts[i], ts[-1]
+            tstep = xp.asarray([ts[i], ts[-1]])
 
             def integ_ics(ics: Vec6) -> VecN:
                 return self.potential.integrate_orbit(
-                    ics, t_i, t_f, None, integrator=self.stream_integrator
+                    ics, tstep, integrator=self.stream_integrator
                 ).qp[0]
 
             # vmap over leading and trailing arm
@@ -106,12 +106,12 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         def single_particle_integrate(
             i: IntScalar, qp0_lead_i: Vec6, qp0_trail_i: Vec6
         ) -> tuple[Vec6, Vec6]:
-            t_i = ts[i]
+            tstep = xp.asarray([ts[i], t_f])
             qp_lead = self.potential.integrate_orbit(
-                qp0_lead_i, t_i, t_f, None, integrator=self.stream_integrator
+                qp0_lead_i, tstep, integrator=self.stream_integrator
             ).qp[0]
             qp_trail = self.potential.integrate_orbit(
-                qp0_trail_i, t_i, t_f, None, integrator=self.stream_integrator
+                qp0_trail_i, tstep, integrator=self.stream_integrator
             ).qp[0]
             return qp_lead, qp_trail
 
@@ -130,9 +130,39 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         seed_num: int,
         vmapped: bool = False,
     ) -> tuple[tuple[MockStream, MockStream], Orbit]:
+        """Generate mock stellar stream.
+
+        Parameters
+        ----------
+        ts : Array[float, (time,)]
+            Stripping times.
+        prog_w0 : Array[float, (6,)]
+            Initial conditions of the progenitor.
+        prog_mass : float
+            Mass of the progenitor.
+
+        seed_num : int, keyword-only
+            Seed number for the random number generator.
+
+            :todo: a better way to handle PRNG
+
+        vmapped : bool, optional keyword-only
+            Whether to use `jax.vmap` (`True`) or `jax.lax.scan` (`False`) to
+            parallelize the integration. ``vmapped=True`` is recommended for GPU
+            usage, while ``vmapped=False`` is recommended for CPU usage.
+
+        Returns
+        -------
+        lead_arm, trail_arm : tuple[MockStream, MockStream]
+            Leading and trailing arms of the mock stream.
+        prog_o : Orbit
+            Orbit of the progenitor.
+        """
+        # TODO: a discussion about the stripping times
+
         # Integrate the progenitor orbit
         prog_o = self.potential.integrate_orbit(
-            prog_w0, xp.min(ts), xp.max(ts), ts, integrator=self.progenitor_integrator
+            prog_w0, ts, integrator=self.progenitor_integrator
         )
 
         # Generate stream initial conditions along the integrated progenitor orbit

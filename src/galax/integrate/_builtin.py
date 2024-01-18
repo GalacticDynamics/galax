@@ -18,7 +18,7 @@ from diffrax import SaveAt as DiffraxSaveAt
 from jaxtyping import Array, Float
 
 from galax.integrate._base import AbstractIntegrator
-from galax.typing import FloatScalar, Vec6
+from galax.typing import Vec6
 from galax.utils import ImmutableDict
 
 from ._base import FCallable
@@ -49,15 +49,13 @@ class DiffraxIntegrator(AbstractIntegrator):
         self,
         F: FCallable,
         qp0: Vec6,
-        t0: FloatScalar,
-        t1: FloatScalar,
-        ts: Float[Array, "T"] | None,
+        ts: Float[Array, "T"],
     ) -> Float[Array, "R 7"]:
         solution = diffeqsolve(
             terms=ODETerm(F),
             solver=self.Solver(**self.solver_kw),
-            t0=t0,
-            t1=t1,
+            t0=ts[0],
+            t1=ts[-1],
             y0=qp0,
             dt0=None,
             args=(),

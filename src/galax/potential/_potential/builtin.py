@@ -1,6 +1,7 @@
 """galax: Galactic Dynamix in Jax."""
 
 __all__ = [
+    "KeplerPotential",
     "MiyamotoNagaiPotential",
     "BarPotential",
     "IsochronePotential",
@@ -29,6 +30,26 @@ from galax.utils.dataclasses import field
 mass = u.get_physical_type("mass")
 length = u.get_physical_type("length")
 frequency = u.get_physical_type("frequency")
+
+# -------------------------------------------------------------------
+
+
+class KeplerPotential(AbstractPotential):
+    r"""The Kepler potential for a point mass.
+
+    .. math::
+        \Phi = -\frac{G M(t)}{r}
+    """
+
+    m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
+
+    @partial_jit()
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        r = xp.linalg.norm(q, axis=-1)
+        return -self._G * self.m(t) / r
+
 
 # -------------------------------------------------------------------
 

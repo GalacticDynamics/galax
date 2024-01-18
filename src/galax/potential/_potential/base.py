@@ -298,7 +298,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
     def integrate_orbit(
         self,
         qp0: Vec6,
-        ts: Float[Array, "time"],
+        t: Float[Array, "time"],
         *,
         integrator: AbstractIntegrator | None = None,
     ) -> "Orbit":
@@ -308,7 +308,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
         ----------
         qp0 : Array[float, (6,)]
             Initial position and velocity.
-        ts : float
+        t: Array[float, (T,)]
             Array of times at which to compute the orbit. The first element
             should be the initial time and the last element should be the final
             time and the array should be monotonically moving from the first to
@@ -375,5 +375,5 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
 
         integrator_ = default_integrator if integrator is None else replace(integrator)
 
-        ws = integrator_.run(self._integrator_F, qp0, ts)
+        ws = integrator_.run(self._integrator_F, qp0, t)
         return Orbit(q=ws[:, :3], p=ws[:, 3:-1], t=ws[:, -1], potential=self)

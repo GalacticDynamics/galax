@@ -6,7 +6,7 @@ into an array of times.
 
 __all__ = ["parse_time_specification"]
 
-from typing import TypeVar, cast, overload
+from typing import NoReturn, TypeVar, cast, overload
 
 import jax
 import jax.numpy as jnp
@@ -27,6 +27,7 @@ def dispatch(func: T) -> T:  # TODO: fix mypy complaint about untyped decorator
 # ===========================================================================
 
 
+# Case 1: No inputs
 @dispatch
 def parse_time_specification_dispatch(
     units: UnitSystem,
@@ -40,6 +41,7 @@ def parse_time_specification_dispatch(
     raise ValueError(msg)
 
 
+# Case 2a: t is given
 @dispatch  # type: ignore[no-redef]
 def parse_time_specification_dispatch(  # noqa: F811
     units: UnitSystem,
@@ -52,6 +54,7 @@ def parse_time_specification_dispatch(  # noqa: F811
     return jnp.asarray(t, dtype=float)
 
 
+# Case 2b: t is given as a Quantity
 @dispatch  # type: ignore[no-redef]
 def parse_time_specification_dispatch(  # noqa: F811
     units: UnitSystem,
@@ -64,12 +67,13 @@ def parse_time_specification_dispatch(  # noqa: F811
     return jnp.asarray(t.decompose(units).value, dtype=float)
 
 
+# Case 3: t1, t2, n_steps are given
 @dispatch  # type: ignore[no-redef]
 def parse_time_specification_dispatch(  # noqa: F811
     units: UnitSystem,
     t: None,
-    t1: float | Quantity | FloatScalar,
-    t2: float | Quantity | FloatScalar,
+    t1: int | float | Quantity | FloatScalar,
+    t2: int | float | Quantity | FloatScalar,
     n_steps: int,
     dt: None,
 ) -> Float[Array, "N"]:
@@ -81,6 +85,7 @@ def parse_time_specification_dispatch(  # noqa: F811
     return jnp.linspace(t1, t2, n_steps, dtype=float)
 
 
+# Case 4: t1, n_steps, dt are given
 @dispatch  # type: ignore[no-redef]
 def parse_time_specification_dispatch(  # noqa: F811
     units: UnitSystem,
@@ -98,6 +103,7 @@ def parse_time_specification_dispatch(  # noqa: F811
     return jnp.arange(t1, t1 + dt * n_steps, dt, dtype=float)
 
 
+# Case 5: t1, t2, dt are given
 @dispatch  # type: ignore[no-redef]
 def parse_time_specification_dispatch(  # noqa: F811
     units: UnitSystem,
@@ -117,6 +123,7 @@ def parse_time_specification_dispatch(  # noqa: F811
     return jnp.arange(t1, t2, dt, dtype=float)
 
 
+# Case 6: t1, dt array are given
 @dispatch  # type: ignore[no-redef]
 def parse_time_specification_dispatch(  # noqa: F811
     units: UnitSystem,

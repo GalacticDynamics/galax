@@ -212,7 +212,7 @@ def parse_time_specification(
 def parse_time_specification(
     units: UnitSystem,
     *,
-    t: Quantity | Float[Array, "N"] = None,
+    t: Quantity | Float[Array, "N"] | None = None,
     t1: float | Quantity | FloatScalar | None = None,
     t2: float | Quantity | FloatScalar | None = None,
     n_steps: int | None = None,

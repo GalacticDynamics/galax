@@ -7,7 +7,7 @@ from galax.units import dimensionless
 
 
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    ("kwargs", "expected"),
     [
         (  # Case 1
             {"t": None, "t1": None, "t2": None, "n_steps": None, "dt": None},

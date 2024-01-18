@@ -69,5 +69,8 @@ def partial_vectorize(
 def vectorize_method(
     **kwargs: Unpack[VectorizeKwargs],
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    kwargs.setdefault("excluded", (0, *tuple(kwargs.get("excluded") or ())))
+    # Prepend 0 to excluded to exclude the first argument (self)
+    excluded = tuple(kwargs.get("excluded") or (0,))  # (None -> (0,))
+    kwargs["excluded"] = excluded if excluded[0] == 0 else (0, *excluded)
+
     return partial_vectorize(**kwargs)

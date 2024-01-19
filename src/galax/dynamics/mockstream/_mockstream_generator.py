@@ -74,9 +74,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             tstep = xp.asarray([ts[i], ts[-1]])
 
             def integ_ics(ics: Vec6) -> VecN:
+                # TODO: only return the final state
                 return self.potential.integrate_orbit(
                     ics, tstep, integrator=self.stream_integrator
-                ).qp[0]
+                ).qp[-1]
 
             # vmap over leading and trailing arm
             qp_lead, qp_trail = jax.vmap(integ_ics, in_axes=(0,))(qp0_lead_trail)
@@ -107,12 +108,13 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             i: IntScalar, qp0_lead_i: Vec6, qp0_trail_i: Vec6
         ) -> tuple[Vec6, Vec6]:
             tstep = xp.asarray([ts[i], t_f])
+            # TODO: only return the final state
             qp_lead = self.potential.integrate_orbit(
                 qp0_lead_i, tstep, integrator=self.stream_integrator
-            ).qp[0]
+            ).qp[-1]
             qp_trail = self.potential.integrate_orbit(
                 qp0_trail_i, tstep, integrator=self.stream_integrator
-            ).qp[0]
+            ).qp[-1]
             return qp_lead, qp_trail
 
         particle_ids = xp.arange(len(qp0_lead))

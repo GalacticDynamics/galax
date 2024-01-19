@@ -8,6 +8,7 @@ from typing import Any, TypeAlias
 import equinox as eqx
 import jax
 import jax.numpy as xp
+from jax.lib.xla_bridge import get_backend
 
 from galax.dynamics._orbit import Orbit
 from galax.integrate._base import AbstractIntegrator
@@ -130,7 +131,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_mass: FloatScalar,
         *,
         seed_num: int,
-        vmapped: bool = False,
+        vmapped: bool | None = None,
     ) -> tuple[tuple[MockStream, MockStream], Orbit]:
         """Generate mock stellar stream.
 
@@ -148,10 +149,12 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
             :todo: a better way to handle PRNG
 
-        vmapped : bool, optional keyword-only
+        vmapped : bool | None, optional keyword-only
             Whether to use `jax.vmap` (`True`) or `jax.lax.scan` (`False`) to
             parallelize the integration. ``vmapped=True`` is recommended for GPU
-            usage, while ``vmapped=False`` is recommended for CPU usage.
+            usage, while ``vmapped=False`` is recommended for CPU usage.  If
+            `None` (default), then `jax.vmap` is used on GPU and `jax.lax.scan`
+            otherwise.
 
         Returns
         -------
@@ -160,7 +163,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_o : Orbit
             Orbit of the progenitor.
         """
-        # TODO: a discussion about the stripping times
+        # TODO: ꜛ a discussion about the stripping times
+        # Parse vmapped
+        use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
 
         # Integrate the progenitor orbit to the stripping times
         prog_o = self.potential.integrate_orbit(
@@ -172,7 +177,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             self.potential, prog_o, prog_mass, seed_num=seed_num
         )
 
-        if vmapped:
+        if use_vmap:
             lead_arm_qp, trail_arm_qp = self._run_vmap(ts, mock0_lead, mock0_trail)
         else:
             lead_arm_qp, trail_arm_qp = self._run_scan(ts, mock0_lead, mock0_trail)

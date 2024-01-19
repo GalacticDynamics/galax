@@ -44,15 +44,9 @@ class AbstractIntegrator(eqx.Module):  # type: ignore[misc]
         self,
         F: FCallable,
         qp0: Vec6,
-        t0: FloatScalar,
-        t1: FloatScalar,
-        ts: Float[Array, "T"] | None,
-    ) -> Float[Array, "R 7"]:
+        ts: Float[Array, "T"],
+    ) -> Float[Array, "T 7"]:
         """Run the integrator.
-
-        .. todo::
-
-            Have a better time parser.
 
         Parameters
         ----------
@@ -60,12 +54,8 @@ class AbstractIntegrator(eqx.Module):  # type: ignore[misc]
             The function to integrate.
         qp0 : Array[float, (6,)]
             Initial conditions ``[q, p]``.
-        t0 : float
-            Initial time.
-        t1 : float
-            Final time.
         ts : Array[float, (T,)] | None
-            Times for the computation.
+            Times to return the computation.
 
         Returns
         -------

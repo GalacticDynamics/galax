@@ -128,7 +128,7 @@ class TestAbstractPotentialBase:
         """Test the `AbstractPotentialBase.integrate_orbit` method."""
         ts = xp.linspace(0.0, 1.0, 100)
 
-        orbit = pot.integrate_orbit(xv, t0=min(ts), t1=max(ts), ts=ts)
+        orbit = pot.integrate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
         assert orbit.shape == (len(ts), 7)
         assert xp.array_equal(orbit.t, ts)

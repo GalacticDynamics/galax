@@ -3,10 +3,11 @@
 __all__ = ["AbstractPhaseSpacePosition", "PhaseSpacePosition"]
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, final
 
 import equinox as eqx
 import jax.numpy as xp
+from jaxtyping import Array, Float
 
 from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
 from galax.utils import partial_jit
@@ -27,11 +28,9 @@ class AbstractPhaseSpacePositionBase(eqx.Module):  # type: ignore[misc]
       ``AbstractPhaseSpacePosition``)
     """
 
-    q: BatchVec3 = eqx.field(converter=converter_float_array)
-    """Positions (x, y, z)."""
+    q: eqx.AbstractVar[Float[Array, "*batch #time 3"]]
 
-    p: BatchVec3 = eqx.field(converter=converter_float_array)
-    r"""Conjugate momenta (v_x, v_y, v_z)."""
+    p: eqx.AbstractVar[Float[Array, "*batch #time 3"]]
 
     @property
     @abstractmethod
@@ -79,9 +78,6 @@ class AbstractPhaseSpacePositionBase(eqx.Module):  # type: ignore[misc]
 
 class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
     """Abstract Base Class of Phase-Space Positions."""
-
-    t: BatchFloatScalar = eqx.field(converter=converter_float_array)
-    """Array of times."""
 
     @property
     def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
@@ -131,7 +127,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
             >>> import astropy.units as u
             >>> pos = np.array([1., 0, 0]) * u.au
             >>> vel = np.array([0, 2*np.pi, 0]) * u.au/u.yr
-            >>> w = PhaseSpacePosition(pos, vel, t=0)
+            >>> w = PhaseSpacePosition(pos, vel)
             >>> w.angular_momentum
             Array([0.        , 0.        , 6.28318531], dtype=float64)
         """
@@ -181,5 +177,12 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         return self.kinetic_energy() + self.potential_energy(potential)
 
 
+@final
 class PhaseSpacePosition(AbstractPhaseSpacePosition):
-    pass
+    """Represents a phase-space position."""
+
+    q: Float[Array, "*batch 3"] = eqx.field(converter=converter_float_array)
+    """Positions (x, y, z)."""
+
+    p: Float[Array, "*batch 3"] = eqx.field(converter=converter_float_array)
+    r"""Conjugate momenta (v_x, v_y, v_z)."""

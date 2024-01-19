@@ -4,9 +4,10 @@ __all__ = ["MockStream"]
 
 import equinox as eqx
 import jax.numpy as xp
+from jaxtyping import Array, Float
 
 from galax.dynamics._core import AbstractPhaseSpacePositionBase
-from galax.typing import BatchFloatScalar, BatchVec3, BatchVec7
+from galax.typing import BatchVec7, TimeVector
 from galax.utils import partial_jit
 from galax.utils._shape import atleast_batched, batched_shape
 from galax.utils.dataclasses import converter_float_array
@@ -23,13 +24,13 @@ class MockStream(AbstractPhaseSpacePositionBase):
     - GR 4-vector stuff
     """
 
-    q: BatchVec3 = eqx.field(converter=converter_float_array)
+    q: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
     """Positions (x, y, z)."""
 
-    p: BatchVec3 = eqx.field(converter=converter_float_array)
+    p: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
-    release_time: BatchFloatScalar = eqx.field(converter=converter_float_array)
+    release_time: TimeVector = eqx.field(converter=converter_float_array)
     """Release time of the stream particles [Myr]."""
 
     @property

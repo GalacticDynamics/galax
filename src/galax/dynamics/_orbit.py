@@ -3,10 +3,11 @@
 __all__ = ["Orbit"]
 
 import equinox as eqx
+from jaxtyping import Array, Float
 from typing_extensions import override
 
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchFloatScalar, BatchVec3
+from galax.typing import BatchFloatScalar, TimeVector
 from galax.utils._jax import partial_jit
 from galax.utils.dataclasses import converter_float_array
 
@@ -21,13 +22,13 @@ class Orbit(AbstractPhaseSpacePosition):
 
     """
 
-    q: BatchVec3 = eqx.field(converter=converter_float_array)
+    q: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
     """Positions (x, y, z)."""
 
-    p: BatchVec3 = eqx.field(converter=converter_float_array)
+    p: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
-    t: BatchFloatScalar = eqx.field(converter=converter_float_array)
+    t: TimeVector = eqx.field(converter=converter_float_array)
     """Array of times."""
 
     potential: AbstractPotentialBase

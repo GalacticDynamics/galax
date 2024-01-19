@@ -13,7 +13,7 @@ from .composite import CompositePotential
 from .utils import converter_to_usys
 
 
-class AbstractPotential(AbstractPotentialBase):
+class AbstractPotential(AbstractPotentialBase, strict=True):
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)

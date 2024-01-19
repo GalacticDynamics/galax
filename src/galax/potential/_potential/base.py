@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 default_integrator = DiffraxIntegrator()
 
 
-class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
+class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
     """Potential Class."""
 
     units: eqx.AbstractVar[UnitSystem]

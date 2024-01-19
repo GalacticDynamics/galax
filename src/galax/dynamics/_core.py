@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import equinox as eqx
 import jax.numpy as xp
 
-from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
+from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7, TimeVector
 from galax.utils import partial_jit
 from galax.utils._shape import atleast_batched, batched_shape
 from galax.utils.dataclasses import converter_float_array
@@ -80,7 +80,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module):  # type: ignore[misc]
 class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
     """Abstract Base Class of Phase-Space Positions."""
 
-    t: BatchFloatScalar = eqx.field(converter=converter_float_array)
+    t: TimeVector = eqx.field(converter=converter_float_array)
     """Array of times."""
 
     @property

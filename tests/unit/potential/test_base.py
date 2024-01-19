@@ -124,6 +124,8 @@ class TestAbstractPotentialBase:
         assert xp.array_equal(pot.acceleration(x, t=0), xp.array([-1.0, -1, -1]))
         assert xp.array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
 
+    # =========================================================================
+
     def test_integrate_orbit(self, pot, xv):
         """Test the `AbstractPotentialBase.integrate_orbit` method."""
         ts = xp.linspace(0.0, 1.0, 100)
@@ -132,3 +134,20 @@ class TestAbstractPotentialBase:
         assert isinstance(orbit, gd.Orbit)
         assert orbit.shape == (len(ts), 7)
         assert xp.array_equal(orbit.t, ts)
+
+    def test_integrate_orbit_batch(self, pot, xv):
+        """Test the `AbstractPotentialBase.integrate_orbit` method."""
+        ts = xp.linspace(0.0, 1.0, 100)
+
+        # Simple batch
+        orbits = pot.integrate_orbit(xv[None, :], ts)
+        assert isinstance(orbits, gd.Orbit)
+        assert orbits.shape == (1, len(ts), 7)
+        assert xp.array_equal(orbits.t, ts)
+
+        # More complicated batch
+        xv2 = xp.stack([xv, xv], axis=0)
+        orbits = pot.integrate_orbit(xv2, ts)
+        assert isinstance(orbits, gd.Orbit)
+        assert orbits.shape == (2, len(ts), 7)
+        assert xp.array_equal(orbits.t, ts)

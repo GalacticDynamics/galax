@@ -377,7 +377,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
         >>> orbit = potential.integrate_orbit(xv0, ts)
         >>> orbit
         Orbit(
-            q=f64[2,10,3], p=f64[2,10,3], t=f64[2,10], potential=KeplerPotential(...)
+            q=f64[2,10,3], p=f64[2,10,3], t=f64[10], potential=KeplerPotential(...)
         )
         """
         # TODO: ꜛ get NORMALIZE_WHITESPACE to work correctly so Orbit is 1 line
@@ -386,4 +386,4 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta):  # type: ignore[m
         integrator_ = default_integrator if integrator is None else replace(integrator)
 
         ws = integrator_.run(self._integrator_F, qp0, t)
-        return Orbit(q=ws[..., :3], p=ws[..., 3:-1], t=ws[..., -1], potential=self)
+        return Orbit(q=ws[..., :3], p=ws[..., 3:-1], t=t, potential=self)

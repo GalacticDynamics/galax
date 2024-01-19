@@ -20,7 +20,7 @@ from galax.utils import partial_jit, vectorize_method
 from galax.utils.dataclasses import converter_float_array
 
 
-class AbstractParameter(eqx.Module):  # type: ignore[misc]
+class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     """Abstract Base Class for Parameters on a Potential.
 
     Parameters are time-dependent quantities that are used to define a

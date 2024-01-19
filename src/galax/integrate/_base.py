@@ -31,7 +31,7 @@ class FCallable(Protocol):
         ...
 
 
-class AbstractIntegrator(eqx.Module):  # type: ignore[misc]
+class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     """Integrator Class.
 
     The integrators are classes that are used to integrate the equations of

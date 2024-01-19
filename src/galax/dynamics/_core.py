@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from galax.potential._potential.base import AbstractPotentialBase
 
 
-class AbstractPhaseSpacePositionBase(eqx.Module):  # type: ignore[misc]
+class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     """Abstract Base Class of Phase-Space Positions.
 
     Todo:

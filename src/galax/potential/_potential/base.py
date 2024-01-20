@@ -4,11 +4,12 @@ import abc
 from dataclasses import KW_ONLY, fields, replace
 from typing import TYPE_CHECKING, Any
 
-import astropy.units as u
 import equinox as eqx
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from astropy.constants import G as _G  # pylint: disable=no-name-in-module
+from astropy.coordinates import BaseRepresentation
+from astropy.units import Quantity
 from jax import grad, hessian, jacfwd
 from jaxtyping import Array, Float
 
@@ -31,6 +32,8 @@ from galax.utils import partial_jit, vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils.dataclasses import ModuleMeta
 
+from .utils import parse_inputs
+
 if TYPE_CHECKING:
     from galax.dynamics._orbit import Orbit
 
@@ -39,7 +42,7 @@ default_integrator: Integrator = DiffraxIntegrator()
 
 
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
-    """Potential Class."""
+    """Abstract Potential Class."""
 
     _: KW_ONLY
     units: eqx.AbstractVar[UnitSystem]
@@ -47,9 +50,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     ###########################################################################
     # Abstract methods that must be implemented by subclasses
 
-    @abc.abstractmethod
     # @partial_jit()
     # @vectorize_method(signature="(3),()->()")
+    @abc.abstractmethod
     def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
         """Compute the potential energy at the given position(s).
 
@@ -80,7 +83,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             # Other fields, check their metadata
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
-                if isinstance(value, u.Quantity):
+                if isinstance(value, Quantity):
                     value = value.to_value(
                         self.units[f.metadata.get("dimensions")],
                         equivalencies=f.metadata.get("equivalencies", None),
@@ -94,7 +97,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Potential energy
 
     def potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self,
+        q: BatchVec3 | Quantity | BaseRepresentation,
+        /,
+        t: BatchableFloatOrIntScalarLike | Quantity,
     ) -> BatchFloatScalar:
         """Compute the potential energy at the given position(s).
 
@@ -110,6 +116,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         E : Array[float, *batch]
             The potential energy per unit mass or value of the potential.
         """
+        q, t = parse_inputs(q, t, units=self.units, no_differentials=True)
         return self._potential_energy(q, xp.asarray(t))
 
     @partial_jit()
@@ -296,8 +303,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @partial_jit(static_argnames=("integrator",))
     def integrate_orbit(
         self,
-        qp0: BatchVec6,
-        t: Float[Array, "time"],
+        qp0: BatchVec6 | Quantity | BaseRepresentation,
+        t: Float[Array, "time"] | Quantity,
         *,
         integrator: Integrator | None = None,
     ) -> "Orbit":
@@ -381,6 +388,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         # TODO: ꜛ get NORMALIZE_WHITESPACE to work correctly so Orbit is 1 line
         from galax.dynamics._orbit import Orbit
 
+        # Process the inputs
+        qp0, t = parse_inputs(qp0, t, units=self.units)
         integrator_ = default_integrator if integrator is None else replace(integrator)
 
         ws = integrator_(self._integrator_F, qp0, t)

@@ -227,12 +227,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     ###########################################################################
     # Convenience methods
 
-    @partial_jit()
-    @vectorize_method(signature="(3),()->(3)")
-    def _acceleration(self, q: Vec3, /, t: FloatScalar) -> Vec3:
-        """See ``acceleration``."""
-        return -self._gradient(q, t)
-
     def acceleration(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchVec3:
@@ -251,7 +245,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             The acceleration. Will have the same shape as the input
             position array, ``q``.
         """
-        return self._acceleration(q, xp.asarray(t))
+        return -self._gradient(q, xp.asarray(t))
 
     @partial_jit()
     def tidal_tensor(

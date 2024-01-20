@@ -108,7 +108,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         E : Array[float, *batch]
             The potential energy per unit mass or value of the potential.
         """
-        return self._potential_energy(q, t)
+        return self._potential_energy(q, xp.asarray(t))
 
     @partial_jit()
     def __call__(
@@ -160,7 +160,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         grad : Array[float, (*batch, 3)]
             The gradient of the potential.
         """
-        return self._gradient(q, t)  # vectorize doesn't allow kwargs
+        return self._gradient(q, xp.asarray(t))  # vectorize doesn't allow kwargs
 
     # ---------------------------------------
     # Density
@@ -192,7 +192,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         rho : Array[float, *batch]
             The potential energy or value of the potential.
         """
-        return self._density(q, t)
+        return self._density(q, xp.asarray(t))
 
     # ---------------------------------------
     # Hessian
@@ -222,7 +222,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         Array[float, (*batch, 3, 3)]
             The Hessian matrix of second derivatives of the potential.
         """
-        return self._hessian(q, t)
+        return self._hessian(q, xp.asarray(t))
 
     ###########################################################################
     # Convenience methods

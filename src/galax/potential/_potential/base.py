@@ -231,7 +231,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(signature="(3),()->(3)")
     def _acceleration(self, q: Vec3, /, t: FloatScalar) -> Vec3:
         """See ``acceleration``."""
-        return -self.gradient(q, t)
+        return -self._gradient(q, t)
 
     def acceleration(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike

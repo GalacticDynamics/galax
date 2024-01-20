@@ -251,7 +251,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             The acceleration. Will have the same shape as the input
             position array, ``q``.
         """
-        return -self.gradient(q, t)
+        return self._acceleration(q, xp.asarray(t))
 
     @partial_jit()
     def tidal_tensor(

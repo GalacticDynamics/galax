@@ -33,6 +33,3 @@ class TestBarPotential(AbstractPotential_Test):
             pot.hessian(x, t=0),
             xp.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
         )
-
-    def test_acceleration(self, pot, x):
-        assert xp.allclose(pot.acceleration(x, t=0), -pot.gradient(x, t=0))

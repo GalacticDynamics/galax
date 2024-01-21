@@ -63,3 +63,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
 
         pot = TestPotential()
         assert isinstance(pot, gp.AbstractPotentialBase)
+
+    # TODO: move up the hierarchy?
+    def test_acceleration(self, pot, x):
+        assert xp.allclose(pot.acceleration(x, t=0), -pot.gradient(x, t=0))

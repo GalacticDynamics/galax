@@ -47,6 +47,3 @@ class TestHernquistPotential(
                 ]
             ),
         )
-
-    def test_acceleration(self, pot, x):
-        assert xp.allclose(pot.acceleration(x, t=0), -pot.gradient(x, t=0))

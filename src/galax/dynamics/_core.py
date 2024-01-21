@@ -193,3 +193,21 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     p: Float[Array, "*batch 3"] = eqx.field(converter=converter_float_array)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
+
+    @property
+    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
+        """Batch ."""
+        qbatch, qshape = batched_shape(self.q, expect_ndim=1)
+        pbatch, pshape = batched_shape(self.p, expect_ndim=1)
+        batch_shape: tuple[int, ...] = jnp.broadcast_shapes(qbatch, pbatch)
+        array_shape: tuple[int, int, int] = qshape + pshape + (1,)
+        return batch_shape, array_shape
+
+    @property
+    @partial_jit()
+    def w(self) -> BatchVec7:
+        """Return as a single Array[float, (*batch, Q + P + T)]."""
+        batch_shape, component_shapes = self._shape_tuple
+        q = xp.broadcast_to(self.q, batch_shape + component_shapes[0:1])
+        p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])
+        return xp.concat((q, p), axis=-1)

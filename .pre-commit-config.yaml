@@ -3,6 +3,10 @@ ci:
   autofix_commit_msg: "style: pre-commit fixes"
 
 repos:
+  - repo: meta
+    hooks:
+      - id: check-useless-excludes
+
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: "23.12.1"
     hooks:
@@ -20,7 +24,6 @@ repos:
       - id: check-added-large-files
       - id: check-case-conflict
       - id: check-merge-conflict
-      - id: check-symlinks
       - id: check-yaml
       - id: debug-statements
       - id: end-of-file-fixer
@@ -28,7 +31,6 @@ repos:
       - id: name-tests-test
         args: ["--pytest-test-first"]
         exclude: '^tests\/.*_helper\.py$'
-      - id: requirements-txt-fixer
       - id: trailing-whitespace
 
   - repo: https://github.com/pre-commit/pygrep-hooks
@@ -63,12 +65,7 @@ repos:
     rev: "v2.2.6"
     hooks:
       - id: codespell
-        exclude: notebooks
-
-  - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: "v0.9.0.6"
-    hooks:
-      - id: shellcheck
+        exclude: ^(?!.*\/notebooks\/)(?!.AUTHORS\.rst$).+$
 
   - repo: local
     hooks:

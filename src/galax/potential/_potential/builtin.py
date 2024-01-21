@@ -3,6 +3,7 @@
 __all__ = [
     "KeplerPotential",
     "MiyamotoNagaiPotential",
+    "NullPotential",
     "BarPotential",
     "IsochronePotential",
     "NFWPotential",
@@ -70,6 +71,19 @@ class MiyamotoNagaiPotential(AbstractPotential):
             * self.m(t)
             / xp.sqrt(R2 + xp.square(xp.sqrt(z**2 + self.b(t) ** 2) + self.a(t)))
         )
+
+
+# -------------------------------------------------------------------
+
+
+class NullPotential(AbstractPotential):
+    """Null potential, i.e. no potential."""
+
+    @partial_jit()
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        return xp.zeros(q.shape[:-1], dtype=q.dtype)
 
 
 # -------------------------------------------------------------------

@@ -1,7 +1,7 @@
 """galax: Galactic Dynamix in Jax."""
 
 
-from . import base, builtin, composite, core, param, special, utils
+from . import base, builtin, composite, core, io, param, special, utils
 from .base import *
 from .builtin import *
 from .composite import *
@@ -10,7 +10,7 @@ from .param import *
 from .special import *
 from .utils import *
 
-__all__: list[str] = []
+__all__: list[str] = ["io"]
 __all__ += base.__all__
 __all__ += core.__all__
 __all__ += composite.__all__

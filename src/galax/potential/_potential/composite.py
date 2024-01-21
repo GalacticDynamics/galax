@@ -25,35 +25,14 @@ K = TypeVar("K")
 V = TypeVar("V")
 
 
-@final
-class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotentialBase):
-    """Composite Potential."""
-
+# Note: cannot have `strict=True` because of inheriting from ImmutableDict.
+class AbstractCompositePotential(
+    ImmutableDict[AbstractPotentialBase], AbstractPotentialBase, strict=False
+):
     _data: dict[str, AbstractPotentialBase]
     _: KW_ONLY
     units: UnitSystem = eqx.field(init=False, static=True, converter=converter_to_usys)
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
-
-    def __init__(
-        self,
-        potentials: dict[str, AbstractPotentialBase]
-        | tuple[tuple[str, AbstractPotentialBase], ...] = (),
-        /,
-        **kwargs: AbstractPotentialBase,
-    ) -> None:
-        kwunits = kwargs.pop("units", None)
-        super().__init__(potentials, **kwargs)
-
-        # __post_init__ stuff:
-        # Check that all potentials have the same unit system
-        units = kwunits if kwunits is not None else first(self.values()).units
-        if not all(p.units == units for p in self.values()):
-            msg = "all potentials must have the same unit system"
-            raise ValueError(msg)
-        object.__setattr__(self, "units", units)
-
-        # Apply the unit system to any parameters.
-        self._init_units()
 
     # === Potential ===
 
@@ -95,3 +74,38 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
 
     def __add__(self, other: AbstractPotentialBase) -> "CompositePotential":
         return self | other
+
+
+###########################################################################
+
+
+@final
+class CompositePotential(AbstractCompositePotential):
+    """Composite Potential."""
+
+    _data: dict[str, AbstractPotentialBase]
+    _: KW_ONLY
+    units: UnitSystem = eqx.field(init=False, static=True, converter=converter_to_usys)
+    _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
+
+    def __init__(
+        self,
+        potentials: dict[str, AbstractPotentialBase]
+        | tuple[tuple[str, AbstractPotentialBase], ...] = (),
+        /,
+        *,
+        units: UnitSystem | None = None,
+        **kwargs: AbstractPotentialBase,
+    ) -> None:
+        super().__init__(potentials, **kwargs)  # type: ignore[arg-type]
+
+        # __post_init__ stuff:
+        # Check that all potentials have the same unit system
+        units_ = units if units is not None else first(self.values()).units
+        if not all(p.units == units_ for p in self.values()):
+            msg = "all potentials must have the same unit system"
+            raise ValueError(msg)
+        object.__setattr__(self, "units", units_)
+
+        # Apply the unit system to any parameters.
+        self._init_units()

@@ -12,6 +12,7 @@ from galax.potential._potential.utils import (
     galactic,
     solarsystem,
 )
+from galax.utils._optional_deps import HAS_GALA
 
 
 class TestConverterToUtils:
@@ -44,6 +45,14 @@ class TestConverterToUtils:
 
         with pytest.raises(NotImplementedError):
             converter_to_usys("invalid_value")
+
+    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    def test_from_gala(self):
+        """Test conversion from gala."""
+        from gala.units import UnitSystem as GalaUnitSystem
+
+        value = GalaUnitSystem(u.km, u.s, u.Msun, u.radian)
+        assert converter_to_usys(value) == UnitSystem(*value._core_units)
 
 
 # ============================================================================

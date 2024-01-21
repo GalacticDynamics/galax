@@ -5,10 +5,10 @@ import pytest
 
 import galax.potential as gp
 
-from ..test_core import TestAbstractPotential
+from ..test_core import TestAbstractPotential as AbstractPotential_Test
 
 
-class TestBarPotential(TestAbstractPotential):
+class TestBarPotential(AbstractPotential_Test):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.NullPotential]:
         return gp.NullPotential

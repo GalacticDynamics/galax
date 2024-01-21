@@ -5,12 +5,12 @@ import pytest
 
 from galax.potential import HernquistPotential
 
-from ..test_core import TestAbstractPotential
+from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin, ShapeCParameterMixin
 
 
 class TestHernquistPotential(
-    TestAbstractPotential,
+    AbstractPotential_Test,
     # Parameters
     MassParameterMixin,
     ShapeCParameterMixin,

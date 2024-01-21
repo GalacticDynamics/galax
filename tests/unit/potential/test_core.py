@@ -11,11 +11,11 @@ from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchV
 from galax.units import UnitSystem, dimensionless, galactic
 from galax.utils import partial_jit, vectorize_method
 
-from .test_base import TestAbstractPotentialBase
+from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 
 
-class TestAbstractPotential(TestAbstractPotentialBase, FieldUnitSystemMixin):
+class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
     """Test the `galax.potential.AbstractPotentialBase` class."""
 
     @pytest.fixture(scope="class")

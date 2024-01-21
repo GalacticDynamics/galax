@@ -179,6 +179,9 @@ ignore = [
   "INP001",  # implicit namespace package
 ]
 
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
 
 [tool.pylint]
 py-version = "3.11"

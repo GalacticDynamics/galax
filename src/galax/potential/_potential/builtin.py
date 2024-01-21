@@ -2,6 +2,7 @@
 
 __all__ = [
     "BarPotential",
+    "HernquistPotential",
     "IsochronePotential",
     "KeplerPotential",
     "MiyamotoNagaiPotential",
@@ -80,6 +81,23 @@ class BarPotential(AbstractPotential):
         return (self._G * self.m(t) / (2.0 * a)) * xp.log(
             (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus),
         )
+
+
+# -------------------------------------------------------------------
+
+
+class HernquistPotential(AbstractPotential):
+    """Hernquist Potential."""
+
+    m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
+
+    @partial_jit()
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        r = xp.linalg.norm(q, axis=-1)
+        return -self._G * self.m(t) / (r + self.a(t))
 
 
 # -------------------------------------------------------------------

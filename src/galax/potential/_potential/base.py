@@ -1,7 +1,7 @@
 __all__ = ["AbstractPotentialBase"]
 
 import abc
-from dataclasses import fields, replace
+from dataclasses import KW_ONLY, fields, replace
 from typing import TYPE_CHECKING, Any
 
 import astropy.units as u
@@ -40,6 +40,7 @@ default_integrator = DiffraxIntegrator()
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
     """Potential Class."""
 
+    _: KW_ONLY
     units: eqx.AbstractVar[UnitSystem]
 
     ###########################################################################

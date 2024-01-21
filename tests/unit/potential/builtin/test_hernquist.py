@@ -6,22 +6,22 @@ import pytest
 from galax.potential import HernquistPotential
 
 from ..test_core import TestAbstractPotential
-from .test_common import MassParameterMixin, ShapeAParameterMixin
+from .test_common import MassParameterMixin, ShapeCParameterMixin
 
 
 class TestHernquistPotential(
     TestAbstractPotential,
     # Parameters
     MassParameterMixin,
-    ShapeAParameterMixin,
+    ShapeCParameterMixin,
 ):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[HernquistPotential]:
         return HernquistPotential
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_m, field_a, field_units) -> dict[str, Any]:
-        return {"m": field_m, "a": field_a, "units": field_units}
+    def fields_(self, field_m, field_c, field_units) -> dict[str, Any]:
+        return {"m": field_m, "c": field_c, "units": field_units}
 
     # ==========================================================================
 

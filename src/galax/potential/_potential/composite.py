@@ -29,11 +29,6 @@ V = TypeVar("V")
 class AbstractCompositePotential(
     ImmutableDict[AbstractPotentialBase], AbstractPotentialBase, strict=False
 ):
-    _data: dict[str, AbstractPotentialBase]
-    _: KW_ONLY
-    units: UnitSystem = eqx.field(init=False, static=True, converter=converter_to_usys)
-    _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
-
     # === Potential ===
 
     @partial_jit()

@@ -98,13 +98,13 @@ class ShapeCParameterMixin(ParameterFieldMixin):
 
     def test_c_constant(self, pot_cls, fields):
         """Test the mass parameter."""
-        fields["a"] = 1.0
+        fields["c"] = 1.0
         pot = pot_cls(**fields)
-        assert pot.a(t=0) == 1.0
+        assert pot.c(t=0) == 1.0
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_c_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
-        fields["a"] = lambda t: t + 2
+        fields["c"] = lambda t: t + 2
         pot = pot_cls(**fields)
-        assert pot.a(t=0) == 2
+        assert pot.c(t=0) == 2

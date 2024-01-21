@@ -90,14 +90,14 @@ class HernquistPotential(AbstractPotential):
     """Hernquist Potential."""
 
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
-    a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
+    c: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 
     @partial_jit()
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
         r = xp.linalg.norm(q, axis=-1)
-        return -self._G * self.m(t) / (r + self.a(t))
+        return -self._G * self.m(t) / (r + self.c(t))
 
 
 # -------------------------------------------------------------------

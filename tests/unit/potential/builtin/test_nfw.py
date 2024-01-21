@@ -9,7 +9,7 @@ from galax.potential import ConstantParameter
 from galax.units import galactic
 
 from ..params.test_field import ParameterFieldMixin
-from ..test_core import TestAbstractPotential
+from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin
 
 
@@ -47,7 +47,7 @@ class ScaleRadiusParameterMixin(ParameterFieldMixin):
 
 
 class TestNFWPotential(
-    TestAbstractPotential,
+    AbstractPotential_Test,
     # Parameters
     MassParameterMixin,
     ScaleRadiusParameterMixin,

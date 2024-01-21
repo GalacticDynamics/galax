@@ -5,16 +5,12 @@ import pytest
 
 import galax.potential as gp
 
-from ..test_core import TestAbstractPotential
-from .test_common import (
-    MassParameterMixin,
-    ShapeAParameterMixin,
-    ShapeBParameterMixin,
-)
+from ..test_core import TestAbstractPotential as AbstractPotential_Test
+from .test_common import MassParameterMixin, ShapeAParameterMixin, ShapeBParameterMixin
 
 
 class TestMiyamotoNagaiPotential(
-    TestAbstractPotential,
+    AbstractPotential_Test,
     # Parameters
     MassParameterMixin,
     ShapeAParameterMixin,

@@ -47,7 +47,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     )
 
     @vectorize_method(excluded=(0,), signature="(6),(T)->(T,7)")
-    def run(
+    def __call__(
         self, F: FCallable, qp0: Vec6, ts: Float[Array, "T"], /
     ) -> Float[Array, "T 7"]:
         solution = diffeqsolve(

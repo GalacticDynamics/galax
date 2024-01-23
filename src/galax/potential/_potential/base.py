@@ -11,7 +11,7 @@ from astropy.constants import G as _G
 from jax import grad, hessian, jacfwd
 from jaxtyping import Array, Float
 
-from galax.integrate._base import AbstractIntegrator
+from galax.integrate._base import Integrator
 from galax.integrate._builtin import DiffraxIntegrator
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from galax.dynamics._orbit import Orbit
 
 
-default_integrator = DiffraxIntegrator()
+default_integrator: Integrator = DiffraxIntegrator()
 
 
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
@@ -302,7 +302,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         qp0: BatchVec6,
         t: Float[Array, "time"],
         *,
-        integrator: AbstractIntegrator | None = None,
+        integrator: Integrator | None = None,
     ) -> "Orbit":
         """Integrate an orbit in the potential.
 
@@ -386,5 +386,5 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         integrator_ = default_integrator if integrator is None else replace(integrator)
 
-        ws = integrator_.run(self._integrator_F, qp0, t)
+        ws = integrator_(self._integrator_F, qp0, t)
         return Orbit(q=ws[..., :3], p=ws[..., 3:-1], t=t, potential=self)

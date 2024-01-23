@@ -11,7 +11,7 @@ import jax.numpy as xp
 from jax.lib.xla_bridge import get_backend
 
 from galax.dynamics._orbit import Orbit
-from galax.integrate._base import AbstractIntegrator
+from galax.integrate._base import Integrator
 from galax.integrate._builtin import DiffraxIntegrator
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
@@ -46,14 +46,12 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     """Potential in which the progenitor orbits and creates a stream."""
 
     _: KW_ONLY
-    progenitor_integrator: AbstractIntegrator = eqx.field(
+    progenitor_integrator: Integrator = eqx.field(
         default=DiffraxIntegrator(), static=True
     )
     """Integrator for the progenitor orbit."""
 
-    stream_integrator: AbstractIntegrator = eqx.field(
-        default=DiffraxIntegrator(), static=True
-    )
+    stream_integrator: Integrator = eqx.field(default=DiffraxIntegrator(), static=True)
     """Integrator for the stream."""
 
     # ==========================================================================

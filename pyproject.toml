@@ -56,6 +56,11 @@ docs = [
   "sphinx_autodoc_typehints",
   "furo>=2023.08.17",
 ]
+all = [
+  "galax[test]",
+  "galax[docs]",
+  "galax[dev]",
+]
 
 [project.urls]
 Homepage = "https://github.com/GalacticDynamics/galax"

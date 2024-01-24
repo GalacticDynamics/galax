@@ -36,6 +36,8 @@ def _converter_immutabledict_or_none(x: Any) -> ImmutableDict[Any] | None:
 
 
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
+    """Generate a mock stellar stream in the specified external potential."""
+
     df: AbstractStreamDF
     """Distribution function for generating mock streams.
 
@@ -67,7 +69,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         qp0_lead = mock0_lead.qp
         qp0_trail = mock0_trail.qp
 
-        def scan_fn(carry: Carry, idx: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
+        def scan_fn(carry: Carry, _: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
             i, qp0_lead_i, qp0_trail_i = carry
             qp0_lead_trail = xp.vstack([qp0_lead_i, qp0_trail_i])
             tstep = xp.asarray([ts[i], ts[-1]])

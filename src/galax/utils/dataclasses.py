@@ -60,11 +60,11 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
     Class(a=2)
     """
 
-    def __new__(
+    def __new__(  # pylint: disable=signature-differs
         mcs,
         name: str,
         bases: tuple[type, ...],
-        dict_: Mapping[str, Any],
+        namespace: Mapping[str, Any],
         /,
         *,
         strict: bool = False,
@@ -73,11 +73,11 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
     ) -> type:
         # [Step 1] Create the class using `_ModuleMeta`.
         cls: type = super().__new__(
-            mcs, name, bases, dict_, strict=strict, abstract=abstract, **kwargs
+            mcs, name, bases, namespace, strict=strict, abstract=abstract, **kwargs
         )
 
         # [Step 2] Convert the defaults.
-        for k, v in dict_.items():
+        for k, v in namespace.items():
             if not isinstance(v, dataclasses.Field):
                 continue
             # Apply the converter to the default value.
@@ -94,7 +94,7 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
 
             @ft.wraps(original_init)
             def init(self: _DataclassInstance, *args: Any, **kwargs: Any) -> None:
-                __tracebackhide__ = True
+                __tracebackhide__ = True  # pylint: disable=unused-variable
 
                 # Apply any converter to its argument.
                 ba = sig.bind(self, *args, **kwargs)
@@ -181,7 +181,7 @@ def field(
         msg = "Cannot use metadata with `converter` already set."
         raise ValueError(msg)
     if "static" in metadata:
-        "Cannot use metadata with `static` already set."
+        msg = "Cannot use metadata with `static` already set."
         raise ValueError(msg)
 
     if converter is not None:

@@ -1,3 +1,5 @@
+"""Descriptor for a Potential Parameter."""
+
 __all__ = ["ParameterField"]
 
 from dataclasses import KW_ONLY, dataclass, field, is_dataclass

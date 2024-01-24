@@ -6,7 +6,7 @@ __all__ = [
     # modules
     "units",
     "potential",
-    "integrator",
+    "integrate",
     "dynamics",
     "utils",
     "typing",
@@ -21,11 +21,16 @@ from ._version import version as __version__
 
 config.update("jax_enable_x64", True)  # noqa: FBT003
 
-typechecker: str | None
+TYPECHECKER: str | None
 if os.environ.get("GALDYNAMIX_ENABLE_RUNTIME_TYPECHECKS", "1") == "1":
-    typechecker = "beartype.beartype"
+    TYPECHECKER = "beartype.beartype"
 else:
-    typechecker = None
+    TYPECHECKER = None
 
-with install_import_hook("galax", typechecker):
+with install_import_hook("galax", TYPECHECKER):
     from galax import dynamics, integrate, potential, typing, units, utils
+
+
+# Clean up the namespace
+for name in set(dir()) - set(__all__):
+    del globals()[name]

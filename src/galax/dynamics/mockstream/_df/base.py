@@ -21,6 +21,8 @@ Carry: TypeAlias = tuple[IntLike, Vec3, Vec3, Vec3, Vec3]
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
+    """Abstract Base Class of Stream Distribution Functions."""
+
     lead: bool = eqx.field(default=True, static=True)
     trail: bool = eqx.field(default=True, static=True)
 

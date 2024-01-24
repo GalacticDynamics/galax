@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 import astropy.units as u
 import equinox as eqx
 import jax.numpy as xp
-from astropy.constants import G as _G
+from astropy.constants import G as _G  # pylint: disable=no-name-in-module
 from jax import grad, hessian, jacfwd
 from jaxtyping import Array, Float
 
@@ -74,7 +74,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             param = getattr(self.__class__, f.name, None)
             if isinstance(param, ParameterField):
                 # Set, since the ``.units`` are now known
-                param.__set__(self, getattr(self, f.name))
+                param.__set__(self, getattr(self, f.name))  # pylint: disable=C2801
 
             # Other fields, check their metadata
             elif "dimensions" in f.metadata:
@@ -286,11 +286,13 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Integrating orbits
 
     @partial_jit()
-    def _integrator_F(self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]) -> Vec6:
+    def _integrator_F(
+        self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]  # pylint: disable=W0613
+    ) -> Vec6:
         """Return the derivative of the phase-space position."""
         return xp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a
 
-    @partial_jit(static_argnames=("integrator"))
+    @partial_jit(static_argnames=("integrator",))
     def integrate_orbit(
         self,
         qp0: BatchVec6,

@@ -11,6 +11,7 @@ __all__ = [
 ]
 
 from dataclasses import KW_ONLY
+from typing import final
 
 import astropy.units as u
 import jax.numpy as xp
@@ -36,6 +37,7 @@ frequency = u.get_physical_type("frequency")
 # -------------------------------------------------------------------
 
 
+@final
 class BarPotential(AbstractPotential):
     """Rotating bar potentil, with hard-coded rotation.
 
@@ -86,6 +88,7 @@ class BarPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
+@final
 class HernquistPotential(AbstractPotential):
     """Hernquist Potential."""
 
@@ -103,7 +106,10 @@ class HernquistPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
+@final
 class IsochronePotential(AbstractPotential):
+    """Isochrone Potential."""
+
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 
@@ -119,6 +125,7 @@ class IsochronePotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
+@final
 class KeplerPotential(AbstractPotential):
     r"""The Kepler potential for a point mass.
 
@@ -139,7 +146,10 @@ class KeplerPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
+@final
 class MiyamotoNagaiPotential(AbstractPotential):
+    """Miyamoto-Nagai Potential."""
+
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
     a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
@@ -160,6 +170,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
+@final
 class NFWPotential(AbstractPotential):
     """NFW Potential."""
 
@@ -181,6 +192,7 @@ class NFWPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
+@final
 class NullPotential(AbstractPotential):
     """Null potential, i.e. no potential."""
 

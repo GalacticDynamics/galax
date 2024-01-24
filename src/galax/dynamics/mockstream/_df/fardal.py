@@ -21,11 +21,18 @@ from .base import AbstractStreamDF
 
 
 class FardalStreamDF(AbstractStreamDF):
+    """Fardal Stream Distribution Function.
+
+    A class for representing the Fardal+2015 distribution function for
+    generating stellar streams based on Fardal et al. 2015
+    https://ui.adsabs.harvard.edu/abs/2015MNRAS.452..301F/abstract
+    """
+
     @partial_jit(static_argnums=(0,), static_argnames=("seed_num",))
     def _sample(
         self,
         potential: AbstractPotentialBase,
-        w: Vec6,
+        qp: Vec6,
         prog_mass: FloatScalar,
         t: FloatScalar,
         *,
@@ -46,7 +53,7 @@ class FardalStreamDF(AbstractStreamDF):
 
         # ---------------------------
 
-        x, v = w[:3], w[3:]
+        x, v = qp[0:3], qp[3:6]
 
         omega_val = orbital_angular_velocity_mag(x, v)
 

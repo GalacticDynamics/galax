@@ -12,6 +12,8 @@ from galax.utils.dataclasses import _DataclassInstance
 
 @runtime_checkable
 class FCallable(Protocol):
+    """Protocol for the integration callable."""
+
     def __call__(self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]) -> Vec6:
         """Integration function.
 

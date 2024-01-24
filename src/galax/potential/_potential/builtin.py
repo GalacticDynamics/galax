@@ -104,6 +104,8 @@ class HernquistPotential(AbstractPotential):
 
 
 class IsochronePotential(AbstractPotential):
+    """Isochrone Potential."""
+
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 
@@ -140,6 +142,8 @@ class KeplerPotential(AbstractPotential):
 
 
 class MiyamotoNagaiPotential(AbstractPotential):
+    """Miyamoto-Nagai Potential."""
+
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
     a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]

@@ -168,8 +168,7 @@ class DimensionlessUnitSystem(UnitSystem):
     _required_dimensions: ClassVar[list[u.PhysicalType]] = []
 
     def __init__(self) -> None:
-        self._core_units = [u.one]
-        self._registry = {"dimensionless": u.one}
+        super().__init__(u.one)
 
     def __getitem__(self, key: str | u.PhysicalType) -> u.UnitBase:
         return u.one

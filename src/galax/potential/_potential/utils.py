@@ -163,13 +163,13 @@ if HAS_GALA:
     )
 
     @converter_to_usys.register
-    def _from_gala_dimensionless(
-        value: GalaDimensionlessUnitSystem, /
-    ) -> DimensionlessUnitSystem:
-        return dimensionless
-
-    @converter_to_usys.register
     def _from_gala(value: GalaUnitSystem, /) -> UnitSystem:
         usys = UnitSystem(*value._core_units)  # noqa: SLF001
         usys._registry = value._registry  # noqa: SLF001
         return usys
+
+    @converter_to_usys.register
+    def _from_gala_dimensionless(
+        value: GalaDimensionlessUnitSystem, /
+    ) -> DimensionlessUnitSystem:
+        return dimensionless

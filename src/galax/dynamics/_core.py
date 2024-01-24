@@ -6,7 +6,8 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, final
 
 import equinox as eqx
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
@@ -54,7 +55,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         batch_shape, component_shapes = self._shape_tuple
         q = xp.broadcast_to(self.q, batch_shape + component_shapes[0:1])
         p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])
-        return xp.concatenate((q, p), axis=-1)
+        return xp.concat((q, p), axis=-1)
 
     # ==========================================================================
     # Dynamical quantities
@@ -85,7 +86,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         qbatch, qshape = batched_shape(self.q, expect_ndim=1)
         pbatch, pshape = batched_shape(self.p, expect_ndim=1)
         tbatch, _ = batched_shape(self.t, expect_ndim=0)
-        batch_shape: tuple[int, ...] = xp.broadcast_shapes(qbatch, pbatch, tbatch)
+        batch_shape: tuple[int, ...] = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         array_shape: tuple[int, int, int] = qshape + pshape + (1,)
         return batch_shape, array_shape
 
@@ -102,7 +103,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         t = xp.broadcast_to(
             atleast_batched(self.t), batch_shape + component_shapes[2:3]
         )
-        return xp.concatenate((q, p, t), axis=-1)
+        return xp.concat((q, p, t), axis=-1)
 
     @property
     @partial_jit()

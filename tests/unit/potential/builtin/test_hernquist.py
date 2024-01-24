@@ -1,6 +1,7 @@
 from typing import Any
 
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 import pytest
 
 from galax.potential import HernquistPotential
@@ -26,20 +27,20 @@ class TestHernquistPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot, x) -> None:
-        assert xp.isclose(pot.potential_energy(x, t=0), xp.array(-0.94871936))
+        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.94871936))
 
     def test_gradient(self, pot, x):
-        assert xp.allclose(
-            pot.gradient(x, t=0), xp.array([0.05347411, 0.10694822, 0.16042233])
+        assert jnp.allclose(
+            pot.gradient(x, t=0), xp.asarray([0.05347411, 0.10694822, 0.16042233])
         )
 
     def test_density(self, pot, x):
-        assert xp.isclose(pot.density(x, t=0), 3.989933e08)
+        assert jnp.isclose(pot.density(x, t=0), 3.989933e08)
 
     def test_hessian(self, pot, x):
-        assert xp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0),
-            xp.array(
+            xp.asarray(
                 [
                     [0.04362645, -0.01969533, -0.02954299],
                     [-0.01969533, 0.01408345, -0.05908599],

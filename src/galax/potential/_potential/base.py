@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 import astropy.units as u
 import equinox as eqx
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 from astropy.constants import G as _G  # pylint: disable=no-name-in-module
 from jax import grad, hessian, jacfwd
 from jaxtyping import Array, Float
@@ -171,7 +172,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def _density(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
-        lap = xp.trace(jacfwd(self.gradient)(q, t))
+        lap = jnp.trace(jacfwd(self.gradient)(q, t))
         return lap / (4 * xp.pi * self._G)
 
     def density(
@@ -290,7 +291,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]  # pylint: disable=W0613
     ) -> Vec6:
         """Return the derivative of the phase-space position."""
-        return xp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a
+        return jnp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a
 
     @partial_jit(static_argnames=("integrator",))
     def integrate_orbit(

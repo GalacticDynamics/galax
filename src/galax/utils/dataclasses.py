@@ -19,7 +19,8 @@ from typing import (
 )
 
 import astropy.units as u
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 from equinox._module import _has_dataclass_init, _ModuleMeta
 from jaxtyping import Array, Float, Integer
 from typing_extensions import ParamSpec, Unpack
@@ -205,5 +206,5 @@ def converter_float_array(
     x: Any, /
 ) -> Float[Array, "*shape"] | Integer[Array, "*shape"]:
     """Convert to a batched vector."""
-    x = xp.array(x, dtype=None)
-    return xp.array(x, dtype=xp.promote_types(x.dtype, float))
+    x = xp.asarray(x, dtype=None)
+    return xp.asarray(x, dtype=jnp.promote_types(x.dtype, float))

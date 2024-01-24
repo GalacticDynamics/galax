@@ -8,7 +8,7 @@ from typing import TypeAlias
 
 import equinox as eqx
 import jax
-import jax.numpy as xp
+import jax.experimental.array_api as xp
 
 from galax.dynamics._orbit import Orbit
 from galax.dynamics.mockstream._core import MockStream
@@ -62,10 +62,6 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         mock_lead, mock_trail : MockStream
             Positions and velocities of the leading and trailing tails.
         """
-        if prog_orbit.potential != potential:
-            msg = "`prog_orbit.potential` != `potential`."
-            raise ValueError(msg)
-
         # Progenitor positions and times. The orbit times are the release times
         # for the mock stream.
         prog_qps = prog_orbit.qp

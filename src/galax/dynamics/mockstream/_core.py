@@ -3,7 +3,8 @@
 __all__ = ["MockStream"]
 
 import equinox as eqx
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from galax.dynamics._core import AbstractPhaseSpacePositionBase
@@ -39,7 +40,7 @@ class MockStream(AbstractPhaseSpacePositionBase):
         qbatch, qshape = batched_shape(self.q, expect_ndim=1)
         pbatch, pshape = batched_shape(self.p, expect_ndim=1)
         tbatch, _ = batched_shape(self.release_time, expect_ndim=0)
-        batch_shape = xp.broadcast_shapes(qbatch, pbatch, tbatch)
+        batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         return batch_shape, qshape + pshape + (1,)
 
     @property
@@ -52,4 +53,4 @@ class MockStream(AbstractPhaseSpacePositionBase):
         t = xp.broadcast_to(
             atleast_batched(self.release_time), batch_shape + component_shapes[2:3]
         )
-        return xp.concatenate((q, p, t), axis=-1)
+        return xp.concat((q, p, t), axis=-1)

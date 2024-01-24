@@ -7,7 +7,8 @@ from typing import Any, TypeAlias
 
 import equinox as eqx
 import jax
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 from jax.lib.xla_bridge import get_backend
 
 from galax.dynamics._orbit import Orbit
@@ -71,7 +72,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         def scan_fn(carry: Carry, _: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
             i, qp0_lead_i, qp0_trail_i = carry
-            qp0_lead_trail = xp.vstack([qp0_lead_i, qp0_trail_i])
+            qp0_lead_trail = jnp.vstack([qp0_lead_i, qp0_trail_i])  # TODO: xp.stack
             tstep = xp.asarray([ts[i], ts[-1]])
 
             def integ_ics(ics: Vec6) -> VecN:

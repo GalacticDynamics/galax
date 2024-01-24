@@ -4,7 +4,8 @@ __all__: list[str] = []
 
 from typing import Any, Literal, NoReturn, overload
 
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 from jaxtyping import Array, ArrayLike
 
 from galax.typing import AnyScalar, ArrayAnyShape
@@ -66,7 +67,7 @@ def atleast_batched(*arys: Any) -> Array | tuple[Array, ...]:
            [3]], dtype=int64)
 
     >>> import jax.numpy as jnp
-    >>> jnp.atleast_2d(xp.array([1, 2, 3]))
+    >>> jnp.atleast_2d(xp.asarray([1, 2, 3]))
     Array([[1, 2, 3]], dtype=int64)
     """
     if len(arys) == 0:
@@ -78,7 +79,7 @@ def atleast_batched(*arys: Any) -> Array | tuple[Array, ...]:
             return arr
         if arr.ndim == 1:
             return xp.expand_dims(arr, axis=1)
-        return xp.expand_dims(arr, axis=(0, 1))
+        return jnp.expand_dims(arr, axis=(0, 1))
     return tuple(atleast_batched(arr) for arr in arys)
 
 
@@ -136,39 +137,39 @@ def batched_shape(
     --------
     Standard imports:
 
-        >>> import jax.numpy as xp
+        >>> import jax.experimental.array_api as xp
         >>> from galax.utils._shape import batched_shape
 
     Expecting a scalar:
 
         >>> batched_shape(0, expect_ndim=0)
         ((), ())
-        >>> batched_shape(xp.array([1]), expect_ndim=0)
+        >>> batched_shape(xp.asarray([1]), expect_ndim=0)
         ((1,), ())
-        >>> batched_shape(xp.array([1, 2, 3]), expect_ndim=0)
+        >>> batched_shape(xp.asarray([1, 2, 3]), expect_ndim=0)
         ((3,), ())
 
     Expecting a 1D vector:
 
-        >>> batched_shape(xp.array(0), expect_ndim=1)
+        >>> batched_shape(xp.asarray(0), expect_ndim=1)
         ((), ())
-        >>> batched_shape(xp.array([1]), expect_ndim=1)
+        >>> batched_shape(xp.asarray([1]), expect_ndim=1)
         ((), (1,))
-        >>> batched_shape(xp.array([1, 2, 3]), expect_ndim=1)
+        >>> batched_shape(xp.asarray([1, 2, 3]), expect_ndim=1)
         ((), (3,))
-        >>> batched_shape(xp.array([[1, 2, 3]]), expect_ndim=1)
+        >>> batched_shape(xp.asarray([[1, 2, 3]]), expect_ndim=1)
         ((1,), (3,))
 
     Expecting a 2D matrix:
 
-        >>> batched_shape(xp.array([[1]]), expect_ndim=2)
+        >>> batched_shape(xp.asarray([[1]]), expect_ndim=2)
         ((), (1, 1))
-        >>> batched_shape(xp.array([[[1]]]), expect_ndim=2)
+        >>> batched_shape(xp.asarray([[[1]]]), expect_ndim=2)
         ((1,), (1, 1))
-        >>> batched_shape(xp.array([[[1]], [[1]]]), expect_ndim=2)
+        >>> batched_shape(xp.asarray([[[1]], [[1]]]), expect_ndim=2)
         ((2,), (1, 1))
     """
-    shape: tuple[int, ...] = xp.shape(arr)
+    shape: tuple[int, ...] = xp.asarray(arr).shape
     ndim = len(shape)
     return shape[: ndim - expect_ndim], shape[ndim - expect_ndim :]
 

@@ -8,7 +8,6 @@ __all__ = [
     "vectorize_method",
 ]
 
-from ast import TypeAlias
 from collections.abc import Callable, Hashable, Iterable, Sequence
 from functools import partial
 from typing import Any, NotRequired, TypedDict, TypeVar
@@ -18,7 +17,6 @@ from typing_extensions import ParamSpec, Unpack
 
 P = ParamSpec("P")
 R = TypeVar("R")
-CallPR: TypeAlias = Callable[P, R]
 
 
 class JITKwargs(TypedDict):
@@ -36,7 +34,7 @@ class JITKwargs(TypedDict):
     inline: NotRequired[bool]
 
 
-def partial_jit(**kw: Unpack[JITKwargs]) -> Callable[[CallPR], CallPR]:
+def partial_jit(**kw: Unpack[JITKwargs]) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorate a function with :func:`jax.jit`.
 
     Parameters
@@ -64,7 +62,9 @@ class VMapKwargs(TypedDict):
     spmd_axis_name: NotRequired[Hashable | tuple[Hashable, ...] | None]
 
 
-def partial_vmap(**kw: Unpack[VMapKwargs]) -> Callable[[CallPR], CallPR]:
+def partial_vmap(
+    **kw: Unpack[VMapKwargs],
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorate a function with :func:`jax.vmap`.
 
     Parameters
@@ -88,7 +88,9 @@ class VectorizeKwargs(TypedDict):
     signature: NotRequired[str | None]
 
 
-def partial_vectorize(**kw: Unpack[VectorizeKwargs]) -> Callable[[CallPR], CallPR]:
+def partial_vectorize(
+    **kw: Unpack[VectorizeKwargs],
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorate a function with :func:`jax.numpy.vectorize`.
 
     Parameters
@@ -105,7 +107,9 @@ def partial_vectorize(**kw: Unpack[VectorizeKwargs]) -> Callable[[CallPR], CallP
     return partial(jax.numpy.vectorize, **kw)
 
 
-def vectorize_method(**kw: Unpack[VectorizeKwargs]) -> Callable[[CallPR], CallPR]:
+def vectorize_method(
+    **kw: Unpack[VectorizeKwargs],
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """:func:`jax.numpy.vectorize` a class' method.
 
     This is a wrapper around :func:`jax.numpy.vectorize` that vectorizes a

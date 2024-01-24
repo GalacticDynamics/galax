@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 import astropy.units as u
 import equinox as eqx
 import jax.numpy as xp
-from astropy.constants import G as _G
+from astropy.constants import G as _G  # pylint: disable=no-name-in-module
 from jax import grad, hessian, jacfwd
 from jaxtyping import Array, Float
 

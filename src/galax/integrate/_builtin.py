@@ -5,7 +5,7 @@ from dataclasses import KW_ONLY
 from typing import Any
 
 import equinox as eqx
-import jax.numpy as xp
+import jax.experimental.array_api as xp
 from diffrax import (
     AbstractSolver,
     AbstractStepSizeController,
@@ -60,4 +60,4 @@ class DiffraxIntegrator(AbstractIntegrator):
             **self.diffeq_kw,
         )
         ts = solution.ts[:, None] if solution.ts.ndim == 1 else solution.ts
-        return xp.concatenate((solution.ys, ts), axis=1)
+        return xp.concat((solution.ys, ts), axis=1)

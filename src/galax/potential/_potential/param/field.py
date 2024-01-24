@@ -6,7 +6,7 @@ from dataclasses import KW_ONLY, dataclass, field, is_dataclass
 from typing import Annotated, Any, cast, get_args, get_origin, get_type_hints, overload
 
 import astropy.units as u
-import jax.numpy as xp
+import jax.experimental.array_api as xp
 
 from galax.potential._potential.core import AbstractPotential
 from galax.typing import Unit

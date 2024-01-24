@@ -2,8 +2,10 @@
 
 import re
 
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 import pytest
+from jax.numpy import array_equal
 
 from galax.utils._shape import atleast_batched, batched_shape
 
@@ -21,10 +23,10 @@ class TestAtleastBatched:
 
     def test_atleast_batched_example(self):
         """Test the `atleast_batched` function with an example."""
-        x = xp.array([1, 2, 3])
+        x = xp.asarray([1, 2, 3])
         # `atleast_batched` versus `atleast_2d`
-        assert xp.array_equal(atleast_batched(x), x[:, None])
-        assert xp.array_equal(xp.atleast_2d(x), x[None, :])
+        assert array_equal(atleast_batched(x), x[:, None])
+        assert array_equal(jnp.atleast_2d(x), x[None, :])
 
     @pytest.mark.parametrize(
         ("x", "expect"),
@@ -38,19 +40,19 @@ class TestAtleastBatched:
     )
     def test_atleast_batched_one_arg(self, x, expect):
         """Test the `atleast_batched` function with one argument."""
-        got = atleast_batched(xp.array(x))
-        assert xp.array_equal(got, xp.array(expect))
+        got = atleast_batched(xp.asarray(x))
+        assert array_equal(got, xp.asarray(expect))
         assert got.ndim >= 2
 
     def test_atleast_batched_multiple_args(self):
         """Test the `atleast_batched` function with multiple arguments."""
-        x = xp.array([1, 2, 3])
-        y = xp.array([4, 5, 6])
+        x = xp.asarray([1, 2, 3])
+        y = xp.asarray([4, 5, 6])
         result = atleast_batched(x, y)
         assert isinstance(result, tuple)
         assert len(result) == 2
-        assert xp.array_equal(result[0], x[:, None])
-        assert xp.array_equal(result[1], y[:, None])
+        assert array_equal(result[0], x[:, None])
+        assert array_equal(result[1], y[:, None])
 
 
 class TestBatchedShape:
@@ -59,11 +61,11 @@ class TestBatchedShape:
     @pytest.mark.parametrize(
         ("arr", "expect_ndim", "expect"),
         [
-            (xp.array(42), 0, ((), ())),
-            (xp.array([1]), 0, ((1,), ())),
-            (xp.array([1, 2, 3]), 1, ((), (3,))),
-            (xp.array([[1, 2], [3, 4]]), 1, ((2,), (2,))),
-            (xp.array([[1, 2], [3, 4]]), 2, ((), (2, 2))),
+            (xp.asarray(42), 0, ((), ())),
+            (xp.asarray([1]), 0, ((1,), ())),
+            (xp.asarray([1, 2, 3]), 1, ((), (3,))),
+            (xp.asarray([[1, 2], [3, 4]]), 1, ((2,), (2,))),
+            (xp.asarray([[1, 2], [3, 4]]), 2, ((), (2, 2))),
         ],
     )
     def test_batched_shape(self, arr, expect_ndim, expect):

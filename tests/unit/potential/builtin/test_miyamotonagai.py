@@ -1,6 +1,7 @@
 from typing import Any
 
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 import pytest
 
 import galax.potential as gp
@@ -29,20 +30,20 @@ class TestMiyamotoNagaiPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot, x) -> None:
-        assert xp.isclose(pot.potential_energy(x, t=0), xp.array(-0.95208676))
+        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.95208676))
 
     def test_gradient(self, pot, x):
-        assert xp.allclose(
-            pot.gradient(x, t=0), xp.array([0.04264751, 0.08529503, 0.16840152])
+        assert jnp.allclose(
+            pot.gradient(x, t=0), xp.asarray([0.04264751, 0.08529503, 0.16840152])
         )
 
     def test_density(self, pot, x):
-        assert xp.isclose(pot.density(x, t=0), 1.9949418e08)
+        assert jnp.isclose(pot.density(x, t=0), 1.9949418e08)
 
     def test_hessian(self, pot, x):
-        assert xp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0),
-            xp.array(
+            xp.asarray(
                 [
                     [0.03691649, -0.01146205, -0.02262999],
                     [-0.01146205, 0.01972342, -0.04525999],

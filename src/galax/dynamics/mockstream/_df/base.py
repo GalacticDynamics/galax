@@ -8,7 +8,7 @@ from typing import TypeAlias
 
 import equinox as eqx
 import jax
-import jax.numpy as xp
+import jax.experimental.array_api as xp
 
 from galax.dynamics._orbit import Orbit
 from galax.dynamics.mockstream._core import MockStream
@@ -62,27 +62,26 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         mock_lead, mock_trail : MockStream
             Positions and velocities of the leading and trailing tails.
         """
+        # Progenitor positions and times. The orbit times are the release times
+        # for the mock stream.
         prog_qps = prog_orbit.qp
         ts = prog_orbit.t
 
+        # Scan over the release times to generate the stream particle initial
+        # conditions at each release time.
         def scan_fn(carry: Carry, t: FloatScalar) -> tuple[Carry, Wif]:
             i = carry[0]
-            output = self._sample(
-                potential,
-                prog_qps[i],
-                prog_mass,
-                t,
-                i=i,
-                seed_num=seed_num,
+            out = self._sample(
+                potential, prog_qps[i], prog_mass, t, i=i, seed_num=seed_num
             )
-            return (i + 1, *output), tuple(output)
+            return (i + 1, *out), out
 
         init_carry = (
             0,
-            xp.array([0.0, 0.0, 0.0]),
-            xp.array([0.0, 0.0, 0.0]),
-            xp.array([0.0, 0.0, 0.0]),
-            xp.array([0.0, 0.0, 0.0]),
+            xp.asarray([0.0, 0.0, 0.0]),
+            xp.asarray([0.0, 0.0, 0.0]),
+            xp.asarray([0.0, 0.0, 0.0]),
+            xp.asarray([0.0, 0.0, 0.0]),
         )
         x_lead, x_trail, v_lead, v_trail = jax.lax.scan(scan_fn, init_carry, ts[1:])[1]
 

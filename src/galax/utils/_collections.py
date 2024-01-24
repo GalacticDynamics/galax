@@ -32,7 +32,10 @@ class ImmutableDict(Mapping[str, V]):
     """
 
     def __init__(
-        self, /, *args: tuple[str, V] | Iterable[tuple[str, V]], **kwargs: V
+        self,
+        /,
+        *args: Mapping[str, V] | tuple[str, V] | Iterable[tuple[str, V]],
+        **kwargs: V,
     ) -> None:
         self._data: dict[str, V] = dict(*args, **kwargs)
 

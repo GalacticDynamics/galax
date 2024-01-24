@@ -2,9 +2,10 @@
 
 
 import astropy.units as u
-import jax.numpy as xp
+import jax.experimental.array_api as xp
 import jaxtyping
 import pytest
+from jax.numpy import array_equal
 
 from galax.potential import AbstractParameter, ConstantParameter, UserParameter
 from galax.potential._potential.param.core import ParameterCallable
@@ -75,7 +76,7 @@ class TestConstantParameter(TestAbstractParameter):
         """Test `galax.potential.ConstantParameter` call method."""
         assert param(t=1.0) == field_value
         assert param(t=1.0 * u.s) == field_value
-        assert xp.array_equal(param(t=xp.array([1.0, 2.0])), [field_value, field_value])
+        assert array_equal(param(t=xp.asarray([1.0, 2.0])), [field_value, field_value])
 
 
 # ==============================================================================
@@ -122,9 +123,9 @@ class TestUserParameter(TestAbstractParameter):
         assert param(t=1.0) == 1.0
         assert param(t=1.0 * u.s) == 1.0 * u.s
 
-        t = xp.array([1.0, 2.0])
+        t = xp.asarray([1.0, 2.0])
         with pytest.raises(
             jaxtyping.TypeCheckError,
             match="Type-check error whilst checking the parameters of __call__",
         ):
-            xp.array_equal(param(t=t), t)
+            array_equal(param(t=t), t)

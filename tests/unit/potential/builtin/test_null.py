@@ -1,6 +1,7 @@
 from typing import Any
 
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 import pytest
 
 import galax.potential as gp
@@ -20,16 +21,16 @@ class TestBarPotential(AbstractPotential_Test):
     # ==========================================================================
 
     def test_potential_energy(self, pot, x) -> None:
-        assert xp.isclose(pot.potential_energy(x, t=0), xp.array(0.0))
+        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(0.0))
 
     def test_gradient(self, pot, x):
-        assert xp.allclose(pot.gradient(x, t=0), xp.array([0.0, 0.0, 0.0]))
+        assert jnp.allclose(pot.gradient(x, t=0), xp.asarray([0.0, 0.0, 0.0]))
 
     def test_density(self, pot, x):
-        assert xp.isclose(pot.density(x, t=0), 0.0)
+        assert jnp.isclose(pot.density(x, t=0), 0.0)
 
     def test_hessian(self, pot, x):
-        assert xp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0),
-            xp.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
+            xp.asarray([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
         )

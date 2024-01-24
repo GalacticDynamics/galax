@@ -6,7 +6,7 @@ from dataclasses import KW_ONLY
 from typing import Any, TypeVar, final
 
 import equinox as eqx
-import jax.numpy as xp
+import jax.experimental.array_api as xp
 from typing_extensions import override
 
 from galax.typing import (
@@ -42,7 +42,7 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
         **kwargs: AbstractPotentialBase,
     ) -> None:
         kwunits = kwargs.pop("units", None)
-        super().__init__(potentials, **kwargs)  # type: ignore[arg-type]
+        super().__init__(potentials, **kwargs)
 
         # __post_init__ stuff:
         # Check that all potentials have the same unit system
@@ -61,7 +61,7 @@ class CompositePotential(ImmutableDict[AbstractPotentialBase], AbstractPotential
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
-        return xp.sum(xp.array([p.potential_energy(q, t) for p in self.values()]))
+        return xp.sum(xp.asarray([p.potential_energy(q, t) for p in self.values()]))
 
     ###########################################################################
     # Composite potentials

@@ -1,7 +1,8 @@
 from typing import Any
 
 import astropy.units as u
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
 import pytest
 
 import galax.potential as gp
@@ -30,7 +31,7 @@ class ScaleRadiusParameterMixin(ParameterFieldMixin):
         fields["units"] = galactic
         pot = pot_cls(**fields)
         assert isinstance(pot.r_s, ConstantParameter)
-        assert xp.isclose(pot.r_s.value, 10)
+        assert jnp.isclose(pot.r_s.value, 10)
 
     def test_r_s_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -74,20 +75,20 @@ class TestNFWPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot, x) -> None:
-        assert xp.isclose(pot.potential_energy(x, t=0), xp.array(-1.87117234))
+        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-1.87117234))
 
     def test_gradient(self, pot, x):
-        assert xp.allclose(
-            pot.gradient(x, t=0), xp.array([0.0658867, 0.1317734, 0.19766011])
+        assert jnp.allclose(
+            pot.gradient(x, t=0), xp.asarray([0.0658867, 0.1317734, 0.19766011])
         )
 
     def test_density(self, pot, x):
-        assert xp.isclose(pot.density(x, t=0), 9.46039849e08)
+        assert jnp.isclose(pot.density(x, t=0), 9.46039849e08)
 
     def test_hessian(self, pot, x):
-        assert xp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0),
-            xp.array(
+            xp.asarray(
                 [
                     [0.05558809, -0.02059723, -0.03089585],
                     [-0.02059723, 0.02469224, -0.06179169],

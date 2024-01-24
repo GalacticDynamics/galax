@@ -2,8 +2,9 @@ import copy
 from typing import Any
 
 import equinox as eqx
-import jax.numpy as xp
+import jax.experimental.array_api as xp
 import pytest
+from jax.numpy import array_equal
 from jaxtyping import Array, Float
 
 import galax.dynamics as gd
@@ -53,17 +54,17 @@ class TestAbstractPotentialBase:
     @pytest.fixture(scope="class")
     def x(self) -> Float[Array, "3"]:
         """Create a position vector for testing."""
-        return xp.array([1, 2, 3], dtype=float)
+        return xp.asarray([1, 2, 3], dtype=float)
 
     @pytest.fixture(scope="class")
     def v(self) -> Float[Array, "3"]:
         """Create a velocity vector for testing."""
-        return xp.array([4, 5, 6], dtype=float)
+        return xp.asarray([4, 5, 6], dtype=float)
 
     @pytest.fixture(scope="class")
     def xv(self, x: Float[Array, "3"], v: Float[Array, "3"]) -> Float[Array, "6"]:
         """Create a phase-space vector for testing."""
-        return xp.concatenate([x, v])
+        return xp.concat([x, v])
 
     @pytest.fixture(scope="class")
     def t(self) -> float:
@@ -100,7 +101,7 @@ class TestAbstractPotentialBase:
 
     def test_gradient(self, pot, x):
         """Test the `AbstractPotentialBase.gradient` method."""
-        assert xp.array_equal(pot.gradient(x, t=0), xp.ones_like(x))
+        assert array_equal(pot.gradient(x, t=0), xp.ones_like(x))
 
     def test_density(self, pot, x):
         """Test the `AbstractPotentialBase.density` method."""
@@ -108,9 +109,9 @@ class TestAbstractPotentialBase:
 
     def test_hessian(self, pot, x):
         """Test the `AbstractPotentialBase.hessian` method."""
-        assert xp.array_equal(
+        assert array_equal(
             pot.hessian(x, t=0),
-            xp.array(
+            xp.asarray(
                 [
                     [0.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
@@ -121,8 +122,8 @@ class TestAbstractPotentialBase:
 
     def test_acceleration(self, pot, x):
         """Test the `AbstractPotentialBase.acceleration` method."""
-        assert xp.array_equal(pot.acceleration(x, t=0), xp.array([-1.0, -1, -1]))
-        assert xp.array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
+        assert array_equal(pot.acceleration(x, t=0), xp.asarray([-1.0, -1, -1]))
+        assert array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
 
     # =========================================================================
 
@@ -133,7 +134,7 @@ class TestAbstractPotentialBase:
         orbit = pot.integrate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
         assert orbit.shape == (len(ts), 7)
-        assert xp.array_equal(orbit.t, ts)
+        assert array_equal(orbit.t, ts)
 
     def test_integrate_orbit_batch(self, pot, xv):
         """Test the `AbstractPotentialBase.integrate_orbit` method."""
@@ -143,11 +144,11 @@ class TestAbstractPotentialBase:
         orbits = pot.integrate_orbit(xv[None, :], ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (1, len(ts), 7)
-        assert xp.array_equal(orbits.t, ts)
+        assert array_equal(orbits.t, ts)
 
         # More complicated batch
         xv2 = xp.stack([xv, xv], axis=0)
         orbits = pot.integrate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts), 7)
-        assert xp.array_equal(orbits.t, ts)
+        assert array_equal(orbits.t, ts)

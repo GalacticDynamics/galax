@@ -4,8 +4,9 @@
 __all__ = ["FardalStreamDF"]
 
 
-import jax
-import jax.numpy as xp
+import jax.experimental.array_api as xp
+import jax.numpy as jnp
+from jax import grad, random
 
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
@@ -42,14 +43,12 @@ class FardalStreamDF(AbstractStreamDF):
         """Generate stream particle initial conditions."""
         # Random number generation
         # TODO: change random key handling... need to do all of the sampling up front...
-        key_master = jax.random.PRNGKey(seed_num)
-        random_ints = jax.random.randint(
-            key=key_master, shape=(4,), minval=0, maxval=1000
-        )
-        keya = jax.random.PRNGKey(i * random_ints[0])
-        keyb = jax.random.PRNGKey(i * random_ints[1])
-        keyc = jax.random.PRNGKey(i * random_ints[2])
-        keyd = jax.random.PRNGKey(i * random_ints[3])
+        key_master = random.PRNGKey(seed_num)
+        random_ints = random.randint(key=key_master, shape=(4,), minval=0, maxval=1000)
+        keya = random.PRNGKey(i * random_ints[0])
+        keyb = random.PRNGKey(i * random_ints[1])
+        keyc = random.PRNGKey(i * random_ints[2])
+        keyd = random.PRNGKey(i * random_ints[3])
 
         # ---------------------------
 
@@ -57,7 +56,7 @@ class FardalStreamDF(AbstractStreamDF):
 
         omega_val = orbital_angular_velocity_mag(x, v)
 
-        r = xp.linalg.norm(x)
+        r = xp.linalg.vector_norm(x)
         r_hat = x / r
         r_tidal = tidal_radius(potential, x, v, prog_mass, t)
         rel_v = omega_val * r_tidal  # relative velocity
@@ -65,11 +64,11 @@ class FardalStreamDF(AbstractStreamDF):
         # circlar_velocity
         v_circ = rel_v
 
-        L_vec = xp.cross(x, v)
-        z_hat = L_vec / xp.linalg.norm(L_vec)
+        L_vec = jnp.cross(x, v)
+        z_hat = L_vec / xp.linalg.vector_norm(L_vec)
 
         phi_vec = v - xp.sum(v * r_hat) * r_hat
-        phi_hat = phi_vec / xp.linalg.norm(phi_vec)
+        phi_hat = phi_vec / xp.linalg.vector_norm(phi_vec)
 
         kr_bar = 2.0
         kvphi_bar = 0.3
@@ -82,12 +81,12 @@ class FardalStreamDF(AbstractStreamDF):
         sigma_kz = 0.5
         sigma_kvz = 0.5
 
-        kr_samp = kr_bar + jax.random.normal(keya, shape=(1,)) * sigma_kr
+        kr_samp = kr_bar + random.normal(keya, shape=(1,)) * sigma_kr
         kvphi_samp = kr_samp * (
-            kvphi_bar + jax.random.normal(keyb, shape=(1,)) * sigma_kvphi
+            kvphi_bar + random.normal(keyb, shape=(1,)) * sigma_kvphi
         )
-        kz_samp = kz_bar + jax.random.normal(keyc, shape=(1,)) * sigma_kz
-        kvz_samp = kvz_bar + jax.random.normal(keyd, shape=(1,)) * sigma_kvz
+        kz_samp = kz_bar + random.normal(keyc, shape=(1,)) * sigma_kz
+        kvz_samp = kvz_bar + random.normal(keyd, shape=(1,)) * sigma_kvz
 
         # Trailing arm
         x_trail = (
@@ -134,7 +133,7 @@ def dphidr(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Vec3:
     Array:
         Derivative of potential in [1/Myr]
     """
-    r_hat = x / xp.linalg.norm(x)
+    r_hat = x / xp.linalg.vector_norm(x)
     return xp.sum(potential.gradient(x, t) * r_hat)
 
 
@@ -165,12 +164,12 @@ def d2phidr2(
     >>> from galax.potential import NFWPotential
     >>> from galax.units import galactic
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units=galactic)
-    >>> d2phidr2(pot, xp.array([8.0, 0.0, 0.0]), t=0)
+    >>> d2phidr2(pot, xp.asarray([8.0, 0.0, 0.0]), t=0)
     Array(-0.00017469, dtype=float64)
     """
-    r_hat = x / xp.linalg.norm(x)
+    r_hat = x / xp.linalg.vector_norm(x)
     dphi_dr_func = lambda x: xp.sum(potential.gradient(x, t) * r_hat)  # noqa: E731
-    return xp.sum(jax.grad(dphi_dr_func)(x) * r_hat)
+    return xp.sum(grad(dphi_dr_func)(x) * r_hat)
 
 
 @partial_jit()
@@ -191,13 +190,13 @@ def orbital_angular_velocity(x: Vec3, v: Vec3, /) -> Vec3:
 
     Examples:
     --------
-    >>> x = xp.array([8.0, 0.0, 0.0])
-    >>> v = xp.array([8.0, 0.0, 0.0])
+    >>> x = xp.asarray([8.0, 0.0, 0.0])
+    >>> v = xp.asarray([8.0, 0.0, 0.0])
     >>> orbital_angular_velocity(x, v)
     Array([0., 0., 0.], dtype=float64)
     """
-    r = xp.linalg.norm(x)
-    return xp.cross(x, v) / r**2
+    r = xp.linalg.vector_norm(x)
+    return jnp.cross(x, v) / r**2
 
 
 @partial_jit()
@@ -218,12 +217,12 @@ def orbital_angular_velocity_mag(x: Vec3, v: Vec3, /) -> FloatScalar:
 
     Examples:
     --------
-    >>> x = xp.array([8.0, 0.0, 0.0])
-    >>> v = xp.array([8.0, 0.0, 0.0])
+    >>> x = xp.asarray([8.0, 0.0, 0.0])
+    >>> v = xp.asarray([8.0, 0.0, 0.0])
     >>> orbital_angular_velocity_mag(x, v)
     Array(0., dtype=float64)
     """
-    return xp.linalg.norm(orbital_angular_velocity(x, v))
+    return xp.linalg.vector_norm(orbital_angular_velocity(x, v))
 
 
 @partial_jit()
@@ -260,8 +259,8 @@ def tidal_radius(
     >>> from galax.potential import NFWPotential
     >>> from galax.units import galactic
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units=galactic)
-    >>> x=xp.array([8.0, 0.0, 0.0])
-    >>> v=xp.array([8.0, 0.0, 0.0])
+    >>> x=xp.asarray([8.0, 0.0, 0.0])
+    >>> v=xp.asarray([8.0, 0.0, 0.0])
     >>> tidal_radius(pot, x, v, prog_mass=1e4, t=0)
     Array(0.06362136, dtype=float64)
     """
@@ -296,7 +295,7 @@ def lagrange_points(
         Time.
     """
     r_t = tidal_radius(potential, x, v, prog_mass, t)
-    r_hat = x / xp.linalg.norm(x)
+    r_hat = x / xp.linalg.vector_norm(x)
     L_1 = x - r_hat * r_t  # close
     L_2 = x + r_hat * r_t  # far
     return L_1, L_2

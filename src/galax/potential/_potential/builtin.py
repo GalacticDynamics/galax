@@ -14,7 +14,7 @@ from dataclasses import KW_ONLY
 from typing import final
 
 import astropy.units as u
-import jax.numpy as xp
+import jax.experimental.array_api as xp
 
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
@@ -56,7 +56,7 @@ class BarPotential(AbstractPotential):
     def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalarLike) -> FloatScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
-        rotation_matrix = xp.array(
+        rotation_matrix = xp.asarray(
             [
                 [xp.cos(ang), -xp.sin(ang), 0],
                 [xp.sin(ang), xp.cos(ang), 0.0],
@@ -99,7 +99,7 @@ class HernquistPotential(AbstractPotential):
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
-        r = xp.linalg.norm(q, axis=-1)
+        r = xp.linalg.vector_norm(q, axis=-1)
         return -self._G * self.m(t) / (r + self.c(t))
 
 
@@ -117,7 +117,7 @@ class IsochronePotential(AbstractPotential):
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
-        r = xp.linalg.norm(q, axis=-1)
+        r = xp.linalg.vector_norm(q, axis=-1)
         b = self.b(t)
         return -self._G * self.m(t) / (b + xp.sqrt(r**2 + b**2))
 
@@ -139,7 +139,7 @@ class KeplerPotential(AbstractPotential):
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
-        r = xp.linalg.norm(q, axis=-1)
+        r = xp.linalg.vector_norm(q, axis=-1)
         return -self._G * self.m(t) / r
 
 

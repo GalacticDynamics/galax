@@ -32,7 +32,7 @@ class FardalStreamDF(AbstractStreamDF):
     def _sample(
         self,
         potential: AbstractPotentialBase,
-        w: Vec6,
+        qp: Vec6,
         prog_mass: FloatScalar,
         t: FloatScalar,
         *,
@@ -53,7 +53,7 @@ class FardalStreamDF(AbstractStreamDF):
 
         # ---------------------------
 
-        x, v = w[:3], w[3:]
+        x, v = qp[0:3], qp[3:6]
 
         omega_val = orbital_angular_velocity_mag(x, v)
 

@@ -49,10 +49,19 @@ class TestConverterToUtils:
     @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
     def test_from_gala(self):
         """Test conversion from gala."""
+        # -------------------------------
+        # UnitSystem
         from gala.units import UnitSystem as GalaUnitSystem
 
         value = GalaUnitSystem(u.km, u.s, u.Msun, u.radian)
         assert converter_to_usys(value) == UnitSystem(*value._core_units)
+
+        # -------------------------------
+        # DimensionlessUnitSystem
+        from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
+
+        value = GalaDimensionlessUnitSystem()
+        assert converter_to_usys(value) == dimensionless
 
 
 # ============================================================================

@@ -105,15 +105,15 @@ class HernquistPotential(AbstractPotential):
 
 class IsochronePotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
-    a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 
     @partial_jit()
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
         r = xp.linalg.norm(q, axis=-1)
-        a = self.a(t)
-        return -self._G * self.m(t) / (a + xp.sqrt(r**2 + a**2))
+        b = self.b(t)
+        return -self._G * self.m(t) / (b + xp.sqrt(r**2 + b**2))
 
 
 # -------------------------------------------------------------------

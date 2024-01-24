@@ -290,7 +290,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """Return the derivative of the phase-space position."""
         return xp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a
 
-    @partial_jit(static_argnames=("integrator"))
+    @partial_jit(static_argnames=("integrator",))
     def integrate_orbit(
         self,
         qp0: BatchVec6,

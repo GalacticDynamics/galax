@@ -201,4 +201,5 @@ messages_control.disable = [
   "wrong-import-position",
   "unnecessary-lambda-assignment",  # ruff E731
   "protected-access",  # ruff SLF001
+  "invalid-name",  # ruff N80*
 ]

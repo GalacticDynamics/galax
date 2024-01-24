@@ -42,7 +42,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     _: KW_ONLY
     units: eqx.AbstractVar[UnitSystem]
-    _G: eqx.AbstractVar[float]
 
     ###########################################################################
     # Abstract methods that must be implemented by subclasses

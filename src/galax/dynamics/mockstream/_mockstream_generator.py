@@ -167,12 +167,13 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # Parse vmapped
         use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
 
-        # Integrate the progenitor orbit to the stripping times
+        # Integrate the progenitor orbit, evaluating at the stripping times
         prog_o = self.potential.integrate_orbit(
             prog_w0, ts, integrator=self.progenitor_integrator
         )
 
-        # Generate stream initial conditions along the integrated progenitor orbit
+        # Generate stream initial conditions along the integrated progenitor
+        # orbit. The release times are stripping times.
         mock0_lead, mock0_trail = self.df.sample(
             self.potential, prog_o, prog_mass, seed_num=seed_num
         )

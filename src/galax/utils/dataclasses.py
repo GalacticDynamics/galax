@@ -60,7 +60,7 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
     Class(a=2)
     """
 
-    def __new__(
+    def __new__(  # pylint: disable=signature-differs
         mcs,
         name: str,
         bases: tuple[type, ...],

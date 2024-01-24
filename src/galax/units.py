@@ -169,6 +169,7 @@ class DimensionlessUnitSystem(UnitSystem):
 
     def __init__(self) -> None:
         super().__init__(u.one)
+        self._core_units = [u.one]
 
     def __getitem__(self, key: str | u.PhysicalType) -> u.UnitBase:
         return u.one

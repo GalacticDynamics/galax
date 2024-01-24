@@ -74,7 +74,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             param = getattr(self.__class__, f.name, None)
             if isinstance(param, ParameterField):
                 # Set, since the ``.units`` are now known
-                param.__set__(self, getattr(self, f.name))
+                param.__set__(self, getattr(self, f.name))  # pylint: disable=C2801
 
             # Other fields, check their metadata
             elif "dimensions" in f.metadata:

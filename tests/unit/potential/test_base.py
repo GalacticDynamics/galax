@@ -10,6 +10,7 @@ from jaxtyping import Array, Float
 import galax.dynamics as gd
 import galax.potential as gp
 from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
+from galax.units import UnitSystem, dimensionless
 from galax.utils import partial_jit, vectorize_method
 
 
@@ -19,7 +20,7 @@ class TestAbstractPotentialBase:
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.AbstractPotentialBase]:
         class TestPotential(gp.AbstractPotentialBase):
-            units: float = 2
+            units: UnitSystem = eqx.field(default=dimensionless, static=True)
             _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
             def __post_init__(self):
@@ -81,7 +82,7 @@ class TestAbstractPotentialBase:
 
         # Test that the concrete class can be instantiated
         class TestPotential(gp.AbstractPotentialBase):
-            units: float = 2
+            units: UnitSystem = eqx.field(default=dimensionless, static=True)
 
             def _potential_energy(self, q, t):
                 return xp.sum(q, axis=-1)

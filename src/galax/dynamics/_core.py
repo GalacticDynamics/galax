@@ -133,7 +133,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
             Array([0.        , 0.        , 6.28318531], dtype=float64)
         """
         # TODO: when q, p are not Cartesian.
-        return xp.cross(self.q, self.p)
+        return jnp.cross(self.q, self.p)
 
     # ==========================================================================
     # Dynamical quantities

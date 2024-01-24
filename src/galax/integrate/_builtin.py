@@ -35,10 +35,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         default=PIDController(rtol=1e-7, atol=1e-7), static=True
     )
     diffeq_kw: Mapping[str, Any] = eqx.field(
-        default=(
-            ("max_steps", None),
-            ("discrete_terminating_event", None),
-        ),
+        default=(("max_steps", None), ("discrete_terminating_event", None)),
         static=True,
         converter=ImmutableDict,
     )

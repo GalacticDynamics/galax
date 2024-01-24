@@ -6,7 +6,7 @@ __all__ = [
     # modules
     "units",
     "potential",
-    "integrator",
+    "integrate",
     "dynamics",
     "utils",
     "typing",

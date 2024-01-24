@@ -94,7 +94,7 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
 
             @ft.wraps(original_init)
             def init(self: _DataclassInstance, *args: Any, **kwargs: Any) -> None:
-                __tracebackhide__ = True
+                __tracebackhide__ = True  # pylint: disable=unused-variable
 
                 # Apply any converter to its argument.
                 ba = sig.bind(self, *args, **kwargs)

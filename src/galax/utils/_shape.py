@@ -74,7 +74,7 @@ def atleast_batched(*arys: Any) -> Array | tuple[Array, ...]:
         msg = "atleast_batched() requires at least one argument"
         raise ValueError(msg)
     if len(arys) == 1:
-        arr = xp.asarray(arys[0])
+        arr = jnp.asarray(arys[0])
         if arr.ndim >= 2:
             return arr
         if arr.ndim == 1:
@@ -206,7 +206,7 @@ def expand_batch_dims(arr: ArrayAnyShape, /, ndim: int) -> ArrayAnyShape:
     >>> expand_batch_dims(jnp.array([0, 1]), ndim=1).shape
     (1, 2)
     """
-    return xp.expand_dims(arr, axis=tuple(range(ndim)))
+    return jnp.expand_dims(arr, axis=tuple(range(ndim)))
 
 
 def expand_arr_dims(arr: ArrayAnyShape, /, ndim: int) -> ArrayAnyShape:
@@ -242,4 +242,4 @@ def expand_arr_dims(arr: ArrayAnyShape, /, ndim: int) -> ArrayAnyShape:
     (2, 1)
     """
     nbatch = len(arr.shape)
-    return xp.expand_dims(arr, axis=tuple(nbatch + i for i in range(ndim)))
+    return jnp.expand_dims(arr, axis=tuple(nbatch + i for i in range(ndim)))

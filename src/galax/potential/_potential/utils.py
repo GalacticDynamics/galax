@@ -10,7 +10,13 @@ from astropy.coordinates import BaseRepresentation, BaseRepresentationOrDifferen
 from astropy.units import Quantity
 from jax import Array
 
-from galax.units import UnitSystem, dimensionless, galactic, solarsystem
+from galax.units import (
+    DimensionlessUnitSystem,
+    UnitSystem,
+    dimensionless,
+    galactic,
+    solarsystem,
+)
 
 
 @singledispatch
@@ -141,3 +147,29 @@ def _convert_from_representation(
             )
         )
     return _convert_from_baserep(value, units=units)
+
+
+##############################################################################
+# Gala compatibility
+# TODO: move this to an interoperability module
+
+# isort: split
+from galax.utils._optional_deps import HAS_GALA  # noqa: E402
+
+if HAS_GALA:
+    from gala.units import (
+        DimensionlessUnitSystem as GalaDimensionlessUnitSystem,
+        UnitSystem as GalaUnitSystem,
+    )
+
+    @converter_to_usys.register
+    def _from_gala(value: GalaUnitSystem, /) -> UnitSystem:
+        usys = UnitSystem(*value._core_units)  # noqa: SLF001
+        usys._registry = value._registry  # noqa: SLF001
+        return usys
+
+    @converter_to_usys.register
+    def _from_gala_dimensionless(
+        value: GalaDimensionlessUnitSystem, /
+    ) -> DimensionlessUnitSystem:
+        return dimensionless

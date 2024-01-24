@@ -32,7 +32,7 @@ from galax.utils import partial_jit, vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils.dataclasses import ModuleMeta
 
-from .utils import parse_inputs
+from .utils import convert_inputs_to_arrays
 
 if TYPE_CHECKING:
     from galax.dynamics._orbit import Orbit
@@ -116,8 +116,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         E : Array[float, *batch]
             The potential energy per unit mass or value of the potential.
         """
-        q, t = parse_inputs(q, t, units=self.units, no_differentials=True)
-        return self._potential_energy(q, xp.asarray(t))
+        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
+        return self._potential_energy(q, t)
 
     @partial_jit()
     def __call__(
@@ -152,7 +152,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """See ``gradient``."""
         return grad(self._potential_energy)(q, t)
 
-    def gradient(self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike) -> BatchVec3:
+    def gradient(
+        self,
+        q: BatchVec3 | Quantity | BaseRepresentation,
+        /,
+        t: BatchableFloatOrIntScalarLike,
+    ) -> BatchVec3:
         """Compute the gradient of the potential at the given position(s).
 
         Parameters
@@ -169,7 +174,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         grad : Array[float, (*batch, 3)]
             The gradient of the potential.
         """
-        return self._gradient(q, xp.asarray(t))  # vectorize doesn't allow kwargs
+        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
+        return self._gradient(q, t)  # vectorize doesn't allow kwargs
 
     # ---------------------------------------
     # Density
@@ -201,7 +207,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         rho : Array[float, *batch]
             The potential energy or value of the potential.
         """
-        return self._density(q, xp.asarray(t))
+        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
+        return self._density(q, t)
 
     # ---------------------------------------
     # Hessian
@@ -213,7 +220,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return hessian(self._potential_energy)(q, t)
 
     def hessian(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self,
+        q: BatchVec3 | Quantity | BaseRepresentation,
+        /,
+        t: BatchableFloatOrIntScalarLike,
     ) -> BatchMatrix33:
         """Compute the Hessian of the potential at the given position(s).
 
@@ -231,13 +241,17 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         Array[float, (*batch, 3, 3)]
             The Hessian matrix of second derivatives of the potential.
         """
-        return self._hessian(q, xp.asarray(t))
+        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
+        return self._hessian(q, t)
 
     ###########################################################################
     # Convenience methods
 
     def acceleration(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self,
+        q: BatchVec3 | Quantity | BaseRepresentation,
+        /,
+        t: BatchableFloatOrIntScalarLike,
     ) -> BatchVec3:
         """Compute the acceleration due to the potential at the given position(s).
 
@@ -254,7 +268,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             The acceleration. Will have the same shape as the input
             position array, ``q``.
         """
-        return -self._gradient(q, xp.asarray(t))
+        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
+        return -self._gradient(q, t)
 
     @partial_jit()
     def tidal_tensor(
@@ -303,7 +318,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @partial_jit(static_argnames=("integrator",))
     def integrate_orbit(
         self,
-        qp0: BatchVec6 | Quantity | BaseRepresentation,
+        qp0: BatchVec6,
         t: Float[Array, "time"] | Quantity,
         *,
         integrator: Integrator | None = None,
@@ -388,8 +403,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         # TODO: ꜛ get NORMALIZE_WHITESPACE to work correctly so Orbit is 1 line
         from galax.dynamics._orbit import Orbit
 
-        # Process the inputs
-        qp0, t = parse_inputs(qp0, t, units=self.units)
         integrator_ = default_integrator if integrator is None else replace(integrator)
 
         ws = integrator_(self._integrator_F, qp0, t)

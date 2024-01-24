@@ -29,3 +29,8 @@ else:
 
 with install_import_hook("galax", TYPECHECKER):
     from galax import dynamics, integrate, potential, typing, units, utils
+
+
+# Clean up the namespace
+for name in set(dir()) - set(__all__):
+    del globals()[name]

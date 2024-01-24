@@ -36,6 +36,8 @@ def _converter_immutabledict_or_none(x: Any) -> ImmutableDict[Any] | None:
 
 
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
+    """Generate a mock stellar stream in the specified external potential."""
+
     df: AbstractStreamDF
     """Distribution function for generating mock streams.
 

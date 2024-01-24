@@ -1,11 +1,13 @@
 __all__ = ["AbstractPotential"]
 
+import abc
 import uuid
 from dataclasses import KW_ONLY
 from typing import Any
 
 import equinox as eqx
 
+from galax.typing import FloatOrIntScalar, FloatScalar, Vec3
 from galax.units import UnitSystem
 
 from .base import AbstractPotentialBase
@@ -14,6 +16,8 @@ from .utils import converter_to_usys
 
 
 class AbstractPotential(AbstractPotentialBase, strict=True):
+    """Abstract base class for all potential objects."""
+
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
@@ -21,11 +25,18 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
     def __post_init__(self) -> None:
         self._init_units()
 
+    ###########################################################################
+    # Abstract methods that must be implemented by subclasses
+
+    @abc.abstractmethod
+    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
+        raise NotImplementedError
+
+    ###########################################################################
+
     def __add__(self, other: Any) -> CompositePotential:
         if not isinstance(other, AbstractPotentialBase):
             return NotImplemented
-
-        from galax.potential._potential.composite import CompositePotential
 
         if isinstance(other, CompositePotential):
             return other.__ror__(self)

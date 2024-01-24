@@ -21,6 +21,13 @@ from .base import AbstractStreamDF
 
 
 class FardalStreamDF(AbstractStreamDF):
+    """Fardal Stream Distribution Function.
+
+    A class for representing the Fardal+2015 distribution function for
+    generating stellar streams based on Fardal et al. 2015
+    https://ui.adsabs.harvard.edu/abs/2015MNRAS.452..301F/abstract
+    """
+
     @partial_jit(static_argnums=(0,), static_argnames=("seed_num",))
     def _sample(
         self,

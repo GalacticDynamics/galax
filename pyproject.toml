@@ -199,4 +199,6 @@ messages_control.disable = [
   "line-too-long",
   "missing-module-docstring",
   "wrong-import-position",
+  "unnecessary-lambda-assignment",  # ruff E731
+  "protected-access",  # ruff SLF001
 ]

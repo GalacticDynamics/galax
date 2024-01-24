@@ -181,7 +181,7 @@ def field(
         msg = "Cannot use metadata with `converter` already set."
         raise ValueError(msg)
     if "static" in metadata:
-        "Cannot use metadata with `static` already set."
+        msg = "Cannot use metadata with `static` already set."
         raise ValueError(msg)
 
     if converter is not None:

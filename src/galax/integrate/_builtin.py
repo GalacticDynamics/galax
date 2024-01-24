@@ -12,9 +12,9 @@ from diffrax import (
     Dopri5,
     ODETerm,
     PIDController,
+    SaveAt as DiffraxSaveAt,
     diffeqsolve,
 )
-from diffrax import SaveAt as DiffraxSaveAt
 from jaxtyping import Array, Float
 
 from galax.integrate._base import AbstractIntegrator

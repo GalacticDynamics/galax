@@ -14,4 +14,5 @@ def test_all():
         + _potential.composite.__all__
         + _potential.core.__all__
         + _potential.param.__all__
+        + _potential.special.__all__
     )

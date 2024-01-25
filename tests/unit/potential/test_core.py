@@ -3,7 +3,6 @@ from typing import Any
 
 import equinox as eqx
 import jax.experimental.array_api as xp
-import jax.numpy as jnp
 import pytest
 
 import galax.potential as gp
@@ -64,7 +63,3 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
 
         pot = TestPotential()
         assert isinstance(pot, gp.AbstractPotentialBase)
-
-    # TODO: move up the hierarchy?
-    def test_acceleration(self, pot, x):
-        assert jnp.allclose(pot.acceleration(x, t=0), -pot.gradient(x, t=0))

@@ -9,7 +9,7 @@ import galax.potential as gp
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 
 
-class TestBarPotential(AbstractPotential_Test):
+class TestNullPotential(AbstractPotential_Test):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.NullPotential]:
         return gp.NullPotential

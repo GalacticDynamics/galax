@@ -9,12 +9,19 @@ from jaxtyping import Array, Float
 
 import galax.dynamics as gd
 import galax.potential as gp
-from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
+from galax.typing import (
+    BatchableFloatOrIntScalarLike,
+    BatchFloatScalar,
+    BatchVec3,
+    Vec3,
+)
 from galax.units import UnitSystem, dimensionless
 from galax.utils import partial_jit, vectorize_method
 
+from .io.test_gala import GalaIOMixin
 
-class TestAbstractPotentialBase:
+
+class TestAbstractPotentialBase(GalaIOMixin):
     """Test the `galax.potential.AbstractPotentialBase` class."""
 
     @pytest.fixture(scope="class")
@@ -53,17 +60,17 @@ class TestAbstractPotentialBase:
     # ---------------------------------
 
     @pytest.fixture(scope="class")
-    def x(self) -> Float[Array, "3"]:
+    def x(self) -> Vec3:
         """Create a position vector for testing."""
         return xp.asarray([1, 2, 3], dtype=float)
 
     @pytest.fixture(scope="class")
-    def v(self) -> Float[Array, "3"]:
+    def v(self) -> Vec3:
         """Create a velocity vector for testing."""
         return xp.asarray([4, 5, 6], dtype=float)
 
     @pytest.fixture(scope="class")
-    def xv(self, x: Float[Array, "3"], v: Float[Array, "3"]) -> Float[Array, "6"]:
+    def xv(self, x: Vec3, v: Vec3) -> Float[Array, "6"]:
         """Create a phase-space vector for testing."""
         return xp.concat([x, v])
 
@@ -92,9 +99,13 @@ class TestAbstractPotentialBase:
 
     # =========================================================================
 
+    # ---------------------------------
+
     def test_potential_energy(self, pot, x):
         """Test the `AbstractPotentialBase.potential_energy` method."""
         assert pot.potential_energy(x, t=0) == 6
+
+    # ---------------------------------
 
     def test_call(self, pot, x):
         """Test the `AbstractPotentialBase.__call__` method."""

@@ -1,13 +1,17 @@
+from dataclasses import replace
 from typing import Any
 
 import astropy.units as u
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 import pytest
+from typing_extensions import override
 
 import galax.potential as gp
 from galax.potential import ConstantParameter
+from galax.typing import Vec3
 from galax.units import galactic
+from galax.utils._optional_deps import HAS_GALA
 
 from ..params.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
@@ -47,6 +51,9 @@ class ScaleRadiusParameterMixin(ParameterFieldMixin):
         assert pot.r_s(t=0) == 2
 
 
+###############################################################################
+
+
 class TestNFWPotential(
     AbstractPotential_Test,
     # Parameters
@@ -54,14 +61,16 @@ class TestNFWPotential(
     ScaleRadiusParameterMixin,
 ):
     @pytest.fixture(scope="class")
+    @override
     def pot_cls(self) -> type[gp.NFWPotential]:
         return gp.NFWPotential
 
     @pytest.fixture(scope="class")
-    def field_softening_length(self) -> dict[str, Any]:
+    def field_softening_length(self) -> float:
         return 0.001
 
     @pytest.fixture(scope="class")
+    @override
     def fields_(
         self, field_m, field_r_s, field_softening_length, field_units
     ) -> dict[str, Any]:
@@ -96,3 +105,26 @@ class TestNFWPotential(
                 ]
             ),
         )
+
+    # ==========================================================================
+    # I/O
+
+    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    def test_galax_to_gala_to_galax_roundtrip(
+        self, pot: gp.AbstractPotentialBase, x: Vec3
+    ) -> None:
+        """Test roundtripping ``gala_to_galax(galax_to_gala())``."""
+        from ..io.gala_helper import galax_to_gala
+
+        # Base is with non-zero softening
+        assert pot.softening_length != 0
+        with pytest.raises(TypeError, match="Gala does not support softening"):
+            _ = galax_to_gala(pot)
+
+        # Make a copy without softening
+        pot = replace(pot, softening_length=0)
+
+        rpot = gp.io.gala_to_galax(galax_to_gala(pot))
+
+        # quick test that the potential energies are the same
+        assert jnp.array_equal(pot(x, t=0), rpot(x, t=0))

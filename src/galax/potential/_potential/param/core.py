@@ -13,6 +13,7 @@ from galax.typing import (
     BatchableFloatOrIntScalarLike,
     FloatArrayAnyShape,
     FloatOrIntScalar,
+    FloatOrIntScalarLike,
     FloatScalar,
     Unit,
 )
@@ -37,12 +38,12 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @abc.abstractmethod
-    def __call__(self, t: FloatScalar, **kwargs: Any) -> FloatArrayAnyShape:
+    def __call__(self, t: FloatOrIntScalarLike, **kwargs: Any) -> FloatArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : float | Array[float, ()]
+        t : Array[float | int, ()] | float | int
             The time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.

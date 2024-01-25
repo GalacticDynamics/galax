@@ -58,6 +58,12 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         return xp.concat((q, p), axis=-1)
 
     # ==========================================================================
+
+    def __len__(self) -> int:
+        """Return the number of particles."""
+        return self.shape[0]
+
+    # ==========================================================================
     # Dynamical quantities
 
     @partial_jit()

@@ -4,7 +4,7 @@ __all__ = ["MilkyWayPotential"]
 
 
 from dataclasses import KW_ONLY
-from typing import Any
+from typing import Any, final
 
 import astropy.units as u
 import equinox as eqx
@@ -29,6 +29,7 @@ def _munge(value: dict[str, Quantity], units: UnitSystem) -> Any:
     return value
 
 
+@final
 class MilkyWayPotential(AbstractCompositePotential):
     """Milky Way mass model.
 

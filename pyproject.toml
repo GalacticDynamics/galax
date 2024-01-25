@@ -92,6 +92,7 @@ xfail_strict = true
 filterwarnings = [
   "error",
   "ignore:ast\\.Str is deprecated:DeprecationWarning",
+  "ignore:numpy\\.ndarray size changed:RuntimeWarning",
 ]
 log_cli_level = "INFO"
 testpaths = [

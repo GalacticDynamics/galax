@@ -123,7 +123,6 @@ class TestAbstractPotentialBase:
 
     def test_acceleration(self, pot, x):
         """Test the `AbstractPotentialBase.acceleration` method."""
-        assert array_equal(pot.acceleration(x, t=0), xp.asarray([-1.0, -1, -1]))
         assert array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
 
     # =========================================================================

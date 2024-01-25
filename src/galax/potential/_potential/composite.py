@@ -7,7 +7,6 @@ from typing import Any, TypeVar, final
 
 import equinox as eqx
 import jax.experimental.array_api as xp
-from typing_extensions import override
 
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
@@ -40,7 +39,6 @@ class AbstractCompositePotential(
     ###########################################################################
     # Composite potentials
 
-    @override
     def __or__(self, other: Any) -> "CompositePotential":
         if not isinstance(other, AbstractPotentialBase):
             return NotImplemented
@@ -89,18 +87,19 @@ class CompositePotential(AbstractCompositePotential):
         | tuple[tuple[str, AbstractPotentialBase], ...] = (),
         /,
         *,
-        units: UnitSystem | None = None,
+        units: Any = None,
         **kwargs: AbstractPotentialBase,
     ) -> None:
-        super().__init__(potentials, **kwargs)  # type: ignore[arg-type]
+        super().__init__(potentials, **kwargs)
 
         # __post_init__ stuff:
         # Check that all potentials have the same unit system
         units_ = units if units is not None else first(self.values()).units
-        if not all(p.units == units_ for p in self.values()):
+        usys = converter_to_usys(units_)
+        if not all(p.units == usys for p in self.values()):
             msg = "all potentials must have the same unit system"
             raise ValueError(msg)
-        object.__setattr__(self, "units", units_)
+        object.__setattr__(self, "units", usys)
 
         # Apply the unit system to any parameters.
         self._init_units()

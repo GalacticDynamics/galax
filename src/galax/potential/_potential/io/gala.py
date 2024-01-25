@@ -10,6 +10,7 @@ from gala.potential import (
     HernquistPotential as GalaHernquistPotential,
     IsochronePotential as GalaIsochronePotential,
     KeplerPotential as GalaKeplerPotential,
+    MilkyWayPotential as GalaMilkyWayPotential,
     MiyamotoNagaiPotential as GalaMiyamotoNagaiPotential,
     NFWPotential as GalaNFWPotential,
     NullPotential as GalaNullPotential,
@@ -26,6 +27,7 @@ from galax.potential._potential.builtin import (
     NullPotential,
 )
 from galax.potential._potential.composite import CompositePotential
+from galax.potential._potential.special import MilkyWayPotential
 
 ##############################################################################
 # GALA -> GALAX
@@ -56,10 +58,18 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     raise NotImplementedError(msg)
 
 
+# -----------------------------------------------------------------------------
+# General rules
+
+
 @gala_to_galax.register
 def _gala_to_galax_composite(pot: GalaCompositePotential, /) -> CompositePotential:
     """Convert a Gala CompositePotential to a Galax potential."""
     return CompositePotential(**{k: gala_to_galax(p) for k, p in pot.items()})
+
+
+# -----------------------------------------------------------------------------
+# Builtin potentials
 
 
 @gala_to_galax.register
@@ -125,3 +135,22 @@ def _gala_to_galax_nullpotential(pot: GalaNullPotential, /) -> NullPotential:
         msg = "Galax does not support rotating or offset potentials."
         raise TypeError(msg)
     return NullPotential(units=pot.units)
+
+
+# -----------------------------------------------------------------------------
+# MW potentials
+
+
+@gala_to_galax.register
+def _gala_to_galax_mwpotential(pot: GalaMilkyWayPotential, /) -> MilkyWayPotential:
+    """Convert a Gala MilkyWayPotential to a Galax potential."""
+    if not all(_static_at_origin(p) for p in pot.values()):
+        msg = "Galax does not support rotating or offset potentials."
+        raise TypeError(msg)
+
+    return MilkyWayPotential(
+        disk={k: pot["disk"].parameters[k] for k in ("m", "a", "b")},
+        halo={k: pot["halo"].parameters[k] for k in ("m", "r_s")},
+        bulge={k: pot["bulge"].parameters[k] for k in ("m", "c")},
+        nucleus={k: pot["nucleus"].parameters[k] for k in ("m", "c")},
+    )

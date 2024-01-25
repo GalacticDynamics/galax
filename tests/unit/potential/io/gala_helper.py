@@ -9,6 +9,7 @@ from gala.potential import (
     HernquistPotential as GalaHernquistPotential,
     IsochronePotential as GalaIsochronePotential,
     KeplerPotential as GalaKeplerPotential,
+    MilkyWayPotential as GalaMilkyWayPotential,
     MiyamotoNagaiPotential as GalaMiyamotoNagaiPotential,
     NFWPotential as GalaNFWPotential,
     NullPotential as GalaNullPotential,
@@ -28,6 +29,7 @@ from galax.potential._potential.builtin import (
 )
 from galax.potential._potential.composite import CompositePotential
 from galax.potential._potential.param import ConstantParameter
+from galax.potential._potential.special import MilkyWayPotential
 from galax.units import DimensionlessUnitSystem, UnitSystem
 
 ##############################################################################
@@ -168,3 +170,14 @@ def _galax_to_gala_nfw(pot: NFWPotential, /) -> GalaNFWPotential:
 def _galax_to_gala_nullpotential(pot: NullPotential, /) -> GalaNullPotential:
     """Convert a Galax NullPotential to a Gala potential."""
     return GalaNullPotential(units=galax_to_gala_units(pot.units))
+
+
+@galax_to_gala.register
+def _gala_to_galax_mwpotential(pot: MilkyWayPotential, /) -> GalaMilkyWayPotential:
+    """Convert a Gala MilkyWayPotential to a Galax potential."""
+    return GalaMilkyWayPotential(
+        disk={k: getattr(pot["disk"], k)(0) for k in ("m", "a", "b")},
+        halo={k: getattr(pot["halo"], k)(0) for k in ("m", "r_s")},
+        bulge={k: getattr(pot["bulge"], k)(0) for k in ("m", "c")},
+        nucleus={k: getattr(pot["nucleus"], k)(0) for k in ("m", "c")},
+    )

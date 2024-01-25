@@ -113,8 +113,8 @@ port.exclude_lines = [
 [tool.mypy]
 files = ["src"]
 python_version = "3.11"
-warn_unused_configs = true
 strict = true
+warn_unused_configs = true
 show_error_codes = true
 warn_unreachable = true
 disallow_untyped_defs = true

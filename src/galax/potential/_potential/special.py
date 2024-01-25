@@ -77,16 +77,16 @@ class MilkyWayPotential(AbstractCompositePotential):
         units_ = converter_to_usys(units) if units is not None else galactic
         super().__init__(
             disk=MiyamotoNagaiPotential(
-                units=units_, **_munge(_default_disk, units_), **(disk or {})
+                units=units_, **_munge(_default_disk, units_) | (disk or {})
             ),
             halo=NFWPotential(
-                units=units_, **_munge(_default_halo, units_), **(halo or {})
+                units=units_, **_munge(_default_halo, units_) | (halo or {})
             ),
             bulge=HernquistPotential(
-                units=units_, **_munge(_default_bulge, units_), **(bulge or {})
+                units=units_, **_munge(_default_bulge, units_) | (bulge or {})
             ),
             nucleus=HernquistPotential(
-                units=units_, **_munge(_default_nucleus, units_), **(nucleus or {})
+                units=units_, **_munge(_default_nucleus, units_) | (nucleus or {})
             ),
         )
 

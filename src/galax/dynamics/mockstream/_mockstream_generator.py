@@ -100,9 +100,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Better for GPU usage.
         """
-        qp0_lead = mock0_lead.qp
-        qp0_trail = mock0_trail.qp
-        t_f = ts[-1] + 0.01
+        t_f = ts[-1] + 0.01  # TODO: not have the bump in the final time.
 
         # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
@@ -119,9 +117,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             ).qp[-1]
             return qp_lead, qp_trail
 
+        qp0_lead = mock0_lead.qp
         particle_ids = xp.arange(len(qp0_lead))
         integrator = jax.vmap(single_particle_integrate, in_axes=(0, 0, 0))
-        lead_arm_qp, trail_arm_qp = integrator(particle_ids, qp0_lead, qp0_trail)
+        lead_arm_qp, trail_arm_qp = integrator(particle_ids, qp0_lead, mock0_trail.qp)
         return lead_arm_qp, trail_arm_qp
 
     @partial_jit(static_argnames=("seed_num", "vmapped"))

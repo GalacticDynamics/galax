@@ -1,0 +1,25 @@
+.. doctest-skip-all
+
+.. _whatsnew-1.0:
+
+*************************
+What's New in galax v1.0?
+*************************
+
+Overview
+========
+
+Gala 1.0 is a major release with significant new functionality (some of which is
+described below).
+
+This release includes (among other things):
+
+* :ref:`whatsnew-1.0-todo`
+
+
+.. _whatsnew-1.0-todo:
+
+TODO
+====
+
+TODO.

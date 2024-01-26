@@ -24,9 +24,9 @@ from galax.potential._potential.builtin import (
     KeplerPotential,
     MiyamotoNagaiPotential,
     NFWPotential,
-    NullPotential,
 )
 from galax.potential._potential.composite import CompositePotential
+from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.special import MilkyWayPotential
 
 ##############################################################################
@@ -68,52 +68,29 @@ def _gala_to_galax_composite(pot: GalaCompositePotential, /) -> CompositePotenti
     return CompositePotential(**{k: gala_to_galax(p) for k, p in pot.items()})
 
 
-# -----------------------------------------------------------------------------
-# Builtin potentials
+_GALA_TO_GALAX_REGISTRY: dict[type[GalaPotentialBase], type[AbstractPotential]] = {
+    GalaHernquistPotential: HernquistPotential,
+    GalaIsochronePotential: IsochronePotential,
+    GalaKeplerPotential: KeplerPotential,
+    GalaMiyamotoNagaiPotential: MiyamotoNagaiPotential,
+}
 
 
-@gala_to_galax.register
-def _gala_to_galax_hernquist(pot: GalaHernquistPotential, /) -> HernquistPotential:
+@gala_to_galax.register(GalaHernquistPotential)
+@gala_to_galax.register(GalaIsochronePotential)
+@gala_to_galax.register(GalaKeplerPotential)
+@gala_to_galax.register(GalaMiyamotoNagaiPotential)
+@gala_to_galax.register(GalaNullPotential)
+def _gala_to_galax_hernquist(pot: GalaPotentialBase, /) -> AbstractPotential:
     """Convert a Gala HernquistPotential to a Galax potential."""
     if not _static_at_origin(pot):
         msg = "Galax does not support rotating or offset potentials."
         raise TypeError(msg)
-    params = pot.parameters
-    return HernquistPotential(m=params["m"], c=params["c"], units=pot.units)
+    return _GALA_TO_GALAX_REGISTRY[type(pot)](**pot.parameters, units=pot.units)
 
 
-@gala_to_galax.register
-def _gala_to_galax_isochrone(pot: GalaIsochronePotential, /) -> IsochronePotential:
-    """Convert a Gala IsochronePotential to a Galax potential."""
-    if not _static_at_origin(pot):
-        msg = "Galax does not support rotating or offset potentials."
-        raise TypeError(msg)
-    params = pot.parameters
-    return IsochronePotential(m=params["m"], b=params["b"], units=pot.units)
-
-
-@gala_to_galax.register
-def _gala_to_galax_kepler(pot: GalaKeplerPotential, /) -> KeplerPotential:
-    """Convert a Gala KeplerPotential to a Galax potential."""
-    if not _static_at_origin(pot):
-        msg = "Galax does not support rotating or offset potentials."
-        raise TypeError(msg)
-    params = pot.parameters
-    return KeplerPotential(m=params["m"], units=pot.units)
-
-
-@gala_to_galax.register
-def _gala_to_galax_miyamotonagi(
-    pot: GalaMiyamotoNagaiPotential, /
-) -> MiyamotoNagaiPotential:
-    """Convert a Gala MiyamotoNagaiPotential to a Galax potential."""
-    if not _static_at_origin(pot):
-        msg = "Galax does not support rotating or offset potentials."
-        raise TypeError(msg)
-    params = pot.parameters
-    return MiyamotoNagaiPotential(
-        m=params["m"], a=params["a"], b=params["b"], units=pot.units
-    )
+# -----------------------------------------------------------------------------
+# Builtin potentials
 
 
 @gala_to_galax.register
@@ -126,15 +103,6 @@ def _gala_to_galax_nfw(pot: GalaNFWPotential, /) -> NFWPotential:
     return NFWPotential(
         m=params["m"], r_s=params["r_s"], softening_length=0, units=pot.units
     )
-
-
-@gala_to_galax.register
-def _gala_to_galax_nullpotential(pot: GalaNullPotential, /) -> NullPotential:
-    """Convert a Gala NullPotential to a Galax potential."""
-    if not _static_at_origin(pot):
-        msg = "Galax does not support rotating or offset potentials."
-        raise TypeError(msg)
-    return NullPotential(units=pot.units)
 
 
 # -----------------------------------------------------------------------------

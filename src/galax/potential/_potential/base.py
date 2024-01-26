@@ -2,7 +2,8 @@ __all__ = ["AbstractPotentialBase"]
 
 import abc
 from dataclasses import KW_ONLY, fields, replace
-from typing import TYPE_CHECKING, Any
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import equinox as eqx
 import jax.experimental.array_api as xp
@@ -15,6 +16,8 @@ from jaxtyping import Array, Float
 
 from galax.integrate._base import Integrator
 from galax.integrate._builtin import DiffraxIntegrator
+from galax.potential._potential.param.attr import ParametersAttribute
+from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
     BatchFloatScalar,
@@ -44,8 +47,19 @@ default_integrator: Integrator = DiffraxIntegrator()
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
     """Abstract Potential Class."""
 
+    parameters: ClassVar = ParametersAttribute(MappingProxyType({}))
+
     _: KW_ONLY
     units: eqx.AbstractVar[UnitSystem]
+
+    def __init_subclass__(cls) -> None:
+        """Initialize the subclass."""
+        # Replace the ``parameters`` attribute with a mapping of the values
+        type(cls).__setattr__(
+            cls,
+            "parameters",
+            ParametersAttribute(MappingProxyType(all_parameters(cls))),
+        )
 
     ###########################################################################
     # Abstract methods that must be implemented by subclasses

@@ -62,6 +62,8 @@ class ConstantParameter(AbstractParameter):
     # TODO: unit handling
     # TODO: link this shape to the return shape from __call__
     value: FloatArrayAnyShape = eqx.field(converter=converter_float_array)
+    _: KW_ONLY
+    unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     # This is a workaround since vectorized methods don't support kwargs.
     @partial_jit()
@@ -132,6 +134,8 @@ class UserParameter(AbstractParameter):
 
     # TODO: unit handling
     func: ParameterCallable = eqx.field(static=True)
+    _: KW_ONLY
+    unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @partial_jit()
     def __call__(self, t: FloatOrIntScalar, **kwargs: Any) -> FloatArrayAnyShape:

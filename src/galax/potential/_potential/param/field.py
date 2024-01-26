@@ -1,17 +1,30 @@
 """Descriptor for a Potential Parameter."""
 
+from __future__ import annotations
+
 __all__ = ["ParameterField"]
 
 from dataclasses import KW_ONLY, dataclass, field, is_dataclass
-from typing import Annotated, Any, cast, get_args, get_origin, get_type_hints, overload
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    cast,
+    get_args,
+    get_origin,
+    get_type_hints,
+    overload,
+)
 
 import astropy.units as u
 import jax.experimental.array_api as xp
 
-from galax.potential._potential.core import AbstractPotential
 from galax.typing import Unit
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
+
+if TYPE_CHECKING:
+    from galax.potential._potential.base import AbstractPotentialBase
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,24 +59,28 @@ class ParameterField:
     # ===========================================
     # Descriptor
 
-    def __set_name__(self, owner: type[AbstractPotential], name: str) -> None:
+    def __set_name__(self, owner: "type[AbstractPotentialBase]", name: str) -> None:
         object.__setattr__(self, "name", name)
 
     # -----------------------------
 
     @overload  # TODO: use `Self` when beartype is happy
     def __get__(
-        self, instance: None, owner: type[AbstractPotential]
+        self, instance: None, owner: "type[AbstractPotentialBase]"
     ) -> "ParameterField":
         ...
 
     @overload
-    def __get__(self, instance: AbstractPotential, owner: None) -> AbstractParameter:
+    def __get__(
+        self, instance: "AbstractPotentialBase", owner: None
+    ) -> AbstractParameter:
         ...
 
     def __get__(  # TODO: use `Self` when beartype is happy
-        self, instance: AbstractPotential | None, owner: type[AbstractPotential] | None
-    ) -> "ParameterField | AbstractParameter":
+        self,
+        instance: "AbstractPotentialBase | None",
+        owner: "type[AbstractPotentialBase] | None",
+    ) -> ParameterField | AbstractParameter:
         # Get from class
         if instance is None:
             # If the Parameter is being set as part of a dataclass constructor,
@@ -79,7 +96,7 @@ class ParameterField:
 
     # -----------------------------
 
-    def _check_unit(self, potential: AbstractPotential, unit: Unit) -> None:
+    def _check_unit(self, potential: "AbstractPotentialBase", unit: Unit) -> None:
         """Check that the given unit is compatible with the parameter's."""
         # When the potential is being constructed, the units may not have been
         # set yet, so we don't check the unit.
@@ -99,7 +116,7 @@ class ParameterField:
 
     def __set__(
         self,
-        potential: AbstractPotential,
+        potential: "AbstractPotentialBase",
         value: AbstractParameter | ParameterCallable | Any,
     ) -> None:
         # Convert
@@ -128,6 +145,9 @@ class ParameterField:
 
         # Set
         potential.__dict__[self.name] = value
+
+
+# -------------------------------------------
 
 
 def _get_unit_from_return_annotation(func: ParameterCallable) -> Unit:

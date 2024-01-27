@@ -324,7 +324,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial_jit()
     def _integrator_F(
-        self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]  # pylint: disable=W0613
+        self,
+        t: FloatScalar,
+        qp: Vec6,
+        args: tuple[Any, ...],  # pylint: disable=W0613
     ) -> Vec6:
         """Return the derivative of the phase-space position."""
         return jnp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a

@@ -3,6 +3,13 @@ ci:
   autofix_commit_msg: "style: pre-commit fixes"
 
 repos:
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.13.0
+    hooks:
+      - id: commitizen
+      - id: commitizen-branch
+        stages: [push]
+
   - repo: meta
     hooks:
       - id: check-useless-excludes

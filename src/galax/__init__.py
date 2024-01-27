@@ -9,11 +9,11 @@ from lazy_loader import attach_stub as _attach_stub
 
 config.update("jax_enable_x64", True)  # noqa: FBT003
 
-_RUNTIME_TYPECHECKER: str | None
-if os.environ.get("GALAX_ENABLE_RUNTIME_TYPECHECKS", "1") == "1":
-    _RUNTIME_TYPECHECKER = "beartype.beartype"
-else:
-    _RUNTIME_TYPECHECKER = None
+_RUNTIME_TYPECHECKER = (
+    "beartype.beartype"
+    if (os.environ.get("GALAX_ENABLE_RUNTIME_TYPECHECKS", "1") == "1")
+    else None
+)
 
 with install_import_hook("galax", _RUNTIME_TYPECHECKER):
     __getattr__, __dir__, __all__ = _attach_stub(__name__, __file__)

@@ -124,7 +124,11 @@
   warn_redundant_casts = true
   warn_unused_configs = true
   warn_unreachable = true
-  exclude = '''(^|/)tests/|(^/)docs/|(^/)conftest\.py'''
+  exclude = [
+    '(^/)docs/',  # docs
+    '(^|/)tests/',  # tests
+    '^conftest\.py$',  # nox test configuration
+  ]
 
   enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 

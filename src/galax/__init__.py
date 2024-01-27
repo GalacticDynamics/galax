@@ -1,36 +1,23 @@
 """Copyright (c) 2023 galax maintainers. All rights reserved."""
 # ruff:noqa: F401
 
-__all__ = [
-    "__version__",
-    # modules
-    "units",
-    "potential",
-    "integrate",
-    "dynamics",
-    "utils",
-    "typing",
-]
-
 import os
 
 from jax import config
 from jaxtyping import install_import_hook
-
-from ._version import version as __version__
+from lazy_loader import attach_stub as _attach_stub
 
 config.update("jax_enable_x64", True)  # noqa: FBT003
 
-TYPECHECKER: str | None
-if os.environ.get("GALDYNAMIX_ENABLE_RUNTIME_TYPECHECKS", "1") == "1":
-    TYPECHECKER = "beartype.beartype"
-else:
-    TYPECHECKER = None
+_RUNTIME_TYPECHECKER = (
+    "beartype.beartype"
+    if (os.environ.get("GALAX_ENABLE_RUNTIME_TYPECHECKS", "1") == "1")
+    else None
+)
 
-with install_import_hook("galax", TYPECHECKER):
-    from galax import dynamics, integrate, potential, typing, units, utils
+with install_import_hook("galax", _RUNTIME_TYPECHECKER):
+    __getattr__, __dir__, __all__ = _attach_stub(__name__, __file__)
 
 
-# Clean up the namespace
-for name in set(dir()) - set(__all__):
-    del globals()[name]
+# Install the runtime typechecker
+install_import_hook("galax", _RUNTIME_TYPECHECKER)

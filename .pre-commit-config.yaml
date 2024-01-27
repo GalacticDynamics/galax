@@ -70,6 +70,7 @@ repos:
     hooks:
       - id: mypy
         files: src
+        exclude: ^src/galax/__init__\.py$
         additional_dependencies:
           - pytest
 
@@ -77,7 +78,7 @@ repos:
     rev: "v2.2.6"
     hooks:
       - id: codespell
-        exclude: ^(?!.*\/notebooks\/)(?!.AUTHORS\.rst$).+$
+        exclude: ^(notebooks|AUTHORS\.rst)$
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.16

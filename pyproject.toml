@@ -197,6 +197,7 @@
     ]
     "noxfile.py" = ["ERA001", "T20"]
     "__init__.py" = ["F403"]
+    "__init__.pyi" = ["F401"]
 
 
   [tool.ruff.lint.isort]

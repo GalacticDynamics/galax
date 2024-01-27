@@ -2,6 +2,8 @@ ci:
   autoupdate_commit_msg: "chore: update pre-commit hooks"
   autofix_commit_msg: "style: pre-commit fixes"
 
+default_stages: [pre-commit, pre-push]
+
 repos:
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v3.13.0

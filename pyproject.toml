@@ -47,13 +47,9 @@
   ]
   test = [
     "hypothesis[numpy]",
-    "pytest >=6",
+    "pytest >=6,<8",
     "pytest-cov >=3",
     "sybil",
-  ]
-  dev = [
-    "pytest >=6",
-    "pytest-cov >=3",
   ]
   docs = [
     "sphinx>=7.0",
@@ -65,8 +61,7 @@
   all = [
     "galax[compat-all]",
     "galax[test]",
-    "galax[docs]",
-    "galax[dev]",
+    "galax[docs]"
   ]
 
 [project.urls]

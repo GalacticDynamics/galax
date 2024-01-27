@@ -8,7 +8,7 @@ repos:
       - id: check-useless-excludes
 
   - repo: https://github.com/scientific-python/cookie
-    rev: 2023.12.21
+    rev: 2024.01.24
     hooks:
       - id: sp-repo-review
 
@@ -80,7 +80,7 @@ repos:
         exclude: ^(?!.*\/notebooks\/)(?!.AUTHORS\.rst$).+$
 
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.15
+    rev: v0.16
     hooks:
       - id: validate-pyproject
 

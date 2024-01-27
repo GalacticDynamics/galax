@@ -1,124 +1,136 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
+  requires = ["hatchling", "hatch-vcs"]
+  build-backend = "hatchling.build"
 
 
 [project]
-name = "galax"
-authors = [
-  { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
-  { name = "Jake Nibauer", email = "jnibauer@princeton.edu" },
-  { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
-]
-description = "Galactic Dynamix in Jax."
-readme = "README.md"
-requires-python = ">=3.11"
-classifiers = [
-  "Development Status :: 1 - Planning",
-  "Intended Audience :: Science/Research",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Topic :: Scientific/Engineering",
-  "Typing :: Typed",
-]
-dynamic = ["version"]
-dependencies = [
-  "astropy >= 5.3",
-  "beartype",
-  "diffrax",
-  "equinox != 0.11.3",
-  "jax",
-  "jaxlib",
-  "typing_extensions",
-]
+  name = "galax"
+  authors = [
+    { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
+    { name = "Jake Nibauer", email = "jnibauer@princeton.edu" },
+    { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
+  ]
+  description = "Galactic Dynamix in Jax."
+  readme = "README.md"
+  requires-python = ">=3.11"
+  classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
+  ]
+  dynamic = ["version"]
+  dependencies = [
+    "astropy >= 5.3",
+    "beartype",
+    "diffrax",
+    "equinox != 0.11.3",
+    "jax",
+    "jaxlib",
+    "typing_extensions",
+  ]
 
-[project.optional-dependencies]
-compat-gala = [
-  "gala",
-]
-compat-all = [
-  "galax[compat-gala]",
-]
-test = [
-  "hypothesis[numpy]",
-  "pytest >=6",
-  "pytest-cov >=3",
-  "sybil",
-]
-dev = [
-  "pytest >=6",
-  "pytest-cov >=3",
-]
-docs = [
-  "sphinx>=7.0",
-  "myst_parser>=0.13",
-  "sphinx_copybutton",
-  "sphinx_autodoc_typehints",
-  "furo>=2023.08.17",
-]
-all = [
-  "galax[compat-all]",
-  "galax[test]",
-  "galax[docs]",
-  "galax[dev]",
-]
+  [project.optional-dependencies]
+  compat-gala = [
+    "gala",
+  ]
+  compat-all = [
+    "galax[compat-gala]",
+  ]
+  test = [
+    "hypothesis[numpy]",
+    "pytest >=6",
+    "pytest-cov >=3",
+    "sybil",
+  ]
+  dev = [
+    "pytest >=6",
+    "pytest-cov >=3",
+  ]
+  docs = [
+    "sphinx>=7.0",
+    "myst_parser>=0.13",
+    "sphinx_copybutton",
+    "sphinx_autodoc_typehints",
+    "furo>=2023.08.17",
+  ]
+  all = [
+    "galax[compat-all]",
+    "galax[test]",
+    "galax[docs]",
+    "galax[dev]",
+  ]
 
 [project.urls]
-Homepage = "https://github.com/GalacticDynamics/galax"
-"Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
-Discussions = "https://github.com/GalacticDynamics/galax/discussions"
-Changelog = "https://github.com/GalacticDynamics/galax/releases"
+  Homepage = "https://github.com/GalacticDynamics/galax"
+  "Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
+  Discussions = "https://github.com/GalacticDynamics/galax/discussions"
+  Changelog = "https://github.com/GalacticDynamics/galax/releases"
 
 
 [tool.hatch]
-version.source = "vcs"
-build.hooks.vcs.version-file = "src/galax/_version.py"
-envs.default.dependencies = [
-  "pytest",
-  "pytest-cov",
-]
+  version.source = "vcs"
+  build.hooks.vcs.version-file = "src/galax/_version.py"
+  envs.default.dependencies = [
+    "pytest",
+    "pytest-cov",
+  ]
 
 
 [tool.pytest.ini_options]
-minversion = "6.0"
-addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
-xfail_strict = true
-filterwarnings = [
-  "error",
-  "ignore:ast\\.Str is deprecated:DeprecationWarning",
-  "ignore:numpy\\.ndarray size changed:RuntimeWarning",
-]
-log_cli_level = "INFO"
-testpaths = [
-  "tests/",
-  "docs",
-  "src/galax",
-]
+  minversion = "6.0"
+  addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+  xfail_strict = true
+  filterwarnings = [
+    "error",
+    "ignore:ast\\.Str is deprecated:DeprecationWarning",
+    "ignore:numpy\\.ndarray size changed:RuntimeWarning",
+  ]
+  log_cli_level = "INFO"
+  testpaths = [
+    "tests/",
+    "docs",
+    "src/galax",
+  ]
 
 
 [tool.coverage]
-run.source = ["galax"]
-port.exclude_lines = [
-  'pragma: no cover',
-  '\.\.\.',
-  'if typing.TYPE_CHECKING:',
-]
+  run.source = ["galax"]
+
+  [tool.coverage.report]
+    exclude_lines = [
+      # Have to re-enable the standard pragma
+      'pragma: no cover',
+      # Ignore type-checking stuff
+      'if typing.TYPE_CHECKING:',
+      'if TYPE_CHECKING:',
+      '\.\.\.',
+      # Ignore contents of abstract methods
+      '@abc.abstractmethod',
+      '@abstractmethod',
+    ]
+
 
 [tool.mypy]
-files = ["src"]
-python_version = "3.11"
-strict = true
-warn_unused_configs = true
-show_error_codes = true
-warn_unreachable = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
+  python_version = "3.11"
+
+  strict = true
+  disallow_untyped_defs = true
+  disallow_incomplete_defs = true
+  warn_redundant_casts = true
+  warn_unused_configs = true
+  warn_unreachable = true
+  exclude = '''(^|/)tests/|(^/)docs/|(^/)conftest\.py'''
+
+  enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
   [[tool.mypy.overrides]]
   module = "galax.*"
@@ -143,70 +155,70 @@ disallow_incomplete_defs = true
 
 
 [tool.ruff]
-src = ["src"]
+  src = ["src"]
 
-[tool.ruff.lint]
-extend-select = ["ALL"]
-ignore = [
-  "ANN101",  # Missing type annotation for self in method
-  "ANN102",  # Missing type annotation for cls in classmethod
-  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in `*args`
-  "COM812",  # Missing trailing comma in Python 3.6+
-  "D203",    # 1 blank line required before class docstring
-  "D105",    # Missing docstring in magic method
-  "D107",    # Missing docstring in `__init__`
-  "D213",    # Multi-line docstring summary should start at the second line
-  "E741",    # Ambiguous variable name
-  "F722",    # Syntax error in forward annotation  <- jaxtyping
-  "F821",    # undefined name  <- jaxtyping
-  "FIX002",  # Line contains TODO, consider resolving the issue
-  "N80",     # Naming conventions.
-  "PD",      # pandas-vet
-  "PLR",     # Design related pylint codes
-  "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict
-  "TCH00",   # Move into a type-checking block
-  "TD002",   # Missing author in TODO
-  "TD003",   # Missing issue link on the line following this TODO
-  "UP037",   # Remove quote from type annotation  <- jaxtyping
-  # TODO: fix these
-  "ARG001",
-  "ARG002",
-  "ERA001",  # commented-out code
-  "F841",
-]
-# Uncomment if using a _compat.typing backport
-# typing-modules = ["galax._compat.typing"]
+  [tool.ruff.lint]
+    extend-select = ["ALL"]
+    ignore = [
+      "ANN101",  # Missing type annotation for self in method
+      "ANN102",  # Missing type annotation for cls in classmethod
+      "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in `*args`
+      "COM812",  # Missing trailing comma in Python 3.6+
+      "D203",    # 1 blank line required before class docstring
+      "D105",    # Missing docstring in magic method
+      "D107",    # Missing docstring in `__init__`
+      "D213",    # Multi-line docstring summary should start at the second line
+      "E741",    # Ambiguous variable name
+      "F722",    # Syntax error in forward annotation  <- jaxtyping
+      "F821",    # undefined name  <- jaxtyping
+      "FIX002",  # Line contains TODO, consider resolving the issue
+      "N80",     # Naming conventions.
+      "PD",      # pandas-vet
+      "PLR",     # Design related pylint codes
+      "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict
+      "TCH00",   # Move into a type-checking block
+      "TD002",   # Missing author in TODO
+      "TD003",   # Missing issue link on the line following this TODO
+      "UP037",   # Remove quote from type annotation  <- jaxtyping
+      # TODO: fix these
+      "ARG001",
+      "ARG002",
+      "ERA001",  # commented-out code
+      "F841",
+    ]
+    # Uncomment if using a _compat.typing backport
+    # typing-modules = ["galax._compat.typing"]
 
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F403"]
-"tests/**" = [
-  "ANN", "D10", "E731", "INP001", "S101", "S301", "SLF001", "T20",
-  "TID252",  # Relative imports from parent modules are banned
-]
-"noxfile.py" = ["ERA001", "T20"]
-"docs/conf.py" = [
-  "A001",  # Variable `copyright` is shadowing a Python builtin
-  "INP001",  # implicit namespace package
-]
+  [tool.ruff.lint.per-file-ignores]
+    "__init__.py" = ["F403"]
+    "tests/**" = [
+      "ANN", "D10", "E731", "INP001", "S101", "S301", "SLF001", "T20",
+      "TID252",  # Relative imports from parent modules are banned
+    ]
+    "noxfile.py" = ["ERA001", "T20"]
+    "docs/conf.py" = [
+      "A001",  # Variable `copyright` is shadowing a Python builtin
+      "INP001",  # implicit namespace package
+    ]
 
-[tool.ruff.lint.isort]
-combine-as-imports = true
+  [tool.ruff.lint.isort]
+    combine-as-imports = true
 
 
 [tool.pylint]
-py-version = "3.11"
-ignore-paths = [".*/_version.py"]
-reports.output-format = "colorized"
-similarities.ignore-imports = "yes"
-messages_control.disable = [
-  "design",
-  "fixme",
-  "line-too-long",
-  "missing-module-docstring",
-  "wrong-import-position",
-  "unnecessary-ellipsis",
-  "import-outside-toplevel",
-  "unnecessary-lambda-assignment",  # ruff E731
-  "protected-access",  # ruff SLF001
-  "invalid-name",  # ruff N80*
-]
+  py-version = "3.11"
+  ignore-paths = [".*/_version.py"]
+  reports.output-format = "colorized"
+  similarities.ignore-imports = "yes"
+  messages_control.disable = [
+    "design",
+    "fixme",
+    "line-too-long",
+    "missing-module-docstring",
+    "wrong-import-position",
+    "unnecessary-ellipsis",
+    "import-outside-toplevel",
+    "unnecessary-lambda-assignment",  # ruff E731
+    "protected-access",  # ruff SLF001
+    "invalid-name",  # ruff N80*
+  ]

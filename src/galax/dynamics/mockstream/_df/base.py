@@ -4,6 +4,7 @@
 __all__ = ["AbstractStreamDF"]
 
 import abc
+from functools import partial
 from typing import TypeAlias
 
 import equinox as eqx
@@ -14,7 +15,6 @@ from galax.dynamics._orbit import Orbit
 from galax.dynamics.mockstream._core import MockStream
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchVec3, FloatScalar, IntLike, Vec3, Vec6
-from galax.utils import partial_jit
 
 Wif: TypeAlias = tuple[Vec3, Vec3, Vec3, Vec3]
 Carry: TypeAlias = tuple[IntLike, Vec3, Vec3, Vec3, Vec3]
@@ -31,7 +31,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             msg = "You must generate either leading or trailing tails (or both!)"
             raise ValueError(msg)
 
-    @partial_jit(static_argnames=("seed_num",))
+    @partial(jax.jit, static_argnames=("seed_num",))
     def sample(
         self,
         # <\ parts of gala's ``prog_orbit``

@@ -3,9 +3,11 @@ __all__ = ["CompositePotential"]
 
 import uuid
 from dataclasses import KW_ONLY
+from functools import partial
 from typing import Any, TypeVar, final
 
 import equinox as eqx
+import jax
 import jax.experimental.array_api as xp
 
 from galax.typing import (
@@ -14,7 +16,7 @@ from galax.typing import (
     BatchVec3,
 )
 from galax.units import UnitSystem
-from galax.utils import ImmutableDict, partial_jit
+from galax.utils import ImmutableDict
 from galax.utils._misc import first
 
 from .base import AbstractPotentialBase
@@ -30,7 +32,7 @@ class AbstractCompositePotential(
 ):
     # === Potential ===
 
-    @partial_jit()
+    @partial(jax.jit)
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:

@@ -2,14 +2,16 @@
 
 __all__ = ["MockStream"]
 
+from functools import partial
+
 import equinox as eqx
+import jax
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from galax.dynamics._core import AbstractPhaseSpacePositionBase
 from galax.typing import BatchVec7, TimeVector
-from galax.utils import partial_jit
 from galax.utils._shape import atleast_batched, batched_shape
 from galax.utils.dataclasses import converter_float_array
 
@@ -44,7 +46,7 @@ class MockStream(AbstractPhaseSpacePositionBase):
         return batch_shape, qshape + pshape + (1,)
 
     @property
-    @partial_jit()
+    @partial(jax.jit)
     def w(self) -> BatchVec7:
         """Return as a single Array[float, (*batch, Q + P + T)]."""
         batch_shape, component_shapes = self._shape_tuple

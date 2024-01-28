@@ -3,6 +3,7 @@
 __all__ = ["MockStreamGenerator"]
 
 from dataclasses import KW_ONLY
+from functools import partial
 from typing import Any, TypeAlias
 
 import equinox as eqx
@@ -23,7 +24,6 @@ from galax.typing import (
     Vec6,
     VecN,
 )
-from galax.utils import partial_jit
 from galax.utils._collections import ImmutableDict
 
 from ._core import MockStream
@@ -59,7 +59,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     # ==========================================================================
 
-    @partial_jit()
+    @partial(jax.jit)
     def _run_scan(  # TODO: output shape depends on the input shape
         self, ts: TimeVector, mock0_lead: MockStream, mock0_trail: MockStream
     ) -> tuple[BatchVec6, BatchVec6]:
@@ -92,7 +92,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         return lead_arm_qp, trail_arm_qp
 
-    @partial_jit()
+    @partial(jax.jit)
     def _run_vmap(  # TODO: output shape depends on the input shape
         self, ts: TimeVector, mock0_lead: MockStream, mock0_trail: MockStream
     ) -> tuple[BatchVec6, BatchVec6]:
@@ -123,7 +123,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         lead_arm_qp, trail_arm_qp = integrator(particle_ids, qp0_lead, mock0_trail.qp)
         return lead_arm_qp, trail_arm_qp
 
-    @partial_jit(static_argnames=("seed_num", "vmapped"))
+    @partial(jax.jit, static_argnames=("seed_num", "vmapped"))
     def run(
         self,
         ts: TimeVector,

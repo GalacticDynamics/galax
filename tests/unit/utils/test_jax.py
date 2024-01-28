@@ -2,27 +2,7 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from galax.utils import (
-    partial_jit,
-    partial_vectorize,
-    partial_vmap,
-    vectorize_method,
-)
-
-
-def test_partial_jit():
-    """Test the partial_jit function."""
-
-    def func(x, y):
-        return x + y
-
-    jit_func = partial_jit()(func)
-    assert jit_func(1, 2) == 3
-
-    # The real test is comparing this to the output of `jax.jit`.
-    assert jit_func(1, 2) == jax.jit(func)(1, 2)
-
-    # TODO: test all the kwarg options.
+from galax.utils import partial_vectorize, partial_vmap, vectorize_method
 
 
 def test_partial_vmap():

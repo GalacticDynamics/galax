@@ -4,10 +4,12 @@ __all__ = ["AbstractParameter", "ConstantParameter", "UserParameter"]
 
 import abc
 from dataclasses import KW_ONLY
+from functools import partial
 from typing import Any, Protocol, runtime_checkable
 
 import astropy.units as u
 import equinox as eqx
+import jax
 
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
@@ -17,7 +19,7 @@ from galax.typing import (
     FloatScalar,
     Unit,
 )
-from galax.utils import partial_jit, vectorize_method
+from galax.utils import vectorize_method
 from galax.utils.dataclasses import converter_float_array
 
 
@@ -66,12 +68,12 @@ class ConstantParameter(AbstractParameter):
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     # This is a workaround since vectorized methods don't support kwargs.
-    @partial_jit()
+    @partial(jax.jit)
     @vectorize_method(signature="()->()")
     def _call_helper(self, _: FloatOrIntScalar) -> FloatArrayAnyShape:
         return self.value
 
-    @partial_jit()
+    @partial(jax.jit)
     def __call__(
         self, t: BatchableFloatOrIntScalarLike = 0, **kwargs: Any
     ) -> FloatArrayAnyShape:
@@ -137,6 +139,6 @@ class UserParameter(AbstractParameter):
     _: KW_ONLY
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
-    @partial_jit()
+    @partial(jax.jit)
     def __call__(self, t: FloatOrIntScalar, **kwargs: Any) -> FloatArrayAnyShape:
         return self.func(t, **kwargs)

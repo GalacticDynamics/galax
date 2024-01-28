@@ -4,6 +4,9 @@
 __all__ = ["FardalStreamDF"]
 
 
+from functools import partial
+
+import jax
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jax import grad, random
@@ -16,7 +19,6 @@ from galax.typing import (
     Vec3,
     Vec6,
 )
-from galax.utils import partial_jit
 
 from .base import AbstractStreamDF
 
@@ -29,7 +31,7 @@ class FardalStreamDF(AbstractStreamDF):
     https://ui.adsabs.harvard.edu/abs/2015MNRAS.452..301F/abstract
     """
 
-    @partial_jit(static_argnums=(0,), static_argnames=("seed_num",))
+    @partial(jax.jit, static_argnums=(0,), static_argnames=("seed_num",))
     def _sample(
         self,
         potential: AbstractPotentialBase,
@@ -115,7 +117,7 @@ class FardalStreamDF(AbstractStreamDF):
 # TODO: move this to a more general location.
 
 
-@partial_jit()
+@partial(jax.jit)
 def dphidr(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Vec3:
     """Compute the derivative of the potential at a position x.
 
@@ -137,7 +139,7 @@ def dphidr(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Vec3:
     return xp.sum(potential.gradient(x, t) * r_hat)
 
 
-@partial_jit()
+@partial(jax.jit)
 def d2phidr2(
     potential: AbstractPotentialBase, x: Vec3, /, t: FloatOrIntScalarLike
 ) -> FloatScalar:
@@ -172,7 +174,7 @@ def d2phidr2(
     return xp.sum(grad(dphi_dr_func)(x) * r_hat)
 
 
-@partial_jit()
+@partial(jax.jit)
 def orbital_angular_velocity(x: Vec3, v: Vec3, /) -> Vec3:
     """Compute the orbital angular velocity about the origin.
 
@@ -199,7 +201,7 @@ def orbital_angular_velocity(x: Vec3, v: Vec3, /) -> Vec3:
     return jnp.cross(x, v) / r**2
 
 
-@partial_jit()
+@partial(jax.jit)
 def orbital_angular_velocity_mag(x: Vec3, v: Vec3, /) -> FloatScalar:
     """Compute the magnitude of the angular momentum in the simulation frame.
 
@@ -225,7 +227,7 @@ def orbital_angular_velocity_mag(x: Vec3, v: Vec3, /) -> FloatScalar:
     return xp.linalg.vector_norm(orbital_angular_velocity(x, v))
 
 
-@partial_jit()
+@partial(jax.jit)
 def tidal_radius(
     potential: AbstractPotentialBase,
     x: Vec3,
@@ -271,7 +273,7 @@ def tidal_radius(
     ) ** (1.0 / 3.0)
 
 
-@partial_jit()
+@partial(jax.jit)
 def lagrange_points(
     potential: AbstractPotentialBase,
     x: Vec3,

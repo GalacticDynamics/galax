@@ -1,7 +1,9 @@
 import copy
+from functools import partial
 from typing import Any
 
 import equinox as eqx
+import jax
 import jax.experimental.array_api as xp
 import pytest
 from jax.numpy import array_equal
@@ -16,7 +18,7 @@ from galax.typing import (
     Vec3,
 )
 from galax.units import UnitSystem, dimensionless
-from galax.utils import partial_jit, vectorize_method
+from galax.utils import vectorize_method
 
 from .io.test_gala import GalaIOMixin
 
@@ -33,7 +35,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
             def __post_init__(self):
                 object.__setattr__(self, "_G", 1.0)
 
-            @partial_jit()
+            @partial(jax.jit)
             @vectorize_method(signature="(3),()->()")
             def _potential_energy(
                 self, q: BatchVec3, t: BatchableFloatOrIntScalarLike

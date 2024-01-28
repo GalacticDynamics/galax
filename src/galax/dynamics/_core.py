@@ -3,15 +3,16 @@
 __all__ = ["AbstractPhaseSpacePosition", "PhaseSpacePosition"]
 
 from abc import abstractmethod
+from functools import partial
 from typing import TYPE_CHECKING, final
 
 import equinox as eqx
+import jax
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
-from galax.utils import partial_jit
 from galax.utils._shape import atleast_batched, batched_shape
 from galax.utils.dataclasses import converter_float_array
 
@@ -49,7 +50,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
     # Convenience properties
 
     @property
-    @partial_jit()
+    @partial(jax.jit)
     def qp(self) -> BatchVec6:
         """Return as a single Array[float, (*batch, Q + P),]."""
         batch_shape, component_shapes = self._shape_tuple
@@ -66,7 +67,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
     # ==========================================================================
     # Dynamical quantities
 
-    @partial_jit()
+    @partial(jax.jit)
     def kinetic_energy(self) -> BatchFloatScalar:
         r"""Return the specific kinetic energy.
 
@@ -100,7 +101,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
     # Convenience properties
 
     @property
-    @partial_jit()
+    @partial(jax.jit)
     def w(self) -> BatchVec7:
         """Return as a single Array[float, (*batch, Q + P + T)]."""
         batch_shape, component_shapes = self._shape_tuple
@@ -112,7 +113,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         return xp.concat((q, p, t), axis=-1)
 
     @property
-    @partial_jit()
+    @partial(jax.jit)
     def angular_momentum(self) -> BatchVec3:
         r"""Compute the angular momentum.
 
@@ -144,7 +145,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
     # ==========================================================================
     # Dynamical quantities
 
-    @partial_jit()
+    @partial(jax.jit)
     def potential_energy(
         self, potential: "AbstractPotentialBase", /
     ) -> BatchFloatScalar:
@@ -166,7 +167,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         """
         return potential.potential_energy(self.q, t=self.t)
 
-    @partial_jit()
+    @partial(jax.jit)
     def energy(self, potential: "AbstractPotentialBase", /) -> BatchFloatScalar:
         r"""Return the specific total energy.
 
@@ -204,7 +205,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         return batch_shape, array_shape
 
     @property
-    @partial_jit()
+    @partial(jax.jit)
     def w(self) -> BatchVec7:
         """Return as a single Array[float, (*batch, Q + P + T)]."""
         batch_shape, component_shapes = self._shape_tuple

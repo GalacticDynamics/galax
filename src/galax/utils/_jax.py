@@ -2,13 +2,12 @@
 
 
 __all__ = [
-    "partial_jit",
     "partial_vmap",
     "partial_vectorize",
     "vectorize_method",
 ]
 
-from collections.abc import Callable, Hashable, Iterable, Sequence
+from collections.abc import Callable, Hashable, Sequence
 from functools import partial
 from typing import Any, NotRequired, TypedDict, TypeVar
 
@@ -17,38 +16,6 @@ from typing_extensions import ParamSpec, Unpack
 
 P = ParamSpec("P")
 R = TypeVar("R")
-
-
-class JITKwargs(TypedDict):
-    """Keyword arguments for :func:`jax.jit`."""
-
-    in_shardings: NotRequired[Any]
-    out_shardings: NotRequired[Any]
-    static_argnums: NotRequired[int | Sequence[int] | None]
-    static_argnames: NotRequired[str | Iterable[str] | None]
-    donate_argnums: NotRequired[int | Sequence[int] | None]
-    donate_argnames: NotRequired[str | Iterable[str] | None]
-    keep_unused: NotRequired[bool]
-    device: NotRequired[jax.Device | None]
-    backend: NotRequired[str | None]
-    inline: NotRequired[bool]
-
-
-def partial_jit(**kw: Unpack[JITKwargs]) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    """Decorate a function with :func:`jax.jit`.
-
-    Parameters
-    ----------
-    **kw : Unpack[JITKwargs]
-        Keyword arguments for :func:`jax.jit`.
-        See :func:`jax.jit` for more information.
-
-    Returns
-    -------
-    :class:`~functools.partial`
-        A partial function to :func:`jax.jit` a function.
-    """
-    return partial(jax.jit, **kw)
 
 
 # TODO: nest the definitions properly

@@ -1,51 +1,17 @@
 """galax: Galactic Dynamix in Jax."""
 
 
-__all__ = [
-    "partial_vmap",
-    "partial_vectorize",
-    "vectorize_method",
-]
+__all__ = ["partial_vectorize", "vectorize_method"]
 
-from collections.abc import Callable, Hashable, Sequence
+from collections.abc import Callable, Sequence
 from functools import partial
-from typing import Any, NotRequired, TypedDict, TypeVar
+from typing import NotRequired, TypedDict, TypeVar
 
 import jax
 from typing_extensions import ParamSpec, Unpack
 
 P = ParamSpec("P")
 R = TypeVar("R")
-
-
-# TODO: nest the definitions properly
-class VMapKwargs(TypedDict):
-    """Keyword arguments for :func:`jax.vmap`."""
-
-    in_axes: NotRequired[int | Sequence[Any] | dict[str, Any] | None]
-    out_axes: NotRequired[Any]
-    axis_name: NotRequired[Hashable | None]
-    axis_size: NotRequired[int | None]
-    spmd_axis_name: NotRequired[Hashable | tuple[Hashable, ...] | None]
-
-
-def partial_vmap(
-    **kw: Unpack[VMapKwargs],
-) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    """Decorate a function with :func:`jax.vmap`.
-
-    Parameters
-    ----------
-    **kw : Unpack[VMapKwargs]
-        Keyword arguments for :func:`jax.vmap`.
-        See :func:`jax.vmap` for more information.
-
-    Returns
-    -------
-    :class:`~functools.partial`
-        A partial function to :func:`jax.vmap` a function.
-    """
-    return partial(jax.vmap, **kw)
 
 
 class VectorizeKwargs(TypedDict):

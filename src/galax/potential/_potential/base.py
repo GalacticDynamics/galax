@@ -33,7 +33,7 @@ from galax.typing import (
     Vec6,
 )
 from galax.units import UnitSystem, dimensionless
-from galax.utils import vectorize_method
+from galax.utils._jax import vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils.dataclasses import ModuleMeta
 

@@ -18,7 +18,7 @@ from galax.typing import (
     Vec3,
 )
 from galax.units import UnitSystem, dimensionless
-from galax.utils import vectorize_method
+from galax.utils._jax import vectorize_method
 
 from .io.test_gala import GalaIOMixin
 

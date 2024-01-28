@@ -19,7 +19,7 @@ from galax.typing import (
     FloatScalar,
     Unit,
 )
-from galax.utils import vectorize_method
+from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import converter_float_array
 
 

@@ -29,7 +29,7 @@ from galax.typing import (
     FloatScalar,
     Vec3,
 )
-from galax.utils import vectorize_method
+from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import field
 
 mass = u.get_physical_type("mass")

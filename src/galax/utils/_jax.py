@@ -1,7 +1,7 @@
 """galax: Galactic Dynamix in Jax."""
 
 
-__all__ = ["vectorize_method"]
+__all__: list[str] = []
 
 from collections.abc import Callable, Sequence
 from functools import partial

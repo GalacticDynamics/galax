@@ -1,10 +1,10 @@
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from galax.utils import vectorize_method
+from galax.utils._jax import vectorize_method
 
 
-def test_vectorize_method():
+def test_vectorize_method() -> None:
     """Test the vectorize_method function."""
 
     class A:

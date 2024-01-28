@@ -51,7 +51,7 @@ requires-python = ">=3.11"
 
 [project.optional-dependencies]
 # All runtime dependencies
-all = ["galax[interop-all]"]
+all = ["galax[interop-all,plot-all]"]
 # Interoperability dependencies
 interop-all = [
   "galax[interop-astropy]",
@@ -70,6 +70,8 @@ interop-galpy = [
   "galpy >= 1.8",
 ]
 # TODO: agama
+plot-all = ["galax[plot-matplotlib]"]
+plot-matplotlib = ["matplotlib"]
 # Documentation dependencies
 docs = [
   "sphinx>=7.0",

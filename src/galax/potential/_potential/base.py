@@ -203,7 +203,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return lap / (4 * xp.pi * self._G)
 
     def density(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self,
+        q: BatchVec3 | Quantity | BaseRepresentation,
+        /,
+        t: BatchableFloatOrIntScalarLike,
     ) -> BatchFloatScalar:
         """Compute the density value at the given position(s).
 

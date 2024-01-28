@@ -7,17 +7,18 @@ User Guide
 **********
 
 The user guide contains exhaustive descriptions of all of the functions and
-classes available in :mod:`gala`, with some inline narrative descriptions and
+classes available in :mod:`galax`, with some inline narrative descriptions and
 demonstrations of functionality. This portion of the documentation should be
-treated like reference material, whereas the :ref:`gala-tutorials` show how
-pieces of :mod:`gala` work together to meet more realistic research needs.
+treated like reference material, whereas the :ref:`galax-tutorials` show how
+pieces of :mod:`galax` work together to meet more realistic research needs.
 
 
 .. toctree::
     :maxdepth: 1
 
-    conventions
+    potential/index
 .. TODO
+..     conventions
 ..     coordinates/index
 ..     integrate/index
 ..     potential/index

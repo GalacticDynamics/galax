@@ -1,7 +1,9 @@
 from dataclasses import field
+from functools import partial
 from typing import Any
 
 import equinox as eqx
+import jax
 import jax.experimental.array_api as xp
 import pytest
 
@@ -9,7 +11,7 @@ import galax.potential as gp
 from galax.potential._potential.utils import converter_to_usys
 from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
 from galax.units import UnitSystem, dimensionless, galactic
-from galax.utils import partial_jit, vectorize_method
+from galax.utils._jax import vectorize_method
 
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
@@ -29,7 +31,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
             def __post_init__(self):
                 object.__setattr__(self, "_G", 1.0)
 
-            @partial_jit()
+            @partial(jax.jit)
             @vectorize_method(signature="(3),()->()")
             def _potential_energy(
                 self, q: BatchVec3, t: BatchableFloatOrIntScalarLike

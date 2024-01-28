@@ -2,10 +2,12 @@ __all__ = ["AbstractPotentialBase"]
 
 import abc
 from dataclasses import KW_ONLY, fields, replace
+from functools import partial
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import equinox as eqx
+import jax
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from astropy.constants import G as _G  # pylint: disable=no-name-in-module
@@ -31,7 +33,7 @@ from galax.typing import (
     Vec6,
 )
 from galax.units import UnitSystem, dimensionless
-from galax.utils import partial_jit, vectorize_method
+from galax.utils._jax import vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils.dataclasses import ModuleMeta
 
@@ -64,7 +66,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     ###########################################################################
     # Abstract methods that must be implemented by subclasses
 
-    # @partial_jit()
+    # @partial(jax.jit)
     # @vectorize_method(signature="(3),()->()")
     @abc.abstractmethod
     def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
@@ -133,7 +135,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
         return self._potential_energy(q, t)
 
-    @partial_jit()
+    @partial(jax.jit)
     def __call__(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
@@ -160,7 +162,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Gradient
 
-    @partial_jit()
+    @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3)")
     def _gradient(self, q: Vec3, /, t: FloatOrIntScalar) -> Vec3:
         """See ``gradient``."""
@@ -194,7 +196,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Density
 
-    @partial_jit()
+    @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
     def _density(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
         """See ``density``."""
@@ -227,7 +229,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Hessian
 
-    @partial_jit()
+    @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3,3)")
     def _hessian(self, q: Vec3, /, t: FloatOrIntScalar) -> Matrix33:
         """See ``hessian``."""
@@ -285,7 +287,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
         return -self._gradient(q, t)
 
-    @partial_jit()
+    @partial(jax.jit)
     def tidal_tensor(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchMatrix33:
@@ -322,7 +324,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # =========================================================================
     # Integrating orbits
 
-    @partial_jit()
+    @partial(jax.jit)
     def _integrator_F(
         self,
         t: FloatScalar,
@@ -332,7 +334,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """Return the derivative of the phase-space position."""
         return jnp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a
 
-    @partial_jit(static_argnames=("integrator",))
+    @partial(jax.jit, static_argnames=("integrator",))
     def integrate_orbit(
         self,
         qp0: BatchVec6,

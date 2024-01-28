@@ -2,13 +2,15 @@
 
 __all__ = ["Orbit"]
 
+from functools import partial
+
 import equinox as eqx
+import jax
 from jaxtyping import Array, Float
 from typing_extensions import override
 
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchFloatScalar, TimeVector
-from galax.utils._jax import partial_jit
 from galax.utils.dataclasses import converter_float_array
 
 from ._core import AbstractPhaseSpacePosition
@@ -38,7 +40,7 @@ class Orbit(AbstractPhaseSpacePosition):
     # Dynamical quantities
 
     @override
-    @partial_jit()
+    @partial(jax.jit)
     def potential_energy(
         self, potential: AbstractPotentialBase | None = None, /
     ) -> BatchFloatScalar:

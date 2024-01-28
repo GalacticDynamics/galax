@@ -11,9 +11,11 @@ __all__ = [
 ]
 
 from dataclasses import KW_ONLY
+from functools import partial
 from typing import final
 
 import astropy.units as u
+import jax
 import jax.experimental.array_api as xp
 
 from galax.potential._potential.core import AbstractPotential
@@ -27,7 +29,7 @@ from galax.typing import (
     FloatScalar,
     Vec3,
 )
-from galax.utils import partial_jit, vectorize_method
+from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import field
 
 mass = u.get_physical_type("mass")
@@ -51,7 +53,7 @@ class BarPotential(AbstractPotential):
     c: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
     Omega: AbstractParameter = ParameterField(dimensions=frequency)  # type: ignore[assignment]
 
-    @partial_jit()
+    @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
     def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalarLike) -> FloatScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
@@ -95,7 +97,7 @@ class HernquistPotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
     c: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 
-    @partial_jit()
+    @partial(jax.jit)
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
@@ -113,7 +115,7 @@ class IsochronePotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 
-    @partial_jit()
+    @partial(jax.jit)
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
@@ -135,7 +137,7 @@ class KeplerPotential(AbstractPotential):
 
     m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
 
-    @partial_jit()
+    @partial(jax.jit)
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
@@ -154,7 +156,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
     a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
 
-    @partial_jit()
+    @partial(jax.jit)
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
@@ -179,7 +181,7 @@ class NFWPotential(AbstractPotential):
     _: KW_ONLY
     softening_length: FloatLike = field(default=0.001, static=True, dimensions=length)
 
-    @partial_jit()
+    @partial(jax.jit)
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
@@ -196,7 +198,7 @@ class NFWPotential(AbstractPotential):
 class NullPotential(AbstractPotential):
     """Null potential, i.e. no potential."""
 
-    @partial_jit()
+    @partial(jax.jit)
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:

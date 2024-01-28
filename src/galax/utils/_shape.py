@@ -2,15 +2,15 @@
 
 __all__: list[str] = []
 
+from functools import partial
 from typing import Any, Literal, NoReturn, overload
 
+import jax
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jaxtyping import Array, ArrayLike
 
 from galax.typing import AnyScalar, ArrayAnyShape
-
-from ._jax import partial_jit
 
 
 @overload
@@ -30,7 +30,7 @@ def atleast_batched(
     ...
 
 
-@partial_jit()
+@partial(jax.jit)
 def atleast_batched(*arys: Any) -> Array | tuple[Array, ...]:
     """Convert inputs to arrays with at least two dimensions.
 

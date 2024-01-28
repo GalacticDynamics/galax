@@ -142,7 +142,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
         orbit = pot.integrate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
-        assert orbit.shape == (len(ts), 7)
+        assert orbit.shape == (len(ts),)
         assert array_equal(orbit.t, ts)
 
     def test_integrate_orbit_batch(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
@@ -152,13 +152,13 @@ class TestAbstractPotentialBase(GalaIOMixin):
         # Simple batch
         orbits = pot.integrate_orbit(xv[None, :], ts)
         assert isinstance(orbits, gd.Orbit)
-        assert orbits.shape == (1, len(ts), 7)
+        assert orbits.shape == (1, len(ts))
         assert array_equal(orbits.t, ts[None, :])
 
         # More complicated batch
         xv2 = xp.stack([xv, xv], axis=0)
         orbits = pot.integrate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
-        assert orbits.shape == (2, len(ts), 7)
+        assert orbits.shape == (2, len(ts))
         assert array_equal(orbits.t[0], ts)
         assert array_equal(orbits.t[1], ts)

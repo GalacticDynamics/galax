@@ -51,12 +51,19 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
     @property
     def shape(self) -> tuple[int, ...]:
         """Shape of the position and velocity arrays."""
-        batch_shape, component_shapes = self._shape_tuple
-        return (*batch_shape, sum(component_shapes))
+        return self._shape_tuple[0]
 
     def __len__(self) -> int:
         """Return the number of particles."""
         return self.shape[0]
+
+    # ==========================================================================
+
+    @property
+    def full_shape(self) -> tuple[int, ...]:
+        """Shape of the position and velocity arrays."""
+        batch_shape, component_shapes = self._shape_tuple
+        return (*batch_shape, sum(component_shapes))
 
     # ==========================================================================
     # Convenience properties

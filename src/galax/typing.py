@@ -77,6 +77,7 @@ BatchIntScalar = Shaped[IntScalar, "*batch"]
 
 BatchableIntLike = BatchIntScalar | IntLike
 
+BroadBatchFloatScalar = Shaped[FloatScalar, "*#batch"]
 BatchFloatScalar = Shaped[FloatScalar, "*batch"]
 
 BatchableFloatLike = BatchFloatScalar | FloatLike

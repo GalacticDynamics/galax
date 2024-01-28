@@ -7,10 +7,9 @@ from functools import partial
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float
 
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchFloatScalar, BatchVecTime
+from galax.typing import BatchFloatScalar, BroadBatchVec3, VecTime
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
 
@@ -25,13 +24,14 @@ class Orbit(AbstractPhaseSpacePosition):
 
     """
 
-    q: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
+    q: BroadBatchVec3 = eqx.field(converter=converter_float_array)
     """Positions (x, y, z)."""
 
-    p: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
+    p: BroadBatchVec3 = eqx.field(converter=converter_float_array)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
-    t: BatchVecTime = eqx.field(converter=converter_float_array)
+    # TODO: consider how this should be vectorized
+    t: VecTime = eqx.field(converter=converter_float_array)
     """Array of times corresponding to the positions."""
 
     potential: AbstractPotentialBase
@@ -45,7 +45,7 @@ class Orbit(AbstractPhaseSpacePosition):
         """Batch, component shape."""
         qbatch, qshape = batched_shape(self.q, expect_ndim=1)
         pbatch, pshape = batched_shape(self.p, expect_ndim=1)
-        tbatch, _ = batched_shape(self.t, expect_ndim=0)
+        tbatch, _ = batched_shape(self.t, expect_ndim=1)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         array_shape = qshape + pshape + (1,)
         return batch_shape, array_shape

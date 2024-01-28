@@ -8,10 +8,9 @@ from typing import TYPE_CHECKING
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float
 
 from galax.dynamics._base import AbstractPhaseSpacePosition
-from galax.typing import BatchFloatScalar, VecTime
+from galax.typing import BatchFloatScalar, BroadBatchVec3, VecTime
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
 
@@ -32,19 +31,12 @@ class MockStream(AbstractPhaseSpacePosition):
         Array of times corresponding to the positions.
     release_time : Array[float, (*batch,)]
         Release time of the stream particles [Myr].
-
-    Todo:
-    ----
-    - units stuff
-    - change this to be a collection of sub-objects: progenitor, leading arm,
-      trailing arm, 3-body ejecta, etc.
-    - GR 4-vector stuff
     """
 
-    q: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
+    q: BroadBatchVec3 = eqx.field(converter=converter_float_array)
     """Positions (x, y, z)."""
 
-    p: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
+    p: BroadBatchVec3 = eqx.field(converter=converter_float_array)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     t: VecTime = eqx.field(converter=converter_float_array)
@@ -52,6 +44,9 @@ class MockStream(AbstractPhaseSpacePosition):
 
     release_time: VecTime = eqx.field(converter=converter_float_array)
     """Release time of the stream particles [Myr]."""
+
+    # ==========================================================================
+    # Array properties
 
     @property
     def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:

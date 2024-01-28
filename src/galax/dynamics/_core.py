@@ -9,7 +9,7 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 
-from galax.typing import BatchFloatScalar, BroadBatchVec1, BroadBatchVec3, Vec1
+from galax.typing import BatchFloatScalar, BroadBatchFloatScalar, BroadBatchVec3, Vec1
 from galax.utils._shape import batched_shape, expand_batch_dims
 from galax.utils.dataclasses import converter_float_array
 
@@ -35,7 +35,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: BroadBatchVec1 | Vec1 = eqx.field(
+    t: BroadBatchFloatScalar | Vec1 = eqx.field(
         default=(0.0,), converter=converter_float_array
     )
     """The time corresponding to the positions.
@@ -47,7 +47,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     def __post_init__(self) -> None:
         """Post-initialization."""
-        # Need to ensure t shape is correct
+        # Need to ensure t shape is correct. Can be Vec0.
         if self.t.ndim == 0:
             t = expand_batch_dims(self.t, ndim=self.q.ndim)
             object.__setattr__(self, "t", t)

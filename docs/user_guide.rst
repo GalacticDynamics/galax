@@ -12,11 +12,12 @@ demonstrations of functionality. This portion of the documentation should be
 treated like reference material, whereas the :ref:`gala-tutorials` show how
 pieces of :mod:`gala` work together to meet more realistic research needs.
 
-.. TODO
-.. .. toctree::
-..     :maxdepth: 1
 
-..     conventions
+.. toctree::
+    :maxdepth: 1
+
+    conventions
+.. TODO
 ..     coordinates/index
 ..     integrate/index
 ..     potential/index

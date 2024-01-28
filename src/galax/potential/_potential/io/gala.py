@@ -24,6 +24,7 @@ from galax.potential._potential.builtin import (
     KeplerPotential,
     MiyamotoNagaiPotential,
     NFWPotential,
+    NullPotential,
 )
 from galax.potential._potential.composite import CompositePotential
 from galax.potential._potential.core import AbstractPotential
@@ -73,6 +74,7 @@ _GALA_TO_GALAX_REGISTRY: dict[type[GalaPotentialBase], type[AbstractPotential]] 
     GalaIsochronePotential: IsochronePotential,
     GalaKeplerPotential: KeplerPotential,
     GalaMiyamotoNagaiPotential: MiyamotoNagaiPotential,
+    GalaNullPotential: NullPotential,
 }
 
 
@@ -110,7 +112,7 @@ def _gala_to_galax_nfw(pot: GalaNFWPotential, /) -> NFWPotential:
 
 
 @gala_to_galax.register
-def _gala_to_galax_mwpotential(pot: GalaMilkyWayPotential, /) -> MilkyWayPotential:
+def _gala_to_galax_mw(pot: GalaMilkyWayPotential, /) -> MilkyWayPotential:
     """Convert a Gala MilkyWayPotential to a Galax potential."""
     if not all(_static_at_origin(p) for p in pot.values()):
         msg = "Galax does not support rotating or offset potentials."

@@ -68,10 +68,20 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         w0_lead = mock0_lead.w()
         w0_trail = mock0_trail.w()
+        t_f = ts[-1] + 1e-3  # TODO: not have the bump in the final time.
 
         def one_pt_intg(carry: Carry, _: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
+            """Integrate one point along the stream.
+
+            Parameters
+            ----------
+            carry : tuple[int, VecN, VecN]
+                Initial state of the particle at index `idx`.
+            idx : int
+                Index of the current point.
+            """
             i, w0_l_i, w0_t_i = carry
-            tstep = xp.asarray([ts[i], ts[-1]])
+            tstep = xp.asarray([ts[i], t_f])
 
             def integ_ics(ics: Vec6) -> VecN:
                 # TODO: only return the final state
@@ -79,9 +89,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
                     ics, tstep, integrator=self.stream_integrator
                 ).w()[-1]
 
-            # vmap over leading and trailing arm
+            # vmap integration over leading and trailing arm
             w0_lt_i = jnp.vstack([w0_l_i, w0_t_i])  # TODO: xp.stack
             w_l, w_t = jax.vmap(integ_ics, in_axes=(0,))(w0_lt_i)
+            # Prepare for next iteration
             carry_out = (i + 1, w0_lead[i + 1, :], w0_trail[i + 1, :])
             return carry_out, (w_l, w_t)
 
@@ -99,7 +110,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Better for GPU usage.
         """
-        t_f = ts[-1] + 0.01  # TODO: not have the bump in the final time.
+        t_f = ts[-1] + 1e-3  # TODO: not have the bump in the final time.
 
         # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
@@ -117,9 +128,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         w0_lead = mock0_lead.w()
         w0_trail = mock0_trail.w()
         pt_ids = xp.arange(len(w0_lead))
-        lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg, in_axes=(0, 0, 0))(
-            pt_ids, w0_lead, w0_trail
-        )
+        lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg)(pt_ids, w0_lead, w0_trail)
         return lead_arm_w, trail_arm_w
 
     @partial(jax.jit, static_argnames=("seed_num", "vmapped"))

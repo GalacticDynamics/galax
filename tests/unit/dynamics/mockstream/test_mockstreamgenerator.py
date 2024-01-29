@@ -2,6 +2,7 @@ from typing import cast
 
 import astropy.units as u
 import jax.experimental.array_api as xp
+import jax.numpy as jnp
 import pytest
 
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
@@ -79,7 +80,7 @@ class TestMockStreamGenerator:
         prog_w0: Vec6,
         prog_mass: float,
         seed_num: int,
-    ):
+    ) -> None:
         """Test the run method with ``vmapped=False``."""
         mock, prog_o = mockstream.run(
             t_stripping,
@@ -92,3 +93,8 @@ class TestMockStreamGenerator:
         # TODO: more rigorous tests
         assert mock.q.shape == (2 * len(t_stripping), 3)
         assert prog_o.q.shape == (len(t_stripping), 3)
+
+        # Test that the positions and momenta are finite
+        assert jnp.isfinite(mock.q).all()
+        assert jnp.isfinite(mock.p).all()
+        assert jnp.isfinite(mock.t).all()

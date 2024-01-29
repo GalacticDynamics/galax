@@ -53,7 +53,7 @@ Matrix33 = Float[Array, "3 3"]
 """A 3x3 matrix."""
 
 Vec6 = Float[Array, "6"]
-"""A 6-vector e.g. qp=(x, y, z, vx, vy, vz)."""
+"""A 6-vector e.g. w=(x, y, z, vx, vy, vz)."""
 
 Vec7 = Float[Array, "7"]
 """A 7-vector e.g. w=(x, y, z, vx, vy, vz, t)."""

@@ -13,6 +13,7 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
+from galax.units import UnitSystem
 from galax.utils._shape import atleast_batched
 
 if TYPE_CHECKING:
@@ -60,22 +61,49 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
     # ==========================================================================
     # Convenience properties
 
-    @property
-    @partial(jax.jit)
-    def qp(self) -> BatchVec6:
-        """Return as a single Array[float, (*batch, Q + P),]."""
+    def w(self, *, units: UnitSystem | None = None) -> BatchVec6:
+        """Phase-space position as an Array[float, (*batch, Q + P)].
+
+        This is the full phase-space position, not including the time.
+
+        Parameters
+        ----------
+        units : `galax.units.UnitSystem`, optional keyword-only
+            The unit system If ``None``, use the current unit system.
+
+        Returns
+        -------
+        w : Array[float, (*batch, Q + P)]
+            The phase-space position.
+        """
+        if units is not None:
+            msg = "units not yet implemented."
+            raise NotImplementedError(msg)
+
         batch_shape, component_shapes = self._shape_tuple
         q = xp.broadcast_to(self.q, batch_shape + component_shapes[0:1])
         p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])
         return xp.concat((q, p), axis=-1)
 
-    @property
-    @partial(jax.jit)
-    def w(self) -> BatchVec7:
-        """Return as a single Array[float, (*batch, Q + P + 1)].
+    def wt(self, *, units: UnitSystem | None = None) -> BatchVec7:
+        """Phase-space position as an Array[float, (*batch, Q + P + 1)].
 
-        This is the full phase-space position, including time.
+        This is the full phase-space position, including the time.
+
+        Parameters
+        ----------
+        units : `galax.units.UnitSystem`, optional keyword-only
+            The unit system If ``None``, use the current unit system.
+
+        Returns
+        -------
+        wt : Array[float, (*batch, Q + P + 1)]
+            The full phase-space position, including time.
         """
+        if units is not None:
+            msg = "units not yet implemented."
+            raise NotImplementedError(msg)
+
         batch_shape, comp_shapes = self._shape_tuple
         q = xp.broadcast_to(self.q, batch_shape + comp_shapes[0:1])
         p = xp.broadcast_to(self.p, batch_shape + comp_shapes[1:2])

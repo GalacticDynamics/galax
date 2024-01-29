@@ -62,30 +62,30 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Better for CPU usage.
         """
-        qp0_lead = mock0_lead.qp
-        qp0_trail = mock0_trail.qp
+        w0_lead = mock0_lead.w()
+        w0_trail = mock0_trail.w()
 
-        def scan_fn(carry: Carry, _: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
-            i, qp0_lead_i, qp0_trail_i = carry
-            qp0_lead_trail = jnp.vstack([qp0_lead_i, qp0_trail_i])  # TODO: xp.stack
+        def one_pt_intg(carry: Carry, _: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
+            i, w0_l_i, w0_t_i = carry
             tstep = xp.asarray([ts[i], ts[-1]])
 
             def integ_ics(ics: Vec6) -> VecN:
                 # TODO: only return the final state
                 return self.potential.integrate_orbit(
                     ics, tstep, integrator=self.stream_integrator
-                ).qp[-1]
+                ).w()[-1]
 
             # vmap over leading and trailing arm
-            qp_lead, qp_trail = jax.vmap(integ_ics, in_axes=(0,))(qp0_lead_trail)
-            carry_out = (i + 1, qp0_lead[i + 1, :], qp0_trail[i + 1, :])
-            return carry_out, (qp_lead, qp_trail)
+            w0_lt_i = jnp.vstack([w0_l_i, w0_t_i])  # TODO: xp.stack
+            w_l, w_t = jax.vmap(integ_ics, in_axes=(0,))(w0_lt_i)
+            carry_out = (i + 1, w0_lead[i + 1, :], w0_trail[i + 1, :])
+            return carry_out, (w_l, w_t)
 
-        carry_init = (0, qp0_lead[0, :], qp0_trail[0, :])
-        particle_ids = xp.arange(len(qp0_lead))
-        lead_arm_qp, trail_arm_qp = jax.lax.scan(scan_fn, carry_init, particle_ids)[1]
+        carry_init = (0, w0_lead[0, :], w0_trail[0, :])
+        pt_ids = xp.arange(len(w0_lead))
+        lead_arm_w, trail_arm_w = jax.lax.scan(one_pt_intg, carry_init, pt_ids)[1]
 
-        return lead_arm_qp, trail_arm_qp
+        return lead_arm_w, trail_arm_w
 
     @partial(jax.jit)
     def _run_vmap(  # TODO: output shape depends on the input shape
@@ -99,24 +99,24 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
-        def single_particle_integrate(
-            i: IntScalar, qp0_lead_i: Vec6, qp0_trail_i: Vec6
-        ) -> tuple[Vec6, Vec6]:
+        def one_pt_intg(i: IntScalar, w0_l_i: Vec6, w0_t_i: Vec6) -> tuple[Vec6, Vec6]:
             tstep = xp.asarray([ts[i], t_f])
             # TODO: only return the final state
-            qp_lead = self.potential.integrate_orbit(
-                qp0_lead_i, tstep, integrator=self.stream_integrator
-            ).qp[-1]
-            qp_trail = self.potential.integrate_orbit(
-                qp0_trail_i, tstep, integrator=self.stream_integrator
-            ).qp[-1]
-            return qp_lead, qp_trail
+            w_lead = self.potential.integrate_orbit(
+                w0_l_i, tstep, integrator=self.stream_integrator
+            ).w()[-1]
+            w_trail = self.potential.integrate_orbit(
+                w0_t_i, tstep, integrator=self.stream_integrator
+            ).w()[-1]
+            return w_lead, w_trail
 
-        qp0_lead = mock0_lead.qp
-        particle_ids = xp.arange(len(qp0_lead))
-        integrator = jax.vmap(single_particle_integrate, in_axes=(0, 0, 0))
-        lead_arm_qp, trail_arm_qp = integrator(particle_ids, qp0_lead, mock0_trail.qp)
-        return lead_arm_qp, trail_arm_qp
+        w0_lead = mock0_lead.w()
+        w0_trail = mock0_trail.w()
+        pt_ids = xp.arange(len(w0_lead))
+        lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg, in_axes=(0, 0, 0))(
+            pt_ids, w0_lead, w0_trail
+        )
+        return lead_arm_w, trail_arm_w
 
     @partial(jax.jit, static_argnames=("seed_num", "vmapped"))
     def run(
@@ -174,19 +174,19 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         )
 
         if use_vmap:
-            lead_arm_qp, trail_arm_qp = self._run_vmap(ts, mock0_lead, mock0_trail)
+            lead_arm_w, trail_arm_w = self._run_vmap(ts, mock0_lead, mock0_trail)
         else:
-            lead_arm_qp, trail_arm_qp = self._run_scan(ts, mock0_lead, mock0_trail)
+            lead_arm_w, trail_arm_w = self._run_scan(ts, mock0_lead, mock0_trail)
 
         lead_arm = MockStream(
-            q=lead_arm_qp[:, 0:3],
-            p=lead_arm_qp[:, 3:6],
+            q=lead_arm_w[:, 0:3],
+            p=lead_arm_w[:, 3:6],
             t=xp.ones_like(ts) * ts[-1],  # TODO: ensure this time is correct
             release_time=mock0_lead.release_time,
         )
         trail_arm = MockStream(
-            q=trail_arm_qp[:, 0:3],
-            p=trail_arm_qp[:, 3:6],
+            q=trail_arm_w[:, 0:3],
+            p=trail_arm_w[:, 3:6],
             t=xp.ones_like(ts) * ts[-1],  # TODO: ensure this time is correct
             release_time=mock0_trail.release_time,
         )

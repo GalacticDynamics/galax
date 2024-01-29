@@ -45,14 +45,14 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     @vectorize_method(excluded=(0,), signature="(6),(T)->(T,7)")
     def __call__(
-        self, F: FCallable, qp0: Vec6, ts: Float[Array, "T"], /
+        self, F: FCallable, w0: Vec6, ts: Float[Array, "T"], /
     ) -> Float[Array, "T 7"]:
         solution = diffeqsolve(
             terms=ODETerm(F),
             solver=self.Solver(**self.solver_kw),
             t0=ts[0],
             t1=ts[-1],
-            y0=qp0,
+            y0=w0,
             dt0=None,
             args=(),
             saveat=DiffraxSaveAt(t0=False, t1=False, ts=ts, dense=False),

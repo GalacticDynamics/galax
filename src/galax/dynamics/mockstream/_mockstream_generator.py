@@ -184,7 +184,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         t = xp.ones_like(ts) * ts[-1]  # TODO: ensure this time is correct
 
-        # TODO: move this combination up the stack
+        # TODO: move the leading vs trailing logic to the DF
         if self.df.lead and self.df.trail:
             axis = len(trail_arm_w.shape) - 2
             q = _interleave_concat(trail_arm_w[:, 0:3], lead_arm_w[:, 0:3], axis=axis)

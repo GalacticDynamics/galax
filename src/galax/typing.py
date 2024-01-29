@@ -43,6 +43,9 @@ FloatOrIntScalarLike = FloatLike | IntLike
 # -----------------------------------------------------------------------------
 # Shaped
 
+Vec1 = Float[Array, "1"]
+"""A 1-vector."""
+
 Vec3 = Float[Array, "3"]
 """A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz)."""
 
@@ -54,6 +57,15 @@ Vec6 = Float[Array, "6"]
 
 Vec7 = Float[Array, "7"]
 """A 7-vector e.g. w=(x, y, z, vx, vy, vz, t)."""
+
+VecN = Float[Array, "N"]
+"""An (N,)-vector."""
+
+# -----------------
+# Specific
+
+VecTime = Float[Array, "time"]
+"""A time vector."""
 
 # -----------------------------------------------------------------------------
 # Vector Batches
@@ -76,17 +88,31 @@ BatchableFloatOrIntScalarLike = BatchFloatOrIntScalar | FloatOrIntScalarLike
 # -----------------
 # Batched
 
+BroadBatchVec1 = Shaped[Vec1, "*#batch"]
+BatchVec1 = Shaped[Vec1, "*batch"]
+"""Zero or more batches of 1-vectors."""
+
+BroadBatchVec3 = Shaped[Vec3, "*#batch"]
 BatchVec3 = Shaped[Vec3, "*batch"]
 """Zero or more batches of 3-vectors."""
 
 BatchMatrix33 = Shaped[Matrix33, "*batch"]
 """Zero or more batches of 3x3 matrices."""
 
+BroadBatchVec6 = Shaped[Vec6, "*#batch"]
 BatchVec6 = Shaped[Vec6, "*batch"]
 """Zero or more batches of 6-vectors."""
 
+BroadBatchVec7 = Shaped[Vec7, "*#batch"]
 BatchVec7 = Shaped[Vec7, "*batch"]
 """Zero or more batches of 7-vectors."""
+
+# -----------------
+# Specific
+
+BroadBatchVecTime = Shaped[VecTime, "*#batch"]
+BatchVecTime = Shaped[VecTime, "*batch"]
+"""Zero or more batches of time vectors."""
 
 # -----------------
 # Any Shape
@@ -98,12 +124,3 @@ IntArrayAnyShape = Integer[Array, "..."]
 """An integer array with any shape."""
 
 ArrayAnyShape = Shaped[Array, "..."]
-
-# =============================================================================
-# Specific Vectors
-
-VecN = Float[Array, "N"]
-"""An (N,)-vector."""
-
-TimeVector = Float[Array, "time"]
-"""A vector of times."""

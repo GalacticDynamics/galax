@@ -7,15 +7,17 @@ import jax
 import jax.experimental.array_api as xp
 import pytest
 from jax.numpy import array_equal
-from jaxtyping import Array, Float
 
 import galax.dynamics as gd
-import galax.potential as gp
+from galax.potential import AbstractPotentialBase
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
     BatchFloatScalar,
     BatchVec3,
+    FloatOrIntScalar,
+    FloatScalar,
     Vec3,
+    Vec6,
 )
 from galax.units import UnitSystem, dimensionless
 from galax.utils._jax import vectorize_method
@@ -27,8 +29,8 @@ class TestAbstractPotentialBase(GalaIOMixin):
     """Test the `galax.potential.AbstractPotentialBase` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[gp.AbstractPotentialBase]:
-        class TestPotential(gp.AbstractPotentialBase):
+    def pot_cls(self) -> type[AbstractPotentialBase]:
+        class TestPotential(AbstractPotentialBase):
             units: UnitSystem = eqx.field(default=dimensionless, static=True)
             _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
@@ -54,8 +56,8 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     @pytest.fixture(scope="class")
     def pot(
-        self, pot_cls: type[gp.AbstractPotentialBase], fields_: dict[str, Any]
-    ) -> gp.AbstractPotentialBase:
+        self, pot_cls: type[AbstractPotentialBase], fields_: dict[str, Any]
+    ) -> AbstractPotentialBase:
         """Create a concrete potential instance for testing."""
         return pot_cls(**fields_)
 
@@ -72,7 +74,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
         return xp.asarray([4, 5, 6], dtype=float)
 
     @pytest.fixture(scope="class")
-    def xv(self, x: Vec3, v: Vec3) -> Float[Array, "6"]:
+    def xv(self, x: Vec3, v: Vec3) -> Vec6:
         """Create a phase-space vector for testing."""
         return xp.concat([x, v])
 
@@ -83,64 +85,58 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     ###########################################################################
 
-    def test_init(self):
+    def test_init(self) -> None:
         """Test the initialization of `AbstractPotentialBase`."""
         # Test that the abstract class cannot be instantiated
         with pytest.raises(TypeError):
-            gp.AbstractPotentialBase()
+            AbstractPotentialBase()
 
         # Test that the concrete class can be instantiated
-        class TestPotential(gp.AbstractPotentialBase):
+        class TestPotential(AbstractPotentialBase):
             units: UnitSystem = eqx.field(default=dimensionless, static=True)
 
-            def _potential_energy(self, q, t):
+            def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
                 return xp.sum(q, axis=-1)
 
         pot = TestPotential()
-        assert isinstance(pot, gp.AbstractPotentialBase)
+        assert isinstance(pot, AbstractPotentialBase)
 
     # =========================================================================
 
     # ---------------------------------
 
-    def test_potential_energy(self, pot, x):
+    def test_potential_energy(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.potential_energy` method."""
         assert pot.potential_energy(x, t=0) == 6
 
     # ---------------------------------
 
-    def test_call(self, pot, x):
+    def test_call(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.__call__` method."""
         assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0))
 
-    def test_gradient(self, pot, x):
+    def test_gradient(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.gradient` method."""
         assert array_equal(pot.gradient(x, t=0), xp.ones_like(x))
 
-    def test_density(self, pot, x):
+    def test_density(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
         assert pot.density(x, t=0) == 0.0
 
-    def test_hessian(self, pot, x):
+    def test_hessian(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.hessian` method."""
         assert array_equal(
             pot.hessian(x, t=0),
-            xp.asarray(
-                [
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                ],
-            ),
+            xp.asarray([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
         )
 
-    def test_acceleration(self, pot, x):
+    def test_acceleration(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.acceleration` method."""
         assert array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
 
     # =========================================================================
 
-    def test_integrate_orbit(self, pot, xv):
+    def test_integrate_orbit(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
         """Test the `AbstractPotentialBase.integrate_orbit` method."""
         ts = xp.linspace(0.0, 1.0, 100)
 
@@ -149,7 +145,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
         assert orbit.shape == (len(ts), 7)
         assert array_equal(orbit.t, ts)
 
-    def test_integrate_orbit_batch(self, pot, xv):
+    def test_integrate_orbit_batch(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
         """Test the `AbstractPotentialBase.integrate_orbit` method."""
         ts = xp.linspace(0.0, 1.0, 100)
 
@@ -157,11 +153,12 @@ class TestAbstractPotentialBase(GalaIOMixin):
         orbits = pot.integrate_orbit(xv[None, :], ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (1, len(ts), 7)
-        assert array_equal(orbits.t, ts)
+        assert array_equal(orbits.t, ts[None, :])
 
         # More complicated batch
         xv2 = xp.stack([xv, xv], axis=0)
         orbits = pot.integrate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts), 7)
-        assert array_equal(orbits.t, ts)
+        assert array_equal(orbits.t[0], ts)
+        assert array_equal(orbits.t[1], ts)

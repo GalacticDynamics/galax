@@ -3,21 +3,35 @@
 __all__ = ["MockStream"]
 
 from functools import partial
+from typing import TYPE_CHECKING
 
 import equinox as eqx
 import jax
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from galax.dynamics._core import AbstractPhaseSpacePositionBase
-from galax.typing import BatchVec7, TimeVector
-from galax.utils._shape import atleast_batched, batched_shape
+from galax.dynamics._base import AbstractPhaseSpacePosition
+from galax.typing import BatchFloatScalar, VecTime
+from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
 
+if TYPE_CHECKING:
+    from galax.potential._potential.base import AbstractPotentialBase
 
-class MockStream(AbstractPhaseSpacePositionBase):
+
+class MockStream(AbstractPhaseSpacePosition):
     """Mock stream object.
+
+    Parameters
+    ----------
+    q : Array[float, (*batch, 3)]
+        Positions (x, y, z).
+    p : Array[float, (*batch, 3)]
+        Conjugate momenta (v_x, v_y, v_z).
+    t : Array[float, (*batch,)]
+        Array of times corresponding to the positions.
+    release_time : Array[float, (*batch,)]
+        Release time of the stream particles [Myr].
 
     Todo:
     ----
@@ -33,7 +47,10 @@ class MockStream(AbstractPhaseSpacePositionBase):
     p: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
-    release_time: TimeVector = eqx.field(converter=converter_float_array)
+    t: VecTime = eqx.field(converter=converter_float_array)
+    """Array of times corresponding to the positions."""
+
+    release_time: VecTime = eqx.field(converter=converter_float_array)
     """Release time of the stream particles [Myr]."""
 
     @property
@@ -41,18 +58,33 @@ class MockStream(AbstractPhaseSpacePositionBase):
         """Batch ."""
         qbatch, qshape = batched_shape(self.q, expect_ndim=1)
         pbatch, pshape = batched_shape(self.p, expect_ndim=1)
-        tbatch, _ = batched_shape(self.release_time, expect_ndim=0)
+        tbatch, _ = batched_shape(self.t, expect_ndim=0)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         return batch_shape, qshape + pshape + (1,)
 
-    @property
+    # ==========================================================================
+    # Dynamical quantities
+
     @partial(jax.jit)
-    def w(self) -> BatchVec7:
-        """Return as a single Array[float, (*batch, Q + P + T)]."""
-        batch_shape, component_shapes = self._shape_tuple
-        q = xp.broadcast_to(self.q, batch_shape + component_shapes[0:1])
-        p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])
-        t = xp.broadcast_to(
-            atleast_batched(self.release_time), batch_shape + component_shapes[2:3]
-        )
-        return xp.concat((q, p, t), axis=-1)
+    def potential_energy(
+        self, potential: "AbstractPotentialBase", /
+    ) -> BatchFloatScalar:
+        r"""Return the specific potential energy.
+
+        .. math::
+
+            E_\Phi = \Phi(\boldsymbol{q})
+
+        Parameters
+        ----------
+        potential : `galax.potential.AbstractPotentialBase`
+            The potential object to compute the energy from.
+        t : float
+            Time at which to compute the potential energy.
+
+        Returns
+        -------
+        E : Array[float, (*batch,)]
+            The specific potential energy.
+        """
+        return potential.potential_energy(self.q, t=self.t)

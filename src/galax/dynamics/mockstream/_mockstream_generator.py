@@ -4,7 +4,7 @@ __all__ = ["MockStreamGenerator"]
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, TypeAlias
+from typing import TypeAlias
 
 import equinox as eqx
 import jax
@@ -20,20 +20,15 @@ from galax.typing import (
     BatchVec6,
     FloatScalar,
     IntScalar,
-    TimeVector,
     Vec6,
     VecN,
+    VecTime,
 )
-from galax.utils._collections import ImmutableDict
 
 from ._core import MockStream
 from ._df import AbstractStreamDF
 
 Carry: TypeAlias = tuple[IntScalar, VecN, VecN]
-
-
-def _converter_immutabledict_or_none(x: Any) -> ImmutableDict[Any] | None:
-    return None if x is None else ImmutableDict(x)
 
 
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
@@ -61,7 +56,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial(jax.jit)
     def _run_scan(  # TODO: output shape depends on the input shape
-        self, ts: TimeVector, mock0_lead: MockStream, mock0_trail: MockStream
+        self, ts: VecTime, mock0_lead: MockStream, mock0_trail: MockStream
     ) -> tuple[BatchVec6, BatchVec6]:
         """Generate stellar stream by scanning over the release model/integration.
 
@@ -94,7 +89,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial(jax.jit)
     def _run_vmap(  # TODO: output shape depends on the input shape
-        self, ts: TimeVector, mock0_lead: MockStream, mock0_trail: MockStream
+        self, ts: VecTime, mock0_lead: MockStream, mock0_trail: MockStream
     ) -> tuple[BatchVec6, BatchVec6]:
         """Generate stellar stream by vmapping over the release model/integration.
 
@@ -126,7 +121,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial(jax.jit, static_argnames=("seed_num", "vmapped"))
     def run(
         self,
-        ts: TimeVector,
+        ts: VecTime,
         prog_w0: Vec6,
         prog_mass: FloatScalar,
         *,
@@ -186,11 +181,13 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         lead_arm = MockStream(
             q=lead_arm_qp[:, 0:3],
             p=lead_arm_qp[:, 3:6],
+            t=xp.ones_like(ts) * ts[-1],  # TODO: ensure this time is correct
             release_time=mock0_lead.release_time,
         )
         trail_arm = MockStream(
             q=trail_arm_qp[:, 0:3],
             p=trail_arm_qp[:, 3:6],
+            t=xp.ones_like(ts) * ts[-1],  # TODO: ensure this time is correct
             release_time=mock0_trail.release_time,
         )
 

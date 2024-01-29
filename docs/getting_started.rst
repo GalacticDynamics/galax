@@ -118,8 +118,8 @@ in :mod:`galax.integrate`, but do so using the convenience interface available
 on any Potential object through the
 :func:`~galax.potential.AbstractPotential.integrate_orbit` method::
 
-    >>> t = jnp.arange(0, 2, step=1/1000) # Gyr
-    >>> orbit = mw.integrate_orbit(w0.qp, t=t)
+    >>> t = jnp.arange(0.0, 2.0, step=1/1000) # Gyr
+    >>> orbit = mw.integrate_orbit(w0.qp[0], t=t)
 
 By default, this method uses Leapfrog integration , which is a fast, symplectic
 integration scheme. The returned object is an instance of the

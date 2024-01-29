@@ -85,8 +85,8 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         )
         x_lead, x_trail, v_lead, v_trail = jax.lax.scan(scan_fn, init_carry, ts)[1]
 
-        mock_lead = MockStream(x_lead, v_lead, ts)
-        mock_trail = MockStream(x_trail, v_trail, ts)
+        mock_lead = MockStream(x_lead, v_lead, t=ts, release_time=ts)
+        mock_trail = MockStream(x_trail, v_trail, t=ts, release_time=ts)
 
         return mock_lead, mock_trail
 

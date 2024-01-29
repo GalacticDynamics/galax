@@ -325,19 +325,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Integrating orbits
 
     @partial(jax.jit)
-    def _integrator_F(
-        self,
-        t: FloatScalar,
-        qp: Vec6,
-        args: tuple[Any, ...],  # pylint: disable=W0613
-    ) -> Vec6:
+    def _integrator_F(self, t: FloatScalar, w: Vec6, args: tuple[Any, ...]) -> Vec6:
         """Return the derivative of the phase-space position."""
-        return jnp.hstack([qp[3:6], self.acceleration(qp[0:3], t)])  # v, a
+        return jnp.hstack([w[3:6], self.acceleration(w[0:3], t)])  # v, a
 
     @partial(jax.jit, static_argnames=("integrator",))
     def integrate_orbit(
         self,
-        qp0: BatchVec6,
+        w0: BatchVec6,
         t: Float[Array, "time"] | Quantity,
         *,
         integrator: Integrator | None = None,
@@ -346,7 +341,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Parameters
         ----------
-        qp0 : Array[float, (6,)]
+        w0 : Array[float, (6,)]
             Initial position and velocity.
         t: Array[float, (T,)]
             Array of times at which to compute the orbit. The first element
@@ -416,7 +411,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> orbit = potential.integrate_orbit(xv0, ts)
         >>> orbit
         Orbit(
-            q=f64[2,10,3], p=f64[2,10,3], t=f64[10], potential=KeplerPotential(...)
+            q=f64[2,10,3], p=f64[2,10,3], t=f64[2,10], potential=KeplerPotential(...)
         )
         """
         # TODO: ꜛ get NORMALIZE_WHITESPACE to work correctly so Orbit is 1 line
@@ -424,5 +419,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         integrator_ = default_integrator if integrator is None else replace(integrator)
 
-        ws = integrator_(self._integrator_F, qp0, t)
-        return Orbit(q=ws[..., :3], p=ws[..., 3:-1], t=t, potential=self)
+        ws = integrator_(self._integrator_F, w0, t)
+        # TODO: ꜛ reduce repeat dimensions of `time`.
+        return Orbit(q=ws[..., 0:3], p=ws[..., 3:6], t=ws[..., -1], potential=self)

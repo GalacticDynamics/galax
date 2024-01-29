@@ -18,7 +18,7 @@ COMP_FIELDS: tuple[str, ...] = (
 
 
 def test_field():
-    """Test the partial_jit function."""
+    """Test the :func:`field` function."""
     # Basic test that it returns the output of `dataclasses.field`.
     f = field(dimensions="length")
     fcomp = dataclasses.field(metadata={"dimensions": "length"})

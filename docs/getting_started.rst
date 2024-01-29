@@ -92,11 +92,11 @@ velocity vectors. As an example orbit, we will use a position and velocity that
 is close to the Sun's Galactocentric position and velocity::
 
     >>> import galax.dynamics as gd
-    >>> w0 = gd.PhaseSpacePosition(q=[-8.1, 0, 0.02] * u.kpc,
-    ...                            p=[13, 245, 8.] * u.km/u.s)
+    >>> psp = gd.PhaseSpacePosition(q=[-8.1, 0, 0.02] * u.kpc,
+    ...                             p=[13, 245, 8.] * u.km/u.s)
 
 By convention, I typically use the variable ``w`` to represent phase-space
-positions, so here ``w0`` is meant to imply "initial conditions." Note that,
+positions, so here ``psp`` is meant to imply "initial conditions." Note that,
 when passing in Cartesian position and velocity values, we typically have to
 pass them in as :class:`~astropy.units.Quantity` objects (i.e., with units).
 This is required whenever the potential class you are using has a unit system,
@@ -118,8 +118,8 @@ in :mod:`galax.integrate`, but do so using the convenience interface available
 on any Potential object through the
 :func:`~galax.potential.AbstractPotential.integrate_orbit` method::
 
-    >>> t = jnp.arange(0, 2, step=1/1000) # Gyr
-    >>> orbit = mw.integrate_orbit(w0.qp, t=t)
+    >>> t = jnp.arange(0.0, 2.0, step=1/1000) # Gyr
+    >>> orbit = mw.integrate_orbit(psp.w(), t=t)
 
 By default, this method uses Leapfrog integration , which is a fast, symplectic
 integration scheme. The returned object is an instance of the
@@ -148,9 +148,9 @@ performing common tasks, like plotting an orbit::
     import galax.potential as gp
 
     mw = gp.MilkyWayPotential()
-    w0 = gd.PhaseSpacePosition(pos=[-8.1, 0, 0.02] * u.kpc,
-                               vel=[13, 245, 8.] * u.km/u.s)
-    orbit = mw.integrate_orbit(w0, dt=1*u.Myr, t1=0, t2=2*u.Gyr)
+    psp = gd.PhaseSpacePosition(pos=[-8.1, 0, 0.02] * u.kpc,
+                                vel=[13, 245, 8.] * u.km/u.s)
+    orbit = mw.integrate_orbit(psp.w(), dt=1*u.Myr, t1=0, t2=2*u.Gyr)
 
     orbit.plot(['x', 'y'])
 

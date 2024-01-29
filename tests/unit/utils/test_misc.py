@@ -16,5 +16,5 @@ from galax.utils._misc import first
     ],
 )
 def test_first(x, x0):
-    """Test the partial_jit function."""
+    """Test the function :func:`first`."""
     assert first(x) == x0

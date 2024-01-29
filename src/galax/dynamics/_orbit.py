@@ -6,14 +6,15 @@ from functools import partial
 
 import equinox as eqx
 import jax
+import jax.numpy as jnp
 from jaxtyping import Array, Float
-from typing_extensions import override
 
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchFloatScalar, TimeVector
+from galax.typing import BatchFloatScalar, BatchVecTime
+from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
 
-from ._core import AbstractPhaseSpacePosition
+from ._base import AbstractPhaseSpacePosition
 
 
 class Orbit(AbstractPhaseSpacePosition):
@@ -28,18 +29,30 @@ class Orbit(AbstractPhaseSpacePosition):
     """Positions (x, y, z)."""
 
     p: Float[Array, "*batch time 3"] = eqx.field(converter=converter_float_array)
-    r"""Conjugate momenta (v_x, v_y, v_z)."""
+    r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
-    t: TimeVector = eqx.field(converter=converter_float_array)
-    """Array of times."""
+    t: BatchVecTime = eqx.field(converter=converter_float_array)
+    """Array of times corresponding to the positions."""
 
     potential: AbstractPotentialBase
     """Potential in which the orbit was integrated."""
 
     # ==========================================================================
+    # Array properties
+
+    @property
+    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
+        """Batch, component shape."""
+        qbatch, qshape = batched_shape(self.q, expect_ndim=1)
+        pbatch, pshape = batched_shape(self.p, expect_ndim=1)
+        tbatch, _ = batched_shape(self.t, expect_ndim=0)
+        batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
+        array_shape = qshape + pshape + (1,)
+        return batch_shape, array_shape
+
+    # ==========================================================================
     # Dynamical quantities
 
-    @override
     @partial(jax.jit)
     def potential_energy(
         self, potential: AbstractPotentialBase | None = None, /
@@ -63,3 +76,22 @@ class Orbit(AbstractPhaseSpacePosition):
         if potential is None:
             return self.potential.potential_energy(self.q, t=self.t)
         return potential.potential_energy(self.q, t=self.t)
+
+    @partial(jax.jit)
+    def energy(
+        self, potential: "AbstractPotentialBase | None" = None, /
+    ) -> BatchFloatScalar:
+        r"""Return the specific total energy.
+
+        .. math::
+
+            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
+            E_\Phi = \Phi(\boldsymbol{q})
+            E = E_K + E_\Phi
+
+        Returns
+        -------
+        E : Array[float, (*batch,)]
+            The kinetic energy.
+        """
+        return self.kinetic_energy() + self.potential_energy(potential)

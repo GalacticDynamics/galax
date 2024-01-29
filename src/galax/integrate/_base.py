@@ -14,14 +14,14 @@ from galax.utils.dataclasses import _DataclassInstance
 class FCallable(Protocol):
     """Protocol for the integration callable."""
 
-    def __call__(self, t: FloatScalar, qp: Vec6, args: tuple[Any, ...]) -> Vec6:
+    def __call__(self, t: FloatScalar, w: Vec6, args: tuple[Any, ...]) -> Vec6:
         """Integration function.
 
         Parameters
         ----------
         t : float
             The time.
-        qp : Array[float, (6,)]
+        w : Array[float, (6,)]
             The position and velocity.
         args : tuple
             Additional arguments.
@@ -44,7 +44,7 @@ class Integrator(_DataclassInstance, Protocol):
     """
 
     def __call__(
-        self, F: FCallable, qp0: Vec6, /, ts: Float[Array, "T"] | None
+        self, F: FCallable, w0: Vec6, /, ts: Float[Array, "T"] | None
     ) -> Float[Array, "R 7"]:
         """Integrate.
 
@@ -52,8 +52,8 @@ class Integrator(_DataclassInstance, Protocol):
         ----------
         F : FCallable, positional-only
             The function to integrate.
-            (t, qp, args) -> (v, a).
-        qp0 : Array[float, (6,)], positional-only
+            (t, w, args) -> (v, a).
+        w0 : Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
 
         ts : Array[float, (T,)] | None
@@ -85,7 +85,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     def __call__(
         self,
         F: FCallable,
-        qp0: Vec6,
+        w0: Vec6,
         /,
         ts: Float[Array, "T"],
     ) -> Float[Array, "T 7"]:
@@ -95,7 +95,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         ----------
         F : FCallable, positional-only
             The function to integrate.
-        qp0 : Array[float, (6,)], positional-only
+        w0 : Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
 
         ts : Array[float, (T,)] | None

@@ -6,7 +6,7 @@ import pytest
 
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
 from galax.potential import AbstractPotentialBase, NFWPotential
-from galax.typing import TimeVector, Vec6
+from galax.typing import Vec6, VecTime
 from galax.units import galactic
 
 
@@ -37,9 +37,9 @@ class TestMockStreamGenerator:
     # ----------------------------------------
 
     @pytest.fixture()
-    def t_stripping(self) -> TimeVector:
+    def t_stripping(self) -> VecTime:
         """Time vector for stripping."""
-        return cast(TimeVector, xp.linspace(0.0, 4e3, 8_000, dtype=float))
+        return cast(VecTime, xp.linspace(0.0, 4e3, 8_000, dtype=float))
 
     @pytest.fixture()
     def prog_w0(self) -> Vec6:
@@ -75,7 +75,7 @@ class TestMockStreamGenerator:
     def test_run_scan(
         self,
         mockstream: MockStreamGenerator,
-        t_stripping: TimeVector,
+        t_stripping: VecTime,
         prog_w0: Vec6,
         prog_mass: float,
         seed_num: int,

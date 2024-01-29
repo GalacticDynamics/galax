@@ -64,7 +64,6 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
     def __getitem__(self, index: Any) -> "Self":
         """Return a new object with the given slice applied."""
-        # This is the default implementation, but subclasses can override this
         # Compute subindex
         subindex = getitem_time_index(index, self.t)
         # Apply slice

@@ -31,7 +31,7 @@ class FardalStreamDF(AbstractStreamDF):
     https://ui.adsabs.harvard.edu/abs/2015MNRAS.452..301F/abstract
     """
 
-    @partial(jax.jit, static_argnums=(0,), static_argnames=("seed_num",))
+    @partial(jax.jit, static_argnums=(0,), static_argnames=("key",))
     def _sample(
         self,
         potential: AbstractPotentialBase,
@@ -40,13 +40,12 @@ class FardalStreamDF(AbstractStreamDF):
         t: FloatScalar,
         *,
         i: IntLike,
-        seed_num: int,
+        key: int,
     ) -> tuple[Vec3, Vec3, Vec3, Vec3]:
         """Generate stream particle initial conditions."""
         # Random number generation
         # TODO: change random key handling... need to do all of the sampling up front...
-        key_master = random.PRNGKey(seed_num)
-        random_ints = random.randint(key=key_master, shape=(4,), minval=0, maxval=1000)
+        random_ints = random.randint(key=key, shape=(4,), minval=0, maxval=1000)
         keya = random.PRNGKey(i * random_ints[0])
         keyb = random.PRNGKey(i * random_ints[1])
         keyc = random.PRNGKey(i * random_ints[2])

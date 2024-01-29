@@ -15,7 +15,7 @@ from jax.numpy import copy
 from galax.dynamics._orbit import Orbit
 from galax.dynamics.mockstream._core import MockStream
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchVec3, FloatScalar, IntLike, Vec3, Vec6
+from galax.typing import BatchVec3, FloatScalar, IntLike, KeyAnyShape, Vec3, Vec6
 
 Wif: TypeAlias = tuple[Vec3, Vec3, Vec3, Vec3]
 Carry: TypeAlias = tuple[IntLike, Vec3, Vec3, Vec3, Vec3]
@@ -34,7 +34,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             msg = "You must generate either leading or trailing tails (or both!)"
             raise ValueError(msg)
 
-    @partial(jax.jit, static_argnames=("seed_num",))
+    @partial(jax.jit, static_argnames=("key",))
     def sample(
         self,
         # <\ parts of gala's ``prog_orbit``
@@ -44,7 +44,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         /,
         prog_mass: FloatScalar,
         *,
-        seed_num: int,
+        key: KeyAnyShape,
     ) -> tuple[MockStream, MockStream]:
         """Generate stream particle initial conditions.
 
@@ -58,7 +58,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             Mass of the progenitor in [Msol].
             TODO: allow this to be an array or function of time.
 
-        seed_num : int, keyword-only
+        key : Key, keyword-only
             PRNG seed
 
         Returns
@@ -75,7 +75,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         # conditions at each release time.
         def scan_fn(carry: Carry, t: FloatScalar) -> tuple[Carry, Wif]:
             i = carry[0]
-            out = self._sample(pot, prog_w[i], prog_mass, t, i=i, seed_num=seed_num)
+            out = self._sample(pot, prog_w[i], prog_mass, t, i=i, key=key)
             return (i + 1, *out), out
 
         # TODO: use ``jax.vmap`` instead of ``jax.lax.scan`` for GPU usage
@@ -96,7 +96,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         t: FloatScalar,
         *,
         i: IntLike,
-        seed_num: int,
+        key: KeyAnyShape,
     ) -> tuple[BatchVec3, BatchVec3, BatchVec3, BatchVec3]:
         """Generate stream particle initial conditions.
 
@@ -111,9 +111,9 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         t : Numeric
             Time in [Myr]
 
-        i : int
+        i : int, keyword-only
             PRNG multiplier
-        seed_num : int
+        key : Key, keyword-only
             PRNG seed
 
         Returns

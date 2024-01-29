@@ -3,10 +3,11 @@ from typing import cast
 import astropy.units as u
 import jax.experimental.array_api as xp
 import pytest
+from jax.random import PRNGKey
 
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
 from galax.potential import AbstractPotentialBase, NFWPotential
-from galax.typing import Vec6, VecTime
+from galax.typing import KeyAnyShape, Vec6, VecTime
 from galax.units import galactic
 
 
@@ -61,9 +62,9 @@ class TestMockStreamGenerator:
         return 1e4
 
     @pytest.fixture()
-    def seed_num(self) -> int:
+    def key(self) -> KeyAnyShape:
         """Seed number for the random number generator."""
-        return 12
+        return PRNGKey(12)
 
     @pytest.fixture()
     def vmapped(self) -> bool:
@@ -78,15 +79,11 @@ class TestMockStreamGenerator:
         t_stripping: VecTime,
         prog_w0: Vec6,
         prog_mass: float,
-        seed_num: int,
-    ):
+        key: KeyAnyShape,
+    ) -> None:
         """Test the run method with ``vmapped=False``."""
         (mock_lead, mock_trail), prog_o = mockstream.run(
-            t_stripping,
-            prog_w0,
-            prog_mass,
-            seed_num=seed_num,
-            vmapped=False,
+            t_stripping, prog_w0, prog_mass, key=key, vmapped=False
         )
 
         # TODO: more rigorous tests

@@ -6,7 +6,7 @@ __all__: list[str] = []
 from typing import TypeAlias
 
 import astropy.units as u
-from jaxtyping import Array, Float, Integer, Shaped
+from jaxtyping import Array, Float, Integer, Key, Shaped
 
 # =============================================================================
 
@@ -124,3 +124,5 @@ IntArrayAnyShape = Integer[Array, "..."]
 """An integer array with any shape."""
 
 ArrayAnyShape = Shaped[Array, "..."]
+
+KeyAnyShape = Key[Array, "..."]

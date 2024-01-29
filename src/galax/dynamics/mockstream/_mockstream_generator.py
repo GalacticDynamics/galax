@@ -20,6 +20,7 @@ from galax.typing import (
     BatchVec6,
     FloatScalar,
     IntScalar,
+    KeyAnyShape,
     Vec6,
     VecN,
     VecTime,
@@ -118,14 +119,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         )
         return lead_arm_w, trail_arm_w
 
-    @partial(jax.jit, static_argnames=("seed_num", "vmapped"))
+    @partial(jax.jit, static_argnames=("key", "vmapped"))
     def run(
         self,
         ts: VecTime,
         prog_w0: Vec6,
         prog_mass: FloatScalar,
         *,
-        seed_num: int,
+        key: KeyAnyShape,
         vmapped: bool | None = None,
     ) -> tuple[tuple[MockStream, MockStream], Orbit]:
         """Generate mock stellar stream.
@@ -139,11 +140,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_mass : float
             Mass of the progenitor.
 
-        seed_num : int, keyword-only
-            Seed number for the random number generator.
-
-            :todo: a better way to handle PRNG
-
+        key : Key, keyword-only
+            PRNG Key for the random number generator.
         vmapped : bool | None, optional keyword-only
             Whether to use `jax.vmap` (`True`) or `jax.lax.scan` (`False`) to
             parallelize the integration. ``vmapped=True`` is recommended for GPU
@@ -170,7 +168,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # Generate stream initial conditions along the integrated progenitor
         # orbit. The release times are stripping times.
         mock0_lead, mock0_trail = self.df.sample(
-            self.potential, prog_o, prog_mass, seed_num=seed_num
+            self.potential, prog_o, prog_mass, key=key
         )
 
         if use_vmap:

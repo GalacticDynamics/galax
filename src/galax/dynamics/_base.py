@@ -3,8 +3,9 @@
 __all__ = ["AbstractPhaseSpacePosition"]
 
 from abc import abstractmethod
+from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import equinox as eqx
 import jax
@@ -16,7 +17,11 @@ from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
 from galax.units import UnitSystem
 from galax.utils._shape import atleast_batched
 
+from ._utils import getitem_time_index
+
 if TYPE_CHECKING:
+    from typing import Self
+
     from galax.potential._potential.base import AbstractPotentialBase
 
 
@@ -51,12 +56,27 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
     @property
     def shape(self) -> tuple[int, ...]:
         """Shape of the position and velocity arrays."""
-        batch_shape, component_shapes = self._shape_tuple
-        return (*batch_shape, sum(component_shapes))
+        return self._shape_tuple[0]
 
     def __len__(self) -> int:
         """Return the number of particles."""
         return self.shape[0]
+
+    def __getitem__(self, index: Any) -> "Self":
+        """Return a new object with the given slice applied."""
+        # This is the default implementation, but subclasses can override this
+        # Compute subindex
+        subindex = getitem_time_index(index, self.t)
+        # Apply slice
+        return replace(self, q=self.q[index], p=self.p[index], t=self.t[subindex])
+
+    # ==========================================================================
+
+    @property
+    def full_shape(self) -> tuple[int, ...]:
+        """Shape of the position and velocity arrays."""
+        batch_shape, component_shapes = self._shape_tuple
+        return (*batch_shape, sum(component_shapes))
 
     # ==========================================================================
     # Convenience properties

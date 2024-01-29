@@ -12,19 +12,62 @@ from galax.units import galactic
 class TestPhaseSpacePosition:
     """Test :class:`~galax.dynamics.PhaseSpacePosition`."""
 
-    def test_len(self) -> None:
-        """Test length."""
-        _, *subkeys = random.split(random.PRNGKey(0), num=5)
+    def test_slice(self) -> None:
+        """Test slicing."""
+        _, *_subkeys = random.split(random.PRNGKey(0), num=9)
+        subkeys = iter(_subkeys)
 
         # Simple
-        q = random.uniform(subkeys[0], shape=(10, 3))
-        p = random.uniform(subkeys[1], shape=(10, 3))
+        x = random.uniform(next(subkeys), shape=(10, 3))
+        v = random.uniform(next(subkeys), shape=(10, 3))
+        o = PhaseSpacePosition(x, v)
+        new_o = o[:5]
+        assert new_o.shape == (5,)
+
+        # 1d slice on 3d
+        x = random.uniform(next(subkeys), shape=(10, 8, 3))
+        v = random.uniform(next(subkeys), shape=(10, 8, 3))
+        o = PhaseSpacePosition(x, v)
+        new_o = o[:5]
+        assert new_o.shape == (5, 8)
+
+        # 3d slice on 3d
+        o = PhaseSpacePosition(x, v)
+        new_o = o[:5, :4]
+        assert new_o.shape == (5, 4)
+
+        # Boolean array
+        x = random.uniform(next(subkeys), shape=(10, 3))
+        v = random.uniform(next(subkeys), shape=(10, 3))
+        o = PhaseSpacePosition(x, v)
+        ix = xp.asarray([0, 0, 0, 0, 0, 1, 1, 1, 1, 1]).astype(bool)
+        new_o = o[ix]
+        assert new_o.shape == (sum(ix),)
+
+        # Integer array
+        x = random.uniform(next(subkeys), shape=(10, 3))
+        v = random.uniform(next(subkeys), shape=(10, 3))
+        o = PhaseSpacePosition(x, v)
+        ix = xp.asarray([0, 3, 5])
+        new_o = o[ix]
+        assert new_o.shape == (len(ix),)
+
+    # ------------------------------------------------------------------------
+
+    def test_len(self) -> None:
+        """Test length."""
+        _, *_subkeys = random.split(random.PRNGKey(0), num=5)
+        subkeys = iter(_subkeys)
+
+        # Simple
+        q = random.uniform(next(subkeys), shape=(10, 3))
+        p = random.uniform(next(subkeys), shape=(10, 3))
         psp = PhaseSpacePosition(q, p)
         assert len(psp) == 10
 
         # Complex shape
-        q = random.uniform(subkeys[2], shape=(4, 10, 3))
-        p = random.uniform(subkeys[3], shape=(4, 10, 3))
+        q = random.uniform(next(subkeys), shape=(4, 10, 3))
+        p = random.uniform(next(subkeys), shape=(4, 10, 3))
         psp = PhaseSpacePosition(q, p)
         assert len(psp) == 4
 
@@ -32,10 +75,11 @@ class TestPhaseSpacePosition:
 
     def test_w(self) -> None:
         """Test :attr:`~galax.dynamics.PhaseSpacePosition.w`."""
-        _, *subkeys = random.split(random.PRNGKey(0), num=3)
+        _, *_subkeys = random.split(random.PRNGKey(0), num=3)
+        subkeys = iter(_subkeys)
 
-        q = random.uniform(subkeys[0], shape=(10, 3))
-        p = random.uniform(subkeys[1], shape=(10, 3))
+        q = random.uniform(next(subkeys), shape=(10, 3))
+        p = random.uniform(next(subkeys), shape=(10, 3))
         psp = PhaseSpacePosition(q, p)
 
         # units = None
@@ -50,11 +94,12 @@ class TestPhaseSpacePosition:
     # `wt()`
 
     def test_wt_notime(self) -> None:
-        """Test :attr:`~galax.dynamics.core.PhaseSpacePosition.wt`."""
-        _, *subkeys = random.split(random.PRNGKey(0), num=3)
+        """Test :attr:`~galax.dynamics.PhaseSpacePosition.wt`."""
+        _, *_subkeys = random.split(random.PRNGKey(0), num=3)
+        subkeys = iter(_subkeys)
 
-        q = random.uniform(subkeys[0], shape=(10, 3))
-        p = random.uniform(subkeys[1], shape=(10, 3))
+        q = random.uniform(next(subkeys), shape=(10, 3))
+        p = random.uniform(next(subkeys), shape=(10, 3))
         psp = PhaseSpacePosition(q, p)
 
         # units = None
@@ -67,12 +112,13 @@ class TestPhaseSpacePosition:
             _ = psp.wt(units=galactic)
 
     def test_wt_time(self) -> None:
-        """Test :attr:`~galax.dynamics.core.AbstractPhaseSpacePositionBase.wt`."""
-        _, *subkeys = random.split(random.PRNGKey(0), num=4)
+        """Test :attr:`~galax.dynamics.PhaseSpacePosition.wt`."""
+        _, *_subkeys = random.split(random.PRNGKey(0), num=4)
+        subkeys = iter(_subkeys)
 
-        q = random.uniform(subkeys[0], shape=(10, 3))
-        p = random.uniform(subkeys[1], shape=(10, 3))
-        t = random.uniform(subkeys[2], shape=(10, 1))
+        q = random.uniform(next(subkeys), shape=(10, 3))
+        p = random.uniform(next(subkeys), shape=(10, 3))
+        t = random.uniform(next(subkeys), shape=(10, 1))
         psp = PhaseSpacePosition(q, p, t=t)
 
         # units = None

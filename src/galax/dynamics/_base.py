@@ -11,6 +11,7 @@ import equinox as eqx
 import jax
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
+from astropy.coordinates import CartesianDifferential, CartesianRepresentation
 from jaxtyping import Array, Float
 
 from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
@@ -222,3 +223,20 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         """
         # TODO: when q, p are not Cartesian.
         return jnp.cross(self.q, self.p)
+
+    # ==========================================================================
+    # Astropy stuff
+
+    @property
+    def cartesian(self) -> CartesianRepresentation:
+        """Return a Cartesian representation of the position and velocity.
+
+        Returns
+        -------
+        :class:`~astropy.coordinates.CartesianRepresentation`
+            The Cartesian representation. There are _NO_ units, until this
+            PhaseSpaceRepresentation has units.
+        """
+        return CartesianRepresentation(
+            *self.q.T, differentials=CartesianDifferential(*self.p.T)
+        )

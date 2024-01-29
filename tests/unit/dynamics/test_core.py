@@ -12,6 +12,18 @@ from galax.units import galactic
 class TestPhaseSpacePosition:
     """Test :class:`~galax.dynamics.PhaseSpacePosition`."""
 
+    @pytest.fixture(scope="class")
+    def psp(self) -> PhaseSpacePosition:
+        """Fixture for :class:`~galax.dynamics.PhaseSpacePosition`."""
+        _, *_subkeys = random.split(random.PRNGKey(0), num=3)
+        subkeys = iter(_subkeys)
+
+        q = random.uniform(next(subkeys), shape=(10, 3))
+        p = random.uniform(next(subkeys), shape=(10, 3))
+        return PhaseSpacePosition(q, p)
+
+    # ===============================================================
+
     def test_slice(self) -> None:
         """Test slicing."""
         _, *_subkeys = random.split(random.PRNGKey(0), num=9)
@@ -52,7 +64,7 @@ class TestPhaseSpacePosition:
         new_o = o[ix]
         assert new_o.shape == (len(ix),)
 
-    # ------------------------------------------------------------------------
+    # ---------------------------------------------------------------
 
     def test_len(self) -> None:
         """Test length."""
@@ -71,40 +83,26 @@ class TestPhaseSpacePosition:
         psp = PhaseSpacePosition(q, p)
         assert len(psp) == 4
 
-    # ------------------------------------------------------------------------
+    # ---------------------------------------------------------------
 
-    def test_w(self) -> None:
+    def test_w(self, psp: PhaseSpacePosition) -> None:
         """Test :attr:`~galax.dynamics.PhaseSpacePosition.w`."""
-        _, *_subkeys = random.split(random.PRNGKey(0), num=3)
-        subkeys = iter(_subkeys)
-
-        q = random.uniform(next(subkeys), shape=(10, 3))
-        p = random.uniform(next(subkeys), shape=(10, 3))
-        psp = PhaseSpacePosition(q, p)
-
         # units = None
         w = psp.w()
-        assert jnp.all(w == xp.concat((q, p), axis=1))
+        assert jnp.all(w == xp.concat((psp.q, psp.p), axis=1))
 
         # units != None
         with pytest.raises(NotImplementedError):
             _ = psp.w(units=galactic)
 
-    # ------------------------------------------------------------------------
+    # ---------------------------------------------------------------
     # `wt()`
 
-    def test_wt_notime(self) -> None:
+    def test_wt_notime(self, psp: PhaseSpacePosition) -> None:
         """Test :attr:`~galax.dynamics.PhaseSpacePosition.wt`."""
-        _, *_subkeys = random.split(random.PRNGKey(0), num=3)
-        subkeys = iter(_subkeys)
-
-        q = random.uniform(next(subkeys), shape=(10, 3))
-        p = random.uniform(next(subkeys), shape=(10, 3))
-        psp = PhaseSpacePosition(q, p)
-
         # units = None
         wt = psp.wt()
-        assert jnp.array_equal(wt[..., :-1], xp.concat((q, p), axis=-1))
+        assert jnp.array_equal(wt[..., :-1], xp.concat((psp.q, psp.p), axis=-1))
         assert jnp.array_equal(wt[..., -1], xp.zeros(len(wt)))
 
         # units != None
@@ -129,3 +127,11 @@ class TestPhaseSpacePosition:
         # units != None
         with pytest.raises(NotImplementedError):
             _ = psp.wt(units=galactic)
+
+    # ===============================================================
+    # Astropy stuff
+
+    def test_cartesian(self, psp: PhaseSpacePosition) -> None:
+        """Test :attr:`~galax.dynamics.PhaseSpacePosition.cartesian`."""
+        cart = psp.cartesian
+        assert jnp.array_equal(cart.xyz.T, psp.q)

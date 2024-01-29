@@ -11,24 +11,28 @@ import jax
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jax.lib.xla_bridge import get_backend
+from jaxtyping import Array, Shaped
 
 from galax.dynamics._orbit import Orbit
 from galax.integrate._base import Integrator
 from galax.integrate._builtin import DiffraxIntegrator
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import (
-    BatchVec6,
-    FloatScalar,
-    IntScalar,
-    Vec6,
-    VecN,
-    VecTime,
-)
+from galax.typing import BatchVec6, FloatScalar, IntScalar, Vec6, VecN, VecTime
 
 from ._core import MockStream
 from ._df import AbstractStreamDF
 
 Carry: TypeAlias = tuple[IntScalar, VecN, VecN]
+
+
+@partial(jax.jit, static_argnames="axis")
+def _interleave_concat(
+    a: Shaped[Array, "..."], b: Shaped[Array, "..."], /, axis: int
+) -> Shaped[Array, "..."]:
+    a_shp = a.shape
+    return xp.stack((a, b), axis=axis + 1).reshape(
+        *a_shp[:axis], 2 * a_shp[axis], *a_shp[axis + 1 :]
+    )
 
 
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
@@ -127,7 +131,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         *,
         seed_num: int,
         vmapped: bool | None = None,
-    ) -> tuple[tuple[MockStream, MockStream], Orbit]:
+    ) -> tuple[MockStream, Orbit]:
         """Generate mock stellar stream.
 
         Parameters
@@ -153,8 +157,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Returns
         -------
-        lead_arm, trail_arm : tuple[MockStream, MockStream]
-            Leading and trailing arms of the mock stream.
+        mockstream : MockStream
+            Leading and/or trailing arms of the mock stream.
         prog_o : Orbit
             Orbit of the progenitor.
         """
@@ -178,17 +182,29 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         else:
             lead_arm_w, trail_arm_w = self._run_scan(ts, mock0_lead, mock0_trail)
 
-        lead_arm = MockStream(
-            q=lead_arm_w[:, 0:3],
-            p=lead_arm_w[:, 3:6],
-            t=xp.ones_like(ts) * ts[-1],  # TODO: ensure this time is correct
-            release_time=mock0_lead.release_time,
-        )
-        trail_arm = MockStream(
-            q=trail_arm_w[:, 0:3],
-            p=trail_arm_w[:, 3:6],
-            t=xp.ones_like(ts) * ts[-1],  # TODO: ensure this time is correct
-            release_time=mock0_trail.release_time,
-        )
+        t = xp.ones_like(ts) * ts[-1]  # TODO: ensure this time is correct
 
-        return (lead_arm, trail_arm), prog_o
+        # TODO: move this combination up the stack
+        if self.df.lead and self.df.trail:
+            axis = len(trail_arm_w.shape) - 2
+            q = _interleave_concat(trail_arm_w[:, 0:3], lead_arm_w[:, 0:3], axis=axis)
+            p = _interleave_concat(trail_arm_w[:, 3:6], lead_arm_w[:, 3:6], axis=axis)
+            t = _interleave_concat(t, t, axis=0)
+            release_time = _interleave_concat(
+                mock0_lead.release_time, mock0_trail.release_time, axis=0
+            )
+        elif self.df.lead:
+            q = lead_arm_w[:, 0:3]
+            p = lead_arm_w[:, 3:6]
+            release_time = mock0_lead.release_time
+        elif self.df.trail:
+            q = trail_arm_w[:, 0:3]
+            p = trail_arm_w[:, 3:6]
+            release_time = mock0_trail.release_time
+        else:
+            msg = "You must generate either leading or trailing tails (or both!)"
+            raise ValueError(msg)
+
+        mockstream = MockStream(q=q, p=p, t=t, release_time=release_time)
+
+        return mockstream, prog_o

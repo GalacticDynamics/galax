@@ -41,8 +41,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     """The time corresponding to the positions.
 
     This is a scalar with the same batch shape as the positions and velocities.
-    The default value is a scalar zero. If `t` will be broadcast to the same batch
-    shape as `q` and `p`.
+    The default value is a scalar zero. If `t` is a scalar it will be broadcast
+    to the same batch shape as `q` and `p`.
     """
 
     def __post_init__(self) -> None:

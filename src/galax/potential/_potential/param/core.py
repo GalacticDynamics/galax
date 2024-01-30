@@ -3,9 +3,9 @@
 __all__ = ["AbstractParameter", "ConstantParameter", "UserParameter"]
 
 import abc
-from dataclasses import KW_ONLY
+from dataclasses import KW_ONLY, replace
 from functools import partial
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import astropy.units as u
 import equinox as eqx
@@ -21,6 +21,9 @@ from galax.typing import (
 )
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import converter_float_array
+
+if TYPE_CHECKING:
+    from typing import Self
 
 
 class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -94,6 +97,14 @@ class ConstantParameter(AbstractParameter):
             The constant parameter value.
         """
         return self._call_helper(t)
+
+    # -------------------------------------------
+
+    def __mul__(self, other: Any) -> "Self":
+        return replace(self, value=self.value * other)
+
+    def __rmul__(self, other: Any) -> "Self":
+        return replace(self, value=other * self.value)
 
 
 #####################################################################

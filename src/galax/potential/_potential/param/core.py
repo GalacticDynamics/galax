@@ -1,6 +1,11 @@
 """Parameters on a Potential."""
 
-__all__ = ["AbstractParameter", "ConstantParameter", "UserParameter"]
+__all__ = [
+    "AbstractParameter",
+    "ConstantParameter",
+    "UserParameter",
+    "ParameterCallable",
+]
 
 import abc
 from dataclasses import KW_ONLY, replace
@@ -59,6 +64,9 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
             The parameter value at times ``t``.
         """
         ...
+
+
+#####################################################################
 
 
 @final

@@ -2,7 +2,7 @@ __all__ = ["DiffraxIntegrator"]
 
 from collections.abc import Mapping
 from dataclasses import KW_ONLY
-from typing import Any
+from typing import Any, final
 
 import equinox as eqx
 import jax.experimental.array_api as xp
@@ -25,6 +25,7 @@ from galax.utils._jax import vectorize_method
 from ._base import FCallable
 
 
+@final
 class DiffraxIntegrator(AbstractIntegrator):
     """Thin wrapper around ``diffrax.diffeqsolve``."""
 

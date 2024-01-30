@@ -10,6 +10,7 @@ from typing import (
     Annotated,
     Any,
     cast,
+    final,
     get_args,
     get_origin,
     get_type_hints,
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from galax.potential._potential.base import AbstractPotentialBase
 
 
+@final
 @dataclass(frozen=True, slots=True)
 class ParameterField:
     """Descriptor for a Potential Parameter.

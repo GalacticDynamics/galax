@@ -1,10 +1,10 @@
 """galax: Galactic Dynamix in Jax."""
 
-
 __all__ = ["FardalStreamDF"]
 
 
 from functools import partial
+from typing import final
 
 import jax
 import jax.experimental.array_api as xp
@@ -23,6 +23,7 @@ from galax.typing import (
 from .base import AbstractStreamDF
 
 
+@final
 class FardalStreamDF(AbstractStreamDF):
     """Fardal Stream Distribution Function.
 

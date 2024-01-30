@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 from collections.abc import Iterator
-from typing import ClassVar, Union
+from typing import ClassVar, Union, final
 
 import astropy.units as u
 from astropy.units.physical import _physical_unit_mapping
@@ -162,6 +162,7 @@ class UnitSystem:
         return quantity.to(self.preferred(quantity.unit.physical_type))
 
 
+@final
 class DimensionlessUnitSystem(UnitSystem):
     """A unit system with only dimensionless units."""
 

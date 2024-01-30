@@ -4,7 +4,7 @@ __all__ = ["ParametersAttribute"]
 
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn, final
 
 from .field import ParameterField
 
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from galax.potential._potential.base import AbstractPotentialBase
 
 
+@final
 @dataclass(frozen=True, slots=True)
 class ParametersAttribute:
     """Mapping of the :class:`~galax.potential.ParameterField` values.

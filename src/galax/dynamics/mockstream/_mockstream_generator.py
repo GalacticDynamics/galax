@@ -4,7 +4,7 @@ __all__ = ["MockStreamGenerator"]
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import TypeAlias
+from typing import TypeAlias, final
 
 import equinox as eqx
 import jax
@@ -35,6 +35,7 @@ def _interleave_concat(
     )
 
 
+@final
 class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     """Generate a mock stellar stream in the specified external potential."""
 

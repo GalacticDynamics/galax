@@ -24,7 +24,7 @@ w_org = xp.asarray([0.0, 0.0, 0.0])
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
-    """Abstract Base Class of Stream Distribution Functions."""
+    """Abstract base class of Stream Distribution Functions."""
 
     lead: bool = eqx.field(default=True, static=True)
     trail: bool = eqx.field(default=True, static=True)

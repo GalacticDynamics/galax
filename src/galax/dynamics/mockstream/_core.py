@@ -4,7 +4,7 @@ __all__ = ["MockStream"]
 
 from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, final
 
 import equinox as eqx
 import jax
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from galax.potential._potential.base import AbstractPotentialBase
 
 
+@final
 class MockStream(AbstractPhaseSpacePosition):
     """Mock stream object.
 

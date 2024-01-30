@@ -5,7 +5,7 @@ __all__ = ["AbstractParameter", "ConstantParameter", "UserParameter"]
 import abc
 from dataclasses import KW_ONLY, replace
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, final, runtime_checkable
 
 import astropy.units as u
 import equinox as eqx
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 
 class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
-    """Abstract Base Class for Parameters on a Potential.
+    """Abstract base class for Parameters on a Potential.
 
     Parameters are time-dependent quantities that are used to define a
     Potential. They can be constant (see `ConstantParameter`), or they can be
@@ -61,6 +61,7 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
         ...
 
 
+@final
 class ConstantParameter(AbstractParameter):
     """Time-independent potential parameter."""
 
@@ -134,6 +135,7 @@ class ParameterCallable(Protocol):
         ...
 
 
+@final
 class UserParameter(AbstractParameter):
     """User-defined Parameter.
 

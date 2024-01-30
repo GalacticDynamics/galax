@@ -5,7 +5,7 @@ import galax.potential as gp
 from galax.potential import ConstantParameter
 from galax.units import galactic
 
-from ..params.test_field import ParameterFieldMixin
+from ..param.test_field import ParameterFieldMixin
 
 
 class MassParameterMixin(ParameterFieldMixin):

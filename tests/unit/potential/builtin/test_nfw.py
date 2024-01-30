@@ -13,7 +13,7 @@ from galax.typing import Vec3
 from galax.units import galactic
 from galax.utils._optional_deps import HAS_GALA
 
-from ..params.test_field import ParameterFieldMixin
+from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin
 

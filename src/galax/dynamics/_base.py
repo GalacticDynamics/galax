@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
-    """Abstract Base Class of Phase-Space Positions.
+    """Abstract base class of Phase-Space Positions.
 
     Todo:
     ----

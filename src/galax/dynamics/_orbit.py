@@ -3,6 +3,7 @@
 __all__ = ["Orbit"]
 
 from functools import partial
+from typing import final
 
 import equinox as eqx
 import jax
@@ -16,6 +17,7 @@ from galax.utils.dataclasses import converter_float_array
 from ._base import AbstractPhaseSpacePosition
 
 
+@final
 class Orbit(AbstractPhaseSpacePosition):
     """Represents an orbit.
 

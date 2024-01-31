@@ -1,72 +1,12 @@
-__all__ = ["Integrator", "AbstractIntegrator"]
+__all__ = ["AbstractIntegrator"]
 
 import abc
-from typing import Any, Protocol, runtime_checkable
 
 import equinox as eqx
-from jaxtyping import Array, Float
 
-from galax.typing import FloatScalar, Vec6
-from galax.utils.dataclasses import _DataclassInstance
+from galax.typing import Vec6, VecTime, VecTime7
 
-
-@runtime_checkable
-class FCallable(Protocol):
-    """Protocol for the integration callable."""
-
-    def __call__(self, t: FloatScalar, w: Vec6, args: tuple[Any, ...]) -> Vec6:
-        """Integration function.
-
-        Parameters
-        ----------
-        t : float
-            The time.
-        w : Array[float, (6,)]
-            The position and velocity.
-        args : tuple
-            Additional arguments.
-
-        Returns
-        -------
-        Array[float, (6,)]
-            [v (3,), a (3,)].
-        """
-        ...
-
-
-@runtime_checkable
-class Integrator(_DataclassInstance, Protocol):
-    """:class:`typing.Protocol` for integrators.
-
-    The integrators are classes that are used to integrate the equations of
-    motion.
-    They must not be stateful since they are used in a functional way.
-    """
-
-    def __call__(
-        self, F: FCallable, w0: Vec6, /, ts: Float[Array, "T"] | None
-    ) -> Float[Array, "R 7"]:
-        """Integrate.
-
-        Parameters
-        ----------
-        F : FCallable, positional-only
-            The function to integrate.
-            (t, w, args) -> (v, a).
-        w0 : Array[float, (6,)], positional-only
-            Initial conditions ``[q, p]``.
-
-        ts : Array[float, (T,)] | None
-            Times to return the computation.
-            It's necessary to at least provide the initial and final times.
-
-        Returns
-        -------
-        Array[float, (R, 7)]
-            The solution of the integrator [q, p, t], where q, p are the
-            generalized 3-coordinates.
-        """
-        ...
+from ._api import FCallable
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -82,13 +22,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     """
 
     @abc.abstractmethod
-    def __call__(
-        self,
-        F: FCallable,
-        w0: Vec6,
-        /,
-        ts: Float[Array, "T"],
-    ) -> Float[Array, "T 7"]:
+    def __call__(self, F: FCallable, w0: Vec6, /, ts: VecTime) -> VecTime7:
         """Run the integrator.
 
         Parameters
@@ -98,13 +32,13 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         w0 : Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
 
-        ts : Array[float, (T,)] | None
+        ts : Array[float, (time,)]
             Times to return the computation.
             It's necessary to at least provide the initial and final times.
 
         Returns
         -------
-        Array[float, (R, 7)]
+        Array[float, (time, 7)]
             The solution of the integrator [q, p, t], where q, p are the
             generalized 3-coordinates.
         """

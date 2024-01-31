@@ -65,6 +65,7 @@ VecN = Float[Array, "N"]
 # Specific
 
 VecTime = Float[Array, "time"]
+VecTime7 = Float[Array, "time 7"]
 """A time vector."""
 
 # -----------------------------------------------------------------------------

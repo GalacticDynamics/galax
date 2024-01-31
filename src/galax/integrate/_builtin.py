@@ -22,7 +22,7 @@ from galax.typing import Vec6
 from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 
-from ._base import FCallable
+from ._api import FCallable
 
 
 @final

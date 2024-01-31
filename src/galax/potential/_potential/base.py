@@ -16,7 +16,7 @@ from astropy.units import Quantity
 from jax import grad, hessian, jacfwd
 from jaxtyping import Array, Float
 
-from galax.integrate._base import Integrator
+from galax.integrate._api import Integrator
 from galax.integrate._builtin import DiffraxIntegrator
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters

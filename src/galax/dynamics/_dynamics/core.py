@@ -36,7 +36,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     """
 
     t: BroadBatchFloatScalar | Vec1 = eqx.field(
-        default=(0.0,), converter=converter_float_array
+        default=0.0, converter=converter_float_array
     )
     """The time corresponding to the positions.
 
@@ -48,8 +48,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     def __post_init__(self) -> None:
         """Post-initialization."""
         # Need to ensure t shape is correct. Can be Vec0.
-        if self.t.ndim == 0:
-            t = expand_batch_dims(self.t, ndim=self.q.ndim)
+        if self.t.ndim in (0, 1):
+            t = expand_batch_dims(self.t, ndim=self.q.ndim - self.t.ndim - 1)
             object.__setattr__(self, "t", t)
 
     # ==========================================================================
@@ -60,7 +60,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         """Batch, component shape."""
         qbatch, qshape = batched_shape(self.q, expect_ndim=1)
         pbatch, pshape = batched_shape(self.p, expect_ndim=1)
-        tbatch, _ = batched_shape(self.t, expect_ndim=1)
+        tbatch, _ = batched_shape(self.t, expect_ndim=0)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         array_shape = qshape + pshape + (1,)
         return batch_shape, array_shape

@@ -80,8 +80,9 @@ jobs:
 
       - name: Test package
         run: >-
-          python -m pytest -ra --cov --cov-report=xml --cov-report=term
-          --durations=20
+          python -m pytest src docs tests/unit tests/functional -ra --cov
+          --cov-report=xml --cov-report=term --durations=20 --arraydiff -m"not
+          slow"
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v3.1.5

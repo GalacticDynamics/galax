@@ -1,3 +1,5 @@
+"""Test :mod:`galax.dynamics.mockstream.mockstreamgenerator`."""
+
 from typing import cast
 
 import astropy.units as u

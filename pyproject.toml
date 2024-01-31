@@ -50,6 +50,7 @@
     "hypothesis[numpy]",
     "pytest >=6,<8",
     "pytest-cov >=3",
+    "pytest-arraydiff",
     "sybil",
   ]
   docs = [
@@ -83,7 +84,7 @@
 
 [tool.pytest.ini_options]
   minversion = "6.0"
-  addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+  addopts = ["-ra", "--arraydiff", "--showlocals", "--strict-markers", "--strict-config"]
   xfail_strict = true
   filterwarnings = [
     "error",
@@ -96,6 +97,10 @@
     "docs",
     "src/galax",
   ]
+  markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "serial",
+]
 
 
 [tool.coverage]

@@ -67,7 +67,7 @@ def test_first_deriv() -> None:
     return xp.asarray(jax.tree_util.tree_flatten(first_deriv)[0])
 
 
-# TODO: mark slow
+@pytest.mark.slow()
 @pytest.mark.array_compare(file_format="text", reference_dir="reference")
 def test_second_deriv() -> None:
     # Inputs

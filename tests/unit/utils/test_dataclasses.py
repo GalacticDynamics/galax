@@ -1,3 +1,5 @@
+"""Test the :mod:`galax.utils.dataclasses` module."""
+
 import dataclasses
 
 import equinox as eqx
@@ -17,7 +19,7 @@ COMP_FIELDS: tuple[str, ...] = (
 )
 
 
-def test_field():
+def test_field() -> None:
     """Test the :func:`field` function."""
     # Basic test that it returns the output of `dataclasses.field`.
     f = field(dimensions="length")
@@ -36,7 +38,7 @@ def test_field():
         assert getattr(f, n) == getattr(fcomp, n), n
 
 
-def test_field_on_equinox_object():
+def test_field_on_equinox_object() -> None:
     """Test that `field` works on Equinox objects."""
 
     class A(eqx.Module):

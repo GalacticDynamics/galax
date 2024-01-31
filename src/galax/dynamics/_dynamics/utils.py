@@ -19,11 +19,6 @@ def _getitem_time_index_tuple(index: tuple[Any, ...], t: Float[Array, "..."]) ->
     """Get the time index from a slice."""
     if len(index) == 0:  # slice is an empty tuple
         return slice(None)
-    if t.ndim == 1:  # slicing a Vec1
-        return slice(None)
-    if len(index) >= t.ndim:
-        msg = f"Index {index} has too many dimensions for time array of shape {t.shape}"
-        raise IndexError(msg)
     return index
 
 
@@ -41,6 +36,30 @@ def getitem_time_index(index: Any, t: Float[Array, "..."]) -> Any:
     """Get the time index from an index."""
     if isinstance(index, tuple):
         return _getitem_time_index_tuple(index, t)
+    if isinstance(index, Shaped):
+        return _getitem_time_index_shaped(index, t)
+    return index
+
+
+# -----------------------------------------------------------------------------
+
+
+def _getitem_vectime_index_tuple(index: tuple[Any, ...], t: Float[Array, "..."]) -> Any:
+    """Get the time index from a slice."""
+    if len(index) == 0:  # slice is an empty tuple
+        return slice(None)
+    if t.ndim == 1:  # slicing a Vec1
+        return slice(None)
+    if len(index) >= t.ndim:
+        msg = f"Index {index} has too many dimensions for time array of shape {t.shape}"
+        raise IndexError(msg)
+    return index
+
+
+def getitem_vectime_index(index: Any, t: Float[Array, "..."]) -> Any:
+    """Get the time index from an index."""
+    if isinstance(index, tuple):
+        return _getitem_vectime_index_tuple(index, t)
     if isinstance(index, Shaped):
         return _getitem_time_index_shaped(index, t)
     return index

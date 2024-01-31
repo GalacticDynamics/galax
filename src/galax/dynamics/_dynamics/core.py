@@ -9,7 +9,12 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 
-from galax.typing import BatchFloatScalar, BroadBatchFloatScalar, BroadBatchVec3, Vec1
+from galax.typing import (
+    BatchFloatScalar,
+    BroadBatchFloatScalar,
+    BroadBatchVec3,
+    Vec1,
+)
 from galax.utils._shape import batched_shape, expand_batch_dims
 from galax.utils.dataclasses import converter_float_array
 

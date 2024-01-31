@@ -2,8 +2,9 @@
 
 __all__ = ["Orbit"]
 
+from dataclasses import replace
 from functools import partial
-from typing import final
+from typing import TYPE_CHECKING, Any, final
 
 import equinox as eqx
 import jax
@@ -15,6 +16,10 @@ from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
 
 from .base import AbstractPhaseSpacePosition
+from .utils import getitem_vectime_index
+
+if TYPE_CHECKING:
+    from typing import Self
 
 
 @final
@@ -51,6 +56,13 @@ class Orbit(AbstractPhaseSpacePosition):
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         array_shape = qshape + pshape + (1,)
         return batch_shape, array_shape
+
+    def __getitem__(self, index: Any) -> "Self":
+        """Return a new object with the given slice applied."""
+        # Compute subindex
+        subindex = getitem_vectime_index(index, self.t)
+        # Apply slice
+        return replace(self, q=self.q[index], p=self.p[index], t=self.t[subindex])
 
     # ==========================================================================
     # Dynamical quantities

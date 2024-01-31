@@ -181,13 +181,13 @@ class TestPhaseSpacePosition:
 
         q = random.uniform(next(subkeys), shape=(10, 3))
         p = random.uniform(next(subkeys), shape=(10, 3))
-        t = random.uniform(next(subkeys), shape=(10, 1))
+        t = random.uniform(next(subkeys), shape=(10,))
         psp = PhaseSpacePosition(q, p, t=t)
 
         # units = None
         wt = psp.wt()
         assert jnp.array_equal(wt[..., :-1], xp.concat((q, p), axis=-1))
-        assert jnp.array_equal(wt[..., -1:], t)
+        assert jnp.array_equal(wt[..., -1], t)
 
         # units != None
         with pytest.raises(NotImplementedError):

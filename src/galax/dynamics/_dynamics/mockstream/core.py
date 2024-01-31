@@ -10,8 +10,8 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 
-from galax.dynamics._base import AbstractPhaseSpacePosition
-from galax.dynamics._utils import getitem_time_index
+from galax.dynamics._dynamics.base import AbstractPhaseSpacePosition
+from galax.dynamics._dynamics.utils import getitem_time_index
 from galax.typing import BatchFloatScalar, BroadBatchVec3, VecTime
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array

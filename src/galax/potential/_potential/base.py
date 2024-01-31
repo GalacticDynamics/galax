@@ -415,7 +415,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         )
         """
         # TODO: ꜛ get NORMALIZE_WHITESPACE to work correctly so Orbit is 1 line
-        from galax.dynamics._orbit import Orbit
+        from galax.dynamics._dynamics.orbit import Orbit
 
         integrator_ = default_integrator if integrator is None else replace(integrator)
 

@@ -14,7 +14,7 @@ from galax.typing import BatchFloatScalar, BroadBatchVec3, VecTime
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
 
-from ._base import AbstractPhaseSpacePosition
+from .base import AbstractPhaseSpacePosition
 
 
 @final

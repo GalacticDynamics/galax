@@ -1,3 +1,5 @@
+"""Test the :mod:`galax.utils._jax` module."""
+
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 

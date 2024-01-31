@@ -1,7 +1,14 @@
+"""Test the :mod:`galax.utils._misc` module."""
+
+from collections.abc import Iterable
+from typing import TypeVar
+
 import numpy as np
 import pytest
 
 from galax.utils._misc import first
+
+T = TypeVar("T")
 
 
 @pytest.mark.parametrize(
@@ -15,6 +22,6 @@ from galax.utils._misc import first
         (iter([1, 2, 3]), 1),
     ],
 )
-def test_first(x, x0):
+def test_first(x: Iterable[T], x0: T) -> None:
     """Test the function :func:`first`."""
     assert first(x) == x0

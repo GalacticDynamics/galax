@@ -2,7 +2,7 @@ import galax.potential as gp
 from galax.potential import _potential
 
 
-def test_all():
+def test_all() -> None:
     """Test the `galax.potential` package contents."""
     # Test correct dumping of contents
     assert gp.__all__ == _potential.__all__

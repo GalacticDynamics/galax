@@ -7,6 +7,7 @@ import pytest
 from typing_extensions import override
 
 import galax.potential as gp
+from galax.typing import Vec3
 from galax.units import UnitSystem, dimensionless, galactic, solarsystem
 from galax.utils._misc import first
 
@@ -34,9 +35,9 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     @pytest.fixture(scope="class")
     def pot(
         self,
-        pot_cls: type[gp.CompositePotential],
+        pot_cls: type[gp.MilkyWayPotential],
         pot_map: Mapping[str, gp.AbstractPotentialBase],
-    ) -> gp.CompositePotential:
+    ) -> gp.MilkyWayPotential:
         """Composite potential."""
         return pot_cls(**pot_map)
 
@@ -52,7 +53,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_invalid(
         self,
-        pot_cls: type[gp.CompositePotential],
+        pot_cls: type[gp.MilkyWayPotential],
         pot_map: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
         """Test invalid unit system."""
@@ -64,7 +65,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_usys(
         self,
-        pot_cls: type[gp.CompositePotential],
+        pot_cls: type[gp.MilkyWayPotential],
         pot_map: gp.MilkyWayPotential,
     ) -> None:
         """Test unit system from UnitSystem."""
@@ -74,7 +75,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_args(
         self,
-        pot_cls: type[gp.CompositePotential],
+        pot_cls: type[gp.MilkyWayPotential],
         pot_map_unitless: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
         """Test unit system from None."""
@@ -84,7 +85,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_tuple(
         self,
-        pot_cls: type[gp.CompositePotential],
+        pot_cls: type[gp.MilkyWayPotential],
         pot_map: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
         """Test unit system from tuple."""
@@ -94,7 +95,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_name(
         self,
-        pot_cls: type[gp.CompositePotential],
+        pot_cls: type[gp.MilkyWayPotential],
         pot_map: Mapping[str, gp.AbstractPotentialBase],
         pot_map_unitless: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
@@ -120,12 +121,12 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     # --------------------------
     # `__or__`
 
-    def test_or_incorrect(self, pot):
+    def test_or_incorrect(self, pot: gp.MilkyWayPotential) -> None:
         """Test the `__or__` method with incorrect inputs."""
         with pytest.raises(TypeError, match="unsupported operand type"):
             _ = pot | 1
 
-    def test_or_pot(self, pot: gp.CompositePotential) -> None:
+    def test_or_pot(self, pot: gp.MilkyWayPotential) -> None:
         """Test the `__or__` method with a single potential."""
         single_pot = gp.KeplerPotential(m=1e12 * u.solMass, units=galactic)
         newpot = pot | single_pot
@@ -136,7 +137,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         assert isinstance(newkey, str)
         assert newvalue is single_pot
 
-    def test_or_compot(self, pot: gp.CompositePotential) -> None:
+    def test_or_compot(self, pot: gp.MilkyWayPotential) -> None:
         """Test the `__or__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
             kep1=gp.KeplerPotential(m=1e12 * u.solMass, units=galactic),
@@ -157,7 +158,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     # --------------------------
     # `__ror__`
 
-    def test_ror_incorrect(self, pot):
+    def test_ror_incorrect(self, pot: gp.CompositePotential) -> None:
         """Test the `__or__` method with incorrect inputs."""
         with pytest.raises(TypeError, match="unsupported operand type"):
             _ = 1 | pot
@@ -194,7 +195,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     # --------------------------
     # `__add__`
 
-    def test_add_incorrect(self, pot):
+    def test_add_incorrect(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with incorrect inputs."""
         # TODO: specific error
         with pytest.raises(Exception):  # noqa: B017, PT011
@@ -231,18 +232,22 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot, x) -> None:
+    def test_potential_energy(self, pot: gp.MilkyWayPotential, x: Vec3) -> None:
+        """Test the :meth:`MilkyWayPotential.potential_energy` method."""
         assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.19386052))
 
-    def test_gradient(self, pot, x):
+    def test_gradient(self, pot: gp.MilkyWayPotential, x: Vec3) -> None:
+        """Test the :meth:`MilkyWayPotential.gradient` method."""
         assert jnp.allclose(
             pot.gradient(x, t=0), xp.asarray([0.00256403, 0.00512806, 0.01115272])
         )
 
-    def test_density(self, pot, x):
+    def test_density(self, pot: gp.MilkyWayPotential, x: Vec3) -> None:
+        """Test the :meth:`MilkyWayPotential.density` method."""
         assert jnp.isclose(pot.density(x, t=0), 33365858.46361218)
 
-    def test_hessian(self, pot, x):
+    def test_hessian(self, pot: gp.MilkyWayPotential, x: Vec3) -> None:
+        """Test the :meth:`MilkyWayPotential.hessian` method."""
         assert jnp.allclose(
             pot.hessian(x, t=0),
             xp.asarray(

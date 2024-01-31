@@ -8,6 +8,7 @@ import pytest
 from typing_extensions import override
 
 import galax.potential as gp
+from galax.typing import Vec3
 from galax.units import UnitSystem, dimensionless, galactic, solarsystem
 from galax.utils._misc import first
 
@@ -137,7 +138,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # --------------------------
     # `__or__`
 
-    def test_or_incorrect(self, pot):
+    def test_or_incorrect(self, pot: gp.CompositePotential) -> None:
         """Test the `__or__` method with incorrect inputs."""
         with pytest.raises(TypeError, match="unsupported operand type"):
             _ = pot | 1
@@ -174,7 +175,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # --------------------------
     # `__ror__`
 
-    def test_ror_incorrect(self, pot):
+    def test_ror_incorrect(self, pot: gp.CompositePotential) -> None:
         """Test the `__or__` method with incorrect inputs."""
         with pytest.raises(TypeError, match="unsupported operand type"):
             _ = 1 | pot
@@ -211,7 +212,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # --------------------------
     # `__add__`
 
-    def test_add_incorrect(self, pot):
+    def test_add_incorrect(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with incorrect inputs."""
         # TODO: specific error
         with pytest.raises(Exception):  # noqa: B017, PT011
@@ -248,18 +249,18 @@ class TestCompositePotential(AbstractCompositePotential_Test):
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot, x) -> None:
+    def test_potential_energy(self, pot: gp.CompositePotential, x: Vec3) -> None:
         assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.6753781))
 
-    def test_gradient(self, pot, x):
+    def test_gradient(self, pot: gp.CompositePotential, x: Vec3) -> None:
         assert jnp.allclose(
             pot.gradient(x, t=0), xp.asarray([0.01124388, 0.02248775, 0.03382281])
         )
 
-    def test_density(self, pot, x):
+    def test_density(self, pot: gp.CompositePotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0), 2.7958598e08)
 
-    def test_hessian(self, pot, x):
+    def test_hessian(self, pot: gp.CompositePotential, x: Vec3) -> None:
         assert jnp.allclose(
             pot.hessian(x, t=0),
             xp.asarray(

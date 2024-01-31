@@ -1,7 +1,9 @@
 """Test the `galax.utils._shape` module."""
 
 import re
+from typing import Any
 
+import jax
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 import pytest
@@ -13,7 +15,7 @@ from galax.utils._shape import atleast_batched, batched_shape
 class TestAtleastBatched:
     """Test the `atleast_batched` function."""
 
-    def test_atleast_batched_no_args(self):
+    def test_atleast_batched_no_args(self) -> None:
         """Test the `atleast_batched` function with no arguments."""
         with pytest.raises(
             ValueError,
@@ -21,7 +23,7 @@ class TestAtleastBatched:
         ):
             _ = atleast_batched()
 
-    def test_atleast_batched_example(self):
+    def test_atleast_batched_example(self) -> None:
         """Test the `atleast_batched` function with an example."""
         x = xp.asarray([1, 2, 3])
         # `atleast_batched` versus `atleast_2d`
@@ -38,13 +40,13 @@ class TestAtleastBatched:
             ([1, 2, 3], [[1], [2], [3]]),
         ],
     )
-    def test_atleast_batched_one_arg(self, x, expect):
+    def test_atleast_batched_one_arg(self, x: Any, expect: Any) -> None:
         """Test the `atleast_batched` function with one argument."""
         got = atleast_batched(xp.asarray(x))
         assert array_equal(got, xp.asarray(expect))
         assert got.ndim >= 2
 
-    def test_atleast_batched_multiple_args(self):
+    def test_atleast_batched_multiple_args(self) -> None:
         """Test the `atleast_batched` function with multiple arguments."""
         x = xp.asarray([1, 2, 3])
         y = xp.asarray([4, 5, 6])
@@ -68,7 +70,12 @@ class TestBatchedShape:
             (xp.asarray([[1, 2], [3, 4]]), 2, ((), (2, 2))),
         ],
     )
-    def test_batched_shape(self, arr, expect_ndim, expect):
+    def test_batched_shape(
+        self,
+        arr: jax.Array,
+        expect_ndim: int,
+        expect: tuple[tuple[int, ...], tuple[int, ...]],
+    ) -> None:
         """Test the `galax.utils._shape.batched_shape` function."""
         batch, shape = batched_shape(arr, expect_ndim=expect_ndim)
         assert batch == expect[0]

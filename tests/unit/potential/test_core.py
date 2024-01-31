@@ -50,7 +50,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
 
     ###########################################################################
 
-    def test_init(self):
+    def test_init(self) -> None:
         """Test the initialization of `AbstractPotentialBase`."""
         # Test that the abstract class cannot be instantiated
         with pytest.raises(TypeError):

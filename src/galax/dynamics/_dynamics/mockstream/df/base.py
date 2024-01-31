@@ -1,6 +1,5 @@
 """galax: Galactic Dynamix in Jax."""
 
-
 __all__ = ["AbstractStreamDF"]
 
 import abc
@@ -12,8 +11,8 @@ import jax
 import jax.experimental.array_api as xp
 from jax.numpy import copy
 
-from galax.dynamics._orbit import Orbit
-from galax.dynamics.mockstream._core import MockStream
+from galax.dynamics._dynamics.mockstream.core import MockStream
+from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchVec3, FloatScalar, IntLike, Vec3, Vec6
 

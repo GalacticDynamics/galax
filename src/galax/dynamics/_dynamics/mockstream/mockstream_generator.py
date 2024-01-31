@@ -13,14 +13,14 @@ import jax.numpy as jnp
 from jax.lib.xla_bridge import get_backend
 from jaxtyping import Array, Shaped
 
-from galax.dynamics._orbit import Orbit
+from galax.dynamics._dynamics.orbit import Orbit
 from galax.integrate._base import Integrator
 from galax.integrate._builtin import DiffraxIntegrator
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchVec6, FloatScalar, IntScalar, Vec6, VecN, VecTime
 
-from ._core import MockStream
-from ._df import AbstractStreamDF
+from .core import MockStream
+from .df import AbstractStreamDF
 
 Carry: TypeAlias = tuple[IntScalar, VecN, VecN]
 

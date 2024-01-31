@@ -40,7 +40,7 @@ from galax.utils.dataclasses import ModuleMeta
 from .utils import convert_inputs_to_arrays
 
 if TYPE_CHECKING:
-    from galax.dynamics._orbit import Orbit
+    from galax.dynamics._dynamics.orbit import Orbit
 
 
 default_integrator: Integrator = DiffraxIntegrator()

@@ -58,6 +58,11 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         """Shape of the position and velocity arrays."""
         return self._shape_tuple[0]
 
+    @property
+    def ndim(self) -> int:
+        """Number of dimensions, not including component shape."""
+        return len(self.shape)
+
     def __len__(self) -> int:
         """Return the number of particles."""
         return self.shape[0]

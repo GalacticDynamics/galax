@@ -50,6 +50,7 @@
     "hypothesis[numpy]",
     "pytest >=6,<8",
     "pytest-cov >=3",
+    "pytest-arraydiff",
     "sybil",
   ]
   docs = [

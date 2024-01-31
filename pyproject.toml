@@ -97,6 +97,9 @@
     "docs",
     "src/galax",
   ]
+  markers = [
+    "slow",
+  ]
 
 
 [tool.coverage]

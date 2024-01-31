@@ -8,3 +8,6 @@ from galax.integrate._builtin import *
 __all__: list[str] = []
 __all__ += _base.__all__
 __all__ += _builtin.__all__
+
+# Cleanup
+del _base, _builtin

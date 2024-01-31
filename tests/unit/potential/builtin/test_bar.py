@@ -5,7 +5,7 @@ import jax.experimental.array_api as xp
 import jax.numpy as jnp
 import pytest
 
-import galax.potential as gp
+from galax.potential import BarPotential
 from galax.typing import Vec3
 from galax.units import UnitSystem
 
@@ -27,8 +27,8 @@ class TestBarPotential(
     ShapeCParameterMixin,
 ):
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[gp.BarPotential]:
-        return gp.BarPotential
+    def pot_cls(self) -> type[BarPotential]:
+        return BarPotential
 
     @pytest.fixture(scope="class")
     def field_Omega(self) -> dict[str, Any]:
@@ -55,18 +55,18 @@ class TestBarPotential(
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: gp.BarPotential, x: Vec3) -> None:
+    def test_potential_energy(self, pot: BarPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.94601574))
 
-    def test_gradient(self, pot: gp.BarPotential, x: Vec3) -> None:
+    def test_gradient(self, pot: BarPotential, x: Vec3) -> None:
         assert jnp.allclose(
             pot.gradient(x, t=0), xp.asarray([0.04011905, 0.08383918, 0.16552719])
         )
 
-    def test_density(self, pot: gp.BarPotential, x: Vec3) -> None:
+    def test_density(self, pot: BarPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0), 1.94669274e08)
 
-    def test_hessian(self, pot: gp.BarPotential, x: Vec3) -> None:
+    def test_hessian(self, pot: BarPotential, x: Vec3) -> None:
         assert jnp.allclose(
             pot.hessian(x, t=0),
             xp.asarray(

@@ -1,5 +1,7 @@
 """Test :mod:`~galax.dynamics.core`."""
 
+from typing import TypeAlias
+
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 import pytest
@@ -8,9 +10,76 @@ from jax import random
 from galax.dynamics import PhaseSpacePosition
 from galax.units import galactic
 
+Shape: TypeAlias = tuple[int, ...]
+
+
+def make_psp(shape: Shape) -> PhaseSpacePosition:
+    """Return a :class:`~galax.dynamics.PhaseSpacePosition`."""
+    _, *_subkeys = random.split(random.PRNGKey(0), num=4)
+    subkeys = iter(_subkeys)
+
+    q = random.uniform(next(subkeys), shape=(*shape, 3))
+    p = random.uniform(next(subkeys), shape=(*shape, 3))
+    t = random.uniform(next(subkeys), shape=shape)
+    return PhaseSpacePosition(q, p, t=t)
+
 
 class TestPhaseSpacePosition:
     """Test :class:`~galax.dynamics.PhaseSpacePosition`."""
+
+    @pytest.fixture(scope="class")
+    def shape(self) -> Shape:
+        """Return a shape."""
+        return (10,)
+
+    @pytest.fixture(scope="class")
+    def psp(self, shape: Shape) -> PhaseSpacePosition:
+        """Return a :class:`~galax.dynamics.PhaseSpacePosition`."""
+        return make_psp(shape)
+
+    # ==========================================================================
+    # Array properties
+
+    def test_shape(self, psp: PhaseSpacePosition, shape) -> None:
+        """Test :attr:`~galax.dynamics.PhaseSpacePosition.shape`."""
+        assert psp.shape == shape
+
+    def test_shape_more(self) -> None:
+        """Test :attr:`~galax.dynamics.PhaseSpacePosition.shape`."""
+        shape = (1, 5, 4)
+        psp = make_psp(shape)
+        assert psp.shape == shape
+
+    # -------------------------------------------
+
+    def test_ndim(self, psp: PhaseSpacePosition) -> None:
+        """Test :attr:`~galax.dynamics.PhaseSpacePosition.ndim`."""
+        # Simple
+        assert psp.ndim == 1
+
+        # Complex
+        shape = (1, 5, 4)
+        psp = make_psp(shape)
+        assert psp.ndim == 3
+
+    def test_len(self) -> None:
+        """Test length."""
+        _, *_subkeys = random.split(random.PRNGKey(0), num=5)
+        subkeys = iter(_subkeys)
+
+        # Simple
+        q = random.uniform(next(subkeys), shape=(10, 3))
+        p = random.uniform(next(subkeys), shape=(10, 3))
+        psp = PhaseSpacePosition(q, p)
+        assert len(psp) == 10
+
+        # Complex shape
+        q = random.uniform(next(subkeys), shape=(4, 10, 3))
+        p = random.uniform(next(subkeys), shape=(4, 10, 3))
+        psp = PhaseSpacePosition(q, p)
+        assert len(psp) == 4
+
+    # -------------------------------------------
 
     def test_slice(self) -> None:
         """Test slicing."""
@@ -52,26 +121,20 @@ class TestPhaseSpacePosition:
         new_o = o[ix]
         assert new_o.shape == (len(ix),)
 
-    # ------------------------------------------------------------------------
+    # ==========================================================================
 
-    def test_len(self) -> None:
-        """Test length."""
-        _, *_subkeys = random.split(random.PRNGKey(0), num=5)
-        subkeys = iter(_subkeys)
+    def test_full_shape(self, psp: PhaseSpacePosition, shape: Shape) -> None:
+        """Test :attr:`~galax.dynamics.PhaseSpacePosition.full_shape`."""
+        assert psp.full_shape == (*shape, 7)
 
-        # Simple
-        q = random.uniform(next(subkeys), shape=(10, 3))
-        p = random.uniform(next(subkeys), shape=(10, 3))
-        psp = PhaseSpacePosition(q, p)
-        assert len(psp) == 10
+    def test_full_shape_more(self) -> None:
+        """Test :attr:`~galax.dynamics.PhaseSpacePosition.shape`."""
+        shape = (1, 5, 4)
+        psp = make_psp(shape)
+        assert psp.full_shape == (*shape, 7)
 
-        # Complex shape
-        q = random.uniform(next(subkeys), shape=(4, 10, 3))
-        p = random.uniform(next(subkeys), shape=(4, 10, 3))
-        psp = PhaseSpacePosition(q, p)
-        assert len(psp) == 4
-
-    # ------------------------------------------------------------------------
+    # ==========================================================================
+    # Convenience properties
 
     def test_w(self) -> None:
         """Test :attr:`~galax.dynamics.PhaseSpacePosition.w`."""
@@ -90,7 +153,7 @@ class TestPhaseSpacePosition:
         with pytest.raises(NotImplementedError):
             _ = psp.w(units=galactic)
 
-    # ------------------------------------------------------------------------
+    # -------------------------------------------
     # `wt()`
 
     def test_wt_notime(self) -> None:

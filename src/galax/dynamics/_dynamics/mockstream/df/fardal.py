@@ -186,12 +186,12 @@ def orbital_angular_velocity(x: Vec3, v: Vec3, /) -> Vec3:
     v: Array[Any, (3,)]
         3d velocity (v_x, v_y, v_z) in [length/time]
 
-    Returns:
+    Returns
     -------
     Array
         Angular velocity in [rad/time]
 
-    Examples:
+    Examples
     --------
     >>> x = xp.asarray([8.0, 0.0, 0.0])
     >>> v = xp.asarray([8.0, 0.0, 0.0])
@@ -213,12 +213,12 @@ def orbital_angular_velocity_mag(x: Vec3, v: Vec3, /) -> FloatScalar:
     v: Array[Any, (3,)]
         3d velocity (v_x, v_y, v_z) in [kpc/Myr]
 
-    Returns:
+    Returns
     -------
     Array
         Magnitude of angular momentum in [rad/Myr]
 
-    Examples:
+    Examples
     --------
     >>> x = xp.asarray([8.0, 0.0, 0.0])
     >>> v = xp.asarray([8.0, 0.0, 0.0])

@@ -11,7 +11,7 @@ import jax
 import jax.numpy as jnp
 from astropy.units import Quantity
 
-from galax.integrate import Integrator
+from galax.integrate import DiffraxIntegrator, Integrator
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchFloatScalar, BatchVec6, BroadBatchVec3, VecTime
 from galax.utils._shape import batched_shape
@@ -118,13 +118,16 @@ class Orbit(AbstractPhaseSpacePosition):
 ##############################################################################
 
 
+_default_integrator: Integrator = DiffraxIntegrator()
+
+
 @partial(jax.jit, static_argnames=("integrator",))
 def integrate_orbit(
     pot: AbstractPotentialBase,
     w0: BatchVec6,
     t: VecTime | Quantity,
     *,
-    integrator: Integrator,
+    integrator: Integrator | None = None,
 ) -> Orbit:
     """Integrate an orbit in potential.
 
@@ -135,11 +138,10 @@ def integrate_orbit(
     w0 : Array[float, (*batch, 6)]
         Initial position and velocity.
     t: Array[float, (time,)]
-        Array of times at which to compute the orbit. The first element
-        should be the initial time and the last element should be the final
-        time and the array should be monotonically moving from the first to
-        final time.  See the Examples section for options when constructing
-        this argument.
+        Array of times at which to compute the orbit. The first element should
+        be the initial time and the last element should be the final time and
+        the array should be monotonically moving from the first to final time.
+        See the Examples section for options when constructing this argument.
 
         .. warning::
 
@@ -149,7 +151,8 @@ def integrate_orbit(
             timesteps.
 
     integrator : :class:`~galax.integrate.Integrator`, keyword-only
-        Integrator to use.
+        Integrator to use.  If `None`, the default integrator
+        :class:`~galax.integrator.DiffraxIntegrator` is used.
 
     Returns
     -------
@@ -170,8 +173,8 @@ def integrate_orbit(
 
     >>> potential = gp.KeplerPotential(m=1e12 * u.Msun, units=galactic)
 
-    We can then integrate an initial phase-space position in this potential
-    to get an orbit:
+    We can then integrate an initial phase-space position in this potential to
+    get an orbit:
 
     >>> xv0 = xp.asarray([10., 0., 0., 0., 0.1, 0.])  # (x, v) galactic units
     >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
@@ -200,8 +203,9 @@ def integrate_orbit(
         q=f64[2,10,3], p=f64[2,10,3], t=f64[10], potential=KeplerPotential(...)
     )
     """
+    # Determine the integrator
     # Reboot the integrator to avoid stateful issues
-    integrator = replace(integrator)
+    integrator = replace(integrator) if integrator is not None else _default_integrator
 
     # Integrate the orbit
     ws = integrator(pot._integrator_F, w0, t)  # noqa: SLF001

@@ -16,7 +16,6 @@ from astropy.units import Quantity
 from jax import grad, hessian, jacfwd
 
 from galax.integrate._api import Integrator
-from galax.integrate._builtin import DiffraxIntegrator
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
@@ -41,9 +40,6 @@ from .utils import convert_inputs_to_arrays
 
 if TYPE_CHECKING:
     from galax.dynamics._dynamics.orbit import Orbit
-
-
-default_integrator: Integrator = DiffraxIntegrator()
 
 
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
@@ -370,7 +366,4 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """
         from galax.dynamics._dynamics.orbit import integrate_orbit
 
-        # Parse the integrator.
-        integrator_ = default_integrator if integrator is None else integrator
-        # Evaluate the integrator.
-        return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator_))
+        return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator))

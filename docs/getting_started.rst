@@ -86,13 +86,13 @@ Now that we have a potential model, if we want to compute an orbit, we need to
 specify a set of initial conditions to initialize the numerical orbit
 integration. In :mod:`galax`, initial conditions and other positions in
 phase-space (locations in position and velocity space) are defined using the
-:class:`~galax.dynamics.PhaseSpacePosition` class. This class allows a number of
+:class:`~galax.coordinates.PhaseSpacePosition` class. This class allows a number of
 possible inputs, but one of the most common inputs are Cartesian position and
 velocity vectors. As an example orbit, we will use a position and velocity that
 is close to the Sun's Galactocentric position and velocity::
 
-    >>> import galax.dynamics as gd
-    >>> psp = gd.PhaseSpacePosition(q=[-8.1, 0, 0.02] * u.kpc,
+    >>> import galax.coordinates as gc
+    >>> psp = gc.PhaseSpacePosition(q=[-8.1, 0, 0.02] * u.kpc,
     ...                             p=[13, 245, 8.] * u.km/u.s)
 
 By convention, I typically use the variable ``w`` to represent phase-space
@@ -124,7 +124,7 @@ on any Potential object through the
 By default, this method uses Leapfrog integration , which is a fast, symplectic
 integration scheme. The returned object is an instance of the
 :class:`~galax.dynamics.Orbit` class, which is similar to the
-:class:`~galax.dynamics.PhaseSpacePosition` but represents a collection of
+:class:`~galax.coordinates.PhaseSpacePosition` but represents a collection of
 phase-space positions at times::
 
     >>> orbit
@@ -144,11 +144,12 @@ performing common tasks, like plotting an orbit::
     import astropy.units as u
     import matplotlib.pyplot as plt
     import numpy as np
+    import galax.coordinates as gc
     import galax.dynamics as gd
     import galax.potential as gp
 
     mw = gp.MilkyWayPotential()
-    psp = gd.PhaseSpacePosition(pos=[-8.1, 0, 0.02] * u.kpc,
+    psp = gc.PhaseSpacePosition(pos=[-8.1, 0, 0.02] * u.kpc,
                                 vel=[13, 245, 8.] * u.km/u.s)
     orbit = mw.integrate_orbit(psp.w(), dt=1*u.Myr, t1=0, t2=2*u.Gyr)
 

@@ -17,7 +17,7 @@ from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
 from galax.units import UnitSystem
 from galax.utils._shape import atleast_batched
 
-from .utils import getitem_time_index
+from ._utils import getitem_time_index
 
 if TYPE_CHECKING:
     from typing import Self

@@ -1,10 +1,10 @@
 __all__ = ["AbstractPotentialBase"]
 
 import abc
-from dataclasses import KW_ONLY, fields, replace
+from dataclasses import KW_ONLY, fields
 from functools import partial
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import equinox as eqx
 import jax
@@ -14,10 +14,8 @@ from astropy.constants import G as _G  # pylint: disable=no-name-in-module
 from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity
 from jax import grad, hessian, jacfwd
-from jaxtyping import Array, Float
 
 from galax.integrate._api import Integrator
-from galax.integrate._builtin import DiffraxIntegrator
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
@@ -31,6 +29,7 @@ from galax.typing import (
     Matrix33,
     Vec3,
     Vec6,
+    VecTime,
 )
 from galax.units import UnitSystem, dimensionless
 from galax.utils._jax import vectorize_method
@@ -41,9 +40,6 @@ from .utils import convert_inputs_to_arrays
 
 if TYPE_CHECKING:
     from galax.dynamics._dynamics.orbit import Orbit
-
-
-default_integrator: Integrator = DiffraxIntegrator()
 
 
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
@@ -333,11 +329,13 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def integrate_orbit(
         self,
         w0: BatchVec6,
-        t: Float[Array, "time"] | Quantity,
+        t: VecTime | Quantity,
         *,
         integrator: Integrator | None = None,
     ) -> "Orbit":
         """Integrate an orbit in the potential.
+
+        See :func:`~galax.dynamics.integrate_orbit` for more details.
 
         Parameters
         ----------
@@ -350,10 +348,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             final time.  See the Examples section for options when constructing
             this argument.
 
-            .. note::
-
-                To integrate backwards in time, ...
-
             .. warning::
 
                 This is NOT the timesteps to use for integration, which are
@@ -361,7 +355,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 :class:`~galax.integrator.DiffraxIntegrator` uses adaptive
                 timesteps.
 
-        integrator : AbstractIntegrator, keyword-only
+        integrator : AbstractIntegrator | None, keyword-only
             Integrator to use. If `None`, the default integrator
             :class:`~galax.integrator.DiffraxIntegrator` is used.
 
@@ -369,56 +363,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         -------
         orbit : Orbit
             The integrated orbit evaluated at the given times.
-
-        Examples
-        --------
-        We start by integrating a single orbit in the potential of a point mass.
-        A few standard imports are needed:
-
-        >>> import astropy.units as u
-        >>> import jax.experimental.array_api as xp  # preferred over `jax.numpy`
-        >>> import galax.potential as gp
-        >>> from galax.units import galactic
-
-        We can then create the point-mass' potential, with galactic units:
-
-        >>> potential = gp.KeplerPotential(m=1e12 * u.Msun, units=galactic)
-
-        We can then integrate an initial phase-space position in this potential
-        to get an orbit:
-
-        >>> xv0 = xp.asarray([10., 0., 0., 0., 0.1, 0.])  # (x, v) galactic units
-        >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
-        >>> orbit = potential.integrate_orbit(xv0, ts)
-        >>> orbit
-        Orbit(
-            q=f64[4,3], p=f64[4,3], t=f64[4], potential=KeplerPotential(...)
-        )
-
-        Note how there are 4 points in the orbit, corresponding to the 4 steps.
-        Changing the number of steps is easy:
-
-        >>> ts = xp.linspace(0., 1000, 10)  # (1 Gyr, 4 steps)
-        >>> orbit = potential.integrate_orbit(xv0, ts)
-        >>> orbit
-        Orbit(
-            q=f64[10,3], p=f64[10,3], t=f64[10], potential=KeplerPotential(...)
-        )
-
-        We can also integrate a batch of orbits at once:
-
-        >>> xv0 = xp.asarray([[10., 0., 0., 0., 0.1, 0.], [10., 0., 0., 0., 0.2, 0.]])
-        >>> orbit = potential.integrate_orbit(xv0, ts)
-        >>> orbit
-        Orbit(
-            q=f64[2,10,3], p=f64[2,10,3], t=f64[10], potential=KeplerPotential(...)
-        )
         """
-        # TODO: ꜛ get NORMALIZE_WHITESPACE to work correctly so Orbit is 1 line
-        from galax.dynamics._dynamics.orbit import Orbit
+        from galax.dynamics._dynamics.orbit import integrate_orbit
 
-        integrator_ = default_integrator if integrator is None else replace(integrator)
-
-        ws = integrator_(self._integrator_F, w0, t)
-        # TODO: ꜛ reduce repeat dimensions of `time`.
-        return Orbit(q=ws[..., 0:3], p=ws[..., 3:6], t=t, potential=self)
+        return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator))

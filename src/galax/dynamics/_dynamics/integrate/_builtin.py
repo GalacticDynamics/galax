@@ -17,12 +17,12 @@ from diffrax import (
 )
 from jaxtyping import Array, Float
 
-from galax.integrate._base import AbstractIntegrator
 from galax.typing import Vec6
 from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 
 from ._api import FCallable
+from ._base import AbstractIntegrator
 
 
 @final

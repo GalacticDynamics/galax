@@ -15,7 +15,6 @@ from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity
 from jax import grad, hessian, jacfwd
 
-from galax.integrate._api import Integrator
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
@@ -39,6 +38,7 @@ from galax.utils.dataclasses import ModuleMeta
 from .utils import convert_inputs_to_arrays
 
 if TYPE_CHECKING:
+    from galax.dynamics._dynamics.integrate._api import Integrator
     from galax.dynamics._dynamics.orbit import Orbit
 
 
@@ -331,7 +331,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         w0: BatchVec6,
         t: VecTime | Quantity,
         *,
-        integrator: Integrator | None = None,
+        integrator: "Integrator | None" = None,
     ) -> "Orbit":
         """Integrate an orbit in the potential.
 

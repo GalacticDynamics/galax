@@ -3,7 +3,6 @@ __all__ = [
     "__version_tuple__",
     # modules
     "dynamics",
-    "integrate",
     "potential",
     "typing",
     "units",
@@ -12,7 +11,6 @@ __all__ = [
 
 from . import (
     dynamics as dynamics,
-    integrate as integrate,
     potential as potential,
     typing as typing,
     units as units,

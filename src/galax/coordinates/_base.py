@@ -215,7 +215,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
             >>> import numpy as np
             >>> import astropy.units as u
-            >>> from galax.dynamics import PhaseSpacePosition
+            >>> from galax.coordinates import PhaseSpacePosition
 
         We can compute the angular momentum of a single object
 

@@ -18,7 +18,7 @@ from galax.typing import (
 from galax.utils._shape import batched_shape, expand_batch_dims
 from galax.utils.dataclasses import converter_float_array
 
-from .base import AbstractPhaseSpacePosition
+from ._base import AbstractPhaseSpacePosition
 
 if TYPE_CHECKING:
     from galax.potential._potential.base import AbstractPotentialBase

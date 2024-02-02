@@ -11,14 +11,13 @@ import jax
 import jax.numpy as jnp
 from astropy.units import Quantity
 
+from galax.coordinates import AbstractPhaseSpacePosition
+from galax.coordinates._utils import getitem_vectime_index
 from galax.integrate import DiffraxIntegrator, Integrator
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchFloatScalar, BatchVec6, BroadBatchVec3, VecTime
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
-
-from .base import AbstractPhaseSpacePosition
-from .utils import getitem_vectime_index
 
 if TYPE_CHECKING:
     from typing import Self
@@ -118,6 +117,7 @@ class Orbit(AbstractPhaseSpacePosition):
 ##############################################################################
 
 
+# TODO: enable setting the default integrator
 _default_integrator: Integrator = DiffraxIntegrator()
 
 

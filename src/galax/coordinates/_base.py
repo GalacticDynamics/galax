@@ -17,7 +17,7 @@ from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
 from galax.units import UnitSystem
 from galax.utils._shape import atleast_batched
 
-from .utils import getitem_time_index
+from ._utils import getitem_time_index
 
 if TYPE_CHECKING:
     from typing import Self
@@ -215,7 +215,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
             >>> import numpy as np
             >>> import astropy.units as u
-            >>> from galax.dynamics import PhaseSpacePosition
+            >>> from galax.coordinates import PhaseSpacePosition
 
         We can compute the angular momentum of a single object
 

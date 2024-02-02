@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import pytest
 from jax import random
 
-from galax.dynamics import PhaseSpacePosition
+from galax.coordinates import PhaseSpacePosition
 from galax.units import galactic
 
 Shape: TypeAlias = tuple[int, ...]

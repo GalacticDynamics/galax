@@ -175,7 +175,7 @@ def integrate_orbit(
     ----------
     pot : :class:`~galax.potential.AbstractPotentialBase`
         The potential in which to integrate the orbit.
-    w0 : PhaseSpacePosition | PhaseSpaceTimePosition | Array[float, (*batch, 6)]
+    w0 : PhaseSpacePosition | Array[float, (*batch,6)]
         The phase-space position (includes velocity) from which to integrate.
 
         - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
@@ -457,7 +457,7 @@ def evaluate_orbit(
     if isinstance(w0, PhaseSpaceTimePosition):
         pspt0 = w0
     elif isinstance(w0, PhaseSpacePosition):
-        pspt0 = PhaseSpaceTimePosition(q=w0.t, p=w0.p, t=t[0])
+        pspt0 = PhaseSpaceTimePosition(q=w0.q, p=w0.p, t=t[0])
     else:
         pspt0 = PhaseSpaceTimePosition(q=w0[..., 0:3], p=w0[..., 3:6], t=t[0])
 

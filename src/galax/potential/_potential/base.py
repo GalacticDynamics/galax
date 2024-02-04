@@ -422,8 +422,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ----------
         pot : :class:`~galax.potential.AbstractPotentialBase`
             The potential in which to compute the orbit.
-        w0 : PhaseSpaceTimePosition | PhaseSpacePosition | Array[float, (*batch,
-        6)]
+        w0 : PhaseSpaceTimePosition
             The phase-space position (includes velocity and time) from which to
             integrate. Integration includes the time of the initial position, so
             be sure to set the initial time to the desired value. See the `t`

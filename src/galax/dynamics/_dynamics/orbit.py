@@ -11,7 +11,11 @@ import jax
 import jax.numpy as jnp
 from astropy.units import Quantity
 
-from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
+from galax.coordinates import (
+    AbstractPhaseSpaceTimePosition,
+    PhaseSpacePosition,
+    PhaseSpaceTimePosition,
+)
 from galax.coordinates._utils import Shaped, getitem_vec1time_index
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchFloatScalar, BatchVec6, BroadBatchVecTime3, Vec1, VecTime
@@ -149,19 +153,28 @@ _default_integrator: Integrator = DiffraxIntegrator()
 @partial(jax.jit, static_argnames=("integrator",))
 def integrate_orbit(
     pot: AbstractPotentialBase,
-    w0: BatchVec6,
+    w0: PhaseSpacePosition | BatchVec6,
     t: VecTime | Quantity,
     *,
     integrator: Integrator | None = None,
 ) -> Orbit:
-    """Integrate an orbit in potential.
+    """Integrate an orbit in a potential, from position `w0` at time ``t[0]``.
 
     Parameters
     ----------
     pot : :class:`~galax.potential.AbstractPotentialBase`
         The potential in which to integrate the orbit.
-    w0 : Array[float, (*batch, 6)]
-        Initial position and velocity.
+    w0 : PhaseSpacePosition | Array[float, (*batch, 6)]
+        The phase-space position (includes velocity) from which to integrate.
+
+        - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
+            The phase-space position. `w0` will be integrated from ``t[0]`` to
+            ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning the
+            orbit calculated at `t`.
+        - Array[float, (*batch, 6)]:
+            A :class:`~galax.coordinates.PhaseSpacePosition` will be
+            constructed, interpreting the array as the  'q', 'p' (each
+            Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
     t: Array[float, (time,)]
         Array of times at which to compute the orbit. The first element should
         be the initial time and the last element should be the final time and
@@ -186,11 +199,12 @@ def integrate_orbit(
 
     Examples
     --------
-    We start by integrating a single orbit in the potential of a point mass.
-    A few standard imports are needed:
+    We start by integrating a single orbit in the potential of a point mass.  A
+    few standard imports are needed:
 
     >>> import astropy.units as u
     >>> import jax.experimental.array_api as xp  # preferred over `jax.numpy`
+    >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> from galax.units import galactic
 
@@ -201,19 +215,20 @@ def integrate_orbit(
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
 
-    >>> xv0 = xp.asarray([10., 0., 0., 0., 0.1, 0.])  # (x, v) galactic units
+    >>> w0 = gc.PhaseSpacePosition(xp.asarray([10., 0., 0.]),  # (x, v) [galactic]
+    ...                            xp.asarray([0., 0.1, 0.]))
     >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
-    >>> orbit = potential.integrate_orbit(xv0, ts)
+    >>> orbit = potential.integrate_orbit(w0, ts)
     >>> orbit
     Orbit(
         q=f64[4,3], p=f64[4,3], t=f64[4], potential=KeplerPotential(...)
     )
 
-    Note how there are 4 points in the orbit, corresponding to the 4 steps.
-    Changing the number of steps is easy:
+    Note how there are 4 points in the orbit, corresponding to the 4 requested
+    return times. Changing the number of times is easy:
 
-    >>> ts = xp.linspace(0., 1000, 10)  # (1 Gyr, 4 steps)
-    >>> orbit = potential.integrate_orbit(xv0, ts)
+    >>> ts = xp.linspace(0., 1000, 10)  # (1 Gyr, 10 steps)
+    >>> orbit = potential.integrate_orbit(w0, ts)
     >>> orbit
     Orbit(
         q=f64[10,3], p=f64[10,3], t=f64[10], potential=KeplerPotential(...)
@@ -221,20 +236,25 @@ def integrate_orbit(
 
     We can also integrate a batch of orbits at once:
 
-    >>> xv0 = xp.asarray([[10., 0., 0., 0., 0.1, 0.], [10., 0., 0., 0., 0.2, 0.]])
-    >>> orbit = potential.integrate_orbit(xv0, ts)
+    >>> w0 = gc.PhaseSpacePosition(xp.asarray([[10., 0., 0.], [10., 0., 0.]]),
+    ...                            xp.asarray([[0., 0.1, 0.], [0., 0.2, 0.]]))
+    >>> orbit = potential.integrate_orbit(w0, ts)
     >>> orbit
     Orbit(
         q=f64[2,10,3], p=f64[2,10,3], t=f64[10], potential=KeplerPotential(...)
     )
     """
+    # Parse w0
+    qp0 = w0.w() if isinstance(w0, PhaseSpacePosition) else w0
+
     # Determine the integrator
     # Reboot the integrator to avoid stateful issues
     integrator = replace(integrator) if integrator is not None else _default_integrator
 
     # Integrate the orbit
-    ws = integrator(pot._integrator_F, w0, t)  # noqa: SLF001
     # TODO: ꜛ reduce repeat dimensions of `time`.
+    # TODO: push parsing w0 to the integrator-level
+    ws = integrator(pot._integrator_F, qp0, t)  # noqa: SLF001
 
     # Construct the orbit object
     return Orbit(q=ws[..., 0:3], p=ws[..., 3:6], t=t, potential=pot)

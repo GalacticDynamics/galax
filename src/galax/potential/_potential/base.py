@@ -15,6 +15,7 @@ from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity
 from jax import grad, hessian, jacfwd
 
+from galax.coordinates import PhaseSpacePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
@@ -328,20 +329,32 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @partial(jax.jit, static_argnames=("integrator",))
     def integrate_orbit(
         self,
-        w0: BatchVec6,
+        w0: PhaseSpacePosition | BatchVec6,
         t: VecTime | Quantity,
         *,
         integrator: "Integrator | None" = None,
     ) -> "Orbit":
-        """Integrate an orbit in the potential.
+        """Integrate an orbit in the potential, from `w0` at time ``t[0]``.
 
-        See :func:`~galax.dynamics.integrate_orbit` for more details.
+        See :func:`~galax.dynamics.integrate_orbit` for more details and
+        examples.
 
         Parameters
         ----------
-        w0 : Array[float, (6,)]
-            Initial position and velocity.
-        t: Array[float, (T,)]
+        w0 : PhaseSpacePosition | Array[float, (*batch, 6)]
+            The phase-space position (includes velocity) from which to
+            integrate.
+
+            - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
+                The phase-space position. `w0` will be integrated from ``t[0]``
+                to ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning
+                the orbit calculated at `t`.
+            - Array[float, (*batch, 6)]:
+                A :class:`~galax.coordinates.PhaseSpacePosition` will be
+                constructed, interpreting the array as the  'q', 'p' (each
+                Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
+
+        t: Array[float, (time,)]
             Array of times at which to compute the orbit. The first element
             should be the initial time and the last element should be the final
             time and the array should be monotonically moving from the first to
@@ -363,6 +376,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         -------
         orbit : Orbit
             The integrated orbit evaluated at the given times.
+
+        See Also
+        --------
+        galax.dynamics.integrate_orbit
+            The function for which this method is a wrapper. It has more details
+            and examples.
         """
         from galax.dynamics._dynamics.orbit import integrate_orbit
 

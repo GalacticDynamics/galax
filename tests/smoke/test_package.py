@@ -15,7 +15,6 @@ def test_all() -> None:
         "__version_tuple__",
         # modules
         "dynamics",
-        "integrate",
         "potential",
         "typing",
         "units",

@@ -1,7 +1,7 @@
 """Test the :mod:`galax.integrate` module."""
 
-from galax import integrate
-from galax.integrate import _api, _base, _builtin
+from galax.dynamics import integrate
+from galax.dynamics._dynamics.integrate import _api, _base, _builtin
 
 
 def test_all() -> None:

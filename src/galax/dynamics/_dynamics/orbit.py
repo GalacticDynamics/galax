@@ -2,6 +2,7 @@
 
 __all__ = ["Orbit", "integrate_orbit"]
 
+import warnings
 from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, final, overload
@@ -17,6 +18,7 @@ from galax.coordinates import (
     PhaseSpaceTimePosition,
 )
 from galax.coordinates._utils import Shaped, getitem_vec1time_index
+from galax.coordinates._warnings import IgnoredTimeWarning
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchFloatScalar, BatchVec6, BroadBatchVecTime3, Vec1, VecTime
 from galax.utils._shape import batched_shape
@@ -153,7 +155,7 @@ _default_integrator: Integrator = DiffraxIntegrator()
 @partial(jax.jit, static_argnames=("integrator",))
 def integrate_orbit(
     pot: AbstractPotentialBase,
-    w0: PhaseSpacePosition | BatchVec6,
+    w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
     t: VecTime | Quantity,
     *,
     integrator: Integrator | None = None,
@@ -164,13 +166,18 @@ def integrate_orbit(
     ----------
     pot : :class:`~galax.potential.AbstractPotentialBase`
         The potential in which to integrate the orbit.
-    w0 : PhaseSpacePosition | Array[float, (*batch, 6)]
+    w0 : PhaseSpacePosition | PhaseSpaceTimePosition | Array[float, (*batch, 6)]
         The phase-space position (includes velocity) from which to integrate.
 
         - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
             The phase-space position. `w0` will be integrated from ``t[0]`` to
             ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning the
             orbit calculated at `t`.
+        - :class:`~galax.coordinates.PhaseSpaceTimePosition`:
+            The phase-space position, including a time. The time will be ignored
+            and the orbit will be integrated from ``t[0]`` to ``t[1]``,
+            returning the orbit calculated at `t`. Note: this will raise a
+            warning.
         - Array[float, (*batch, 6)]:
             A :class:`~galax.coordinates.PhaseSpacePosition` will be
             constructed, interpreting the array as the  'q', 'p' (each
@@ -181,7 +188,7 @@ def integrate_orbit(
         the array should be monotonically moving from the first to final time.
         See the Examples section for options when constructing this argument.
 
-        .. warning::
+        .. note::
 
             This is NOT the timesteps to use for integration, which are
             controlled by the `integrator`; the default integrator
@@ -196,6 +203,12 @@ def integrate_orbit(
     -------
     orbit : :class:`~galax.dynamics.Orbit`
         The integrated orbit evaluated at the given times.
+
+    Warns
+    -----
+    IgnoredTimeWarning
+        If `w0` is a :class:`~galax.coordinates.PhaseSpaceTimePosition`, a
+        warning is raised to indicate that the time is ignored.
 
     Examples
     --------
@@ -245,7 +258,18 @@ def integrate_orbit(
     )
     """
     # Parse w0
-    qp0 = w0.w() if isinstance(w0, PhaseSpacePosition) else w0
+    if isinstance(w0, PhaseSpaceTimePosition):
+        warnings.warn(
+            "The time in the input phase-space position is ignored when "
+            "integrating the orbit.",
+            IgnoredTimeWarning,
+            stacklevel=2,
+        )
+        qp0 = w0.w()
+    elif isinstance(w0, PhaseSpacePosition):
+        qp0 = w0.w()
+    else:
+        qp0 = w0
 
     # Determine the integrator
     # Reboot the integrator to avoid stateful issues

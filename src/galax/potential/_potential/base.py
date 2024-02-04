@@ -15,7 +15,7 @@ from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity
 from jax import grad, hessian, jacfwd
 
-from galax.coordinates import PhaseSpacePosition
+from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
@@ -329,7 +329,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @partial(jax.jit, static_argnames=("integrator",))
     def integrate_orbit(
         self,
-        w0: PhaseSpacePosition | BatchVec6,
+        w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
         t: VecTime | Quantity,
         *,
         integrator: "Integrator | None" = None,
@@ -341,7 +341,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Parameters
         ----------
-        w0 : PhaseSpacePosition | Array[float, (*batch, 6)]
+        w0 : PhaseSpacePosition | PhaseSpaceTimePosition | Array[float, (*batch, 6)]
             The phase-space position (includes velocity) from which to
             integrate.
 
@@ -349,6 +349,11 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 The phase-space position. `w0` will be integrated from ``t[0]``
                 to ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning
                 the orbit calculated at `t`.
+            - :class:`~galax.coordinates.PhaseSpaceTimePosition`:
+                The phase-space position, including a time. The time will be
+                ignored and the orbit will be integrated from ``t[0]`` to
+                ``t[1]``, returning the orbit calculated at `t`. Note: this will
+                raise a warning.
             - Array[float, (*batch, 6)]:
                 A :class:`~galax.coordinates.PhaseSpacePosition` will be
                 constructed, interpreting the array as the  'q', 'p' (each

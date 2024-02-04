@@ -1,9 +1,8 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["AbstractPhaseSpacePosition"]
+__all__ = ["AbstractPhaseSpacePositionBase"]
 
 from abc import abstractmethod
-from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -13,26 +12,20 @@ import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6, BatchVec7
+from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6
 from galax.units import UnitSystem
-from galax.utils._shape import atleast_batched
-
-from ._utils import getitem_time_index
 
 if TYPE_CHECKING:
     from typing import Self
 
-    from galax.potential._potential.base import AbstractPotentialBase
 
+class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
+    """Abstract base class for all the types of phase-space positions.
 
-class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
-    """Abstract base class of Phase-Space Positions.
-
-    Todo:
-    ----
-    - Units stuff
-    - GR stuff (note that then this will include time and can be merged with
-      ``AbstractPhaseSpacePosition``)
+    See Also
+    --------
+    :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+    :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
     """
 
     q: eqx.AbstractVar[Float[Array, "*#batch #time 3"]]
@@ -40,9 +33,6 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
     p: eqx.AbstractVar[Float[Array, "*#batch #time 3"]]
     """Conjugate momenta at positions ``q``."""
-
-    t: eqx.AbstractVar[Float[Array, "*#batch #time"]]
-    """Time corresponding to the positions and momenta."""
 
     # ==========================================================================
     # Array properties
@@ -67,12 +57,9 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         """Return the number of particles."""
         return self.shape[0]
 
+    @abstractmethod
     def __getitem__(self, index: Any) -> "Self":
-        """Return a new object with the given slice applied."""
-        # Compute subindex
-        subindex = getitem_time_index(index, self.t)
-        # Apply slice
-        return replace(self, q=self.q[index], p=self.p[index], t=self.t[subindex])
+        ...
 
     # ==========================================================================
 
@@ -83,7 +70,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         return (*batch_shape, sum(component_shapes))
 
     # ==========================================================================
-    # Convenience properties
+    # Convenience methods
 
     def w(self, *, units: UnitSystem | None = None) -> BatchVec6:
         """Phase-space position as an Array[float, (*batch, Q + P)].
@@ -109,34 +96,10 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])
         return xp.concat((q, p), axis=-1)
 
-    def wt(self, *, units: UnitSystem | None = None) -> BatchVec7:
-        """Phase-space position as an Array[float, (*batch, Q + P + 1)].
-
-        This is the full phase-space position, including the time.
-
-        Parameters
-        ----------
-        units : `galax.units.UnitSystem`, optional keyword-only
-            The unit system If ``None``, use the current unit system.
-
-        Returns
-        -------
-        wt : Array[float, (*batch, Q + P + 1)]
-            The full phase-space position, including time.
-        """
-        if units is not None:
-            msg = "units not yet implemented."
-            raise NotImplementedError(msg)
-
-        batch_shape, comp_shapes = self._shape_tuple
-        q = xp.broadcast_to(self.q, batch_shape + comp_shapes[0:1])
-        p = xp.broadcast_to(self.p, batch_shape + comp_shapes[1:2])
-        t = xp.broadcast_to(atleast_batched(self.t), batch_shape + comp_shapes[2:3])
-        return xp.concat((q, p, t), axis=-1)
-
     # ==========================================================================
     # Dynamical quantities
 
+    # TODO: property?
     @partial(jax.jit)
     def kinetic_energy(self) -> BatchFloatScalar:
         r"""Return the specific kinetic energy.
@@ -153,46 +116,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         # TODO: use a ``norm`` function so that this works for non-Cartesian.
         return 0.5 * xp.sum(self.p**2, axis=-1)
 
-    @abstractmethod
-    def potential_energy(
-        self, potential: "AbstractPotentialBase", /
-    ) -> BatchFloatScalar:
-        r"""Return the specific potential energy.
-
-        .. math::
-
-            E_\Phi = \Phi(\boldsymbol{q})
-
-        Parameters
-        ----------
-        potential : `galax.potential.AbstractPotentialBase`
-            The potential object to compute the energy from.
-
-        Returns
-        -------
-        E : Array[float, (*batch,)]
-            The specific potential energy.
-        """
-        ...
-
-    @partial(jax.jit)
-    def energy(self, potential: "AbstractPotentialBase", /) -> BatchFloatScalar:
-        r"""Return the specific total energy.
-
-        .. math::
-
-            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
-            E_\Phi = \Phi(\boldsymbol{q})
-            E = E_K + E_\Phi
-
-        Returns
-        -------
-        E : Array[float, (*batch,)]
-            The kinetic energy.
-        """
-        return self.kinetic_energy() + self.potential_energy(potential)
-
-    @property
+    # TODO: property?
     @partial(jax.jit)
     def angular_momentum(self) -> BatchVec3:
         r"""Compute the angular momentum.

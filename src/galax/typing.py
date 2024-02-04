@@ -65,7 +65,8 @@ VecN = Float[Array, "N"]
 # Specific
 
 VecTime = Float[Array, "time"]
-VecTime7 = Float[Array, "time 7"]
+VecTime3 = Float[Vec3, "time"]
+VecTime7 = Float[Vec7, "time"]
 """A time vector."""
 
 # -----------------------------------------------------------------------------
@@ -115,6 +116,8 @@ BatchVec7 = Shaped[Vec7, "*batch"]
 BroadBatchVecTime = Shaped[VecTime, "*#batch"]
 BatchVecTime = Shaped[VecTime, "*batch"]
 """Zero or more batches of time vectors."""
+
+BroadBatchVecTime3 = Shaped[VecTime3, "*#batch"]
 
 # -----------------
 # Any Shape

@@ -3,27 +3,23 @@
 __all__ = ["MockStream"]
 
 from dataclasses import replace
-from functools import partial
 from typing import TYPE_CHECKING, Any, final
 
 import equinox as eqx
-import jax
 import jax.numpy as jnp
 
-from galax.coordinates import AbstractPhaseSpacePosition
-from galax.coordinates._utils import getitem_vectime_index
-from galax.typing import BatchFloatScalar, BroadBatchVec3, VecTime
+from galax.coordinates import AbstractPhaseSpaceTimePosition
+from galax.coordinates._utils import getitem_vec1time_index
+from galax.typing import BroadBatchVec3, VecTime
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
     from typing import Self
 
-    from galax.potential._potential.base import AbstractPotentialBase
-
 
 @final
-class MockStream(AbstractPhaseSpacePosition):
+class MockStream(AbstractPhaseSpaceTimePosition):
     """Mock stream object.
 
     Parameters
@@ -65,7 +61,7 @@ class MockStream(AbstractPhaseSpacePosition):
     def __getitem__(self, index: Any) -> "Self":
         """Return a new object with the given slice applied."""
         # Compute subindex
-        subindex = getitem_vectime_index(index, self.t)
+        subindex = getitem_vec1time_index(index, self.t)
         # Apply slice
         return replace(
             self,
@@ -74,30 +70,3 @@ class MockStream(AbstractPhaseSpacePosition):
             t=self.t[subindex],
             release_time=self.release_time[subindex],
         )
-
-    # ==========================================================================
-    # Dynamical quantities
-
-    @partial(jax.jit)
-    def potential_energy(
-        self, potential: "AbstractPotentialBase", /
-    ) -> BatchFloatScalar:
-        r"""Return the specific potential energy.
-
-        .. math::
-
-            E_\Phi = \Phi(\boldsymbol{q})
-
-        Parameters
-        ----------
-        potential : `galax.potential.AbstractPotentialBase`
-            The potential object to compute the energy from.
-        t : float
-            Time at which to compute the potential energy.
-
-        Returns
-        -------
-        E : Array[float, (*batch,)]
-            The specific potential energy.
-        """
-        return potential.potential_energy(self.q, t=self.t)

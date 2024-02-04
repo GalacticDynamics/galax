@@ -146,7 +146,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
             >>> pos = np.array([1., 0, 0]) * u.au
             >>> vel = np.array([0, 2*np.pi, 0]) * u.au/u.yr
             >>> w = PhaseSpacePosition(pos, vel)
-            >>> w.angular_momentum
+            >>> w.angular_momentum()
             Array([0.        , 0.        , 6.28318531], dtype=float64)
         """
         # TODO: when q, p are not Cartesian.

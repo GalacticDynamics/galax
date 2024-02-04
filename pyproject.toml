@@ -177,6 +177,7 @@
       "F722",    # Syntax error in forward annotation  <- jaxtyping
       "F821",    # undefined name  <- jaxtyping
       "FIX002",  # Line contains TODO, consider resolving the issue
+      "ISC001",  # single-line-implicit-string-concatenation  <- ruff-format
       "N80",     # Naming conventions.
       "PD",      # pandas-vet
       "PLR",     # Design related pylint codes

@@ -4,17 +4,17 @@ __all__ = ["Orbit", "integrate_orbit"]
 
 from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING, Any, final
+from typing import TYPE_CHECKING, Any, final, overload
 
 import equinox as eqx
 import jax
 import jax.numpy as jnp
 from astropy.units import Quantity
 
-from galax.coordinates import AbstractPhaseSpacePosition
-from galax.coordinates._utils import getitem_vectime_index
+from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
+from galax.coordinates._utils import Shaped, getitem_vec1time_index
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchFloatScalar, BatchVec6, BroadBatchVec3, VecTime
+from galax.typing import BatchFloatScalar, BatchVec6, BroadBatchVecTime3, Vec1, VecTime
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
 
@@ -27,26 +27,32 @@ if TYPE_CHECKING:
 
 
 @final
-class Orbit(AbstractPhaseSpacePosition):
+class Orbit(AbstractPhaseSpaceTimePosition):
     """Represents an orbit.
 
-    Represents an orbit: positions and velocities (conjugate momenta) as a
-    function of time.
-
+    An orbit is a set of ositions and velocities (conjugate momenta) as a
+    function of time resulting from the integration of the equations of motion
+    in a given potential.
     """
 
-    q: BroadBatchVec3 = eqx.field(converter=converter_float_array)
+    q: BroadBatchVecTime3 = eqx.field(converter=converter_float_array)
     """Positions (x, y, z)."""
 
-    p: BroadBatchVec3 = eqx.field(converter=converter_float_array)
+    p: BroadBatchVecTime3 = eqx.field(converter=converter_float_array)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized
-    t: VecTime = eqx.field(converter=converter_float_array)
+    t: VecTime | Vec1 = eqx.field(converter=converter_float_array)
     """Array of times corresponding to the positions."""
 
     potential: AbstractPotentialBase
     """Potential in which the orbit was integrated."""
+
+    def __post_init__(self) -> None:
+        """Post-initialization."""
+        # Need to ensure t shape is correct. Can be Vec0.
+        if self.t.ndim == 0:
+            object.__setattr__(self, "t", self.t[None])
 
     # ==========================================================================
     # Array properties
@@ -61,10 +67,28 @@ class Orbit(AbstractPhaseSpacePosition):
         array_shape = qshape + pshape + (1,)
         return batch_shape, array_shape
 
-    def __getitem__(self, index: Any) -> "Self":
+    @overload
+    def __getitem__(self, index: int) -> PhaseSpaceTimePosition:
+        ...
+
+    @overload
+    def __getitem__(self, index: slice | Shaped | tuple[Any, ...]) -> "Self":
+        ...
+
+    def __getitem__(self, index: Any) -> "Self | PhaseSpaceTimePosition":
         """Return a new object with the given slice applied."""
+        # TODO: return an OrbitSnapshot (or similar) instead of PhaseSpaceTimePosition?
+        if isinstance(index, int):
+            return PhaseSpaceTimePosition(
+                q=self.q[index], p=self.p[index], t=self.t[index]
+            )
+
+        if isinstance(index, Shaped):
+            msg = "Shaped indexing not yet implemented."
+            raise NotImplementedError(msg)
+
         # Compute subindex
-        subindex = getitem_vectime_index(index, self.t)
+        subindex = getitem_vec1time_index(index, self.t)
         # Apply slice
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[subindex])
 

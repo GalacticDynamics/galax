@@ -331,7 +331,7 @@ def compute_orbit(
         sure to set the initial time to the desired value. See the `t` argument
         for more details.
 
-        - :class:`~galax.dynamics.PhaseSpacePosition`[float, (*batch,)]:
+        - :class:`~galax.dynamics.PhaseSpaceTimePosition`[float, (*batch,)]:
             The full phase-space position, including position, velocity, and
             time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
             integrated from ``t[0]`` to ``t[1]``, returning the orbit calculated
@@ -369,7 +369,7 @@ def compute_orbit(
     See Also
     --------
     integrate_orbit
-        A lower-level function that integrates an orbit
+        A lower-level function that integrates an orbit.
 
     Examples
     --------
@@ -414,12 +414,31 @@ def compute_orbit(
 
     >>> w0 = gc.PhaseSpaceTimePosition(q=[[10., 0., 0.], [10., 0., 0.]],
     ...                                p=[[0., 0.1, 0.], [0., 0.2, 0.]],
-                                       t=[-100, -150])
+    ...                                t=[-100, -150])
     >>> orbit = compute_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
         q=f64[2,10,3], p=f64[2,10,3], t=f64[10], potential=KeplerPotential(...)
     )
+
+    :class:`~galax.dynamics.PhaseSpaceTimePosition` has a ``t`` argument for the
+    time at which the position is given. As noted earlier, this can be used to
+    integrate from a different time than the initial time of the position:
+
+    >>> w0 = gc.PhaseSpaceTimePosition(q=[10., 0., 0.], p=[0., 0.1, 0.], t=0)
+    >>> ts = xp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
+    >>> orbit = compute_orbit(potential, w0, ts)
+    >>> orbit.q[0]  # doctest: +SKIP
+    Array([ 9.779, -0.3102,  0.        ], dtype=float64)
+
+    Note that IS NOT the same as ``w0``. ``w0`` is integrated from ``t=0`` to
+    ``t=300`` and then from ``t=300`` to ``t=1000``.
+
+    .. note::
+
+        If you want to reproduce :mod:`gala`'s behavior, you can use
+        :class:`~galax.dynamics.PhaseSpacePosition` which does not have a time
+        and will assume ``w0`` is defined at `t`[0].
     """
     # Determine the integrator
     # Reboot the integrator to avoid stateful issues

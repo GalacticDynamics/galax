@@ -15,6 +15,7 @@ from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity
 from jax import grad, hessian, jacfwd
 
+from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
@@ -328,20 +329,38 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @partial(jax.jit, static_argnames=("integrator",))
     def integrate_orbit(
         self,
-        w0: BatchVec6,
+        w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
         t: VecTime | Quantity,
         *,
         integrator: "Integrator | None" = None,
     ) -> "Orbit":
-        """Integrate an orbit in the potential.
+        """Integrate an orbit in the potential, from `w0` at time ``t[0]``.
 
-        See :func:`~galax.dynamics.integrate_orbit` for more details.
+        See :func:`~galax.dynamics.integrate_orbit` for more details and
+        examples. If you want to use a time-aware orbit calculator see
+        :meth:`~galax.potential.AbstractPotentialBase.evaluate_orbit`.
 
         Parameters
         ----------
-        w0 : Array[float, (6,)]
-            Initial position and velocity.
-        t: Array[float, (T,)]
+        w0 : PhaseSpacePosition | Array[float, (*batch, 6)]
+            The phase-space position (includes velocity) from which to
+            integrate.
+
+            - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
+                The phase-space position. `w0` will be integrated from ``t[0]``
+                to ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning
+                the orbit calculated at `t`.
+            - :class:`~galax.coordinates.PhaseSpaceTimePosition`:
+                The phase-space position, including a time. The time will be
+                ignored and the orbit will be integrated from ``t[0]`` to
+                ``t[1]``, returning the orbit calculated at `t`. Note: this will
+                raise a warning.
+            - Array[float, (*batch, 6)]:
+                A :class:`~galax.coordinates.PhaseSpacePosition` will be
+                constructed, interpreting the array as the  'q', 'p' (each
+                Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
+
+        t: Array[float, (time,)]
             Array of times at which to compute the orbit. The first element
             should be the initial time and the last element should be the final
             time and the array should be monotonically moving from the first to
@@ -363,7 +382,95 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         -------
         orbit : Orbit
             The integrated orbit evaluated at the given times.
+
+        See Also
+        --------
+        :meth:`~galax.potential.AbstractPotentialBase.evaluate_orbit`
+            A higher-level function that computes the orbit using time
+            information from `w0`.
+        galax.dynamics.evaluate_orbit
+            The function which
+            :meth:`~galax.potential.AbstractPotentialBase.evaluate_orbit` calls.
+        galax.dynamics.integrate_orbit
+            The function for which this method is a wrapper. It has more details
+            and examples.
         """
         from galax.dynamics._dynamics.orbit import integrate_orbit
 
         return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator))
+
+    def evaluate_orbit(
+        self,
+        w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
+        t: VecTime | Quantity,
+        *,
+        integrator: "Integrator | None" = None,
+    ) -> "Orbit":
+        """Compute an orbit in a potential.
+
+        This method is similar to
+        :meth:`~galax.potential.AbstractPotentialBase.integrate_orbit`, but can
+        behave differently when ``w0`` is a
+        :class:`~galax.coordinates.PhaseSpacePositionTime`.
+        :class:`~galax.coordinates.PhaseSpacePositionTime` includes a time in
+        addition to the position (and velocity) information, enabling the orbit
+        to be evaluated over a time range that is different from the initial
+        time of the position. See the Examples section of
+        :func:`~galax.dynamics.evaluate_orbit` for more details.
+
+        Parameters
+        ----------
+        pot : :class:`~galax.potential.AbstractPotentialBase`
+            The potential in which to compute the orbit.
+        w0 : PhaseSpaceTimePosition | PhaseSpacePosition | Array[float, (*batch,
+        6)]
+            The phase-space position (includes velocity and time) from which to
+            integrate. Integration includes the time of the initial position, so
+            be sure to set the initial time to the desired value. See the `t`
+            argument for more details.
+
+            - :class:`~galax.dynamics.PhaseSpacePosition`[float, (*batch,)]:
+                The full phase-space position, including position, velocity, and
+                time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
+                integrated from ``t[0]`` to ``t[1]``, returning the orbit
+                calculated at `t`.
+            - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
+                The phase-space position. `w0` will be integrated from ``t[0]``
+                to ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning
+                the orbit calculated at `t`.
+            - Array[float, (*batch, 6)]:
+                A :class:`~galax.coordinates.PhaseSpacePosition` will be
+                constructed, interpreting the array as the  'q', 'p' (each
+                Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
+        t: Array[float, (time,)]
+            Array of times at which to compute the orbit. The first element
+            should be the initial time and the last element should be the final
+            time and the array should be monotonically moving from the first to
+            final time.  See the Examples section for options when constructing
+            this argument.
+
+            .. note::
+
+                This is NOT the timesteps to use for integration, which are
+                controlled by the `integrator`; the default integrator
+                :class:`~galax.integrator.DiffraxIntegrator` uses adaptive
+                timesteps.
+
+        integrator : :class:`~galax.integrate.Integrator`, keyword-only
+            Integrator to use.  If `None`, the default integrator
+            :class:`~galax.integrator.DiffraxIntegrator` is used.
+
+        Returns
+        -------
+        orbit : :class:`~galax.dynamics.Orbit`
+            The integrated orbit evaluated at the given times.
+
+        See Also
+        --------
+        galax.dynamics.evaluate_orbit
+            The function for which this method is a wrapper. It has more details
+            and examples.
+        """
+        from galax.dynamics._dynamics.orbit import evaluate_orbit
+
+        return cast("Orbit", evaluate_orbit(self, w0, t, integrator=integrator))

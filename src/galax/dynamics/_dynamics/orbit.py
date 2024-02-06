@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["Orbit", "integrate_orbit", "compute_orbit"]
+__all__ = ["Orbit", "integrate_orbit", "evaluate_orbit"]
 
 import warnings
 from dataclasses import replace
@@ -20,7 +20,6 @@ from galax.coordinates import (
     PhaseSpaceTimePosition,
 )
 from galax.coordinates._utils import Shaped, getitem_vec1time_index
-from galax.coordinates._warnings import IgnoredTimeWarning
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
     BatchFloatScalar,
@@ -216,15 +215,15 @@ def integrate_orbit(
 
     Warns
     -----
-    IgnoredTimeWarning
+    UserWarning
         If `w0` is a :class:`~galax.coordinates.PhaseSpaceTimePosition`, a
         warning is raised to indicate that the time is ignored.
 
     See Also
     --------
-    compute_orbit
+    evaluate_orbit
         A higher-level function that computes an orbit. The main difference is
-        that `compute_orbit` allows for the phase-space position to also include
+        that `evaluate_orbit` allows for the phase-space position to also include
         a time, which allows for the phase-space position to be defined at a
         different time than the initial time of the integration.
 
@@ -279,7 +278,7 @@ def integrate_orbit(
         warnings.warn(
             "The time in the input phase-space position is ignored when "
             "integrating the orbit.",
-            IgnoredTimeWarning,
+            UserWarning,
             stacklevel=2,
         )
         qp0 = w0.w()
@@ -312,7 +311,7 @@ def _psp2t(
 
 
 @partial(jax.jit, static_argnames=("integrator",))
-def compute_orbit(
+def evaluate_orbit(
     pot: AbstractPotentialBase,
     w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
     t: VecTime | Quantity,
@@ -320,6 +319,14 @@ def compute_orbit(
     integrator: Integrator | None = None,
 ) -> Orbit:
     """Compute an orbit in a potential.
+
+    This method is similar to :meth:`~galax.dynamics.integrate_orbit`, but can
+    behave differently when ``w0`` is a
+    :class:`~galax.coordinates.PhaseSpacePositionTime`.
+    :class:`~galax.coordinates.PhaseSpacePositionTime` includes a time in
+    addition to the position (and velocity) information, enabling the orbit to
+    be evaluated over a time range that is different from the initial time of
+    the position.
 
     Parameters
     ----------
@@ -359,7 +366,9 @@ def compute_orbit(
 
     integrator : :class:`~galax.integrate.Integrator`, keyword-only
         Integrator to use.  If `None`, the default integrator
-        :class:`~galax.integrator.DiffraxIntegrator` is used.
+        :class:`~galax.integrator.DiffraxIntegrator` is used.  This integrator
+        is used twice: once to integrate from `w0.t` to `t[0]` and then from
+        `t[0]` to `t[1]`.
 
     Returns
     -------
@@ -391,7 +400,7 @@ def compute_orbit(
 
     >>> w0 = gc.PhaseSpaceTimePosition(q=[10., 0., 0.], p=[0., 0.1, 0.], t=-100)
     >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
-    >>> orbit = compute_orbit(potential, w0, ts)
+    >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
         q=f64[4,3], p=f64[4,3], t=f64[4], potential=KeplerPotential(...)
@@ -404,7 +413,7 @@ def compute_orbit(
     Changing the number of times is easy:
 
     >>> ts = xp.linspace(0., 1000, 10)  # (1 Gyr, 10 steps)
-    >>> orbit = compute_orbit(potential, w0, ts)
+    >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
         q=f64[10,3], p=f64[10,3], t=f64[10], potential=KeplerPotential(...)
@@ -415,7 +424,7 @@ def compute_orbit(
     >>> w0 = gc.PhaseSpaceTimePosition(q=[[10., 0., 0.], [10., 0., 0.]],
     ...                                p=[[0., 0.1, 0.], [0., 0.2, 0.]],
     ...                                t=[-100, -150])
-    >>> orbit = compute_orbit(potential, w0, ts)
+    >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
         q=f64[2,10,3], p=f64[2,10,3], t=f64[10], potential=KeplerPotential(...)
@@ -427,7 +436,7 @@ def compute_orbit(
 
     >>> w0 = gc.PhaseSpaceTimePosition(q=[10., 0., 0.], p=[0., 0.1, 0.], t=0)
     >>> ts = xp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
-    >>> orbit = compute_orbit(potential, w0, ts)
+    >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
     Array([ 9.779, -0.3102,  0.        ], dtype=float64)
 

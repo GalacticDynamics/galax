@@ -11,28 +11,19 @@ import jax
 import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jax.lib.xla_bridge import get_backend
-from jaxtyping import Array, Shaped
 
+from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
 from galax.dynamics._dynamics.integrate._api import Integrator
 from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
-from galax.dynamics._dynamics.orbit import Orbit
+from galax.dynamics._dynamics.orbit import Orbit, evaluate_orbit, integrate_orbit
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchVec6, FloatScalar, IntScalar, Vec6, VecN, VecTime
 
 from .core import MockStream
 from .df import AbstractStreamDF
+from .utils import cond_reverse, interleave_concat
 
 Carry: TypeAlias = tuple[IntScalar, VecN, VecN]
-
-
-@partial(jax.jit, static_argnames="axis")
-def _interleave_concat(
-    a: Shaped[Array, "..."], b: Shaped[Array, "..."], /, axis: int
-) -> Shaped[Array, "..."]:
-    a_shp = a.shape
-    return xp.stack((a, b), axis=axis + 1).reshape(
-        *a_shp[:axis], 2 * a_shp[axis], *a_shp[axis + 1 :]
-    )
 
 
 @final
@@ -86,8 +77,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
             def integ_ics(ics: Vec6) -> VecN:
                 # TODO: only return the final state
-                return self.potential.integrate_orbit(
-                    ics, tstep, integrator=self.stream_integrator
+                return integrate_orbit(
+                    self.potential, ics, tstep, integrator=self.stream_integrator
                 ).w()[-1]
 
             # vmap integration over leading and trailing arm
@@ -118,11 +109,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         def one_pt_intg(i: IntScalar, w0_l_i: Vec6, w0_t_i: Vec6) -> tuple[Vec6, Vec6]:
             tstep = xp.asarray([ts[i], t_f])
             # TODO: only return the final state
-            w_lead = self.potential.integrate_orbit(
-                w0_l_i, tstep, integrator=self.stream_integrator
+            w_lead = integrate_orbit(
+                self.potential, w0_l_i, tstep, integrator=self.stream_integrator
             ).w()[-1]
-            w_trail = self.potential.integrate_orbit(
-                w0_t_i, tstep, integrator=self.stream_integrator
+            w_trail = integrate_orbit(
+                self.potential, w0_t_i, tstep, integrator=self.stream_integrator
             ).w()[-1]
             return w_lead, w_trail
 
@@ -136,7 +127,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     def run(
         self,
         ts: VecTime,
-        prog_w0: Vec6,
+        prog_w0: PhaseSpaceTimePosition | PhaseSpacePosition | Vec6,
         prog_mass: FloatScalar,
         *,
         seed_num: int,
@@ -176,9 +167,23 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # Parse vmapped
         use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
 
+        # Ensure w0 is a PhaseSpacePosition
+        if isinstance(prog_w0, PhaseSpaceTimePosition):
+            w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
+        elif isinstance(prog_w0, PhaseSpacePosition):
+            w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
+            w0 = PhaseSpaceTimePosition(q=prog_w0.q, p=prog_w0.p, t=ts[0])
+        else:
+            w0 = PhaseSpaceTimePosition(prog_w0[0:3], prog_w0[3:6], t=ts[0])
+
+        # If the time stepping passed in is negative, assume this means that all
+        # of the initial conditions are at *end time*, and we need to reverse
+        # them before treating them as initial conditions
+        ts = cond_reverse(ts[1] < ts[0], ts)
+
         # Integrate the progenitor orbit, evaluating at the stripping times
-        prog_o = self.potential.integrate_orbit(
-            prog_w0, ts, integrator=self.progenitor_integrator
+        prog_o = evaluate_orbit(
+            self.potential, w0, ts, integrator=self.progenitor_integrator
         )
 
         # Generate stream initial conditions along the integrated progenitor
@@ -197,10 +202,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # TODO: move the leading vs trailing logic to the DF
         if self.df.lead and self.df.trail:
             axis = len(trail_arm_w.shape) - 2
-            q = _interleave_concat(trail_arm_w[:, 0:3], lead_arm_w[:, 0:3], axis=axis)
-            p = _interleave_concat(trail_arm_w[:, 3:6], lead_arm_w[:, 3:6], axis=axis)
-            t = _interleave_concat(t, t, axis=0)
-            release_time = _interleave_concat(
+            q = interleave_concat(trail_arm_w[:, 0:3], lead_arm_w[:, 0:3], axis=axis)
+            p = interleave_concat(trail_arm_w[:, 3:6], lead_arm_w[:, 3:6], axis=axis)
+            t = interleave_concat(t, t, axis=0)
+            release_time = interleave_concat(
                 mock0_lead.release_time, mock0_trail.release_time, axis=0
             )
         elif self.df.lead:

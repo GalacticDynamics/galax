@@ -21,7 +21,6 @@ from galax.typing import (
     FloatArrayAnyShape,
     FloatOrIntScalar,
     FloatOrIntScalarLike,
-    FloatScalar,
     Unit,
 )
 from galax.utils._jax import vectorize_method
@@ -53,7 +52,7 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
 
         Parameters
         ----------
-        t : Array[float | int, ()] | float | int
+        t : `~galax.typing.BatchableFloatOrIntScalarLike`
             The time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
@@ -93,7 +92,7 @@ class ConstantParameter(AbstractParameter):
 
         Parameters
         ----------
-        t : float | Array[float, ()], optional
+        t : `~galax.typing.BatchableFloatOrIntScalarLike`, optional
             This is ignored and is thus optional.
             Note that for most :class:`~galax.potential.AbstractParameter`
             the time is required.
@@ -125,12 +124,14 @@ class ConstantParameter(AbstractParameter):
 class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
-    def __call__(self, t: FloatScalar, **kwargs: Any) -> FloatArrayAnyShape:
+    def __call__(
+        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
+    ) -> FloatArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : float | Array[float, ()]
+        t : `~galax.typing.BatchableFloatOrIntScalarLike`
             Time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
@@ -149,7 +150,7 @@ class UserParameter(AbstractParameter):
 
     Parameters
     ----------
-    func : Callable[[Array[float, ()] | float | int], Array[float, (*shape,)]]
+    func : Callable[[BatchableFloatOrIntScalarLike], Array[float, (*shape,)]]
         The function to use to compute the parameter value.
     unit : Unit, keyword-only
         The output unit of the parameter.
@@ -161,5 +162,7 @@ class UserParameter(AbstractParameter):
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @partial(jax.jit)
-    def __call__(self, t: FloatOrIntScalar, **kwargs: Any) -> FloatArrayAnyShape:
+    def __call__(
+        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
+    ) -> FloatArrayAnyShape:
         return self.func(t, **kwargs)

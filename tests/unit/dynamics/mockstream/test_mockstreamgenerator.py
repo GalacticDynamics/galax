@@ -94,7 +94,7 @@ class TestMockStreamGenerator:
 
         # TODO: more rigorous tests
         assert mock.q.shape == (2 * len(t_stripping), 3)
-        assert prog_o.q.shape == (len(t_stripping), 3)
+        assert prog_o.q.shape == (3,)
 
         # Test that the positions and momenta are finite
         assert jnp.isfinite(mock.q).all()

@@ -6,7 +6,6 @@ from typing import Any, Generic, TypeVar
 
 import astropy.units as u
 import jax.experimental.array_api as xp
-import jaxtyping
 import pytest
 from jax.numpy import array_equal
 
@@ -137,8 +136,4 @@ class TestUserParameter(TestAbstractParameter[UserParameter]):
         assert param(t=1.0 * u.s) == 1.0 * u.s
 
         t = xp.asarray([1.0, 2.0])
-        with pytest.raises(
-            jaxtyping.TypeCheckError,
-            match="Type-check error whilst checking the parameters of __call__",
-        ):
-            array_equal(param(t=t), t)
+        assert array_equal(param(t=t), t)

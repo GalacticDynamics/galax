@@ -1,10 +1,10 @@
 """Parameters on a Potential."""
 
 __all__ = [
+    "ParameterCallable",
     "AbstractParameter",
     "ConstantParameter",
     "UserParameter",
-    "ParameterCallable",
 ]
 
 import abc
@@ -20,7 +20,6 @@ from galax.typing import (
     BatchableFloatOrIntScalarLike,
     FloatArrayAnyShape,
     FloatOrIntScalar,
-    FloatOrIntScalarLike,
     Unit,
 )
 from galax.utils._jax import vectorize_method
@@ -28,6 +27,30 @@ from galax.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
     from typing import Self
+
+
+@runtime_checkable
+class ParameterCallable(Protocol):
+    """Protocol for a Parameter callable."""
+
+    def __call__(
+        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
+    ) -> FloatArrayAnyShape:
+        """Compute the parameter value at the given time(s).
+
+        Parameters
+        ----------
+        t : `~galax.typing.BatchableFloatOrIntScalarLike`
+            Time(s) at which to compute the parameter value.
+        **kwargs : Any
+            Additional parameters to pass to the parameter function.
+
+        Returns
+        -------
+        Array[float, "*shape"]
+            Parameter value(s) at the given time(s).
+        """
+        ...
 
 
 class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -47,7 +70,9 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @abc.abstractmethod
-    def __call__(self, t: FloatOrIntScalarLike, **kwargs: Any) -> FloatArrayAnyShape:
+    def __call__(
+        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
+    ) -> FloatArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
@@ -118,30 +143,6 @@ class ConstantParameter(AbstractParameter):
 #####################################################################
 # User-defined Parameter
 # For passing a function as a parameter.
-
-
-@runtime_checkable
-class ParameterCallable(Protocol):
-    """Protocol for a Parameter callable."""
-
-    def __call__(
-        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
-    ) -> FloatArrayAnyShape:
-        """Compute the parameter value at the given time(s).
-
-        Parameters
-        ----------
-        t : `~galax.typing.BatchableFloatOrIntScalarLike`
-            Time(s) at which to compute the parameter value.
-        **kwargs : Any
-            Additional parameters to pass to the parameter function.
-
-        Returns
-        -------
-        Array[float, "*shape"]
-            Parameter value(s) at the given time(s).
-        """
-        ...
 
 
 @final

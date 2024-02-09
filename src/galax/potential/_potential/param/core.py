@@ -1,6 +1,11 @@
 """Parameters on a Potential."""
 
-__all__ = ["AbstractParameter", "ConstantParameter", "UserParameter"]
+__all__ = [
+    "ParameterCallable",
+    "AbstractParameter",
+    "ConstantParameter",
+    "UserParameter",
+]
 
 import abc
 from dataclasses import KW_ONLY, replace
@@ -15,8 +20,6 @@ from galax.typing import (
     BatchableFloatOrIntScalarLike,
     FloatArrayAnyShape,
     FloatOrIntScalar,
-    FloatOrIntScalarLike,
-    FloatScalar,
     Unit,
 )
 from galax.utils._jax import vectorize_method
@@ -24,6 +27,30 @@ from galax.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
     from typing import Self
+
+
+@runtime_checkable
+class ParameterCallable(Protocol):
+    """Protocol for a Parameter callable."""
+
+    def __call__(
+        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
+    ) -> FloatArrayAnyShape:
+        """Compute the parameter value at the given time(s).
+
+        Parameters
+        ----------
+        t : `~galax.typing.BatchableFloatOrIntScalarLike`
+            Time(s) at which to compute the parameter value.
+        **kwargs : Any
+            Additional parameters to pass to the parameter function.
+
+        Returns
+        -------
+        Array[float, "*shape"]
+            Parameter value(s) at the given time(s).
+        """
+        ...
 
 
 class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -43,12 +70,14 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @abc.abstractmethod
-    def __call__(self, t: FloatOrIntScalarLike, **kwargs: Any) -> FloatArrayAnyShape:
+    def __call__(
+        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
+    ) -> FloatArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : Array[float | int, ()] | float | int
+        t : `~galax.typing.BatchableFloatOrIntScalarLike`
             The time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
@@ -59,6 +88,9 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
             The parameter value at times ``t``.
         """
         ...
+
+
+#####################################################################
 
 
 @final
@@ -85,7 +117,7 @@ class ConstantParameter(AbstractParameter):
 
         Parameters
         ----------
-        t : float | Array[float, ()], optional
+        t : `~galax.typing.BatchableFloatOrIntScalarLike`, optional
             This is ignored and is thus optional.
             Note that for most :class:`~galax.potential.AbstractParameter`
             the time is required.
@@ -113,35 +145,13 @@ class ConstantParameter(AbstractParameter):
 # For passing a function as a parameter.
 
 
-@runtime_checkable
-class ParameterCallable(Protocol):
-    """Protocol for a Parameter callable."""
-
-    def __call__(self, t: FloatScalar, **kwargs: Any) -> FloatArrayAnyShape:
-        """Compute the parameter value at the given time(s).
-
-        Parameters
-        ----------
-        t : float | Array[float, ()]
-            Time(s) at which to compute the parameter value.
-        **kwargs : Any
-            Additional parameters to pass to the parameter function.
-
-        Returns
-        -------
-        Array[float, "*shape"]
-            Parameter value(s) at the given time(s).
-        """
-        ...
-
-
 @final
 class UserParameter(AbstractParameter):
     """User-defined Parameter.
 
     Parameters
     ----------
-    func : Callable[[Array[float, ()] | float | int], Array[float, (*shape,)]]
+    func : Callable[[BatchableFloatOrIntScalarLike], Array[float, (*shape,)]]
         The function to use to compute the parameter value.
     unit : Unit, keyword-only
         The output unit of the parameter.
@@ -153,5 +163,7 @@ class UserParameter(AbstractParameter):
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @partial(jax.jit)
-    def __call__(self, t: FloatOrIntScalar, **kwargs: Any) -> FloatArrayAnyShape:
+    def __call__(
+        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
+    ) -> FloatArrayAnyShape:
         return self.func(t, **kwargs)

@@ -64,9 +64,9 @@ class AbstractPhaseSpaceTimePosition_Test(AbstractPhaseSpacePositionBase_Test[T]
         """Test :meth:`~galax.coordinates.AbstractPhaseSpaceTimePosition.wt`."""
         wt = w.wt()
         assert wt.shape == w.full_shape
-        assert jnp.array_equal(wt[..., 0:3], w.q)
-        assert jnp.array_equal(wt[..., 3:6], w.p)
-        assert jnp.array_equal(wt[..., -1], w.t)
+        assert jnp.array_equal(wt[..., 0], w.t)
+        assert jnp.array_equal(wt[..., 1:4], w.q)
+        assert jnp.array_equal(wt[..., 4:7], w.p)
 
         with pytest.raises(NotImplementedError):
             w.wt(units=galactic)
@@ -129,7 +129,7 @@ class TestAbstractPhaseSpaceTimePosition(
 
                 Returns
                 -------
-                wt : Array[float, (*batch, Q + P + 1)]
+                wt : Array[float, (*batch, 1+Q+P)]
                     The full phase-space position, including time.
                 """
                 if units is not None:
@@ -140,7 +140,7 @@ class TestAbstractPhaseSpaceTimePosition(
                 q = xp.broadcast_to(self.q, batch_shape + comp_shapes[0:1])
                 p = xp.broadcast_to(self.p, batch_shape + comp_shapes[1:2])
                 t = self.t[..., None]
-                return xp.concat((q, p, t), axis=-1)
+                return xp.concat((t, q, p), axis=-1)
 
         return PSP
 

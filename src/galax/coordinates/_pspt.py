@@ -67,7 +67,7 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
     # Convenience methods
 
     def wt(self, *, units: UnitSystem | None = None) -> BatchVec7:
-        """Phase-space position as an Array[float, (*batch, Q + P + 1)].
+        """Phase-space position as an Array[float, (*batch, 1+Q+P)].
 
         This is the full phase-space position, including the time.
 
@@ -78,8 +78,8 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
 
         Returns
         -------
-        wt : Array[float, (*batch, Q + P + 1)]
-            The full phase-space position, including time.
+        wt : Array[float, (*batch, 1+Q+P)]
+            The full phase-space position, including time on the first axis.
         """
         if units is not None:
             msg = "units not yet implemented."
@@ -89,7 +89,7 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         q = xp.broadcast_to(self.q, batch_shape + comp_shapes[0:1])
         p = xp.broadcast_to(self.p, batch_shape + comp_shapes[1:2])
         t = xp.broadcast_to(atleast_batched(self.t), batch_shape + comp_shapes[2:3])
-        return xp.concat((q, p, t), axis=-1)
+        return xp.concat((t, q, p), axis=-1)
 
     # ==========================================================================
     # Dynamical quantities
@@ -185,7 +185,7 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
     # Convenience methods
 
     def wt(self, *, units: UnitSystem | None = None) -> BatchVec7:
-        """Phase-space position as an Array[float, (*batch, Q + P + 1)].
+        """Phase-space position as an Array[float, (*batch, 1+Q+P)].
 
         This is the full phase-space position, including the time.
 
@@ -196,7 +196,7 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
 
         Returns
         -------
-        wt : Array[float, (*batch, Q + P + 1)]
+        wt : Array[float, (*batch, 1+Q+P)]
             The full phase-space position, including time.
         """
         if units is not None:
@@ -206,4 +206,4 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
         batch_shape, comp_shapes = self._shape_tuple
         q = xp.broadcast_to(self.q, batch_shape + comp_shapes[0:1])
         p = xp.broadcast_to(self.p, batch_shape + comp_shapes[1:2])
-        return xp.concat((q, p, self.t[..., None]), axis=-1)
+        return xp.concat((self.t[..., None], q, p), axis=-1)

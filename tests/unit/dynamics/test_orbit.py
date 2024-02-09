@@ -70,9 +70,9 @@ class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
         """Test :meth:`~galax.coordinates.AbstractPhaseSpaceTimePosition.wt`."""
         wt = w.wt()
         assert wt.shape == w.full_shape
-        assert jnp.array_equal(wt[..., 0:3], w.q)
-        assert jnp.array_equal(wt[..., 3:6], w.p)
-        assert jnp.array_equal(wt[(*(0,) * (w.ndim - 1), slice(None), -1)], w.t)
+        assert jnp.array_equal(wt[(*(0,) * (w.ndim - 1), slice(None), 0)], w.t)
+        assert jnp.array_equal(wt[..., 1:4], w.q)
+        assert jnp.array_equal(wt[..., 4:7], w.p)
 
         with pytest.raises(NotImplementedError):
             w.wt(units=galactic)

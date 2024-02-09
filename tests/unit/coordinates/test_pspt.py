@@ -129,7 +129,7 @@ class TestAbstractPhaseSpaceTimePosition(
 
                 Returns
                 -------
-                wt : Array[float, (*batch, Q + P + 1)]
+                wt : Array[float, (*batch, 1+Q+P)]
                     The full phase-space position, including time.
                 """
                 if units is not None:
@@ -140,7 +140,7 @@ class TestAbstractPhaseSpaceTimePosition(
                 q = xp.broadcast_to(self.q, batch_shape + comp_shapes[0:1])
                 p = xp.broadcast_to(self.p, batch_shape + comp_shapes[1:2])
                 t = self.t[..., None]
-                return xp.concat((q, p, t), axis=-1)
+                return xp.concat((t, q, p), axis=-1)
 
         return PSP
 

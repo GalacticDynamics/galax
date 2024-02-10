@@ -3,8 +3,8 @@
 from dataclasses import replace
 from typing import Any, Self, TypeVar
 
+import array_api_jax_compat as xp
 import astropy.units as u
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 import jax.random as jr
 import pytest

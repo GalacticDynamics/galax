@@ -5,8 +5,8 @@ __all__: list[str] = []
 from functools import partial
 from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
+import array_api_jax_compat as xp
 import jax
-import jax.experimental.array_api as xp
 from jaxtyping import Array, Bool, Shaped
 
 T = TypeVar("T")

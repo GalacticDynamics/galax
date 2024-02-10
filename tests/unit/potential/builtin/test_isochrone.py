@@ -1,6 +1,6 @@
 from typing import Any
 
-import jax.experimental.array_api as xp
+import array_api_jax_compat as xp
 import jax.numpy as jnp
 import pytest
 

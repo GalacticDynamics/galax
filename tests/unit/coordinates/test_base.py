@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar
 
-import jax.experimental.array_api as xp
+import array_api_jax_compat as xp
 import jax.random as jr
 import pytest
 from jaxtyping import Array

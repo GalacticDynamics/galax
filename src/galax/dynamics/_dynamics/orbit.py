@@ -7,9 +7,9 @@ from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, final, overload
 
+import array_api_jax_compat as xp
 import equinox as eqx
 import jax
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 import jaxtyping as jt
 from astropy.units import Quantity
@@ -233,7 +233,7 @@ def integrate_orbit(
     few standard imports are needed:
 
     >>> import astropy.units as u
-    >>> import jax.experimental.array_api as xp  # preferred over `jax.numpy`
+    >>> import array_api_jax_compat as xp  # preferred over `jax.numpy`
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> from galax.units import galactic
@@ -386,7 +386,7 @@ def evaluate_orbit(
     few standard imports are needed:
 
     >>> import astropy.units as u
-    >>> import jax.experimental.array_api as xp  # preferred over `jax.numpy`
+    >>> import array_api_jax_compat as xp  # preferred over `jax.numpy`
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> from galax.units import galactic

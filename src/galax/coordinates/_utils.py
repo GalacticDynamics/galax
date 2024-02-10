@@ -4,7 +4,7 @@ __all__: list[str] = []
 
 from typing import Any, Protocol, cast, runtime_checkable
 
-import jax.experimental.array_api as xp
+import array_api_jax_compat as xp
 
 from galax.typing import FloatArrayAnyShape
 

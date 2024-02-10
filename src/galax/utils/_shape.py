@@ -5,12 +5,13 @@ __all__: list[str] = []
 from functools import partial
 from typing import Any, Literal, NoReturn, overload
 
+import array_api_jax_compat as xp
 import jax
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jaxtyping import Array, ArrayLike
 
 from galax.typing import AnyScalar, ArrayAnyShape
+from galax.utils._jax import quaxify
 
 
 @overload
@@ -30,6 +31,7 @@ def atleast_batched(
     ...
 
 
+@quaxify
 @partial(jax.jit)
 def atleast_batched(*arys: Any) -> Array | tuple[Array, ...]:
     """Convert inputs to arrays with at least two dimensions.
@@ -114,6 +116,7 @@ def batched_shape(
     ...
 
 
+@quaxify
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar | float | int, /, *, expect_ndim: int
 ) -> tuple[tuple[int, ...], tuple[int, ...]]:
@@ -137,7 +140,7 @@ def batched_shape(
     --------
     Standard imports:
 
-        >>> import jax.experimental.array_api as xp
+        >>> import array_api_jax_compat as xp
         >>> from galax.utils._shape import batched_shape
 
     Expecting a scalar:
@@ -174,6 +177,7 @@ def batched_shape(
     return shape[: ndim - expect_ndim], shape[ndim - expect_ndim :]
 
 
+@quaxify
 def expand_batch_dims(arr: ArrayAnyShape, /, ndim: int) -> ArrayAnyShape:
     """Expand the batch dimensions of an array.
 
@@ -209,6 +213,7 @@ def expand_batch_dims(arr: ArrayAnyShape, /, ndim: int) -> ArrayAnyShape:
     return jnp.expand_dims(arr, axis=tuple(range(ndim)))
 
 
+@quaxify
 def expand_arr_dims(arr: ArrayAnyShape, /, ndim: int) -> ArrayAnyShape:
     """Expand the array dimensions of an array.
 

@@ -2,9 +2,9 @@
 
 from typing import Any
 
+import array_api_jax_compat as xp
 import astropy.units as u
 import jax
-import jax.experimental.array_api as xp
 import pytest
 
 from galax.dynamics import FardalStreamDF, MockStreamGenerator

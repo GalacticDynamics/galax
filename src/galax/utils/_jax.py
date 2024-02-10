@@ -1,13 +1,13 @@
 """galax: Galactic Dynamix in Jax."""
 
-
 __all__: list[str] = []
 
 from collections.abc import Callable, Sequence
 from functools import partial
-from typing import NotRequired, TypedDict, TypeVar
+from typing import Any, NotRequired, TypedDict, TypeVar, cast
 
 import jax
+import quax
 from typing_extensions import ParamSpec, Unpack
 
 P = ParamSpec("P")
@@ -44,3 +44,11 @@ def vectorize_method(
     kw["excluded"] = tuple(i + 1 for i in excluded)
 
     return partial(jax.numpy.vectorize, **kw)
+
+
+# ============================================================================
+
+
+def quaxify(fn: Callable[P, R], *, filter_spec: Any = True) -> Callable[P, R]:
+    """Wrap a function with :func:`quax.quaxify`."""
+    return cast("Callable[P, R]", quax.quaxify(fn, filter_spec=filter_spec))

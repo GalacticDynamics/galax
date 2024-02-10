@@ -6,9 +6,9 @@ from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, final
 
+import array_api_jax_compat as xp
 import equinox as eqx
 import jax
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 

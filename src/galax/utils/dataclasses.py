@@ -193,6 +193,7 @@ def dataclass_with_converter(
 # ModuleMeta
 
 
+# TODO: upstream this to Equinox
 class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
     """Equinox-compatible module metaclass.
 

@@ -9,7 +9,6 @@ from typing import TypeAlias
 import array_api_jax_compat as xp
 import equinox as eqx
 import jax
-from jax.numpy import copy
 
 from galax.dynamics._dynamics.mockstream.core import MockStream
 from galax.dynamics._dynamics.orbit import Orbit
@@ -18,8 +17,6 @@ from galax.typing import BatchVec3, FloatScalar, IntLike, Vec3, Vec6
 
 Wif: TypeAlias = tuple[Vec3, Vec3, Vec3, Vec3]
 Carry: TypeAlias = tuple[IntLike, Vec3, Vec3, Vec3, Vec3]
-
-w_org = xp.asarray([0.0, 0.0, 0.0])
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -78,7 +75,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             return (i + 1, *out), out
 
         # TODO: use ``jax.vmap`` instead of ``jax.lax.scan`` for GPU usage
-        init_carry = (0, copy(w_org), copy(w_org), copy(w_org), copy(w_org))
+        init_carry = (0, xp.zeros(3), xp.zeros(3), xp.zeros(3), xp.zeros(3))
         x_lead, x_trail, v_lead, v_trail = jax.lax.scan(scan_fn, init_carry, ts)[1]
 
         mock_lead = MockStream(x_lead, v_lead, t=ts, release_time=ts)

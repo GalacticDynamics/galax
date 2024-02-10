@@ -1,4 +1,4 @@
-""":mod:`galax.dynamics`."""
+""":mod:`galax.potential`."""
 
 from jaxtyping import install_import_hook
 from lazy_loader import attach_stub

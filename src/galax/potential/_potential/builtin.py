@@ -14,7 +14,6 @@ from dataclasses import KW_ONLY
 from functools import partial
 from typing import final
 
-import astropy.units as u
 import jax
 import jax.experimental.array_api as xp
 
@@ -32,10 +31,6 @@ from galax.typing import (
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import field
 
-mass = u.get_physical_type("mass")
-length = u.get_physical_type("length")
-frequency = u.get_physical_type("frequency")
-
 # -------------------------------------------------------------------
 
 
@@ -47,11 +42,11 @@ class BarPotential(AbstractPotential):
     Rz according to https://en.wikipedia.org/wiki/Rotation_matrix
     """
 
-    m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
-    a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
-    b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
-    c: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
-    Omega: AbstractParameter = ParameterField(dimensions=frequency)  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    Omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
@@ -94,8 +89,8 @@ class BarPotential(AbstractPotential):
 class HernquistPotential(AbstractPotential):
     """Hernquist Potential."""
 
-    m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
-    c: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial(jax.jit)
     def _potential_energy(
@@ -112,8 +107,8 @@ class HernquistPotential(AbstractPotential):
 class IsochronePotential(AbstractPotential):
     """Isochrone Potential."""
 
-    m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
-    b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial(jax.jit)
     def _potential_energy(
@@ -135,7 +130,7 @@ class KeplerPotential(AbstractPotential):
         \Phi = -\frac{G M(t)}{r}
     """
 
-    m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
 
     @partial(jax.jit)
     def _potential_energy(
@@ -152,9 +147,9 @@ class KeplerPotential(AbstractPotential):
 class MiyamotoNagaiPotential(AbstractPotential):
     """Miyamoto-Nagai Potential."""
 
-    m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
-    a: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
-    b: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial(jax.jit)
     def _potential_energy(
@@ -176,10 +171,10 @@ class MiyamotoNagaiPotential(AbstractPotential):
 class NFWPotential(AbstractPotential):
     """NFW Potential."""
 
-    m: AbstractParameter = ParameterField(dimensions=mass)  # type: ignore[assignment]
-    r_s: AbstractParameter = ParameterField(dimensions=length)  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    softening_length: FloatLike = field(default=0.001, static=True, dimensions=length)
+    softening_length: FloatLike = field(default=0.001, static=True, dimensions="length")
 
     @partial(jax.jit)
     def _potential_energy(

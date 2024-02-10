@@ -38,6 +38,7 @@ dependencies = [
   "jaxlib",
   "jax-quantity >=0.1a0",
   "lazy_loader",
+  "quax >= 0.0.3",
   "typing_extensions",
 ]
 

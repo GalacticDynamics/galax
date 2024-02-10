@@ -29,6 +29,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
+  "array-api-jax-compat >=0.1a1",
   "astropy >= 5.3",
   "beartype",
   "diffrax",

@@ -27,6 +27,8 @@ from ._base import AbstractPhaseSpacePositionBase
 from ._utils import getitem_broadscalartime_index
 
 if TYPE_CHECKING:
+    from typing import Self
+
     from galax.potential._potential.base import AbstractPotentialBase
 
 

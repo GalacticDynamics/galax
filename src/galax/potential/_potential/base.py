@@ -51,7 +51,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     _: KW_ONLY
     units: eqx.AbstractVar[UnitSystem]
 
-    def __init_subclass__(cls) -> None:
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""
         # Replace the ``parameters`` attribute with a mapping of the values
         type(cls).__setattr__(

@@ -1,13 +1,13 @@
 """:mod:`galax.dynamics`."""
 
-from ._dynamics import integrate, mockstream, orbit
-from ._dynamics.mockstream import *
-from ._dynamics.orbit import *
+from jaxtyping import install_import_hook
+from lazy_loader import attach_stub
 
-__all__ = ["integrate", "mockstream"]
-__all__ += orbit.__all__
-__all__ += mockstream.__all__
+from galax.setup_package import RUNTIME_TYPECHECKER
+
+with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
+    __getattr__, __dir__, __all__ = attach_stub(__name__, __file__)
 
 
 # Cleanup
-del orbit
+del install_import_hook, RUNTIME_TYPECHECKER

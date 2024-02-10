@@ -14,6 +14,7 @@ def test_all() -> None:
         "__version__",
         "__version_tuple__",
         # modules
+        "coordinates",
         "dynamics",
         "potential",
         "typing",

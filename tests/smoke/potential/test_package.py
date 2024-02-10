@@ -1,5 +1,5 @@
 import galax.potential as gp
-from galax.potential import _potential
+from galax.potential._potential import base, builtin, composite, core, param, special
 
 
 def test_all() -> None:
@@ -7,10 +7,10 @@ def test_all() -> None:
     # Test detailed contents (not order)
     assert set(gp.__all__) == {
         "io",
-        *_potential.base.__all__,
-        *_potential.builtin.__all__,
-        *_potential.composite.__all__,
-        *_potential.core.__all__,
-        *_potential.param.__all__,
-        *_potential.special.__all__,
+        *base.__all__,
+        *builtin.__all__,
+        *composite.__all__,
+        *core.__all__,
+        *param.__all__,
+        *special.__all__,
     }

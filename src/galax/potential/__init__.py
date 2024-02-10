@@ -1,23 +1,13 @@
-"""galax: Galactic Dynamix in Jax."""
+""":mod:`galax.potential`."""
 
-from ._potential import base, builtin, composite, core, io, param, special, utils
-from ._potential.base import *
-from ._potential.builtin import *
-from ._potential.composite import *
-from ._potential.core import *
-from ._potential.param import *
-from ._potential.special import *
-from ._potential.utils import *
+from jaxtyping import install_import_hook
+from lazy_loader import attach_stub
 
-__all__: list[str] = ["io"]
-__all__ += base.__all__
-__all__ += core.__all__
-__all__ += composite.__all__
-__all__ += param.__all__
-__all__ += builtin.__all__
-__all__ += special.__all__
-__all__ += utils.__all__
+from galax.setup_package import RUNTIME_TYPECHECKER
+
+with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
+    __getattr__, __dir__, __all__ = attach_stub(__name__, __file__)
 
 
 # Cleanup
-del base, builtin, composite, core, param, special, utils
+del install_import_hook, RUNTIME_TYPECHECKER

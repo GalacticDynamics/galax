@@ -1,4 +1,4 @@
-__all__ = ["CompositePotential"]
+__all__ = ["AbstractCompositePotential", "CompositePotential"]
 
 
 import uuid

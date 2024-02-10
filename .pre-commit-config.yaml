@@ -79,7 +79,7 @@ repos:
     hooks:
       - id: mypy
         files: src
-        exclude: ^src/galax/__init__\.py$
+        exclude: ^(src/galax/__init__\.py|src/galax/.*?/__init__\.py)$
         additional_dependencies:
           - pytest
 

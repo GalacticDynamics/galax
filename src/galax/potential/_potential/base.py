@@ -34,7 +34,6 @@ from galax.typing import (
 from galax.units import UnitSystem, dimensionless
 from galax.utils._jax import vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
-from galax.utils.dataclasses import ModuleMeta
 
 from .utils import convert_inputs_to_arrays
 
@@ -43,7 +42,7 @@ if TYPE_CHECKING:
     from galax.dynamics._dynamics.orbit import Orbit
 
 
-class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
+class AbstractPotentialBase(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     """Abstract Potential Class."""
 
     parameters: ClassVar = ParametersAttribute(MappingProxyType({}))
@@ -54,8 +53,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""
         # Replace the ``parameters`` attribute with a mapping of the values
-        type(cls).__setattr__(
-            cls,
+        type(cls).__setattr__(  # type: ignore[call-arg]
+            cls,  # type: ignore[arg-type]
             "parameters",
             ParametersAttribute(MappingProxyType(all_parameters(cls))),
         )

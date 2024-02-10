@@ -4,8 +4,8 @@ from collections.abc import Mapping
 from dataclasses import KW_ONLY
 from typing import Any, final
 
+import array_api_jax_compat as xp
 import equinox as eqx
-import jax.experimental.array_api as xp
 from diffrax import (
     AbstractSolver,
     AbstractStepSizeController,

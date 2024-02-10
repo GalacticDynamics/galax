@@ -6,9 +6,9 @@ from dataclasses import KW_ONLY
 from functools import partial
 from typing import TypeAlias, final
 
+import array_api_jax_compat as xp
 import equinox as eqx
 import jax
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jax.lib.xla_bridge import get_backend
 

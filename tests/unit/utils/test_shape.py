@@ -3,8 +3,8 @@
 import re
 from typing import Any
 
+import array_api_jax_compat as xp
 import jax
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 import pytest
 from jax.numpy import array_equal

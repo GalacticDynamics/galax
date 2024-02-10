@@ -6,9 +6,9 @@ from functools import partial
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
+import array_api_jax_compat as xp
 import equinox as eqx
 import jax
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from astropy.constants import G as _G  # pylint: disable=no-name-in-module
 from astropy.coordinates import BaseRepresentation

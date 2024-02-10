@@ -18,8 +18,8 @@ from typing import (
     runtime_checkable,
 )
 
+import array_api_jax_compat as xp
 import astropy.units as u
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from equinox._module import _has_dataclass_init, _ModuleMeta
 from jaxtyping import Array, Float, Integer

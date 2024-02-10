@@ -17,8 +17,8 @@ from typing import (
     overload,
 )
 
+import array_api_jax_compat as xp
 import astropy.units as u
-import jax.experimental.array_api as xp
 
 from galax.typing import Unit
 from galax.utils.dataclasses import dataclass_with_converter, field

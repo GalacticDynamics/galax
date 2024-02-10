@@ -4,8 +4,8 @@
 from dataclasses import replace
 from typing import Any, Generic, TypeVar
 
+import array_api_jax_compat as xp
 import astropy.units as u
-import jax.experimental.array_api as xp
 import pytest
 from jax.numpy import array_equal
 

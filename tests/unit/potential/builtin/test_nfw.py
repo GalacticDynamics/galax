@@ -1,8 +1,8 @@
 from dataclasses import replace
 from typing import Any
 
+import array_api_jax_compat as xp
 import astropy.units as u
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 import pytest
 from typing_extensions import override

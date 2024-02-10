@@ -5,8 +5,8 @@ __all__: list[str] = []
 from functools import partial
 from typing import Any, Literal, NoReturn, overload
 
+import array_api_jax_compat as xp
 import jax
-import jax.experimental.array_api as xp
 import jax.numpy as jnp
 from jaxtyping import Array, ArrayLike
 
@@ -137,7 +137,7 @@ def batched_shape(
     --------
     Standard imports:
 
-        >>> import jax.experimental.array_api as xp
+        >>> import array_api_jax_compat as xp
         >>> from galax.utils._shape import batched_shape
 
     Expecting a scalar:

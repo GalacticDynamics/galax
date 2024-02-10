@@ -1,7 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-
-__all__ = ["field"]
+__all__ = ["field", "dataclass_with_converter", "ModuleMeta"]
 
 import dataclasses
 import functools as ft
@@ -15,6 +14,7 @@ from typing import (
     Protocol,
     TypedDict,
     TypeVar,
+    dataclass_transform,
     runtime_checkable,
 )
 
@@ -28,88 +28,6 @@ from typing_extensions import ParamSpec, Unpack
 T = TypeVar("T")
 P = ParamSpec("P")
 R = TypeVar("R")
-
-##############################################################################
-# ModuleMeta
-
-
-@runtime_checkable
-class _DataclassInstance(Protocol):
-    __dataclass_fields__: ClassVar[dict[str, Any]]
-
-
-class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
-    """Equinox-compatible module metaclass.
-
-    This metaclass extends Equinox's :class:`equinox._module._ModuleMeta` to
-    support the following features:
-
-    - Application of ``converter`` to default values on fields.
-    - Application of ``converter`` to values passed to ``__init__``.
-
-    Examples
-    --------
-    >>> import equinox as eqx
-    >>> class Class(eqx.Module, metaclass=ModuleMeta):
-    ...     a: int = eqx.field(default=1.0, converter=int)
-    ...     def __post_init__(self): pass
-
-    >>> Class.a
-    1
-
-    >>> Class(a=2.0)
-    Class(a=2)
-    """
-
-    def __new__(  # pylint: disable=signature-differs
-        mcs,
-        name: str,
-        bases: tuple[type, ...],
-        namespace: Mapping[str, Any],
-        /,
-        *,
-        strict: bool = False,
-        abstract: bool = False,
-        **kwargs: Any,
-    ) -> type:
-        # [Step 1] Create the class using `_ModuleMeta`.
-        cls: type = super().__new__(
-            mcs, name, bases, namespace, strict=strict, abstract=abstract, **kwargs
-        )
-
-        # [Step 2] Convert the defaults.
-        for k, v in namespace.items():
-            if not isinstance(v, dataclasses.Field):
-                continue
-            # Apply the converter to the default value.
-            if "converter" in v.metadata and not isinstance(
-                v.default,
-                dataclasses._MISSING_TYPE,  # noqa: SLF001
-            ):
-                setattr(cls, k, v.metadata["converter"](v.default))
-
-        # [Step 3] Ensure conversion happens before `__init__`.
-        if _has_dataclass_init[cls]:
-            original_init = cls.__init__  # type: ignore[misc]
-            sig = inspect.signature(original_init)
-
-            @ft.wraps(original_init)
-            def init(self: _DataclassInstance, *args: Any, **kwargs: Any) -> None:
-                __tracebackhide__ = True  # pylint: disable=unused-variable
-
-                # Apply any converter to its argument.
-                ba = sig.bind(self, *args, **kwargs)
-                for f in dataclasses.fields(self):
-                    if f.name in ba.arguments and "converter" in f.metadata:
-                        ba.arguments[f.name] = f.metadata["converter"](
-                            ba.arguments[f.name]
-                        )
-                # Call the original `__init__`.
-                init.__wrapped__(*ba.args, **ba.kwargs)  # type: ignore[attr-defined]
-
-            cls.__init__ = init  # type: ignore[misc]
-
-        return cls
 
 
 ##############################################################################
@@ -161,7 +79,7 @@ def field(
 
     Returns
     -------
-    Field
+    :class:`~dataclasses.Field`
         The field object.
     """
     metadata = dict(kwargs.pop("metadata", {}) or {})  # safety copy
@@ -196,6 +114,140 @@ def field(
 
     out: R = dataclasses.field(**kwargs)
     return out
+
+
+@runtime_checkable
+class _DataclassInstance(Protocol):
+    """Protocol for dataclass instances."""
+
+    __dataclass_fields__: ClassVar[dict[str, Any]]
+
+
+def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
+    """Make a new `__init__` method that applies the converters."""
+    original_init = cls.__init__
+    sig = inspect.signature(original_init)
+
+    @ft.wraps(original_init)
+    def init(self: _DataclassInstance, *args: Any, **kwargs: Any) -> None:
+        __tracebackhide__ = True  # pylint: disable=unused-variable
+
+        # Apply any converter to its argument.
+        ba = sig.bind(self, *args, **kwargs)
+        for f in dataclasses.fields(self):
+            if f.name in ba.arguments and "converter" in f.metadata:
+                ba.arguments[f.name] = f.metadata["converter"](ba.arguments[f.name])
+        # Call the original `__init__`.
+        init.__wrapped__(*ba.args, **ba.kwargs)  # type: ignore[attr-defined]
+
+    cls.__init__ = init  # type: ignore[assignment,method-assign]
+
+    return cls
+
+
+@dataclass_transform(
+    eq_default=True,
+    order_default=False,
+    kw_only_default=False,
+    frozen_default=True,
+    field_specifiers=(dataclasses.Field, field),
+)
+def dataclass_with_converter(
+    *,
+    init: bool = True,
+    repr: bool = True,  # noqa: A002
+    eq: bool = True,
+    order: bool = False,
+    unsafe_hash: bool = False,
+    frozen: bool = True,
+    match_args: bool = True,
+    kw_only: bool = False,
+    slots: bool = False,
+    weakref_slot: bool = False,
+) -> Callable[[type[T]], type[T]]:
+    """Add dunder methods based on the fields defined in the class.
+
+    See :func:`dataclasses.dataclass` for more information.
+    """
+    normal_dataclass = dataclasses.dataclass(
+        init=init,
+        repr=repr,
+        eq=eq,
+        order=order,
+        unsafe_hash=unsafe_hash,
+        frozen=frozen,
+        match_args=match_args,
+        kw_only=kw_only,
+        slots=slots,
+        weakref_slot=weakref_slot,
+    )
+
+    def wrapper(cls: type[T], /) -> type[T]:
+        cls = normal_dataclass(cls)
+        return _add_converter_init_to_class(cls)
+
+    return wrapper
+
+
+##############################################################################
+# ModuleMeta
+
+
+class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
+    """Equinox-compatible module metaclass.
+
+    This metaclass extends Equinox's :class:`equinox._module._ModuleMeta` to
+    support the following features:
+
+    - Application of ``converter`` to default values on fields.
+    - Application of ``converter`` to values passed to ``__init__``.
+
+    Examples
+    --------
+    >>> import equinox as eqx
+    >>> class Class(eqx.Module, metaclass=ModuleMeta):
+    ...     a: int = eqx.field(default=1.0, converter=int)
+    ...     def __post_init__(self): pass
+
+    >>> Class.a
+    1
+
+    >>> Class(a=2.0)
+    Class(a=2)
+    """
+
+    def __new__(  # noqa: D102  # pylint: disable=signature-differs
+        mcs,
+        name: str,
+        bases: tuple[type, ...],
+        namespace: Mapping[str, Any],
+        /,
+        *,
+        strict: bool = False,
+        abstract: bool = False,
+        **kwargs: Any,
+    ) -> type:
+        # [Step 1] Create the class using `_ModuleMeta`.
+        cls: type = super().__new__(
+            mcs, name, bases, namespace, strict=strict, abstract=abstract, **kwargs
+        )
+
+        # [Step 2] Convert the defaults.
+        for k, v in namespace.items():
+            if not isinstance(v, dataclasses.Field):
+                continue
+            # Apply the converter to the default value.
+            if "converter" in v.metadata and not isinstance(
+                v.default,
+                dataclasses._MISSING_TYPE,  # noqa: SLF001
+            ):
+                setattr(cls, k, v.metadata["converter"](v.default))
+
+        # [Step 3] Ensure conversion happens before `__init__`.
+        if _has_dataclass_init[cls]:
+            cls = _add_converter_init_to_class(cls)
+
+        return cls
 
 
 ##############################################################################

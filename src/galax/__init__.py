@@ -17,3 +17,5 @@ from . import coordinates, dynamics, potential, typing, units, utils
 from ._version import __version__
 
 config.update("jax_enable_x64", True)  # noqa: FBT003
+
+del config

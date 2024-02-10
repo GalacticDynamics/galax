@@ -4,7 +4,7 @@ from __future__ import annotations
 
 __all__ = ["ParameterField"]
 
-from dataclasses import KW_ONLY, dataclass, field, is_dataclass
+from dataclasses import KW_ONLY, is_dataclass
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -21,6 +21,7 @@ import astropy.units as u
 import jax.experimental.array_api as xp
 
 from galax.typing import Unit
+from galax.utils.dataclasses import dataclass_with_converter, field
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
 
 
 @final
-@dataclass(frozen=True, slots=True)
+@dataclass_with_converter(frozen=True, slots=True)
 class ParameterField:
     """Descriptor for a Potential Parameter.
 
@@ -45,18 +46,8 @@ class ParameterField:
 
     name: str = field(init=False)
     _: KW_ONLY
-    dimensions: u.PhysicalType
+    dimensions: u.PhysicalType = field(converter=u.get_physical_type)
     equivalencies: u.Equivalency | tuple[u.Equivalency, ...] | None = None
-
-    def __post_init__(self) -> None:
-        # Process the physical type
-        # TODO: move this to a ``converter`` argument for a custom
-        # ``dataclass_transform``'s ``__init__`` method.
-        if isinstance(self.dimensions, str):
-            object.__setattr__(self, "dimensions", u.get_physical_type(self.dimensions))
-        elif not isinstance(self.dimensions, u.PhysicalType):
-            msg = f"Expected dimensions to be a PhysicalType, got {self.dimensions!r}"
-            raise TypeError(msg)
 
     # ===========================================
     # Descriptor

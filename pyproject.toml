@@ -36,6 +36,7 @@ dependencies = [
   "equinox != 0.11.3",
   "jax",
   "jaxlib",
+  "jax-quantity >=0.1a0",
   "lazy_loader",
   "typing_extensions",
 ]

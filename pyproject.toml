@@ -31,7 +31,7 @@
     "equinox != 0.11.3",
     "jax",
     "jaxlib",
-    "jax-quantity >=0.1a0",
+    "jax-quantity @ git+https://github.com/GalacticDynamics/jax-quantity.git",
     "lazy_loader",
     "quax >= 0.0.3",
     "typing_extensions",

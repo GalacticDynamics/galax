@@ -156,12 +156,8 @@ class UnitSystem:
 
     def as_preferred(self, quantity: Quantity | u.Quantity) -> Quantity:
         """Convert a quantity to the preferred unit for this unit system."""
-        return cast(
-            Quantity,
-            Quantity.constructor(
-                quantity.to(self.preferred(quantity.unit.physical_type))
-            ),
-        )
+        unit = self.preferred(quantity.unit.physical_type)
+        return cast(Quantity, Quantity.constructor(quantity.to(unit), unit))
 
 
 @final

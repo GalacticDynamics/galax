@@ -152,15 +152,13 @@ class MiyamotoNagaiPotential(AbstractPotential):
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial(jax.jit)
-    def _potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
-    ) -> BatchFloatScalar:
-        x, y, z = q[..., 0], q[..., 1], q[..., 2]
-        R2 = x**2 + y**2
+    @vectorize_method(signature="(3),()->()")
+    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalarLike) -> FloatScalar:
+        R2 = q[0] ** 2 + q[1] ** 2
         return (
             -self._G
             * self.m(t)
-            / xp.sqrt(R2 + xp.square(xp.sqrt(z**2 + self.b(t) ** 2) + self.a(t)))
+            / xp.sqrt(R2 + xp.square(xp.sqrt(q[2] ** 2 + self.b(t) ** 2) + self.a(t)))
         )
 
 

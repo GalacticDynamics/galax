@@ -10,7 +10,6 @@ import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float
 from plum import convert
 
 from jax_quantity import Quantity
@@ -22,10 +21,14 @@ from vector import (
 
 from .base import AbstractPhaseSpacePositionBase, _p_converter, _q_converter
 from .utils import getitem_broadscalartime_index
-from galax.typing import BatchFloatQScalar, BatchVec7, BroadBatchFloatScalar, Vec1
+from galax.typing import (
+    BatchFloatQScalar,
+    BatchVec7,
+    BroadBatchFloatQScalar,
+    QVec1,
+)
 from galax.units import UnitSystem, unitsystem
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
-from galax.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
     from typing import Self
@@ -55,7 +58,7 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
     p: eqx.AbstractVar[Abstract3DVector]
     """Conjugate momenta at positions ``q``."""
 
-    t: eqx.AbstractVar[Float[Array, "*#batch"]]
+    t: eqx.AbstractVar[BroadBatchFloatQScalar]
     """Time corresponding to the positions and momenta."""
 
     # ==========================================================================
@@ -98,16 +101,17 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         We can create a phase-space position:
 
         >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "m"),
-        ...                              p=Quantity([4, 5, 6], "m/s"), t=7.0)
+        ...                              p=Quantity([4, 5, 6], "m/s"),
+        ...                              t=Quantity(7.0, "s"))
         >>> psp.wt(units=gu.galactic)
-        Array([7.00000000e+00, 3.24077929e-20, 6.48155858e-20, 9.72233787e-20,
+        Array([2.21816615e-13, 3.24077929e-20, 6.48155858e-20, 9.72233787e-20,
                4.09084866e-06, 5.11356083e-06, 6.13627299e-06], dtype=float64)
         """
         batch_shape, comp_shapes = self._shape_tuple
         cart = self.represent_as(Cartesian3DVector)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch_shape, comp_shapes[0]))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch_shape, comp_shapes[1]))
-        t = xp.broadcast_to(self.t, batch_shape)[..., None]
+        t = xp.broadcast_to(self.t.decompose(units).value, batch_shape)[..., None]
         return xp.concat(
             (t, q.decompose(units).value, p.decompose(units).value), axis=-1
         )
@@ -153,7 +157,7 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
-        >>> w = PhaseSpaceTimePosition(q, p, t=0)
+        >>> w = PhaseSpaceTimePosition(q, p, t=Quantity(0, "Myr"))
 
         We can compute the kinetic energy:
 
@@ -203,7 +207,7 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
-        >>> w = PhaseSpaceTimePosition(q, p, t=0)
+        >>> w = PhaseSpaceTimePosition(q, p, t=Quantity(0, "Myr"))
 
         We can compute the kinetic energy:
 
@@ -229,11 +233,23 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
     Parameters
     ----------
     q : :class:`~vector.Abstract3DVector`
-        Positions.
+        A 3-vector of the positions, allowing for batched inputs.  This
+        parameter accepts any 3-vector, e.g.  :class:`~vector.SphericalVector`,
+        or any input that can be used to make a
+        :class:`~vector.Cartesian3DVector` via
+        :meth:`vector.Abstract3DVector.constructor`.
     p : :class:`~vector.Abstract3DVectorDifferential`
-        Conjugate momenta at positions ``q``.
-    t : Array[float, (*batch,)]
+        A 3-vector of the conjugate specific momenta at positions ``q``,
+        allowing for batched inputs.  This parameter accepts any 3-vector
+        differential, e.g.  :class:`~vector.SphericalDifferential`, or any input
+        that can be used to make a :class:`~vector.CartesianDifferential3D` via
+        :meth:`vector.CartesianDifferential3D.constructor`.
+    t : Quantity[float, (*batch,), 'time']
         The time corresponding to the positions.
+
+    Notes
+    -----
+    The batch shape of `q`, `p`, and `t` are broadcast together.
 
     Examples
     --------
@@ -249,32 +265,34 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
     ...                       z=Quantity(3, "m"))
     >>> p = CartesianDifferential3D(d_x=Quantity(4, "m/s"), d_y=Quantity(5, "m/s"),
     ...                             d_z=Quantity(6, "m/s"))
-    >>> t = 7.0
+    >>> t = Quantity(7.0, "s")
 
     >>> psp = PhaseSpaceTimePosition(q=q, p=p, t=t)
     >>> psp
     PhaseSpaceTimePosition(
       q=Cartesian3DVector(
-        x=Quantity[PhysicalType('length')](value=f64[], unit=Unit("m")),
-        y=Quantity[PhysicalType('length')](value=f64[], unit=Unit("m")),
-        z=Quantity[PhysicalType('length')](value=f64[], unit=Unit("m"))
+        x=Quantity[...](value=f64[], unit=Unit("m")),
+        y=Quantity[...](value=f64[], unit=Unit("m")),
+        z=Quantity[...](value=f64[], unit=Unit("m"))
       ),
       p=CartesianDifferential3D(
-        d_x=Quantity[PhysicalType({'speed', 'velocity'})](
-          value=f64[],
-          unit=Unit("m / s")
-        ),
-        d_y=Quantity[PhysicalType({'speed', 'velocity'})](
-          value=f64[],
-          unit=Unit("m / s")
-        ),
-        d_z=Quantity[PhysicalType({'speed', 'velocity'})](
-          value=f64[],
-          unit=Unit("m / s")
-        )
+        d_x=Quantity[...]( value=f64[], unit=Unit("m / s") ),
+        d_y=Quantity[...]( value=f64[], unit=Unit("m / s") ),
+        d_z=Quantity[...]( value=f64[], unit=Unit("m / s") )
       ),
-      t=f64[]
+      t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
     )
+
+    Note that both `q` and `p` have convenience converters, allowing them to
+    accept a variety of inputs when constructing a
+    :class:`~vector.Cartesian3DVector` or
+    :class:`~vector.CartesianDifferential3D`, respectively.  For example,
+
+    >>> psp2 = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "m"),
+    ...                               p=Quantity([4, 5, 6], "m/s"), t=t)
+    >>> psp2 == psp
+    Array(True, dtype=bool)
+
     """
 
     q: Abstract3DVector = eqx.field(converter=_q_converter)
@@ -289,12 +307,14 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: BroadBatchFloatScalar | Vec1 = eqx.field(converter=converter_float_array)
+    t: BroadBatchFloatQScalar | QVec1 = eqx.field(
+        converter=Quantity["time"].constructor
+    )
     """The time corresponding to the positions.
 
-    This is a scalar with the same batch shape as the positions and velocities.
-    If `t` is a scalar it will be broadcast to the same batch shape as `q` and
-    `p`.
+    This is a Quantity with the same batch shape as the positions and
+    velocities.  If `t` is a scalar it will be broadcast to the same batch shape
+    as `q` and `p`.
     """
 
     def __post_init__(self) -> None:
@@ -346,7 +366,7 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
 
         >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                              p=Quantity([4, 5, 6], "km/s"),
-        ...                              t=7.0)
+        ...                              t=Quantity(7.0, "Myr"))
         >>> psp.wt(units="galactic")
          Array([7.00000000e+00, 1.00000000e+00, 2.00000000e+00, 3.00000000e+00,
                 4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64)
@@ -356,5 +376,5 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
         cart = self.represent_as(Cartesian3DVector)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch_shape, comp_shapes[0]))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch_shape, comp_shapes[1]))
-        t = xp.broadcast_to(self.t, batch_shape)[..., None]
+        t = xp.broadcast_to(self.t.decompose(usys).value, batch_shape)[..., None]
         return xp.concat((t, q.decompose(usys).value, p.decompose(usys).value), axis=-1)

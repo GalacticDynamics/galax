@@ -6,7 +6,7 @@ from typing import Any, Protocol, cast, runtime_checkable
 
 import array_api_jax_compat as xp
 
-from galax.typing import FloatArrayAnyShape
+from galax.typing import FloatQAnyShape
 
 
 @runtime_checkable
@@ -18,7 +18,7 @@ class Shaped(Protocol):
 
 def _getitem_broadscalartime_index_tuple(
     index: tuple[Any, ...],
-    t: FloatArrayAnyShape,  # noqa: ARG001
+    t: FloatQAnyShape,  # noqa: ARG001
 ) -> Any:
     """Get the time index from a slice."""
     if len(index) == 0:  # slice is an empty tuple
@@ -26,7 +26,7 @@ def _getitem_broadscalartime_index_tuple(
     return index
 
 
-def getitem_broadscalartime_index(index: Any, t: FloatArrayAnyShape) -> Any:
+def getitem_broadscalartime_index(index: Any, t: FloatQAnyShape) -> Any:
     """Get the time index from an index."""
     if isinstance(index, tuple):
         return _getitem_broadscalartime_index_tuple(index, t)
@@ -36,7 +36,7 @@ def getitem_broadscalartime_index(index: Any, t: FloatArrayAnyShape) -> Any:
 # -----------------------------------------------------------------------------
 
 
-def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: FloatArrayAnyShape) -> Any:
+def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: FloatQAnyShape) -> Any:
     """Get the time index from a slice."""
     if len(index) == 0:  # slice is an empty tuple
         return slice(None)
@@ -48,7 +48,7 @@ def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: FloatArrayAnyShape)
     return index
 
 
-def _getitem_vec1time_index_shaped(index: Shaped, t: FloatArrayAnyShape) -> Shaped:
+def _getitem_vec1time_index_shaped(index: Shaped, t: FloatQAnyShape) -> Shaped:
     """Get the time index from a shaped index array."""
     if t.ndim == 1:  # Vec1
         return cast(Shaped, xp.asarray([True]))
@@ -58,7 +58,7 @@ def _getitem_vec1time_index_shaped(index: Shaped, t: FloatArrayAnyShape) -> Shap
     return index
 
 
-def getitem_vec1time_index(index: Any, t: FloatArrayAnyShape) -> Any:
+def getitem_vec1time_index(index: Any, t: FloatQAnyShape) -> Any:
     """Get the time index from an index.
 
     Parameters
@@ -77,7 +77,8 @@ def getitem_vec1time_index(index: Any, t: FloatArrayAnyShape) -> Any:
     --------
     We set up a time array.
     >>> import jax.numpy as jnp
-    >>> t = jnp.ones((10, 3), dtype=float)
+    >>> from jax_quantity import Quantity
+    >>> t = Quantity(jnp.ones((10, 3), dtype=float), "s")
 
     Some standard indexes.
     >>> getitem_vec1time_index(0, t)
@@ -90,7 +91,7 @@ def getitem_vec1time_index(index: Any, t: FloatArrayAnyShape) -> Any:
     >>> getitem_vec1time_index((0,), t)
     (0,)
 
-    >>> t = jnp.ones((1, 2, 3), dtype=float)
+    >>> t = Quantity(jnp.ones((1, 2, 3), dtype=float), "s")
     >>> getitem_vec1time_index((0, 1), t)
     (0, 1)
 

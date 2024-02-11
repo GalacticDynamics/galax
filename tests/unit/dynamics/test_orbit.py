@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import jax.random as jr
 import pytest
 from plum import convert
+from quax import quaxify
 
 from jax_quantity import Quantity
 
@@ -14,6 +15,8 @@ from galax.coordinates import PhaseSpaceTimePosition
 from galax.dynamics import Orbit
 from galax.potential import AbstractPotentialBase, MilkyWayPotential
 from galax.units import galactic
+
+array_equal = quaxify(jnp.array_equal)
 
 
 class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
@@ -37,7 +40,7 @@ class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
 
         q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
         p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
-        t = jr.normal(next(subkeys), shape[-1:])
+        t = Quantity(jr.normal(next(subkeys), shape[-1:]), unit=potential.units["time"])
         return w_cls(q=q, p=p, t=t, potential=potential)
 
     @pytest.fixture(scope="class")
@@ -72,7 +75,9 @@ class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
         """Test :meth:`~galax.coordinates.AbstractPhaseSpaceTimePosition.wt`."""
         wt = w.wt(units=galactic)
         assert wt.shape == w.full_shape
-        assert jnp.array_equal(wt[(*(0,) * (w.ndim - 1), slice(None), 0)], w.t)
+        assert jnp.array_equal(
+            wt[(*(0,) * (w.ndim - 1), slice(None), 0)], w.t.decompose(galactic).value
+        )
         assert jnp.array_equal(
             wt[..., 1:4], convert(w.q, Quantity).decompose(galactic).value
         )

@@ -34,7 +34,7 @@ class AbstractPhaseSpaceTimePosition_Test(AbstractPhaseSpacePositionBase_Test[T]
 
         q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
         p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
-        t = jr.normal(next(subkeys), shape)
+        t = Quantity(jr.normal(next(subkeys), shape), "Myr")
         return w_cls(q=q, p=p, t=t)
 
     # ===============================================================
@@ -69,7 +69,7 @@ class AbstractPhaseSpaceTimePosition_Test(AbstractPhaseSpacePositionBase_Test[T]
         """Test :meth:`~galax.coordinates.AbstractPhaseSpaceTimePosition.wt`."""
         wt = w.wt(units=galactic)
         assert wt.shape == w.full_shape
-        assert jnp.array_equal(wt[..., 0], w.t)
+        assert jnp.array_equal(wt[..., 0], w.t.decompose(galactic).value)
         assert jnp.array_equal(
             wt[..., 1:4], convert(w.q, Quantity).decompose(galactic).value
         )
@@ -148,7 +148,9 @@ class TestAbstractPhaseSpaceTimePosition(
                     convert(cart.p, Quantity).decompose(units).value,
                     (*batch_shape, comp_shapes[1]),
                 )
-                t = xp.broadcast_to(self.t, batch_shape)[..., None]
+                t = xp.broadcast_to(self.t.decompose(units).value, batch_shape)[
+                    ..., None
+                ]
                 return xp.concat((t, q, p), axis=-1)
 
         return PSP

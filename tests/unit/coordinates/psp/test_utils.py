@@ -8,14 +8,17 @@ import jax.numpy as jnp
 import pytest
 from jaxtyping import Array, Float
 
+from jax_quantity import Quantity
+
 from galax.coordinates._psp.utils import (
     Shaped,
     getitem_broadscalartime_index,
     getitem_vec1time_index,
 )
+from galax.typing import QVec3
 
 Vec3 = Float[Array, "3"]
-Vec2x3 = Float[Array, "2 3"]
+QVec2x3 = Float[Quantity["time"], "2 3"]
 
 
 class TestShaped:
@@ -36,18 +39,18 @@ class Test_getitem_broadscalartime_index:
     get_index: ClassVar = staticmethod(getitem_broadscalartime_index)
 
     @pytest.fixture()
-    def t3(self) -> Vec3:
+    def t3(self) -> QVec3:
         """Return a Array[Float, 3]."""
-        return xp.asarray([1.0, 2.0, 3.0])
+        return Quantity([1.0, 2.0, 3.0], "Myr")
 
     @pytest.fixture()
-    def t2x3(self) -> Vec2x3:
+    def t2x3(self) -> QVec2x3:
         """Return a Array[Float, 2x3]."""
-        return xp.asarray([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        return Quantity([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], "Myr")
 
     # ===============================================================
 
-    def test_integer(self, t3: Vec3) -> None:
+    def test_integer(self, t3: QVec3) -> None:
         """Test scalar index."""
         for i in range(3):
             assert self.get_index(i, t3) == i
@@ -56,13 +59,13 @@ class Test_getitem_broadscalartime_index:
         "index",
         [slice(None), slice(0, 3), slice(1, 3), slice(0, 3, 2)],
     )
-    def test_slice(self, t3: Vec3, index: slice) -> None:
+    def test_slice(self, t3: QVec3, index: slice) -> None:
         """Test slice index."""
         assert self.get_index(index, t3) == index
 
     # -----------------------
 
-    def test_tuple_empty(self, t3: Vec3) -> None:
+    def test_tuple_empty(self, t3: QVec3) -> None:
         """Test empty tuple."""
         assert self.get_index((), t3) == slice(None)
 
@@ -70,13 +73,13 @@ class Test_getitem_broadscalartime_index:
         "index",
         [(slice(None), 1), (slice(0, 3), 1), (slice(1, 3), 1), (slice(0, 3, 2), 1)],
     )
-    def test_tuple(self, t3: Vec3, index: tuple) -> None:
+    def test_tuple(self, t3: QVec3, index: tuple) -> None:
         """Test tuple index."""
         assert self.get_index(index, t3) == index
 
     # -----------------------
 
-    def test_shaped_1d(self, t3: Vec3) -> None:
+    def test_shaped_1d(self, t3: QVec3) -> None:
         """Test shaped index on 1D array."""
         # 1D shaped index
         index = jnp.array([True, False, True])
@@ -86,7 +89,7 @@ class Test_getitem_broadscalartime_index:
         index = jnp.array([[True, False, True], [False, True, False]])
         assert jnp.array_equal(self.get_index(index, t3), index)
 
-    def test_shaped_nd(self, t2x3: Vec2x3) -> None:
+    def test_shaped_nd(self, t2x3: QVec2x3) -> None:
         """Test shaped index on N-dimensional array."""
         # index.shape < t.shape
         index = jnp.array([True, False])
@@ -103,18 +106,18 @@ class Test_getitem_vec1time_index:
     get_index: ClassVar = staticmethod(getitem_vec1time_index)
 
     @pytest.fixture()
-    def t3(self) -> Vec3:
+    def t3(self) -> QVec3:
         """Return a Array[Float, 3]."""
-        return xp.asarray([1.0, 2.0, 3.0])
+        return Quantity([1.0, 2.0, 3.0], "Myr")
 
     @pytest.fixture()
-    def t2x3(self) -> Vec2x3:
+    def t2x3(self) -> QVec2x3:
         """Return a Array[Float, 2x3]."""
-        return xp.asarray([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        return Quantity([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], "Myr")
 
     # ===============================================================
 
-    def test_integer(self, t3: Vec3) -> None:
+    def test_integer(self, t3: QVec3) -> None:
         """Test scalar index."""
         for i in range(3):
             assert self.get_index(i, t3) == i
@@ -123,17 +126,17 @@ class Test_getitem_vec1time_index:
         "index",
         [slice(None), slice(0, 3), slice(1, 3), slice(0, 3, 2)],
     )
-    def test_slice(self, t3: Vec3, index: slice) -> None:
+    def test_slice(self, t3: QVec3, index: slice) -> None:
         """Test slice index."""
         assert self.get_index(index, t3) == index
 
     # -----------------------
 
-    def test_tuple_empty(self, t3: Vec3) -> None:
+    def test_tuple_empty(self, t3: QVec3) -> None:
         """Test empty tuple."""
         assert self.get_index((), t3) == slice(None)
 
-    def test_tuple_1d(self, t3: Vec3) -> None:
+    def test_tuple_1d(self, t3: QVec3) -> None:
         """Test tuple index."""
         index = (slice(None), 1)
         assert self.get_index(index, t3) == slice(None)
@@ -158,7 +161,7 @@ class Test_getitem_vec1time_index:
 
     # -----------------------
 
-    def test_shaped_1d(self, t3: Vec3) -> None:
+    def test_shaped_1d(self, t3: QVec3) -> None:
         """Test shaped index on 1D array."""
         # 1D shaped index
         index = jnp.array([True, False, True])
@@ -168,7 +171,7 @@ class Test_getitem_vec1time_index:
         index = jnp.array([[True, False, True], [False, True, False]])
         assert self.get_index(index, t3) == xp.asarray([True])
 
-    def test_shaped_nd(self, t2x3: Vec2x3) -> None:
+    def test_shaped_nd(self, t2x3: QVec2x3) -> None:
         """Test shaped index on N-dimensional array."""
         # index.shape < t.shape
         index = jnp.array([True, False])

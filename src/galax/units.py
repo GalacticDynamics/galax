@@ -9,10 +9,11 @@ __all__ = [
 ]
 
 from collections.abc import Iterator
-from typing import ClassVar, Union, final
+from typing import ClassVar, Union, cast, final
 
 import astropy.units as u
 from astropy.units.physical import _physical_unit_mapping
+from jax_quantity import Quantity
 
 
 class UnitSystem:
@@ -74,12 +75,8 @@ class UnitSystem:
 
     def __init__(
         self,
-        units: Union[
-            u.UnitBase,
-            u.Quantity,
-            "UnitSystem",
-        ],
-        *args: u.UnitBase | u.Quantity,
+        units: Union[u.UnitBase, u.Quantity, Quantity, "UnitSystem"],
+        *args: u.UnitBase | u.Quantity | Quantity,
     ) -> None:
         if isinstance(units, UnitSystem):
             if len(args) > 0:
@@ -157,9 +154,14 @@ class UnitSystem:
             return self._registry[key]
         return self[key]
 
-    def as_preferred(self, quantity: u.Quantity) -> u.Quantity:
+    def as_preferred(self, quantity: Quantity | u.Quantity) -> Quantity:
         """Convert a quantity to the preferred unit for this unit system."""
-        return quantity.to(self.preferred(quantity.unit.physical_type))
+        return cast(
+            Quantity,
+            Quantity.constructor(
+                quantity.to(self.preferred(quantity.unit.physical_type))
+            ),
+        )
 
 
 @final

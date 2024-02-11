@@ -72,6 +72,7 @@
   build.hooks.vcs.version-file = "src/galax/_version.py"
   envs.default.dependencies = ["pytest", "pytest-cov"]
   version.source = "vcs"
+  metadata.allow-direct-references = true
 
 
 [tool.pytest.ini_options]

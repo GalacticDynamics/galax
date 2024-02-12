@@ -3,6 +3,7 @@ from typing import Any
 import array_api_jax_compat as xp
 import jax.numpy as jnp
 import pytest
+from jax_quantity import Quantity
 from quax import quaxify
 
 from galax.potential import HernquistPotential
@@ -35,9 +36,10 @@ class TestHernquistPotential(
         assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.94871936))
 
     def test_gradient(self, pot: HernquistPotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.gradient(x, t=0), xp.asarray([0.05347411, 0.10694822, 0.16042233])
+        expected = Quantity(
+            [0.05347411, 0.10694822, 0.16042233], pot.units["acceleration"]
         )
+        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
 
     def test_density(self, pot: HernquistPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 3.989933e08)

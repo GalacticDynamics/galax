@@ -4,6 +4,7 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from jax_quantity import Quantity
 from quax import quaxify
 
 from galax.potential import AbstractPotentialBase, BarPotential
@@ -62,9 +63,10 @@ class TestBarPotential(
         assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.94601574))
 
     def test_gradient(self, pot: BarPotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.gradient(x, t=0), xp.asarray([0.04011905, 0.08383918, 0.16552719])
+        expected = Quantity(
+            [0.04011905, 0.08383918, 0.16552719], pot.units["acceleration"]
         )
+        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
 
     def test_density(self, pot: BarPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 1.94669274e08)

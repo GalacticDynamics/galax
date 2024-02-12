@@ -3,6 +3,7 @@ from typing import Any
 import array_api_jax_compat as xp
 import jax.numpy as jnp
 import pytest
+from jax_quantity import Quantity
 from quax import quaxify
 
 from galax.potential import AbstractPotentialBase, NullPotential
@@ -31,7 +32,8 @@ class TestNullPotential(AbstractPotential_Test):
 
     def test_gradient(self, pot: NullPotential, x: Vec3) -> None:
         """Test :meth:`NullPotential.gradient`."""
-        assert jnp.allclose(pot.gradient(x, t=0), xp.asarray([0.0, 0.0, 0.0]))
+        expected = Quantity([0.0, 0.0, 0.0], pot.units["acceleration"])
+        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
 
     def test_density(self, pot: NullPotential, x: Vec3) -> None:
         """Test :meth:`NullPotential.density`."""

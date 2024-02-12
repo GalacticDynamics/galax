@@ -3,6 +3,7 @@ from typing import Any
 import array_api_jax_compat as xp
 import jax.numpy as jnp
 import pytest
+from jax_quantity import Quantity
 from quax import quaxify
 
 import galax.potential as gp
@@ -35,9 +36,10 @@ class TestIsochronePotential(
         assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.9231515))
 
     def test_gradient(self, pot: IsochronePotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.gradient(x, t=0), xp.asarray([0.04891392, 0.09782784, 0.14674175])
+        expected = Quantity(
+            [0.04891392, 0.09782784, 0.14674175], pot.units["acceleration"]
         )
+        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
 
     def test_density(self, pot: IsochronePotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 5.04511665e08)

@@ -174,8 +174,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchableFloatOrIntScalarLike,
-    ) -> BatchVec3:
+        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
+    ) -> BatchQVec3:
         """Compute the gradient of the potential at the given position(s).
 
         Parameters
@@ -192,8 +192,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         grad : Array[float, (*batch, 3)]
             The gradient of the potential.
         """
-        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
-        return self._gradient(q, t)  # vectorize doesn't allow kwargs
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        return Quantity(self._gradient(q, t), self.units["acceleration"])
 
     # ---------------------------------------
     # Density
@@ -203,7 +204,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def _density(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
-        lap = jnp.trace(jacfwd(self.gradient)(q, t))
+        lap = jnp.trace(jacfwd(self._gradient)(q, t))
         return lap / (4 * xp.pi * self._G)
 
     def density(

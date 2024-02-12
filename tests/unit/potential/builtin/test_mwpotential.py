@@ -3,6 +3,7 @@ from typing import Any
 import jax.numpy as jnp
 import jax.numpy as xp
 import pytest
+from jax_quantity import Quantity
 from quax import quaxify
 
 from galax.potential import AbstractPotentialBase, MilkyWayPotential
@@ -43,9 +44,10 @@ class TestMilkyWayPotentialDefault(TestAbstractPotential):
         assert xp.isclose(pot.potential_energy(x, t=0), xp.array(-0.19386052))
 
     def test_gradient(self, pot: MilkyWayPotential, x: Vec3) -> None:
-        assert xp.allclose(
-            pot.gradient(x, t=0), xp.array([0.00256403, 0.00512806, 0.01115272])
+        expected = Quantity(
+            [0.00256403, 0.00512806, 0.01115272], pot.units["acceleration"]
         )
+        assert xp.allclose(pot.gradient(x, t=0).value, expected.value)
 
     def test_density(self, pot: MilkyWayPotential, x: Vec3) -> None:
         assert xp.isclose(pot.density(x, t=0).value, 33_365_858.46361218)

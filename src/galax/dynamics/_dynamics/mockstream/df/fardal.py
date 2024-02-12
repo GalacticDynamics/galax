@@ -171,7 +171,10 @@ def d2phidr2(
     Array(-0.00017469, dtype=float64)
     """
     r_hat = x / xp.linalg.vector_norm(x)
-    dphi_dr_func = lambda x: xp.sum(potential.gradient(x, t) * r_hat)  # noqa: E731
+
+    def dphi_dr_func(x: Vec3) -> FloatScalar:
+        return xp.sum(potential.gradient(x, t).value * r_hat)
+
     return xp.sum(grad(dphi_dr_func)(x) * r_hat)
 
 

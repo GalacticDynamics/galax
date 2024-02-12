@@ -4,6 +4,7 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from jax_quantity import Quantity
 from quax import quaxify
 
 import galax.potential as gp
@@ -46,9 +47,10 @@ class TestMiyamotoNagaiPotential(
         assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.95208676))
 
     def test_gradient(self, pot: MiyamotoNagaiPotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.gradient(x, t=0), xp.asarray([0.04264751, 0.08529503, 0.16840152])
+        expected = Quantity(
+            [0.04264751, 0.08529503, 0.16840152], pot.units["acceleration"]
         )
+        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
 
     def test_density(self, pot: MiyamotoNagaiPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 1.9949418e08)

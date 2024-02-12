@@ -5,6 +5,7 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from jax_quantity import Quantity
 from quax import quaxify
 from typing_extensions import override
 
@@ -105,9 +106,10 @@ class TestNFWPotential(
         assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-1.87117234))
 
     def test_gradient(self, pot: NFWPotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.gradient(x, t=0), xp.asarray([0.0658867, 0.1317734, 0.19766011])
+        expected = Quantity(
+            [0.0658867, 0.1317734, 0.19766011], pot.units["acceleration"]
         )
+        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
 
     def test_density(self, pot: NFWPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 9.46039849e08)

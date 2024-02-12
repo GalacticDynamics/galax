@@ -50,8 +50,9 @@ FloatOrIntScalarLike = FloatLike | IntLike
 Vec1 = Float[Array, "1"]
 """A 1-vector."""
 
+# A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz).
 Vec3 = Float[Array, "3"]
-"""A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz)."""
+QVec3 = Float[Quantity, "3"]
 
 Matrix33 = Float[Array, "3 3"]
 """A 3x3 matrix."""
@@ -85,7 +86,10 @@ BatchIntScalar = Shaped[IntScalar, "*batch"]
 BatchableIntLike = BatchIntScalar | IntLike
 
 BroadBatchFloatScalar = Shaped[FloatScalar, "*#batch"]
+BroadBatchFloatQScalar = Shaped[FloatQScalar, "*#batch"]
+
 BatchFloatScalar = Shaped[FloatScalar, "*batch"]
+BatchFloatQScalar = Shaped[FloatQScalar, "*batch"]
 
 BatchableFloatLike = BatchFloatScalar | FloatLike
 
@@ -101,9 +105,11 @@ BroadBatchVec1 = Shaped[Vec1, "*#batch"]
 BatchVec1 = Shaped[Vec1, "*batch"]
 """Zero or more batches of 1-vectors."""
 
+# Zero or more batches of 3-vectors.
 BroadBatchVec3 = Shaped[Vec3, "*#batch"]
+BroadBatchQVec3 = Shaped[QVec3, "*#batch"]
 BatchVec3 = Shaped[Vec3, "*batch"]
-"""Zero or more batches of 3-vectors."""
+BatchQVec3 = Shaped[QVec3, "*batch"]
 
 BatchMatrix33 = Shaped[Matrix33, "*batch"]
 """Zero or more batches of 3x3 matrices."""

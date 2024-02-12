@@ -22,8 +22,10 @@ from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
     BatchFloatOrIntQScalar,
+    BatchFloatQScalar,
     BatchFloatScalar,
     BatchMatrix33,
+    BatchQVec3,
     BatchVec3,
     BatchVec6,
     FloatOrIntScalar,
@@ -206,7 +208,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def density(
         self, q: BatchVec3, /, t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike
-    ) -> BatchFloatScalar:
+    ) -> BatchFloatQScalar:
         """Compute the density value at the given position(s).
 
         Parameters
@@ -269,7 +271,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
         t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
-    ) -> BatchVec3:
+    ) -> BatchQVec3:
         """Compute the acceleration due to the potential.
 
         Parameters

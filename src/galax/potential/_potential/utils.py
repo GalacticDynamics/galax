@@ -139,6 +139,7 @@ def _convert_from_baserep(
 def _convert_from_representation(
     value: BaseRepresentation, /, *, units: UnitSystem, **kwargs: Any
 ) -> Array:
+    value = value.to_cartesian()
     if "s" in value.differentials and not kwargs.get("no_differentials", False):
         return xp.stack(
             (

@@ -6,6 +6,7 @@ __all__: list[str] = []
 from typing import TypeAlias
 
 import astropy.units as u
+from jax_quantity import Quantity
 from jaxtyping import Array, Float, Integer, Shaped
 
 # =============================================================================
@@ -18,20 +19,23 @@ Unit: TypeAlias = u.Unit | u.UnitBase | u.CompositeUnit
 AnyScalar = Shaped[Array, ""]
 """Any scalar."""
 
+# An integer scalar.
 IntScalar = Integer[Array, ""]
-"""An integer scalar."""
+IntQScalar = Integer[Quantity, ""]
 
 IntLike = IntScalar | int
 """An integer or integer scalar."""
 
+# A float scalar.
 FloatScalar = Float[Array, ""]
-"""A float scalar."""
+FloatQScalar = Float[Quantity, ""]
 
 FloatLike = FloatScalar | float | int
 """A float(/int) or float scalar."""
 
+# A float or integer scalar.
 FloatOrIntScalar = FloatScalar | IntScalar
-"""A float or integer scalar."""
+FloatOrIntQScalar = FloatQScalar | IntQScalar
 
 FloatOrIntScalarLike = FloatLike | IntLike
 """A float or integer or float(/int) scalar."""
@@ -46,8 +50,9 @@ FloatOrIntScalarLike = FloatLike | IntLike
 Vec1 = Float[Array, "1"]
 """A 1-vector."""
 
+# A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz).
 Vec3 = Float[Array, "3"]
-"""A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz)."""
+QVec3 = Float[Quantity, "3"]
 
 Matrix33 = Float[Array, "3 3"]
 """A 3x3 matrix."""
@@ -64,10 +69,11 @@ VecN = Float[Array, "N"]
 # -----------------
 # Specific
 
+# Time vector
 VecTime = Float[Array, "time"]
+QVecTime = Float[Quantity, "time"]
 VecTime3 = Float[Vec3, "time"]
 VecTime7 = Float[Vec7, "time"]
-"""A time vector."""
 
 # -----------------------------------------------------------------------------
 # Vector Batches
@@ -80,11 +86,15 @@ BatchIntScalar = Shaped[IntScalar, "*batch"]
 BatchableIntLike = BatchIntScalar | IntLike
 
 BroadBatchFloatScalar = Shaped[FloatScalar, "*#batch"]
+BroadBatchFloatQScalar = Shaped[FloatQScalar, "*#batch"]
+
 BatchFloatScalar = Shaped[FloatScalar, "*batch"]
+BatchFloatQScalar = Shaped[FloatQScalar, "*batch"]
 
 BatchableFloatLike = BatchFloatScalar | FloatLike
 
 BatchFloatOrIntScalar = Shaped[FloatOrIntScalar, "*batch"]
+BatchFloatOrIntQScalar = Shaped[FloatOrIntQScalar, "*batch"]
 
 BatchableFloatOrIntScalarLike = BatchFloatOrIntScalar | FloatOrIntScalarLike
 
@@ -95,9 +105,11 @@ BroadBatchVec1 = Shaped[Vec1, "*#batch"]
 BatchVec1 = Shaped[Vec1, "*batch"]
 """Zero or more batches of 1-vectors."""
 
+# Zero or more batches of 3-vectors.
 BroadBatchVec3 = Shaped[Vec3, "*#batch"]
+BroadBatchQVec3 = Shaped[QVec3, "*#batch"]
 BatchVec3 = Shaped[Vec3, "*batch"]
-"""Zero or more batches of 3-vectors."""
+BatchQVec3 = Shaped[QVec3, "*batch"]
 
 BatchMatrix33 = Shaped[Matrix33, "*batch"]
 """Zero or more batches of 3x3 matrices."""

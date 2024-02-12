@@ -4,8 +4,10 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from jax_quantity import Quantity
+from quax import quaxify
 
-from galax.potential import BarPotential
+from galax.potential import AbstractPotentialBase, BarPotential
 from galax.typing import Vec3
 from galax.units import UnitSystem
 
@@ -16,6 +18,8 @@ from .test_common import (
     ShapeBParameterMixin,
     ShapeCParameterMixin,
 )
+
+allclose = quaxify(jnp.allclose)
 
 
 class TestBarPotential(
@@ -56,15 +60,16 @@ class TestBarPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot: BarPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.94601574))
+        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-0.94601574))
 
     def test_gradient(self, pot: BarPotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.gradient(x, t=0), xp.asarray([0.04011905, 0.08383918, 0.16552719])
+        expected = Quantity(
+            [0.04011905, 0.08383918, 0.16552719], pot.units["acceleration"]
         )
+        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
 
     def test_density(self, pot: BarPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0), 1.94669274e08)
+        assert jnp.isclose(pot.density(x, t=0).value, 1.94669274e08)
 
     def test_hessian(self, pot: BarPotential, x: Vec3) -> None:
         assert jnp.allclose(
@@ -77,3 +82,15 @@ class TestBarPotential(
                 ]
             ),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [
+            [0.03163021, -0.01038389, -0.02050134],
+            [-0.01038389, 0.01590389, -0.04412159],
+            [-0.02050134, -0.04412159, -0.04753409],
+        ]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

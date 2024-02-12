@@ -5,8 +5,10 @@ from typing import Any
 import array_api_jax_compat as xp
 import equinox as eqx
 import jax
+import jax.numpy as jnp
 import pytest
-from jax.numpy import array_equal
+from jax_quantity import Quantity
+from quax import quaxify
 
 import galax.dynamics as gd
 from galax.potential import AbstractPotentialBase
@@ -19,10 +21,12 @@ from galax.typing import (
     Vec3,
     Vec6,
 )
-from galax.units import UnitSystem, dimensionless
+from galax.units import UnitSystem, galactic
 from galax.utils._jax import vectorize_method
 
 from .io.test_gala import GalaIOMixin
+
+array_equal = quaxify(jnp.array_equal)
 
 
 class TestAbstractPotentialBase(GalaIOMixin):
@@ -31,7 +35,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[AbstractPotentialBase]:
         class TestPotential(AbstractPotentialBase):
-            units: UnitSystem = eqx.field(default=dimensionless, static=True)
+            units: UnitSystem = eqx.field(default=galactic, static=True)
             _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
             def __post_init__(self):
@@ -93,7 +97,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
         # Test that the concrete class can be instantiated
         class TestPotential(AbstractPotentialBase):
-            units: UnitSystem = eqx.field(default=dimensionless, static=True)
+            units: UnitSystem = eqx.field(default=galactic, static=True)
 
             def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
                 return xp.sum(q, axis=-1)
@@ -113,15 +117,16 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_call(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.__call__` method."""
-        assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0))
+        assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0).value)  # TODO: .value
 
     def test_gradient(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.gradient` method."""
-        assert array_equal(pot.gradient(x, t=0), xp.ones_like(x))
+        expected = Quantity(xp.ones_like(x), pot.units["acceleration"])
+        assert array_equal(pot.gradient(x, t=0), expected)
 
     def test_density(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
-        assert pot.density(x, t=0) == 0.0
+        assert pot.density(x, t=0).value == 0.0  # TODO: .value
 
     def test_hessian(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.hessian` method."""
@@ -134,16 +139,24 @@ class TestAbstractPotentialBase(GalaIOMixin):
         """Test the `AbstractPotentialBase.acceleration` method."""
         assert array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
 
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+        assert array_equal(pot.tidal_tensor(x, t=0), expect)
+
     # =========================================================================
 
     def test_integrate_orbit(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
         """Test the `AbstractPotentialBase.integrate_orbit` method."""
-        ts = xp.linspace(0.0, 1.0, 100)
+        ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
 
         orbit = pot.integrate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
-        assert orbit.shape == (len(ts),)
-        assert array_equal(orbit.t, ts)
+        assert orbit.shape == (len(ts.value),)  # TODO: don't use .value
+        assert array_equal(orbit.t, ts.value)
 
     def test_integrate_orbit_batch(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
         """Test the `AbstractPotentialBase.integrate_orbit` method."""

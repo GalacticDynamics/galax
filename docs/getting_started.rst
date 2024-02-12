@@ -67,9 +67,9 @@ position near the Sun::
 
     >>> xyz = [-8., 0, 0] * u.kpc
     >>> mw.potential_energy(xyz, t=0)
-    Array(-0.16440278, dtype=float64)
+    Quantity(value=f64[], unit=Unit("kpc2 / Myr2"))
     >>> mw.acceleration(xyz, t=0)
-    Array([ 0.00702259, -0.        , -0.        ], dtype=float64)
+    Quantity(value=f64[3], unit=Unit("kpc / Myr2"))
 
 The values that are returned by most methods in :mod:`galax` are provided as
 Astropy :class:`~astropy.units.Quantity` objects, which represent numerical data
@@ -78,9 +78,9 @@ re-represented in any equivalent units, so, for example, we could display the
 energy or acceleration in other units::
 
     >>> mw.potential_energy(xyz, t=0)
-    Array(-0.16440278, dtype=float64)
+    Quantity(value=f64[], unit=Unit("kpc2 / Myr2"))
     >>> mw.acceleration(xyz, t=0)
-    Array([ 0.00702259, -0.        , -0.        ], dtype=float64)
+    Quantity(value=f64[3], unit=Unit("kpc / Myr2"))
 
 Now that we have a potential model, if we want to compute an orbit, we need to
 specify a set of initial conditions to initialize the numerical orbit

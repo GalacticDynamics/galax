@@ -12,21 +12,26 @@ import jax
 import jax.numpy as jnp
 from astropy.constants import G as _G  # pylint: disable=no-name-in-module
 from astropy.coordinates import BaseRepresentation
-from astropy.units import Quantity
+from astropy.units import Quantity as AstropyQuantity
 from jax import grad, hessian, jacfwd
+from jax_quantity import Quantity
 
 from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
+    BatchFloatOrIntQScalar,
+    BatchFloatQScalar,
     BatchFloatScalar,
     BatchMatrix33,
+    BatchQVec3,
     BatchVec3,
     BatchVec6,
     FloatOrIntScalar,
     FloatScalar,
     Matrix33,
+    QVecTime,
     Vec3,
     Vec6,
     VecTime,
@@ -36,7 +41,7 @@ from galax.utils._jax import vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils.dataclasses import ModuleMeta
 
-from .utils import convert_inputs_to_arrays
+from .utils import convert_input_to_array, convert_inputs_to_arrays
 
 if TYPE_CHECKING:
     from galax.dynamics._dynamics.integrate._api import Integrator
@@ -96,7 +101,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             # Other fields, check their metadata
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
-                if isinstance(value, Quantity):
+                if isinstance(value, AstropyQuantity):
                     value = value.to_value(
                         self.units[f.metadata.get("dimensions")],
                         equivalencies=f.metadata.get("equivalencies", None),
@@ -111,10 +116,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def potential_energy(
         self,
-        q: BatchVec3 | Quantity | BaseRepresentation,
+        q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchableFloatOrIntScalarLike | Quantity,
-    ) -> BatchFloatScalar:
+        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike | AstropyQuantity,
+    ) -> BatchFloatQScalar:
         """Compute the potential energy at the given position(s).
 
         Parameters
@@ -129,8 +134,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         E : Array[float, *batch]
             The potential energy per unit mass or value of the potential.
         """
-        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
-        return self._potential_energy(q, t)
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        return Quantity(self._potential_energy(q, t), self.units["specific energy"])
 
     @partial(jax.jit)
     def __call__(
@@ -154,7 +160,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         --------
         potential_energy
         """
-        return self.potential_energy(q, t)
+        return self._potential_energy(q, t)
 
     # ---------------------------------------
     # Gradient
@@ -167,10 +173,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def gradient(
         self,
-        q: BatchVec3 | Quantity | BaseRepresentation,
+        q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchableFloatOrIntScalarLike,
-    ) -> BatchVec3:
+        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
+    ) -> BatchQVec3:
         """Compute the gradient of the potential at the given position(s).
 
         Parameters
@@ -187,8 +193,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         grad : Array[float, (*batch, 3)]
             The gradient of the potential.
         """
-        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
-        return self._gradient(q, t)  # vectorize doesn't allow kwargs
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        return Quantity(self._gradient(q, t), self.units["acceleration"])
 
     # ---------------------------------------
     # Density
@@ -198,12 +205,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def _density(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
-        lap = jnp.trace(jacfwd(self.gradient)(q, t))
+        lap = jnp.trace(jacfwd(self._gradient)(q, t))
         return lap / (4 * xp.pi * self._G)
 
     def density(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
-    ) -> BatchFloatScalar:
+        self, q: BatchVec3, /, t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike
+    ) -> BatchFloatQScalar:
         """Compute the density value at the given position(s).
 
         Parameters
@@ -212,16 +219,17 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             The position to compute the value of the potential. If the
             input position object has no units (i.e. is an `~numpy.ndarray`),
             it is assumed to be in the same unit system as the potential.
-        t : Array[float | int, *batch] | float | int
+        t : (Quantity|Array)[float | int, *batch] | float | int
             The time at which to compute the value of the potential.
 
         Returns
         -------
-        rho : Array[float, *batch]
+        rho : Quantity[float, *batch, 'mass / length^3']
             The potential energy or value of the potential.
         """
-        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
-        return self._density(q, t)
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        return Quantity(self._density(q, t), self.units["mass density"])
 
     # ---------------------------------------
     # Hessian
@@ -234,7 +242,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def hessian(
         self,
-        q: BatchVec3 | Quantity | BaseRepresentation,
+        q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
         t: BatchableFloatOrIntScalarLike,
     ) -> BatchMatrix33:
@@ -262,31 +270,32 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def acceleration(
         self,
-        q: BatchVec3 | Quantity | BaseRepresentation,
+        q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchableFloatOrIntScalarLike,
-    ) -> BatchVec3:
-        """Compute the acceleration due to the potential at the given position(s).
+        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
+    ) -> BatchQVec3:
+        """Compute the acceleration due to the potential.
 
         Parameters
         ----------
         q : Array[float, (*batch, 3)]
-            Position to compute the acceleration at.
-        t : Array[float | int, *batch] | float | int
+            Cartesian position to compute the acceleration at.
+        t : (Quantity|Array)[float | int, *batch] | float | int
             Time at which to compute the acceleration.
 
         Returns
         -------
-        Array[float, (*batch, 3)]
-            The acceleration. Will have the same shape as the input
-            position array, ``q``.
+        Quantity[float, (*batch, 3), 'length / time^2']
+            The acceleration in Cartesian coordinates. Will have the same shape
+            as the input position array, ``q``.
         """
-        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
-        return -self._gradient(q, t)
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        return Quantity(-self._gradient(q, t), self.units["acceleration"])
 
     @partial(jax.jit)
     def tidal_tensor(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike
     ) -> BatchMatrix33:
         """Compute the tidal tensor.
 
@@ -301,7 +310,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ----------
         q : Array[float, (*batch, 3,)]
             Position to compute the tidal tensor at.
-        t : Array[float | int, *batch] | float | int
+        t : (Quantity|Array)[float | int, *batch] | float | int
             Time at which to compute the tidal tensor.
 
         Returns
@@ -309,11 +318,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         Array[float, (*batch, 3, 3)]
             The tidal tensor.
         """
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
         J = self.hessian(q, t)  # (*batch, 3, 3)
         batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)
         traced = (
             expand_batch_dims(xp.eye(3), ndim=len(batch_shape))
-            * expand_arr_dims(xp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
+            * expand_arr_dims(jnp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
             / 3
         )
         return J - traced
@@ -324,13 +334,13 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @partial(jax.jit)
     def _integrator_F(self, t: FloatScalar, w: Vec6, args: tuple[Any, ...]) -> Vec6:
         """Return the derivative of the phase-space position."""
-        return jnp.hstack([w[3:6], self.acceleration(w[0:3], t)])  # v, a
+        return jnp.hstack([w[3:6], self.acceleration(w[0:3], t).value])  # v, a
 
-    @partial(jax.jit, static_argnames=("integrator",))
+    # @partial(jax.jit, static_argnames=("integrator",))
     def integrate_orbit(
         self,
         w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
-        t: VecTime | Quantity,
+        t: QVecTime | VecTime | AstropyQuantity,
         *,
         integrator: "Integrator | None" = None,
     ) -> "Orbit":
@@ -360,7 +370,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 constructed, interpreting the array as the  'q', 'p' (each
                 Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
 
-        t: Array[float, (time,)]
+        t: Quantity[float, (time,)]
             Array of times at which to compute the orbit. The first element
             should be the initial time and the last element should be the final
             time and the array should be monotonically moving from the first to
@@ -397,12 +407,13 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """
         from galax.dynamics._dynamics.orbit import integrate_orbit
 
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
         return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator))
 
     def evaluate_orbit(
         self,
         w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
-        t: VecTime | Quantity,
+        t: QVecTime | VecTime | AstropyQuantity,  # TODO: must be a Quantity
         *,
         integrator: "Integrator | None" = None,
     ) -> "Orbit":
@@ -441,7 +452,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 A :class:`~galax.coordinates.PhaseSpacePosition` will be
                 constructed, interpreting the array as the  'q', 'p' (each
                 Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
-        t: Array[float, (time,)]
+        t: Quantity[float, (time,)]
             Array of times at which to compute the orbit. The first element
             should be the initial time and the last element should be the final
             time and the array should be monotonically moving from the first to
@@ -472,4 +483,5 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """
         from galax.dynamics._dynamics.orbit import evaluate_orbit
 
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
         return cast("Orbit", evaluate_orbit(self, w0, t, integrator=integrator))

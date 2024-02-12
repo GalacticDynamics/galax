@@ -5,10 +5,17 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from jax_quantity import Quantity
+from quax import quaxify
 from typing_extensions import override
 
 import galax.potential as gp
-from galax.potential import AbstractPotential, ConstantParameter, NFWPotential
+from galax.potential import (
+    AbstractPotential,
+    AbstractPotentialBase,
+    ConstantParameter,
+    NFWPotential,
+)
 from galax.typing import Vec3
 from galax.units import UnitSystem, galactic
 from galax.utils._optional_deps import HAS_GALA
@@ -16,6 +23,8 @@ from galax.utils._optional_deps import HAS_GALA
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin
+
+allclose = quaxify(jnp.allclose)
 
 
 class ScaleRadiusParameterMixin(ParameterFieldMixin):
@@ -94,15 +103,16 @@ class TestNFWPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot: NFWPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-1.87117234))
+        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-1.87117234))
 
     def test_gradient(self, pot: NFWPotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.gradient(x, t=0), xp.asarray([0.0658867, 0.1317734, 0.19766011])
+        expected = Quantity(
+            [0.0658867, 0.1317734, 0.19766011], pot.units["acceleration"]
         )
+        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
 
     def test_density(self, pot: NFWPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0), 9.46039849e08)
+        assert jnp.isclose(pot.density(x, t=0).value, 9.46039849e08)
 
     def test_hessian(self, pot: NFWPotential, x: Vec3) -> None:
         assert jnp.allclose(
@@ -115,6 +125,18 @@ class TestNFWPotential(
                 ]
             ),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [
+            [0.03776159, -0.02059723, -0.03089585],
+            [-0.02059723, 0.00686574, -0.06179169],
+            [-0.03089585, -0.06179169, -0.04462733],
+        ]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
 
     # ==========================================================================
     # I/O

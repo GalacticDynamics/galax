@@ -4,8 +4,9 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from quax import quaxify
 
-from galax.potential import BarPotential
+from galax.potential import AbstractPotentialBase, BarPotential
 from galax.typing import Vec3
 from galax.units import UnitSystem
 
@@ -16,6 +17,8 @@ from .test_common import (
     ShapeBParameterMixin,
     ShapeCParameterMixin,
 )
+
+allclose = quaxify(jnp.allclose)
 
 
 class TestBarPotential(
@@ -77,3 +80,15 @@ class TestBarPotential(
                 ]
             ),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [
+            [0.03163021, -0.01038389, -0.02050134],
+            [-0.01038389, 0.01590389, -0.04412159],
+            [-0.02050134, -0.04412159, -0.04753409],
+        ]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

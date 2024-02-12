@@ -21,6 +21,7 @@ from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
+    BatchFloatOrIntQScalar,
     BatchFloatScalar,
     BatchMatrix33,
     BatchVec3,
@@ -288,7 +289,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     def tidal_tensor(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike
     ) -> BatchMatrix33:
         """Compute the tidal tensor.
 
@@ -303,7 +304,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ----------
         q : Array[float, (*batch, 3,)]
             Position to compute the tidal tensor at.
-        t : Array[float | int, *batch] | float | int
+        t : (Quantity|Array)[float | int, *batch] | float | int
             Time at which to compute the tidal tensor.
 
         Returns
@@ -311,11 +312,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         Array[float, (*batch, 3, 3)]
             The tidal tensor.
         """
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
         J = self.hessian(q, t)  # (*batch, 3, 3)
         batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)
         traced = (
             expand_batch_dims(xp.eye(3), ndim=len(batch_shape))
-            * expand_arr_dims(xp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
+            * expand_arr_dims(jnp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
             / 3
         )
         return J - traced

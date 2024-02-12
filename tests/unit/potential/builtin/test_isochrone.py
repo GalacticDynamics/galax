@@ -3,13 +3,16 @@ from typing import Any
 import array_api_jax_compat as xp
 import jax.numpy as jnp
 import pytest
+from quax import quaxify
 
 import galax.potential as gp
-from galax.potential import IsochronePotential
+from galax.potential import AbstractPotentialBase, IsochronePotential
 from galax.typing import Vec3
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin, ShapeBParameterMixin
+
+allclose = quaxify(jnp.allclose)
 
 
 class TestIsochronePotential(
@@ -50,3 +53,15 @@ class TestIsochronePotential(
                 ]
             ),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [
+            [0.03096285, -0.01688883, -0.02533324],
+            [-0.01688883, 0.00562961, -0.05066648],
+            [-0.02533324, -0.05066648, -0.03659246],
+        ]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

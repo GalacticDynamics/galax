@@ -4,14 +4,17 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from quax import quaxify
 
 import galax.potential as gp
-from galax.potential import MiyamotoNagaiPotential
+from galax.potential import AbstractPotentialBase, MiyamotoNagaiPotential
 from galax.typing import Vec3
 from galax.units import UnitSystem
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin, ShapeAParameterMixin, ShapeBParameterMixin
+
+allclose = quaxify(jnp.allclose)
 
 
 class TestMiyamotoNagaiPotential(
@@ -61,3 +64,15 @@ class TestMiyamotoNagaiPotential(
                 ]
             ),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [
+            [0.03315736, -0.01146205, -0.02262999],
+            [-0.01146205, 0.0159643, -0.04525999],
+            [-0.02262999, -0.04525999, -0.04912166],
+        ]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

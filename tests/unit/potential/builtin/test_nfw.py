@@ -5,10 +5,16 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from quax import quaxify
 from typing_extensions import override
 
 import galax.potential as gp
-from galax.potential import AbstractPotential, ConstantParameter, NFWPotential
+from galax.potential import (
+    AbstractPotential,
+    AbstractPotentialBase,
+    ConstantParameter,
+    NFWPotential,
+)
 from galax.typing import Vec3
 from galax.units import UnitSystem, galactic
 from galax.utils._optional_deps import HAS_GALA
@@ -16,6 +22,8 @@ from galax.utils._optional_deps import HAS_GALA
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin
+
+allclose = quaxify(jnp.allclose)
 
 
 class ScaleRadiusParameterMixin(ParameterFieldMixin):
@@ -115,6 +123,18 @@ class TestNFWPotential(
                 ]
             ),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [
+            [0.03776159, -0.02059723, -0.03089585],
+            [-0.02059723, 0.00686574, -0.06179169],
+            [-0.03089585, -0.06179169, -0.04462733],
+        ]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
 
     # ==========================================================================
     # I/O

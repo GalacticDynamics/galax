@@ -3,12 +3,15 @@ from typing import Any
 import array_api_jax_compat as xp
 import jax.numpy as jnp
 import pytest
+from quax import quaxify
 
-from galax.potential import NullPotential
+from galax.potential import AbstractPotentialBase, NullPotential
 from galax.typing import Vec3
 from galax.units import UnitSystem
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
+
+allclose = quaxify(jnp.allclose)
 
 
 class TestNullPotential(AbstractPotential_Test):
@@ -40,3 +43,11 @@ class TestNullPotential(AbstractPotential_Test):
             pot.hessian(x, t=0),
             xp.asarray([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

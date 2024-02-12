@@ -5,6 +5,7 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from quax import quaxify
 from typing_extensions import override
 
 from galax.potential import (
@@ -20,6 +21,9 @@ from galax.utils._misc import first
 
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
+
+array_equal = quaxify(jnp.array_equal)
+allclose = quaxify(jnp.allclose)
 
 
 # TODO: write the base-class test
@@ -277,3 +281,15 @@ class TestCompositePotential(AbstractCompositePotential_Test):
                 ]
             ),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [
+            [0.00469486, -0.0025614, -0.00384397],
+            [-0.0025614, 0.00085275, -0.00768793],
+            [-0.00384397, -0.00768793, -0.00554761],
+        ]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

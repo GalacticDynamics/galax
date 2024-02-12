@@ -1,13 +1,17 @@
 from typing import Any
 
+import jax.numpy as jnp
 import jax.numpy as xp
 import pytest
+from quax import quaxify
 
-from galax.potential import MilkyWayPotential
+from galax.potential import AbstractPotentialBase, MilkyWayPotential
 from galax.typing import Vec3
 from galax.units import galactic
 
 from ..test_core import TestAbstractPotential
+
+allclose = quaxify(jnp.allclose)
 
 
 class TestMilkyWayPotentialDefault(TestAbstractPotential):
@@ -57,3 +61,15 @@ class TestMilkyWayPotentialDefault(TestAbstractPotential):
                 ]
             ),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [
+            [0.00168182, -0.00050698, -0.00101273],
+            [-0.00050698, 0.00092134, -0.00202546],
+            [-0.00101273, -0.00202546, -0.00260316],
+        ]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

@@ -19,20 +19,23 @@ Unit: TypeAlias = u.Unit | u.UnitBase | u.CompositeUnit
 AnyScalar = Shaped[Array, ""]
 """Any scalar."""
 
+# An integer scalar.
 IntScalar = Integer[Array, ""]
-"""An integer scalar."""
+IntQScalar = Integer[Quantity, ""]
 
 IntLike = IntScalar | int
 """An integer or integer scalar."""
 
+# A float scalar.
 FloatScalar = Float[Array, ""]
-"""A float scalar."""
+FloatQScalar = Float[Quantity, ""]
 
 FloatLike = FloatScalar | float | int
 """A float(/int) or float scalar."""
 
+# A float or integer scalar.
 FloatOrIntScalar = FloatScalar | IntScalar
-"""A float or integer scalar."""
+FloatOrIntQScalar = FloatQScalar | IntQScalar
 
 FloatOrIntScalarLike = FloatLike | IntLike
 """A float or integer or float(/int) scalar."""
@@ -87,6 +90,7 @@ BatchFloatScalar = Shaped[FloatScalar, "*batch"]
 BatchableFloatLike = BatchFloatScalar | FloatLike
 
 BatchFloatOrIntScalar = Shaped[FloatOrIntScalar, "*batch"]
+BatchFloatOrIntQScalar = Shaped[FloatOrIntQScalar, "*batch"]
 
 BatchableFloatOrIntScalarLike = BatchFloatOrIntScalar | FloatOrIntScalarLike
 

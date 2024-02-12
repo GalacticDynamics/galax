@@ -138,6 +138,14 @@ class TestAbstractPotentialBase(GalaIOMixin):
         """Test the `AbstractPotentialBase.acceleration` method."""
         assert array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
 
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+        assert array_equal(pot.tidal_tensor(x, t=0), expect)
+
     # =========================================================================
 
     def test_integrate_orbit(self, pot: AbstractPotentialBase, xv: Vec6) -> None:

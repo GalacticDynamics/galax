@@ -4,6 +4,7 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from quax import quaxify
 from typing_extensions import override
 
 from galax.potential import (
@@ -17,6 +18,8 @@ from galax.units import UnitSystem, dimensionless, galactic, solarsystem
 from galax.utils._misc import first
 
 from .test_composite import AbstractCompositePotential_Test
+
+allclose = quaxify(jnp.allclose)
 
 
 class TestMilkyWayPotential(AbstractCompositePotential_Test):
@@ -263,3 +266,15 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
                 ]
             ),
         )
+
+    # ---------------------------------
+    # Convenience methods
+
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        expect = [
+            [0.00168182, -0.00050698, -0.00101273],
+            [-0.00050698, 0.00092134, -0.00202546],
+            [-0.00101273, -0.00202546, -0.00260316],
+        ]
+        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

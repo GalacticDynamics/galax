@@ -40,7 +40,7 @@ class TestIsochronePotential(
         )
 
     def test_density(self, pot: IsochronePotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0), 5.04511665e08)
+        assert jnp.isclose(pot.density(x, t=0).value, 5.04511665e08)
 
     def test_hessian(self, pot: IsochronePotential, x: Vec3) -> None:
         assert jnp.allclose(

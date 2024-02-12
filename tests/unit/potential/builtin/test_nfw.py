@@ -110,7 +110,7 @@ class TestNFWPotential(
         )
 
     def test_density(self, pot: NFWPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0), 9.46039849e08)
+        assert jnp.isclose(pot.density(x, t=0).value, 9.46039849e08)
 
     def test_hessian(self, pot: NFWPotential, x: Vec3) -> None:
         assert jnp.allclose(

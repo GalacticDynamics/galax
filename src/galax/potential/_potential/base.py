@@ -205,7 +205,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return lap / (4 * xp.pi * self._G)
 
     def density(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
         """Compute the density value at the given position(s).
 
@@ -215,16 +215,17 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             The position to compute the value of the potential. If the
             input position object has no units (i.e. is an `~numpy.ndarray`),
             it is assumed to be in the same unit system as the potential.
-        t : Array[float | int, *batch] | float | int
+        t : (Quantity|Array)[float | int, *batch] | float | int
             The time at which to compute the value of the potential.
 
         Returns
         -------
-        rho : Array[float, *batch]
+        rho : Quantity[float, *batch, 'mass / length^3']
             The potential energy or value of the potential.
         """
-        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
-        return self._density(q, t)
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        return Quantity(self._density(q, t), self.units["mass density"])
 
     # ---------------------------------------
     # Hessian
@@ -280,7 +281,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Returns
         -------
-        Quantity[float, (*batch, 3)]
+        Quantity[float, (*batch, 3), 'length / time^2']
             The acceleration in Cartesian coordinates. Will have the same shape
             as the input position array, ``q``.
         """

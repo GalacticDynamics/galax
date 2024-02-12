@@ -40,7 +40,7 @@ class TestHernquistPotential(
         )
 
     def test_density(self, pot: HernquistPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0), 3.989933e08)
+        assert jnp.isclose(pot.density(x, t=0).value, 3.989933e08)
 
     def test_hessian(self, pot: HernquistPotential, x: Vec3) -> None:
         assert jnp.allclose(

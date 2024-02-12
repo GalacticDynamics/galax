@@ -67,7 +67,7 @@ class TestBarPotential(
         )
 
     def test_density(self, pot: BarPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0), 1.94669274e08)
+        assert jnp.isclose(pot.density(x, t=0).value, 1.94669274e08)
 
     def test_hessian(self, pot: BarPotential, x: Vec3) -> None:
         assert jnp.allclose(

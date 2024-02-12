@@ -252,7 +252,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     def test_density(self, pot: MilkyWayPotential, x: Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.density` method."""
-        assert jnp.isclose(pot.density(x, t=0), 33365858.46361218)
+        assert jnp.isclose(pot.density(x, t=0).value, 33365858.46361218)
 
     def test_hessian(self, pot: MilkyWayPotential, x: Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.hessian` method."""

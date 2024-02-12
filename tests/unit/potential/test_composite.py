@@ -268,7 +268,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         )
 
     def test_density(self, pot: CompositePotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0), 2.7958598e08)
+        assert jnp.isclose(pot.density(x, t=0).value, 2.7958598e08)
 
     def test_hessian(self, pot: CompositePotential, x: Vec3) -> None:
         assert jnp.allclose(

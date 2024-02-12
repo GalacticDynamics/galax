@@ -48,7 +48,7 @@ class TestMilkyWayPotentialDefault(TestAbstractPotential):
         )
 
     def test_density(self, pot: MilkyWayPotential, x: Vec3) -> None:
-        assert xp.isclose(pot.density(x, t=0), 33_365_858.46361218)
+        assert xp.isclose(pot.density(x, t=0).value, 33_365_858.46361218)
 
     def test_hessian(self, pot: MilkyWayPotential, x: Vec3) -> None:
         assert xp.allclose(

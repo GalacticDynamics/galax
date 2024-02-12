@@ -125,7 +125,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_density(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
-        assert pot.density(x, t=0) == 0.0
+        assert pot.density(x, t=0).value == 0.0
 
     def test_hessian(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.hessian` method."""

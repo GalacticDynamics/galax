@@ -51,7 +51,7 @@ class TestMiyamotoNagaiPotential(
         )
 
     def test_density(self, pot: MiyamotoNagaiPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0), 1.9949418e08)
+        assert jnp.isclose(pot.density(x, t=0).value, 1.9949418e08)
 
     def test_hessian(self, pot: MiyamotoNagaiPotential, x: Vec3) -> None:
         assert jnp.allclose(

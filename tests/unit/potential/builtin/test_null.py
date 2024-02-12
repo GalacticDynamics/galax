@@ -35,7 +35,7 @@ class TestNullPotential(AbstractPotential_Test):
 
     def test_density(self, pot: NullPotential, x: Vec3) -> None:
         """Test :meth:`NullPotential.density`."""
-        assert jnp.isclose(pot.density(x, t=0), 0.0)
+        assert jnp.isclose(pot.density(x, t=0).value, 0.0)
 
     def test_hessian(self, pot: NullPotential, x: Vec3) -> None:
         """Test :meth:`NullPotential.hessian`."""

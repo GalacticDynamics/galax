@@ -39,7 +39,7 @@ from galax.utils._jax import vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils.dataclasses import ModuleMeta
 
-from .utils import convert_inputs_to_arrays
+from .utils import convert_input_to_array, convert_inputs_to_arrays
 
 if TYPE_CHECKING:
     from galax.dynamics._dynamics.integrate._api import Integrator
@@ -267,25 +267,26 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchableFloatOrIntScalarLike,
+        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
     ) -> BatchVec3:
-        """Compute the acceleration due to the potential at the given position(s).
+        """Compute the acceleration due to the potential.
 
         Parameters
         ----------
         q : Array[float, (*batch, 3)]
-            Position to compute the acceleration at.
-        t : Array[float | int, *batch] | float | int
+            Cartesian position to compute the acceleration at.
+        t : (Quantity|Array)[float | int, *batch] | float | int
             Time at which to compute the acceleration.
 
         Returns
         -------
-        Array[float, (*batch, 3)]
-            The acceleration. Will have the same shape as the input
-            position array, ``q``.
+        Quantity[float, (*batch, 3)]
+            The acceleration in Cartesian coordinates. Will have the same shape
+            as the input position array, ``q``.
         """
-        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
-        return -self._gradient(q, t)
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        return Quantity(-self._gradient(q, t), self.units["acceleration"])
 
     @partial(jax.jit)
     def tidal_tensor(
@@ -328,7 +329,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @partial(jax.jit)
     def _integrator_F(self, t: FloatScalar, w: Vec6, args: tuple[Any, ...]) -> Vec6:
         """Return the derivative of the phase-space position."""
-        return jnp.hstack([w[3:6], self.acceleration(w[0:3], t)])  # v, a
+        return jnp.hstack([w[3:6], self.acceleration(w[0:3], t).value])  # v, a
 
     # @partial(jax.jit, static_argnames=("integrator",))
     def integrate_orbit(

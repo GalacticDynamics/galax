@@ -136,7 +136,8 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_acceleration(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.acceleration` method."""
-        assert array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
+        expect = Quantity(-pot.gradient(x, t=0), pot.units["acceleration"])
+        assert array_equal(pot.acceleration(x, t=0), expect)
 
     # ---------------------------------
     # Convenience methods

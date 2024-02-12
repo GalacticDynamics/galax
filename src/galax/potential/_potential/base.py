@@ -12,8 +12,9 @@ import jax
 import jax.numpy as jnp
 from astropy.constants import G as _G  # pylint: disable=no-name-in-module
 from astropy.coordinates import BaseRepresentation
-from astropy.units import Quantity
+from astropy.units import Quantity as AstropyQuantity
 from jax import grad, hessian, jacfwd
+from jax_quantity import Quantity
 
 from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
 from galax.potential._potential.param.attr import ParametersAttribute
@@ -27,6 +28,7 @@ from galax.typing import (
     FloatOrIntScalar,
     FloatScalar,
     Matrix33,
+    QVecTime,
     Vec3,
     Vec6,
     VecTime,
@@ -96,7 +98,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             # Other fields, check their metadata
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
-                if isinstance(value, Quantity):
+                if isinstance(value, AstropyQuantity):
                     value = value.to_value(
                         self.units[f.metadata.get("dimensions")],
                         equivalencies=f.metadata.get("equivalencies", None),
@@ -111,9 +113,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def potential_energy(
         self,
-        q: BatchVec3 | Quantity | BaseRepresentation,
+        q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchableFloatOrIntScalarLike | Quantity,
+        t: BatchableFloatOrIntScalarLike | AstropyQuantity,
     ) -> BatchFloatScalar:
         """Compute the potential energy at the given position(s).
 
@@ -167,7 +169,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def gradient(
         self,
-        q: BatchVec3 | Quantity | BaseRepresentation,
+        q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
         t: BatchableFloatOrIntScalarLike,
     ) -> BatchVec3:
@@ -234,7 +236,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def hessian(
         self,
-        q: BatchVec3 | Quantity | BaseRepresentation,
+        q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
         t: BatchableFloatOrIntScalarLike,
     ) -> BatchMatrix33:
@@ -262,7 +264,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def acceleration(
         self,
-        q: BatchVec3 | Quantity | BaseRepresentation,
+        q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
         t: BatchableFloatOrIntScalarLike,
     ) -> BatchVec3:
@@ -326,11 +328,11 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """Return the derivative of the phase-space position."""
         return jnp.hstack([w[3:6], self.acceleration(w[0:3], t)])  # v, a
 
-    @partial(jax.jit, static_argnames=("integrator",))
+    # @partial(jax.jit, static_argnames=("integrator",))
     def integrate_orbit(
         self,
         w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
-        t: VecTime | Quantity,
+        t: QVecTime | VecTime | AstropyQuantity,
         *,
         integrator: "Integrator | None" = None,
     ) -> "Orbit":
@@ -360,7 +362,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 constructed, interpreting the array as the  'q', 'p' (each
                 Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
 
-        t: Array[float, (time,)]
+        t: Quantity[float, (time,)]
             Array of times at which to compute the orbit. The first element
             should be the initial time and the last element should be the final
             time and the array should be monotonically moving from the first to
@@ -397,12 +399,13 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """
         from galax.dynamics._dynamics.orbit import integrate_orbit
 
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
         return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator))
 
     def evaluate_orbit(
         self,
         w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
-        t: VecTime | Quantity,
+        t: QVecTime | VecTime | AstropyQuantity,  # TODO: must be a Quantity
         *,
         integrator: "Integrator | None" = None,
     ) -> "Orbit":
@@ -441,7 +444,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 A :class:`~galax.coordinates.PhaseSpacePosition` will be
                 constructed, interpreting the array as the  'q', 'p' (each
                 Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
-        t: Array[float, (time,)]
+        t: Quantity[float, (time,)]
             Array of times at which to compute the orbit. The first element
             should be the initial time and the last element should be the final
             time and the array should be monotonically moving from the first to
@@ -472,4 +475,5 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """
         from galax.dynamics._dynamics.orbit import evaluate_orbit
 
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
         return cast("Orbit", evaluate_orbit(self, w0, t, integrator=integrator))

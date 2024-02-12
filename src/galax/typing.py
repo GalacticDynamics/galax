@@ -6,6 +6,7 @@ __all__: list[str] = []
 from typing import TypeAlias
 
 import astropy.units as u
+from jax_quantity import Quantity
 from jaxtyping import Array, Float, Integer, Shaped
 
 # =============================================================================
@@ -64,10 +65,11 @@ VecN = Float[Array, "N"]
 # -----------------
 # Specific
 
+# Time vector
 VecTime = Float[Array, "time"]
+QVecTime = Float[Quantity, "time"]
 VecTime3 = Float[Vec3, "time"]
 VecTime7 = Float[Vec7, "time"]
-"""A time vector."""
 
 # -----------------------------------------------------------------------------
 # Vector Batches

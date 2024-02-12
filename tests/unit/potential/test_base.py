@@ -5,8 +5,10 @@ from typing import Any
 import array_api_jax_compat as xp
 import equinox as eqx
 import jax
+import jax.numpy as jnp
 import pytest
-from jax.numpy import array_equal
+from jax_quantity import Quantity
+from quax import quaxify
 
 import galax.dynamics as gd
 from galax.potential import AbstractPotentialBase
@@ -19,10 +21,12 @@ from galax.typing import (
     Vec3,
     Vec6,
 )
-from galax.units import UnitSystem, dimensionless
+from galax.units import UnitSystem, galactic
 from galax.utils._jax import vectorize_method
 
 from .io.test_gala import GalaIOMixin
+
+array_equal = quaxify(jnp.array_equal)
 
 
 class TestAbstractPotentialBase(GalaIOMixin):
@@ -31,7 +35,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[AbstractPotentialBase]:
         class TestPotential(AbstractPotentialBase):
-            units: UnitSystem = eqx.field(default=dimensionless, static=True)
+            units: UnitSystem = eqx.field(default=galactic, static=True)
             _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
             def __post_init__(self):
@@ -93,7 +97,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
         # Test that the concrete class can be instantiated
         class TestPotential(AbstractPotentialBase):
-            units: UnitSystem = eqx.field(default=dimensionless, static=True)
+            units: UnitSystem = eqx.field(default=galactic, static=True)
 
             def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
                 return xp.sum(q, axis=-1)
@@ -138,12 +142,12 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_integrate_orbit(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
         """Test the `AbstractPotentialBase.integrate_orbit` method."""
-        ts = xp.linspace(0.0, 1.0, 100)
+        ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
 
         orbit = pot.integrate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
         assert orbit.shape == (len(ts),)
-        assert array_equal(orbit.t, ts)
+        assert array_equal(orbit.t, ts.value)
 
     def test_integrate_orbit_batch(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
         """Test the `AbstractPotentialBase.integrate_orbit` method."""

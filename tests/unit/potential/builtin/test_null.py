@@ -28,7 +28,7 @@ class TestNullPotential(AbstractPotential_Test):
 
     def test_potential_energy(self, pot: NullPotential, x: Vec3) -> None:
         """Test :meth:`NullPotential.potential_energy`."""
-        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(0.0))
+        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(0.0))
 
     def test_gradient(self, pot: NullPotential, x: Vec3) -> None:
         """Test :meth:`NullPotential.gradient`."""

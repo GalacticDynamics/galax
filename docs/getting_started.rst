@@ -67,7 +67,7 @@ position near the Sun::
 
     >>> xyz = [-8., 0, 0] * u.kpc
     >>> mw.potential_energy(xyz, t=0)
-    Array(-0.16440278, dtype=float64)
+    Quantity(value=f64[], unit=Unit("kpc2 / Myr2"))
     >>> mw.acceleration(xyz, t=0)
     Quantity(value=f64[3], unit=Unit("kpc / Myr2"))
 
@@ -78,7 +78,7 @@ re-represented in any equivalent units, so, for example, we could display the
 energy or acceleration in other units::
 
     >>> mw.potential_energy(xyz, t=0)
-    Array(-0.16440278, dtype=float64)
+    Quantity(value=f64[], unit=Unit("kpc2 / Myr2"))
     >>> mw.acceleration(xyz, t=0)
     Quantity(value=f64[3], unit=Unit("kpc / Myr2"))
 

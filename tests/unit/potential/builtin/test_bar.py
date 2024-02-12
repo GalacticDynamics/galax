@@ -60,7 +60,7 @@ class TestBarPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot: BarPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.94601574))
+        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-0.94601574))
 
     def test_gradient(self, pot: BarPotential, x: Vec3) -> None:
         expected = Quantity(

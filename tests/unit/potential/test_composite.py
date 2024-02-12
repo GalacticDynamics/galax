@@ -261,7 +261,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # ==========================================================================
 
     def test_potential_energy(self, pot: CompositePotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.6753781))
+        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-0.6753781))
 
     def test_gradient(self, pot: CompositePotential, x: Vec3) -> None:
         expected = Quantity(

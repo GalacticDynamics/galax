@@ -36,7 +36,11 @@ class AbstractCompositePotential(
     def _potential_energy(
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
-        return xp.sum(xp.asarray([p.potential_energy(q, t) for p in self.values()]))
+        return xp.sum(
+            xp.asarray(
+                [p._potential_energy(q, t) for p in self.values()]  # noqa: SLF001
+            )
+        )
 
     ###########################################################################
     # Composite potentials

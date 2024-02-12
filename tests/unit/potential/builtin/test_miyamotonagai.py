@@ -44,7 +44,7 @@ class TestMiyamotoNagaiPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot: MiyamotoNagaiPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.95208676))
+        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-0.95208676))
 
     def test_gradient(self, pot: MiyamotoNagaiPotential, x: Vec3) -> None:
         expected = Quantity(

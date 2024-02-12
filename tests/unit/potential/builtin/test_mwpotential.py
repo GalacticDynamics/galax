@@ -41,7 +41,7 @@ class TestMilkyWayPotentialDefault(TestAbstractPotential):
     # ==========================================================================
 
     def test_potential_energy(self, pot: MilkyWayPotential, x: Vec3) -> None:
-        assert xp.isclose(pot.potential_energy(x, t=0), xp.array(-0.19386052))
+        assert xp.isclose(pot.potential_energy(x, t=0).value, xp.array(-0.19386052))
 
     def test_gradient(self, pot: MilkyWayPotential, x: Vec3) -> None:
         expected = Quantity(

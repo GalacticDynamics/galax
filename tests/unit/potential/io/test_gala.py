@@ -3,12 +3,15 @@
 from inspect import get_annotations
 from typing import ClassVar
 
-import jax.numpy as xp
+import jax.numpy as jnp
 import pytest
+from quax import quaxify
 
 import galax.potential as gp
 from galax.typing import Vec3
 from galax.utils._optional_deps import HAS_GALA
+
+array_equal = quaxify(jnp.array_equal)
 
 
 class GalaIOMixin:
@@ -42,4 +45,4 @@ class GalaIOMixin:
         rpot = gp.io.gala_to_galax(galax_to_gala(pot))
 
         # quick test that the potential energies are the same
-        assert xp.array_equal(pot(x, t=0), rpot(x, t=0))
+        assert array_equal(pot(x, t=0), rpot(x, t=0))

@@ -33,7 +33,7 @@ class TestIsochronePotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot: IsochronePotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.9231515))
+        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-0.9231515))
 
     def test_gradient(self, pot: IsochronePotential, x: Vec3) -> None:
         expected = Quantity(

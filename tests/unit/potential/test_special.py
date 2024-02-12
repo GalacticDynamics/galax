@@ -243,7 +243,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     def test_potential_energy(self, pot: MilkyWayPotential, x: Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.potential_energy` method."""
-        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-0.19386052))
+        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-0.19386052))
 
     def test_gradient(self, pot: MilkyWayPotential, x: Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.gradient` method."""

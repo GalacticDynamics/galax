@@ -118,8 +118,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchableFloatOrIntScalarLike | AstropyQuantity,
-    ) -> BatchFloatScalar:
+        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike | AstropyQuantity,
+    ) -> BatchFloatQScalar:
         """Compute the potential energy at the given position(s).
 
         Parameters
@@ -134,8 +134,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         E : Array[float, *batch]
             The potential energy per unit mass or value of the potential.
         """
-        q, t = convert_inputs_to_arrays(q, t, units=self.units, no_differentials=True)
-        return self._potential_energy(q, t)
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        return Quantity(self._potential_energy(q, t), self.units["specific energy"])
 
     @partial(jax.jit)
     def __call__(
@@ -159,7 +160,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         --------
         potential_energy
         """
-        return self.potential_energy(q, t)
+        return self._potential_energy(q, t)
 
     # ---------------------------------------
     # Gradient

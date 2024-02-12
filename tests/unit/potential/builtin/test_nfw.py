@@ -103,7 +103,7 @@ class TestNFWPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot: NFWPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0), xp.asarray(-1.87117234))
+        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-1.87117234))
 
     def test_gradient(self, pot: NFWPotential, x: Vec3) -> None:
         expected = Quantity(

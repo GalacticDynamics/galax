@@ -117,7 +117,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_call(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.__call__` method."""
-        assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0))
+        assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0).value)  # TODO: .value
 
     def test_gradient(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.gradient` method."""
@@ -126,7 +126,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_density(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
-        assert pot.density(x, t=0).value == 0.0
+        assert pot.density(x, t=0).value == 0.0  # TODO: .value
 
     def test_hessian(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.hessian` method."""

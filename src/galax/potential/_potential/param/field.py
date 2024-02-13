@@ -19,6 +19,7 @@ from typing import (
 
 import array_api_jax_compat as xp
 import astropy.units as u
+from jax_quantity import Quantity
 
 from galax.typing import Unit
 from galax.utils.dataclasses import dataclass_with_converter, field
@@ -134,6 +135,8 @@ class ParameterField:
             unit = potential.units[self.dimensions]
             if isinstance(value, u.Quantity):
                 value = value.to_value(unit, equivalencies=self.equivalencies)
+            elif isinstance(value, Quantity):
+                value = value.to_value(unit)
             value = ConstantParameter(xp.asarray(value), unit=unit)
 
         # Set

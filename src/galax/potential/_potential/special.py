@@ -4,11 +4,11 @@ __all__ = ["MilkyWayPotential"]
 
 
 from dataclasses import KW_ONLY
-from typing import Any, final
+from typing import Any, TypeVar, final
 
 import astropy.units as u
 import equinox as eqx
-from astropy.units import Quantity
+from jax_quantity import Quantity
 
 from galax.units import UnitSystem, dimensionless, galactic
 
@@ -17,16 +17,31 @@ from .builtin import HernquistPotential, MiyamotoNagaiPotential, NFWPotential
 from .composite import AbstractCompositePotential
 from .utils import converter_to_usys
 
-_default_disk = {"m": 6.8e10 * u.Msun, "a": 3.0 * u.kpc, "b": 0.28 * u.kpc}
-_default_halo = {"m": 5.4e11 * u.Msun, "r_s": 15.62 * u.kpc}
-_default_bulge = {"m": 5e9 * u.Msun, "c": 1.0 * u.kpc}
-_default_nucleus = {"m": 1.71e9 * u.Msun, "c": 0.07 * u.kpc}
+T = TypeVar("T", bound=AbstractPotentialBase)
+
+_default_disk = {
+    "m": Quantity(6.8e10, u.Msun),
+    "a": Quantity(3.0, u.kpc),
+    "b": Quantity(0.28, u.kpc),
+}
+_default_halo = {"m": Quantity(5.4e11, u.Msun), "r_s": Quantity(15.62, u.kpc)}
+_default_bulge = {"m": Quantity(5e9, u.Msun), "c": Quantity(1.0, u.kpc)}
+_default_nucleus = {"m": Quantity(1.71e9, u.Msun), "c": Quantity(0.07, u.kpc)}
 
 
-def _munge(value: dict[str, Quantity], units: UnitSystem) -> Any:
+def _parse_input_comp(
+    cls: type[T],
+    instance: T | dict[str, Any] | None,
+    default: dict[str, Any],
+    units: UnitSystem,
+) -> T:
+    if isinstance(instance, cls):
+        return instance
+
     if units == dimensionless:
-        return {k: v.value for k, v in value.items()}
-    return value
+        default = {k: v.value for k, v in default.items()}
+
+    return cls(units=units, **default | (instance or {}))
 
 
 @final
@@ -70,24 +85,19 @@ class MilkyWayPotential(AbstractCompositePotential):
         self,
         *,
         units: Any = galactic,
-        disk: dict[str, Any] | None = None,
-        halo: dict[str, Any] | None = None,
-        bulge: dict[str, Any] | None = None,
-        nucleus: dict[str, Any] | None = None,
+        disk: MiyamotoNagaiPotential | dict[str, Any] | None = None,
+        halo: NFWPotential | dict[str, Any] | None = None,
+        bulge: HernquistPotential | dict[str, Any] | None = None,
+        nucleus: HernquistPotential | dict[str, Any] | None = None,
     ) -> None:
         units_ = converter_to_usys(units) if units is not None else galactic
+
         super().__init__(
-            disk=MiyamotoNagaiPotential(
-                units=units_, **_munge(_default_disk, units_) | (disk or {})
-            ),
-            halo=NFWPotential(
-                units=units_, **_munge(_default_halo, units_) | (halo or {})
-            ),
-            bulge=HernquistPotential(
-                units=units_, **_munge(_default_bulge, units_) | (bulge or {})
-            ),
-            nucleus=HernquistPotential(
-                units=units_, **_munge(_default_nucleus, units_) | (nucleus or {})
+            disk=_parse_input_comp(MiyamotoNagaiPotential, disk, _default_disk, units_),
+            halo=_parse_input_comp(NFWPotential, halo, _default_halo, units_),
+            bulge=_parse_input_comp(HernquistPotential, bulge, _default_bulge, units_),
+            nucleus=_parse_input_comp(
+                HernquistPotential, nucleus, _default_nucleus, units_
             ),
         )
 

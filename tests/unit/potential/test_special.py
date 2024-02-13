@@ -14,6 +14,12 @@ from galax.potential import (
     KeplerPotential,
     MilkyWayPotential,
 )
+from galax.potential._potential.special import (
+    _default_bulge,
+    _default_disk,
+    _default_halo,
+    _default_nucleus,
+)
 from galax.typing import Vec3
 from galax.units import UnitSystem, dimensionless, galactic, solarsystem
 from galax.utils._misc import first
@@ -23,22 +29,24 @@ from .test_composite import AbstractCompositePotential_Test
 allclose = quaxify(jnp.allclose)
 
 
+##############################################################################
+
+
 class TestMilkyWayPotential(AbstractCompositePotential_Test):
-    """Test the `galax.potential.CompositePotential` class."""
+    """Test the `galax.potential.MilkyWayPotential` class."""
 
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[MilkyWayPotential]:
-        """Composite potential class."""
         return MilkyWayPotential
 
     @pytest.fixture(scope="class")
-    def pot_map(self) -> Mapping[str, AbstractPotentialBase]:
+    def pot_map(self) -> dict[str, dict[str, Quantity]]:
         """Composite potential."""
         return {
-            "disk": {"m": 6.8e10 * u.Msun, "a": 3.0 * u.kpc, "b": 0.28 * u.kpc},
-            "halo": {"m": 5.4e11 * u.Msun, "r_s": 15.62 * u.kpc},
-            "bulge": {"m": 5e9 * u.Msun, "c": 1.0 * u.kpc},
-            "nucleus": {"m": 1.71e9 * u.Msun, "c": 0.07 * u.kpc},
+            "disk": _default_disk,
+            "halo": _default_halo,
+            "bulge": _default_bulge,
+            "nucleus": _default_nucleus,
         }
 
     @pytest.fixture(scope="class")
@@ -254,11 +262,11 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     def test_density(self, pot: MilkyWayPotential, x: Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.density` method."""
-        assert jnp.isclose(pot.density(x, t=0).value, 33365858.46361218)
+        assert jnp.isclose(pot.density(x, t=0).value, 33_365_858.46361218)
 
     def test_hessian(self, pot: MilkyWayPotential, x: Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.hessian` method."""
-        assert jnp.allclose(
+        assert allclose(
             pot.hessian(x, t=0),
             xp.asarray(
                 [

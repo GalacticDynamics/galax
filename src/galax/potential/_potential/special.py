@@ -8,7 +8,8 @@ from typing import Any, final
 
 import astropy.units as u
 import equinox as eqx
-from astropy.units import Quantity
+from astropy.units import Quantity as AstropyQuantity
+from jax_quantity import Quantity
 
 from galax.units import UnitSystem, dimensionless, galactic
 
@@ -17,13 +18,17 @@ from .builtin import HernquistPotential, MiyamotoNagaiPotential, NFWPotential
 from .composite import AbstractCompositePotential
 from .utils import converter_to_usys
 
-_default_disk = {"m": 6.8e10 * u.Msun, "a": 3.0 * u.kpc, "b": 0.28 * u.kpc}
-_default_halo = {"m": 5.4e11 * u.Msun, "r_s": 15.62 * u.kpc}
-_default_bulge = {"m": 5e9 * u.Msun, "c": 1.0 * u.kpc}
-_default_nucleus = {"m": 1.71e9 * u.Msun, "c": 0.07 * u.kpc}
+_default_disk = {
+    "m": Quantity(6.8e10, u.Msun),
+    "a": Quantity(3.0, u.kpc),
+    "b": Quantity(0.28, u.kpc),
+}
+_default_halo = {"m": Quantity(5.4e11, u.Msun), "r_s": Quantity(15.62, u.kpc)}
+_default_bulge = {"m": Quantity(5e9, u.Msun), "c": Quantity(1.0, u.kpc)}
+_default_nucleus = {"m": Quantity(1.71e9, u.Msun), "c": Quantity(0.07, u.kpc)}
 
 
-def _munge(value: dict[str, Quantity], units: UnitSystem) -> Any:
+def _munge(value: dict[str, Quantity | AstropyQuantity], units: UnitSystem) -> Any:
     if units == dimensionless:
         return {k: v.value for k, v in value.items()}
     return value

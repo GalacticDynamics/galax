@@ -8,9 +8,13 @@ import pytest
 from quax import quaxify
 
 import galax.potential as gp
-from galax.potential._potential.io.gala import _GALA_TO_GALAX_REGISTRY
 from galax.typing import Vec3
 from galax.utils._optional_deps import HAS_GALA
+
+if HAS_GALA:
+    from galax.potential._potential.io.gala import _GALA_TO_GALAX_REGISTRY
+else:
+    from galax.potential._potential.io.gala_noop import _GALA_TO_GALAX_REGISTRY
 
 array_equal = quaxify(jnp.array_equal)
 

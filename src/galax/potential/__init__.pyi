@@ -33,6 +33,7 @@ __all__ = [
     "NFWPotential",
     "NullPotential",
     "PlummerPotential",
+    "PowerLawCutoffPotential",
     # special
     "BovyMWPotential2014",
     "LM10Potential",
@@ -56,6 +57,7 @@ from ._potential.builtin import (
     NFWPotential,
     NullPotential,
     PlummerPotential,
+    PowerLawCutoffPotential,
 )
 from ._potential.composite import AbstractCompositePotential, CompositePotential
 from ._potential.core import AbstractPotential

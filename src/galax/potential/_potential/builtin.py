@@ -15,6 +15,7 @@ __all__ = [
     "NFWPotential",
     "NullPotential",
     "PlummerPotential",
+    "PowerLawCutoffPotential",
 ]
 
 from dataclasses import KW_ONLY
@@ -24,6 +25,7 @@ from typing import final
 import array_api_jax_compat as xp
 import equinox as eqx
 import jax
+from jax.scipy.special import gamma, gammainc
 
 from .utils import converter_to_usys
 from galax.potential._potential.core import AbstractPotential
@@ -35,6 +37,7 @@ from galax.typing import (
     FloatLike,
     FloatOrIntScalarLike,
     FloatScalar,
+    Vec1,
     Vec3,
 )
 from galax.units import UnitSystem
@@ -374,3 +377,74 @@ class PlummerPotential(AbstractPotential):
     ) -> BatchFloatScalar:
         r2 = xp.linalg.vector_norm(q, axis=-1) ** 2
         return -self._G * self.m(t) / xp.sqrt(r2 + self.b(t) ** 2)
+
+
+# -------------------------------------------------------------------
+
+
+def safe_gamma_inc(a: Vec1, x: Vec1) -> Vec1:
+    A = 1.0
+    B = 0.0
+
+    if a > 0:
+        return gammainc(a, x) * gamma(a)
+
+    N = xp.ceil(-a)
+
+    for n in range(N):
+        A = A * (a + n)
+
+        tmp = 1.0
+        for m in range(N - 1, n, -1):
+            tmp = tmp * (a + m)
+        B = B + xp.pow(x, a + n) * xp.exp(-x) * tmp
+
+    return (B + gammainc(a + N, x) * gamma(a + N)) / A
+
+
+@final
+class PowerLawCutoffPotential(AbstractPotential):
+    r"""A spherical power-law density profile with an exponential cutoff.
+
+    The power law index must be ``0 <= alpha < 3``.
+
+    Parameters
+    ----------
+    m : :class:`~astropy.units.Quantity`, numeric [mass]
+        Total mass.
+    alpha : numeric
+        Power law index. Must satisfy: ``alpha < 3``
+    r_c : :class:`~astropy.units.Quantity`, numeric [length]
+        Cutoff radius.
+    """
+
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    alpha: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    r_c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        G = self._G
+        m = self.m(t)
+        alpha = self.alpha(t)
+        r_c = self.r_c(t)
+        r2 = q[..., 0] ** 2 + q[..., 1] ** 2 + q[..., 2] ** 2
+
+        if r2 == 0:  # TODO: handle this in a differentiable way
+            return -xp.asarray(xp.inf)
+
+        tmp_0 = -(1.0 / 2.0) * alpha
+        tmp_1 = tmp_0
+        tmp_2 = tmp_1 + 1.5
+        tmp_4 = r2 / r_c**2
+        tmp_5 = G * m
+        tmp_6 = (
+            tmp_5 * safe_gamma_inc(tmp_2, tmp_4) / (xp.sqrt(r2) * gamma(tmp_1 + 2.5))
+        )
+        return (
+            -tmp_0 * tmp_6
+            - 3.0 / 2.0 * tmp_6
+            + tmp_5 * safe_gamma_inc(tmp_1 + 1, tmp_4) / (r_c * gamma(tmp_2))
+        )

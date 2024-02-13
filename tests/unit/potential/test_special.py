@@ -34,13 +34,15 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         return MilkyWayPotential
 
     @pytest.fixture(scope="class")
-    def pot_map(self) -> dict[str, dict[str, Quantity]]:
+    def pot_map(
+        self, pot_cls: type[MilkyWayPotential]
+    ) -> dict[str, dict[str, Quantity]]:
         """Composite potential."""
         return {
-            "disk": MilkyWayPotential._default_disk,
-            "halo": MilkyWayPotential._default_halo,
-            "bulge": MilkyWayPotential._default_bulge,
-            "nucleus": MilkyWayPotential._default_nucleus,
+            "disk": pot_cls._default_disk,
+            "halo": pot_cls._default_halo,
+            "bulge": pot_cls._default_bulge,
+            "nucleus": pot_cls._default_nucleus,
         }
 
     @pytest.fixture(scope="class")

@@ -16,6 +16,7 @@ __all__ = [
     "NullPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
+    "SatohPotential",
 ]
 
 from dataclasses import KW_ONLY
@@ -448,3 +449,37 @@ class PowerLawCutoffPotential(AbstractPotential):
             - 3.0 / 2.0 * tmp_6
             + tmp_5 * safe_gamma_inc(tmp_1 + 1, tmp_4) / (r_c * gamma(tmp_2))
         )
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class SatohPotential(AbstractPotential):
+    r"""SatohPotential(m, a, b, units=None, origin=None, R=None).
+
+    Satoh potential for a flattened mass distribution.
+
+    Parameters
+    ----------
+    m : :class:`~astropy.units.Quantity`, numeric [mass]
+        Mass.
+    a : :class:`~astropy.units.Quantity`, numeric [length]
+        Scale length.
+    b : :class:`~astropy.units.Quantity`, numeric [length]
+        Scale height.
+    """
+
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        a, b = self.a(t), self.b(t)
+        R2 = q[..., 0] ** 2 + q[..., 1] ** 2
+        z = q[..., 2]
+        term = R2 + z**2 + a * (a + 2 * xp.sqrt(z**2 + b**2))
+        return -self._G * self.m(t) / xp.sqrt(term)

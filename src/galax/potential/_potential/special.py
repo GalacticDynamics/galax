@@ -24,7 +24,7 @@ T = TypeVar("T", bound=AbstractPotentialBase)
 
 def _parse_input_comp(
     cls: type[T],
-    instance: T | dict[str, Any] | None,
+    instance: T | Mapping[str, Any] | None,
     default: Mapping[str, Any],
     units: UnitSystem,
 ) -> T:
@@ -34,7 +34,7 @@ def _parse_input_comp(
     if units == dimensionless:
         default = {k: v.value for k, v in default.items()}
 
-    return cls(units=units, **dict(default) | (instance or {}))
+    return cls(units=units, **dict(default) | (dict(instance or {})))
 
 
 @final
@@ -95,10 +95,10 @@ class MilkyWayPotential(AbstractCompositePotential):
         self,
         *,
         units: Any = galactic,
-        disk: MiyamotoNagaiPotential | dict[str, Any] | None = None,
-        halo: NFWPotential | dict[str, Any] | None = None,
-        bulge: HernquistPotential | dict[str, Any] | None = None,
-        nucleus: HernquistPotential | dict[str, Any] | None = None,
+        disk: MiyamotoNagaiPotential | Mapping[str, Any] | None = None,
+        halo: NFWPotential | Mapping[str, Any] | None = None,
+        bulge: HernquistPotential | Mapping[str, Any] | None = None,
+        nucleus: HernquistPotential | Mapping[str, Any] | None = None,
     ) -> None:
         units_ = converter_to_usys(units) if units is not None else galactic
 

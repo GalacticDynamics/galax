@@ -10,7 +10,6 @@ import quaxed.numpy as qnp
 from coordinax import Cartesian3DVector
 
 import galax.potential as gp
-from galax.potential._potential.frame import PotentialFrame
 from galax.typing import QVec3
 from galax.utils._optional_deps import HAS_GALA
 
@@ -63,7 +62,7 @@ def test_offset_hernquist() -> None:
     gpot = GalaHernquistPotential(m=1e12, c=5, units=galactic, origin=[1.0, 2, 3])
     gxpot = gp.io.gala_to_galax(gpot)
 
-    assert isinstance(gxpot, PotentialFrame)
+    assert isinstance(gxpot, gp.PotentialFrame)
     assert gxpot.operator[0].translation == Cartesian3DVector.constructor(
         [1.0, 2, 3] * u.kpc
     )

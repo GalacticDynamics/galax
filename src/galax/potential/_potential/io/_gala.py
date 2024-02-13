@@ -290,8 +290,37 @@ def _gala_to_galax_satoh(
     return _apply_frame(_get_frame(gala), pot)
 
 
+@gala_to_galax.register
+def _gala_to_galax_stoneostriker15(
+    gala: gp.StonePotential, /
+) -> gpx.StoneOstriker15Potential | gpx.PotentialFrame:
+    """Convert a Gala StonePotential to a Galax potential.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import gala.units as gu
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.StonePotential(m=1e11, r_c=20, r_h=10, units=gu.galactic)
+    >>> gpx.io.gala_to_galax(gpot)
+    StoneOstriker15Potential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...}),
+      m_tot=ConstantParameter( ... ),
+      r_c=ConstantParameter( ... ),
+      r_h=ConstantParameter( ... )
+    )
+    """
+    params = gala.parameters
+    pot = gpx.StoneOstriker15Potential(
+        m_tot=params["m"], r_c=params["r_c"], r_h=params["r_h"], units=gala.units
+    )
+    return _apply_frame(_get_frame(gala), pot)
+
+
 # -----------------------------------------------------------------------------
-# NFS potentials
+# NFW potentials
 
 
 @gala_to_galax.register

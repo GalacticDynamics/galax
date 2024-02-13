@@ -14,6 +14,7 @@ __all__ = [
     "PlummerPotential",
     "PowerLawCutoffPotential",
     "SatohPotential",
+    "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
 ]
 
@@ -507,6 +508,55 @@ class SatohPotential(AbstractPotential):
         z = q[..., 2]
         term = R2 + z**2 + a * (a + 2 * xp.sqrt(z**2 + b**2))
         return -self.constants["G"] * self.m_tot(t) / xp.sqrt(term)
+
+
+# -------------------------------------------------------------------
+
+
+class StoneOstriker15Potential(AbstractPotential):
+    r"""StoneOstriker15Potential(m, r_c, r_h, units=None, origin=None, R=None).
+
+    Stone potential from `Stone & Ostriker (2015)
+    <http://dx.doi.org/10.1088/2041-8205/806/2/L28>`_.
+
+    .. math::
+
+        \Phi = -\frac{2 G m}{\pi (r_h - r_c)} \left(
+            \frac{r_h}{r} \tan^{-1}(\frac{r}{r_h})
+            - \frac{r_c}{r} \tan^{-1}(\frac{r}{r_c})
+            + \frac{1}{2} \log(\frac{r^2 + r_h^2}{r^2 + r_c^2})
+            \right)
+
+    Parameters
+    ----------
+    m_tot : :class:`~astropy.units.Quantity`, numeric [mass]
+        Total mass.
+    r_c : :class:`~astropy.units.Quantity`, numeric [length]
+        Core radius.
+    r_h : :class:`~astropy.units.Quantity`, numeric [length]
+        Halo radius.
+    """
+
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    r_c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    # def __check_init__(self) -> None:
+    #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        r_h = self.r_h(t)
+        r_c = self.r_c(t)
+        r = xp.linalg.vector_norm(q, axis=-1)
+        A = -2 * self.constants["G"] * self.m_tot(t) / (xp.pi * (r_h - r_c))
+        return A * (
+            (r_h / r) * xp.atan2(r, r_h).to_value("rad")
+            - (r_c / r) * xp.atan2(r, r_c).to_value("rad")
+            + 0.5 * xp.log((r**2 + r_h**2) / (r**2 + r_c**2))
+        )
 
 
 # -------------------------------------------------------------------

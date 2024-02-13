@@ -168,8 +168,25 @@ def _galax_to_gala_satoh(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
     )
 
 
+@galax_to_gala.register
+def _galax_to_gala_stoneostriker15(
+    pot: gpx.StoneOstriker15Potential, /
+) -> gp.StonePotential:
+    """Convert a Galax StoneOstriker15Potential to a Gala potential."""
+    if not _all_constant_parameters(pot, "m_tot", "r_c", "r_h"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.StonePotential(
+        m=convert(pot.m_tot(0), APYQuantity),
+        r_c=convert(pot.r_c(0), APYQuantity),
+        r_h=convert(pot.r_h(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
 # -----------------------------------------------------------------------------
-# Null potentials
+# NFW potentials
 
 
 @galax_to_gala.register
@@ -205,6 +222,10 @@ def _galax_to_gala_leesutotriaxialnfw(
         c=convert(pot.a3(t), APYQuantity),
         units=galax_to_gala_units(pot.units),
     )
+
+
+# -----------------------------------------------------------------------------
+# Composite potentials
 
 
 @galax_to_gala.register

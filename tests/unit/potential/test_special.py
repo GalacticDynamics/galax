@@ -14,12 +14,6 @@ from galax.potential import (
     KeplerPotential,
     MilkyWayPotential,
 )
-from galax.potential._potential.special import (
-    _default_bulge,
-    _default_disk,
-    _default_halo,
-    _default_nucleus,
-)
 from galax.typing import Vec3
 from galax.units import UnitSystem, dimensionless, galactic, solarsystem
 from galax.utils._misc import first
@@ -43,10 +37,10 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     def pot_map(self) -> dict[str, dict[str, Quantity]]:
         """Composite potential."""
         return {
-            "disk": _default_disk,
-            "halo": _default_halo,
-            "bulge": _default_bulge,
-            "nucleus": _default_nucleus,
+            "disk": MilkyWayPotential._default_disk,
+            "halo": MilkyWayPotential._default_halo,
+            "bulge": MilkyWayPotential._default_bulge,
+            "nucleus": MilkyWayPotential._default_nucleus,
         }
 
     @pytest.fixture(scope="class")

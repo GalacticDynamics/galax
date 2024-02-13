@@ -4,7 +4,7 @@ __all__ = ["MilkyWayPotential"]
 
 
 from dataclasses import KW_ONLY
-from typing import Any, TypeVar, final
+from typing import Any, ClassVar, TypeVar, final
 
 import astropy.units as u
 import equinox as eqx
@@ -18,15 +18,6 @@ from .composite import AbstractCompositePotential
 from .utils import converter_to_usys
 
 T = TypeVar("T", bound=AbstractPotentialBase)
-
-_default_disk = {
-    "m": Quantity(6.8e10, u.Msun),
-    "a": Quantity(3.0, u.kpc),
-    "b": Quantity(0.28, u.kpc),
-}
-_default_halo = {"m": Quantity(5.4e11, u.Msun), "r_s": Quantity(15.62, u.kpc)}
-_default_bulge = {"m": Quantity(5e9, u.Msun), "c": Quantity(1.0, u.kpc)}
-_default_nucleus = {"m": Quantity(1.71e9, u.Msun), "c": Quantity(0.07, u.kpc)}
 
 
 def _parse_input_comp(
@@ -81,6 +72,24 @@ class MilkyWayPotential(AbstractCompositePotential):
     units: UnitSystem = eqx.field(init=True, static=True, converter=converter_to_usys)
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
+    _default_disk: ClassVar[dict[str, Any]] = {
+        "m": Quantity(6.8e10, u.Msun),
+        "a": Quantity(3.0, u.kpc),
+        "b": Quantity(0.28, u.kpc),
+    }
+    _default_halo: ClassVar[dict[str, Any]] = {
+        "m": Quantity(5.4e11, u.Msun),
+        "r_s": Quantity(15.62, u.kpc),
+    }
+    _default_bulge: ClassVar[dict[str, Any]] = {
+        "m": Quantity(5e9, u.Msun),
+        "c": Quantity(1.0, u.kpc),
+    }
+    _default_nucleus: ClassVar[dict[str, Any]] = {
+        "m": Quantity(1.71e9, u.Msun),
+        "c": Quantity(0.07, u.kpc),
+    }
+
     def __init__(
         self,
         *,
@@ -93,11 +102,15 @@ class MilkyWayPotential(AbstractCompositePotential):
         units_ = converter_to_usys(units) if units is not None else galactic
 
         super().__init__(
-            disk=_parse_input_comp(MiyamotoNagaiPotential, disk, _default_disk, units_),
-            halo=_parse_input_comp(NFWPotential, halo, _default_halo, units_),
-            bulge=_parse_input_comp(HernquistPotential, bulge, _default_bulge, units_),
+            disk=_parse_input_comp(
+                MiyamotoNagaiPotential, disk, self._default_disk, units_
+            ),
+            halo=_parse_input_comp(NFWPotential, halo, self._default_halo, units_),
+            bulge=_parse_input_comp(
+                HernquistPotential, bulge, self._default_bulge, units_
+            ),
             nucleus=_parse_input_comp(
-                HernquistPotential, nucleus, _default_nucleus, units_
+                HernquistPotential, nucleus, self._default_nucleus, units_
             ),
         )
 

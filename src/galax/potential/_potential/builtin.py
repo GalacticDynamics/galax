@@ -17,6 +17,7 @@ __all__ = [
     "PlummerPotential",
     "PowerLawCutoffPotential",
     "SatohPotential",
+    "StonePotential",
 ]
 
 from dataclasses import KW_ONLY
@@ -483,3 +484,42 @@ class SatohPotential(AbstractPotential):
         z = q[..., 2]
         term = R2 + z**2 + a * (a + 2 * xp.sqrt(z**2 + b**2))
         return -self._G * self.m(t) / xp.sqrt(term)
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class StonePotential(AbstractPotential):
+    r"""StonePotential(m, r_c, r_h, units=None, origin=None, R=None).
+
+    Stone potential from `Stone & Ostriker (2015)
+    <http://dx.doi.org/10.1088/2041-8205/806/2/L28>`_.
+
+    Parameters
+    ----------
+    m_tot : :class:`~astropy.units.Quantity`, numeric [mass]
+        Total mass.
+    r_c : :class:`~astropy.units.Quantity`, numeric [length]
+        Core radius.
+    r_h : :class:`~astropy.units.Quantity`, numeric [length]
+        Halo radius.
+    """
+
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    r_c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        r_h = self.r_h(t)
+        r_c = self.r_c(t)
+        r = xp.linalg.vector_norm(q, axis=-1)
+        A = -2 * self._G * self.m(t) / (xp.pi * (r_h - r_c))
+        return A * (
+            (r_h / r) * xp.atan(r / r_h)
+            - (r_c / r) * xp.atan(r / r_c)
+            + 0.5 * (xp.log(r**2 + r_h**2) - xp.log(r**2 + r_c**2))
+        )

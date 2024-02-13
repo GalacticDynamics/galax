@@ -8,6 +8,7 @@ import pytest
 from quax import quaxify
 
 import galax.potential as gp
+from galax.potential._potential.io.gala import _GALA_TO_GALAX_REGISTRY
 from galax.typing import Vec3
 from galax.utils._optional_deps import HAS_GALA
 
@@ -21,10 +22,10 @@ class GalaIOMixin:
     """
 
     # All the Gala-mapped potentials
-    _GALA_CAN_MAP_TO: ClassVar = (
+    _GALA_CAN_MAP_TO: ClassVar = set(
         [
-            get_annotations(pot)["return"]
-            for pot in gp.io.gala_to_galax.registry.values()
+            _GALA_TO_GALAX_REGISTRY.get(pot, get_annotations(func)["return"])
+            for pot, func in gp.io.gala_to_galax.registry.items()
         ]
         if HAS_GALA
         else []

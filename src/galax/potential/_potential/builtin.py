@@ -5,6 +5,7 @@ __all__ = [
     "HernquistPotential",
     "IsochronePotential",
     "KeplerPotential",
+    "KuzminPotential",
     "LeeSutoTriaxialNFWPotential",
     "MiyamotoNagaiPotential",
     "NFWPotential",
@@ -182,6 +183,40 @@ class KeplerPotential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / r
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class KuzminPotential(AbstractPotential):
+    r"""Kuzmin Potential.
+
+    .. math::
+
+        \Phi(x, t) = -\frac{G M(t)}{\sqrt{R^2 + (a(t) + |z|)^2}}
+
+    See https://galaxiesbook.org/chapters/II-01.-Flattened-Mass-Distributions.html#Razor-thin-disk:-The-Kuzmin-model
+
+    """
+
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """Total mass of the potential."""
+
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Scale length."""
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self: "KuzminPotential", q: gt.QVec3, t: gt.RealQScalar, /
+    ) -> gt.FloatQScalar:
+        return (
+            -self.constants["G"]
+            * self.m_tot(t)
+            / xp.sqrt(
+                q[..., 0] ** 2 + q[..., 1] ** 2 + (xp.abs(q[..., 2]) + self.a(t)) ** 2
+            )
+        )
 
 
 # -------------------------------------------------------------------

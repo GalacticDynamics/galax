@@ -14,6 +14,7 @@ __all__ = [
     "MiyamotoNagaiPotential",
     "NFWPotential",
     "NullPotential",
+    "PlummerPotential",
 ]
 
 from dataclasses import KW_ONLY
@@ -355,3 +356,21 @@ class NullPotential(AbstractPotential):
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
         return xp.zeros(q.shape[:-1], dtype=q.dtype)
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class PlummerPotential(AbstractPotential):
+    """Plummer Potential."""
+
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        r2 = xp.linalg.vector_norm(q, axis=-1) ** 2
+        return -self._G * self.m(t) / xp.sqrt(r2 + self.b(t) ** 2)

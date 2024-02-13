@@ -32,6 +32,7 @@ __all__ = [
     "MiyamotoNagaiPotential",
     "NFWPotential",
     "NullPotential",
+    "PlummerPotential",
     # special
     "BovyMWPotential2014",
     "LM10Potential",
@@ -54,6 +55,7 @@ from ._potential.builtin import (
     MiyamotoNagaiPotential,
     NFWPotential,
     NullPotential,
+    PlummerPotential,
 )
 from ._potential.composite import AbstractCompositePotential, CompositePotential
 from ._potential.core import AbstractPotential

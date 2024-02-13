@@ -8,6 +8,7 @@ __all__ = [
     "IsochronePotential",
     "JaffePotential",
     "KeplerPotential",
+    "KuzminPotential",
     "MiyamotoNagaiPotential",
     "NFWPotential",
     "NullPotential",
@@ -208,6 +209,26 @@ class KeplerPotential(AbstractPotential):
     ) -> BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self._G * self.m(t) / r
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class KuzminPotential(AbstractPotential):
+    """Kuzmin Potential."""
+
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        rp = xp.sqrt(
+            q[..., 0] ** 2 + q[..., 1] ** 2 + (xp.abs(q[..., 2]) + self.a(t)) ** 2
+        )
+        return -self._G * self.m(t) / rp
 
 
 # -------------------------------------------------------------------

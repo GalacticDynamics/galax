@@ -32,6 +32,7 @@ __all__ = [
     "NFWPotential",
     "NullPotential",
     # special
+    "LM10Potential",
     "MilkyWayPotential",
 ]
 
@@ -61,4 +62,4 @@ from ._potential.param import (
     ParametersAttribute,
     UserParameter,
 )
-from ._potential.special import MilkyWayPotential
+from ._potential.special import LM10Potential, MilkyWayPotential

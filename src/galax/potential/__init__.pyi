@@ -21,6 +21,7 @@ __all__ = [
     # builtin
     "BarPotential",
     "HarmonicOscillatorPotential",
+    "HenonHeilesPotential",
     "HernquistPotential",
     "IsochronePotential",
     "KeplerPotential",
@@ -36,6 +37,7 @@ from ._potential.base import AbstractPotentialBase
 from ._potential.builtin import (
     BarPotential,
     HarmonicOscillatorPotential,
+    HenonHeilesPotential,
     HernquistPotential,
     IsochronePotential,
     KeplerPotential,

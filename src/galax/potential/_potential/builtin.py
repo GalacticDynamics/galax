@@ -3,6 +3,7 @@
 __all__ = [
     "BarPotential",
     "HarmonicOscillatorPotential",
+    "HenonHeilesPotential",
     "HernquistPotential",
     "IsochronePotential",
     "KeplerPotential",
@@ -104,6 +105,25 @@ class HarmonicOscillatorPotential(AbstractPotential):
         self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
     ) -> BatchFloatScalar:
         return 0.5 * self.omega(t) ** 2 * xp.linalg.norm(q, axis=-1) ** 2
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class HenonHeilesPotential(AbstractPotential):
+    """Henon-Heiles Potential."""
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        return 0.5 * (
+            q[..., 0] ** 2
+            + q[..., 1] ** 2
+            + 2 * q[..., 0] ** 2 * q[..., 1]
+            - 2 / 3.0 * q[..., 1] ** 3
+        )
 
 
 # -------------------------------------------------------------------

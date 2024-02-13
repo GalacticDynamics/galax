@@ -2,6 +2,7 @@
 
 __all__ = [
     "BarPotential",
+    "HarmonicOscillatorPotential",
     "HernquistPotential",
     "IsochronePotential",
     "KeplerPotential",
@@ -85,6 +86,24 @@ class BarPotential(AbstractPotential):
         return (self._G * self.m(t) / (2.0 * a)) * xp.log(
             (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus),
         )
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class HarmonicOscillatorPotential(AbstractPotential):
+    """Harmonic Oscillator Potential."""
+
+    omega: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    _: KW_ONLY
+    units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        return 0.5 * self.omega(t) ** 2 * xp.linalg.norm(q, axis=-1) ** 2
 
 
 # -------------------------------------------------------------------

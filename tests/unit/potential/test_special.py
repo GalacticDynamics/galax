@@ -250,18 +250,22 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     # ==========================================================================
 
     def test_potential_energy(self, pot: MilkyWayPotential, x: Vec3) -> None:
+        """Test the :meth:`MilkyWayPotential.potential_energy` method."""
         assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-0.19386052))
 
     def test_gradient(self, pot: MilkyWayPotential, x: Vec3) -> None:
+        """Test the :meth:`MilkyWayPotential.gradient` method."""
         expected = Quantity(
             [0.00256403, 0.00512806, 0.01115272], pot.units["acceleration"]
         )
         assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
 
     def test_density(self, pot: MilkyWayPotential, x: Vec3) -> None:
+        """Test the :meth:`MilkyWayPotential.density` method."""
         assert jnp.isclose(pot.density(x, t=0).value, 33_365_858.46361218)
 
     def test_hessian(self, pot: MilkyWayPotential, x: Vec3) -> None:
+        """Test the :meth:`MilkyWayPotential.hessian` method."""
         assert allclose(
             pot.hessian(x, t=0),
             xp.asarray(

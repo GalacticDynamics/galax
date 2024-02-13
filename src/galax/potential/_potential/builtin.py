@@ -9,6 +9,7 @@ __all__ = [
     "JaffePotential",
     "KeplerPotential",
     "KuzminPotential",
+    "LogarithmicPotential",
     "MiyamotoNagaiPotential",
     "NFWPotential",
     "NullPotential",
@@ -229,6 +230,32 @@ class KuzminPotential(AbstractPotential):
             q[..., 0] ** 2 + q[..., 1] ** 2 + (xp.abs(q[..., 2]) + self.a(t)) ** 2
         )
         return -self._G * self.m(t) / rp
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class LogarithmicPotential(AbstractPotential):
+    """Logarithmic Potential."""
+
+    v_c: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
+    r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    q1: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    q2: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    q3: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    phi: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+    ) -> BatchFloatScalar:
+        r2 = (
+            (q[..., 0] / self.q1(t)) ** 2
+            + (q[..., 1] / self.q2(t)) ** 2
+            + (q[..., 2] / self.q3(t)) ** 2
+        )
+        return 0.5 * self.v_c(t) ** 2 * xp.log(self.r_h(t) ** 2 + r2)
 
 
 # -------------------------------------------------------------------

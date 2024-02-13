@@ -66,22 +66,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         )
 
     ###########################################################################
-    # Abstract methods that must be implemented by subclasses
-
-    # @partial(jax.jit)
-    # @vectorize_method(signature="(3),()->()")
-    @abc.abstractmethod
-    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
-        """Compute the potential energy at the given position(s).
-
-        This method MUST be implemented by subclasses.
-
-        It is recommended to both JIT and vectorize this function.
-        See ``AbstractPotentialBase.potential_energy`` for an example.
-        """
-        raise NotImplementedError
-
-    ###########################################################################
     # Parsing
 
     def _init_units(self) -> None:
@@ -113,6 +97,19 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     # ---------------------------------------
     # Potential energy
+
+    # @partial(jax.jit)
+    # @vectorize_method(signature="(3),()->()")
+    @abc.abstractmethod
+    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
+        """Compute the potential energy at the given position(s).
+
+        This method MUST be implemented by subclasses.
+
+        It is recommended to both JIT and vectorize this function.
+        See ``AbstractPotentialBase.potential_energy`` for an example.
+        """
+        raise NotImplementedError
 
     def potential_energy(
         self,

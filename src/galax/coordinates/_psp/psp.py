@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, final
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float
+from vector import Abstract3DVector, Abstract3DVectorDifferential
 
 from .base import AbstractPhaseSpacePositionBase
 from galax.typing import BatchFloatScalar, BroadBatchVec3, FloatScalar
@@ -30,10 +30,11 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
     :math:`\boldsymbol{q}` and the conjugate momentum :math:`\boldsymbol{p}`.
     """
 
-    q: eqx.AbstractVar[Float[Array, "*#batch #time 3"]]
+    # TODO: hint shape Float[Array, "*#batch #time 3"]
+    q: eqx.AbstractVar[Abstract3DVector]
     """Positions."""
 
-    p: eqx.AbstractVar[Float[Array, "*#batch #time 3"]]
+    p: eqx.AbstractVar[Abstract3DVectorDifferential]
     """Conjugate momenta at positions ``q``."""
 
     # ==========================================================================

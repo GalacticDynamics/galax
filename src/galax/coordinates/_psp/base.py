@@ -10,8 +10,9 @@ import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float
+from vector import Abstract3DVector, Abstract3DVectorDifferential
 
+from galax.coordinates.frame.base import AbstractOperator
 from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6
 from galax.units import UnitSystem
 
@@ -28,11 +29,13 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
     :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
     """
 
-    q: eqx.AbstractVar[Float[Array, "*#batch #time 3"]]
+    q: eqx.AbstractVar[Abstract3DVector]
     """Positions."""
 
-    p: eqx.AbstractVar[Float[Array, "*#batch #time 3"]]
+    p: eqx.AbstractVar[Abstract3DVectorDifferential]
     """Conjugate momenta at positions ``q``."""
+
+    frame: eqx.AbstractVar[AbstractOperator]
 
     # ==========================================================================
     # Array properties
@@ -114,7 +117,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
             The kinetic energy.
         """
         # TODO: use a ``norm`` function so that this works for non-Cartesian.
-        return 0.5 * xp.sum(self.p**2, axis=-1)
+        return 0.5 * self.p.norm() ** 2
 
     # TODO: property?
     @partial(jax.jit)

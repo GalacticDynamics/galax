@@ -3,6 +3,7 @@ from functools import partial
 from typing import Any
 
 import array_api_jax_compat as xp
+import astropy.units as u
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -111,7 +112,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_potential_energy(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.potential_energy` method."""
-        assert pot.potential_energy(x, t=0) == 6
+        assert pot.potential_energy(x, t=0) == Quantity(6, u.kpc**2 / u.Myr**2)
 
     # ---------------------------------
 

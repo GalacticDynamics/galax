@@ -15,7 +15,7 @@ from jax.lib.xla_bridge import get_backend
 from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
 from galax.dynamics._dynamics.integrate._api import Integrator
 from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
-from galax.dynamics._dynamics.orbit import Orbit, evaluate_orbit, integrate_orbit
+from galax.dynamics._dynamics.orbit import evaluate_orbit, integrate_orbit
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchVec6, FloatScalar, IntScalar, Vec6, VecN, VecTime
 
@@ -132,7 +132,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         *,
         seed_num: int,
         vmapped: bool | None = None,
-    ) -> tuple[MockStream, Orbit]:
+    ) -> tuple[MockStream, PhaseSpaceTimePosition]:
         """Generate mock stellar stream.
 
         Parameters
@@ -158,10 +158,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Returns
         -------
-        mockstream : MockStream
+        mockstream : :class:`galax.dynamcis.MockStream`
             Leading and/or trailing arms of the mock stream.
-        prog_o : Orbit
-            Orbit of the progenitor.
+        prog_o : :class:`galax.coordinates.PhaseSpaceTimePosition`
+            The final phase-space(+time) position of the progenitor.
         """
         # TODO: ꜛ a discussion about the stripping times
         # Parse vmapped
@@ -186,8 +186,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             self.potential, w0, ts, integrator=self.progenitor_integrator
         )
 
-        # Generate stream initial conditions along the integrated progenitor
-        # orbit. The release times are stripping times.
+        # Generate initial conditions from the DF, along the integrated
+        # progenitor orbit. The release times are the stripping times.
         mock0_lead, mock0_trail = self.df.sample(
             self.potential, prog_o, prog_mass, seed_num=seed_num
         )
@@ -222,4 +222,4 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         mockstream = MockStream(q=q, p=p, t=t, release_time=release_time)
 
-        return mockstream, prog_o
+        return mockstream, prog_o[-1]

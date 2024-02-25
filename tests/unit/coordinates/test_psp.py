@@ -5,15 +5,19 @@ from typing import Any, Self, TypeAlias
 
 import array_api_jax_compat as xp
 import astropy.units as u
+import equinox as eqx
 import jax.numpy as jnp
 import jax.random as jr
 import pytest
 
+from jax_quantity import Quantity
+from vector import Cartesian3DVector, CartesianDifferential3D
+
 from .test_base import AbstractPhaseSpacePositionBase_Test, T, return_keys
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
+from galax.coordinates._psp.base import _p_converter, _q_converter
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.potential._potential.special import MilkyWayPotential
-from galax.typing import Vec3
 from galax.units import galactic
 
 Shape: TypeAlias = tuple[int, ...]
@@ -28,8 +32,8 @@ class AbstractPhaseSpacePosition_Test(AbstractPhaseSpacePositionBase_Test[T]):
         """Return a phase-space position."""
         _, subkeys = return_keys(3)
 
-        q = jr.normal(next(subkeys), (*shape, 3))
-        p = jr.normal(next(subkeys), (*shape, 3))
+        q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
+        p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
         return w_cls(q, p)
 
     # ===============================================================
@@ -74,12 +78,12 @@ class TestAbstractPhaseSpacePosition(
         class PSP(AbstractPhaseSpacePosition):
             """A phase-space position."""
 
-            q: Vec3
-            p: Vec3
+            q: Cartesian3DVector = eqx.field(converter=_q_converter)
+            p: CartesianDifferential3D = eqx.field(converter=_p_converter)
 
             @property
             def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int]]:
-                return self.q.shape[:-1], (3, 3)
+                return self.q.shape, (3, 3)
 
             def __getitem__(self, index: Any) -> Self:
                 return replace(self, q=self.q[index], p=self.p[index])

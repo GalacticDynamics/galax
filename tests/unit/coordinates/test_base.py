@@ -8,11 +8,15 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar
 
 import array_api_jax_compat as xp
+import equinox as eqx
 import jax.random as jr
 import pytest
 from jaxtyping import Array
 
-from galax.typing import Vec3
+from jax_quantity import Quantity
+from vector import Cartesian3DVector, CartesianDifferential3D
+
+from galax.coordinates._psp.base import _p_converter, _q_converter
 from galax.units import galactic
 
 if TYPE_CHECKING:
@@ -61,13 +65,15 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
     def test_q(self, w: T, shape: Shape) -> None:
         """Test :attr:`~galax.coordinates.AbstractPhaseSpacePosition.q`."""
         assert hasattr(w, "q")
-        assert w.q.shape == (*shape, 3)
+        assert w.q.shape == shape
+        assert len(w.q.components) == 3
 
     def test_p(self, w: T, shape: Shape) -> None:
         """Test :attr:`~galax.coordinates.AbstractPhaseSpacePosition.p`."""
         assert hasattr(w, "p")
         assert w.p.shape == w.q.shape
-        assert w.p.shape == (*shape, 3)
+        assert w.p.shape == shape
+        assert len(w.p.components) == 3
 
     # ===============================================================
     # Array properties
@@ -81,7 +87,7 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
         assert w.shape == w._shape_tuple[0]
 
         # Confirm relation to components full shape
-        assert w.shape == w.q.shape[:-1]
+        assert w.shape == w.q.shape
 
         # Confirm from definition
         assert w.shape == shape
@@ -93,7 +99,7 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
 
         # Confirm relation to shape and components
         assert w.ndim == len(w.shape)
-        assert w.ndim == w.q.ndim - 1
+        assert w.ndim == w.q.ndim
 
     def test_len(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__len__`."""
@@ -116,7 +122,7 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
 
     def test_getitem_boolarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        idx = xp.ones(w.q.shape[:-1], dtype=bool)
+        idx = xp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
         assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx])
@@ -146,12 +152,8 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
         # Check existence
         assert hasattr(w, "w")
 
-        # Confirm relation to shape and components
-        assert w.w().shape[:-1] == w.full_shape[:-1]
-
         # units != None
-        with pytest.raises(NotImplementedError):
-            w.w(units=galactic)
+        assert w.w(units=galactic).shape[:-1] == w.full_shape[:-1]
 
     # ==========================================================================
     # Dynamical properties
@@ -160,13 +162,13 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
         """Test method ``kinetic_energy``."""
         ke = w.kinetic_energy()
         assert ke.shape == w.shape  # confirm relation to shape and components
-        assert xp.all(ke >= 0)
+        assert xp.all(ke >= Quantity(0, "km2/s2"))
         # TODO: more tests
 
     def test_angular_momentum(self, w: T) -> None:
         """Test method ``angular_momentum``."""
         am = w.angular_momentum()
-        assert am.shape == w.q.shape
+        assert am.shape == (*w.q.shape, len(w.q.components))
         # TODO: more tests
 
 
@@ -183,12 +185,12 @@ class TestAbstractPhaseSpacePositionBase(AbstractPhaseSpacePositionBase_Test[T])
         class PSP(AbstractPhaseSpacePositionBase):
             """A phase-space position."""
 
-            q: Vec3
-            p: Vec3
+            q: Cartesian3DVector = eqx.field(converter=_q_converter)
+            p: CartesianDifferential3D = eqx.field(converter=_p_converter)
 
             @property
             def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int]]:
-                return self.q.shape[:-1], (3, 3)
+                return self.q.shape, (3, 3)
 
             def __getitem__(self, index: Any) -> Self:
                 return replace(self, q=self.q[index], p=self.p[index])
@@ -199,8 +201,8 @@ class TestAbstractPhaseSpacePositionBase(AbstractPhaseSpacePositionBase_Test[T])
         """Return a phase-space position."""
         _, subkeys = return_keys(2)
 
-        q = jr.normal(next(subkeys), (*shape, 3))
-        p = jr.normal(next(subkeys), (*shape, 3))
+        q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
+        p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
         return w_cls(q, p)
 
     # ===============================================================

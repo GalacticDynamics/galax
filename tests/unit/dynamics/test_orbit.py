@@ -4,6 +4,9 @@ import array_api_jax_compat as xp
 import jax.numpy as jnp
 import jax.random as jr
 import pytest
+from plum import convert
+
+from jax_quantity import Quantity
 
 from ..coordinates.test_base import Shape, return_keys
 from ..coordinates.test_pspt import AbstractPhaseSpaceTimePosition_Test, T
@@ -32,8 +35,8 @@ class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
         """Return a phase-space position."""
         _, subkeys = return_keys(3)
 
-        q = jr.normal(next(subkeys), (*shape, 3))
-        p = jr.normal(next(subkeys), (*shape, 3))
+        q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
+        p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
         t = jr.normal(next(subkeys), shape[-1:])
         return w_cls(q=q, p=p, t=t, potential=potential)
 
@@ -51,7 +54,7 @@ class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
 
     def test_getitem_boolarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        idx = xp.ones(w.q.shape[:-1], dtype=bool)
+        idx = xp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
         with pytest.raises(NotImplementedError):
@@ -67,11 +70,8 @@ class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
 
     def test_wt(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpaceTimePosition.wt`."""
-        wt = w.wt()
+        wt = w.wt(units=galactic)
         assert wt.shape == w.full_shape
         assert jnp.array_equal(wt[(*(0,) * (w.ndim - 1), slice(None), 0)], w.t)
-        assert jnp.array_equal(wt[..., 1:4], w.q)
-        assert jnp.array_equal(wt[..., 4:7], w.p)
-
-        with pytest.raises(NotImplementedError):
-            w.wt(units=galactic)
+        assert jnp.array_equal(wt[..., 1:4], convert(w.q, Quantity).value)
+        assert jnp.array_equal(wt[..., 4:7], convert(w.p, Quantity).value)

@@ -5,6 +5,7 @@ from typing import cast
 import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
+import jax.tree_util as tu
 import pytest
 
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
@@ -93,10 +94,13 @@ class TestMockStreamGenerator:
         )
 
         # TODO: more rigorous tests
-        assert mock.q.shape == (2 * len(t_stripping), 3)
-        assert prog_o.q.shape == (3,)
+        assert mock.q.shape == (2 * len(t_stripping),)
+        assert prog_o.q.shape == ()  # scalar batch shape
 
         # Test that the positions and momenta are finite
-        assert jnp.isfinite(mock.q).all()
-        assert jnp.isfinite(mock.p).all()
+        allfinite = lambda x: all(
+            tu.tree_flatten(tu.tree_map(lambda x: jnp.isfinite(x).all(), x))[0]
+        )
+        assert allfinite(mock.q)
+        assert allfinite(mock.p)
         assert jnp.isfinite(mock.t).all()

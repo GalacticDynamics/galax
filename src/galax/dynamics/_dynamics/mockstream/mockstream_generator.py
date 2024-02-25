@@ -4,13 +4,15 @@ __all__ = ["MockStreamGenerator"]
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import TypeAlias, final
+from typing import TypeAlias, cast, final
 
 import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 import jax.numpy as jnp
 from jax.lib.xla_bridge import get_backend
+
+from jax_quantity import Quantity
 
 from .core import MockStream
 from .df import AbstractStreamDF
@@ -21,6 +23,7 @@ from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
 from galax.dynamics._dynamics.orbit import evaluate_orbit, integrate_orbit
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchVec6, FloatScalar, IntScalar, Vec6, VecN, VecTime
+from galax.units import UnitSystem
 
 Carry: TypeAlias = tuple[IntScalar, VecN, VecN]
 
@@ -47,6 +50,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     stream_integrator: Integrator = eqx.field(default=DiffraxIntegrator(), static=True)
     """Integrator for the stream."""
 
+    @property
+    def units(self) -> UnitSystem:
+        """Units of the potential."""
+        return cast(UnitSystem, self.potential.units)
+
     # ==========================================================================
 
     @partial(jax.jit)
@@ -57,8 +65,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Better for CPU usage.
         """
-        w0_lead = mock0_lead.w()
-        w0_trail = mock0_trail.w()
+        w0_lead = mock0_lead.w(units=self.units)
+        w0_trail = mock0_trail.w(units=self.units)
         t_f = ts[-1] + 1e-3  # TODO: not have the bump in the final time.
 
         def one_pt_intg(carry: Carry, _: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
@@ -78,7 +86,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
                 # TODO: only return the final state
                 return integrate_orbit(
                     self.potential, ics, tstep, integrator=self.stream_integrator
-                ).w()[-1]
+                ).w(units=self.units)[-1]
 
             # vmap integration over leading and trailing arm
             w0_lt_i = jnp.vstack([w0_l_i, w0_t_i])  # TODO: xp.stack
@@ -116,8 +124,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             ).w()[-1]
             return w_lead, w_trail
 
-        w0_lead = mock0_lead.w()
-        w0_trail = mock0_trail.w()
+        w0_lead = mock0_lead.w(units=self.units)
+        w0_trail = mock0_trail.w(units=self.units)
         pt_ids = xp.arange(len(w0_lead))
         lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg)(pt_ids, w0_lead, w0_trail)
         return lead_arm_w, trail_arm_w
@@ -173,7 +181,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
             w0 = PhaseSpaceTimePosition(q=prog_w0.q, p=prog_w0.p, t=ts[0])
         else:
-            w0 = PhaseSpaceTimePosition(prog_w0[0:3], prog_w0[3:6], t=ts[0])
+            w0 = PhaseSpaceTimePosition(
+                q=Quantity(prog_w0[..., 0:3], self.units["length"]),
+                p=Quantity(prog_w0[3:6], self.units["speed"]),
+                t=ts[0],
+            )
 
         # If the time stepping passed in is negative, assume this means that all
         # of the initial conditions are at *end time*, and we need to reverse
@@ -219,6 +231,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             msg = "You must generate either leading or trailing tails (or both!)"
             raise ValueError(msg)
 
-        mockstream = MockStream(q=q, p=p, t=t, release_time=release_time)
+        mockstream = MockStream(
+            q=Quantity(q, self.units["length"]),
+            p=Quantity(p, self.units["speed"]),
+            t=t,
+            release_time=release_time,
+        )
 
         return mockstream, prog_o[-1]

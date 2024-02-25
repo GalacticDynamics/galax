@@ -9,11 +9,18 @@ from typing import TYPE_CHECKING, Any
 import array_api_jax_compat as xp
 import equinox as eqx
 import jax
-import jax.numpy as jnp
-from vector import Abstract3DVector, Abstract3DVectorDifferential
+from jaxtyping import Shaped
+from plum import convert
 
-from galax.coordinates.frame.base import AbstractOperator
-from galax.typing import BatchFloatScalar, BatchVec3, BatchVec6
+from jax_quantity import Quantity
+from vector import (
+    Abstract3DVector,
+    Abstract3DVectorDifferential,
+    Cartesian3DVector,
+    CartesianDifferential3D,
+)
+
+from galax.typing import BatchQVec3, BatchVec6
 from galax.units import UnitSystem
 
 if TYPE_CHECKING:
@@ -22,6 +29,13 @@ if TYPE_CHECKING:
 
 class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     """Abstract base class for all the types of phase-space positions.
+
+    Parameters
+    ----------
+    q : :class:`~vector.Abstract3DVector`
+        Positions.
+    p : :class:`~vector.Abstract3DVectorDifferential`
+        Conjugate momenta at positions ``q``.
 
     See Also
     --------
@@ -34,8 +48,6 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
 
     p: eqx.AbstractVar[Abstract3DVectorDifferential]
     """Conjugate momenta at positions ``q``."""
-
-    frame: eqx.AbstractVar[AbstractOperator]
 
     # ==========================================================================
     # Array properties
@@ -75,7 +87,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
     # ==========================================================================
     # Convenience methods
 
-    def w(self, *, units: UnitSystem | None = None) -> BatchVec6:
+    def w(self, *, units: UnitSystem) -> BatchVec6:
         """Phase-space position as an Array[float, (*batch, Q + P)].
 
         This is the full phase-space position, not including the time.
@@ -88,23 +100,22 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         Returns
         -------
         w : Array[float, (*batch, Q + P)]
-            The phase-space position.
+            The phase-space position as a 6-vector in Cartesian coordinates.
         """
-        if units is not None:
-            msg = "units not yet implemented."
-            raise NotImplementedError(msg)
-
-        batch_shape, component_shapes = self._shape_tuple
-        q = xp.broadcast_to(self.q, batch_shape + component_shapes[0:1])
-        p = xp.broadcast_to(self.p, batch_shape + component_shapes[1:2])
-        return xp.concat((q, p), axis=-1)
+        batch_shape, comp_shapes = self._shape_tuple
+        q = xp.broadcast_to(convert(self.q, Quantity), (*batch_shape, comp_shapes[0]))
+        p = xp.broadcast_to(
+            convert(self.p.represent_as(CartesianDifferential3D, self.q), Quantity),
+            (*batch_shape, comp_shapes[1]),
+        )
+        return xp.concat((q.decompose(units).value, p.decompose(units).value), axis=-1)
 
     # ==========================================================================
     # Dynamical quantities
 
     # TODO: property?
     @partial(jax.jit)
-    def kinetic_energy(self) -> BatchFloatScalar:
+    def kinetic_energy(self) -> Shaped[Quantity["specific energy"], "*batch"]:
         r"""Return the specific kinetic energy.
 
         .. math::
@@ -117,11 +128,11 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
             The kinetic energy.
         """
         # TODO: use a ``norm`` function so that this works for non-Cartesian.
-        return 0.5 * self.p.norm() ** 2
+        return 0.5 * self.p.norm(self.q) ** 2
 
     # TODO: property?
     @partial(jax.jit)
-    def angular_momentum(self) -> BatchVec3:
+    def angular_momentum(self) -> BatchQVec3:
         r"""Compute the angular momentum.
 
         .. math::
@@ -134,23 +145,43 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         Returns
         -------
         L : Array[float, (*batch,3)]
-            Array of angular momentum vectors.
+            Array of angular momentum vectors in Cartesian coordinates.
 
         Examples
         --------
         We assume the following imports
 
-            >>> import numpy as np
-            >>> import astropy.units as u
-            >>> from galax.coordinates import PhaseSpacePosition
+        >>> from jax_quantity import Quantity
+        >>> from galax.coordinates import PhaseSpacePosition
 
         We can compute the angular momentum of a single object
 
-            >>> pos = np.array([1., 0, 0]) * u.au
-            >>> vel = np.array([0, 2*np.pi, 0]) * u.au/u.yr
-            >>> w = PhaseSpacePosition(pos, vel)
-            >>> w.angular_momentum()
-            Array([0.        , 0.        , 6.28318531], dtype=float64)
+        >>> pos = Quantity([1., 0, 0], "au")
+        >>> vel = Quantity([0, 2., 0], "au/yr")
+        >>> w = PhaseSpacePosition(pos, vel)
+        >>> w.angular_momentum()
+        Quantity['diffusivity'](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
         """
-        # TODO: when q, p are not Cartesian.
-        return jnp.cross(self.q, self.p)
+        # TODO: keep as a vector.
+        #       https://github.com/GalacticDynamics/vector/issues/27
+        q = convert(self.q, Quantity)
+        p = convert(self.p.represent_as(CartesianDifferential3D, self.q), Quantity)
+        return xp.linalg.cross(q, p)
+
+
+# =============================================================================
+# helper functions
+
+
+def _q_converter(x: Any) -> Abstract3DVector:
+    """Convert input to a 3D vector."""
+    return x if isinstance(x, Abstract3DVector) else Cartesian3DVector.constructor(x)
+
+
+def _p_converter(x: Any) -> Abstract3DVectorDifferential:
+    """Convert input to a 3D vector differential."""
+    return (
+        x
+        if isinstance(x, Abstract3DVectorDifferential)
+        else CartesianDifferential3D.constructor(x)
+    )

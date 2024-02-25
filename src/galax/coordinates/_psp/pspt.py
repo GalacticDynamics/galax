@@ -23,8 +23,8 @@ from galax.units import UnitSystem
 from galax.utils._shape import atleast_batched, batched_shape, expand_batch_dims
 from galax.utils.dataclasses import converter_float_array
 
-from ._base import AbstractPhaseSpacePositionBase
-from ._utils import getitem_broadscalartime_index
+from .base import AbstractPhaseSpacePositionBase
+from .utils import getitem_broadscalartime_index
 
 if TYPE_CHECKING:
     from typing import Self

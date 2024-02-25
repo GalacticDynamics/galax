@@ -15,7 +15,7 @@ from galax.typing import BatchFloatScalar, BroadBatchVec3, FloatScalar
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
 
-from ._base import AbstractPhaseSpacePositionBase
+from .base import AbstractPhaseSpacePositionBase
 
 if TYPE_CHECKING:
     from typing import Self

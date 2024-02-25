@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import pytest
 from jaxtyping import Array, Float
 
-from galax.coordinates._utils import (
+from galax.coordinates._psp.utils import (
     Shaped,
     getitem_broadscalartime_index,
     getitem_vec1time_index,

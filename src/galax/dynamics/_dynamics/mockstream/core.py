@@ -9,7 +9,7 @@ import equinox as eqx
 import jax.numpy as jnp
 
 from galax.coordinates import AbstractPhaseSpaceTimePosition
-from galax.coordinates._utils import getitem_vec1time_index
+from galax.coordinates._psp.utils import getitem_vec1time_index
 from galax.typing import BroadBatchVec3, VecTime
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array

@@ -18,6 +18,7 @@ import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 
+from .utils import converter_to_usys
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
 from galax.typing import (
@@ -32,8 +33,6 @@ from galax.typing import (
 from galax.units import UnitSystem
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import field
-
-from .utils import converter_to_usys
 
 # -------------------------------------------------------------------
 

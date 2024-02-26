@@ -5,13 +5,12 @@ import jax.numpy as jnp
 import jax.random as jr
 import pytest
 
+from ..coordinates.test_base import Shape, return_keys
+from ..coordinates.test_pspt import AbstractPhaseSpaceTimePosition_Test, T
 from galax.coordinates import PhaseSpaceTimePosition
 from galax.dynamics import Orbit
 from galax.potential import AbstractPotentialBase, MilkyWayPotential
 from galax.units import galactic
-
-from ..coordinates.test_base import Shape, return_keys
-from ..coordinates.test_pspt import AbstractPhaseSpaceTimePosition_Test, T
 
 
 class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):

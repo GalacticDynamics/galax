@@ -6,8 +6,9 @@ __all__: list[str] = []
 from typing import TypeAlias
 
 import astropy.units as u
-from jax_quantity import Quantity
 from jaxtyping import Array, Float, Integer, Shaped
+
+from jax_quantity import Quantity
 
 # =============================================================================
 

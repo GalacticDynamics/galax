@@ -14,8 +14,10 @@ from astropy.constants import G as _G  # pylint: disable=no-name-in-module
 from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity as AstropyQuantity
 from jax import grad, hessian, jacfwd
+
 from jax_quantity import Quantity
 
+from .utils import convert_input_to_array, convert_inputs_to_arrays
 from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
@@ -40,8 +42,6 @@ from galax.units import UnitSystem, dimensionless
 from galax.utils._jax import vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils.dataclasses import ModuleMeta
-
-from .utils import convert_input_to_array, convert_inputs_to_arrays
 
 if TYPE_CHECKING:
     from galax.dynamics._dynamics.integrate._api import Integrator

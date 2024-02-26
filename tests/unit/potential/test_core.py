@@ -8,13 +8,12 @@ import jax
 import pytest
 
 import galax.potential as gp
+from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
+from .test_utils import FieldUnitSystemMixin
 from galax.potential._potential.utils import converter_to_usys
 from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
 from galax.units import UnitSystem, dimensionless, galactic
 from galax.utils._jax import vectorize_method
-
-from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
-from .test_utils import FieldUnitSystemMixin
 
 
 class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):

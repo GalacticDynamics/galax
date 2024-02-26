@@ -11,6 +11,7 @@ import jax
 import jax.numpy as jnp
 from jax import grad, random
 
+from .base import AbstractStreamDF
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
     FloatOrIntScalarLike,
@@ -19,8 +20,6 @@ from galax.typing import (
     Vec3,
     Vec6,
 )
-
-from .base import AbstractStreamDF
 
 
 @final

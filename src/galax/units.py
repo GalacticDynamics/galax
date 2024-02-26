@@ -13,6 +13,7 @@ from typing import ClassVar, Union, cast, final
 
 import astropy.units as u
 from astropy.units.physical import _physical_unit_mapping
+
 from jax_quantity import Quantity
 
 

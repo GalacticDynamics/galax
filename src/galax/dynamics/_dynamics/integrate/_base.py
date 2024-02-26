@@ -4,9 +4,8 @@ import abc
 
 import equinox as eqx
 
-from galax.typing import Vec6, VecTime, VecTime7
-
 from ._api import FCallable
+from galax.typing import Vec6, VecTime, VecTime7
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]

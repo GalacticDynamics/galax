@@ -3,15 +3,15 @@ from typing import Any
 import array_api_jax_compat as xp
 import jax.numpy as jnp
 import pytest
-from jax_quantity import Quantity
 from quax import quaxify
 
-from galax.potential import HernquistPotential
-from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import Vec3
+from jax_quantity import Quantity
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin, ShapeCParameterMixin
+from galax.potential import HernquistPotential
+from galax.potential._potential.base import AbstractPotentialBase
+from galax.typing import Vec3
 
 allclose = quaxify(jnp.allclose)
 

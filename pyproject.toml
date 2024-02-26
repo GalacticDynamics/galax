@@ -216,6 +216,8 @@
 
     [tool.ruff.lint.isort]
       combine-as-imports = true
+      known-first-party = ["jax_quantity", "vector"]
+      known-local-folder = ["galax"]
 
     [tool.ruff.lint.pydocstyle]
       convention = "numpy"

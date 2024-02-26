@@ -2,10 +2,9 @@ import astropy.units as u
 import pytest
 
 import galax.potential as gp
+from ..param.test_field import ParameterFieldMixin
 from galax.potential import ConstantParameter
 from galax.units import galactic
-
-from ..param.test_field import ParameterFieldMixin
 
 
 class MassParameterMixin(ParameterFieldMixin):

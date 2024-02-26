@@ -8,10 +8,12 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 import pytest
-from jax_quantity import Quantity
 from quax import quaxify
 
+from jax_quantity import Quantity
+
 import galax.dynamics as gd
+from .io.test_gala import GalaIOMixin
 from galax.potential import AbstractPotentialBase
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
@@ -24,8 +26,6 @@ from galax.typing import (
 )
 from galax.units import UnitSystem, galactic
 from galax.utils._jax import vectorize_method
-
-from .io.test_gala import GalaIOMixin
 
 array_equal = quaxify(jnp.array_equal)
 

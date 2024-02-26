@@ -19,12 +19,12 @@ from typing import (
 
 import array_api_jax_compat as xp
 import astropy.units as u
+
 from jax_quantity import Quantity
 
+from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 from galax.typing import Unit
 from galax.utils.dataclasses import dataclass_with_converter, field
-
-from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 
 if TYPE_CHECKING:
     from galax.potential._potential.base import AbstractPotentialBase

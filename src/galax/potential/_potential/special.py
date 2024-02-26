@@ -10,14 +10,14 @@ from typing import Any, ClassVar, TypeVar, final
 
 import astropy.units as u
 import equinox as eqx
-from jax_quantity import Quantity
 
-from galax.units import UnitSystem, dimensionless, galactic
+from jax_quantity import Quantity
 
 from .base import AbstractPotentialBase
 from .builtin import HernquistPotential, MiyamotoNagaiPotential, NFWPotential
 from .composite import AbstractCompositePotential
 from .utils import converter_to_usys
+from galax.units import UnitSystem, dimensionless, galactic
 
 T = TypeVar("T", bound=AbstractPotentialBase)
 

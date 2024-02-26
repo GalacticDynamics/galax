@@ -12,7 +12,13 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 import jaxtyping as jt
-from astropy.units import Quantity
+from astropy.units import Quantity as APYQuantity
+
+from jax_quantity import Quantity
+from vector import (
+    Abstract3DVector,
+    Abstract3DVectorDifferential,
+)
 
 from .integrate import DiffraxIntegrator, Integrator
 from galax.coordinates import (
@@ -20,18 +26,18 @@ from galax.coordinates import (
     PhaseSpacePosition,
     PhaseSpaceTimePosition,
 )
+from galax.coordinates._psp.base import _p_converter, _q_converter
 from galax.coordinates._psp.utils import Shaped, getitem_vec1time_index
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
-    BatchFloatScalar,
+    BatchFloatQScalar,
     BatchVec6,
     BroadBatchFloatScalar,
-    BroadBatchVecTime3,
     FloatScalar,
     Vec1,
     VecTime,
 )
-from galax.utils._shape import batched_shape
+from galax.utils._shape import batched_shape, vector_batched_shape
 from galax.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
@@ -49,10 +55,10 @@ class Orbit(AbstractPhaseSpaceTimePosition):
     in a given potential.
     """
 
-    q: BroadBatchVecTime3 = eqx.field(converter=converter_float_array)
+    q: Abstract3DVector = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
-    p: BroadBatchVecTime3 = eqx.field(converter=converter_float_array)
+    p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized
@@ -74,8 +80,8 @@ class Orbit(AbstractPhaseSpaceTimePosition):
     @property
     def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
         """Batch, component shape."""
-        qbatch, qshape = batched_shape(self.q, expect_ndim=1)
-        pbatch, pshape = batched_shape(self.p, expect_ndim=1)
+        qbatch, qshape = vector_batched_shape(self.q)
+        pbatch, pshape = vector_batched_shape(self.p)
         tbatch, _ = batched_shape(self.t, expect_ndim=1)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         array_shape = qshape + pshape + (1,)
@@ -112,7 +118,7 @@ class Orbit(AbstractPhaseSpaceTimePosition):
     @partial(jax.jit)
     def potential_energy(
         self, potential: AbstractPotentialBase | None = None, /
-    ) -> BatchFloatScalar:
+    ) -> BatchFloatQScalar:
         r"""Return the specific potential energy.
 
         .. math::
@@ -136,7 +142,7 @@ class Orbit(AbstractPhaseSpaceTimePosition):
     @partial(jax.jit)
     def energy(
         self, potential: "AbstractPotentialBase | None" = None, /
-    ) -> BatchFloatScalar:
+    ) -> BatchFloatQScalar:
         r"""Return the specific total energy.
 
         .. math::
@@ -164,7 +170,7 @@ _default_integrator: Integrator = DiffraxIntegrator()
 def integrate_orbit(
     pot: AbstractPotentialBase,
     w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
-    t: VecTime | Quantity,
+    t: VecTime | APYQuantity,
     *,
     integrator: Integrator | None = None,
 ) -> Orbit:
@@ -232,6 +238,7 @@ def integrate_orbit(
     few standard imports are needed:
 
     >>> import astropy.units as u
+    >>> from jax_quantity import Quantity
     >>> import array_api_jax_compat as xp  # preferred over `jax.numpy`
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
@@ -244,12 +251,14 @@ def integrate_orbit(
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
 
-    >>> w0 = gc.PhaseSpacePosition(q=[10., 0., 0.], p=[0., 0.1, 0.])
+    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
+    ...                            p=Quantity([0., 0.1, 0.], "km/s"))
     >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
     >>> orbit = integrate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-        q=f64[4,3], p=f64[4,3], t=f64[4], potential=KeplerPotential(...)
+      q=Cartesian3DVector(...), p=CartesianDifferential3D(...), t=f64[4],
+      potential=KeplerPotential(...)
     )
 
     Note how there are 4 points in the orbit, corresponding to the 4 requested
@@ -259,17 +268,23 @@ def integrate_orbit(
     >>> orbit = integrate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-        q=f64[10,3], p=f64[10,3], t=f64[10], potential=KeplerPotential(...)
+      q=Cartesian3DVector(...), p=CartesianDifferential3D(...), t=f64[10],
+      potential=KeplerPotential(...)
     )
 
     We can also integrate a batch of orbits at once:
 
-    >>> w0 = gc.PhaseSpacePosition(q=[[10., 0., 0.], [10., 0., 0.]],
-    ...                            p=[[0., 0.1, 0.], [0., 0.2, 0.]])
+    >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0., 0.], [10., 0., 0.]], "kpc"),
+    ...                            p=Quantity([[0., 0.1, 0.], [0., 0.2, 0.]], "km/s"))
     >>> orbit = integrate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-        q=f64[2,10,3], p=f64[2,10,3], t=f64[10], potential=KeplerPotential(...)
+      q=Cartesian3DVector(
+        x=Quantity[PhysicalType('length')](value=f64[2,10], unit=Unit("kpc")),
+        ...
+      ),
+      p=CartesianDifferential3D(...), t=f64[10],
+      potential=KeplerPotential(...)
     )
     """
     # Parse w0
@@ -280,9 +295,9 @@ def integrate_orbit(
             UserWarning,
             stacklevel=2,
         )
-        qp0 = w0.w()
+        qp0 = w0.w(units=pot.units)
     elif isinstance(w0, PhaseSpacePosition):
-        qp0 = w0.w()
+        qp0 = w0.w(units=pot.units)
     else:
         qp0 = w0
 
@@ -296,7 +311,12 @@ def integrate_orbit(
     ws = integrator(pot._integrator_F, qp0, t)  # noqa: SLF001
 
     # Construct the orbit object
-    return Orbit(q=ws[..., 0:3], p=ws[..., 3:6], t=t, potential=pot)
+    return Orbit(
+        q=Quantity(ws[..., 0:3], pot.units["length"]),
+        p=Quantity(ws[..., 3:6], pot.units["speed"]),
+        t=t,
+        potential=pot,
+    )
 
 
 _select_w0 = jnp.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
@@ -313,7 +333,7 @@ def _psp2t(
 def evaluate_orbit(
     pot: AbstractPotentialBase,
     w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
-    t: VecTime | Quantity,
+    t: VecTime | APYQuantity,
     *,
     integrator: Integrator | None = None,
 ) -> Orbit:
@@ -397,12 +417,14 @@ def evaluate_orbit(
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
 
-    >>> w0 = gc.PhaseSpaceTimePosition(q=[10., 0., 0.], p=[0., 0.1, 0.], t=-100)
+    >>> w0 = gc.PhaseSpaceTimePosition(q=Quantity([10., 0., 0.], "kpc"),
+    ...                                p=Quantity([0., 0.1, 0.], "km/s"), t=-100)
     >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
     >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-        q=f64[4,3], p=f64[4,3], t=f64[4], potential=KeplerPotential(...)
+      q=Cartesian3DVector(...), p=CartesianDifferential3D(...), t=f64[4],
+      potential=KeplerPotential(...)
     )
 
     Note how there are 4 points in the orbit, corresponding to the 4 requested
@@ -415,25 +437,32 @@ def evaluate_orbit(
     >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-        q=f64[10,3], p=f64[10,3], t=f64[10], potential=KeplerPotential(...)
+      q=Cartesian3DVector(...), p=CartesianDifferential3D(...), t=f64[10],
+      potential=KeplerPotential(...)
     )
 
     We can also integrate a batch of orbits at once:
 
-    >>> w0 = gc.PhaseSpaceTimePosition(q=[[10., 0., 0.], [10., 0., 0.]],
-    ...                                p=[[0., 0.1, 0.], [0., 0.2, 0.]],
+    >>> w0 = gc.PhaseSpaceTimePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
+    ...                                p=Quantity([[0, 0.1, 0], [0, 0.2, 0]], "km/s"),
     ...                                t=[-100, -150])
     >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-        q=f64[2,10,3], p=f64[2,10,3], t=f64[10], potential=KeplerPotential(...)
+      q=Cartesian3DVector(
+        x=Quantity[PhysicalType('length')](value=f64[2,10], unit=Unit("kpc")),
+        ...
+      ),
+      p=CartesianDifferential3D(...), t=f64[10],
+      potential=KeplerPotential(...)
     )
 
     :class:`~galax.dynamics.PhaseSpaceTimePosition` has a ``t`` argument for the
     time at which the position is given. As noted earlier, this can be used to
     integrate from a different time than the initial time of the position:
 
-    >>> w0 = gc.PhaseSpaceTimePosition(q=[10., 0., 0.], p=[0., 0.1, 0.], t=0)
+    >>> w0 = gc.PhaseSpaceTimePosition(q=Quantity([10., 0., 0.], "kpc"),
+    ...                                p=Quantity([0., 0.1, 0.], "km/s"), t=0)
     >>> ts = xp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
     >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
@@ -449,7 +478,7 @@ def evaluate_orbit(
         and will assume ``w0`` is defined at `t`[0].
     """
     # Determine the integrator
-    # Reboot the integrator to avoid stateful issues
+    # Reboot the integrator to avoid statefulness issues
     integrator = replace(integrator) if integrator is not None else _default_integrator
 
     # Parse w0
@@ -458,7 +487,11 @@ def evaluate_orbit(
     elif isinstance(w0, PhaseSpacePosition):
         pspt0 = PhaseSpaceTimePosition(q=w0.q, p=w0.p, t=t[0])
     else:
-        pspt0 = PhaseSpaceTimePosition(q=w0[..., 0:3], p=w0[..., 3:6], t=t[0])
+        pspt0 = PhaseSpaceTimePosition(
+            q=Quantity(w0[..., 0:3], pot.units["length"]),
+            p=Quantity(w0[..., 3:6], pot.units["speed"]),
+            t=t[0],
+        )
 
     # Need to integrate `w0.t` to `t[0]`.
     # The integral int_a_a is not well defined (can be inf) so we need to
@@ -467,7 +500,7 @@ def evaluate_orbit(
     # passing either `wt` instead of `w` or the initial time as a separate
     # argument).
     # fmt: off
-    w0_ = pspt0.w()
+    w0_ = pspt0.w(units=pot.units)
     qp0 = _select_w0(
         pspt0.t == t[0],  # don't integrate if already at the desired time
         w0_,  #               [batch, final t, positions (w/out time)] ⬇
@@ -476,8 +509,13 @@ def evaluate_orbit(
     # fmt: on
 
     # Integrate the orbit
-    w = integrator(pot._integrator_F, qp0, t)  # noqa: SLF001
+    ws = integrator(pot._integrator_F, qp0, t)  # noqa: SLF001
     # TODO: ꜛ reduce repeat dimensions of `time`.
 
     # Construct the orbit object
-    return Orbit(q=w[..., 0:3], p=w[..., 3:6], t=t, potential=pot)
+    return Orbit(
+        q=Quantity(ws[..., 0:3], pot.units["length"]),
+        p=Quantity(ws[..., 3:6], pot.units["speed"]),
+        t=t,
+        potential=pot,
+    )

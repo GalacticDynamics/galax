@@ -8,10 +8,13 @@ from typing import TYPE_CHECKING, Any, final
 import equinox as eqx
 import jax.numpy as jnp
 
+from vector import Abstract3DVector, Abstract3DVectorDifferential
+
 from galax.coordinates import AbstractPhaseSpaceTimePosition
+from galax.coordinates._psp.base import _p_converter, _q_converter
 from galax.coordinates._psp.utils import getitem_vec1time_index
-from galax.typing import BroadBatchVec3, VecTime
-from galax.utils._shape import batched_shape
+from galax.typing import VecTime
+from galax.utils._shape import batched_shape, vector_batched_shape
 from galax.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
@@ -34,10 +37,10 @@ class MockStream(AbstractPhaseSpaceTimePosition):
         Release time of the stream particles [Myr].
     """
 
-    q: BroadBatchVec3 = eqx.field(converter=converter_float_array)
+    q: Abstract3DVector = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
-    p: BroadBatchVec3 = eqx.field(converter=converter_float_array)
+    p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     t: VecTime = eqx.field(converter=converter_float_array)
@@ -52,8 +55,8 @@ class MockStream(AbstractPhaseSpaceTimePosition):
     @property
     def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
         """Batch ."""
-        qbatch, qshape = batched_shape(self.q, expect_ndim=1)
-        pbatch, pshape = batched_shape(self.p, expect_ndim=1)
+        qbatch, qshape = vector_batched_shape(self.q)
+        pbatch, pshape = vector_batched_shape(self.p)
         tbatch, _ = batched_shape(self.t, expect_ndim=0)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         return batch_shape, qshape + pshape + (1,)

@@ -5,15 +5,21 @@ from typing import Any, Self, TypeVar
 
 import array_api_jax_compat as xp
 import astropy.units as u
+import equinox as eqx
 import jax.numpy as jnp
 import jax.random as jr
 import pytest
+from plum import convert
+
+from jax_quantity import Quantity
+from vector import Cartesian3DVector, CartesianDifferential3D
 
 from .test_base import AbstractPhaseSpacePositionBase_Test, Shape, return_keys
 from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
+from galax.coordinates._psp.base import _p_converter, _q_converter
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.potential._potential.special import MilkyWayPotential
-from galax.typing import BatchVec7, FloatScalar, Vec3
+from galax.typing import BatchVec7, FloatScalar
 from galax.units import UnitSystem, galactic
 
 T = TypeVar("T", bound=AbstractPhaseSpaceTimePosition)
@@ -26,8 +32,8 @@ class AbstractPhaseSpaceTimePosition_Test(AbstractPhaseSpacePositionBase_Test[T]
         """Return a phase-space position."""
         _, subkeys = return_keys(3)
 
-        q = jr.normal(next(subkeys), (*shape, 3))
-        p = jr.normal(next(subkeys), (*shape, 3))
+        q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
+        p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
         t = jr.normal(next(subkeys), shape)
         return w_cls(q=q, p=p, t=t)
 
@@ -43,7 +49,7 @@ class AbstractPhaseSpaceTimePosition_Test(AbstractPhaseSpacePositionBase_Test[T]
 
     def test_getitem_boolarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        idx = xp.ones(w.q.shape[:-1], dtype=bool)
+        idx = xp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
         assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx])
@@ -61,14 +67,15 @@ class AbstractPhaseSpaceTimePosition_Test(AbstractPhaseSpacePositionBase_Test[T]
 
     def test_wt(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpaceTimePosition.wt`."""
-        wt = w.wt()
+        wt = w.wt(units=galactic)
         assert wt.shape == w.full_shape
         assert jnp.array_equal(wt[..., 0], w.t)
-        assert jnp.array_equal(wt[..., 1:4], w.q)
-        assert jnp.array_equal(wt[..., 4:7], w.p)
-
-        with pytest.raises(NotImplementedError):
-            w.wt(units=galactic)
+        assert jnp.array_equal(
+            wt[..., 1:4], convert(w.q, Quantity).decompose(galactic).value
+        )
+        assert jnp.array_equal(
+            wt[..., 4:7], convert(w.p, Quantity).decompose(galactic).value
+        )
 
     # ===============================================================
 
@@ -105,13 +112,13 @@ class TestAbstractPhaseSpaceTimePosition(
         class PSP(AbstractPhaseSpaceTimePosition):
             """A phase-space position."""
 
-            q: Vec3
-            p: Vec3
+            q: Cartesian3DVector = eqx.field(converter=_q_converter)
+            p: CartesianDifferential3D = eqx.field(converter=_p_converter)
             t: FloatScalar
 
             @property
             def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int]]:
-                return self.q.shape[:-1], (3, 3, 1)
+                return self.q.shape, (3, 3, 1)
 
             def __getitem__(self, index: Any) -> Self:
                 return replace(self, q=self.q[index], p=self.p[index], t=self.t[index])
@@ -131,14 +138,20 @@ class TestAbstractPhaseSpaceTimePosition(
                 wt : Array[float, (*batch, 1+Q+P)]
                     The full phase-space position, including time.
                 """
-                if units is not None:
-                    msg = "units not yet implemented."
-                    raise NotImplementedError(msg)
-
                 batch_shape, comp_shapes = self._shape_tuple
-                q = xp.broadcast_to(self.q, batch_shape + comp_shapes[0:1])
-                p = xp.broadcast_to(self.p, batch_shape + comp_shapes[1:2])
-                t = self.t[..., None]
+                q = xp.broadcast_to(
+                    convert(self.q, Quantity).decompose(units).value,
+                    (*batch_shape, comp_shapes[0]),
+                )
+                p = xp.broadcast_to(
+                    convert(
+                        self.p.represent_as(CartesianDifferential3D, self.q), Quantity
+                    )
+                    .decompose(units)
+                    .value,
+                    (*batch_shape, comp_shapes[1]),
+                )
+                t = xp.broadcast_to(self.t, batch_shape)[..., None]
                 return xp.concat((t, q, p), axis=-1)
 
         return PSP

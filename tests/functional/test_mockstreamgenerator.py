@@ -31,8 +31,8 @@ def compute_loss(
     trail_arm_obs = jax.lax.stop_gradient(trail_arm)
     # Compute loss
     return -xp.sum(
-        (lead_arm.w() - lead_arm_obs.w()) ** 2
-        + (trail_arm.w() - trail_arm_obs.w()) ** 2
+        (lead_arm.w(units=usys) - lead_arm_obs.w(units=usys)) ** 2
+        + (trail_arm.w(units=usys) - trail_arm_obs.w(units=usys)) ** 2
     )
 
 

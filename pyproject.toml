@@ -35,6 +35,7 @@
     "lazy_loader",
     "quax >= 0.0.3",
     "typing_extensions",
+    "vector @ git+https://github.com/GalacticDynamics/vector.git",
   ]
   description = "Galactic Dynamix in Jax."
   dynamic = ["version"]

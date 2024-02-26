@@ -118,8 +118,9 @@ in :mod:`galax.integrate`, but do so using the convenience interface available
 on any Potential object through the
 :func:`~galax.potential.AbstractPotential.integrate_orbit` method::
 
+    >>> import galax.dynamics as gd
     >>> t = jnp.arange(0.0, 2.0, step=1/1000) # Gyr
-    >>> orbit = mw.integrate_orbit(psp.w(), t=t)
+    >>> orbit = gd.evaluate_orbit(mw, psp.w(units=mw.units), t=t)
 
 By default, this method uses Leapfrog integration , which is a fast, symplectic
 integration scheme. The returned object is an instance of the
@@ -129,7 +130,9 @@ phase-space positions at times::
 
     >>> orbit
     Orbit(
-      q=f64[2000,3], p=f64[2000,3], t=f64[2000], ...
+      q=Cartesian3DVector(
+        x=Quantity[PhysicalType('length')](value=f64[2000], unit=Unit("kpc")),
+        ...
 
 :class:`~galax.dynamics.Orbit` objects have many of their own useful methods for
 performing common tasks, like plotting an orbit::
@@ -151,7 +154,7 @@ performing common tasks, like plotting an orbit::
     mw = gp.MilkyWayPotential()
     psp = gc.PhaseSpacePosition(pos=[-8.1, 0, 0.02] * u.kpc,
                                 vel=[13, 245, 8.] * u.km/u.s)
-    orbit = mw.integrate_orbit(psp.w(), dt=1*u.Myr, t1=0, t2=2*u.Gyr)
+    orbit = gd.evaluate_orbit(psp.w(units=mw.units), dt=1*u.Myr, t1=0, t2=2*u.Gyr)
 
     orbit.plot(['x', 'y'])
 

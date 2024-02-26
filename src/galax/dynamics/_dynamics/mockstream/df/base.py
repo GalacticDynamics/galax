@@ -10,6 +10,8 @@ import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 
+from jax_quantity import Quantity
+
 from galax.dynamics._dynamics.mockstream.core import MockStream
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential._potential.base import AbstractPotentialBase
@@ -64,7 +66,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         """
         # Progenitor positions and times. The orbit times are used as the
         # release times for the mock stream.
-        prog_w = prog_orbit.w()
+        prog_w = prog_orbit.w(units=pot.units)
         ts = prog_orbit.t
 
         # Scan over the release times to generate the stream particle initial
@@ -78,8 +80,18 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         init_carry = (0, xp.zeros(3), xp.zeros(3), xp.zeros(3), xp.zeros(3))
         x_lead, x_trail, v_lead, v_trail = jax.lax.scan(scan_fn, init_carry, ts)[1]
 
-        mock_lead = MockStream(x_lead, v_lead, t=ts, release_time=ts)
-        mock_trail = MockStream(x_trail, v_trail, t=ts, release_time=ts)
+        mock_lead = MockStream(
+            q=Quantity(x_lead, pot.units["length"]),
+            p=Quantity(v_lead, pot.units["speed"]),
+            t=ts,
+            release_time=ts,
+        )
+        mock_trail = MockStream(
+            q=Quantity(x_trail, pot.units["length"]),
+            p=Quantity(v_trail, pot.units["speed"]),
+            t=ts,
+            release_time=ts,
+        )
 
         return mock_lead, mock_trail
 

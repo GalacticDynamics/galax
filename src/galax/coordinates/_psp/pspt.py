@@ -97,7 +97,9 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
             (*batch_shape, comp_shapes[1]),
         )
         t = xp.broadcast_to(self.t, batch_shape)[..., None]
-        return xp.concat((t, q.value, p.value), axis=-1)
+        return xp.concat(
+            (t, q.decompose(units).value, p.decompose(units).value), axis=-1
+        )
 
     # ==========================================================================
     # Dynamical quantities
@@ -273,4 +275,6 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
             (*batch_shape, comp_shapes[1]),
         )
         t = xp.broadcast_to(self.t, batch_shape)[..., None]
-        return xp.concat((t, q.value, p.value), axis=-1)
+        return xp.concat(
+            (t, q.decompose(units).value, p.decompose(units).value), axis=-1
+        )

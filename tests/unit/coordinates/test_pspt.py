@@ -136,12 +136,15 @@ class TestAbstractPhaseSpaceTimePosition(
                 """
                 batch_shape, comp_shapes = self._shape_tuple
                 q = xp.broadcast_to(
-                    convert(self.q, Quantity).value, (*batch_shape, comp_shapes[0])
+                    convert(self.q, Quantity).decompose(units).value,
+                    (*batch_shape, comp_shapes[0]),
                 )
                 p = xp.broadcast_to(
                     convert(
                         self.p.represent_as(CartesianDifferential3D, self.q), Quantity
-                    ).value,
+                    )
+                    .decompose(units)
+                    .value,
                     (*batch_shape, comp_shapes[1]),
                 )
                 t = xp.broadcast_to(self.t, batch_shape)[..., None]

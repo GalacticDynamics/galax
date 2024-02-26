@@ -19,7 +19,7 @@ from galax.coordinates import (
     PhaseSpacePosition,
     PhaseSpaceTimePosition,
 )
-from galax.coordinates._utils import Shaped, getitem_vec1time_index
+from galax.coordinates._psp.utils import Shaped, getitem_vec1time_index
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
     BatchFloatScalar,

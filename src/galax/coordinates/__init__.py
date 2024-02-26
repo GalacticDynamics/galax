@@ -5,9 +5,10 @@ from lazy_loader import attach_stub
 
 from galax.setup_package import RUNTIME_TYPECHECKER
 
-with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
-    __getattr__, __dir__, __all__ = attach_stub(__name__, __file__)
+__getattr__, __dir__, __all__ = attach_stub(__name__, __file__)
 
+# runtime type checking
+install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER)
 
 # Clean up the namespace
 del install_import_hook, attach_stub, RUNTIME_TYPECHECKER

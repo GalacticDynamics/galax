@@ -70,8 +70,12 @@ class AbstractPhaseSpaceTimePosition_Test(AbstractPhaseSpacePositionBase_Test[T]
         wt = w.wt(units=galactic)
         assert wt.shape == w.full_shape
         assert jnp.array_equal(wt[..., 0], w.t)
-        assert jnp.array_equal(wt[..., 1:4], convert(w.q, Quantity).value)
-        assert jnp.array_equal(wt[..., 4:7], convert(w.p, Quantity).value)
+        assert jnp.array_equal(
+            wt[..., 1:4], convert(w.q, Quantity).decompose(galactic).value
+        )
+        assert jnp.array_equal(
+            wt[..., 4:7], convert(w.p, Quantity).decompose(galactic).value
+        )
 
     # ===============================================================
 

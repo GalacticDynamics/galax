@@ -7,12 +7,11 @@ from typing import Any
 
 import equinox as eqx
 
-from galax.typing import FloatOrIntScalar, FloatScalar, Vec3
-from galax.units import UnitSystem
-
 from .base import AbstractPotentialBase
 from .composite import CompositePotential
 from .utils import converter_to_usys
+from galax.typing import FloatOrIntScalar, FloatScalar, Vec3
+from galax.units import UnitSystem
 
 
 class AbstractPotential(AbstractPotentialBase, strict=True):

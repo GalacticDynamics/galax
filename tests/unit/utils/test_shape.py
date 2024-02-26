@@ -8,8 +8,9 @@ import jax
 import jax.numpy as jnp
 import pytest
 from jax.numpy import array_equal
-from jax_quantity import Quantity
 from quax import quaxify
+
+from jax_quantity import Quantity
 
 from galax.utils._shape import (
     atleast_batched,

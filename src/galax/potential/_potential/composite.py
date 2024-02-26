@@ -10,6 +10,8 @@ import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 
+from .base import AbstractPotentialBase
+from .utils import converter_to_usys
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
     BatchFloatScalar,
@@ -18,9 +20,6 @@ from galax.typing import (
 from galax.units import UnitSystem
 from galax.utils import ImmutableDict
 from galax.utils._misc import first
-
-from .base import AbstractPotentialBase
-from .utils import converter_to_usys
 
 K = TypeVar("K")
 V = TypeVar("V")

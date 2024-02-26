@@ -3,14 +3,14 @@ from typing import Any
 import array_api_jax_compat as xp
 import jax.numpy as jnp
 import pytest
-from jax_quantity import Quantity
 from quax import quaxify
 
+from jax_quantity import Quantity
+
+from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from galax.potential import AbstractPotentialBase, NullPotential
 from galax.typing import Vec3
 from galax.units import UnitSystem
-
-from ..test_core import TestAbstractPotential as AbstractPotential_Test
 
 allclose = quaxify(jnp.allclose)
 

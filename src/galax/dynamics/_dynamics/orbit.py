@@ -14,6 +14,7 @@ import jax.numpy as jnp
 import jaxtyping as jt
 from astropy.units import Quantity
 
+from .integrate import DiffraxIntegrator, Integrator
 from galax.coordinates import (
     AbstractPhaseSpaceTimePosition,
     PhaseSpacePosition,
@@ -32,8 +33,6 @@ from galax.typing import (
 )
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
-
-from .integrate import DiffraxIntegrator, Integrator
 
 if TYPE_CHECKING:
     from typing import Self

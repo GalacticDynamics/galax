@@ -9,13 +9,12 @@ import jax.numpy as jnp
 import jax.random as jr
 import pytest
 
+from .test_base import AbstractPhaseSpacePositionBase_Test, T, return_keys
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.potential._potential.special import MilkyWayPotential
 from galax.typing import Vec3
 from galax.units import galactic
-
-from .test_base import AbstractPhaseSpacePositionBase_Test, T, return_keys
 
 Shape: TypeAlias = tuple[int, ...]
 

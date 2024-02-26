@@ -12,6 +12,8 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from .base import AbstractPhaseSpacePositionBase
+from .utils import getitem_broadscalartime_index
 from galax.typing import (
     BatchFloatScalar,
     BatchVec7,
@@ -22,9 +24,6 @@ from galax.typing import (
 from galax.units import UnitSystem
 from galax.utils._shape import atleast_batched, batched_shape, expand_batch_dims
 from galax.utils.dataclasses import converter_float_array
-
-from .base import AbstractPhaseSpacePositionBase
-from .utils import getitem_broadscalartime_index
 
 if TYPE_CHECKING:
     from typing import Self

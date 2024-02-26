@@ -11,11 +11,10 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from .base import AbstractPhaseSpacePositionBase
 from galax.typing import BatchFloatScalar, BroadBatchVec3, FloatScalar
 from galax.utils._shape import batched_shape
 from galax.utils.dataclasses import converter_float_array
-
-from .base import AbstractPhaseSpacePositionBase
 
 if TYPE_CHECKING:
     from typing import Self

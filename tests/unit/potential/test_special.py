@@ -4,10 +4,12 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
-from jax_quantity import Quantity
 from quax import quaxify
 from typing_extensions import override
 
+from jax_quantity import Quantity
+
+from .test_composite import AbstractCompositePotential_Test
 from galax.potential import (
     AbstractPotentialBase,
     CompositePotential,
@@ -17,8 +19,6 @@ from galax.potential import (
 from galax.typing import Vec3
 from galax.units import UnitSystem, dimensionless, galactic, solarsystem
 from galax.utils._misc import first
-
-from .test_composite import AbstractCompositePotential_Test
 
 allclose = quaxify(jnp.allclose)
 

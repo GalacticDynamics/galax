@@ -4,12 +4,9 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
-from jax_quantity import Quantity
 from quax import quaxify
 
-from galax.potential import AbstractPotentialBase, BarPotential
-from galax.typing import Vec3
-from galax.units import UnitSystem
+from jax_quantity import Quantity
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import (
@@ -18,6 +15,9 @@ from .test_common import (
     ShapeBParameterMixin,
     ShapeCParameterMixin,
 )
+from galax.potential import AbstractPotentialBase, BarPotential
+from galax.typing import Vec3
+from galax.units import UnitSystem
 
 allclose = quaxify(jnp.allclose)
 

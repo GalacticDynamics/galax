@@ -5,11 +5,15 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
-from jax_quantity import Quantity
 from quax import quaxify
 from typing_extensions import override
 
+from jax_quantity import Quantity
+
 import galax.potential as gp
+from ..param.test_field import ParameterFieldMixin
+from ..test_core import TestAbstractPotential as AbstractPotential_Test
+from .test_common import MassParameterMixin
 from galax.potential import (
     AbstractPotential,
     AbstractPotentialBase,
@@ -19,10 +23,6 @@ from galax.potential import (
 from galax.typing import Vec3
 from galax.units import UnitSystem, galactic
 from galax.utils._optional_deps import HAS_GALA
-
-from ..param.test_field import ParameterFieldMixin
-from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import MassParameterMixin
 
 allclose = quaxify(jnp.allclose)
 

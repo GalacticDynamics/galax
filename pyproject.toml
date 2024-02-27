@@ -72,8 +72,8 @@
 [tool.hatch]
   build.hooks.vcs.version-file = "src/galax/_version.py"
   envs.default.dependencies = ["pytest", "pytest-cov"]
-  version.source = "vcs"
   metadata.allow-direct-references = true
+  version.source = "vcs"
 
 
 [tool.pytest.ini_options]
@@ -173,7 +173,7 @@
       "F722",   # Syntax error in forward annotation  <- jaxtyping
       "F821",   # undefined name  <- jaxtyping
       "FIX002", # Line contains TODO, consider resolving the issue
-      "ISC001", # single-line-implicit-string-concatenation  <- ruff-format
+      "ISC001", # Implicit string concatenation <- ruff-format
       "N80",    # Naming conventions.
       "PD",     # pandas-vet
       "PLR",    # Design related pylint codes
@@ -182,11 +182,6 @@
       "TD002",  # Missing author in TODO
       "TD003",  # Missing issue link on the line following this TODO
       "UP037",  # Remove quote from type annotation  <- jaxtyping
-      # TODO: fix these
-      "ARG001",
-      "ARG002",
-      "ERA001", # commented-out code
-      "F841",
     ]
     # Uncomment if using a _compat.typing backport
     # typing-modules = ["galax._compat.typing"]
@@ -202,6 +197,8 @@
       "noxfile.py" = ["ERA001", "T20"]
       "tests/**" = [
         "ANN",
+        "ARG001",
+        "ARG002",
         "D10",
         "E731",
         "INP001",

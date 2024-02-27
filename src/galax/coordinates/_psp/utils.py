@@ -17,7 +17,8 @@ class Shaped(Protocol):
 
 
 def _getitem_broadscalartime_index_tuple(
-    index: tuple[Any, ...], t: FloatArrayAnyShape
+    index: tuple[Any, ...],
+    t: FloatArrayAnyShape,  # noqa: ARG001
 ) -> Any:
     """Get the time index from a slice."""
     if len(index) == 0:  # slice is an empty tuple

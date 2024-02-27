@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 _GALA_TO_GALAX_REGISTRY: dict["type[GalaPotentialBase]", type[AbstractPotential]] = {}
 
 
-def gala_to_galax(pot: "GalaPotentialBase", /) -> AbstractPotentialBase:
+def gala_to_galax(pot: "GalaPotentialBase", /) -> AbstractPotentialBase:  # noqa: ARG001
     """Convert a :mod:`gala` potential to a :mod:`galax` potential.
 
     Parameters

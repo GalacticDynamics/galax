@@ -116,7 +116,7 @@ class ParameterField:
         # Convert
         if isinstance(value, AbstractParameter):
             # TODO: this doesn't handle the correct output unit, a. la.
-            # potential.units[self.dimensions]
+            #       ``potential.units[self.dimensions]``
             # Check the unit is compatible
             self._check_unit(potential, value.unit)
         elif callable(value):

@@ -22,6 +22,7 @@ from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
+    BatchableFloatOrIntQScalar,
     BatchableFloatOrIntScalarLike,
     BatchFloatOrIntQScalar,
     BatchFloatQScalar,
@@ -115,7 +116,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike | AstropyQuantity,
+        t: BatchableFloatOrIntQScalar | BatchableFloatOrIntScalarLike | AstropyQuantity,
     ) -> BatchFloatQScalar:
         """Compute the potential energy at the given position(s).
 

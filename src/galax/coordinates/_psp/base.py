@@ -233,7 +233,6 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         Quantity['specific energy'](Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
                                     dtype=float64), unit='km2 / s2')
         """
-        # TODO: use a ``norm`` function so that this works for non-Cartesian.
         return 0.5 * self.p.norm(self.q) ** 2
 
     # TODO: property?

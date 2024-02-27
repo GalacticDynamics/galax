@@ -95,9 +95,11 @@ BatchFloatQScalar = Shaped[FloatQScalar, "*batch"]
 BatchableFloatLike = BatchFloatScalar | FloatLike
 
 BatchFloatOrIntScalar = Shaped[FloatOrIntScalar, "*batch"]
+BatchableFloatOrIntScalar = Shaped[FloatOrIntScalar, "*#batch"]
 BatchFloatOrIntQScalar = Shaped[FloatOrIntQScalar, "*batch"]
+BatchableFloatOrIntQScalar = Shaped[FloatOrIntQScalar, "*#batch"]
 
-BatchableFloatOrIntScalarLike = BatchFloatOrIntScalar | FloatOrIntScalarLike
+BatchableFloatOrIntScalarLike = BatchableFloatOrIntScalar | FloatOrIntScalarLike
 
 # -----------------
 # Batched

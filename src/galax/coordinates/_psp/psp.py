@@ -91,8 +91,8 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
 
         >>> from jax_quantity import Quantity
         >>> from vector import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates import PhaseSpacePosition
-        >>> from galax.potential import MilkyWayPotential
+        >>> import galax.coordinates as gc
+        >>> import galax.potential as gp
 
         We can construct a phase-space position:
 
@@ -104,11 +104,11 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
-        >>> w = PhaseSpacePosition(q, p)
+        >>> w = gc.PhaseSpacePosition(q, p)
 
         We can compute the kinetic energy:
 
-        >>> pot = MilkyWayPotential()
+        >>> pot = gp.MilkyWayPotential()
         >>> w.potential_energy(pot, t=Quantity(0, "Gyr"))
         Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """

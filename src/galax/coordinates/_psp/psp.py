@@ -87,7 +87,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         E : Quantity[float, (*batch,), "specific energy"]
             The specific potential energy.
         """
-        x = convert(self.q, Quantity).value  # Cartesian positions
+        x = convert(self.q, Quantity).decompose(potential.units).value  # Cartesian
         return potential.potential_energy(x, t=t)
 
     @partial(jax.jit)

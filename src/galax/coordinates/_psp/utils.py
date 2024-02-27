@@ -59,7 +59,47 @@ def _getitem_vec1time_index_shaped(index: Shaped, t: FloatArrayAnyShape) -> Shap
 
 
 def getitem_vec1time_index(index: Any, t: FloatArrayAnyShape) -> Any:
-    """Get the time index from an index."""
+    """Get the time index from an index.
+
+    Parameters
+    ----------
+    index : Any
+        The index to get the time index from.
+    t : FloatArrayAnyShape
+        The time array.
+
+    Returns
+    -------
+    Any
+        The time index.
+
+    Examples
+    --------
+    We set up a time array.
+    >>> import jax.numpy as jnp
+    >>> t = jnp.ones((10, 3), dtype=float)
+
+    Some standard indexes.
+    >>> getitem_vec1time_index(0, t)
+    0
+
+    >>> getitem_vec1time_index(slice(0, 10), t)
+    slice(0, 10, None)
+
+    Tuples:
+    >>> getitem_vec1time_index((0,), t)
+    (0,)
+
+    >>> t = jnp.ones((1, 2, 3), dtype=float)
+    >>> getitem_vec1time_index((0, 1), t)
+    (0, 1)
+
+    Shaped:
+    >>> import jax.numpy as jnp
+    >>> index = jnp.asarray([True, False, True])
+    >>> getitem_vec1time_index(index, t)
+    Array([ True, False,  True], dtype=bool)
+    """
     if isinstance(index, tuple):
         return _getitem_vec1time_index_tuple(index, t)
     if isinstance(index, Shaped):

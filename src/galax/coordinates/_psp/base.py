@@ -21,7 +21,7 @@ from vector import (
 )
 
 from galax.typing import BatchQVec3, BatchVec6
-from galax.units import UnitSystem
+from galax.units import unitsystem
 
 if TYPE_CHECKING:
     from typing import Self
@@ -60,7 +60,45 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
 
     @property
     def shape(self) -> tuple[int, ...]:
-        """Shape of the position and velocity arrays."""
+        """Shape of the position and velocity arrays.
+
+        This is the shape of the batch, not including the component shape.
+
+        Returns
+        -------
+        shape : tuple[int, ...]
+            The shape of the batch.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpacePosition
+
+        We can create a phase-space position:
+
+        >>> q = Cartesian3DVector(x=Quantity(1, "kpc"), y=Quantity(2, "kpc"),
+        ...                       z=Quantity(3, "kpc"))
+        >>> p = CartesianDifferential3D(d_x=Quantity(4, "km/s"),
+        ...                             d_y=Quantity(5, "km/s"),
+        ...                             d_z=Quantity(6, "km/s"))
+        >>> pos = PhaseSpacePosition(q=q, p=p)
+
+        We can access the shape of the position and velocity arrays:
+
+        >>> pos.shape
+        ()
+
+        For a batch of phase-space positions, the shape will be non-empty:
+
+        >>> q = Cartesian3DVector(x=Quantity([1, 4], "kpc"), y=Quantity(2, "kpc"),
+        ...                       z=Quantity(3, "kpc"))
+        >>> pos = PhaseSpacePosition(q=q, p=p)
+        >>> pos.shape
+        (2,)
+        """
         return self._shape_tuple[0]
 
     @property
@@ -80,35 +118,77 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
 
     @property
     def full_shape(self) -> tuple[int, ...]:
-        """Shape of the position and velocity arrays."""
+        """The full shape: batch and components.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpacePosition
+
+        We can create a phase-space position:
+
+        >>> q = Cartesian3DVector(x=Quantity([1], "kpc"), y=Quantity(2, "kpc"),
+        ...                       z=Quantity(3, "kpc"))
+        >>> p = CartesianDifferential3D(d_x=Quantity(4, "km/s"),
+        ...                             d_y=Quantity(5, "km/s"),
+        ...                             d_z=Quantity(6, "km/s"))
+        >>> pos = PhaseSpacePosition(q=q, p=p)
+        >>> pos.full_shape
+        (1, 6)
+        """
         batch_shape, component_shapes = self._shape_tuple
         return (*batch_shape, sum(component_shapes))
 
     # ==========================================================================
     # Convenience methods
 
-    def w(self, *, units: UnitSystem) -> BatchVec6:
+    def w(self, *, units: Any) -> BatchVec6:
         """Phase-space position as an Array[float, (*batch, Q + P)].
 
-        This is the full phase-space position, not including the time.
+        This is the full phase-space position, not including the time (if a
+        component).
 
         Parameters
         ----------
         units : `galax.units.UnitSystem`, optional keyword-only
-            The unit system If ``None``, use the current unit system.
+            The unit system. :func:`~galax.units.unitsystem` is used to
+            convert the input to a unit system.
 
         Returns
         -------
         w : Array[float, (*batch, Q + P)]
             The phase-space position as a 6-vector in Cartesian coordinates.
+            This will have shape
+            :attr:`AbstractPhaseSpacePositionBase.full_shape`.
+
+        Examples
+        --------
+        Assuming the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from galax.coordinates import PhaseSpacePosition
+
+        We can create a phase-space position and convert it to a 6-vector:
+
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                          p=Quantity([4, 5, 6], "km/s"))
+        >>> psp.w(units="galactic")
+        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
         """
+        usys = unitsystem(units)
         batch_shape, comp_shapes = self._shape_tuple
-        q = xp.broadcast_to(convert(self.q, Quantity), (*batch_shape, comp_shapes[0]))
+        q = xp.broadcast_to(
+            convert(self.q.represent_as(Cartesian3DVector), Quantity),
+            (*batch_shape, comp_shapes[0]),
+        )
         p = xp.broadcast_to(
             convert(self.p.represent_as(CartesianDifferential3D, self.q), Quantity),
             (*batch_shape, comp_shapes[1]),
         )
-        return xp.concat((q.decompose(units).value, p.decompose(units).value), axis=-1)
+        return xp.concat((q.decompose(usys).value, p.decompose(usys).value), axis=-1)
 
     # ==========================================================================
     # Dynamical quantities
@@ -126,6 +206,32 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         -------
         E : Array[float, (*batch,)]
             The kinetic energy.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpacePosition
+
+        We can construct a phase-space position:
+
+        >>> q = Cartesian3DVector(
+        ...     x=Quantity(1, "kpc"),
+        ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
+        ...     z=Quantity(2, "kpc"))
+        >>> p = CartesianDifferential3D(
+        ...     d_x=Quantity(0, "km/s"),
+        ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     d_z=Quantity(0, "km/s"))
+        >>> w = PhaseSpacePosition(q, p)
+
+        We can compute the kinetic energy:
+
+        >>> w.kinetic_energy()
+        Quantity['specific energy'](Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
+                                    dtype=float64), unit='km2 / s2')
         """
         # TODO: use a ``norm`` function so that this works for non-Cartesian.
         return 0.5 * self.p.norm(self.q) ** 2

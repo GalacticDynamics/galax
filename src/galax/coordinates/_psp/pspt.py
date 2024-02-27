@@ -23,12 +23,8 @@ from vector import (
 from .base import AbstractPhaseSpacePositionBase, _p_converter, _q_converter
 from .utils import getitem_broadscalartime_index
 from galax.typing import BatchFloatQScalar, BatchVec7, BroadBatchFloatScalar, Vec1
-from galax.units import UnitSystem
-from galax.utils._shape import (
-    batched_shape,
-    expand_batch_dims,
-    vector_batched_shape,
-)
+from galax.units import UnitSystem, unitsystem
+from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
 from galax.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
@@ -89,6 +85,23 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         -------
         wt : Array[float, (*batch, 1+Q+P)]
             The full phase-space position, including time on the first axis.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> import galax.units as gu
+
+        We can create a phase-space position:
+
+        >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "m"),
+        ...                              p=Quantity([4, 5, 6], "m/s"), t=7.0)
+        >>> psp.wt(units=gu.galactic)
+        Array([7.00000000e+00, 3.24077929e-20, 6.48155858e-20, 9.72233787e-20,
+               4.09084866e-06, 5.11356083e-06, 6.13627299e-06], dtype=float64)
         """
         batch_shape, comp_shapes = self._shape_tuple
         q = xp.broadcast_to(convert(self.q, Quantity), (*batch_shape, comp_shapes[0]))
@@ -104,7 +117,9 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
     # ==========================================================================
     # Dynamical quantities
 
-    def potential_energy(self, potential: "AbstractPotentialBase") -> BatchFloatQScalar:
+    def potential_energy(
+        self, potential: "AbstractPotentialBase"
+    ) -> Quantity["specific energy"]:
         r"""Return the specific potential energy.
 
         .. math::
@@ -120,8 +135,35 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         -------
         E : Array[float, (*batch,)]
             The specific potential energy.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.potential import MilkyWayPotential
+
+        We can construct a phase-space position:
+
+        >>> q = Cartesian3DVector(
+        ...     x=Quantity(1, "kpc"),
+        ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
+        ...     z=Quantity(2, "kpc"))
+        >>> p = CartesianDifferential3D(
+        ...     d_x=Quantity(0, "km/s"),
+        ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     d_z=Quantity(0, "km/s"))
+        >>> w = PhaseSpaceTimePosition(q, p, t=0)
+
+        We can compute the kinetic energy:
+
+        >>> pot = MilkyWayPotential()
+        >>> w.potential_energy(pot)
+        Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """
-        x = convert(self.q, Quantity).value  # Cartesian positions
+        x = convert(self.q, Quantity).decompose(potential.units).value  # Cartesian
         return potential.potential_energy(x, t=self.t)
 
     @partial(jax.jit)
@@ -143,6 +185,33 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         -------
         E : Array[float, (*batch,)]
             The kinetic energy.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.potential import MilkyWayPotential
+
+        We can construct a phase-space position:
+
+        >>> q = Cartesian3DVector(
+        ...     x=Quantity(1, "kpc"),
+        ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
+        ...     z=Quantity(2, "kpc"))
+        >>> p = CartesianDifferential3D(
+        ...     d_x=Quantity(0, "km/s"),
+        ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     d_z=Quantity(0, "km/s"))
+        >>> w = PhaseSpaceTimePosition(q, p, t=0)
+
+        We can compute the kinetic energy:
+
+        >>> pot = MilkyWayPotential()
+        >>> w.energy(pot)
+        Quantity['specific energy'](Array(..., dtype=float64), unit='km2 / s2')
         """
         return self.kinetic_energy() + self.potential_energy(potential)
 
@@ -253,7 +322,7 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
     # ==========================================================================
     # Convenience methods
 
-    def wt(self, *, units: UnitSystem | None = None) -> BatchVec7:
+    def wt(self, *, units: Any) -> BatchVec7:
         """Phase-space position as an Array[float, (*batch, 1+Q+P)].
 
         This is the full phase-space position, including the time.
@@ -267,7 +336,24 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
         -------
         wt : Array[float, (*batch, 1+Q+P)]
             The full phase-space position, including time.
+
+        Examples
+        --------
+        Assuming the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from galax.coordinates import PhaseSpaceTimePosition
+
+        We can create a phase-space position and convert it to a 6-vector:
+
+        >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                              p=Quantity([4, 5, 6], "km/s"),
+        ...                              t=7.0)
+        >>> psp.wt(units="galactic")
+         Array([7.00000000e+00, 1.00000000e+00, 2.00000000e+00, 3.00000000e+00,
+                4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64)
         """
+        usys = unitsystem(units)
         batch_shape, comp_shapes = self._shape_tuple
         q = xp.broadcast_to(convert(self.q, Quantity), (*batch_shape, comp_shapes[0]))
         p = xp.broadcast_to(
@@ -275,6 +361,4 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
             (*batch_shape, comp_shapes[1]),
         )
         t = xp.broadcast_to(self.t, batch_shape)[..., None]
-        return xp.concat(
-            (t, q.decompose(units).value, p.decompose(units).value), axis=-1
-        )
+        return xp.concat((t, q.decompose(usys).value, p.decompose(usys).value), axis=-1)

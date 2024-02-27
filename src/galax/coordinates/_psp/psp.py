@@ -18,8 +18,6 @@ from .base import AbstractPhaseSpacePositionBase, _p_converter, _q_converter
 from galax.typing import (
     BatchableFloatOrIntScalarLike,
     BatchFloatOrIntQScalar,
-    BatchFloatQScalar,
-    FloatScalar,
 )
 from galax.utils._shape import vector_batched_shape
 
@@ -67,7 +65,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         potential: "AbstractPotentialBase",
         /,
         t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
-    ) -> BatchFloatQScalar:
+    ) -> Quantity["specific energy"]:  # TODO: shape hint
         r"""Return the specific potential energy.
 
         .. math::
@@ -86,14 +84,44 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         -------
         E : Quantity[float, (*batch,), "specific energy"]
             The specific potential energy.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpacePosition
+        >>> from galax.potential import MilkyWayPotential
+
+        We can construct a phase-space position:
+
+        >>> q = Cartesian3DVector(
+        ...     x=Quantity(1, "kpc"),
+        ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
+        ...     z=Quantity(2, "kpc"))
+        >>> p = CartesianDifferential3D(
+        ...     d_x=Quantity(0, "km/s"),
+        ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     d_z=Quantity(0, "km/s"))
+        >>> w = PhaseSpacePosition(q, p)
+
+        We can compute the kinetic energy:
+
+        >>> pot = MilkyWayPotential()
+        >>> w.potential_energy(pot, t=Quantity(0, "Gyr"))
+        Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """
         x = convert(self.q, Quantity).decompose(potential.units).value  # Cartesian
         return potential.potential_energy(x, t=t)
 
     @partial(jax.jit)
     def energy(
-        self, potential: "AbstractPotentialBase", /, t: FloatScalar
-    ) -> BatchFloatQScalar:
+        self,
+        potential: "AbstractPotentialBase",
+        /,
+        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
+    ) -> Quantity["specific energy"]:
         r"""Return the specific total energy.
 
         .. math::
@@ -113,6 +141,33 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         -------
         E : Quantity[float, (*batch,), "specific energy"]
             The kinetic energy.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpacePosition
+        >>> from galax.potential import MilkyWayPotential
+
+        We can construct a phase-space position:
+
+        >>> q = Cartesian3DVector(
+        ...     x=Quantity(1, "kpc"),
+        ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
+        ...     z=Quantity(2, "kpc"))
+        >>> p = CartesianDifferential3D(
+        ...     d_x=Quantity(0, "km/s"),
+        ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     d_z=Quantity(0, "km/s"))
+        >>> w = PhaseSpacePosition(q, p)
+
+        We can compute the kinetic energy:
+
+        >>> pot = MilkyWayPotential()
+        >>> w.energy(pot, t=Quantity(0, "Gyr"))
+        Quantity['specific energy'](Array(..., dtype=float64), unit='km2 / s2')
         """
         return self.kinetic_energy() + self.potential_energy(potential, t=t)
 

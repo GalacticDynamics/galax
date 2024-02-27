@@ -38,7 +38,8 @@ class AbstractCompositePotential(
         return xp.sum(
             xp.asarray(
                 [p._potential_energy(q, t) for p in self.values()]  # noqa: SLF001
-            )
+            ),
+            axis=0,
         )
 
     ###########################################################################
@@ -88,8 +89,10 @@ class CompositePotential(AbstractCompositePotential):
 
     def __init__(
         self,
-        potentials: dict[str, AbstractPotentialBase]
-        | tuple[tuple[str, AbstractPotentialBase], ...] = (),
+        potentials: (
+            dict[str, AbstractPotentialBase]
+            | tuple[tuple[str, AbstractPotentialBase], ...]
+        ) = (),
         /,
         *,
         units: Any = None,

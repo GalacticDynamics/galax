@@ -83,6 +83,25 @@ class TestAbstractPotentialBase(GalaIOMixin):
         """Create a phase-space vector for testing."""
         return xp.concat([x, v])
 
+    # ---------------------------------
+
+    @pytest.fixture(scope="class")
+    def batchx(self, x: Vec3) -> BatchVec3:
+        """Create a batch of position vectors for testing."""
+        return xp.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=float)
+
+    @pytest.fixture(scope="class")
+    def batchv(self, v: Vec3) -> BatchVec3:
+        """Create a batch of velocity vectors for testing."""
+        return xp.asarray([[4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float)
+
+    @pytest.fixture(scope="class")
+    def batchxv(self, batchx: BatchVec3, batchv: BatchVec3) -> BatchVec3:
+        """Create a batch of phase-space vectors for testing."""
+        return xp.concatenate([batchx, batchv], axis=-1)
+
+    # ---------------------------------
+
     @pytest.fixture(scope="class")
     def t(self) -> float:
         """Create a time for testing."""
@@ -113,6 +132,17 @@ class TestAbstractPotentialBase(GalaIOMixin):
     def test_potential_energy(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.potential_energy` method."""
         assert pot.potential_energy(x, t=0) == Quantity(6, u.kpc**2 / u.Myr**2)
+
+    def test_potential_energy_batch(
+        self, pot: AbstractPotentialBase, batchx: Vec3
+    ) -> None:
+        """Test the `AbstractPotentialBase.potential_energy` method."""
+        # Test that the method works on batches.
+        assert pot.potential_energy(batchx, t=0).shape == batchx.shape[:-1]
+        # Test that the batched method is equivalent to the scalar method
+        assert array_equal(
+            pot.potential_energy(batchx, t=0)[0], pot.potential_energy(batchx[0], t=0)
+        )
 
     # ---------------------------------
 

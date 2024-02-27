@@ -152,7 +152,7 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
         # Check existence
         assert hasattr(w, "w")
 
-        # units != None
+        # units are not None
         assert w.w(units=galactic).shape[:-1] == w.full_shape[:-1]
 
     # ==========================================================================

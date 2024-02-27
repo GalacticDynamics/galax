@@ -210,6 +210,9 @@ class NullPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self,
+        q: BatchVec3,
+        /,
+        t: BatchableFloatOrIntScalarLike,  # noqa: ARG002
     ) -> BatchFloatScalar:
         return xp.zeros(q.shape[:-1], dtype=q.dtype)

@@ -92,7 +92,7 @@ class Test_getitem_broadscalartime_index:
         index = jnp.array([True, False])
         assert jnp.array_equal(self.get_index(index, t2x3), index)
 
-        # index.shape == t.shape
+        # index.shape equals t.shape
         index = jnp.array([[True, False], [False, True]])
         assert jnp.array_equal(self.get_index(index, t2x3), index)
 
@@ -175,9 +175,5 @@ class Test_getitem_vec1time_index:
         assert jnp.array_equal(self.get_index(index, t2x3), index)
 
         index = jnp.array([[True, False], [False, True]])
-        msg = (
-            f"Index {index} has too many dimensions for "
-            f"time array of shape {t2x3.shape}"
-        )
         with pytest.raises(IndexError):
             self.get_index(index, t2x3)

@@ -32,7 +32,7 @@ def _from_usys(value: UnitSystem, /) -> UnitSystem:
 
 
 @converter_to_usys.register
-def _from_none(value: None, /) -> UnitSystem:
+def _from_none(_: None, /) -> UnitSystem:
     return dimensionless
 
 
@@ -86,7 +86,7 @@ Value = TypeVar("Value", int, float, Array)
 
 
 @singledispatch
-def convert_input_to_array(value: Any, /, *, units: UnitSystem, **kwargs: Any) -> Any:
+def convert_input_to_array(value: Any, /, *, units: UnitSystem, **_: Any) -> Any:
     """Parse input arguments.
 
     This function uses :func:`~functools.singledispatch` to dispatch on the type
@@ -114,21 +114,23 @@ def convert_input_to_array(value: Any, /, *, units: UnitSystem, **kwargs: Any) -
 @convert_input_to_array.register(float)
 @convert_input_to_array.register(Array)
 def _convert_from_arraylike(
-    value: Value, /, *, units: UnitSystem, **kwargs: Any
+    value: Value,
+    /,
+    *,
+    units: UnitSystem,  # noqa: ARG001
+    **_: Any,
 ) -> Array:
     return xp.asarray(value)
 
 
 @convert_input_to_array.register(Quantity)
-def _convert_from_quantity(
-    value: Quantity, /, *, units: UnitSystem, **kwargs: Any
-) -> Array:
+def _convert_from_quantity(value: Quantity, /, *, units: UnitSystem, **_: Any) -> Array:
     return xp.asarray(value.decompose(units).value)
 
 
 @convert_input_to_array.register(BaseRepresentationOrDifferential)
 def _convert_from_baserep(
-    value: BaseRepresentationOrDifferential, /, *, units: UnitSystem, **kwargs: Any
+    value: BaseRepresentationOrDifferential, /, *, units: UnitSystem, **_: Any
 ) -> Array:
     return xp.stack(
         [getattr(value, attr).decompose(units).value for attr in value.components]
@@ -171,6 +173,6 @@ if HAS_GALA:
 
     @converter_to_usys.register
     def _from_gala_dimensionless(
-        value: GalaDimensionlessUnitSystem, /
+        _: GalaDimensionlessUnitSystem, /
     ) -> DimensionlessUnitSystem:
         return dimensionless

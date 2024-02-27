@@ -111,7 +111,7 @@ class ConstantParameter(AbstractParameter):
 
     @partial(jax.jit)
     def __call__(
-        self, t: BatchableFloatOrIntScalarLike = 0, **kwargs: Any
+        self, t: BatchableFloatOrIntScalarLike = 0, **_: Any
     ) -> FloatArrayAnyShape:
         """Return the constant parameter value.
 

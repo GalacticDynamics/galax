@@ -20,13 +20,25 @@ __all__ = [
     "ParameterField",
     # builtin
     "BarPotential",
+    "HarmonicOscillatorPotential",
+    "HenonHeilesPotential",
     "HernquistPotential",
     "IsochronePotential",
+    "JaffePotential",
     "KeplerPotential",
+    "KuzminPotential",
+    "LogarithmicPotential",
+    "LongMuraliBarPotential",
     "MiyamotoNagaiPotential",
     "NFWPotential",
     "NullPotential",
+    "PlummerPotential",
+    "PowerLawCutoffPotential",
+    "SatohPotential",
+    "StonePotential",
     # special
+    "BovyMWPotential2014",
+    "LM10Potential",
     "MilkyWayPotential",
 ]
 
@@ -34,12 +46,22 @@ from ._potential import io
 from ._potential.base import AbstractPotentialBase
 from ._potential.builtin import (
     BarPotential,
+    HarmonicOscillatorPotential,
+    HenonHeilesPotential,
     HernquistPotential,
     IsochronePotential,
+    JaffePotential,
     KeplerPotential,
+    KuzminPotential,
+    LogarithmicPotential,
+    LongMuraliBarPotential,
     MiyamotoNagaiPotential,
     NFWPotential,
     NullPotential,
+    PlummerPotential,
+    PowerLawCutoffPotential,
+    SatohPotential,
+    StonePotential,
 )
 from ._potential.composite import AbstractCompositePotential, CompositePotential
 from ._potential.core import AbstractPotential
@@ -51,4 +73,4 @@ from ._potential.param import (
     ParametersAttribute,
     UserParameter,
 )
-from ._potential.special import MilkyWayPotential
+from ._potential.special import BovyMWPotential2014, LM10Potential, MilkyWayPotential

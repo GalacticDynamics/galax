@@ -17,7 +17,7 @@ from jax_quantity import Quantity
 from vector import (
     Abstract3DVector,
     Abstract3DVectorDifferential,
-    CartesianDifferential3D,
+    Cartesian3DVector,
 )
 
 from .base import AbstractPhaseSpacePositionBase, _p_converter, _q_converter
@@ -104,11 +104,9 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
                4.09084866e-06, 5.11356083e-06, 6.13627299e-06], dtype=float64)
         """
         batch_shape, comp_shapes = self._shape_tuple
-        q = xp.broadcast_to(convert(self.q, Quantity), (*batch_shape, comp_shapes[0]))
-        p = xp.broadcast_to(
-            convert(self.p.represent_as(CartesianDifferential3D, self.q), Quantity),
-            (*batch_shape, comp_shapes[1]),
-        )
+        cart = self.represent_as(Cartesian3DVector)
+        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch_shape, comp_shapes[0]))
+        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch_shape, comp_shapes[1]))
         t = xp.broadcast_to(self.t, batch_shape)[..., None]
         return xp.concat(
             (t, q.decompose(units).value, p.decompose(units).value), axis=-1
@@ -355,10 +353,8 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
         """
         usys = unitsystem(units)
         batch_shape, comp_shapes = self._shape_tuple
-        q = xp.broadcast_to(convert(self.q, Quantity), (*batch_shape, comp_shapes[0]))
-        p = xp.broadcast_to(
-            convert(self.p.represent_as(CartesianDifferential3D, self.q), Quantity),
-            (*batch_shape, comp_shapes[1]),
-        )
+        cart = self.represent_as(Cartesian3DVector)
+        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch_shape, comp_shapes[0]))
+        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch_shape, comp_shapes[1]))
         t = xp.broadcast_to(self.t, batch_shape)[..., None]
         return xp.concat((t, q.decompose(usys).value, p.decompose(usys).value), axis=-1)

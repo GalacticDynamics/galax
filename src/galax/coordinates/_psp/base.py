@@ -3,21 +3,24 @@
 __all__ = ["AbstractPhaseSpacePositionBase"]
 
 from abc import abstractmethod
+from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 from jaxtyping import Shaped
-from plum import convert
+from plum import convert, dispatch
 
 from jax_quantity import Quantity
 from vector import (
     Abstract3DVector,
     Abstract3DVectorDifferential,
+    AbstractVectorBase,
     Cartesian3DVector,
     CartesianDifferential3D,
+    represent_as as vector_represent_as,
 )
 
 from galax.typing import BatchQVec3, BatchVec6
@@ -115,6 +118,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         ...
 
     # ==========================================================================
+    # Further Array properties
 
     @property
     def full_shape(self) -> tuple[int, ...]:
@@ -180,15 +184,44 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch_shape, comp_shapes = self._shape_tuple
-        q = xp.broadcast_to(
-            convert(self.q.represent_as(Cartesian3DVector), Quantity),
-            (*batch_shape, comp_shapes[0]),
-        )
-        p = xp.broadcast_to(
-            convert(self.p.represent_as(CartesianDifferential3D, self.q), Quantity),
-            (*batch_shape, comp_shapes[1]),
-        )
+        cart = self.represent_as(Cartesian3DVector)
+        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch_shape, comp_shapes[0]))
+        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch_shape, comp_shapes[1]))
         return xp.concat((q.decompose(usys).value, p.decompose(usys).value), axis=-1)
+
+    def represent_as(self, /, target: type[AbstractVectorBase]) -> "Self":
+        """Return with the components transformed.
+
+        Parameters
+        ----------
+        target : type[:class:`~vector.AbstractVectorBase`]
+
+        Returns
+        -------
+        w : :class:`~galax.coordinates.AbstractPhaseSpacePositionBase`
+            The phase-space position with the components transformed.
+
+        Examples
+        --------
+        With the following imports:
+
+        >>> from jax_quantity import Quantity
+        >>> from galax.coordinates import PhaseSpacePosition
+
+        We can create a phase-space position and convert it to a 6-vector:
+
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                          p=Quantity([4, 5, 6], "km/s"))
+        >>> psp.w(units="galactic")
+        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
+
+        We can also convert it to a different representation:
+
+        >>> from vector import CylindricalVector
+        >>> psp.represent_as(CylindricalVector)
+        PhaseSpacePosition( q=CylindricalVector(...), p=CylindricalDifferential(...) )
+        """
+        return cast("Self", vector_represent_as(self, target))
 
     # ==========================================================================
     # Dynamical quantities
@@ -269,13 +302,26 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         """
         # TODO: keep as a vector.
         #       https://github.com/GalacticDynamics/vector/issues/27
-        q = convert(self.q, Quantity)
-        p = convert(self.p.represent_as(CartesianDifferential3D, self.q), Quantity)
+        cart = self.represent_as(Cartesian3DVector)
+        q = convert(cart.q, Quantity)
+        p = convert(cart.p, Quantity)
         return xp.linalg.cross(q, p)
 
 
 # =============================================================================
 # helper functions
+
+
+@dispatch  # type: ignore[misc]
+def represent_as(
+    current: AbstractPhaseSpacePositionBase, target: type[AbstractVectorBase]
+) -> AbstractPhaseSpacePositionBase:
+    """Return with the components transformed."""
+    return replace(
+        current,
+        q=current.q.represent_as(target),
+        p=current.p.represent_as(target.differential_cls, current.q),
+    )
 
 
 def _q_converter(x: Any) -> Abstract3DVector:

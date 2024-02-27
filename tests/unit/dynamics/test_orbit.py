@@ -8,8 +8,8 @@ from plum import convert
 
 from jax_quantity import Quantity
 
-from ..coordinates.test_base import Shape, return_keys
-from ..coordinates.test_pspt import AbstractPhaseSpaceTimePosition_Test, T
+from ..coordinates.psp.test_base import Shape, return_keys
+from ..coordinates.psp.test_pspt import AbstractPhaseSpaceTimePosition_Test, T
 from galax.coordinates import PhaseSpaceTimePosition
 from galax.dynamics import Orbit
 from galax.potential import AbstractPotentialBase, MilkyWayPotential

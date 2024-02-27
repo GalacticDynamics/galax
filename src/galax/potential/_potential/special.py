@@ -16,8 +16,7 @@ from jax_quantity import Quantity
 from .base import AbstractPotentialBase
 from .builtin import HernquistPotential, MiyamotoNagaiPotential, NFWPotential
 from .composite import AbstractCompositePotential
-from .utils import converter_to_usys
-from galax.units import UnitSystem, dimensionless, galactic
+from galax.units import UnitSystem, dimensionless, galactic, unitsystem
 
 T = TypeVar("T", bound=AbstractPotentialBase)
 
@@ -71,7 +70,7 @@ class MilkyWayPotential(AbstractCompositePotential):
 
     _data: dict[str, AbstractPotentialBase] = eqx.field(init=False)
     _: KW_ONLY
-    units: UnitSystem = eqx.field(init=True, static=True, converter=converter_to_usys)
+    units: UnitSystem = eqx.field(init=True, static=True, converter=unitsystem)
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
     _default_disk: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
@@ -100,7 +99,7 @@ class MilkyWayPotential(AbstractCompositePotential):
         bulge: HernquistPotential | Mapping[str, Any] | None = None,
         nucleus: HernquistPotential | Mapping[str, Any] | None = None,
     ) -> None:
-        units_ = converter_to_usys(units) if units is not None else galactic
+        units_ = unitsystem(units) if units is not None else galactic
 
         super().__init__(
             disk=_parse_input_comp(

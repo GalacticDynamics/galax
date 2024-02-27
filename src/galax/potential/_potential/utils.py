@@ -9,53 +9,9 @@ import jax.numpy as xp
 from astropy.coordinates import BaseRepresentation, BaseRepresentationOrDifferential
 from astropy.units import Quantity
 from jax import Array
+from plum import dispatch
 
-from galax.units import (
-    DimensionlessUnitSystem,
-    UnitSystem,
-    dimensionless,
-    galactic,
-    solarsystem,
-)
-
-
-@singledispatch
-def converter_to_usys(value: Any, /) -> UnitSystem:
-    """Argument to ``eqx.field(converter=...)``."""
-    msg = f"cannot convert {value} to a UnitSystem"
-    raise NotImplementedError(msg)
-
-
-@converter_to_usys.register
-def _from_usys(value: UnitSystem, /) -> UnitSystem:
-    return value
-
-
-@converter_to_usys.register
-def _from_none(_: None, /) -> UnitSystem:
-    return dimensionless
-
-
-@converter_to_usys.register(tuple)
-@converter_to_usys.register(list)
-def _from_args(value: tuple[Any, ...] | list[Any], /) -> UnitSystem:
-    return UnitSystem(*value)
-
-
-@converter_to_usys.register
-def _from_named(value: str, /) -> UnitSystem:
-    if value == "dimensionless":
-        return dimensionless
-    if value == "solarsystem":
-        return solarsystem
-    if value == "galactic":
-        return galactic
-
-    msg = f"cannot convert {value} to a UnitSystem"
-    raise NotImplementedError(msg)
-
-
-# =============================================================================
+from galax.units import DimensionlessUnitSystem, UnitSystem, dimensionless
 
 
 def convert_inputs_to_arrays(
@@ -165,14 +121,14 @@ if HAS_GALA:
         UnitSystem as GalaUnitSystem,
     )
 
-    @converter_to_usys.register
-    def _from_gala(value: GalaUnitSystem, /) -> UnitSystem:
+    @dispatch
+    def unitsystem(value: GalaUnitSystem, /) -> UnitSystem:
         usys = UnitSystem(*value._core_units)  # noqa: SLF001
         usys._registry = value._registry  # noqa: SLF001
         return usys
 
-    @converter_to_usys.register
-    def _from_gala_dimensionless(
+    @dispatch  # type: ignore[no-redef]
+    def unitsystem(  # noqa: F811
         _: GalaDimensionlessUnitSystem, /
     ) -> DimensionlessUnitSystem:
         return dimensionless

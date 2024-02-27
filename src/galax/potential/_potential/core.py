@@ -9,16 +9,15 @@ import equinox as eqx
 
 from .base import AbstractPotentialBase
 from .composite import CompositePotential
-from .utils import converter_to_usys
 from galax.typing import FloatOrIntScalar, FloatScalar, Vec3
-from galax.units import UnitSystem
+from galax.units import UnitSystem, unitsystem
 
 
 class AbstractPotential(AbstractPotentialBase, strict=True):
     """Abstract base class for all potential objects."""
 
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
+    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
     def __post_init__(self) -> None:

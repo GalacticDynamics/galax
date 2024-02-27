@@ -1,9 +1,11 @@
+import re
 from collections.abc import Mapping
 
 import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
+from plum import NotFoundLookupError
 from quax import quaxify
 from typing_extensions import override
 
@@ -125,8 +127,8 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         pot = pot_cls(**pot_map, units=units)
         assert pot.units == galactic
 
-        msg = "cannot convert invalid_value to a UnitSystem"
-        with pytest.raises(NotImplementedError, match=msg):
+        msg = "`unitsystem('invalid_value')` could not be resolved."
+        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
             pot_cls(**pot_map, units="invalid_value")
 
     # ==========================================================================

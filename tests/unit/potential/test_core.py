@@ -10,9 +10,8 @@ import pytest
 import galax.potential as gp
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
-from galax.potential._potential.utils import converter_to_usys
 from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
-from galax.units import UnitSystem, dimensionless, galactic
+from galax.units import UnitSystem, dimensionless, galactic, unitsystem
 from galax.utils._jax import vectorize_method
 
 
@@ -23,7 +22,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
     def pot_cls(self) -> type[gp.AbstractPotentialBase]:
         class TestPotential(gp.AbstractPotentialBase):
             units: UnitSystem = eqx.field(
-                default=None, converter=converter_to_usys, static=True
+                default=None, converter=unitsystem, static=True
             )
             _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 

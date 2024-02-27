@@ -1,53 +1,57 @@
 """Tests for `galax.potential._potential.utils` package."""
 
+import re
 from dataclasses import replace
 from typing import Any
 
 import astropy.units as u
 import pytest
 from jax import Array
+from plum import NotFoundLookupError
 
 from galax.potential import AbstractPotentialBase
-from galax.potential._potential.utils import (
+from galax.units import (
     UnitSystem,
-    converter_to_usys,
     dimensionless,
     galactic,
     solarsystem,
+    unitsystem,
 )
 from galax.utils._optional_deps import HAS_GALA
 
 
 class TestConverterToUtils:
-    """Tests for `galax.potential._potential.utils.converter_to_usys`."""
+    """Tests for `galax.potential._potential.utils.unitsystem`."""
 
     def test_invalid(self) -> None:
         """Test conversion from unsupported value."""
-        with pytest.raises(NotImplementedError):
-            converter_to_usys(1234567890)
+        msg = "`unitsystem(1234567890)` could not be resolved."
+        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
+            unitsystem(1234567890)
 
     def test_from_usys(self) -> None:
         """Test conversion from UnitSystem."""
         usys = UnitSystem(u.km, u.s, u.Msun, u.radian)
-        assert converter_to_usys(usys) == usys
+        assert unitsystem(usys) == usys
 
     def test_from_none(self) -> None:
         """Test conversion from None."""
-        assert converter_to_usys(None) == dimensionless
+        assert unitsystem(None) == dimensionless
 
     def test_from_args(self) -> None:
         """Test conversion from tuple."""
         value = UnitSystem(u.km, u.s, u.Msun, u.radian)
-        assert converter_to_usys(value) == value
+        assert unitsystem(value) == value
 
     def test_from_name(self) -> None:
         """Test conversion from named string."""
-        assert converter_to_usys("dimensionless") == dimensionless
-        assert converter_to_usys("solarsystem") == solarsystem
-        assert converter_to_usys("galactic") == galactic
+        assert unitsystem("dimensionless") == dimensionless
+        assert unitsystem("solarsystem") == solarsystem
+        assert unitsystem("galactic") == galactic
 
-        with pytest.raises(NotImplementedError):
-            converter_to_usys("invalid_value")
+        msg = "`unitsystem('invalid_value')` could not be resolved."
+        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
+            unitsystem("invalid_value")
 
     @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
     def test_from_gala(self) -> None:
@@ -57,14 +61,14 @@ class TestConverterToUtils:
         from gala.units import UnitSystem as GalaUnitSystem
 
         value = GalaUnitSystem(u.km, u.s, u.Msun, u.radian)
-        assert converter_to_usys(value) == UnitSystem(*value._core_units)
+        assert unitsystem(value) == UnitSystem(*value._core_units)
 
         # -------------------------------
         # DimensionlessUnitSystem
         from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
 
         value = GalaDimensionlessUnitSystem()
-        assert converter_to_usys(value) == dimensionless
+        assert unitsystem(value) == dimensionless
 
 
 # ============================================================================
@@ -84,8 +88,8 @@ class FieldUnitSystemMixin:
 
     def test_init_units_invalid(self, pot: AbstractPotentialBase) -> None:
         """Test invalid unit system."""
-        msg = "cannot convert 1234567890 to a UnitSystem"
-        with pytest.raises(NotImplementedError, match=msg):
+        msg = "`unitsystem(1234567890)` could not be resolved."
+        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
             replace(pot, units=1234567890)
 
     def test_init_units_from_usys(self, pot: AbstractPotentialBase) -> None:
@@ -125,6 +129,6 @@ class FieldUnitSystemMixin:
         pot = pot_cls(**fields_unitless, units="galactic")
         assert pot.units == galactic
 
-        msg = "cannot convert invalid_value to a UnitSystem"
-        with pytest.raises(NotImplementedError, match=msg):
+        msg = "`unitsystem('invalid_value')` could not be resolved."
+        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
             pot_cls(**fields_unitless, units="invalid_value")

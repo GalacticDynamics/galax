@@ -11,13 +11,8 @@ import equinox as eqx
 import jax
 
 from .base import AbstractPotentialBase
-from .utils import converter_to_usys
-from galax.typing import (
-    BatchableFloatOrIntScalarLike,
-    BatchFloatScalar,
-    BatchVec3,
-)
-from galax.units import UnitSystem
+from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
+from galax.units import UnitSystem, unitsystem
 from galax.utils import ImmutableDict
 from galax.utils._misc import first
 
@@ -84,7 +79,7 @@ class CompositePotential(AbstractCompositePotential):
 
     _data: dict[str, AbstractPotentialBase]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(init=False, static=True, converter=converter_to_usys)
+    units: UnitSystem = eqx.field(init=False, static=True, converter=unitsystem)
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
     def __init__(
@@ -103,7 +98,7 @@ class CompositePotential(AbstractCompositePotential):
         # __post_init__ stuff:
         # Check that all potentials have the same unit system
         units_ = units if units is not None else first(self.values()).units
-        usys = converter_to_usys(units_)
+        usys = unitsystem(units_)
         if not all(p.units == usys for p in self.values()):
             msg = "all potentials must have the same unit system"
             raise ValueError(msg)

@@ -9,12 +9,15 @@ __all__ = [
 ]
 
 from collections.abc import Iterator
-from typing import ClassVar, Union, cast, final
+from typing import ClassVar, Literal, Union, cast, final
 
 import astropy.units as u
 from astropy.units.physical import _physical_unit_mapping
+from plum import dispatch
 
 from jax_quantity import Quantity
+
+from galax.typing import Unit
 
 
 class UnitSystem:
@@ -189,3 +192,115 @@ solarsystem = UnitSystem(u.au, u.M_sun, u.yr, u.radian)
 
 # dimensionless
 dimensionless = DimensionlessUnitSystem()
+
+
+# ===========================
+# Unit-system constructor
+
+
+@dispatch
+def unitsystem(units: UnitSystem, /) -> UnitSystem:
+    """Convert a UnitSystem or tuple of arguments to a UnitSystem.
+
+    Examples
+    --------
+    >>> import astropy.units as u
+    >>> from galax.units import UnitSystem, unitsystem
+    >>> usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian, u.km/u.s)
+    >>> usys
+    UnitSystem(kpc, Myr, solMass, rad)
+
+    >>> unitsystem(usys)
+    UnitSystem(kpc, Myr, solMass, rad)
+    """
+    return units
+
+
+@dispatch  # type: ignore[no-redef]
+def unitsystem(  # noqa: F811
+    units: (
+        tuple[Unit | u.Quantity | Quantity, ...] | list[Unit | u.Quantity | Quantity]
+    ),
+    /,
+) -> UnitSystem:
+    """Convert a UnitSystem or tuple of arguments to a UnitSystem.
+
+    Examples
+    --------
+    >>> import astropy.units as u
+    >>> from galax.units import UnitSystem, unitsystem
+
+    >>> unitsystem((u.kpc, u.Myr, u.Msun, u.radian, u.km/u.s))
+    UnitSystem(kpc, Myr, solMass, rad)
+
+    >>> unitsystem([u.kpc, u.Myr, u.Msun, u.radian, u.km/u.s])
+    UnitSystem(kpc, Myr, solMass, rad)
+    """
+    return UnitSystem(*units) if len(units) > 0 else dimensionless
+
+
+@dispatch  # type: ignore[no-redef]
+def unitsystem(_: None, /) -> UnitSystem:  # noqa: F811
+    """Dimensionless unit system from None.
+
+    Examples
+    --------
+    >>> from galax.units import unitsystem
+    >>> unitsystem(None)
+    DimensionlessUnitSystem()
+    """
+    return dimensionless
+
+
+@dispatch  # type: ignore[no-redef]
+def unitsystem(unit0: Unit, /, *units: Unit) -> UnitSystem:  # noqa: F811
+    """Convert a set of arguments to a UnitSystem.
+
+    Examples
+    --------
+    >>> import astropy.units as u
+    >>> from galax.units import UnitSystem, unitsystem
+
+    >>> unitsystem(u.kpc, u.Myr, u.Msun, u.radian)
+    UnitSystem(kpc, Myr, solMass, rad)
+    """
+    return UnitSystem(unit0, *units)
+
+
+@dispatch  # type: ignore[no-redef]
+def unitsystem(_: Literal["galactic"], /) -> UnitSystem:  # noqa: F811
+    """Galactic unit system by string.
+
+    Examples
+    --------
+    >>> from galax.units import unitsystem
+    >>> unitsystem("galactic")
+    UnitSystem(kpc, Myr, solMass, rad)
+    """
+    return galactic
+
+
+@dispatch  # type: ignore[no-redef]
+def unitsystem(_: Literal["solarsystem"], /) -> UnitSystem:  # noqa: F811
+    """Solar system unit system by string.
+
+    Examples
+    --------
+    >>> from galax.units import unitsystem
+    >>> unitsystem("solarsystem")
+    UnitSystem(AU, yr, solMass, rad)
+    """
+    return solarsystem
+
+
+@dispatch  # type: ignore[no-redef]
+def unitsystem(_: Literal["dimensionless"], /) -> UnitSystem:  # noqa: F811
+    """Dimensionless unit system by string.
+
+    Examples
+    --------
+    >>> from galax.units import unitsystem
+    >>> unitsystem("dimensionless")
+    DimensionlessUnitSystem()
+    """
+    return dimensionless

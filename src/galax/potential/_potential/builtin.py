@@ -18,7 +18,6 @@ import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 
-from .utils import converter_to_usys
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
 from galax.typing import (
@@ -30,7 +29,7 @@ from galax.typing import (
     FloatScalar,
     Vec3,
 )
-from galax.units import UnitSystem
+from galax.units import UnitSystem, unitsystem
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import field
 
@@ -51,7 +50,7 @@ class BarPotential(AbstractPotential):
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     Omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
+    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
@@ -97,7 +96,7 @@ class HernquistPotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
+    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
     def _potential_energy(
@@ -117,7 +116,7 @@ class IsochronePotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
+    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
     def _potential_energy(
@@ -141,7 +140,7 @@ class KeplerPotential(AbstractPotential):
 
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
+    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
     def _potential_energy(
@@ -162,7 +161,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
     a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
+    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
@@ -186,7 +185,7 @@ class NFWPotential(AbstractPotential):
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
     softening_length: FloatLike = field(default=0.001, static=True, dimensions="length")
-    units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
+    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
     def _potential_energy(
@@ -206,7 +205,7 @@ class NullPotential(AbstractPotential):
     """Null potential, i.e. no potential."""
 
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=converter_to_usys, static=True)
+    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
     def _potential_energy(

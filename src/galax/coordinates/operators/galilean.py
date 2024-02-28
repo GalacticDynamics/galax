@@ -107,6 +107,25 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
     >>> op(q, t)
     (Cartesian3DVector( ... ), Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'))
 
+    Translation operators can be used to translate potentials:
+
+    >>> import galax.potential as gp
+    >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+    >>> translated_pot = gp.PotentialFrame(pot, shift_op)
+    >>> translated_pot
+    PotentialFrame(
+      potential=KeplerPotential( ... ),
+      operator=OperatorSequence( ... GalileanSpatialTranslationOperator( ... ), ) )
+    )
+
+    # >>> q = Quantity([0, 0, 0], "kpc")
+    # >>> translated_pot(q, t=0)
+    # Array(-1.20227527, dtype=float64)
+
+    # Let's check that the potential is indeed translated:
+
+    # >>> pot(q - shift, t=0)
+    # Array(-1.20227527, dtype=float64)
     """
 
     translation: Abstract3DVector = eqx.field(

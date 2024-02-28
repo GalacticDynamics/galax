@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 import equinox as eqx
 from jaxtyping import Shaped
-from plum import dispatch
+from plum import convert, dispatch
 
 from coordinax import Abstract3DVector, AbstractVector, Cartesian3DVector, FourVector
 from jax_quantity import Quantity
@@ -113,7 +113,7 @@ class AbstractOperator(eqx.Module):  # type: ignore[misc]
         q: Shaped[Quantity["length"], "*batch 3"],
         t: Quantity["time"],
         /,
-    ) -> tuple[Abstract3DVector, Quantity["time"]]:
+    ) -> tuple[Shaped[Quantity["length"], "*batch 3"], Quantity["time"]]:
         """Apply the operator to the coordinates.
 
         Examples
@@ -137,7 +137,8 @@ class AbstractOperator(eqx.Module):  # type: ignore[misc]
         (Cartesian3DVector( ... ),
          Quantity['time'](Array(0., dtype=float64, ...), unit='Gyr'))
         """
-        return self(Cartesian3DVector.constructor(q), t)
+        cart, t = self(Cartesian3DVector.constructor(q), t)
+        return convert(cart, Quantity), t
 
     @dispatch
     def __call__(self: "AbstractOperator", x: FourVector, /) -> FourVector:
@@ -173,7 +174,7 @@ class AbstractOperator(eqx.Module):  # type: ignore[misc]
     @dispatch
     def __call__(
         self: "AbstractOperator", q: Shaped[Quantity["length"], "*#batch 4"], /
-    ) -> FourVector:
+    ) -> Shaped[Quantity["length"], "*#batch 4"]:
         """Apply the operator to the coordinates.
 
         Examples
@@ -200,7 +201,7 @@ class AbstractOperator(eqx.Module):  # type: ignore[misc]
         >>> newpos.q.x
         Quantity['length'](Array(2., dtype=float64), unit='kpc')
         """
-        return self(FourVector.constructor(q))
+        return convert(self(FourVector.constructor(q)), Quantity)
 
     @dispatch
     def __call__(

@@ -44,7 +44,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
             @partial(jax.jit)
             @vectorize_method(signature="(3),()->()")
-            def _potential_energy(
+            def _potential_energy(  # TODO: inputs w/ units
                 self, q: BatchVec3, t: BatchableRealScalarLike
             ) -> BatchFloatScalar:
                 return xp.sum(q, axis=-1)
@@ -119,6 +119,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
         class TestPotential(AbstractPotentialBase):
             units: UnitSystem = eqx.field(default=galactic, static=True)
 
+            # TODO: inputs w/ units
             def _potential_energy(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
                 return xp.sum(q, axis=-1)
 

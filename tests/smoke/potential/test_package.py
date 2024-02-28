@@ -1,5 +1,13 @@
 import galax.potential as gp
-from galax.potential._potential import base, builtin, composite, core, param, special
+from galax.potential._potential import (
+    base,
+    builtin,
+    composite,
+    core,
+    frame,
+    param,
+    special,
+)
 
 
 def test_all() -> None:
@@ -13,4 +21,5 @@ def test_all() -> None:
         *core.__all__,
         *param.__all__,
         *special.__all__,
+        *frame.__all__,
     }

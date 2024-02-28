@@ -26,6 +26,7 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
     ###########################################################################
     # Abstract methods that must be implemented by subclasses
 
+    # TODO: inputs w/ units
     @abc.abstractmethod
     def _potential_energy(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
         raise NotImplementedError

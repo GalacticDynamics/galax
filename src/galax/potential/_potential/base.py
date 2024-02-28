@@ -22,19 +22,19 @@ from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
-    BatchableFloatOrIntQScalar,
-    BatchableFloatOrIntScalarLike,
-    BatchFloatOrIntQScalar,
+    BatchableRealQScalar,
+    BatchableRealScalarLike,
     BatchFloatQScalar,
     BatchFloatScalar,
     BatchMatrix33,
     BatchQVec3,
+    BatchRealQScalar,
     BatchVec3,
     BatchVec6,
-    FloatOrIntScalar,
     FloatScalar,
     Matrix33,
     QVecTime,
+    RealScalar,
     Vec3,
     Vec6,
     VecTime,
@@ -102,7 +102,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # @partial(jax.jit)
     # @vectorize_method(signature="(3),()->()")
     @abc.abstractmethod
-    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
+    def _potential_energy(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.
@@ -116,7 +116,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchableFloatOrIntQScalar | BatchableFloatOrIntScalarLike | AstropyQuantity,
+        t: BatchableRealQScalar | BatchableRealScalarLike | AstropyQuantity,
     ) -> BatchFloatQScalar:
         """Compute the potential energy at the given position(s).
 
@@ -137,9 +137,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return Quantity(self._potential_energy(q, t), self.units["specific energy"])
 
     @partial(jax.jit)
-    def __call__(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
-    ) -> BatchFloatScalar:
+    def __call__(self, q: BatchVec3, /, t: BatchableRealScalarLike) -> BatchFloatScalar:
         """Compute the potential energy at the given position(s).
 
         Parameters
@@ -165,7 +163,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3)")
-    def _gradient(self, q: Vec3, /, t: FloatOrIntScalar) -> Vec3:
+    def _gradient(self, q: Vec3, /, t: RealScalar) -> Vec3:
         """See ``gradient``."""
         return grad(self._potential_energy)(q, t)
 
@@ -173,7 +171,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
+        t: BatchRealQScalar | BatchableRealScalarLike,
     ) -> BatchQVec3:
         """Compute the gradient of the potential at the given position(s).
 
@@ -200,14 +198,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _density(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
+    def _density(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
         lap = jnp.trace(jacfwd(self._gradient)(q, t))
         return lap / (4 * xp.pi * self._G)
 
     def density(
-        self, q: BatchVec3, /, t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchRealQScalar | BatchableRealScalarLike
     ) -> BatchFloatQScalar:
         """Compute the density value at the given position(s).
 
@@ -234,7 +232,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: Vec3, /, t: FloatOrIntScalar) -> Matrix33:
+    def _hessian(self, q: Vec3, /, t: RealScalar) -> Matrix33:
         """See ``hessian``."""
         return hessian(self._potential_energy)(q, t)
 
@@ -242,7 +240,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchableFloatOrIntScalarLike,
+        t: BatchableRealScalarLike,
     ) -> BatchMatrix33:
         """Compute the Hessian of the potential at the given position(s).
 
@@ -270,7 +268,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: BatchVec3 | AstropyQuantity | BaseRepresentation,
         /,
-        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
+        t: BatchRealQScalar | BatchableRealScalarLike,
     ) -> BatchQVec3:
         """Compute the acceleration due to the potential.
 
@@ -293,7 +291,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     def tidal_tensor(
-        self, q: BatchVec3, /, t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchRealQScalar | BatchableRealScalarLike
     ) -> BatchMatrix33:
         """Compute the tidal tensor.
 

@@ -16,8 +16,8 @@ from vector import Abstract3DVector, Abstract3DVectorDifferential
 
 from .base import AbstractPhaseSpacePositionBase, _p_converter, _q_converter
 from galax.typing import (
-    BatchableFloatOrIntScalarLike,
-    BatchFloatOrIntQScalar,
+    BatchableRealScalarLike,
+    BatchRealQScalar,
 )
 from galax.utils._shape import vector_batched_shape
 
@@ -64,7 +64,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         self,
         potential: "AbstractPotentialBase",
         /,
-        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
+        t: BatchRealQScalar | BatchableRealScalarLike,
     ) -> Quantity["specific energy"]:  # TODO: shape hint
         r"""Return the specific potential energy.
 
@@ -120,7 +120,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         self,
         potential: "AbstractPotentialBase",
         /,
-        t: BatchFloatOrIntQScalar | BatchableFloatOrIntScalarLike,
+        t: BatchRealQScalar | BatchableRealScalarLike,
     ) -> Quantity["specific energy"]:
         r"""Return the specific total energy.
 

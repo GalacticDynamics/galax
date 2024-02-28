@@ -17,9 +17,9 @@ import equinox as eqx
 import jax
 
 from galax.typing import (
-    BatchableFloatOrIntScalarLike,
+    BatchableRealScalarLike,
     FloatArrayAnyShape,
-    FloatOrIntScalar,
+    RealScalar,
     Unit,
 )
 from galax.utils._jax import vectorize_method
@@ -33,14 +33,12 @@ if TYPE_CHECKING:
 class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
-    def __call__(
-        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
-    ) -> FloatArrayAnyShape:
+    def __call__(self, t: BatchableRealScalarLike, **kwargs: Any) -> FloatArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : `~galax.typing.BatchableFloatOrIntScalarLike`
+        t : `~galax.typing.BatchableRealScalarLike`
             Time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
@@ -70,14 +68,12 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @abc.abstractmethod
-    def __call__(
-        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
-    ) -> FloatArrayAnyShape:
+    def __call__(self, t: BatchableRealScalarLike, **kwargs: Any) -> FloatArrayAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : `~galax.typing.BatchableFloatOrIntScalarLike`
+        t : `~galax.typing.BatchableRealScalarLike`
             The time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
@@ -106,18 +102,16 @@ class ConstantParameter(AbstractParameter):
     # This is a workaround since vectorized methods don't support kwargs.
     @partial(jax.jit)
     @vectorize_method(signature="()->()")
-    def _call_helper(self, _: FloatOrIntScalar) -> FloatArrayAnyShape:
+    def _call_helper(self, _: RealScalar) -> FloatArrayAnyShape:
         return self.value
 
     @partial(jax.jit)
-    def __call__(
-        self, t: BatchableFloatOrIntScalarLike = 0, **_: Any
-    ) -> FloatArrayAnyShape:
+    def __call__(self, t: BatchableRealScalarLike = 0, **_: Any) -> FloatArrayAnyShape:
         """Return the constant parameter value.
 
         Parameters
         ----------
-        t : `~galax.typing.BatchableFloatOrIntScalarLike`, optional
+        t : `~galax.typing.BatchableRealScalarLike`, optional
             This is ignored and is thus optional.
             Note that for most :class:`~galax.potential.AbstractParameter`
             the time is required.
@@ -151,7 +145,7 @@ class UserParameter(AbstractParameter):
 
     Parameters
     ----------
-    func : Callable[[BatchableFloatOrIntScalarLike], Array[float, (*shape,)]]
+    func : Callable[[BatchableRealScalarLike], Array[float, (*shape,)]]
         The function to use to compute the parameter value.
     unit : Unit, keyword-only
         The output unit of the parameter.
@@ -163,7 +157,5 @@ class UserParameter(AbstractParameter):
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @partial(jax.jit)
-    def __call__(
-        self, t: BatchableFloatOrIntScalarLike, **kwargs: Any
-    ) -> FloatArrayAnyShape:
+    def __call__(self, t: BatchableRealScalarLike, **kwargs: Any) -> FloatArrayAnyShape:
         return self.func(t, **kwargs)

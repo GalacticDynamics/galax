@@ -16,11 +16,11 @@ import galax.dynamics as gd
 from .io.test_gala import GalaIOMixin
 from galax.potential import AbstractPotentialBase
 from galax.typing import (
-    BatchableFloatOrIntScalarLike,
+    BatchableRealScalarLike,
     BatchFloatScalar,
     BatchVec3,
-    FloatOrIntScalar,
     FloatScalar,
+    RealScalar,
     Vec3,
     Vec6,
 )
@@ -45,7 +45,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
             @partial(jax.jit)
             @vectorize_method(signature="(3),()->()")
             def _potential_energy(
-                self, q: BatchVec3, t: BatchableFloatOrIntScalarLike
+                self, q: BatchVec3, t: BatchableRealScalarLike
             ) -> BatchFloatScalar:
                 return xp.sum(q, axis=-1)
 
@@ -119,7 +119,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
         class TestPotential(AbstractPotentialBase):
             units: UnitSystem = eqx.field(default=galactic, static=True)
 
-            def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
+            def _potential_energy(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
                 return xp.sum(q, axis=-1)
 
         pot = TestPotential()

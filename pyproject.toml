@@ -7,6 +7,7 @@
   authors = [
     { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
     { name = "Jake Nibauer", email = "jnibauer@princeton.edu" },
+    { name = "Adrian Price-Whelan", email = "adrianmpw@gmail.com"},
     { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
   ]
   classifiers = [
@@ -103,7 +104,7 @@
   run.source = ["galax"]
 
   [tool.coverage.report]
-    exclude_lines = [
+    exclude_also = [
       # Have to re-enable the standard pragma
       'pragma: no cover',
       # Ignore type-checking stuff
@@ -132,6 +133,7 @@
   warn_unused_configs = true
 
   enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+  disable_error_code = ["no-redef"]  # <- plum multiple dispatch
 
   [[tool.mypy.overrides]]
     disable_error_code = ["name-defined"] # <- jaxtyping
@@ -171,6 +173,7 @@
       "D213",   # Multi-line docstring summary should start at the second line
       "E741",   # Ambiguous variable name
       "F722",   # Syntax error in forward annotation  <- jaxtyping
+      "F811",   # Redefinition <- plum multiple dispatch
       "F821",   # undefined name  <- jaxtyping
       "FIX002", # Line contains TODO, consider resolving the issue
       "ISC001", # Implicit string concatenation <- ruff-format

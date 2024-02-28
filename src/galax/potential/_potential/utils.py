@@ -128,7 +128,5 @@ if HAS_GALA:
         return usys
 
     @dispatch  # type: ignore[no-redef]
-    def unitsystem(  # noqa: F811
-        _: GalaDimensionlessUnitSystem, /
-    ) -> DimensionlessUnitSystem:
+    def unitsystem(_: GalaDimensionlessUnitSystem, /) -> DimensionlessUnitSystem:
         return dimensionless

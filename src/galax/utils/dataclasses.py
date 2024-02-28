@@ -5,8 +5,9 @@ __all__ = ["field", "dataclass_with_converter", "ModuleMeta"]
 import dataclasses
 import functools as ft
 import inspect
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from typing import (
+    TYPE_CHECKING,
     Any,
     ClassVar,
     Generic,
@@ -24,6 +25,9 @@ import jax.numpy as jnp
 from equinox._module import _has_dataclass_init, _ModuleMeta
 from jaxtyping import Array, Float, Integer
 from typing_extensions import ParamSpec, Unpack
+
+if TYPE_CHECKING:
+    from _typeshed import DataclassInstance
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -261,3 +265,12 @@ def converter_float_array(
     """Convert to a batched vector."""
     x = xp.asarray(x, dtype=None)
     return xp.asarray(x, dtype=jnp.promote_types(x.dtype, float))
+
+
+##############################################################################
+# Utils
+
+
+def dataclass_items(obj: "DataclassInstance") -> Iterator[tuple[str, Any]]:
+    """Return the field names and values of a dataclass instance."""
+    yield from ((f.name, getattr(obj, f.name)) for f in dataclasses.fields(obj))

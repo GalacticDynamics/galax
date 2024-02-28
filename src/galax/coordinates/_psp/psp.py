@@ -15,10 +15,7 @@ from jax_quantity import Quantity
 from vector import Abstract3DVector, Abstract3DVectorDifferential
 
 from .base import AbstractPhaseSpacePositionBase, _p_converter, _q_converter
-from galax.typing import (
-    BatchableRealScalarLike,
-    BatchRealQScalar,
-)
+from galax.typing import BatchableRealScalarLike, BatchRealQScalar
 from galax.utils._shape import vector_batched_shape
 
 if TYPE_CHECKING:

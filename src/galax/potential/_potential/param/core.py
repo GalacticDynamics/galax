@@ -16,12 +16,7 @@ import astropy.units as u
 import equinox as eqx
 import jax
 
-from galax.typing import (
-    BatchableRealScalarLike,
-    FloatArrayAnyShape,
-    RealScalar,
-    Unit,
-)
+from galax.typing import BatchableRealScalarLike, FloatArrayAnyShape, RealScalar, Unit
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import converter_float_array
 

@@ -139,16 +139,13 @@ class TestAbstractPhaseSpaceTimePosition(
                     The full phase-space position, including time.
                 """
                 batch_shape, comp_shapes = self._shape_tuple
+                cart = self.represent_as(Cartesian3DVector)
                 q = xp.broadcast_to(
-                    convert(self.q, Quantity).decompose(units).value,
+                    convert(cart.q, Quantity).decompose(units).value,
                     (*batch_shape, comp_shapes[0]),
                 )
                 p = xp.broadcast_to(
-                    convert(
-                        self.p.represent_as(CartesianDifferential3D, self.q), Quantity
-                    )
-                    .decompose(units)
-                    .value,
+                    convert(cart.p, Quantity).decompose(units).value,
                     (*batch_shape, comp_shapes[1]),
                 )
                 t = xp.broadcast_to(self.t, batch_shape)[..., None]

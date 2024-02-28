@@ -21,12 +21,12 @@ import jax
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
 from galax.typing import (
-    BatchableFloatOrIntScalarLike,
+    BatchableRealScalarLike,
     BatchFloatScalar,
     BatchVec3,
     FloatLike,
-    FloatOrIntScalarLike,
     FloatScalar,
+    RealScalarLike,
     Vec3,
 )
 from galax.units import UnitSystem, unitsystem
@@ -54,7 +54,7 @@ class BarPotential(AbstractPotential):
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalarLike) -> FloatScalar:
+    def _potential_energy(self, q: Vec3, /, t: RealScalarLike) -> FloatScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
         rotation_matrix = xp.asarray(
@@ -100,7 +100,7 @@ class HernquistPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self._G * self.m(t) / (r + self.c(t))
@@ -120,7 +120,7 @@ class IsochronePotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         b = self.b(t)
@@ -144,7 +144,7 @@ class KeplerPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self._G * self.m(t) / r
@@ -165,7 +165,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalarLike) -> FloatScalar:
+    def _potential_energy(self, q: Vec3, /, t: RealScalarLike) -> FloatScalar:
         R2 = q[0] ** 2 + q[1] ** 2
         return (
             -self._G
@@ -189,7 +189,7 @@ class NFWPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         v_h2 = -self._G * self.m(t) / self.r_s(t)
         r2 = q[..., 0] ** 2 + q[..., 1] ** 2 + q[..., 2] ** 2
@@ -212,6 +212,6 @@ class NullPotential(AbstractPotential):
         self,
         q: BatchVec3,
         /,
-        t: BatchableFloatOrIntScalarLike,  # noqa: ARG002
+        t: BatchableRealScalarLike,  # noqa: ARG002
     ) -> BatchFloatScalar:
         return xp.zeros(q.shape[:-1], dtype=q.dtype)

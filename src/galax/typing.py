@@ -35,10 +35,10 @@ FloatLike = FloatScalar | float | int
 """A float(/int) or float scalar."""
 
 # A float or integer scalar.
-FloatOrIntScalar = FloatScalar | IntScalar
-FloatOrIntQScalar = FloatQScalar | IntQScalar
+RealScalar = FloatScalar | IntScalar
+RealQScalar = FloatQScalar | IntQScalar
 
-FloatOrIntScalarLike = FloatLike | IntLike
+RealScalarLike = FloatLike | IntLike
 """A float or integer or float(/int) scalar."""
 
 
@@ -94,12 +94,12 @@ BatchFloatQScalar = Shaped[FloatQScalar, "*batch"]
 
 BatchableFloatLike = BatchFloatScalar | FloatLike
 
-BatchFloatOrIntScalar = Shaped[FloatOrIntScalar, "*batch"]
-BatchableFloatOrIntScalar = Shaped[FloatOrIntScalar, "*#batch"]
-BatchFloatOrIntQScalar = Shaped[FloatOrIntQScalar, "*batch"]
-BatchableFloatOrIntQScalar = Shaped[FloatOrIntQScalar, "*#batch"]
+BatchRealScalar = Shaped[RealScalar, "*batch"]
+BatchableRealScalar = Shaped[RealScalar, "*#batch"]
+BatchRealQScalar = Shaped[RealQScalar, "*batch"]
+BatchableRealQScalar = Shaped[RealQScalar, "*#batch"]
 
-BatchableFloatOrIntScalarLike = BatchableFloatOrIntScalar | FloatOrIntScalarLike
+BatchableRealScalarLike = BatchableRealScalar | RealScalarLike
 
 # -----------------
 # Batched

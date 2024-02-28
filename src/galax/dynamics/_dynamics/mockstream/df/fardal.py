@@ -14,9 +14,9 @@ from jax import grad, random
 from .base import AbstractStreamDF
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
-    FloatOrIntScalarLike,
     FloatScalar,
     IntLike,
+    RealScalarLike,
     Vec3,
     Vec6,
 )
@@ -141,7 +141,7 @@ def dphidr(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Vec3:
 
 @partial(jax.jit)
 def d2phidr2(
-    potential: AbstractPotentialBase, x: Vec3, /, t: FloatOrIntScalarLike
+    potential: AbstractPotentialBase, x: Vec3, /, t: RealScalarLike
 ) -> FloatScalar:
     """Compute the second derivative of the potential.
 
@@ -237,7 +237,7 @@ def tidal_radius(
     v: Vec3,
     /,
     prog_mass: FloatScalar,
-    t: FloatOrIntScalarLike,
+    t: RealScalarLike,
 ) -> FloatScalar:
     """Compute the tidal radius of a cluster in the potential.
 

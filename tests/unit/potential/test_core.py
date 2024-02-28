@@ -10,7 +10,7 @@ import pytest
 import galax.potential as gp
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
-from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
+from galax.typing import BatchableRealScalarLike, BatchFloatScalar, BatchVec3
 from galax.units import UnitSystem, dimensionless, galactic, unitsystem
 from galax.utils._jax import vectorize_method
 
@@ -32,7 +32,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
             @partial(jax.jit)
             @vectorize_method(signature="(3),()->()")
             def _potential_energy(
-                self, q: BatchVec3, t: BatchableFloatOrIntScalarLike
+                self, q: BatchVec3, t: BatchableRealScalarLike
             ) -> BatchFloatScalar:
                 return xp.sum(q, axis=-1)
 

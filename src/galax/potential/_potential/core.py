@@ -9,7 +9,7 @@ import equinox as eqx
 
 from .base import AbstractPotentialBase
 from .composite import CompositePotential
-from galax.typing import FloatOrIntScalar, FloatScalar, Vec3
+from galax.typing import FloatScalar, RealScalar, Vec3
 from galax.units import UnitSystem, unitsystem
 
 
@@ -27,7 +27,7 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
     # Abstract methods that must be implemented by subclasses
 
     @abc.abstractmethod
-    def _potential_energy(self, q: Vec3, /, t: FloatOrIntScalar) -> FloatScalar:
+    def _potential_energy(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
         raise NotImplementedError
 
     ###########################################################################

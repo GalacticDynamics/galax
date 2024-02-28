@@ -11,7 +11,7 @@ import equinox as eqx
 import jax
 
 from .base import AbstractPotentialBase
-from galax.typing import BatchableFloatOrIntScalarLike, BatchFloatScalar, BatchVec3
+from galax.typing import BatchableRealScalarLike, BatchFloatScalar, BatchVec3
 from galax.units import UnitSystem, unitsystem
 from galax.utils import ImmutableDict
 from galax.utils._misc import first
@@ -28,7 +28,7 @@ class AbstractCompositePotential(
 
     @partial(jax.jit)
     def _potential_energy(
-        self, q: BatchVec3, /, t: BatchableFloatOrIntScalarLike
+        self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         return xp.sum(
             xp.asarray(

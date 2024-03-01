@@ -3,6 +3,7 @@
 __all__ = [
     "__version__",
     "__version_tuple__",
+    # Modules
     "coordinates",
     "potential",
     "dynamics",
@@ -13,7 +14,7 @@ __all__ = [
 from jax import config
 
 from . import coordinates, dynamics, potential, typing, utils
-from ._version import __version__
+from ._version import __version__, __version_tuple__
 
 config.update("jax_enable_x64", True)  # noqa: FBT003
 

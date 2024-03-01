@@ -8,13 +8,14 @@ from jax_quantity import Quantity
 from vector import AbstractVector
 
 from .base import AbstractOperator, op_call_dispatch
+from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
 
 
 @final
 class IdentityOperator(AbstractOperator):
     """Identity operation."""
 
-    @op_call_dispatch(precedence=1)  # type: ignore[misc]
+    @op_call_dispatch(precedence=1)
     def __call__(
         self: "IdentityOperator", x: AbstractVector, t: Quantity["time"], /
     ) -> tuple[AbstractVector, Quantity["time"]]:
@@ -33,6 +34,36 @@ class IdentityOperator(AbstractOperator):
         >>> op = IdentityOperator()
         >>> op(q, t)
         (Cartesian3DVector( ... ), Quantity['time'](Array(0, ...), unit='Gyr'))
+        """
+        return x, t
+
+    @op_call_dispatch(precedence=1)
+    def __call__(
+        self: "IdentityOperator",
+        x: AbstractPhaseSpacePositionBase,
+        t: Quantity["time"],
+        /,
+    ) -> tuple[AbstractPhaseSpacePositionBase, Quantity["time"]]:
+        """Apply the Identity operation.
+
+        This is the identity operation, which does nothing to the input.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector
+        >>> import galax.coordinates as gc
+        >>> from galax.coordinates.operators import IdentityOperator
+
+        >>> op = IdentityOperator()
+
+        >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                             p=Quantity([0, 0, 0], "kpc/Gyr"))
+
+        >>> op(psp, Quantity(0, "Gyr"))
+        (PhaseSpacePosition( q=Cartesian3DVector( ... ),
+                             p=CartesianDifferential3D( ... ) ),
+         Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'))
         """
         return x, t
 

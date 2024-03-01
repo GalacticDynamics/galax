@@ -4,6 +4,7 @@ __all__ = ["AbstractOperator"]
 
 from abc import abstractmethod
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import equinox as eqx
@@ -12,6 +13,8 @@ from plum import dispatch
 from jax_quantity import Quantity
 from vector import Abstract3DVector, AbstractVector, FourVector
 
+from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
+from galax.coordinates._psp.pspt import AbstractPhaseSpaceTimePosition
 from galax.utils.dataclasses import dataclass_items
 
 if TYPE_CHECKING:
@@ -81,6 +84,33 @@ class AbstractOperator(eqx.Module):  # type: ignore[misc]
         """Apply the operator to the coordinates."""
         q, t = self(x.q, x.t)  # redispatch on (q, t)
         return FourVector(q=q, t=t)
+
+    @dispatch
+    def __call__(
+        self: "AbstractOperator",
+        x: AbstractPhaseSpacePositionBase,  # noqa: ARG002
+        t: Quantity["time"],  # noqa: ARG002
+        /,
+    ) -> tuple[AbstractPhaseSpacePositionBase, Quantity["time"]]:
+        """Apply the operator to a phase-space position."""
+        msg = "implement this method in the subclass"
+        raise NotImplementedError(msg)
+
+    @dispatch
+    def __call__(
+        self: "AbstractOperator", x: AbstractPhaseSpaceTimePosition, /
+    ) -> AbstractPhaseSpaceTimePosition:
+        """Apply the operator to a phase-space-time position.
+
+        This method calls the method that operates on
+        ``AbstractPhaseSpacePositionBase`` by separating the time component from
+        the rest of the phase-space position.  Subclasses can implement that
+        method to avoid having to implement for both phase-space-time and
+        phase-space positions.  Alternatively, they can implement this method
+        directly to avoid redispatching.
+        """
+        psp, t = self(x.psp, x.t)  # redispatch on (psp, t)
+        return replace(psp, t=t)
 
     # -------------------------------------------
 

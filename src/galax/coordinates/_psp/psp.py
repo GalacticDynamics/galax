@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, NamedTuple, final
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from plum import convert
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from jax_quantity import Quantity
@@ -73,7 +72,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         potential: "AbstractPotentialBase",
         /,
         t: BatchRealQScalar | BatchableRealScalarLike,
-    ) -> Quantity["specific energy"]:  # TODO: shape hint
+    ) -> Any:  # TODO: shape hint
         r"""Return the specific potential energy.
 
         .. math::
@@ -114,14 +113,13 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         ...     d_z=Quantity(0, "km/s"))
         >>> w = gc.PhaseSpacePosition(q, p)
 
-        We can compute the kinetic energy:
+        We can compute the potential energy:
 
         >>> pot = gp.MilkyWayPotential()
         >>> w.potential_energy(pot, t=Quantity(0, "Gyr"))
         Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """
-        x = convert(self.q, Quantity).decompose(potential.units).value  # Cartesian
-        return potential.potential_energy(x, t=t)
+        return potential.potential_energy(self.q, t=t)
 
     @partial(jax.jit)
     def energy(

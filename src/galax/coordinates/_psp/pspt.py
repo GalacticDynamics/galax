@@ -178,8 +178,7 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         >>> w.potential_energy(pot)
         Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """
-        x = convert(self.q, Quantity).decompose(potential.units).value  # Cartesian
-        return potential.potential_energy(x, t=self.t)
+        return potential.potential_energy(self.q, t=self.t)
 
     @partial(jax.jit)
     def energy(self, potential: "AbstractPotentialBase") -> BatchFloatQScalar:

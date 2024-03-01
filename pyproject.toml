@@ -7,7 +7,7 @@
   authors = [
     { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
     { name = "Jake Nibauer", email = "jnibauer@princeton.edu" },
-    { name = "Adrian Price-Whelan", email = "adrianmpw@gmail.com"},
+    { name = "Adrian Price-Whelan", email = "adrianmpw@gmail.com" },
     { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
   ]
   classifiers = [

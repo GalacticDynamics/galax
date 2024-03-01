@@ -5,8 +5,9 @@ from galax.coordinates._psp import base, psp, pspt, utils
 
 
 def test_all() -> None:
-    """Test the `galax.potential` API."""
+    """Test the `galax.coordinates` API."""
     assert set(gc.__all__) == {
+        "operators",
         *base.__all__,
         *psp.__all__,
         *pspt.__all__,

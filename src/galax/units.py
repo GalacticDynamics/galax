@@ -217,7 +217,7 @@ def unitsystem(units: UnitSystem, /) -> UnitSystem:
 
 
 @dispatch  # type: ignore[no-redef]
-def unitsystem(  # noqa: F811
+def unitsystem(
     units: (
         tuple[Unit | u.Quantity | Quantity, ...] | list[Unit | u.Quantity | Quantity]
     ),
@@ -240,7 +240,7 @@ def unitsystem(  # noqa: F811
 
 
 @dispatch  # type: ignore[no-redef]
-def unitsystem(_: None, /) -> UnitSystem:  # noqa: F811
+def unitsystem(_: None, /) -> UnitSystem:
     """Dimensionless unit system from None.
 
     Examples
@@ -253,7 +253,7 @@ def unitsystem(_: None, /) -> UnitSystem:  # noqa: F811
 
 
 @dispatch  # type: ignore[no-redef]
-def unitsystem(unit0: Unit, /, *units: Unit) -> UnitSystem:  # noqa: F811
+def unitsystem(unit0: Unit, /, *units: Unit) -> UnitSystem:
     """Convert a set of arguments to a UnitSystem.
 
     Examples
@@ -268,7 +268,7 @@ def unitsystem(unit0: Unit, /, *units: Unit) -> UnitSystem:  # noqa: F811
 
 
 @dispatch  # type: ignore[no-redef]
-def unitsystem(_: Literal["galactic"], /) -> UnitSystem:  # noqa: F811
+def unitsystem(_: Literal["galactic"], /) -> UnitSystem:
     """Galactic unit system by string.
 
     Examples
@@ -281,7 +281,7 @@ def unitsystem(_: Literal["galactic"], /) -> UnitSystem:  # noqa: F811
 
 
 @dispatch  # type: ignore[no-redef]
-def unitsystem(_: Literal["solarsystem"], /) -> UnitSystem:  # noqa: F811
+def unitsystem(_: Literal["solarsystem"], /) -> UnitSystem:
     """Solar system unit system by string.
 
     Examples
@@ -294,7 +294,7 @@ def unitsystem(_: Literal["solarsystem"], /) -> UnitSystem:  # noqa: F811
 
 
 @dispatch  # type: ignore[no-redef]
-def unitsystem(_: Literal["dimensionless"], /) -> UnitSystem:  # noqa: F811
+def unitsystem(_: Literal["dimensionless"], /) -> UnitSystem:
     """Dimensionless unit system by string.
 
     Examples

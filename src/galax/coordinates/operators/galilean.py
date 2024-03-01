@@ -1145,11 +1145,11 @@ def _simplify_op(op: GalileanBoostOperator, /, **kwargs: Any) -> AbstractOperato
     return op
 
 
-# @simplify_op.register
-# def _simplify_op(op: GalileanRotationOperator, /, **kwargs: Any) -> AbstractOperator:
-#     if jnp.allclose(op.rotation, xp.eye(3), **kwargs):
-#         return IdentityOperator()
-#     return op
+@simplify_op.register
+def _simplify_op(op: GalileanRotationOperator, /, **kwargs: Any) -> AbstractOperator:
+    if jnp.allclose(op.rotation, xp.eye(3), **kwargs):
+        return IdentityOperator()
+    return op
 
 
 @simplify_op.register

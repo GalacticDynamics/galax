@@ -18,6 +18,7 @@ import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Shaped
 from plum import convert
+from quax import quaxify
 
 from jax_quantity import Quantity
 from vector import (
@@ -690,6 +691,9 @@ class GalileanBoostOperator(AbstractGalileanOperator):
 # Rotations
 
 
+vec_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
+
+
 @final
 class GalileanRotationOperator(AbstractGalileanOperator):
     r"""Operator for Galilean rotations.
@@ -736,7 +740,56 @@ class GalileanRotationOperator(AbstractGalileanOperator):
     >>> op
     GalileanRotationOperator(rotation=f64[3,3])
 
+    Translation operators can be applied to a Quantity[float, (N, 3), "...]:
+
+    >>> q = Quantity([1, 0, 0], "m")
+    >>> t = Quantity(1, "s")
+    >>> newq, newt = op(q, t)
+    >>> newq
+    Quantity[...](Array([0.70710678, 0.70710678, 0. ], dtype=float64), unit='m')
+
+    The time is not affected by the rotation.
+
+    >>> newt
+    Quantity['time'](Array(1, dtype=int64, ...), unit='s')
+
+    This also works for a batch of vectors:
+
+    >>> q = Quantity([[1, 0, 0], [0, 1, 0]], "m")
+    >>> t = Quantity(0, "s")
+
+    >>> newq, newt = op(q, t)
+    >>> newq
+    Quantity['length'](Array([[ 0.70710678,  0.70710678,  0.        ],
+                              [-0.70710678,  0.70710678,  0.        ]], dtype=float64),
+                       unit='m')
+
     Translation operators can be applied to :class:`vector.Abstract3DVector`:
+
+    >>> from vector import Cartesian3DVector
+    >>> q = Cartesian3DVector.constructor(q)  # from the previous example
+    >>> newq, newt = op(q, t)
+    >>> newq.x
+    Quantity['length'](Array([ 0.70710678, -0.70710678], dtype=float64), unit='m')
+    >>> newq.norm()
+    Quantity['length'](Array([1., 1.], dtype=float64), unit='m')
+
+    Translation operators can be applied to
+    :class:`galax.coordinates.PhaseSpacePosition`:
+
+    >>> from galax.coordinates import PhaseSpaceTimePosition
+    >>> psp = PhaseSpaceTimePosition(q=q, p=Quantity([2, 0, 0], "km/s"), t=t)
+    >>> newpsp = op(psp)
+    >>> newpsp
+    PhaseSpaceTimePosition(
+      q=Cartesian3DVector( ... ),
+      p=CartesianDifferential3D( ... ),
+      t=Quantity[PhysicalType('time')](value=f64[1], unit=Unit("s"))
+    )
+    >>> newpsp.q.x
+    Quantity['length'](Array([ 0.70710678, -0.70710678], dtype=float64), unit='m')
+    >>> newpsp.p.d_x
+    Quantity['speed'](Array(1.41421356, dtype=float64), unit='km / s')
     """
 
     rotation: Shaped[Array, "3 3"] = eqx.field(
@@ -831,10 +884,10 @@ class GalileanRotationOperator(AbstractGalileanOperator):
 
         The time is not affected by the rotation.
         >>> newt
-        Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='s')
+        Quantity['time'](Array(1, dtype=int64, ...), unit='s')
 
         """
-        return self.rotation @ q, t
+        return vec_matmul(self.rotation, q), t
 
     @op_call_dispatch(precedence=1)
     def __call__(
@@ -868,7 +921,7 @@ class GalileanRotationOperator(AbstractGalileanOperator):
         vec = convert(  # Array[float, (N, 3)]
             q.represent_as(Cartesian3DVector).to_units("consistent"), Quantity
         )
-        rcart = Cartesian3DVector.constructor(self.rotation @ vec)
+        rcart = Cartesian3DVector.constructor(vec_matmul(self.rotation, vec))
         return rcart.represent_as(type(q)), t
 
     @op_call_dispatch
@@ -920,7 +973,7 @@ class GalileanRotationOperator(AbstractGalileanOperator):
         # the momentum. The momentum is then transformed back to the original
         # representation, but at the rotated position.
         pv = convert(psp.p.represent_as(CartesianDifferential3D, psp.q), Quantity)
-        pv = self.rotation @ pv
+        pv = vec_matmul(self.rotation, pv)
         p = CartesianDifferential3D.constructor(pv).represent_as(type(psp.p), q)
         # Reasseble and return
         return (replace(psp, q=q, p=p), t)

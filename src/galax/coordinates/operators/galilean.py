@@ -101,7 +101,7 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
     >>> q = Cartesian3DVector.constructor(Quantity([0, 0, 0], "kpc"))
     >>> t = Quantity(0, "Gyr")
     >>> op(q, t)
-    (Cartesian3DVector( ...) ), Quantity['time'](Array(0, ...), unit='Gyr'))
+    (Cartesian3DVector( ... ), Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'))
 
     """
 
@@ -131,7 +131,7 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
 
     # -------------------------------------------
 
-    @op_call_dispatch  # type: ignore[misc]
+    @op_call_dispatch(precedence=1)  # type: ignore[misc]
     def __call__(
         self: "GalileanSpatialTranslationOperator", q: Abstract3DVector, t: RealQScalar
     ) -> tuple[Abstract3DVector, RealQScalar]:

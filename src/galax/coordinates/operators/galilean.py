@@ -5,7 +5,7 @@ __all__ = [
     "GalileanSpatialTranslationOperator",
     "GalileanTranslationOperator",
     "GalileanBoostOperator",
-    # "GalileanRotationOperator",
+    "GalileanRotationOperator",
     "GalileanOperator",
 ]
 
@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, Literal, final, overload
 import array_api_jax_compat as xp
 import equinox as eqx
 import jax.numpy as jnp
+from jaxtyping import Array, Shaped
 from plum import convert
 
 from jax_quantity import Quantity
@@ -32,6 +33,7 @@ from .funcs import simplify_op
 from .identity import IdentityOperator
 from .sequential import OperatorSequence
 from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
+from galax.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
     from typing import Self
@@ -53,7 +55,7 @@ class AbstractGalileanOperator(AbstractOperator):
 class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
     r"""Operator for Galilean spatial translations.
 
-    In the translated frame the coordinates are given by:
+    The coordinate transform is given by:
 
     .. math::
 
@@ -119,16 +121,46 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
     :class:`vector.Cartesian3DVector` for details.
     """
 
-    # # ---------------------------------------------------------------
-    # # Constructors
+    # -------------------------------------------
 
-    # @classmethod
-    # @AbstractOperator.constructor._f.dispatch
-    # def constructor(
-    #     cls: "type[GalileanSpatialTranslationOperator]", obj: Any, /
-    # ) -> "GalileanSpatialTranslationOperator":
-    #     """Construct from an Abstract3DVector."""
-    #     return cls(**obj)
+    @property
+    def is_inertial(self) -> Literal[True]:
+        """Galilean translation is an inertial frame-preserving transformation.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector
+        >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
+
+        >>> shift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
+        >>> op = GalileanSpatialTranslationOperator(shift)
+
+        >>> op.is_inertial
+        True
+        """
+        return True
+
+    @property
+    def inverse(self) -> "GalileanSpatialTranslationOperator":
+        """The inverse of the operator.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector
+        >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
+
+        >>> shift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
+        >>> op = GalileanSpatialTranslationOperator(shift)
+
+        >>> op.inverse
+        GalileanSpatialTranslationOperator( translation=Cartesian3DVector( ... ) )
+
+        >>> op.inverse.translation.x
+        Quantity['length'](Array(-1., dtype=float64), unit='kpc')
+        """
+        return GalileanSpatialTranslationOperator(-self.translation)
 
     # -------------------------------------------
 
@@ -217,51 +249,15 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
         # Reasseble and return
         return (replace(psp, q=q, p=p), t)
 
-    @property
-    def is_inertial(self) -> Literal[True]:
-        """Galilean translation is an inertial frame-preserving transformation.
-
-        Examples
-        --------
-        >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
-        >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
-
-        >>> shift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
-        >>> op = GalileanSpatialTranslationOperator(shift)
-
-        >>> op.is_inertial
-        True
-        """
-        return True
-
-    @property
-    def inverse(self) -> "GalileanSpatialTranslationOperator":
-        """The inverse of the operator.
-
-        Examples
-        --------
-        >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
-        >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
-
-        >>> shift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
-        >>> op = GalileanSpatialTranslationOperator(shift)
-
-        >>> op.inverse
-        GalileanSpatialTranslationOperator( translation=Cartesian3DVector( ... ) )
-
-        >>> op.inverse.translation.x
-        Quantity['length'](Array(-1., dtype=float64), unit='kpc')
-        """
-        return GalileanSpatialTranslationOperator(-self.translation)
-
 
 @final
 class GalileanTranslationOperator(AbstractGalileanOperator):
     r"""Operator for spatio-temporal translations.
 
-    In the translated frame the coordinates are given by: .. math::
+    The coordinate transform is given by:
+
+    .. math::
+
         (t,\mathbf{x}) \mapsto (t+s, \mathbf{x} + \mathbf {a})
 
     where :math:`a \in R^3` and :math:`s \in R`.  Therefore for a potential
@@ -335,6 +331,51 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
     :meth:`vector.FourVector.constructor` to enable a variety of more convenient
     input types. See :class:`vector.FourVector` for details.
     """
+
+    # -------------------------------------------
+
+    @property
+    def is_inertial(self) -> Literal[True]:
+        """Galilean translation is an inertial-frame preserving transformation.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import FourVector
+        >>> from galax.coordinates.operators import GalileanTranslationOperator
+
+        >>> shift = FourVector.constructor(Quantity([0, 1, 1, 1], "kpc"))
+        >>> op = GalileanTranslationOperator(shift)
+
+        >>> op.is_inertial
+        True
+        """
+        return True
+
+    @property
+    def inverse(self) -> "GalileanTranslationOperator":
+        """The inverse of the operator.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, FourVector
+        >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
+
+        >>> qshift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
+        >>> tshift = Quantity(1, "Gyr")
+        >>> shift = FourVector(tshift, qshift)
+        >>> op = GalileanTranslationOperator(shift)
+
+        >>> op.inverse
+        GalileanTranslationOperator( translation=FourVector( ... ) )
+
+        >>> op.inverse.translation.q.x
+        Quantity['length'](Array(-1., dtype=float64), unit='kpc')
+        """
+        return GalileanTranslationOperator(-self.translation)
+
+    # -------------------------------------------
 
     @op_call_dispatch
     def __call__(self: "GalileanTranslationOperator", x: FourVector, /) -> FourVector:
@@ -458,49 +499,6 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
         # Reasseble and return
         return (replace(psp, q=q, p=p), t)
 
-    # -----------------------------------------------------
-
-    @property
-    def is_inertial(self) -> Literal[True]:
-        """Galilean translation is an inertial-frame preserving transformation.
-
-        Examples
-        --------
-        >>> from jax_quantity import Quantity
-        >>> from vector import FourVector
-        >>> from galax.coordinates.operators import GalileanTranslationOperator
-
-        >>> shift = FourVector.constructor(Quantity([0, 1, 1, 1], "kpc"))
-        >>> op = GalileanTranslationOperator(shift)
-
-        >>> op.is_inertial
-        True
-        """
-        return True
-
-    @property
-    def inverse(self) -> "GalileanTranslationOperator":
-        """The inverse of the operator.
-
-        Examples
-        --------
-        >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, FourVector
-        >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
-
-        >>> qshift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
-        >>> tshift = Quantity(1, "Gyr")
-        >>> shift = FourVector(tshift, qshift)
-        >>> op = GalileanTranslationOperator(shift)
-
-        >>> op.inverse
-        GalileanTranslationOperator( translation=FourVector( ... ) )
-
-        >>> op.inverse.translation.q.x
-        Quantity['length'](Array(-1., dtype=float64), unit='kpc')
-        """
-        return GalileanTranslationOperator(-self.translation)
-
 
 ##############################################################################
 # Boosts
@@ -510,7 +508,7 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
 class GalileanBoostOperator(AbstractGalileanOperator):
     r"""Operator for Galilean boosts.
 
-    In the translated frame the coordinates are given by:
+    The coordinate transform is given by:
 
     .. math::
 
@@ -573,6 +571,46 @@ class GalileanBoostOperator(AbstractGalileanOperator):
     enable a variety of more convenient input types. See
     :class:`vector.CartesianDifferential3D` for details.
     """
+
+    # -----------------------------------------------------
+
+    @property
+    def is_inertial(self) -> Literal[True]:
+        """Galilean boost is an inertial-frame preserving transform.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates.operators import GalileanBoostOperator
+
+        >>> op = GalileanBoostOperator(Quantity([1, 2, 3], "m/s"))
+        >>> op.is_inertial
+        True
+        """
+        return True
+
+    @property
+    def inverse(self) -> "GalileanBoostOperator":
+        """The inverse of the operator.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates.operators import GalileanBoostOperator
+
+        >>> op = GalileanBoostOperator(Quantity([1, 2, 3], "m/s"))
+        >>> op.inverse
+        GalileanBoostOperator( velocity=CartesianDifferential3D( ... ) )
+
+        >>> op.inverse.velocity.d_x
+        Quantity['speed'](Array(-1., dtype=float64), unit='m / s')
+
+        """
+        return GalileanBoostOperator(-self.velocity)
+
+    # -----------------------------------------------------
 
     @op_call_dispatch(precedence=1)
     def __call__(
@@ -647,96 +685,245 @@ class GalileanBoostOperator(AbstractGalileanOperator):
         # Reasseble and return
         return (replace(psp, q=q, p=p), t)
 
+
+##############################################################################
+# Rotations
+
+
+@final
+class GalileanRotationOperator(AbstractGalileanOperator):
+    r"""Operator for Galilean rotations.
+
+    The coordinate transform is given by:
+
+    .. math::
+
+        (t,\mathbf{x}) \mapsto (t, R \mathbf{x})
+
+    where :math:`R` is the rotation matrix.  Note this is NOT time dependent.
+
+    Parameters
+    ----------
+    rotation : Array[float, (3, 3)]
+        The rotation matrix.
+
+    Raises
+    ------
+    ValueError
+        If the rotation matrix is not orthogonal.
+
+    Notes
+    -----
+    The Galilean rotation is not a time-dependent transformation.  This is part
+    of the inhomogeneous Galilean group, which is the group of transformations
+    that leave the space-time interval invariant.
+
+    Examples
+    --------
+    We start with the required imports:
+
+    >>> import jax.numpy as jnp
+    >>> from jax_quantity import Quantity
+    >>> import galax.coordinates.operators as gco
+
+    We can then create a rotation operator:
+
+    >>> theta = jnp.pi / 4  # 45 degrees
+    >>> Rz = jnp.asarray([[jnp.cos(theta), -jnp.sin(theta), 0],
+    ...                   [jnp.sin(theta), jnp.cos(theta),  0],
+    ...                   [0,              0,               1]])
+    >>> op = gco.GalileanRotationOperator(Rz)
+    >>> op
+    GalileanRotationOperator(rotation=f64[3,3])
+
+    Translation operators can be applied to :class:`vector.Abstract3DVector`:
+    """
+
+    rotation: Shaped[Array, "3 3"] = eqx.field(
+        converter=lambda x: (
+            x.rotation
+            if isinstance(x, GalileanRotationOperator)
+            else converter_float_array(x)
+        )
+    )
+    """The rotation vector."""
+
+    def __check_init__(self) -> None:
+        # Check that the rotation matrix is orthogonal.
+        if not jnp.allclose(self.rotation @ self.rotation.T, jnp.eye(3)):
+            msg = "The rotation matrix must be orthogonal."
+            raise ValueError(msg)
+
     # -----------------------------------------------------
 
     @property
     def is_inertial(self) -> Literal[True]:
-        """Galilean boost is an inertial-frame preserving transform.
+        """Galilean rotation is an inertial-frame preserving transform.
 
         Examples
         --------
+        >>> import array_api_jax_compat as xp
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates.operators import GalileanBoostOperator
+        >>> from galax.coordinates.operators import GalileanRotationOperator
 
-        >>> op = GalileanBoostOperator(Quantity([1, 2, 3], "m/s"))
+        >>> theta = Quantity(45, "deg")
+        >>> Rz = xp.asarray([[xp.cos(theta), -xp.sin(theta), 0],
+        ...                  [xp.sin(theta), xp.cos(theta),  0],
+        ...                  [0,             0,              1]])
+        >>> op = GalileanRotationOperator(Rz)
         >>> op.is_inertial
         True
         """
         return True
 
     @property
-    def inverse(self) -> "GalileanBoostOperator":
+    def inverse(self) -> "GalileanRotationOperator":
         """The inverse of the operator.
 
         Examples
         --------
+        >>> import array_api_jax_compat as xp
+        >>> from jax_quantity import Quantity
+        >>> from galax.coordinates.operators import GalileanRotationOperator
+
+        >>> theta = Quantity(45, "deg")
+        >>> Rz = xp.asarray([[xp.cos(theta), -xp.sin(theta), 0],
+        ...                  [xp.sin(theta), xp.cos(theta),  0],
+        ...                  [0,             0,              1]])
+        >>> op = GalileanRotationOperator(Rz)
+        >>> op.inverse
+        GalileanRotationOperator(rotation=f64[3,3])
+
+        >>> jnp.allclose(op.rotation, op.inverse.rotation.T)
+        Array(True, dtype=bool)
+        """
+        return replace(self, rotation=self.rotation.T)
+
+    # -----------------------------------------------------
+
+    @op_call_dispatch(precedence=1)
+    def __call__(
+        self: "GalileanRotationOperator",
+        q: Shaped[Quantity["length"], "*batch 3"],
+        t: Quantity["time"],
+        /,
+    ) -> tuple[Shaped[Quantity["length"], "*batch 3"], Quantity["time"]]:
+        """Apply the boost to the coordinates.
+
+        Examples
+        --------
+        >>> import array_api_jax_compat as xp
         >>> from jax_quantity import Quantity
         >>> from vector import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates.operators import GalileanBoostOperator
+        >>> from galax.coordinates.operators import GalileanRotationOperator
 
-        >>> op = GalileanBoostOperator(Quantity([1, 2, 3], "m/s"))
-        >>> op.inverse
-        GalileanBoostOperator( velocity=CartesianDifferential3D( ... ) )
+        >>> theta = Quantity(45, "deg")
+        >>> Rz = xp.asarray([[xp.cos(theta), -xp.sin(theta), 0],
+        ...                  [xp.sin(theta), xp.cos(theta),  0],
+        ...                  [0,             0,              1]])
+        >>> op = GalileanRotationOperator(Rz)
 
-        >>> op.inverse.velocity.d_x
-        Quantity['speed'](Array(-1., dtype=float64), unit='m / s')
+        >>> q = Quantity([1, 0, 0], "m")
+        >>> t = Quantity(1, "s")
+        >>> newq, newt = op(q, t)
+        >>> newq
+        Quantity[...](Array([0.70710678, 0.70710678, 0. ], dtype=float64), unit='m')
+
+        The time is not affected by the rotation.
+        >>> newt
+        Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='s')
 
         """
-        return GalileanBoostOperator(-self.velocity)
+        return self.rotation @ q, t
 
+    @op_call_dispatch(precedence=1)
+    def __call__(
+        self: "GalileanRotationOperator", q: Abstract3DVector, t: Quantity["time"], /
+    ) -> tuple[Abstract3DVector, Quantity["time"]]:
+        """Apply the boost to the coordinates.
 
-##############################################################################
-# Rotations
+        Examples
+        --------
+        >>> import array_api_jax_compat as xp
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates.operators import GalileanRotationOperator
 
+        >>> theta = Quantity(45, "deg")
+        >>> Rz = xp.asarray([[xp.cos(theta), -xp.sin(theta), 0],
+        ...                  [xp.sin(theta), xp.cos(theta),  0],
+        ...                  [0,             0,              1]])
+        >>> op = GalileanRotationOperator(Rz)
 
-# @final
-# class GalileanRotationOperator(AbstractGalileanOperator):
-#     r"""Operator for Galilean rotations.
+        >>> q = Cartesian3DVector.constructor(Quantity([1, 0, 0], "m"))
+        >>> t = Quantity(1, "s")
+        >>> newq, newt = op(q, t)
+        >>> newq.x
+        Quantity['length'](Array(0.70710678, dtype=float64), unit='m')
 
-#     In the translated frame the coordinates are given by:
+        The time is not affected by the rotation.
+        >>> newt
+        Quantity['time'](Array(1, dtype=int64, ...), unit='s')
+        """
+        vec = convert(  # Array[float, (N, 3)]
+            q.represent_as(Cartesian3DVector).to_units("consistent"), Quantity
+        )
+        rcart = Cartesian3DVector.constructor(self.rotation @ vec)
+        return rcart.represent_as(type(q)), t
 
-#     .. math::
+    @op_call_dispatch
+    def __call__(
+        self: "GalileanRotationOperator",
+        psp: AbstractPhaseSpacePositionBase,
+        t: Quantity["time"],
+        /,
+    ) -> tuple[AbstractPhaseSpacePositionBase, Quantity["time"]]:
+        """Apply the translation to the coordinates.
 
-#         (t,\mathbf{x}) \mapsto (t, R \mathbf{x})
+        Examples
+        --------
+        >>> import array_api_jax_compat as xp
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates.operators import GalileanRotationOperator
+        >>> from galax.coordinates import PhaseSpacePosition
 
-#     where :math:`R` is the rotation matrix.
-#     Therefore for a potential :math:`\Phi(t,\mathbf{x})` in the translated
-#     frame the potential is given by the rotated coordinates.
-#     """
+        >>> theta = Quantity(45, "deg")
+        >>> Rz = xp.asarray([[xp.cos(theta), -xp.sin(theta), 0],
+        ...                  [xp.sin(theta), xp.cos(theta),  0],
+        ...                  [0,             0,              1]])
+        >>> op = GalileanRotationOperator(Rz)
 
-#     # TODO: better option than using a matrix b/c of the precision issues.
-#     rotation: Shaped[Quantity["speed"], "3 3"] = eqx.field(
-#         converter=lambda x: (
-#             x.rotation
-#             if isinstance(x, GalileanRotationOperator)
-#             else converter_float_array(x)
-#         )
-#     )
-#     """The rotation vector."""
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 0, 0], "m"),
+        ...                          p=Quantity([1, 0, 0], "m/s"))
 
-#     @property
-#     def is_inertial(self) -> Literal[True]:
-#         """Galilean rotation is an inertial-frame preserving transform."""
-#         return True
+        >>> newpsp, newt = op(psp, t)
 
-#     def __check_init__(self) -> None:
-#         # Check that the rotation matrix is orthogonal.
-#         if not jnp.allclose(self.rotation @ self.rotation.T, jnp.eye(3)):
-#             msg = "The rotation matrix must be orthogonal."
-#             raise ValueError(msg)
+        >>> newpsp.q.x
+        Quantity['length'](Array(0.70710678, dtype=float64), unit='m')
+        >>> newpsp.q.norm()
+        Quantity['length'](Array(1., dtype=float64), unit='m')
 
-#     def into(
-#         self, q: Abstract3DVector, t: Quantity["time"]
-#     ) -> tuple[Abstract3DVector, Quantity["time"]]:
-#         """Do."""
-#         return self.rotation @ q, t
+        >>> newpsp.p.d_x
+        Quantity['speed'](Array(0.70710678, dtype=float64), unit='m / s')
+        >>> newpsp.p.norm()
+        Quantity['speed'](Array(1., dtype=float64), unit='m / s')
 
-#     def outof(
-#         self, q: Abstract3DVector, t: Quantity["time"]
-#     ) -> tuple[Abstract3DVector, Quantity["time"]]:
-#         """Undo."""
-#         return self.rotation.T @ q, t
+        The time is not affected by the rotation.
+        >>> newt
+        Quantity['time'](Array(1, dtype=int64, ...), unit='s')
+        """
+        # Shifting the position and time
+        q, t = self(psp.q, t)
+        # Transforming the momentum. The momentum is transformed to Cartesian
+        # coordinates at the original position. Then the rotation is applied to
+        # the momentum. The momentum is then transformed back to the original
+        # representation, but at the rotated position.
+        pv = convert(psp.p.represent_as(CartesianDifferential3D, psp.q), Quantity)
+        pv = self.rotation @ pv
+        p = CartesianDifferential3D.constructor(pv).represent_as(type(psp.p), q)
+        # Reasseble and return
+        return (replace(psp, q=q, p=p), t)
 
 
 ##############################################################################
@@ -783,6 +970,7 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     ...     velocity=Quantity([1., 2., 3.], "km/s"))
     >>> op
     GalileanOperator(
+      rotation=GalileanRotationOperator(rotation=f64[3,3]),
       translation=GalileanTranslationOperator(
         translation=FourVector(
           t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("kpc s / km")),
@@ -812,6 +1000,7 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     ... )
     >>> op
     GalileanOperator(
+      rotation=GalileanRotationOperator(rotation=f64[3,3]),
       translation=GalileanTranslationOperator(
         translation=FourVector(
           t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr")),
@@ -860,12 +1049,11 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     Quantity['time'](Array(3.5, dtype=float64), unit='Gyr')
     """
 
-    # # TODO: better option than using a matrix b/c of the precision issues.
-    # rotation: GalileanRotationOperator = eqx.field(
-    #     default=GalileanRotationOperator(xp.eye(3)),
-    #     converter=GalileanRotationOperator,
-    # )
-    # """The in-frame spatial rotation."""
+    rotation: GalileanRotationOperator = eqx.field(
+        default=GalileanRotationOperator(xp.eye(3)),
+        converter=GalileanRotationOperator,
+    )
+    """The in-frame spatial rotation."""
 
     translation: GalileanTranslationOperator = eqx.field(
         default=GalileanTranslationOperator(Quantity([0, 0, 0, 0], "kpc")),
@@ -904,13 +1092,10 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     def operators(
         self,
     ) -> tuple[
-        # GalileanRotationOperator,
-        GalileanTranslationOperator,
-        GalileanBoostOperator,
+        GalileanRotationOperator, GalileanTranslationOperator, GalileanBoostOperator
     ]:
         """Rotation -> translateion -> boost."""
-        # return (self.rotation, self.translation, self.velocity)
-        return (self.translation, self.velocity)
+        return (self.rotation, self.translation, self.velocity)
 
     @overload
     def __getitem__(self, key: int) -> AbstractOperator:
@@ -962,11 +1147,11 @@ def _simplify_op(op: GalileanBoostOperator, /, **kwargs: Any) -> AbstractOperato
     return op
 
 
-# @simplify_op.register
-# def _simplify_op(op: GalileanRotationOperator, /, **kwargs: Any) -> AbstractOperator:
-#     if jnp.allclose(op.rotation, xp.eye(3), **kwargs):
-#         return IdentityOperator()
-#     return op
+@simplify_op.register
+def _simplify_op(op: GalileanRotationOperator, /, **kwargs: Any) -> AbstractOperator:
+    if jnp.allclose(op.rotation, xp.eye(3), **kwargs):
+        return IdentityOperator()
+    return op
 
 
 @simplify_op.register

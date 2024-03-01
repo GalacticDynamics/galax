@@ -16,7 +16,7 @@ from vector import Cartesian3DVector, CartesianDifferential3D
 
 from .test_base import AbstractPhaseSpacePositionBase_Test, Shape, return_keys
 from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
-from galax.coordinates._psp.base import ComponentShapeTuple
+from galax.coordinates._psp.pspt import ComponentShapeTuple
 from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.potential._potential.special import MilkyWayPotential
@@ -119,7 +119,7 @@ class TestAbstractPhaseSpaceTimePosition(
 
             @property
             def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
-                return self.q.shape, ComponentShapeTuple(3, 3, 1)
+                return self.q.shape, ComponentShapeTuple(p=3, q=3, t=1)
 
             def __getitem__(self, index: Any) -> Self:
                 return replace(self, q=self.q[index], p=self.p[index], t=self.t[index])
@@ -148,7 +148,7 @@ class TestAbstractPhaseSpaceTimePosition(
                     convert(cart.p, Quantity).decompose(units).value, (*batch, comps.p)
                 )
                 t = xp.broadcast_to(
-                    self.t.decompose(units).value[..., None], (batch, comps.t)
+                    self.t.decompose(units).value[..., None], (*batch, comps.t)
                 )
                 return xp.concat((t, q, p), axis=-1)
 

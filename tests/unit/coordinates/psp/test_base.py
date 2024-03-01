@@ -16,6 +16,7 @@ from jaxtyping import Array
 from jax_quantity import Quantity
 from vector import Cartesian3DVector, CartesianDifferential3D
 
+from galax.coordinates._psp.psp import ComponentShapeTuple
 from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.units import galactic
 
@@ -189,8 +190,8 @@ class TestAbstractPhaseSpacePositionBase(AbstractPhaseSpacePositionBase_Test[T])
             p: CartesianDifferential3D = eqx.field(converter=_p_converter)
 
             @property
-            def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int]]:
-                return self.q.shape, (3, 3)
+            def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
+                return self.q.shape, ComponentShapeTuple(p=3, q=3)
 
             def __getitem__(self, index: Any) -> Self:
                 return replace(self, q=self.q[index], p=self.p[index])

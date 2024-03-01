@@ -17,6 +17,7 @@ from typing import final
 import array_api_jax_compat as xp
 import equinox as eqx
 import jax
+from jaxtyping import Array, Float
 
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
@@ -36,6 +37,16 @@ from galax.utils.dataclasses import field
 # -------------------------------------------------------------------
 
 
+def _rot_z(ang: FloatScalar, /) -> Float[Array, "3 3"]:
+    return xp.asarray(
+        [
+            [xp.cos(ang), -xp.sin(ang), 0],
+            [xp.sin(ang), xp.cos(ang), 0.0],
+            [0.0, 0.0, 1.0],
+        ],
+    )
+
+
 @final
 class BarPotential(AbstractPotential):
     """Rotating bar potentil, with hard-coded rotation.
@@ -45,9 +56,9 @@ class BarPotential(AbstractPotential):
     """
 
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    a1: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    a2: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    a3: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     Omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
@@ -57,32 +68,20 @@ class BarPotential(AbstractPotential):
     def _potential_energy(self, q: Vec3, /, t: RealScalarLike) -> FloatScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
-        rotation_matrix = xp.asarray(
-            [
-                [xp.cos(ang), -xp.sin(ang), 0],
-                [xp.sin(ang), xp.cos(ang), 0.0],
-                [0.0, 0.0, 1.0],
-            ],
-        )
-        q_corot = xp.matmul(rotation_matrix, q)
+        Rz = _rot_z(ang)
+        qr = xp.matmul(Rz, q)  # corotating frame
 
-        a = self.a(t)
-        b = self.b(t)
-        c = self.c(t)
-        T_plus = xp.sqrt(
-            (a + q_corot[0]) ** 2
-            + q_corot[1] ** 2
-            + (b + xp.sqrt(c**2 + q_corot[2] ** 2)) ** 2
+        a1, a2, a3 = self.a(t), self.a2(t), self.a3(t)
+        T_p = xp.sqrt(
+            (a1 + qr[0]) ** 2 + qr[1] ** 2 + (a2 + xp.sqrt(a3**2 + qr[2] ** 2)) ** 2
         )
-        T_minus = xp.sqrt(
-            (a - q_corot[0]) ** 2
-            + q_corot[1] ** 2
-            + (b + xp.sqrt(c**2 + q_corot[2] ** 2)) ** 2
+        T_m = xp.sqrt(
+            (a1 - qr[0]) ** 2 + qr[1] ** 2 + (a2 + xp.sqrt(a3**2 + qr[2] ** 2)) ** 2
         )
 
         # potential in a corotating frame
         return (self._G * self.m(t) / (2.0 * a)) * xp.log(
-            (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus),
+            (qr[0] - a + T_m) / (qr[0] + a + T_p)
         )
 
 

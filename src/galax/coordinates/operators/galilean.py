@@ -970,6 +970,7 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     ...     velocity=Quantity([1., 2., 3.], "km/s"))
     >>> op
     GalileanOperator(
+      rotation=GalileanRotationOperator(rotation=f64[3,3]),
       translation=GalileanTranslationOperator(
         translation=FourVector(
           t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("kpc s / km")),
@@ -999,6 +1000,7 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     ... )
     >>> op
     GalileanOperator(
+      rotation=GalileanRotationOperator(rotation=f64[3,3]),
       translation=GalileanTranslationOperator(
         translation=FourVector(
           t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr")),

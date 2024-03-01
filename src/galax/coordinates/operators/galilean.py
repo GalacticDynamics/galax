@@ -10,6 +10,7 @@ __all__ = [
 ]
 
 
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Literal, final, overload
 
 import array_api_jax_compat as xp
@@ -30,7 +31,7 @@ from .composite import AbstractCompositeOperator
 from .funcs import simplify_op
 from .identity import IdentityOperator
 from .sequential import OperatorSequence
-from galax.typing import RealQScalar
+from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
 
 if TYPE_CHECKING:
     from typing import Self
@@ -131,10 +132,13 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
 
     # -------------------------------------------
 
-    @op_call_dispatch(precedence=1)  # type: ignore[misc]
+    @op_call_dispatch(precedence=1)
     def __call__(
-        self: "GalileanSpatialTranslationOperator", q: Abstract3DVector, t: RealQScalar
-    ) -> tuple[Abstract3DVector, RealQScalar]:
+        self: "GalileanSpatialTranslationOperator",
+        q: Abstract3DVector,
+        t: Quantity["time"],
+        /,
+    ) -> tuple[Abstract3DVector, Quantity["time"]]:
         """Apply the translation to the coordinates.
 
         Examples
@@ -162,6 +166,56 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
 
         """
         return (q + self.translation, t)
+
+    @op_call_dispatch
+    def __call__(
+        self: "GalileanSpatialTranslationOperator",
+        psp: AbstractPhaseSpacePositionBase,
+        t: Quantity["time"],
+        /,
+    ) -> tuple[AbstractPhaseSpacePositionBase, Quantity["time"]]:
+        """Apply the translation to the coordinates.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpacePosition
+        >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
+
+        >>> shift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
+        >>> op = GalileanSpatialTranslationOperator(shift)
+
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                          p=Quantity([0, 0, 0], "kpc/Gyr"))
+
+        >>> t = Quantity(0, "Gyr")
+        >>> newpsp, newt = op(psp, t)
+        >>> newpsp.q.x
+        Quantity['length'](Array(2., dtype=float64), unit='kpc')
+
+        >>> newt
+        Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr')
+
+        This spatial translation is time independent.
+
+        >>> op(psp, Quantity(1, "Gyr"))[0].q.x == newpsp.q.x
+        Array(True, dtype=bool)
+
+        """
+        # Shifting the position and time
+        q, t = self(psp.q, t)
+        # Transforming the momentum. The actual value of momentum is not
+        # affected by the translation, however for non-Cartesian coordinates the
+        # representation of the momentum in will be different.  First transform
+        # the momentum to Cartesian coordinates at the original position. Then
+        # transform the momentum back to the original representation, but at the
+        # translated position.
+        p = psp.p.represent_as(CartesianDifferential3D, psp.q).represent_as(
+            type(psp.p), q
+        )
+        # Reasseble and return
+        return (replace(psp, q=q, p=p), t)
 
     @property
     def is_inertial(self) -> Literal[True]:
@@ -351,6 +405,61 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
         """
         return (x + self.translation.q, t + self.translation.t)
 
+    @op_call_dispatch
+    def __call__(
+        self: "GalileanTranslationOperator",
+        psp: AbstractPhaseSpacePositionBase,
+        t: Quantity["time"],
+        /,
+    ) -> tuple[AbstractPhaseSpacePositionBase, Quantity["time"]]:
+        """Apply the translation to the coordinates.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector
+        >>> from galax.coordinates.operators import GalileanTranslationOperator
+
+        >>> op = GalileanTranslationOperator(Quantity([2_000, 1, 1, 1], "kpc"))
+
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                          p=Quantity([0, 0, 0], "kpc/Gyr"))
+
+        >>> t = Quantity(0, "Gyr")
+        >>> newpsp, newt = op(psp, t)
+        >>> newpsp.q.x
+        Quantity['length'](Array(2., dtype=float64), unit='kpc')
+
+        >>> newt.to("Myr")
+        Quantity['time'](Array(6.52312755, dtype=float64), unit='Myr')
+
+        This spatial translation is time independent.
+
+        >>> op(psp, Quantity(1, "Gyr"))[0].q.x == newpsp.q.x
+        Array(True, dtype=bool)
+
+        But the time translation is not.
+
+        >>> op(psp, Quantity(1, "Gyr"))[1]
+        Quantity['time'](Array(1.00652313, dtype=float64), unit='Gyr')
+
+        """
+        # Shifting the position and time
+        q, t = self(psp.q, t)
+        # Transforming the momentum. The actual value of momentum is not
+        # affected by the translation, however for non-Cartesian coordinates the
+        # representation of the momentum in will be different.  First transform
+        # the momentum to Cartesian coordinates at the original position. Then
+        # transform the momentum back to the original representation, but at the
+        # translated position.
+        p = psp.p.represent_as(CartesianDifferential3D, psp.q).represent_as(
+            type(psp.p), q
+        )
+        # Reasseble and return
+        return (replace(psp, q=q, p=p), t)
+
+    # -----------------------------------------------------
+
     @property
     def is_inertial(self) -> Literal[True]:
         """Galilean translation is an inertial-frame preserving transformation.
@@ -465,7 +574,7 @@ class GalileanBoostOperator(AbstractGalileanOperator):
     :class:`vector.CartesianDifferential3D` for details.
     """
 
-    @op_call_dispatch(precedence=1)  # type: ignore[misc]
+    @op_call_dispatch(precedence=1)
     def __call__(
         self: "GalileanBoostOperator", q: Abstract3DVector, t: Quantity["time"], /
     ) -> tuple[Abstract3DVector, Quantity["time"]]:
@@ -489,6 +598,56 @@ class GalileanBoostOperator(AbstractGalileanOperator):
 
         """
         return q + self.velocity * t, t
+
+    @op_call_dispatch
+    def __call__(
+        self: "GalileanBoostOperator",
+        psp: AbstractPhaseSpacePositionBase,
+        t: Quantity["time"],
+        /,
+    ) -> tuple[AbstractPhaseSpacePositionBase, Quantity["time"]]:
+        """Apply the translation to the coordinates.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates.operators import GalileanBoostOperator
+
+        >>> op = GalileanBoostOperator(Quantity([1, 1, 1], "kpc/Gyr"))
+
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                          p=Quantity([0, 0, 0], "kpc/Gyr"))
+
+        >>> t = Quantity(1, "Gyr")
+        >>> newpsp, newt = op(psp, t)
+        >>> newpsp.q.x
+        Quantity['length'](Array(2., dtype=float64), unit='kpc')
+
+        >>> newt
+        Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+
+        This spatial translation is time dependent.
+
+        >>> op(psp, Quantity(2, "Gyr"))[0].q.x
+        Quantity['length'](Array(3., dtype=float64), unit='kpc')
+
+        """
+        # Shifting the position and time
+        q, t = self(psp.q, t)
+        # Transforming the momentum. The actual value of momentum is not
+        # affected by the translation, however for non-Cartesian coordinates the
+        # representation of the momentum in will be different.  First transform
+        # the momentum to Cartesian coordinates at the original position. Then
+        # transform the momentum back to the original representation, but at the
+        # translated position.
+        p = psp.p.represent_as(CartesianDifferential3D, psp.q).represent_as(
+            type(psp.p), q
+        )
+        # Reasseble and return
+        return (replace(psp, q=q, p=p), t)
+
+    # -----------------------------------------------------
 
     @property
     def is_inertial(self) -> Literal[True]:
@@ -568,14 +727,14 @@ class GalileanBoostOperator(AbstractGalileanOperator):
 #             raise ValueError(msg)
 
 #     def into(
-#         self, q: Abstract3DVector, t: RealQScalar
-#     ) -> tuple[Abstract3DVector, RealQScalar]:
+#         self, q: Abstract3DVector, t: Quantity["time"]
+#     ) -> tuple[Abstract3DVector, Quantity["time"]]:
 #         """Do."""
 #         return self.rotation @ q, t
 
 #     def outof(
-#         self, q: Abstract3DVector, t: RealQScalar
-#     ) -> tuple[Abstract3DVector, RealQScalar]:
+#         self, q: Abstract3DVector, t: Quantity["time"]
+#     ) -> tuple[Abstract3DVector, Quantity["time"]]:
 #         """Undo."""
 #         return self.rotation.T @ q, t
 
@@ -614,7 +773,6 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     --------
     We start with the required imports:
 
-    >>> import array_api_jax_compat as xp
     >>> from jax_quantity import Quantity
     >>> import galax.coordinates.operators as gco
 
@@ -645,7 +803,7 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     ...     translation=gco.GalileanTranslationOperator(
     ...         FourVector(t=Quantity(2.5, "Gyr"),
     ...                    q=SphericalVector(r=Quantity(1, "kpc"),
-    ...                                      theta=Quantity(xp.pi/2, "rad"),
+    ...                                      theta=Quantity(90, "deg"),
     ...                                      phi=Quantity(0, "rad") ) ) ),
     ...     velocity=gco.GalileanBoostOperator(
     ...         CartesianDifferential3D(d_x=Quantity(1, "km/s"),
@@ -687,6 +845,19 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     Quantity['length'](Array(3.55678041, dtype=float64), unit='kpc')
     >>> newt
     Quantity['time'](Array(2.5, dtype=float64), unit='Gyr')
+
+    As another example we can apply the operator to a
+    :class:`~galax.coordinates.PhaseSpacePosition`:
+
+    >>> from galax.coordinates import PhaseSpacePosition
+    >>> psp = PhaseSpacePosition(q=Quantity([0, 0, 0], "kpc"),
+    ...                          p=Quantity([0, 0, 0], "kpc/Gyr"))
+    >>> newpsp, newt = op(psp, Quantity(1, "Gyr"))
+    >>> newpsp.q.x
+    Quantity['length'](Array(4.57949258, dtype=float64), unit='kpc')
+
+    >>> newt
+    Quantity['time'](Array(3.5, dtype=float64), unit='Gyr')
     """
 
     # # TODO: better option than using a matrix b/c of the precision issues.

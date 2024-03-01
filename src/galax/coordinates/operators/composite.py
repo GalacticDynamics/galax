@@ -10,6 +10,7 @@ from jax_quantity import Quantity
 from vector import AbstractVector
 
 from .base import AbstractOperator, op_call_dispatch
+from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
 from galax.utils.dataclasses import _DataclassInstance
 
 if TYPE_CHECKING:
@@ -38,10 +39,22 @@ class AbstractCompositeOperator(AbstractOperator):
     # TODO: how to have the `operators` attribute in a way that allows for both
     # writeable (in the constructor) and read-only (as a property) subclasses.
 
-    @op_call_dispatch(precedence=1)  # type: ignore[misc]
+    @op_call_dispatch(precedence=1)
     def __call__(
         self: "AbstractCompositeOperator", x: AbstractVector, t: Quantity["time"], /
     ) -> tuple[AbstractVector, Quantity["time"]]:
+        """Apply the operator to the coordinates."""
+        for op in self.operators:
+            x, t = op(x, t)
+        return x, t
+
+    @op_call_dispatch
+    def __call__(
+        self: "AbstractCompositeOperator",
+        x: AbstractPhaseSpacePositionBase,
+        t: Quantity["time"],
+        /,
+    ) -> tuple[AbstractPhaseSpacePositionBase, Quantity["time"]]:
         """Apply the operator to the coordinates."""
         for op in self.operators:
             x, t = op(x, t)

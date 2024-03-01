@@ -48,8 +48,9 @@ RealScalarLike = FloatLike | IntLike
 # -----------------------------------------------------------------------------
 # Shaped
 
+# 1-vector
 Vec1 = Float[Array, "1"]
-"""A 1-vector."""
+QVec1 = Float[Quantity, "1"]
 
 # A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz).
 Vec3 = Float[Array, "3"]
@@ -131,17 +132,20 @@ BatchVec7 = Shaped[Vec7, "*batch"]
 # -----------------
 # Specific
 
+# Zero or more batches of time vectors.
 BroadBatchVecTime = Shaped[VecTime, "*#batch"]
 BatchVecTime = Shaped[VecTime, "*batch"]
-"""Zero or more batches of time vectors."""
+BroadBatchQVecTime = Shaped[QVecTime, "*#batch"]
+BatchQVecTime = Shaped[QVecTime, "*batch"]
 
 BroadBatchVecTime3 = Shaped[VecTime3, "*#batch"]
 
 # -----------------
 # Any Shape
 
+# A float array with any shape.
 FloatArrayAnyShape = Float[Array, "..."]
-"""A float array with any shape."""
+FloatQAnyShape = Float[Quantity, "..."]
 
 IntArrayAnyShape = Integer[Array, "..."]
 """An integer array with any shape."""

@@ -8,14 +8,14 @@ from typing import TYPE_CHECKING, Any, final
 import equinox as eqx
 import jax.numpy as jnp
 
+from jax_quantity import Quantity
 from vector import Abstract3DVector, Abstract3DVectorDifferential
 
 from galax.coordinates import AbstractPhaseSpaceTimePosition
 from galax.coordinates._psp.base import _p_converter, _q_converter
 from galax.coordinates._psp.utils import getitem_vec1time_index
-from galax.typing import VecTime
+from galax.typing import QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
-from galax.utils.dataclasses import converter_float_array
 
 if TYPE_CHECKING:
     from typing import Self
@@ -43,10 +43,10 @@ class MockStream(AbstractPhaseSpaceTimePosition):
     p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
-    t: VecTime = eqx.field(converter=converter_float_array)
+    t: QVecTime = eqx.field(converter=Quantity["time"].constructor)
     """Array of times corresponding to the positions."""
 
-    release_time: VecTime = eqx.field(converter=converter_float_array)
+    release_time: QVecTime = eqx.field(converter=Quantity["time"].constructor)
     """Release time of the stream particles [Myr]."""
 
     # ==========================================================================

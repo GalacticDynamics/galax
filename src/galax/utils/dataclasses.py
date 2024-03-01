@@ -23,6 +23,7 @@ import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 from equinox._module import _has_dataclass_init, _ModuleMeta
+from jax.dtypes import canonicalize_dtype
 from jaxtyping import Array, Float, Integer
 from typing_extensions import ParamSpec, Unpack
 
@@ -264,7 +265,8 @@ def converter_float_array(
 ) -> Float[Array, "*shape"] | Integer[Array, "*shape"]:
     """Convert to a batched vector."""
     x = xp.asarray(x, dtype=None)
-    return xp.asarray(x, dtype=jnp.promote_types(x.dtype, float))
+    dtype = jnp.promote_types(x.dtype, canonicalize_dtype(float))
+    return xp.asarray(x, dtype=dtype)
 
 
 ##############################################################################

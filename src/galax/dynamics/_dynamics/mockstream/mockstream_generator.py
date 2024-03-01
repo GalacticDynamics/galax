@@ -179,12 +179,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
         elif isinstance(prog_w0, PhaseSpacePosition):
             w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
-            w0 = PhaseSpaceTimePosition(q=prog_w0.q, p=prog_w0.p, t=ts[0])
+            t0 = Quantity.constructor(ts[0], self.potential.units["time"])
+            w0 = PhaseSpaceTimePosition(q=prog_w0.q, p=prog_w0.p, t=t0)
         else:
+            t0 = Quantity.constructor(ts[0], self.potential.units["time"])
             w0 = PhaseSpaceTimePosition(
                 q=Quantity(prog_w0[..., 0:3], self.units["length"]),
                 p=Quantity(prog_w0[3:6], self.units["speed"]),
-                t=ts[0],
+                t=t0,
             )
 
         # If the time stepping passed in is negative, assume this means that all
@@ -234,7 +236,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         mockstream = MockStream(
             q=Quantity(q, self.units["length"]),
             p=Quantity(p, self.units["speed"]),
-            t=t,
+            t=Quantity(t, self.units["time"]),
             release_time=release_time,
         )
 

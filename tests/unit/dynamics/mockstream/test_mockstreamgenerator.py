@@ -103,4 +103,4 @@ class TestMockStreamGenerator:
         )
         assert allfinite(mock.q)
         assert allfinite(mock.p)
-        assert jnp.isfinite(mock.t).all()
+        assert xp.isfinite(mock.t).all()

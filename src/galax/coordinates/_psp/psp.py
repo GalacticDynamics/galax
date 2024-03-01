@@ -4,7 +4,7 @@ __all__ = ["AbstractPhaseSpacePosition", "PhaseSpacePosition"]
 
 from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING, Any, final
+from typing import TYPE_CHECKING, Any, NamedTuple, final
 
 import equinox as eqx
 import jax
@@ -14,7 +14,8 @@ from plum import convert
 from jax_quantity import Quantity
 from vector import Abstract3DVector, Abstract3DVectorDifferential
 
-from .base import AbstractPhaseSpacePositionBase, _p_converter, _q_converter
+from .base import AbstractPhaseSpacePositionBase
+from .utils import _p_converter, _q_converter
 from galax.typing import BatchableRealScalarLike, BatchRealQScalar
 from galax.utils._shape import vector_batched_shape
 
@@ -22,6 +23,16 @@ if TYPE_CHECKING:
     from typing import Self
 
     from galax.potential._potential.base import AbstractPotentialBase
+
+
+class ComponentShapeTuple(NamedTuple):
+    """Component shape of the phase-space position."""
+
+    q: int
+    """Shape of the position."""
+
+    p: int
+    """Shape of the momentum."""
 
 
 class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
@@ -245,9 +256,9 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int]]:
+    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch)
-        return batch_shape, qshape + pshape
+        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape)

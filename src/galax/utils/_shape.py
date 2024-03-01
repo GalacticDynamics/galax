@@ -90,9 +90,9 @@ def atleast_batched(*arys: Any) -> Array | tuple[Array, ...]:
 # =============================================================================
 
 
-def vector_batched_shape(obj: AbstractVectorBase) -> tuple[tuple[int, ...], tuple[int]]:
+def vector_batched_shape(obj: AbstractVectorBase) -> tuple[tuple[int, ...], int]:
     """Return the batch and component shape of a vector."""
-    return obj.shape, (len(obj.components),)
+    return obj.shape, len(obj.components)
 
 
 @overload

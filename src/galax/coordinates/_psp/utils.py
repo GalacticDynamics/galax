@@ -6,6 +6,13 @@ from typing import Any, Protocol, cast, runtime_checkable
 
 import array_api_jax_compat as xp
 
+from vector import (
+    Abstract3DVector,
+    Abstract3DVectorDifferential,
+    Cartesian3DVector,
+    CartesianDifferential3D,
+)
+
 from galax.typing import FloatQAnyShape
 
 
@@ -106,3 +113,20 @@ def getitem_vec1time_index(index: Any, t: FloatQAnyShape) -> Any:
     if isinstance(index, Shaped):
         return _getitem_vec1time_index_shaped(index, t)
     return index
+
+
+# -----------------------------------------------------------------------------
+
+
+def _q_converter(x: Any) -> Abstract3DVector:
+    """Convert input to a 3D vector."""
+    return x if isinstance(x, Abstract3DVector) else Cartesian3DVector.constructor(x)
+
+
+def _p_converter(x: Any) -> Abstract3DVectorDifferential:
+    """Convert input to a 3D vector differential."""
+    return (
+        x
+        if isinstance(x, Abstract3DVectorDifferential)
+        else CartesianDifferential3D.constructor(x)
+    )

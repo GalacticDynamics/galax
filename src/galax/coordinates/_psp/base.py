@@ -3,9 +3,10 @@
 __all__ = ["AbstractPhaseSpacePositionBase"]
 
 from abc import abstractmethod
+from collections.abc import Iterator
 from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 import array_api_jax_compat as xp
 import equinox as eqx
@@ -19,7 +20,6 @@ from vector import (
     Abstract3DVectorDifferential,
     AbstractVectorBase,
     Cartesian3DVector,
-    CartesianDifferential3D,
     represent_as as vector_represent_as,
 )
 
@@ -28,6 +28,17 @@ from galax.units import unitsystem
 
 if TYPE_CHECKING:
     from typing import Self
+
+
+@runtime_checkable
+class ComponentShapeTuple(Protocol):
+    """Shape tuple for phase-space positions."""
+
+    q: int
+    p: int
+
+    def __iter__(self) -> Iterator[Any]:
+        ...
 
 
 class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -57,7 +68,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
 
     @property
     @abstractmethod
-    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    def _shape_tuple(self) -> tuple[tuple[int, ...], Any]:
         """Batch, component shape."""
         raise NotImplementedError
 
@@ -183,10 +194,10 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
         """
         usys = unitsystem(units)
-        batch_shape, comp_shapes = self._shape_tuple
+        batch, comps = self._shape_tuple
         cart = self.represent_as(Cartesian3DVector)
-        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch_shape, comp_shapes[0]))
-        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch_shape, comp_shapes[1]))
+        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
+        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
         return xp.concat((q.decompose(usys).value, p.decompose(usys).value), axis=-1)
 
     def represent_as(self, /, target: type[AbstractVectorBase]) -> "Self":
@@ -321,18 +332,4 @@ def represent_as(
         current,
         q=current.q.represent_as(target),
         p=current.p.represent_as(target.differential_cls, current.q),
-    )
-
-
-def _q_converter(x: Any) -> Abstract3DVector:
-    """Convert input to a 3D vector."""
-    return x if isinstance(x, Abstract3DVector) else Cartesian3DVector.constructor(x)
-
-
-def _p_converter(x: Any) -> Abstract3DVectorDifferential:
-    """Convert input to a 3D vector differential."""
-    return (
-        x
-        if isinstance(x, Abstract3DVectorDifferential)
-        else CartesianDifferential3D.constructor(x)
     )

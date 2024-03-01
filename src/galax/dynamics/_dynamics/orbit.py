@@ -23,8 +23,13 @@ from galax.coordinates import (
     PhaseSpacePosition,
     PhaseSpaceTimePosition,
 )
-from galax.coordinates._psp.base import _p_converter, _q_converter
-from galax.coordinates._psp.utils import Shaped, getitem_vec1time_index
+from galax.coordinates._psp.pspt import ComponentShapeTuple
+from galax.coordinates._psp.utils import (
+    Shaped,
+    _p_converter,
+    _q_converter,
+    getitem_vec1time_index,
+)
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
     BatchFloatQScalar,
@@ -75,14 +80,13 @@ class Orbit(AbstractPhaseSpaceTimePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
+    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
         tbatch, _ = batched_shape(self.t, expect_ndim=1)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
-        array_shape = qshape + pshape + (1,)
-        return batch_shape, array_shape
+        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
 
     @overload
     def __getitem__(self, index: int) -> PhaseSpaceTimePosition:

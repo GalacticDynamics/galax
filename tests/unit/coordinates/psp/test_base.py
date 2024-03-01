@@ -16,7 +16,7 @@ from jaxtyping import Array
 from jax_quantity import Quantity
 from vector import Cartesian3DVector, CartesianDifferential3D
 
-from galax.coordinates._psp.base import _p_converter, _q_converter
+from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.units import galactic
 
 if TYPE_CHECKING:

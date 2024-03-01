@@ -15,7 +15,7 @@ from vector import Cartesian3DVector, CartesianDifferential3D
 
 from .test_base import AbstractPhaseSpacePositionBase_Test, T, return_keys
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
-from galax.coordinates._psp.base import _p_converter, _q_converter
+from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.potential._potential.special import MilkyWayPotential
 from galax.units import galactic

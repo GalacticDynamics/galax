@@ -14,6 +14,7 @@ from jax_quantity import Quantity
 from vector import Abstract3DVector, AbstractVector, FourVector
 
 from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
+from galax.coordinates._psp.psp import PhaseSpacePosition
 from galax.coordinates._psp.pspt import AbstractPhaseSpaceTimePosition
 from galax.utils.dataclasses import dataclass_items
 
@@ -109,8 +110,9 @@ class AbstractOperator(eqx.Module):  # type: ignore[misc]
         phase-space positions.  Alternatively, they can implement this method
         directly to avoid redispatching.
         """
-        psp, t = self(x.psp, x.t)  # redispatch on (psp, t)
-        return replace(psp, t=t)
+        # redispatch on (psp, t)
+        psp, t = self(PhaseSpacePosition(q=x.q, p=x.p), x.t)
+        return replace(x, q=psp.q, p=psp.p, t=t)
 
     # -------------------------------------------
 

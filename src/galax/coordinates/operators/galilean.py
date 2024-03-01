@@ -1047,12 +1047,11 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     Quantity['time'](Array(3.5, dtype=float64), unit='Gyr')
     """
 
-    # # TODO: better option than using a matrix b/c of the precision issues.
-    # rotation: GalileanRotationOperator = eqx.field(
-    #     default=GalileanRotationOperator(xp.eye(3)),
-    #     converter=GalileanRotationOperator,
-    # )
-    # """The in-frame spatial rotation."""
+    rotation: GalileanRotationOperator = eqx.field(
+        default=GalileanRotationOperator(xp.eye(3)),
+        converter=GalileanRotationOperator,
+    )
+    """The in-frame spatial rotation."""
 
     translation: GalileanTranslationOperator = eqx.field(
         default=GalileanTranslationOperator(Quantity([0, 0, 0, 0], "kpc")),
@@ -1091,13 +1090,10 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     def operators(
         self,
     ) -> tuple[
-        # GalileanRotationOperator,
-        GalileanTranslationOperator,
-        GalileanBoostOperator,
+        GalileanRotationOperator, GalileanTranslationOperator, GalileanBoostOperator
     ]:
         """Rotation -> translateion -> boost."""
-        # return (self.rotation, self.translation, self.velocity)
-        return (self.translation, self.velocity)
+        return (self.rotation, self.translation, self.velocity)
 
     @overload
     def __getitem__(self, key: int) -> AbstractOperator:

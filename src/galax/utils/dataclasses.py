@@ -24,8 +24,10 @@ import astropy.units as u
 import jax.numpy as jnp
 from equinox._module import _has_dataclass_init, _ModuleMeta
 from jax.dtypes import canonicalize_dtype
-from jaxtyping import Array, Float, Integer
+from jaxtyping import Array, Float
 from typing_extensions import ParamSpec, Unpack
+
+from jax_quantity import Quantity
 
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
@@ -260,13 +262,18 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
 # Converters
 
 
-def converter_float_array(
-    x: Any, /
-) -> Float[Array, "*shape"] | Integer[Array, "*shape"]:
+@ft.singledispatch
+def converter_float_array(x: Any, /) -> Float[Array, "*shape"]:
     """Convert to a batched vector."""
     x = xp.asarray(x, dtype=None)
     dtype = jnp.promote_types(x.dtype, canonicalize_dtype(float))
     return xp.asarray(x, dtype=dtype)
+
+
+@converter_float_array.register
+def _converter_float_quantity(x: Quantity, /) -> Float[Array, "*shape"]:
+    """Convert to a batched vector."""
+    return converter_float_array(x.to_value(u.dimensionless_unscaled))
 
 
 ##############################################################################

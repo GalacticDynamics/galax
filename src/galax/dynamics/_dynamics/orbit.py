@@ -14,8 +14,8 @@ import jaxtyping as jt
 from astropy.units import Quantity as APYQuantity
 
 import array_api_jax_compat as xp
+from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from jax_quantity import Quantity
-from vector import Abstract3DVector, Abstract3DVectorDifferential
 
 from .integrate import DiffraxIntegrator, Integrator
 from galax.coordinates import (

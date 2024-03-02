@@ -11,8 +11,8 @@ import pytest
 from plum import convert
 
 import array_api_jax_compat as xp
+from coordinax import Cartesian3DVector, CartesianDifferential3D
 from jax_quantity import Quantity
-from vector import Cartesian3DVector, CartesianDifferential3D
 
 from .test_base import AbstractPhaseSpacePositionBase_Test, Shape, return_keys
 from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition

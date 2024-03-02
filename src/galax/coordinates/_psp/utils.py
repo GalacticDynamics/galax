@@ -5,7 +5,7 @@ __all__: list[str] = []
 from typing import Any, Protocol, cast, runtime_checkable
 
 import array_api_jax_compat as xp
-from vector import (
+from coordinax import (
     Abstract3DVector,
     Abstract3DVectorDifferential,
     Cartesian3DVector,

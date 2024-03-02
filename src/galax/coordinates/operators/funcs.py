@@ -7,7 +7,7 @@ from typing import cast
 
 from plum import dispatch
 
-from vector import Abstract3DVector, Cartesian3DVector
+from coordinax import Abstract3DVector, Cartesian3DVector
 
 from .base import AbstractOperator
 from galax.typing import QVec3, RealScalar

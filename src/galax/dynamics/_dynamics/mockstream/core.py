@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any, final
 import equinox as eqx
 import jax.numpy as jnp
 
+from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from jax_quantity import Quantity
-from vector import Abstract3DVector, Abstract3DVectorDifferential
 
 from galax.coordinates import AbstractPhaseSpaceTimePosition
 from galax.coordinates._psp.pspt import ComponentShapeTuple

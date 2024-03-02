@@ -4,8 +4,8 @@ __all__ = ["AbstractOperator", "IdentityOperator"]
 
 from typing import Literal, final
 
+from coordinax import AbstractVector
 from jax_quantity import Quantity
-from vector import AbstractVector
 
 from .base import AbstractOperator, op_call_dispatch
 from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
@@ -26,7 +26,7 @@ class IdentityOperator(AbstractOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
+        >>> from coordinax import Cartesian3DVector
         >>> from galax.coordinates.operators import IdentityOperator
 
         >>> q = Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
@@ -51,7 +51,7 @@ class IdentityOperator(AbstractOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
+        >>> from coordinax import Cartesian3DVector
         >>> import galax.coordinates as gc
         >>> from galax.coordinates.operators import IdentityOperator
 
@@ -74,7 +74,7 @@ class IdentityOperator(AbstractOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
+        >>> from coordinax import Cartesian3DVector
         >>> from galax.coordinates.operators import IdentityOperator
 
         >>> q = Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
@@ -92,7 +92,7 @@ class IdentityOperator(AbstractOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
+        >>> from coordinax import Cartesian3DVector
         >>> from galax.coordinates.operators import IdentityOperator
 
         >>> q = Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))

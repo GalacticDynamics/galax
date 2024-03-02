@@ -20,13 +20,13 @@ from plum import convert
 from quax import quaxify
 
 import array_api_jax_compat as xp
-from jax_quantity import Quantity
-from vector import (
+from coordinax import (
     Abstract3DVector,
     Cartesian3DVector,
     CartesianDifferential3D,
     FourVector,
 )
+from jax_quantity import Quantity
 
 from .base import AbstractOperator, op_call_dispatch
 from .composite import AbstractCompositeOperator
@@ -91,7 +91,7 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
     :meth:`vector.Cartesian3DVector.constructor`. We can also construct it
     directly, which allows for other vector types.
 
-    >>> from vector import SphericalVector
+    >>> from coordinax import SphericalVector
     >>> shift = SphericalVector(r=Quantity(1.0, "kpc"),
     ...                         theta=Quantity(xp.pi/2, "rad"),
     ...                         phi=Quantity(0, "rad"))
@@ -101,7 +101,7 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
 
     Translation operators can be applied to :class:`vector.AbstractVector`:
 
-    >>> from vector import Cartesian3DVector
+    >>> from coordinax import Cartesian3DVector
     >>> q = Cartesian3DVector.constructor(Quantity([0, 0, 0], "kpc"))
     >>> t = Quantity(0, "Gyr")
     >>> op(q, t)
@@ -131,7 +131,7 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
+        >>> from coordinax import Cartesian3DVector
         >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
 
         >>> shift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
@@ -149,7 +149,7 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
+        >>> from coordinax import Cartesian3DVector
         >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
 
         >>> shift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
@@ -177,7 +177,7 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
+        >>> from coordinax import Cartesian3DVector
         >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
 
         >>> shift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
@@ -212,7 +212,7 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
 
@@ -294,7 +294,7 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
     constructed from a 1D array, using :meth:`vector.FourVector.constructor`. We
     can also construct it directly, which allows for other vector types.
 
-    >>> from vector import SphericalVector
+    >>> from coordinax import SphericalVector
     >>> qshift = SphericalVector(r=Quantity(1.0, "kpc"), theta=Quantity(xp.pi/2, "rad"),
     ...                          phi=Quantity(0, "rad"))
     >>> op = GalileanTranslationOperator(FourVector(t=Quantity(1.0, "Gyr"), q=qshift))
@@ -342,7 +342,7 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import FourVector
+        >>> from coordinax import FourVector
         >>> from galax.coordinates.operators import GalileanTranslationOperator
 
         >>> shift = FourVector.constructor(Quantity([0, 1, 1, 1], "kpc"))
@@ -360,7 +360,7 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, FourVector
+        >>> from coordinax import Cartesian3DVector, FourVector
         >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
 
         >>> qshift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
@@ -385,7 +385,7 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, FourVector
+        >>> from coordinax import Cartesian3DVector, FourVector
         >>> from galax.coordinates.operators import GalileanTranslationOperator
 
         Explicitly construct the translation operator:
@@ -423,7 +423,7 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, FourVector
+        >>> from coordinax import Cartesian3DVector, FourVector
         >>> from galax.coordinates.operators import GalileanTranslationOperator
 
         Explicitly construct the translation operator:
@@ -459,7 +459,7 @@ class GalileanTranslationOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector
+        >>> from coordinax import Cartesian3DVector
         >>> from galax.coordinates.operators import GalileanTranslationOperator
 
         >>> op = GalileanTranslationOperator(Quantity([2_000, 1, 1, 1], "kpc"))
@@ -531,7 +531,7 @@ class GalileanBoostOperator(AbstractGalileanOperator):
 
     >>> import array_api_jax_compat as xp
     >>> from jax_quantity import Quantity
-    >>> from vector import CartesianDifferential3D, Cartesian3DVector
+    >>> from coordinax import CartesianDifferential3D, Cartesian3DVector
     >>> import galax.coordinates.operators as gco
 
     We can then create a boost operator:
@@ -582,7 +582,7 @@ class GalileanBoostOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates.operators import GalileanBoostOperator
 
         >>> op = GalileanBoostOperator(Quantity([1, 2, 3], "m/s"))
@@ -598,7 +598,7 @@ class GalileanBoostOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates.operators import GalileanBoostOperator
 
         >>> op = GalileanBoostOperator(Quantity([1, 2, 3], "m/s"))
@@ -622,7 +622,7 @@ class GalileanBoostOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates.operators import GalileanBoostOperator
 
         >>> op = GalileanBoostOperator(Quantity([1, 2, 3], "m/s"))
@@ -650,7 +650,7 @@ class GalileanBoostOperator(AbstractGalileanOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates.operators import GalileanBoostOperator
 
         >>> op = GalileanBoostOperator(Quantity([1, 1, 1], "kpc/Gyr"))
@@ -766,7 +766,7 @@ class GalileanRotationOperator(AbstractGalileanOperator):
 
     Translation operators can be applied to :class:`vector.Abstract3DVector`:
 
-    >>> from vector import Cartesian3DVector
+    >>> from coordinax import Cartesian3DVector
     >>> q = Cartesian3DVector.constructor(q)  # from the previous example
     >>> newq, newt = op(q, t)
     >>> newq.x
@@ -867,7 +867,7 @@ class GalileanRotationOperator(AbstractGalileanOperator):
         --------
         >>> import array_api_jax_compat as xp
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates.operators import GalileanRotationOperator
 
         >>> theta = Quantity(45, "deg")
@@ -899,7 +899,7 @@ class GalileanRotationOperator(AbstractGalileanOperator):
         --------
         >>> import array_api_jax_compat as xp
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates.operators import GalileanRotationOperator
 
         >>> theta = Quantity(45, "deg")
@@ -937,7 +937,7 @@ class GalileanRotationOperator(AbstractGalileanOperator):
         --------
         >>> import array_api_jax_compat as xp
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates.operators import GalileanRotationOperator
         >>> from galax.coordinates import PhaseSpacePosition
 
@@ -1039,7 +1039,7 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
     :class:`vector.CartesianDifferential3D` velocity. We can also construct them
     directly, which allows for other vector types.
 
-    >>> from vector import SphericalVector, FourVector, CartesianDifferential3D
+    >>> from coordinax import SphericalVector, FourVector, CartesianDifferential3D
     >>> op = gco.GalileanOperator(
     ...     translation=gco.GalileanTranslationOperator(
     ...         FourVector(t=Quantity(2.5, "Gyr"),

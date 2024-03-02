@@ -4,7 +4,7 @@ __all__ = ["AbstractPhaseSpaceTimePosition", "PhaseSpaceTimePosition"]
 
 from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING, Any, final
+from typing import TYPE_CHECKING, Any, NamedTuple, final
 
 import array_api_jax_compat as xp
 import equinox as eqx
@@ -19,8 +19,8 @@ from vector import (
     Cartesian3DVector,
 )
 
-from .base import AbstractPhaseSpacePositionBase, _p_converter, _q_converter
-from .utils import getitem_broadscalartime_index
+from .base import AbstractPhaseSpacePositionBase
+from .utils import _p_converter, _q_converter, getitem_broadscalartime_index
 from galax.typing import (
     BatchFloatQScalar,
     BatchVec7,
@@ -34,6 +34,19 @@ if TYPE_CHECKING:
     from typing import Self
 
     from galax.potential._potential.base import AbstractPotentialBase
+
+
+class ComponentShapeTuple(NamedTuple):
+    """Component shape of the phase-space position."""
+
+    q: int
+    """Shape of the position."""
+
+    p: int
+    """Shape of the momentum."""
+
+    t: int
+    """Shape of the time."""
 
 
 class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
@@ -107,11 +120,11 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         Array([2.21816615e-13, 3.24077929e-20, 6.48155858e-20, 9.72233787e-20,
                4.09084866e-06, 5.11356083e-06, 6.13627299e-06], dtype=float64)
         """
-        batch_shape, comp_shapes = self._shape_tuple
+        batch, comps = self._shape_tuple
         cart = self.represent_as(Cartesian3DVector)
-        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch_shape, comp_shapes[0]))
-        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch_shape, comp_shapes[1]))
-        t = xp.broadcast_to(self.t.decompose(units).value, batch_shape)[..., None]
+        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
+        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
+        t = xp.broadcast_to(self.t.decompose(units).value[..., None], (*batch, comps.t))
         return xp.concat(
             (t, q.decompose(units).value, p.decompose(units).value), axis=-1
         )
@@ -328,14 +341,13 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
+    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
         tbatch, _ = batched_shape(self.t, expect_ndim=0)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
-        array_shape = qshape + pshape + (1,)
-        return batch_shape, array_shape
+        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
 
     # ==========================================================================
     # Convenience methods
@@ -372,9 +384,9 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
                 4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64)
         """
         usys = unitsystem(units)
-        batch_shape, comp_shapes = self._shape_tuple
+        batch, comps = self._shape_tuple
         cart = self.represent_as(Cartesian3DVector)
-        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch_shape, comp_shapes[0]))
-        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch_shape, comp_shapes[1]))
-        t = xp.broadcast_to(self.t.decompose(usys).value, batch_shape)[..., None]
+        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
+        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
+        t = xp.broadcast_to(self.t.decompose(usys).value[..., None], (*batch, comps.t))
         return xp.concat((t, q.decompose(usys).value, p.decompose(usys).value), axis=-1)

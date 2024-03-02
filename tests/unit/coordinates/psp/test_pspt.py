@@ -16,10 +16,11 @@ from vector import Cartesian3DVector, CartesianDifferential3D
 
 from .test_base import AbstractPhaseSpacePositionBase_Test, Shape, return_keys
 from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
-from galax.coordinates._psp.base import _p_converter, _q_converter
+from galax.coordinates._psp.pspt import ComponentShapeTuple
+from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.potential._potential.special import MilkyWayPotential
-from galax.typing import BatchVec7, FloatScalar
+from galax.typing import BatchVec7
 from galax.units import UnitSystem, galactic
 
 T = TypeVar("T", bound=AbstractPhaseSpaceTimePosition)
@@ -114,11 +115,11 @@ class TestAbstractPhaseSpaceTimePosition(
 
             q: Cartesian3DVector = eqx.field(converter=_q_converter)
             p: CartesianDifferential3D = eqx.field(converter=_p_converter)
-            t: FloatScalar
+            t: Quantity["time"]
 
             @property
-            def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int]]:
-                return self.q.shape, (3, 3, 1)
+            def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
+                return self.q.shape, ComponentShapeTuple(p=3, q=3, t=1)
 
             def __getitem__(self, index: Any) -> Self:
                 return replace(self, q=self.q[index], p=self.p[index], t=self.t[index])
@@ -138,19 +139,17 @@ class TestAbstractPhaseSpaceTimePosition(
                 wt : Array[float, (*batch, 1+Q+P)]
                     The full phase-space position, including time.
                 """
-                batch_shape, comp_shapes = self._shape_tuple
+                batch, comps = self._shape_tuple
                 cart = self.represent_as(Cartesian3DVector)
                 q = xp.broadcast_to(
-                    convert(cart.q, Quantity).decompose(units).value,
-                    (*batch_shape, comp_shapes[0]),
+                    convert(cart.q, Quantity).decompose(units).value, (*batch, comps.q)
                 )
                 p = xp.broadcast_to(
-                    convert(cart.p, Quantity).decompose(units).value,
-                    (*batch_shape, comp_shapes[1]),
+                    convert(cart.p, Quantity).decompose(units).value, (*batch, comps.p)
                 )
-                t = xp.broadcast_to(self.t.decompose(units).value, batch_shape)[
-                    ..., None
-                ]
+                t = xp.broadcast_to(
+                    self.t.decompose(units).value[..., None], (*batch, comps.t)
+                )
                 return xp.concat((t, q, p), axis=-1)
 
         return PSP

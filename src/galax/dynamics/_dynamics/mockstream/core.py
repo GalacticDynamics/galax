@@ -12,8 +12,12 @@ from jax_quantity import Quantity
 from vector import Abstract3DVector, Abstract3DVectorDifferential
 
 from galax.coordinates import AbstractPhaseSpaceTimePosition
-from galax.coordinates._psp.base import _p_converter, _q_converter
-from galax.coordinates._psp.utils import getitem_vec1time_index
+from galax.coordinates._psp.pspt import ComponentShapeTuple
+from galax.coordinates._psp.utils import (
+    _p_converter,
+    _q_converter,
+    getitem_vec1time_index,
+)
 from galax.typing import QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
@@ -53,13 +57,13 @@ class MockStream(AbstractPhaseSpaceTimePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], tuple[int, int, int]]:
+    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
         """Batch ."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
         tbatch, _ = batched_shape(self.t, expect_ndim=0)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
-        return batch_shape, qshape + pshape + (1,)
+        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
 
     def __getitem__(self, index: Any) -> "Self":
         """Return a new object with the given slice applied."""

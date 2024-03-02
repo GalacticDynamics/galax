@@ -8,12 +8,12 @@ from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 from jaxtyping import Shaped
 from plum import convert, dispatch
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 from vector import (
     Abstract3DVector,

@@ -217,7 +217,7 @@
 
     [tool.ruff.lint.isort]
       combine-as-imports = true
-      known-first-party = ["jax_quantity", "vector"]
+      known-first-party = ["jax_quantity", "vector", "array_api_jax_compat"]
       known-local-folder = ["galax"]
 
     [tool.ruff.lint.pydocstyle]

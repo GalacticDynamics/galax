@@ -2,10 +2,11 @@ from dataclasses import field
 from functools import partial
 from typing import Any
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 import pytest
+
+import array_api_jax_compat as xp
 
 import galax.potential as gp
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test

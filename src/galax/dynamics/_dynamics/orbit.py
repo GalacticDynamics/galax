@@ -7,13 +7,13 @@ from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, final, overload
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 import jax.numpy as jnp
 import jaxtyping as jt
 from astropy.units import Quantity as APYQuantity
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 from vector import Abstract3DVector, Abstract3DVectorDifferential
 

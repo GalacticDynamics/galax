@@ -7,12 +7,12 @@ from collections.abc import Iterable
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax.random as jr
 import pytest
 from jaxtyping import Array
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 from vector import Cartesian3DVector, CartesianDifferential3D
 

@@ -6,10 +6,10 @@ import abc
 from functools import partial
 from typing import TypeAlias
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 from galax.dynamics._dynamics.mockstream.core import MockStream

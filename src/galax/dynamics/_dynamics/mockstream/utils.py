@@ -5,9 +5,10 @@ __all__: list[str] = []
 from functools import partial
 from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
-import array_api_jax_compat as xp
 import jax
 from jaxtyping import Array, Bool, Shaped
+
+import array_api_jax_compat as xp
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)

@@ -4,10 +4,11 @@
 from dataclasses import replace
 from typing import Any, Generic, TypeVar
 
-import array_api_jax_compat as xp
 import astropy.units as u
 import pytest
 from jax.numpy import array_equal
+
+import array_api_jax_compat as xp
 
 from galax.potential import AbstractParameter, ConstantParameter, UserParameter
 from galax.potential._potential.param.core import ParameterCallable

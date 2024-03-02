@@ -3,7 +3,6 @@
 from dataclasses import replace
 from typing import Any, Self, TypeVar
 
-import array_api_jax_compat as xp
 import astropy.units as u
 import equinox as eqx
 import jax.numpy as jnp
@@ -11,6 +10,7 @@ import jax.random as jr
 import pytest
 from plum import convert
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 from vector import Cartesian3DVector, CartesianDifferential3D
 

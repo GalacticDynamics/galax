@@ -1,12 +1,12 @@
 """Test :class:`~galax.coordinates._pspt`."""
 
-import array_api_jax_compat as xp
 import jax.numpy as jnp
 import jax.random as jr
 import pytest
 from plum import convert
 from quax import quaxify
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 from ..coordinates.psp.test_base import Shape, return_keys

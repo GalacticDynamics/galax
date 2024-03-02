@@ -3,13 +3,13 @@
 import re
 from typing import Any
 
-import array_api_jax_compat as xp
 import jax
 import jax.numpy as jnp
 import pytest
 from jax.numpy import array_equal
 from quax import quaxify
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 from galax.utils._shape import (

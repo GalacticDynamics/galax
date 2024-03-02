@@ -13,13 +13,13 @@ __all__ = [
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Literal, final, overload
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Shaped
 from plum import convert
 from quax import quaxify
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 from vector import (
     Abstract3DVector,

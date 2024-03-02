@@ -5,11 +5,11 @@ __all__: list[str] = []
 from functools import partial
 from typing import Any, Literal, NoReturn, overload
 
-import array_api_jax_compat as xp
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, ArrayLike
 
+import array_api_jax_compat as xp
 from vector import AbstractVectorBase
 
 from galax.typing import AnyScalar, ArrayAnyShape

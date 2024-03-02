@@ -6,12 +6,12 @@ from dataclasses import KW_ONLY
 from functools import partial
 from typing import TypeAlias, cast, final
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 import jax.numpy as jnp
 from jax.lib.xla_bridge import get_backend
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 from .core import MockStream

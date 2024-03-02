@@ -2,10 +2,11 @@
 
 from typing import Any
 
-import array_api_jax_compat as xp
 import astropy.units as u
 import jax
 import pytest
+
+import array_api_jax_compat as xp
 
 from galax.dynamics import FardalStreamDF, MockStreamGenerator
 from galax.potential import MilkyWayPotential

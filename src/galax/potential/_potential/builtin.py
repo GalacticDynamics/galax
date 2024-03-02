@@ -14,9 +14,10 @@ from dataclasses import KW_ONLY
 from functools import partial
 from typing import final
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax
+
+import array_api_jax_compat as xp
 
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField

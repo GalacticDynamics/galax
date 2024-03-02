@@ -6,10 +6,11 @@ __all__ = ["FardalStreamDF"]
 from functools import partial
 from typing import final
 
-import array_api_jax_compat as xp
 import jax
 import jax.numpy as jnp
 from jax import grad, random
+
+import array_api_jax_compat as xp
 
 from .base import AbstractStreamDF
 from galax.potential._potential.base import AbstractPotentialBase

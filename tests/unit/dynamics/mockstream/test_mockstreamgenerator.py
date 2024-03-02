@@ -2,11 +2,12 @@
 
 from typing import cast
 
-import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import jax.tree_util as tu
 import pytest
+
+import array_api_jax_compat as xp
 
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
 from galax.potential import AbstractPotentialBase, NFWPotential

@@ -19,7 +19,6 @@ from typing import (
     runtime_checkable,
 )
 
-import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 from equinox._module import _has_dataclass_init, _ModuleMeta
@@ -27,6 +26,7 @@ from jax.dtypes import canonicalize_dtype
 from jaxtyping import Array, Float
 from typing_extensions import ParamSpec, Unpack
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 if TYPE_CHECKING:

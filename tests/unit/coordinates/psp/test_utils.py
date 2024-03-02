@@ -3,11 +3,11 @@
 import re
 from typing import ClassVar
 
-import array_api_jax_compat as xp
 import jax.numpy as jnp
 import pytest
 from jaxtyping import Array, Float
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 from galax.coordinates._psp.utils import (

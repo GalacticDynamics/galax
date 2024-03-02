@@ -2,7 +2,6 @@ import re
 from collections.abc import Mapping
 from dataclasses import replace
 
-import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
@@ -10,6 +9,7 @@ from plum import NotFoundLookupError
 from quax import quaxify
 from typing_extensions import override
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test

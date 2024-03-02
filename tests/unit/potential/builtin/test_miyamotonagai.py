@@ -1,11 +1,11 @@
 from typing import Any
 
-import array_api_jax_compat as xp
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
 from quax import quaxify
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 import galax.potential as gp

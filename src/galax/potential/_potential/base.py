@@ -6,7 +6,6 @@ from functools import partial
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -15,6 +14,7 @@ from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity as AstropyQuantity
 from jax import grad, hessian, jacfwd
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 from .utils import convert_input_to_array, convert_inputs_to_arrays

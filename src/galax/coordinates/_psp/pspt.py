@@ -6,12 +6,12 @@ from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, NamedTuple, final
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax
 import jax.numpy as jnp
 from plum import convert
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 from vector import (
     Abstract3DVector,

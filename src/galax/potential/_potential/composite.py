@@ -6,9 +6,10 @@ from dataclasses import KW_ONLY
 from functools import partial
 from typing import Any, TypeVar, final
 
-import array_api_jax_compat as xp
 import equinox as eqx
 import jax
+
+import array_api_jax_compat as xp
 
 from .base import AbstractPotentialBase
 from galax.typing import BatchableRealScalarLike, BatchFloatScalar, BatchVec3

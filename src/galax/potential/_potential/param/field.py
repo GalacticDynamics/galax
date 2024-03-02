@@ -17,9 +17,9 @@ from typing import (
     overload,
 )
 
-import array_api_jax_compat as xp
 import astropy.units as u
 
+import array_api_jax_compat as xp
 from jax_quantity import Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter

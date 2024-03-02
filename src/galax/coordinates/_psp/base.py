@@ -14,14 +14,14 @@ from jaxtyping import Shaped
 from plum import convert, dispatch
 
 import array_api_jax_compat as xp
-from jax_quantity import Quantity
-from vector import (
+from coordinax import (
     Abstract3DVector,
     Abstract3DVectorDifferential,
     AbstractVectorBase,
     Cartesian3DVector,
     represent_as as vector_represent_as,
 )
+from jax_quantity import Quantity
 
 from galax.typing import BatchQVec3, BatchVec6
 from galax.units import unitsystem
@@ -88,7 +88,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position:
@@ -140,7 +140,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position:
@@ -228,7 +228,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
 
         We can also convert it to a different representation:
 
-        >>> from vector import CylindricalVector
+        >>> from coordinax import CylindricalVector
         >>> psp.represent_as(CylindricalVector)
         PhaseSpacePosition( q=CylindricalVector(...), p=CylindricalDifferential(...) )
         """
@@ -256,7 +256,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from jax_quantity import Quantity
-        >>> from vector import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can construct a phase-space position:

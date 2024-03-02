@@ -36,7 +36,7 @@
     "lazy_loader",
     "quax >= 0.0.3",
     "typing_extensions",
-    "vector @ git+https://github.com/GalacticDynamics/vector.git",
+    "coordinax @ git+https://github.com/GalacticDynamics/coordinax.git",
   ]
   description = "Galactic Dynamix in Jax."
   dynamic = ["version"]
@@ -217,7 +217,7 @@
 
     [tool.ruff.lint.isort]
       combine-as-imports = true
-      known-first-party = ["jax_quantity", "vector", "array_api_jax_compat"]
+      known-first-party = ["jax_quantity", "coordinax", "array_api_jax_compat"]
       known-local-folder = ["galax"]
 
     [tool.ruff.lint.pydocstyle]

@@ -6,8 +6,8 @@ from collections.abc import Iterator
 from dataclasses import replace
 from typing import TYPE_CHECKING, Protocol, overload, runtime_checkable
 
+from coordinax import AbstractVector
 from jax_quantity import Quantity
-from vector import AbstractVector
 
 from .base import AbstractOperator, op_call_dispatch
 from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase

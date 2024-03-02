@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import equinox as eqx
 from plum import dispatch
 
+from coordinax import Abstract3DVector, AbstractVector, FourVector
 from jax_quantity import Quantity
-from vector import Abstract3DVector, AbstractVector, FourVector
 
 from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
 from galax.coordinates._psp.psp import PhaseSpacePosition

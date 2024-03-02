@@ -10,8 +10,8 @@ import jax.random as jr
 import pytest
 
 import array_api_jax_compat as xp
+from coordinax import Cartesian3DVector, CartesianDifferential3D
 from jax_quantity import Quantity
-from vector import Cartesian3DVector, CartesianDifferential3D
 
 from .test_base import AbstractPhaseSpacePositionBase_Test, T, return_keys
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition

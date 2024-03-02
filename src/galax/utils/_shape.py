@@ -10,7 +10,7 @@ import jax.numpy as jnp
 from jaxtyping import Array, ArrayLike
 
 import array_api_jax_compat as xp
-from vector import AbstractVectorBase
+from coordinax import AbstractVectorBase
 
 from galax.typing import AnyScalar, ArrayAnyShape
 from galax.utils._jax import quaxify

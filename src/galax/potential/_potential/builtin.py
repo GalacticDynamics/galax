@@ -8,6 +8,7 @@ __all__ = [
     "MiyamotoNagaiPotential",
     "NFWPotential",
     "NullPotential",
+    "TriaxialHernquistPotential",
 ]
 
 from dataclasses import KW_ONLY
@@ -216,3 +217,79 @@ class NullPotential(AbstractPotential):
         t: BatchableRealScalarLike,  # noqa: ARG002
     ) -> BatchFloatScalar:
         return xp.zeros(q.shape[:-1], dtype=q.dtype)
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class TriaxialHernquistPotential(AbstractPotential):
+    """Triaxial Hernquist Potential.
+
+    Parameters
+    ----------
+    m : :class:`~galax.potential.AbstractParameter`['mass']
+        Mass parameter. This can be a
+        :class:`~galax.potential.AbstractParameter` or an appropriate callable
+        or constant, like a Quantity. See
+        :class:`~galax.potential.ParameterField` for details.
+    c : :class:`~galax.potential.AbstractParameter`['length']
+        A scale length that determines the concentration of the system.  This
+        can be a :class:`~galax.potential.AbstractParameter` or an appropriate
+        callable or constant, like a Quantity. See
+        :class:`~galax.potential.ParameterField` for details.
+    q1 : :class:`~galax.potential.AbstractParameter`['length']
+        Scale length in the y direction. This can be a
+        :class:`~galax.potential.AbstractParameter` or an appropriate callable
+        or constant, like a Quantity. See
+        :class:`~galax.potential.ParameterField` for details.
+    a2 : :class:`~galax.potential.AbstractParameter`['length']
+        Scale length in the z direction. This can be a
+        :class:`~galax.potential.AbstractParameter` or an appropriate callable
+        or constant, like a Quantity. See
+        :class:`~galax.potential.ParameterField` for details.
+
+    units : :class:`~galax.units.UnitSystem`, keyword-only
+        The unit system to use for the potential.  This parameter accepts a
+        :class:`~galax.units.UnitSystem` or anything that can be converted to a
+        :class:`~galax.units.UnitSystem` using :func:`~galax.units.unitsystem`.
+
+    Examples
+    --------
+    >>> from jax_quantity import Quantity
+    >>> from galax.potential import TriaxialHernquistPotential
+
+    >>> pot = TriaxialHernquistPotential(m=Quantity(1e12, "Msun"), c=Quantity(8, "kpc"),
+    ...                                  q1=1, q2=0.5, units="galactic")
+
+    >>> q = Quantity([1, 0, 0], "kpc")
+    >>> t = Quantity(0, "Gyr")
+    >>> pot.potential_energy(q, t)
+    Quantity['specific energy'](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
+    """
+
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """Mass of the potential."""
+
+    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Scale a scale length that determines the concentration of the system."""
+
+    q1: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    """Scale length in the y direction divided by ``c``."""
+
+    q2: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    """Scale length in the z direction divided by ``c``."""
+
+    _: KW_ONLY
+    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    """The unit system to use for the potential."""
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: BatchVec3, /, t: BatchableRealScalarLike
+    ) -> BatchFloatScalar:
+        c, q1, q2 = self.c(t), self.q1(t), self.q2(t)
+        c = eqx.error_if(c, c <= 0, "c must be positive")
+
+        rprime = xp.sqrt(q[..., 0] ** 2 + (q[..., 1] / q1) ** 2 + (q[..., 2] / q2) ** 2)
+        return -self._G * self.m(t) / (rprime + c)

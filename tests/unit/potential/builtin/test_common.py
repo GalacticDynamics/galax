@@ -107,3 +107,49 @@ class ShapeCParameterMixin(ParameterFieldMixin):
         fields["c"] = lambda t: t + 2
         pot = pot_cls(**fields)
         assert pot.c(t=0) == 2
+
+
+class ShapeQ1ParameterMixin(ParameterFieldMixin):
+    """Test the shape parameter."""
+
+    @pytest.fixture(scope="class")
+    def field_q1(self) -> float:
+        return 1.1
+
+    # =====================================================
+
+    def test_q1_constant(self, pot_cls, fields):
+        """Test the mass parameter."""
+        fields["q1"] = 1.1
+        pot = pot_cls(**fields)
+        assert pot.q1(t=0) == 1.1
+
+    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
+    def test_q1_userfunc(self, pot_cls, fields):
+        """Test the mass parameter."""
+        fields["q1"] = lambda t: t + 2
+        pot = pot_cls(**fields)
+        assert pot.q1(t=0) == 2
+
+
+class ShapeQ2ParameterMixin(ParameterFieldMixin):
+    """Test the shape parameter."""
+
+    @pytest.fixture(scope="class")
+    def field_q2(self) -> float:
+        return 0.5
+
+    # =====================================================
+
+    def test_q2_constant(self, pot_cls, fields):
+        """Test the mass parameter."""
+        fields["q2"] = 0.6
+        pot = pot_cls(**fields)
+        assert pot.q2(t=0) == 0.6
+
+    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
+    def test_q2_userfunc(self, pot_cls, fields):
+        """Test the mass parameter."""
+        fields["q2"] = lambda t: t + 2
+        pot = pot_cls(**fields)
+        assert pot.q2(t=0) == 2

@@ -134,7 +134,7 @@ class AbstractOperator(eqx.Module):  # type: ignore[misc]
         >>> t = Quantity(0.0, "Gyr")
 
         >>> op(pos, t)
-        (Cartesian3DVector( ... ),
+        (Quantity['length'](Array([2., 4., 6.], dtype=float64), unit='kpc'),
          Quantity['time'](Array(0., dtype=float64, ...), unit='Gyr'))
         """
         cart, t = self(Cartesian3DVector.constructor(q), t)
@@ -197,9 +197,7 @@ class AbstractOperator(eqx.Module):  # type: ignore[misc]
 
         >>> newpos = op(pos)
         >>> newpos
-        FourVector( t=Quantity[PhysicalType('time')](...), q=Cartesian3DVector( ... ) )
-        >>> newpos.q.x
-        Quantity['length'](Array(2., dtype=float64), unit='kpc')
+        Quantity['length'](Array([0., 2., 4., 6.], dtype=float64), unit='kpc')
         """
         return convert(self(FourVector.constructor(q)), Quantity)
 

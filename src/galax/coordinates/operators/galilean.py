@@ -111,21 +111,12 @@ class GalileanSpatialTranslationOperator(AbstractGalileanOperator):
 
     >>> import galax.potential as gp
     >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
-    >>> translated_pot = gp.PotentialFrame(pot, shift_op)
+    >>> translated_pot = gp.PotentialFrame(pot, op)
     >>> translated_pot
     PotentialFrame(
       potential=KeplerPotential( ... ),
       operator=OperatorSequence( ... GalileanSpatialTranslationOperator( ... ), ) )
     )
-
-    # >>> q = Quantity([0, 0, 0], "kpc")
-    # >>> translated_pot(q, t=0)
-    # Array(-1.20227527, dtype=float64)
-
-    # Let's check that the potential is indeed translated:
-
-    # >>> pot(q - shift, t=0)
-    # Array(-1.20227527, dtype=float64)
     """
 
     translation: Abstract3DVector = eqx.field(

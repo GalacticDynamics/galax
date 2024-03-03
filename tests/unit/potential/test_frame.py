@@ -32,7 +32,7 @@ def test_bar_means_of_rotation() -> None:
     hardpot = replace(base_pot, Omega=Omega_z_freq)
 
     # Operator means of rotation
-    op = gco.ConstantRotationOperator(Omega_z=Omega_z_angv)
+    op = gco.ConstantRotationZOperator(Omega_z=Omega_z_angv)
     framedpot = gp.PotentialFrame(base_pot, op)
 
     # They should be equivalent at t=0

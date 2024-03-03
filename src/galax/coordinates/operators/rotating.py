@@ -1,6 +1,6 @@
 """Corotating reference frame."""
 
-__all__ = ["ConstantRotationOperator"]
+__all__ = ["ConstantRotationZOperator"]
 
 
 from dataclasses import replace
@@ -14,55 +14,9 @@ from coordinax import Abstract3DVector, Cartesian3DVector, CartesianDifferential
 from jax_quantity import Quantity
 
 from .base import AbstractOperator, op_call_dispatch
+from .funcs import simplify_op
 from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
-
-
-def rot_x(
-    theta: Shaped[Quantity["angle"], ""],
-) -> Float[Quantity["dimensionless"], "3 3"]:
-    """Rotation matrix for rotation around the x-axis.
-
-    Parameters
-    ----------
-    theta : Quantity[float, "angle"]
-        The angle of rotation.
-
-    Returns
-    -------
-    tuple[Quantity[float, "angle"], Quantity[float, "angle"]]
-        The sine and cosine of the angle.
-    """
-    return xp.asarray(
-        [
-            [1.0, 0.0, 0.0],
-            [0.0, xp.cos(theta), -xp.sin(theta)],
-            [0.0, xp.sin(theta), xp.cos(theta)],
-        ]
-    )
-
-
-def rot_y(
-    theta: Shaped[Quantity["angle"], ""],
-) -> Float[Quantity["dimensionless"], "3 3"]:
-    """Rotation matrix for rotation around the y-axis.
-
-    Parameters
-    ----------
-    theta : Quantity[float, "angle"]
-        The angle of rotation.
-
-    Returns
-    -------
-    tuple[Quantity[float, "angle"], Quantity[float, "angle"]]
-        The sine and cosine of the angle.
-    """
-    return xp.asarray(
-        [
-            [xp.cos(theta), 0.0, xp.sin(theta)],
-            [0.0, 1.0, 0.0],
-            [-xp.sin(theta), 0.0, xp.cos(theta)],
-        ]
-    )
+from galax.coordinates.operators.identity import IdentityOperator
 
 
 def rot_z(
@@ -90,7 +44,7 @@ def rot_z(
 
 
 @final
-class ConstantRotationOperator(AbstractOperator):
+class ConstantRotationZOperator(AbstractOperator):
     r"""Operator for constant rotation in the x-y plane.
 
     The coordinate transform is given by:
@@ -104,8 +58,8 @@ class ConstantRotationOperator(AbstractOperator):
 
     Parameters
     ----------
-    Omega_x, Omega_y, Omega_z : Quantity[float, "angular speed"]
-        The angular speed about the x, y, and z axes.
+    Omega_z : Quantity[float, "angular speed"]
+        The angular speed about the z axis.
 
     Examples
     --------
@@ -113,11 +67,11 @@ class ConstantRotationOperator(AbstractOperator):
 
     >>> from jax_quantity import Quantity
     >>> import galax.coordinates as gc
-    >>> from galax.coordinates.operators import ConstantRotationOperator
+    >>> from galax.coordinates.operators import ConstantRotationZOperator
 
     We define a rotation of 90 degrees every gigayear about the z axis.
 
-    >>> op = ConstantRotationOperator(Omega_z=Quantity(90, "deg / Gyr"))
+    >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
 
     We can apply the rotation to a position.
 
@@ -177,12 +131,6 @@ class ConstantRotationOperator(AbstractOperator):
     """
 
     # TODO: add a converter for 1/s -> rad / s.
-    Omega_x: Quantity["angular speed"] = Quantity(0, "mas / yr")
-    """The angular speed about the x axis."""
-
-    Omega_y: Quantity["angular speed"] = Quantity(0, "mas / yr")
-    """The angular speed about the y axis."""
-
     Omega_z: Quantity["angular speed"] = Quantity(0, "mas / yr")
     """The angular speed about the z axis."""
 
@@ -195,41 +143,37 @@ class ConstantRotationOperator(AbstractOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from galax.coordinates.operators import ConstantRotationOperator
+        >>> from galax.coordinates.operators import ConstantRotationZOperator
 
-        >>> op = ConstantRotationOperator(Quantity(360, "deg / Gyr"))
+        >>> op = ConstantRotationZOperator(Quantity(360, "deg / Gyr"))
         >>> op.is_inertial
         False
         """
         return False
 
     @property
-    def inverse(self) -> "ConstantRotationOperator":
+    def inverse(self) -> "ConstantRotationZOperator":
         """The inverse of the operator.
 
         Examples
         --------
         >>> from jax_quantity import Quantity
         >>> from coordinax import Cartesian3DVector
-        >>> from galax.coordinates.operators import ConstantRotationOperator
+        >>> from galax.coordinates.operators import ConstantRotationZOperator
 
-        >>> op = ConstantRotationOperator(Omega_z=Quantity(360, "deg / Gyr"))
+        >>> op = ConstantRotationZOperator(Omega_z=Quantity(360, "deg / Gyr"))
         >>> op.inverse
-        ConstantRotationOperator(
-            Omega_x=Quantity[...]( value=i64[], unit=Unit("mas / yr") ),
-            Omega_y=Quantity[...]( value=i64[], unit=Unit("mas / yr") ),
+        ConstantRotationZOperator(
             Omega_z=Quantity[...]( value=i64[], unit=Unit("deg / Gyr") )
         )
         """
-        return ConstantRotationOperator(
-            Omega_x=-self.Omega_x, Omega_y=-self.Omega_y, Omega_z=-self.Omega_z
-        )
+        return ConstantRotationZOperator(Omega_z=-self.Omega_z)
 
     # -------------------------------------------
 
     @op_call_dispatch(precedence=1)
     def __call__(
-        self: "ConstantRotationOperator",
+        self: "ConstantRotationZOperator",
         q: Quantity["length"],
         t: Quantity["time"],
         /,
@@ -239,9 +183,9 @@ class ConstantRotationOperator(AbstractOperator):
         Examples
         --------
         >>> from jax_quantity import Quantity
-        >>> from galax.coordinates.operators import ConstantRotationOperator
+        >>> from galax.coordinates.operators import ConstantRotationZOperator
 
-        >>> op = ConstantRotationOperator(Omega_z=Quantity(90, "deg / Gyr"))
+        >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
 
         >>> q = Quantity([1, 0, 0], "kpc")
         >>> t = Quantity(1, "Gyr")
@@ -259,14 +203,12 @@ class ConstantRotationOperator(AbstractOperator):
         Array([-1.,  0.,  0.], dtype=float64)
 
         """  # TODO: use xp.round when available
-        Rx = rot_x(self.Omega_x * t)
-        Ry = rot_y(self.Omega_y * t)
         Rz = rot_z(self.Omega_z * t)
-        return (Rx @ Ry @ Rz @ q, t)
+        return (Rz @ q, t)
 
     @op_call_dispatch(precedence=1)
     def __call__(
-        self: "ConstantRotationOperator",
+        self: "ConstantRotationZOperator",
         vec: Abstract3DVector,
         t: Quantity["time"],
         /,
@@ -278,9 +220,9 @@ class ConstantRotationOperator(AbstractOperator):
         >>> from plum import convert
         >>> from jax_quantity import Quantity
         >>> from coordinax import Cartesian3DVector
-        >>> from galax.coordinates.operators import ConstantRotationOperator
+        >>> from galax.coordinates.operators import ConstantRotationZOperator
 
-        >>> op = ConstantRotationOperator(Omega_z=Quantity(90, "deg / Gyr"))
+        >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
 
         >>> q = Cartesian3DVector.constructor(Quantity([1, 0, 0], "kpc"))
         >>> t = Quantity(1, "Gyr")
@@ -304,7 +246,7 @@ class ConstantRotationOperator(AbstractOperator):
 
     @op_call_dispatch
     def __call__(
-        self: "ConstantRotationOperator",
+        self: "ConstantRotationZOperator",
         psp: AbstractPhaseSpacePositionBase,
         t: Quantity["time"],
         /,
@@ -316,9 +258,9 @@ class ConstantRotationOperator(AbstractOperator):
         >>> from plum import convert
         >>> from jax_quantity import Quantity
         >>> from galax.coordinates import PhaseSpacePosition
-        >>> from galax.coordinates.operators import ConstantRotationOperator
+        >>> from galax.coordinates.operators import ConstantRotationZOperator
 
-        >>> op = ConstantRotationOperator(Omega_z=Quantity(90, "deg / Gyr"))
+        >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
 
         >>> psp = PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
         ...                          p=Quantity([0, 0, 0], "kpc/Gyr"))
@@ -350,3 +292,26 @@ class ConstantRotationOperator(AbstractOperator):
         )
         # Reasseble and return
         return (replace(psp, q=q, p=p), t)
+
+
+@simplify_op.register
+def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> AbstractOperator:
+    """Simplify the operators in an PotentialFrame.
+
+    Examples
+    --------
+    >>> from jax_quantity import Quantity
+    >>> import galax.coordinates.operators as gco
+
+    >>> op = gco.ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
+    >>> gco.simplify_op(op) == op
+    Array(True, dtype=bool)
+
+    >>> op = gco.ConstantRotationZOperator(Omega_z=Quantity(0, "deg / Gyr"))
+    >>> gco.simplify_op(op)
+    IdentityOperator()
+
+    """
+    if frame.Omega_z == Quantity(0, "rad / s"):
+        return IdentityOperator()
+    return frame

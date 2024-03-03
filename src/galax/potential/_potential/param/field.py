@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
+    Literal,
     cast,
     final,
     get_args,
@@ -24,10 +25,53 @@ from jax_quantity import Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 from galax.typing import Unit
-from galax.utils.dataclasses import dataclass_with_converter, field
+from galax.utils.dataclasses import Sentinel, dataclass_with_converter, field
 
 if TYPE_CHECKING:
     from galax.potential._potential.base import AbstractPotentialBase
+
+
+def converter_parameter(value: Any) -> AbstractParameter:
+    """Convert a value to a Parameter.
+
+    Parameters
+    ----------
+    value : Any
+        The value to convert to a Parameter.  If the value is a
+        :class:`galax.potential.AbstractParameter`, it is returned as is.  If
+        the value is a callable, it is converted to a
+        :class:`galax.potential.UserParameter`. If the value is a
+        :class:`jax_quantity.Quantity` (or :class`astropy.units.Quantity`), it
+        is converted to a :class:`galax.potential.ConstantParameter`.
+        If the value is none of the above, a :class:`TypeError`
+        is raised.
+
+    Returns
+    -------
+    AbstractParameter
+        The value converted to a parameter.
+
+    Raises
+    ------
+    TypeError
+        If the value is not a valid input type described above.
+    """
+    if isinstance(value, AbstractParameter):
+        out = value
+
+    elif callable(value):
+        unit = _get_unit_from_return_annotation(value)
+        out = UserParameter(func=value, unit=unit)
+
+    else:
+        if isinstance(value, Quantity | u.Quantity):
+            unit = u.Unit(value.unit)
+        else:
+            msg = "Parameter constant must be a Quantity"
+            raise TypeError(msg)
+        out = ConstantParameter(xp.asarray(value.value), unit=unit)
+
+    return out
 
 
 @final
@@ -47,6 +91,10 @@ class ParameterField:
 
     name: str = field(init=False)
     _: KW_ONLY
+    default: AbstractParameter | Literal[Sentinel.MISSING] = field(
+        default=Sentinel.MISSING,
+        converter=lambda x: x if x is Sentinel.MISSING else converter_parameter(x),
+    )
     dimensions: u.PhysicalType = field(converter=u.get_physical_type)
     equivalencies: u.Equivalency | tuple[u.Equivalency, ...] | None = None
 
@@ -57,6 +105,7 @@ class ParameterField:
         object.__setattr__(self, "name", name)
 
     # -----------------------------
+    # Getting
 
     @overload  # TODO: use `Self` when beartype is happy
     def __get__(
@@ -78,11 +127,14 @@ class ParameterField:
         # Get from class
         if instance is None:
             # If the Parameter is being set as part of a dataclass constructor,
-            # then we raise an AttributeError. This is to prevent the Parameter
-            # from being set as the default value of the dataclass field and
-            # erroneously included in the class' ``__init__`` signature.
+            # then we raise an AttributeError if there is no default value. This
+            # is to prevent the Parameter from being set as the default value of
+            # the dataclass field and erroneously included in the class'
+            # ``__init__`` signature.
             if not is_dataclass(owner) or self.name not in owner.__dataclass_fields__:
-                raise AttributeError
+                if self.default is Sentinel.MISSING:
+                    raise AttributeError
+                return self.default
             return self
 
         # Get from instance
@@ -111,8 +163,9 @@ class ParameterField:
     def __set__(
         self,
         potential: "AbstractPotentialBase",
-        value: AbstractParameter | ParameterCallable | Any,
+        value: AbstractParameter | ParameterCallable | Any | Literal[Sentinel.MISSING],
     ) -> None:
+        # TODO: use converter_parameter.
         # Convert
         if isinstance(value, AbstractParameter):
             # TODO: this doesn't handle the correct output unit, a. la.

@@ -19,6 +19,7 @@ import equinox as eqx
 import jax
 
 import array_api_jax_compat as xp
+from jax_quantity import Quantity
 
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
@@ -274,10 +275,16 @@ class TriaxialHernquistPotential(AbstractPotential):
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     """Scale a scale length that determines the concentration of the system."""
 
-    q1: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        default=Quantity(1, ""),
+        dimensions="dimensionless",
+    )
     """Scale length in the y direction divided by ``c``."""
 
-    q2: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        default=Quantity(1, ""),
+        dimensions="dimensionless",
+    )
     """Scale length in the z direction divided by ``c``."""
 
     _: KW_ONLY

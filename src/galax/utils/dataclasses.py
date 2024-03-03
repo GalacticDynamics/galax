@@ -6,6 +6,7 @@ import dataclasses
 import functools as ft
 import inspect
 from collections.abc import Callable, Iterator, Mapping
+from enum import Enum, auto
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,6 +40,10 @@ R = TypeVar("R")
 
 ##############################################################################
 # Field
+
+
+class Sentinel(Enum):
+    MISSING = auto()
 
 
 # TODO: how to express default_factory is mutually exclusive with default?

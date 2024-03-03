@@ -32,8 +32,10 @@ from galax.typing import (
     BatchableFloatLike,
     BatchableIntLike,
     BatchableRealScalarLike,
+    BatchFloatScalar,
     BatchMatrix33,
     BatchRealQScalar,
+    BatchRealScalar,
     BatchVec3,
     BatchVec6,
     FloatQScalar,
@@ -728,15 +730,301 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return self.gradient(q, t)
 
     # ---------------------------------------
-    # Density
+    # Laplacian
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _density(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
+    def _laplacian(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
+        """See ``laplacian``."""
+        # TODO: more efficient implementation?
+        return jnp.trace(jacfwd(self._gradient)(q, t))
+
+    @dispatch
+    def laplacian(
+        self: "AbstractPotentialBase",
+        pspt: AbstractPhaseSpaceTimePosition | FourVector,
+        /,
+    ) -> Quantity["kinematic viscosity"]:  # TODO: shape hint
+        """Compute the laplacian of the potential at the given position(s).
+
+        Parameters
+        ----------
+        pspt : :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
+            The phase-space + time position to compute the laplacian.
+
+        Returns
+        -------
+        grad : Quantity[float, *batch, 'acceleration']
+            The laplacian of the potential.
+
+        Examples
+        --------
+        For this example we will use a simple potential, the Kepler potential.
+
+        First some imports:
+
+        >>> from jax_quantity import Quantity
+        >>> import galax.potential as gp
+        >>> import galax.coordinates as gc
+
+        Then we can construct a potential and compute the potential energy:
+
+        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+
+        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                               p=Quantity([4, 5, 6], "km/s"),
+        ...                               t=Quantity(0, "Gyr"))
+
+        >>> pot.laplacian(w)
+        Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
+
+        We can also compute the potential energy at multiple positions and times:
+
+        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                               t=Quantity([0, 1], "Gyr"))
+        >>> pot.laplacian(w)
+        Quantity['diffusivity'](Array([2.77555756e-17, 0.00000000e+00], dtype=float64),
+                                 unit='kpc2 / Myr')
+
+        Instead of passing a
+        :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`,
+        we can instead pass a :class:`~vector.FourVector`:
+
+        >>> from coordinax import FourVector
+        >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+        >>> pot.laplacian(w)
+        Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
+        """
+        q = _convert_from_3dvec(pspt.q, units=self.units)
+        t = pspt.t.to_value(self.units["time"])  # TODO: value
+        return Quantity(self._laplacian(q, t), self.units["kinematic viscosity"])
+
+    @dispatch
+    def laplacian(
+        self, q: PositionalLike, /, t: TimeOptions
+    ) -> Quantity["kinematic viscosity"]:  # TODO: shape hint
+        """Compute the laplacian of the potential at the given position(s).
+
+        Parameters
+        ----------
+        q : :class:`vector.Abstract3DVector` | (Quantity|Array)[float, (*batch, 3)]
+            The position to compute the laplacian of the potential.  If unitless
+            (i.e. is an `~jax.Array`), it is assumed to be in the unit system of
+            the potential.
+        t : Array[float | int, *batch] | float | int
+            The time at which to compute the laplacian of the potential.  If
+            unitless (i.e. is an `~jax.Array`), it is assumed to be in the unit
+            system of the potential.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> import coordinax as cx
+        >>> import galax.potential as gp
+
+        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+
+        We can compute the potential energy at a position (and time, if any
+        parameters are time-dependent):
+
+        >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
+        >>> t = Quantity(0, "Gyr")
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
+
+        We can also compute the potential energy at multiple positions:
+
+        >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='kpc2 / Myr')
+
+        Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
+        :class:`~vector.Cartesian3DVector`), we can instead pass a
+        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        position:
+
+        >>> q = Quantity([1, 2, 3], "kpc")
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
+
+        Again, this can be batched.  If the input position object has no units
+        (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
+        as the potential.
+
+        >>> import jax.numpy as jnp
+        >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='kpc2 / Myr')
+        """  # noqa: E501
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        return Quantity(self._laplacian(q, t), self.units["kinematic viscosity"])
+
+    @dispatch
+    def laplacian(
+        self, q: PositionalLike, /, *, t: TimeOptions
+    ) -> Quantity["kinematic viscosity"]:  # TODO: shape hint
+        """Compute the laplacian at the given position(s).
+
+        Parameters
+        ----------
+        q : PositionalLike
+            The position to compute the laplacian of the potential.  If unitless
+            (i.e. is an `~jax.Array`), it is assumed to be in the unit system of
+            the potential.
+        t : TimeOptions
+            The time at which to compute the laplacian of the potential.  If
+            unitless (i.e. is an `~jax.Array`), it is assumed to be in the unit
+            system of the potential.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> import coordinax as cx
+        >>> import galax.potential as gp
+
+        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+
+        We can compute the laplacian at a position (and time, if any
+        parameters are time-dependent):
+
+        >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
+        >>> t = Quantity(0, "Gyr")
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
+
+        We can also compute the laplacian at multiple positions:
+
+        >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='kpc2 / Myr')
+
+        Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
+        :class:`~vector.Cartesian3DVector`), we can instead pass a
+        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        position:
+
+        >>> q = Quantity([1, 2, 3], "kpc")
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
+
+        Again, this can be batched.  If the input position object has no units
+        (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
+        as the potential.
+
+        >>> import jax.numpy as jnp
+        >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='kpc2 / Myr')
+        """  # noqa: E501
+        return self.laplacian(q, t)
+
+    @dispatch
+    def laplacian(
+        self, q: APYRepresentation | APYQuantity, /, t: TimeOptions
+    ) -> Quantity["kinematic viscosity"]:  # TODO: shape hint
+        """Compute the laplacian at the given position(s).
+
+        :meth:`~galax.potential.AbstractPotentialBase.laplacian` also
+        supports Astropy objects, like
+        :class:`astropy.coordinates.BaseRepresentation` and
+        :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
+        counterparts :class:`~vector.Abstract3DVector` and
+        :class:`~jax_quantity.Quantity`.
+
+        Parameters
+        ----------
+        q : PositionalLike
+            The position to compute the value of the potential.  If unitless
+            (i.e. is an `~jax.Array`), it is assumed to be in the unit system of
+            the potential.
+        t : TimeOptions
+            The time at which to compute the value of the potential.  If
+            unitless (i.e. is an `~jax.Array`), it is assumed to be in the unit
+            system of the potential.
+
+        Examples
+        --------
+        >>> from jax_quantity import Quantity
+        >>> import coordinax as cx
+        >>> import galax.potential as gp
+
+        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+
+        We can compute the potential energy at a position (and time, if any
+        parameters are time-dependent):
+
+        >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
+        >>> t = Quantity(0, "Gyr")
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
+
+        We can also compute the potential energy at multiple positions:
+
+        >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='kpc2 / Myr')
+
+        Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
+        :class:`~vector.Cartesian3DVector`), we can instead pass a
+        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        position:
+
+        >>> q = Quantity([1, 2, 3], "kpc")
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
+
+        Again, this can be batched.  If the input position object has no units
+        (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
+        as the potential.
+
+        >>> import jax.numpy as jnp
+        >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+        >>> pot.laplacian(q, t)
+        Quantity['diffusivity'](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='kpc2 / Myr')
+        """  # noqa: E501
+        q = convert_input_to_array(q, units=self.units, no_differentials=True)
+        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
+        return Quantity(self._laplacian(q, t), self.units["kinematic viscosity"])
+
+    @dispatch
+    def laplacian(
+        self, q: APYRepresentation | APYQuantity, /, *, t: TimeOptions
+    ) -> Quantity["kinematic viscosity"]:  # TODO: shape hint
+        """Compute the laplacian when `t` is keyword-only.
+
+        Examples
+        --------
+        All these examples are covered by the case where `t` is positional.
+        :mod:`plum` dispatches on positional arguments only, so it necessary
+        to redispatch here.
+
+        >>> from jax_quantity import Quantity
+        >>> import coordinax as cx
+        >>> import galax.potential as gp
+
+        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+
+        >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
+        >>> t = Quantity(0, "Gyr")
+        >>> pot.laplacian(q, t=t)
+        Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
+
+        See the other examples in the positional-only case.
+        """
+        return self.laplacian(q, t)
+
+    # ---------------------------------------
+    # Density
+
+    @partial(jax.jit)
+    def _density(
+        self, q: BatchVec3, /, t: BatchRealScalar | RealScalar
+    ) -> BatchFloatScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
-        lap = jnp.trace(jacfwd(self._gradient)(q, t))
-        return lap / (4 * xp.pi * self._G)
+        return self._laplacian(q, t) / (4 * xp.pi * self._G)
 
     @dispatch
     def density(

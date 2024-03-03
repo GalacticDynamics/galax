@@ -28,7 +28,7 @@ class AbstractCompositePotential(
     # === Potential ===
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential_energy(  # TODO: inputs w/ units
         self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         return xp.sum(

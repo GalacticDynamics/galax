@@ -29,6 +29,8 @@ __all__ = [
     "TriaxialHernquistPotential",
     # special
     "MilkyWayPotential",
+    # frame
+    "PotentialFrame",
 ]
 
 from ._potential import io
@@ -45,6 +47,7 @@ from ._potential.builtin import (
 )
 from ._potential.composite import AbstractCompositePotential, CompositePotential
 from ._potential.core import AbstractPotential
+from ._potential.frame import PotentialFrame
 from ._potential.param import (
     AbstractParameter,
     ConstantParameter,

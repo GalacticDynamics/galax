@@ -126,6 +126,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Potential energy
 
+    # TODO: inputs w/ units
     # @partial(jax.jit)
     # @vectorize_method(signature="(3),()->()")
     @abc.abstractmethod

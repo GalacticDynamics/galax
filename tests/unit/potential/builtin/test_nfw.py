@@ -157,4 +157,4 @@ class TestNFWPotential(
         rpot = gp.io.gala_to_galax(galax_to_gala(pot))
 
         # quick test that the potential energies are the same
-        assert jnp.array_equal(pot(x, t=0), rpot(x, t=0))
+        assert jnp.array_equal(pot(x, t=0).value, rpot(x, t=0).value)

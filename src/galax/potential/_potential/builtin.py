@@ -55,6 +55,7 @@ class BarPotential(AbstractPotential):
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
+    # TODO: inputs w/ units
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
     def _potential_energy(self, q: Vec3, /, t: RealScalarLike) -> FloatScalar:
@@ -102,7 +103,7 @@ class HernquistPotential(AbstractPotential):
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential_energy(  # TODO: inputs w/ units
         self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
@@ -122,7 +123,7 @@ class IsochronePotential(AbstractPotential):
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential_energy(  # TODO: inputs w/ units
         self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
@@ -146,7 +147,7 @@ class KeplerPotential(AbstractPotential):
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential_energy(  # TODO: inputs w/ units
         self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
@@ -166,6 +167,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
+    # TODO: inputs w/ units
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
     def _potential_energy(self, q: Vec3, /, t: RealScalarLike) -> FloatScalar:
@@ -191,7 +193,7 @@ class NFWPotential(AbstractPotential):
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential_energy(  # TODO: inputs w/ units
         self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         v_h2 = -self._G * self.m(t) / self.r_s(t)
@@ -211,7 +213,7 @@ class NullPotential(AbstractPotential):
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential_energy(  # TODO: inputs w/ units
         self,
         q: BatchVec3,
         /,
@@ -292,7 +294,7 @@ class TriaxialHernquistPotential(AbstractPotential):
     """The unit system to use for the potential."""
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential_energy(  # TODO: inputs w/ units
         self, q: BatchVec3, /, t: BatchableRealScalarLike
     ) -> BatchFloatScalar:
         c, q1, q2 = self.c(t), self.q1(t), self.q2(t)

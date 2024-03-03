@@ -32,7 +32,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
 
             @partial(jax.jit)
             @vectorize_method(signature="(3),()->()")
-            def _potential_energy(
+            def _potential_energy(  # TODO: inputs w/ units
                 self, q: BatchVec3, t: BatchableRealScalarLike
             ) -> BatchFloatScalar:
                 return xp.sum(q, axis=-1)
@@ -59,7 +59,9 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
         class TestPotential(gp.AbstractPotentialBase):
             units: UnitSystem = field(default_factory=lambda: dimensionless)
 
-            def _potential_energy(self, q, t):
+            def _potential_energy(  # TODO: inputs w/ units
+                self, q: BatchVec3, t: BatchableRealScalarLike
+            ) -> BatchFloatScalar:
                 return xp.sum(q, axis=-1)
 
         pot = TestPotential()

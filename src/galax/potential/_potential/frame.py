@@ -138,8 +138,8 @@ class PotentialFrame(AbstractPotentialBase):
     Quantity['specific energy'](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
     If you look all the way back to the first examples, you will see that the
-    potential energy at [1, 0, 0] and [0, 0, 1] have swapped, as expected for
-    a 90 degree rotation about the y-axis!
+    potential energy at [1, 0, 0] and [0, 0, 1] have swapped, as expected for a
+    90 degree rotation about the y-axis!
 
     Lastly, we can apply a sequence of transformations to the potential. There
     are two ways to do this. The first is to create a pre-defined composite
@@ -164,6 +164,25 @@ class PotentialFrame(AbstractPotentialBase):
     >>> framedpot6 = gp.PotentialFrame(potential=pot, operator=op6)
     >>> framedpot6.potential_energy(w2)
     Quantity['specific energy'](Array(-1.95035509, dtype=float64), unit='kpc2 / Myr2')
+
+    We've seen that the potential can be time-dependent, but so far the
+    operators have been Galilean. Let's fix the time-dependent mass of the
+    potential but make the frame operator time-dependent in a more interesting
+    way. We will also exaggerate the triaxiality of the potential to make the
+    effect of the rotation more obvious:
+
+    >>> pot2 = gp.TriaxialHernquistPotential(m=Quantity(1e12, "Msun"),
+    ...     c=Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
+
+    >>> op7 = gco.ConstantRotationOperator(Omega_z=Quantity(90, "deg/Gyr"))
+    >>> framedpot7 = gp.PotentialFrame(potential=pot2, operator=op7)
+
+    The potential energy at a given position will change with time:
+
+    >>> framedpot7.potential_energy(w1).value  # t=0 Gyr
+    Array(-2.24925108, dtype=float64)
+    >>> framedpot7.potential_energy(w2).value  # t=1 Gyr
+    Array(-2.23568166, dtype=float64)
     """
 
     potential: AbstractPotentialBase

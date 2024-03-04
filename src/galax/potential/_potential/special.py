@@ -8,7 +8,6 @@ from dataclasses import KW_ONLY
 from types import MappingProxyType
 from typing import Any, ClassVar, TypeVar, final
 
-import astropy.units as u
 import equinox as eqx
 
 from unxt import Quantity
@@ -75,23 +74,22 @@ class MilkyWayPotential(AbstractCompositePotential):
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
-    _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
     _default_disk: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
         {
-            "m": Quantity(6.8e10, u.Msun),
-            "a": Quantity(3.0, u.kpc),
-            "b": Quantity(0.28, u.kpc),
+            "m": Quantity(6.8e10, "Msun"),
+            "a": Quantity(3.0, "kpc"),
+            "b": Quantity(0.28, "kpc"),
         }
     )
     _default_halo: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
-        {"m": Quantity(5.4e11, u.Msun), "r_s": Quantity(15.62, u.kpc)}
+        {"m": Quantity(5.4e11, "Msun"), "r_s": Quantity(15.62, "kpc")}
     )
     _default_bulge: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
-        {"m": Quantity(5e9, u.Msun), "c": Quantity(1.0, u.kpc)}
+        {"m": Quantity(5e9, "Msun"), "c": Quantity(1.0, "kpc")}
     )
     _default_nucleus: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
-        {"m": Quantity(1.71e9, u.Msun), "c": Quantity(0.07, u.kpc)}
+        {"m": Quantity(1.71e9, "Msun"), "c": Quantity(0.07, "kpc")}
     )
 
     def __init__(

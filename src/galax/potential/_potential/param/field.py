@@ -20,7 +20,6 @@ from typing import (
 
 import astropy.units as u
 
-import quaxed.array_api as xp
 from unxt import Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
@@ -64,12 +63,10 @@ def converter_parameter(value: Any) -> AbstractParameter:
         out = UserParameter(func=value, unit=unit)
 
     else:
-        if isinstance(value, Quantity | u.Quantity):
-            unit = u.Unit(value.unit)
-        else:
-            msg = "Parameter constant must be a Quantity"
-            raise TypeError(msg)
-        out = ConstantParameter(xp.asarray(value.value), unit=unit)
+        # `Quantity.constructor`` handles errors if the value cannot be
+        # converted to a Quantity.
+        value = Quantity.constructor(value)
+        out = ConstantParameter(value, unit=value.unit)
 
     return out
 
@@ -170,12 +167,13 @@ class ParameterField:
             #       ``potential.units[self.dimensions]``
             # Check the unit is compatible
             self._check_unit(potential, value.unit)
+            v = value
         elif callable(value):
             # TODO: this only gets the existing unit, it doesn't handle the
             # correct output unit, a. la. potential.units[self.dimensions]
             unit = _get_unit_from_return_annotation(value)
             self._check_unit(potential, unit)  # Check the unit is compatible
-            value = UserParameter(func=value, unit=unit)
+            v = UserParameter(func=value, unit=unit)
         else:
             # TODO: the issue here is that ``units`` hasn't necessarily been set
             #       on the potential yet. What is needed is to possibly bail out
@@ -185,13 +183,12 @@ class ParameterField:
             #       this time.
             unit = potential.units[self.dimensions]
             if isinstance(value, u.Quantity):
-                value = value.to_value(unit, equivalencies=self.equivalencies)
-            elif isinstance(value, Quantity):
-                value = value.to_value(unit)
-            value = ConstantParameter(xp.asarray(value), unit=unit)
+                value = value.to(unit, equivalencies=self.equivalencies)
+            value = Quantity.constructor(value, unit)
+            v = ConstantParameter(value, unit=unit)
 
         # Set
-        potential.__dict__[self.name] = value
+        potential.__dict__[self.name] = v
 
 
 # -------------------------------------------

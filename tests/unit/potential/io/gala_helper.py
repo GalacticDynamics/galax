@@ -4,7 +4,7 @@ __all__ = ["galax_to_gala"]
 
 from functools import singledispatch
 
-from astropy.units import Quantity
+from astropy.units import Quantity as APYQuantity
 from gala.potential import (
     CompositePotential as GalaCompositePotential,
     MilkyWayPotential as GalaMilkyWayPotential,
@@ -12,21 +12,9 @@ from gala.potential import (
     PotentialBase as GalaPotentialBase,
 )
 from gala.units import UnitSystem as GalaUnitSystem, dimensionless as gala_dimensionless
+from plum import convert
 
-from galax.potential import (
-    AbstractPotential,
-    AbstractPotentialBase,
-    BarPotential,
-    CompositePotential,
-    ConstantParameter,
-    HernquistPotential,
-    IsochronePotential,
-    KeplerPotential,
-    MilkyWayPotential,
-    MiyamotoNagaiPotential,
-    NFWPotential,
-    NullPotential,
-)
+import galax.potential as gp
 from galax.potential._potential.io.gala import _GALA_TO_GALAX_REGISTRY
 from galax.units import DimensionlessUnitSystem, UnitSystem
 
@@ -47,17 +35,17 @@ def galax_to_gala_units(units: UnitSystem, /) -> GalaUnitSystem:
 # TODO: this can be removed when AbstractPotential gets a `parameters`
 # attribute that is a dict whose keys are the names of the parameters.
 def _all_constant_parameters(
-    pot: "AbstractPotentialBase",
+    pot: "gp.AbstractPotentialBase",
     *params: str,
 ) -> bool:
-    return all(isinstance(getattr(pot, name), ConstantParameter) for name in params)
+    return all(isinstance(getattr(pot, name), gp.ConstantParameter) for name in params)
 
 
 # TODO: add an argument to specify how to handle time-dependent parameters.
 #       Gala potentials are not time-dependent, so we need to specify how to
 #       handle time-dependent Galax parameters.
 @singledispatch
-def galax_to_gala(pot: AbstractPotentialBase, /) -> GalaPotentialBase:
+def galax_to_gala(pot: gp.AbstractPotentialBase, /) -> GalaPotentialBase:
     """Convert a Galax potential to a Gala potential.
 
     Parameters
@@ -82,22 +70,22 @@ def galax_to_gala(pot: AbstractPotentialBase, /) -> GalaPotentialBase:
 
 
 @galax_to_gala.register
-def _galax_to_gala_composite(pot: CompositePotential, /) -> GalaCompositePotential:
+def _galax_to_gala_composite(pot: gp.CompositePotential, /) -> GalaCompositePotential:
     """Convert a Galax CompositePotential to a Gala potential."""
     return GalaCompositePotential(**{k: galax_to_gala(p) for k, p in pot.items()})
 
 
-_GALAX_TO_GALA_REGISTRY: dict[type[AbstractPotential], type[GalaPotentialBase]] = {
+_GALAX_TO_GALA_REGISTRY: dict[type[gp.AbstractPotential], type[GalaPotentialBase]] = {
     v: k for k, v in _GALA_TO_GALAX_REGISTRY.items()
 }
 
 
-@galax_to_gala.register(HernquistPotential)
-@galax_to_gala.register(IsochronePotential)
-@galax_to_gala.register(KeplerPotential)
-@galax_to_gala.register(MiyamotoNagaiPotential)
-@galax_to_gala.register(NullPotential)
-def _galax_to_gala_abstractpotential(pot: AbstractPotential, /) -> GalaPotentialBase:
+@galax_to_gala.register(gp.HernquistPotential)
+@galax_to_gala.register(gp.IsochronePotential)
+@galax_to_gala.register(gp.KeplerPotential)
+@galax_to_gala.register(gp.MiyamotoNagaiPotential)
+@galax_to_gala.register(gp.NullPotential)
+def _galax_to_gala_abstractpotential(pot: gp.AbstractPotential, /) -> GalaPotentialBase:
     """Convert a Galax AbstractPotential to a Gala potential."""
     if not _all_constant_parameters(pot, *pot.parameters.keys()):
         msg = "Gala does not support time-dependent parameters."
@@ -105,7 +93,7 @@ def _galax_to_gala_abstractpotential(pot: AbstractPotential, /) -> GalaPotential
 
     return _GALAX_TO_GALA_REGISTRY[type(pot)](
         **{
-            k: Quantity(getattr(pot, k)(0), unit=pot.units[str(f.dimensions)])
+            k: convert(getattr(pot, k)(0), APYQuantity)
             for (k, f) in type(pot).parameters.items()
         },
         units=galax_to_gala_units(pot.units),
@@ -117,31 +105,27 @@ def _galax_to_gala_abstractpotential(pot: AbstractPotential, /) -> GalaPotential
 
 
 @galax_to_gala.register
-def _galax_to_gala_bar(pot: BarPotential, /) -> GalaPotentialBase:
+def _galax_to_gala_bar(pot: gp.BarPotential, /) -> GalaPotentialBase:
     """Convert a Galax BarPotential to a Gala potential."""
     raise NotImplementedError  # TODO: implement
 
 
 @galax_to_gala.register
-def _galax_to_gala_nfw(pot: NFWPotential, /) -> GalaNFWPotential:
+def _galax_to_gala_nfw(pot: gp.NFWPotential, /) -> GalaNFWPotential:
     """Convert a Galax NFWPotential to a Gala potential."""
     if not _all_constant_parameters(pot, "m", "r_s"):
         msg = "Gala does not support time-dependent parameters."
         raise TypeError(msg)
 
-    if pot.softening_length != 0:
-        msg = "Gala does not support softening."
-        raise TypeError(msg)
-
     return GalaNFWPotential(
-        m=pot.m(0) * pot.units["mass"],
-        r_s=pot.r_s(0) * pot.units["length"],
+        m=convert(pot.m(0), APYQuantity),
+        r_s=convert(pot.r_s(0), APYQuantity),
         units=galax_to_gala_units(pot.units),
     )
 
 
 @galax_to_gala.register
-def _gala_to_galax_mwpotential(pot: MilkyWayPotential, /) -> GalaMilkyWayPotential:
+def _gala_to_galax_mwpotential(pot: gp.MilkyWayPotential, /) -> GalaMilkyWayPotential:
     """Convert a Gala MilkyWayPotential to a Galax potential."""
     return GalaMilkyWayPotential(
         disk={k: getattr(pot["disk"], k)(0) for k in ("m", "a", "b")},

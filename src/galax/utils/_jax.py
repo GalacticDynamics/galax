@@ -6,9 +6,10 @@ from collections.abc import Callable, Sequence
 from functools import partial
 from typing import Any, NotRequired, TypedDict, TypeVar, cast
 
-import jax
 import quax
 from typing_extensions import ParamSpec, Unpack
+
+import quaxed.numpy as qnp
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -43,7 +44,7 @@ def vectorize_method(
     excluded = excluded if excluded[0] == -1 else (-1, *excluded)
     kw["excluded"] = tuple(i + 1 for i in excluded)
 
-    return partial(jax.numpy.vectorize, **kw)
+    return partial(qnp.vectorize, **kw)
 
 
 # ============================================================================

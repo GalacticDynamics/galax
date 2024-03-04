@@ -1,4 +1,3 @@
-from dataclasses import field
 from functools import partial
 from typing import Any
 
@@ -10,13 +9,12 @@ import quaxed.array_api as xp
 from unxt import Quantity
 
 import galax.potential as gp
+import galax.typing as gt
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.potential._potential.base import default_constants
-from galax.typing import BatchableRealScalarLike, BatchFloatScalar, BatchVec3
-from galax.units import UnitSystem, dimensionless, galactic, unitsystem
+from galax.units import UnitSystem, galactic, unitsystem
 from galax.utils import ImmutableDict
-from galax.utils._jax import vectorize_method
 
 
 class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
@@ -25,32 +23,32 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.AbstractPotentialBase]:
         class TestPotential(gp.AbstractPotentialBase):
+            m: gp.AbstractParameter = gp.ParameterField(
+                dimensions="mass", default=Quantity(1e12, "Msun")
+            )
             units: UnitSystem = eqx.field(
-                default=None, converter=unitsystem, static=True
+                default=galactic, converter=unitsystem, static=True
             )
             constants: ImmutableDict[Quantity] = eqx.field(
                 default=default_constants, converter=ImmutableDict
             )
-            _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
-
-            def __post_init__(self):
-                object.__setattr__(self, "_G", 1.0)
 
             @partial(jax.jit)
-            @vectorize_method(signature="(3),()->()")
             def _potential_energy(  # TODO: inputs w/ units
-                self, q: BatchVec3, t: BatchableRealScalarLike, /
-            ) -> BatchFloatScalar:
-                return xp.sum(q, axis=-1)
+                self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+            ) -> gt.BatchFloatQScalar:
+                return (
+                    self.constants["G"] * self.m(t) / xp.linalg.vector_norm(q, axis=-1)
+                )
 
         return TestPotential
 
     @pytest.fixture(scope="class")
-    def field_units(self) -> dict[str, Any]:
+    def units(self) -> UnitSystem:
         return galactic
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_units) -> dict[str, Any]:
+    def fields_(self, field_units: UnitSystem) -> dict[str, Any]:
         return {"units": field_units}
 
     ###########################################################################
@@ -63,15 +61,23 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
 
         # Test that the concrete class can be instantiated
         class TestPotential(gp.AbstractPotentialBase):
-            units: UnitSystem = field(default_factory=lambda: dimensionless)
+            m: gp.AbstractParameter = gp.ParameterField(
+                dimensions="mass", default=Quantity(1e12, "Msun")
+            )
+            units: UnitSystem = eqx.field(
+                default=galactic, static=True, converter=unitsystem
+            )
             constants: ImmutableDict[Quantity] = eqx.field(
                 default=default_constants, converter=ImmutableDict
             )
 
+            @partial(jax.jit)
             def _potential_energy(  # TODO: inputs w/ units
-                self, q: BatchVec3, t: BatchableRealScalarLike, /
-            ) -> BatchFloatScalar:
-                return xp.sum(q, axis=-1)
+                self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+            ) -> gt.BatchFloatQScalar:
+                return (
+                    self.constants["G"] * self.m(t) / xp.linalg.vector_norm(q, axis=-1)
+                )
 
         pot = TestPotential()
         assert isinstance(pot, gp.AbstractPotentialBase)

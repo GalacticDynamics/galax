@@ -204,6 +204,8 @@
         "ARG002",
         "D10",
         "E731",
+        "ERA001",  # Found commented-out code  # TODO: remove this
+        "FBT001",  # Boolean-typed positional argument in a function definition
         "INP001",
         "S101",
         "S301",

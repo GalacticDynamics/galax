@@ -11,7 +11,7 @@ from unxt import Quantity
 
 from .base import AbstractPotentialBase, default_constants
 from .composite import CompositePotential
-from galax.typing import FloatScalar, RealScalar, Vec3
+from galax.typing import FloatQScalar, QVec3, RealScalar
 from galax.units import UnitSystem, unitsystem
 from galax.utils import ImmutableDict
 
@@ -21,7 +21,6 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
 
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
-    _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -34,7 +33,7 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
 
     # TODO: inputs w/ units
     @abc.abstractmethod
-    def _potential_energy(self, q: Vec3, t: RealScalar, /) -> FloatScalar:
+    def _potential_energy(self, q: QVec3, t: RealScalar, /) -> FloatQScalar:
         raise NotImplementedError
 
     ###########################################################################

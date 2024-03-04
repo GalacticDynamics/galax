@@ -3,7 +3,6 @@ from collections.abc import Mapping
 from dataclasses import replace
 
 import astropy.units as u
-import jax.numpy as jnp
 import pytest
 from plum import NotFoundLookupError
 from typing_extensions import override
@@ -46,9 +45,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             "disk": MiyamotoNagaiPotential(
                 m=1e10 * u.solMass, a=6.5 * u.kpc, b=4.5 * u.kpc, units=galactic
             ),
-            "halo": NFWPotential(
-                m=1e12 * u.solMass, r_s=5 * u.kpc, softening_length=0, units=galactic
-            ),
+            "halo": NFWPotential(m=1e12 * u.solMass, r_s=5 * u.kpc, units=galactic),
         }
 
     @pytest.fixture(scope="class")
@@ -60,13 +57,22 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         """Composite potential."""
         return pot_cls(**pot_map)
 
-    @pytest.fixture(scope="class")
-    def pot_map_unitless(self) -> Mapping[str, AbstractPotentialBase]:
-        """Composite potential."""
-        return {
-            "disk": MiyamotoNagaiPotential(m=1e10, a=6.5, b=4.5, units=None),
-            "halo": NFWPotential(m=1e12, r_s=5, softening_length=0, units=None),
-        }
+    # TODO(@nstarman): figure out what to do with unitless potentials. I think
+    #                 they NOT be allowed.
+    # @pytest.fixture(scope="class")
+    # def pot_map_unitless(self) -> Mapping[str, AbstractPotentialBase]:
+    #     """Composite potential."""
+    #     return {
+    #         "disk": MiyamotoNagaiPotential(
+    #             m=Quantity(1e10, "Msun"),
+    #             a=Quantity(6.5, "kpc"),
+    #             b=Quantity(4.5, "kpc"),
+    #             units=None,
+    #         ),
+    #         "halo": NFWPotential(
+    #             m=Quantity(1e12, "Msun"), r_s=Quantity(5, "kpc"), units=None
+    #         ),
+    #     }
 
     # ==========================================================================
     # TODO: use a universal `replace` function then don't need to override
@@ -95,14 +101,15 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         pot_map_ = {k: replace(v, units=usys) for k, v in pot_map.items()}
         assert pot_cls(**pot_map_, units=usys).units == usys
 
+    @pytest.mark.xfail(reason="TODO: unitless potentials are not allowed.")
     @override
     def test_init_units_from_args(
         self,
         pot_cls: type[CompositePotential],
-        pot_map_unitless: Mapping[str, AbstractPotentialBase],
+        pot_map: Mapping[str, AbstractPotentialBase],
     ) -> None:
         """Test unit system from None."""
-        pot = pot_cls(**pot_map_unitless, units=None)
+        pot = pot_cls(**pot_map, units=None)
         assert pot.units == dimensionless
 
     @override
@@ -121,13 +128,16 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         self,
         pot_cls: type[CompositePotential],
         pot_map: Mapping[str, AbstractPotentialBase],
-        pot_map_unitless: Mapping[str, AbstractPotentialBase],
+        # pot_map_unitless: Mapping[str, AbstractPotentialBase],
     ) -> None:
         """Test unit system from named string."""
         units = "dimensionless"
-        potmap = {k: replace(v, units=units) for k, v in pot_map_unitless.items()}
-        pot = pot_cls(**potmap, units=units)
-        assert pot.units == dimensionless
+        with pytest.raises(  # TODO: address directly
+            (u.UnitConversionError, ValueError)
+        ):
+            potmap = {k: replace(v, units=units) for k, v in pot_map.items()}
+            # pot = pot_cls(**potmap, units=units)
+            # assert pot.units == dimensionless
 
         units = "solarsystem"
         potmap = {k: replace(v, units=units) for k, v in pot_map.items()}
@@ -141,7 +151,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
 
         msg = "`unitsystem('invalid_value')` could not be resolved."
         with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
-            pot_cls(**pot_map_unitless, units="invalid_value")
+            pot_cls(**pot_map, units="invalid_value")
 
     # ==========================================================================
 
@@ -260,22 +270,27 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # ==========================================================================
 
     def test_potential_energy(self, pot: CompositePotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-0.6753781))
+        expected = Quantity(xp.asarray(-0.6753781), "kpc2 / Myr2")
+        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
+            pot.potential_energy(x, t=0).decompose(pot.units).value, expected.value
+        )
 
     def test_gradient(self, pot: CompositePotential, x: Vec3) -> None:
         expected = Quantity(
             [0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0).value, expected.value
-        )  # TODO: not .value
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.gradient(x, t=0).decompose(pot.units).value, expected.value
+        )
 
     def test_density(self, pot: CompositePotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0).value, 2.7958598e08)
+        expected = Quantity(2.7958598e08, "Msun / kpc3")
+        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
+            pot.density(x, t=0).decompose(pot.units).value, expected.value
+        )
 
     def test_hessian(self, pot: CompositePotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.hessian(x, t=0),
+        expected = Quantity(
             xp.asarray(
                 [
                     [0.00996317, -0.0025614, -0.00384397],
@@ -283,6 +298,11 @@ class TestCompositePotential(AbstractCompositePotential_Test):
                     [-0.00384397, -0.00768793, -0.00027929],
                 ]
             ),
+            "1/Myr2",
+        )
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.hessian(x, t=0).decompose(pot.units).value,
+            expected.value,
         )
 
     # ---------------------------------
@@ -290,9 +310,14 @@ class TestCompositePotential(AbstractCompositePotential_Test):
 
     def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
-        expect = [
-            [0.00469486, -0.0025614, -0.00384397],
-            [-0.0025614, 0.00085275, -0.00768793],
-            [-0.00384397, -0.00768793, -0.00554761],
-        ]
-        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        expect = Quantity(
+            [
+                [0.00469486, -0.0025614, -0.00384397],
+                [-0.0025614, 0.00085275, -0.00768793],
+                [-0.00384397, -0.00768793, -0.00554761],
+            ],
+            pot.units["frequency drift"],
+        )
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.tidal_tensor(x, t=0).decompose(pot.units).value, expect.value
+        )

@@ -16,7 +16,7 @@ from unxt import Quantity
 from galax.dynamics._dynamics.mockstream.core import MockStream
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchVec3, FloatScalar, Vec3, Vec6
+from galax.typing import BatchVec3, FloatQScalar, FloatScalar, Vec3, Vec6
 
 Wif: TypeAlias = tuple[Vec3, Vec3, Vec3, Vec3]
 Carry: TypeAlias = tuple[int, jr.PRNG, Vec3, Vec3, Vec3, Vec3]
@@ -42,7 +42,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         prog_orbit: Orbit,
         # />
         /,
-        prog_mass: FloatScalar,
+        prog_mass: FloatQScalar,
     ) -> tuple[MockStream, MockStream]:
         """Generate stream particle initial conditions.
 
@@ -54,7 +54,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             The potential of the host galaxy.
         prog_orbit : Orbit, positional-only
             The orbit of the progenitor.
-        prog_mass : Numeric
+        prog_mass : Quantity[float, (), 'mass']
             Mass of the progenitor in [Msol].
             TODO: allow this to be an array or function of time.
 
@@ -65,15 +65,17 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         """
         # Progenitor positions and times. The orbit times are used as the
         # release times for the mock stream.
-        prog_w = prog_orbit.w(units=pot.units)
+        prog_w = prog_orbit.w(units=pot.units)  # TODO: keep as PSP
         ts = prog_orbit.t
+
+        mprog = prog_mass.to_value(pot.units["mass"])  # TODO: keep units
 
         # Scan over the release times to generate the stream particle initial
         # conditions at each release time.
         def scan_fn(carry: Carry, t: FloatScalar) -> tuple[Carry, Wif]:
             i = carry[0]
             rng, subrng = carry[1].split(2)
-            out = self._sample(subrng, pot, prog_w[i], prog_mass, t)
+            out = self._sample(subrng, pot, prog_w[i], mprog, t)
             return (i + 1, rng, *out), out
 
         # TODO: use ``jax.vmap`` instead of ``jax.lax.scan`` for GPU usage
@@ -95,6 +97,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         return mock_lead, mock_trail
 
+    # TODO: keep units and PSP through this func
     @abc.abstractmethod
     def _sample(
         self,

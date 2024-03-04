@@ -8,39 +8,18 @@ from typing import Any, TypeVar
 import jax.numpy as jnp
 import jax.numpy as xp
 import numpy as np
-from astropy.coordinates import BaseRepresentation, BaseRepresentationOrDifferential
+from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity as APYQuantity
 from jax.dtypes import canonicalize_dtype
 from jaxtyping import Array, Shaped
 from plum import convert, dispatch
 
-from coordinax import Abstract3DVector, Cartesian3DVector
+import coordinax as cx
 from unxt import Quantity
 
+from galax.coordinates import AbstractPhaseSpacePosition
+from galax.typing import Unit
 from galax.units import DimensionlessUnitSystem, UnitSystem, dimensionless
-
-
-def convert_inputs_to_arrays(
-    *args: Any, units: UnitSystem, **kwargs: Any
-) -> tuple[Array, ...]:
-    """Parse input arguments.
-
-    Parameters
-    ----------
-    *args : Any, positional-only
-        Input arguments to parse to arrays.
-    units : UnitSystem, keyword-only
-        Unit system.
-    **kwargs : Any
-        Additional keyword arguments.
-
-    Returns
-    -------
-    tuple[Array, ...]
-        Parsed input arguments.
-    """
-    return tuple(convert_input_to_array(arg, units=units, **kwargs) for arg in args)
-
 
 # --------------------------------------------------------------
 
@@ -48,7 +27,7 @@ Value = TypeVar("Value", int, float, Array)
 
 
 @singledispatch
-def convert_input_to_array(value: Any, /, *, units: UnitSystem, **_: Any) -> Any:
+def parse_to_quantity(value: Any, /, *, units: UnitSystem, **_: Any) -> Any:
     """Parse input arguments.
 
     This function uses :func:`~functools.singledispatch` to dispatch on the type
@@ -72,73 +51,51 @@ def convert_input_to_array(value: Any, /, *, units: UnitSystem, **_: Any) -> Any
     raise NotImplementedError(msg)
 
 
-@convert_input_to_array.register(int)
-@convert_input_to_array.register(float)
-@convert_input_to_array.register(Array)
-@convert_input_to_array.register(np.ndarray)
-def _convert_from_arraylike(
-    x: Any,
-    /,
-    *,
-    units: UnitSystem,  # noqa: ARG001
-    **_: Any,
-) -> Array:
+@parse_to_quantity.register(int)
+@parse_to_quantity.register(float)
+@parse_to_quantity.register(Array)
+@parse_to_quantity.register(np.ndarray)
+def _convert_from_arraylike(x: Any, /, *, unit: Unit, **_: Any) -> Quantity:
     arr = xp.asarray(x, dtype=None)
     dtype = jnp.promote_types(arr.dtype, canonicalize_dtype(float))
-    return xp.asarray(arr, dtype=dtype)
+    return Quantity(xp.asarray(arr, dtype=dtype), unit=unit)
 
 
-@convert_input_to_array.register(Abstract3DVector)
-def _convert_from_3dvec(
-    x: Abstract3DVector, /, *, units: UnitSystem, **_: Any
+@parse_to_quantity.register(AbstractPhaseSpacePosition)
+def _convert_from_psp(
+    x: AbstractPhaseSpacePosition, /, **_: Any
 ) -> Shaped[Array, "*batch 3"]:
-    cart = x.represent_as(Cartesian3DVector)
-    qarr: Quantity = convert(cart, Quantity).decompose(units)  # in right units
-    return qarr.value
+    return _convert_from_3dvec(x.q)
 
 
-@convert_input_to_array.register(Quantity)
+@parse_to_quantity.register(cx.Abstract3DVector)
+def _convert_from_3dvec(
+    x: cx.Abstract3DVector, /, **_: Any
+) -> Shaped[Quantity, "*batch 3"]:
+    cart = x.represent_as(cx.Cartesian3DVector)
+    qarr: Quantity = convert(cart, Quantity)
+    return qarr
+
+
+@parse_to_quantity.register(Quantity)
 def _convert_from_quantity(
-    value: Quantity, /, *, units: UnitSystem, **_: Any
-) -> Shaped[Array, "*#batch 3"]:
-    return xp.asarray(value.decompose(units).value)
+    value: Quantity, /, **_: Any
+) -> Shaped[Quantity, "*#batch 3"]:
+    return value
 
 
 # ---------------------------
 # Astropy compat
 
 
-@convert_input_to_array.register(APYQuantity)
-def _convert_from_astropy_quantity(
-    value: APYQuantity, /, *, units: UnitSystem, **_: Any
-) -> Array:
-    return xp.asarray(value.decompose(units).value)
+@parse_to_quantity.register(APYQuantity)
+def _convert_from_astropy_quantity(value: APYQuantity, /, **_: Any) -> Array:
+    return convert(value, Quantity)
 
 
-@convert_input_to_array.register(BaseRepresentationOrDifferential)
-def _convert_from_astropy_baserep(
-    value: BaseRepresentationOrDifferential, /, *, units: UnitSystem, **_: Any
-) -> Array:
-    return xp.stack(
-        [getattr(value, attr).decompose(units).value for attr in value.components],
-        axis=-1,
-    )
-
-
-@convert_input_to_array.register(BaseRepresentation)
-def _convert_from_astropy_representation(
-    value: BaseRepresentation, /, *, units: UnitSystem, **kwargs: Any
-) -> Array:
-    value = value.to_cartesian()
-    if "s" in value.differentials and not kwargs.get("no_differentials", False):
-        return xp.concat(
-            (
-                _convert_from_astropy_baserep(value, units=units),
-                _convert_from_astropy_baserep(value.differentials["s"], units=units),
-            ),
-            axis=-1,
-        )
-    return _convert_from_astropy_baserep(value, units=units)
+@parse_to_quantity.register(BaseRepresentation)
+def _convert_from_astropy_baserep(value: BaseRepresentation, /, **_: Any) -> Array:
+    return _convert_from_3dvec(convert(value, cx.Cartesian3DVector))
 
 
 ##############################################################################

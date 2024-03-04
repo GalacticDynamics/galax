@@ -1179,7 +1179,7 @@ class GalileanOperator(AbstractCompositeOperator, AbstractGalileanOperator):
 
 
 @simplify_op.register
-def _simplify_op(
+def _simplify_op_spatialtranslation(
     op: GalileanSpatialTranslationOperator, /, **kwargs: Any
 ) -> AbstractOperator:
     """Simplify a spatial translation operator."""
@@ -1190,7 +1190,9 @@ def _simplify_op(
 
 
 @simplify_op.register
-def _simplify_op(op: GalileanTranslationOperator, /, **kwargs: Any) -> AbstractOperator:
+def _simplify_op_tranlation(
+    op: GalileanTranslationOperator, /, **kwargs: Any
+) -> AbstractOperator:
     """Simplify a translation operator."""
     # Check if the translation is zero.
     if jnp.allclose(convert(op.translation, Quantity).value, xp.zeros((4,)), **kwargs):
@@ -1202,7 +1204,7 @@ def _simplify_op(op: GalileanTranslationOperator, /, **kwargs: Any) -> AbstractO
 
 
 @simplify_op.register
-def _simplify_op(op: GalileanBoostOperator, /, **kwargs: Any) -> AbstractOperator:
+def _simplify_op_boost(op: GalileanBoostOperator, /, **kwargs: Any) -> AbstractOperator:
     """Simplify a boost operator."""
     # Check if the velocity is zero.
     if jnp.allclose(convert(op.velocity, Quantity).value, xp.zeros((3,)), **kwargs):
@@ -1211,14 +1213,16 @@ def _simplify_op(op: GalileanBoostOperator, /, **kwargs: Any) -> AbstractOperato
 
 
 @simplify_op.register
-def _simplify_op(op: GalileanRotationOperator, /, **kwargs: Any) -> AbstractOperator:
+def _simplify_op_rotation(
+    op: GalileanRotationOperator, /, **kwargs: Any
+) -> AbstractOperator:
     if jnp.allclose(op.rotation, xp.eye(3), **kwargs):
         return IdentityOperator()
     return op
 
 
 @simplify_op.register
-def _simplify_op(op: GalileanOperator, /, **kwargs: Any) -> AbstractOperator:
+def _simplify_op_galilean(op: GalileanOperator, /, **kwargs: Any) -> AbstractOperator:
     """Simplify a Galilean operator."""
     # Check if all the sub-operators can be simplified to the identity.
     if all(

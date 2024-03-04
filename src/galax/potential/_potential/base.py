@@ -127,7 +127,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # @partial(jax.jit)
     # @vectorize_method(signature="(3),()->()")
     @abc.abstractmethod
-    def _potential_energy(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
+    def _potential_energy(self, q: Vec3, t: RealScalar, /) -> FloatScalar:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.

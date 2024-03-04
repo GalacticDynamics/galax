@@ -29,7 +29,7 @@ class AbstractCompositePotential(
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: BatchVec3, /, t: BatchableRealScalarLike
+        self, q: BatchVec3, t: BatchableRealScalarLike, /
     ) -> BatchFloatScalar:
         return xp.sum(
             xp.asarray(

@@ -28,7 +28,7 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
 
     # TODO: inputs w/ units
     @abc.abstractmethod
-    def _potential_energy(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
+    def _potential_energy(self, q: Vec3, t: RealScalar, /) -> FloatScalar:
         raise NotImplementedError
 
     ###########################################################################

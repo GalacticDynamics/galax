@@ -118,10 +118,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             # TODO: only return the final state
             w_lead = integrate_orbit(
                 self.potential, w0_l_i, tstep, integrator=self.stream_integrator
-            ).w()[-1]
+            ).w(units=self.potential.units)[-1]
             w_trail = integrate_orbit(
                 self.potential, w0_t_i, tstep, integrator=self.stream_integrator
-            ).w()[-1]
+            ).w(units=self.potential.units)[-1]
             return w_lead, w_trail
 
         w0_lead = mock0_lead.w(units=self.units)

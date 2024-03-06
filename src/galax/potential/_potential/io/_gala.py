@@ -104,6 +104,15 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
       m=ConstantParameter(unit=Unit("solMass"), value=f64[])
     )
 
+    Milky Way potential:
+
+    >>> gpot = gp.MilkyWayPotential()
+    >>> gpx.io.gala_to_galax(gpot)
+    MilkyWayPotential({'disk': MiyamotoNagaiPotential( ... ),
+                       'halo': NFWPotential( ... ),
+                       'bulge': HernquistPotential( ... ),
+                       'nucleus': HernquistPotential( ... )})
+
     MiyamotoNagai potential:
 
     >>> gpot = gp.MiyamotoNagaiPotential(m=1e11, a=6.5, b=0.26, units=gu.galactic)
@@ -131,15 +140,6 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     >>> gpot = gp.NullPotential()
     >>> gpx.io.gala_to_galax(gpot)
     NullPotential(units=DimensionlessUnitSystem())
-
-    Milky Way potential:
-
-    >>> gpot = gp.MilkyWayPotential()
-    >>> gpx.io.gala_to_galax(gpot)
-    MilkyWayPotential({'disk': MiyamotoNagaiPotential( ... ),
-                       'halo': NFWPotential( ... ),
-                       'bulge': HernquistPotential( ... ),
-                       'nucleus': HernquistPotential( ... )})
     """
     msg = (
         "`gala_to_galax` does not have a registered function to convert "

@@ -17,7 +17,7 @@ from plum import convert
 from unxt.unitsystems import DimensionlessUnitSystem, UnitSystem
 
 import galax.potential as gp
-from galax.potential._potential.io.gala import _GALA_TO_GALAX_REGISTRY
+from galax.potential._potential.io._gala import _GALA_TO_GALAX_REGISTRY
 
 ##############################################################################
 # UnitSystem
@@ -33,8 +33,6 @@ def galax_to_gala_units(units: UnitSystem, /) -> GalaUnitSystem:
 # GALAX -> GALA
 
 
-# TODO: this can be removed when AbstractPotential gets a `parameters`
-# attribute that is a dict whose keys are the names of the parameters.
 def _all_constant_parameters(
     pot: "gp.AbstractPotentialBase",
     *params: str,

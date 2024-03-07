@@ -55,6 +55,7 @@ class GalaIOMixin:
         assert qnp.array_equal(pot(x, t=0), rpot(x, t=0))
 
 
+@pytest.mark.skipif(not HAS_GALA, reason="requires gala")
 def test_offset_hernquist() -> None:
     """Test gala potential with an offset Hernquist potential."""
     from gala.potential import HernquistPotential as GalaHernquistPotential

@@ -8,9 +8,9 @@ from typing import cast, final
 
 import equinox as eqx
 
+from coordinax.operators import OperatorSequence, simplify_op
 from jax_quantity import Quantity
 
-from galax.coordinates.operators import OperatorSequence, simplify_op
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
     BatchableRealScalarLike,
@@ -244,7 +244,7 @@ class PotentialFrame(AbstractPotentialBase):
 #####################################################################
 
 
-@simplify_op.register
+@simplify_op.register  # type: ignore[misc]
 def _simplify_op(frame: PotentialFrame, /) -> PotentialFrame:
     """Simplify the operators in an PotentialFrame."""
     return replace(frame, operator=simplify_op(frame.operator))

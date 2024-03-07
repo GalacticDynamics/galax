@@ -149,7 +149,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_call(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.__call__` method."""
-        assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0).value)  # TODO: .value
+        assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0))
 
     def test_gradient(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.gradient` method."""
@@ -188,11 +188,11 @@ class TestAbstractPotentialBase(GalaIOMixin):
         orbit = pot.integrate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
         assert orbit.shape == (len(ts.value),)  # TODO: don't use .value
-        assert array_equal(orbit.t, ts.value)
+        assert array_equal(orbit.t, ts)
 
     def test_integrate_orbit_batch(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
         """Test the `AbstractPotentialBase.integrate_orbit` method."""
-        ts = xp.linspace(0.0, 1.0, 100)
+        ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
 
         # Simple batch
         orbits = pot.integrate_orbit(xv[None, :], ts)

@@ -12,12 +12,13 @@ from typing import Literal, final
 
 import equinox as eqx
 
-from galax.coordinates.operators import AbstractOperator
+from coordinax.operators import AbstractOperator
+
 from galax.typing import FloatScalar, RealScalar, Vec3
 
 
 @final
-class TimeDependentSpatialTranslationOperator(AbstractOperator):
+class TimeDependentSpatialTranslationOperator(AbstractOperator):  # type: ignore[misc]
     r"""Operator for time-dependent translation."""
 
     translation: Callable[[FloatScalar], Vec3] = eqx.field()

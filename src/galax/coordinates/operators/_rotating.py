@@ -11,12 +11,11 @@ from plum import convert
 
 import array_api_jax_compat as xp
 from coordinax import Abstract3DVector, Cartesian3DVector, CartesianDifferential3D
+from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
+from coordinax.operators._base import op_call_dispatch
 from jax_quantity import Quantity
 
-from .base import AbstractOperator, op_call_dispatch
-from .funcs import simplify_op
 from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
-from galax.coordinates.operators.identity import IdentityOperator
 
 
 def rot_z(
@@ -44,7 +43,7 @@ def rot_z(
 
 
 @final
-class ConstantRotationZOperator(AbstractOperator):
+class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     r"""Operator for constant rotation in the x-y plane.
 
     The coordinate transform is given by:
@@ -294,21 +293,22 @@ class ConstantRotationZOperator(AbstractOperator):
         return (replace(psp, q=q, p=p), t)
 
 
-@simplify_op.register
+@simplify_op.register  # type: ignore[misc]
 def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> AbstractOperator:
     """Simplify the operators in an PotentialFrame.
 
     Examples
     --------
     >>> from jax_quantity import Quantity
+    >>> import coordinax as cx
     >>> import galax.coordinates.operators as gco
 
     >>> op = gco.ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
-    >>> gco.simplify_op(op) == op
+    >>> cx.operators.simplify_op(op) == op
     Array(True, dtype=bool)
 
     >>> op = gco.ConstantRotationZOperator(Omega_z=Quantity(0, "deg / Gyr"))
-    >>> gco.simplify_op(op)
+    >>> cx.operators.simplify_op(op)
     IdentityOperator()
 
     """

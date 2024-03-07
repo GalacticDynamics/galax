@@ -42,12 +42,11 @@ def call(
     --------
     >>> from jax_quantity import Quantity
     >>> import galax.coordinates as gc
-    >>> import galax.coordinates.operators as gco
     >>> import coordinax as cx
 
     We can then create a spatial translation operator:
 
-    >>> op = gco.GalileanSpatialTranslationOperator(Quantity([1, 2, 3], "kpc"))
+    >>> op = cx.operators.GalileanSpatialTranslationOperator(Quantity([1, 2, 3], "kpc"))
     >>> op
     GalileanSpatialTranslationOperator( translation=Cartesian3DVector( ... ) )
 
@@ -90,12 +89,11 @@ def call(
     --------
     >>> from jax_quantity import Quantity
     >>> import galax.coordinates as gc
-    >>> import galax.coordinates.operators as gco
     >>> import coordinax as cx
 
     We can then create a spatial translation operator:
 
-    >>> op = gco.GalileanSpatialTranslationOperator(Quantity([1, 2, 3], "kpc"))
+    >>> op = cx.operators.GalileanSpatialTranslationOperator(Quantity([1, 2, 3], "kpc"))
     >>> op
     GalileanSpatialTranslationOperator( translation=Cartesian3DVector( ... ) )
 
@@ -160,15 +158,14 @@ def call(
     Examples
     --------
     >>> from jax_quantity import Quantity
-    >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-    >>> from galax.coordinates import PhaseSpacePosition
-    >>> from galax.coordinates.operators import GalileanSpatialTranslationOperator
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
 
-    >>> shift = Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
-    >>> op = GalileanSpatialTranslationOperator(shift)
+    >>> shift = cx.Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
+    >>> op = cx.operators.GalileanSpatialTranslationOperator(shift)
 
-    >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                          p=Quantity([0, 0, 0], "kpc/Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"))
 
     >>> t = Quantity(0, "Gyr")
     >>> newpsp, newt = op(psp, t)
@@ -213,13 +210,13 @@ def call(
     Examples
     --------
     >>> from jax_quantity import Quantity
-    >>> from coordinax import Cartesian3DVector
-    >>> from galax.coordinates.operators import GalileanTranslationOperator
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
 
-    >>> op = GalileanTranslationOperator(Quantity([2_000, 1, 1, 1], "kpc"))
+    >>> op = cx.operators.GalileanTranslationOperator(Quantity([2_000, 1, 1, 1], "kpc"))
 
-    >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                          p=Quantity([0, 0, 0], "kpc/Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"))
 
     >>> t = Quantity(0, "Gyr")
     >>> newpsp, newt = op(psp, t)
@@ -269,13 +266,13 @@ def call(
     Examples
     --------
     >>> from jax_quantity import Quantity
-    >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-    >>> from galax.coordinates.operators import GalileanBoostOperator
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
 
-    >>> op = GalileanBoostOperator(Quantity([1, 1, 1], "kpc/Gyr"))
+    >>> op = cx.GalileanBoostOperator(Quantity([1, 1, 1], "kpc/Gyr"))
 
-    >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                          p=Quantity([0, 0, 0], "kpc/Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"))
 
     >>> t = Quantity(1, "Gyr")
     >>> newpsp, newt = op(psp, t)
@@ -320,18 +317,17 @@ def call(
     --------
     >>> import array_api_jax_compat as xp
     >>> from jax_quantity import Quantity
-    >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-    >>> from galax.coordinates.operators import GalileanRotationOperator
-    >>> from galax.coordinates import PhaseSpacePosition
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
 
     >>> theta = Quantity(45, "deg")
     >>> Rz = xp.asarray([[xp.cos(theta), -xp.sin(theta), 0],
     ...                  [xp.sin(theta), xp.cos(theta),  0],
     ...                  [0,             0,              1]])
-    >>> op = GalileanRotationOperator(Rz)
+    >>> op = cx.operators.GalileanRotationOperator(Rz)
 
-    >>> psp = PhaseSpacePosition(q=Quantity([1, 0, 0], "m"),
-    ...                          p=Quantity([1, 0, 0], "m/s"))
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "m"),
+    ...                             p=Quantity([1, 0, 0], "m/s"))
 
     >>> newpsp, newt = op(psp, t)
 
@@ -379,18 +375,17 @@ def call(
     Examples
     --------
     >>> from jax_quantity import Quantity
-    >>> from coordinax import Cartesian3DVector
+    >>> import coordinax as cx
     >>> import galax.coordinates as gc
-    >>> from galax.coordinates.operators import IdentityOperator
 
-    >>> op = IdentityOperator()
+    >>> op = cx.operators.IdentityOperator()
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"))
 
     >>> op(psp, Quantity(0, "Gyr"))
-    (PhaseSpacePosition( q=Cartesian3DVector( ... ),
-                            p=CartesianDifferential3D( ... ) ),
+    (PhaseSpacePosition( q=cx.Cartesian3DVector( ... ),
+                         p=cx.CartesianDifferential3D( ... ) ),
         Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'))
     """
     return x, t

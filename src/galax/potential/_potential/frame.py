@@ -33,8 +33,8 @@ class PotentialFrame(AbstractPotentialBase):
     First some imports:
 
     >>> from jax_quantity import Quantity
+    >>> import coordinax.operators as cxo
     >>> import galax.coordinates as gc
-    >>> import galax.coordinates.operators as gco
     >>> import galax.potential as gp
 
     Now we define a triaxial Hernquist potential with a time-dependent mass:
@@ -63,7 +63,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     Let's apply a spatial translation to the potential:
 
-    >>> op1 = gco.GalileanSpatialTranslationOperator(Quantity([3, 0, 0], "kpc"))
+    >>> op1 = cxo.GalileanSpatialTranslationOperator(Quantity([3, 0, 0], "kpc"))
     >>> op1
     GalileanSpatialTranslationOperator( translation=Cartesian3DVector( ... ) )
 
@@ -89,7 +89,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     We can also apply a time translation to the potential:
 
-    >>> op2 = gco.GalileanTranslationOperator(Quantity([1_000, 0, 0, 0], "kpc"))
+    >>> op2 = cxo.GalileanTranslationOperator(Quantity([1_000, 0, 0, 0], "kpc"))
     >>> op2.translation.t.to("Myr")
     Quantity['time'](Array(3.26156378, dtype=float64), unit='Myr')
 
@@ -111,7 +111,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     Now let's boost the potential by 200 km/s in the y-direction:
 
-    >>> op3 = gco.GalileanBoostOperator(Quantity([0, 200, 0], "km/s"))
+    >>> op3 = cxo.GalileanBoostOperator(Quantity([0, 200, 0], "km/s"))
     >>> op3
     GalileanBoostOperator( velocity=CartesianDifferential3D( ... ) )
 
@@ -126,7 +126,7 @@ class PotentialFrame(AbstractPotentialBase):
     >>> Ry = xp.asarray([[xp.cos(theta),  0, xp.sin(theta)],
     ...                  [0,              1, 0            ],
     ...                  [-xp.sin(theta), 0, xp.cos(theta)]])
-    >>> op4 = gco.GalileanRotationOperator(Ry)
+    >>> op4 = cxo.GalileanRotationOperator(Ry)
     >>> op4
     GalileanRotationOperator(rotation=f64[3,3])
 
@@ -145,7 +145,7 @@ class PotentialFrame(AbstractPotentialBase):
     are two ways to do this. The first is to create a pre-defined composite
     operator, like a :class:`~galax.coordinates.operators.GalileanOperator`:
 
-    >>> op5 = gco.GalileanOperator(rotation=op4, translation=op2, velocity=op3)
+    >>> op5 = cxo.GalileanOperator(rotation=op4, translation=op2, velocity=op3)
     >>> op5
     GalileanOperator(
       rotation=GalileanRotationOperator(rotation=f64[3,3]),
@@ -174,7 +174,7 @@ class PotentialFrame(AbstractPotentialBase):
     >>> pot2 = gp.TriaxialHernquistPotential(m=Quantity(1e12, "Msun"),
     ...     c=Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
 
-    >>> op7 = gco.ConstantRotationZOperator(Omega_z=Quantity(90, "deg/Gyr"))
+    >>> op7 = gc.operators.ConstantRotationZOperator(Omega_z=Quantity(90, "deg/Gyr"))
     >>> framedpot7 = gp.PotentialFrame(potential=pot2, operator=op7)
 
     The potential energy at a given position will change with time:

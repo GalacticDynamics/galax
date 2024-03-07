@@ -269,7 +269,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.GalileanBoostOperator(Quantity([1, 1, 1], "kpc/Gyr"))
+    >>> op = cx.operators.GalileanBoostOperator(Quantity([1, 1, 1], "kpc/Gyr"))
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"))
@@ -343,7 +343,7 @@ def call(
 
     The time is not affected by the rotation.
     >>> newt
-    Quantity['time'](Array(1, dtype=int64, ...), unit='s')
+    Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
     """
     # Shifting the position and time
     q, t = self(psp.q, t)
@@ -384,8 +384,8 @@ def call(
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"))
 
     >>> op(psp, Quantity(0, "Gyr"))
-    (PhaseSpacePosition( q=cx.Cartesian3DVector( ... ),
-                         p=cx.CartesianDifferential3D( ... ) ),
+    (PhaseSpacePosition( q=Cartesian3DVector( ... ),
+                         p=CartesianDifferential3D( ... ) ),
         Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'))
     """
     return x, t

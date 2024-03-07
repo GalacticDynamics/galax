@@ -300,14 +300,15 @@ def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> AbstractOperator:
     Examples
     --------
     >>> from jax_quantity import Quantity
+    >>> import coordinax as cx
     >>> import galax.coordinates.operators as gco
 
     >>> op = gco.ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
-    >>> gco.simplify_op(op) == op
+    >>> cx.operators.simplify_op(op) == op
     Array(True, dtype=bool)
 
     >>> op = gco.ConstantRotationZOperator(Omega_z=Quantity(0, "deg / Gyr"))
-    >>> gco.simplify_op(op)
+    >>> cx.operators.simplify_op(op)
     IdentityOperator()
 
     """

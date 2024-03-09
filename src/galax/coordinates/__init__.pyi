@@ -16,6 +16,10 @@ __all__ = [
 ]
 
 from . import operators
-from ._psp.base import AbstractPhaseSpacePositionBase
-from ._psp.psp import AbstractPhaseSpacePosition, PhaseSpacePosition
-from ._psp.pspt import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
+from ._psp import (
+    AbstractPhaseSpacePosition,
+    AbstractPhaseSpacePositionBase,
+    AbstractPhaseSpaceTimePosition,
+    PhaseSpacePosition,
+    PhaseSpaceTimePosition,
+)

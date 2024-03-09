@@ -22,7 +22,7 @@ from galax.dynamics._dynamics.integrate._api import Integrator
 from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
 from galax.dynamics._dynamics.orbit import evaluate_orbit, integrate_orbit
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchVec6, FloatScalar, IntScalar, Vec6, VecN, VecTime
+from galax.typing import BatchVec6, FloatScalar, IntScalar, QVecTime, Vec6, VecN
 from galax.units import UnitSystem
 
 Carry: TypeAlias = tuple[IntScalar, VecN, VecN]
@@ -59,7 +59,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial(jax.jit)
     def _run_scan(  # TODO: output shape depends on the input shape
-        self, ts: VecTime, mock0_lead: MockStream, mock0_trail: MockStream
+        self, ts: QVecTime, mock0_lead: MockStream, mock0_trail: MockStream
     ) -> tuple[BatchVec6, BatchVec6]:
         """Generate stellar stream by scanning over the release model/integration.
 
@@ -67,7 +67,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)
-        t_f = ts[-1] + 1e-3  # TODO: not have the bump in the final time.
+        t_f = ts[-1] + Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         def one_pt_intg(carry: Carry, _: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
             """Integrate one point along the stream.
@@ -103,13 +103,13 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial(jax.jit)
     def _run_vmap(  # TODO: output shape depends on the input shape
-        self, ts: VecTime, mock0_lead: MockStream, mock0_trail: MockStream
+        self, ts: QVecTime, mock0_lead: MockStream, mock0_trail: MockStream
     ) -> tuple[BatchVec6, BatchVec6]:
         """Generate stellar stream by vmapping over the release model/integration.
 
         Better for GPU usage.
         """
-        t_f = ts[-1] + 1e-3  # TODO: not have the bump in the final time.
+        t_f = ts[-1] + Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         # TODO: make this a separated method
         @jax.jit  # type: ignore[misc]
@@ -133,7 +133,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial(jax.jit, static_argnames=("seed_num", "vmapped"))
     def run(
         self,
-        ts: VecTime,
+        ts: QVecTime,
         prog_w0: PhaseSpaceTimePosition | PhaseSpacePosition | Vec6,
         prog_mass: FloatScalar,
         *,
@@ -179,10 +179,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
         elif isinstance(prog_w0, PhaseSpacePosition):
             w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
-            t0 = Quantity.constructor(ts[0], self.potential.units["time"])
+            t0 = ts[0].to(self.potential.units["time"])
             w0 = PhaseSpaceTimePosition(q=prog_w0.q, p=prog_w0.p, t=t0)
         else:
-            t0 = Quantity.constructor(ts[0], self.potential.units["time"])
+            t0 = ts[0].to(self.potential.units["time"])
             w0 = PhaseSpaceTimePosition(
                 q=Quantity(prog_w0[..., 0:3], self.units["length"]),
                 p=Quantity(prog_w0[3:6], self.units["speed"]),
@@ -210,7 +210,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         else:
             lead_arm_w, trail_arm_w = self._run_scan(ts, mock0_lead, mock0_trail)
 
-        t = xp.ones_like(ts) * ts[-1]  # TODO: ensure this time is correct
+        t = xp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
 
         # TODO: move the leading vs trailing logic to the DF
         if self.df.lead and self.df.trail:
@@ -236,7 +236,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         mockstream = MockStream(
             q=Quantity(q, self.units["length"]),
             p=Quantity(p, self.units["speed"]),
-            t=Quantity(t, self.units["time"]),
+            t=t,
             release_time=release_time,
         )
 

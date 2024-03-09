@@ -1954,7 +1954,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """
         from galax.dynamics._dynamics.orbit import integrate_orbit
 
-        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
         return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator))
 
     def evaluate_orbit(
@@ -2030,5 +2029,4 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """
         from galax.dynamics._dynamics.orbit import evaluate_orbit
 
-        t = Quantity.constructor(t, self.units["time"]).value  # TODO: value
         return cast("Orbit", evaluate_orbit(self, w0, t, integrator=integrator))

@@ -18,7 +18,7 @@ from typing import final
 import equinox as eqx
 import jax
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from jax_quantity import Quantity
 
 from galax.potential._potential.core import AbstractPotential

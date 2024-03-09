@@ -9,7 +9,7 @@ from plum import NotFoundLookupError
 from quax import quaxify
 from typing_extensions import override
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from jax_quantity import Quantity
 
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test

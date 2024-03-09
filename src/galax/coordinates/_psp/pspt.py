@@ -11,7 +11,7 @@ import jax
 import jax.numpy as jnp
 from plum import convert
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from coordinax import (
     Abstract3DVector,
     Abstract3DVectorDifferential,

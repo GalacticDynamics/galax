@@ -6,7 +6,7 @@ import astropy.units as u
 import jax
 import pytest
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 
 from galax.dynamics import FardalStreamDF, MockStreamGenerator
 from galax.potential import MilkyWayPotential

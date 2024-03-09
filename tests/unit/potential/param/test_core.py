@@ -8,7 +8,7 @@ import astropy.units as u
 import pytest
 from jax.numpy import array_equal
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 
 from galax.potential import AbstractParameter, ConstantParameter, UserParameter
 from galax.potential._potential.param.core import ParameterCallable

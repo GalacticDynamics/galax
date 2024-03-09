@@ -217,7 +217,7 @@
 
     [tool.ruff.lint.isort]
       combine-as-imports = true
-      known-first-party = ["jax_quantity", "coordinax", "array_api_jax_compat"]
+      known-first-party = ["jax_quantity", "coordinax", "quaxed"]
       known-local-folder = ["galax"]
 
     [tool.ruff.lint.pydocstyle]

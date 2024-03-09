@@ -5,7 +5,7 @@ from dataclasses import replace
 import jax.numpy as jnp
 from quax import quaxify
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from jax_quantity import Quantity
 
 import galax.coordinates.operators as gco

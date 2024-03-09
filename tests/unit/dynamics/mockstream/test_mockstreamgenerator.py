@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import jax.tree_util as tu
 import pytest
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
 from galax.potential import AbstractPotentialBase, NFWPotential

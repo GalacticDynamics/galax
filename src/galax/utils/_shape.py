@@ -9,7 +9,7 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, ArrayLike
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from coordinax import AbstractVectorBase
 
 from galax.typing import AnyScalar, ArrayAnyShape
@@ -147,7 +147,7 @@ def batched_shape(
     --------
     Standard imports:
 
-        >>> import array_api_jax_compat as xp
+        >>> import quaxed.array_api as xp
         >>> from galax.utils._shape import batched_shape
 
     Expecting a scalar:

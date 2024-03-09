@@ -9,7 +9,7 @@ from typing import Any, TypeVar, final
 import equinox as eqx
 import jax
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 
 from .base import AbstractPotentialBase
 from galax.typing import BatchableRealScalarLike, BatchFloatScalar, BatchVec3

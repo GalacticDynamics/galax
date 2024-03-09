@@ -13,7 +13,7 @@ import jax.numpy as jnp
 import jaxtyping as jt
 from astropy.units import Quantity as APYQuantity
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from jax_quantity import Quantity
 
@@ -240,7 +240,7 @@ def integrate_orbit(
 
     >>> import astropy.units as u
     >>> from jax_quantity import Quantity
-    >>> import array_api_jax_compat as xp  # preferred over `jax.numpy`
+    >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> from galax.units import galactic
@@ -407,7 +407,7 @@ def evaluate_orbit(
     few standard imports are needed:
 
     >>> import astropy.units as u
-    >>> import array_api_jax_compat as xp  # preferred over `jax.numpy`
+    >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> from galax.units import galactic

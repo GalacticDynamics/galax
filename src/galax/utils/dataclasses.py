@@ -27,7 +27,7 @@ from jax.dtypes import canonicalize_dtype
 from jaxtyping import Array, Float
 from typing_extensions import ParamSpec, Unpack
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from jax_quantity import Quantity
 
 if TYPE_CHECKING:

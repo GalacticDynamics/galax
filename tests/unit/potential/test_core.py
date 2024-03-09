@@ -6,7 +6,7 @@ import equinox as eqx
 import jax
 import pytest
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 
 import galax.potential as gp
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test

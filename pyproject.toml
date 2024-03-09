@@ -25,7 +25,7 @@
     "Typing :: Typed",
   ]
   dependencies = [
-    "array-api-jax-compat >=0.1a1",
+    "quaxed >=0.2",
     "astropy >= 5.3",
     "beartype",
     "diffrax",
@@ -132,8 +132,8 @@
   warn_unreachable = true
   warn_unused_configs = true
 
+  disable_error_code = ["no-redef"]                                            # <- plum multiple dispatch
   enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-  disable_error_code = ["no-redef"]  # <- plum multiple dispatch
 
   [[tool.mypy.overrides]]
     disable_error_code = ["name-defined"] # <- jaxtyping

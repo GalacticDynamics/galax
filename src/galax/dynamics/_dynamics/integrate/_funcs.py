@@ -1,0 +1,414 @@
+"""galax: Galactic Dynamix in Jax."""
+
+__all__ = ["integrate_orbit", "evaluate_orbit"]
+
+import warnings
+from dataclasses import replace
+from functools import partial
+from typing import TYPE_CHECKING
+
+import jax
+import jax.numpy as jnp
+import jaxtyping as jt
+from astropy.units import Quantity as APYQuantity
+
+import quaxed.array_api as xp
+from jax_quantity import Quantity
+
+from ._api import Integrator
+from ._builtin import DiffraxIntegrator
+from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
+from galax.dynamics._dynamics.orbit import Orbit
+from galax.potential._potential.base import AbstractPotentialBase
+from galax.typing import (
+    BatchVec6,
+    BroadBatchFloatScalar,
+    FloatScalar,
+    QVecTime,
+    VecTime,
+)
+
+if TYPE_CHECKING:
+    pass
+
+##############################################################################
+
+
+# TODO: enable setting the default integrator
+_default_integrator: Integrator = DiffraxIntegrator()
+
+
+@partial(jax.jit, static_argnames=("integrator",))
+def integrate_orbit(
+    pot: AbstractPotentialBase,
+    w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
+    t: QVecTime | VecTime | APYQuantity,
+    *,
+    integrator: Integrator | None = None,
+) -> Orbit:
+    """Integrate an orbit in a potential, from position `w0` at time ``t[0]``.
+
+    Parameters
+    ----------
+    pot : :class:`~galax.potential.AbstractPotentialBase`
+        The potential in which to integrate the orbit.
+    w0 : PhaseSpacePosition | Array[float, (*batch,6)]
+        The phase-space position (includes velocity) from which to integrate.
+
+        - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
+            The phase-space position. `w0` will be integrated from ``t[0]`` to
+            ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning the
+            orbit calculated at `t`.
+        - :class:`~galax.coordinates.PhaseSpaceTimePosition`:
+            The phase-space position, including a time. The time will be ignored
+            and the orbit will be integrated from ``t[0]`` to ``t[1]``,
+            returning the orbit calculated at `t`. Note: this will raise a
+            warning.
+        - Array[float, (*batch, 6)]:
+            A :class:`~galax.coordinates.PhaseSpacePosition` will be
+            constructed, interpreting the array as the  'q', 'p' (each
+            Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
+    t: Quantity[float, (time,), "time"]
+        Array of times at which to compute the orbit. The first element should
+        be the initial time and the last element should be the final time and
+        the array should be monotonically moving from the first to final time.
+        See the Examples section for options when constructing this argument.
+        If `t` is not a Quantity, it will be converted to a Quantity using the
+        potential's units. In particular, these means that plain arrays will be
+        interpreted as times in the potential's units.
+
+        .. note::
+
+            This is NOT the timesteps to use for integration, which are
+            controlled by the `integrator`; the default integrator
+            :class:`~galax.integrator.DiffraxIntegrator` uses adaptive
+            timesteps.
+
+    integrator : :class:`~galax.integrate.Integrator`, keyword-only
+        Integrator to use.  If `None`, the default integrator
+        :class:`~galax.integrator.DiffraxIntegrator` is used.
+
+    Returns
+    -------
+    orbit : :class:`~galax.dynamics.Orbit`
+        The integrated orbit evaluated at the given times.
+
+    Warns
+    -----
+    UserWarning
+        If `w0` is a :class:`~galax.coordinates.PhaseSpaceTimePosition`, a
+        warning is raised to indicate that the time is ignored.
+
+    See Also
+    --------
+    evaluate_orbit
+        A higher-level function that computes an orbit. The main difference is
+        that `evaluate_orbit` allows for the phase-space position to also include
+        a time, which allows for the phase-space position to be defined at a
+        different time than the initial time of the integration.
+
+    Examples
+    --------
+    We start by integrating a single orbit in the potential of a point mass.  A
+    few standard imports are needed:
+
+    >>> import astropy.units as u
+    >>> from jax_quantity import Quantity
+    >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> from galax.units import galactic
+
+    We can then create the point-mass' potential, with galactic units:
+
+    >>> potential = gp.KeplerPotential(m=1e12 * u.Msun, units=galactic)
+
+    We can then integrate an initial phase-space position in this potential to
+    get an orbit:
+
+    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
+    ...                            p=Quantity([0., 0.1, 0.], "km/s"))
+    >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
+    >>> orbit = integrate_orbit(potential, w0, ts)
+    >>> orbit
+    Orbit(
+      q=Cartesian3DVector(...), p=CartesianDifferential3D(...),
+      t=Quantity[...](value=f64[4], unit=Unit("Myr")),
+      potential=KeplerPotential(...)
+    )
+
+    Note how there are 4 points in the orbit, corresponding to the 4 requested
+    return times. Changing the number of times is easy:
+
+    >>> ts = xp.linspace(0., 1000, 10)  # (1 Gyr, 10 steps)
+    >>> orbit = integrate_orbit(potential, w0, ts)
+    >>> orbit
+    Orbit(
+      q=Cartesian3DVector(...), p=CartesianDifferential3D(...),
+      t=Quantity[...](value=f64[10], unit=Unit("Myr")),
+      potential=KeplerPotential(...)
+    )
+
+    We can also integrate a batch of orbits at once:
+
+    >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0., 0.], [10., 0., 0.]], "kpc"),
+    ...                            p=Quantity([[0., 0.1, 0.], [0., 0.2, 0.]], "km/s"))
+    >>> orbit = integrate_orbit(potential, w0, ts)
+    >>> orbit
+    Orbit(
+      q=Cartesian3DVector( x=Quantity[...](value=f64[2,10], unit=Unit("kpc")), ... ),
+      p=CartesianDifferential3D( d_x=Quantity[...](..., unit=Unit("kpc / Myr") ),
+                                 ... ),
+      t=Quantity[PhysicalType('time')](value=f64[10], unit=Unit("Myr")),
+      potential=KeplerPotential( ... )
+    )
+    """
+    # Parse t
+    if not isinstance(t, Quantity):
+        t = Quantity.constructor(t, pot.units["time"])
+
+    # Parse w0
+    if isinstance(w0, PhaseSpaceTimePosition):
+        warnings.warn(
+            "The time in the input phase-space position is ignored when "
+            "integrating the orbit.",
+            UserWarning,
+            stacklevel=2,
+        )
+        qp0 = w0.w(units=pot.units)
+    elif isinstance(w0, PhaseSpacePosition):
+        qp0 = w0.w(units=pot.units)
+    else:
+        qp0 = w0
+
+    # Determine the integrator
+    # Reboot the integrator to avoid stateful issues
+    integrator = replace(integrator) if integrator is not None else _default_integrator
+
+    # Integrate the orbit
+    # TODO: ꜛ reduce repeat dimensions of `time`.
+    # TODO: push parsing w0 to the integrator-level
+    ws = integrator(
+        pot._integrator_F,  # noqa: SLF001
+        qp0,
+        t.to_value(pot.units["time"]),
+    )
+
+    # Construct the orbit object
+    return Orbit(
+        q=Quantity(ws[..., 0:3], pot.units["length"]),
+        p=Quantity(ws[..., 3:6], pot.units["speed"]),
+        t=t,
+        potential=pot,
+    )
+
+
+_select_w0 = jnp.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
+
+
+def _psp2t(
+    pspt: BroadBatchFloatScalar, t0: FloatScalar
+) -> jt.Shaped[FloatScalar, "*#batch 2"]:
+    """Start at PSP time end at t0 for integration from t0."""
+    return xp.stack((pspt, xp.full_like(pspt, t0)), axis=-1)
+
+
+@partial(jax.jit, static_argnames=("integrator",))
+def evaluate_orbit(
+    pot: AbstractPotentialBase,
+    w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
+    t: QVecTime | VecTime | APYQuantity,
+    *,
+    integrator: Integrator | None = None,
+) -> Orbit:
+    """Compute an orbit in a potential.
+
+    This method is similar to :meth:`~galax.dynamics.integrate_orbit`, but can
+    behave differently when ``w0`` is a
+    :class:`~galax.coordinates.PhaseSpacePositionTime`.
+    :class:`~galax.coordinates.PhaseSpacePositionTime` includes a time in
+    addition to the position (and velocity) information, enabling the orbit to
+    be evaluated over a time range that is different from the initial time of
+    the position.
+
+    Parameters
+    ----------
+    pot : :class:`~galax.potential.AbstractPotentialBase`
+        The potential in which to integrate the orbit.
+    w0 : PhaseSpaceTimePosition | PhaseSpacePosition | Array[float, (*batch, 6)]
+        The phase-space position (includes velocity and time) from which to
+        integrate. Integration includes the time of the initial position, so be
+        sure to set the initial time to the desired value. See the `t` argument
+        for more details.
+
+        - :class:`~galax.dynamics.PhaseSpaceTimePosition`[float, (*batch,)]:
+            The full phase-space position, including position, velocity, and
+            time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
+            integrated from ``t[0]`` to ``t[1]``, returning the orbit calculated
+            at `t`.
+        - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
+            The phase-space position. `w0` will be integrated from ``t[0]`` to
+            ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning the
+            orbit calculated at `t`.
+        - Array[float, (*batch, 6)]:
+            A :class:`~galax.coordinates.PhaseSpacePosition` will be
+            constructed, interpreting the array as the  'q', 'p' (each
+            Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
+    t: Array[float, (time,)]
+        Array of times at which to compute the orbit. The first element should
+        be the initial time and the last element should be the final time and
+        the array should be monotonically moving from the first to final time.
+        See the Examples section for options when constructing this argument.
+
+        .. note::
+
+            This is NOT the timesteps to use for integration, which are
+            controlled by the `integrator`; the default integrator
+            :class:`~galax.integrator.DiffraxIntegrator` uses adaptive
+            timesteps.
+
+    integrator : :class:`~galax.integrate.Integrator`, keyword-only
+        Integrator to use.  If `None`, the default integrator
+        :class:`~galax.integrator.DiffraxIntegrator` is used.  This integrator
+        is used twice: once to integrate from `w0.t` to `t[0]` and then from
+        `t[0]` to `t[1]`.
+
+    Returns
+    -------
+    orbit : :class:`~galax.dynamics.Orbit`
+        The integrated orbit evaluated at the given times.
+
+    See Also
+    --------
+    integrate_orbit
+        A lower-level function that integrates an orbit.
+
+    Examples
+    --------
+    We start by integrating a single orbit in the potential of a point mass.  A
+    few standard imports are needed:
+
+    >>> import astropy.units as u
+    >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> from galax.units import galactic
+
+    We can then create the point-mass' potential, with galactic units:
+
+    >>> potential = gp.KeplerPotential(m=1e12 * u.Msun, units=galactic)
+
+    We can then integrate an initial phase-space position in this potential to
+    get an orbit:
+
+    >>> w0 = gc.PhaseSpaceTimePosition(q=Quantity([10., 0., 0.], "kpc"),
+    ...                                p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                                t=Quantity(-100, "Myr"))
+    >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
+    >>> orbit = evaluate_orbit(potential, w0, ts)
+    >>> orbit
+    Orbit(
+      q=Cartesian3DVector(...), p=CartesianDifferential3D(...),
+      t=Quantity[...](value=f64[4], unit=Unit("Myr")),
+      potential=KeplerPotential(...)
+    )
+
+    Note how there are 4 points in the orbit, corresponding to the 4 requested
+    return times. These are the times at which the orbit is evaluated, not the
+    times at which the orbit is integrated. The phase-space position `w0` is
+    defined at `t=-100`, but the orbit is integrated from `t=0` to `t=1000`.
+    Changing the number of times is easy:
+
+    >>> ts = xp.linspace(0., 1000, 10)  # (1 Gyr, 10 steps)
+    >>> orbit = evaluate_orbit(potential, w0, ts)
+    >>> orbit
+    Orbit(
+      q=Cartesian3DVector(...), p=CartesianDifferential3D(...),
+      t=Quantity[...](value=f64[10], unit=Unit("Myr")),
+      potential=KeplerPotential(...)
+    )
+
+    We can also integrate a batch of orbits at once:
+
+    >>> w0 = gc.PhaseSpaceTimePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
+    ...                                p=Quantity([[0, 0.1, 0], [0, 0.2, 0]], "km/s"),
+    ...                                t=Quantity([-100, -150], "Myr"))
+    >>> orbit = evaluate_orbit(potential, w0, ts)
+    >>> orbit
+    Orbit(
+      q=Cartesian3DVector(
+        x=Quantity[PhysicalType('length')](value=f64[2,10], unit=Unit("kpc")),
+        ...
+      ),
+      p=CartesianDifferential3D(...),
+      t=Quantity[...](value=f64[10], unit=Unit("Myr")),
+      potential=KeplerPotential(...)
+    )
+
+    :class:`~galax.dynamics.PhaseSpaceTimePosition` has a ``t`` argument for the
+    time at which the position is given. As noted earlier, this can be used to
+    integrate from a different time than the initial time of the position:
+
+    >>> w0 = gc.PhaseSpaceTimePosition(q=Quantity([10., 0., 0.], "kpc"),
+    ...                                p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                                t=Quantity(0, "Myr"))
+    >>> ts = xp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
+    >>> orbit = evaluate_orbit(potential, w0, ts)
+    >>> orbit.q[0]  # doctest: +SKIP
+    Array([ 9.779, -0.3102,  0.        ], dtype=float64)
+
+    Note that IS NOT the same as ``w0``. ``w0`` is integrated from ``t=0`` to
+    ``t=300`` and then from ``t=300`` to ``t=1000``.
+
+    .. note::
+
+        If you want to reproduce :mod:`gala`'s behavior, you can use
+        :class:`~galax.dynamics.PhaseSpacePosition` which does not have a time
+        and will assume ``w0`` is defined at `t`[0].
+    """
+    # Determine the integrator
+    # Reboot the integrator to avoid statefulness issues
+    integrator = replace(integrator) if integrator is not None else _default_integrator
+
+    # parse t
+    t = Quantity.constructor(t, pot.units["time"])
+
+    # Parse w0
+    if isinstance(w0, PhaseSpaceTimePosition):
+        pspt0 = w0
+    elif isinstance(w0, PhaseSpacePosition):
+        pspt0 = PhaseSpaceTimePosition(q=w0.q, p=w0.p, t=t[0])
+    else:
+        pspt0 = PhaseSpaceTimePosition(
+            q=Quantity(w0[..., 0:3], pot.units["length"]),
+            p=Quantity(w0[..., 3:6], pot.units["speed"]),
+            t=t[0],
+        )
+
+    # Need to integrate `w0.t` to `t[0]`.
+    # The integral int_a_a is not well defined (can be inf) so we need to
+    # handle this case separately.
+    # TODO: it may be better to handle this in the integrator itself (by
+    # passing either `wt` instead of `w` or the initial time as a separate
+    # argument).
+    # fmt: off
+    w0_ = pspt0.w(units=pot.units)
+    qp0 = _select_w0(
+        pspt0.t.value == t.value[0],  # don't integrate if already at the desired time
+        w0_,  #               [batch, final t, positions (w/out time)] ⬇
+        integrator(pot._integrator_F, w0_,  # noqa: SLF001
+                   _psp2t(pspt0.t.value, t.value[0]))[..., -1, :-1],
+    )
+    # fmt: on
+
+    # Integrate the orbit
+    ws = integrator(pot._integrator_F, qp0, t.value)  # noqa: SLF001
+    # TODO: ꜛ reduce repeat dimensions of `time`.
+
+    # Construct the orbit object
+    return Orbit(
+        q=Quantity(ws[..., 0:3], pot.units["length"]),
+        p=Quantity(ws[..., 3:6], pot.units["speed"]),
+        t=t,
+        potential=pot,
+    )

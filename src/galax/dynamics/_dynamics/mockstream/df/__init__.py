@@ -1,6 +1,5 @@
 """galax: Galactic Dynamix in Jax."""
 
-
 from . import base, fardal
 from .base import *
 from .fardal import *

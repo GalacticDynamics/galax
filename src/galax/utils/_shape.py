@@ -17,20 +17,17 @@ from galax.utils._jax import quaxify
 
 
 @overload
-def atleast_batched() -> NoReturn:
-    ...
+def atleast_batched() -> NoReturn: ...
 
 
 @overload
-def atleast_batched(x: ArrayLike, /) -> Array:
-    ...
+def atleast_batched(x: ArrayLike, /) -> Array: ...
 
 
 @overload
 def atleast_batched(
     x: ArrayLike, y: ArrayLike, /, *arys: ArrayLike
-) -> tuple[Array, ...]:
-    ...
+) -> tuple[Array, ...]: ...
 
 
 @quaxify
@@ -98,29 +95,25 @@ def vector_batched_shape(obj: AbstractVectorBase) -> tuple[tuple[int, ...], int]
 @overload
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar, /, *, expect_ndim: Literal[0]
-) -> tuple[tuple[int, ...], tuple[int, ...]]:
-    ...
+) -> tuple[tuple[int, ...], tuple[int, ...]]: ...
 
 
 @overload
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar, /, *, expect_ndim: Literal[1]
-) -> tuple[tuple[int, ...], tuple[int]]:
-    ...
+) -> tuple[tuple[int, ...], tuple[int]]: ...
 
 
 @overload
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar, /, *, expect_ndim: Literal[2]
-) -> tuple[tuple[int, ...], tuple[int, int]]:
-    ...
+) -> tuple[tuple[int, ...], tuple[int, int]]: ...
 
 
 @overload
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar, /, *, expect_ndim: int
-) -> tuple[tuple[int, ...], tuple[int, ...]]:
-    ...
+) -> tuple[tuple[int, ...], tuple[int, ...]]: ...
 
 
 @quaxify

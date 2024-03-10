@@ -1,6 +1,5 @@
 """galax: Galactic Dynamix in Jax."""
 
-
 __all__: list[str] = []
 
 from collections.abc import Iterable

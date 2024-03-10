@@ -1,6 +1,5 @@
 """galax: Galactic Dynamix in Jax."""
 
-
 __all__ = ["ImmutableDict"]
 
 from collections.abc import ItemsView, Iterable, Iterator, KeysView, Mapping, ValuesView

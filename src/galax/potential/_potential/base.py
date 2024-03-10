@@ -400,9 +400,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: Shaped[Array, "*batch 3"],  # TODO: enable more inputs
         /,
-        t: (  # TODO: enable more inputs
-            BatchableRealScalarLike | BatchableFloatLike | BatchableIntLike
-        ),
+        # TODO: enable more inputs
+        t: BatchableRealScalarLike | BatchableFloatLike | BatchableIntLike,
     ) -> Float[Quantity["specific energy"], "*batch"]:
         """Compute the potential energy at the given position(s).
 
@@ -1952,7 +1951,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             The function for which this method is a wrapper. It has more details
             and examples.
         """
-        from galax.dynamics._dynamics.orbit import integrate_orbit
+        from galax.dynamics import integrate_orbit
 
         return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator))
 
@@ -2027,6 +2026,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             The function for which this method is a wrapper. It has more details
             and examples.
         """
-        from galax.dynamics._dynamics.orbit import evaluate_orbit
+        from galax.dynamics import evaluate_orbit
 
         return cast("Orbit", evaluate_orbit(self, w0, t, integrator=integrator))

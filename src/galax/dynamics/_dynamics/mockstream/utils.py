@@ -31,8 +31,7 @@ def interleave_concat(
 class SupportsGetItem(Protocol[T_co]):
     """Protocol for types that support the `__getitem__` method."""
 
-    def __getitem__(self, key: Any) -> T_co:
-        ...
+    def __getitem__(self, key: Any) -> T_co: ...
 
 
 def _identity(x: T) -> T:

@@ -1,6 +1,5 @@
 """Test :mod:`galax.potential._potential.param.core`."""
 
-
 from dataclasses import replace
 from typing import Any, Generic, TypeVar
 

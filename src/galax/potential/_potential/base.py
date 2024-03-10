@@ -1951,7 +1951,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             The function for which this method is a wrapper. It has more details
             and examples.
         """
-        from galax.dynamics._dynamics.orbit import integrate_orbit
+        from galax.dynamics import integrate_orbit
 
         return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator))
 
@@ -2026,6 +2026,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             The function for which this method is a wrapper. It has more details
             and examples.
         """
-        from galax.dynamics._dynamics.orbit import evaluate_orbit
+        from galax.dynamics import evaluate_orbit
 
         return cast("Orbit", evaluate_orbit(self, w0, t, integrator=integrator))

@@ -110,14 +110,12 @@ class ParameterField:
     @overload  # TODO: use `Self` when beartype is happy
     def __get__(
         self, instance: None, owner: "type[AbstractPotentialBase]"
-    ) -> "ParameterField":
-        ...
+    ) -> "ParameterField": ...
 
     @overload
     def __get__(
         self, instance: "AbstractPotentialBase", owner: None
-    ) -> AbstractParameter:
-        ...
+    ) -> AbstractParameter: ...
 
     def __get__(  # TODO: use `Self` when beartype is happy
         self,

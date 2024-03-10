@@ -400,9 +400,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self,
         q: Shaped[Array, "*batch 3"],  # TODO: enable more inputs
         /,
-        t: (  # TODO: enable more inputs
-            BatchableRealScalarLike | BatchableFloatLike | BatchableIntLike
-        ),
+        # TODO: enable more inputs
+        t: BatchableRealScalarLike | BatchableFloatLike | BatchableIntLike,
     ) -> Float[Quantity["specific energy"], "*batch"]:
         """Compute the potential energy at the given position(s).
 

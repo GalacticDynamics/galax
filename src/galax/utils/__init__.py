@@ -1,6 +1,5 @@
 """galax: Galactic Dynamix in Jax."""
 
-
 from . import _collections, _jax, dataclasses
 from ._collections import *
 from ._jax import *

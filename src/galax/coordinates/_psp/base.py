@@ -37,8 +37,7 @@ class ComponentShapeTuple(Protocol):
     q: int
     p: int
 
-    def __iter__(self) -> Iterator[Any]:
-        ...
+    def __iter__(self) -> Iterator[Any]: ...
 
 
 class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -125,8 +124,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         return self.shape[0]
 
     @abstractmethod
-    def __getitem__(self, index: Any) -> "Self":
-        ...
+    def __getitem__(self, index: Any) -> "Self": ...
 
     # ==========================================================================
     # Further Array properties

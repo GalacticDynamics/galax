@@ -89,12 +89,10 @@ class Orbit(AbstractPhaseSpaceTimePosition):
         return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
 
     @overload
-    def __getitem__(self, index: int) -> PhaseSpaceTimePosition:
-        ...
+    def __getitem__(self, index: int) -> PhaseSpaceTimePosition: ...
 
     @overload
-    def __getitem__(self, index: slice | Shaped | tuple[Any, ...]) -> "Self":
-        ...
+    def __getitem__(self, index: slice | Shaped | tuple[Any, ...]) -> "Self": ...
 
     def __getitem__(self, index: Any) -> "Self | PhaseSpaceTimePosition":
         """Return a new object with the given slice applied."""

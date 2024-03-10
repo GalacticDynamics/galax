@@ -9,7 +9,7 @@ import pytest
 from jax.numpy import array_equal
 from quax import quaxify
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from jax_quantity import Quantity
 
 from galax.utils._shape import (

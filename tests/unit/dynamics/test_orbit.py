@@ -6,7 +6,7 @@ import pytest
 from plum import convert
 from quax import quaxify
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from jax_quantity import Quantity
 
 from ..coordinates.psp.test_base import Shape, return_keys

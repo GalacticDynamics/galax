@@ -16,7 +16,7 @@ from diffrax import (
 )
 from jaxtyping import Array, Float
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 
 from ._api import FCallable
 from ._base import AbstractIntegrator

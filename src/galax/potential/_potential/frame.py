@@ -121,7 +121,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     Alternatively we can rotate the potential by 90 degrees about the y-axis:
 
-    >>> import array_api_jax_compat as xp
+    >>> import quaxed.array_api as xp
     >>> theta = Quantity(90, "deg")
     >>> Ry = xp.asarray([[xp.cos(theta),  0, xp.sin(theta)],
     ...                  [0,              1, 0            ],

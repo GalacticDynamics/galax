@@ -20,7 +20,7 @@ from typing import (
 
 import astropy.units as u
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from jax_quantity import Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter

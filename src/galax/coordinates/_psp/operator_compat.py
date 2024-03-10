@@ -315,7 +315,7 @@ def call(
 
     Examples
     --------
-    >>> import array_api_jax_compat as xp
+    >>> import quaxed.array_api as xp
     >>> from jax_quantity import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates as gc

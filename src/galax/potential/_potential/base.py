@@ -18,7 +18,7 @@ from jaxtyping import Array, Float, Shaped
 from plum import dispatch
 from quax import quaxify
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from coordinax import Abstract3DVector, FourVector
 from jax_quantity import Quantity
 

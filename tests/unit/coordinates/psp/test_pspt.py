@@ -10,7 +10,7 @@ import jax.random as jr
 import pytest
 from plum import convert
 
-import array_api_jax_compat as xp
+import quaxed.array_api as xp
 from coordinax import Cartesian3DVector, CartesianDifferential3D
 from jax_quantity import Quantity
 

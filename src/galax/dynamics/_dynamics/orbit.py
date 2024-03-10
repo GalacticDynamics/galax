@@ -13,10 +13,7 @@ import jax.numpy as jnp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from jax_quantity import Quantity
 
-from galax.coordinates import (
-    AbstractPhaseSpaceTimePosition,
-    PhaseSpaceTimePosition,
-)
+from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
 from galax.coordinates._psp.pspt import ComponentShapeTuple
 from galax.coordinates._psp.utils import (
     Shaped,

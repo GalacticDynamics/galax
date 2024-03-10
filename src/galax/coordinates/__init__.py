@@ -1,4 +1,7 @@
-"""Copyright (c) 2023 galax maintainers. All rights reserved."""
+""":mod:`galax.coordinates` --- Coordinate systems and transformations.
+
+Copyright (c) 2023 galax maintainers. All rights reserved.
+"""
 
 from jaxtyping import install_import_hook
 from lazy_loader import attach_stub

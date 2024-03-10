@@ -4,7 +4,6 @@ import jax.numpy as jnp
 import jax.random as jr
 import pytest
 from plum import convert
-from quax import quaxify
 
 import quaxed.array_api as xp
 from jax_quantity import Quantity
@@ -15,8 +14,6 @@ from galax.coordinates import PhaseSpaceTimePosition
 from galax.dynamics import Orbit
 from galax.potential import AbstractPotentialBase, MilkyWayPotential
 from galax.units import galactic
-
-array_equal = quaxify(jnp.array_equal)
 
 
 class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):

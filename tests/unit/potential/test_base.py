@@ -5,11 +5,10 @@ from typing import Any
 import astropy.units as u
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 import pytest
-from quax import quaxify
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 import galax.dynamics as gd
@@ -26,8 +25,6 @@ from galax.typing import (
 )
 from galax.units import UnitSystem, galactic
 from galax.utils._jax import vectorize_method
-
-array_equal = quaxify(jnp.array_equal)
 
 
 class TestAbstractPotentialBase(GalaIOMixin):
@@ -141,7 +138,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
         # Test that the method works on batches.
         assert pot.potential_energy(batchx, t=0).shape == batchx.shape[:-1]
         # Test that the batched method is equivalent to the scalar method
-        assert array_equal(
+        assert qnp.array_equal(
             pot.potential_energy(batchx, t=0)[0], pot.potential_energy(batchx[0], t=0)
         )
 
@@ -154,7 +151,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
     def test_gradient(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.gradient` method."""
         expected = Quantity(xp.ones_like(x), pot.units["acceleration"])
-        assert array_equal(pot.gradient(x, t=0), expected)
+        assert qnp.array_equal(pot.gradient(x, t=0), expected)
 
     def test_density(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
@@ -162,14 +159,14 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_hessian(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.hessian` method."""
-        assert array_equal(
+        assert qnp.array_equal(
             pot.hessian(x, t=0),
             xp.asarray([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
         )
 
     def test_acceleration(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.acceleration` method."""
-        assert array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
+        assert qnp.array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
 
     # ---------------------------------
     # Convenience methods
@@ -177,7 +174,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
     def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-        assert array_equal(pot.tidal_tensor(x, t=0), expect)
+        assert qnp.array_equal(pot.tidal_tensor(x, t=0), expect)
 
     # =========================================================================
 
@@ -188,7 +185,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
         orbit = pot.integrate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
         assert orbit.shape == (len(ts.value),)  # TODO: don't use .value
-        assert array_equal(orbit.t, ts)
+        assert qnp.array_equal(orbit.t, ts)
 
     def test_integrate_orbit_batch(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
         """Test the `AbstractPotentialBase.integrate_orbit` method."""
@@ -198,11 +195,11 @@ class TestAbstractPotentialBase(GalaIOMixin):
         orbits = pot.integrate_orbit(xv[None, :], ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (1, len(ts))
-        assert array_equal(orbits.t, ts)
+        assert qnp.array_equal(orbits.t, ts)
 
         # More complicated batch
         xv2 = xp.stack([xv, xv], axis=0)
         orbits = pot.integrate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts))
-        assert array_equal(orbits.t, ts)
+        assert qnp.array_equal(orbits.t, ts)

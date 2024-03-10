@@ -3,9 +3,9 @@
 from inspect import get_annotations
 from typing import ClassVar
 
-import jax.numpy as jnp
 import pytest
-from quax import quaxify
+
+import quaxed.numpy as qnp
 
 import galax.potential as gp
 from galax.typing import Vec3
@@ -15,8 +15,6 @@ if HAS_GALA:
     from galax.potential._potential.io.gala import _GALA_TO_GALAX_REGISTRY
 else:
     from galax.potential._potential.io.gala_noop import _GALA_TO_GALAX_REGISTRY
-
-array_equal = quaxify(jnp.array_equal)
 
 
 class GalaIOMixin:
@@ -50,4 +48,4 @@ class GalaIOMixin:
         rpot = gp.io.gala_to_galax(galax_to_gala(pot))
 
         # quick test that the potential energies are the same
-        assert array_equal(pot(x, t=0), rpot(x, t=0))
+        assert qnp.array_equal(pot(x, t=0), rpot(x, t=0))

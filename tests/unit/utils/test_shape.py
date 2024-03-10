@@ -6,10 +6,9 @@ from typing import Any
 import jax
 import jax.numpy as jnp
 import pytest
-from jax.numpy import array_equal
-from quax import quaxify
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 from galax.utils._shape import (
@@ -18,8 +17,6 @@ from galax.utils._shape import (
     expand_arr_dims,
     expand_batch_dims,
 )
-
-array_equal = quaxify(array_equal)
 
 
 class TestAtleastBatched:
@@ -37,8 +34,8 @@ class TestAtleastBatched:
         """Test the `atleast_batched` function with an example."""
         x = xp.asarray([1, 2, 3])
         # `atleast_batched` versus `atleast_2d`
-        assert array_equal(atleast_batched(x), x[:, None])
-        assert array_equal(jnp.atleast_2d(x), x[None, :])
+        assert qnp.array_equal(atleast_batched(x), x[:, None])
+        assert qnp.array_equal(jnp.atleast_2d(x), x[None, :])
 
     @pytest.mark.parametrize(
         ("x", "expect"),
@@ -60,7 +57,7 @@ class TestAtleastBatched:
     def test_atleast_batched_one_arg(self, x: Any, expect: Any) -> None:
         """Test the `atleast_batched` function with one argument."""
         got = atleast_batched(xp.asarray(x))
-        assert array_equal(got, xp.asarray(expect))
+        assert qnp.array_equal(got, xp.asarray(expect))
         assert got.ndim >= 2
 
     def test_atleast_batched_multiple_args(self) -> None:
@@ -71,8 +68,8 @@ class TestAtleastBatched:
         result = atleast_batched(x, y)
         assert isinstance(result, tuple)
         assert len(result) == 2
-        assert array_equal(result[0], x[:, None])
-        assert array_equal(result[1], y[:, None])
+        assert qnp.array_equal(result[0], x[:, None])
+        assert qnp.array_equal(result[1], y[:, None])
 
         # Quantity
         x = Quantity(x, "m")
@@ -82,8 +79,8 @@ class TestAtleastBatched:
         assert len(result) == 2
         assert isinstance(result[0], Quantity)
         assert isinstance(result[1], Quantity)
-        assert array_equal(result[0], Quantity(x.value[:, None], "m"))
-        assert array_equal(result[1], Quantity(y.value[:, None], "m"))
+        assert qnp.array_equal(result[0], Quantity(x.value[:, None], "m"))
+        assert qnp.array_equal(result[1], Quantity(y.value[:, None], "m"))
 
 
 class TestBatchedShape:
@@ -147,7 +144,7 @@ class TestExpandBatchDims:
     ) -> None:
         """Test :func:`galax.utils._shape.expand_batch_dims`."""
         got = expand_batch_dims(arr, ndim=ndim)
-        assert array_equal(got, expect)
+        assert qnp.array_equal(got, expect)
         assert got.shape == expect.shape
 
 
@@ -180,5 +177,5 @@ class TestExpandArrDims:
     ) -> None:
         """Test :func:`galax.utils._shape.expand_arr_dims`."""
         got = expand_arr_dims(arr, ndim=ndim)
-        assert array_equal(got, expect)
+        assert qnp.array_equal(got, expect)
         assert got.shape == expect.shape

@@ -2,9 +2,9 @@ from typing import Any
 
 import jax.numpy as jnp
 import pytest
-from quax import quaxify
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
@@ -12,8 +12,6 @@ from .test_common import MassParameterMixin, ShapeCParameterMixin
 from galax.potential import HernquistPotential
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import Vec3
-
-allclose = quaxify(jnp.allclose)
 
 
 class TestHernquistPotential(
@@ -39,7 +37,9 @@ class TestHernquistPotential(
         expected = Quantity(
             [0.05347411, 0.10694822, 0.16042233], pot.units["acceleration"]
         )
-        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
+        assert qnp.allclose(
+            pot.gradient(x, t=0).value, expected.value
+        )  # TODO: not .value
 
     def test_density(self, pot: HernquistPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 3.989933e08)
@@ -66,4 +66,4 @@ class TestHernquistPotential(
             [-0.01969533, 0.00656511, -0.05908599],
             [-0.02954299, -0.05908599, -0.04267321],
         ]
-        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

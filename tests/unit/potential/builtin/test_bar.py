@@ -3,9 +3,9 @@ from typing import Any
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
-from quax import quaxify
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
@@ -18,8 +18,6 @@ from .test_common import (
 from galax.potential import AbstractPotentialBase, BarPotential
 from galax.typing import Vec3
 from galax.units import UnitSystem
-
-allclose = quaxify(jnp.allclose)
 
 
 class TestBarPotential(
@@ -66,7 +64,9 @@ class TestBarPotential(
         expected = Quantity(
             [0.04011905, 0.08383918, 0.16552719], pot.units["acceleration"]
         )
-        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
+        assert qnp.allclose(
+            pot.gradient(x, t=0).value, expected.value
+        )  # TODO: not .value
 
     def test_density(self, pot: BarPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 1.94669274e08)
@@ -93,4 +93,4 @@ class TestBarPotential(
             [-0.01038389, 0.01590389, -0.04412159],
             [-0.02050134, -0.04412159, -0.04753409],
         ]
-        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

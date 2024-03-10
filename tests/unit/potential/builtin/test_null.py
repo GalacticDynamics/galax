@@ -2,17 +2,15 @@ from typing import Any
 
 import jax.numpy as jnp
 import pytest
-from quax import quaxify
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from galax.potential import AbstractPotentialBase, NullPotential
 from galax.typing import Vec3
 from galax.units import UnitSystem
-
-allclose = quaxify(jnp.allclose)
 
 
 class TestNullPotential(AbstractPotential_Test):
@@ -33,7 +31,7 @@ class TestNullPotential(AbstractPotential_Test):
     def test_gradient(self, pot: NullPotential, x: Vec3) -> None:
         """Test :meth:`NullPotential.gradient`."""
         expected = Quantity([0.0, 0.0, 0.0], pot.units["acceleration"])
-        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
+        assert qnp.allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: value
 
     def test_density(self, pot: NullPotential, x: Vec3) -> None:
         """Test :meth:`NullPotential.density`."""
@@ -52,4 +50,4 @@ class TestNullPotential(AbstractPotential_Test):
     def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

@@ -5,10 +5,10 @@ import astropy.units as u
 import jax.numpy as jnp
 import pytest
 from plum import NotFoundLookupError
-from quax import quaxify
 from typing_extensions import override
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 from .test_composite import AbstractCompositePotential_Test
@@ -21,9 +21,6 @@ from galax.potential import (
 from galax.typing import Vec3
 from galax.units import UnitSystem, dimensionless, galactic, solarsystem
 from galax.utils._misc import first
-
-allclose = quaxify(jnp.allclose)
-
 
 ##############################################################################
 
@@ -256,7 +253,9 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         expected = Quantity(
             [0.00256403, 0.00512806, 0.01115272], pot.units["acceleration"]
         )
-        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
+        assert qnp.allclose(
+            pot.gradient(x, t=0).value, expected.value
+        )  # TODO: not .value
 
     def test_density(self, pot: MilkyWayPotential, x: Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.density` method."""
@@ -264,7 +263,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     def test_hessian(self, pot: MilkyWayPotential, x: Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.hessian` method."""
-        assert allclose(
+        assert qnp.allclose(
             pot.hessian(x, t=0),
             xp.asarray(
                 [
@@ -285,4 +284,4 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
             [-0.00050698, 0.00092134, -0.00202546],
             [-0.00101273, -0.00202546, -0.00260316],
         ]
-        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

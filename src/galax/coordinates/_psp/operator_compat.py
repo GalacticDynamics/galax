@@ -6,8 +6,8 @@ from dataclasses import replace
 
 import jax.numpy as jnp
 from plum import convert
-from quax import quaxify
 
+import quaxed.numpy as qnp
 from coordinax import CartesianDifferential3D
 from coordinax.operators import (
     AbstractCompositeOperator,
@@ -301,7 +301,7 @@ def call(
     return (replace(psp, q=q, p=p), t)
 
 
-vec_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
+vec_matmul = qnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)")
 
 
 @op_call_dispatch

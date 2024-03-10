@@ -3,9 +3,9 @@ from typing import Any
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
-from quax import quaxify
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 import galax.potential as gp
@@ -14,8 +14,6 @@ from .test_common import MassParameterMixin, ShapeAParameterMixin, ShapeBParamet
 from galax.potential import AbstractPotentialBase, MiyamotoNagaiPotential
 from galax.typing import Vec3
 from galax.units import UnitSystem
-
-allclose = quaxify(jnp.allclose)
 
 
 class TestMiyamotoNagaiPotential(
@@ -50,7 +48,7 @@ class TestMiyamotoNagaiPotential(
         expected = Quantity(
             [0.04264751, 0.08529503, 0.16840152], pot.units["acceleration"]
         )
-        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
+        assert qnp.allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: .value
 
     def test_density(self, pot: MiyamotoNagaiPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 1.9949418e08)
@@ -77,4 +75,4 @@ class TestMiyamotoNagaiPotential(
             [-0.01146205, 0.0159643, -0.04525999],
             [-0.02262999, -0.04525999, -0.04912166],
         ]
-        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

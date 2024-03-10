@@ -4,10 +4,10 @@ from typing import Any
 import astropy.units as u
 import jax.numpy as jnp
 import pytest
-from quax import quaxify
 from typing_extensions import override
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 import galax.potential as gp
@@ -23,8 +23,6 @@ from galax.potential import (
 from galax.typing import Vec3
 from galax.units import UnitSystem, galactic
 from galax.utils._optional_deps import HAS_GALA
-
-allclose = quaxify(jnp.allclose)
 
 
 class ScaleRadiusParameterMixin(ParameterFieldMixin):
@@ -109,7 +107,7 @@ class TestNFWPotential(
         expected = Quantity(
             [0.0658867, 0.1317734, 0.19766011], pot.units["acceleration"]
         )
-        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
+        assert qnp.allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: .value
 
     def test_density(self, pot: NFWPotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 9.46039849e08)
@@ -136,7 +134,7 @@ class TestNFWPotential(
             [-0.02059723, 0.00686574, -0.06179169],
             [-0.03089585, -0.06179169, -0.04462733],
         ]
-        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
 
     # ==========================================================================
     # I/O

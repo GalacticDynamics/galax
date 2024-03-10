@@ -6,10 +6,10 @@ import astropy.units as u
 import jax.numpy as jnp
 import pytest
 from plum import NotFoundLookupError
-from quax import quaxify
 from typing_extensions import override
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
@@ -24,9 +24,6 @@ from galax.potential import (
 from galax.typing import Vec3
 from galax.units import UnitSystem, dimensionless, galactic, solarsystem
 from galax.utils._misc import first
-
-array_equal = quaxify(jnp.array_equal)
-allclose = quaxify(jnp.allclose)
 
 
 # TODO: write the base-class test
@@ -269,7 +266,9 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         expected = Quantity(
             [0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"]
         )
-        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
+        assert qnp.allclose(
+            pot.gradient(x, t=0).value, expected.value
+        )  # TODO: not .value
 
     def test_density(self, pot: CompositePotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 2.7958598e08)
@@ -296,4 +295,4 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             [-0.0025614, 0.00085275, -0.00768793],
             [-0.00384397, -0.00768793, -0.00554761],
         ]
-        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

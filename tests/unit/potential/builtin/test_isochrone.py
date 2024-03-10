@@ -2,9 +2,9 @@ from typing import Any
 
 import jax.numpy as jnp
 import pytest
-from quax import quaxify
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from jax_quantity import Quantity
 
 import galax.potential as gp
@@ -12,8 +12,6 @@ from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin, ShapeBParameterMixin
 from galax.potential import AbstractPotentialBase, IsochronePotential
 from galax.typing import Vec3
-
-allclose = quaxify(jnp.allclose)
 
 
 class TestIsochronePotential(
@@ -39,7 +37,9 @@ class TestIsochronePotential(
         expected = Quantity(
             [0.04891392, 0.09782784, 0.14674175], pot.units["acceleration"]
         )
-        assert allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: not .value
+        assert qnp.allclose(
+            pot.gradient(x, t=0).value, expected.value
+        )  # TODO: not .value
 
     def test_density(self, pot: IsochronePotential, x: Vec3) -> None:
         assert jnp.isclose(pot.density(x, t=0).value, 5.04511665e08)
@@ -66,4 +66,4 @@ class TestIsochronePotential(
             [-0.01688883, 0.00562961, -0.05066648],
             [-0.02533324, -0.05066648, -0.03659246],
         ]
-        assert allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))

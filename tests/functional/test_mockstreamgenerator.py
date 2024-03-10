@@ -7,6 +7,7 @@ import jax
 import pytest
 
 import quaxed.array_api as xp
+from jax_quantity import Quantity
 
 from galax.dynamics import FardalStreamDF, MockStreamGenerator
 from galax.potential import MilkyWayPotential
@@ -53,7 +54,7 @@ def test_first_deriv() -> None:
         "halo": {"m": 1.0e12 * u.Msun, "r_s": 15.0},
     }
 
-    ts = xp.linspace(0.0, 4_000, 10_000, dtype=float)  # [Myr]
+    ts = Quantity(xp.linspace(0.0, 4_000, 10_000, dtype=float), "Myr")
 
     q0 = ((30, 10, 20) * u.Unit("kpc")).decompose(usys).value
     p0 = ((10, -150, -20) * u.Unit("km / s")).decompose(usys).value

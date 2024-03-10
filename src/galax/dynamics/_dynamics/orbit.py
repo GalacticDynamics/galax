@@ -171,7 +171,7 @@ _default_integrator: Integrator = DiffraxIntegrator()
 def integrate_orbit(
     pot: AbstractPotentialBase,
     w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
-    t: VecTime | APYQuantity,
+    t: QVecTime | VecTime | APYQuantity,
     *,
     integrator: Integrator | None = None,
 ) -> Orbit:
@@ -289,6 +289,9 @@ def integrate_orbit(
       potential=KeplerPotential( ... )
     )
     """
+    # Parse t
+    t = Quantity.constructor(t, pot.units["time"])
+
     # Parse w0
     if isinstance(w0, PhaseSpaceTimePosition):
         warnings.warn(
@@ -310,13 +313,13 @@ def integrate_orbit(
     # Integrate the orbit
     # TODO: ꜛ reduce repeat dimensions of `time`.
     # TODO: push parsing w0 to the integrator-level
-    ws = integrator(pot._integrator_F, qp0, t)  # noqa: SLF001
+    ws = integrator(pot._integrator_F, qp0, t.value)  # noqa: SLF001
 
     # Construct the orbit object
     return Orbit(
         q=Quantity(ws[..., 0:3], pot.units["length"]),
         p=Quantity(ws[..., 3:6], pot.units["speed"]),
-        t=Quantity.constructor(t, unit=pot.units["time"]),
+        t=t,
         potential=pot,
     )
 
@@ -335,7 +338,7 @@ def _psp2t(
 def evaluate_orbit(
     pot: AbstractPotentialBase,
     w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
-    t: VecTime | APYQuantity,
+    t: QVecTime | VecTime | APYQuantity,
     *,
     integrator: Integrator | None = None,
 ) -> Orbit:
@@ -503,8 +506,6 @@ def evaluate_orbit(
             t=t[0],
         )
 
-    t = t.value
-
     # Need to integrate `w0.t` to `t[0]`.
     # The integral int_a_a is not well defined (can be inf) so we need to
     # handle this case separately.
@@ -514,20 +515,21 @@ def evaluate_orbit(
     # fmt: off
     w0_ = pspt0.w(units=pot.units)
     qp0 = _select_w0(
-        pspt0.t.value == t[0],  # don't integrate if already at the desired time
+        pspt0.t.value == t.value[0],  # don't integrate if already at the desired time
         w0_,  #               [batch, final t, positions (w/out time)] ⬇
-        integrator(pot._integrator_F, w0_, _psp2t(pspt0.t.value, t[0]))[..., -1, :-1],  # noqa: SLF001
+        integrator(pot._integrator_F, w0_,  # noqa: SLF001
+                   _psp2t(pspt0.t.value, t.value[0]))[..., -1, :-1],
     )
     # fmt: on
 
     # Integrate the orbit
-    ws = integrator(pot._integrator_F, qp0, t)  # noqa: SLF001
+    ws = integrator(pot._integrator_F, qp0, t.value)  # noqa: SLF001
     # TODO: ꜛ reduce repeat dimensions of `time`.
 
     # Construct the orbit object
     return Orbit(
         q=Quantity(ws[..., 0:3], pot.units["length"]),
         p=Quantity(ws[..., 3:6], pot.units["speed"]),
-        t=Quantity.constructor(t, unit=pot.units["time"]),
+        t=t,
         potential=pot,
     )

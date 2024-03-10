@@ -8,10 +8,11 @@ import jax.tree_util as tu
 import pytest
 
 import quaxed.array_api as xp
+from jax_quantity import Quantity
 
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
 from galax.potential import AbstractPotentialBase, NFWPotential
-from galax.typing import Vec6, VecTime
+from galax.typing import QVecTime, Vec6
 from galax.units import galactic
 
 
@@ -42,9 +43,9 @@ class TestMockStreamGenerator:
     # ----------------------------------------
 
     @pytest.fixture()
-    def t_stripping(self) -> VecTime:
+    def t_stripping(self) -> QVecTime:
         """Time vector for stripping."""
-        return cast(VecTime, xp.linspace(0.0, 4e3, 8_000, dtype=float))
+        return Quantity(xp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
 
     @pytest.fixture()
     def prog_w0(self) -> Vec6:
@@ -80,7 +81,7 @@ class TestMockStreamGenerator:
     def test_run_scan(
         self,
         mockstream: MockStreamGenerator,
-        t_stripping: VecTime,
+        t_stripping: QVecTime,
         prog_w0: Vec6,
         prog_mass: float,
         seed_num: int,

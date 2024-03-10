@@ -195,11 +195,14 @@ def integrate_orbit(
             A :class:`~galax.coordinates.PhaseSpacePosition` will be
             constructed, interpreting the array as the  'q', 'p' (each
             Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
-    t: Array[float, (time,)]
+    t: Quantity[float, (time,), "time"]
         Array of times at which to compute the orbit. The first element should
         be the initial time and the last element should be the final time and
         the array should be monotonically moving from the first to final time.
         See the Examples section for options when constructing this argument.
+        If `t` is not a Quantity, it will be converted to a Quantity using the
+        potential's units. In particular, these means that plain arrays will be
+        interpreted as times in the potential's units.
 
         .. note::
 
@@ -288,7 +291,8 @@ def integrate_orbit(
     )
     """
     # Parse t
-    t = Quantity.constructor(t, pot.units["time"])
+    if not isinstance(t, Quantity):
+        t = Quantity.constructor(t, pot.units["time"])
 
     # Parse w0
     if isinstance(w0, PhaseSpaceTimePosition):
@@ -311,7 +315,11 @@ def integrate_orbit(
     # Integrate the orbit
     # TODO: ꜛ reduce repeat dimensions of `time`.
     # TODO: push parsing w0 to the integrator-level
-    ws = integrator(pot._integrator_F, qp0, t.value)  # noqa: SLF001
+    ws = integrator(
+        pot._integrator_F,  # noqa: SLF001
+        qp0,
+        t.to_value(pot.units["time"]),
+    )
 
     # Construct the orbit object
     return Orbit(

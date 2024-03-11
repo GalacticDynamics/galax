@@ -5,7 +5,9 @@ import abc
 import equinox as eqx
 
 from ._api import FCallable
-from galax.typing import Vec6, VecTime, VecTime7
+from galax.coordinates import PhaseSpaceTimePosition
+from galax.typing import QVecTime, Vec6, VecTime
+from galax.units import UnitSystem
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -20,8 +22,11 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     motion.  They must not be stateful since they are used in a functional way.
     """
 
+    # TODO: shape hint of the return type
     @abc.abstractmethod
-    def __call__(self, F: FCallable, w0: Vec6, /, ts: VecTime) -> VecTime7:
+    def __call__(
+        self, F: FCallable, w0: Vec6, /, ts: QVecTime | VecTime, *, units: UnitSystem
+    ) -> PhaseSpaceTimePosition:
         """Run the integrator.
 
         Parameters
@@ -30,14 +35,15 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
             The function to integrate.
         w0 : Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
-
-        ts : Array[float, (time,)]
+        ts : (Quantity | Array)[float, (T,)]
             Times to return the computation.
             It's necessary to at least provide the initial and final times.
+        units : UnitSystem
+            The unit system to use.
 
         Returns
         -------
-        Array[float, (time, 7)]
+        PhaseSpaceTimePosition[float, (time, 7)]
             The solution of the integrator [q, p, t], where q, p are the
             generalized 3-coordinates.
         """

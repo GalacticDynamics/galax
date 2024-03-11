@@ -2,7 +2,9 @@ __all__ = ["Integrator"]
 
 from typing import Any, Protocol, runtime_checkable
 
-from galax.typing import FloatScalar, Vec6, VecTime, VecTime7
+from galax.coordinates import PhaseSpaceTimePosition
+from galax.typing import FloatScalar, QVecTime, Vec6, VecTime
+from galax.units import UnitSystem
 from galax.utils.dataclasses import _DataclassInstance
 
 
@@ -39,7 +41,10 @@ class Integrator(_DataclassInstance, Protocol):
     They must not be stateful since they are used in a functional way.
     """
 
-    def __call__(self, F: FCallable, w0: Vec6, /, ts: VecTime) -> VecTime7:
+    # TODO: shape hint of the return type
+    def __call__(
+        self, F: FCallable, w0: Vec6, /, ts: QVecTime | VecTime, *, units: UnitSystem
+    ) -> PhaseSpaceTimePosition:
         """Integrate.
 
         Parameters
@@ -49,14 +54,15 @@ class Integrator(_DataclassInstance, Protocol):
             (t, w, args) -> (v, a).
         w0 : Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
-
-        ts : Array[float, (T,)]
+        ts : (Quantity | Array)[float, (T,)]
             Times to return the computation.
             It's necessary to at least provide the initial and final times.
+        units : UnitSystem
+            The unit system to use.
 
         Returns
         -------
-        Array[float, (T, 7)]
+        PhaseSpaceTimePosition[float, (T, 7)]
             The solution of the integrator [q, p, t], where q, p are the
             generalized 3-coordinates.
         """

@@ -174,20 +174,13 @@ def integrate_orbit(
             UserWarning,
             stacklevel=2,
         )
-        qp0 = w0.w(units=pot.units)
-    elif isinstance(w0, PhaseSpacePosition):
-        qp0 = w0.w(units=pot.units)
-    else:
-        qp0 = w0
 
     # Determine the integrator
     # Reboot the integrator to avoid stateful issues
     integrator = replace(integrator) if integrator is not None else _default_integrator
 
     # Integrate the orbit
-    # TODO: ꜛ reduce repeat dimensions of `time`.
-    # TODO: push parsing w0 to the integrator-level
-    ws = integrator(pot._integrator_F, qp0, t, units=pot.units)  # noqa: SLF001
+    ws = integrator(pot._integrator_F, w0, t, units=pot.units)  # noqa: SLF001
 
     # Construct the orbit object
     return Orbit(q=ws.q, p=ws.p, t=t, potential=pot)
@@ -380,16 +373,13 @@ def evaluate_orbit(
     # Need to integrate `w0.t` to `t[0]`.
     # The integral int_a_a is not well defined (can be inf) so we need to
     # handle this case separately.
-    # TODO: it may be better to handle this in the integrator itself (by
-    # passing either `wt` instead of `w` or the initial time as a separate
-    # argument).
-    w0_ = pspt0.w(units=pot.units)
+    # TODO: make _select_w0 work on PSPTs
     qp0 = _select_w0(
-        pspt0.t.to_value(units["time"]) == t.value[0],
-        w0_,  # don't integrate if already at the desired time
+        pspt0.t == t[0],
+        pspt0.w(units=units),  # don't integrate if already at the desired time
         integrator(
             pot._integrator_F,  # noqa: SLF001
-            w0_,
+            pspt0,
             _psp2t(pspt0.t, t[0]),
             units=units,
         ).w(units=units)[..., -1, :],

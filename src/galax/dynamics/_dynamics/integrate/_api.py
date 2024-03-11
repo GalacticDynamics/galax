@@ -2,7 +2,7 @@ __all__ = ["Integrator"]
 
 from typing import Any, Protocol, runtime_checkable
 
-from galax.coordinates import PhaseSpaceTimePosition
+from galax.coordinates import AbstractPhaseSpacePositionBase, PhaseSpaceTimePosition
 from galax.typing import FloatScalar, QVecTime, Vec6, VecTime
 from galax.units import UnitSystem
 from galax.utils.dataclasses import _DataclassInstance
@@ -43,7 +43,13 @@ class Integrator(_DataclassInstance, Protocol):
 
     # TODO: shape hint of the return type
     def __call__(
-        self, F: FCallable, w0: Vec6, /, ts: QVecTime | VecTime, *, units: UnitSystem
+        self,
+        F: FCallable,
+        w0: AbstractPhaseSpacePositionBase | Vec6,
+        /,
+        ts: QVecTime | VecTime,
+        *,
+        units: UnitSystem,
     ) -> PhaseSpaceTimePosition:
         """Integrate.
 
@@ -52,7 +58,7 @@ class Integrator(_DataclassInstance, Protocol):
         F : FCallable, positional-only
             The function to integrate.
             (t, w, args) -> (v, a).
-        w0 : Array[float, (6,)], positional-only
+        w0 : AbstractPhaseSpacePositionBase | Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
         ts : (Quantity | Array)[float, (T,)]
             Times to return the computation.

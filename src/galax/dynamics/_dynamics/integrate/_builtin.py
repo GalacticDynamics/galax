@@ -2,10 +2,12 @@ __all__ = ["DiffraxIntegrator"]
 
 from collections.abc import Mapping
 from dataclasses import KW_ONLY
+from functools import partial
 from typing import Any, final
 
 import diffrax
 import equinox as eqx
+import jax
 
 import quaxed.array_api as xp
 from jax_quantity import Quantity
@@ -41,6 +43,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     )
 
     @vectorize_method(excluded=(0,), signature="(6),(T)->(T,7)")
+    @partial(jax.jit, static_argnums=(0, 1))
     def _call_implementation(self, F: FCallable, w0: Vec6, ts: VecTime, /) -> VecTime7:
         solution = diffrax.diffeqsolve(
             terms=diffrax.ODETerm(F),

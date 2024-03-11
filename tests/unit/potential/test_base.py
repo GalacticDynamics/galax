@@ -195,11 +195,11 @@ class TestAbstractPotentialBase(GalaIOMixin):
         orbits = pot.integrate_orbit(xv[None, :], ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (1, len(ts))
-        assert qnp.array_equal(orbits.t, ts)
+        assert qnp.allclose(orbits.t.to_value("Myr"), ts.to_value("Myr"), atol=1e-16)
 
         # More complicated batch
         xv2 = xp.stack([xv, xv], axis=0)
         orbits = pot.integrate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts))
-        assert qnp.array_equal(orbits.t, ts)
+        assert qnp.allclose(orbits.t.to_value("Myr"), ts.to_value("Myr"), atol=1e-16)

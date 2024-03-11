@@ -1,7 +1,7 @@
 """Testing :mod:`galax.dynamics` module."""
 
 import galax.dynamics as gd
-from galax.dynamics._dynamics import mockstream, orbit
+from galax.dynamics._dynamics import base, mockstream, orbit
 
 
 def test_all() -> None:
@@ -9,6 +9,7 @@ def test_all() -> None:
     assert set(gd.__all__) == {
         "integrate",
         "mockstream",
+        *base.__all__,
         *orbit.__all__,
         *mockstream.__all__,
         "integrate_orbit",

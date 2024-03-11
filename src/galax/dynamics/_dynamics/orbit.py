@@ -2,35 +2,23 @@
 
 __all__ = ["Orbit"]
 
-from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING, Any, final, overload
+from typing import final
 
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from jax_quantity import Quantity
 
-from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
-from galax.coordinates._psp.pspt import ComponentShapeTuple
-from galax.coordinates._psp.utils import (
-    Shaped,
-    _p_converter,
-    _q_converter,
-    getitem_vec1time_index,
-)
+from .base import AbstractOrbit
+from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchFloatQScalar, QVec1, QVecTime
-from galax.utils._shape import batched_shape, vector_batched_shape
-
-if TYPE_CHECKING:
-    from typing import Self
 
 
 @final
-class Orbit(AbstractPhaseSpaceTimePosition):
+class Orbit(AbstractOrbit):
     """Represents an orbit.
 
     An orbit is a set of ositions and velocities (conjugate momenta) as a
@@ -50,47 +38,6 @@ class Orbit(AbstractPhaseSpaceTimePosition):
 
     potential: AbstractPotentialBase
     """Potential in which the orbit was integrated."""
-
-    def __post_init__(self) -> None:
-        """Post-initialization."""
-        # Need to ensure t shape is correct. Can be Vec0.
-        if self.t.ndim == 0:
-            object.__setattr__(self, "t", self.t[None])
-
-    # ==========================================================================
-    # Array properties
-
-    @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
-        """Batch, component shape."""
-        qbatch, qshape = vector_batched_shape(self.q)
-        pbatch, pshape = vector_batched_shape(self.p)
-        tbatch, _ = batched_shape(self.t, expect_ndim=1)
-        batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
-        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
-
-    @overload
-    def __getitem__(self, index: int) -> PhaseSpaceTimePosition: ...
-
-    @overload
-    def __getitem__(self, index: slice | Shaped | tuple[Any, ...]) -> "Self": ...
-
-    def __getitem__(self, index: Any) -> "Self | PhaseSpaceTimePosition":
-        """Return a new object with the given slice applied."""
-        # TODO: return an OrbitSnapshot (or similar) instead of PhaseSpaceTimePosition?
-        if isinstance(index, int):
-            return PhaseSpaceTimePosition(
-                q=self.q[index], p=self.p[index], t=self.t[index]
-            )
-
-        if isinstance(index, Shaped):
-            msg = "Shaped indexing not yet implemented."
-            raise NotImplementedError(msg)
-
-        # Compute subindex
-        subindex = getitem_vec1time_index(index, self.t)
-        # Apply slice
-        return replace(self, q=self.q[index], p=self.p[index], t=self.t[subindex])
 
     # ==========================================================================
     # Dynamical quantities

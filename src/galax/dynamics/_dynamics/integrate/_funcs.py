@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
-import jaxtyping as jt
 from astropy.units import Quantity as APYQuantity
+from jaxtyping import Shaped
 
 import quaxed.array_api as xp
 from jax_quantity import Quantity
@@ -22,8 +22,8 @@ from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
     BatchVec6,
-    BroadBatchFloatScalar,
-    FloatScalar,
+    BroadBatchFloatQScalar,
+    FloatQScalar,
     QVecTime,
     VecTime,
 )
@@ -163,9 +163,8 @@ def integrate_orbit(
       potential=KeplerPotential( ... )
     )
     """
-    # Parse t
-    if not isinstance(t, Quantity):
-        t = Quantity.constructor(t, pot.units["time"])
+    # Parse t -> potential units
+    t = Quantity.constructor(t, pot.units["time"])
 
     # Parse w0
     if isinstance(w0, PhaseSpaceTimePosition):
@@ -188,27 +187,18 @@ def integrate_orbit(
     # Integrate the orbit
     # TODO: ꜛ reduce repeat dimensions of `time`.
     # TODO: push parsing w0 to the integrator-level
-    ws = integrator(
-        pot._integrator_F,  # noqa: SLF001
-        qp0,
-        t.to_value(pot.units["time"]),
-    )
+    ws = integrator(pot._integrator_F, qp0, t, units=pot.units)  # noqa: SLF001
 
     # Construct the orbit object
-    return Orbit(
-        q=Quantity(ws[..., 0:3], pot.units["length"]),
-        p=Quantity(ws[..., 3:6], pot.units["speed"]),
-        t=t,
-        potential=pot,
-    )
+    return Orbit(q=ws.q, p=ws.p, t=t, potential=pot)
 
 
 _select_w0 = jnp.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
 def _psp2t(
-    pspt: BroadBatchFloatScalar, t0: FloatScalar
-) -> jt.Shaped[FloatScalar, "*#batch 2"]:
+    pspt: BroadBatchFloatQScalar, t0: FloatQScalar
+) -> Shaped[Quantity, "*#batch 2"]:
     """Start at PSP time end at t0 for integration from t0."""
     return xp.stack((pspt, xp.full_like(pspt, t0)), axis=-1)
 
@@ -370,8 +360,10 @@ def evaluate_orbit(
     # Reboot the integrator to avoid statefulness issues
     integrator = replace(integrator) if integrator is not None else _default_integrator
 
-    # parse t
-    t = Quantity.constructor(t, pot.units["time"])
+    units = pot.units
+
+    # parse t -> potential units
+    t = Quantity.constructor(t, units["time"])
 
     # Parse w0
     if isinstance(w0, PhaseSpaceTimePosition):
@@ -380,8 +372,8 @@ def evaluate_orbit(
         pspt0 = PhaseSpaceTimePosition(q=w0.q, p=w0.p, t=t[0])
     else:
         pspt0 = PhaseSpaceTimePosition(
-            q=Quantity(w0[..., 0:3], pot.units["length"]),
-            p=Quantity(w0[..., 3:6], pot.units["speed"]),
+            q=Quantity(w0[..., 0:3], units["length"]),
+            p=Quantity(w0[..., 3:6], units["speed"]),
             t=t[0],
         )
 
@@ -391,24 +383,21 @@ def evaluate_orbit(
     # TODO: it may be better to handle this in the integrator itself (by
     # passing either `wt` instead of `w` or the initial time as a separate
     # argument).
-    # fmt: off
     w0_ = pspt0.w(units=pot.units)
     qp0 = _select_w0(
-        pspt0.t.value == t.value[0],  # don't integrate if already at the desired time
-        w0_,  #               [batch, final t, positions (w/out time)] ⬇
-        integrator(pot._integrator_F, w0_,  # noqa: SLF001
-                   _psp2t(pspt0.t.value, t.value[0]))[..., -1, :-1],
+        pspt0.t.to_value(units["time"]) == t.value[0],
+        w0_,  # don't integrate if already at the desired time
+        integrator(
+            pot._integrator_F,  # noqa: SLF001
+            w0_,
+            _psp2t(pspt0.t, t[0]),
+            units=units,
+        ).w(units=units)[..., -1, :],
     )
-    # fmt: on
 
     # Integrate the orbit
-    ws = integrator(pot._integrator_F, qp0, t.value)  # noqa: SLF001
+    ws = integrator(pot._integrator_F, qp0, t, units=units)  # noqa: SLF001
     # TODO: ꜛ reduce repeat dimensions of `time`.
 
     # Construct the orbit object
-    return Orbit(
-        q=Quantity(ws[..., 0:3], pot.units["length"]),
-        p=Quantity(ws[..., 3:6], pot.units["speed"]),
-        t=t,
-        potential=pot,
-    )
+    return Orbit(q=ws.q, p=ws.p, t=t, potential=pot)

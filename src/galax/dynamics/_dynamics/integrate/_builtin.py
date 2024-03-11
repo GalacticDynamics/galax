@@ -6,13 +6,15 @@ from typing import Any, final
 
 import diffrax
 import equinox as eqx
-from jaxtyping import Array, Float
 
 import quaxed.array_api as xp
+from jax_quantity import Quantity
 
 from ._api import FCallable
 from ._base import AbstractIntegrator
-from galax.typing import Vec6
+from galax.coordinates import PhaseSpaceTimePosition
+from galax.typing import QVecTime, Vec6, VecTime, VecTime7
+from galax.units import UnitSystem
 from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 
@@ -39,9 +41,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     )
 
     @vectorize_method(excluded=(0,), signature="(6),(T)->(T,7)")
-    def __call__(
-        self, F: FCallable, w0: Vec6, ts: Float[Array, "T"], /
-    ) -> Float[Array, "T 7"]:
+    def _call_implementation(self, F: FCallable, w0: Vec6, ts: VecTime, /) -> VecTime7:
         solution = diffrax.diffeqsolve(
             terms=diffrax.ODETerm(F),
             solver=self.Solver(**self.solver_kw),
@@ -56,3 +56,19 @@ class DiffraxIntegrator(AbstractIntegrator):
         )
         ts = solution.ts[:, None] if solution.ts.ndim == 1 else solution.ts
         return xp.concat((solution.ys, ts), axis=1)
+
+    def __call__(
+        self, F: FCallable, w0: Vec6, /, ts: QVecTime | VecTime, *, units: UnitSystem
+    ) -> PhaseSpaceTimePosition:
+        # Parse inputs
+        ts_: VecTime = ts.to_value(units["time"]) if isinstance(ts, Quantity) else ts
+
+        # Perform the integration
+        w = self._call_implementation(F, w0, ts_)
+
+        # Return
+        return PhaseSpaceTimePosition(
+            q=Quantity(w[..., 0:3], units["length"]),
+            p=Quantity(w[..., 3:6], units["speed"]),
+            t=Quantity(w[..., -1], units["time"]),
+        )

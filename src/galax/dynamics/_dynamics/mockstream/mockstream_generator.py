@@ -185,7 +185,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             t0 = ts[0].to(self.potential.units["time"])
             w0 = PhaseSpaceTimePosition(
                 q=Quantity(prog_w0[..., 0:3], self.units["length"]),
-                p=Quantity(prog_w0[3:6], self.units["speed"]),
+                p=Quantity(prog_w0[..., 3:6], self.units["speed"]),
                 t=t0,
             )
 

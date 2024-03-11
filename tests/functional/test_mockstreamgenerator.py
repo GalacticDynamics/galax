@@ -11,7 +11,7 @@ from jax_quantity import Quantity
 
 from galax.dynamics import FardalStreamDF, MockStreamGenerator
 from galax.potential import MilkyWayPotential
-from galax.typing import FloatScalar, Vec6, VecTime
+from galax.typing import FloatScalar, QVecTime, Vec6
 from galax.units import UnitSystem
 
 usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian)
@@ -21,7 +21,7 @@ seed_num = 12
 
 @jax.jit
 def compute_loss(
-    params: dict[str, Any], ts: VecTime, w0: Vec6, M_sat: FloatScalar
+    params: dict[str, Any], ts: QVecTime, w0: Vec6, M_sat: FloatScalar
 ) -> FloatScalar:
     # Generate mock stream
     pot = MilkyWayPotential(**params, units=usys)
@@ -40,7 +40,7 @@ def compute_loss(
 
 @jax.jit
 def compute_derivative(
-    params: dict[str, Any], ts: VecTime, w0: Vec6, M_sat: FloatScalar
+    params: dict[str, Any], ts: QVecTime, w0: Vec6, M_sat: FloatScalar
 ) -> dict[str, Any]:
     return jax.jacfwd(compute_loss, argnums=0)(params, ts, w0, M_sat)
 
@@ -77,7 +77,7 @@ def test_second_deriv() -> None:
         "disk": {"m": 5.0e10 * u.Msun, "a": 3.0, "b": 0.25},
         "halo": {"m": 1.0e12 * u.Msun, "r_s": 15.0},
     }
-    ts = xp.linspace(0.0, 4_000, 10_000, dtype=float)  # [Myr]
+    ts = Quantity(xp.linspace(0.0, 4_000, 10_000, dtype=float), "Myr")
 
     q0 = ((30, 10, 20) * u.Unit("kpc")).decompose(usys).value
     p0 = ((10, -150, -20) * u.Unit("km / s")).decompose(usys).value

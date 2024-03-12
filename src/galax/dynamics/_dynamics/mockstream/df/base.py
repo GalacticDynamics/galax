@@ -33,7 +33,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             msg = "You must generate either leading or trailing tails (or both!)"
             raise ValueError(msg)
 
-    @partial(jax.jit, static_argnames=("seed_num",))
+    @partial(jax.jit)
     def sample(
         self,
         rng: jr.PRNG,

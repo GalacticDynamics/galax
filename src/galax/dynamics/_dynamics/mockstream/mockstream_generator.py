@@ -9,6 +9,7 @@ from typing import TypeAlias, cast, final
 import equinox as eqx
 import jax
 import jax.numpy as jnp
+import quax.examples.prng as jr
 from jax.lib.xla_bridge import get_backend
 
 import quaxed.array_api as xp
@@ -111,11 +112,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         t_f = ts[-1] + Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
 
-        # TODO: make this a separated method
-        @jax.jit  # type: ignore[misc]
+        @partial(jax.jit, inline=True)
         def one_pt_intg(i: IntScalar, w0_l_i: Vec6, w0_t_i: Vec6) -> tuple[Vec6, Vec6]:
             tstep = xp.asarray([ts[i], t_f])
-            # TODO: only return the final state
             w_lead = integrate_orbit(
                 self.potential, w0_l_i, tstep, integrator=self.stream_integrator
             ).w(units=self.potential.units)[-1]
@@ -133,28 +132,25 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial(jax.jit, static_argnames=("seed_num", "vmapped"))
     def run(
         self,
+        rng: jr.PRNG,
         ts: QVecTime,
         prog_w0: PhaseSpaceTimePosition | PhaseSpacePosition | Vec6,
         prog_mass: FloatScalar,
         *,
-        seed_num: int,
         vmapped: bool | None = None,
     ) -> tuple[MockStream, PhaseSpaceTimePosition]:
         """Generate mock stellar stream.
 
         Parameters
         ----------
+        rng : :class:`quax.examples.prng.PRNG`
+            Random number generator.
         ts : Array[float, (time,)]
             Stripping times.
         prog_w0 : Array[float, (6,)]
             Initial conditions of the progenitor.
         prog_mass : float
             Mass of the progenitor.
-
-        seed_num : int, keyword-only
-            Seed number for the random number generator.
-
-            :todo: a better way to handle PRNG
 
         vmapped : bool | None, optional keyword-only
             Whether to use `jax.vmap` (`True`) or `jax.lax.scan` (`False`) to
@@ -201,9 +197,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         # Generate initial conditions from the DF, along the integrated
         # progenitor orbit. The release times are the stripping times.
-        mock0_lead, mock0_trail = self.df.sample(
-            self.potential, prog_o, prog_mass, seed_num=seed_num
-        )
+        mock0_lead, mock0_trail = self.df.sample(rng, self.potential, prog_o, prog_mass)
 
         if use_vmap:
             lead_arm_w, trail_arm_w = self._run_vmap(ts, mock0_lead, mock0_trail)

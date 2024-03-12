@@ -5,6 +5,7 @@ from typing import Any
 import astropy.units as u
 import jax
 import pytest
+import quax.examples.prng as jr
 
 import quaxed.array_api as xp
 from jax_quantity import Quantity
@@ -16,17 +17,16 @@ from galax.units import UnitSystem
 
 usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian)
 df = FardalStreamDF()
-seed_num = 12
 
 
 @jax.jit
 def compute_loss(
-    params: dict[str, Any], ts: QVecTime, w0: Vec6, M_sat: FloatScalar
+    params: dict[str, Any], rng: jr.PRNG, ts: QVecTime, w0: Vec6, M_sat: FloatScalar
 ) -> FloatScalar:
     # Generate mock stream
     pot = MilkyWayPotential(**params, units=usys)
     mockgen = MockStreamGenerator(df, pot)
-    stream, _ = mockgen.run(ts, w0, M_sat, seed_num=seed_num)
+    stream, _ = mockgen.run(rng, ts, w0, M_sat)
     trail_arm, lead_arm = stream[::2], stream[1::2]
     # Generate "observed" stream from mock
     lead_arm_obs = jax.lax.stop_gradient(lead_arm)
@@ -40,9 +40,9 @@ def compute_loss(
 
 @jax.jit
 def compute_derivative(
-    params: dict[str, Any], ts: QVecTime, w0: Vec6, M_sat: FloatScalar
+    params: dict[str, Any], rng: jr.PRNG, ts: QVecTime, w0: Vec6, M_sat: FloatScalar
 ) -> dict[str, Any]:
-    return jax.jacfwd(compute_loss, argnums=0)(params, ts, w0, M_sat)
+    return jax.jacfwd(compute_loss, argnums=0)(params, rng, ts, w0, M_sat)
 
 
 @pytest.mark.array_compare(file_format="text", reference_dir="reference")
@@ -63,7 +63,8 @@ def test_first_deriv() -> None:
     M_sat = 1.0e4 * u.Msun
 
     # Compute the first derivative
-    first_deriv = compute_derivative(params, ts, w0, M_sat)
+    rng = jr.ThreeFry(12)
+    first_deriv = compute_derivative(params, rng, ts, w0, M_sat)
 
     # Test
     return xp.asarray(jax.tree_util.tree_flatten(first_deriv)[0])
@@ -86,8 +87,9 @@ def test_second_deriv() -> None:
     M_sat = 1.0e4 * u.Msun
 
     # Compute the second derivative
+    rng = jr.ThreeFry(12)
     second_deriv = jax.jacfwd(jax.jacfwd(compute_loss, argnums=0))(
-        params, ts, w0, M_sat
+        params, rng, ts, w0, M_sat
     )
 
     # Test

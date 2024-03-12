@@ -129,7 +129,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg)(pt_ids, w0_lead, w0_trail)
         return lead_arm_w, trail_arm_w
 
-    @partial(jax.jit, static_argnames=("seed_num", "vmapped"))
+    @partial(jax.jit, static_argnames=("vmapped",))
     def run(
         self,
         rng: jr.PRNG,

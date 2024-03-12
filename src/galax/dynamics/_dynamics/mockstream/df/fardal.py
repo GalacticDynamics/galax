@@ -32,7 +32,7 @@ class FardalStreamDF(AbstractStreamDF):
     https://ui.adsabs.harvard.edu/abs/2015MNRAS.452..301F/abstract
     """
 
-    @partial(jax.jit, static_argnums=(0,), static_argnames=("seed_num",))
+    @partial(jax.jit, static_argnums=(0,))
     def _sample(
         self,
         rng: jr.PRNG,

@@ -11,7 +11,7 @@ from typing import Any, ClassVar, TypeVar, final
 import astropy.units as u
 import equinox as eqx
 
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from .base import AbstractPotentialBase
 from .builtin import HernquistPotential, MiyamotoNagaiPotential, NFWPotential

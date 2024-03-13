@@ -15,7 +15,7 @@ import astropy.units as u
 from astropy.units.physical import _physical_unit_mapping
 from plum import dispatch
 
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.typing import Unit
 

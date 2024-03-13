@@ -9,7 +9,7 @@ import equinox as eqx
 import jax
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from .base import AbstractOrbit
 from galax.coordinates._psp.utils import _p_converter, _q_converter

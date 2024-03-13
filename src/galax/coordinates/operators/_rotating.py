@@ -13,7 +13,7 @@ import quaxed.array_api as xp
 from coordinax import Abstract3DVector, Cartesian3DVector, CartesianDifferential3D
 from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
 from coordinax.operators._base import op_call_dispatch
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
 
@@ -64,7 +64,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     --------
     First some imports:
 
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import galax.coordinates as gc
     >>> from galax.coordinates.operators import ConstantRotationZOperator
 
@@ -118,7 +118,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     >>> convert(newq, Quantity).value.round(2)
     Array([0., 1., 0.], dtype=float64)
 
-    We can also apply the rotation to a :class:`~jax_quantity.Quantity`, which
+    We can also apply the rotation to a :class:`~unxt.Quantity`, which
     is interpreted as a :class:`~coordinax.Cartesian3DVector` if it has shape
     ``(*batch, 3)`` and a :class:`~coordinax.FourVector` if it has shape
     ``(*batch, 4)``.
@@ -141,7 +141,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from galax.coordinates.operators import ConstantRotationZOperator
 
         >>> op = ConstantRotationZOperator(Quantity(360, "deg / Gyr"))
@@ -156,7 +156,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector
         >>> from galax.coordinates.operators import ConstantRotationZOperator
 
@@ -181,7 +181,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from galax.coordinates.operators import ConstantRotationZOperator
 
         >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
@@ -217,7 +217,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         Examples
         --------
         >>> from plum import convert
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector
         >>> from galax.coordinates.operators import ConstantRotationZOperator
 
@@ -255,7 +255,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         Examples
         --------
         >>> from plum import convert
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.coordinates.operators import ConstantRotationZOperator
 
@@ -299,7 +299,7 @@ def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> AbstractOperator:
 
     Examples
     --------
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates.operators as gco
 

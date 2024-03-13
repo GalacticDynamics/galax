@@ -5,7 +5,7 @@ import pytest
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from galax.potential import AbstractPotentialBase, NullPotential

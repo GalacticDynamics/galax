@@ -11,7 +11,7 @@ import jax
 import jax.numpy as jnp
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from .base import AbstractPhaseSpacePositionBase
 from .utils import _p_converter, _q_converter
@@ -83,7 +83,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         ----------
         potential : :class:`~galax.potential.AbstractPotentialBase`
             The potential object to compute the energy from.
-        t : :class:`jax_quantity.Quantity[float, (*batch,), "time"]`
+        t : :class:`unxt.Quantity[float, (*batch,), "time"]`
             The time at which to compute the potential energy at the given
             positions.
 
@@ -96,7 +96,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         --------
         We assume the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
@@ -152,7 +152,7 @@ class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
         --------
         We assume the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.potential import MilkyWayPotential
@@ -205,7 +205,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     --------
     We assume the following imports:
 
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
     >>> from galax.coordinates import PhaseSpacePosition
 

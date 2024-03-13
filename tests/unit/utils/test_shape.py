@@ -9,7 +9,7 @@ import pytest
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.utils._shape import (
     atleast_batched,

@@ -19,7 +19,7 @@ from coordinax.operators import (
     IdentityOperator,
 )
 from coordinax.operators._base import op_call_dispatch
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
 from galax.coordinates._psp.psp import PhaseSpacePosition
@@ -40,7 +40,7 @@ def call(
 
     Examples
     --------
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import galax.coordinates as gc
     >>> import coordinax as cx
 
@@ -87,7 +87,7 @@ def call(
 
     Examples
     --------
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import galax.coordinates as gc
     >>> import coordinax as cx
 
@@ -157,7 +157,7 @@ def call(
 
     Examples
     --------
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
@@ -209,7 +209,7 @@ def call(
 
     Examples
     --------
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
@@ -265,7 +265,7 @@ def call(
 
     Examples
     --------
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
@@ -316,7 +316,7 @@ def call(
     Examples
     --------
     >>> import quaxed.array_api as xp
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
@@ -374,7 +374,7 @@ def call(
 
     Examples
     --------
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 

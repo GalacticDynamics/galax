@@ -9,7 +9,7 @@ import equinox as eqx
 import jax.numpy as jnp
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.coordinates import AbstractPhaseSpaceTimePosition
 from galax.coordinates._psp.pspt import ComponentShapeTuple

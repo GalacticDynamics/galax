@@ -9,7 +9,7 @@ from typing_extensions import override
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from .test_composite import AbstractCompositePotential_Test
 from galax.potential import (

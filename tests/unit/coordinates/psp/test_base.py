@@ -14,7 +14,7 @@ from jaxtyping import Array
 
 import quaxed.array_api as xp
 from coordinax import Cartesian3DVector, CartesianDifferential3D
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.coordinates._psp.psp import ComponentShapeTuple
 from galax.coordinates._psp.utils import _p_converter, _q_converter

@@ -83,7 +83,7 @@ def getitem_vec1time_index(index: Any, t: FloatQAnyShape) -> Any:
     --------
     We set up a time array.
     >>> import jax.numpy as jnp
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> t = Quantity(jnp.ones((10, 3), dtype=float), "s")
 
     Some standard indexes.

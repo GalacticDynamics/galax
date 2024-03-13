@@ -13,7 +13,7 @@ import quax.examples.prng as jr
 from jax.lib.xla_bridge import get_backend
 
 import quaxed.array_api as xp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from .core import MockStream
 from .df import AbstractStreamDF

@@ -9,7 +9,7 @@ from typing import cast, final
 import equinox as eqx
 
 from coordinax.operators import OperatorSequence, simplify_op
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
@@ -32,7 +32,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     First some imports:
 
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import coordinax.operators as cxo
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp

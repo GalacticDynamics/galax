@@ -21,7 +21,7 @@ from coordinax import (
     Cartesian3DVector,
     represent_as as vector_represent_as,
 )
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.typing import BatchQVec3, BatchVec6
 from galax.units import unitsystem
@@ -86,7 +86,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         --------
         We assume the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpacePosition
 
@@ -137,7 +137,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         --------
         We assume the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpacePosition
 
@@ -181,7 +181,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         --------
         Assuming the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position and convert it to a 6-vector:
@@ -214,7 +214,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         --------
         With the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position and convert it to a 6-vector:
@@ -253,7 +253,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         --------
         We assume the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpacePosition
 
@@ -298,7 +298,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         --------
         We assume the following imports
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can compute the angular momentum of a single object

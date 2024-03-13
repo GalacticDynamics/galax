@@ -8,7 +8,8 @@ from typing import final
 
 import jax
 import jax.numpy as jnp
-from jax import grad, random
+import quax.examples.prng as jr
+from jax import grad
 
 import quaxed.array_api as xp
 
@@ -16,7 +17,6 @@ from .base import AbstractStreamDF
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
     FloatScalar,
-    IntLike,
     RealScalarLike,
     Vec3,
     Vec6,
@@ -32,26 +32,18 @@ class FardalStreamDF(AbstractStreamDF):
     https://ui.adsabs.harvard.edu/abs/2015MNRAS.452..301F/abstract
     """
 
-    @partial(jax.jit, static_argnums=(0,), static_argnames=("seed_num",))
+    @partial(jax.jit, static_argnums=(0,))
     def _sample(
         self,
+        rng: jr.PRNG,
         potential: AbstractPotentialBase,
         w: Vec6,
         prog_mass: FloatScalar,
         t: FloatScalar,
-        *,
-        i: IntLike,
-        seed_num: int,
     ) -> tuple[Vec3, Vec3, Vec3, Vec3]:
         """Generate stream particle initial conditions."""
         # Random number generation
-        # TODO: change random key handling... need to do all of the sampling up front...
-        key_master = random.PRNGKey(seed_num)
-        random_ints = random.randint(key=key_master, shape=(4,), minval=0, maxval=1000)
-        keya = random.PRNGKey(i * random_ints[0])
-        keyb = random.PRNGKey(i * random_ints[1])
-        keyc = random.PRNGKey(i * random_ints[2])
-        keyd = random.PRNGKey(i * random_ints[3])
+        rng1, rng2, rng3, rng4 = rng.split(4)
 
         # ---------------------------
 
@@ -84,12 +76,10 @@ class FardalStreamDF(AbstractStreamDF):
         sigma_kz = 0.5
         sigma_kvz = 0.5
 
-        kr_samp = kr_bar + random.normal(keya, shape=(1,)) * sigma_kr
-        kvphi_samp = kr_samp * (
-            kvphi_bar + random.normal(keyb, shape=(1,)) * sigma_kvphi
-        )
-        kz_samp = kz_bar + random.normal(keyc, shape=(1,)) * sigma_kz
-        kvz_samp = kvz_bar + random.normal(keyd, shape=(1,)) * sigma_kvz
+        kr_samp = kr_bar + jr.normal(rng1, shape=(1,)) * sigma_kr
+        kvphi_samp = kr_samp * (kvphi_bar + jr.normal(rng2, shape=(1,)) * sigma_kvphi)
+        kz_samp = kz_bar + jr.normal(rng3, shape=(1,)) * sigma_kz
+        kvz_samp = kvz_bar + jr.normal(rng4, shape=(1,)) * sigma_kvz
 
         # Trailing arm
         x_trail = (

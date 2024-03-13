@@ -6,6 +6,7 @@ import astropy.units as u
 import jax.numpy as jnp
 import jax.tree_util as tu
 import pytest
+import quax.examples.prng as jr
 
 import quaxed.array_api as xp
 from jax_quantity import Quantity
@@ -67,9 +68,9 @@ class TestMockStreamGenerator:
         return 1e4
 
     @pytest.fixture()
-    def seed_num(self) -> int:
+    def rng(self) -> jr.PRNG:
         """Seed number for the random number generator."""
-        return 12
+        return jr.ThreeFry(12)
 
     @pytest.fixture()
     def vmapped(self) -> bool:
@@ -84,14 +85,14 @@ class TestMockStreamGenerator:
         t_stripping: QVecTime,
         prog_w0: Vec6,
         prog_mass: float,
-        seed_num: int,
+        rng: jr.PRNG,
     ) -> None:
         """Test the run method with ``vmapped=False``."""
         mock, prog_o = mockstream.run(
+            rng,
             t_stripping,
             prog_w0,
             prog_mass,
-            seed_num=seed_num,
             vmapped=False,
         )
 

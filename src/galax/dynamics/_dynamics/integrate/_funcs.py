@@ -4,6 +4,7 @@ __all__ = ["evaluate_orbit"]
 
 from dataclasses import replace
 from functools import partial
+from typing import Literal
 
 import jax
 import jax.numpy as jnp
@@ -16,7 +17,7 @@ import galax.typing as gt
 from ._api import Integrator
 from ._builtin import DiffraxIntegrator
 from galax.coordinates import PhaseSpacePosition
-from galax.dynamics._dynamics.orbit import Orbit
+from galax.dynamics._dynamics.orbit import InterpolatedOrbit, Orbit
 from galax.potential._potential.base import AbstractPotentialBase
 
 ##############################################################################
@@ -29,20 +30,21 @@ _default_integrator: Integrator = DiffraxIntegrator()
 _select_w0 = jnp.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
-@partial(jax.jit, static_argnames=("integrator",))
+@partial(jax.jit, static_argnames=("integrator", "interpolated"))
 def evaluate_orbit(
     pot: AbstractPotentialBase,
     w0: PhaseSpacePosition | gt.BatchVec6,
     t: gt.QVecTime | gt.VecTime | APYQuantity,
     *,
     integrator: Integrator | None = None,
-) -> Orbit:
+    interpolated: Literal[True, False] = False,
+) -> Orbit | InterpolatedOrbit:
     """Compute an orbit in a potential.
 
-    :class:`~galax.coordinates.PhaseSpacePosition` includes a time in
-    addition to the position (and velocity) information, enabling the orbit to
-    be evaluated over a time range that is different from the initial time of
-    the position.
+    :class:`~galax.coordinates.PhaseSpacePosition` includes a time in addition
+    to the position (and velocity) information, enabling the orbit to be
+    evaluated over a time range that is different from the initial time of the
+    position.
 
     Parameters
     ----------
@@ -81,6 +83,10 @@ def evaluate_orbit(
         :class:`~galax.integrator.DiffraxIntegrator` is used.  This integrator
         is used twice: once to integrate from `w0.t` to `t[0]` and then from
         `t[0]` to `t[1]`.
+
+    interpolated: bool, optional keyword-only
+        If `True`, return an interpolated orbit.  If `False`, return the orbit
+        at the requested times.  Default is `False`.
 
     Returns
     -------
@@ -225,7 +231,17 @@ def evaluate_orbit(
         t[-1],
         savet=t,
         units=units,
+        interpolated=interpolated,
     )
+    wt = t
 
     # Construct the orbit object
-    return Orbit(q=ws.q, p=ws.p, t=t, potential=pot)
+    # TODO: easier construction from the (Interpolated)PhaseSpacePosition
+    if interpolated:
+        out = InterpolatedOrbit(
+            q=ws.q, p=ws.p, t=wt, interpolant=ws.interpolant, potential=pot
+        )
+    else:
+        out = Orbit(q=ws.q, p=ws.p, t=wt, potential=pot)
+
+    return out

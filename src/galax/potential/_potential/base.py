@@ -1869,7 +1869,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # =========================================================================
     # Integrating orbits
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)  # TODO: inline?
+    @vectorize_method(  # TODO: vectorization the func itself
+        signature="(),(6)->(6)", excluded=(2,)
+    )
     def _integrator_F(
         self,
         t: FloatScalar,

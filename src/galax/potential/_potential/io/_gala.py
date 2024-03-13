@@ -25,10 +25,10 @@ from gala.potential import (
 )
 from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
 
+import coordinax.operators as cxo
 from coordinax.operators import IdentityOperator
 from unxt import Quantity
 
-import galax.coordinates.operators as gco
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.potential._potential.builtin import (
     HernquistPotential,
@@ -161,16 +161,16 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
 PT = TypeVar("PT", bound=AbstractPotentialBase)
 
 
-def _get_frame(pot: GalaPotentialBase, /) -> gco.AbstractOperator:
-    frame = gco.GalileanSpatialTranslationOperator(
+def _get_frame(pot: GalaPotentialBase, /) -> cxo.AbstractOperator:
+    frame = cxo.GalileanSpatialTranslationOperator(
         Quantity(pot.origin, unit=pot.units["length"])
     )
     if pot.R is not None:
-        frame = gco.GalileanRotationOperator(pot.R) | frame
-    return gco.simplify_op(frame)
+        frame = cxo.GalileanRotationOperator(pot.R) | frame
+    return cxo.simplify_op(frame)
 
 
-def _apply_frame(frame: gco.AbstractOperator, pot: PT, /) -> PT | PotentialFrame:
+def _apply_frame(frame: cxo.AbstractOperator, pot: PT, /) -> PT | PotentialFrame:
     return pot if isinstance(frame, IdentityOperator) else PotentialFrame(pot, frame)
 
 

@@ -10,7 +10,7 @@ from typing_extensions import override
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin

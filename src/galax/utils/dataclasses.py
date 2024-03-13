@@ -28,7 +28,7 @@ from jaxtyping import Array, Float
 from typing_extensions import ParamSpec, Unpack
 
 import quaxed.array_api as xp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance

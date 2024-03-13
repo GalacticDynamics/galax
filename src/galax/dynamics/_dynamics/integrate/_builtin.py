@@ -10,7 +10,7 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from ._api import FCallable
 from ._base import AbstractIntegrator

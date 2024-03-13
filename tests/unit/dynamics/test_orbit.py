@@ -6,7 +6,7 @@ import pytest
 from plum import convert
 
 import quaxed.array_api as xp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from ..coordinates.psp.test_base import Shape, return_keys
 from ..coordinates.psp.test_pspt import AbstractPhaseSpaceTimePosition_Test, T

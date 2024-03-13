@@ -8,7 +8,7 @@ import pytest
 from jaxtyping import Array, Float
 
 import quaxed.array_api as xp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.coordinates._psp.utils import (
     Shaped,

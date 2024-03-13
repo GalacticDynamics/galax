@@ -8,7 +8,7 @@ from typing_extensions import override
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 import galax.potential as gp
 from ..param.test_field import ParameterFieldMixin

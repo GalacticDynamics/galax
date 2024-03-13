@@ -13,7 +13,7 @@ from astropy.units import Quantity as APYQuantity
 from jaxtyping import Shaped
 
 import quaxed.array_api as xp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from ._api import Integrator
 from ._builtin import DiffraxIntegrator
@@ -113,7 +113,7 @@ def integrate_orbit(
     few standard imports are needed:
 
     >>> import astropy.units as u
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp

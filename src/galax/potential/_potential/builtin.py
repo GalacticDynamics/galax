@@ -19,7 +19,7 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
@@ -259,7 +259,7 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     Examples
     --------
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> from galax.potential import TriaxialHernquistPotential
 
     >>> pot = TriaxialHernquistPotential(m=Quantity(1e12, "Msun"), c=Quantity(8, "kpc"),

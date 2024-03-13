@@ -17,7 +17,7 @@ from coordinax import (
     Abstract3DVectorDifferential,
     Cartesian3DVector,
 )
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from .base import AbstractPhaseSpacePositionBase
 from .utils import _p_converter, _q_converter, getitem_broadscalartime_index
@@ -106,7 +106,7 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         --------
         We assume the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpaceTimePosition
         >>> import galax.units as gu
@@ -155,7 +155,7 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         --------
         We assume the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpaceTimePosition
         >>> from galax.potential import MilkyWayPotential
@@ -204,7 +204,7 @@ class AbstractPhaseSpaceTimePosition(AbstractPhaseSpacePositionBase):
         --------
         We assume the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpaceTimePosition
         >>> from galax.potential import MilkyWayPotential
@@ -267,7 +267,7 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
     --------
     We assume the following imports:
 
-    >>> from jax_quantity import Quantity
+    >>> from unxt import Quantity
     >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
     >>> from galax.coordinates import PhaseSpaceTimePosition
 
@@ -370,7 +370,7 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
         --------
         Assuming the following imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> from galax.coordinates import PhaseSpaceTimePosition
 
         We can create a phase-space position and convert it to a 6-vector:

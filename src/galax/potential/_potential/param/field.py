@@ -21,7 +21,7 @@ from typing import (
 import astropy.units as u
 
 import quaxed.array_api as xp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 from galax.typing import Unit
@@ -41,7 +41,7 @@ def converter_parameter(value: Any) -> AbstractParameter:
         :class:`galax.potential.AbstractParameter`, it is returned as is.  If
         the value is a callable, it is converted to a
         :class:`galax.potential.UserParameter`. If the value is a
-        :class:`jax_quantity.Quantity` (or :class`astropy.units.Quantity`), it
+        :class:`unxt.Quantity` (or :class`astropy.units.Quantity`), it
         is converted to a :class:`galax.potential.ConstantParameter`.
         If the value is none of the above, a :class:`TypeError`
         is raised.

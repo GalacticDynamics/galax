@@ -15,7 +15,7 @@ from jaxtyping import Array, Shaped
 from plum import convert, dispatch
 
 from coordinax import Abstract3DVector, Cartesian3DVector
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.coordinates._psp.psp import AbstractPhaseSpacePosition
 from galax.units import DimensionlessUnitSystem, UnitSystem, dimensionless

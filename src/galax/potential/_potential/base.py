@@ -20,7 +20,7 @@ from quax import quaxify
 
 import quaxed.array_api as xp
 from coordinax import Abstract3DVector, FourVector
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from .utils import _convert_from_3dvec, convert_input_to_array, convert_inputs_to_arrays
 from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
@@ -179,7 +179,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         First some imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import galax.potential as gp
         >>> import galax.coordinates as gc
 
@@ -234,7 +234,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -256,7 +256,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -288,7 +288,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :mod:`plum` dispatches on positional arguments only, so it necessary
         to redispatch here.
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -317,7 +317,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :class:`astropy.coordinates.BaseRepresentation` and
         :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
         counterparts :class:`~vector.Abstract3DVector` and
-        :class:`~jax_quantity.Quantity`.
+        :class:`~unxt.Quantity`.
 
         Examples
         --------
@@ -456,7 +456,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         First some imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import galax.potential as gp
         >>> import galax.coordinates as gc
 
@@ -515,7 +515,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -539,7 +539,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -581,7 +581,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -606,7 +606,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -638,7 +638,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :class:`astropy.coordinates.BaseRepresentation` and
         :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
         counterparts :class:`~vector.Abstract3DVector` and
-        :class:`~jax_quantity.Quantity`.
+        :class:`~unxt.Quantity`.
 
         Parameters
         ----------
@@ -653,7 +653,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -678,7 +678,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -713,7 +713,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :mod:`plum` dispatches on positional arguments only, so it necessary
         to redispatch here.
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -763,7 +763,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         First some imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import galax.potential as gp
         >>> import galax.coordinates as gc
 
@@ -819,7 +819,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -841,7 +841,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -880,7 +880,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -902,7 +902,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -931,7 +931,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :class:`astropy.coordinates.BaseRepresentation` and
         :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
         counterparts :class:`~vector.Abstract3DVector` and
-        :class:`~jax_quantity.Quantity`.
+        :class:`~unxt.Quantity`.
 
         Parameters
         ----------
@@ -946,7 +946,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -968,7 +968,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -1000,7 +1000,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :mod:`plum` dispatches on positional arguments only, so it necessary
         to redispatch here.
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -1050,7 +1050,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         First some imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import galax.potential as gp
         >>> import galax.coordinates as gc
 
@@ -1105,7 +1105,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -1127,7 +1127,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -1159,7 +1159,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :mod:`plum` dispatches on positional arguments only, so it necessary
         to redispatch here.
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -1188,7 +1188,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :class:`astropy.coordinates.BaseRepresentation` and
         :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
         counterparts :class:`~vector.Abstract3DVector` and
-        :class:`~jax_quantity.Quantity`.
+        :class:`~unxt.Quantity`.
 
         Examples
         --------
@@ -1302,7 +1302,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         First some imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import galax.potential as gp
         >>> import galax.coordinates as gc
 
@@ -1366,7 +1366,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -1395,7 +1395,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -1434,7 +1434,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :mod:`plum` dispatches on positional arguments only, so it necessary
         to redispatch here.
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -1462,7 +1462,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :class:`astropy.coordinates.BaseRepresentation` and
         :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
         counterparts :class:`~vector.Abstract3DVector` and
-        :class:`~jax_quantity.Quantity`.
+        :class:`~unxt.Quantity`.
 
         Examples
         --------
@@ -1557,7 +1557,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         First some imports:
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import galax.potential as gp
         >>> import galax.coordinates as gc
 
@@ -1616,7 +1616,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -1641,7 +1641,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -1683,7 +1683,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -1708,7 +1708,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -1740,7 +1740,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :class:`astropy.coordinates.BaseRepresentation` and
         :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
         counterparts :class:`~vector.Abstract3DVector` and
-        :class:`~jax_quantity.Quantity`.
+        :class:`~unxt.Quantity`.
 
         Parameters
         ----------
@@ -1755,7 +1755,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Examples
         --------
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
@@ -1780,7 +1780,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
-        :class:`jax_quantity.Quantity`, which is interpreted as a Cartesian
+        :class:`unxt.Quantity`, which is interpreted as a Cartesian
         position:
 
         >>> q = Quantity([1, 2, 3], "kpc")
@@ -1815,7 +1815,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         :mod:`plum` dispatches on positional arguments only, so it necessary
         to redispatch here.
 
-        >>> from jax_quantity import Quantity
+        >>> from unxt import Quantity
         >>> import coordinax as cx
         >>> import galax.potential as gp
 

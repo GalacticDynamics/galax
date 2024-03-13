@@ -9,7 +9,7 @@ import pytest
 import quax.examples.prng as jr
 
 import quaxed.array_api as xp
-from jax_quantity import Quantity
+from unxt import Quantity
 
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
 from galax.potential import AbstractPotentialBase, NFWPotential

@@ -7,7 +7,12 @@ __all__ = [
     # Phase-space positions
     "AbstractPhaseSpacePosition",
     "PhaseSpacePosition",
+    "InterpolatedPhaseSpacePosition",
 ]
 
 from . import operators
-from ._psp import AbstractPhaseSpacePosition, PhaseSpacePosition
+from ._psp import (
+    AbstractPhaseSpacePosition,
+    InterpolatedPhaseSpacePosition,
+    PhaseSpacePosition,
+)

@@ -78,6 +78,7 @@ VecN = Float[Array, "N"]
 VecTime = Float[Array, "time"]
 QVecTime = Float[Quantity, "time"]
 VecTime3 = Float[Vec3, "time"]
+VecTime6 = Float[Vec6, "time"]
 VecTime7 = Float[Vec7, "time"]
 
 # -----------------------------------------------------------------------------
@@ -135,6 +136,8 @@ BatchVec7 = Shaped[Vec7, "*batch"]
 # Zero or more batches of time vectors.
 BroadBatchVecTime = Shaped[VecTime, "*#batch"]
 BatchVecTime = Shaped[VecTime, "*batch"]
+BatchVecTime6 = Shaped[VecTime6, "*batch"]
+BatchVecTime7 = Shaped[VecTime7, "*batch"]
 BroadBatchQVecTime = Shaped[QVecTime, "*#batch"]
 BatchQVecTime = Shaped[QVecTime, "*batch"]
 

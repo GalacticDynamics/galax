@@ -30,7 +30,7 @@ from galax.typing import (
     BatchVec7,
     BroadBatchFloatQScalar,
 )
-from galax.units import UnitSystem, unitsystem
+from galax.units import unitsystem
 
 if TYPE_CHECKING:
     from typing import Self
@@ -221,7 +221,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
         return xp.concat((q.decompose(usys).value, p.decompose(usys).value), axis=-1)
 
-    def wt(self, *, units: UnitSystem) -> BatchVec7:
+    def wt(self, *, units: Any) -> BatchVec7:
         """Phase-space position as an Array[float, (*batch, 1+Q+P)].
 
         This is the full phase-space position, including the time.
@@ -229,7 +229,8 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         Parameters
         ----------
         units : `galax.units.UnitSystem`, keyword-only
-            The unit system If ``None``, use the current unit system.
+            The unit system. :func:`~galax.units.unitsystem` is used to
+            convert the input to a unit system.
 
         Returns
         -------
@@ -241,27 +242,24 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
         >>> from galax.coordinates import PhaseSpacePosition
-        >>> import galax.units as gu
 
-        We can create a phase-space position:
+        We can create a phase-space position and convert it to a 6-vector:
 
-        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-        ...                          p=Quantity([4, 5, 6], "m/s"),
-        ...                          t=Quantity(7.0, "s"))
-        >>> psp.wt(units=gu.galactic)
-        Array([2.21816615e-13, 3.24077929e-20, 6.48155858e-20, 9.72233787e-20,
-               4.09084866e-06, 5.11356083e-06, 6.13627299e-06], dtype=float64)
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                          p=Quantity([4, 5, 6], "km/s"),
+        ...                          t=Quantity(7.0, "Myr"))
+        >>> psp.wt(units="galactic")
+            Array([7.00000000e+00, 1.00000000e+00, 2.00000000e+00, 3.00000000e+00,
+                4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64)
         """
+        usys = unitsystem(units)
         batch, comps = self._shape_tuple
         cart = self.represent_as(Cartesian3DVector)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
-        t = xp.broadcast_to(self.t.decompose(units).value[..., None], (*batch, comps.t))
-        return xp.concat(
-            (t, q.decompose(units).value, p.decompose(units).value), axis=-1
-        )
+        t = xp.broadcast_to(self.t.decompose(usys).value[..., None], (*batch, comps.t))
+        return xp.concat((t, q.decompose(usys).value, p.decompose(usys).value), axis=-1)
 
     def represent_as(self, /, target: type[AbstractVectorBase]) -> "Self":
         """Return with the components transformed.

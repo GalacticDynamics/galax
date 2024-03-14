@@ -12,7 +12,7 @@ from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
 from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
-from galax.coordinates._psp.pspt import ComponentShapeTuple
+from galax.coordinates._psp.base import ComponentShapeTuple
 from galax.coordinates._psp.utils import (
     Shaped,
     _p_converter,

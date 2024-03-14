@@ -5,7 +5,7 @@ import abc
 import equinox as eqx
 
 from ._api import FCallable
-from galax.coordinates import AbstractPhaseSpacePositionBase, PhaseSpaceTimePosition
+from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
 from galax.typing import QVecTime, Vec6, VecTime
 from galax.units import UnitSystem
 
@@ -27,7 +27,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePositionBase | Vec6,
+        w0: AbstractPhaseSpaceTimePosition | Vec6,
         /,
         ts: QVecTime | VecTime,
         *,
@@ -39,7 +39,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         ----------
         F : FCallable, positional-only
             The function to integrate.
-        w0 : AbstractPhaseSpacePositionBase | Array[float, (6,)], positional-only
+        w0 : AbstractPhaseSpaceTimePosition | Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
         ts : (Quantity | Array)[float, (T,)]
             Times to return the computation.

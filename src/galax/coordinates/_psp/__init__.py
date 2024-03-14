@@ -2,12 +2,11 @@
 
 __all__ = [
     # _base
-    "AbstractPhaseSpacePositionBase",
-    # _pspt
     "AbstractPhaseSpaceTimePosition",
+    # _pspt
     "PhaseSpaceTimePosition",
 ]
 
 from . import operator_compat  # noqa: F401
-from .base import AbstractPhaseSpacePositionBase
-from .pspt import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
+from .base import AbstractPhaseSpaceTimePosition
+from .pspt import PhaseSpaceTimePosition

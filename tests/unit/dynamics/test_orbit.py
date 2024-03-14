@@ -1,5 +1,7 @@
 """Test :class:`~galax.coordinates._pspt`."""
 
+from typing import TypeVar
+
 import jax.numpy as jnp
 import jax.random as jr
 import pytest
@@ -8,12 +10,17 @@ from plum import convert
 import quaxed.array_api as xp
 from unxt import Quantity
 
-from ..coordinates.psp.test_base import Shape, return_keys
-from ..coordinates.psp.test_pspt import AbstractPhaseSpaceTimePosition_Test, T
+from ..coordinates.psp.test_base import (
+    AbstractPhaseSpaceTimePosition_Test,
+    Shape,
+    return_keys,
+)
 from galax.coordinates import PhaseSpaceTimePosition
 from galax.dynamics import Orbit
 from galax.potential import AbstractPotentialBase, MilkyWayPotential
 from galax.units import galactic
+
+T = TypeVar("T", bound=Orbit)
 
 
 class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):

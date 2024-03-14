@@ -14,7 +14,7 @@ from unxt import Quantity
 
 from ._api import FCallable
 from ._base import AbstractIntegrator
-from galax.coordinates import AbstractPhaseSpacePositionBase, PhaseSpaceTimePosition
+from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
 from galax.typing import QVecTime, Vec6, VecTime, VecTime7
 from galax.units import UnitSystem
 from galax.utils import ImmutableDict
@@ -63,7 +63,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePositionBase | Vec6,
+        w0: AbstractPhaseSpaceTimePosition | Vec6,
         /,
         ts: QVecTime | VecTime,
         *,
@@ -72,7 +72,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         # Parse inputs
         ts_: VecTime = ts.to_value(units["time"]) if isinstance(ts, Quantity) else ts
         w0_: Vec6 = (
-            w0.w(units=units) if isinstance(w0, AbstractPhaseSpacePositionBase) else w0
+            w0.w(units=units) if isinstance(w0, AbstractPhaseSpaceTimePosition) else w0
         )
 
         # Perform the integration

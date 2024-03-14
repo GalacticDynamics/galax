@@ -15,7 +15,7 @@ from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
 from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
 
-from galax.coordinates._psp.pspt import AbstractPhaseSpaceTimePosition
+from galax.coordinates._psp.base import AbstractPhaseSpaceTimePosition
 
 
 def rot_z(

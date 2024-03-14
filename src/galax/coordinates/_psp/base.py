@@ -1,12 +1,11 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["AbstractPhaseSpacePositionBase"]
+__all__ = ["AbstractPhaseSpaceTimePosition"]
 
 from abc import abstractmethod
-from collections.abc import Iterator
 from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 import equinox as eqx
 import jax
@@ -23,25 +22,42 @@ from coordinax import (
 )
 from unxt import Quantity
 
-from galax.typing import BatchQVec3, BatchVec6
-from galax.units import unitsystem
+from .utils import getitem_broadscalartime_index
+from galax.typing import (
+    BatchFloatQScalar,
+    BatchQVec3,
+    BatchVec6,
+    BatchVec7,
+    BroadBatchFloatQScalar,
+)
+from galax.units import UnitSystem, unitsystem
 
 if TYPE_CHECKING:
     from typing import Self
 
+    from galax.potential._potential.base import AbstractPotentialBase
 
-@runtime_checkable
-class ComponentShapeTuple(Protocol):
-    """Shape tuple for phase-space positions."""
+
+class ComponentShapeTuple(NamedTuple):
+    """Component shape of the phase-space position."""
 
     q: int
+    """Shape of the position."""
+
     p: int
+    """Shape of the momentum."""
 
-    def __iter__(self) -> Iterator[Any]: ...
+    t: int
+    """Shape of the time."""
 
 
-class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
-    """Abstract base class for all the types of phase-space positions.
+class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
+    r"""Abstract base class of phase-space positions.
+
+    The phase-space position is a point in the 7-dimensional phase space
+    :math:`\mathbb{R}^7` of a dynamical system. It is composed of the position
+    :math:`\boldsymbol{q}`, the conjugate momentum :math:`\boldsymbol{p}`, and
+    the time :math:`t`.
 
     Parameters
     ----------
@@ -49,11 +65,8 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         Positions.
     p : :class:`~vector.Abstract3DVectorDifferential`
         Conjugate momenta at positions ``q``.
-
-    See Also
-    --------
-    :class:`~galax.coordinates.AbstractPhaseSpacePosition`
-    :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
+    t : :class:`~unxt.Quantity`
+        Time corresponding to the positions and momenta.
     """
 
     q: eqx.AbstractVar[Abstract3DVector]
@@ -61,6 +74,9 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
 
     p: eqx.AbstractVar[Abstract3DVectorDifferential]
     """Conjugate momenta at positions ``q``."""
+
+    t: eqx.AbstractVar[BroadBatchFloatQScalar]
+    """Time corresponding to the positions and momenta."""
 
     # ==========================================================================
     # Array properties
@@ -124,8 +140,12 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         """Return the number of particles."""
         return self.shape[0]
 
-    @abstractmethod
-    def __getitem__(self, index: Any) -> "Self": ...
+    def __getitem__(self, index: Any) -> "Self":
+        """Return a new object with the given slice applied."""
+        # Compute subindex
+        subindex = getitem_broadscalartime_index(index, self.t)
+        # Apply slice
+        return replace(self, q=self.q[index], p=self.p[index], t=self.t[subindex])
 
     # ==========================================================================
     # Further Array properties
@@ -177,7 +197,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         w : Array[float, (*batch, Q + P)]
             The phase-space position as a 6-vector in Cartesian coordinates.
             This will have shape
-            :attr:`AbstractPhaseSpacePositionBase.full_shape`.
+            :attr:`AbstractPhaseSpaceTimePosition.full_shape`.
 
         Examples
         --------
@@ -201,6 +221,48 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
         return xp.concat((q.decompose(usys).value, p.decompose(usys).value), axis=-1)
 
+    def wt(self, *, units: UnitSystem) -> BatchVec7:
+        """Phase-space position as an Array[float, (*batch, 1+Q+P)].
+
+        This is the full phase-space position, including the time.
+
+        Parameters
+        ----------
+        units : `galax.units.UnitSystem`, keyword-only
+            The unit system If ``None``, use the current unit system.
+
+        Returns
+        -------
+        wt : Array[float, (*batch, 1+Q+P)]
+            The full phase-space position, including time on the first axis.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from unxt import Quantity
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> import galax.units as gu
+
+        We can create a phase-space position:
+
+        >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "m"),
+        ...                              p=Quantity([4, 5, 6], "m/s"),
+        ...                              t=Quantity(7.0, "s"))
+        >>> psp.wt(units=gu.galactic)
+        Array([2.21816615e-13, 3.24077929e-20, 6.48155858e-20, 9.72233787e-20,
+               4.09084866e-06, 5.11356083e-06, 6.13627299e-06], dtype=float64)
+        """
+        batch, comps = self._shape_tuple
+        cart = self.represent_as(Cartesian3DVector)
+        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
+        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
+        t = xp.broadcast_to(self.t.decompose(units).value[..., None], (*batch, comps.t))
+        return xp.concat(
+            (t, q.decompose(units).value, p.decompose(units).value), axis=-1
+        )
+
     def represent_as(self, /, target: type[AbstractVectorBase]) -> "Self":
         """Return with the components transformed.
 
@@ -210,7 +272,7 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
 
         Returns
         -------
-        w : :class:`~galax.coordinates.AbstractPhaseSpacePositionBase`
+        w : :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
             The phase-space position with the components transformed.
 
         Examples
@@ -284,6 +346,103 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
         """
         return 0.5 * self.p.norm(self.q) ** 2
 
+    def potential_energy(
+        self, potential: "AbstractPotentialBase"
+    ) -> Quantity["specific energy"]:
+        r"""Return the specific potential energy.
+
+        .. math::
+
+            E_\Phi = \Phi(\boldsymbol{q})
+
+        Parameters
+        ----------
+        potential : `galax.potential.AbstractPotentialBase`
+            The potential object to compute the energy from.
+
+        Returns
+        -------
+        E : Array[float, (*batch,)]
+            The specific potential energy.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from unxt import Quantity
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.potential import MilkyWayPotential
+
+        We can construct a phase-space position:
+
+        >>> q = Cartesian3DVector(
+        ...     x=Quantity(1, "kpc"),
+        ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
+        ...     z=Quantity(2, "kpc"))
+        >>> p = CartesianDifferential3D(
+        ...     d_x=Quantity(0, "km/s"),
+        ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     d_z=Quantity(0, "km/s"))
+        >>> w = PhaseSpaceTimePosition(q, p, t=Quantity(0, "Myr"))
+
+        We can compute the kinetic energy:
+
+        >>> pot = MilkyWayPotential()
+        >>> w.potential_energy(pot)
+        Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
+        """
+        return potential.potential_energy(self.q, t=self.t)
+
+    @partial(jax.jit)
+    def energy(self, potential: "AbstractPotentialBase") -> BatchFloatQScalar:
+        r"""Return the specific total energy.
+
+        .. math::
+
+            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
+            E_\Phi = \Phi(\boldsymbol{q})
+            E = E_K + E_\Phi
+
+        Parameters
+        ----------
+        potential : `galax.potential.AbstractPotentialBase`
+            The potential object to compute the energy from.
+
+        Returns
+        -------
+        E : Array[float, (*batch,)]
+            The kinetic energy.
+
+        Examples
+        --------
+        We assume the following imports:
+
+        >>> from unxt import Quantity
+        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
+        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.potential import MilkyWayPotential
+
+        We can construct a phase-space position:
+
+        >>> q = Cartesian3DVector(
+        ...     x=Quantity(1, "kpc"),
+        ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
+        ...     z=Quantity(2, "kpc"))
+        >>> p = CartesianDifferential3D(
+        ...     d_x=Quantity(0, "km/s"),
+        ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     d_z=Quantity(0, "km/s"))
+        >>> w = PhaseSpaceTimePosition(q, p, t=Quantity(0, "Myr"))
+
+        We can compute the kinetic energy:
+
+        >>> pot = MilkyWayPotential()
+        >>> w.energy(pot)
+        Quantity['specific energy'](Array(..., dtype=float64), unit='km2 / s2')
+        """
+        return self.kinetic_energy() + self.potential_energy(potential)
+
     # TODO: property?
     @partial(jax.jit)
     def angular_momentum(self) -> BatchQVec3:
@@ -331,8 +490,8 @@ class AbstractPhaseSpacePositionBase(eqx.Module, strict=True):  # type: ignore[c
 
 @dispatch  # type: ignore[misc]
 def represent_as(
-    current: AbstractPhaseSpacePositionBase, target: type[AbstractVectorBase]
-) -> AbstractPhaseSpacePositionBase:
+    current: AbstractPhaseSpaceTimePosition, target: type[AbstractVectorBase]
+) -> AbstractPhaseSpaceTimePosition:
     """Return with the components transformed."""
     return replace(
         current,

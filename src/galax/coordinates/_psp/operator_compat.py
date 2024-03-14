@@ -21,7 +21,7 @@ from coordinax.operators import (
 from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
 
-from galax.coordinates._psp.pspt import AbstractPhaseSpaceTimePosition
+from galax.coordinates._psp.base import AbstractPhaseSpaceTimePosition
 
 ######################################################################
 # Abstract Operators
@@ -36,7 +36,7 @@ def call(
     """Apply the operator to a phase-space-time position.
 
     This method calls the method that operates on
-    ``AbstractPhaseSpacePositionBase`` by separating the time component from
+    ``AbstractPhaseSpaceTimePosition`` by separating the time component from
     the rest of the phase-space position.  Subclasses can implement that
     method to avoid having to implement for both phase-space-time and
     phase-space positions.  Alternatively, they can implement this method

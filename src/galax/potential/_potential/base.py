@@ -185,8 +185,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.potential_energy(w)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
@@ -194,8 +194,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         We can also compute the potential energy at multiple positions and times:
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.potential_energy(w)
         Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
@@ -462,8 +462,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.gradient(w)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
@@ -472,8 +472,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         We can also compute the potential energy at multiple positions and times:
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.gradient(w)
         Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
                                         [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
@@ -769,8 +769,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.laplacian(w)
         Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
@@ -778,8 +778,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         We can also compute the potential energy at multiple positions and times:
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.laplacian(w)
         Quantity['diffusivity'](Array([2.77555756e-17, 0.00000000e+00], dtype=float64),
                                  unit='kpc2 / Myr')
@@ -1056,8 +1056,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.density(w)
         Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
@@ -1065,8 +1065,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         We can also compute the density at multiple positions and times:
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.density(w)
         Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64), unit='solMass / kpc3')
 
@@ -1308,8 +1308,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.hessian(w)
         Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -1319,8 +1319,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         We can also compute the potential energy at multiple positions and times:
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.hessian(w)
         Array([[[ 0.06747463, -0.03680435, -0.05520652],
                 [-0.03680435,  0.01226812, -0.11041304],
@@ -1563,8 +1563,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.acceleration(w)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
@@ -1573,8 +1573,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         We can also compute the potential energy at multiple positions and times:
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.acceleration(w)
         Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
                                         [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
@@ -1888,7 +1888,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     ) -> "Orbit":
         """Compute an orbit in a potential.
 
-        :class:`~galax.coordinates.PhaseSpacePositionTime` includes a time in
+        :class:`~galax.coordinates.PhaseSpacePosition` includes a time in
         addition to the position (and velocity) information, enabling the orbit
         to be evaluated over a time range that is different from the initial
         time of the position. See the Examples section of
@@ -1908,11 +1908,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 The full phase-space position, including position, velocity, and
                 time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
                 integrated from ``t[0]`` to ``t[1]``, returning the orbit
-                calculated at `t`.
-            - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
-                The phase-space position. `w0` will be integrated from ``t[0]``
-                to ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning
-                the orbit calculated at `t`.
+                calculated at `t`. If ``w0.t`` is `None`, the initial time is
+                assumed to be ``t[0]``.
             - Array[float, (*batch, 6)]:
                 A :class:`~galax.coordinates.PhaseSpacePosition` will be
                 constructed, interpreting the array as the  'q', 'p' (each

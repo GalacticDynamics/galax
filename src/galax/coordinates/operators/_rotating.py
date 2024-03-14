@@ -77,11 +77,11 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
     We can apply the rotation to a position.
 
-    >>> pspt = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
-    ...                                  p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                                  t=Quantity(1, "Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
+    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=Quantity(1, "Gyr"))
 
-    >>> newpsp = op(pspt)
+    >>> newpsp = op(psp)
 
     For display purposes, we convert the resulting position to an Array.
 
@@ -90,7 +90,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
     This rotation is time dependent.
 
-    >>> psp2 = replace(pspt, t=Quantity(2, "Gyr"))
+    >>> psp2 = replace(psp, t=Quantity(2, "Gyr"))
     >>> convert(op(psp2).q, Quantity).value.round(2)
     Array([-1.,  0.,  0.], dtype=float64)
 
@@ -98,8 +98,8 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     :class:`~galax.corodinates.PhaseSpacePosition`.
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
-    ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                                 t=Quantity(1, "Gyr"))
+    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=Quantity(1, "Gyr"))
 
 
     >>> newpsp = op(psp)
@@ -264,8 +264,8 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
 
         >>> psp = PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
-        ...                              p=Quantity([0, 0, 0], "kpc/Gyr"),
-        ...                              t=Quantity(1, "Gyr"))
+        ...                          p=Quantity([0, 0, 0], "kpc/Gyr"),
+        ...                          t=Quantity(1, "Gyr"))
 
         >>> newpsp = op(psp)
         >>> convert(newpsp.q, Quantity).value.round(2)

@@ -105,7 +105,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     :class:`~vector.CartesianDifferential3D`, respectively.  For example,
 
     >>> psp2 = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                               p=Quantity([4, 5, 6], "m/s"), t=t)
+    ...                           p=Quantity([4, 5, 6], "m/s"), t=t)
     >>> psp2 == psp
     Array(True, dtype=bool)
 
@@ -185,8 +185,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         We can create a phase-space position and convert it to a 6-vector:
 
         >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                              p=Quantity([4, 5, 6], "km/s"),
-        ...                              t=Quantity(7.0, "Myr"))
+        ...                          p=Quantity([4, 5, 6], "km/s"),
+        ...                          t=Quantity(7.0, "Myr"))
         >>> psp.wt(units="galactic")
          Array([7.00000000e+00, 1.00000000e+00, 2.00000000e+00, 3.00000000e+00,
                 4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64)

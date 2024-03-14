@@ -57,7 +57,7 @@ def evaluate_orbit(
 ) -> Orbit:
     """Compute an orbit in a potential.
 
-    :class:`~galax.coordinates.PhaseSpacePositionTime` includes a time in
+    :class:`~galax.coordinates.PhaseSpacePosition` includes a time in
     addition to the position (and velocity) information, enabling the orbit to
     be evaluated over a time range that is different from the initial time of
     the position.
@@ -76,11 +76,7 @@ def evaluate_orbit(
             The full phase-space position, including position, velocity, and
             time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
             integrated from ``t[0]`` to ``t[1]``, returning the orbit calculated
-            at `t`.
-        - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
-            The phase-space position. `w0` will be integrated from ``t[0]`` to
-            ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning the
-            orbit calculated at `t`.
+            at `t`. If `w0.t` is `None`, it is assumed to be `t[0]`.
         - Array[float, (*batch, 6)]:
             A :class:`~galax.coordinates.PhaseSpacePosition` will be
             constructed, interpreting the array as the  'q', 'p' (each
@@ -128,8 +124,8 @@ def evaluate_orbit(
     get an orbit:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                                p=Quantity([0., 0.1, 0.], "km/s"),
-    ...                                t=Quantity(-100, "Myr"))
+    ...                            p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                            t=Quantity(-100, "Myr"))
     >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
     >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit
@@ -157,8 +153,8 @@ def evaluate_orbit(
     We can also integrate a batch of orbits at once:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
-    ...                                p=Quantity([[0, 0.1, 0], [0, 0.2, 0]], "km/s"),
-    ...                                t=Quantity([-100, -150], "Myr"))
+    ...                            p=Quantity([[0, 0.1, 0], [0, 0.2, 0]], "km/s"),
+    ...                            t=Quantity([-100, -150], "Myr"))
     >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -176,8 +172,8 @@ def evaluate_orbit(
     integrate from a different time than the initial time of the position:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                                p=Quantity([0., 0.1, 0.], "km/s"),
-    ...                                t=Quantity(0, "Myr"))
+    ...                            p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                            t=Quantity(0, "Myr"))
     >>> ts = xp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
     >>> orbit = evaluate_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
@@ -203,10 +199,8 @@ def evaluate_orbit(
 
     # Parse w0
     if isinstance(w0, PhaseSpacePosition):
-        if w0.t is None:  # TODO: warn?
-            psp0 = replace(w0, t=t[0])
-
-        psp0 = w0
+        # TODO: warn if w0.t is None?
+        psp0 = replace(w0, t=t[0]) if w0.t is None else w0
     else:
         psp0 = PhaseSpacePosition(
             q=Quantity(w0[..., 0:3], units["length"]),

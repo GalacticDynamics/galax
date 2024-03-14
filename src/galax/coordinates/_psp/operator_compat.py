@@ -57,8 +57,8 @@ def call(
     We can then apply the operator to a position:
 
     >>> pos = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                                 p=Quantity([4, 5, 6], "km/s"),
-    ...                                 t=Quantity(0.0, "Gyr"))
+    ...                             p=Quantity([4, 5, 6], "km/s"),
+    ...                             t=Quantity(0.0, "Gyr"))
     >>> pos
     PhaseSpacePosition(
         q=Cartesian3DVector( ... ),
@@ -116,8 +116,8 @@ def call(
     >>> op = cx.operators.GalileanSpatialTranslationOperator(shift)
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                                 t=Quantity(0, "Gyr"))
+    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=Quantity(0, "Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
@@ -166,8 +166,8 @@ def call(
     >>> op = cx.operators.GalileanTranslationOperator(Quantity([2_000, 1, 1, 1], "kpc"))
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                                 t=Quantity(0, "Gyr"))
+    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=Quantity(0, "Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
@@ -224,8 +224,8 @@ def call(
     >>> op = cx.operators.GalileanBoostOperator(Quantity([1, 1, 1], "kpc/Gyr"))
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                                 t=Quantity(1, "Gyr"))
+    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=Quantity(1, "Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
@@ -278,8 +278,8 @@ def call(
     >>> op = cx.operators.GalileanRotationOperator(Rz)
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "m"),
-    ...                                 p=Quantity([1, 0, 0], "m/s"),
-    ...                                 t=Quantity(1, "Gyr"))
+    ...                             p=Quantity([1, 0, 0], "m/s"),
+    ...                             t=Quantity(1, "Gyr"))
 
     >>> newpsp = op(psp)
 
@@ -332,12 +332,12 @@ def call(
     >>> op = cx.operators.IdentityOperator()
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                                 t=Quantity(0, "Gyr"))
+    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=Quantity(0, "Gyr"))
 
     >>> op(psp)
     PhaseSpacePosition( q=Cartesian3DVector( ... ),
-                            p=CartesianDifferential3D( ... ),
-                            t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+                        p=CartesianDifferential3D( ... ),
+                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
     """
     return x

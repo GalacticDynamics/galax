@@ -47,8 +47,8 @@ class PotentialFrame(AbstractPotentialBase):
 
     >>> t = Quantity(0, "Gyr")
     >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
-    ...                                p=Quantity([0, 1, 0], "km/s"),
-    ...                                t=t)
+    ...                            p=Quantity([0, 1, 0], "km/s"),
+    ...                            t=t)
 
     The triaxiality can be seen in the potential energy of the three positions:
 

@@ -209,8 +209,8 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         We can create a phase-space position and convert it to a 6-vector:
 
         >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                              p=Quantity([4, 5, 6], "km/s"),
-        ...                              t=Quantity(0, "Gyr"))
+        ...                          p=Quantity([4, 5, 6], "km/s"),
+        ...                          t=Quantity(0, "Gyr"))
         >>> psp.w(units="galactic")
         Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
         """
@@ -248,8 +248,8 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         We can create a phase-space position:
 
         >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-        ...                              p=Quantity([4, 5, 6], "m/s"),
-        ...                              t=Quantity(7.0, "s"))
+        ...                          p=Quantity([4, 5, 6], "m/s"),
+        ...                          t=Quantity(7.0, "s"))
         >>> psp.wt(units=gu.galactic)
         Array([2.21816615e-13, 3.24077929e-20, 6.48155858e-20, 9.72233787e-20,
                4.09084866e-06, 5.11356083e-06, 6.13627299e-06], dtype=float64)
@@ -285,8 +285,8 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         We can create a phase-space position and convert it to a 6-vector:
 
         >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                              p=Quantity([4, 5, 6], "km/s"),
-        ...                              t=Quantity(0, "Gyr"))
+        ...                          p=Quantity([4, 5, 6], "km/s"),
+        ...                          t=Quantity(0, "Gyr"))
         >>> psp.w(units="galactic")
         Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
 
@@ -295,8 +295,8 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         >>> from coordinax import CylindricalVector
         >>> psp.represent_as(CylindricalVector)
         PhaseSpacePosition( q=CylindricalVector(...),
-                                p=CylindricalDifferential(...),
-                                t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+                            p=CylindricalDifferential(...),
+                            t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
         """
         return cast("Self", vector_represent_as(self, target))
 

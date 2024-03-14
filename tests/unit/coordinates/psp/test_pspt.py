@@ -2,16 +2,14 @@
 
 import pytest
 
-from .test_base import AbstractPhaseSpaceTimePosition_Test
-from galax.coordinates import PhaseSpaceTimePosition
+from .test_base import AbstractPhaseSpacePosition_Test
+from galax.coordinates import PhaseSpacePosition
 
 
-class TestPhaseSpaceTimePosition(
-    AbstractPhaseSpaceTimePosition_Test[PhaseSpaceTimePosition]
-):
+class TestPhaseSpacePosition(AbstractPhaseSpacePosition_Test[PhaseSpacePosition]):
     """Test :class:`~galax.coordinates.PhaseSpacePosition`."""
 
     @pytest.fixture(scope="class")
-    def w_cls(self) -> type[PhaseSpaceTimePosition]:
+    def w_cls(self) -> type[PhaseSpacePosition]:
         """Return the class of a phase-space position."""
-        return PhaseSpaceTimePosition
+        return PhaseSpacePosition

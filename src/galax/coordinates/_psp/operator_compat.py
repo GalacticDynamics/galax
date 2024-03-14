@@ -21,7 +21,7 @@ from coordinax.operators import (
 from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
 
-from galax.coordinates._psp.base import AbstractPhaseSpaceTimePosition
+from galax.coordinates._psp.base import AbstractPhaseSpacePosition
 
 ######################################################################
 # Abstract Operators
@@ -30,13 +30,13 @@ from galax.coordinates._psp.base import AbstractPhaseSpaceTimePosition
 @op_call_dispatch
 def call(
     self: AbstractOperator,  # noqa: ARG001
-    x: AbstractPhaseSpaceTimePosition,  # noqa: ARG001
+    x: AbstractPhaseSpacePosition,  # noqa: ARG001
     /,
-) -> AbstractPhaseSpaceTimePosition:
+) -> AbstractPhaseSpacePosition:
     """Apply the operator to a phase-space-time position.
 
     This method calls the method that operates on
-    ``AbstractPhaseSpaceTimePosition`` by separating the time component from
+    ``AbstractPhaseSpacePosition`` by separating the time component from
     the rest of the phase-space position.  Subclasses can implement that
     method to avoid having to implement for both phase-space-time and
     phase-space positions.  Alternatively, they can implement this method
@@ -56,11 +56,11 @@ def call(
 
     We can then apply the operator to a position:
 
-    >>> pos = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+    >>> pos = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                                 p=Quantity([4, 5, 6], "km/s"),
     ...                                 t=Quantity(0.0, "Gyr"))
     >>> pos
-    PhaseSpaceTimePosition(
+    PhaseSpacePosition(
         q=Cartesian3DVector( ... ),
         p=CartesianDifferential3D( ... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
@@ -68,7 +68,7 @@ def call(
 
     >>> newpos = op(pos)
     >>> newpos
-    PhaseSpaceTimePosition(
+    PhaseSpacePosition(
         q=Cartesian3DVector( ... ),
         p=CartesianDifferential3D( ... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
@@ -87,8 +87,8 @@ def call(
 
 @op_call_dispatch
 def call(
-    self: AbstractCompositeOperator, x: AbstractPhaseSpaceTimePosition, /
-) -> AbstractPhaseSpaceTimePosition:
+    self: AbstractCompositeOperator, x: AbstractPhaseSpacePosition, /
+) -> AbstractPhaseSpacePosition:
     """Apply the operator to the coordinates."""
     for op in self.operators:
         x = op(x)
@@ -101,8 +101,8 @@ def call(
 
 @op_call_dispatch
 def call(
-    self: GalileanSpatialTranslationOperator, psp: AbstractPhaseSpaceTimePosition, /
-) -> AbstractPhaseSpaceTimePosition:
+    self: GalileanSpatialTranslationOperator, psp: AbstractPhaseSpacePosition, /
+) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
     Examples
@@ -115,7 +115,7 @@ def call(
     >>> shift = cx.Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
     >>> op = cx.operators.GalileanSpatialTranslationOperator(shift)
 
-    >>> psp = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
     ...                                 t=Quantity(0, "Gyr"))
 
@@ -152,8 +152,8 @@ def call(
 
 @op_call_dispatch
 def call(
-    self: GalileanTranslationOperator, psp: AbstractPhaseSpaceTimePosition, /
-) -> AbstractPhaseSpaceTimePosition:
+    self: GalileanTranslationOperator, psp: AbstractPhaseSpacePosition, /
+) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
     Examples
@@ -165,7 +165,7 @@ def call(
 
     >>> op = cx.operators.GalileanTranslationOperator(Quantity([2_000, 1, 1, 1], "kpc"))
 
-    >>> psp = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
     ...                                 t=Quantity(0, "Gyr"))
 
@@ -209,9 +209,9 @@ def call(
 @op_call_dispatch
 def call(
     self: GalileanBoostOperator,
-    psp: AbstractPhaseSpaceTimePosition,
+    psp: AbstractPhaseSpacePosition,
     /,
-) -> AbstractPhaseSpaceTimePosition:
+) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
     Examples
@@ -223,7 +223,7 @@ def call(
 
     >>> op = cx.operators.GalileanBoostOperator(Quantity([1, 1, 1], "kpc/Gyr"))
 
-    >>> psp = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
     ...                                 t=Quantity(1, "Gyr"))
 
@@ -260,8 +260,8 @@ vec_matmul = qnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)")
 
 @op_call_dispatch
 def call(
-    self: GalileanRotationOperator, psp: AbstractPhaseSpaceTimePosition, /
-) -> AbstractPhaseSpaceTimePosition:
+    self: GalileanRotationOperator, psp: AbstractPhaseSpacePosition, /
+) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
     Examples
@@ -277,7 +277,7 @@ def call(
     ...                  [0,             0,              1]])
     >>> op = cx.operators.GalileanRotationOperator(Rz)
 
-    >>> psp = gc.PhaseSpaceTimePosition(q=Quantity([1, 0, 0], "m"),
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "m"),
     ...                                 p=Quantity([1, 0, 0], "m/s"),
     ...                                 t=Quantity(1, "Gyr"))
 
@@ -316,9 +316,9 @@ def call(
 @op_call_dispatch(precedence=1)
 def call(
     self: IdentityOperator,  # noqa: ARG001
-    x: AbstractPhaseSpaceTimePosition,
+    x: AbstractPhaseSpacePosition,
     /,
-) -> AbstractPhaseSpaceTimePosition:
+) -> AbstractPhaseSpacePosition:
     """Apply the Identity operation.
 
     This is the identity operation, which does nothing to the input.
@@ -331,12 +331,12 @@ def call(
 
     >>> op = cx.operators.IdentityOperator()
 
-    >>> psp = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
     ...                                 t=Quantity(0, "Gyr"))
 
     >>> op(psp)
-    PhaseSpaceTimePosition( q=Cartesian3DVector( ... ),
+    PhaseSpacePosition( q=Cartesian3DVector( ... ),
                             p=CartesianDifferential3D( ... ),
                             t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
     """

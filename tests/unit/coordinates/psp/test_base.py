@@ -19,7 +19,7 @@ import quaxed.array_api as xp
 from coordinax import Cartesian3DVector, CartesianDifferential3D
 from unxt import Quantity
 
-from galax.coordinates import AbstractPhaseSpaceTimePosition
+from galax.coordinates import AbstractPhaseSpacePosition
 from galax.coordinates._psp.pspt import ComponentShapeTuple
 from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.potential import AbstractPotentialBase, KeplerPotential
@@ -29,10 +29,10 @@ from galax.units import galactic
 if TYPE_CHECKING:
     from pytest import FixtureRequest  # noqa: PT013
 
-from galax.coordinates import AbstractPhaseSpaceTimePosition
+from galax.coordinates import AbstractPhaseSpacePosition
 
 Shape: TypeAlias = tuple[int, ...]
-T = TypeVar("T", bound=AbstractPhaseSpaceTimePosition)
+T = TypeVar("T", bound=AbstractPhaseSpacePosition)
 
 potentials = [KeplerPotential(m=1e12 * u.Msun, units=galactic), MilkyWayPotential()]
 
@@ -44,7 +44,7 @@ def return_keys(num: int, key: Array | int = 0) -> Iterable[jr.PRNGKey]:
     return newkey, iter(subkeys)
 
 
-class AbstractPhaseSpaceTimePosition_Test(Generic[T], metaclass=ABCMeta):
+class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
     """Test :class:`~galax.coordinates.AbstractPhaseSpacePosition`."""
 
     @pytest.fixture(scope="class", params=[(10,), (5, 4)])
@@ -172,7 +172,7 @@ class AbstractPhaseSpaceTimePosition_Test(Generic[T], metaclass=ABCMeta):
         assert w.w(units=galactic).shape[:-1] == w.full_shape[:-1]
 
     def test_wt(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpaceTimePosition.wt`."""
+        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.wt`."""
         wt = w.wt(units=galactic)
         assert wt.shape == w.full_shape
         assert jnp.array_equal(wt[..., 0], w.t.decompose(galactic).value)
@@ -220,14 +220,14 @@ class AbstractPhaseSpaceTimePosition_Test(Generic[T], metaclass=ABCMeta):
 ##############################################################################
 
 
-class TestAbstractPhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition_Test[T]):
+class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
     """Test :class:`~galax.coordinates.AbstractPhaseSpacePosition`."""
 
     @pytest.fixture(scope="class")
     def w_cls(self) -> type[T]:
         """Return the class of a phase-space position."""
 
-        class PSP(AbstractPhaseSpaceTimePosition):
+        class PSP(AbstractPhaseSpacePosition):
             """A phase-space position."""
 
             q: Cartesian3DVector = eqx.field(converter=_q_converter)

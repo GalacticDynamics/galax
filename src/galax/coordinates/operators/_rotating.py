@@ -15,7 +15,7 @@ from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
 from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
 
-from galax.coordinates._psp.base import AbstractPhaseSpaceTimePosition
+from galax.coordinates._psp.base import AbstractPhaseSpacePosition
 
 
 def rot_z(
@@ -77,7 +77,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
     We can apply the rotation to a position.
 
-    >>> pspt = gc.PhaseSpaceTimePosition(q=Quantity([1, 0, 0], "kpc"),
+    >>> pspt = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
     ...                                  p=Quantity([0, 0, 0], "kpc/Gyr"),
     ...                                  t=Quantity(1, "Gyr"))
 
@@ -95,9 +95,9 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     Array([-1.,  0.,  0.], dtype=float64)
 
     We can also apply the rotation to a
-    :class:`~galax.corodinates.PhaseSpaceTimePosition`.
+    :class:`~galax.corodinates.PhaseSpacePosition`.
 
-    >>> psp = gc.PhaseSpaceTimePosition(q=Quantity([1, 0, 0], "kpc"),
+    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
     ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
     ...                                 t=Quantity(1, "Gyr"))
 
@@ -249,8 +249,8 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
     @op_call_dispatch
     def __call__(
-        self: "ConstantRotationZOperator", psp: AbstractPhaseSpaceTimePosition, /
-    ) -> AbstractPhaseSpaceTimePosition:
+        self: "ConstantRotationZOperator", psp: AbstractPhaseSpacePosition, /
+    ) -> AbstractPhaseSpacePosition:
         """Apply the translation to the coordinates.
 
         Examples
@@ -258,12 +258,12 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         >>> from dataclasses import replace
         >>> from plum import convert
         >>> from unxt import Quantity
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.coordinates.operators import ConstantRotationZOperator
 
         >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
 
-        >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 0, 0], "kpc"),
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
         ...                              p=Quantity([0, 0, 0], "kpc/Gyr"),
         ...                              t=Quantity(1, "Gyr"))
 

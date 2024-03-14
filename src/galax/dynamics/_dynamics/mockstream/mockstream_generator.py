@@ -18,7 +18,7 @@ from unxt import Quantity
 from .core import MockStream
 from .df import AbstractStreamDF
 from .utils import cond_reverse, interleave_concat
-from galax.coordinates import PhaseSpaceTimePosition
+from galax.coordinates import PhaseSpacePosition
 from galax.dynamics._dynamics.integrate._api import Integrator
 from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
 from galax.dynamics._dynamics.integrate._funcs import evaluate_orbit
@@ -134,11 +134,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         self,
         rng: jr.PRNG,
         ts: QVecTime,
-        prog_w0: PhaseSpaceTimePosition | Vec6,
+        prog_w0: PhaseSpacePosition | Vec6,
         prog_mass: FloatScalar,
         *,
         vmapped: bool | None = None,
-    ) -> tuple[MockStream, PhaseSpaceTimePosition]:
+    ) -> tuple[MockStream, PhaseSpacePosition]:
         """Generate mock stellar stream.
 
         Parameters
@@ -163,19 +163,19 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         -------
         mockstream : :class:`galax.dynamcis.MockStream`
             Leading and/or trailing arms of the mock stream.
-        prog_o : :class:`galax.coordinates.PhaseSpaceTimePosition`
+        prog_o : :class:`galax.coordinates.PhaseSpacePosition`
             The final phase-space(+time) position of the progenitor.
         """
         # TODO: ꜛ a discussion about the stripping times
         # Parse vmapped
         use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
 
-        # Ensure w0 is a PhaseSpaceTimePosition
-        if isinstance(prog_w0, PhaseSpaceTimePosition):
+        # Ensure w0 is a PhaseSpacePosition
+        if isinstance(prog_w0, PhaseSpacePosition):
             w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
         else:
             t0 = ts[0].to(self.potential.units["time"])
-            w0 = PhaseSpaceTimePosition(
+            w0 = PhaseSpacePosition(
                 q=Quantity(prog_w0[..., 0:3], self.units["length"]),
                 p=Quantity(prog_w0[..., 3:6], self.units["speed"]),
                 t=t0,

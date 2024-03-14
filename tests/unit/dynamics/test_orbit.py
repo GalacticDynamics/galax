@@ -11,11 +11,11 @@ import quaxed.array_api as xp
 from unxt import Quantity
 
 from ..coordinates.psp.test_base import (
-    AbstractPhaseSpaceTimePosition_Test,
+    AbstractPhaseSpacePosition_Test,
     Shape,
     return_keys,
 )
-from galax.coordinates import PhaseSpaceTimePosition
+from galax.coordinates import PhaseSpacePosition
 from galax.dynamics import Orbit
 from galax.potential import AbstractPotentialBase, MilkyWayPotential
 from galax.units import galactic
@@ -23,7 +23,7 @@ from galax.units import galactic
 T = TypeVar("T", bound=Orbit)
 
 
-class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
+class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
     """Test :class:`~galax.coordinates.PhaseSpacePosition`."""
 
     @pytest.fixture(scope="class")
@@ -57,7 +57,7 @@ class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
     def test_getitem_int(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         assert not isinstance(w[0], type(w))
-        assert w[0] == PhaseSpaceTimePosition(q=w.q[0], p=w.p[0], t=w.t[0])
+        assert w[0] == PhaseSpacePosition(q=w.q[0], p=w.p[0], t=w.t[0])
 
     def test_getitem_boolarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
@@ -76,7 +76,7 @@ class TestOrbit(AbstractPhaseSpaceTimePosition_Test[Orbit]):
     # ===============================================================
 
     def test_wt(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpaceTimePosition.wt`."""
+        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.wt`."""
         wt = w.wt(units=galactic)
         assert wt.shape == w.full_shape
         assert jnp.array_equal(

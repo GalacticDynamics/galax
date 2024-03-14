@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["PhaseSpaceTimePosition"]
+__all__ = ["PhaseSpacePosition"]
 
 from typing import Any, final
 
@@ -12,7 +12,7 @@ import quaxed.array_api as xp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential, Cartesian3DVector
 from unxt import Quantity
 
-from .base import AbstractPhaseSpaceTimePosition, ComponentShapeTuple
+from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
 from .utils import _p_converter, _q_converter
 from galax.typing import BatchVec7, BroadBatchFloatQScalar, QVec1
 from galax.units import unitsystem
@@ -20,7 +20,7 @@ from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_
 
 
 @final
-class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
+class PhaseSpacePosition(AbstractPhaseSpacePosition):
     r"""Phase-Space Position with time.
 
     The phase-space position is a point in the 7-dimensional phase space
@@ -55,7 +55,7 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
 
     >>> from unxt import Quantity
     >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-    >>> from galax.coordinates import PhaseSpaceTimePosition
+    >>> from galax.coordinates import PhaseSpacePosition
 
     We can create a phase-space position:
 
@@ -65,9 +65,9 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
     ...                             d_z=Quantity(6, "m/s"))
     >>> t = Quantity(7.0, "s")
 
-    >>> psp = PhaseSpaceTimePosition(q=q, p=p, t=t)
+    >>> psp = PhaseSpacePosition(q=q, p=p, t=t)
     >>> psp
-    PhaseSpaceTimePosition(
+    PhaseSpacePosition(
       q=Cartesian3DVector(
         x=Quantity[...](value=f64[], unit=Unit("m")),
         y=Quantity[...](value=f64[], unit=Unit("m")),
@@ -86,7 +86,7 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
     :class:`~vector.Cartesian3DVector` or
     :class:`~vector.CartesianDifferential3D`, respectively.  For example,
 
-    >>> psp2 = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "m"),
+    >>> psp2 = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
     ...                               p=Quantity([4, 5, 6], "m/s"), t=t)
     >>> psp2 == psp
     Array(True, dtype=bool)
@@ -157,11 +157,11 @@ class PhaseSpaceTimePosition(AbstractPhaseSpaceTimePosition):
         Assuming the following imports:
 
         >>> from unxt import Quantity
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position and convert it to a 6-vector:
 
-        >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                              p=Quantity([4, 5, 6], "km/s"),
         ...                              t=Quantity(7.0, "Myr"))
         >>> psp.wt(units="galactic")

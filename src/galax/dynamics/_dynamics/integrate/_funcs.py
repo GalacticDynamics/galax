@@ -16,7 +16,7 @@ from unxt import Quantity
 
 from ._api import Integrator
 from ._builtin import DiffraxIntegrator
-from galax.coordinates import PhaseSpaceTimePosition
+from galax.coordinates import PhaseSpacePosition
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import (
@@ -50,7 +50,7 @@ def _psp2t(
 @partial(jax.jit, static_argnames=("integrator",))
 def evaluate_orbit(
     pot: AbstractPotentialBase,
-    w0: PhaseSpaceTimePosition | BatchVec6,
+    w0: PhaseSpacePosition | BatchVec6,
     t: QVecTime | VecTime | APYQuantity,
     *,
     integrator: Integrator | None = None,
@@ -66,13 +66,13 @@ def evaluate_orbit(
     ----------
     pot : :class:`~galax.potential.AbstractPotentialBase`
         The potential in which to integrate the orbit.
-    w0 : PhaseSpaceTimePosition | Array[float, (*batch, 6)]
+    w0 : PhaseSpacePosition | Array[float, (*batch, 6)]
         The phase-space position (includes velocity and time) from which to
         integrate. Integration includes the time of the initial position, so be
         sure to set the initial time to the desired value. See the `t` argument
         for more details.
 
-        - :class:`~galax.dynamics.PhaseSpaceTimePosition`[float, (*batch,)]:
+        - :class:`~galax.dynamics.PhaseSpacePosition`[float, (*batch,)]:
             The full phase-space position, including position, velocity, and
             time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
             integrated from ``t[0]`` to ``t[1]``, returning the orbit calculated
@@ -127,7 +127,7 @@ def evaluate_orbit(
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
 
-    >>> w0 = gc.PhaseSpaceTimePosition(q=Quantity([10., 0., 0.], "kpc"),
+    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
     ...                                p=Quantity([0., 0.1, 0.], "km/s"),
     ...                                t=Quantity(-100, "Myr"))
     >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
@@ -156,7 +156,7 @@ def evaluate_orbit(
 
     We can also integrate a batch of orbits at once:
 
-    >>> w0 = gc.PhaseSpaceTimePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
+    >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
     ...                                p=Quantity([[0, 0.1, 0], [0, 0.2, 0]], "km/s"),
     ...                                t=Quantity([-100, -150], "Myr"))
     >>> orbit = evaluate_orbit(potential, w0, ts)
@@ -171,11 +171,11 @@ def evaluate_orbit(
       potential=KeplerPotential(...)
     )
 
-    :class:`~galax.dynamics.PhaseSpaceTimePosition` has a ``t`` argument for the
+    :class:`~galax.dynamics.PhaseSpacePosition` has a ``t`` argument for the
     time at which the position is given. As noted earlier, this can be used to
     integrate from a different time than the initial time of the position:
 
-    >>> w0 = gc.PhaseSpaceTimePosition(q=Quantity([10., 0., 0.], "kpc"),
+    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
     ...                                p=Quantity([0., 0.1, 0.], "km/s"),
     ...                                t=Quantity(0, "Myr"))
     >>> ts = xp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
@@ -202,10 +202,10 @@ def evaluate_orbit(
     t = Quantity.constructor(t, units["time"])
 
     # Parse w0
-    if isinstance(w0, PhaseSpaceTimePosition):
+    if isinstance(w0, PhaseSpacePosition):
         pspt0 = w0
     else:
-        pspt0 = PhaseSpaceTimePosition(
+        pspt0 = PhaseSpacePosition(
             q=Quantity(w0[..., 0:3], units["length"]),
             p=Quantity(w0[..., 3:6], units["speed"]),
             t=t[0],

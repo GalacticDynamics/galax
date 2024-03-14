@@ -5,9 +5,9 @@ __all__ = [
     # Modules
     "operators",
     # Phase-space positions
-    "AbstractPhaseSpaceTimePosition",
-    "PhaseSpaceTimePosition",
+    "AbstractPhaseSpacePosition",
+    "PhaseSpacePosition",
 ]
 
 from . import operators
-from ._psp import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
+from ._psp import AbstractPhaseSpacePosition, PhaseSpacePosition

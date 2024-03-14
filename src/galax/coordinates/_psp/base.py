@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["AbstractPhaseSpaceTimePosition"]
+__all__ = ["AbstractPhaseSpacePosition"]
 
 from abc import abstractmethod
 from dataclasses import replace
@@ -51,7 +51,7 @@ class ComponentShapeTuple(NamedTuple):
     """Shape of the time."""
 
 
-class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
+class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     r"""Abstract base class of phase-space positions.
 
     The phase-space position is a point in the 7-dimensional phase space
@@ -104,7 +104,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position:
 
@@ -114,7 +114,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                             d_y=Quantity(5, "km/s"),
         ...                             d_z=Quantity(6, "km/s"))
         >>> t = Quantity(0, "Gyr")
-        >>> pos = PhaseSpaceTimePosition(q=q, p=p, t=t)
+        >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
 
         We can access the shape of the position and velocity arrays:
 
@@ -125,7 +125,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> q = Cartesian3DVector(x=Quantity([1, 4], "kpc"), y=Quantity(2, "kpc"),
         ...                       z=Quantity(3, "kpc"))
-        >>> pos = PhaseSpaceTimePosition(q=q, p=p, t=t)
+        >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
         >>> pos.shape
         (2,)
         """
@@ -160,7 +160,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position:
 
@@ -170,7 +170,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                             d_y=Quantity(5, "km/s"),
         ...                             d_z=Quantity(6, "km/s"))
         >>> t = Quantity(0, "Gyr")
-        >>> pos = PhaseSpaceTimePosition(q=q, p=p, t=t)
+        >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
         >>> pos.full_shape
         (1, 7)
         """
@@ -197,18 +197,18 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
         w : Array[float, (*batch, Q + P)]
             The phase-space position as a 6-vector in Cartesian coordinates.
             This will have shape
-            :attr:`AbstractPhaseSpaceTimePosition.full_shape`.
+            :attr:`AbstractPhaseSpacePosition.full_shape`.
 
         Examples
         --------
         Assuming the following imports:
 
         >>> from unxt import Quantity
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position and convert it to a 6-vector:
 
-        >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                              p=Quantity([4, 5, 6], "km/s"),
         ...                              t=Quantity(0, "Gyr"))
         >>> psp.w(units="galactic")
@@ -242,12 +242,12 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
         >>> import galax.units as gu
 
         We can create a phase-space position:
 
-        >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "m"),
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
         ...                              p=Quantity([4, 5, 6], "m/s"),
         ...                              t=Quantity(7.0, "s"))
         >>> psp.wt(units=gu.galactic)
@@ -272,7 +272,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
         Returns
         -------
-        w : :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
+        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
             The phase-space position with the components transformed.
 
         Examples
@@ -280,11 +280,11 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
         With the following imports:
 
         >>> from unxt import Quantity
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position and convert it to a 6-vector:
 
-        >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                              p=Quantity([4, 5, 6], "km/s"),
         ...                              t=Quantity(0, "Gyr"))
         >>> psp.w(units="galactic")
@@ -294,7 +294,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> from coordinax import CylindricalVector
         >>> psp.represent_as(CylindricalVector)
-        PhaseSpaceTimePosition( q=CylindricalVector(...),
+        PhaseSpacePosition( q=CylindricalVector(...),
                                 p=CylindricalDifferential(...),
                                 t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
         """
@@ -323,7 +323,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
 
         We can construct a phase-space position:
 
@@ -336,7 +336,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
         >>> t = Quantity(0, "Gyr")
-        >>> w = PhaseSpaceTimePosition(q, p, t=t)
+        >>> w = PhaseSpacePosition(q, p, t=t)
 
         We can compute the kinetic energy:
 
@@ -371,7 +371,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.potential import MilkyWayPotential
 
         We can construct a phase-space position:
@@ -384,7 +384,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
-        >>> w = PhaseSpaceTimePosition(q, p, t=Quantity(0, "Myr"))
+        >>> w = PhaseSpacePosition(q, p, t=Quantity(0, "Myr"))
 
         We can compute the kinetic energy:
 
@@ -420,7 +420,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> from unxt import Quantity
         >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.potential import MilkyWayPotential
 
         We can construct a phase-space position:
@@ -433,7 +433,7 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
-        >>> w = PhaseSpaceTimePosition(q, p, t=Quantity(0, "Myr"))
+        >>> w = PhaseSpacePosition(q, p, t=Quantity(0, "Myr"))
 
         We can compute the kinetic energy:
 
@@ -465,14 +465,14 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports
 
         >>> from unxt import Quantity
-        >>> from galax.coordinates import PhaseSpaceTimePosition
+        >>> from galax.coordinates import PhaseSpacePosition
 
         We can compute the angular momentum of a single object
 
         >>> q = Quantity([1., 0, 0], "au")
         >>> p = Quantity([0, 2., 0], "au/yr")
         >>> t = Quantity(0, "yr")
-        >>> w = PhaseSpaceTimePosition(q=q, p=p, t=t)
+        >>> w = PhaseSpacePosition(q=q, p=p, t=t)
         >>> w.angular_momentum()
         Quantity[...](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
         """
@@ -490,8 +490,8 @@ class AbstractPhaseSpaceTimePosition(eqx.Module, strict=True):  # type: ignore[c
 
 @dispatch  # type: ignore[misc]
 def represent_as(
-    current: AbstractPhaseSpaceTimePosition, target: type[AbstractVectorBase]
-) -> AbstractPhaseSpaceTimePosition:
+    current: AbstractPhaseSpacePosition, target: type[AbstractVectorBase]
+) -> AbstractPhaseSpacePosition:
     """Return with the components transformed."""
     return replace(
         current,

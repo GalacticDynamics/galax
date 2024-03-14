@@ -203,9 +203,12 @@ def evaluate_orbit(
 
     # Parse w0
     if isinstance(w0, PhaseSpacePosition):
-        pspt0 = w0
+        if w0.t is None:  # TODO: warn?
+            psp0 = replace(w0, t=t[0])
+
+        psp0 = w0
     else:
-        pspt0 = PhaseSpacePosition(
+        psp0 = PhaseSpacePosition(
             q=Quantity(w0[..., 0:3], units["length"]),
             p=Quantity(w0[..., 3:6], units["speed"]),
             t=t[0],
@@ -216,12 +219,12 @@ def evaluate_orbit(
     # handle this case separately.
     # TODO: make _select_w0 work on PSPTs
     qp0 = _select_w0(
-        pspt0.t == t[0],
-        pspt0.w(units=units),  # don't integrate if already at the desired time
+        psp0.t == t[0],
+        psp0.w(units=units),  # don't integrate if already at the desired time
         integrator(
             pot._integrator_F,  # noqa: SLF001
-            pspt0,
-            _psp2t(pspt0.t, t[0]),
+            psp0,
+            _psp2t(psp0.t, t[0]),
             units=units,
         ).w(units=units)[..., -1, :],
     )

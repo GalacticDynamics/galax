@@ -2,7 +2,7 @@
 
 __all__ = ["PhaseSpacePosition"]
 
-from typing import Any, final
+from typing import Any, NamedTuple, final
 
 import equinox as eqx
 import jax.numpy as jnp
@@ -12,11 +12,29 @@ import quaxed.array_api as xp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential, Cartesian3DVector
 from unxt import Quantity
 
-from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
+from .base import AbstractPhaseSpacePosition
 from .utils import _p_converter, _q_converter
 from galax.typing import BatchVec7, BroadBatchFloatQScalar, QVec1
 from galax.units import unitsystem
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
+
+
+class ComponentShapeTuple(NamedTuple):
+    """Component shape of the phase-space position."""
+
+    q: int
+    """Shape of the position."""
+
+    p: int
+    """Shape of the momentum."""
+
+    t: int | None
+    """Shape of the time."""
+
+
+def converter_t(x: Any) -> BroadBatchFloatQScalar | QVec1 | None:
+    """Convert `t` to Quantity."""
+    return Quantity["time"].constructor(x) if x is not None else None
 
 
 @final
@@ -42,7 +60,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         differential, e.g.  :class:`~vector.SphericalDifferential`, or any input
         that can be used to make a :class:`~vector.CartesianDifferential3D` via
         :meth:`vector.CartesianDifferential3D.constructor`.
-    t : Quantity[float, (*batch,), 'time']
+    t : Quantity[float, (*batch,), 'time'] | None
         The time corresponding to the positions.
 
     Notes
@@ -105,8 +123,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: BroadBatchFloatQScalar | QVec1 = eqx.field(
-        converter=Quantity["time"].constructor
+    t: BroadBatchFloatQScalar | QVec1 | None = eqx.field(
+        default=None, converter=converter_t
     )
     """The time corresponding to the positions.
 
@@ -118,7 +136,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     def __post_init__(self) -> None:
         """Post-initialization."""
         # Need to ensure t shape is correct. Can be Vec0.
-        if self.t.ndim in (0, 1):
+        if self.t is not None and self.t.ndim in (0, 1):
             t = expand_batch_dims(self.t, ndim=self.q.ndim - self.t.ndim)
             object.__setattr__(self, "t", t)
 
@@ -130,9 +148,14 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
-        tbatch, _ = batched_shape(self.t, expect_ndim=0)
+        tbatch: tuple[int, ...]
+        if self.t is None:
+            tbatch, tshape = (), None
+        else:
+            tbatch, _ = batched_shape(self.t, expect_ndim=0)
+            tshape = 1
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
-        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
+        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=tshape)
 
     # ==========================================================================
     # Convenience methods
@@ -168,10 +191,14 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
          Array([7.00000000e+00, 1.00000000e+00, 2.00000000e+00, 3.00000000e+00,
                 4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64)
         """
+        t = eqx.error_if(
+            self.t, self.t is None, "No time defined for phase-space position"
+        )
+
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
         cart = self.represent_as(Cartesian3DVector)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
-        t = xp.broadcast_to(self.t.decompose(usys).value[..., None], (*batch, comps.t))
+        t = xp.broadcast_to(t.decompose(usys).value[..., None], (*batch, comps.t))
         return xp.concat((t, q.decompose(usys).value, p.decompose(usys).value), axis=-1)

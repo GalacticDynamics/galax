@@ -23,9 +23,7 @@ from coordinax import Abstract3DVector, FourVector
 from unxt import Quantity
 
 from .utils import _convert_from_3dvec, convert_input_to_array, convert_inputs_to_arrays
-from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
-from galax.coordinates._psp.psp import AbstractPhaseSpacePosition
-from galax.coordinates._psp.pspt import AbstractPhaseSpaceTimePosition
+from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.typing import (
@@ -60,8 +58,7 @@ if TYPE_CHECKING:
 
 
 PositionalLike: TypeAlias = (
-    AbstractPhaseSpacePosition
-    | Abstract3DVector
+    Abstract3DVector
     | Shaped[Quantity["length"], "*#batch 3"]
     | Shaped[Array, "*#batch 3"]
 )
@@ -157,14 +154,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def potential_energy(
         self: "AbstractPotentialBase",
-        pspt: AbstractPhaseSpaceTimePosition | FourVector,
+        pspt: AbstractPhaseSpacePosition | FourVector,
         /,
     ) -> Quantity["specific energy"]:  # TODO: shape hint
         """Compute the potential energy at the given position(s).
 
         Parameters
         ----------
-        pspt : :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
+        pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
             The phase-space + time position to compute the value of the
             potential.
 
@@ -187,23 +184,23 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.potential_energy(w)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
         We can also compute the potential energy at multiple positions and times:
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.potential_energy(w)
         Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
         Instead of passing a
-        :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`,
+        :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
         we can instead pass a :class:`~vector.FourVector`:
 
         >>> from coordinax import FourVector
@@ -435,14 +432,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def gradient(
         self: "AbstractPotentialBase",
-        pspt: AbstractPhaseSpaceTimePosition | FourVector,
+        pspt: AbstractPhaseSpacePosition | FourVector,
         /,
     ) -> Quantity["acceleration"]:  # TODO: shape hint
         """Compute the gradient of the potential at the given position(s).
 
         Parameters
         ----------
-        pspt : :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
+        pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
             The phase-space + time position to compute the gradient.
 
         Returns
@@ -464,9 +461,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.gradient(w)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
@@ -474,16 +471,16 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         We can also compute the potential energy at multiple positions and times:
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.gradient(w)
         Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
                                         [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
 
         Instead of passing a
-        :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`,
+        :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
         we can instead pass a :class:`~vector.FourVector`:
 
         >>> from coordinax import FourVector
@@ -742,14 +739,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def laplacian(
         self: "AbstractPotentialBase",
-        pspt: AbstractPhaseSpaceTimePosition | FourVector,
+        pspt: AbstractPhaseSpacePosition | FourVector,
         /,
     ) -> Quantity["kinematic viscosity"]:  # TODO: shape hint
         """Compute the laplacian of the potential at the given position(s).
 
         Parameters
         ----------
-        pspt : :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
+        pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
             The phase-space + time position to compute the laplacian.
 
         Returns
@@ -771,24 +768,24 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.laplacian(w)
         Quantity['diffusivity'](Array(2.77555756e-17, dtype=float64), unit='kpc2 / Myr')
 
         We can also compute the potential energy at multiple positions and times:
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.laplacian(w)
         Quantity['diffusivity'](Array([2.77555756e-17, 0.00000000e+00], dtype=float64),
                                  unit='kpc2 / Myr')
 
         Instead of passing a
-        :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`,
+        :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
         we can instead pass a :class:`~vector.FourVector`:
 
         >>> from coordinax import FourVector
@@ -1029,14 +1026,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def density(
         self: "AbstractPotentialBase",
-        pspt: AbstractPhaseSpaceTimePosition | FourVector,
+        pspt: AbstractPhaseSpacePosition | FourVector,
         /,
     ) -> Quantity["mass density"]:  # TODO: shape hint
         """Compute the density at the given position(s).
 
         Parameters
         ----------
-        pspt : :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
+        pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
             The phase-space + time position to compute the density.
 
         Returns
@@ -1058,23 +1055,23 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.density(w)
         Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
 
         We can also compute the density at multiple positions and times:
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.density(w)
         Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64), unit='solMass / kpc3')
 
         Instead of passing a
-        :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`,
+        :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
         we can instead pass a :class:`~vector.FourVector`:
 
         >>> from coordinax import FourVector
@@ -1280,14 +1277,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def hessian(
         self: "AbstractPotentialBase",
-        pspt: AbstractPhaseSpaceTimePosition | FourVector,
+        pspt: AbstractPhaseSpacePosition | FourVector,
         /,
     ) -> BatchMatrix33:  # TODO: shape hint
         """Compute the hessian of the potential at the given position(s).
 
         Parameters
         ----------
-        pspt : :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
+        pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
             The phase-space + time position to compute the hessian of the
             potential.
 
@@ -1310,9 +1307,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.hessian(w)
         Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -1321,9 +1318,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         We can also compute the potential energy at multiple positions and times:
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.hessian(w)
         Array([[[ 0.06747463, -0.03680435, -0.05520652],
                 [-0.03680435,  0.01226812, -0.11041304],
@@ -1333,7 +1330,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64)
 
         Instead of passing a
-        :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`,
+        :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
         we can instead pass a :class:`~vector.FourVector`:
 
         >>> from coordinax import FourVector
@@ -1536,14 +1533,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def acceleration(
         self: "AbstractPotentialBase",
-        pspt: AbstractPhaseSpaceTimePosition | FourVector,
+        pspt: AbstractPhaseSpacePosition | FourVector,
         /,
     ) -> Quantity["acceleration"]:  # TODO: shape hint
         """Compute the acceleration due to the potential at the given position(s).
 
         Parameters
         ----------
-        pspt : :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`
+        pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
             The phase-space + time position to compute the acceleration.
 
         Returns
@@ -1565,9 +1562,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                               p=Quantity([4, 5, 6], "km/s"),
-        ...                               t=Quantity(0, "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
 
         >>> pot.acceleration(w)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
@@ -1575,16 +1572,16 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         We can also compute the potential energy at multiple positions and times:
 
-        >>> w = gc.PhaseSpaceTimePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-        ...                               p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-        ...                               t=Quantity([0, 1], "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+        ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+        ...                           t=Quantity([0, 1], "Gyr"))
         >>> pot.acceleration(w)
         Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
                                         [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
 
         Instead of passing a
-        :class:`~galax.coordinates.AbstractPhaseSpaceTimePosition`,
+        :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
         we can instead pass a :class:`~vector.FourVector`:
 
         >>> from coordinax import FourVector
@@ -1882,93 +1879,16 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """Return the derivative of the phase-space position."""
         return jnp.hstack([w[3:6], self.acceleration(w[0:3], t).value])  # v, a
 
-    # @partial(jax.jit, static_argnames=("integrator",))
-    def integrate_orbit(
-        self,
-        w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
-        t: QVecTime | VecTime | APYQuantity,
-        *,
-        integrator: "Integrator | None" = None,
-    ) -> "Orbit":
-        """Integrate an orbit in the potential, from `w0` at time ``t[0]``.
-
-        See :func:`~galax.dynamics.integrate_orbit` for more details and
-        examples. If you want to use a time-aware orbit calculator see
-        :meth:`~galax.potential.AbstractPotentialBase.evaluate_orbit`.
-
-        Parameters
-        ----------
-        w0 : PhaseSpacePosition | Array[float, (*batch, 6)]
-            The phase-space position (includes velocity) from which to
-            integrate.
-
-            - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
-                The phase-space position. `w0` will be integrated from ``t[0]``
-                to ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning
-                the orbit calculated at `t`.
-            - :class:`~galax.coordinates.PhaseSpaceTimePosition`:
-                The phase-space position, including a time. The time will be
-                ignored and the orbit will be integrated from ``t[0]`` to
-                ``t[1]``, returning the orbit calculated at `t`. Note: this will
-                raise a warning.
-            - Array[float, (*batch, 6)]:
-                A :class:`~galax.coordinates.PhaseSpacePosition` will be
-                constructed, interpreting the array as the  'q', 'p' (each
-                Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
-
-        t: Quantity[float, (time,)]
-            Array of times at which to compute the orbit. The first element
-            should be the initial time and the last element should be the final
-            time and the array should be monotonically moving from the first to
-            final time.  See the Examples section for options when constructing
-            this argument.
-
-            .. warning::
-
-                This is NOT the timesteps to use for integration, which are
-                controlled by the `integrator`; the default integrator
-                :class:`~galax.integrator.DiffraxIntegrator` uses adaptive
-                timesteps.
-
-        integrator : AbstractIntegrator | None, keyword-only
-            Integrator to use. If `None`, the default integrator
-            :class:`~galax.integrator.DiffraxIntegrator` is used.
-
-        Returns
-        -------
-        orbit : Orbit
-            The integrated orbit evaluated at the given times.
-
-        See Also
-        --------
-        :meth:`~galax.potential.AbstractPotentialBase.evaluate_orbit`
-            A higher-level function that computes the orbit using time
-            information from `w0`.
-        galax.dynamics.evaluate_orbit
-            The function which
-            :meth:`~galax.potential.AbstractPotentialBase.evaluate_orbit` calls.
-        galax.dynamics.integrate_orbit
-            The function for which this method is a wrapper. It has more details
-            and examples.
-        """
-        from galax.dynamics import integrate_orbit
-
-        return cast("Orbit", integrate_orbit(self, w0, t, integrator=integrator))
-
     def evaluate_orbit(
         self,
-        w0: PhaseSpacePosition | PhaseSpaceTimePosition | BatchVec6,
+        w0: PhaseSpacePosition | BatchVec6,
         t: QVecTime | VecTime | APYQuantity,  # TODO: must be a Quantity
         *,
         integrator: "Integrator | None" = None,
     ) -> "Orbit":
         """Compute an orbit in a potential.
 
-        This method is similar to
-        :meth:`~galax.potential.AbstractPotentialBase.integrate_orbit`, but can
-        behave differently when ``w0`` is a
-        :class:`~galax.coordinates.PhaseSpacePositionTime`.
-        :class:`~galax.coordinates.PhaseSpacePositionTime` includes a time in
+        :class:`~galax.coordinates.PhaseSpacePosition` includes a time in
         addition to the position (and velocity) information, enabling the orbit
         to be evaluated over a time range that is different from the initial
         time of the position. See the Examples section of
@@ -1978,7 +1898,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ----------
         pot : :class:`~galax.potential.AbstractPotentialBase`
             The potential in which to compute the orbit.
-        w0 : PhaseSpaceTimePosition
+        w0 : PhaseSpacePosition
             The phase-space position (includes velocity and time) from which to
             integrate. Integration includes the time of the initial position, so
             be sure to set the initial time to the desired value. See the `t`
@@ -1988,11 +1908,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 The full phase-space position, including position, velocity, and
                 time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
                 integrated from ``t[0]`` to ``t[1]``, returning the orbit
-                calculated at `t`.
-            - :class:`~galax.coordinates.PhaseSpacePosition`[float, (*batch,)]:
-                The phase-space position. `w0` will be integrated from ``t[0]``
-                to ``t[1]`` assuming that `w0` is defined at ``t[0]``, returning
-                the orbit calculated at `t`.
+                calculated at `t`. If ``w0.t`` is `None`, the initial time is
+                assumed to be ``t[0]``.
             - Array[float, (*batch, 6)]:
                 A :class:`~galax.coordinates.PhaseSpacePosition` will be
                 constructed, interpreting the array as the  'q', 'p' (each

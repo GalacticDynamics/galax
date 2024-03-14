@@ -9,7 +9,6 @@ __all__ = [
     "AbstractOrbit",
     "Orbit",
     # integrate
-    "integrate_orbit",
     "evaluate_orbit",
     # mockstream
     "MockStream",
@@ -21,7 +20,7 @@ __all__ = [
 
 from ._dynamics import integrate, mockstream
 from ._dynamics.base import AbstractOrbit
-from ._dynamics.integrate._funcs import evaluate_orbit, integrate_orbit
+from ._dynamics.integrate._funcs import evaluate_orbit
 from ._dynamics.mockstream import MockStream, MockStreamGenerator
 from ._dynamics.mockstream.df import AbstractStreamDF, FardalStreamDF
 from ._dynamics.orbit import Orbit

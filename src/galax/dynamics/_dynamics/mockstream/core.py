@@ -11,8 +11,8 @@ import jax.numpy as jnp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
-from galax.coordinates import AbstractPhaseSpaceTimePosition
-from galax.coordinates._psp.pspt import ComponentShapeTuple
+from galax.coordinates import AbstractPhaseSpacePosition
+from galax.coordinates._psp.base import ComponentShapeTuple
 from galax.coordinates._psp.utils import (
     _p_converter,
     _q_converter,
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 @final
-class MockStream(AbstractPhaseSpaceTimePosition):
+class MockStream(AbstractPhaseSpacePosition):
     """Mock stream object.
 
     Parameters

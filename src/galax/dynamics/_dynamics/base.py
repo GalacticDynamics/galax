@@ -11,8 +11,8 @@ import jax.numpy as jnp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
-from galax.coordinates import AbstractPhaseSpaceTimePosition, PhaseSpaceTimePosition
-from galax.coordinates._psp.pspt import ComponentShapeTuple
+from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
+from galax.coordinates._psp.base import ComponentShapeTuple
 from galax.coordinates._psp.utils import (
     Shaped,
     _p_converter,
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from typing import Self
 
 
-class AbstractOrbit(AbstractPhaseSpaceTimePosition):
+class AbstractOrbit(AbstractPhaseSpacePosition):
     """Represents an orbit.
 
     An orbit is a set of ositions and velocities (conjugate momenta) as a
@@ -63,18 +63,16 @@ class AbstractOrbit(AbstractPhaseSpaceTimePosition):
         return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
 
     @overload
-    def __getitem__(self, index: int) -> PhaseSpaceTimePosition: ...
+    def __getitem__(self, index: int) -> PhaseSpacePosition: ...
 
     @overload
     def __getitem__(self, index: slice | Shaped | tuple[Any, ...]) -> "Self": ...
 
-    def __getitem__(self, index: Any) -> "Self | PhaseSpaceTimePosition":
+    def __getitem__(self, index: Any) -> "Self | PhaseSpacePosition":
         """Return a new object with the given slice applied."""
-        # TODO: return an OrbitSnapshot (or similar) instead of PhaseSpaceTimePosition?
+        # TODO: return an OrbitSnapshot (or similar) instead of PhaseSpacePosition?
         if isinstance(index, int):
-            return PhaseSpaceTimePosition(
-                q=self.q[index], p=self.p[index], t=self.t[index]
-            )
+            return PhaseSpacePosition(q=self.q[index], p=self.p[index], t=self.t[index])
 
         if isinstance(index, Shaped):
             msg = "Shaped indexing not yet implemented."

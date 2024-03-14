@@ -5,28 +5,36 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeAlias, TypeVar
 
+import astropy.units as u
 import equinox as eqx
+import jax.numpy as jnp
 import jax.random as jr
 import pytest
 from jaxtyping import Array
+from plum import convert
 
 import quaxed.array_api as xp
 from coordinax import Cartesian3DVector, CartesianDifferential3D
 from unxt import Quantity
 
+from galax.coordinates import AbstractPhaseSpacePosition
 from galax.coordinates._psp.psp import ComponentShapeTuple
 from galax.coordinates._psp.utils import _p_converter, _q_converter
+from galax.potential import AbstractPotentialBase, KeplerPotential
+from galax.potential._potential.special import MilkyWayPotential
 from galax.units import galactic
 
 if TYPE_CHECKING:
     from pytest import FixtureRequest  # noqa: PT013
 
-from galax.coordinates import AbstractPhaseSpacePositionBase
+from galax.coordinates import AbstractPhaseSpacePosition
 
 Shape: TypeAlias = tuple[int, ...]
-T = TypeVar("T", bound=AbstractPhaseSpacePositionBase)
+T = TypeVar("T", bound=AbstractPhaseSpacePosition)
+
+potentials = [KeplerPotential(m=1e12 * u.Msun, units=galactic), MilkyWayPotential()]
 
 
 def return_keys(num: int, key: Array | int = 0) -> Iterable[jr.PRNGKey]:
@@ -36,7 +44,7 @@ def return_keys(num: int, key: Array | int = 0) -> Iterable[jr.PRNGKey]:
     return newkey, iter(subkeys)
 
 
-class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
+class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
     """Test :class:`~galax.coordinates.AbstractPhaseSpacePosition`."""
 
     @pytest.fixture(scope="class", params=[(10,), (5, 4)])
@@ -50,10 +58,14 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
         """Return the class of a phase-space position."""
         raise NotImplementedError
 
-    @abstractmethod
     def make_w(self, w_cls: type[T], shape: Shape) -> T:
         """Return a phase-space position."""
-        raise NotImplementedError
+        _, subkeys = return_keys(3)
+
+        q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
+        p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
+        t = Quantity(jr.normal(next(subkeys), shape), "Myr")
+        return w_cls(q=q, p=p, t=t)
 
     @pytest.fixture(scope="class")
     def w(self, w_cls: type[T], shape: Shape) -> T:
@@ -115,23 +127,26 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
 
     def test_getitem_int(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        assert w[0] == replace(w, q=w.q[0], p=w.p[0])
+        assert w[0] == replace(w, q=w.q[0], p=w.p[0], t=w.t[0])
 
     def test_getitem_slice(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        assert w[:5] == replace(w, q=w.q[:5], p=w.p[:5])
+        assert w[:5] == replace(w, q=w.q[:5], p=w.p[:5], t=w.t[:5])
 
     def test_getitem_boolarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         idx = xp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
-        assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx])
+        assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx])
 
     def test_getitem_intarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         idx = xp.asarray([0, 2, 1])
-        assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx])
+        assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx])
+
+    # TODO: further tests for getitem
+    # def test_getitem()
 
     # ==========================================================================
 
@@ -156,6 +171,18 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
         # units are not None
         assert w.w(units=galactic).shape[:-1] == w.full_shape[:-1]
 
+    def test_wt(self, w: T) -> None:
+        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.wt`."""
+        wt = w.wt(units=galactic)
+        assert wt.shape == w.full_shape
+        assert jnp.array_equal(wt[..., 0], w.t.decompose(galactic).value)
+        assert jnp.array_equal(
+            wt[..., 1:4], convert(w.q, Quantity).decompose(galactic).value
+        )
+        assert jnp.array_equal(
+            wt[..., 4:7], convert(w.p, Quantity).decompose(galactic).value
+        )
+
     # ==========================================================================
     # Dynamical properties
 
@@ -165,6 +192,23 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
         assert ke.shape == w.shape  # confirm relation to shape and components
         assert xp.all(ke >= Quantity(0, "km2/s2"))
         # TODO: more tests
+
+    @pytest.mark.parametrize("potential", potentials)
+    def potential_energy(self, w: T, potential: AbstractPotentialBase) -> None:
+        """Test method ``potential_energy``."""
+        pe = w.potential_energy(potential)
+        assert pe.shape == w.shape  # confirm relation to shape and components
+        assert xp.all(pe <= 0)
+        # definitional
+        assert jnp.array_equal(pe, potential.potential_energy(w.q))
+
+    @pytest.mark.parametrize("potential", potentials)
+    def energy(self, w: T, potential: AbstractPotentialBase) -> None:
+        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.energy`."""
+        pe = w.energy(potential)
+        assert pe.shape == w.shape  # confirm relation to shape and components
+        # definitional
+        assert jnp.array_equal(pe, w.kinetic_energy() + potential.potential_energy(w.q))
 
     def test_angular_momentum(self, w: T) -> None:
         """Test method ``angular_momentum``."""
@@ -176,39 +220,53 @@ class AbstractPhaseSpacePositionBase_Test(Generic[T], metaclass=ABCMeta):
 ##############################################################################
 
 
-class TestAbstractPhaseSpacePositionBase(AbstractPhaseSpacePositionBase_Test[T]):
+class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
     """Test :class:`~galax.coordinates.AbstractPhaseSpacePosition`."""
 
     @pytest.fixture(scope="class")
     def w_cls(self) -> type[T]:
         """Return the class of a phase-space position."""
 
-        class PSP(AbstractPhaseSpacePositionBase):
+        class PSP(AbstractPhaseSpacePosition):
             """A phase-space position."""
 
             q: Cartesian3DVector = eqx.field(converter=_q_converter)
             p: CartesianDifferential3D = eqx.field(converter=_p_converter)
+            t: Quantity["time"]
 
             @property
             def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
-                return self.q.shape, ComponentShapeTuple(p=3, q=3)
+                return self.q.shape, ComponentShapeTuple(p=3, q=3, t=1)
 
             def __getitem__(self, index: Any) -> Self:
-                return replace(self, q=self.q[index], p=self.p[index])
+                return replace(self, q=self.q[index], p=self.p[index], t=self.t[index])
+
+            def wt(self, *, units: UnitSystem | None = None) -> BatchVec7:
+                """Phase-space position as an Array[float, (*batch, Q + P + 1)].
+
+                This is the full phase-space position, including the time.
+
+                Parameters
+                ----------
+                units : `galax.units.UnitSystem`, optional keyword-only
+                    The unit system If ``None``, use the current unit system.
+
+                Returns
+                -------
+                wt : Array[float, (*batch, 1+Q+P)]
+                    The full phase-space position, including time.
+                """
+                batch, comps = self._shape_tuple
+                cart = self.represent_as(Cartesian3DVector)
+                q = xp.broadcast_to(
+                    convert(cart.q, Quantity).decompose(units).value, (*batch, comps.q)
+                )
+                p = xp.broadcast_to(
+                    convert(cart.p, Quantity).decompose(units).value, (*batch, comps.p)
+                )
+                t = xp.broadcast_to(
+                    self.t.decompose(units).value[..., None], (*batch, comps.t)
+                )
+                return xp.concat((t, q, p), axis=-1)
 
         return PSP
-
-    def make_w(self, w_cls: type[T], shape: Shape) -> T:
-        """Return a phase-space position."""
-        _, subkeys = return_keys(2)
-
-        q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
-        p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
-        return w_cls(q, p)
-
-    # ===============================================================
-
-    def test_getitem_int(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        # Check existence
-        assert w[0] == replace(w, q=w.q[0], p=w.p[0])

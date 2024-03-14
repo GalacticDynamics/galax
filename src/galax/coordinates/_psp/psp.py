@@ -1,27 +1,22 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["AbstractPhaseSpacePosition", "PhaseSpacePosition"]
+__all__ = ["PhaseSpacePosition"]
 
-from dataclasses import replace
-from functools import partial
-from typing import TYPE_CHECKING, Any, NamedTuple, final
+from typing import Any, NamedTuple, final
 
 import equinox as eqx
-import jax
 import jax.numpy as jnp
+from plum import convert
 
-from coordinax import Abstract3DVector, Abstract3DVectorDifferential
+import quaxed.array_api as xp
+from coordinax import Abstract3DVector, Abstract3DVectorDifferential, Cartesian3DVector
 from unxt import Quantity
 
-from .base import AbstractPhaseSpacePositionBase
+from .base import AbstractPhaseSpacePosition
 from .utils import _p_converter, _q_converter
-from galax.typing import BatchableRealScalarLike, BatchRealQScalar
-from galax.utils._shape import vector_batched_shape
-
-if TYPE_CHECKING:
-    from typing import Self
-
-    from galax.potential._potential.base import AbstractPotentialBase
+from galax.typing import BatchVec7, BroadBatchFloatQScalar, QVec1
+from galax.units import unitsystem
+from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
 
 
 class ComponentShapeTuple(NamedTuple):
@@ -33,173 +28,44 @@ class ComponentShapeTuple(NamedTuple):
     p: int
     """Shape of the momentum."""
 
-
-class AbstractPhaseSpacePosition(AbstractPhaseSpacePositionBase):
-    r"""Abstract base class of Phase-Space Positions.
-
-    The phase-space position is a point in the 6-dimensional phase space
-    :math:`\mathbb{R}^6` of a dynamical system. It is composed of the position
-    :math:`\boldsymbol{q}` and the conjugate momentum :math:`\boldsymbol{p}`.
-
-    Parameters
-    ----------
-    q : :class:`~vector.Abstract3DVector`
-        Positions.
-    p : :class:`~vector.Abstract3DVectorDifferential`
-        Conjugate momenta at positions ``q``.
-    """
-
-    # TODO: hint shape Float[Array, "*#batch #time 3"]
-    q: eqx.AbstractVar[Abstract3DVector]
-    """Positions."""
-
-    p: eqx.AbstractVar[Abstract3DVectorDifferential]
-    """Conjugate momenta at positions ``q``."""
-
-    # ==========================================================================
-    # Array properties
-
-    def __getitem__(self, index: Any) -> "Self":
-        """Return a new object with the given slice applied."""
-        # TODO: make sure the slice is only on the batch, not the component.
-        return replace(self, q=self.q[index], p=self.p[index])
-
-    # ==========================================================================
-    # Dynamical quantities
-
-    def potential_energy(
-        self,
-        potential: "AbstractPotentialBase",
-        /,
-        t: BatchRealQScalar | BatchableRealScalarLike,
-    ) -> Any:  # TODO: shape hint
-        r"""Return the specific potential energy.
-
-        .. math::
-
-            E_\Phi = \Phi(\boldsymbol{q})
-
-        Parameters
-        ----------
-        potential : :class:`~galax.potential.AbstractPotentialBase`
-            The potential object to compute the energy from.
-        t : :class:`unxt.Quantity[float, (*batch,), "time"]`
-            The time at which to compute the potential energy at the given
-            positions.
-
-        Returns
-        -------
-        E : Quantity[float, (*batch,), "specific energy"]
-            The specific potential energy.
-
-        Examples
-        --------
-        We assume the following imports:
-
-        >>> from unxt import Quantity
-        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-        >>> import galax.coordinates as gc
-        >>> import galax.potential as gp
-
-        We can construct a phase-space position:
-
-        >>> q = Cartesian3DVector(
-        ...     x=Quantity(1, "kpc"),
-        ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
-        ...     z=Quantity(2, "kpc"))
-        >>> p = CartesianDifferential3D(
-        ...     d_x=Quantity(0, "km/s"),
-        ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
-        ...     d_z=Quantity(0, "km/s"))
-        >>> w = gc.PhaseSpacePosition(q, p)
-
-        We can compute the potential energy:
-
-        >>> pot = gp.MilkyWayPotential()
-        >>> w.potential_energy(pot, t=Quantity(0, "Gyr"))
-        Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
-        """
-        return potential.potential_energy(self.q, t=t)
-
-    @partial(jax.jit)
-    def energy(
-        self,
-        potential: "AbstractPotentialBase",
-        /,
-        t: BatchRealQScalar | BatchableRealScalarLike,
-    ) -> Quantity["specific energy"]:
-        r"""Return the specific total energy.
-
-        .. math::
-
-            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2 E_\Phi =
-            \Phi(\boldsymbol{q}) E = E_K + E_\Phi
-
-        Parameters
-        ----------
-        potential : :class:`~galax.potential.AbstractPotentialBase`
-            The potential object to compute the energy from.
-        t : Quantity[float, (*batch,), "time"]
-            The time at which to compute the potential energy at the given
-            positions.
-
-        Returns
-        -------
-        E : Quantity[float, (*batch,), "specific energy"]
-            The kinetic energy.
-
-        Examples
-        --------
-        We assume the following imports:
-
-        >>> from unxt import Quantity
-        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
-        >>> from galax.coordinates import PhaseSpacePosition
-        >>> from galax.potential import MilkyWayPotential
-
-        We can construct a phase-space position:
-
-        >>> q = Cartesian3DVector(
-        ...     x=Quantity(1, "kpc"),
-        ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
-        ...     z=Quantity(2, "kpc"))
-        >>> p = CartesianDifferential3D(
-        ...     d_x=Quantity(0, "km/s"),
-        ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
-        ...     d_z=Quantity(0, "km/s"))
-        >>> w = PhaseSpacePosition(q, p)
-
-        We can compute the kinetic energy:
-
-        >>> pot = MilkyWayPotential()
-        >>> w.energy(pot, t=Quantity(0, "Gyr"))
-        Quantity['specific energy'](Array(..., dtype=float64), unit='km2 / s2')
-        """
-        return self.kinetic_energy() + self.potential_energy(potential, t=t)
+    t: int | None
+    """Shape of the time."""
 
 
-##############################################################################
+def converter_t(x: Any) -> BroadBatchFloatQScalar | QVec1 | None:
+    """Convert `t` to Quantity."""
+    return Quantity["time"].constructor(x) if x is not None else None
 
 
 @final
 class PhaseSpacePosition(AbstractPhaseSpacePosition):
-    r"""Represents a phase-space position.
+    r"""Phase-Space Position with time.
 
-    The phase-space position is a point in the 6-dimensional phase space
-    :math:`\\mathbb{R}^6` of a dynamical system. It is composed of the position
-    :math:`\boldsymbol{q}` and the conjugate momentum :math:`\boldsymbol{p}`.
+    The phase-space position is a point in the 7-dimensional phase space
+    :math:`\\mathbb{R}^7` of a dynamical system. It is composed of the position
+    :math:`\boldsymbol{q}`, the time :math:`t`, and the conjugate momentum
+    :math:`\boldsymbol{p}`.
 
     Parameters
     ----------
     q : :class:`~vector.Abstract3DVector`
-        Positions.
+        A 3-vector of the positions, allowing for batched inputs.  This
+        parameter accepts any 3-vector, e.g.  :class:`~vector.SphericalVector`,
+        or any input that can be used to make a
+        :class:`~vector.Cartesian3DVector` via
+        :meth:`vector.Abstract3DVector.constructor`.
     p : :class:`~vector.Abstract3DVectorDifferential`
-        Conjugate momenta at positions ``q``.
+        A 3-vector of the conjugate specific momenta at positions ``q``,
+        allowing for batched inputs.  This parameter accepts any 3-vector
+        differential, e.g.  :class:`~vector.SphericalDifferential`, or any input
+        that can be used to make a :class:`~vector.CartesianDifferential3D` via
+        :meth:`vector.CartesianDifferential3D.constructor`.
+    t : Quantity[float, (*batch,), 'time'] | None
+        The time corresponding to the positions.
 
-    See Also
-    --------
-    :class:`~galax.coordinates.PhaseSpaceTimePosition`
-        A phase-space position with time.
+    Notes
+    -----
+    The batch shape of `q`, `p`, and `t` are broadcast together.
 
     Examples
     --------
@@ -215,40 +81,64 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     ...                       z=Quantity(3, "m"))
     >>> p = CartesianDifferential3D(d_x=Quantity(4, "m/s"), d_y=Quantity(5, "m/s"),
     ...                             d_z=Quantity(6, "m/s"))
+    >>> t = Quantity(7.0, "s")
 
-    >>> pos = PhaseSpacePosition(q=q, p=p)
-    >>> pos
+    >>> psp = PhaseSpacePosition(q=q, p=p, t=t)
+    >>> psp
     PhaseSpacePosition(
       q=Cartesian3DVector(
-        x=Quantity[PhysicalType('length')](value=f64[], unit=Unit("m")),
-        y=Quantity[PhysicalType('length')](value=f64[], unit=Unit("m")),
-        z=Quantity[PhysicalType('length')](value=f64[], unit=Unit("m"))
+        x=Quantity[...](value=f64[], unit=Unit("m")),
+        y=Quantity[...](value=f64[], unit=Unit("m")),
+        z=Quantity[...](value=f64[], unit=Unit("m"))
       ),
       p=CartesianDifferential3D(
-        d_x=Quantity[PhysicalType({'speed', 'velocity'})](
-          value=f64[], unit=Unit("m / s")
-        ),
-        d_y=Quantity[PhysicalType({'speed', 'velocity'})](
-          value=f64[], unit=Unit("m / s")
-        ),
-        d_z=Quantity[PhysicalType({'speed', 'velocity'})](
-          value=f64[], unit=Unit("m / s")
-        )
-      )
+        d_x=Quantity[...]( value=f64[], unit=Unit("m / s") ),
+        d_y=Quantity[...]( value=f64[], unit=Unit("m / s") ),
+        d_z=Quantity[...]( value=f64[], unit=Unit("m / s") )
+      ),
+      t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
     )
+
+    Note that both `q` and `p` have convenience converters, allowing them to
+    accept a variety of inputs when constructing a
+    :class:`~vector.Cartesian3DVector` or
+    :class:`~vector.CartesianDifferential3D`, respectively.  For example,
+
+    >>> psp2 = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+    ...                           p=Quantity([4, 5, 6], "m/s"), t=t)
+    >>> psp2 == psp
+    Array(True, dtype=bool)
+
     """
 
     q: Abstract3DVector = eqx.field(converter=_q_converter)
-    """Positions (x, y, z).
+    """Positions, e.g Cartesian3DVector.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
     p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
-    r"""Conjugate momenta (v_x, v_y, v_z).
+    r"""Conjugate momenta, e.g. CartesianDifferential3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
+
+    t: BroadBatchFloatQScalar | QVec1 | None = eqx.field(
+        default=None, converter=converter_t
+    )
+    """The time corresponding to the positions.
+
+    This is a Quantity with the same batch shape as the positions and
+    velocities.  If `t` is a scalar it will be broadcast to the same batch shape
+    as `q` and `p`.
+    """
+
+    def __post_init__(self) -> None:
+        """Post-initialization."""
+        # Need to ensure t shape is correct. Can be Vec0.
+        if self.t is not None and self.t.ndim in (0, 1):
+            t = expand_batch_dims(self.t, ndim=self.q.ndim - self.t.ndim)
+            object.__setattr__(self, "t", t)
 
     # ==========================================================================
     # Array properties
@@ -258,5 +148,57 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
-        batch_shape = jnp.broadcast_shapes(qbatch, pbatch)
-        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape)
+        tbatch: tuple[int, ...]
+        if self.t is None:
+            tbatch, tshape = (), None
+        else:
+            tbatch, _ = batched_shape(self.t, expect_ndim=0)
+            tshape = 1
+        batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
+        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=tshape)
+
+    # ==========================================================================
+    # Convenience methods
+
+    def wt(self, *, units: Any) -> BatchVec7:
+        """Phase-space position as an Array[float, (*batch, 1+Q+P)].
+
+        This is the full phase-space position, including the time.
+
+        Parameters
+        ----------
+        units : `galax.units.UnitSystem`, optional keyword-only
+            The unit system If ``None``, use the current unit system.
+
+        Returns
+        -------
+        wt : Array[float, (*batch, 1+Q+P)]
+            The full phase-space position, including time.
+
+        Examples
+        --------
+        Assuming the following imports:
+
+        >>> from unxt import Quantity
+        >>> from galax.coordinates import PhaseSpacePosition
+
+        We can create a phase-space position and convert it to a 6-vector:
+
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                          p=Quantity([4, 5, 6], "km/s"),
+        ...                          t=Quantity(7.0, "Myr"))
+        >>> psp.wt(units="galactic")
+         Array([7.00000000e+00, 1.00000000e+00, 2.00000000e+00, 3.00000000e+00,
+                4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64)
+        """
+        t = eqx.error_if(
+            self.t, self.t is None, "No time defined for phase-space position"
+        )
+
+        usys = unitsystem(units)
+        batch, comps = self._shape_tuple
+        cart = self.represent_as(Cartesian3DVector)
+        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
+        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
+        t = xp.broadcast_to(t.decompose(usys).value[..., None], (*batch, comps.t))
+        return xp.concat((t, q.decompose(usys).value, p.decompose(usys).value), axis=-1)

@@ -18,10 +18,10 @@ from unxt import Quantity
 from .core import MockStream
 from .df import AbstractStreamDF
 from .utils import cond_reverse, interleave_concat
-from galax.coordinates import PhaseSpacePosition, PhaseSpaceTimePosition
+from galax.coordinates import PhaseSpacePosition
 from galax.dynamics._dynamics.integrate._api import Integrator
 from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
-from galax.dynamics._dynamics.integrate._funcs import evaluate_orbit, integrate_orbit
+from galax.dynamics._dynamics.integrate._funcs import evaluate_orbit
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchVec6, FloatScalar, IntScalar, QVecTime, Vec6, VecN
 from galax.units import UnitSystem
@@ -85,7 +85,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
             def integ_ics(ics: Vec6) -> VecN:
                 # TODO: only return the final state
-                return integrate_orbit(
+                return evaluate_orbit(
                     self.potential, ics, tstep, integrator=self.stream_integrator
                 ).w(units=self.units)[-1]
 
@@ -115,10 +115,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         @partial(jax.jit, inline=True)
         def one_pt_intg(i: IntScalar, w0_l_i: Vec6, w0_t_i: Vec6) -> tuple[Vec6, Vec6]:
             tstep = xp.asarray([ts[i], t_f])
-            w_lead = integrate_orbit(
+            w_lead = evaluate_orbit(
                 self.potential, w0_l_i, tstep, integrator=self.stream_integrator
             ).w(units=self.potential.units)[-1]
-            w_trail = integrate_orbit(
+            w_trail = evaluate_orbit(
                 self.potential, w0_t_i, tstep, integrator=self.stream_integrator
             ).w(units=self.potential.units)[-1]
             return w_lead, w_trail
@@ -134,11 +134,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         self,
         rng: jr.PRNG,
         ts: QVecTime,
-        prog_w0: PhaseSpaceTimePosition | PhaseSpacePosition | Vec6,
+        prog_w0: PhaseSpacePosition | Vec6,
         prog_mass: FloatScalar,
         *,
         vmapped: bool | None = None,
-    ) -> tuple[MockStream, PhaseSpaceTimePosition]:
+    ) -> tuple[MockStream, PhaseSpacePosition]:
         """Generate mock stellar stream.
 
         Parameters
@@ -163,7 +163,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         -------
         mockstream : :class:`galax.dynamcis.MockStream`
             Leading and/or trailing arms of the mock stream.
-        prog_o : :class:`galax.coordinates.PhaseSpaceTimePosition`
+        prog_o : :class:`galax.coordinates.PhaseSpacePosition`
             The final phase-space(+time) position of the progenitor.
         """
         # TODO: ꜛ a discussion about the stripping times
@@ -171,15 +171,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
 
         # Ensure w0 is a PhaseSpacePosition
-        if isinstance(prog_w0, PhaseSpaceTimePosition):
+        if isinstance(prog_w0, PhaseSpacePosition):
             w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
-        elif isinstance(prog_w0, PhaseSpacePosition):
-            w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
-            t0 = ts[0].to(self.potential.units["time"])
-            w0 = PhaseSpaceTimePosition(q=prog_w0.q, p=prog_w0.p, t=t0)
         else:
             t0 = ts[0].to(self.potential.units["time"])
-            w0 = PhaseSpaceTimePosition(
+            w0 = PhaseSpacePosition(
                 q=Quantity(prog_w0[..., 0:3], self.units["length"]),
                 p=Quantity(prog_w0[..., 3:6], self.units["speed"]),
                 t=t0,

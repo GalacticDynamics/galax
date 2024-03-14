@@ -47,8 +47,12 @@ class Integrator(_DataclassInstance, Protocol):
         self,
         F: FCallable,
         w0: AbstractPhaseSpacePosition | gt.BatchVec6,
+        t0: gt.FloatQScalar | gt.FloatScalar,
+        t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        ts: gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime,
+        savet: (
+            gt.BatchQVecTime | gt.QVecTime | gt.BatchVecTime | gt.VecTime | None
+        ) = None,
         *,
         units: UnitSystem,
     ) -> PhaseSpacePosition:
@@ -61,10 +65,14 @@ class Integrator(_DataclassInstance, Protocol):
             (t, w, args) -> (v, a).
         w0 : AbstractPhaseSpacePosition | Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
-        ts : (Quantity | Array)[float, (T,)]
+        t0, t1 : Quantity, positional-only
+            Initial and final times.
+
+        savet : (Quantity | Array)[float, (T,)] | None, optional
             Times to return the computation.
-            It's necessary to at least provide the initial and final times.
-        units : UnitSystem
+            If `None`, the solution is returned at the final time.
+
+        units : UnitSystem, keyword-only
             The unit system to use.
 
         Returns

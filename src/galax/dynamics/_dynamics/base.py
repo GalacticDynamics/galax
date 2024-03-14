@@ -3,9 +3,11 @@
 __all__ = ["AbstractOrbit"]
 
 from dataclasses import replace
+from functools import partial
 from typing import TYPE_CHECKING, Any, overload
 
 import equinox as eqx
+import jax
 import jax.numpy as jnp
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
@@ -19,7 +21,8 @@ from galax.coordinates._psp.utils import (
     _q_converter,
     getitem_vec1time_index,
 )
-from galax.typing import QVec1, QVecTime
+from galax.potential._potential.base import AbstractPotentialBase
+from galax.typing import BatchFloatQScalar, QVec1, QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 if TYPE_CHECKING:
@@ -43,6 +46,9 @@ class AbstractOrbit(AbstractPhaseSpacePosition):
     # TODO: consider how this should be vectorized
     t: QVecTime | QVec1 = eqx.field(converter=Quantity["time"].constructor)
     """Array of times corresponding to the positions."""
+
+    potential: AbstractPotentialBase
+    """Potential in which the orbit was integrated."""
 
     def __post_init__(self) -> None:
         """Post-initialization."""
@@ -82,3 +88,49 @@ class AbstractOrbit(AbstractPhaseSpacePosition):
         subindex = getitem_vec1time_index(index, self.t)
         # Apply slice
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[subindex])
+
+    # ==========================================================================
+    # Dynamical quantities
+
+    @partial(jax.jit)
+    def potential_energy(
+        self, potential: AbstractPotentialBase | None = None, /
+    ) -> BatchFloatQScalar:
+        r"""Return the specific potential energy.
+
+        .. math::
+
+            E_\Phi = \Phi(\boldsymbol{q})
+
+        Parameters
+        ----------
+        potential : `galax.potential.AbstractPotentialBase`
+            The potential object to compute the energy from.
+
+        Returns
+        -------
+        E : Array[float, (*batch,)]
+            The specific potential energy.
+        """
+        if potential is None:
+            return self.potential.potential_energy(self.q, t=self.t)
+        return potential.potential_energy(self.q, t=self.t)
+
+    @partial(jax.jit)
+    def energy(
+        self, potential: "AbstractPotentialBase | None" = None, /
+    ) -> BatchFloatQScalar:
+        r"""Return the specific total energy.
+
+        .. math::
+
+            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
+            E_\Phi = \Phi(\boldsymbol{q})
+            E = E_K + E_\Phi
+
+        Returns
+        -------
+        E : Array[float, (*batch,)]
+            The kinetic energy.
+        """
+        return self.kinetic_energy() + self.potential_energy(potential)

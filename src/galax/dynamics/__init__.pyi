@@ -8,6 +8,7 @@ __all__ = [
     # orbit, et al.
     "AbstractOrbit",
     "Orbit",
+    "InterpolatedOrbit",
     # integrate
     "evaluate_orbit",
     # mockstream
@@ -23,4 +24,4 @@ from ._dynamics.base import AbstractOrbit
 from ._dynamics.integrate._funcs import evaluate_orbit
 from ._dynamics.mockstream import MockStream, MockStreamGenerator
 from ._dynamics.mockstream.df import AbstractStreamDF, FardalStreamDF
-from ._dynamics.orbit import Orbit
+from ._dynamics.orbit import InterpolatedOrbit, Orbit

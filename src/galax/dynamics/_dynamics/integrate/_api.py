@@ -2,8 +2,8 @@ __all__ = ["Integrator"]
 
 from typing import Any, Protocol, runtime_checkable
 
+import galax.typing as gt
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
-from galax.typing import FloatScalar, QVecTime, Vec6, VecTime
 from galax.units import UnitSystem
 from galax.utils.dataclasses import _DataclassInstance
 
@@ -12,7 +12,7 @@ from galax.utils.dataclasses import _DataclassInstance
 class FCallable(Protocol):
     """Protocol for the integration callable."""
 
-    def __call__(self, t: FloatScalar, w: Vec6, args: tuple[Any, ...]) -> Vec6:
+    def __call__(self, t: gt.FloatScalar, w: gt.Vec6, args: tuple[Any, ...]) -> gt.Vec6:
         """Integration function.
 
         Parameters
@@ -45,9 +45,9 @@ class Integrator(_DataclassInstance, Protocol):
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePosition | Vec6,
+        w0: AbstractPhaseSpacePosition | gt.BatchVec6,
         /,
-        ts: QVecTime | VecTime,
+        ts: gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime,
         *,
         units: UnitSystem,
     ) -> PhaseSpacePosition:

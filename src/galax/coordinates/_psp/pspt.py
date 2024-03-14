@@ -12,21 +12,12 @@ import jax.numpy as jnp
 from plum import convert
 
 import quaxed.array_api as xp
-from coordinax import (
-    Abstract3DVector,
-    Abstract3DVectorDifferential,
-    Cartesian3DVector,
-)
+from coordinax import Abstract3DVector, Abstract3DVectorDifferential, Cartesian3DVector
 from unxt import Quantity
 
 from .base import AbstractPhaseSpacePositionBase
 from .utils import _p_converter, _q_converter, getitem_broadscalartime_index
-from galax.typing import (
-    BatchFloatQScalar,
-    BatchVec7,
-    BroadBatchFloatQScalar,
-    QVec1,
-)
+from galax.typing import BatchFloatQScalar, BatchVec7, BroadBatchFloatQScalar, QVec1
 from galax.units import UnitSystem, unitsystem
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
 

@@ -116,7 +116,7 @@ Now with a potential model defined and a set of initial conditions, we are set
 to compute an orbit! To do this, we use the numerical integration system defined
 in :mod:`galax.integrate`, but do so using the convenience interface available
 on any Potential object through the
-:func:`~galax.potential.AbstractPotential.integrate_orbit` method::
+:func:`~galax.potential.AbstractPotential.evaluate_orbit` method::
 
     >>> import galax.dynamics as gd
     >>> t = jnp.arange(0.0, 2.0, step=1/1000) # Gyr

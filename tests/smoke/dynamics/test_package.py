@@ -12,6 +12,5 @@ def test_all() -> None:
         *base.__all__,
         *orbit.__all__,
         *mockstream.__all__,
-        "integrate_orbit",
         "evaluate_orbit",
     }

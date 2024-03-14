@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeAlias, TypeVar
 
 import equinox as eqx
 import jax.random as jr
@@ -16,7 +16,7 @@ import quaxed.array_api as xp
 from coordinax import Cartesian3DVector, CartesianDifferential3D
 from unxt import Quantity
 
-from galax.coordinates._psp.psp import ComponentShapeTuple
+from galax.coordinates._psp.pspt import ComponentShapeTuple
 from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.units import galactic
 
@@ -191,7 +191,7 @@ class TestAbstractPhaseSpacePositionBase(AbstractPhaseSpacePositionBase_Test[T])
 
             @property
             def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
-                return self.q.shape, ComponentShapeTuple(p=3, q=3)
+                return self.q.shape, ComponentShapeTuple(p=3, q=3, t=1)
 
             def __getitem__(self, index: Any) -> Self:
                 return replace(self, q=self.q[index], p=self.p[index])

@@ -17,7 +17,6 @@ from plum import convert, dispatch
 from coordinax import Abstract3DVector, Cartesian3DVector
 from unxt import Quantity
 
-from galax.coordinates._psp.psp import AbstractPhaseSpacePosition
 from galax.units import DimensionlessUnitSystem, UnitSystem, dimensionless
 
 
@@ -87,13 +86,6 @@ def _convert_from_arraylike(
     arr = xp.asarray(x, dtype=None)
     dtype = jnp.promote_types(arr.dtype, canonicalize_dtype(float))
     return xp.asarray(arr, dtype=dtype)
-
-
-@convert_input_to_array.register(AbstractPhaseSpacePosition)
-def _convert_from_3dvec(
-    x: AbstractPhaseSpacePosition, /, *, units: UnitSystem, **_: Any
-) -> Shaped[Array, "*batch 3"]:
-    return _convert_from_3dvec(x.q, units=units)
 
 
 @convert_input_to_array.register(Abstract3DVector)

@@ -178,28 +178,28 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     # =========================================================================
 
-    def test_integrate_orbit(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
-        """Test the `AbstractPotentialBase.integrate_orbit` method."""
+    def test_evaluate_orbit(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
+        """Test the `AbstractPotentialBase.evaluate_orbit` method."""
         ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
 
-        orbit = pot.integrate_orbit(xv, ts)
+        orbit = pot.evaluate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
         assert orbit.shape == (len(ts.value),)  # TODO: don't use .value
         assert qnp.array_equal(orbit.t, ts)
 
-    def test_integrate_orbit_batch(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
-        """Test the `AbstractPotentialBase.integrate_orbit` method."""
+    def test_evaluate_orbit_batch(self, pot: AbstractPotentialBase, xv: Vec6) -> None:
+        """Test the `AbstractPotentialBase.evaluate_orbit` method."""
         ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
 
         # Simple batch
-        orbits = pot.integrate_orbit(xv[None, :], ts)
+        orbits = pot.evaluate_orbit(xv[None, :], ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (1, len(ts))
         assert qnp.allclose(orbits.t.to_value("Myr"), ts.to_value("Myr"), atol=1e-16)
 
         # More complicated batch
         xv2 = xp.stack([xv, xv], axis=0)
-        orbits = pot.integrate_orbit(xv2, ts)
+        orbits = pot.evaluate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts))
         assert qnp.allclose(orbits.t.to_value("Myr"), ts.to_value("Myr"), atol=1e-16)

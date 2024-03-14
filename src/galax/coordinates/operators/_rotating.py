@@ -15,7 +15,7 @@ from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
 from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
 
-from galax.coordinates._psp.base import AbstractPhaseSpacePositionBase
+from galax.coordinates._psp.pspt import AbstractPhaseSpaceTimePosition
 
 
 def rot_z(
@@ -64,7 +64,10 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     --------
     First some imports:
 
+    >>> from dataclasses import replace
+    >>> from plum import convert
     >>> from unxt import Quantity
+    >>> import coordinax as cx
     >>> import galax.coordinates as gc
     >>> from galax.coordinates.operators import ConstantRotationZOperator
 
@@ -82,29 +85,30 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
     For display purposes, we convert the resulting position to an Array.
 
-    >>> from plum import convert
     >>> convert(newpsp.q, Quantity).value.round(2)
     Array([0., 1., 0.], dtype=float64)
 
     This rotation is time dependent.
 
-    >>> convert(op(pspt, Quantity(2, "Gyr"))[0].q, Quantity).value.round(2)
+    >>> psp2 = replace(pspt, t=Quantity(2, "Gyr"))
+    >>> convert(op(psp2).q, Quantity).value.round(2)
     Array([-1.,  0.,  0.], dtype=float64)
 
     We can also apply the rotation to a
-    :class:`~galax.corodinates.PhaseSpacePosition`.
+    :class:`~galax.corodinates.PhaseSpaceTimePosition`.
 
-    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
-    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"))
-    >>> t = Quantity(1, "Gyr")
+    >>> psp = gc.PhaseSpaceTimePosition(q=Quantity([1, 0, 0], "kpc"),
+    ...                                 p=Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                                 t=Quantity(1, "Gyr"))
 
-    >>> newpsp, newt = op(psp, t)
+
+    >>> newpsp = op(psp)
     >>> convert(newpsp.q, Quantity).value.round(2)
     Array([0., 1., 0.], dtype=float64)
 
     We can also apply the rotation to a :class:`~galax.coordinax.FourVector`.
 
-    >>> import coordinax as cx
+    >>> t = Quantity(1, "Gyr")
     >>> v4 = cx.FourVector(t=t, q =Quantity([1, 0, 0], "kpc"))
 
     >>> newv4 = op(v4)
@@ -245,41 +249,40 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
     @op_call_dispatch
     def __call__(
-        self: "ConstantRotationZOperator",
-        psp: AbstractPhaseSpacePositionBase,
-        t: Quantity["time"],
-        /,
-    ) -> tuple[AbstractPhaseSpacePositionBase, Quantity["time"]]:
+        self: "ConstantRotationZOperator", psp: AbstractPhaseSpaceTimePosition, /
+    ) -> AbstractPhaseSpaceTimePosition:
         """Apply the translation to the coordinates.
 
         Examples
         --------
+        >>> from dataclasses import replace
         >>> from plum import convert
         >>> from unxt import Quantity
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> from galax.coordinates import PhaseSpaceTimePosition
         >>> from galax.coordinates.operators import ConstantRotationZOperator
 
         >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
 
-        >>> psp = PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
-        ...                          p=Quantity([0, 0, 0], "kpc/Gyr"))
+        >>> psp = PhaseSpaceTimePosition(q=Quantity([1, 0, 0], "kpc"),
+        ...                              p=Quantity([0, 0, 0], "kpc/Gyr"),
+        ...                              t=Quantity(1, "Gyr"))
 
-        >>> t = Quantity(1, "Gyr")
-        >>> newpsp, newt = op(psp, t)
+        >>> newpsp = op(psp)
         >>> convert(newpsp.q, Quantity).value.round(2)
         Array([0., 1., 0.], dtype=float64)
 
-        >>> newt
-        Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+        >>> newpsp.t
+        Quantity['time'](Array(1., dtype=float64, ...), unit='Gyr')
 
         This rotation is time dependent.
 
-        >>> convert(op(psp, Quantity(2, "Gyr"))[0].q, Quantity).value.round(2)
+        >>> psp2 = replace(psp, t=Quantity(2, "Gyr"))
+        >>> convert(op(psp2).q, Quantity).value.round(2)
         Array([-1.,  0.,  0.], dtype=float64)
 
         """
         # Shifting the position and time
-        q, t = self(psp.q, t)
+        q, t = self(psp.q, psp.t)
         # Transforming the momentum. The actual value of momentum is not
         # affected by the translation, however for non-Cartesian coordinates the
         # representation of the momentum in will be different.  First transform
@@ -290,7 +293,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
             type(psp.p), q
         )
         # Reasseble and return
-        return (replace(psp, q=q, p=p), t)
+        return replace(psp, q=q, p=p, t=t)
 
 
 @simplify_op.register  # type: ignore[misc]

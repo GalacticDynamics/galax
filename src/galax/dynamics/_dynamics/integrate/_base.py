@@ -6,7 +6,7 @@ import equinox as eqx
 
 from ._api import FCallable
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
-from galax.typing import QVecTime, Vec6, VecTime
+from galax.typing import BatchQVecTime, BatchVec6, BatchVecTime, QVecTime, VecTime
 from galax.units import UnitSystem
 
 
@@ -27,9 +27,9 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePosition | Vec6,
+        w0: AbstractPhaseSpacePosition | BatchVec6,
         /,
-        ts: QVecTime | VecTime,
+        ts: BatchQVecTime | BatchVecTime | QVecTime | VecTime,
         *,
         units: UnitSystem,
     ) -> PhaseSpacePosition:

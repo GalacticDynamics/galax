@@ -12,10 +12,10 @@ import jax
 import quaxed.array_api as xp
 from unxt import Quantity
 
+import galax.typing as gt
 from ._api import FCallable
 from ._base import AbstractIntegrator
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
-from galax.typing import QVecTime, Vec6, VecTime, VecTime7
 from galax.units import UnitSystem
 from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
@@ -44,7 +44,9 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     @vectorize_method(excluded=(0,), signature="(6),(T)->(T,7)")
     @partial(jax.jit, static_argnums=(0, 1))
-    def _call_implementation(self, F: FCallable, w0: Vec6, ts: VecTime, /) -> VecTime7:
+    def _call_implementation(
+        self, F: FCallable, w0: gt.Vec6, ts: gt.VecTime, /
+    ) -> gt.VecTime7:
         solution = diffrax.diffeqsolve(
             terms=diffrax.ODETerm(F),
             solver=self.Solver(**self.solver_kw),
@@ -63,15 +65,15 @@ class DiffraxIntegrator(AbstractIntegrator):
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePosition | Vec6,
+        w0: AbstractPhaseSpacePosition | gt.BatchVec6,
         /,
-        ts: QVecTime | VecTime,
+        ts: gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime,
         *,
         units: UnitSystem,
     ) -> PhaseSpacePosition:
         # Parse inputs
-        ts_: VecTime = ts.to_value(units["time"]) if isinstance(ts, Quantity) else ts
-        w0_: Vec6 = (
+        ts_: gt.VecTime = ts.to_value(units["time"]) if isinstance(ts, Quantity) else ts
+        w0_: gt.Vec6 = (
             w0.w(units=units) if isinstance(w0, AbstractPhaseSpacePosition) else w0
         )
 

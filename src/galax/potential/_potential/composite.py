@@ -12,8 +12,8 @@ import jax
 import quaxed.array_api as xp
 from unxt import Quantity, UnitSystem, unitsystem
 
+import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
-from galax.typing import BatchableRealQScalar, BatchFloatQScalar, BatchQVec3
 from galax.utils import ImmutableDict
 from galax.utils._misc import first
 
@@ -29,8 +29,8 @@ class AbstractCompositePotential(
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: BatchQVec3, t: BatchableRealQScalar, /
-    ) -> BatchFloatQScalar:
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
         return xp.sum(
             xp.asarray(
                 [p._potential_energy(q, t) for p in self.values()]  # noqa: SLF001

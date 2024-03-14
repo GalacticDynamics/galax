@@ -35,7 +35,7 @@ class FardalStreamDF(AbstractStreamDF):
         potential: AbstractPotentialBase,
         w: gt.Vec6,
         prog_mass: gt.FloatScalar,
-        t: gt.FloatScalar,
+        t: gt.FloatQScalar,
     ) -> tuple[gt.Vec3, gt.Vec3, gt.Vec3, gt.Vec3]:
         """Generate stream particle initial conditions."""
         # Random number generation

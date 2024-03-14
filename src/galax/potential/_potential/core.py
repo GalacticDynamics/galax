@@ -9,9 +9,9 @@ import equinox as eqx
 
 from unxt import Quantity, UnitSystem, unitsystem
 
+import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
 from .composite import CompositePotential
-from galax.typing import FloatQScalar, QVec3, RealScalar
 from galax.utils import ImmutableDict
 
 
@@ -32,7 +32,7 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
 
     # TODO: inputs w/ units
     @abc.abstractmethod
-    def _potential_energy(self, q: QVec3, t: RealScalar, /) -> FloatQScalar:
+    def _potential_energy(self, q: gt.QVec3, t: gt.RealScalar, /) -> gt.FloatQScalar:
         raise NotImplementedError
 
     ###########################################################################

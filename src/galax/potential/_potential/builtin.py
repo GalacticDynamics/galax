@@ -21,6 +21,7 @@ import jax
 import quaxed.array_api as xp
 from unxt import Quantity
 
+from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
 from galax.typing import (
@@ -33,6 +34,7 @@ from galax.typing import (
     Vec3,
 )
 from galax.units import UnitSystem, unitsystem
+from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import field
 
@@ -54,6 +56,9 @@ class BarPotential(AbstractPotential):
     Omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     # TODO: inputs w/ units
     @partial(jax.jit)
@@ -101,6 +106,9 @@ class HernquistPotential(AbstractPotential):
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
@@ -121,6 +129,9 @@ class IsochronePotential(AbstractPotential):
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
@@ -145,6 +156,9 @@ class KeplerPotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
@@ -166,6 +180,9 @@ class MiyamotoNagaiPotential(AbstractPotential):
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     # TODO: inputs w/ units
     @partial(jax.jit)
@@ -191,6 +208,9 @@ class NFWPotential(AbstractPotential):
     _: KW_ONLY
     softening_length: FloatLike = field(default=0.001, static=True, dimensions="length")
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
@@ -211,6 +231,9 @@ class NullPotential(AbstractPotential):
 
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
@@ -292,6 +315,11 @@ class TriaxialHernquistPotential(AbstractPotential):
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
     """The unit system to use for the potential."""
+
+    constants: ImmutableDict[Quantity] = eqx.field(
+        converter=ImmutableDict, default=default_constants
+    )
+    """The constants used by the potential."""
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units

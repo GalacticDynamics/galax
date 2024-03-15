@@ -28,6 +28,7 @@ from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
 from galax.units import UnitSystem, dimensionless
+from galax.utils._collections import ImmutableDict
 from galax.utils._jax import vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils.dataclasses import ModuleMeta
@@ -55,6 +56,9 @@ TimeOptions: TypeAlias = (
 CONST_G = Quantity(_CONST_G.value, _CONST_G.unit)
 
 
+default_constants = ImmutableDict({"G": CONST_G})
+
+
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
     """Abstract Potential Class."""
 
@@ -63,6 +67,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     _: KW_ONLY
     units: eqx.AbstractVar[UnitSystem]
     """The unit system of the potential."""
+
+    constants: eqx.AbstractVar[ImmutableDict[Quantity]]
+    """The constants used by the potential."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""

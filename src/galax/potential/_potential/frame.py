@@ -200,7 +200,7 @@ class PotentialFrame(AbstractPotentialBase):
         return cast(UnitSystem, self.potential.units)
 
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: BatchVec3, /, t: BatchableRealScalarLike | RealScalar
+        self, q: BatchVec3, t: BatchableRealScalarLike | RealScalar, /
     ) -> BatchFloatScalar:
         """Compute the potential energy at the given position(s).
 

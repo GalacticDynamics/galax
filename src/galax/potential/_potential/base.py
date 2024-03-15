@@ -10,7 +10,7 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 import numpy as np
-from astropy.constants import G as _G  # pylint: disable=no-name-in-module
+from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.coordinates import BaseRepresentation as APYRepresentation
 from astropy.units import Quantity as APYQuantity
 from jax import grad, hessian, jacfwd
@@ -72,6 +72,8 @@ TimeOptions: TypeAlias = (
     | APYQuantity
 )
 
+CONST_G = Quantity(_CONST_G.value, _CONST_G.unit)
+
 
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
     """Abstract Potential Class."""
@@ -80,6 +82,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     _: KW_ONLY
     units: eqx.AbstractVar[UnitSystem]
+    """The unit system of the potential."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""
@@ -94,7 +97,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Parsing
 
     def _init_units(self) -> None:
-        G = 1 if self.units == dimensionless else _G.decompose(self.units).value
+        # TODO: not allow units=dimensionless
+        G = 1 if self.units == dimensionless else CONST_G.decompose(self.units).value
         object.__setattr__(self, "_G", G)
 
         from galax.potential._potential.param.field import ParameterField

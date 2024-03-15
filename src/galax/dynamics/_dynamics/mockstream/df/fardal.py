@@ -13,14 +13,10 @@ from jax import grad
 
 import quaxed.array_api as xp
 
+import galax.typing as gt
 from .base import AbstractStreamDF
+from galax.potential import AbstractPotentialBase
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import (
-    FloatScalar,
-    RealScalarLike,
-    Vec3,
-    Vec6,
-)
 
 
 @final
@@ -37,10 +33,10 @@ class FardalStreamDF(AbstractStreamDF):
         self,
         rng: jr.PRNG,
         potential: AbstractPotentialBase,
-        w: Vec6,
-        prog_mass: FloatScalar,
-        t: FloatScalar,
-    ) -> tuple[Vec3, Vec3, Vec3, Vec3]:
+        w: gt.Vec6,
+        prog_mass: gt.FloatScalar,
+        t: gt.FloatScalar,
+    ) -> tuple[gt.Vec3, gt.Vec3, gt.Vec3, gt.Vec3]:
         """Generate stream particle initial conditions."""
         # Random number generation
         rng1, rng2, rng3, rng4 = rng.split(4)
@@ -109,7 +105,7 @@ class FardalStreamDF(AbstractStreamDF):
 
 
 @partial(jax.jit)
-def dphidr(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Vec3:
+def dphidr(potential: AbstractPotentialBase, x: gt.Vec3, t: gt.FloatScalar) -> gt.Vec3:
     """Compute the derivative of the potential at a position x.
 
     Parameters
@@ -132,8 +128,8 @@ def dphidr(potential: AbstractPotentialBase, x: Vec3, t: FloatScalar) -> Vec3:
 
 @partial(jax.jit)
 def d2phidr2(
-    potential: AbstractPotentialBase, x: Vec3, /, t: RealScalarLike
-) -> FloatScalar:
+    potential: AbstractPotentialBase, x: gt.Vec3, /, t: gt.RealScalarLike
+) -> gt.FloatScalar:
     """Compute the second derivative of the potential.
 
     At a position x (in the simulation frame).
@@ -162,14 +158,14 @@ def d2phidr2(
     """
     r_hat = x / xp.linalg.vector_norm(x)
 
-    def dphi_dr_func(x: Vec3) -> FloatScalar:
+    def dphi_dr_func(x: gt.Vec3) -> gt.FloatScalar:
         return xp.sum(potential.gradient(x, t).value * r_hat)
 
     return xp.sum(grad(dphi_dr_func)(x) * r_hat)
 
 
 @partial(jax.jit)
-def orbital_angular_velocity(x: Vec3, v: Vec3, /) -> Vec3:
+def orbital_angular_velocity(x: gt.Vec3, v: gt.Vec3, /) -> gt.Vec3:
     """Compute the orbital angular velocity about the origin.
 
     Arguments:
@@ -196,7 +192,7 @@ def orbital_angular_velocity(x: Vec3, v: Vec3, /) -> Vec3:
 
 
 @partial(jax.jit)
-def orbital_angular_velocity_mag(x: Vec3, v: Vec3, /) -> FloatScalar:
+def orbital_angular_velocity_mag(x: gt.Vec3, v: gt.Vec3, /) -> gt.FloatScalar:
     """Compute the magnitude of the angular momentum in the simulation frame.
 
     Arguments:
@@ -224,12 +220,12 @@ def orbital_angular_velocity_mag(x: Vec3, v: Vec3, /) -> FloatScalar:
 @partial(jax.jit)
 def tidal_radius(
     potential: AbstractPotentialBase,
-    x: Vec3,
-    v: Vec3,
+    x: gt.Vec3,
+    v: gt.Vec3,
     /,
-    prog_mass: FloatScalar,
-    t: RealScalarLike,
-) -> FloatScalar:
+    prog_mass: gt.FloatScalar,
+    t: gt.RealScalarLike,
+) -> gt.FloatScalar:
     """Compute the tidal radius of a cluster in the potential.
 
     Parameters
@@ -270,11 +266,11 @@ def tidal_radius(
 @partial(jax.jit)
 def lagrange_points(
     potential: AbstractPotentialBase,
-    x: Vec3,
-    v: Vec3,
-    prog_mass: FloatScalar,
-    t: FloatScalar,
-) -> tuple[Vec3, Vec3]:
+    x: gt.Vec3,
+    v: gt.Vec3,
+    prog_mass: gt.FloatScalar,
+    t: gt.FloatScalar,
+) -> tuple[gt.Vec3, gt.Vec3]:
     """Compute the lagrange points of a cluster in a host potential.
 
     Parameters

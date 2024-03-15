@@ -105,7 +105,7 @@ class FieldUnitSystemMixin:
         # because the units are not equal and we just want to check that
         # when the units aren't specified, the default is dimensionless
         # and a numeric value works.
-        fields_unitless.pop("units")
+        fields_unitless.pop("units", None)
         pot = pot_cls(**fields_unitless, units=None)
         assert pot.units == dimensionless
 

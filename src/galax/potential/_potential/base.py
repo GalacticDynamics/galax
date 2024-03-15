@@ -22,31 +22,11 @@ import quaxed.array_api as xp
 from coordinax import Abstract3DVector, FourVector
 from unxt import Quantity
 
+import galax.typing as gt
 from .utils import _convert_from_3dvec, convert_input_to_array, convert_inputs_to_arrays
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
-from galax.typing import (
-    BatchableFloatLike,
-    BatchableIntLike,
-    BatchableRealScalarLike,
-    BatchFloatScalar,
-    BatchMatrix33,
-    BatchRealQScalar,
-    BatchRealScalar,
-    BatchVec3,
-    BatchVec6,
-    FloatQScalar,
-    FloatScalar,
-    IntQScalar,
-    IntScalar,
-    Matrix33,
-    QVecTime,
-    RealScalar,
-    Vec3,
-    Vec6,
-    VecTime,
-)
 from galax.units import UnitSystem, dimensionless
 from galax.utils._jax import vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
@@ -63,12 +43,12 @@ PositionalLike: TypeAlias = (
     | Shaped[Array, "*#batch 3"]
 )
 TimeOptions: TypeAlias = (
-    BatchRealQScalar
-    | FloatQScalar
-    | IntQScalar
-    | BatchableRealScalarLike
-    | FloatScalar
-    | IntScalar
+    gt.BatchRealQScalar
+    | gt.FloatQScalar
+    | gt.IntQScalar
+    | gt.BatchableRealScalarLike
+    | gt.FloatScalar
+    | gt.IntScalar
     | APYQuantity
 )
 
@@ -131,7 +111,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # @partial(jax.jit)
     # @vectorize_method(signature="(3),()->()")
     @abc.abstractmethod
-    def _potential_energy(self, q: Vec3, t: RealScalar, /) -> FloatScalar:
+    def _potential_energy(self, q: gt.Vec3, t: gt.RealScalar, /) -> gt.FloatScalar:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.
@@ -402,7 +382,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         q: Shaped[Array, "*batch 3"],  # TODO: enable more inputs
         /,
         # TODO: enable more inputs
-        t: BatchableRealScalarLike | BatchableFloatLike | BatchableIntLike,
+        t: gt.BatchableRealScalarLike | gt.BatchableFloatLike | gt.BatchableIntLike,
     ) -> Float[Quantity["specific energy"], "*batch"]:
         """Compute the potential energy at the given position(s).
 
@@ -429,7 +409,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3)")
-    def _gradient(self, q: Vec3, /, t: RealScalar) -> Vec3:
+    def _gradient(self, q: gt.Vec3, /, t: gt.RealScalar) -> gt.Vec3:
         """See ``gradient``."""
         return grad(self._potential_energy)(q, t)
 
@@ -735,7 +715,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _laplacian(self, q: Vec3, /, t: RealScalar) -> FloatScalar:
+    def _laplacian(self, q: gt.Vec3, /, t: gt.RealScalar) -> gt.FloatScalar:
         """See ``laplacian``."""
         # TODO: more efficient implementation?
         return jnp.trace(jacfwd(self._gradient)(q, t))
@@ -1021,8 +1001,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     def _density(
-        self, q: BatchVec3, /, t: BatchRealScalar | RealScalar
-    ) -> BatchFloatScalar:
+        self, q: gt.BatchVec3, /, t: gt.BatchRealScalar | gt.RealScalar
+    ) -> gt.BatchFloatScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
         return self._laplacian(q, t) / (4 * xp.pi * self._G)
@@ -1274,7 +1254,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: Vec3, /, t: RealScalar) -> Matrix33:
+    def _hessian(self, q: gt.Vec3, /, t: gt.RealScalar) -> gt.Matrix33:
         """See ``hessian``."""
         return hessian(self._potential_energy)(q, t)
 
@@ -1283,7 +1263,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self: "AbstractPotentialBase",
         pspt: AbstractPhaseSpacePosition | FourVector,
         /,
-    ) -> BatchMatrix33:  # TODO: shape hint
+    ) -> gt.BatchMatrix33:  # TODO: shape hint
         """Compute the hessian of the potential at the given position(s).
 
         Parameters
@@ -1837,8 +1817,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     def tidal_tensor(
-        self, q: BatchVec3, /, t: BatchRealQScalar | BatchableRealScalarLike
-    ) -> BatchMatrix33:
+        self, q: gt.BatchVec3, /, t: gt.BatchRealQScalar | gt.BatchableRealScalarLike
+    ) -> gt.BatchMatrix33:
         """Compute the tidal tensor.
 
         See https://en.wikipedia.org/wiki/Tidal_tensor
@@ -1879,17 +1859,17 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     )
     def _integrator_F(
         self,
-        t: FloatScalar,
-        w: Vec6,
+        t: gt.FloatScalar,
+        w: gt.Vec6,
         args: tuple[Any, ...],  # noqa: ARG002
-    ) -> Vec6:
+    ) -> gt.Vec6:
         """Return the derivative of the phase-space position."""
         return jnp.hstack([w[3:6], self.acceleration(w[0:3], t).value])  # v, a
 
     def evaluate_orbit(
         self,
-        w0: PhaseSpacePosition | BatchVec6,
-        t: QVecTime | VecTime | APYQuantity,  # TODO: must be a Quantity
+        w0: PhaseSpacePosition | gt.BatchVec6,
+        t: gt.QVecTime | gt.VecTime | APYQuantity,  # TODO: must be a Quantity
         *,
         integrator: "Integrator | None" = None,
     ) -> "Orbit":

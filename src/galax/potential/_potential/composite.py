@@ -10,8 +10,9 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
+from unxt import Quantity
 
-from .base import AbstractPotentialBase
+from .base import AbstractPotentialBase, default_constants
 from galax.typing import BatchableRealScalarLike, BatchFloatScalar, BatchVec3
 from galax.units import UnitSystem, unitsystem
 from galax.utils import ImmutableDict
@@ -82,6 +83,9 @@ class CompositePotential(AbstractCompositePotential):
     _: KW_ONLY
     units: UnitSystem = eqx.field(init=False, static=True, converter=unitsystem)
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     def __init__(
         self,

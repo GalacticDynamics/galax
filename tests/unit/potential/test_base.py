@@ -14,6 +14,7 @@ from unxt import Quantity
 import galax.dynamics as gd
 from .io.test_gala import GalaIOMixin
 from galax.potential import AbstractPotentialBase
+from galax.potential._potential.base import default_constants
 from galax.typing import (
     BatchableRealScalarLike,
     BatchFloatScalar,
@@ -24,6 +25,7 @@ from galax.typing import (
     Vec6,
 )
 from galax.units import UnitSystem, galactic
+from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 
 
@@ -34,6 +36,9 @@ class TestAbstractPotentialBase(GalaIOMixin):
     def pot_cls(self) -> type[AbstractPotentialBase]:
         class TestPotential(AbstractPotentialBase):
             units: UnitSystem = eqx.field(default=galactic, static=True)
+            constants: ImmutableDict[Quantity] = eqx.field(
+                default=default_constants, converter=ImmutableDict
+            )
             _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
             def __post_init__(self):
@@ -115,6 +120,9 @@ class TestAbstractPotentialBase(GalaIOMixin):
         # Test that the concrete class can be instantiated
         class TestPotential(AbstractPotentialBase):
             units: UnitSystem = eqx.field(default=galactic, static=True)
+            constants: ImmutableDict[Quantity] = eqx.field(
+                default=default_constants, converter=ImmutableDict
+            )
 
             # TODO: inputs w/ units
             def _potential_energy(self, q: Vec3, t: RealScalar, /) -> FloatScalar:

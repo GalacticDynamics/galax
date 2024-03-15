@@ -7,10 +7,13 @@ from typing import Any
 
 import equinox as eqx
 
-from .base import AbstractPotentialBase
+from unxt import Quantity
+
+from .base import AbstractPotentialBase, default_constants
 from .composite import CompositePotential
 from galax.typing import FloatScalar, RealScalar, Vec3
 from galax.units import UnitSystem, unitsystem
+from galax.utils import ImmutableDict
 
 
 class AbstractPotential(AbstractPotentialBase, strict=True):
@@ -19,6 +22,9 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     def __post_init__(self) -> None:
         self._init_units()

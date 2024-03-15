@@ -19,6 +19,7 @@ from galax.typing import (
     RealScalar,
 )
 from galax.units import UnitSystem
+from galax.utils import ImmutableDict
 
 
 @final
@@ -198,6 +199,11 @@ class PotentialFrame(AbstractPotentialBase):
     def units(self) -> UnitSystem:
         """The unit system of the potential."""
         return cast(UnitSystem, self.potential.units)
+
+    @property
+    def constants(self) -> ImmutableDict[Quantity]:
+        """The constants of the potential."""
+        return cast("ImmutableDict[Quantity]", self.potential.constants)
 
     def _potential_energy(  # TODO: inputs w/ units
         self, q: BatchVec3, t: BatchableRealScalarLike | RealScalar, /

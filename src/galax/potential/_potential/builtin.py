@@ -21,18 +21,12 @@ import jax
 import quaxed.array_api as xp
 from unxt import Quantity
 
+import galax.typing as gt
+from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
-from galax.typing import (
-    BatchableRealScalarLike,
-    BatchFloatScalar,
-    BatchVec3,
-    FloatLike,
-    FloatScalar,
-    RealScalarLike,
-    Vec3,
-)
 from galax.units import UnitSystem, unitsystem
+from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import field
 
@@ -54,11 +48,14 @@ class BarPotential(AbstractPotential):
     Omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     # TODO: inputs w/ units
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _potential_energy(self, q: Vec3, t: RealScalarLike, /) -> FloatScalar:
+    def _potential_energy(self, q: gt.Vec3, t: gt.RealScalarLike, /) -> gt.FloatScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
         rotation_matrix = xp.asarray(
@@ -101,11 +98,14 @@ class HernquistPotential(AbstractPotential):
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: BatchVec3, t: BatchableRealScalarLike, /
-    ) -> BatchFloatScalar:
+        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
+    ) -> gt.BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self._G * self.m(t) / (r + self.c(t))
 
@@ -121,11 +121,14 @@ class IsochronePotential(AbstractPotential):
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: BatchVec3, t: BatchableRealScalarLike, /
-    ) -> BatchFloatScalar:
+        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
+    ) -> gt.BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         b = self.b(t)
         return -self._G * self.m(t) / (b + xp.sqrt(r**2 + b**2))
@@ -145,11 +148,14 @@ class KeplerPotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: BatchVec3, t: BatchableRealScalarLike, /
-    ) -> BatchFloatScalar:
+        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
+    ) -> gt.BatchFloatScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self._G * self.m(t) / r
 
@@ -166,11 +172,14 @@ class MiyamotoNagaiPotential(AbstractPotential):
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     # TODO: inputs w/ units
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _potential_energy(self, q: Vec3, t: RealScalarLike, /) -> FloatScalar:
+    def _potential_energy(self, q: gt.Vec3, t: gt.RealScalarLike, /) -> gt.FloatScalar:
         R2 = q[0] ** 2 + q[1] ** 2
         return (
             -self._G
@@ -189,13 +198,18 @@ class NFWPotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    softening_length: FloatLike = field(default=0.001, static=True, dimensions="length")
+    softening_length: gt.FloatLike = field(
+        default=0.001, static=True, dimensions="length"
+    )
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: BatchVec3, t: BatchableRealScalarLike, /
-    ) -> BatchFloatScalar:
+        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
+    ) -> gt.BatchFloatScalar:
         v_h2 = -self._G * self.m(t) / self.r_s(t)
         r2 = q[..., 0] ** 2 + q[..., 1] ** 2 + q[..., 2] ** 2
         m = xp.sqrt(r2 + self.softening_length) / self.r_s(t)
@@ -211,14 +225,17 @@ class NullPotential(AbstractPotential):
 
     _: KW_ONLY
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
         self,
-        q: BatchVec3,
-        t: BatchableRealScalarLike,  # noqa: ARG002
+        q: gt.BatchVec3,
+        t: gt.BatchableRealScalarLike,  # noqa: ARG002
         /,
-    ) -> BatchFloatScalar:
+    ) -> gt.BatchFloatScalar:
         return xp.zeros(q.shape[:-1], dtype=q.dtype)
 
 
@@ -293,10 +310,15 @@ class TriaxialHernquistPotential(AbstractPotential):
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
     """The unit system to use for the potential."""
 
+    constants: ImmutableDict[Quantity] = eqx.field(
+        converter=ImmutableDict, default=default_constants
+    )
+    """The constants used by the potential."""
+
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: BatchVec3, t: BatchableRealScalarLike, /
-    ) -> BatchFloatScalar:
+        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
+    ) -> gt.BatchFloatScalar:
         c, q1, q2 = self.c(t), self.q1(t), self.q2(t)
         c = eqx.error_if(c, c <= 0, "c must be positive")
 

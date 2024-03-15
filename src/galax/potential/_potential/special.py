@@ -13,10 +13,11 @@ import equinox as eqx
 
 from unxt import Quantity
 
-from .base import AbstractPotentialBase
+from .base import AbstractPotentialBase, default_constants
 from .builtin import HernquistPotential, MiyamotoNagaiPotential, NFWPotential
 from .composite import AbstractCompositePotential
 from galax.units import UnitSystem, dimensionless, galactic, unitsystem
+from galax.utils import ImmutableDict
 
 T = TypeVar("T", bound=AbstractPotentialBase)
 
@@ -71,6 +72,9 @@ class MilkyWayPotential(AbstractCompositePotential):
     _data: dict[str, AbstractPotentialBase] = eqx.field(init=False)
     _: KW_ONLY
     units: UnitSystem = eqx.field(init=True, static=True, converter=unitsystem)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
     _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
     _default_disk: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(

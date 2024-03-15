@@ -85,7 +85,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def _init_units(self) -> None:
         # TODO: not allow units=dimensionless
-        G = 1 if self.units == dimensionless else CONST_G.decompose(self.units).value
+        G = 1 if self.units == dimensionless else _CONST_G.decompose(self.units).value
         object.__setattr__(self, "_G", G)
 
         from galax.potential._potential.param.field import ParameterField

@@ -72,10 +72,10 @@ class MilkyWayPotential(AbstractCompositePotential):
     _data: dict[str, AbstractPotentialBase] = eqx.field(init=False)
     _: KW_ONLY
     units: UnitSystem = eqx.field(init=True, static=True, converter=unitsystem)
-    _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
+    _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
 
     _default_disk: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
         {

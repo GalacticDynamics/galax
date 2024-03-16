@@ -13,7 +13,7 @@ import quax.examples.prng as jr
 from jax.lib.xla_bridge import get_backend
 
 import quaxed.array_api as xp
-from unxt import Quantity
+from unxt import Quantity, UnitSystem
 
 from .core import MockStream
 from .df import AbstractStreamDF
@@ -24,7 +24,6 @@ from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
 from galax.dynamics._dynamics.integrate._funcs import evaluate_orbit
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchVec6, FloatScalar, IntScalar, QVecTime, Vec6, VecN
-from galax.units import UnitSystem
 
 Carry: TypeAlias = tuple[IntScalar, VecN, VecN]
 

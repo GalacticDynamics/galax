@@ -9,6 +9,7 @@ from plum import convert
 
 import quaxed.array_api as xp
 from unxt import Quantity
+from unxt.unitsystems import galactic
 
 from ..coordinates.psp.test_base import (
     AbstractPhaseSpacePosition_Test,
@@ -18,7 +19,6 @@ from ..coordinates.psp.test_base import (
 from galax.coordinates import PhaseSpacePosition
 from galax.dynamics import Orbit
 from galax.potential import AbstractPotentialBase, MilkyWayPotential
-from galax.units import galactic
 
 T = TypeVar("T", bound=Orbit)
 

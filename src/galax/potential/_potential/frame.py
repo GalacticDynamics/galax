@@ -9,11 +9,10 @@ from typing import cast, final
 import equinox as eqx
 
 from coordinax.operators import OperatorSequence, simplify_op
-from unxt import Quantity
+from unxt import Quantity, UnitSystem
 
 import galax.typing as gt
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.units import UnitSystem
 from galax.utils import ImmutableDict
 
 

@@ -20,13 +20,12 @@ import jax
 from quax import quaxify
 
 import quaxed.array_api as xp
-from unxt import Quantity
+from unxt import Quantity, UnitSystem, unitsystem
 
 import galax.typing as gt
 from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
-from galax.units import UnitSystem, unitsystem
 from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 
@@ -266,10 +265,10 @@ class TriaxialHernquistPotential(AbstractPotential):
         or constant, like a Quantity. See
         :class:`~galax.potential.ParameterField` for details.
 
-    units : :class:`~galax.units.UnitSystem`, keyword-only
+    units : :class:`~unxt.UnitSystem`, keyword-only
         The unit system to use for the potential.  This parameter accepts a
-        :class:`~galax.units.UnitSystem` or anything that can be converted to a
-        :class:`~galax.units.UnitSystem` using :func:`~galax.units.unitsystem`.
+        :class:`~unxt.UnitSystem` or anything that can be converted to a
+        :class:`~unxt.UnitSystem` using :func:`~unxt.unitsystem`.
 
     Examples
     --------

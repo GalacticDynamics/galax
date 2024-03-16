@@ -2,11 +2,11 @@ import astropy.units as u
 import pytest
 
 from unxt import Quantity
+from unxt.unitsystems import galactic
 
 import galax.potential as gp
 from ..param.test_field import ParameterFieldMixin
 from galax.potential import ConstantParameter
-from galax.units import galactic
 
 
 class MassParameterMixin(ParameterFieldMixin):

@@ -114,7 +114,7 @@ def evaluate_orbit(
     >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> from galax.units import galactic
+    >>> from unxt.unitsystems import galactic
 
     We can then create the point-mass' potential, with galactic units:
 

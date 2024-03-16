@@ -7,7 +7,7 @@ from plum import NotFoundLookupError
 from typing_extensions import override
 
 import quaxed.numpy as qnp
-from unxt import Quantity
+from unxt import Quantity, UnitSystem
 
 import galax.potential as gp
 import galax.typing as gt

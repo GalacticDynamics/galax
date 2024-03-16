@@ -4,10 +4,11 @@ import abc
 
 import equinox as eqx
 
+from unxt import UnitSystem
+
 from ._api import FCallable
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.typing import BatchQVecTime, BatchVec6, BatchVecTime, QVecTime, VecTime
-from galax.units import UnitSystem
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]

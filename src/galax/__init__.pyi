@@ -5,7 +5,6 @@ __all__ = [
     "dynamics",
     "potential",
     "typing",
-    "units",
     "utils",
 ]
 
@@ -13,7 +12,6 @@ from . import (
     dynamics as dynamics,
     potential as potential,
     typing as typing,
-    units as units,
     utils as utils,
 )
 from ._version import (  # type: ignore[attr-defined]

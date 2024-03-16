@@ -10,11 +10,10 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
-from unxt import Quantity
+from unxt import Quantity, UnitSystem, unitsystem
 
 from .base import AbstractPotentialBase, default_constants
 from galax.typing import BatchableRealQScalar, BatchFloatQScalar, BatchQVec3
-from galax.units import UnitSystem, unitsystem
 from galax.utils import ImmutableDict
 from galax.utils._misc import first
 

@@ -20,7 +20,7 @@ from coordinax import (
     Cartesian3DVector,
     represent_as as vector_represent_as,
 )
-from unxt import Quantity
+from unxt import Quantity, unitsystem
 
 from .utils import getitem_broadscalartime_index
 from galax.typing import (
@@ -30,7 +30,6 @@ from galax.typing import (
     BatchVec7,
     BroadBatchFloatQScalar,
 )
-from galax.units import unitsystem
 
 if TYPE_CHECKING:
     from typing import Self
@@ -188,8 +187,8 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
         Parameters
         ----------
-        units : `galax.units.UnitSystem`, optional keyword-only
-            The unit system. :func:`~galax.units.unitsystem` is used to
+        units : `unxt.UnitSystem`, optional keyword-only
+            The unit system. :func:`~unxt.unitsystem` is used to
             convert the input to a unit system.
 
         Returns
@@ -228,8 +227,8 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
         Parameters
         ----------
-        units : `galax.units.UnitSystem`, keyword-only
-            The unit system. :func:`~galax.units.unitsystem` is used to
+        units : `unxt.UnitSystem`, keyword-only
+            The unit system. :func:`~unxt.unitsystem` is used to
             convert the input to a unit system.
 
         Returns

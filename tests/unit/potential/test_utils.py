@@ -9,8 +9,10 @@ import pytest
 from jax import Array
 from plum import NotFoundLookupError
 
+from unxt import UnitSystem, unitsystem
+from unxt.unitsystems import dimensionless, galactic, solarsystem
+
 from galax.potential import AbstractPotentialBase
-from galax.units import UnitSystem, dimensionless, galactic, solarsystem, unitsystem
 from galax.utils._optional_deps import HAS_GALA
 
 

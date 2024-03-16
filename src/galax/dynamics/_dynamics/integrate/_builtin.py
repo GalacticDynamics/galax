@@ -10,13 +10,12 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
-from unxt import Quantity
+from unxt import Quantity, UnitSystem
 
 import galax.typing as gt
 from ._api import FCallable
 from ._base import AbstractIntegrator
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
-from galax.units import UnitSystem
 from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 

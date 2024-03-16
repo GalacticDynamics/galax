@@ -8,6 +8,7 @@ from typing_extensions import override
 
 import quaxed.numpy as qnp
 from unxt import Quantity
+from unxt.unitsystems import UnitSystem, galactic, solarsystem
 
 import galax.typing as gt
 from .test_composite import AbstractCompositePotential_Test
@@ -17,7 +18,6 @@ from galax.potential import (
     KeplerPotential,
     MilkyWayPotential,
 )
-from galax.units import UnitSystem, galactic, solarsystem
 from galax.utils._misc import first
 
 ##############################################################################

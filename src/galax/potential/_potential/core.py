@@ -7,12 +7,11 @@ from typing import Any
 
 import equinox as eqx
 
-from unxt import Quantity
+from unxt import Quantity, UnitSystem, unitsystem
 
 from .base import AbstractPotentialBase, default_constants
 from .composite import CompositePotential
 from galax.typing import FloatQScalar, QVec3, RealScalar
-from galax.units import UnitSystem, unitsystem
 from galax.utils import ImmutableDict
 
 

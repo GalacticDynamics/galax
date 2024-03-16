@@ -38,8 +38,8 @@ FloatLike = FloatScalar | float | int
 RealScalar = FloatScalar | IntScalar
 RealQScalar = FloatQScalar | IntQScalar
 
+# A float or integer or float(/int) scalar.
 RealScalarLike = FloatLike | IntLike
-"""A float or integer or float(/int) scalar."""
 
 
 # =============================================================================
@@ -56,8 +56,9 @@ QVec1 = Float[Quantity, "1"]
 Vec3 = Float[Array, "3"]
 QVec3 = Float[Quantity, "3"]
 
+# A 3x3 matrix
 Matrix33 = Float[Array, "3 3"]
-"""A 3x3 matrix."""
+QMatrix33 = Float[Quantity, "3 3"]
 
 Vec4 = Float[Array, "4"]
 """A 4-vector e.g. w=(t, x, y, z)."""
@@ -119,8 +120,9 @@ BroadBatchQVec3 = Shaped[QVec3, "*#batch"]
 BatchVec3 = Shaped[Vec3, "*batch"]
 BatchQVec3 = Shaped[QVec3, "*batch"]
 
+# Zero or more batches of 3x3 matrices.
 BatchMatrix33 = Shaped[Matrix33, "*batch"]
-"""Zero or more batches of 3x3 matrices."""
+BatchQMatrix33 = Shaped[QMatrix33, "*batch"]
 
 BroadBatchVec6 = Shaped[Vec6, "*#batch"]
 BatchVec6 = Shaped[Vec6, "*batch"]

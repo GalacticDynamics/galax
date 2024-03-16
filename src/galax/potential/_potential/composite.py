@@ -13,7 +13,7 @@ import quaxed.array_api as xp
 from unxt import Quantity
 
 from .base import AbstractPotentialBase, default_constants
-from galax.typing import BatchableRealScalarLike, BatchFloatScalar, BatchVec3
+from galax.typing import BatchableRealQScalar, BatchFloatQScalar, BatchQVec3
 from galax.units import UnitSystem, unitsystem
 from galax.utils import ImmutableDict
 from galax.utils._misc import first
@@ -30,8 +30,8 @@ class AbstractCompositePotential(
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: BatchVec3, t: BatchableRealScalarLike, /
-    ) -> BatchFloatScalar:
+        self, q: BatchQVec3, t: BatchableRealQScalar, /
+    ) -> BatchFloatQScalar:
         return xp.sum(
             xp.asarray(
                 [p._potential_energy(q, t) for p in self.values()]  # noqa: SLF001
@@ -82,7 +82,6 @@ class CompositePotential(AbstractCompositePotential):
     _data: dict[str, AbstractPotentialBase]
     _: KW_ONLY
     units: UnitSystem = eqx.field(init=False, static=True, converter=unitsystem)
-    _G: float = eqx.field(init=False, static=True, repr=False, converter=float)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )

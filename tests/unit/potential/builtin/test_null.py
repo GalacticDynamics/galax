@@ -1,22 +1,25 @@
+import re
 from typing import Any
 
-import jax.numpy as jnp
 import pytest
+from jaxtyping import Array
+from plum import NotFoundLookupError
+from typing_extensions import override
 
-import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
 
+import galax.potential as gp
+import galax.typing as gt
+import galax.units as gu
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from galax.potential import AbstractPotentialBase, NullPotential
-from galax.typing import Vec3
-from galax.units import UnitSystem
+from galax.units import UnitSystem, dimensionless
 
 
 class TestNullPotential(AbstractPotential_Test):
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[NullPotential]:
-        return NullPotential
+    def pot_cls(self) -> type[gp.NullPotential]:
+        return gp.NullPotential
 
     @pytest.fixture(scope="class")
     def fields_(self, field_units: UnitSystem) -> dict[str, Any]:
@@ -24,30 +27,78 @@ class TestNullPotential(AbstractPotential_Test):
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: NullPotential, x: Vec3) -> None:
-        """Test :meth:`NullPotential.potential_energy`."""
-        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(0.0))
+    def test_init_units_from_args(
+        self, pot_cls: type[gp.AbstractPotentialBase], fields_unitless: dict[str, Array]
+    ) -> None:
+        """Test unit system from None."""
+        # strip the units from the fields otherwise the test will fail
+        # because the units are not equal and we just want to check that
+        # when the units aren't specified, the default is dimensionless
+        # and a numeric value works.
+        fields_unitless.pop("units", None)
+        pot = pot_cls(**fields_unitless, units=None)
+        assert pot.units == dimensionless
 
-    def test_gradient(self, pot: NullPotential, x: Vec3) -> None:
+    @override
+    def test_init_units_from_name(
+        self, pot_cls: type[gp.AbstractPotentialBase], fields_unitless: dict[str, Array]
+    ) -> None:
+        """Test unit system from named string."""
+        fields_unitless.pop("units")
+
+        pot = pot_cls(**fields_unitless, units="dimensionless")
+        assert pot.units == gu.dimensionless
+
+        pot = pot_cls(**fields_unitless, units="solarsystem")
+        assert pot.units == gu.solarsystem
+
+        pot = pot_cls(**fields_unitless, units="galactic")
+        assert pot.units == gu.galactic
+
+        msg = "`unitsystem('invalid_value')` could not be resolved."
+        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
+            pot_cls(**fields_unitless, units="invalid_value")
+
+    # ==========================================================================
+
+    def test_potential_energy(self, pot: gp.NullPotential, x: gt.Vec3) -> None:
+        """Test :meth:`NullPotential.potential_energy`."""
+        expected = Quantity(0.0, pot.units["specific energy"])
+        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
+            pot.potential_energy(x, t=0).decompose(pot.units).value, expected.value
+        )
+
+    def test_gradient(self, pot: gp.NullPotential, x: gt.Vec3) -> None:
         """Test :meth:`NullPotential.gradient`."""
         expected = Quantity([0.0, 0.0, 0.0], pot.units["acceleration"])
-        assert qnp.allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: value
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.gradient(x, t=0).decompose(pot.units).value, expected.value
+        )
 
-    def test_density(self, pot: NullPotential, x: Vec3) -> None:
+    def test_density(self, pot: gp.NullPotential, x: gt.Vec3) -> None:
         """Test :meth:`NullPotential.density`."""
-        assert jnp.isclose(pot.density(x, t=0).value, 0.0)
+        expected = Quantity(0.0, pot.units["mass density"])
+        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
+            pot.density(x, t=0).decompose(pot.units).value, expected.value
+        )
 
-    def test_hessian(self, pot: NullPotential, x: Vec3) -> None:
+    def test_hessian(self, pot: gp.NullPotential, x: gt.Vec3) -> None:
         """Test :meth:`NullPotential.hessian`."""
-        assert jnp.allclose(
-            pot.hessian(x, t=0),
-            xp.asarray([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
+        expected = Quantity(
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2"
+        )
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.hessian(x, t=0).decompose(pot.units).value, expected.value
         )
 
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
-        expect = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        expected = Quantity(
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2"
+        )
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.tidal_tensor(x, t=0).decompose(pot.units).value, expected.value
+        )

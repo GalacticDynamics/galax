@@ -17,6 +17,7 @@ from typing import final
 
 import equinox as eqx
 import jax
+from quax import quaxify
 
 import quaxed.array_api as xp
 from unxt import Quantity
@@ -28,7 +29,6 @@ from galax.potential._potential.param import AbstractParameter, ParameterField
 from galax.units import UnitSystem, unitsystem
 from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
-from galax.utils.dataclasses import field
 
 # -------------------------------------------------------------------
 
@@ -53,9 +53,10 @@ class BarPotential(AbstractPotential):
     )
 
     # TODO: inputs w/ units
+    @quaxify  # type: ignore[misc]
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _potential_energy(self, q: gt.Vec3, t: gt.RealScalarLike, /) -> gt.FloatScalar:
+    def _potential_energy(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.FloatQScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
         rotation_matrix = xp.asarray(
@@ -82,7 +83,7 @@ class BarPotential(AbstractPotential):
         )
 
         # potential in a corotating frame
-        return (self._G * self.m(t) / (2.0 * a)) * xp.log(
+        return (self.constants["G"] * self.m(t) / (2.0 * a)) * xp.log(
             (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus),
         )
 
@@ -104,10 +105,10 @@ class HernquistPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
-    ) -> gt.BatchFloatScalar:
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
-        return -self._G * self.m(t) / (r + self.c(t))
+        return -self.constants["G"] * self.m(t) / (r + self.c(t))
 
 
 # -------------------------------------------------------------------
@@ -127,11 +128,11 @@ class IsochronePotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
-    ) -> gt.BatchFloatScalar:
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         b = self.b(t)
-        return -self._G * self.m(t) / (b + xp.sqrt(r**2 + b**2))
+        return -self.constants["G"] * self.m(t) / (b + xp.sqrt(r**2 + b**2))
 
 
 # -------------------------------------------------------------------
@@ -154,10 +155,10 @@ class KeplerPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
-    ) -> gt.BatchFloatScalar:
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
-        return -self._G * self.m(t) / r
+        return -self.constants["G"] * self.m(t) / r
 
 
 # -------------------------------------------------------------------
@@ -176,16 +177,13 @@ class MiyamotoNagaiPotential(AbstractPotential):
         default=default_constants, converter=ImmutableDict
     )
 
-    # TODO: inputs w/ units
     @partial(jax.jit)
-    @vectorize_method(signature="(3),()->()")
-    def _potential_energy(self, q: gt.Vec3, t: gt.RealScalarLike, /) -> gt.FloatScalar:
-        R2 = q[0] ** 2 + q[1] ** 2
-        return (
-            -self._G
-            * self.m(t)
-            / xp.sqrt(R2 + xp.square(xp.sqrt(q[2] ** 2 + self.b(t) ** 2) + self.a(t)))
-        )
+    def _potential_energy(
+        self: "MiyamotoNagaiPotential", q: gt.QVec3, t: gt.RealQScalar, /
+    ) -> gt.FloatQScalar:
+        R2 = q[..., 0] ** 2 + q[..., 1] ** 2
+        zp2 = (xp.sqrt(q[..., 2] ** 2 + self.b(t) ** 2) + self.a(t)) ** 2
+        return -self.constants["G"] * self.m(t) / xp.sqrt(R2 + zp2)
 
 
 # -------------------------------------------------------------------
@@ -198,9 +196,6 @@ class NFWPotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    softening_length: gt.FloatLike = field(
-        default=0.001, static=True, dimensions="length"
-    )
     units: UnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
@@ -208,11 +203,11 @@ class NFWPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
-    ) -> gt.BatchFloatScalar:
-        v_h2 = -self._G * self.m(t) / self.r_s(t)
-        r2 = q[..., 0] ** 2 + q[..., 1] ** 2 + q[..., 2] ** 2
-        m = xp.sqrt(r2 + self.softening_length) / self.r_s(t)
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        v_h2 = -self.constants["G"] * self.m(t) / self.r_s(t)
+        r = xp.linalg.vector_norm(q, axis=-1)
+        m = r / self.r_s(t)
         return v_h2 * xp.log(1.0 + m) / m
 
 
@@ -232,11 +227,13 @@ class NullPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
         self,
-        q: gt.BatchVec3,
-        t: gt.BatchableRealScalarLike,  # noqa: ARG002
+        q: gt.BatchQVec3,
+        t: gt.BatchableRealQScalar,  # noqa: ARG002
         /,
-    ) -> gt.BatchFloatScalar:
-        return xp.zeros(q.shape[:-1], dtype=q.dtype)
+    ) -> gt.BatchFloatQScalar:
+        return Quantity(
+            xp.zeros(q.shape[:-1], dtype=q.dtype), self.units["specific energy"]
+        )
 
 
 # -------------------------------------------------------------------
@@ -284,7 +281,7 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     >>> q = Quantity([1, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")
-    >>> pot.potential_energy(q, t)
+    >>> pot.potential_energy(q, t).decompose(pot.units)
     Quantity['specific energy'](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
     """
 
@@ -317,10 +314,10 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units
-        self, q: gt.BatchVec3, t: gt.BatchableRealScalarLike, /
-    ) -> gt.BatchFloatScalar:
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
         c, q1, q2 = self.c(t), self.q1(t), self.q2(t)
-        c = eqx.error_if(c, c <= 0, "c must be positive")
+        c = eqx.error_if(c, c.value <= 0, "c must be positive")
 
         rprime = xp.sqrt(q[..., 0] ** 2 + (q[..., 1] / q1) ** 2 + (q[..., 2] / q2) ** 2)
-        return -self._G * self.m(t) / (rprime + c)
+        return -self.constants["G"] * self.m(t) / (rprime + c)

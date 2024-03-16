@@ -1,20 +1,19 @@
 """Test :mod:`galax.dynamics.mockstream.mockstreamgenerator`."""
 
-from typing import cast
-
 import astropy.units as u
 import jax.numpy as jnp
 import jax.tree_util as tu
 import pytest
 import quax.examples.prng as jr
+from jaxtyping import Shaped
 
 import quaxed.array_api as xp
 from unxt import Quantity
 
+import galax.coordinates as gc
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
 from galax.potential import AbstractPotentialBase, NFWPotential
-from galax.typing import QVecTime, Vec6
-from galax.units import galactic
+from galax.typing import QVecTime
 
 
 class TestMockStreamGenerator:
@@ -28,9 +27,7 @@ class TestMockStreamGenerator:
     @pytest.fixture()
     def pot(self) -> NFWPotential:
         """Mock stream DF."""
-        return NFWPotential(
-            m=1.0e12 * u.Msun, r_s=15.0 * u.kpc, softening_length=0.0, units=galactic
-        )
+        return NFWPotential(m=1.0e12 * u.Msun, r_s=15.0 * u.kpc, units="galactic")
 
     @pytest.fixture()
     def mockstream(
@@ -49,23 +46,16 @@ class TestMockStreamGenerator:
         return Quantity(xp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
 
     @pytest.fixture()
-    def prog_w0(self) -> Vec6:
+    def prog_w0(self) -> gc.PhaseSpacePosition:
         """Progenitor initial conditions."""
-        return cast(
-            Vec6,
-            xp.asarray(
-                [
-                    x.decompose(galactic).value
-                    for x in [*(30, 10, 20) * u.kpc, *(10, -150, -20) * u.km / u.s]
-                ],
-                dtype=float,
-            ),
+        return gc.PhaseSpacePosition(
+            q=[30, 10, 20] * u.kpc, p=[10, -150, -20] * u.km / u.s, t=0.0 * u.Myr
         )
 
     @pytest.fixture()
-    def prog_mass(self) -> float:
+    def prog_mass(self) -> Shaped[Quantity["mass"], ""]:
         """Progenitor mass."""
-        return 1e4
+        return Quantity(1e4, "Msun")
 
     @pytest.fixture()
     def rng(self) -> jr.PRNG:
@@ -83,17 +73,14 @@ class TestMockStreamGenerator:
         self,
         mockstream: MockStreamGenerator,
         t_stripping: QVecTime,
-        prog_w0: Vec6,
-        prog_mass: float,
+        prog_w0: gc.PhaseSpacePosition,
+        prog_mass: Shaped[Quantity["mass"], ""],
         rng: jr.PRNG,
+        vmapped: bool,
     ) -> None:
         """Test the run method with ``vmapped=False``."""
         mock, prog_o = mockstream.run(
-            rng,
-            t_stripping,
-            prog_w0,
-            prog_mass,
-            vmapped=False,
+            rng, t_stripping, prog_w0, prog_mass, vmapped=vmapped
         )
 
         # TODO: more rigorous tests

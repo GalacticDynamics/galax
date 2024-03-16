@@ -38,7 +38,9 @@ class ParametersAttribute:
         >>> import astropy.units as u
         >>> kepler = KeplerPotential(m=1e12 * u.solMass, units="galactic")
         >>> kepler.parameters
-        mappingproxy({'m': ConstantParameter(unit=Unit("solMass"), value=f64[])})
+        mappingproxy({'m': ConstantParameter(
+            unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass"))
+            )})
     """
 
     parameters: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint

@@ -6,8 +6,8 @@ from dataclasses import replace
 
 import jax.numpy as jnp
 from plum import convert
+from quax import quaxify
 
-import quaxed.numpy as qnp
 from coordinax import CartesianDifferential3D
 from coordinax.operators import (
     AbstractCompositeOperator,
@@ -22,6 +22,8 @@ from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
 
 from galax.coordinates._psp.base import AbstractPhaseSpacePosition
+
+vec_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
 
 ######################################################################
 # Abstract Operators
@@ -253,9 +255,6 @@ def call(
     p = psp.p.represent_as(CartesianDifferential3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
-
-
-vec_matmul = qnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)")
 
 
 @op_call_dispatch

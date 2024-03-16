@@ -150,11 +150,12 @@ def d2phidr2(
 
     Examples
     --------
+    >>> from unxt import Quantity
     >>> from galax.potential import NFWPotential
-    >>> from galax.units import galactic
-    >>> pot = NFWPotential(m=1e12, r_s=20.0, units=galactic)
+    >>> pot = NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
+    ...                    units="galactic")
     >>> d2phidr2(pot, xp.asarray([8.0, 0.0, 0.0]), t=0)
-    Array(-0.00017469, dtype=float64)
+    Array(-0.00259193, dtype=float64)
     """
     r_hat = x / xp.linalg.vector_norm(x)
 
@@ -254,10 +255,10 @@ def tidal_radius(
     >>> x=xp.asarray([8.0, 0.0, 0.0])
     >>> v=xp.asarray([8.0, 0.0, 0.0])
     >>> tidal_radius(pot, x, v, prog_mass=1e4, t=0)
-    Array(0.06362136, dtype=float64)
+    Array(0.06362008, dtype=float64)
     """
     return (
-        potential._G  # noqa: SLF001
+        potential.constants["G"].value
         * prog_mass
         / (orbital_angular_velocity_mag(x, v) ** 2 - d2phidr2(potential, x, t))
     ) ** (1.0 / 3.0)

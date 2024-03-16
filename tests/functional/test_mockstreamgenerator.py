@@ -12,7 +12,7 @@ from unxt import Quantity
 
 from galax.dynamics import FardalStreamDF, MockStreamGenerator
 from galax.potential import MilkyWayPotential
-from galax.typing import FloatScalar, QVecTime, Vec6
+from galax.typing import FloatQScalar, FloatScalar, QVecTime, Vec6
 from galax.units import UnitSystem
 
 usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian)
@@ -21,7 +21,7 @@ df = FardalStreamDF()
 
 @jax.jit
 def compute_loss(
-    params: dict[str, Any], rng: jr.PRNG, ts: QVecTime, w0: Vec6, M_sat: FloatScalar
+    params: dict[str, Any], rng: jr.PRNG, ts: QVecTime, w0: Vec6, M_sat: FloatQScalar
 ) -> FloatScalar:
     # Generate mock stream
     pot = MilkyWayPotential(**params, units=usys)
@@ -50,8 +50,12 @@ def test_first_deriv() -> None:
     """Test the first derivative of the mockstream."""
     # Inputs
     params = {
-        "disk": {"m": 5.0e10 * u.Msun, "a": 3.0, "b": 0.25},
-        "halo": {"m": 1.0e12 * u.Msun, "r_s": 15.0},
+        "disk": {
+            "m": Quantity(5.0e10, "Msun"),
+            "a": Quantity(3.0, "kpc"),
+            "b": Quantity(0.25, "kpc"),
+        },
+        "halo": {"m": Quantity(1.0e12, "Msun"), "r_s": Quantity(15.0, "kpc")},
     }
 
     ts = Quantity(xp.linspace(0.0, 4_000, 10_000, dtype=float), "Myr")
@@ -60,7 +64,7 @@ def test_first_deriv() -> None:
     p0 = ((10, -150, -20) * u.Unit("km / s")).decompose(usys).value
     w0 = xp.asarray([*q0, *p0], dtype=float)
 
-    M_sat = 1.0e4 * u.Msun
+    M_sat = Quantity(1.0e4, "Msun")
 
     # Compute the first derivative
     rng = jr.ThreeFry(12)
@@ -75,8 +79,12 @@ def test_first_deriv() -> None:
 def test_second_deriv() -> None:
     # Inputs
     params = {
-        "disk": {"m": 5.0e10 * u.Msun, "a": 3.0, "b": 0.25},
-        "halo": {"m": 1.0e12 * u.Msun, "r_s": 15.0},
+        "disk": {
+            "m": Quantity(5.0e10, "Msun"),
+            "a": Quantity(3.0, "kpc"),
+            "b": Quantity(0.25, "kpc"),
+        },
+        "halo": {"m": Quantity(1.0e12, "Msun"), "r_s": Quantity(15.0, "kpc")},
     }
     ts = Quantity(xp.linspace(0.0, 4_000, 10_000, dtype=float), "Myr")
 
@@ -84,7 +92,7 @@ def test_second_deriv() -> None:
     p0 = ((10, -150, -20) * u.Unit("km / s")).decompose(usys).value
     w0 = xp.asarray([*q0, *p0], dtype=float)
 
-    M_sat = 1.0e4 * u.Msun
+    M_sat = Quantity(1.0e4, "Msun")
 
     # Compute the second derivative
     rng = jr.ThreeFry(12)

@@ -16,24 +16,28 @@ import astropy.units as u
 import equinox as eqx
 import jax
 
-from galax.typing import BatchableRealScalarLike, FloatArrayAnyShape, RealScalar, Unit
-from galax.utils._jax import vectorize_method
-from galax.utils.dataclasses import converter_float_array
+import quaxed.array_api as xp
+from unxt import Quantity
+
+from galax.typing import BatchableRealQScalar, FloatQAnyShape, Unit
 
 if TYPE_CHECKING:
     from typing import Self
+
+
+t0 = Quantity(0, "Myr")
 
 
 @runtime_checkable
 class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
-    def __call__(self, t: BatchableRealScalarLike, **kwargs: Any) -> FloatArrayAnyShape:
+    def __call__(self, t: BatchableRealQScalar, **kwargs: Any) -> FloatQAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : `~galax.typing.BatchableRealScalarLike`
+        t : `~galax.typing.BatchableRealQScalar`
             Time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
@@ -63,12 +67,12 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @abc.abstractmethod
-    def __call__(self, t: BatchableRealScalarLike, **kwargs: Any) -> FloatArrayAnyShape:
+    def __call__(self, t: BatchableRealQScalar, **kwargs: Any) -> FloatQAnyShape:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : `~galax.typing.BatchableRealScalarLike`
+        t : `~galax.typing.BatchableRealQScalar`
             The time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
@@ -88,25 +92,26 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
 class ConstantParameter(AbstractParameter):
     """Time-independent potential parameter."""
 
-    # TODO: unit handling
     # TODO: link this shape to the return shape from __call__
-    value: FloatArrayAnyShape = eqx.field(converter=converter_float_array)
+    value: FloatQAnyShape = eqx.field(converter=Quantity.constructor)
     _: KW_ONLY
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
-    # This is a workaround since vectorized methods don't support kwargs.
-    @partial(jax.jit)
-    @vectorize_method(signature="()->()")
-    def _call_helper(self, _: RealScalar) -> FloatArrayAnyShape:
-        return self.value
+    def __check_init__(self) -> None:
+        """Check the initialization of the class."""
+        _ = eqx.error_if(
+            self.value,
+            self.value.unit.physical_type != self.unit.physical_type,
+            "The value must have the same dimensions as the parameter.",
+        )
 
     @partial(jax.jit)
-    def __call__(self, t: BatchableRealScalarLike = 0, **_: Any) -> FloatArrayAnyShape:
+    def __call__(self, t: BatchableRealQScalar = t0, **_: Any) -> FloatQAnyShape:
         """Return the constant parameter value.
 
         Parameters
         ----------
-        t : `~galax.typing.BatchableRealScalarLike`, optional
+        t : `~galax.typing.BatchableRealQScalar`, optional
             This is ignored and is thus optional.
             Note that for most :class:`~galax.potential.AbstractParameter`
             the time is required.
@@ -118,15 +123,17 @@ class ConstantParameter(AbstractParameter):
         Array[float, "*shape"]
             The constant parameter value.
         """
-        return self._call_helper(t)
+        return xp.broadcast_to(self.value, t.shape)
 
     # -------------------------------------------
 
     def __mul__(self, other: Any) -> "Self":
-        return replace(self, value=self.value * other)
+        value = self.value * other
+        return replace(self, value=value, unit=value.unit)
 
     def __rmul__(self, other: Any) -> "Self":
-        return replace(self, value=other * self.value)
+        value = other * self.value
+        return replace(self, value=value, unit=value.unit)
 
 
 #####################################################################
@@ -140,7 +147,7 @@ class UserParameter(AbstractParameter):
 
     Parameters
     ----------
-    func : Callable[[BatchableRealScalarLike], Array[float, (*shape,)]]
+    func : Callable[[BatchableRealQScalar], Array[float, (*shape,)]]
         The function to use to compute the parameter value.
     unit : Unit, keyword-only
         The output unit of the parameter.
@@ -152,5 +159,6 @@ class UserParameter(AbstractParameter):
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @partial(jax.jit)
-    def __call__(self, t: BatchableRealScalarLike, **kwargs: Any) -> FloatArrayAnyShape:
-        return self.func(t, **kwargs)
+    def __call__(self, t: BatchableRealQScalar, **kwargs: Any) -> FloatQAnyShape:
+        # TODO: think more about unit handling
+        return Quantity.constructor(self.func(t, **kwargs), self.unit)

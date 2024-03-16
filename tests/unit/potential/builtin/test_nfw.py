@@ -1,26 +1,17 @@
-from dataclasses import replace
 from typing import Any
 
 import astropy.units as u
-import jax.numpy as jnp
 import pytest
 from typing_extensions import override
 
-import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
 
 import galax.potential as gp
+import galax.typing as gt
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin
-from galax.potential import (
-    AbstractPotential,
-    AbstractPotentialBase,
-    ConstantParameter,
-    NFWPotential,
-)
-from galax.typing import Vec3
 from galax.units import UnitSystem, galactic
 from galax.utils._optional_deps import HAS_GALA
 
@@ -28,40 +19,40 @@ from galax.utils._optional_deps import HAS_GALA
 class ScaleRadiusParameterMixin(ParameterFieldMixin):
     """Test the mass parameter."""
 
-    pot_cls: type[AbstractPotential]
+    pot_cls: type[gp.AbstractPotential]
 
     @pytest.fixture(scope="class")
-    def field_r_s(self) -> float:
-        return 1.0 * u.kpc
+    def field_r_s(self) -> Quantity["length"]:
+        return Quantity(1.0, "kpc")
 
     # =====================================================
 
     def test_r_s_units(
-        self, pot_cls: type[AbstractPotential], fields: dict[str, Any]
+        self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]
     ) -> None:
         """Test the mass parameter."""
         fields["r_s"] = 1.0 * u.Unit(10 * u.kpc)
         fields["units"] = galactic
         pot = pot_cls(**fields)
-        assert isinstance(pot.r_s, ConstantParameter)
-        assert jnp.isclose(pot.r_s.value, 10)
+        assert isinstance(pot.r_s, gp.ConstantParameter)
+        assert qnp.isclose(pot.r_s(0).value, Quantity(10, "kpc").value)  # TODO: value
 
     def test_r_s_constant(
-        self, pot_cls: type[AbstractPotential], fields: dict[str, Any]
+        self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]
     ):
         """Test the mass parameter."""
-        fields["r_s"] = 1.0
+        fields["r_s"] = Quantity(1.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.r_s(t=0) == 1.0
+        assert pot.r_s(t=0) == Quantity(1.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_s_userfunc(
-        self, pot_cls: type[AbstractPotential], fields: dict[str, Any]
+        self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]
     ):
         """Test the mass parameter."""
-        fields["r_s"] = lambda t: t + 2
+        fields["r_s"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.r_s(t=0) == 2
+        assert pot.r_s(t=0) == 1.2
 
 
 ###############################################################################
@@ -75,12 +66,8 @@ class TestNFWPotential(
 ):
     @pytest.fixture(scope="class")
     @override
-    def pot_cls(self) -> type[NFWPotential]:
-        return NFWPotential
-
-    @pytest.fixture(scope="class")
-    def field_softening_length(self) -> float:
-        return 0.001
+    def pot_cls(self) -> type[gp.NFWPotential]:
+        return gp.NFWPotential
 
     @pytest.fixture(scope="class")
     @override
@@ -88,71 +75,74 @@ class TestNFWPotential(
         self,
         field_m: u.Quantity,
         field_r_s: u.Quantity,
-        field_softening_length: float,
         field_units: UnitSystem,
     ) -> dict[str, Any]:
-        return {
-            "m": field_m,
-            "r_s": field_r_s,
-            "softening_length": field_softening_length,
-            "units": field_units,
-        }
+        return {"m": field_m, "r_s": field_r_s, "units": field_units}
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: NFWPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-1.87117234))
-
-    def test_gradient(self, pot: NFWPotential, x: Vec3) -> None:
-        expected = Quantity(
-            [0.0658867, 0.1317734, 0.19766011], pot.units["acceleration"]
+    def test_potential_energy(self, pot: gp.NFWPotential, x: gt.Vec3) -> None:
+        expected = Quantity(-1.87120528, pot.units["specific energy"])
+        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
+            pot.potential_energy(x, t=0).decompose(pot.units).value,
+            expected.value,
         )
-        assert qnp.allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: .value
 
-    def test_density(self, pot: NFWPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.density(x, t=0).value, 9.46039849e08)
+    def test_gradient(self, pot: gp.NFWPotential, x: gt.Vec3) -> None:
+        expected = Quantity(
+            [0.06589185, 0.1317837, 0.19767556], pot.units["acceleration"]
+        )
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.gradient(x, t=0).decompose(pot.units).value, expected.value
+        )
 
-    def test_hessian(self, pot: NFWPotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.hessian(x, t=0),
-            xp.asarray(
-                [
-                    [0.05558809, -0.02059723, -0.03089585],
-                    [-0.02059723, 0.02469224, -0.06179169],
-                    [-0.03089585, -0.06179169, -0.02680084],
-                ]
-            ),
+    def test_density(self, pot: gp.NFWPotential, x: gt.Vec3) -> None:
+        expected = Quantity(9.45944763e08, pot.units["mass density"])
+        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
+            pot.density(x, t=0).decompose(pot.units).value, expected.value
+        )
+
+    def test_hessian(self, pot: gp.NFWPotential, x: gt.Vec3) -> None:
+        expected = Quantity(
+            [
+                [0.05559175, -0.02060021, -0.03090031],
+                [-0.02060021, 0.02469144, -0.06180062],
+                [-0.03090031, -0.06180062, -0.02680908],
+            ],
+            "1/Myr2",
+        )
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.hessian(x, t=0).decompose(pot.units).value, expected.value
         )
 
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
-        expect = [
-            [0.03776159, -0.02059723, -0.03089585],
-            [-0.02059723, 0.00686574, -0.06179169],
-            [-0.03089585, -0.06179169, -0.04462733],
-        ]
-        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        expected = Quantity(
+            [
+                [0.03776704, -0.02060021, -0.03090031],
+                [-0.02060021, 0.00686674, -0.06180062],
+                [-0.03090031, -0.06180062, -0.04463378],
+            ],
+            "1/Myr2",
+        )
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.tidal_tensor(x, t=0).decompose(pot.units).value, expected.value
+        )
 
     # ==========================================================================
     # I/O
 
     @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
-    def test_galax_to_gala_to_galax_roundtrip(self, pot: NFWPotential, x: Vec3) -> None:
+    def test_galax_to_gala_to_galax_roundtrip(
+        self, pot: gp.NFWPotential, x: gt.Vec3
+    ) -> None:
         """Test roundtripping ``gala_to_galax(galax_to_gala())``."""
         from ..io.gala_helper import galax_to_gala
-
-        # Base is with non-zero softening
-        assert pot.softening_length != 0
-        with pytest.raises(TypeError, match="Gala does not support softening"):
-            _ = galax_to_gala(pot)
-
-        # Make a copy without softening
-        pot = replace(pot, softening_length=0)
 
         rpot = gp.io.gala_to_galax(galax_to_gala(pot))
 
         # quick test that the potential energies are the same
-        assert jnp.array_equal(pot(x, t=0).value, rpot(x, t=0).value)
+        assert qnp.array_equal(pot(x, t=0), rpot(x, t=0))

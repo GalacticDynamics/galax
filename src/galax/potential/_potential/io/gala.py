@@ -102,9 +102,7 @@ def _gala_to_galax_nfw(pot: GalaNFWPotential, /) -> NFWPotential:
         msg = "Galax does not support rotating or offset potentials."
         raise TypeError(msg)
     params = pot.parameters
-    return NFWPotential(
-        m=params["m"], r_s=params["r_s"], softening_length=0, units=pot.units
-    )
+    return NFWPotential(m=params["m"], r_s=params["r_s"], units=pot.units)
 
 
 # -----------------------------------------------------------------------------

@@ -25,12 +25,12 @@
     "Typing :: Typed",
   ]
   dependencies = [
-    "astropy >= 5.3",
+    "astropy >= 6",
     "beartype",
     "coordinax @ git+https://github.com/GalacticDynamics/coordinax.git",
-    "diffrax",
+    "diffrax >= 0.5",
     "equinox != 0.11.3",
-    "jax",
+    "jax >= 0.4",
     "jaxlib",
     "lazy_loader",
     "quax >= 0.0.3",
@@ -204,6 +204,8 @@
         "ARG002",
         "D10",
         "E731",
+        "ERA001", # Found commented-out code  # TODO: remove this
+        "FBT001", # Boolean-typed positional argument in a function definition
         "INP001",
         "S101",
         "S301",

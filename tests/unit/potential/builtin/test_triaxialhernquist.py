@@ -3,7 +3,6 @@ from typing import Any
 import jax.numpy as jnp
 import pytest
 
-import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
 
@@ -46,28 +45,35 @@ class TestTriaxialHernquistPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot: TriaxialHernquistPotential, x: Vec3) -> None:
-        assert jnp.isclose(pot.potential_energy(x, t=0).value, xp.asarray(-0.61215074))
+        expected = Quantity(-0.61215074, pot.units["specific energy"])
+        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
+            pot.potential_energy(x, t=0).decompose(pot.units).value, expected.value
+        )
 
     def test_gradient(self, pot: TriaxialHernquistPotential, x: Vec3) -> None:
         expected = Quantity(
             [0.01312095, 0.02168751, 0.15745134], pot.units["acceleration"]
         )
-        assert qnp.allclose(pot.gradient(x, t=0).value, expected.value)  # TODO: value
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.gradient(x, t=0).decompose(pot.units).value, expected.value
+        )
 
     @pytest.mark.xfail(reason="WFF?")
     def test_density(self, pot: TriaxialHernquistPotential, x: Vec3) -> None:
-        assert pot.density(x, t=0).value >= 0
+        assert pot.density(x, t=0).decompose(pot.units).value >= 0
 
     def test_hessian(self, pot: TriaxialHernquistPotential, x: Vec3) -> None:
-        assert jnp.allclose(
-            pot.hessian(x, t=0),
-            xp.asarray(
-                [
-                    [0.01223294, -0.00146778, -0.0106561],
-                    [-0.00146778, 0.00841767, -0.01761339],
-                    [-0.0106561, -0.01761339, -0.07538941],
-                ]
-            ),
+        expected = Quantity(
+            [
+                [0.01223294, -0.00146778, -0.0106561],
+                [-0.00146778, 0.00841767, -0.01761339],
+                [-0.0106561, -0.01761339, -0.07538941],
+            ],
+            "1/Myr2",
+        )
+        assert jnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.hessian(x, t=0).decompose(pot.units).value,
+            expected.value,
         )
 
     # ---------------------------------
@@ -75,9 +81,14 @@ class TestTriaxialHernquistPotential(
 
     def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
-        expect = [
-            [0.03047921, -0.00146778, -0.0106561],
-            [-0.00146778, 0.02666394, -0.01761339],
-            [-0.0106561, -0.01761339, -0.05714314],
-        ]
-        assert qnp.allclose(pot.tidal_tensor(x, t=0), xp.asarray(expect))
+        expected = Quantity(
+            [
+                [0.03047921, -0.00146778, -0.0106561],
+                [-0.00146778, 0.02666394, -0.01761339],
+                [-0.0106561, -0.01761339, -0.05714314],
+            ],
+            "1/Myr2",
+        )
+        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
+            pot.tidal_tensor(x, t=0).decompose(pot.units).value, expected.value
+        )

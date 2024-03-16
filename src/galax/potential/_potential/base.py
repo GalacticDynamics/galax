@@ -27,7 +27,6 @@ from .utils import _convert_from_3dvec, parse_to_quantity
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters
-from galax.units import UnitSystem
 from galax.utils._collections import ImmutableDict
 from galax.utils._jax import vectorize_method
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims

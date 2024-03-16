@@ -7,13 +7,12 @@ from plum import NotFoundLookupError
 from typing_extensions import override
 
 import quaxed.numpy as qnp
+import unxt.unitsystems as usx
 from unxt import Quantity, UnitSystem
 
 import galax.potential as gp
 import galax.typing as gt
-import galax.units as gu
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from galax.units import UnitSystem, dimensionless
 
 
 class TestNullPotential(AbstractPotential_Test):
@@ -37,7 +36,7 @@ class TestNullPotential(AbstractPotential_Test):
         # and a numeric value works.
         fields_unitless.pop("units", None)
         pot = pot_cls(**fields_unitless, units=None)
-        assert pot.units == dimensionless
+        assert pot.units == usx.dimensionless
 
     @override
     def test_init_units_from_name(
@@ -47,13 +46,13 @@ class TestNullPotential(AbstractPotential_Test):
         fields_unitless.pop("units")
 
         pot = pot_cls(**fields_unitless, units="dimensionless")
-        assert pot.units == gu.dimensionless
+        assert pot.units == usx.dimensionless
 
         pot = pot_cls(**fields_unitless, units="solarsystem")
-        assert pot.units == gu.solarsystem
+        assert pot.units == usx.solarsystem
 
         pot = pot_cls(**fields_unitless, units="galactic")
-        assert pot.units == gu.galactic
+        assert pot.units == usx.galactic
 
         msg = "`unitsystem('invalid_value')` could not be resolved."
         with pytest.raises(NotFoundLookupError, match=re.escape(msg)):

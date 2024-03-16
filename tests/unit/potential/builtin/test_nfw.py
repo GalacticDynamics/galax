@@ -13,7 +13,6 @@ import galax.typing as gt
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin
-from galax.units import UnitSystem, galactic
 from galax.utils._optional_deps import HAS_GALA
 
 

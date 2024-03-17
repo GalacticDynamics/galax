@@ -2,9 +2,10 @@ __all__ = ["Integrator"]
 
 from typing import Any, Protocol, runtime_checkable
 
+from unxt import UnitSystem
+
 import galax.typing as gt
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
-from galax.units import UnitSystem
 from galax.utils.dataclasses import _DataclassInstance
 
 

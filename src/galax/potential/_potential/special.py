@@ -11,11 +11,11 @@ from typing import Any, ClassVar, TypeVar, final
 import equinox as eqx
 
 from unxt import Quantity
+from unxt.unitsystems import UnitSystem, dimensionless, galactic, unitsystem
 
 from .base import AbstractPotentialBase, default_constants
 from .builtin import HernquistPotential, MiyamotoNagaiPotential, NFWPotential
 from .composite import AbstractCompositePotential
-from galax.units import UnitSystem, dimensionless, galactic, unitsystem
 from galax.utils import ImmutableDict
 
 T = TypeVar("T", bound=AbstractPotentialBase)
@@ -52,7 +52,7 @@ class MilkyWayPotential(AbstractCompositePotential):
 
     Parameters
     ----------
-    units : `~galax.units.UnitSystem` (optional)
+    units : `~unxt.UnitSystem` (optional)
         Set of non-reducable units that specify (at minimum) the
         length, mass, time, and angle units.
     disk : dict (optional)

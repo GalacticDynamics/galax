@@ -14,9 +14,10 @@ from gala.potential import (
 from gala.units import UnitSystem as GalaUnitSystem, dimensionless as gala_dimensionless
 from plum import convert
 
+from unxt.unitsystems import DimensionlessUnitSystem, UnitSystem
+
 import galax.potential as gp
 from galax.potential._potential.io.gala import _GALA_TO_GALAX_REGISTRY
-from galax.units import DimensionlessUnitSystem, UnitSystem
 
 ##############################################################################
 # UnitSystem

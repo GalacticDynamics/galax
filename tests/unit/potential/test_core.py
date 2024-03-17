@@ -7,13 +7,13 @@ import pytest
 
 import quaxed.array_api as xp
 from unxt import Quantity
+from unxt.unitsystems import UnitSystem, galactic, unitsystem
 
 import galax.potential as gp
 import galax.typing as gt
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.potential._potential.base import default_constants
-from galax.units import UnitSystem, galactic, unitsystem
 from galax.utils import ImmutableDict
 
 

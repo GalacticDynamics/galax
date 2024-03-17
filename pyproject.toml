@@ -25,7 +25,7 @@
     "Typing :: Typed",
   ]
   dependencies = [
-    "astropy >= 6",
+    "astropy >= 6.0",
     "beartype",
     "coordinax @ git+https://github.com/GalacticDynamics/coordinax.git",
     "diffrax >= 0.5",

@@ -9,14 +9,14 @@ import pytest
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from unxt import Quantity
+from unxt import Quantity, UnitSystem
+from unxt.unitsystems import galactic
 
 import galax.dynamics as gd
 import galax.typing as gt
 from .io.test_gala import GalaIOMixin
 from galax.potential import AbstractParameter, AbstractPotentialBase, ParameterField
 from galax.potential._potential.base import default_constants
-from galax.units import UnitSystem, galactic
 from galax.utils import ImmutableDict
 
 

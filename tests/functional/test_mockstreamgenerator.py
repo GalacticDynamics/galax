@@ -8,12 +8,11 @@ import pytest
 import quax.examples.prng as jr
 
 import quaxed.array_api as xp
-from unxt import Quantity
+from unxt import Quantity, UnitSystem
 
 from galax.dynamics import FardalStreamDF, MockStreamGenerator
 from galax.potential import MilkyWayPotential
 from galax.typing import FloatQScalar, FloatScalar, QVecTime, Vec6
-from galax.units import UnitSystem
 
 usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian)
 df = FardalStreamDF()

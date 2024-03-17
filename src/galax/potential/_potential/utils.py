@@ -16,10 +16,10 @@ from plum import convert, dispatch
 
 import coordinax as cx
 from unxt import Quantity
+from unxt.unitsystems import DimensionlessUnitSystem, UnitSystem, dimensionless
 
 from galax.coordinates import AbstractPhaseSpacePosition
 from galax.typing import Unit
-from galax.units import DimensionlessUnitSystem, UnitSystem, dimensionless
 
 # --------------------------------------------------------------
 

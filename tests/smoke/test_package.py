@@ -18,6 +18,5 @@ def test_all() -> None:
         "dynamics",
         "potential",
         "typing",
-        "units",
         "utils",
     }

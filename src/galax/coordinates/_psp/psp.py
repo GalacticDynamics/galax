@@ -8,7 +8,7 @@ import equinox as eqx
 import jax.numpy as jnp
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
-from unxt import Quantity
+from unxt import Quantity, UnitSystem
 
 from .base import AbstractPhaseSpacePosition
 from .utils import _p_converter, _q_converter
@@ -20,7 +20,6 @@ from galax.typing import (
     QVec1,
     VecTime,
 )
-from galax.units import UnitSystem
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
 
 

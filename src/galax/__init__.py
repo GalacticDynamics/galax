@@ -6,14 +6,13 @@ __all__ = [
     "coordinates",
     "potential",
     "dynamics",
-    "units",
     "utils",
     "typing",
 ]
 
 from jax import config
 
-from . import coordinates, dynamics, potential, typing, units, utils
+from . import coordinates, dynamics, potential, typing, utils
 from ._version import __version__
 
 config.update("jax_enable_x64", True)  # noqa: FBT003

@@ -4,14 +4,13 @@ import astropy.units as u
 import pytest
 
 import quaxed.numpy as qnp
-from unxt import Quantity
+from unxt import Quantity, UnitSystem
 
 import galax.potential as gp
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import MassParameterMixin, ShapeAParameterMixin, ShapeBParameterMixin
 from galax.potential import AbstractPotentialBase, MiyamotoNagaiPotential
 from galax.typing import Vec3
-from galax.units import UnitSystem
 
 
 class TestMiyamotoNagaiPotential(

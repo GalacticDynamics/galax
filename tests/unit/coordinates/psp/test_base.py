@@ -18,13 +18,13 @@ from plum import convert
 import quaxed.array_api as xp
 from coordinax import Cartesian3DVector, CartesianDifferential3D
 from unxt import Quantity
+from unxt.unitsystems import galactic
 
 from galax.coordinates import AbstractPhaseSpacePosition
 from galax.coordinates._psp.psp import ComponentShapeTuple
 from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.potential._potential.special import MilkyWayPotential
-from galax.units import galactic
 
 if TYPE_CHECKING:
     from pytest import FixtureRequest  # noqa: PT013
@@ -248,7 +248,7 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
 
                 Parameters
                 ----------
-                units : `galax.units.UnitSystem`, optional keyword-only
+                units : `unxt.UnitSystem`, optional keyword-only
                     The unit system If ``None``, use the current unit system.
 
                 Returns

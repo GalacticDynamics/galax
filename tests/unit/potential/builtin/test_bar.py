@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import pytest
 
 import quaxed.numpy as qnp
-from unxt import Quantity
+from unxt import Quantity, UnitSystem
 
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
@@ -16,7 +16,6 @@ from .test_common import (
     ShapeCParameterMixin,
 )
 from galax.potential import AbstractPotentialBase, BarPotential
-from galax.units import UnitSystem
 
 
 class TestBarPotential(

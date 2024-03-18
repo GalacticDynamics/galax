@@ -24,7 +24,6 @@ from galax.dynamics._dynamics.integrate._api import Integrator
 from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
 from galax.dynamics._dynamics.integrate._funcs import evaluate_orbit
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.units import UnitSystem
 
 Carry: TypeAlias = tuple[gt.IntScalar, gt.VecN, gt.VecN]
 

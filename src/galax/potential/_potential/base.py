@@ -407,9 +407,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3)")
-    def _gradient(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
-    ) -> gt.BatchQVec3:
+    def _gradient(self, q: gt.BatchQVec3, /, t: gt.RealQScalar) -> gt.BatchQVec3:
         """See ``gradient``."""
         grad_op = unxt.experimental.grad(
             self._potential_energy, units=(self.units["length"], self.units["time"])
@@ -1267,7 +1265,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self: "AbstractPotentialBase",
         pspt: AbstractPhaseSpacePosition | FourVector,
         /,
-    ) -> gt.BatchQMatrix33:  # TODO: shape hint
+    ) -> gt.BatchQMatrix33:
         """Compute the hessian of the potential at the given position(s).
 
         Parameters

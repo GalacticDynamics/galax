@@ -15,6 +15,7 @@ from jax.lib.xla_bridge import get_backend
 import quaxed.array_api as xp
 from unxt import Quantity, UnitSystem
 
+import galax.typing as gt
 from .core import MockStream
 from .df import AbstractStreamDF
 from .utils import cond_reverse, interleave_concat
@@ -23,9 +24,8 @@ from galax.dynamics._dynamics.integrate._api import Integrator
 from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
 from galax.dynamics._dynamics.integrate._funcs import evaluate_orbit
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchVec6, FloatScalar, IntScalar, QVecTime, Vec6, VecN
 
-Carry: TypeAlias = tuple[IntScalar, VecN, VecN]
+Carry: TypeAlias = tuple[gt.IntScalar, gt.VecN, gt.VecN]
 
 
 @final
@@ -59,8 +59,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial(jax.jit)
     def _run_scan(  # TODO: output shape depends on the input shape
-        self, ts: QVecTime, mock0_lead: MockStream, mock0_trail: MockStream
-    ) -> tuple[BatchVec6, BatchVec6]:
+        self, ts: gt.QVecTime, mock0_lead: MockStream, mock0_trail: MockStream
+    ) -> tuple[gt.BatchVec6, gt.BatchVec6]:
         """Generate stellar stream by scanning over the release model/integration.
 
         Better for CPU usage.
@@ -69,7 +69,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         w0_trail = mock0_trail.w(units=self.units)
         t_f = ts[-1] + Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
 
-        def one_pt_intg(carry: Carry, _: IntScalar) -> tuple[Carry, tuple[VecN, VecN]]:
+        def one_pt_intg(
+            carry: Carry, _: gt.IntScalar
+        ) -> tuple[Carry, tuple[gt.VecN, gt.VecN]]:
             """Integrate one point along the stream.
 
             Parameters
@@ -82,7 +84,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             i, w0_l_i, w0_t_i = carry
             tstep = xp.asarray([ts[i], t_f])
 
-            def integ_ics(ics: Vec6) -> VecN:
+            def integ_ics(ics: gt.Vec6) -> gt.VecN:
                 # TODO: only return the final state
                 return evaluate_orbit(
                     self.potential, ics, tstep, integrator=self.stream_integrator
@@ -103,8 +105,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial(jax.jit)
     def _run_vmap(  # TODO: output shape depends on the input shape
-        self, ts: QVecTime, mock0_lead: MockStream, mock0_trail: MockStream
-    ) -> tuple[BatchVec6, BatchVec6]:
+        self, ts: gt.QVecTime, mock0_lead: MockStream, mock0_trail: MockStream
+    ) -> tuple[gt.BatchVec6, gt.BatchVec6]:
         """Generate stellar stream by vmapping over the release model/integration.
 
         Better for GPU usage.
@@ -112,7 +114,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         t_f = ts[-1] + Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         @partial(jax.jit, inline=True)
-        def one_pt_intg(i: IntScalar, w0_l_i: Vec6, w0_t_i: Vec6) -> tuple[Vec6, Vec6]:
+        def one_pt_intg(
+            i: gt.IntScalar, w0_l_i: gt.Vec6, w0_t_i: gt.Vec6
+        ) -> tuple[gt.Vec6, gt.Vec6]:
             tstep = xp.asarray([ts[i], t_f])
             w_lead = evaluate_orbit(
                 self.potential, w0_l_i, tstep, integrator=self.stream_integrator
@@ -132,9 +136,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     def run(
         self,
         rng: jr.PRNG,
-        ts: QVecTime,
-        prog_w0: PhaseSpacePosition | Vec6,
-        prog_mass: FloatScalar,
+        ts: gt.QVecTime,
+        prog_w0: PhaseSpacePosition | gt.Vec6,
+        prog_mass: gt.FloatQScalar,
         *,
         vmapped: bool | None = None,
     ) -> tuple[MockStream, PhaseSpacePosition]:
@@ -144,11 +148,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         ----------
         rng : :class:`quax.examples.prng.PRNG`
             Random number generator.
-        ts : Array[float, (time,)]
+        ts : Quantity[float, (time,), "time"]
             Stripping times.
-        prog_w0 : Array[float, (6,)]
+        prog_w0 : PhaseSpacePosition[float, ()]
             Initial conditions of the progenitor.
-        prog_mass : float
+        prog_mass : Quantity[float, (), "mass"]
             Mass of the progenitor.
 
         vmapped : bool | None, optional keyword-only
@@ -170,15 +174,16 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
 
         # Ensure w0 is a PhaseSpacePosition
+        w0: PhaseSpacePosition
         if isinstance(prog_w0, PhaseSpacePosition):
-            w0 = eqx.error_if(prog_w0, prog_w0.ndim > 0, "prog_w0 must be scalar")
+            w0 = prog_w0
         else:
-            t0 = ts[0].to(self.potential.units["time"])
             w0 = PhaseSpacePosition(
-                q=Quantity(prog_w0[..., 0:3], self.units["length"]),
-                p=Quantity(prog_w0[..., 3:6], self.units["speed"]),
-                t=t0,
+                q=Quantity(prog_w0[0:3], self.units["length"]),
+                p=Quantity(prog_w0[3:6], self.units["speed"]),
+                t=ts[0].to(self.potential.units["time"]),
             )
+        w0 = eqx.error_if(w0, w0.ndim > 0, "prog_w0 must be scalar")
 
         # If the time stepping passed in is negative, assume this means that all
         # of the initial conditions are at *end time*, and we need to reverse

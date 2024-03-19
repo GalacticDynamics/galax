@@ -56,7 +56,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             The orbit of the progenitor.
         prog_mass : Quantity[float, (), 'mass']
             Mass of the progenitor in [Msol].
-            TODO: allow this to be an array or function of time.
+            TODO: allow this to be a function of time.
 
         Returns
         -------
@@ -72,7 +72,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         # Scan over the release times to generate the stream particle initial
         # conditions at each release time.
-        def scan_fn(carry: Carry, t: FloatScalar) -> tuple[Carry, Wif]:
+        def scan_fn(carry: Carry, t: FloatQScalar) -> tuple[Carry, Wif]:
             i = carry[0]
             rng, subrng = carry[1].split(2)
             out = self._sample(subrng, pot, prog_w[i], mprog, t)
@@ -105,7 +105,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         pot: AbstractPotentialBase,
         w: Vec6,
         prog_mass: FloatScalar,
-        t: FloatScalar,
+        t: FloatQScalar,
     ) -> tuple[BatchVec3, BatchVec3, BatchVec3, BatchVec3]:
         """Generate stream particle initial conditions.
 
@@ -119,8 +119,8 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             6d position (x, y, z) [kpc], (v_x, v_y, v_z) [kpc/Myr]
         prog_mass : Numeric
             Mass of the progenitor in [Msol]
-        t : Numeric
-            Time in [Myr]
+        t : Quantity[float, (), "time"]
+            The release time of the stream particles.
 
         Returns
         -------

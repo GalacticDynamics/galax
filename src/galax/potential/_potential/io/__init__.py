@@ -12,6 +12,6 @@ __all__: list[str] = ["gala_to_galax"]
 from galax.utils._optional_deps import HAS_GALA
 
 if HAS_GALA:
-    from .gala import gala_to_galax
+    from ._gala import gala_to_galax
 else:
-    from .gala_noop import gala_to_galax  # type: ignore[assignment]
+    from ._gala_noop import gala_to_galax  # type: ignore[assignment]

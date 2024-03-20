@@ -29,30 +29,27 @@ class TestHernquistPotential(
     # ==========================================================================
 
     def test_potential_energy(self, pot: HernquistPotential, x: gt.Vec3) -> None:
-        expected = Quantity(-0.94871936, pot.units["specific energy"])
-        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.potential_energy(x, t=0).decompose(pot.units).value,
-            expected.value,
+        expect = Quantity(-0.94871936, pot.units["specific energy"])
+        assert qnp.isclose(
+            pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: HernquistPotential, x: gt.Vec3) -> None:
-        expected = Quantity(
+        expect = Quantity(
             [0.05347411, 0.10694822, 0.16042233], pot.units["acceleration"]
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.gradient(x, t=0).decompose(pot.units).value,
-            expected.value,
+        assert qnp.allclose(
+            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_density(self, pot: HernquistPotential, x: gt.Vec3) -> None:
-        expected = Quantity(3.989933e08, pot.units["mass density"])
-        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.density(x, t=0).decompose(pot.units).value,
-            expected.value,
+        expect = Quantity(3.989933e08, pot.units["mass density"])
+        assert qnp.isclose(
+            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: HernquistPotential, x: gt.Vec3) -> None:
-        expected = Quantity(
+        expect = Quantity(
             [
                 [0.04362645, -0.01969533, -0.02954299],
                 [-0.01969533, 0.01408345, -0.05908599],
@@ -60,8 +57,8 @@ class TestHernquistPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.hessian(x, t=0).decompose(pot.units).value, expected.value
+        assert qnp.allclose(
+            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -69,7 +66,7 @@ class TestHernquistPotential(
 
     def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
-        expected = Quantity(
+        expect = Quantity(
             [
                 [0.0361081, -0.01969533, -0.02954299],
                 [-0.01969533, 0.00656511, -0.05908599],
@@ -77,6 +74,6 @@ class TestHernquistPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.tidal_tensor(x, t=0).decompose(pot.units).value, expected.value
+        assert qnp.allclose(
+            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

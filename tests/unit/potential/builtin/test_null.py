@@ -62,32 +62,30 @@ class TestNullPotential(AbstractPotential_Test):
 
     def test_potential_energy(self, pot: gp.NullPotential, x: gt.Vec3) -> None:
         """Test :meth:`NullPotential.potential_energy`."""
-        expected = Quantity(0.0, pot.units["specific energy"])
-        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.potential_energy(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity(0.0, pot.units["specific energy"])
+        assert qnp.isclose(
+            pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: gp.NullPotential, x: gt.Vec3) -> None:
         """Test :meth:`NullPotential.gradient`."""
-        expected = Quantity([0.0, 0.0, 0.0], pot.units["acceleration"])
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.gradient(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity([0.0, 0.0, 0.0], pot.units["acceleration"])
+        assert qnp.allclose(
+            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_density(self, pot: gp.NullPotential, x: gt.Vec3) -> None:
         """Test :meth:`NullPotential.density`."""
-        expected = Quantity(0.0, pot.units["mass density"])
-        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.density(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity(0.0, pot.units["mass density"])
+        assert qnp.isclose(
+            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: gp.NullPotential, x: gt.Vec3) -> None:
         """Test :meth:`NullPotential.hessian`."""
-        expected = Quantity(
-            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2"
-        )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.hessian(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
+        assert qnp.allclose(
+            pot.hessian(x, t=0), expect.value, atol=Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -95,9 +93,7 @@ class TestNullPotential(AbstractPotential_Test):
 
     def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
-        expected = Quantity(
-            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2"
-        )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.tidal_tensor(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
+        assert qnp.allclose(
+            pot.tidal_tensor(x, t=0), expect.value, atol=Quantity(1e-8, expect.unit)
         )

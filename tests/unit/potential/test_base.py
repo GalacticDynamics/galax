@@ -142,9 +142,10 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_potential_energy(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.potential_energy` method."""
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.potential_energy(x, t=0).decompose(pot.units).value,
-            Quantity(1.20227527, u.kpc**2 / u.Myr**2).value,
+        assert qnp.allclose(
+            pot.potential_energy(x, t=0),
+            Quantity(1.20227527, "kpc2/Myr2"),
+            atol=Quantity(1e-8, "kpc2/Myr2"),
         )
 
     def test_potential_energy_batch(
@@ -166,18 +167,20 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_gradient(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.gradient` method."""
-        expected = Quantity(
+        expect = Quantity(
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.gradient(x, t=0).decompose(pot.units).value, expected.value
+        assert qnp.allclose(
+            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_density(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
-        # TODO: .value & use pytest-arraydiff
         # TODO: fix negative density!!!
-        assert qnp.allclose(pot.density(x, t=0).decompose(pot.units).value, -2.647e-7)
+        expect = Quantity(-2.647e-7, pot.units["mass density"])
+        assert qnp.allclose(
+            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+        )
 
     def test_hessian(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.hessian` method."""
@@ -191,8 +194,8 @@ class TestAbstractPotentialBase(GalaIOMixin):
             ),
             "1/Myr2",
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.hessian(x, t=0).decompose(pot.units).value, expected.value
+        assert qnp.allclose(
+            pot.hessian(x, t=0), expected, atol=Quantity(1e-8, "1/Myr2")
         )
 
     def test_acceleration(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
@@ -212,8 +215,8 @@ class TestAbstractPotentialBase(GalaIOMixin):
             ],
             pot.units["frequency drift"],
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.tidal_tensor(x, t=0).decompose(pot.units).value, expect.value
+        assert qnp.allclose(
+            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     # =========================================================================
@@ -237,11 +240,11 @@ class TestAbstractPotentialBase(GalaIOMixin):
         orbits = pot.evaluate_orbit(xv[None, :], ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (1, len(ts))
-        assert qnp.allclose(orbits.t.to_value("Myr"), ts.to_value("Myr"), atol=1e-16)
+        assert qnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))
 
         # More complicated batch
         xv2 = xp.stack([xv, xv], axis=0)
         orbits = pot.evaluate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts))
-        assert qnp.allclose(orbits.t.to_value("Myr"), ts.to_value("Myr"), atol=1e-16)
+        assert qnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))

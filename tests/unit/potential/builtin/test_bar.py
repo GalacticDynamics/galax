@@ -1,7 +1,6 @@
 from typing import Any
 
 import astropy.units as u
-import jax.numpy as jnp
 import pytest
 
 import quaxed.numpy as qnp
@@ -57,23 +56,22 @@ class TestBarPotential(
 
     def test_potential_energy(self, pot: BarPotential, x: gt.Vec3) -> None:
         expect = Quantity(-0.94601574, pot.units["specific energy"])
-        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.potential_energy(x, t=0).decompose(pot.units).value,
-            expect.value,
+        assert qnp.isclose(
+            pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: BarPotential, x: gt.Vec3) -> None:
-        expected = Quantity(
+        expect = Quantity(
             [0.04011905, 0.08383918, 0.16552719], pot.units["acceleration"]
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.gradient(x, t=0).decompose(pot.units).value, expected.value
+        assert qnp.allclose(
+            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_density(self, pot: BarPotential, x: gt.Vec3) -> None:
-        expected = Quantity(1.94669274e08, "Msun / kpc3")
-        assert jnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.density(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity(1.94669274e08, "Msun / kpc3")
+        assert qnp.isclose(
+            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: BarPotential, x: gt.QVec3) -> None:
@@ -85,8 +83,8 @@ class TestBarPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.hessian(x, t=0).decompose(pot.units).value, expect.value
+        assert qnp.allclose(
+            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -102,7 +100,6 @@ class TestBarPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.tidal_tensor(x, t=0).decompose(pot.units).value,
-            expect.value,
+        assert qnp.allclose(
+            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

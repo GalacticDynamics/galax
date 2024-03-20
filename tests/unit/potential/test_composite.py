@@ -270,27 +270,27 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # ==========================================================================
 
     def test_potential_energy(self, pot: CompositePotential, x: Vec3) -> None:
-        expected = Quantity(xp.asarray(-0.6753781), "kpc2 / Myr2")
-        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.potential_energy(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity(xp.asarray(-0.6753781), "kpc2 / Myr2")
+        assert qnp.isclose(
+            pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: CompositePotential, x: Vec3) -> None:
-        expected = Quantity(
+        expect = Quantity(
             [0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"]
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.gradient(x, t=0).decompose(pot.units).value, expected.value
+        assert qnp.allclose(
+            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_density(self, pot: CompositePotential, x: Vec3) -> None:
-        expected = Quantity(2.7958598e08, "Msun / kpc3")
-        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.density(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity(2.7958598e08, "Msun / kpc3")
+        assert qnp.isclose(
+            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: CompositePotential, x: Vec3) -> None:
-        expected = Quantity(
+        expect = Quantity(
             xp.asarray(
                 [
                     [0.00996317, -0.0025614, -0.00384397],
@@ -300,9 +300,8 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             ),
             "1/Myr2",
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.hessian(x, t=0).decompose(pot.units).value,
-            expected.value,
+        assert qnp.allclose(
+            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -318,6 +317,6 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             ],
             pot.units["frequency drift"],
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.tidal_tensor(x, t=0).decompose(pot.units).value, expect.value
+        assert qnp.allclose(
+            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

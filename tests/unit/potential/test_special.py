@@ -244,30 +244,30 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     def test_potential_energy(self, pot: MilkyWayPotential, x: gt.Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.potential_energy` method."""
-        expected = Quantity(-0.19386052, pot.units["specific energy"])
-        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.potential_energy(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity(-0.19386052, pot.units["specific energy"])
+        assert qnp.isclose(
+            pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: MilkyWayPotential, x: gt.Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.gradient` method."""
-        expected = Quantity(
+        expect = Quantity(
             [0.00256407, 0.00512815, 0.01115285], pot.units["acceleration"]
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.gradient(x, t=0).decompose(pot.units).value, expected.value
+        assert qnp.allclose(
+            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_density(self, pot: MilkyWayPotential, x: gt.Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.density` method."""
-        expected = Quantity(33_365_858.46361218, pot.units["mass density"])
-        assert qnp.isclose(  # TODO: .value & use pytest-arraydiff
-            pot.density(x, t=0).decompose(pot.units).value, expected.value
+        expect = Quantity(33_365_858.46361218, pot.units["mass density"])
+        assert qnp.isclose(
+            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: MilkyWayPotential, x: gt.Vec3) -> None:
         """Test the :meth:`MilkyWayPotential.hessian` method."""
-        expected = Quantity(
+        expect = Quantity(
             [
                 [0.00231057, -0.000507, -0.00101276],
                 [-0.000507, 0.00155007, -0.00202552],
@@ -275,9 +275,8 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(  # TODO: .value & use pytest-arraydiff
-            pot.hessian(x, t=0).decompose(pot.units).value,
-            expected.value,
+        assert qnp.allclose(
+            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -285,7 +284,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
-        expected = Quantity(
+        expect = Quantity(
             [
                 [0.00168185, -0.000507, -0.00101276],
                 [-0.000507, 0.00092135, -0.00202552],
@@ -294,5 +293,5 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
             "1/Myr2",
         )
         assert qnp.allclose(
-            pot.tidal_tensor(x, t=0).decompose(pot.units).value, expected.value
+            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

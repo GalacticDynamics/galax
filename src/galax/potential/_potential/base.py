@@ -103,6 +103,13 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                     )
                     object.__setattr__(self, f.name, value)
 
+        # Do unit conversion for the constants
+        if self.units != unxt.unitsystems.dimensionless:
+            constants = ImmutableDict(
+                {k: v.decompose(self.units) for k, v in self.constants.items()}
+            )
+            object.__setattr__(self, "constants", constants)
+
     ###########################################################################
     # Core methods that use the potential energy
 
@@ -176,7 +183,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ...                           p=Quantity([4, 5, 6], "km/s"),
         ...                           t=Quantity(0, "Gyr"))
 
-        >>> pot.potential_energy(w).decompose(pot.units)
+        >>> pot.potential_energy(w)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
         We can also compute the potential energy at multiple positions and times:
@@ -184,7 +191,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
         ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
         ...                           t=Quantity([0, 1], "Gyr"))
-        >>> pot.potential_energy(w).decompose(pot.units)
+        >>> pot.potential_energy(w)
         Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
         Instead of passing a
@@ -193,7 +200,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> from coordinax import FourVector
         >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
-        >>> pot.potential_energy(w).decompose(pot.units)
+        >>> pot.potential_energy(w)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
         """  # noqa: E501
         q = _convert_from_3dvec(pspt.q, units=self.units)
@@ -229,13 +236,13 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.potential_energy(q, t).decompose(pot.units)
+        >>> pot.potential_energy(q, t)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
         We can also compute the potential energy at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.potential_energy(q, t).decompose(pot.units)
+        >>> pot.potential_energy(q, t)
         Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
@@ -244,7 +251,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.potential_energy(q, t).decompose(pot.units)
+        >>> pot.potential_energy(q, t)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
         Again, this can be batched.  If the input position object has no units
@@ -253,7 +260,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.potential_energy(q, t).decompose(pot.units)
+        >>> pot.potential_energy(q, t)
         Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
         """  # noqa: E501
         q = parse_to_quantity(q, unit=self.units["length"])
@@ -280,7 +287,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.potential_energy(q, t=t).decompose(pot.units)
+        >>> pot.potential_energy(q, t=t)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
         See the other examples in the positional-only case.
@@ -317,13 +324,13 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
         >>> t = u.Quantity(0, "Gyr")
-        >>> pot.potential_energy(q, t).decompose(pot.units)
+        >>> pot.potential_energy(q, t)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
         We can also compute the potential energy at multiple positions:
 
         >>> q = c.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit=u.kpc)
-        >>> pot.potential_energy(q, t).decompose(pot.units)
+        >>> pot.potential_energy(q, t)
         Quantity['specific energy'](Array([-0.55372734, -0.46647294], dtype=float64), unit='kpc2 / Myr2')
 
         Instead of passing a
@@ -332,7 +339,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         interpreted as a Cartesian position:
 
         >>> q = u.Quantity([1, 2, 3], "kpc")
-        >>> pot.potential_energy(q, t).decompose(pot.units)
+        >>> pot.potential_energy(q, t)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
         Again, this can be batched.  Also, If the input position object has no
@@ -340,7 +347,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         unit system as the potential.
 
         >>> q = np.array([[1, 2, 3], [4, 5, 6]])
-        >>> pot.potential_energy(q, t).decompose(pot.units)
+        >>> pot.potential_energy(q, t)
         Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
         """  # noqa: E501
         q = parse_to_quantity(q, unit=self.units["length"])
@@ -371,7 +378,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
         >>> t = u.Quantity(0, "Gyr")
-        >>> pot.potential_energy(q, t=t).decompose(pot.units)
+        >>> pot.potential_energy(q, t=t)
         Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
         See the other examples in the positional-only case.
@@ -450,7 +457,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ...                           p=Quantity([4, 5, 6], "km/s"),
         ...                           t=Quantity(0, "Gyr"))
 
-        >>> pot.gradient(w).decompose(pot.units)
+        >>> pot.gradient(w)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
@@ -459,7 +466,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
         ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
         ...                           t=Quantity([0, 1], "Gyr"))
-        >>> pot.gradient(w).decompose(pot.units)
+        >>> pot.gradient(w)
         Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
                                         [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -470,7 +477,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> from coordinax import FourVector
         >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
-        >>> pot.gradient(w).decompose(pot.units)
+        >>> pot.gradient(w)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
         """  # noqa: E501
@@ -507,13 +514,13 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
 
         We can also compute the potential energy at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
                                         [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -524,7 +531,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
@@ -534,7 +541,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1., 2, 3], [4, 5, 6]])
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
                                         [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -573,14 +580,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
         We can also compute the gradient at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
                                         [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -591,7 +598,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
@@ -601,7 +608,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
                                         [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -645,14 +652,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
         We can also compute the potential energy at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
                                         [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -663,7 +670,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
@@ -673,7 +680,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.gradient(q, t).decompose(pot.units)
+        >>> pot.gradient(q, t)
         Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
                                         [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -702,7 +709,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.gradient(q, t=t).decompose(pot.units)
+        >>> pot.gradient(q, t=t)
         Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
@@ -758,16 +765,16 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ...                           p=Quantity([4, 5, 6], "km/s"),
         ...                           t=Quantity(0, "Gyr"))
 
-        >>> pot.laplacian(w).decompose(pot.units)
-        Quantity[...](Array(1.49658861e-17, dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(w)
+        Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
         We can also compute the potential energy at multiple positions and times:
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
         ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
         ...                           t=Quantity([0, 1], "Gyr"))
-        >>> pot.laplacian(w).decompose(pot.units)
-        Quantity[...](Array([2.99317721e-17, 4.20915545e-18], dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(w)
+        Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
         Instead of passing a
         :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
@@ -775,8 +782,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> from coordinax import FourVector
         >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
-        >>> pot.laplacian(w).decompose(pot.units)
-        Quantity[...](Array(1.49658861e-17, dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(w)
+        Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
         """  # noqa: E501
         q = _convert_from_3dvec(pspt.q, units=self.units)
         return self._laplacian(q, pspt.t)
@@ -811,14 +818,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array(1.49658861e-17, dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
         We can also compute the potential energy at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array([2.99317721e-17, 4.20915545e-18], dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
@@ -826,8 +833,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array(1.49658861e-17, dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
         Again, this can be batched.  If the input position object has no units
         (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
@@ -835,8 +842,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array([2.99317721e-17, 4.20915545e-18], dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
         """  # noqa: E501
         q = parse_to_quantity(q, unit=self.units["length"])
         t = Quantity.constructor(t, self.units["time"])
@@ -872,14 +879,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array(1.49658861e-17, dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
         We can also compute the laplacian at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array([2.99317721e-17, 4.20915545e-18], dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
@@ -887,8 +894,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array(1.49658861e-17, dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
         Again, this can be batched.  If the input position object has no units
         (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
@@ -896,8 +903,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array([2.99317721e-17, 4.20915545e-18], dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
         """  # noqa: E501
         return self.laplacian(q, t)
 
@@ -938,14 +945,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array(1.49658861e-17, dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
         We can also compute the potential energy at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array([2.99317721e-17, 4.20915545e-18], dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
@@ -953,8 +960,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array(1.49658861e-17, dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
         Again, this can be batched.  If the input position object has no units
         (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
@@ -962,8 +969,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.laplacian(q, t).decompose(pot.units)
-        Quantity[...](Array([2.99317721e-17, 4.20915545e-18], dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t)
+        Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
         """  # noqa: E501
         q = parse_to_quantity(q, unit=self.units["length"])
         t = Quantity.constructor(t, self.units["time"])
@@ -989,8 +996,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.laplacian(q, t=t).decompose(pot.units)
-        Quantity[...](Array(1.49658861e-17, dtype=float64), unit='1 / Myr2')
+        >>> pot.laplacian(q, t=t)
+        Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
         See the other examples in the positional-only case.
         """
@@ -1043,16 +1050,16 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ...                           p=Quantity([4, 5, 6], "km/s"),
         ...                           t=Quantity(0, "Gyr"))
 
-        >>> pot.density(w).decompose(pot.units)
-        Quantity['mass density'](Array(2.64743093e-07, dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(w)
+        Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
 
         We can also compute the density at multiple positions and times:
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
         ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
         ...                           t=Quantity([0, 1], "Gyr"))
-        >>> pot.density(w).decompose(pot.units)
-        Quantity['mass density'](Array([5.29486185e-07, 7.44589948e-08], dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(w)
+        Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64), unit='solMass / kpc3')
 
         Instead of passing a
         :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
@@ -1060,8 +1067,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> from coordinax import FourVector
         >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
-        >>> pot.density(w).decompose(pot.units)
-        Quantity['mass density'](Array(2.64743093e-07, dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(w)
+        Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
         """  # noqa: E501
         q = _convert_from_3dvec(pspt.q, units=self.units)
         return self._density(q, pspt.t)
@@ -1096,14 +1103,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.density(q, t).decompose(pot.units)
-        Quantity['mass density'](Array(2.64743093e-07, dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(q, t)
+        Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
 
         We can also compute the density at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.density(q, t).decompose(pot.units)
-        Quantity['mass density'](Array([5.29486185e-07, 7.44589948e-08], dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(q, t)
+        Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64), unit='solMass / kpc3')
 
         Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
         :class:`~vector.Cartesian3DVector`), we can instead pass a
@@ -1111,8 +1118,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.density(q, t).decompose(pot.units)
-        Quantity['mass density'](Array(2.64743093e-07, dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(q, t)
+        Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
 
         Again, this can be batched.  If the input position object has no units
         (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
@@ -1120,8 +1127,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.density(q, t).decompose(pot.units)
-        Quantity['mass density'](Array([5.29486185e-07, 7.44589948e-08], dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(q, t)
+        Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64), unit='solMass / kpc3')
         """  # noqa: E501
         q = parse_to_quantity(q, unit=self.units["length"])
         t = Quantity.constructor(t, self.units["time"])
@@ -1147,8 +1154,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.density(q, t=t).decompose(pot.units)
-        Quantity['mass density'](Array(2.64743093e-07, dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(q, t=t)
+        Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
 
         See the other examples in the positional-only case.
         """  # noqa: E501
@@ -1184,14 +1191,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
         >>> t = u.Quantity(0, "Gyr")
-        >>> pot.density(q, t).decompose(pot.units)
-        Quantity['mass density'](Array(2.64743093e-07, dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(q, t)
+        Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
 
         We can also compute the density at multiple positions:
 
         >>> q = c.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit=u.kpc)
-        >>> pot.density(q, t).decompose(pot.units)
-        Quantity['mass density'](Array([ 0.00000000e+00, -1.65464433e-08], dtype=float64),
+        >>> pot.density(q, t)
+        Quantity['mass density'](Array([3.06868605e-08, 1.53434303e-08], dtype=float64),
                                  unit='solMass / kpc3')
 
         Instead of passing a
@@ -1200,16 +1207,16 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         interpreted as a Cartesian position:
 
         >>> q = u.Quantity([1, 2, 3], "kpc")
-        >>> pot.density(q, t).decompose(pot.units)
-        Quantity['mass density'](Array(2.64743093e-07, dtype=float64), unit='solMass / kpc3')
+        >>> pot.density(q, t)
+        Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
 
         Again, this can be batched.  Also, If the input position object has no
         units (i.e. is an `~numpy.ndarray`), it is assumed to be in the same
         unit system as the potential.
 
         >>> q = np.array([[1, 2, 3], [4, 5, 6]])
-        >>> pot.density(q, t).decompose(pot.units)
-        Quantity['mass density'](Array([5.29486185e-07, 7.44589948e-08], dtype=float64),
+        >>> pot.density(q, t)
+        Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64),
                                  unit='solMass / kpc3')
         """  # noqa: E501
         q = parse_to_quantity(q, unit=self.units["length"])
@@ -1240,8 +1247,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
         >>> t = u.Quantity(0, "Gyr")
-        >>> pot.density(q, t=t).decompose(pot.units)
-        Quantity['mass density'](Array(2.64743093e-07, dtype=float64),
+        >>> pot.density(q, t=t)
+        Quantity['mass density'](Array(4.90989768e-07, dtype=float64),
                                  unit='solMass / kpc3')
 
         See the other examples in the positional-only case.
@@ -1297,7 +1304,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ...                           p=Quantity([4, 5, 6], "km/s"),
         ...                           t=Quantity(0, "Gyr"))
 
-        >>> pot.hessian(w).decompose(pot.units)
+        >>> pot.hessian(w)
         Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                              [-0.03680435,  0.01226812, -0.11041304],
                              [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
@@ -1308,7 +1315,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
         ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
         ...                           t=Quantity([0, 1], "Gyr"))
-        >>> pot.hessian(w).decompose(pot.units)
+        >>> pot.hessian(w)
         Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                               [-0.03680435,  0.01226812, -0.11041304],
                               [-0.05520652, -0.11041304, -0.07974275]],
@@ -1323,7 +1330,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> from coordinax import FourVector
         >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
-        >>> pot.hessian(w).decompose(pot.units)
+        >>> pot.hessian(w)
         Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                              [-0.03680435,  0.01226812, -0.11041304],
                              [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
@@ -1362,7 +1369,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.hessian(q, t).decompose(pot.units)
+        >>> pot.hessian(q, t)
         Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                              [-0.03680435,  0.01226812, -0.11041304],
                              [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
@@ -1371,7 +1378,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         We can also compute the hessian at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.hessian(q, t).decompose(pot.units)
+        >>> pot.hessian(q, t)
         Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                               [-0.03680435,  0.01226812, -0.11041304],
                               [-0.05520652, -0.11041304, -0.07974275]],
@@ -1386,7 +1393,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.hessian(q, t).decompose(pot.units)
+        >>> pot.hessian(q, t)
         Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                              [-0.03680435,  0.01226812, -0.11041304],
                              [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
@@ -1398,7 +1405,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.hessian(q, t).decompose(pot.units)
+        >>> pot.hessian(q, t)
         Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                               [-0.03680435,  0.01226812, -0.11041304],
                               [-0.05520652, -0.11041304, -0.07974275]],
@@ -1431,7 +1438,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.hessian(q, t=t).decompose(pot.units)
+        >>> pot.hessian(q, t=t)
         Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                              [-0.03680435,  0.01226812, -0.11041304],
                              [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
@@ -1468,7 +1475,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
         >>> t = u.Quantity(0, "Gyr")
-        >>> pot.hessian(q, t).decompose(pot.units)
+        >>> pot.hessian(q, t)
         Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                              [-0.03680435,  0.01226812, -0.11041304],
                              [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
@@ -1477,7 +1484,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         We can also compute the hessian at multiple positions:
 
         >>> q = c.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit=u.kpc)
-        >>> pot.hessian(q, t).decompose(pot.units)
+        >>> pot.hessian(q, t)
         Quantity[...](Array([[[ 0.00800845, -0.00152542, -0.00266948],
                               [-0.00152542,  0.00228813, -0.01067794],
                               [-0.00266948, -0.01067794, -0.01029658]],
@@ -1492,7 +1499,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         interpreted as a Cartesian position:
 
         >>> q = u.Quantity([1, 2, 3], "kpc")
-        >>> pot.hessian(q, t).decompose(pot.units)
+        >>> pot.hessian(q, t)
         Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                              [-0.03680435,  0.01226812, -0.11041304],
                              [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
@@ -1503,7 +1510,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         unit system as the potential.
 
         >>> q = np.array([[1, 2, 3], [4, 5, 6]])
-        >>> pot.hessian(q, t).decompose(pot.units)
+        >>> pot.hessian(q, t)
         Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                               [-0.03680435,  0.01226812, -0.11041304],
                               [-0.05520652, -0.11041304, -0.07974275]],
@@ -1564,7 +1571,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ...                           p=Quantity([4, 5, 6], "km/s"),
         ...                           t=Quantity(0, "Gyr"))
 
-        >>> pot.acceleration(w).decompose(pot.units)
+        >>> pot.acceleration(w)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
@@ -1573,7 +1580,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
         ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
         ...                           t=Quantity([0, 1], "Gyr"))
-        >>> pot.acceleration(w).decompose(pot.units)
+        >>> pot.acceleration(w)
         Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
                                         [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -1584,7 +1591,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> from coordinax import FourVector
         >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
-        >>> pot.acceleration(w).decompose(pot.units)
+        >>> pot.acceleration(w)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
         """  # noqa: E501
@@ -1621,14 +1628,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
         We can also compute the potential energy at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
                                         [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -1639,7 +1646,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
@@ -1649,7 +1656,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
                                         [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -1688,14 +1695,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
         We can also compute the acceleration at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
                                         [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -1706,7 +1713,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
@@ -1716,7 +1723,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
                                         [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -1760,14 +1767,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
         We can also compute the potential energy at multiple positions:
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
                                         [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -1778,7 +1785,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         position:
 
         >>> q = Quantity([1., 2, 3], "kpc")
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 
@@ -1788,7 +1795,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> import jax.numpy as jnp
         >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-        >>> pot.acceleration(q, t).decompose(pot.units)
+        >>> pot.acceleration(q, t)
         Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
                                         [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                  unit='kpc / Myr2')
@@ -1817,7 +1824,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
-        >>> pot.acceleration(q, t=t).decompose(pot.units)
+        >>> pot.acceleration(q, t=t)
         Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
                                  unit='kpc / Myr2')
 

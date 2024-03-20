@@ -154,7 +154,7 @@ def d2phidr2(
     >>> from galax.potential import NFWPotential
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
     >>> d2phidr2(pot, xp.asarray([8.0, 0.0, 0.0]), t=0)
-    Array(-0.00259193, dtype=float64)
+    Array(-0.0001747, dtype=float64)
     """
     r_hat = x / xp.linalg.vector_norm(x)
 

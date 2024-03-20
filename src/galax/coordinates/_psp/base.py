@@ -386,7 +386,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         We can compute the kinetic energy:
 
         >>> pot = MilkyWayPotential()
-        >>> w.potential_energy(pot).decompose(pot.units)
+        >>> w.potential_energy(pot)
         Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """
         return potential.potential_energy(self.q, t=self.t)

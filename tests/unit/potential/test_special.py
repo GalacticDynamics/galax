@@ -246,7 +246,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         """Test the :meth:`MilkyWayPotential.potential_energy` method."""
         expect = Quantity(-0.19386052, pot.units["specific energy"])
         assert qnp.isclose(
-            pot.potential_energy(x, t=0), expect.value, atol=Quantity(1e-8, expect.unit)
+            pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: MilkyWayPotential, x: gt.Vec3) -> None:

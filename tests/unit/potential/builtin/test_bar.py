@@ -1,7 +1,6 @@
 from typing import Any
 
 import astropy.units as u
-import jax.numpy as jnp
 import pytest
 
 import quaxed.numpy as qnp
@@ -71,7 +70,7 @@ class TestBarPotential(
 
     def test_density(self, pot: BarPotential, x: gt.Vec3) -> None:
         expect = Quantity(1.94669274e08, "Msun / kpc3")
-        assert jnp.isclose(
+        assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 

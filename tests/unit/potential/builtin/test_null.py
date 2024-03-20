@@ -85,7 +85,7 @@ class TestNullPotential(AbstractPotential_Test):
         """Test :meth:`NullPotential.hessian`."""
         expect = Quantity([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
         assert qnp.allclose(
-            pot.hessian(x, t=0), expect.value, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -95,5 +95,5 @@ class TestNullPotential(AbstractPotential_Test):
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
         assert qnp.allclose(
-            pot.tidal_tensor(x, t=0), expect.value, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

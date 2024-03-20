@@ -38,7 +38,7 @@ class TestKeplerPotential(
             [0.08587681, 0.17175361, 0.25763042], pot.units["acceleration"]
         )
         assert qnp.allclose(
-            pot.gradient(x, t=0), expect.value, atol=Quantity(1e-8, expect.unit)
+            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_density(self, pot: KeplerPotential, x: QVec3) -> None:

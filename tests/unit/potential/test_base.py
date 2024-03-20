@@ -170,7 +170,9 @@ class TestAbstractPotentialBase(GalaIOMixin):
         expect = Quantity(
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
         )
-        assert qnp.allclose(pot.gradient(x, t=0), expect, Quantity(1e-8, expect.unit))
+        assert qnp.allclose(
+            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+        )
 
     def test_density(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
@@ -214,7 +216,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
             pot.units["frequency drift"],
         )
         assert qnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.units)
+            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     # =========================================================================

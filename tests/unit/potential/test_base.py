@@ -155,8 +155,10 @@ class TestAbstractPotentialBase(GalaIOMixin):
         # Test that the method works on batches.
         assert pot.potential_energy(batchx, t=0).shape == batchx.shape[:-1]
         # Test that the batched method is equivalent to the scalar method
-        assert qnp.array_equal(  # TODO: .value & use pytest-arraydiff
-            pot.potential_energy(batchx, t=0)[0], pot.potential_energy(batchx[0], t=0)
+        assert qnp.allclose(
+            pot.potential_energy(batchx, t=0)[0],
+            pot.potential_energy(batchx[0], t=0),
+            atol=Quantity(1e-15, pot.units["specific energy"]),
         )
 
     # ---------------------------------

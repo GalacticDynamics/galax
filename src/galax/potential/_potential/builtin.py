@@ -280,7 +280,7 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     >>> q = Quantity([1, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")
-    >>> pot.potential_energy(q, t).decompose(pot.units)
+    >>> pot.potential_energy(q, t)
     Quantity['specific energy'](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
     """
 

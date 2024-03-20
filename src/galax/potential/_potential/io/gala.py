@@ -10,6 +10,7 @@ from gala.potential import (
     HernquistPotential as GalaHernquistPotential,
     IsochronePotential as GalaIsochronePotential,
     KeplerPotential as GalaKeplerPotential,
+    LeeSutoTriaxialNFWPotential as GalaLeeSutoTriaxialNFWPotential,
     MilkyWayPotential as GalaMilkyWayPotential,
     MiyamotoNagaiPotential as GalaMiyamotoNagaiPotential,
     NFWPotential as GalaNFWPotential,
@@ -17,11 +18,14 @@ from gala.potential import (
     PotentialBase as GalaPotentialBase,
 )
 
+from unxt import Quantity
+
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.potential._potential.builtin import (
     HernquistPotential,
     IsochronePotential,
     KeplerPotential,
+    LeeSutoTriaxialNFWPotential,
     MiyamotoNagaiPotential,
     NFWPotential,
     NullPotential,
@@ -103,6 +107,29 @@ def _gala_to_galax_nfw(pot: GalaNFWPotential, /) -> NFWPotential:
         raise TypeError(msg)
     params = pot.parameters
     return NFWPotential(m=params["m"], r_s=params["r_s"], units=pot.units)
+
+
+@gala_to_galax.register
+def _gala_to_galax_leesutotriaxialnfw(
+    pot: GalaLeeSutoTriaxialNFWPotential, /
+) -> LeeSutoTriaxialNFWPotential:
+    """Convert a Gala LeeSutoTriaxialNFWPotential to a Galax potential."""
+    if not _static_at_origin(pot):
+        msg = "Galax does not support rotating or offset potentials."
+        raise TypeError(msg)
+
+    units = pot.units
+    params = pot.parameters
+    G = Quantity(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
+
+    return LeeSutoTriaxialNFWPotential(
+        m=params["v_c"] ** 2 * params["r_s"] / G,
+        r_s=params["r_s"],
+        a1=params["a"],
+        a2=params["b"],
+        a3=params["c"],
+        units=units,
+    )
 
 
 # -----------------------------------------------------------------------------

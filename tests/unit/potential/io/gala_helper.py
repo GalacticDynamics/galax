@@ -7,6 +7,7 @@ from functools import singledispatch
 from astropy.units import Quantity as APYQuantity
 from gala.potential import (
     CompositePotential as GalaCompositePotential,
+    LeeSutoTriaxialNFWPotential as GalaLeeSutoTriaxialNFWPotential,
     MilkyWayPotential as GalaMilkyWayPotential,
     NFWPotential as GalaNFWPotential,
     PotentialBase as GalaPotentialBase,
@@ -14,6 +15,8 @@ from gala.potential import (
 from gala.units import UnitSystem as GalaUnitSystem, dimensionless as gala_dimensionless
 from plum import convert
 
+import quaxed.array_api as xp
+from unxt import Quantity
 from unxt.unitsystems import DimensionlessUnitSystem, UnitSystem
 
 import galax.potential as gp
@@ -121,6 +124,27 @@ def _galax_to_gala_nfw(pot: gp.NFWPotential, /) -> GalaNFWPotential:
     return GalaNFWPotential(
         m=convert(pot.m(0), APYQuantity),
         r_s=convert(pot.r_s(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
+@galax_to_gala.register
+def _galax_to_gala_leesutotriaxialnfw(
+    pot: gp.LeeSutoTriaxialNFWPotential, /
+) -> GalaLeeSutoTriaxialNFWPotential:
+    """Convert a Galax LeeSutoTriaxialNFWPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, "m", "r_s", "a1", "a2", "a3"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    t = Quantity(0.0, pot.units["time"])
+
+    return GalaLeeSutoTriaxialNFWPotential(
+        v_c=convert(xp.sqrt(pot.constants["G"] * pot.m(t) / pot.r_s(t)), APYQuantity),
+        r_s=convert(pot.r_s(t), APYQuantity),
+        a=convert(pot.a1(t), APYQuantity),
+        b=convert(pot.a2(t), APYQuantity),
+        c=convert(pot.a3(t), APYQuantity),
         units=galax_to_gala_units(pot.units),
     )
 

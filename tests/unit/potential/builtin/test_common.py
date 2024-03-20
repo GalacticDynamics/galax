@@ -52,14 +52,14 @@ class ShapeAParameterMixin(ParameterFieldMixin):
     # =====================================================
 
     def test_a_constant(self, pot_cls, fields):
-        """Test the mass parameter."""
+        """Test the `a` parameter."""
         fields["a"] = Quantity(1.0, "kpc")
         pot = pot_cls(**fields)
         assert pot.a(t=0) == Quantity(1.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a_userfunc(self, pot_cls, fields):
-        """Test the mass parameter."""
+        """Test the `a` parameter."""
         fields["a"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
         assert pot.a(t=0) == 2

@@ -167,17 +167,15 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     def test_gradient(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.gradient` method."""
-        expected = Quantity(
+        expect = Quantity(
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expected, Quantity(1e-8, expected.unit)
-        )
+        assert qnp.allclose(pot.gradient(x, t=0), expect, Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
         # TODO: fix negative density!!!
-        expect = Quantity(-2.647e-7, pot.units["density"])
+        expect = Quantity(-2.647e-7, pot.units["mass density"])
         assert qnp.allclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

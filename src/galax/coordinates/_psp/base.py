@@ -297,6 +297,51 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         """
         return cast("Self", vector_represent_as(self, target))
 
+    def to_units(self, units: Any) -> "Self":
+        """Return with the components transformed to the given unit system.
+
+        Parameters
+        ----------
+        units : `unxt.UnitSystem`
+            The unit system. :func:`~unxt.unitsystem` is used to
+            convert the input to a unit system.
+
+        Returns
+        -------
+        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+            The phase-space position with the components transformed.
+
+        Examples
+        --------
+        With the following imports:
+
+        >>> from unxt import Quantity
+        >>> from galax.coordinates import PhaseSpacePosition
+
+        We can create a phase-space position and convert it to different units:
+
+        >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                          p=Quantity([4, 5, 6], "km/s"),
+        ...                          t=Quantity(0, "Gyr"))
+        >>> psp.to_units("solarsystem")
+        PhaseSpacePosition(
+            q=Cartesian3DVector(
+                x=Quantity[...](value=f64[], unit=Unit("AU")),
+                ... ),
+            p=CartesianDifferential3D(
+                d_x=Quantity[...]( value=f64[], unit=Unit("AU / yr") ),
+                ... ),
+            t=Quantity[...](value=f64[], unit=Unit("yr"))
+        )
+        """
+        usys = unitsystem(units)
+        return replace(
+            self,
+            q=self.q.to_units(usys),
+            p=self.p.to_units(usys),
+            t=self.t.to(usys["time"]) if self.t is not None else None,
+        )
+
     # ==========================================================================
     # Dynamical quantities
 

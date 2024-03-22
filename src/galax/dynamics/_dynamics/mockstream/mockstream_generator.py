@@ -17,7 +17,7 @@ from unxt import Quantity, UnitSystem
 
 import galax.typing as gt
 from .core import MockStream
-from .df import AbstractStreamDF
+from .df import AbstractStreamDF, ProgenitorMassCallable
 from .utils import cond_reverse, interleave_concat
 from galax.coordinates import PhaseSpacePosition
 from galax.dynamics._dynamics.integrate._api import Integrator
@@ -138,7 +138,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         rng: jr.PRNG,
         ts: gt.QVecTime,
         prog_w0: PhaseSpacePosition | gt.Vec6,
-        prog_mass: gt.FloatQScalar,
+        prog_mass: gt.FloatQScalar | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
     ) -> tuple[MockStream, PhaseSpacePosition]:

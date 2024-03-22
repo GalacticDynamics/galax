@@ -4,31 +4,20 @@ __all__ = ["evaluate_orbit"]
 
 from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
 from astropy.units import Quantity as APYQuantity
-from jaxtyping import Shaped
 
 import quaxed.array_api as xp
 from unxt import Quantity
 
+import galax.typing as gt
 from ._api import Integrator
 from ._builtin import DiffraxIntegrator
 from galax.coordinates import PhaseSpacePosition
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import (
-    BatchVec6,
-    BroadBatchFloatQScalar,
-    FloatQScalar,
-    QVecTime,
-    VecTime,
-)
-
-if TYPE_CHECKING:
-    pass
 
 ##############################################################################
 
@@ -40,18 +29,11 @@ _default_integrator: Integrator = DiffraxIntegrator()
 _select_w0 = jnp.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
-def _psp2t(
-    pspt: BroadBatchFloatQScalar, t0: FloatQScalar
-) -> Shaped[Quantity, "*#batch 2"]:
-    """Start at PSP time end at t0 for integration from t0."""
-    return xp.stack((pspt, xp.full_like(pspt, t0)), axis=-1)
-
-
 @partial(jax.jit, static_argnames=("integrator",))
 def evaluate_orbit(
     pot: AbstractPotentialBase,
-    w0: PhaseSpacePosition | BatchVec6,
-    t: QVecTime | VecTime | APYQuantity,
+    w0: PhaseSpacePosition | gt.BatchVec6,
+    t: gt.QVecTime | gt.VecTime | APYQuantity,
     *,
     integrator: Integrator | None = None,
 ) -> Orbit:
@@ -81,7 +63,7 @@ def evaluate_orbit(
             A :class:`~galax.coordinates.PhaseSpacePosition` will be
             constructed, interpreting the array as the  'q', 'p' (each
             Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
-    t: Array[float, (time,)]
+    t: Quantity[float, (time,), 'time']
         Array of times at which to compute the orbit. The first element should
         be the initial time and the last element should be the final time and
         the array should be monotonically moving from the first to final time.
@@ -188,44 +170,62 @@ def evaluate_orbit(
         :class:`~galax.dynamics.PhaseSpacePosition` which does not have a time
         and will assume ``w0`` is defined at `t`[0].
     """
+    # -------------
+    # Setup
+
+    units = pot.units
+
     # Determine the integrator
     # Reboot the integrator to avoid statefulness issues
     integrator = replace(integrator) if integrator is not None else _default_integrator
-
-    units = pot.units
 
     # parse t -> potential units
     t = Quantity.constructor(t, units["time"])
 
     # Parse w0
+    psp0t: Quantity
     if isinstance(w0, PhaseSpacePosition):
         # TODO: warn if w0.t is None?
-        psp0 = replace(w0, t=t[0]) if w0.t is None else w0
+        psp0 = w0
+        psp0t = t[0] if w0.t is None else w0.t
     else:
         psp0 = PhaseSpacePosition(
             q=Quantity(w0[..., 0:3], units["length"]),
             p=Quantity(w0[..., 3:6], units["speed"]),
             t=t[0],
         )
+        psp0t = t[0]
+
+    # -------------
+    # Initial integration
 
     # Need to integrate `w0.t` to `t[0]`.
     # The integral int_a_a is not well defined (can be inf) so we need to
     # handle this case separately.
     # TODO: make _select_w0 work on PSPTs
     qp0 = _select_w0(
-        psp0.t == t[0],
+        psp0t == t[0],
         psp0.w(units=units),  # don't integrate if already at the desired time
         integrator(
             pot._integrator_F,  # noqa: SLF001
-            psp0,
-            _psp2t(psp0.t, t[0]),
+            psp0,  # w0
+            psp0t,  # t0
+            xp.full_like(psp0t, t[0]),  # t1
             units=units,
-        ).w(units=units)[..., -1, :],
+        ).w(units=units),
     )
 
-    # Integrate the orbit
-    ws = integrator(pot._integrator_F, qp0, t, units=units)  # noqa: SLF001
-    # TODO: ꜛ reduce repeat dimensions of `time`.
+    # -------------
+    # Orbit integration
+
+    ws = integrator(
+        pot._integrator_F,  # noqa: SLF001
+        qp0,
+        t[0],
+        t[-1],
+        savet=t,
+        units=units,
+    )
 
     # Construct the orbit object
     return Orbit(q=ws.q, p=ws.p, t=t, potential=pot)

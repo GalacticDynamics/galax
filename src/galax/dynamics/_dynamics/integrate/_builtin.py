@@ -8,6 +8,7 @@ from typing import Any, final
 import diffrax
 import equinox as eqx
 import jax
+from jaxtyping import Array, Float, Shaped
 
 import quaxed.array_api as xp
 from unxt import Quantity, UnitSystem
@@ -20,6 +21,12 @@ from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 
 
+def _to_value(
+    x: Shaped[Quantity, "*shape"] | Float[Array, "*shape"], unit: gt.Unit, /
+) -> Float[Array, "*shape"]:
+    return x.to_value(unit) if isinstance(x, Quantity) else x
+
+
 @final
 class DiffraxIntegrator(AbstractIntegrator):
     """Thin wrapper around ``diffrax.diffeqsolve``."""
@@ -28,7 +35,6 @@ class DiffraxIntegrator(AbstractIntegrator):
     Solver: type[diffrax.AbstractSolver] = eqx.field(
         default=diffrax.Dopri5, static=True
     )
-    SaveAt: type[diffrax.SaveAt] = eqx.field(default=diffrax.SaveAt, static=True)
     stepsize_controller: diffrax.AbstractStepSizeController = eqx.field(
         default=diffrax.PIDController(rtol=1e-7, atol=1e-7), static=True
     )
@@ -41,16 +47,22 @@ class DiffraxIntegrator(AbstractIntegrator):
         default=(("scan_kind", "bounded"),), static=True, converter=ImmutableDict
     )
 
-    @vectorize_method(excluded=(0,), signature="(6),(T)->(T,7)")
+    @vectorize_method(excluded=(0,), signature="(6),(),(),(T)->(T,7)")
     @partial(jax.jit, static_argnums=(0, 1))
     def _call_implementation(
-        self, F: FCallable, w0: gt.Vec6, ts: gt.VecTime, /
+        self,
+        F: FCallable,
+        w0: gt.Vec6,
+        t0: gt.FloatScalar,
+        t1: gt.FloatScalar,
+        ts: gt.VecTime,
+        /,
     ) -> gt.VecTime7:
         solution = diffrax.diffeqsolve(
             terms=diffrax.ODETerm(F),
             solver=self.Solver(**self.solver_kw),
-            t0=ts[0],
-            t1=ts[-1],
+            t0=t0,
+            t1=t1,
             y0=w0,
             dt0=None,
             args=(),
@@ -65,19 +77,27 @@ class DiffraxIntegrator(AbstractIntegrator):
         self,
         F: FCallable,
         w0: AbstractPhaseSpacePosition | gt.BatchVec6,
+        t0: gt.FloatQScalar | gt.FloatScalar,
+        t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        ts: gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime,
+        savet: (
+            gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime | None
+        ) = None,
         *,
         units: UnitSystem,
     ) -> PhaseSpacePosition:
         # Parse inputs
-        ts_: gt.VecTime = ts.to_value(units["time"]) if isinstance(ts, Quantity) else ts
+        t0_: gt.VecTime = _to_value(t0, units["time"])
+        t1_: gt.VecTime = _to_value(t1, units["time"])
+        savet_ = xp.asarray([t1_]) if savet is None else _to_value(savet, units["time"])
+
         w0_: gt.Vec6 = (
             w0.w(units=units) if isinstance(w0, AbstractPhaseSpacePosition) else w0
         )
 
         # Perform the integration
-        w = self._call_implementation(F, w0_, ts_)
+        w = self._call_implementation(F, w0_, t0_, t1_, savet_)
+        w = w[..., -1, :] if savet is None else w
 
         # Return
         return PhaseSpacePosition(

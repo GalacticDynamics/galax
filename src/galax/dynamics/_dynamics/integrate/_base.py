@@ -6,9 +6,9 @@ import equinox as eqx
 
 from unxt import UnitSystem
 
+import galax.typing as gt
 from ._api import FCallable
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
-from galax.typing import BatchQVecTime, BatchVec6, BatchVecTime, QVecTime, VecTime
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -28,9 +28,13 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePosition | BatchVec6,
+        w0: AbstractPhaseSpacePosition | gt.BatchVec6,
+        t0: gt.FloatQScalar | gt.FloatScalar,
+        t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        ts: BatchQVecTime | BatchVecTime | QVecTime | VecTime,
+        savet: (
+            gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime | None
+        ) = None,
         *,
         units: UnitSystem,
     ) -> PhaseSpacePosition:
@@ -42,9 +46,13 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
             The function to integrate.
         w0 : AbstractPhaseSpacePosition | Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
-        ts : (Quantity | Array)[float, (T,)]
-            Times to return the computation.
-            It's necessary to at least provide the initial and final times.
+        t0, t1 : Quantity, positional-only
+            Initial and final times.
+
+        savet : (Quantity | Array)[float, (T,)] | None, optional
+            Times to return the computation.  If `None`, the computation is
+            returned at the final time.
+
         units : UnitSystem
             The unit system to use.
 
@@ -53,5 +61,67 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         PhaseSpacePosition[float, (time, 7)]
             The solution of the integrator [q, p, t], where q, p are the
             generalized 3-coordinates.
+
+        Examples
+        --------
+        For this example, we will use the
+        :class:`~galax.integrate.DiffraxIntegrator`
+
+        First some imports:
+
+        >>> import quaxed.array_api as xp
+        >>> from unxt import Quantity
+        >>> import unxt.unitsystems as usx
+        >>> import galax.coordinates as gc
+        >>> import galax.dynamics as gd
+        >>> import galax.potential as gp
+
+        Then we define initial conditions:
+
+        >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
+        ...                            p=Quantity([0., 200., 0.], "km/s"))
+
+        Now we can integrate the phase-space position for 1 Gyr, getting the
+        final position.  The integrator accepts any function for the equations
+        of motion.  Here we will reproduce what happens with orbit integrations.
+
+        >>> pot = gp.HernquistPotential(m=Quantity(1e12, "Msun"), c=Quantity(5, "kpc"),
+        ...                             units="galactic")
+
+        >>> integrator = gd.integrate.DiffraxIntegrator()
+        >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
+        >>> w = integrator(pot._integrator_F, w0, t0, t1, units=usx.galactic)
+        >>> w
+        PhaseSpacePosition(
+            q=Cartesian3DVector( ... ),
+            p=CartesianDifferential3D( ... ),
+            t=Quantity[...](value=f64[], unit=Unit("Myr"))
+        )
+        >>> w.shape
+        ()
+
+        We can also request the orbit at specific times:
+
+        >>> ts = Quantity(xp.linspace(0, 1, 10), "Myr")  # 10 steps
+        >>> ws = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic)
+        >>> ws
+        PhaseSpacePosition(
+            q=Cartesian3DVector( ... ),
+            p=CartesianDifferential3D( ... ),
+            t=Quantity[...](value=f64[10], unit=Unit("Myr"))
+        )
+        >>> ws.shape
+        (10,)
+
+        The integrator can also be used to integrate a batch of initial
+        conditions at once, returning a batch of final conditions (or a batch
+        of conditions at the requested times):
+
+        >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
+        ...                            p=Quantity([[0, 200, 0], [0, 200, 0]], "km/s"))
+        >>> ws = integrator(pot._integrator_F, w0, t0, t1, units=usx.galactic)
+        >>> ws.shape
+        (2,)
+
         """
         ...

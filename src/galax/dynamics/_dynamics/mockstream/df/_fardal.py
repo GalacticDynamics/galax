@@ -14,7 +14,7 @@ from jax import grad
 import quaxed.array_api as xp
 
 import galax.typing as gt
-from .base import AbstractStreamDF
+from ._base import AbstractStreamDF
 from galax.potential import AbstractPotentialBase
 from galax.potential._potential.base import AbstractPotentialBase
 
@@ -33,8 +33,9 @@ class FardalStreamDF(AbstractStreamDF):
         self,
         rng: jr.PRNG,
         potential: AbstractPotentialBase,
-        w: gt.Vec6,
-        prog_mass: gt.FloatScalar,
+        x: gt.Vec3,
+        v: gt.Vec3,
+        prog_mass: gt.FloatQScalar,
         t: gt.FloatQScalar,
     ) -> tuple[gt.Vec3, gt.Vec3, gt.Vec3, gt.Vec3]:
         """Generate stream particle initial conditions."""
@@ -43,13 +44,13 @@ class FardalStreamDF(AbstractStreamDF):
 
         # ---------------------------
 
-        x, v = w[0:3], w[3:6]
+        mprog = prog_mass.to_value(potential.units["mass"])
 
         omega_val = orbital_angular_velocity_mag(x, v)
 
         r = xp.linalg.vector_norm(x)
         r_hat = x / r
-        r_tidal = tidal_radius(potential, x, v, prog_mass, t)
+        r_tidal = tidal_radius(potential, x, v, mprog, t)
         rel_v = omega_val * r_tidal  # relative velocity
 
         # circlar_velocity

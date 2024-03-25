@@ -1,14 +1,15 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["AbstractStreamDF"]
+__all__ = ["AbstractStreamDF", "ProgenitorMassCallable", "ConstantMassProtenitor"]
 
 import abc
 from functools import partial
-from typing import TypeAlias
+from typing import Protocol, TypeAlias, runtime_checkable
 
 import equinox as eqx
 import jax
 import quax.examples.prng as jr
+from jaxtyping import Shaped
 
 import quaxed.array_api as xp
 from unxt import Quantity
@@ -16,10 +17,26 @@ from unxt import Quantity
 from galax.dynamics._dynamics.mockstream.core import MockStream
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchVec3, FloatQScalar, FloatScalar, Vec3, Vec6
+from galax.typing import BatchVec3, FloatQScalar, Vec3
 
 Wif: TypeAlias = tuple[Vec3, Vec3, Vec3, Vec3]
 Carry: TypeAlias = tuple[int, jr.PRNG, Vec3, Vec3, Vec3, Vec3]
+
+
+@runtime_checkable
+class ProgenitorMassCallable(Protocol):
+    def __call__(
+        self, t: Shaped[Quantity["time"], "*shape"], /
+    ) -> Shaped[Quantity["mass"], "*shape"]: ...
+
+
+class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
+    m: Shaped[Quantity["mass"], ""]
+
+    def __call__(
+        self, t: Shaped[Quantity["time"], "*shape"], /
+    ) -> Shaped[Quantity["mass"], "*shape"]:
+        return xp.ones(t.shape) * self.m
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -42,7 +59,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         prog_orbit: Orbit,
         # />
         /,
-        prog_mass: FloatQScalar,
+        prog_mass: Shaped[Quantity["mass"], ""] | ProgenitorMassCallable,
     ) -> tuple[MockStream, MockStream]:
         """Generate stream particle initial conditions.
 
@@ -54,9 +71,9 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             The potential of the host galaxy.
         prog_orbit : Orbit, positional-only
             The orbit of the progenitor.
-        prog_mass : Quantity[float, (), 'mass']
-            Mass of the progenitor in [Msol].
-            TODO: allow this to be a function of time.
+
+        prog_mass : Quantity[float, (), 'mass'] | ProgenitorMassCallable
+            Mass of the progenitor.
 
         Returns
         -------
@@ -66,16 +83,21 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         # Progenitor positions and times. The orbit times are used as the
         # release times for the mock stream.
         prog_w = prog_orbit.w(units=pot.units)  # TODO: keep as PSP
+        x, v = prog_w[..., 0:3], prog_w[..., 3:6]
         ts = prog_orbit.t
 
-        mprog = prog_mass.to_value(pot.units["mass"])  # TODO: keep units
+        mprog: ProgenitorMassCallable = (
+            ConstantMassProtenitor(m=prog_mass)
+            if not callable(prog_mass)
+            else prog_mass
+        )
 
         # Scan over the release times to generate the stream particle initial
         # conditions at each release time.
         def scan_fn(carry: Carry, t: FloatQScalar) -> tuple[Carry, Wif]:
             i = carry[0]
             rng, subrng = carry[1].split(2)
-            out = self._sample(subrng, pot, prog_w[i], mprog, t)
+            out = self._sample(subrng, pot, x[i], v[i], mprog(t), t)
             return (i + 1, rng, *out), out
 
         # TODO: use ``jax.vmap`` instead of ``jax.lax.scan`` for GPU usage
@@ -103,8 +125,9 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         self,
         rng: jr.PRNG,
         pot: AbstractPotentialBase,
-        w: Vec6,
-        prog_mass: FloatScalar,
+        x: Vec3,
+        v: Vec3,
+        prog_mass: FloatQScalar,
         t: FloatQScalar,
     ) -> tuple[BatchVec3, BatchVec3, BatchVec3, BatchVec3]:
         """Generate stream particle initial conditions.

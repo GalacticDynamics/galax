@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["AbstractStreamDF", "ProgenitorMassCallable"]
+__all__ = ["AbstractStreamDF", "ProgenitorMassCallable", "ConstantMassProtenitor"]
 
 import abc
 from functools import partial

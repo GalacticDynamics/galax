@@ -1,12 +1,12 @@
 """galax: Galactic Dynamix in Jax."""
 
-from . import base, fardal
-from .base import *
-from .fardal import *
+from . import _base, _fardal
+from ._base import *
+from ._fardal import *
 
 __all__: list[str] = []
-__all__ += base.__all__
-__all__ += fardal.__all__
+__all__ += _base.__all__
+__all__ += _fardal.__all__
 
 # Cleanup
-del base, fardal
+del _base, _fardal

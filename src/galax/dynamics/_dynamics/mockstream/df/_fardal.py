@@ -14,7 +14,7 @@ from jax import grad
 import quaxed.array_api as xp
 
 import galax.typing as gt
-from .base import AbstractStreamDF
+from ._base import AbstractStreamDF
 from galax.potential import AbstractPotentialBase
 from galax.potential._potential.base import AbstractPotentialBase
 

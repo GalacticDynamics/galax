@@ -1,16 +1,21 @@
 """Testing :mod:`galax.dynamics` module."""
 
 import galax.dynamics as gd
-from galax.dynamics._dynamics import base, mockstream, orbit
 
 
 def test_all() -> None:
     """Test the `galax.potential` API."""
     assert set(gd.__all__) == {
+        # TODO: it would be better to instead find and read the __all__ from the
+        #       .pyi file
         "integrate",
         "mockstream",
-        *base.__all__,
-        *orbit.__all__,
-        *mockstream.__all__,
+        "AbstractOrbit",
+        "Orbit",
+        "InterpolatedOrbit",
         "evaluate_orbit",
+        "MockStream",
+        "MockStreamGenerator",
+        "AbstractStreamDF",
+        "FardalStreamDF",
     }

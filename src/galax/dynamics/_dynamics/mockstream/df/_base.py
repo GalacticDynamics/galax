@@ -4,7 +4,7 @@ __all__ = ["AbstractStreamDF", "ProgenitorMassCallable", "ConstantMassProtenitor
 
 import abc
 from functools import partial
-from typing import Protocol, TypeAlias, runtime_checkable
+from typing import TypeAlias
 
 import equinox as eqx
 import jax
@@ -14,6 +14,7 @@ from jaxtyping import Shaped
 import quaxed.array_api as xp
 from unxt import Quantity
 
+from ._progenitor import ConstantMassProtenitor, ProgenitorMassCallable
 from galax.dynamics._dynamics.mockstream.core import MockStream
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential._potential.base import AbstractPotentialBase
@@ -21,22 +22,6 @@ from galax.typing import BatchVec3, FloatQScalar, Vec3
 
 Wif: TypeAlias = tuple[Vec3, Vec3, Vec3, Vec3]
 Carry: TypeAlias = tuple[int, jr.PRNG, Vec3, Vec3, Vec3, Vec3]
-
-
-@runtime_checkable
-class ProgenitorMassCallable(Protocol):
-    def __call__(
-        self, t: Shaped[Quantity["time"], "*shape"], /
-    ) -> Shaped[Quantity["mass"], "*shape"]: ...
-
-
-class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
-    m: Shaped[Quantity["mass"], ""]
-
-    def __call__(
-        self, t: Shaped[Quantity["time"], "*shape"], /
-    ) -> Shaped[Quantity["mass"], "*shape"]:
-        return xp.ones(t.shape) * self.m
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]

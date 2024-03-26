@@ -37,13 +37,18 @@ if TYPE_CHECKING:
     from galax.dynamics._dynamics.orbit import Orbit
 
 
+BatchRealQScalar: TypeAlias = Shaped[gt.RealQScalar, "*batch"]
+QMatrix33: TypeAlias = Float[Quantity, "3 3"]
+BatchMatrix33: TypeAlias = Shaped[Float[Array, "3 3"], "*batch"]
+BatchQMatrix33: TypeAlias = Shaped[QMatrix33, "*batch"]
+HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
+
+# Position and time input options
 PositionalLike: TypeAlias = (
-    Abstract3DVector
-    | Shaped[Quantity["length"], "*#batch 3"]
-    | Shaped[Array, "*#batch 3"]
+    Abstract3DVector | gt.LengthBroadBatchVec3 | Shaped[Array, "*#batch 3"]
 )
 TimeOptions: TypeAlias = (
-    gt.BatchRealQScalar
+    BatchRealQScalar
     | gt.FloatQScalar
     | gt.IntQScalar
     | gt.BatchableRealScalarLike
@@ -56,6 +61,9 @@ CONST_G = Quantity(_CONST_G.value, _CONST_G.unit)
 
 
 default_constants = ImmutableDict({"G": CONST_G})
+
+
+##############################################################################
 
 
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
@@ -387,7 +395,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     def __call__(
-        self, q: Shaped[Quantity, "*batch 3"], /, t: gt.BatchableRealQScalar
+        self, q: gt.LengthBatchVec3, /, t: gt.BatchableRealQScalar
     ) -> Float[Quantity["specific energy"], "*batch"]:
         """Compute the potential energy at the given position(s).
 
@@ -734,7 +742,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self: "AbstractPotentialBase",
         pspt: AbstractPhaseSpacePosition | FourVector,
         /,
-    ) -> Quantity["frequency drift"]:  # TODO: shape hint
+    ) -> Quantity["1/s^2"]:  # TODO: shape hint
         """Compute the laplacian of the potential at the given position(s).
 
         Parameters
@@ -791,7 +799,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def laplacian(
         self, q: PositionalLike, /, t: TimeOptions
-    ) -> Quantity["frequency drift"]:  # TODO: shape hint
+    ) -> Quantity["1/s^2"]:  # TODO: shape hint
         """Compute the laplacian of the potential at the given position(s).
 
         Parameters
@@ -852,7 +860,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def laplacian(
         self, q: PositionalLike, /, *, t: TimeOptions
-    ) -> Quantity["frequency drift"]:  # TODO: shape hint
+    ) -> Quantity["1/s^2"]:  # TODO: shape hint
         """Compute the laplacian at the given position(s).
 
         Parameters
@@ -911,7 +919,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def laplacian(
         self, q: APYRepresentation | APYQuantity, /, t: TimeOptions
-    ) -> Quantity["frequency drift"]:  # TODO: shape hint
+    ) -> Quantity["1/s^2"]:  # TODO: shape hint
         """Compute the laplacian at the given position(s).
 
         :meth:`~galax.potential.AbstractPotentialBase.laplacian` also
@@ -979,7 +987,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def laplacian(
         self, q: APYRepresentation | APYQuantity, /, *, t: TimeOptions
-    ) -> Quantity["frequency drift"]:  # TODO: shape hint
+    ) -> Quantity["1/s^2"]:  # TODO: shape hint
         """Compute the laplacian when `t` is keyword-only.
 
         Examples
@@ -1008,7 +1016,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, /, t: BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
@@ -1260,7 +1268,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.QMatrix33:
+    def _hessian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> QMatrix33:
         """See ``hessian``."""
         hess_op = unxt.experimental.hessian(
             self._potential_energy, units=(self.units["length"], self.units["time"])
@@ -1269,10 +1277,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @dispatch
     def hessian(
-        self: "AbstractPotentialBase",
-        pspt: AbstractPhaseSpacePosition | FourVector,
-        /,
-    ) -> gt.BatchQMatrix33:
+        self: "AbstractPotentialBase", pspt: AbstractPhaseSpacePosition | FourVector, /
+    ) -> BatchQMatrix33:
         """Compute the hessian of the potential at the given position(s).
 
         Parameters
@@ -1342,7 +1348,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def hessian(
         self: "AbstractPotentialBase", q: PositionalLike, /, t: TimeOptions
-    ) -> Shaped[Quantity["frequency drift"], "*#shape 3 3"]:  # TODO: shape -> batch
+    ) -> HessianVec:
         """Compute the hessian of the potential at the given position(s).
 
         Parameters
@@ -1421,7 +1427,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def hessian(
         self: "AbstractPotentialBase", q: PositionalLike, /, *, t: TimeOptions
-    ) -> Shaped[Quantity["frequency drift"], "*#shape 3 3"]:  # TODO: shape -> batch
+    ) -> HessianVec:
         """Compute the hessian when `t` is keyword-only.
 
         Examples
@@ -1451,7 +1457,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def hessian(
         self, q: APYRepresentation | APYQuantity | np.ndarray, /, t: TimeOptions
-    ) -> Shaped[Quantity["frequency drift"], "*#shape 3 3"]:  # TODO: shape -> batch
+    ) -> HessianVec:
         """Compute the hessian at the given position(s).
 
         :meth:`~galax.potential.AbstractPotentialBase.hessian` also
@@ -1526,7 +1532,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @dispatch
     def hessian(
         self, q: APYRepresentation | APYQuantity | np.ndarray, /, *, t: TimeOptions
-    ) -> Shaped[Quantity["frequency drift"], "*#shape 3 3"]:  # TODO: shape -> batch
+    ) -> HessianVec:
         return self.hessian(q, t)
 
     ###########################################################################
@@ -1836,9 +1842,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Tidal tensor
 
     @partial(jax.jit)
-    def tidal_tensor(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar
-    ) -> gt.BatchMatrix33:
+    def tidal_tensor(self, q: gt.BatchQVec3, /, t: BatchRealQScalar) -> BatchMatrix33:
         """Compute the tidal tensor.
 
         See https://en.wikipedia.org/wiki/Tidal_tensor

@@ -18,8 +18,8 @@ import coordinax as cx
 from unxt import Quantity
 from unxt.unitsystems import DimensionlessUnitSystem, UnitSystem, dimensionless
 
+import galax.typing as gt
 from galax.coordinates import AbstractPhaseSpacePosition
-from galax.typing import Unit
 
 # --------------------------------------------------------------
 
@@ -55,7 +55,7 @@ def parse_to_quantity(value: Any, /, *, units: UnitSystem, **_: Any) -> Any:
 @parse_to_quantity.register(float)
 @parse_to_quantity.register(Array)
 @parse_to_quantity.register(np.ndarray)
-def _convert_from_arraylike(x: Any, /, *, unit: Unit, **_: Any) -> Quantity:
+def _convert_from_arraylike(x: Any, /, *, unit: gt.Unit, **_: Any) -> Quantity:
     arr = xp.asarray(x, dtype=None)
     dtype = jnp.promote_types(arr.dtype, canonicalize_dtype(float))
     return Quantity(xp.asarray(arr, dtype=dtype), unit=unit)
@@ -69,9 +69,7 @@ def _convert_from_psp(
 
 
 @parse_to_quantity.register(cx.Abstract3DVector)
-def _convert_from_3dvec(
-    x: cx.Abstract3DVector, /, **_: Any
-) -> Shaped[Quantity, "*batch 3"]:
+def _convert_from_3dvec(x: cx.Abstract3DVector, /, **_: Any) -> gt.LengthBatchVec3:
     cart = x.represent_as(cx.Cartesian3DVector)
     qarr: Quantity = convert(cart, Quantity)
     return qarr

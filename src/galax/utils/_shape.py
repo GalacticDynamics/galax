@@ -3,17 +3,19 @@
 __all__: list[str] = []
 
 from functools import partial
-from typing import Any, Literal, NoReturn, overload
+from typing import Any, Literal, NoReturn, TypeAlias, overload
 
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, ArrayLike
+from jaxtyping import Array, ArrayLike, Shaped
 
 import quaxed.array_api as xp
 from coordinax import AbstractVectorBase
 
-from galax.typing import AnyScalar, ArrayAnyShape
 from galax.utils._jax import quaxify
+
+AnyScalar: TypeAlias = Shaped[Array, ""]
+ArrayAnyShape: TypeAlias = Shaped[Array, "..."]
 
 
 @overload

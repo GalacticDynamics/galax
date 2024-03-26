@@ -2,24 +2,18 @@
 
 __all__ = ["PhaseSpacePosition", "InterpolatedPhaseSpacePosition"]
 
-from typing import Any, NamedTuple, Protocol, final, runtime_checkable
+from typing import Any, NamedTuple, Protocol, TypeAlias, final, runtime_checkable
 
 import equinox as eqx
 import jax.numpy as jnp
+from jaxtyping import Shaped
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity, UnitSystem
 
+import galax.typing as gt
 from .base import AbstractPhaseSpacePosition
 from .utils import _p_converter, _q_converter
-from galax.typing import (
-    BatchFloatQScalar,
-    BatchVec7,
-    BatchVecTime6,
-    BroadBatchFloatQScalar,
-    QVec1,
-    VecTime,
-)
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
 
 
@@ -36,7 +30,7 @@ class ComponentShapeTuple(NamedTuple):
     """Shape of the time."""
 
 
-def converter_t(x: Any) -> BroadBatchFloatQScalar | QVec1 | None:
+def converter_t(x: Any) -> gt.BroadBatchFloatQScalar | gt.QVec1 | None:
     """Convert `t` to Quantity."""
     return Quantity["time"].constructor(x) if x is not None else None
 
@@ -127,7 +121,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: BroadBatchFloatQScalar | QVec1 | None = eqx.field(
+    t: gt.BroadBatchFloatQScalar | gt.QVec1 | None = eqx.field(
         default=None, converter=converter_t
     )
     """The time corresponding to the positions.
@@ -164,7 +158,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     # ==========================================================================
     # Convenience methods
 
-    def wt(self, *, units: Any) -> BatchVec7:
+    def wt(self, *, units: Any) -> gt.BatchVec7:
         _ = eqx.error_if(
             self.t, self.t is None, "No time defined for phase-space position"
         )
@@ -173,6 +167,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
 # ============================================================================
 
+BatchVecTime6: TypeAlias = Shaped[gt.VecTime6, "*batch"]
+
 
 @runtime_checkable
 class Interpolation(Protocol):
@@ -180,7 +176,7 @@ class Interpolation(Protocol):
 
     units: UnitSystem
 
-    def __call__(self, t: VecTime) -> BatchVecTime6:
+    def __call__(self, t: gt.VecTime) -> BatchVecTime6:
         pass
 
 
@@ -200,7 +196,7 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: BroadBatchFloatQScalar | QVec1 = eqx.field(
+    t: gt.BroadBatchFloatQScalar | gt.QVec1 = eqx.field(
         converter=Quantity["time"].constructor
     )
     """The time corresponding to the positions.
@@ -220,7 +216,7 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
             t = expand_batch_dims(self.t, ndim=self.q.ndim - self.t.ndim)
             object.__setattr__(self, "t", t)
 
-    def __call__(self, t: BatchFloatQScalar) -> PhaseSpacePosition:
+    def __call__(self, t: gt.BatchFloatQScalar) -> PhaseSpacePosition:
         """Call the interpolation."""
         qp = self.interpolation(t)
         units = self.interpolation.units

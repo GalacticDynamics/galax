@@ -2,7 +2,7 @@
 
 __all__ = ["MockStreamGenerator"]
 
-from dataclasses import KW_ONLY
+from dataclasses import KW_ONLY, replace
 from functools import partial
 from typing import TypeAlias, cast, final
 
@@ -176,7 +176,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # Ensure w0 is a PhaseSpacePosition
         w0: PhaseSpacePosition
         if isinstance(prog_w0, PhaseSpacePosition):
-            w0 = prog_w0
+            w0 = prog_w0 if prog_w0.t is not None else replace(prog_w0, t=ts[0])
         else:
             w0 = PhaseSpacePosition(
                 q=Quantity(prog_w0[0:3], self.units["length"]),

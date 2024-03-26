@@ -9,19 +9,18 @@ from typing import TypeAlias
 import equinox as eqx
 import jax
 import quax.examples.prng as jr
-from jaxtyping import Shaped
 
 import quaxed.array_api as xp
 from unxt import Quantity
 
+import galax.typing as gt
 from ._progenitor import ConstantMassProtenitor, ProgenitorMassCallable
 from galax.dynamics._dynamics.mockstream.core import MockStream
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import BatchVec3, FloatQScalar, Vec3
 
-Wif: TypeAlias = tuple[Vec3, Vec3, Vec3, Vec3]
-Carry: TypeAlias = tuple[int, jr.PRNG, Vec3, Vec3, Vec3, Vec3]
+Wif: TypeAlias = tuple[gt.Vec3, gt.Vec3, gt.Vec3, gt.Vec3]
+Carry: TypeAlias = tuple[int, jr.PRNG, gt.Vec3, gt.Vec3, gt.Vec3, gt.Vec3]
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -44,7 +43,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         prog_orbit: Orbit,
         # />
         /,
-        prog_mass: Shaped[Quantity["mass"], ""] | ProgenitorMassCallable,
+        prog_mass: gt.MassScalar | ProgenitorMassCallable,
     ) -> tuple[MockStream, MockStream]:
         """Generate stream particle initial conditions.
 
@@ -79,7 +78,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         # Scan over the release times to generate the stream particle initial
         # conditions at each release time.
-        def scan_fn(carry: Carry, t: FloatQScalar) -> tuple[Carry, Wif]:
+        def scan_fn(carry: Carry, t: gt.FloatQScalar) -> tuple[Carry, Wif]:
             i = carry[0]
             rng, subrng = carry[1].split(2)
             out = self._sample(subrng, pot, x[i], v[i], mprog(t), t)
@@ -110,11 +109,11 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         self,
         rng: jr.PRNG,
         pot: AbstractPotentialBase,
-        x: Vec3,
-        v: Vec3,
-        prog_mass: FloatQScalar,
-        t: FloatQScalar,
-    ) -> tuple[BatchVec3, BatchVec3, BatchVec3, BatchVec3]:
+        x: gt.Vec3,
+        v: gt.Vec3,
+        prog_mass: gt.FloatQScalar,
+        t: gt.FloatQScalar,
+    ) -> tuple[gt.BatchVec3, gt.BatchVec3, gt.BatchVec3, gt.BatchVec3]:
         """Generate stream particle initial conditions.
 
         Parameters

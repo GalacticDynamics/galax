@@ -5,20 +5,18 @@ __all__ = ["ProgenitorMassCallable", "ConstantMassProtenitor"]
 from typing import Protocol, runtime_checkable
 
 import equinox as eqx
-from jaxtyping import Shaped
 
 import quaxed.array_api as xp
 from unxt import Quantity
 
-TimeBatchScalar: TypeAlias = Shaped[Quantity["time"], "*batch"]
-MassBatchScalar: TypeAlias = Shaped[Quantity["mass"], "*batch"]
+import galax.typing as gt
 
 
 @runtime_checkable
 class ProgenitorMassCallable(Protocol):
     """Callable that returns the progenitor mass at the given times."""
 
-    def __call__(self, t: TimeBatchScalar, /) -> MassBatchScalar:
+    def __call__(self, t: gt.TimeBatchScalar, /) -> gt.MassBatchScalar:
         """Return the progenitor mass at the times.
 
         Parameters
@@ -38,10 +36,10 @@ class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
         The progenitor mass.
     """
 
-    m: Shaped[Quantity["mass"], ""] = eqx.field(converter=Quantity["mass"].constructor)
+    m: gt.MassScalar = eqx.field(converter=Quantity["mass"].constructor)
     """The progenitor mass."""
 
-    def __call__(self, t: TimeBatchScalar, /) -> MassBatchScalar:
+    def __call__(self, t: gt.TimeBatchScalar, /) -> gt.MassBatchScalar:
         """Return the constant mass at the times.
 
         Parameters

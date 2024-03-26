@@ -20,9 +20,7 @@ Unit: TypeAlias = u.Unit | u.UnitBase | u.CompositeUnit
 # An integer scalar.
 IntScalar = Integer[Array, ""]
 IntQScalar = Integer[Quantity, ""]
-
 IntLike = IntScalar | int
-"""An integer or integer scalar."""
 
 # A float scalar.
 FloatScalar = Float[Array, ""]
@@ -114,3 +112,16 @@ BatchQVecTime = Shaped[QVecTime, "*batch"]
 
 # A float array with any shape.
 FloatQAnyShape = Float[Quantity, "..."]
+
+
+# =============================================================================
+
+MassScalar = Shaped[Quantity["mass"], ""]
+MassBatchScalar = Shaped[Quantity["mass"], "*batch"]
+
+TimeScalar = Shaped[Quantity["time"], ""]
+TimeBatchScalar = Shaped[Quantity["time"], "*batch"]
+
+LengthVec3 = Shaped[Quantity["length"], "3"]
+LengthBatchVec3 = Shaped[LengthVec3, "*batch"]
+LengthBroadBatchVec3 = Shaped[LengthVec3, "*#batch"]

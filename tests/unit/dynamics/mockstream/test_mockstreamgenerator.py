@@ -5,15 +5,14 @@ import jax.numpy as jnp
 import jax.tree_util as tu
 import pytest
 import quax.examples.prng as jr
-from jaxtyping import Shaped
 
 import quaxed.array_api as xp
 from unxt import Quantity
 
 import galax.coordinates as gc
+import galax.typing as gt
 from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
 from galax.potential import AbstractPotentialBase, NFWPotential
-from galax.typing import QVecTime
 
 
 class TestMockStreamGenerator:
@@ -41,7 +40,7 @@ class TestMockStreamGenerator:
     # ----------------------------------------
 
     @pytest.fixture()
-    def t_stripping(self) -> QVecTime:
+    def t_stripping(self) -> gt.QVecTime:
         """Time vector for stripping."""
         return Quantity(xp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
 
@@ -53,7 +52,7 @@ class TestMockStreamGenerator:
         )
 
     @pytest.fixture()
-    def prog_mass(self) -> Shaped[Quantity["mass"], ""]:
+    def prog_mass(self) -> gt.MassScalar:
         """Progenitor mass."""
         return Quantity(1e4, "Msun")
 
@@ -72,9 +71,9 @@ class TestMockStreamGenerator:
     def test_run_scan(
         self,
         mockstream: MockStreamGenerator,
-        t_stripping: QVecTime,
+        t_stripping: gt.QVecTime,
         prog_w0: gc.PhaseSpacePosition,
-        prog_mass: Shaped[Quantity["mass"], ""],
+        prog_mass: gt.MassScalar,
         rng: jr.PRNG,
         vmapped: bool,
     ) -> None:

@@ -69,9 +69,7 @@ def _convert_from_psp(
 
 
 @parse_to_quantity.register(cx.Abstract3DVector)
-def _convert_from_3dvec(
-    x: cx.Abstract3DVector, /, **_: Any
-) -> Shaped[Quantity, "*batch 3"]:
+def _convert_from_3dvec(x: cx.Abstract3DVector, /, **_: Any) -> gt.LengthBatchVec3:
     cart = x.represent_as(cx.Cartesian3DVector)
     qarr: Quantity = convert(cart, Quantity)
     return qarr

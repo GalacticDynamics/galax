@@ -37,13 +37,21 @@ if TYPE_CHECKING:
     from galax.dynamics._dynamics.orbit import Orbit
 
 
+BatchRealQScalar: TypeAlias = Shaped[gt.RealQScalar, "*batch"]
+
+# A 3x3 matrix
+QMatrix33: TypeAlias = Float[Quantity, "3 3"]
+BatchMatrix33: TypeAlias = Shaped[Float[Array, "3 3"], "*batch"]
+BatchQMatrix33: TypeAlias = Shaped[QMatrix33, "*batch"]
+
+# Position and time input options
 PositionalLike: TypeAlias = (
     Abstract3DVector
     | Shaped[Quantity["length"], "*#batch 3"]
     | Shaped[Array, "*#batch 3"]
 )
 TimeOptions: TypeAlias = (
-    gt.BatchRealQScalar
+    BatchRealQScalar
     | gt.FloatQScalar
     | gt.IntQScalar
     | gt.BatchableRealScalarLike
@@ -56,6 +64,9 @@ CONST_G = Quantity(_CONST_G.value, _CONST_G.unit)
 
 
 default_constants = ImmutableDict({"G": CONST_G})
+
+
+##############################################################################
 
 
 class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
@@ -1008,7 +1019,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, /, t: BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
@@ -1260,7 +1271,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.QMatrix33:
+    def _hessian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> QMatrix33:
         """See ``hessian``."""
         hess_op = unxt.experimental.hessian(
             self._potential_energy, units=(self.units["length"], self.units["time"])
@@ -1272,7 +1283,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         self: "AbstractPotentialBase",
         pspt: AbstractPhaseSpacePosition | FourVector,
         /,
-    ) -> gt.BatchQMatrix33:
+    ) -> BatchQMatrix33:
         """Compute the hessian of the potential at the given position(s).
 
         Parameters
@@ -1836,9 +1847,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Tidal tensor
 
     @partial(jax.jit)
-    def tidal_tensor(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar
-    ) -> gt.BatchMatrix33:
+    def tidal_tensor(self, q: gt.BatchQVec3, /, t: BatchRealQScalar) -> BatchMatrix33:
         """Compute the tidal tensor.
 
         See https://en.wikipedia.org/wiki/Tidal_tensor

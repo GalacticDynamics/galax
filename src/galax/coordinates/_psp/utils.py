@@ -71,7 +71,7 @@ def getitem_vec1time_index(index: Any, t: FloatQAnyShape) -> Any:
     ----------
     index : Any
         The index to get the time index from.
-    t : FloatArrayAnyShape
+    t : FloatQAnyShape
         The time array.
 
     Returns

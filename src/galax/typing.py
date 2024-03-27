@@ -122,6 +122,10 @@ MassBatchScalar = Shaped[Quantity["mass"], "*batch"]
 TimeScalar = Shaped[Quantity["time"], ""]
 TimeBatchScalar = Shaped[Quantity["time"], "*batch"]
 
+LengthScalar = Shaped[Quantity["length"], ""]
 LengthVec3 = Shaped[Quantity["length"], "3"]
 LengthBatchVec3 = Shaped[LengthVec3, "*batch"]
 LengthBroadBatchVec3 = Shaped[LengthVec3, "*#batch"]
+
+SpeedVec3: TypeAlias = Shaped[Quantity["speed"], "3"]
+SpeedBatchVec3: TypeAlias = Shaped[SpeedVec3, "*batch"]

@@ -10,7 +10,12 @@ from typing_extensions import override
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
-from unxt.unitsystems import UnitSystem, dimensionless, galactic, solarsystem
+from unxt.unitsystems import (
+    UnitSystem,
+    dimensionless,
+    galactic,
+    solarsystem,
+)
 
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin

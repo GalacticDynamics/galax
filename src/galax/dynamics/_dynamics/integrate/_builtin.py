@@ -11,7 +11,7 @@ import jax
 from jaxtyping import Array, Float, Shaped
 
 import quaxed.array_api as xp
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
 from ._api import FCallable
@@ -84,7 +84,7 @@ class DiffraxIntegrator(AbstractIntegrator):
             gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime | None
         ) = None,
         *,
-        units: UnitSystem,
+        units: AbstractUnitSystem,
     ) -> PhaseSpacePosition:
         # Parse inputs
         t0_: gt.VecTime = _to_value(t0, units["time"])

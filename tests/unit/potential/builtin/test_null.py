@@ -8,7 +8,7 @@ from typing_extensions import override
 
 import quaxed.numpy as qnp
 import unxt.unitsystems as usx
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
 import galax.typing as gt
@@ -21,7 +21,7 @@ class TestNullPotential(AbstractPotential_Test):
         return gp.NullPotential
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_units: UnitSystem) -> dict[str, Any]:
+    def fields_(self, field_units: AbstractUnitSystem) -> dict[str, Any]:
         return {"units": field_units}
 
     # ==========================================================================

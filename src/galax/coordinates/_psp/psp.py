@@ -9,7 +9,7 @@ import jax.numpy as jnp
 from jaxtyping import Shaped
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
 from .base import AbstractPhaseSpacePosition
@@ -174,7 +174,7 @@ BatchVecTime6: TypeAlias = Shaped[gt.VecTime6, "*batch"]
 class Interpolation(Protocol):
     """Protocol for interpolating phase-space positions."""
 
-    units: UnitSystem
+    units: AbstractUnitSystem
 
     def __call__(self, t: gt.VecTime) -> BatchVecTime6:
         pass

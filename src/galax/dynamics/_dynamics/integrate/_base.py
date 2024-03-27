@@ -4,7 +4,7 @@ import abc
 
 import equinox as eqx
 
-from unxt import UnitSystem
+from unxt import AbstractUnitSystem
 
 import galax.typing as gt
 from ._api import FCallable
@@ -36,7 +36,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
             gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime | None
         ) = None,
         *,
-        units: UnitSystem,
+        units: AbstractUnitSystem,
     ) -> PhaseSpacePosition:
         """Run the integrator.
 
@@ -53,7 +53,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
             Times to return the computation.  If `None`, the computation is
             returned at the final time.
 
-        units : UnitSystem
+        units : `unxt.AbstractUnitSystem`
             The unit system to use.
 
         Returns

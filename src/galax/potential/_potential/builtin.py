@@ -22,7 +22,7 @@ from quax import quaxify
 
 import quaxed.array_api as xp
 import quaxed.lax as qlax
-from unxt import Quantity, UnitSystem, unitsystem
+from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.typing as gt
 from galax.potential._potential.base import default_constants
@@ -48,7 +48,7 @@ class BarPotential(AbstractPotential):
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     Omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -99,7 +99,7 @@ class HernquistPotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -122,7 +122,7 @@ class IsochronePotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -149,7 +149,7 @@ class KeplerPotential(AbstractPotential):
 
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -173,7 +173,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
     a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -197,7 +197,7 @@ class NFWPotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -278,7 +278,7 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
     """Minor axis."""
 
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -346,7 +346,7 @@ class NullPotential(AbstractPotential):
     """Null potential, i.e. no potential."""
 
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -393,10 +393,10 @@ class TriaxialHernquistPotential(AbstractPotential):
         or constant, like a Quantity. See
         :class:`~galax.potential.ParameterField` for details.
 
-    units : :class:`~unxt.UnitSystem`, keyword-only
+    units : :class:`~unxt.AbstractUnitSystem`, keyword-only
         The unit system to use for the potential.  This parameter accepts a
-        :class:`~unxt.UnitSystem` or anything that can be converted to a
-        :class:`~unxt.UnitSystem` using :func:`~unxt.unitsystem`.
+        :class:`~unxt.AbstractUnitSystem` or anything that can be converted to a
+        :class:`~unxt.AbstractUnitSystem` using :func:`~unxt.unitsystem`.
 
     Examples
     --------
@@ -431,7 +431,7 @@ class TriaxialHernquistPotential(AbstractPotential):
     """Scale length in the z direction divided by ``c``."""
 
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     """The unit system to use for the potential."""
 
     constants: ImmutableDict[Quantity] = eqx.field(

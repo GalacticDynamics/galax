@@ -5,7 +5,7 @@ from typing_extensions import override
 
 import quaxed.numpy as qnp
 from unxt import Quantity
-from unxt.unitsystems import UnitSystem
+from unxt.unitsystems import AbstractUnitSystem
 
 import galax.potential as gp
 import galax.typing as gt
@@ -111,7 +111,7 @@ class TestLeeSutoTriaxialNFWPotential(
         field_a1: Quantity,
         field_a2: Quantity,
         field_a3: Quantity,
-        field_units: UnitSystem,
+        field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m": field_m,

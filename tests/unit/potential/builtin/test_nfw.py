@@ -6,7 +6,7 @@ from typing_extensions import override
 
 import quaxed.numpy as qnp
 from unxt import Quantity
-from unxt.unitsystems import UnitSystem, galactic
+from unxt.unitsystems import AbstractUnitSystem, galactic
 
 import galax.potential as gp
 import galax.typing as gt
@@ -75,7 +75,7 @@ class TestNFWPotential(
         self,
         field_m: u.Quantity,
         field_r_s: u.Quantity,
-        field_units: UnitSystem,
+        field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {"m": field_m, "r_s": field_r_s, "units": field_units}
 

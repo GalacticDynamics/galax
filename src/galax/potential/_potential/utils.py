@@ -16,7 +16,12 @@ from plum import convert, dispatch
 
 import coordinax as cx
 from unxt import Quantity
-from unxt.unitsystems import DimensionlessUnitSystem, UnitSystem, dimensionless
+from unxt.unitsystems import (
+    AbstractUnitSystem,
+    DimensionlessUnitSystem,
+    UnitSystem,
+    dimensionless,
+)
 
 import galax.typing as gt
 from galax.coordinates import AbstractPhaseSpacePosition
@@ -27,7 +32,7 @@ Value = TypeVar("Value", int, float, Array)
 
 
 @singledispatch
-def parse_to_quantity(value: Any, /, *, units: UnitSystem, **_: Any) -> Any:
+def parse_to_quantity(value: Any, /, *, units: AbstractUnitSystem, **_: Any) -> Any:
     """Parse input arguments.
 
     This function uses :func:`~functools.singledispatch` to dispatch on the type
@@ -37,7 +42,7 @@ def parse_to_quantity(value: Any, /, *, units: UnitSystem, **_: Any) -> Any:
     ----------
     value : Any, positional-only
         Input value.
-    units : UnitSystem, keyword-only
+    units : AbstractUnitSystem, keyword-only
         Unit system.
     **kwargs : Any
         Additional keyword arguments.

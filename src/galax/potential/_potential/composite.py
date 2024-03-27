@@ -10,7 +10,7 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
-from unxt import Quantity, UnitSystem, unitsystem
+from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
@@ -80,7 +80,7 @@ class CompositePotential(AbstractCompositePotential):
 
     _data: dict[str, AbstractPotentialBase]
     _: KW_ONLY
-    units: UnitSystem = eqx.field(init=False, static=True, converter=unitsystem)
+    units: AbstractUnitSystem = eqx.field(init=False, static=True, converter=unitsystem)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )

@@ -11,7 +11,12 @@ from typing import Any, ClassVar, TypeVar, final
 import equinox as eqx
 
 from unxt import Quantity
-from unxt.unitsystems import UnitSystem, dimensionless, galactic, unitsystem
+from unxt.unitsystems import (
+    AbstractUnitSystem,
+    dimensionless,
+    galactic,
+    unitsystem,
+)
 
 from .base import AbstractPotentialBase, default_constants
 from .builtin import HernquistPotential, MiyamotoNagaiPotential, NFWPotential
@@ -25,7 +30,7 @@ def _parse_input_comp(
     cls: type[T],
     instance: T | Mapping[str, Any] | None,
     default: Mapping[str, Any],
-    units: UnitSystem,
+    units: AbstractUnitSystem,
 ) -> T:
     if isinstance(instance, cls):
         return instance
@@ -52,9 +57,8 @@ class MilkyWayPotential(AbstractCompositePotential):
 
     Parameters
     ----------
-    units : `~unxt.UnitSystem` (optional)
-        Set of non-reducable units that specify (at minimum) the
-        length, mass, time, and angle units.
+    units : `~unxt.AbstractUnitSystem` (optional)
+        Set of non-reducable units.
     disk : dict (optional)
         Parameters to be passed to the :class:`~galax.potential.MiyamotoNagaiPotential`.
     bulge : dict (optional)
@@ -70,7 +74,7 @@ class MilkyWayPotential(AbstractCompositePotential):
 
     _data: dict[str, AbstractPotentialBase] = eqx.field(init=False)
     _: KW_ONLY
-    units: UnitSystem = eqx.field(init=True, static=True, converter=unitsystem)
+    units: AbstractUnitSystem = eqx.field(init=True, static=True, converter=unitsystem)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )

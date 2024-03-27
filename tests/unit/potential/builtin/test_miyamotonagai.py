@@ -4,7 +4,7 @@ import astropy.units as u
 import pytest
 
 import quaxed.numpy as qnp
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
@@ -32,7 +32,7 @@ class TestMiyamotoNagaiPotential(
         field_m: u.Quantity,
         field_a: u.Quantity,
         field_b: u.Quantity,
-        field_units: UnitSystem,
+        field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {"m": field_m, "a": field_a, "b": field_b, "units": field_units}
 

@@ -166,8 +166,9 @@ def d2phidr2(
     >>> from unxt import Quantity
     >>> from galax.potential import NFWPotential
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
-    >>> d2phidr2(pot, xp.asarray([8.0, 0.0, 0.0]), t=0)
-    Array(-0.0001747, dtype=float64)
+    >>> q = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
+    >>> d2phidr2(pot, q, t=Quantity(0.0, "Myr"))
+    Quantity['1'](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
     """
     rhat = r_hat(x)
     # TODO: this isn't vectorized
@@ -198,7 +199,7 @@ def orbital_angular_velocity(
     >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "m")
     >>> v = Quantity(xp.asarray([8.0, 0.0, 0.0]), "m/s")
     >>> orbital_angular_velocity(x, v)
-    Quantity(Array([0., 0., 0.], dtype=float64), '1/s')
+    Quantity['frequency'](Array([0., 0., 0.], dtype=float64), unit='1 / s')
     """
     r = xp.linalg.vector_norm(x, axis=-1, keepdims=True)
     return qnp.cross(x, v) / r**2
@@ -224,10 +225,10 @@ def orbital_angular_velocity_mag(
 
     Examples
     --------
-    >>> x = xp.asarray([8.0, 0.0, 0.0])
-    >>> v = xp.asarray([8.0, 0.0, 0.0])
+    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
+    >>> v = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
     >>> orbital_angular_velocity_mag(x, v)
-    Array(0., dtype=float64)
+    Quantity['frequency'](Array(0., dtype=float64), unit='1 / Myr')
     """
     return xp.linalg.vector_norm(orbital_angular_velocity(x, v), axis=-1)
 
@@ -264,11 +265,15 @@ def tidal_radius(
     Examples
     --------
     >>> from galax.potential import NFWPotential
+
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
-    >>> x=xp.asarray([8.0, 0.0, 0.0])
-    >>> v=xp.asarray([8.0, 0.0, 0.0])
-    >>> tidal_radius(pot, x, v, prog_mass=1e4, t=0)
-    Array(0.06362008, dtype=float64)
+
+    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
+    >>> v = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
+    >>> prog_mass = Quantity(1e4, "Msun")
+
+    >>> tidal_radius(pot, x, v, prog_mass=prog_mass, t=Quantity(0, "Myr"))
+    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
     """
     return qnp.cbrt(
         potential.constants["G"]

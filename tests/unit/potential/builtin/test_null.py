@@ -1,14 +1,12 @@
-import re
 from typing import Any
 
 import pytest
 from jaxtyping import Array
-from plum import NotFoundLookupError
 from typing_extensions import override
 
 import quaxed.numpy as qnp
 import unxt.unitsystems as usx
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
 import galax.typing as gt
@@ -21,7 +19,7 @@ class TestNullPotential(AbstractPotential_Test):
         return gp.NullPotential
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_units: UnitSystem) -> dict[str, Any]:
+    def fields_(self, field_units: AbstractUnitSystem) -> dict[str, Any]:
         return {"units": field_units}
 
     # ==========================================================================
@@ -54,8 +52,7 @@ class TestNullPotential(AbstractPotential_Test):
         pot = pot_cls(**fields_unitless, units="galactic")
         assert pot.units == usx.galactic
 
-        msg = "`unitsystem('invalid_value')` could not be resolved."
-        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match="invalid_value"):
             pot_cls(**fields_unitless, units="invalid_value")
 
     # ==========================================================================

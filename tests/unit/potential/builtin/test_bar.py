@@ -4,7 +4,7 @@ import astropy.units as u
 import pytest
 
 import quaxed.numpy as qnp
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
@@ -41,7 +41,7 @@ class TestBarPotential(
         field_b: u.Quantity,
         field_c: u.Quantity,
         field_Omega: u.Quantity,
-        field_units: UnitSystem,
+        field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m": field_m,

@@ -7,7 +7,7 @@ import pytest
 
 import quaxed.array_api as xp
 from unxt import Quantity
-from unxt.unitsystems import UnitSystem, galactic, unitsystem
+from unxt.unitsystems import AbstractUnitSystem, galactic, unitsystem
 
 import galax.potential as gp
 import galax.typing as gt
@@ -26,7 +26,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
             m: gp.AbstractParameter = gp.ParameterField(
                 dimensions="mass", default=Quantity(1e12, "Msun")
             )
-            units: UnitSystem = eqx.field(
+            units: AbstractUnitSystem = eqx.field(
                 default=galactic, converter=unitsystem, static=True
             )
             constants: ImmutableDict[Quantity] = eqx.field(
@@ -44,11 +44,11 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
         return TestPotential
 
     @pytest.fixture(scope="class")
-    def units(self) -> UnitSystem:
+    def units(self) -> AbstractUnitSystem:
         return galactic
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_units: UnitSystem) -> dict[str, Any]:
+    def fields_(self, field_units: AbstractUnitSystem) -> dict[str, Any]:
         return {"units": field_units}
 
     ###########################################################################
@@ -64,7 +64,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
             m: gp.AbstractParameter = gp.ParameterField(
                 dimensions="mass", default=Quantity(1e12, "Msun")
             )
-            units: UnitSystem = eqx.field(
+            units: AbstractUnitSystem = eqx.field(
                 default=galactic, static=True, converter=unitsystem
             )
             constants: ImmutableDict[Quantity] = eqx.field(

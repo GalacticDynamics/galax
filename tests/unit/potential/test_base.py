@@ -9,7 +9,7 @@ import pytest
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 from unxt.unitsystems import galactic
 
 import galax.dynamics as gd
@@ -29,7 +29,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
             m: AbstractParameter = ParameterField(
                 dimensions="mass", default=1e12 * u.Msun
             )
-            units: UnitSystem = eqx.field(default=galactic, static=True)
+            units: AbstractUnitSystem = eqx.field(default=galactic, static=True)
             constants: ImmutableDict[Quantity] = eqx.field(
                 default=default_constants, converter=ImmutableDict
             )
@@ -45,15 +45,15 @@ class TestAbstractPotentialBase(GalaIOMixin):
         return TestPotential
 
     @pytest.fixture(scope="class")
-    def units(self) -> UnitSystem:
+    def units(self) -> AbstractUnitSystem:
         return galactic
 
     @pytest.fixture(scope="class")
-    def field_units(self, units: UnitSystem) -> UnitSystem:
+    def field_units(self, units: AbstractUnitSystem) -> AbstractUnitSystem:
         return units
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_units: UnitSystem) -> dict[str, Any]:
+    def fields_(self, field_units: AbstractUnitSystem) -> dict[str, Any]:
         return {"units": field_units}
 
     @pytest.fixture()
@@ -70,12 +70,12 @@ class TestAbstractPotentialBase(GalaIOMixin):
     # ---------------------------------
 
     @pytest.fixture(scope="class")
-    def x(self, units: UnitSystem) -> gt.QVec3:
+    def x(self, units: AbstractUnitSystem) -> gt.QVec3:
         """Create a position vector for testing."""
         return Quantity(xp.asarray([1, 2, 3], dtype=float), units["length"])
 
     @pytest.fixture(scope="class")
-    def v(sel, units: UnitSystem) -> gt.QVec3:
+    def v(sel, units: AbstractUnitSystem) -> gt.QVec3:
         """Create a velocity vector for testing."""
         return Quantity(xp.asarray([4, 5, 6], dtype=float), units["speed"])
 
@@ -87,14 +87,14 @@ class TestAbstractPotentialBase(GalaIOMixin):
     # ---------------------------------
 
     @pytest.fixture(scope="class")
-    def batchx(self, units: UnitSystem) -> gt.BatchQVec3:
+    def batchx(self, units: AbstractUnitSystem) -> gt.BatchQVec3:
         """Create a batch of position vectors for testing."""
         return Quantity(
             xp.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=float), units["length"]
         )
 
     @pytest.fixture(scope="class")
-    def batchv(self, units: UnitSystem) -> gt.BatchQVec3:
+    def batchv(self, units: AbstractUnitSystem) -> gt.BatchQVec3:
         """Create a batch of velocity vectors for testing."""
         return Quantity(
             xp.asarray([[4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float),
@@ -123,7 +123,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
         # Test that the concrete class can be instantiated
         class TestPotential(AbstractPotentialBase):
-            units: UnitSystem = eqx.field(default=galactic, static=True)
+            units: AbstractUnitSystem = eqx.field(default=galactic, static=True)
             constants: ImmutableDict[Quantity] = eqx.field(
                 default=default_constants, converter=ImmutableDict
             )

@@ -2,7 +2,7 @@ __all__ = ["Integrator"]
 
 from typing import Any, Protocol, runtime_checkable
 
-from unxt import UnitSystem
+from unxt import AbstractUnitSystem
 
 import galax.typing as gt
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
@@ -54,7 +54,7 @@ class Integrator(_DataclassInstance, Protocol):
             gt.BatchQVecTime | gt.QVecTime | gt.BatchVecTime | gt.VecTime | None
         ) = None,
         *,
-        units: UnitSystem,
+        units: AbstractUnitSystem,
     ) -> PhaseSpacePosition:
         """Integrate.
 
@@ -72,7 +72,7 @@ class Integrator(_DataclassInstance, Protocol):
             Times to return the computation.
             If `None`, the solution is returned at the final time.
 
-        units : UnitSystem, keyword-only
+        units : `unxt.AbstractUnitSystem`, keyword-only
             The unit system to use.
 
         Returns

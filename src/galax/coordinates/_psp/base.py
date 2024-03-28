@@ -187,7 +187,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
         Parameters
         ----------
-        units : `unxt.UnitSystem`, optional keyword-only
+        units : `unxt.AbstractUnitSystem`, optional keyword-only
             The unit system. :func:`~unxt.unitsystem` is used to
             convert the input to a unit system.
 
@@ -227,7 +227,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
         Parameters
         ----------
-        units : `unxt.UnitSystem`, keyword-only
+        units : `unxt.AbstractUnitSystem`, keyword-only
             The unit system. :func:`~unxt.unitsystem` is used to
             convert the input to a unit system.
 
@@ -302,7 +302,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
         Parameters
         ----------
-        units : `unxt.UnitSystem`
+        units : `unxt.AbstractUnitSystem`
             The unit system. :func:`~unxt.unitsystem` is used to
             convert the input to a unit system.
 

@@ -1,9 +1,7 @@
-import re
 from collections.abc import Mapping
 
 import astropy.units as u
 import pytest
-from plum import NotFoundLookupError
 from typing_extensions import override
 
 import quaxed.numpy as qnp
@@ -122,8 +120,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         pot = pot_cls(**pot_map, units=units)
         assert pot.units == galactic
 
-        msg = "`unitsystem('invalid_value')` could not be resolved."
-        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match="invalid_value"):
             pot_cls(**pot_map, units="invalid_value")
 
     # ==========================================================================

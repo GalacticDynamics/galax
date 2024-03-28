@@ -249,14 +249,14 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
             def __getitem__(self, index: Any) -> Self:
                 return replace(self, q=self.q[index], p=self.p[index], t=self.t[index])
 
-            def wt(self, *, units: UnitSystem | None = None) -> BatchVec7:
+            def wt(self, *, units: AbstractUnitSystem | None = None) -> BatchVec7:
                 """Phase-space position as an Array[float, (*batch, Q + P + 1)].
 
                 This is the full phase-space position, including the time.
 
                 Parameters
                 ----------
-                units : `unxt.UnitSystem`, optional keyword-only
+                units : `unxt.AbstractUnitSystem`, optional keyword-only
                     The unit system If ``None``, use the current unit system.
 
                 Returns

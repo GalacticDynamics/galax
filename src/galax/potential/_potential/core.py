@@ -7,7 +7,7 @@ from typing import Any
 
 import equinox as eqx
 
-from unxt import Quantity, UnitSystem, unitsystem
+from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
@@ -19,7 +19,7 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
     """Abstract base class for all potential objects."""
 
     _: KW_ONLY
-    units: UnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )

@@ -13,7 +13,7 @@ import quax.examples.prng as jr
 from jax.lib.xla_bridge import get_backend
 
 import quaxed.array_api as xp
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
 from .core import MockStream
@@ -51,9 +51,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     """Integrator for the stream."""
 
     @property
-    def units(self) -> UnitSystem:
+    def units(self) -> AbstractUnitSystem:
         """Units of the potential."""
-        return cast(UnitSystem, self.potential.units)
+        return cast(AbstractUnitSystem, self.potential.units)
 
     # ==========================================================================
 

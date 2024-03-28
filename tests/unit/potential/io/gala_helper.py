@@ -17,7 +17,7 @@ from plum import convert
 
 import quaxed.array_api as xp
 from unxt import Quantity
-from unxt.unitsystems import DimensionlessUnitSystem, UnitSystem
+from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
 
 import galax.potential as gp
 from galax.potential._potential.io.gala import _GALA_TO_GALAX_REGISTRY
@@ -26,7 +26,7 @@ from galax.potential._potential.io.gala import _GALA_TO_GALAX_REGISTRY
 # UnitSystem
 
 
-def galax_to_gala_units(units: UnitSystem, /) -> GalaUnitSystem:
+def galax_to_gala_units(units: AbstractUnitSystem, /) -> GalaUnitSystem:
     if isinstance(units, DimensionlessUnitSystem):
         return gala_dimensionless
     return GalaUnitSystem(units)

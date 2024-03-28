@@ -9,7 +9,7 @@ from typing import cast, final
 import equinox as eqx
 
 from coordinax.operators import OperatorSequence, simplify_op
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
 from galax.potential._potential.base import AbstractPotentialBase
@@ -194,9 +194,9 @@ class PotentialFrame(AbstractPotentialBase):
     """
 
     @property
-    def units(self) -> UnitSystem:
+    def units(self) -> AbstractUnitSystem:
         """The unit system of the potential."""
-        return cast(UnitSystem, self.potential.units)
+        return cast(AbstractUnitSystem, self.potential.units)
 
     @property
     def constants(self) -> ImmutableDict[Quantity]:

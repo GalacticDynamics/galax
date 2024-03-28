@@ -45,8 +45,7 @@ class TestConverterToUtils:
         assert unitsystem("solarsystem") == solarsystem
         assert unitsystem("galactic") == galactic
 
-        msg = "`unitsystem('invalid_value')` could not be resolved."
-        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match="invalid_value"):
             unitsystem("invalid_value")
 
     @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
@@ -127,6 +126,5 @@ class FieldUnitSystemMixin:
         pot = pot_cls(**fields_unitless, units="galactic")
         assert pot.units == galactic
 
-        msg = "`unitsystem('invalid_value')` could not be resolved."
-        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match="invalid_value"):
             pot_cls(**fields_unitless, units="invalid_value")

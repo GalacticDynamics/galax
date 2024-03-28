@@ -20,7 +20,7 @@ import quaxed.array_api as xp
 import quaxed.numpy as qnp
 import unxt
 from coordinax import Abstract3DVector, FourVector
-from unxt import Quantity, UnitSystem
+from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
 from .utils import _convert_from_3dvec, parse_to_quantity
@@ -72,7 +72,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     parameters: ClassVar = ParametersAttribute(MappingProxyType({}))
 
     _: KW_ONLY
-    units: eqx.AbstractVar[UnitSystem]
+    units: eqx.AbstractVar[AbstractUnitSystem]
     """The unit system of the potential."""
 
     constants: eqx.AbstractVar[ImmutableDict[Quantity]]

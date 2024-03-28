@@ -1,11 +1,11 @@
 __all__ = ["Integrator"]
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from unxt import AbstractUnitSystem
 
+import galax.coordinates as gc
 import galax.typing as gt
-from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.utils.dataclasses import _DataclassInstance
 
 
@@ -46,7 +46,7 @@ class Integrator(_DataclassInstance, Protocol):
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePosition | gt.BatchVec6,
+        w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
@@ -55,7 +55,8 @@ class Integrator(_DataclassInstance, Protocol):
         ) = None,
         *,
         units: AbstractUnitSystem,
-    ) -> PhaseSpacePosition:
+        interpolated: Literal[False, True] = False,
+    ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Integrate.
 
         Parameters

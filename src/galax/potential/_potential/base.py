@@ -4,7 +4,7 @@ import abc
 from dataclasses import KW_ONLY, fields
 from functools import partial
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, ClassVar, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, cast
 
 import equinox as eqx
 import jax
@@ -1896,6 +1896,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         t: gt.QVecTime | gt.VecTime | APYQuantity,  # TODO: must be a Quantity
         *,
         integrator: "Integrator | None" = None,
+        interpolated: Literal[True, False] = False,
     ) -> "Orbit":
         """Compute an orbit in a potential.
 
@@ -1943,6 +1944,11 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             Integrator to use.  If `None`, the default integrator
             :class:`~galax.integrator.DiffraxIntegrator` is used.
 
+        interpolated: bool, optional keyword-only
+                If `True`, return an interpolated orbit.  If `False`, return the orbit
+                at the requested times.  Default is `False`.
+
+
         Returns
         -------
         orbit : :class:`~galax.dynamics.Orbit`
@@ -1956,4 +1962,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """
         from galax.dynamics import evaluate_orbit
 
-        return cast("Orbit", evaluate_orbit(self, w0, t, integrator=integrator))
+        return cast(
+            "Orbit",
+            evaluate_orbit(
+                self, w0, t, integrator=integrator, interpolated=interpolated
+            ),
+        )

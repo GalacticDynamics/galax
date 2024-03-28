@@ -1,9 +1,7 @@
-import re
 from typing import Any
 
 import pytest
 from jaxtyping import Array
-from plum import NotFoundLookupError
 from typing_extensions import override
 
 import quaxed.numpy as qnp
@@ -54,8 +52,7 @@ class TestNullPotential(AbstractPotential_Test):
         pot = pot_cls(**fields_unitless, units="galactic")
         assert pot.units == usx.galactic
 
-        msg = "`unitsystem('invalid_value')` could not be resolved."
-        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match="invalid_value"):
             pot_cls(**fields_unitless, units="invalid_value")
 
     # ==========================================================================

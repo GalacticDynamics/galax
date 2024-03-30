@@ -231,14 +231,21 @@
   messages_control.disable = [
     "design",
     "fixme",
+    "function-redefined",            # for plum-dispatch
+    "import-outside-toplevel",
+    "invalid-name",                  # ruff N80*
+    "invalid-unary-operand-type",    # pylint doesn't understand dataclass Fields
     "line-too-long",
     "missing-module-docstring",
-    "wrong-import-position",
-    "unnecessary-ellipsis",
-    "import-outside-toplevel",
-    "unnecessary-lambda-assignment", # ruff E731
+    "no-member",                     # pylint doesn't understand dataclass Fields
+    "not-a-mapping",                 # pylint doesn't understand dataclass Fields
     "protected-access",              # ruff SLF001
-    "invalid-name",                  # ruff N80*
+    "unnecessary-ellipsis",
+    "unnecessary-lambda-assignment", # ruff E731
+    "unsubscriptable-object",        # mistakes about subscriptable objects
+    "useless-import-alias",          # TODO: figure out pyi
+    "wrong-import-position",
+    "wrong-import-order",            # handed by ruff.isort
   ]
   py-version = "3.11"
   reports.output-format = "colorized"

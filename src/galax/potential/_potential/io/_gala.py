@@ -92,8 +92,8 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     HernquistPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      c=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
+      m=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      c=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
 
     Isochrone potential:
 
@@ -102,8 +102,8 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     IsochronePotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
+      m=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      b=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
 
     Kepler potential:
 
@@ -112,7 +112,7 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     KeplerPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
+      m=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
 
     >>> gpot = gp.LeeSutoTriaxialNFWPotential(
     ...     v_c=220, r_s=20, a=1, b=0.9, c=0.8, units=gu.galactic )
@@ -120,11 +120,11 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     LeeSutoTriaxialNFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
-      a1=ConstantParameter( unit=Unit(dimensionless), value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) ),
-      a2=ConstantParameter( unit=Unit(dimensionless), value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) ),
-      a3=ConstantParameter( unit=Unit(dimensionless), value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) )
+      m=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      r_s=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
+      a1=ConstantParameter( value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) ),
+      a2=ConstantParameter( value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) ),
+      a3=ConstantParameter( value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) )
     )
 
     Milky Way potential:
@@ -143,9 +143,9 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     MiyamotoNagaiPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      a=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
-      b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
+      m=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      a=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
+      b=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
 
     NFW potential:
 
@@ -154,8 +154,8 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     NFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
+      m=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      r_s=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
 
     Null potential:
 
@@ -261,11 +261,11 @@ def _gala_to_galax_nfw(gala: GalaNFWPotential, /) -> NFWPotential | PotentialFra
     NFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) )
+      m=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      r_s=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("kpc")) )
     )
 
-    """  # noqa: E501
+    """
     params = gala.parameters
     pot = NFWPotential(m=params["m"], r_s=params["r_s"], units=gala.units)
     return _apply_frame(_get_frame(gala), pot)
@@ -289,11 +289,11 @@ def _gala_to_galax_leesutotriaxialnfw(
     LeeSutoTriaxialNFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
-      a1=ConstantParameter( unit=Unit(dimensionless), value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) ),
-      a2=ConstantParameter( unit=Unit(dimensionless), value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) ),
-      a3=ConstantParameter( unit=Unit(dimensionless), value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) )
+      m=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      r_s=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
+      a1=ConstantParameter( value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) ),
+      a2=ConstantParameter( value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) ),
+      a3=ConstantParameter( value=Quantity[...]( value=f64[], unit=Unit(dimensionless) ) )
     )
 
     """  # noqa: E501

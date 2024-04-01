@@ -39,7 +39,7 @@ class ParametersAttribute:
         >>> kepler = KeplerPotential(m=1e12 * u.solMass, units="galactic")
         >>> kepler.parameters
         mappingproxy({'m': ConstantParameter(
-            unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass"))
+            value=Quantity[...](value=f64[], unit=Unit("solMass"))
             )})
     """
 

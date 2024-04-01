@@ -63,9 +63,6 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
         The output unit of the parameter.
     """
 
-    _: KW_ONLY
-    unit: Unit = eqx.field(static=True, converter=u.Unit)
-
     @abc.abstractmethod
     def __call__(self, t: BatchableRealQScalar, **kwargs: Any) -> FloatQAnyShape:
         """Compute the parameter value at the given time(s).
@@ -94,16 +91,11 @@ class ConstantParameter(AbstractParameter):
 
     # TODO: link this shape to the return shape from __call__
     value: FloatQAnyShape = eqx.field(converter=Quantity.constructor)
-    _: KW_ONLY
-    unit: Unit = eqx.field(static=True, converter=u.Unit)
 
-    def __check_init__(self) -> None:
-        """Check the initialization of the class."""
-        _ = eqx.error_if(
-            self.value,
-            self.value.unit.physical_type != self.unit.physical_type,
-            "The value must have the same dimensions as the parameter.",
-        )
+    @property
+    def unit(self) -> Unit:
+        """Return the unit of the parameter."""
+        return self.value.unit
 
     @partial(jax.jit)
     def __call__(self, t: BatchableRealQScalar = t0, **_: Any) -> FloatQAnyShape:
@@ -128,12 +120,10 @@ class ConstantParameter(AbstractParameter):
     # -------------------------------------------
 
     def __mul__(self, other: Any) -> "Self":
-        value = self.value * other
-        return replace(self, value=value, unit=value.unit)
+        return replace(self, value=self.value * other)
 
     def __rmul__(self, other: Any) -> "Self":
-        value = other * self.value
-        return replace(self, value=value, unit=value.unit)
+        return replace(self, value=other * self.value)
 
 
 #####################################################################

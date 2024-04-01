@@ -107,9 +107,7 @@ class TestParameterCallable:
         assert not issubclass(object, ParameterCallable)
 
     def test_isinstance(self) -> None:
-        assert isinstance(
-            ConstantParameter(Quantity(1.0, "km"), unit=u.km), ParameterCallable
-        )
+        assert isinstance(ConstantParameter(Quantity(1.0, "km")), ParameterCallable)
         assert isinstance(UserParameter(lambda t: t, unit=u.km), ParameterCallable)
 
 

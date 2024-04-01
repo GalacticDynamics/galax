@@ -72,8 +72,8 @@ class TestConstantParameter(TestAbstractParameter[ConstantParameter]):
         return Quantity(1.0, field_unit)
 
     @pytest.fixture(scope="class")
-    def param(self, param_cls: type[T], field_unit: Unit, field_value: float) -> T:
-        return param_cls(field_value, unit=field_unit)
+    def param(self, param_cls: type[T], field_value: float) -> T:
+        return param_cls(field_value)
 
     # ===============================================================
 
@@ -107,9 +107,7 @@ class TestParameterCallable:
         assert not issubclass(object, ParameterCallable)
 
     def test_isinstance(self) -> None:
-        assert isinstance(
-            ConstantParameter(Quantity(1.0, "km"), unit=u.km), ParameterCallable
-        )
+        assert isinstance(ConstantParameter(Quantity(1.0, "km")), ParameterCallable)
         assert isinstance(UserParameter(lambda t: t, unit=u.km), ParameterCallable)
 
 

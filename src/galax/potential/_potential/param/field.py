@@ -65,8 +65,7 @@ def converter_parameter(value: Any) -> AbstractParameter:
     else:
         # `Quantity.constructor`` handles errors if the value cannot be
         # converted to a Quantity.
-        value = Quantity.constructor(value)
-        out = ConstantParameter(value, unit=value.unit)
+        out = ConstantParameter(Quantity.constructor(value))
 
     return out
 
@@ -163,29 +162,18 @@ class ParameterField:
         # TODO: use converter_parameter.
         # Convert
         if isinstance(value, AbstractParameter):
-            # TODO: this doesn't handle the correct output unit, a. la.
-            #       ``potential.units[self.dimensions]``
-            # Check the unit is compatible
             self._check_unit(potential, value.unit)
             v = value
         elif callable(value):
-            # TODO: this only gets the existing unit, it doesn't handle the
-            # correct output unit, a. la. potential.units[self.dimensions]
             unit = _get_unit_from_return_annotation(value)
             self._check_unit(potential, unit)  # Check the unit is compatible
             v = UserParameter(func=value, unit=unit)
         else:
-            # TODO: the issue here is that ``units`` hasn't necessarily been set
-            #       on the potential yet. What is needed is to possibly bail out
-            #       here and defer the conversion until the units are set.
-            #       AbstractPotentialBase has the ``_init_units`` method that
-            #       can then call this method, hitting ``AbstractParameter``
-            #       this time.
             unit = potential.units[self.dimensions]
             if isinstance(value, u.Quantity):
                 value = value.to(unit, equivalencies=self.equivalencies)
             value = Quantity.constructor(value, unit)
-            v = ConstantParameter(value, unit=unit)
+            v = ConstantParameter(value)
 
         # Set
         potential.__dict__[self.name] = v

@@ -30,17 +30,17 @@ class ParametersAttribute:
     The normal usage of this class is the ``parameters`` attribute of
     :class:`~galax.potential.AbstractPotentialBase`.
 
-        >>> from galax.potential import KeplerPotential
+    >>> from galax.potential import KeplerPotential
 
-        >>> KeplerPotential.parameters
-        mappingproxy({'m': ParameterField(...), ...})
+    >>> KeplerPotential.parameters
+    mappingproxy({'m': ParameterField(...), ...})
 
-        >>> import astropy.units as u
-        >>> kepler = KeplerPotential(m=1e12 * u.solMass, units="galactic")
-        >>> kepler.parameters
-        mappingproxy({'m': ConstantParameter(
-            unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass"))
-            )})
+    >>> import astropy.units as u
+    >>> kepler = KeplerPotential(m=1e12 * u.solMass, units="galactic")
+    >>> kepler.parameters
+    mappingproxy({'m': ConstantParameter(
+        unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass"))
+        )})
     """
 
     parameters: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint

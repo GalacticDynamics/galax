@@ -1,4 +1,4 @@
-"""galax: Galactic Dynamix in Jax."""
+"""galax: Galactic Dynamics in Jax."""
 
 __all__ = ["AbstractPhaseSpacePosition"]
 
@@ -12,24 +12,12 @@ import jax
 from jaxtyping import Shaped
 from plum import convert, dispatch
 
+import coordinax as cx
 import quaxed.array_api as xp
-from coordinax import (
-    Abstract3DVector,
-    Abstract3DVectorDifferential,
-    AbstractVectorBase,
-    Cartesian3DVector,
-    represent_as as vector_represent_as,
-)
 from unxt import Quantity, unitsystem
 
+import galax.typing as gt
 from .utils import getitem_broadscalartime_index
-from galax.typing import (
-    BatchFloatQScalar,
-    BatchQVec3,
-    BatchVec6,
-    BatchVec7,
-    BroadBatchFloatQScalar,
-)
 
 if TYPE_CHECKING:
     from typing import Self
@@ -68,13 +56,13 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         Time corresponding to the positions and momenta.
     """
 
-    q: eqx.AbstractVar[Abstract3DVector]
+    q: eqx.AbstractVar[cx.Abstract3DVector]
     """Positions."""
 
-    p: eqx.AbstractVar[Abstract3DVectorDifferential]
+    p: eqx.AbstractVar[cx.Abstract3DVectorDifferential]
     """Conjugate momenta at positions ``q``."""
 
-    t: eqx.AbstractVar[BroadBatchFloatQScalar]
+    t: eqx.AbstractVar[gt.BroadBatchFloatQScalar]
     """Time corresponding to the positions and momenta."""
 
     # ==========================================================================
@@ -179,7 +167,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
     # ==========================================================================
     # Convenience methods
 
-    def w(self, *, units: Any) -> BatchVec6:
+    def w(self, *, units: Any) -> gt.BatchVec6:
         """Phase-space position as an Array[float, (*batch, Q + P)].
 
         This is the full phase-space position, not including the time (if a
@@ -215,12 +203,12 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(Cartesian3DVector)
+        cart = self.represent_as(cx.Cartesian3DVector)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
         return xp.concat((q.decompose(usys).value, p.decompose(usys).value), axis=-1)
 
-    def wt(self, *, units: Any) -> BatchVec7:
+    def wt(self, *, units: Any) -> gt.BatchVec7:
         """Phase-space position as an Array[float, (*batch, 1+Q+P)].
 
         This is the full phase-space position, including the time.
@@ -254,18 +242,27 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(Cartesian3DVector)
+        cart = self.represent_as(cx.Cartesian3DVector)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
         t = xp.broadcast_to(self.t.decompose(usys).value[..., None], (*batch, comps.t))
         return xp.concat((t, q.decompose(usys).value, p.decompose(usys).value), axis=-1)
 
-    def represent_as(self, /, target: type[AbstractVectorBase]) -> "Self":
+    def represent_as(
+        self,
+        position_cls: type[cx.AbstractVectorBase],
+        /,
+        differential_cls: type[cx.AbstractVectorDifferential] | None = None,
+    ) -> "Self":
         """Return with the components transformed.
 
         Parameters
         ----------
-        target : type[:class:`~vector.AbstractVectorBase`]
+        position_cls : type[:class:`~vector.AbstractVectorBase`]
+            The target position class.
+        differential_cls : type[:class:`~vector.AbstractVectorDifferential`], optional
+            The target differential class. If `None` (default), the differential
+            class of the target position class is used.
 
         Returns
         -------
@@ -277,6 +274,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         With the following imports:
 
         >>> from unxt import Quantity
+        >>> import coordinax as cx
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position and convert it to a 6-vector:
@@ -289,13 +287,20 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
         We can also convert it to a different representation:
 
-        >>> from coordinax import CylindricalVector
-        >>> psp.represent_as(CylindricalVector)
+        >>> psp.represent_as(cx.CylindricalVector)
         PhaseSpacePosition( q=CylindricalVector(...),
                             p=CylindricalDifferential(...),
                             t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
-        """
-        return cast("Self", vector_represent_as(self, target))
+
+        We can also convert it to a different representation with a different
+        differential class:
+
+        >>> psp.represent_as(cx.LonLatSphericalVector, cx.LonCosLatSphericalDifferential)
+        PhaseSpacePosition( q=LonLatSphericalVector(...),
+                            p=LonCosLatSphericalDifferential(...),
+                            t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+        """  # noqa: E501
+        return cast("Self", cx.represent_as(self, position_cls, differential_cls))
 
     def to_units(self, units: Any) -> "Self":
         """Return with the components transformed to the given unit system.
@@ -437,7 +442,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         return potential.potential_energy(self.q, t=self.t)
 
     @partial(jax.jit)
-    def energy(self, potential: "AbstractPotentialBase") -> BatchFloatQScalar:
+    def energy(self, potential: "AbstractPotentialBase") -> gt.BatchFloatQScalar:
         r"""Return the specific total energy.
 
         .. math::
@@ -487,7 +492,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
     # TODO: property?
     @partial(jax.jit)
-    def angular_momentum(self) -> BatchQVec3:
+    def angular_momentum(self) -> gt.BatchQVec3:
         r"""Compute the angular momentum.
 
         .. math::
@@ -520,7 +525,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         """
         # TODO: keep as a vector.
         #       https://github.com/GalacticDynamics/vector/issues/27
-        cart = self.represent_as(Cartesian3DVector)
+        cart = self.represent_as(cx.Cartesian3DVector)
         q = convert(cart.q, Quantity)
         p = convert(cart.p, Quantity)
         return xp.linalg.cross(q, p)
@@ -532,11 +537,60 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
 @dispatch  # type: ignore[misc]
 def represent_as(
-    current: AbstractPhaseSpacePosition, target: type[AbstractVectorBase]
+    psp: AbstractPhaseSpacePosition,
+    position_cls: type[cx.AbstractVectorBase],
+    /,
+    differential: type[cx.AbstractVectorDifferential] | None = None,
 ) -> AbstractPhaseSpacePosition:
-    """Return with the components transformed."""
+    """Return with the components transformed.
+
+    Parameters
+    ----------
+    psp : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+        The phase-space position.
+    position_cls : type[:class:`~vector.AbstractVectorBase`]
+        The target position class.
+    differential : type[:class:`~vector.AbstractVectorDifferential`], optional
+        The target differential class. If `None` (default), the differential
+        class of the target position class is used.
+
+    Examples
+    --------
+    With the following imports:
+
+    >>> from unxt import Quantity
+    >>> import coordinax as cx
+    >>> from galax.coordinates import PhaseSpacePosition
+
+    We can create a phase-space position and convert it to a 6-vector:
+
+    >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+    ...                          p=Quantity([4, 5, 6], "km/s"),
+    ...                          t=Quantity(0, "Gyr"))
+    >>> psp.w(units="galactic")
+    Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
+
+    We can also convert it to a different representation:
+
+    >>> psp.represent_as(cx.CylindricalVector)
+    PhaseSpacePosition( q=CylindricalVector(...),
+                        p=CylindricalDifferential(...),
+                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+
+    We can also convert it to a different representation with a different
+    differential class:
+
+    >>> psp.represent_as(cx.LonLatSphericalVector, cx.LonCosLatSphericalDifferential)
+    PhaseSpacePosition( q=LonLatSphericalVector(...),
+                        p=LonCosLatSphericalDifferential(...),
+                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+
+    """
+    differential_cls = (
+        position_cls.differential_cls if differential is None else differential
+    )
     return replace(
-        current,
-        q=current.q.represent_as(target),
-        p=current.p.represent_as(target.differential_cls, current.q),
+        psp,
+        q=psp.q.represent_as(position_cls),
+        p=psp.p.represent_as(differential_cls, psp.q),
     )

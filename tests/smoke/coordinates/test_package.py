@@ -1,7 +1,7 @@
 """Testing :mod:`galax.dynamics` module."""
 
 import galax.coordinates as gc
-from galax.coordinates._psp import base, core, utils
+from galax.coordinates._psp import base, core, interp, utils
 
 
 def test_all() -> None:
@@ -10,5 +10,6 @@ def test_all() -> None:
         "operators",
         *base.__all__,
         *core.__all__,
+        *interp.__all__,
         *utils.__all__,
     }

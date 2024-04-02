@@ -105,7 +105,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
                 if isinstance(value, APYQuantity):
-                    value = value.to_value(
+                    value = value.to_units_value(
                         self.units[f.metadata.get("dimensions")],
                         equivalencies=f.metadata.get("equivalencies", None),
                     )
@@ -1887,7 +1887,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         args: tuple[Any, ...],  # noqa: ARG002
     ) -> gt.Vec6:
         """Return the derivative of the phase-space position."""
-        a = self.acceleration(w[0:3], t).to_value(self.units["acceleration"])
+        a = self.acceleration(w[0:3], t).to_units_value(self.units["acceleration"])
         return jnp.hstack([w[3:6], a])  # v, a
 
     def evaluate_orbit(

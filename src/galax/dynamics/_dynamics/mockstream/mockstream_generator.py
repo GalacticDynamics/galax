@@ -181,7 +181,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             w0 = PhaseSpacePosition(
                 q=Quantity(prog_w0[0:3], self.units["length"]),
                 p=Quantity(prog_w0[3:6], self.units["speed"]),
-                t=ts[0].to(self.potential.units["time"]),
+                t=ts[0].to_units(self.potential.units["time"]),
             )
         w0 = eqx.error_if(w0, w0.ndim > 0, "prog_w0 must be scalar")
 

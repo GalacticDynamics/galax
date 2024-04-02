@@ -8,28 +8,44 @@ from typing import Any, final
 import diffrax
 import equinox as eqx
 import jax
-from jaxtyping import Array, Float, Shaped
 
 import quaxed.array_api as xp
-from unxt import AbstractUnitSystem, Quantity
+from unxt import AbstractUnitSystem, Quantity, to_units_value
 
+import galax.coordinates as gc
 import galax.typing as gt
 from ._api import FCallable
 from ._base import AbstractIntegrator
-from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 
 
-def _to_value(
-    x: Shaped[Quantity, "*shape"] | Float[Array, "*shape"], unit: gt.Unit, /
-) -> Float[Array, "*shape"]:
-    return x.to_value(unit) if isinstance(x, Quantity) else x
-
-
 @final
 class DiffraxIntegrator(AbstractIntegrator):
-    """Thin wrapper around ``diffrax.diffeqsolve``."""
+    """Integrator using :func:`diffrax.diffeqsolve`.
+
+    This integrator uses the :func:`diffrax.diffeqsolve` function to integrate
+    the equations of motion. :func:`diffrax.diffeqsolve` supports a wide range
+    of solvers and options. See the documentation of :func:`diffrax.diffeqsolve`
+    for more information.
+
+    Parameters
+    ----------
+    Solver : type[diffrax.AbstractSolver], optional
+        The solver to use. Default is :class:`diffrax.Dopri5`.
+    stepsize_controller : diffrax.AbstractStepSizeController, optional
+        The stepsize controller to use. Default is a PID controller with
+        relative and absolute tolerances of 1e-7.
+    diffeq_kw : Mapping[str, Any], optional
+        Keyword arguments to pass to :func:`diffrax.diffeqsolve`. Default is
+        ``{"max_steps": None, "discrete_terminating_event": None}``. The
+        ``"max_steps"`` key is removed if ``interpolated=True`` in the
+        :meth`DiffraxIntegrator.__call__` method.
+    solver_kw : Mapping[str, Any], optional
+        Keyword arguments to pass to the solver. Default is ``{"scan_kind":
+        "bounded"}``.
+
+    """
 
     _: KW_ONLY
     Solver: type[diffrax.AbstractSolver] = eqx.field(
@@ -76,7 +92,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePosition | gt.BatchVec6,
+        w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
@@ -85,14 +101,104 @@ class DiffraxIntegrator(AbstractIntegrator):
         ) = None,
         *,
         units: AbstractUnitSystem,
-    ) -> PhaseSpacePosition:
+    ) -> gc.PhaseSpacePosition:
+        """Run the integrator.
+
+        Parameters
+        ----------
+        F : FCallable, positional-only
+            The function to integrate.
+        w0 : AbstractPhaseSpacePosition | Array[float, (6,)], positional-only
+            Initial conditions ``[q, p]``.
+        t0, t1 : Quantity, positional-only
+            Initial and final times.
+
+        savet : (Quantity | Array)[float, (T,)] | None, optional
+            Times to return the computation.  If `None`, the computation is
+            returned only at the final time.
+
+        units : `unxt.AbstractUnitSystem`
+            The unit system to use.
+
+        Returns
+        -------
+        PhaseSpacePosition[float, (time, 7)]
+            The solution of the integrator [q, p, t], where q, p are the
+            generalized 3-coordinates.
+
+        Examples
+        --------
+        For this example, we will use the
+        :class:`~galax.integrate.DiffraxIntegrator`
+
+        First some imports:
+
+        >>> import quaxed.array_api as xp
+        >>> from unxt import Quantity
+        >>> import unxt.unitsystems as usx
+        >>> import galax.coordinates as gc
+        >>> import galax.dynamics as gd
+        >>> import galax.potential as gp
+
+        Then we define initial conditions:
+
+        >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
+        ...                            p=Quantity([0., 200., 0.], "km/s"))
+
+        (Note that the ``t`` attribute is not used.)
+
+        Now we can integrate the phase-space position for 1 Gyr, getting the
+        final position.  The integrator accepts any function for the equations
+        of motion.  Here we will reproduce what happens with orbit integrations.
+
+        >>> pot = gp.HernquistPotential(m=Quantity(1e12, "Msun"), c=Quantity(5, "kpc"),
+        ...                             units="galactic")
+
+        >>> integrator = gd.integrate.DiffraxIntegrator()
+        >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
+        >>> w = integrator(pot._integrator_F, w0, t0, t1, units=usx.galactic)
+        >>> w
+        PhaseSpacePosition(
+            q=Cartesian3DVector( ... ),
+            p=CartesianDifferential3D( ... ),
+            t=Quantity[...](value=f64[], unit=Unit("Myr"))
+        )
+        >>> w.shape
+        ()
+
+        We can also request the orbit at specific times:
+
+        >>> ts = Quantity(xp.linspace(0, 1, 10), "Myr")  # 10 steps
+        >>> ws = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic)
+        >>> ws
+        PhaseSpacePosition(
+            q=Cartesian3DVector( ... ),
+            p=CartesianDifferential3D( ... ),
+            t=Quantity[...](value=f64[10], unit=Unit("Myr"))
+        )
+        >>> ws.shape
+        (10,)
+
+        The integrator can also be used to integrate a batch of initial
+        conditions at once, returning a batch of final conditions (or a batch
+        of conditions at the requested times):
+
+        >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
+        ...                            p=Quantity([[0, 200, 0], [0, 200, 0]], "km/s"))
+        >>> ws = integrator(pot._integrator_F, w0, t0, t1, units=usx.galactic)
+        >>> ws.shape
+        (2,)
+
+        """
         # Parse inputs
-        t0_: gt.VecTime = _to_value(t0, units["time"])
-        t1_: gt.VecTime = _to_value(t1, units["time"])
-        savet_ = xp.asarray([t1_]) if savet is None else _to_value(savet, units["time"])
+        t0_: gt.VecTime = to_units_value(t0, units["time"])
+        t1_: gt.VecTime = to_units_value(t1, units["time"])
+        savet_ = (
+            xp.asarray([t1_]) if savet is None else to_units_value(savet, units["time"])
+        )
 
         w0_: gt.Vec6 = (
-            w0.w(units=units) if isinstance(w0, AbstractPhaseSpacePosition) else w0
+            w0.w(units=units) if isinstance(w0, gc.AbstractPhaseSpacePosition) else w0
         )
 
         # Perform the integration
@@ -100,7 +206,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         w = w[..., -1, :] if savet is None else w
 
         # Return
-        return PhaseSpacePosition(
+        return gc.PhaseSpacePosition(
             q=Quantity(w[..., 0:3], units["length"]),
             p=Quantity(w[..., 3:6], units["speed"]),
             t=Quantity(w[..., -1], units["time"]),

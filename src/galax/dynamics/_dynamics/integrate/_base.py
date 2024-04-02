@@ -51,10 +51,12 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
 
         savet : (Quantity | Array)[float, (T,)] | None, optional
             Times to return the computation.  If `None`, the computation is
-            returned at the final time.
+            returned only at the final time.
 
         units : `unxt.AbstractUnitSystem`
             The unit system to use.
+        interpolated : bool, keyword-only
+            Whether to return an interpolated solution.
 
         Returns
         -------
@@ -80,6 +82,8 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
 
         >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
         ...                            p=Quantity([0., 200., 0.], "km/s"))
+
+        (Note that the ``t`` attribute is not used.)
 
         Now we can integrate the phase-space position for 1 Gyr, getting the
         final position.  The integrator accepts any function for the equations

@@ -16,7 +16,11 @@ def lint(session: nox.Session) -> None:
     """Run the linter."""
     session.install("pre-commit")
     session.run(
-        "pre-commit", "run", "--all-files", "--show-diff-on-failure", *session.posargs
+        "pre-commit",
+        "run",
+        "--all-files",
+        "--show-diff-on-failure",
+        *session.posargs,
     )
 
 
@@ -45,6 +49,7 @@ def doctests(session: nox.Session) -> None:
         "--doctest-modules",
         '--doctest-glob="*.rst"',
         '--doctest-glob="*.md"',
+        '--doctest-glob="*.py"',
         "docs",
         "src/galax",
         *session.posargs,

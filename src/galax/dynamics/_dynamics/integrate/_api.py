@@ -1,12 +1,14 @@
 __all__ = ["Integrator"]
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, TypeAlias, runtime_checkable
 
 from unxt import AbstractUnitSystem
 
 import galax.typing as gt
 from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.utils.dataclasses import _DataclassInstance
+
+SaveT: TypeAlias = gt.BatchQVecTime | gt.QVecTime | gt.BatchVecTime | gt.VecTime
 
 
 @runtime_checkable
@@ -39,7 +41,11 @@ class Integrator(_DataclassInstance, Protocol):
 
     The integrators are classes that are used to integrate the equations of
     motion.
-    They must not be stateful since they are used in a functional way.
+
+    .. note::
+
+        Integrators should NOT be stateful (i.e., they must not have attributes
+        that change).
     """
 
     # TODO: shape hint of the return type
@@ -50,9 +56,7 @@ class Integrator(_DataclassInstance, Protocol):
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: (
-            gt.BatchQVecTime | gt.QVecTime | gt.BatchVecTime | gt.VecTime | None
-        ) = None,
+        savet: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
     ) -> PhaseSpacePosition:

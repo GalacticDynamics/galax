@@ -33,7 +33,7 @@ class ParametersAttribute:
     >>> from galax.potential import KeplerPotential
 
     >>> KeplerPotential.parameters
-    mappingproxy({'m': ParameterField(...), ...})
+    mappingproxy({'m': ParameterField(...)})
 
     >>> import astropy.units as u
     >>> kepler = KeplerPotential(m=1e12 * u.solMass, units="galactic")

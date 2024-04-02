@@ -106,6 +106,7 @@ BatchVec7 = Shaped[Vec7, "*batch"]
 
 BatchVecTime = Shaped[VecTime, "*batch"]
 BatchQVecTime = Shaped[QVecTime, "*batch"]
+BatchVecTime6 = Shaped[VecTime6, "*batch"]
 
 # -----------------
 # Any Shape

@@ -21,7 +21,7 @@ from unxt import Quantity
 from unxt.unitsystems import galactic
 
 from galax.coordinates import AbstractPhaseSpacePosition
-from galax.coordinates._psp.psp import ComponentShapeTuple
+from galax.coordinates._psp.core import ComponentShapeTuple
 from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.potential._potential.special import MilkyWayPotential

@@ -344,7 +344,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
             self,
             q=self.q.to_units(usys),
             p=self.p.to_units(usys),
-            t=self.t.to(usys["time"]) if self.t is not None else None,
+            t=self.t.to_units(usys["time"]) if self.t is not None else None,
         )
 
     # ==========================================================================

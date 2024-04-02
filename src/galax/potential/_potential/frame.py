@@ -34,7 +34,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     Now we define a triaxial Hernquist potential with a time-dependent mass:
 
-    >>> mfunc = gp.UserParameter(lambda t: 1e12 * (1 + t.to_value("Gyr") / 10), unit="Msun")
+    >>> mfunc = gp.UserParameter(lambda t: 1e12 * (1 + t.to_units_value("Gyr") / 10), unit="Msun")
     >>> pot = gp.TriaxialHernquistPotential(m=mfunc, c=Quantity(1, "kpc"),
     ...                                     q1=1, q2=0.5, units="galactic")
 
@@ -88,7 +88,7 @@ class PotentialFrame(AbstractPotentialBase):
     We can also apply a time translation to the potential:
 
     >>> op2 = cxo.GalileanTranslationOperator(Quantity([1_000, 0, 0, 0], "kpc"))
-    >>> op2.translation.t.to("Myr")
+    >>> op2.translation.t.to_units("Myr")
     Quantity['time'](Array(3.26156366, dtype=float64), unit='Myr')
 
     >>> framedpot2 = gp.PotentialFrame(potential=pot, operator=op2)

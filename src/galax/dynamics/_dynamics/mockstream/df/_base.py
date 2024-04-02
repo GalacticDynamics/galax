@@ -111,16 +111,16 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         x_lead, x_trail, v_lead, v_trail = jax.lax.scan(scan_fn, init_carry, ts)[1]
 
         mock_lead = MockStream(
-            q=x_lead.to(pot.units["length"]),
-            p=v_lead.to(pot.units["speed"]),
-            t=ts.to(pot.units["time"]),
-            release_time=ts.to(pot.units["time"]),
+            q=x_lead.to_units(pot.units["length"]),
+            p=v_lead.to_units(pot.units["speed"]),
+            t=ts.to_units(pot.units["time"]),
+            release_time=ts.to_units(pot.units["time"]),
         )
         mock_trail = MockStream(
-            q=x_trail.to(pot.units["length"]),
-            p=v_trail.to(pot.units["speed"]),
-            t=ts.to(pot.units["time"]),
-            release_time=ts.to(pot.units["time"]),
+            q=x_trail.to_units(pot.units["length"]),
+            p=v_trail.to_units(pot.units["speed"]),
+            t=ts.to_units(pot.units["time"]),
+            release_time=ts.to_units(pot.units["time"]),
         )
 
         return mock_lead, mock_trail

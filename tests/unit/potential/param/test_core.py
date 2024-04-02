@@ -123,7 +123,7 @@ class TestUserParameter(TestAbstractParameter[UserParameter]):
     @pytest.fixture(scope="class")
     def field_func(self) -> ParameterCallable:
         def func(t: Quantity["time"], **kwargs: Any) -> Any:
-            return Quantity(t.to_value("Gyr"), "kpc")
+            return Quantity(t.to_units_value("Gyr"), "kpc")
 
         return func
 

@@ -278,7 +278,7 @@ def converter_float_array(x: Any, /) -> Float[Array, "*shape"]:
 @converter_float_array.register
 def _converter_float_quantity(x: Quantity, /) -> Float[Array, "*shape"]:
     """Convert to a batched vector."""
-    return converter_float_array(x.to_value(u.dimensionless_unscaled))
+    return converter_float_array(x.to_units_value(u.dimensionless_unscaled))
 
 
 ##############################################################################

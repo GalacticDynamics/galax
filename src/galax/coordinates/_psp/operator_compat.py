@@ -175,7 +175,7 @@ def call(
     >>> newpsp.q.x
     Quantity['length'](Array(2., dtype=float64), unit='kpc')
 
-    >>> newpsp.t.to("Myr")
+    >>> newpsp.t.to_units("Myr")
     Quantity['time'](Array(6.52312732, dtype=float64), unit='Myr')
 
     This spatial translation is time independent.

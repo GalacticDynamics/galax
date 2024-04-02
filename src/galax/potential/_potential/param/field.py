@@ -80,25 +80,53 @@ class ParameterField:
     ----------
     dimensions : PhysicalType
         Dimensions (unit-wise) of the parameter.
-    equivalencies : Equivalency or tuple[Equivalency, ...], optional
-        Equivalencies to use when converting the parameter value to the
-        physical type. If not specified, the default equivalencies for the
-        physical type will be used.
+
+    Examples
+    --------
+    >>> import astropy.units as u
+    >>> import galax.potential as gp
+
+    >>> class KeplerPotential(gp.AbstractPotential):
+    ...     mass: gp.ParameterField = gp.ParameterField(dimensions="mass")
+    ...     def _potential_energy(self, q, t):
+    ...         return -self.constants["G"] * self.mass(t) / xp.linalg.norm(q, axis=-1)
+
+    The `mass` parameter is a `ParameterField` that has dimensions of mass.
+    This can be a constant value or a function of time.
+
+    The simplest example is a constant mass:
+
+    >>> potential = KeplerPotential(mass=1e12 * u.Msun, units="galactic")
+    >>> potential
+    KeplerPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...}),
+      mass=ConstantParameter(
+        unit=Unit("solMass"),
+        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+      )
+    )
+
     """
 
     name: str = field(init=False)
+    """The name of the parameter."""
+
     _: KW_ONLY
     default: AbstractParameter | Literal[Sentinel.MISSING] = field(
         default=Sentinel.MISSING,
         converter=lambda x: x if x is Sentinel.MISSING else converter_parameter(x),
     )
+    """The default value of the parameter."""
+
     dimensions: u.PhysicalType = field(converter=u.get_physical_type)
-    equivalencies: u.Equivalency | tuple[u.Equivalency, ...] | None = None
+    """The dimensions (unit-wise) of the parameter."""
 
     # ===========================================
     # Descriptor
 
     def __set_name__(self, owner: "type[AbstractPotentialBase]", name: str) -> None:
+        """Set the name of the parameter."""
         object.__setattr__(self, "name", name)
 
     # -----------------------------
@@ -145,13 +173,10 @@ class ParameterField:
             return
 
         # Check the unit is compatible
-        if not unit.is_equivalent(
-            potential.units[self.dimensions],
-            equivalencies=self.equivalencies,
-        ):
+        if not unit.is_equivalent(potential.units[self.dimensions]):
             msg = (
                 "Parameter function must return a value "
-                f"with units equivalent to {self.dimensions}"
+                f"with units consistent with {self.dimensions}."
             )
             raise ValueError(msg)
 
@@ -163,29 +188,15 @@ class ParameterField:
         # TODO: use converter_parameter.
         # Convert
         if isinstance(value, AbstractParameter):
-            # TODO: this doesn't handle the correct output unit, a. la.
-            #       ``potential.units[self.dimensions]``
-            # Check the unit is compatible
             self._check_unit(potential, value.unit)
             v = value
         elif callable(value):
-            # TODO: this only gets the existing unit, it doesn't handle the
-            # correct output unit, a. la. potential.units[self.dimensions]
             unit = _get_unit_from_return_annotation(value)
             self._check_unit(potential, unit)  # Check the unit is compatible
             v = UserParameter(func=value, unit=unit)
         else:
-            # TODO: the issue here is that ``units`` hasn't necessarily been set
-            #       on the potential yet. What is needed is to possibly bail out
-            #       here and defer the conversion until the units are set.
-            #       AbstractPotentialBase has the ``_init_units`` method that
-            #       can then call this method, hitting ``AbstractParameter``
-            #       this time.
             unit = potential.units[self.dimensions]
-            if isinstance(value, u.Quantity):
-                value = value.to(unit, equivalencies=self.equivalencies)
-            value = Quantity.constructor(value, unit)
-            v = ConstantParameter(value, unit=unit)
+            v = ConstantParameter(Quantity.constructor(value, unit), unit=unit)
 
         # Set
         potential.__dict__[self.name] = v

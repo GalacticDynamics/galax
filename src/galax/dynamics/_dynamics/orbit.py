@@ -1,4 +1,4 @@
-"""galax: Galactic Dynamix in Jax."""
+"""galax: Galactic Dynamics in Jax."""
 
 __all__ = ["Orbit", "InterpolatedOrbit"]
 
@@ -9,10 +9,10 @@ import equinox as eqx
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
+import galax.potential as gp
 from .base import AbstractOrbit
-from galax.coordinates._psp.psp import Interpolation
+from galax.coordinates._psp.interp import PhaseSpacePositionInterpolant
 from galax.coordinates._psp.utils import _p_converter, _q_converter
-from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchFloatQScalar, QVec1, QVecTime
 
 
@@ -35,7 +35,7 @@ class Orbit(AbstractOrbit):
     t: QVecTime | QVec1 = eqx.field(converter=Quantity["time"].constructor)
     """Array of times corresponding to the positions."""
 
-    potential: AbstractPotentialBase
+    potential: gp.AbstractPotentialBase
     """Potential in which the orbit was integrated."""
 
 
@@ -56,10 +56,10 @@ class InterpolatedOrbit(AbstractOrbit):
     t: QVecTime | QVec1 = eqx.field(converter=Quantity["time"].constructor)
     """Array of times corresponding to the positions."""
 
-    potential: AbstractPotentialBase
+    potential: gp.AbstractPotentialBase
     """Potential in which the orbit was integrated."""
 
-    interpolation: Interpolation
+    interpolation: PhaseSpacePositionInterpolant
     """The interpolation function."""
 
     def __call__(self, t: BatchFloatQScalar) -> Orbit:

@@ -29,7 +29,7 @@ class TestMockStreamGenerator:
         return NFWPotential(m=1.0e12 * u.Msun, r_s=15.0 * u.kpc, units="galactic")
 
     @pytest.fixture()
-    def mockstream(
+    def mockgen(
         self, df: AbstractStreamDF, pot: AbstractPotentialBase
     ) -> MockStreamGenerator:
         """Mock stream generator."""
@@ -70,7 +70,7 @@ class TestMockStreamGenerator:
 
     def test_run_scan(
         self,
-        mockstream: MockStreamGenerator,
+        mockgen: MockStreamGenerator,
         t_stripping: gt.QVecTime,
         prog_w0: gc.PhaseSpacePosition,
         prog_mass: gt.MassScalar,
@@ -78,7 +78,7 @@ class TestMockStreamGenerator:
         vmapped: bool,
     ) -> None:
         """Test the run method with ``vmapped=False``."""
-        mock, prog_o = mockstream.run(
+        mock, prog_o = mockgen.run(
             rng, t_stripping, prog_w0, prog_mass, vmapped=vmapped
         )
 

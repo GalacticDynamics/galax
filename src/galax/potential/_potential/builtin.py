@@ -23,6 +23,7 @@ from quax import quaxify
 import quaxed.array_api as xp
 import quaxed.lax as qlax
 from unxt import AbstractUnitSystem, Quantity, unitsystem
+from unxt.unitsystems import galactic
 
 import galax.typing as gt
 from galax.potential._potential.base import default_constants
@@ -358,8 +359,8 @@ class NullPotential(AbstractPotential):
         t: gt.BatchableRealQScalar,  # noqa: ARG002
         /,
     ) -> gt.BatchFloatQScalar:
-        return Quantity(
-            xp.zeros(q.shape[:-1], dtype=q.dtype), self.units["specific energy"]
+        return Quantity(  # TODO: better unit handling
+            xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
         )
 
 

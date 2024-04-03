@@ -11,7 +11,7 @@ from coordinax import Cartesian3DVector
 
 import galax.potential as gp
 from galax.potential._potential.frame import PotentialFrame
-from galax.typing import Vec3
+from galax.typing import QVec3
 from galax.utils._optional_deps import HAS_GALA
 
 if HAS_GALA:
@@ -38,7 +38,7 @@ class GalaIOMixin:
 
     @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractPotentialBase, x: Vec3
+        self, pot: gp.AbstractPotentialBase, x: QVec3
     ) -> None:
         """Test roundtripping ``gala_to_galax(galax_to_gala())``."""
         from .gala_helper import galax_to_gala
@@ -69,4 +69,4 @@ def test_offset_hernquist() -> None:
     )
 
     assert isinstance(gxpot.potential, gp.HernquistPotential)
-    assert gxpot.units == galactic
+    assert gxpot.units._core_units == galactic._core_units

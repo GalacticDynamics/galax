@@ -10,6 +10,7 @@ from gala.potential import (
     LeeSutoTriaxialNFWPotential as GalaLeeSutoTriaxialNFWPotential,
     MilkyWayPotential as GalaMilkyWayPotential,
     NFWPotential as GalaNFWPotential,
+    NullPotential as GalaNullPotential,
     PotentialBase as GalaPotentialBase,
 )
 from gala.units import UnitSystem as GalaUnitSystem, dimensionless as gala_dimensionless
@@ -86,7 +87,6 @@ _GALAX_TO_GALA_REGISTRY: dict[type[gp.AbstractPotential], type[GalaPotentialBase
 @galax_to_gala.register(gp.IsochronePotential)
 @galax_to_gala.register(gp.KeplerPotential)
 @galax_to_gala.register(gp.MiyamotoNagaiPotential)
-@galax_to_gala.register(gp.NullPotential)
 def _galax_to_gala_abstractpotential(pot: gp.AbstractPotential, /) -> GalaPotentialBase:
     """Convert a Galax AbstractPotential to a Gala potential."""
     if not _all_constant_parameters(pot, *pot.parameters.keys()):
@@ -110,6 +110,11 @@ def _galax_to_gala_abstractpotential(pot: gp.AbstractPotential, /) -> GalaPotent
 def _galax_to_gala_bar(pot: gp.BarPotential, /) -> GalaPotentialBase:
     """Convert a Galax BarPotential to a Gala potential."""
     raise NotImplementedError  # TODO: implement
+
+
+@galax_to_gala.register
+def _galax_to_gala_null(_: gp.NullPotential, /) -> GalaNullPotential:
+    return GalaNullPotential(units=gala_dimensionless)
 
 
 @galax_to_gala.register

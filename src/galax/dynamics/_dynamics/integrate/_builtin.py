@@ -361,7 +361,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         # Return
         if interpolated:
             # Determine if an extra dimension was added to the output
-            added_ndim = int(w0_.shape[:-1] == () or w0_.shape[0] == 1)
+            added_ndim = int(w0_.shape[:-1] in ((), (1,)))
             # If one was, then the interpolant must be reshaped since the input
             # was squeezed beforehand and the dimension must be added back.
             if added_ndim == 1:
@@ -415,11 +415,20 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
     in an extra dimension when the integration was on a scalar input.
     """
 
+    # @partial(jax.jit)
     def __call__(self, t: gt.QVecTime, **_: Any) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
+        # Parse t
         t_ = jnp.atleast_1d(t.to_units_value(self.units["time"]))
+        # t_ = eqx.error_if(t_, xp.any(t_<self.interpolant.t0), "t<t0")  # noqa: ERA001
+        # t_ = eqx.error_if(t_, xp.any(t_>self.interpolant.t1), "t>t1")  # noqa: ERA001
+
+        # Evaluate the interpolation
         ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)
-        ys = ys[(0,) * (ys.ndim - 3 + self.added_ndim)]
+        extra_dims: int = ys.ndim - 3 + self.added_ndim + (t_.ndim - t.ndim)
+        ys = ys[(0,) * extra_dims]
+
+        # Construct and return the result
         return gc.PhaseSpacePosition(
             q=Quantity(ys[..., 0:3], self.units["length"]),
             p=Quantity(ys[..., 3:6], self.units["speed"]),

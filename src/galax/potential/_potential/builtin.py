@@ -344,10 +344,29 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
 
 @final
 class NullPotential(AbstractPotential):
-    """Null potential, i.e. no potential."""
+    """Null potential, i.e. no potential.
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> from galax.potential import NullPotential
+
+    >>> pot = NullPotential()
+    >>> pot
+    NullPotential( units=..., constants=ImmutableDict({'G': ...}) )
+
+    >>> q = Quantity([1, 0, 0], "kpc")
+    >>> t = Quantity(0, "Gyr")
+    >>> pot.potential_energy(q, t)
+    Quantity['specific energy'](Array(0, dtype=int64), unit='kpc2 / Myr2')
+
+    """
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
+    units: AbstractUnitSystem = eqx.field(
+        default="galactic", converter=unitsystem, static=True
+    )
+
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )

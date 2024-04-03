@@ -6,9 +6,9 @@ import equinox as eqx
 
 from unxt import AbstractUnitSystem
 
+import galax.coordinates as gc
 import galax.typing as gt
 from ._api import FCallable
-from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -28,7 +28,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePosition | gt.BatchVec6,
+        w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
@@ -37,7 +37,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         ) = None,
         *,
         units: AbstractUnitSystem,
-    ) -> PhaseSpacePosition:
+    ) -> gc.PhaseSpacePosition:
         """Run the integrator.
 
         Parameters

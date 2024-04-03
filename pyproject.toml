@@ -238,6 +238,7 @@ messages_control.disable = [
   "protected-access",              # ruff SLF001
   "unnecessary-ellipsis",
   "unnecessary-lambda-assignment", # ruff E731
+  "unnecessary-pass",              # handled by ruff
   "wrong-import-position",
   "wrong-import-order",            # handled by ruff
 ]

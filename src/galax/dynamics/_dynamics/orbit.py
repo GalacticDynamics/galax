@@ -59,16 +59,11 @@ class InterpolatedOrbit(AbstractOrbit):
     potential: gp.AbstractPotentialBase
     """Potential in which the orbit was integrated."""
 
-    interpolation: PhaseSpacePositionInterpolant
+    interpolant: PhaseSpacePositionInterpolant
     """The interpolation function."""
 
     def __call__(self, t: BatchFloatQScalar) -> Orbit:
         """Call the interpolation."""
-        qp = self.interpolation(t)
-        units = self.interpolation.units
-        return Orbit(
-            q=Quantity(qp[..., 0:3], units["length"]),
-            p=Quantity(qp[..., 3:6], units["speed"]),
-            t=t,
-            potential=self.potential,
-        )
+        # TODO: more efficilent conversion to Orbit
+        qp = self.interpolant(t)
+        return Orbit(q=qp.q, p=qp.p, t=qp.t, potential=self.potential)

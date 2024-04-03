@@ -22,9 +22,22 @@ class PhaseSpacePositionInterpolant(Protocol):
     """Protocol for interpolating phase-space positions."""
 
     units: AbstractUnitSystem
+    """The unit system for the interpolation."""
 
-    def __call__(self, t: gt.VecTime) -> gt.BatchVecTime6:
-        pass
+    def __call__(self, t: gt.QVecTime) -> PhaseSpacePosition:
+        """Evaluate the interpolation.
+
+        Parameters
+        ----------
+        t : Quantity[float, (time,), 'time']
+            The times at which to evaluate the interpolation.
+
+        Returns
+        -------
+        :class:`galax.coordinates.PhaseSpacePosition`
+            The interpolated phase-space positions.
+        """
+        ...
 
 
 @final
@@ -53,7 +66,7 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
     as `q` and `p`.
     """
 
-    interpolation: PhaseSpacePositionInterpolant
+    interpolant: PhaseSpacePositionInterpolant
     """The interpolation function."""
 
     def __post_init__(self) -> None:
@@ -65,13 +78,7 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
 
     def __call__(self, t: gt.BatchFloatQScalar) -> PhaseSpacePosition:
         """Call the interpolation."""
-        qp = self.interpolation(t)
-        units = self.interpolation.units
-        return PhaseSpacePosition(
-            q=Quantity(qp[..., 0:3], units["length"]),
-            p=Quantity(qp[..., 3:6], units["speed"]),
-            t=t,
-        )
+        return self.interpolant(t)
 
     # ==========================================================================
     # Array properties

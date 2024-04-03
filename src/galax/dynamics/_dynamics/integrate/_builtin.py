@@ -17,7 +17,7 @@ from unxt import AbstractUnitSystem, Quantity, to_units_value
 
 import galax.coordinates as gc
 import galax.typing as gt
-from ._api import FCallable
+from ._api import FCallable, SaveT
 from ._base import AbstractIntegrator
 from galax.utils import ImmutableDict
 
@@ -168,9 +168,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: (
-            gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime | None
-        ) = None,
+        savet: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
     ) -> gc.PhaseSpacePosition:
@@ -265,14 +263,13 @@ class DiffraxIntegrator(AbstractIntegrator):
 
         """
         # Parse inputs
+        w0_: gt.Vec6 = (
+            w0.w(units=units) if isinstance(w0, gc.AbstractPhaseSpacePosition) else w0
+        )
         t0_: gt.VecTime = to_units_value(t0, units["time"])
         t1_: gt.VecTime = to_units_value(t1, units["time"])
         savet_ = (
             xp.asarray([t1_]) if savet is None else to_units_value(savet, units["time"])
-        )
-
-        w0_: gt.Vec6 = (
-            w0.w(units=units) if isinstance(w0, gc.AbstractPhaseSpacePosition) else w0
         )
 
         # Perform the integration

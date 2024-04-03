@@ -4,8 +4,8 @@ from typing import Any, Protocol, TypeAlias, runtime_checkable
 
 from unxt import AbstractUnitSystem
 
+import galax.coordinates as gc
 import galax.typing as gt
-from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
 from galax.utils.dataclasses import _DataclassInstance
 
 SaveT: TypeAlias = gt.BatchQVecTime | gt.QVecTime | gt.BatchVecTime | gt.VecTime
@@ -52,14 +52,14 @@ class Integrator(_DataclassInstance, Protocol):
     def __call__(
         self,
         F: FCallable,
-        w0: AbstractPhaseSpacePosition | gt.BatchVec6,
+        w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
         savet: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
-    ) -> PhaseSpacePosition:
+    ) -> gc.PhaseSpacePosition:
         """Integrate.
 
         Parameters

@@ -316,7 +316,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         PhaseSpacePosition(
             q=Cartesian3DVector( ... ),
             p=CartesianDifferential3D( ... ),
-            t=Quantity[PhysicalType('time')](value=f64[1,1], unit=Unit("Gyr"))
+            t=Quantity[PhysicalType('time')](value=f64[1], unit=Unit("Gyr"))
         )
 
         The interpolant is vectorized:

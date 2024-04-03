@@ -66,12 +66,25 @@ def vectorize(
             squeezed_arg = jnp.squeeze(arg, axis=squeeze_indices)
             squeezed_args.append(squeezed_arg)
 
-        for _, axis_sizes in enumerate(zip(*rev_filled_shapes, strict=True)):
+        dims_to_expand = []
+        for negdim, axis_sizes in enumerate(zip(*rev_filled_shapes, strict=True)):
             in_axes = tuple(None if size == 1 else 0 for size in axis_sizes)
-            if not all(axis is None for axis in in_axes):
+            if all(axis is None for axis in in_axes):
+                dims_to_expand.append(len(broadcast_shape) - 1 - negdim)
+            else:
                 vectorized_func = jax.vmap(vectorized_func, in_axes)
 
-        return vectorized_func(*squeezed_args)
+        out = vectorized_func(*squeezed_args)
+
+        if not dims_to_expand:
+            pass
+        else:
+            arr, narr = eqx.partition(out, eqx.is_array)
+            arr = jax.tree_util.tree_map(
+                lambda x: jnp.expand_dims(x, axis=dims_to_expand), arr
+            )
+            out = eqx.combine(arr, narr)
+        return out
 
     return wrapped
 
@@ -164,7 +177,6 @@ class DiffraxIntegrator(AbstractIntegrator):
 
         # Parse the solution
         w = jnp.concat((solution.ys, solution.ts[..., None]), axis=-1)
-        w = w[None] if w0.shape[0] == 1 else w  # re-add squeezed batch dim
         interp = solution.interpolation
 
         return w, interp
@@ -361,13 +373,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         # Return
         if interpolated:
             # Determine if an extra dimension was added to the output
-            added_ndim = int(w0_.shape[:-1] == () or w0_.shape[0] == 1)
-            # If one was, then the interpolant must be reshaped since the input
-            # was squeezed beforehand and the dimension must be added back.
-            if added_ndim == 1:
-                arr, narr = eqx.partition(interp, eqx.is_array)
-                arr = jax.tree_util.tree_map(lambda x: x[None], arr)
-                interp = eqx.combine(arr, narr)
+            added_ndim = int(w0_.shape[:-1] == ())
 
             out = gc.InterpolatedPhaseSpacePosition(  # shape = (*batch, T)
                 q=Quantity(w[..., 0:3], units["length"]),

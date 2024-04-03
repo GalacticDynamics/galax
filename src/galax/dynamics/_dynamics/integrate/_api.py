@@ -1,6 +1,6 @@
 __all__ = ["Integrator"]
 
-from typing import Any, Protocol, TypeAlias, runtime_checkable
+from typing import Any, Literal, Protocol, TypeAlias, runtime_checkable
 
 from unxt import AbstractUnitSystem
 
@@ -59,7 +59,8 @@ class Integrator(_DataclassInstance, Protocol):
         savet: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
-    ) -> gc.PhaseSpacePosition:
+        interpolated: Literal[False, True] = False,
+    ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Integrate.
 
         Parameters

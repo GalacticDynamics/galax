@@ -4,16 +4,18 @@ import functools
 from collections.abc import Callable, Mapping
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, ParamSpec, TypeVar, final
+from typing import Any, Literal, ParamSpec, TypeVar, final
 
 import diffrax
 import equinox as eqx
 import jax
 import jax.numpy as jnp
+from diffrax import DenseInterpolation
 from jax._src.numpy.vectorize import _parse_gufunc_signature, _parse_input_dimensions
+from plum import overload
 
 import quaxed.array_api as xp
-from unxt import AbstractUnitSystem, Quantity, to_units_value
+from unxt import AbstractUnitSystem, Quantity, to_units_value, unitsystem
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -117,7 +119,10 @@ class DiffraxIntegrator(AbstractIntegrator):
         default=(("scan_kind", "bounded"),), static=True, converter=ImmutableDict
     )
 
-    @partial(jax.jit, static_argnums=(0, 1))
+    # =====================================================
+    # Call
+
+    @partial(eqx.filter_jit)
     def _call_implementation(
         self,
         F: FCallable,
@@ -126,9 +131,12 @@ class DiffraxIntegrator(AbstractIntegrator):
         t1: gt.FloatScalar,
         ts: gt.BatchVecTime,
         /,
-    ) -> tuple[gt.BatchVecTime7, None]:
+        interpolated: Literal[False, True],
+    ) -> tuple[gt.BatchVecTime7, DenseInterpolation | None]:
         # TODO: less awkward munging of the diffrax API
         kw = dict(self.diffeq_kw)
+        if interpolated and kw.get("max_steps") is None:
+            kw.pop("max_steps")
 
         terms = diffrax.ODETerm(F)
         solver = self.Solver(**self.solver_kw)
@@ -146,13 +154,13 @@ class DiffraxIntegrator(AbstractIntegrator):
                 y0=w0,
                 dt0=None,
                 args=(),
-                saveat=diffrax.SaveAt(t0=False, t1=False, ts=ts, dense=False),
+                saveat=diffrax.SaveAt(t0=False, t1=False, ts=ts, dense=interpolated),
                 stepsize_controller=self.stepsize_controller,
                 **kw,
             )
 
         # Perform the integration
-        solution = solve_diffeq(w0, t0, t1, ts)
+        solution = solve_diffeq(w0, t0, t1, jnp.atleast_2d(ts))
 
         # Parse the solution
         w = jnp.concat((solution.ys, solution.ts[..., None]), axis=-1)
@@ -160,6 +168,34 @@ class DiffraxIntegrator(AbstractIntegrator):
         interp = solution.interpolation
 
         return w, interp
+
+    @overload
+    def __call__(
+        self,
+        F: FCallable,
+        w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
+        t0: gt.FloatQScalar | gt.FloatScalar,
+        t1: gt.FloatQScalar | gt.FloatScalar,
+        /,
+        savet: SaveT | None = None,
+        *,
+        units: AbstractUnitSystem,
+        interpolated: Literal[False] = False,
+    ) -> gc.PhaseSpacePosition: ...
+
+    @overload
+    def __call__(
+        self,
+        F: FCallable,
+        w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
+        t0: gt.FloatQScalar | gt.FloatScalar,
+        t1: gt.FloatQScalar | gt.FloatScalar,
+        /,
+        savet: SaveT | None = None,
+        *,
+        units: AbstractUnitSystem,
+        interpolated: Literal[True],
+    ) -> gc.InterpolatedPhaseSpacePosition: ...
 
     def __call__(
         self,
@@ -171,7 +207,8 @@ class DiffraxIntegrator(AbstractIntegrator):
         savet: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
-    ) -> gc.PhaseSpacePosition:
+        interpolated: Literal[False, True] = False,
+    ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Run the integrator.
 
         Parameters
@@ -189,6 +226,8 @@ class DiffraxIntegrator(AbstractIntegrator):
 
         units : `unxt.AbstractUnitSystem`
             The unit system to use.
+        interpolated : bool, keyword-only
+            Whether to return an interpolated solution.
 
         Returns
         -------
@@ -261,6 +300,49 @@ class DiffraxIntegrator(AbstractIntegrator):
         >>> ws.shape
         (2,)
 
+        A cool feature of the integrator is that it can return an interpolated
+        solution.
+
+        >>> w = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic,
+        ...                interpolated=True)
+        >>> type(w)
+        <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
+
+        The interpolated solution can be evaluated at any time in the domain to get
+        the phase-space position at that time:
+
+        >>> t = Quantity(xp.e, "Gyr")
+        >>> w(t)
+        PhaseSpacePosition(
+            q=Cartesian3DVector( ... ),
+            p=CartesianDifferential3D( ... ),
+            t=Quantity[PhysicalType('time')](value=f64[1,1], unit=Unit("Gyr"))
+        )
+
+        The interpolant is vectorized:
+
+        >>> t = Quantity(xp.linspace(0, 1, 100), "Gyr")
+        >>> w(t)
+        PhaseSpacePosition(
+            q=Cartesian3DVector( ... ),
+            p=CartesianDifferential3D( ... ),
+            t=Quantity[PhysicalType('time')](value=f64[1,100], unit=Unit("Gyr"))
+        )
+
+        And it works on batches:
+
+        >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
+        ...                            p=Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
+        >>> ws = integrator(pot._integrator_F, w0, t0, t1, units=usx.galactic,
+        ...                 interpolated=True)
+        >>> ws.shape
+        (2,)
+        >>> w(t)
+        PhaseSpacePosition(
+            q=Cartesian3DVector( ... ),
+            p=CartesianDifferential3D( ... ),
+            t=Quantity[PhysicalType('time')](value=f64[1,100], unit=Unit("Gyr"))
+        )
         """
         # Parse inputs
         w0_: gt.Vec6 = (
@@ -273,12 +355,73 @@ class DiffraxIntegrator(AbstractIntegrator):
         )
 
         # Perform the integration
-        w, interp = self._call_implementation(F, w0_, t0_, t1_, savet_)
-        w = w[..., -1, :] if savet is None else w
+        w, interp = self._call_implementation(F, w0_, t0_, t1_, savet_, interpolated)
+        w = w[..., -1, :] if savet is None else w  # TODO: undo this
 
         # Return
-        return gc.PhaseSpacePosition(  # shape = (*batch, T)
-            q=Quantity(w[..., 0:3], units["length"]),
-            p=Quantity(w[..., 3:6], units["speed"]),
-            t=Quantity(w[..., -1], units["time"]),
+        if interpolated:
+            # Determine if an extra dimension was added to the output
+            added_ndim = int(w0_.shape[:-1] == () or w0_.shape[0] == 1)
+            # If one was, then the interpolant must be reshaped since the input
+            # was squeezed beforehand and the dimension must be added back.
+            if added_ndim == 1:
+                arr, narr = eqx.partition(interp, eqx.is_array)
+                arr = jax.tree_util.tree_map(lambda x: x[None], arr)
+                interp = eqx.combine(arr, narr)
+
+            out = gc.InterpolatedPhaseSpacePosition(  # shape = (*batch, T)
+                q=Quantity(w[..., 0:3], units["length"]),
+                p=Quantity(w[..., 3:6], units["speed"]),
+                t=Quantity(savet_, units["time"]),
+                interpolant=DiffraxInterpolant(
+                    interp, units=units, added_ndim=added_ndim
+                ),
+            )
+        else:
+            out = gc.PhaseSpacePosition(  # shape = (*batch, T)
+                q=Quantity(w[..., 0:3], units["length"]),
+                p=Quantity(w[..., 3:6], units["speed"]),
+                t=Quantity(w[..., -1], units["time"]),
+            )
+
+        return out
+
+
+class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
+    """Wrapper for ``diffrax.DenseInterpolation``."""
+
+    interpolant: DenseInterpolation
+    """:class:`diffrax.DenseInterpolation` object.
+
+    This object is the result of the integration and can be used to evaluate the
+    interpolated solution at any time. However it does not understand units, so
+    the input is the time in ``units["time"]``. The output is a 6-vector of
+    (q, p) values in the units of the integrator.
+    """
+
+    units: AbstractUnitSystem = eqx.field(static=True, converter=unitsystem)
+    """The :class:`unxt.AbstractUnitSystem`.
+
+    This is used to convert the time input to the interpolant and the phase-space
+    position output.
+    """
+
+    added_ndim: tuple[int, ...] = eqx.field(static=True)
+    """The number of dimensions added to the output of the interpolation.
+
+    This is used to reshape the output of the interpolation to match the batch
+    shape of the input to the integrator. The means of vectorizing the
+    interpolation means that the input must always be a batched array, resulting
+    in an extra dimension when the integration was on a scalar input.
+    """
+
+    def __call__(self, t: gt.QVecTime, **_: Any) -> gc.PhaseSpacePosition:
+        """Evaluate the interpolation."""
+        t_ = jnp.atleast_1d(t.to_units_value(self.units["time"]))
+        ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)
+        ys = ys[(0,) * (ys.ndim - 3 + self.added_ndim)]
+        return gc.PhaseSpacePosition(
+            q=Quantity(ys[..., 0:3], self.units["length"]),
+            p=Quantity(ys[..., 3:6], self.units["speed"]),
+            t=t,
         )

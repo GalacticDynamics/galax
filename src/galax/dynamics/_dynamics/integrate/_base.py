@@ -1,6 +1,7 @@
 __all__ = ["AbstractIntegrator"]
 
 import abc
+from typing import Literal
 
 import equinox as eqx
 
@@ -37,7 +38,8 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         ) = None,
         *,
         units: AbstractUnitSystem,
-    ) -> gc.PhaseSpacePosition:
+        interpolated: Literal[False, True] = False,
+    ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Run the integrator.
 
         Parameters

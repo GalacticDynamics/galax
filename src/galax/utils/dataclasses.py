@@ -237,12 +237,11 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
         /,
         *,
         strict: bool = False,
-        abstract: bool = False,
         **kwargs: Any,
     ) -> type:
         # [Step 1] Create the class using `_ModuleMeta`.
         cls: type = super().__new__(
-            mcs, name, bases, namespace, strict=strict, abstract=abstract, **kwargs
+            mcs, name, bases, namespace, strict=strict, **kwargs
         )
 
         # [Step 2] Convert the defaults.

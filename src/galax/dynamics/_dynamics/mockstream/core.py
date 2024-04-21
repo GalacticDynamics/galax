@@ -26,6 +26,7 @@ from galax.coordinates._psp.utils import (
     _converter_to_vel3d,
     getitem_vec1time_index,
 )
+from galax.utils._collections import ImmutableDict
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 if TYPE_CHECKING:
@@ -59,6 +60,15 @@ class MockStreamArm(AbstractPhaseSpacePosition):
 
     release_time: gt.QVecTime = eqx.field(converter=Quantity["time"].constructor)
     """Release time of the stream particles [Myr]."""
+
+    meta: ImmutableDict[Any] = eqx.field(
+        default_factory=dict,
+        converter=ImmutableDict,
+        static=True,
+        repr=False,
+        compare=False,
+    )
+    """Metadata about the mock-stream."""
 
     # ==========================================================================
     # Array properties

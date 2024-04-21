@@ -12,6 +12,7 @@ from jaxtyping import Array, Shaped
 import coordinax as cx
 import quaxed.numpy as jnp
 from unxt import Quantity
+from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from galax.coordinates import (
@@ -53,6 +54,15 @@ class MockStreamArm(AbstractPhaseSpacePosition):
 
     release_time: gt.QVecTime = eqx.field(converter=Quantity["time"].constructor)
     """Release time of the stream particles [Myr]."""
+
+    meta: ImmutableMap[Any] = eqx.field(
+        default_factory=dict,
+        converter=ImmutableMap,
+        static=True,
+        repr=False,
+        compare=False,
+    )
+    """Metadata about the mock-stream."""
 
     # ==========================================================================
     # Array properties

@@ -102,7 +102,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             def integ_ics(ics: gt.Vec6) -> gt.VecN:
                 # TODO: only return the final state
                 return evaluate_orbit(
-                    self.potential, ics, tstep, integrator=self.stream_integrator
+                    self.potential,
+                    ics,
+                    tstep,
+                    integrator=self.stream_integrator,
+                    include_meta=False,
                 ).w(units=self.units)[-1]
 
             # vmap integration over leading and trailing arm
@@ -137,10 +141,18 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         ) -> tuple[gt.Vec6, gt.Vec6]:
             tstep = xp.asarray([ts[i], t_f])
             w_lead = evaluate_orbit(
-                self.potential, w0_l_i, tstep, integrator=self.stream_integrator
+                self.potential,
+                w0_l_i,
+                tstep,
+                integrator=self.stream_integrator,
+                include_meta=False,
             ).w(units=self.potential.units)[-1]
             w_trail = evaluate_orbit(
-                self.potential, w0_t_i, tstep, integrator=self.stream_integrator
+                self.potential,
+                w0_t_i,
+                tstep,
+                integrator=self.stream_integrator,
+                include_meta=False,
             ).w(units=self.potential.units)[-1]
             return w_lead, w_trail
 
@@ -206,6 +218,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # Parse vmapped
         use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
 
+        original_rng = rng
+
         # Ensure w0 is a PhaseSpacePosition
         w0: gc.PhaseSpacePosition
         if isinstance(prog_w0, gc.PhaseSpacePosition):
@@ -253,4 +267,4 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             release_time=mock0["trail"].release_time,
         )
 
-        return MockStream(comps), prog_o[-1]
+        return MockStream(comps, meta={}), prog_o[-1]

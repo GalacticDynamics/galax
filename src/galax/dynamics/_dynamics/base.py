@@ -2,7 +2,7 @@
 
 __all__ = ["AbstractOrbit"]
 
-from dataclasses import replace
+from dataclasses import KW_ONLY, replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, overload
 
@@ -27,6 +27,7 @@ from galax.coordinates._psp.utils import (
 )
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.typing import BatchFloatQScalar, QVec1, QVecTime
+from galax.utils._collections import ImmutableDict
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 if TYPE_CHECKING:
@@ -53,6 +54,17 @@ class AbstractOrbit(AbstractPhaseSpacePosition):
 
     potential: AbstractPotentialBase
     """Potential in which the orbit was integrated."""
+
+    _: KW_ONLY
+
+    meta: ImmutableDict[Any] = eqx.field(
+        default_factory=dict,
+        converter=ImmutableDict,
+        static=True,
+        repr=False,
+        compare=False,
+    )
+    """Metadata about the orbit."""
 
     def __post_init__(self) -> None:
         """Post-initialization."""

@@ -9,6 +9,7 @@ from typing import Literal
 import jax
 import jax.numpy as jnp
 from astropy.units import Quantity as APYQuantity
+from jax.lax import stop_gradient
 
 import quaxed.array_api as xp
 from unxt import Quantity
@@ -30,7 +31,7 @@ _default_integrator: Integrator = DiffraxIntegrator()
 _select_w0 = jnp.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
-@partial(jax.jit, static_argnames=("integrator", "interpolated"))
+@partial(jax.jit, static_argnames=("integrator", "interpolated", "include_meta"))
 def evaluate_orbit(
     pot: AbstractPotentialBase,
     w0: PhaseSpacePosition | gt.BatchVec6,
@@ -38,6 +39,7 @@ def evaluate_orbit(
     *,
     integrator: Integrator | None = None,
     interpolated: Literal[True, False] = False,
+    include_meta: Literal[True, False] = False,
 ) -> Orbit | InterpolatedOrbit:
     """Compute an orbit in a potential.
 
@@ -84,9 +86,16 @@ def evaluate_orbit(
         is used twice: once to integrate from `w0.t` to `t[0]` and then from
         `t[0]` to `t[1]`.
 
-    interpolated: bool, optional keyword-only
+    interpolated : bool, optional keyword-only
         If `True`, return an interpolated orbit.  If `False`, return the orbit
         at the requested times.  Default is `False`.
+
+    include_meta : bool, optional keyword-only
+        Metadata is attached as an :class:`~galax.utils.ImmutableDict`.
+        If `True`, the metadata is populated with:
+
+        - `'integrator'`: The integrator used.
+        - `'has_t0'`: Whether `w0` has time information.
 
     Returns
     -------
@@ -190,11 +199,13 @@ def evaluate_orbit(
     t = Quantity.constructor(t, units["time"])
 
     # Parse w0
+    has_t0: bool
     psp0t: Quantity
     if isinstance(w0, PhaseSpacePosition):
         # TODO: warn if w0.t is None?
         psp0 = w0
         psp0t = t[0] if w0.t is None else w0.t
+        has_t0 = w0.t is not None
     else:
         psp0 = PhaseSpacePosition(
             q=Quantity(w0[..., 0:3], units["length"]),
@@ -202,6 +213,7 @@ def evaluate_orbit(
             t=t[0],
         )
         psp0t = t[0]
+        has_t0 = False
 
     # -------------
     # Initial integration
@@ -238,11 +250,16 @@ def evaluate_orbit(
 
     # Construct the orbit object
     # TODO: easier construction from the (Interpolated)PhaseSpacePosition
+    meta = (
+        {"integrator": stop_gradient(integrator), "has_t0": stop_gradient(has_t0)}
+        if include_meta
+        else {}
+    )
     if interpolated:
         out = InterpolatedOrbit(
-            q=ws.q, p=ws.p, t=wt, interpolant=ws.interpolant, potential=pot
+            q=ws.q, p=ws.p, t=wt, interpolant=ws.interpolant, potential=pot, meta=meta
         )
     else:
-        out = Orbit(q=ws.q, p=ws.p, t=wt, potential=pot)
+        out = Orbit(q=ws.q, p=ws.p, t=wt, potential=pot, meta=meta)
 
     return out

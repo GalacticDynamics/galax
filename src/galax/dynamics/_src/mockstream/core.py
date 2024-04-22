@@ -62,7 +62,7 @@ class MockStreamArm(AbstractPhaseSpacePosition):
         repr=False,
         compare=False,
     )
-    """Metadata about the mock-stream."""
+    """Metadata about the mock-stream arm."""
 
     # ==========================================================================
     # Array properties
@@ -96,6 +96,15 @@ class MockStreamArm(AbstractPhaseSpacePosition):
 @final
 class MockStream(AbstractCompositePhaseSpacePosition):
     _time_sorter: Shaped[Array, "alltimes"]
+
+    meta: ImmutableMap[Any] = eqx.field(
+        default_factory=dict,
+        converter=ImmutableMap,
+        static=True,
+        repr=False,
+        compare=False,
+    )
+    """Metadata about the mock stream."""
 
     def __init__(
         self,

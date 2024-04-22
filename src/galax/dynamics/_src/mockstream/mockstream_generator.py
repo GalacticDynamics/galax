@@ -162,7 +162,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg)(pt_ids, w0_lead, w0_trail)
         return lead_arm_w, trail_arm_w
 
-    @partial(jax.jit, static_argnames=("vmapped",))
+    @partial(jax.jit, static_argnames=("vmapped", "include_meta"))
     def run(
         self,
         rng: PRNGKeyArray,
@@ -171,6 +171,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_mass: gt.FloatQScalar | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
+        include_meta: bool = False,
     ) -> tuple[MockStream, gc.PhaseSpacePosition]:
         """Generate mock stellar stream.
 
@@ -208,6 +209,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             `None` (default), then `jax.vmap` is used on GPU and `jax.lax.scan`
             otherwise.
 
+        include_meta : bool, optional keyword-only
+            Whether to include metadata in the output.
+
         Returns
         -------
         mockstream : :class:`galax.dynamcis.MockStreamArm`
@@ -217,8 +221,6 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         # Parse vmapped
         use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
-
-        original_rng = rng
 
         # Ensure w0 is a PhaseSpacePosition
         w0: gc.PhaseSpacePosition
@@ -259,12 +261,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             p=Quantity(lead_arm_w[:, 3:6], self.units["speed"]),
             t=t,
             release_time=mock0["lead"].release_time,
+            meta={"use_vmap": use_vmap} if include_meta else {},
         )
         comps["trail"] = MockStreamArm(
             q=Quantity(trail_arm_w[:, 0:3], self.units["length"]),
             p=Quantity(trail_arm_w[:, 3:6], self.units["speed"]),
             t=t,
             release_time=mock0["trail"].release_time,
+            meta={"use_vmap": use_vmap} if include_meta else {},
         )
 
-        return MockStream(comps, meta={}), prog_o[-1]
+        return MockStream(comps), prog_o[-1]

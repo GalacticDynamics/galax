@@ -26,7 +26,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[AbstractPotentialBase]:
         class TestPotential(AbstractPotentialBase):
-            m: AbstractParameter = ParameterField(
+            m_tot: AbstractParameter = ParameterField(
                 dimensions="mass", default=1e12 * u.Msun
             )
             units: AbstractUnitSystem = eqx.field(default=galactic, static=True)
@@ -39,7 +39,9 @@ class TestAbstractPotentialBase(GalaIOMixin):
                 self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
             ) -> gt.BatchFloatQScalar:
                 return (
-                    self.constants["G"] * self.m(t) / xp.linalg.vector_norm(q, axis=-1)
+                    self.constants["G"]
+                    * self.m_tot(t)
+                    / xp.linalg.vector_norm(q, axis=-1)
                 )
 
         return TestPotential

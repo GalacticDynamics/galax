@@ -8,14 +8,14 @@ from unxt import Quantity
 import galax.potential as gp
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import MassParameterMixin, ShapeBParameterMixin
+from .test_common import ParameterMTotMixin, ShapeBParameterMixin
 from galax.potential import AbstractPotentialBase, IsochronePotential
 
 
 class TestIsochronePotential(
     AbstractPotential_Test,
     # Parameters
-    MassParameterMixin,
+    ParameterMTotMixin,
     ShapeBParameterMixin,
 ):
     @pytest.fixture(scope="class")
@@ -23,8 +23,8 @@ class TestIsochronePotential(
         return gp.IsochronePotential
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_m, field_b, field_units) -> dict[str, Any]:
-        return {"m": field_m, "b": field_b, "units": field_units}
+    def fields_(self, field_m_tot, field_b, field_units) -> dict[str, Any]:
+        return {"m_tot": field_m_tot, "b": field_b, "units": field_units}
 
     # ==========================================================================
 

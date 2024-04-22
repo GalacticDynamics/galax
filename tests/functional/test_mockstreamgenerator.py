@@ -50,7 +50,7 @@ def test_first_deriv() -> None:
     # Inputs
     params = {
         "disk": {
-            "m": Quantity(5.0e10, "Msun"),
+            "m_tot": Quantity(5.0e10, "Msun"),
             "a": Quantity(3.0, "kpc"),
             "b": Quantity(0.25, "kpc"),
         },
@@ -79,7 +79,7 @@ def test_second_deriv() -> None:
     # Inputs
     params = {
         "disk": {
-            "m": Quantity(5.0e10, "Msun"),
+            "m_tot": Quantity(5.0e10, "Msun"),
             "a": Quantity(3.0, "kpc"),
             "b": Quantity(0.25, "kpc"),
         },

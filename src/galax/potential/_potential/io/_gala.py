@@ -92,7 +92,7 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     HernquistPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
       c=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
 
     Isochrone potential:
@@ -102,7 +102,7 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     IsochronePotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
       b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
 
     Kepler potential:
@@ -112,7 +112,7 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     KeplerPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
+      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
 
     >>> gpot = gp.LeeSutoTriaxialNFWPotential(
     ...     v_c=220, r_s=20, a=1, b=0.9, c=0.8, units=gu.galactic )
@@ -143,7 +143,7 @@ def gala_to_galax(pot: GalaPotentialBase, /) -> AbstractPotentialBase:
     MiyamotoNagaiPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
       a=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
       b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
 
@@ -220,7 +220,12 @@ def _gala_to_galax_registered(
         msg = "Galax does not support converting dimensionless units."
         raise TypeError(msg)
 
-    pot = _GALA_TO_GALAX_REGISTRY[type(gala)](**gala.parameters, units=gala.units)
+    # TODO: this is a temporary solution. It would be better to map each
+    # potential individually.
+    params = dict(gala.parameters)
+    params["m_tot"] = params.pop("m")
+
+    pot = _GALA_TO_GALAX_REGISTRY[type(gala)](**params, units=gala.units)
     return _apply_frame(_get_frame(gala), pot)
 
 

@@ -13,7 +13,7 @@ import galax.potential as gp
 def test_bar_means_of_rotation() -> None:
     """Test the equivalence of hard-coded vs operator means of rotation."""
     base_pot = gp.BarPotential(
-        m=Quantity(1e9, "Msun"),
+        m_tot=Quantity(1e9, "Msun"),
         a=Quantity(5.0, "kpc"),
         b=Quantity(0.1, "kpc"),
         c=Quantity(0.1, "kpc"),

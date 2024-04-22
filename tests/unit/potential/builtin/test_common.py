@@ -9,8 +9,41 @@ from ..param.test_field import ParameterFieldMixin
 from galax.potential import ConstantParameter
 
 
-class MassParameterMixin(ParameterFieldMixin):
-    """Test the mass parameter."""
+class ParameterMTotMixin(ParameterFieldMixin):
+    """Test the total mass parameter."""
+
+    pot_cls: type[gp.AbstractPotential]
+
+    @pytest.fixture(scope="class")
+    def field_m_tot(self) -> Quantity["mass"]:
+        return Quantity(1e12, "Msun")
+
+    # =====================================================
+
+    def test_m_tot_units(self, pot_cls, fields):
+        """Test the mass parameter."""
+        fields["m_tot"] = Quantity(1.0, u.Unit(10 * u.Msun))
+        fields["units"] = galactic
+        pot = pot_cls(**fields)
+        assert isinstance(pot.m_tot, ConstantParameter)
+        assert pot.m_tot.value == Quantity(10, "Msun")
+
+    def test_m_tot_constant(self, pot_cls, fields):
+        """Test the mass parameter."""
+        fields["m_tot"] = Quantity(1.0, "Msun")
+        pot = pot_cls(**fields)
+        assert pot.m_tot(t=0) == Quantity(1.0, "Msun")
+
+    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
+    def test_m_tot_userfunc(self, pot_cls, fields):
+        """Test the mass parameter."""
+        fields["m_tot"] = lambda t: t + 2
+        pot = pot_cls(**fields)
+        assert pot.m_tot(t=0) == 2
+
+
+class ParameterMMixin(ParameterFieldMixin):
+    """Test the total mass parameter."""
 
     pot_cls: type[gp.AbstractPotential]
 

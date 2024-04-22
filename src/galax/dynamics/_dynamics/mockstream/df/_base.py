@@ -86,7 +86,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         ts = prog_orbit.t
 
         mprog: ProgenitorMassCallable = (
-            ConstantMassProtenitor(m=prog_mass)
+            ConstantMassProtenitor(m_tot=prog_mass)
             if not callable(prog_mass)
             else prog_mass
         )

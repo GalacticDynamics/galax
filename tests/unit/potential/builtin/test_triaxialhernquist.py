@@ -7,7 +7,7 @@ from unxt import Quantity
 
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import (
-    MassParameterMixin,
+    ParameterMTotMixin,
     ShapeCParameterMixin,
     ShapeQ1ParameterMixin,
     ShapeQ2ParameterMixin,
@@ -20,7 +20,7 @@ from galax.typing import Vec3
 class TestTriaxialHernquistPotential(
     AbstractPotential_Test,
     # Parameters
-    MassParameterMixin,
+    ParameterMTotMixin,
     ShapeCParameterMixin,
     ShapeQ1ParameterMixin,
     ShapeQ2ParameterMixin,
@@ -31,10 +31,10 @@ class TestTriaxialHernquistPotential(
 
     @pytest.fixture(scope="class")
     def fields_(
-        self, field_m, field_c, field_q1, field_q2, field_units
+        self, field_m_tot, field_c, field_q1, field_q2, field_units
     ) -> dict[str, Any]:
         return {
-            "m": field_m,
+            "m_tot": field_m_tot,
             "c": field_c,
             "q1": field_q1,
             "q2": field_q2,

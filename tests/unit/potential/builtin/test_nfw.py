@@ -12,7 +12,7 @@ import galax.potential as gp
 import galax.typing as gt
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import MassParameterMixin
+from .test_common import ParameterMMixin
 from galax.utils._optional_deps import HAS_GALA
 
 
@@ -61,7 +61,7 @@ class ScaleRadiusParameterMixin(ParameterFieldMixin):
 class TestNFWPotential(
     AbstractPotential_Test,
     # Parameters
-    MassParameterMixin,
+    ParameterMMixin,
     ScaleRadiusParameterMixin,
 ):
     @pytest.fixture(scope="class")

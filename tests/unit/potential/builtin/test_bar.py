@@ -9,7 +9,7 @@ from unxt import AbstractUnitSystem, Quantity
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import (
-    MassParameterMixin,
+    ParameterMTotMixin,
     ShapeAParameterMixin,
     ShapeBParameterMixin,
     ShapeCParameterMixin,
@@ -20,7 +20,7 @@ from galax.potential import AbstractPotentialBase, BarPotential
 class TestBarPotential(
     AbstractPotential_Test,
     # Parameters
-    MassParameterMixin,
+    ParameterMTotMixin,
     ShapeAParameterMixin,
     ShapeBParameterMixin,
     ShapeCParameterMixin,
@@ -36,7 +36,7 @@ class TestBarPotential(
     @pytest.fixture(scope="class")
     def fields_(
         self,
-        field_m: u.Quantity,
+        field_m_tot: u.Quantity,
         field_a: u.Quantity,
         field_b: u.Quantity,
         field_c: u.Quantity,
@@ -44,7 +44,7 @@ class TestBarPotential(
         field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
-            "m": field_m,
+            "m_tot": field_m_tot,
             "a": field_a,
             "b": field_b,
             "c": field_c,

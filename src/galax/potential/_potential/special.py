@@ -81,7 +81,7 @@ class MilkyWayPotential(AbstractCompositePotential):
 
     _default_disk: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
         {
-            "m": Quantity(6.8e10, "Msun"),
+            "m_tot": Quantity(6.8e10, "Msun"),
             "a": Quantity(3.0, "kpc"),
             "b": Quantity(0.28, "kpc"),
         }
@@ -90,10 +90,10 @@ class MilkyWayPotential(AbstractCompositePotential):
         {"m": Quantity(5.4e11, "Msun"), "r_s": Quantity(15.62, "kpc")}
     )
     _default_bulge: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
-        {"m": Quantity(5e9, "Msun"), "c": Quantity(1.0, "kpc")}
+        {"m_tot": Quantity(5e9, "Msun"), "c": Quantity(1.0, "kpc")}
     )
     _default_nucleus: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
-        {"m": Quantity(1.71e9, "Msun"), "c": Quantity(0.07, "kpc")}
+        {"m_tot": Quantity(1.71e9, "Msun"), "c": Quantity(0.07, "kpc")}
     )
 
     def __init__(

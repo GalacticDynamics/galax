@@ -93,11 +93,16 @@ def _galax_to_gala_abstractpotential(pot: gp.AbstractPotential, /) -> GalaPotent
         msg = "Gala does not support time-dependent parameters."
         raise TypeError(msg)
 
+    # TODO: this is a temporary solution. It would be better to map each
+    # potential individually.
+    params = {
+        k: convert(getattr(pot, k)(0), APYQuantity)
+        for (k, f) in type(pot).parameters.items()
+    }
+    params["m"] = params.pop("m_tot")
+
     return _GALAX_TO_GALA_REGISTRY[type(pot)](
-        **{
-            k: convert(getattr(pot, k)(0), APYQuantity)
-            for (k, f) in type(pot).parameters.items()
-        },
+        **params,
         units=galax_to_gala_units(pot.units),
     )
 
@@ -153,11 +158,19 @@ def _galax_to_gala_leesutotriaxialnfw(
 
 
 @galax_to_gala.register
-def _gala_to_galax_mwpotential(pot: gp.MilkyWayPotential, /) -> GalaMilkyWayPotential:
+def _galax_to_gala_mwpotential(pot: gp.MilkyWayPotential, /) -> GalaMilkyWayPotential:
     """Convert a Gala MilkyWayPotential to a Galax potential."""
+
+    def rename(k: str) -> str:
+        match k:
+            case "m_tot":
+                return "m"
+            case _:
+                return k
+
     return GalaMilkyWayPotential(
-        disk={k: getattr(pot["disk"], k)(0) for k in ("m", "a", "b")},
-        halo={k: getattr(pot["halo"], k)(0) for k in ("m", "r_s")},
-        bulge={k: getattr(pot["bulge"], k)(0) for k in ("m", "c")},
-        nucleus={k: getattr(pot["nucleus"], k)(0) for k in ("m", "c")},
+        disk={rename(k): getattr(pot["disk"], k)(0) for k in ("m_tot", "a", "b")},
+        halo={rename(k): getattr(pot["halo"], k)(0) for k in ("m", "r_s")},
+        bulge={rename(k): getattr(pot["bulge"], k)(0) for k in ("m_tot", "c")},
+        nucleus={rename(k): getattr(pot["nucleus"], k)(0) for k in ("m_tot", "c")},
     )

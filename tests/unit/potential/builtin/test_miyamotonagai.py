@@ -8,7 +8,7 @@ from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import MassParameterMixin, ShapeAParameterMixin, ShapeBParameterMixin
+from .test_common import ParameterMTotMixin, ShapeAParameterMixin, ShapeBParameterMixin
 from galax.potential import AbstractPotentialBase, MiyamotoNagaiPotential
 from galax.typing import Vec3
 
@@ -16,7 +16,7 @@ from galax.typing import Vec3
 class TestMiyamotoNagaiPotential(
     AbstractPotential_Test,
     # Parameters
-    MassParameterMixin,
+    ParameterMTotMixin,
     ShapeAParameterMixin,
     ShapeBParameterMixin,
 ):
@@ -29,12 +29,12 @@ class TestMiyamotoNagaiPotential(
     @pytest.fixture(scope="class")
     def fields_(
         self,
-        field_m: u.Quantity,
+        field_m_tot: u.Quantity,
         field_a: u.Quantity,
         field_b: u.Quantity,
         field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
-        return {"m": field_m, "a": field_a, "b": field_b, "units": field_units}
+        return {"m_tot": field_m_tot, "a": field_a, "b": field_b, "units": field_units}
 
     # ==========================================================================
 

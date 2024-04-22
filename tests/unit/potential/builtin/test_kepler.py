@@ -7,7 +7,7 @@ from unxt import Quantity
 
 import galax.potential as gp
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import MassParameterMixin
+from .test_common import ParameterMTotMixin
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.typing import QVec3
 
@@ -15,15 +15,15 @@ from galax.typing import QVec3
 class TestKeplerPotential(
     AbstractPotential_Test,
     # Parameters
-    MassParameterMixin,
+    ParameterMTotMixin,
 ):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.KeplerPotential]:
         return gp.KeplerPotential
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_m, field_units) -> dict[str, Any]:
-        return {"m": field_m, "units": field_units}
+    def fields_(self, field_m_tot, field_units) -> dict[str, Any]:
+        return {"m_tot": field_m_tot, "units": field_units}
 
     # ==========================================================================
 

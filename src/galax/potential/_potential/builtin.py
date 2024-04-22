@@ -43,7 +43,9 @@ class BarPotential(AbstractPotential):
     Rz according to https://en.wikipedia.org/wiki/Rotation_matrix
     """
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """Mass of the bar."""
+
     a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
@@ -85,7 +87,7 @@ class BarPotential(AbstractPotential):
         )
 
         # potential in a corotating frame
-        return (self.constants["G"] * self.m(t) / (2.0 * a)) * xp.log(
+        return (self.constants["G"] * self.m_tot(t) / (2.0 * a)) * xp.log(
             (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus),
         )
 
@@ -97,8 +99,10 @@ class BarPotential(AbstractPotential):
 class HernquistPotential(AbstractPotential):
     """Hernquist Potential."""
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """Total mass of the potential."""
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
@@ -110,7 +114,7 @@ class HernquistPotential(AbstractPotential):
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
-        return -self.constants["G"] * self.m(t) / (r + self.c(t))
+        return -self.constants["G"] * self.m_tot(t) / (r + self.c(t))
 
 
 # -------------------------------------------------------------------
@@ -118,10 +122,24 @@ class HernquistPotential(AbstractPotential):
 
 @final
 class IsochronePotential(AbstractPotential):
-    """Isochrone Potential."""
+    r"""Isochrone Potential.
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    .. math::
+
+        \Phi = -\frac{G M(t)}{r_s + \sqrt{r^2 + r_s^2}}
+    """
+
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """Total mass of the potential."""
+
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r"""Scale radius of the potential.
+
+    The value of :math:`r_s` defines the transition between the inner, more
+    harmonic oscillator-like behavior of the potential, and the outer, :math:`1
+    / r` Keplerian falloff.
+    """
+
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
@@ -134,7 +152,7 @@ class IsochronePotential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         b = self.b(t)
-        return -self.constants["G"] * self.m(t) / (b + xp.sqrt(r**2 + b**2))
+        return -self.constants["G"] * self.m_tot(t) / (b + xp.sqrt(r**2 + b**2))
 
 
 # -------------------------------------------------------------------
@@ -145,10 +163,13 @@ class KeplerPotential(AbstractPotential):
     r"""The Kepler potential for a point mass.
 
     .. math::
+
         \Phi = -\frac{G M(t)}{r}
     """
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """Total mass of the potential."""
+
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
@@ -160,7 +181,7 @@ class KeplerPotential(AbstractPotential):
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
-        return -self.constants["G"] * self.m(t) / r
+        return -self.constants["G"] * self.m_tot(t) / r
 
 
 # -------------------------------------------------------------------
@@ -170,9 +191,16 @@ class KeplerPotential(AbstractPotential):
 class MiyamotoNagaiPotential(AbstractPotential):
     """Miyamoto-Nagai Potential."""
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """Total mass of the potential."""
+
+    # TODO: rename
     a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Scale length in the major-axis (x-y) plane."""
+
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Scale length in the minor-axis (x-y) plane."""
+
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
@@ -185,7 +213,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
     ) -> gt.FloatQScalar:
         R2 = q[..., 0] ** 2 + q[..., 1] ** 2
         zp2 = (xp.sqrt(q[..., 2] ** 2 + self.b(t) ** 2) + self.a(t)) ** 2
-        return -self.constants["G"] * self.m(t) / xp.sqrt(R2 + zp2)
+        return -self.constants["G"] * self.m_tot(t) / xp.sqrt(R2 + zp2)
 
 
 # -------------------------------------------------------------------
@@ -196,7 +224,11 @@ class NFWPotential(AbstractPotential):
     """NFW Potential."""
 
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """Mass parameter. This is NOT the total mass."""
+
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Scale radius of the potential."""
+
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
@@ -392,7 +424,7 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     Parameters
     ----------
-    m : :class:`~galax.potential.AbstractParameter`['mass']
+    m_tot : :class:`~galax.potential.AbstractParameter`['mass']
         Mass parameter. This can be a
         :class:`~galax.potential.AbstractParameter` or an appropriate callable
         or constant, like a Quantity. See
@@ -423,8 +455,9 @@ class TriaxialHernquistPotential(AbstractPotential):
     >>> from unxt import Quantity
     >>> from galax.potential import TriaxialHernquistPotential
 
-    >>> pot = TriaxialHernquistPotential(m=Quantity(1e12, "Msun"), c=Quantity(8, "kpc"),
-    ...                                  q1=1, q2=0.5, units="galactic")
+    >>> pot = TriaxialHernquistPotential(m_tot=Quantity(1e12, "Msun"),
+    ...                                  c=Quantity(8, "kpc"), q1=1, q2=0.5,
+    ...                                  units="galactic")
 
     >>> q = Quantity([1, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")
@@ -432,12 +465,13 @@ class TriaxialHernquistPotential(AbstractPotential):
     Quantity['specific energy'](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
     """
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     """Mass of the potential."""
 
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     """Scale a scale length that determines the concentration of the system."""
 
+    # TODO: move to a triaxial wrapper
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
         default=Quantity(1, ""),
         dimensions="dimensionless",
@@ -467,4 +501,4 @@ class TriaxialHernquistPotential(AbstractPotential):
         c = eqx.error_if(c, c.value <= 0, "c must be positive")
 
         rprime = xp.sqrt(q[..., 0] ** 2 + (q[..., 1] / q1) ** 2 + (q[..., 2] / q2) ** 2)
-        return -self.constants["G"] * self.m(t) / (rprime + c)
+        return -self.constants["G"] * self.m_tot(t) / (rprime + c)

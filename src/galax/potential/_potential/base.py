@@ -185,7 +185,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Then we can construct a potential and compute the potential energy:
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                           p=Quantity([4, 5, 6], "km/s"),
@@ -237,7 +237,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the potential energy at a position (and time, if any
         parameters are time-dependent):
@@ -291,7 +291,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
@@ -325,7 +325,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import astropy.units as u
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=1e12, units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
         We can compute the potential energy at a position (and time, if any
         parameters are time-dependent):
@@ -379,7 +379,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import astropy.units as u
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=u.Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the potential energy at a position (and time, if any
         parameters are time-dependent):
@@ -459,7 +459,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Then we can construct a potential and compute the potential energy:
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                           p=Quantity([4, 5, 6], "km/s"),
@@ -515,7 +515,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the potential energy at a position (and time, if any
         parameters are time-dependent):
@@ -581,7 +581,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the gradient at a position (and time, if any
         parameters are time-dependent):
@@ -653,7 +653,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the potential energy at a position (and time, if any
         parameters are time-dependent):
@@ -713,7 +713,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
@@ -767,7 +767,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Then we can construct a potential and compute the potential energy:
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                           p=Quantity([4, 5, 6], "km/s"),
@@ -819,7 +819,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the potential energy at a position (and time, if any
         parameters are time-dependent):
@@ -880,7 +880,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the laplacian at a position (and time, if any
         parameters are time-dependent):
@@ -946,7 +946,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the potential energy at a position (and time, if any
         parameters are time-dependent):
@@ -1000,7 +1000,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
@@ -1052,7 +1052,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Then we can construct a potential and compute the density:
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                           p=Quantity([4, 5, 6], "km/s"),
@@ -1104,7 +1104,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the density at a position (and time, if any
         parameters are time-dependent):
@@ -1158,7 +1158,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
@@ -1192,7 +1192,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import astropy.units as u
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=u.Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the density at a position (and time, if any
         parameters are time-dependent):
@@ -1248,7 +1248,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import astropy.units as u
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=u.Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the density at a position (and time, if any
         parameters are time-dependent):
@@ -1304,7 +1304,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Then we can construct a potential and compute the hessian:
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                           p=Quantity([4, 5, 6], "km/s"),
@@ -1368,7 +1368,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the hessian at a position (and time, if any
         parameters are time-dependent):
@@ -1440,7 +1440,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")
@@ -1474,7 +1474,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import astropy.units as u
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=u.Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the hessian at a position (and time, if any
         parameters are time-dependent):
@@ -1571,7 +1571,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Then we can construct a potential and compute the potential energy:
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                           p=Quantity([4, 5, 6], "km/s"),
@@ -1627,7 +1627,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the potential energy at a position (and time, if any
         parameters are time-dependent):
@@ -1694,7 +1694,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the acceleration at a position (and time, if any
         parameters are time-dependent):
@@ -1766,7 +1766,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         We can compute the potential energy at a position (and time, if any
         parameters are time-dependent):
@@ -1826,7 +1826,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         >>> import coordinax as cx
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m=Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
         >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
         >>> t = Quantity(0, "Gyr")

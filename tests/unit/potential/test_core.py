@@ -23,7 +23,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.AbstractPotentialBase]:
         class TestPotential(gp.AbstractPotentialBase):
-            m: gp.AbstractParameter = gp.ParameterField(
+            m_tot: gp.AbstractParameter = gp.ParameterField(
                 dimensions="mass", default=Quantity(1e12, "Msun")
             )
             units: AbstractUnitSystem = eqx.field(
@@ -38,7 +38,9 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
                 self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
             ) -> gt.BatchFloatQScalar:
                 return (
-                    self.constants["G"] * self.m(t) / xp.linalg.vector_norm(q, axis=-1)
+                    self.constants["G"]
+                    * self.m_tot(t)
+                    / xp.linalg.vector_norm(q, axis=-1)
                 )
 
         return TestPotential
@@ -61,7 +63,7 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
 
         # Test that the concrete class can be instantiated
         class TestPotential(gp.AbstractPotentialBase):
-            m: gp.AbstractParameter = gp.ParameterField(
+            m_tot: gp.AbstractParameter = gp.ParameterField(
                 dimensions="mass", default=Quantity(1e12, "Msun")
             )
             units: AbstractUnitSystem = eqx.field(
@@ -76,7 +78,9 @@ class TestAbstractPotential(AbstractPotentialBase_Test, FieldUnitSystemMixin):
                 self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
             ) -> gt.BatchFloatQScalar:
                 return (
-                    self.constants["G"] * self.m(t) / xp.linalg.vector_norm(q, axis=-1)
+                    self.constants["G"]
+                    * self.m_tot(t)
+                    / xp.linalg.vector_norm(q, axis=-1)
                 )
 
         pot = TestPotential()

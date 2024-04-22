@@ -34,7 +34,7 @@ from galax.coordinates import AbstractPhaseSpacePosition
 Shape: TypeAlias = tuple[int, ...]
 T = TypeVar("T", bound=AbstractPhaseSpacePosition)
 
-potentials = [KeplerPotential(m=1e12 * u.Msun, units=galactic), MilkyWayPotential()]
+potentials = [KeplerPotential(m_tot=1e12 * u.Msun, units=galactic), MilkyWayPotential()]
 
 
 def return_keys(num: int, key: Array | int = 0) -> Iterable[jr.PRNGKey]:

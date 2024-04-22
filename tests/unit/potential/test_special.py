@@ -135,7 +135,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     def test_or_pot(self, pot: MilkyWayPotential) -> None:
         """Test the `__or__` method with a single potential."""
-        single_pot = KeplerPotential(m=1e12 * u.solMass, units=galactic)
+        single_pot = KeplerPotential(m_tot=1e12 * u.solMass, units=galactic)
         newpot = pot | single_pot
 
         assert isinstance(newpot, CompositePotential)
@@ -147,8 +147,8 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     def test_or_compot(self, pot: MilkyWayPotential) -> None:
         """Test the `__or__` method with a composite potential."""
         comp_pot = CompositePotential(
-            kep1=KeplerPotential(m=1e12 * u.solMass, units=galactic),
-            kep2=KeplerPotential(m=1e12 * u.solMass, units=galactic),
+            kep1=KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
+            kep2=KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
         )
         newpot = pot | comp_pot
 
@@ -172,7 +172,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     def test_ror_pot(self, pot: CompositePotential) -> None:
         """Test the `__ror__` method with a single potential."""
-        single_pot = KeplerPotential(m=1e12 * u.solMass, units=galactic)
+        single_pot = KeplerPotential(m_tot=1e12 * u.solMass, units=galactic)
         newpot = single_pot | pot
 
         assert isinstance(newpot, CompositePotential)
@@ -184,8 +184,8 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     def test_ror_compot(self, pot: CompositePotential) -> None:
         """Test the `__ror__` method with a composite potential."""
         comp_pot = CompositePotential(
-            kep1=KeplerPotential(m=1e12 * u.solMass, units=galactic),
-            kep2=KeplerPotential(m=1e12 * u.solMass, units=galactic),
+            kep1=KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
+            kep2=KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
         )
         newpot = comp_pot | pot
 
@@ -210,7 +210,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     def test_add_pot(self, pot: CompositePotential) -> None:
         """Test the `__add__` method with a single potential."""
-        single_pot = KeplerPotential(m=1e12 * u.solMass, units=galactic)
+        single_pot = KeplerPotential(m_tot=1e12 * u.solMass, units=galactic)
         newpot = pot + single_pot
 
         assert isinstance(newpot, CompositePotential)
@@ -222,8 +222,8 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     def test_add_compot(self, pot: CompositePotential) -> None:
         """Test the `__add__` method with a composite potential."""
         comp_pot = CompositePotential(
-            kep1=KeplerPotential(m=1e12 * u.solMass, units=galactic),
-            kep2=KeplerPotential(m=1e12 * u.solMass, units=galactic),
+            kep1=KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
+            kep2=KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
         )
         newpot = pot + comp_pot
 

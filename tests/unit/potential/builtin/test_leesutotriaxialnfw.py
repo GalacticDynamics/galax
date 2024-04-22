@@ -11,7 +11,7 @@ import galax.potential as gp
 import galax.typing as gt
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import MassParameterMixin
+from .test_common import ParameterMMixin
 from .test_nfw import ScaleRadiusParameterMixin
 from galax.utils._optional_deps import HAS_GALA
 
@@ -91,7 +91,7 @@ class ShapeA3ParameterMixin(ParameterFieldMixin):
 class TestLeeSutoTriaxialNFWPotential(
     AbstractPotential_Test,
     # Parameters
-    MassParameterMixin,
+    ParameterMMixin,
     ScaleRadiusParameterMixin,
     ShapeA1ParameterMixin,
     ShapeA2ParameterMixin,

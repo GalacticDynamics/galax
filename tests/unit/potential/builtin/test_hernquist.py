@@ -7,7 +7,7 @@ from unxt import Quantity
 
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import MassParameterMixin, ShapeCParameterMixin
+from .test_common import ParameterMTotMixin, ShapeCParameterMixin
 from galax.potential import HernquistPotential
 from galax.potential._potential.base import AbstractPotentialBase
 
@@ -15,7 +15,7 @@ from galax.potential._potential.base import AbstractPotentialBase
 class TestHernquistPotential(
     AbstractPotential_Test,
     # Parameters
-    MassParameterMixin,
+    ParameterMTotMixin,
     ShapeCParameterMixin,
 ):
     @pytest.fixture(scope="class")
@@ -23,8 +23,8 @@ class TestHernquistPotential(
         return HernquistPotential
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_m, field_c, field_units) -> dict[str, Any]:
-        return {"m": field_m, "c": field_c, "units": field_units}
+    def fields_(self, field_m_tot, field_c, field_units) -> dict[str, Any]:
+        return {"m_tot": field_m_tot, "c": field_c, "units": field_units}
 
     # ==========================================================================
 

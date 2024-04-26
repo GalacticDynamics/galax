@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any, Generic, Self, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 
 import astropy.units as u
 import equinox as eqx
@@ -20,18 +20,15 @@ from coordinax import Cartesian3DVector, CartesianDifferential3D
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
-from galax.coordinates import AbstractPhaseSpacePosition
-from galax.coordinates._psp.core import ComponentShapeTuple
+import galax.typing as gt
+from galax.coordinates import AbstractPhaseSpacePosition, ComponentShapeTuple
 from galax.coordinates._psp.utils import _p_converter, _q_converter
-from galax.potential import AbstractPotentialBase, KeplerPotential
-from galax.potential._potential.special import MilkyWayPotential
+from galax.potential import AbstractPotentialBase, KeplerPotential, MilkyWayPotential
 
 if TYPE_CHECKING:
     from pytest import FixtureRequest  # noqa: PT013
 
-from galax.coordinates import AbstractPhaseSpacePosition
 
-Shape: TypeAlias = tuple[int, ...]
 T = TypeVar("T", bound=AbstractPhaseSpacePosition)
 
 potentials = [KeplerPotential(m_tot=1e12 * u.Msun, units=galactic), MilkyWayPotential()]
@@ -48,7 +45,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
     """Test :class:`~galax.coordinates.AbstractPhaseSpacePosition`."""
 
     @pytest.fixture(scope="class", params=[(10,), (5, 4)])
-    def shape(self, request: FixtureRequest) -> Shape:
+    def shape(self, request: FixtureRequest) -> gt.Shape:
         """Return a shape."""
         return request.param
 
@@ -58,7 +55,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         """Return the class of a phase-space position."""
         raise NotImplementedError
 
-    def make_w(self, w_cls: type[T], shape: Shape) -> T:
+    def make_w(self, w_cls: type[T], shape: gt.Shape) -> T:
         """Return a phase-space position."""
         _, subkeys = return_keys(3)
 
@@ -68,20 +65,20 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         return w_cls(q=q, p=p, t=t)
 
     @pytest.fixture(scope="class")
-    def w(self, w_cls: type[T], shape: Shape) -> T:
+    def w(self, w_cls: type[T], shape: gt.Shape) -> T:
         """Return a phase-space position."""
         return self.make_w(w_cls, shape)
 
     # ===============================================================
     # Attributes
 
-    def test_q(self, w: T, shape: Shape) -> None:
+    def test_q(self, w: T, shape: gt.Shape) -> None:
         """Test :attr:`~galax.coordinates.AbstractPhaseSpacePosition.q`."""
         assert hasattr(w, "q")
         assert w.q.shape == shape
         assert len(w.q.components) == 3
 
-    def test_p(self, w: T, shape: Shape) -> None:
+    def test_p(self, w: T, shape: gt.Shape) -> None:
         """Test :attr:`~galax.coordinates.AbstractPhaseSpacePosition.p`."""
         assert hasattr(w, "p")
         assert w.p.shape == w.q.shape
@@ -91,7 +88,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
     # ===============================================================
     # Array properties
 
-    def test_shape(self, w: T, shape: Shape) -> None:
+    def test_shape(self, w: T, shape: gt.Shape) -> None:
         """Test :attr:`~galax.coordinates.AbstractPhaseSpacePosition.shape`."""
         # Check existence
         assert hasattr(w, "shape")
@@ -150,7 +147,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
 
     # ==========================================================================
 
-    def test_full_shape(self, w: T, shape: Shape) -> None:
+    def test_full_shape(self, w: T, shape: gt.Shape) -> None:
         """Test :attr:`~galax.dynamics.PhaseSpacePosition.full_shape`."""
         # Definition
         batch_shape, component_shapes = w._shape_tuple
@@ -243,7 +240,7 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
             t: Quantity["time"]
 
             @property
-            def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
+            def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
                 return self.q.shape, ComponentShapeTuple(p=3, q=3, t=1)
 
             def __getitem__(self, index: Any) -> Self:

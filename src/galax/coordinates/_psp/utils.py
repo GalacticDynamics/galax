@@ -19,7 +19,7 @@ from galax.typing import FloatQAnyShape
 class Shaped(Protocol):
     """Protocol for a shaped object."""
 
-    shape: tuple[int, ...]
+    shape: gt.Shape
 
 
 def _getitem_broadscalartime_index_tuple(

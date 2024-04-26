@@ -12,6 +12,7 @@ from unxt import Quantity
 
 # =============================================================================
 
+Shape: TypeAlias = tuple[int, ...]
 Unit: TypeAlias = u.Unit | u.UnitBase | u.CompositeUnit
 
 # =============================================================================

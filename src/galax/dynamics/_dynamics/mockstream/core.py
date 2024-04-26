@@ -11,8 +11,7 @@ import jax.numpy as jnp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
-from galax.coordinates import AbstractPhaseSpacePosition
-from galax.coordinates._psp.base import ComponentShapeTuple
+from galax.coordinates import AbstractPhaseSpacePosition, ComponentShapeTuple
 from galax.coordinates._psp.utils import (
     _p_converter,
     _q_converter,
@@ -57,7 +56,7 @@ class MockStream(AbstractPhaseSpacePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
+    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
         """Batch ."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)

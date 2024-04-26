@@ -11,8 +11,8 @@ from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
-from .base import AbstractPhaseSpacePosition
-from .core import ComponentShapeTuple, PhaseSpacePosition
+from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
+from .core import PhaseSpacePosition
 from .utils import _p_converter, _q_converter
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
 
@@ -84,7 +84,7 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
+    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)

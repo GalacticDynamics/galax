@@ -104,10 +104,7 @@ class TestBatchedShape:
         ],
     )
     def test_batched_shape(
-        self,
-        arr: jax.Array,
-        expect_ndim: int,
-        expect: tuple[tuple[int, ...], tuple[int, ...]],
+        self, arr: jax.Array, expect_ndim: int, expect: tuple[gt.Shape, gt.Shape]
     ) -> None:
         """Test the `galax.utils._shape.batched_shape` function."""
         batch, shape = batched_shape(arr, expect_ndim=expect_ndim)

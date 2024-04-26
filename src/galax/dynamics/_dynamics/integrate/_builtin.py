@@ -406,7 +406,7 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
     position output.
     """
 
-    added_ndim: tuple[int, ...] = eqx.field(static=True)
+    added_ndim: gt.Shape = eqx.field(static=True)
     """The number of dimensions added to the output of the interpolation.
 
     This is used to reshape the output of the interpolation to match the batch

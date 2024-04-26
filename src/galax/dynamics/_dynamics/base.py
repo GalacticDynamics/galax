@@ -13,8 +13,11 @@ import jax.numpy as jnp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
-from galax.coordinates import AbstractPhaseSpacePosition, PhaseSpacePosition
-from galax.coordinates._psp.base import ComponentShapeTuple
+from galax.coordinates import (
+    AbstractPhaseSpacePosition,
+    ComponentShapeTuple,
+    PhaseSpacePosition,
+)
 from galax.coordinates._psp.utils import (
     Shaped,
     _p_converter,
@@ -60,7 +63,7 @@ class AbstractOrbit(AbstractPhaseSpacePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
+    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)

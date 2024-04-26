@@ -26,16 +26,16 @@ classifiers = [
 ]
 dependencies = [
   "astropy >= 6.0",
-  "beartype",
+  "beartype >= 0.18",
   "coordinax @ git+https://github.com/GalacticDynamics/coordinax.git",
   "diffrax >= 0.5",
-  "equinox != 0.11.3",
+  "equinox >=0.11, != 0.11.3",
   "jax >= 0.4",
   "jaxlib",
-  "lazy_loader",
+  "lazy_loader >= 0.4",
   "quax >= 0.0.3",
-  "quaxed >=0.3",
-  "typing_extensions",
+  "quaxed >=0.4",
+  "typing_extensions >= 4.11",
   "unxt @ git+https://github.com/GalacticDynamics/unxt.git",
 ]
 description = "Galactic Dynamix in Jax."

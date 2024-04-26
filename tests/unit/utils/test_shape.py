@@ -11,6 +11,7 @@ import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
 
+import galax.typing as gt
 from galax.utils._shape import (
     atleast_batched,
     batched_shape,

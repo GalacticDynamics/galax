@@ -17,7 +17,7 @@ from galax.utils._optional_deps import HAS_GALA
 if HAS_GALA:
     from galax.potential._potential.io._gala import _GALA_TO_GALAX_REGISTRY
 else:
-    from galax.potential._potential.io._gala_noop import _GALA_TO_GALAX_REGISTRY
+    _GALA_TO_GALAX_REGISTRY = {}
 
 
 class GalaIOMixin:

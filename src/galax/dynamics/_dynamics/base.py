@@ -13,6 +13,7 @@ import jax.numpy as jnp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
+import galax.typing as gt
 from galax.coordinates import (
     AbstractPhaseSpacePosition,
     ComponentShapeTuple,

@@ -6,12 +6,6 @@ Conversion is useful for e.g. converting a
 :class:`gala.potential.PotentialBase` object.
 """
 
-__all__: list[str] = ["gala_to_galax"]
+from lazy_loader import attach_stub
 
-
-from galax.utils._optional_deps import HAS_GALA
-
-if HAS_GALA:
-    from ._gala import gala_to_galax
-else:
-    from ._gala_noop import gala_to_galax  # type: ignore[assignment]
+__getattr__, __dir__, __all__ = attach_stub(__name__, __file__)

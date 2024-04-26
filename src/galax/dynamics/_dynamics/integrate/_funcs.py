@@ -102,6 +102,7 @@ def evaluate_orbit(
     >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
     >>> from unxt.unitsystems import galactic
 
     We can then create the point-mass' potential, with galactic units:
@@ -115,7 +116,7 @@ def evaluate_orbit(
     ...                            p=Quantity([0., 0.1, 0.], "km/s"),
     ...                            t=Quantity(-100, "Myr"))
     >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
-    >>> orbit = evaluate_orbit(potential, w0, ts)
+    >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
       q=Cartesian3DVector(...), p=CartesianDifferential3D(...),
@@ -130,7 +131,7 @@ def evaluate_orbit(
     Changing the number of times is easy:
 
     >>> ts = xp.linspace(0., 1000, 10)  # (1 Gyr, 10 steps)
-    >>> orbit = evaluate_orbit(potential, w0, ts)
+    >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
       q=Cartesian3DVector(...), p=CartesianDifferential3D(...),
@@ -143,7 +144,7 @@ def evaluate_orbit(
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
     ...                            p=Quantity([[0, 0.1, 0], [0, 0.2, 0]], "km/s"),
     ...                            t=Quantity([-100, -150], "Myr"))
-    >>> orbit = evaluate_orbit(potential, w0, ts)
+    >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
       q=Cartesian3DVector(
@@ -163,7 +164,7 @@ def evaluate_orbit(
     ...                            p=Quantity([0., 0.1, 0.], "km/s"),
     ...                            t=Quantity(0, "Myr"))
     >>> ts = xp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
-    >>> orbit = evaluate_orbit(potential, w0, ts)
+    >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
     Array([ 9.779, -0.3102,  0.        ], dtype=float64)
 

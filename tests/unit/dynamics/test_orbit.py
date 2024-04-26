@@ -11,11 +11,8 @@ import quaxed.array_api as xp
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
-from ..coordinates.psp.test_base import (
-    AbstractPhaseSpacePosition_Test,
-    Shape,
-    return_keys,
-)
+import galax.typing as gt
+from ..coordinates.psp.test_base import AbstractPhaseSpacePosition_Test, return_keys
 from galax.coordinates import PhaseSpacePosition
 from galax.dynamics import Orbit
 from galax.potential import AbstractPotentialBase, MilkyWayPotential
@@ -37,7 +34,7 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
         return MilkyWayPotential()
 
     def make_w(
-        self, w_cls: type[T], shape: Shape, potential: AbstractPotentialBase
+        self, w_cls: type[T], shape: gt.Shape, potential: AbstractPotentialBase
     ) -> T:
         """Return a phase-space position."""
         _, subkeys = return_keys(3)
@@ -48,7 +45,7 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
         return w_cls(q=q, p=p, t=t, potential=potential)
 
     @pytest.fixture(scope="class")
-    def w(self, w_cls: type[T], shape: Shape, potential: AbstractPotentialBase) -> T:
+    def w(self, w_cls: type[T], shape: gt.Shape, potential: AbstractPotentialBase) -> T:
         """Return a phase-space position."""
         return self.make_w(w_cls, shape, potential)
 

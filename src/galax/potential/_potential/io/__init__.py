@@ -6,8 +6,6 @@ Conversion is useful for e.g. converting a
 :class:`gala.potential.PotentialBase` object.
 """
 
-import lazy_loader as lazy
+from lazy_loader import attach_stub
 
-__getattr__, __dir__, __all__ = lazy.attach(
-    __name__, submod_attrs={"_gala": ["gala_to_galax"]}
-)
+__getattr__, __dir__, __all__ = attach_stub(__name__, __file__)

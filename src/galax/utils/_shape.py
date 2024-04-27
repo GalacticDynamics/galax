@@ -12,6 +12,7 @@ from jaxtyping import Array, ArrayLike, Shaped
 import quaxed.array_api as xp
 from coordinax import AbstractVectorBase
 
+import galax.typing as gt
 from galax.utils._jax import quaxify
 
 AnyScalar: TypeAlias = Shaped[Array, ""]
@@ -89,7 +90,7 @@ def atleast_batched(*arys: Any) -> Array | tuple[Array, ...]:
 # =============================================================================
 
 
-def vector_batched_shape(obj: AbstractVectorBase) -> tuple[tuple[int, ...], int]:
+def vector_batched_shape(obj: AbstractVectorBase) -> tuple[gt.Shape, int]:
     """Return the batch and component shape of a vector."""
     return obj.shape, len(obj.components)
 
@@ -97,31 +98,31 @@ def vector_batched_shape(obj: AbstractVectorBase) -> tuple[tuple[int, ...], int]
 @overload
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar, /, *, expect_ndim: Literal[0]
-) -> tuple[tuple[int, ...], tuple[int, ...]]: ...
+) -> tuple[gt.Shape, gt.Shape]: ...
 
 
 @overload
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar, /, *, expect_ndim: Literal[1]
-) -> tuple[tuple[int, ...], tuple[int]]: ...
+) -> tuple[gt.Shape, tuple[int]]: ...
 
 
 @overload
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar, /, *, expect_ndim: Literal[2]
-) -> tuple[tuple[int, ...], tuple[int, int]]: ...
+) -> tuple[gt.Shape, tuple[int, int]]: ...
 
 
 @overload
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar, /, *, expect_ndim: int
-) -> tuple[tuple[int, ...], tuple[int, ...]]: ...
+) -> tuple[gt.Shape, gt.Shape]: ...
 
 
 @quaxify
 def batched_shape(
     arr: ArrayAnyShape | AnyScalar | float | int, /, *, expect_ndim: int
-) -> tuple[tuple[int, ...], tuple[int, ...]]:
+) -> tuple[gt.Shape, gt.Shape]:
     """Return the (batch_shape, arr_shape) an array.
 
     Parameters
@@ -174,7 +175,7 @@ def batched_shape(
         >>> batched_shape(xp.asarray([[[1]], [[1]]]), expect_ndim=2)
         ((2,), (1, 1))
     """
-    shape: tuple[int, ...] = xp.asarray(arr).shape
+    shape: gt.Shape = xp.asarray(arr).shape
     ndim = len(shape)
     return shape[: ndim - expect_ndim], shape[ndim - expect_ndim :]
 

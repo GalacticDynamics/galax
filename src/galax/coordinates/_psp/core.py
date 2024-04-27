@@ -6,6 +6,7 @@ from typing import Any, NamedTuple, final
 
 import equinox as eqx
 import jax.numpy as jnp
+from typing_extensions import override
 
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
@@ -141,11 +142,12 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
+    @override
+    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:  # type: ignore[override]
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
-        tbatch: tuple[int, ...]
+        tbatch: gt.Shape
         if self.t is None:
             tbatch, tshape = (), None
         else:

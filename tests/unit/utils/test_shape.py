@@ -11,6 +11,7 @@ import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
 
+import galax.typing as gt
 from galax.utils._shape import (
     atleast_batched,
     batched_shape,
@@ -104,10 +105,7 @@ class TestBatchedShape:
         ],
     )
     def test_batched_shape(
-        self,
-        arr: jax.Array,
-        expect_ndim: int,
-        expect: tuple[tuple[int, ...], tuple[int, ...]],
+        self, arr: jax.Array, expect_ndim: int, expect: tuple[gt.Shape, gt.Shape]
     ) -> None:
         """Test the `galax.utils._shape.batched_shape` function."""
         batch, shape = batched_shape(arr, expect_ndim=expect_ndim)

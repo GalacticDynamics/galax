@@ -1,6 +1,6 @@
 """galax: Galactic Dynamics in Jax."""
 
-__all__ = ["AbstractPhaseSpacePosition"]
+__all__ = ["AbstractPhaseSpacePosition", "ComponentShapeTuple"]
 
 from abc import abstractmethod
 from dataclasses import replace
@@ -29,13 +29,13 @@ class ComponentShapeTuple(NamedTuple):
     """Component shape of the phase-space position."""
 
     q: int
-    """Shape of the position."""
+    """Shape of the position component."""
 
     p: int
-    """Shape of the momentum."""
+    """Shape of the momentum component."""
 
     t: int
-    """Shape of the time."""
+    """Shape of the time component."""
 
 
 class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -70,12 +70,12 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
     @property
     @abstractmethod
-    def _shape_tuple(self) -> tuple[tuple[int, ...], Any]:
+    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
         """Batch, component shape."""
         raise NotImplementedError
 
     @property
-    def shape(self) -> tuple[int, ...]:
+    def shape(self) -> gt.Shape:
         """Shape of the position and velocity arrays.
 
         This is the shape of the batch, not including the component shape.
@@ -138,7 +138,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
     # Further Array properties
 
     @property
-    def full_shape(self) -> tuple[int, ...]:
+    def full_shape(self) -> gt.Shape:
         """The full shape: batch and components.
 
         Examples

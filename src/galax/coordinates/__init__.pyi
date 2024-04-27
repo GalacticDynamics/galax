@@ -9,11 +9,13 @@ __all__ = [
     "PhaseSpacePosition",
     "InterpolatedPhaseSpacePosition",
     "PhaseSpacePositionInterpolant",
+    "ComponentShapeTuple",
 ]
 
 from . import operators
 from ._psp import (
     AbstractPhaseSpacePosition,
+    ComponentShapeTuple,
     InterpolatedPhaseSpacePosition,
     PhaseSpacePosition,
     PhaseSpacePositionInterpolant,

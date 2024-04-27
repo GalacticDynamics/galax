@@ -11,14 +11,13 @@ import jax.numpy as jnp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
-from galax.coordinates import AbstractPhaseSpacePosition
-from galax.coordinates._psp.base import ComponentShapeTuple
+import galax.typing as gt
+from galax.coordinates import AbstractPhaseSpacePosition, ComponentShapeTuple
 from galax.coordinates._psp.utils import (
     _p_converter,
     _q_converter,
     getitem_vec1time_index,
 )
-from galax.typing import QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 if TYPE_CHECKING:
@@ -47,17 +46,17 @@ class MockStream(AbstractPhaseSpacePosition):
     p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
-    t: QVecTime = eqx.field(converter=Quantity["time"].constructor)
+    t: gt.QVecTime = eqx.field(converter=Quantity["time"].constructor)
     """Array of times corresponding to the positions."""
 
-    release_time: QVecTime = eqx.field(converter=Quantity["time"].constructor)
+    release_time: gt.QVecTime = eqx.field(converter=Quantity["time"].constructor)
     """Release time of the stream particles [Myr]."""
 
     # ==========================================================================
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[tuple[int, ...], ComponentShapeTuple]:
+    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
         """Batch ."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)

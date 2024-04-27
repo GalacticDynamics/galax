@@ -595,8 +595,7 @@ def constructor(
     :class:`~galax.coordinates.PhaseSpacePosition`, we can construct a
     new object from the input object that is an instance of the new class:
 
-    >>> class NewPhaseSpacePosition(PhaseSpacePosition):
-    ...     pass
+    >>> class NewPhaseSpacePosition(PhaseSpacePosition): pass
     >>> new_psp = NewPhaseSpacePosition.constructor(psp)
     >>> new_psp is psp
     False
@@ -604,9 +603,7 @@ def constructor(
     True
 
     """
-    if not isinstance(obj, cls):
-        msg = f"Cannot construct {cls} from {type(obj)}."
-        raise TypeError(msg)
+    # TODO: add isinstance checks
 
     # Avoid copying if the types are the same. Isinstance is not strict
     # enough, so we use type() instead.

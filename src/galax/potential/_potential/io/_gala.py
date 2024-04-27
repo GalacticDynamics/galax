@@ -7,7 +7,7 @@ from typing import TypeVar
 
 try:  # TODO: less hacky way of supporting optional dependencies
     import pytest
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 else:
     _ = pytest.importorskip("gala")

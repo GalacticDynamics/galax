@@ -1,12 +1,12 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: 2023.10.27
+_commit: 2024.04.23
 _src_path: gh:scientific-python/cookie
 backend: hatch
 email: nstarman@users.noreply.github.com
 full_name: galax maintainers
 license: MIT
-org: galax
+org: GalacticDynamics
 project_name: galax
-project_short_description: Galactic Dynamix in Jax.
+project_short_description: Galactic Dynamics in Jax.
 url: https://github.com/GalacticDynamics/galax
 vcs: true

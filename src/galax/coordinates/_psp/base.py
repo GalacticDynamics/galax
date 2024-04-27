@@ -3,6 +3,7 @@
 __all__ = ["AbstractPhaseSpacePosition", "ComponentShapeTuple"]
 
 from abc import abstractmethod
+from collections.abc import Mapping
 from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, NamedTuple, cast
@@ -18,6 +19,7 @@ from unxt import Quantity, unitsystem
 
 import galax.typing as gt
 from .utils import getitem_broadscalartime_index
+from galax.utils.dataclasses import dataclass_items
 
 if TYPE_CHECKING:
     from typing import Self
@@ -64,6 +66,50 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 
     t: eqx.AbstractVar[gt.BroadBatchFloatQScalar]
     """Time corresponding to the positions and momenta."""
+
+    # ---------------------------------------------------------------
+    # Constructors
+
+    @classmethod
+    @dispatch  # type: ignore[misc]
+    def constructor(
+        cls: "type[AbstractPhaseSpacePosition]", obj: Mapping[str, Any], /
+    ) -> "AbstractPhaseSpacePosition":
+        """Construct from a mapping.
+
+        Parameters
+        ----------
+        cls : type[:class:`~galax.coordinates.AbstractPhaseSpacePosition`]
+            The class to construct.
+        obj : Mapping[str, Any]
+            The mapping from which to construct.
+
+        Returns
+        -------
+        :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+            The constructed phase-space position.
+
+        Examples
+        --------
+        With the following imports:
+
+        >>> from unxt import Quantity
+        >>> from galax.coordinates import PhaseSpacePosition
+
+        We can create a phase-space position from a mapping:
+
+        >>> obj = {"q": Quantity([1, 2, 3], "kpc"),
+        ...        "p": Quantity([4, 5, 6], "km/s"),
+        ...        "t": Quantity(0, "Gyr")}
+        >>> PhaseSpacePosition.constructor(obj)
+        PhaseSpacePosition(
+            q=Cartesian3DVector( ... ),
+            p=CartesianDifferential3D( ... ),
+            t=Quantity[...](value=f64[], unit=Unit("Gyr"))
+        )
+
+        """
+        return cls(**obj)
 
     # ==========================================================================
     # Array properties
@@ -534,7 +580,74 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
 # =============================================================================
 # helper functions
 
+# -----------------------------------------------
+# Register additional constructors
 
+
+@AbstractPhaseSpacePosition.constructor._f.register  # type: ignore[misc]  # noqa: SLF001
+def constructor(
+    cls: type[AbstractPhaseSpacePosition], obj: AbstractPhaseSpacePosition, /
+) -> AbstractPhaseSpacePosition:
+    """Construct from a `AbstractPhaseSpacePosition`.
+
+    Parameters
+    ----------
+    cls : type[:class:`~galax.coordinates.AbstractPhaseSpacePosition`]
+        The class to construct.
+    obj : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+        The phase-space position object from which to construct.
+
+    Returns
+    -------
+    :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+        The constructed phase-space position.
+
+    Raises
+    ------
+    TypeError
+        If the input object is not an instance of the target class.
+
+    Examples
+    --------
+    With the following imports:
+
+    >>> from unxt import Quantity
+    >>> import coordinax as cx
+    >>> from galax.coordinates import PhaseSpacePosition
+
+    We can create a phase-space position and construct a new one from it:
+
+    >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+    ...                          p=Quantity([4, 5, 6], "km/s"),
+    ...                          t=Quantity(0, "Gyr"))
+    >>> PhaseSpacePosition.constructor(psp) is psp
+    True
+
+    Note that the constructed object is the same as the input object because
+    the types are the same. If we define a new class that inherits from
+    :class:`~galax.coordinates.PhaseSpacePosition`, we can construct a
+    new object from the input object that is an instance of the new class:
+
+    >>> class NewPhaseSpacePosition(PhaseSpacePosition): pass
+    >>> new_psp = NewPhaseSpacePosition.constructor(psp)
+    >>> new_psp is psp
+    False
+    >>> isinstance(new_psp, NewPhaseSpacePosition)
+    True
+
+    """
+    # TODO: add isinstance checks
+
+    # Avoid copying if the types are the same. Isinstance is not strict
+    # enough, so we use type() instead.
+    if type(obj) is cls:  # pylint: disable=unidiomatic-typecheck
+        return obj
+
+    return cls(**dict(dataclass_items(obj)))
+
+
+# -----------------------------------------------
+# Register AbstractPhaseSpacePosition with `coordinax.represent_as`
 @dispatch  # type: ignore[misc]
 def represent_as(
     psp: AbstractPhaseSpacePosition,

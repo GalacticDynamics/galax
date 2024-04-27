@@ -75,7 +75,40 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
     def constructor(
         cls: "type[AbstractPhaseSpacePosition]", obj: Mapping[str, Any], /
     ) -> "AbstractPhaseSpacePosition":
-        """Construct from a mapping."""
+        """Construct from a mapping.
+
+        Parameters
+        ----------
+        cls : type[:class:`~galax.coordinates.AbstractPhaseSpacePosition`]
+            The class to construct.
+        obj : Mapping[str, Any]
+            The mapping from which to construct.
+
+        Returns
+        -------
+        :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+            The constructed phase-space position.
+
+        Examples
+        --------
+        With the following imports:
+
+        >>> from unxt import Quantity
+        >>> from galax.coordinates import PhaseSpacePosition
+
+        We can create a phase-space position from a mapping:
+
+        >>> obj = {"q": Quantity([1, 2, 3], "kpc"),
+        ...        "p": Quantity([4, 5, 6], "km/s"),
+        ...        "t": Quantity(0, "Gyr")}
+        >>> PhaseSpacePosition.constructor(obj)
+        PhaseSpacePosition(
+            q=Cartesian3DVector( ... ),
+            p=CartesianDifferential3D( ... ),
+            t=Quantity[...](value=f64[], unit=Unit("Gyr"))
+        )
+
+        """
         return cls(**obj)
 
     # ==========================================================================

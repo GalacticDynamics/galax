@@ -38,10 +38,11 @@ dependencies = [
   "typing_extensions >= 4.11",
   "unxt @ git+https://github.com/GalacticDynamics/unxt.git",
 ]
-description = "Galactic Dynamix in Jax."
+description = "Galactic Dynamics in Jax."
 dynamic = ["version"]
 name = "galax"
 readme = "README.md"
+license.file = "LICENSE"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
@@ -85,9 +86,13 @@ Homepage = "https://github.com/GalacticDynamics/galax"
 
 [tool.hatch]
 build.hooks.vcs.version-file = "src/galax/_version.py"
-envs.default.dependencies = ["pytest", "pytest-cov"]
 metadata.allow-direct-references = true
 version.source = "vcs"
+
+[tool.hatch.envs.default]
+dependencies = ["pytest", "pytest-cov"]
+features = ["test"]
+scripts.test = "pytest {args}"
 
 
 [tool.pytest.ini_options]
@@ -115,9 +120,7 @@ xfail_strict = true
 
 [tool.coverage]
 run.source = ["galax"]
-
-[tool.coverage.report]
-exclude_also = [
+report.exclude_also = [
   # Have to re-enable the standard pragma
   'pragma: no cover',
   # Ignore type-checking stuff

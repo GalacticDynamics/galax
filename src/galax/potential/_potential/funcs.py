@@ -8,6 +8,7 @@ __all__ = [
     "hessian",
     "acceleration",
     "tidal_tensor",
+    "circular_velocity",
 ]
 
 from functools import partial
@@ -15,7 +16,7 @@ from typing import Any, TypeAlias
 
 import jax
 from jaxtyping import Shaped
-from plum import dispatch
+from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.array_api as xp
@@ -26,6 +27,7 @@ import galax.coordinates as gc
 import galax.typing as gt
 from .base import AbstractPotentialBase
 from .utils import parse_to_quantity
+from galax.potential._potential.base import AbstractPotentialBase
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
 HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
@@ -1223,7 +1225,7 @@ def acceleration(
 
     Parameters
     ----------
-    potential : :class:`~galax.potential.AbstractPotentialBase`
+    pot : :class:`~galax.potential.AbstractPotentialBase`
         The potential to compute the acceleration of.
     *args : Any
         The phase-space + time position to compute the acceleration. See
@@ -1334,7 +1336,7 @@ def tidal_tensor(
 
     Parameters
     ----------
-    potential : :class:`~galax.potential.AbstractPotentialBase`
+    pot : :class:`~galax.potential.AbstractPotentialBase`
         The potential to compute the tidal tensor of.
     *args, **kwargs : Any
         The arguments to pass to :func:`~galax.potential.hessian`.
@@ -1542,7 +1544,7 @@ def d2potential_dr2(
 
     Parameters
     ----------
-    potential : `galax.potential.AbstractPotentialBase`
+    pot : `galax.potential.AbstractPotentialBase`
         The gravitational potential.
     x: Quantity[Any, (*batch, 3,), 'length']
         3d position (x, y, z) in [kpc]
@@ -1557,13 +1559,123 @@ def d2potential_dr2(
     Examples
     --------
     >>> from unxt import Quantity
-    >>> from galax.potential import NFWPotential
-    >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
+    >>> import galax.potential as gp
+
+    >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
+    ...                       units="galactic")
     >>> q = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
     >>> d2potential_dr2(pot, q, Quantity(0.0, "Myr"))
     Quantity['1'](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
+
     """
     rhat = cx.normalize_vector(x)
     H = pot.hessian(x, t=t)
     # vectorized dot product of rhat · H · rhat
     return qnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)
+
+
+# ===================================================================
+
+
+# TODO: should this be moved to `galax.dynamics`?
+@dispatch
+@partial(jax.jit)
+def circular_velocity(
+    pot: AbstractPotentialBase, x: gt.LengthVec3, /, t: gt.TimeScalar
+) -> gt.BatchableRealQScalar:
+    """Estimate the circular velocity at the given position.
+
+    Parameters
+    ----------
+    pot : AbstractPotentialBase
+        The Potential.
+    x : Quantity[float, (*batch, 3), "length"]
+        Position(s) to estimate the circular velocity.
+    t : Quantity[float, (), "time"]
+        Time at which to compute the circular velocity.
+
+    Returns
+    -------
+    vcirc : Quantity[float, (*batch,), "speed"]
+        Circular velocity at the given position(s).
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+
+    >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
+    ...                       units="galactic")
+    >>> x = Quantity([8.0, 0.0, 0.0], "kpc")
+    >>> gp.circular_velocity(pot, x, t=Quantity(0.0, "Gyr"))
+    Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
+
+    """
+    r = xp.linalg.vector_norm(x, axis=-1)
+    dPhi_dxyz = convert(pot.gradient(x, t=t), Quantity)
+    dPhi_dr = xp.sum(dPhi_dxyz * x / r[..., None], axis=-1)
+    return xp.sqrt(r * xp.abs(dPhi_dr))
+
+
+@dispatch
+@partial(jax.jit)
+def circular_velocity(
+    pot: AbstractPotentialBase, x: gt.LengthVec3, /, *, t: gt.TimeScalar
+) -> gt.BatchableRealQScalar:
+    return circular_velocity(pot, x, t)
+
+
+@dispatch
+@partial(jax.jit)
+def circular_velocity(
+    pot: AbstractPotentialBase, q: cx.AbstractPosition3D, /, t: gt.TimeScalar
+) -> gt.BatchableRealQScalar:
+    """Estimate the circular velocity at the given position.
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+    >>> import coordinax as cx
+
+    >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
+    ...                       units="galactic")
+    >>> x = cx.CartesianPosition3D.constructor([8.0, 0.0, 0.0], "kpc")
+    >>> gp.circular_velocity(pot, x, t=Quantity(0.0, "Gyr"))
+    Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
+
+    """
+    return circular_velocity(pot, convert(q, Quantity), t)
+
+
+@dispatch
+@partial(jax.jit)
+def circular_velocity(
+    pot: AbstractPotentialBase, q: cx.AbstractPosition3D, /, *, t: gt.TimeScalar
+) -> gt.BatchableRealQScalar:
+    return circular_velocity(pot, q, t)
+
+
+@dispatch
+@partial(jax.jit)
+def circular_velocity(
+    pot: AbstractPotentialBase, w: gc.AbstractPhaseSpacePosition, /
+) -> gt.BatchableRealQScalar:
+    """Estimate the circular velocity at the given position.
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+
+    >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
+    ...                       units="galactic")
+    >>> q = gc.PhaseSpacePosition(q=Quantity([8.0, 0.0, 0.0], "kpc"),
+    ...                           p=Quantity([0.0, 0.0, 0.0], "km/s"),
+    ...                           t=Quantity(0.0, "Gyr"))
+    >>> gp.circular_velocity(pot, q)
+    Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
+
+    """
+    return circular_velocity(pot, w.q, w.t)

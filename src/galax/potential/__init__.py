@@ -56,6 +56,7 @@ __all__ = [
     "hessian",
     "acceleration",
     "tidal_tensor",
+    "circular_velocity",
 ]
 
 from jaxtyping import install_import_hook
@@ -107,6 +108,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._potential.frame import PotentialFrame
     from ._potential.funcs import (
         acceleration,
+        circular_velocity,
         density,
         gradient,
         hessian,

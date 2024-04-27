@@ -1,6 +1,7 @@
 # galax
 
 [![Actions Status][actions-badge]][actions-link]
+[![Code Coverage][codecov-badge]][codecov-link]
 [![Documentation Status][rtd-badge]][rtd-link]
 
 [![PyPI version][pypi-version]][pypi-link]
@@ -14,6 +15,8 @@
 <!-- prettier-ignore-start -->
 [actions-badge]:            https://github.com/GalacticDynamics/galax/workflows/CI/badge.svg
 [actions-link]:             https://github.com/GalacticDynamics/galax/actions
+[codecov-badge]:            https://codecov.io/gh/GalacticDynamics/galax/graph/badge.svg?token=PC553LZFFJ
+[codecov-link]:             https://codecov.io/gh/GalacticDynamics/galax
 [conda-badge]:              https://img.shields.io/conda/vn/conda-forge/galax
 [conda-link]:               https://github.com/conda-forge/galax-feedstock
 [github-discussions-badge]: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github

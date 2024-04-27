@@ -45,9 +45,13 @@ readme = "README.md"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
-all = ["galax[compat-all]", "galax[test]", "galax[docs]"]
-compat-all = ["galax[compat-gala]"]
-compat-gala = ["gala"]
+# All runtime dependencies
+all = ["galax[interop-all]"]
+# Interoperability dependencies
+interop-all = ["galax[interop-gala]"]
+interop-gala = ["gala"]
+# TODO: galpy and agama
+# Documentation dependencies
 docs = [
   "sphinx>=7.0",
   "myst_parser>=0.13",
@@ -55,12 +59,21 @@ docs = [
   "sphinx_autodoc_typehints",
   "furo>=2023.08.17",
 ]
+# Test dependencies
 test = [
   "hypothesis[numpy]",
+  "nox",
+  "pre-commit",
   "pytest >=6,<8",
   "pytest-cov >=3",
   "pytest-arraydiff",
   "sybil",
+]
+# Development dependencies
+dev = [
+  "galax[all]",
+  "galax[docs]",
+  "galax[test]",
 ]
 
 [project.urls]

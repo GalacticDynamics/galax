@@ -10,9 +10,9 @@ import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import (
     ParameterMTotMixin,
-    ShapeAParameterMixin,
-    ShapeBParameterMixin,
-    ShapeCParameterMixin,
+    ParameterShapeAMixin,
+    ParameterShapeBMixin,
+    ParameterShapeCMixin,
 )
 from galax.potential import AbstractPotentialBase, BarPotential
 
@@ -21,9 +21,9 @@ class TestBarPotential(
     AbstractPotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ShapeAParameterMixin,
-    ShapeBParameterMixin,
-    ShapeCParameterMixin,
+    ParameterShapeAMixin,
+    ParameterShapeBMixin,
+    ParameterShapeCMixin,
 ):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[BarPotential]:

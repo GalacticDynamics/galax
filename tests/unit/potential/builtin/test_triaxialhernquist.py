@@ -8,9 +8,9 @@ from unxt import Quantity
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import (
     ParameterMTotMixin,
+    ParameterShapeCMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
-    ShapeCParameterMixin,
 )
 from galax.potential import TriaxialHernquistPotential
 from galax.potential._potential.base import AbstractPotentialBase
@@ -21,7 +21,7 @@ class TestTriaxialHernquistPotential(
     AbstractPotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ShapeCParameterMixin,
+    ParameterShapeCMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 ):

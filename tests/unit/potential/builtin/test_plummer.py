@@ -10,7 +10,7 @@ from unxt import AbstractUnitSystem, Quantity
 import galax.potential as gp
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMTotMixin, ShapeBParameterMixin
+from .test_common import ParameterMTotMixin, ParameterShapeBMixin
 from galax.potential import AbstractPotentialBase, PlummerPotential
 from galax.utils._optional_deps import HAS_GALA
 
@@ -19,7 +19,7 @@ class TestPlummerPotential(
     AbstractPotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ShapeBParameterMixin,
+    ParameterShapeBMixin,
 ):
     """Test the `galax.potential.PlummerPotential` class."""
 

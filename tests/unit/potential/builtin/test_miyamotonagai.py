@@ -8,7 +8,7 @@ from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMTotMixin, ShapeAParameterMixin, ShapeBParameterMixin
+from .test_common import ParameterMTotMixin, ParameterShapeAMixin, ParameterShapeBMixin
 from galax.potential import AbstractPotentialBase, MiyamotoNagaiPotential
 from galax.typing import Vec3
 
@@ -17,8 +17,8 @@ class TestMiyamotoNagaiPotential(
     AbstractPotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ShapeAParameterMixin,
-    ShapeBParameterMixin,
+    ParameterShapeAMixin,
+    ParameterShapeBMixin,
 ):
     """Test the `galax.potential.MiyamotoNagaiPotential` class."""
 

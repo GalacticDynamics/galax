@@ -8,6 +8,7 @@ __all__ = [
     "KeplerPotential",
     "KuzminPotential",
     "LogarithmicPotential",
+    "LongMuraliBarPotential",
     "MiyamotoNagaiPotential",
     "NullPotential",
     "PlummerPotential",
@@ -273,6 +274,44 @@ class LogarithmicPotential(AbstractPotential):
             0.5
             * self.v_c(t) ** 2
             * xp.log(self.r_h(t).to_value(self.units["length"]) ** 2 + r2)
+        )
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class LongMuraliBarPotential(AbstractPotential):
+    """Long & Murali Bar Potential.
+
+    A simple, triaxial model for a galaxy bar. This is a softened “needle”
+    density distribution with an analytic potential form. See Long & Murali
+    (1992) for details.
+    """
+
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    alpha: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        m_tot = self.m_tot(t)
+        a, b, c = self.a(t), self.b(t), self.c(t)
+        alpha = self.alpha(t)
+
+        x = q[..., 0] * xp.cos(alpha) + q[..., 1] * xp.sin(alpha)
+        y = -q[..., 0] * xp.sin(alpha) + q[..., 1] * xp.cos(alpha)
+        z = q[..., 2]
+
+        Tm = xp.sqrt((a - x) ** 2 + y**2 + (b + xp.sqrt(c**2 + z**2)) ** 2)
+        Tp = xp.sqrt((a + x) ** 2 + y**2 + (b + xp.sqrt(c**2 + z**2)) ** 2)
+
+        return (
+            self.constants["G"] * m_tot / (2 * a) * xp.log((x - a + Tm) / (x + a + Tp))
         )
 
 

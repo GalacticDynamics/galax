@@ -10,6 +10,7 @@ __all__ = [
     "MiyamotoNagaiPotential",
     "NFWPotential",
     "NullPotential",
+    "PlummerPotential",
     "TriaxialHernquistPotential",
 ]
 
@@ -448,6 +449,24 @@ class NullPotential(AbstractPotential):
         return Quantity(  # TODO: better unit handling
             xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
         )
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class PlummerPotential(AbstractPotential):
+    """Plummer Potential."""
+
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        r2 = xp.linalg.vector_norm(q, axis=-1) ** 2
+        return -self.constants["G"] * self.m_tot(t) / xp.sqrt(r2 + self.b(t) ** 2)
 
 
 # -------------------------------------------------------------------

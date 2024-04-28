@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover
 else:
     _ = pytest.importorskip("gala")
 
-import gala.potential as galap
+import gala.potential as gp
 from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
 
 import coordinax.operators as cxo
@@ -27,7 +27,7 @@ import galax.potential as gpx
 
 
 @singledispatch
-def gala_to_galax(pot: galap.PotentialBase, /) -> gpx.AbstractPotentialBase:
+def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractPotentialBase:
     """Convert a :mod:`gala` potential to a :mod:`galax` potential.
 
     Parameters
@@ -153,7 +153,7 @@ def gala_to_galax(pot: galap.PotentialBase, /) -> gpx.AbstractPotentialBase:
 PT = TypeVar("PT", bound=gpx.AbstractPotentialBase)
 
 
-def _get_frame(pot: galap.PotentialBase, /) -> cxo.AbstractOperator:
+def _get_frame(pot: gp.PotentialBase, /) -> cxo.AbstractOperator:
     frame = cxo.GalileanSpatialTranslationOperator(
         Quantity(pot.origin, unit=pot.units["length"])
     )
@@ -173,29 +173,26 @@ def _apply_frame(frame: cxo.AbstractOperator, pot: PT, /) -> PT | gpx.PotentialF
 
 
 @gala_to_galax.register
-def _gala_to_galax_composite(
-    pot: galap.CompositePotential, /
-) -> gpx.CompositePotential:
+def _gala_to_galax_composite(pot: gp.CompositePotential, /) -> gpx.CompositePotential:
     """Convert a Gala CompositePotential to a Galax potential."""
     return gpx.CompositePotential(**{k: gala_to_galax(p) for k, p in pot.items()})
 
 
-_GALA_TO_GALAX_REGISTRY: dict[
-    type[galap.PotentialBase], type[gpx.AbstractPotential]
-] = {
-    galap.HernquistPotential: gpx.HernquistPotential,
-    galap.IsochronePotential: gpx.IsochronePotential,
-    galap.KeplerPotential: gpx.KeplerPotential,
-    galap.MiyamotoNagaiPotential: gpx.MiyamotoNagaiPotential,
+_GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential]] = {
+    gp.HernquistPotential: gpx.HernquistPotential,
+    gp.IsochronePotential: gpx.IsochronePotential,
+    gp.KeplerPotential: gpx.KeplerPotential,
+    gp.KuzminPotential: gpx.KuzminPotential,
+    gp.MiyamotoNagaiPotential: gpx.MiyamotoNagaiPotential,
 }
 
 
-@gala_to_galax.register(galap.HernquistPotential)
-@gala_to_galax.register(galap.IsochronePotential)
-@gala_to_galax.register(galap.KeplerPotential)
-@gala_to_galax.register(galap.MiyamotoNagaiPotential)
+@gala_to_galax.register(gp.HernquistPotential)
+@gala_to_galax.register(gp.IsochronePotential)
+@gala_to_galax.register(gp.KeplerPotential)
+@gala_to_galax.register(gp.MiyamotoNagaiPotential)
 def _gala_to_galax_registered(
-    gala: galap.PotentialBase, /
+    gala: gp.PotentialBase, /
 ) -> gpx.AbstractPotential | gpx.PotentialFrame:
     """Convert a Gala HernquistPotential to a Galax potential."""
     if isinstance(gala.units, GalaDimensionlessUnitSystem):
@@ -216,7 +213,7 @@ def _gala_to_galax_registered(
 
 
 @gala_to_galax.register
-def _gala_to_galax_null(_: galap.NullPotential, /) -> gpx.NullPotential:
+def _gala_to_galax_null(_: gp.NullPotential, /) -> gpx.NullPotential:
     """Convert a Gala NullPotential to a Galax potential.
 
     Examples
@@ -235,7 +232,7 @@ def _gala_to_galax_null(_: galap.NullPotential, /) -> gpx.NullPotential:
 
 @gala_to_galax.register
 def _gala_to_galax_nfw(
-    gala: galap.NFWPotential, /
+    gala: gp.NFWPotential, /
 ) -> gpx.NFWPotential | gpx.PotentialFrame:
     """Convert a Gala NFWPotential to a Galax potential.
 
@@ -262,7 +259,7 @@ def _gala_to_galax_nfw(
 
 @gala_to_galax.register
 def _gala_to_galax_leesutotriaxialnfw(
-    pot: galap.LeeSutoTriaxialNFWPotential, /
+    pot: gp.LeeSutoTriaxialNFWPotential, /
 ) -> gpx.LeeSutoTriaxialNFWPotential:
     """Convert a Gala LeeSutoTriaxialNFWPotential to a Galax potential.
 
@@ -306,7 +303,7 @@ def _gala_to_galax_leesutotriaxialnfw(
 
 
 @gala_to_galax.register
-def _gala_to_galax_mw(pot: galap.MilkyWayPotential, /) -> gpx.MilkyWayPotential:
+def _gala_to_galax_mw(pot: gp.MilkyWayPotential, /) -> gpx.MilkyWayPotential:
     """Convert a Gala MilkyWayPotential to a Galax potential.
 
     Examples

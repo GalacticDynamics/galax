@@ -184,6 +184,7 @@ _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential
     gp.KeplerPotential: gpx.KeplerPotential,
     gp.KuzminPotential: gpx.KuzminPotential,
     gp.MiyamotoNagaiPotential: gpx.MiyamotoNagaiPotential,
+    gp.PlummerPotential: gpx.PlummerPotential,
 }
 
 

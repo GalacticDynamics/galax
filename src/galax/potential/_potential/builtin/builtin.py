@@ -4,6 +4,7 @@ __all__ = [
     "BarPotential",
     "HernquistPotential",
     "IsochronePotential",
+    "JaffePotential",
     "KeplerPotential",
     "KuzminPotential",
     "LogarithmicPotential",
@@ -157,6 +158,25 @@ class IsochronePotential(AbstractPotential):
         r = xp.linalg.vector_norm(q, axis=-1)
         b = self.b(t)
         return -self.constants["G"] * self.m_tot(t) / (b + xp.sqrt(r**2 + b**2))
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class JaffePotential(AbstractPotential):
+    """Jaffe Potential."""
+
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        r = xp.linalg.vector_norm(q, axis=-1)
+        r_s = self.r_s(t)
+        return -self.constants["G"] * self.m(t) / r_s * xp.log(1 + r_s / r)
 
 
 # -------------------------------------------------------------------

@@ -116,6 +116,20 @@ def _galax_to_gala_bar(pot: gpx.BarPotential, /) -> gp.PotentialBase:
 
 
 @galax_to_gala.register
+def _galax_to_gala_jaffe(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
+    """Convert a Galax JaffePotential to a Gala potential."""
+    if not _all_constant_parameters(pot, "m", "r_s"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.JaffePotential(
+        m=convert(pot.m(0), APYQuantity),
+        c=convert(pot.r_s(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
+@galax_to_gala.register
 def _galax_to_gala_null(_: gpx.NullPotential, /) -> gp.NullPotential:
     return gp.NullPotential(units=gala_dimensionless)
 

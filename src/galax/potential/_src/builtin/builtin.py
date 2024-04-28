@@ -2,6 +2,7 @@
 
 __all__ = [
     "BurkertPotential",
+    "HarmonicOscillatorPotential",
     "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
@@ -153,6 +154,72 @@ class BurkertPotential(AbstractPotential):
         """
         m = jnp.pi * rho_0 * r_s**3 * _burkert_const
         return cls(m=m, r_s=r_s, **kwargs)
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class HarmonicOscillatorPotential(AbstractPotential):
+    r"""Harmonic Oscillator Potential.
+
+    Represents an N-dimensional harmonic oscillator.
+
+    .. math::
+
+        \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+
+    >>> pot = gp.HarmonicOscillatorPotential(omega=Quantity(1, "1 / Myr"),
+    ...                                      units="galactic")
+    >>> pot
+    HarmonicOscillatorPotential(
+      units=LTMAUnitSystem( ... ),
+      constants=ImmutableMap({'G': ...}),
+      omega=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("1 / Myr")) )
+    )
+
+    >>> q = Quantity([1.0, 0, 0], "kpc")
+    >>> t = Quantity(0, "Gyr")
+
+    >>> pot.potential(q, t)
+    Quantity[...](Array(0.5, dtype=float64), unit='kpc2 / Myr2')
+
+    >>> pot.density(q, t)
+    Quantity[...](Array(1.76897707e+10, dtype=float64), unit='solMass / kpc3')
+
+    """
+
+    # TODO: enable omega to be a 3D vector
+    omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
+    """The frequency."""
+
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
+    )
+
+    @partial(jax.jit, inline=True)
+    def _potential(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.SpecificEnergyBatchScalar:
+        # \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
+        omega = jnp.atleast_1d(self.omega(t))
+        return 0.5 * jnp.sum(jnp.square(omega * q), axis=-1)
+
+    @partial(jax.jit, inline=True)
+    def _density(
+        self, _: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i \omega_i^2
+        omega = jnp.atleast_1d(self.omega(t))
+        denom = 4 * jnp.pi * self.constants["G"]
+        return jnp.sum(omega**2, axis=-1) / denom
 
 
 # -------------------------------------------------------------------

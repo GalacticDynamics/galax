@@ -341,6 +341,63 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         )
 
 # ---------------------------
+# Harmonic oscillator potentials
+
+
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
+    gala: gp.HarmonicOscillatorPotential, /
+) -> gpx.HarmonicOscillatorPotential | gpx.PotentialFrame:
+    r"""Convert a `gala.potential.HarmonicOscillatorPotential` to a `galax.potential.HarmonicOscillatorPotential`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from gala.units import galactic
+    >>> import galax.potential as gp
+
+    >>> pot = galap.HarmonicOscillatorPotential(omega=1, units=galactic)
+    >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
+    HarmonicOscillatorPotential(
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
+      constants=ImmutableMap({'G': ...}),
+      omega=ConstantParameter( ... )
+    )
+
+    """  # noqa: E501
+    params = gala.parameters
+    pot = gpx.HarmonicOscillatorPotential(
+        omega=params["omega"], units=_check_gala_units(gala.units)
+    )
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@dispatch  # type: ignore[misc]
+def galax_to_gala(
+    pot: gpx.HarmonicOscillatorPotential, /
+) -> gp.HarmonicOscillatorPotential:
+    """Convert a `galax.potential.HarmonicOscillatorPotential` to a `gala.potential.HarmonicOscillatorPotential`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+
+    >>> pot = gp.HarmonicOscillatorPotential(omega=Quantity(1, "Hz"), units="galactic")
+    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
+    <HarmonicOscillatorPotential: omega=1.00 (Hz,Myr,rad)>
+
+    """  # noqa: E501
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+
+    return gp.HarmonicOscillatorPotential(
+        omega=convert(pot.omega(0), APYQuantity),
+        units=_galax_to_gala_units(pot.units),
+    )
+
+
+# ---------------------------
 # Hernquist potentials
 
 

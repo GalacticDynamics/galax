@@ -14,6 +14,7 @@ __all__ = [
     "CompositePotential",
     # builtin
     "BurkertPotential",
+    "HarmonicOscillatorPotential",
     "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
@@ -69,6 +70,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._src.builtin.bars import BarPotential, LongMuraliBarPotential
     from ._src.builtin.builtin import (
         BurkertPotential,
+        HarmonicOscillatorPotential,
         HernquistPotential,
         IsochronePotential,
         JaffePotential,

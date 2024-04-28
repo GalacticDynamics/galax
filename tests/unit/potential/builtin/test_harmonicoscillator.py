@@ -1,6 +1,8 @@
 from typing import Any
 
+import astropy.units as u
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import Quantity
@@ -10,6 +12,7 @@ from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from galax.potential import HarmonicOscillatorPotential
 from galax.potential._potential.base import AbstractPotentialBase
+from galax.utils._optional_deps import HAS_GALA
 
 
 class ParameterOmegaMixin(ParameterFieldMixin):
@@ -100,4 +103,35 @@ class TestHarmonicOscillatorPotential(
         )
         assert qnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+        )
+
+    # ---------------------------------
+    # Interoperability
+
+    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.parametrize(
+        ("method0", "method1", "atol"),
+        [
+            ("potential_energy", "energy", 1e-8),
+            ("gradient", "gradient", 1e-8),
+            ("density", "density", 5e-7),  # TODO: why is this different?
+            # ("hessian", "hessian", 1e-8),  # TODO: why is gala's 0?
+        ],
+    )
+    def test_potential_energy_gala(
+        self,
+        pot: HarmonicOscillatorPotential,
+        method0: str,
+        method1: str,
+        x: gt.QVec3,
+        atol: float,
+    ) -> None:
+        from ..io.gala_helper import galax_to_gala
+
+        galax = getattr(pot, method0)(x, t=0)
+        gala = getattr(galax_to_gala(pot), method1)(convert(x, u.Quantity), t=0 * u.Myr)
+        assert qnp.allclose(
+            qnp.ravel(galax),
+            qnp.ravel(convert(gala, Quantity)),
+            atol=Quantity(atol, galax.unit),
         )

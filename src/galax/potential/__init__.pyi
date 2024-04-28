@@ -32,6 +32,7 @@ __all__ = [
     "PowerLawCutoffPotential",
     "TriaxialHernquistPotential",
     # special
+    "BovyMWPotential2014",
     "MilkyWayPotential",
     # frame
     "PotentialFrame",
@@ -64,4 +65,4 @@ from ._potential.param import (
     ParametersAttribute,
     UserParameter,
 )
-from ._potential.special import MilkyWayPotential
+from ._potential.special import BovyMWPotential2014, MilkyWayPotential

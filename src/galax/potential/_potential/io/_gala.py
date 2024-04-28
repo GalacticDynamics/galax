@@ -307,6 +307,31 @@ def _gala_to_galax_leesutotriaxialnfw(
 
 
 @gala_to_galax.register
+def _gala_to_galax_bovymw2014(
+    pot: gp.BovyMWPotential2014, /
+) -> gpx.BovyMWPotential2014:
+    """Convert a Gala BovyMWPotential2014 to a Galax potential.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.BovyMWPotential2014()
+    >>> gpx.io.gala_to_galax(gpot)
+    BovyMWPotential2014({'disk': MiyamotoNagaiPotential( ... ),
+                         'bulge': PowerLawCutoffPotential( ... ),
+                         'halo': NFWPotential( ... )})
+
+    """
+    return gpx.BovyMWPotential2014(
+        disk=gala_to_galax(pot["disk"]),
+        bulge=gala_to_galax(pot["bulge"]),
+        halo=gala_to_galax(pot["halo"]),
+    )
+
+
+@gala_to_galax.register
 def _gala_to_galax_mw(pot: gp.MilkyWayPotential, /) -> gpx.MilkyWayPotential:
     """Convert a Gala MilkyWayPotential to a Galax potential.
 

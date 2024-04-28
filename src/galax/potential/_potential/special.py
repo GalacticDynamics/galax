@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["MilkyWayPotential"]
+__all__ = ["BovyMWPotential2014", "MilkyWayPotential"]
 
 
 from collections.abc import Mapping
@@ -11,15 +11,15 @@ from typing import Any, ClassVar, TypeVar, final
 import equinox as eqx
 
 from unxt import Quantity
-from unxt.unitsystems import (
-    AbstractUnitSystem,
-    dimensionless,
-    galactic,
-    unitsystem,
-)
+from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsystem
 
 from .base import AbstractPotentialBase, default_constants
-from .builtin import HernquistPotential, MiyamotoNagaiPotential, NFWPotential
+from .builtin import (
+    HernquistPotential,
+    MiyamotoNagaiPotential,
+    NFWPotential,
+    PowerLawCutoffPotential,
+)
 from .composite import AbstractCompositePotential
 from galax.utils import ImmutableDict
 
@@ -39,6 +39,93 @@ def _parse_input_comp(
         default = {k: v.value for k, v in default.items()}
 
     return cls(units=units, **dict(default) | (dict(instance or {})))
+
+
+@final
+class BovyMWPotential2014(AbstractCompositePotential):
+    """``MWPotential2014`` from Bovy (2015).
+
+    An implementation of the ``MWPotential2014``
+    `from galpy <https://galpy.readthedocs.io/en/latest/potential.html>`_
+    and described in `Bovy (2015)
+    <https://ui.adsabs.harvard.edu/#abs/2015ApJS..216...29B/abstract>`_.
+
+    This potential consists of a spherical bulge and dark matter halo, and a
+    Miyamoto-Nagai disk component.
+
+    Parameters
+    ----------
+    units : `~gala.units.UnitSystem` (optional)
+        Set of non-reducable units that specify (at minimum) the
+        length, mass, time, and angle units.
+    disk : dict (optional)
+        Parameters to be passed to the :class:`~gala.potential.MiyamotoNagaiPotential`.
+    bulge : dict (optional)
+        Parameters to be passed to the :class:`~gala.potential.PowerLawCutoffPotential`.
+    halo : dict (optional)
+        Parameters to be passed to the :class:`~gala.potential.NFWPotential`.
+
+    Note: in subclassing, order of arguments must match order of potential
+    components added at bottom of init.
+    """
+
+    _data: dict[str, AbstractPotentialBase] = eqx.field(init=False)
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(init=True, static=True, converter=unitsystem)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
+
+    # TODO: as an actual `MiyamotoNagaiPotential`, then use `replace`?
+    _default_disk: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
+        {
+            "m_tot": Quantity(68_193_902_782.346756, "Msun"),
+            "a": Quantity(3.0, "kpc"),
+            "b": Quantity(280, "pc"),
+        }
+    )
+    # TODO: as an actual `PowerLawCutoffPotential`, then use `replace`?
+    _default_bulge: ClassVar[MappingProxyType[str, Any]] = MappingProxyType(
+        {
+            "m_tot": Quantity(4501365375.06545, "Msun"),
+            "alpha": 1.8,
+            "r_c": Quantity(1.9, "kpc"),
+        }
+    )
+    # TODO: as an actual `NFWPotential`, then use `replace`?
+    _default_halo: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
+        {"m": Quantity(4.3683325e11, "Msun"), "r_s": Quantity(16, "kpc")}
+    )
+
+    def __init__(
+        self,
+        *,
+        units: Any = galactic,
+        disk: MiyamotoNagaiPotential | Mapping[str, Any] | None = None,
+        bulge: PowerLawCutoffPotential | Mapping[str, Any] | None = None,
+        halo: NFWPotential | Mapping[str, Any] | None = None,
+    ) -> None:
+        units_ = unitsystem(units) if units is not None else galactic
+
+        super().__init__(
+            disk=_parse_input_comp(
+                MiyamotoNagaiPotential, disk, self._default_disk, units_
+            ),
+            bulge=_parse_input_comp(
+                PowerLawCutoffPotential, bulge, self._default_bulge, units_
+            ),
+            halo=_parse_input_comp(NFWPotential, halo, self._default_halo, units_),
+        )
+
+        # __post_init__ stuff:
+        # Check that all potentials have the same unit system
+        if not all(p.units == units_ for p in self.values()):
+            msg = "all potentials must have the same unit system"
+            raise ValueError(msg)
+        object.__setattr__(self, "units", units_)
+
+        # Apply the unit system to any parameters.
+        self._init_units()
 
 
 @final
@@ -79,6 +166,7 @@ class MilkyWayPotential(AbstractCompositePotential):
         default=default_constants, converter=ImmutableDict
     )
 
+    # TODO: as an actual `MiyamotoNagaiPotential`, then use `replace`?
     _default_disk: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
         {
             "m_tot": Quantity(6.8e10, "Msun"),
@@ -86,12 +174,15 @@ class MilkyWayPotential(AbstractCompositePotential):
             "b": Quantity(0.28, "kpc"),
         }
     )
+    # TODO: as an actual `NFWPotential`, then use `replace`?
     _default_halo: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
         {"m": Quantity(5.4e11, "Msun"), "r_s": Quantity(15.62, "kpc")}
     )
+    # TODO: as an actual `HernquistPotential`, then use `replace`?
     _default_bulge: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
         {"m_tot": Quantity(5e9, "Msun"), "c": Quantity(1.0, "kpc")}
     )
+    # TODO: as an actual `HernquistPotential`, then use `replace`?
     _default_nucleus: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
         {"m_tot": Quantity(1.71e9, "Msun"), "c": Quantity(0.07, "kpc")}
     )

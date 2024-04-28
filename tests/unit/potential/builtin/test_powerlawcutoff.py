@@ -13,7 +13,7 @@ from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import ParameterMTotMixin
 from galax.potential import AbstractPotentialBase, PowerLawCutoffPotential
-from galax.utils._optional_deps import HAS_GALA
+from galax.utils._optional_deps import GSL_ENABLED, HAS_GALA
 
 
 class AlphaParameterMixin(ParameterFieldMixin):
@@ -143,7 +143,13 @@ class TestPowerLawCutoffPotential(
     # ---------------------------------
     # Interoperability
 
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
+    def test_galax_to_gala_to_galax_roundtrip(
+        self, pot: gp.AbstractPotentialBase, x: gt.QVec3
+    ) -> None:
+        super().test_galax_to_gala_to_galax_roundtrip(pot, x)
+
+    @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [

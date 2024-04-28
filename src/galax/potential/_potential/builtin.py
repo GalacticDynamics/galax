@@ -484,21 +484,28 @@ def _safe_gamma_inc(a: ArrayLike, x: ArrayLike) -> ArrayLike:  # TODO: types
 class PowerLawCutoffPotential(AbstractPotential):
     r"""A spherical power-law density profile with an exponential cutoff.
 
-    The power law index must be ``0 <= alpha < 3``.
+    .. math::
+
+        \rho(r) = \frac{G M}{2\pi \Gamma((3-\alpha)/2) r_c^3} \left(\frac{r_c}{r}\right)^\alpha \exp{-(r / r_c)^2}
 
     Parameters
     ----------
     m_tot : :class:`~unxt.Quantity`[mass]
         Total mass.
     alpha : :class:`~unxt.Quantity`[dimensionless]
-        Power law index. Must satisfy: ``alpha < 3``
+        Power law index. Must satisfy: ``0 <= alpha < 3``.
     r_c : :class:`~unxt.Quantity`[length]
         Cutoff radius.
-    """
+    """  # noqa: E501
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """Total mass of the potential."""
+
     alpha: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    """Power law index. Must satisfy: ``0 <= alpha < 3``"""
+
     r_c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Cutoff radius."""
 
     @partial(jax.jit)
     def _potential_energy(
@@ -506,7 +513,7 @@ class PowerLawCutoffPotential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         m, a, r_c = self.m_tot(t), 0.5 * self.alpha(t), self.r_c(t)
         r = xp.linalg.vector_norm(q, axis=-1)
-        rp2 = r**2 / r_c**2
+        rp2 = (r / r_c) ** 2
 
         return (self.constants["G"] * m) * (
             (a - 1.5) * _safe_gamma_inc(1.5 - a, rp2) / (r * qsp.gamma(2.5 - a))

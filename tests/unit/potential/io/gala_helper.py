@@ -89,6 +89,7 @@ _GALAX_TO_GALA_REGISTRY: dict[type[gp.AbstractPotential], type[GalaPotentialBase
 @galax_to_gala.register(gp.KuzminPotential)
 @galax_to_gala.register(gp.MiyamotoNagaiPotential)
 @galax_to_gala.register(gp.PlummerPotential)
+@galax_to_gala.register(gp.PowerLawCutoffPotential)
 def _galax_to_gala_abstractpotential(pot: gp.AbstractPotential, /) -> GalaPotentialBase:
     """Convert a Galax AbstractPotential to a Gala potential."""
     if not _all_constant_parameters(pot, *pot.parameters.keys()):

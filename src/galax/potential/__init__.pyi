@@ -20,6 +20,7 @@ __all__ = [
     "ParameterField",
     # builtin
     "BarPotential",
+    "HarmonicOscillatorPotential",
     "HernquistPotential",
     "IsochronePotential",
     "KeplerPotential",
@@ -39,6 +40,7 @@ from ._potential import io
 from ._potential.base import AbstractPotentialBase
 from ._potential.builtin import (
     BarPotential,
+    HarmonicOscillatorPotential,
     HernquistPotential,
     IsochronePotential,
     KeplerPotential,

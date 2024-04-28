@@ -179,6 +179,7 @@ def _gala_to_galax_composite(pot: gp.CompositePotential, /) -> gpx.CompositePote
 
 
 _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential]] = {
+    gp.HarmonicOscillatorPotential: gpx.HarmonicOscillatorPotential,
     gp.HernquistPotential: gpx.HernquistPotential,
     gp.IsochronePotential: gpx.IsochronePotential,
     gp.KeplerPotential: gpx.KeplerPotential,

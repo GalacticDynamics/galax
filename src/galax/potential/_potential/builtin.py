@@ -2,6 +2,7 @@
 
 __all__ = [
     "BarPotential",
+    "HarmonicOscillatorPotential",
     "HernquistPotential",
     "IsochronePotential",
     "KeplerPotential",
@@ -91,6 +92,37 @@ class BarPotential(AbstractPotential):
         return (self.constants["G"] * self.m_tot(t) / (2.0 * a)) * xp.log(
             (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus),
         )
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class HarmonicOscillatorPotential(AbstractPotential):
+    r"""Harmonic Oscillator Potential.
+
+    Represents an N-dimensional harmonic oscillator.
+
+    .. math::
+
+        \Phi = \frac{1}{2} \omega^2 x^2
+
+    """
+
+    omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
+    """The frequency."""
+
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, /, t: gt.BatchableRealQScalar
+    ) -> gt.BatchFloatQScalar:
+        return 0.5 * self.omega(t) ** 2 * xp.linalg.vector_norm(q, axis=-1) ** 2
 
 
 # -------------------------------------------------------------------

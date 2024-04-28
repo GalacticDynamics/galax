@@ -13,6 +13,7 @@ __all__ = [
     "NullPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
+    "SatohPotential",
     "TriaxialHernquistPotential",
 ]
 
@@ -467,6 +468,45 @@ class PowerLawCutoffPotential(AbstractPotential):
             (a - 1.5) * _safe_gamma_inc(1.5 - a, rp2) / (r * qsp.gamma(2.5 - a))
             + _safe_gamma_inc(1 - a, rp2) / (r_c * qsp.gamma(1.5 - a))
         )
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class SatohPotential(AbstractPotential):
+    r"""SatohPotential(m, a, b, units=None, origin=None, R=None).
+
+    Satoh potential for a flattened mass distribution.
+    This is a good distribution for both disks and spheroids.
+
+    .. math::
+
+        \Phi = -\frac{G M}{\sqrt{R^2 + z^2 + a(a + 2\sqrt{z^2 + b^2})}}
+
+    Parameters
+    ----------
+    m : :class:`~astropy.units.Quantity`, numeric [mass]
+        Mass.
+    a : :class:`~astropy.units.Quantity`, numeric [length]
+        Scale length.
+    b : :class:`~astropy.units.Quantity`, numeric [length]
+        Scale height.
+    """
+
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        a, b = self.a(t), self.b(t)
+        R2 = q[..., 0] ** 2 + q[..., 1] ** 2
+        z = q[..., 2]
+        term = R2 + z**2 + a * (a + 2 * xp.sqrt(z**2 + b**2))
+        return -self.constants["G"] * self.m_tot(t) / xp.sqrt(term)
 
 
 # -------------------------------------------------------------------

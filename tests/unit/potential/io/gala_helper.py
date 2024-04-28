@@ -153,6 +153,21 @@ def _galax_to_gala_null(_: gpx.NullPotential, /) -> gp.NullPotential:
     return gp.NullPotential(units=gala_dimensionless)
 
 
+@galax_to_gala.register
+def _galax_to_gala_satoh(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
+    """Convert a Galax SatohPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, "m_tot", "a", "b"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.SatohPotential(
+        m=convert(pot.m_tot(0), APYQuantity),
+        a=convert(pot.a(0), APYQuantity),
+        b=convert(pot.b(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
 # -----------------------------------------------------------------------------
 # Null potentials
 

@@ -262,6 +262,39 @@ def _gala_to_galax_jaffe(
 
 
 @gala_to_galax.register
+def _gala_to_galax_satoh(
+    gala: gp.SatohPotential, /
+) -> gpx.SatohPotential | gpx.PotentialFrame:
+    """Convert a Gala SatohPotential to a Galax potential.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import gala.units as gu
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.SatohPotential(m=1e11, a=20, b=10, units=gu.galactic)
+    >>> gpx.io.gala_to_galax(gpot)
+    SatohPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...}),
+      m_tot=ConstantParameter( ... ),
+      a=ConstantParameter( ... ),
+      b=ConstantParameter( ... )
+    )
+    """
+    params = gala.parameters
+    pot = gpx.SatohPotential(
+        m_tot=params["m"], a=params["a"], b=params["b"], units=gala.units
+    )
+    return _apply_frame(_get_frame(gala), pot)
+
+
+# -----------------------------------------------------------------------------
+# NFS potentials
+
+
+@gala_to_galax.register
 def _gala_to_galax_nfw(
     gala: gp.NFWPotential, /
 ) -> gpx.NFWPotential | gpx.PotentialFrame:

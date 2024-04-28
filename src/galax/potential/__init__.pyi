@@ -24,6 +24,7 @@ __all__ = [
     "NullPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
+    "SatohPotential",
     "TriaxialHernquistPotential",
     # nfw
     "NFWPotential",
@@ -67,6 +68,7 @@ from ._potential.builtin.builtin import (
     NullPotential,
     PlummerPotential,
     PowerLawCutoffPotential,
+    SatohPotential,
     TriaxialHernquistPotential,
 )
 from ._potential.builtin.nfw import (

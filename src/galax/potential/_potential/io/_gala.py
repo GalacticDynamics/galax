@@ -185,6 +185,7 @@ _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential
     gp.KuzminPotential: gpx.KuzminPotential,
     gp.MiyamotoNagaiPotential: gpx.MiyamotoNagaiPotential,
     gp.PlummerPotential: gpx.PlummerPotential,
+    gp.PowerLawCutoffPotential: gpx.PowerLawCutoffPotential,
 }
 
 
@@ -192,6 +193,8 @@ _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential
 @gala_to_galax.register(gp.IsochronePotential)
 @gala_to_galax.register(gp.KeplerPotential)
 @gala_to_galax.register(gp.MiyamotoNagaiPotential)
+@gala_to_galax.register(gp.PlummerPotential)
+@gala_to_galax.register(gp.PowerLawCutoffPotential)
 def _gala_to_galax_registered(
     gala: gp.PotentialBase, /
 ) -> gpx.AbstractPotential | gpx.PotentialFrame:

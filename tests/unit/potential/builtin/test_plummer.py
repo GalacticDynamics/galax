@@ -99,7 +99,7 @@ class TestPlummerPotential(
             ("hessian", "hessian", 1e-8),  # TODO: why is gala's 0?
         ],
     )
-    def test_potential_energy_gala(
+    def test_method_gala(
         self,
         pot: PlummerPotential,
         method0: str,

@@ -8,10 +8,10 @@ import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
+import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import ParameterMTotMixin, ShapeAParameterMixin
 from galax.potential import AbstractPotentialBase, KuzminPotential
-from galax.typing import Vec3
 from galax.utils._optional_deps import HAS_GALA
 
 
@@ -38,25 +38,25 @@ class TestKuzminPotential(
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: KuzminPotential, x: Vec3) -> None:
+    def test_potential_energy(self, pot: KuzminPotential, x: gt.Vec3) -> None:
         expect = Quantity(-0.98165365, unit="kpc2 / Myr2")
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: KuzminPotential, x: Vec3) -> None:
+    def test_gradient(self, pot: KuzminPotential, x: gt.Vec3) -> None:
         expect = Quantity([0.04674541, 0.09349082, 0.18698165], "kpc / Myr2")
         assert qnp.allclose(
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: KuzminPotential, x: Vec3) -> None:
+    def test_density(self, pot: KuzminPotential, x: gt.Vec3) -> None:
         expect = Quantity(2.45494884e-07, "solMass / kpc3")
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: KuzminPotential, x: Vec3) -> None:
+    def test_hessian(self, pot: KuzminPotential, x: gt.Vec3) -> None:
         expect = Quantity(
             [
                 [0.0400675, -0.01335583, -0.02671166],
@@ -72,7 +72,7 @@ class TestKuzminPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [
@@ -100,7 +100,7 @@ class TestKuzminPotential(
         ],
     )
     def test_method_gala(
-        self, pot: KuzminPotential, method0: str, method1: str, x: Vec3, atol: float
+        self, pot: KuzminPotential, method0: str, method1: str, x: gt.Vec3, atol: float
     ) -> None:
         from ..io.gala_helper import galax_to_gala
 

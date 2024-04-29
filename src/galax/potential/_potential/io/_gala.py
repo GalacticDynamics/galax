@@ -183,6 +183,7 @@ _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential
     gp.IsochronePotential: gpx.IsochronePotential,
     gp.KeplerPotential: gpx.KeplerPotential,
     gp.KuzminPotential: gpx.KuzminPotential,
+    gp.LogarithmicPotential: gpx.LogarithmicPotential,
     gp.MiyamotoNagaiPotential: gpx.MiyamotoNagaiPotential,
     gp.PlummerPotential: gpx.PlummerPotential,
     gp.PowerLawCutoffPotential: gpx.PowerLawCutoffPotential,

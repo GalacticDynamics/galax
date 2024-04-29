@@ -318,17 +318,18 @@ def _gala_to_galax_bovymw2014(
 
         from galax.utils._optional_deps import GSL_ENABLED
 
-    .. doctest::
-       :skipif: not GSL_ENABLED
+    .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
-        >>> import gala.potential as gp
-        >>> import galax.potential as gpx
+    >>> import gala.potential as gp
+    >>> import galax.potential as gpx
 
-        >>> gpot = gp.BovyMWPotential2014()
-        >>> gpx.io.gala_to_galax(gpot)
-        BovyMWPotential2014({'disk': MiyamotoNagaiPotential( ... ),
-                            'bulge': PowerLawCutoffPotential( ... ),
-                            'halo': NFWPotential( ... )})
+    >>> gpot = gp.BovyMWPotential2014()
+    >>> gpx.io.gala_to_galax(gpot)
+    BovyMWPotential2014({'disk': MiyamotoNagaiPotential( ... ),
+                        'bulge': PowerLawCutoffPotential( ... ),
+                        'halo': NFWPotential( ... )})
+
+    .. skip: end
 
     """
     return gpx.BovyMWPotential2014(

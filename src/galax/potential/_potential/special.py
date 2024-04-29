@@ -71,7 +71,9 @@ class BovyMWPotential2014(AbstractCompositePotential):
 
     _data: dict[str, AbstractPotentialBase] = eqx.field(init=False)
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(init=True, static=True, converter=unitsystem)
+    units: AbstractUnitSystem = eqx.field(
+        default=galactic, static=True, converter=unitsystem
+    )
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -100,10 +102,11 @@ class BovyMWPotential2014(AbstractCompositePotential):
     def __init__(
         self,
         *,
-        units: Any = galactic,
         disk: MiyamotoNagaiPotential | Mapping[str, Any] | None = None,
         bulge: PowerLawCutoffPotential | Mapping[str, Any] | None = None,
         halo: NFWPotential | Mapping[str, Any] | None = None,
+        units: Any = galactic,
+        constants: Any = default_constants,
     ) -> None:
         units_ = unitsystem(units) if units is not None else galactic
 
@@ -115,17 +118,9 @@ class BovyMWPotential2014(AbstractCompositePotential):
                 PowerLawCutoffPotential, bulge, self._default_bulge, units_
             ),
             halo=_parse_input_comp(NFWPotential, halo, self._default_halo, units_),
+            units=units_,
+            constants=constants,
         )
-
-        # __post_init__ stuff:
-        # Check that all potentials have the same unit system
-        if not all(p.units == units_ for p in self.values()):
-            msg = "all potentials must have the same unit system"
-            raise ValueError(msg)
-        object.__setattr__(self, "units", units_)
-
-        # Apply the unit system to any parameters.
-        self._init_units()
 
 
 @final
@@ -190,11 +185,12 @@ class MilkyWayPotential(AbstractCompositePotential):
     def __init__(
         self,
         *,
-        units: Any = galactic,
         disk: MiyamotoNagaiPotential | Mapping[str, Any] | None = None,
         halo: NFWPotential | Mapping[str, Any] | None = None,
         bulge: HernquistPotential | Mapping[str, Any] | None = None,
         nucleus: HernquistPotential | Mapping[str, Any] | None = None,
+        units: Any = galactic,
+        constants: Any = default_constants,
     ) -> None:
         units_ = unitsystem(units) if units is not None else galactic
 
@@ -209,14 +205,6 @@ class MilkyWayPotential(AbstractCompositePotential):
             nucleus=_parse_input_comp(
                 HernquistPotential, nucleus, self._default_nucleus, units_
             ),
+            units=units_,
+            constants=constants,
         )
-
-        # __post_init__ stuff:
-        # Check that all potentials have the same unit system
-        if not all(p.units == units_ for p in self.values()):
-            msg = "all potentials must have the same unit system"
-            raise ValueError(msg)
-        object.__setattr__(self, "units", units_)
-
-        # Apply the unit system to any parameters.
-        self._init_units()

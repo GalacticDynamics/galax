@@ -25,6 +25,37 @@ V = TypeVar("V")
 class AbstractCompositePotential(
     ImmutableDict[AbstractPotentialBase], AbstractPotentialBase, strict=False
 ):
+    def __init__(
+        self,
+        potentials: (
+            dict[str, AbstractPotentialBase]
+            | tuple[tuple[str, AbstractPotentialBase], ...]
+        ) = (),
+        /,
+        *,
+        units: Any = None,
+        constants: Any = default_constants,
+        **kwargs: AbstractPotentialBase,
+    ) -> None:
+        super().__init__(potentials, **kwargs)  # <- ImmutableDict.__init__
+
+        # __post_init__ stuff:
+        # Check that all potentials have the same unit system
+        units_ = units if units is not None else first(self.values()).units
+        usys = unitsystem(units_)
+        if not all(p.units == usys for p in self.values()):
+            msg = "all potentials must have the same unit system"
+            raise ValueError(msg)
+        object.__setattr__(self, "units", usys)  # TODO: not call `object.__setattr__`
+
+        # TODO: some similar check that the same constants are the same, e.g.
+        #       `G` is the same for all potentials. Or use `constants` to update
+        #       the `constants` of every potential (before `super().__init__`)
+        object.__setattr__(self, "constants", constants)
+
+        # Apply the unit system to any parameters.
+        self._init_units()
+
     # === Potential ===
 
     @partial(jax.jit)
@@ -84,28 +115,3 @@ class CompositePotential(AbstractCompositePotential):
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
-
-    def __init__(
-        self,
-        potentials: (
-            dict[str, AbstractPotentialBase]
-            | tuple[tuple[str, AbstractPotentialBase], ...]
-        ) = (),
-        /,
-        *,
-        units: Any = None,
-        **kwargs: AbstractPotentialBase,
-    ) -> None:
-        super().__init__(potentials, **kwargs)
-
-        # __post_init__ stuff:
-        # Check that all potentials have the same unit system
-        units_ = units if units is not None else first(self.values()).units
-        usys = unitsystem(units_)
-        if not all(p.units == usys for p in self.values()):
-            msg = "all potentials must have the same unit system"
-            raise ValueError(msg)
-        object.__setattr__(self, "units", usys)
-
-        # Apply the unit system to any parameters.
-        self._init_units()

@@ -7,6 +7,7 @@ __all__ = [
     "KeplerPotential",
     "KuzminPotential",
     "LeeSutoTriaxialNFWPotential",
+    "LogarithmicPotential",
     "MiyamotoNagaiPotential",
     "NFWPotential",
     "NullPotential",
@@ -220,6 +221,28 @@ class KuzminPotential(AbstractPotential):
             / xp.sqrt(
                 q[..., 0] ** 2 + q[..., 1] ** 2 + (xp.abs(q[..., 2]) + self.a(t)) ** 2
             )
+        )
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class LogarithmicPotential(AbstractPotential):
+    """Logarithmic Potential."""
+
+    v_c: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
+    r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        r2 = xp.linalg.vector_norm(q, axis=-1).to_value(self.units["length"]) ** 2
+        return (
+            0.5
+            * self.v_c(t) ** 2
+            * xp.log(self.r_h(t).to_value(self.units["length"]) ** 2 + r2)
         )
 
 

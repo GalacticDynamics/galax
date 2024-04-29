@@ -80,6 +80,7 @@ _GALAX_TO_GALA_REGISTRY: dict[type[gpx.AbstractPotential], type[gp.PotentialBase
 @galax_to_gala.register(gpx.IsochronePotential)
 @galax_to_gala.register(gpx.KeplerPotential)
 @galax_to_gala.register(gpx.KuzminPotential)
+@galax_to_gala.register(gpx.LogarithmicPotential)
 @galax_to_gala.register(gpx.MiyamotoNagaiPotential)
 @galax_to_gala.register(gpx.PlummerPotential)
 @galax_to_gala.register(gpx.PowerLawCutoffPotential)
@@ -95,7 +96,8 @@ def _galax_to_gala_abstractpotential(pot: gpx.AbstractPotential, /) -> gp.Potent
         k: convert(getattr(pot, k)(0), APYQuantity)
         for (k, f) in type(pot).parameters.items()
     }
-    params["m"] = params.pop("m_tot")
+    if "m_tot" in params:
+        params["m"] = params.pop("m_tot")
 
     return _GALAX_TO_GALA_REGISTRY[type(pot)](
         **params,

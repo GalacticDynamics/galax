@@ -85,6 +85,7 @@ BroadBatchFloatQScalar = Shaped[FloatQScalar, "*#batch"]
 
 BatchFloatQScalar = Shaped[FloatQScalar, "*batch"]
 
+BatchRealQScalar = Shaped[RealQScalar, "*batch"]
 BatchableRealScalar = Shaped[RealScalar, "*#batch"]
 BatchableRealQScalar = Shaped[RealQScalar, "*#batch"]
 

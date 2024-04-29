@@ -37,7 +37,6 @@ if TYPE_CHECKING:
     from galax.dynamics._dynamics.orbit import Orbit
 
 
-BatchRealQScalar: TypeAlias = Shaped[gt.RealQScalar, "*batch"]
 QMatrix33: TypeAlias = Float[Quantity, "3 3"]
 BatchMatrix33: TypeAlias = Shaped[Float[Array, "3 3"], "*batch"]
 BatchQMatrix33: TypeAlias = Shaped[QMatrix33, "*batch"]
@@ -48,7 +47,7 @@ PositionalLike: TypeAlias = (
     Abstract3DVector | gt.LengthBroadBatchVec3 | Shaped[Array, "*#batch 3"]
 )
 TimeOptions: TypeAlias = (
-    BatchRealQScalar
+    gt.BatchRealQScalar
     | gt.FloatQScalar
     | gt.IntQScalar
     | gt.BatchableRealScalarLike
@@ -1016,7 +1015,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BatchQVec3, /, t: BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
@@ -1842,7 +1841,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Tidal tensor
 
     @partial(jax.jit)
-    def tidal_tensor(self, q: gt.BatchQVec3, /, t: BatchRealQScalar) -> BatchMatrix33:
+    def tidal_tensor(
+        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar
+    ) -> BatchMatrix33:
         """Compute the tidal tensor.
 
         See https://en.wikipedia.org/wiki/Tidal_tensor

@@ -8,9 +8,9 @@ from unxt import Quantity
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import (
     ParameterMTotMixin,
+    ParameterShapeQ1Mixin,
+    ParameterShapeQ2Mixin,
     ShapeCParameterMixin,
-    ShapeQ1ParameterMixin,
-    ShapeQ2ParameterMixin,
 )
 from galax.potential import TriaxialHernquistPotential
 from galax.potential._potential.base import AbstractPotentialBase
@@ -22,8 +22,8 @@ class TestTriaxialHernquistPotential(
     # Parameters
     ParameterMTotMixin,
     ShapeCParameterMixin,
-    ShapeQ1ParameterMixin,
-    ShapeQ2ParameterMixin,
+    ParameterShapeQ1Mixin,
+    ParameterShapeQ2Mixin,
 ):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[TriaxialHernquistPotential]:

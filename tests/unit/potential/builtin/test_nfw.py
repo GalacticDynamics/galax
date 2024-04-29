@@ -6,54 +6,13 @@ from typing_extensions import override
 
 import quaxed.numpy as qnp
 from unxt import Quantity
-from unxt.unitsystems import AbstractUnitSystem, galactic
+from unxt.unitsystems import AbstractUnitSystem
 
 import galax.potential as gp
 import galax.typing as gt
-from ..param.test_field import ParameterFieldMixin
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMMixin
+from .test_common import ParameterMMixin, ParameterScaleRadiusMixin
 from galax.utils._optional_deps import HAS_GALA
-
-
-class ScaleRadiusParameterMixin(ParameterFieldMixin):
-    """Test the mass parameter."""
-
-    pot_cls: type[gp.AbstractPotential]
-
-    @pytest.fixture(scope="class")
-    def field_r_s(self) -> Quantity["length"]:
-        return Quantity(1.0, "kpc")
-
-    # =====================================================
-
-    def test_r_s_units(
-        self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]
-    ) -> None:
-        """Test the mass parameter."""
-        fields["r_s"] = 1.0 * u.Unit(10 * u.kpc)
-        fields["units"] = galactic
-        pot = pot_cls(**fields)
-        assert isinstance(pot.r_s, gp.ConstantParameter)
-        assert qnp.isclose(pot.r_s(0), Quantity(10, "kpc"), atol=Quantity(1e-8, "kpc"))
-
-    def test_r_s_constant(
-        self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]
-    ):
-        """Test the mass parameter."""
-        fields["r_s"] = Quantity(1.0, "kpc")
-        pot = pot_cls(**fields)
-        assert pot.r_s(t=0) == Quantity(1.0, "kpc")
-
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
-    def test_r_s_userfunc(
-        self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]
-    ):
-        """Test the mass parameter."""
-        fields["r_s"] = lambda t: t * 1.2
-        pot = pot_cls(**fields)
-        assert pot.r_s(t=0) == 1.2
-
 
 ###############################################################################
 
@@ -62,7 +21,7 @@ class TestNFWPotential(
     AbstractPotential_Test,
     # Parameters
     ParameterMMixin,
-    ScaleRadiusParameterMixin,
+    ParameterScaleRadiusMixin,
 ):
     @pytest.fixture(scope="class")
     @override

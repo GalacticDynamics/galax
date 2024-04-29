@@ -159,7 +159,7 @@ class TestPowerLawCutoffPotential(
             ("hessian", "hessian", 1e-8),
         ],
     )
-    def test_potential_energy_gala(
+    def test_method_gala(
         self,
         pot: PowerLawCutoffPotential,
         method0: str,

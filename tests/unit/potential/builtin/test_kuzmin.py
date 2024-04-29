@@ -99,7 +99,7 @@ class TestKuzminPotential(
             # ("hessian", "hessian", 1e-8),  # TODO: why is gala's 0?
         ],
     )
-    def test_potential_energy_gala(
+    def test_method_gala(
         self, pot: KuzminPotential, method0: str, method1: str, x: Vec3, atol: float
     ) -> None:
         from ..io.gala_helper import galax_to_gala

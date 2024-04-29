@@ -20,6 +20,7 @@ from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.typing import Vec3
 from galax.utils._misc import first
+from galax.utils._optional_deps import HAS_GALA
 
 if TYPE_CHECKING:
     from galax.potential import (
@@ -218,6 +219,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     # ---------------------------------
     # Interoperability
 
+    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [
@@ -227,7 +229,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
             ("hessian", "hessian", 1e-8),
         ],
     )
-    def test_potential_energy_gala(
+    def test_method_gala(
         self,
         pot: AbstractCompositePotential,
         method0: str,

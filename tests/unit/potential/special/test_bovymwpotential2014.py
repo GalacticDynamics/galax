@@ -120,7 +120,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
             ("hessian", "hessian", 1e-8),
         ],
     )
-    def test_potential_energy_gala(
+    def test_method_gala(
         self,
         pot: BovyMWPotential2014,
         method0: str,

@@ -314,7 +314,7 @@ def _gala_to_galax_bovymw2014(
 
     Examples
     --------
-    .. testsetup::
+    .. invisible-code-block: python
 
         from galax.utils._optional_deps import GSL_ENABLED
 

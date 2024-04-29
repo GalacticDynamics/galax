@@ -168,8 +168,8 @@ class TestLogarithmicPotential(
         [
             ("potential_energy", "energy", 1e-8),
             ("gradient", "gradient", 1e-8),
-            ("density", "density", 5e-7),  # TODO: why is this different?
-            # ("hessian", "hessian", 1e-8),  # TODO: why is gala's 0?
+            ("density", "density", 1e-8),  # TODO: why is this different?
+            ("hessian", "hessian", 1e-8),  # TODO: why is gala's 0?
         ],
     )
     def test_method_gala(

@@ -14,12 +14,12 @@ from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsystem
 
 from .base import AbstractPotentialBase, default_constants
-from .builtin import (
+from .builtin.builtin import (
     HernquistPotential,
     MiyamotoNagaiPotential,
-    NFWPotential,
     PowerLawCutoffPotential,
 )
+from .builtin.nfw import NFWPotential
 from .composite import AbstractCompositePotential
 from galax.utils import ImmutableDict
 

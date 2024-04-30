@@ -3,15 +3,19 @@
 __all__ = [
     "NFWPotential",
     "LeeSutoTriaxialNFWPotential",
+    "TriaxialNFWPotential",
     "Vogelsberger08TriaxialNFWPotential",
 ]
 
+from collections.abc import Callable
 from dataclasses import KW_ONLY
 from functools import partial
 from typing import final
 
 import equinox as eqx
 import jax
+import numpy as np
+from jaxtyping import Array, Float, Shaped
 
 import quaxed.array_api as xp
 import quaxed.lax as qlax
@@ -210,6 +214,212 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
             ),
         )
         return out
+
+
+# -------------------------------------------------------------------
+
+
+class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
+    """Gauss-Legendre quadrature integrator."""
+
+    x: Shaped[Array, "O"]
+    w: Shaped[Array, "O"]
+
+    @partial(jax.jit, static_argnums=(1,))
+    def __call__(
+        self, f: Callable[[Shaped[Array, "N"]], Shaped[Array, "N"]], /
+    ) -> Shaped[Array, ""]:
+        y = f(self.x)
+        w = self.w.reshape(self.w.shape + (1,) * (y.ndim - 1))
+        return xp.sum(y * w, axis=0)
+
+
+@final
+class TriaxialNFWPotential(AbstractPotential):
+    r"""Triaxial (density) NFW Potential.
+
+    .. math::
+
+        \rho(q) = \frac{G M}{4\pi r_s^3} \frac{1}{(\xi/r_s) (1 + \xi/r_s)^2}
+
+    where
+
+    .. math::
+
+        \xi^2 = x^2 + \frac{y^2}{q_1^2} + \frac{z^2}{q_2^2}
+    """
+
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    """mass scale of the potential."""
+
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Scale radius of the potential."""
+
+    q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        default=Quantity(1, ""),
+        dimensions="dimensionless",
+    )
+    """Scale length in the y/x direction."""
+
+    q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        default=Quantity(1, ""),
+        dimensions="dimensionless",
+    )
+    """Scale length in the z/x direction."""
+
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
+
+    integration_order: int = eqx.field(default=50, static=True)
+    """Order of the Gauss-Legendre quadrature.
+
+    See :func:`numpy.polynomial.legendre.leggauss` for details.
+    """
+    _integrator: GaussLegendreIntegrator = eqx.field(init=False)
+
+    def __post_init__(self) -> None:
+        # Gauss-Legendre quadrature
+        x, w = np.polynomial.legendre.leggauss(self.integration_order)
+        # Interval change from [-1, 1] to [0, 1]
+        x = 0.5 * (x + 1)
+        w = 0.5 * w
+        object.__setattr__(self, "_integrator", GaussLegendreIntegrator(x, w))
+
+    # ==========================================================================
+
+    @partial(jax.jit, inline=True)
+    def rho0(self, t: gt.BatchableRealQScalar, /) -> gt.BatchFloatQScalar:
+        r"""Central density.
+
+        .. math::
+
+            \rho_0 = \frac{M}{4 \pi r_s^3}
+        """
+        return self.m(t) / (4 * xp.pi * self.r_s(t) ** 3)
+
+    # ==========================================================================
+    # Potential energy
+
+    @partial(jax.jit, inline=True)
+    def _ellipsoid_surface(
+        self,
+        q: Shaped[Quantity["length"], "*batch 3"],
+        q1: Shaped[Quantity["dimensionless"], "*#batch"],
+        q2: Shaped[Quantity["dimensionless"], "*#batch"],
+        s2: Shaped[Quantity["dimensionless"], "*#batch"],
+    ) -> Shaped[Quantity["length"], "*batch"]:
+        r"""Compute coordinates on the ellipse.
+
+        .. math::
+
+            r_s^2 \xi^2(\tau) = \frac{x^2}{1 + \tau} + \frac{y^2}{q_1^2 + \tau}
+            + \frac{z^2}{q_2^2 + \tau}
+
+        """
+        return s2 * (
+            q[..., 0] ** 2
+            + q[..., 1] ** 2 / (1 + (q1**2 - 1) * s2)
+            + q[..., 2] ** 2 / (1 + (q2**2 - 1) * s2)
+        )
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self,
+        q: gt.BatchQVec3,
+        t: gt.BatchableRealQScalar,
+        /,
+    ) -> gt.BatchFloatQScalar:
+        r"""Potential energy for the triaxial NFW.
+
+        The NFW potential is spherically symmetric. For the triaxial (density)
+        case, we define ellipsoidal (and dimensionless) coordinates
+
+        .. math::
+
+            r_s^2 \xi^2 = x^2 + y^2/q_1^2 + z^2/q_2^2
+
+        Which maps ellipsoids to spheres. The spherical potential is then
+        evaluated under this mapping.
+
+        Chandrasekhar (1969) [1]_ Theorem 12 (though more clearly written in
+        Merritt & Fridman (1996) [2]_ eq 2a) gives the form of the gravitational
+        potential.
+
+        .. math::
+
+            \Phi = -\pi G q_1 q_2 \int_{0}^{\infty}
+                \frac{\Delta \psi(\xi(\tau))}{\sqrt{(1+\tau)(q_1^2 + \tau)(q_2^2
+                + \tau)}} d\tau
+
+        with:
+
+        .. math::
+
+            \Delta \psi(\xi) = \psi(\infty) - \psi(\xi)
+                             = \int_{\xi^2}^{\infty} \rho(\xi^2) d\xi^2 = \rho_0
+                             r_s^2 \frac{2}{1 + \xi}
+
+        and
+
+        .. math::
+
+            r_s^2 \xi^2(\tau) = x^2 + \frac{y^2}{q_1^2+\tau} +
+            \frac{z^2}{q_2^2+\tau}
+
+        We apply the change of variables :math:`\tau = 1/s^2 - 1` to map the
+        integral to the interval [0, 1].
+
+        .. math::
+
+            \Phi = -2 \pi G q_1 q_2 \int_{s=0}^{1} \frac{
+                (1+\tau) \Delta\psi(\xi(s))}{\sqrt{(q_1^2+\tau)(q_2^2+\tau)}} ds
+                 = -2 \pi G q_1 q_2 \int_{s=0}^{1} \frac{\Delta\psi(\xi(s))}
+                    {\sqrt{((q_1^2-1)s^2 + 1)((q_2^2-1)s^2 + 1)}} ds
+
+        References
+        ----------
+        .. [1] Chandrasekhar, S. (1969). Ellipsoidal figures of equilibrium.
+               https://ui.adsabs.harvard.edu/abs/1969efe..book.....C
+        .. [2] Merritt, D., & Fridman, T. (1996). Triaxial Galaxies with Cusps.
+            Astrophysical Journal, 460, 136.
+
+        """
+        # A batch dimension is added here and below for the integration.
+        q = q[None]
+
+        # Compute the parameters.
+        r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
+        q1sq, q2sq = q1**2, q2**2
+        rho0 = self.rho0(t)
+
+        # Delta(ψ) = ψ(∞) - ψ(ξ)
+        # This factors out the rho0 * r_s^2, moving it to the end
+        def delta_psi_factor(s2: gt.FloatScalar) -> gt.FloatScalar:
+            xi = xp.sqrt(self._ellipsoid_surface(q, q1, q2, s2)) / r_s
+            return 2.0 / (1.0 + xi)
+
+        def integrand(s: Float[Array, "N"]) -> Float[Array, "N *batch"]:
+            s2 = s.reshape(s.shape + (1,) * (q.ndim - 2)) ** 2
+            denom = xp.sqrt(((q1sq - 1) * s2 + 1) * ((q2sq - 1) * s2 + 1))
+            return delta_psi_factor(s2) / denom
+
+        # TODO: option to do integrate.quad
+        integral = self._integrator(integrand)
+
+        return (-2.0 * xp.pi * self.constants["G"] * rho0 * r_s**2 * q1 * q2) * integral
+
+    # ==========================================================================
+
+    @partial(jax.jit)
+    def _density(
+        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+    ) -> gt.BatchFloatQScalar:
+        r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
+        xi = xp.sqrt(self._ellipsoid_surface(q, q1, q2, 1)) / r_s
+        return self.rho0(t) / xi / (1.0 + xi) ** 2
 
 
 # -------------------------------------------------------------------

@@ -53,6 +53,7 @@ class BarPotential(AbstractPotential):
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     Omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
+
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
     constants: ImmutableDict[Quantity] = eqx.field(
@@ -208,6 +209,12 @@ class KuzminPotential(AbstractPotential):
     a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     """Scale length."""
 
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
+
     @partial(jax.jit)
     def _potential_energy(
         self: "KuzminPotential", q: gt.QVec3, t: gt.RealQScalar, /
@@ -230,6 +237,12 @@ class LogarithmicPotential(AbstractPotential):
 
     v_c: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
     r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(
@@ -302,7 +315,6 @@ class NullPotential(AbstractPotential):
     units: AbstractUnitSystem = eqx.field(
         default="galactic", converter=unitsystem, static=True
     )
-
     constants: ImmutableDict[Quantity] = eqx.field(
         default=default_constants, converter=ImmutableDict
     )
@@ -328,6 +340,12 @@ class PlummerPotential(AbstractPotential):
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(
@@ -371,6 +389,12 @@ class PowerLawCutoffPotential(AbstractPotential):
 
     r_c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     """Cutoff radius."""
+
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
 
     @partial(jax.jit)
     def _potential_energy(
@@ -457,12 +481,9 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    """The unit system to use for the potential."""
-
     constants: ImmutableDict[Quantity] = eqx.field(
         converter=ImmutableDict, default=default_constants
     )
-    """The constants used by the potential."""
 
     @partial(jax.jit)
     def _potential_energy(  # TODO: inputs w/ units

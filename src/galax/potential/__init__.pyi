@@ -24,14 +24,16 @@ __all__ = [
     "IsochronePotential",
     "KeplerPotential",
     "KuzminPotential",
-    "LeeSutoTriaxialNFWPotential",
     "LogarithmicPotential",
     "MiyamotoNagaiPotential",
-    "NFWPotential",
     "NullPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
     "TriaxialHernquistPotential",
+    # nfw
+    "NFWPotential",
+    "LeeSutoTriaxialNFWPotential",
+    "TriaxialNFWPotential",
     "Vogelsberger08TriaxialNFWPotential",
     # special
     "BovyMWPotential2014",
@@ -42,20 +44,23 @@ __all__ = [
 
 from ._potential import io
 from ._potential.base import AbstractPotentialBase
-from ._potential.builtin import (
+from ._potential.builtin.builtin import (
     BarPotential,
     HernquistPotential,
     IsochronePotential,
     KeplerPotential,
     KuzminPotential,
-    LeeSutoTriaxialNFWPotential,
     LogarithmicPotential,
     MiyamotoNagaiPotential,
-    NFWPotential,
     NullPotential,
     PlummerPotential,
     PowerLawCutoffPotential,
     TriaxialHernquistPotential,
+)
+from ._potential.builtin.nfw import (
+    LeeSutoTriaxialNFWPotential,
+    NFWPotential,
+    TriaxialNFWPotential,
     Vogelsberger08TriaxialNFWPotential,
 )
 from ._potential.composite import AbstractCompositePotential, CompositePotential

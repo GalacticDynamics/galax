@@ -150,7 +150,7 @@ def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
             if f.name in ba.arguments and "converter" in f.metadata:
                 ba.arguments[f.name] = f.metadata["converter"](ba.arguments[f.name])
         # Call the original `__init__`.
-        init.__wrapped__(*ba.args, **ba.kwargs)  # type: ignore[attr-defined]
+        init.__wrapped__(*ba.args, **ba.kwargs)
 
     cls.__init__ = init  # type: ignore[assignment,method-assign]
 

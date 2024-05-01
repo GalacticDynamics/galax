@@ -1758,7 +1758,7 @@ def tidal_tensor(
 
     .. note::
 
-        This is in cartesian coordinates with the Euclidean metric tensor.
+        This is in cartesian coordinates with a Euclidean metric.
         Also, this isn't correct for GR.
 
     Parameters

@@ -5,6 +5,7 @@ from galax.potential._potential import (
     composite,
     core,
     frame,
+    funcs,
     param,
     special,
 )
@@ -22,4 +23,5 @@ def test_all() -> None:
         *param.__all__,
         *special.__all__,
         *frame.__all__,
+        *funcs.__all__,
     }

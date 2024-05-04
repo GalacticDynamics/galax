@@ -1,4 +1,4 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Generator for mock streams."""
 
 __all__ = ["MockStreamGenerator"]
 
@@ -21,8 +21,10 @@ from .df import AbstractStreamDF, ProgenitorMassCallable
 from .utils import cond_reverse, interleave_concat
 from galax.coordinates import PhaseSpacePosition
 from galax.dynamics._dynamics.integrate._api import Integrator
-from galax.dynamics._dynamics.integrate._builtin import DiffraxIntegrator
-from galax.dynamics._dynamics.integrate._funcs import evaluate_orbit
+from galax.dynamics._dynamics.integrate._funcs import (
+    _default_integrator,
+    evaluate_orbit,
+)
 from galax.potential._potential.base import AbstractPotentialBase
 
 Carry: TypeAlias = tuple[gt.IntScalar, gt.VecN, gt.VecN]
@@ -43,11 +45,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     _: KW_ONLY
     progenitor_integrator: Integrator = eqx.field(
-        default=DiffraxIntegrator(), static=True
+        default=_default_integrator, static=True
     )
     """Integrator for the progenitor orbit."""
 
-    stream_integrator: Integrator = eqx.field(default=DiffraxIntegrator(), static=True)
+    stream_integrator: Integrator = eqx.field(default=_default_integrator, static=True)
     """Integrator for the stream."""
 
     @property
@@ -152,12 +154,28 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             Stripping times.
         prog_w0 : PhaseSpacePosition[float, ()]
             Initial conditions of the progenitor.
-        prog_mass : Quantity[float, (), "mass"]
-            Mass of the progenitor.
+
+            The recommended way to pass in the progenitor's initial conditions
+            is as a :class:`~galax.coordinates.PhaseSpacePosition` object with a
+            set time. This is the most explicit and is guaranteed to have the
+            correct units and no surprises about the progenitor.
+
+            .. note::
+
+                If the time is not set, it is assumed to be the first stripping
+                time.
+
+            Alternatively, you can pass in a 6-element array of the Cartesian
+            phase-space coordinates (x, y, z, vx, vy, vz) in the same units as
+            the potential.
+
+        prog_mass : Quantity[float, (), "mass"] | `ProgenitorMassCallable`
+            Mass of the progenitor. May be a Quantity or a callable that returns
+            the progenitor mass at the given times.
 
         vmapped : bool | None, optional keyword-only
             Whether to use `jax.vmap` (`True`) or `jax.lax.scan` (`False`) to
-            parallelize the integration. ``vmapped=True`` is recommended for GPU
+            vectorize the integration. ``vmapped=True`` is recommended for GPU
             usage, while ``vmapped=False`` is recommended for CPU usage.  If
             `None` (default), then `jax.vmap` is used on GPU and `jax.lax.scan`
             otherwise.
@@ -169,7 +187,6 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_o : :class:`galax.coordinates.PhaseSpacePosition`
             The final phase-space(+time) position of the progenitor.
         """
-        # TODO: ꜛ a discussion about the stripping times
         # Parse vmapped
         use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
 
@@ -184,6 +201,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
                 t=ts[0].to_units(self.potential.units["time"]),
             )
         w0 = eqx.error_if(w0, w0.ndim > 0, "prog_w0 must be scalar")
+        # TODO: allow for multiple progenitors
 
         # If the time stepping passed in is negative, assume this means that all
         # of the initial conditions are at *end time*, and we need to reverse
@@ -206,6 +224,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         t = xp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
 
+        # TODO: have a composite Stream object that has components, e.g. leading
+        #       and trailing.
         # TODO: move the leading vs trailing logic to the DF
         if self.df.lead and self.df.trail:
             axis = len(trail_arm_w.shape) - 2

@@ -108,8 +108,9 @@ class AbstractOrbit(AbstractPhaseSpacePosition):
 
         Parameters
         ----------
-        potential : `galax.potential.AbstractPotentialBase`
-            The potential object to compute the energy from.
+        potential : `galax.potential.AbstractPotentialBase` | None
+            The potential object to compute the energy from. If `None`
+            (default), use the potential attribute of the orbit.
 
         Returns
         -------
@@ -121,7 +122,7 @@ class AbstractOrbit(AbstractPhaseSpacePosition):
         return potential.potential_energy(self.q, t=self.t)
 
     @partial(jax.jit)
-    def energy(
+    def total_energy(
         self, potential: "AbstractPotentialBase | None" = None, /
     ) -> BatchFloatQScalar:
         r"""Return the specific total energy.
@@ -131,6 +132,12 @@ class AbstractOrbit(AbstractPhaseSpacePosition):
             E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
             E_\Phi = \Phi(\boldsymbol{q})
             E = E_K + E_\Phi
+
+        Parameters
+        ----------
+        potential : `galax.potential.AbstractPotentialBase` | None
+            The potential object to compute the energy from. If `None`
+            (default), use the potential attribute of the orbit.
 
         Returns
         -------

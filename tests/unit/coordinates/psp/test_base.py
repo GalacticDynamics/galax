@@ -16,6 +16,7 @@ from jaxtyping import Array
 from plum import convert
 
 import quaxed.array_api as xp
+import quaxed.numpy as qnp
 from coordinax import Cartesian3DVector, CartesianDifferential3D
 from unxt import Quantity
 from unxt.unitsystems import galactic
@@ -64,7 +65,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         t = Quantity(jr.normal(next(subkeys), shape), "Myr")
         return w_cls(q=q, p=p, t=t)
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture()
     def w(self, w_cls: type[T], shape: gt.Shape) -> T:
         """Return a phase-space position."""
         return self.make_w(w_cls, shape)
@@ -198,22 +199,24 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert xp.all(ke >= Quantity(0, "km2/s2"))
         # TODO: more tests
 
-    @pytest.mark.parametrize("potential", potentials)
-    def potential_energy(self, w: T, potential: AbstractPotentialBase) -> None:
+    @pytest.mark.parametrize("pot", potentials)
+    def test_potential_energy(self, w: T, pot: AbstractPotentialBase) -> None:
         """Test method ``potential_energy``."""
-        pe = w.potential_energy(potential)
+        pe = w.potential_energy(pot)
         assert pe.shape == w.shape  # confirm relation to shape and components
-        assert xp.all(pe <= 0)
+        assert xp.all(pe <= Quantity(0, "km2/s2"))
         # definitional
-        assert jnp.array_equal(pe, potential.potential_energy(w.q))
+        assert qnp.array_equal(pe, pot.potential_energy(w.q, t=0))
 
     @pytest.mark.parametrize("potential", potentials)
-    def energy(self, w: T, potential: AbstractPotentialBase) -> None:
+    def test_total_energy(self, w: T, potential: AbstractPotentialBase) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.energy`."""
-        pe = w.energy(potential)
+        pe = w.total_energy(potential)
         assert pe.shape == w.shape  # confirm relation to shape and components
         # definitional
-        assert jnp.array_equal(pe, w.kinetic_energy() + potential.potential_energy(w.q))
+        assert qnp.array_equal(
+            pe, w.kinetic_energy() + potential.potential_energy(w.q, t=0)
+        )
 
     def test_angular_momentum(self, w: T) -> None:
         """Test method ``angular_momentum``."""

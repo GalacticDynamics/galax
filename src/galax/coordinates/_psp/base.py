@@ -488,7 +488,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         return potential.potential_energy(self.q, t=self.t)
 
     @partial(jax.jit)
-    def energy(self, potential: "AbstractPotentialBase") -> gt.BatchFloatQScalar:
+    def total_energy(self, potential: "AbstractPotentialBase") -> gt.BatchFloatQScalar:
         r"""Return the specific total energy.
 
         .. math::
@@ -531,7 +531,7 @@ class AbstractPhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-
         We can compute the kinetic energy:
 
         >>> pot = MilkyWayPotential()
-        >>> w.energy(pot)
+        >>> w.total_energy(pot)
         Quantity['specific energy'](Array(..., dtype=float64), unit='km2 / s2')
         """
         return self.kinetic_energy() + self.potential_energy(potential)

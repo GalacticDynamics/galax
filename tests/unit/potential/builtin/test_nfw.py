@@ -12,7 +12,6 @@ import galax.potential as gp
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import ParameterMMixin, ParameterScaleRadiusMixin
-from galax.utils._optional_deps import HAS_GALA
 
 ###############################################################################
 
@@ -89,18 +88,3 @@ class TestNFWPotential(
         assert qnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
-
-    # ==========================================================================
-    # I/O
-
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
-    def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.NFWPotential, x: gt.QVec3
-    ) -> None:
-        """Test roundtripping ``gala_to_galax(galax_to_gala())``."""
-        from ..io.gala_helper import galax_to_gala
-
-        rpot = gp.io.gala_to_galax(galax_to_gala(pot))
-
-        # quick test that the potential energies are the same
-        assert qnp.array_equal(pot(x, t=0), rpot(x, t=0))

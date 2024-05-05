@@ -59,11 +59,14 @@ class GalaIOMixin:
         if type(pot) not in self._GALA_CAN_MAP_TO:
             pytest.skip(f"potential {pot} cannot be mapped to from gala")
 
-        # TODO: a more robust test
         rpot = gp.io.gala_to_galax(galax_to_gala(pot))
 
         # quick test that the potential energies are the same
-        assert qnp.array_equal(pot(x, t=0), rpot(x, t=0))
+        got = rpot(x, t=0)
+        exp = pot(x, t=0)
+        assert qnp.allclose(got, exp, atol=Quantity(1e-14, exp.unit))
+
+        # TODO: add more robust tests
 
     # ---------------------------------
     # Interoperability

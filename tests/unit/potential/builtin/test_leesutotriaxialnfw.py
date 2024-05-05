@@ -178,17 +178,25 @@ class TestLeeSutoTriaxialNFWPotential(
     # I/O
 
     @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
-    def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3
+    @pytest.mark.parametrize(
+        ("method0", "method1", "atol"),
+        [
+            ("potential_energy", "energy", 1e-8),
+            ("gradient", "gradient", 1e-8),
+            ("density", "density", 1e-8),
+            # ("hessian", "hessian", 1e-8),  # No hessian method in gala!
+        ],
+    )
+    def test_method_gala(
+        self,
+        pot: gp.AbstractPotentialBase,
+        method0: str,
+        method1: str,
+        x: gt.QVec3,
+        atol: float,
     ) -> None:
-        """Test roundtripping ``gala_to_galax(galax_to_gala())``."""
-        from ..io.gala_helper import galax_to_gala
+        """Test the equivalence of methods between gala and galax.
 
-        rpot = gp.io.gala_to_galax(galax_to_gala(pot))
-
-        # quick test that the potential energies are the same
-        assert qnp.allclose(
-            pot(x, t=0),
-            rpot(x, t=0),
-            atol=Quantity(1e-14, rpot.units["specific energy"]),
-        )
+        This test only runs if the potential can be mapped to gala.
+        """
+        super().test_method_gala(pot, method0, method1, x, atol)

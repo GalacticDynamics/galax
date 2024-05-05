@@ -2,7 +2,6 @@ from typing import Any
 
 import astropy.units as u
 import pytest
-from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -12,7 +11,6 @@ import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
 from .test_common import ParameterFieldMixin, ParameterMTotMixin
 from galax.potential import AbstractPotentialBase, StoneOstriker15Potential
-from galax.utils._optional_deps import GSL_ENABLED, HAS_GALA
 
 
 class ParameterRCMixin(ParameterFieldMixin):
@@ -137,41 +135,4 @@ class TestStoneOstriker15Potential(
         )
         assert qnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
-
-    # ---------------------------------
-    # Interoperability
-
-    @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
-    def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractPotentialBase, x: gt.QVec3
-    ) -> None:
-        super().test_galax_to_gala_to_galax_roundtrip(pot, x)
-
-    @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
-    @pytest.mark.parametrize(
-        ("method0", "method1", "atol"),
-        [
-            ("potential_energy", "energy", 1e-8),
-            ("gradient", "gradient", 1e-8),
-            ("density", "density", 1e-8),
-            ("hessian", "hessian", 1e-8),
-        ],
-    )
-    def test_method_gala(
-        self,
-        pot: StoneOstriker15Potential,
-        method0: str,
-        method1: str,
-        x: gt.QVec3,
-        atol: float,
-    ) -> None:
-        from ..io.gala_helper import galax_to_gala
-
-        galax = getattr(pot, method0)(x, t=0)
-        gala = getattr(galax_to_gala(pot), method1)(convert(x, u.Quantity), t=0 * u.Myr)
-        assert qnp.allclose(
-            qnp.ravel(galax),
-            qnp.ravel(convert(gala, Quantity)),
-            atol=Quantity(atol, galax.unit),
         )

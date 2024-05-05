@@ -142,7 +142,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     # ---------------------------------
 
-    def test_potential_energy(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_potential_energy(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.potential_energy` method."""
         assert qnp.allclose(
             pot.potential_energy(x, t=0),
@@ -165,11 +165,11 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     # ---------------------------------
 
-    def test_call(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_call(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.__call__` method."""
         assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0))
 
-    def test_gradient(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_gradient(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.gradient` method."""
         expect = Quantity(
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
@@ -178,7 +178,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_density(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
         # TODO: fix negative density!!!
         expect = Quantity(-2.647e-7, pot.units["mass density"])
@@ -186,7 +186,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_hessian(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.hessian` method."""
         expected = Quantity(
             xp.asarray(
@@ -202,14 +202,14 @@ class TestAbstractPotentialBase(GalaIOMixin):
             pot.hessian(x, t=0), expected, atol=Quantity(1e-8, "1/Myr2")
         )
 
-    def test_acceleration(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_acceleration(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.acceleration` method."""
         assert qnp.array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
 
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [

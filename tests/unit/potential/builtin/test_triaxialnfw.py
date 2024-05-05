@@ -51,25 +51,25 @@ class TestTriaxialNFWPotential(
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: TriaxialNFWPotential, x: gt.Vec3) -> None:
+    def test_potential_energy(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity(-1.06475915, unit="kpc2 / Myr2")
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: TriaxialNFWPotential, x: gt.Vec3) -> None:
+    def test_gradient(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.03189139, 0.0604938, 0.13157674], "kpc / Myr2")
         assert qnp.allclose(
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: TriaxialNFWPotential, x: gt.Vec3) -> None:
+    def test_density(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity(2.32106514e08, "solMass / kpc3")
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: TriaxialNFWPotential, x: gt.Vec3) -> None:
+    def test_hessian(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [
                 [0.02774251, -0.00788965, -0.0165603],
@@ -85,7 +85,7 @@ class TestTriaxialNFWPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [

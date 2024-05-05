@@ -111,25 +111,25 @@ class TestLogarithmicPotential(
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: LogarithmicPotential, x: gt.Vec3) -> None:
+    def test_potential_energy(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity(0.11027593, unit="kpc2 / Myr2")
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: LogarithmicPotential, x: gt.Vec3) -> None:
+    def test_gradient(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.00064902, 0.00129804, 0.00194706], "kpc / Myr2")
         assert qnp.allclose(
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: LogarithmicPotential, x: gt.Vec3) -> None:
+    def test_density(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity(30321621.61178864, "solMass / kpc3")
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: LogarithmicPotential, x: gt.Vec3) -> None:
+    def test_hessian(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [
                 [6.32377766e-04, -3.32830403e-05, -4.99245605e-05],
@@ -145,7 +145,7 @@ class TestLogarithmicPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [
@@ -177,7 +177,7 @@ class TestLogarithmicPotential(
         pot: LogarithmicPotential,
         method0: str,
         method1: str,
-        x: gt.Vec3,
+        x: gt.QVec3,
         atol: float,
     ) -> None:
         from ..io.gala_helper import galax_to_gala

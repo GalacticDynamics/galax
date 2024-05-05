@@ -12,16 +12,11 @@ from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity as APYQuantity
 from jax.dtypes import canonicalize_dtype
 from jaxtyping import Array, Shaped
-from plum import convert, dispatch
+from plum import convert
 
 import coordinax as cx
 from unxt import Quantity
-from unxt.unitsystems import (
-    AbstractUnitSystem,
-    DimensionlessUnitSystem,
-    UnitSystem,
-    dimensionless,
-)
+from unxt.unitsystems import AbstractUnitSystem
 
 import galax.typing as gt
 from galax.coordinates import AbstractPhaseSpacePosition
@@ -99,27 +94,3 @@ def _convert_from_astropy_quantity(value: APYQuantity, /, **_: Any) -> Array:
 @parse_to_quantity.register(BaseRepresentation)
 def _convert_from_astropy_baserep(value: BaseRepresentation, /, **_: Any) -> Array:
     return _convert_from_3dvec(convert(value, cx.Cartesian3DVector))
-
-
-##############################################################################
-# Gala compatibility
-# TODO: move this to an interoperability module
-
-# isort: split
-from galax.utils._optional_deps import HAS_GALA  # noqa: E402
-
-if HAS_GALA:
-    from gala.units import (
-        DimensionlessUnitSystem as GalaDimensionlessUnitSystem,
-        UnitSystem as GalaUnitSystem,
-    )
-
-    @dispatch
-    def unitsystem(value: GalaUnitSystem, /) -> UnitSystem:
-        usys = UnitSystem(*value._core_units)  # noqa: SLF001
-        usys._registry = value._registry  # noqa: SLF001
-        return usys
-
-    @dispatch  # type: ignore[no-redef]
-    def unitsystem(_: GalaDimensionlessUnitSystem, /) -> DimensionlessUnitSystem:
-        return dimensionless

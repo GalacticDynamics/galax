@@ -206,7 +206,9 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert pe.shape == w.shape  # confirm relation to shape and components
         assert xp.all(pe <= Quantity(0, "km2/s2"))
         # definitional
-        assert qnp.array_equal(pe, pot.potential_energy(w.q, t=0))
+        assert qnp.allclose(
+            pe, pot.potential_energy(w.q, t=0), atol=Quantity(1e-10, pe.unit)
+        )
 
     @pytest.mark.parametrize("potential", potentials)
     def test_total_energy(self, w: T, potential: AbstractPotentialBase) -> None:

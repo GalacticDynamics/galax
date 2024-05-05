@@ -9,72 +9,57 @@ from unxt import AbstractUnitSystem, Quantity
 import galax.potential as gp
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import (
-    ParameterMMixin,
-    ParameterScaleRadiusMixin,
-    ParameterShapeQ1Mixin,
-    ParameterShapeQ2Mixin,
-)
-from galax.potential import AbstractPotentialBase, TriaxialNFWPotential
+from .test_common import ParameterMMixin, ParameterScaleRadiusMixin
+from galax.potential import AbstractPotentialBase, JaffePotential
 
 
-class TestTriaxialNFWPotential(
+class TestJaffePotential(
     AbstractPotential_Test,
     # Parameters
     ParameterMMixin,
     ParameterScaleRadiusMixin,
-    ParameterShapeQ1Mixin,
-    ParameterShapeQ2Mixin,
 ):
-    """Test the `galax.potential.TriaxialNFWPotential` class."""
+    """Test the `galax.potential.JaffePotential` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[gp.TriaxialNFWPotential]:
-        return gp.TriaxialNFWPotential
+    def pot_cls(self) -> type[gp.JaffePotential]:
+        return gp.JaffePotential
 
     @pytest.fixture(scope="class")
     def fields_(
         self,
         field_m: u.Quantity,
         field_r_s: u.Quantity,
-        field_q1: u.Quantity,
-        field_q2: u.Quantity,
         field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
-        return {
-            "m": field_m,
-            "r_s": field_r_s,
-            "q1": field_q1,
-            "q2": field_q2,
-            "units": field_units,
-        }
+        return {"m": field_m, "r_s": field_r_s, "units": field_units}
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity(-1.06475915, unit="kpc2 / Myr2")
+    def test_potential_energy(self, pot: JaffePotential, x: gt.QVec3) -> None:
+        expect = Quantity(-1.06550653, unit="kpc2 / Myr2")
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity([0.03189139, 0.0604938, 0.13157674], "kpc / Myr2")
+    def test_gradient(self, pot: JaffePotential, x: gt.QVec3) -> None:
+        expect = Quantity([0.06776567, 0.13553134, 0.20329701], "kpc / Myr2")
         assert qnp.allclose(
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity(2.32106514e08, "solMass / kpc3")
+    def test_density(self, pot: JaffePotential, x: gt.QVec3) -> None:
+        expect = Quantity(2.52814372e08, "solMass / kpc3")
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: JaffePotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [
-                [0.02774251, -0.00788965, -0.0165603],
-                [-0.00788965, 0.01521376, -0.03105306],
-                [-0.0165603, -0.03105306, -0.02983532],
+                [0.05426528, -0.02700078, -0.04050117],
+                [-0.02700078, 0.01376411, -0.08100233],
+                [-0.04050117, -0.08100233, -0.05373783],
             ],
             "1/Myr2",
         )
@@ -89,9 +74,9 @@ class TestTriaxialNFWPotential(
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [
-                [0.02336886, -0.00788965, -0.0165603],
-                [-0.00788965, 0.01084011, -0.03105306],
-                [-0.0165603, -0.03105306, -0.03420897],
+                [0.04950143, -0.02700078, -0.04050117],
+                [-0.02700078, 0.00900026, -0.08100233],
+                [-0.04050117, -0.08100233, -0.05850169],
             ],
             "1/Myr2",
         )

@@ -54,13 +54,13 @@ class TestBarPotential(
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: BarPotential, x: gt.Vec3) -> None:
+    def test_potential_energy(self, pot: BarPotential, x: gt.QVec3) -> None:
         expect = Quantity(-0.94601574, pot.units["specific energy"])
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: BarPotential, x: gt.Vec3) -> None:
+    def test_gradient(self, pot: BarPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [0.04011905, 0.08383918, 0.16552719], pot.units["acceleration"]
         )
@@ -68,7 +68,7 @@ class TestBarPotential(
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: BarPotential, x: gt.Vec3) -> None:
+    def test_density(self, pot: BarPotential, x: gt.QVec3) -> None:
         expect = Quantity(1.94669274e08, "Msun / kpc3")
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
@@ -90,7 +90,7 @@ class TestBarPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [

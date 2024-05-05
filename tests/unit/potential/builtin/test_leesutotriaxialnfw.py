@@ -125,26 +125,26 @@ class TestLeeSutoTriaxialNFWPotential(
     # ==========================================================================
 
     def test_potential_energy(
-        self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.Vec3
+        self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3
     ) -> None:
         expect = Quantity(-9.68797618, pot.units["specific energy"])
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.Vec3) -> None:
+    def test_gradient(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.3411484, 0.6822968, 1.0234452], pot.units["acceleration"])
         assert qnp.allclose(
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.Vec3) -> None:
+    def test_density(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity(4.89753338e09, pot.units["mass density"])
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.Vec3) -> None:
+    def test_hessian(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [
                 [0.28782066, -0.10665549, -0.15998323],
@@ -160,7 +160,7 @@ class TestLeeSutoTriaxialNFWPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [
@@ -179,7 +179,7 @@ class TestLeeSutoTriaxialNFWPotential(
 
     @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.Vec3
+        self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3
     ) -> None:
         """Test roundtripping ``gala_to_galax(galax_to_gala())``."""
         from ..io.gala_helper import galax_to_gala

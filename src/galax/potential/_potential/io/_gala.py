@@ -236,6 +236,26 @@ def _gala_to_galax_null(_: gp.NullPotential, /) -> gpx.NullPotential:
 
 
 @gala_to_galax.register
+def _gala_to_galax_jaffe(
+    gala: gp.JaffePotential, /
+) -> gpx.JaffePotential | gpx.PotentialFrame:
+    """Convert a Gala JaffePotential to a Galax potential.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import gala.units as gu
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.JaffePotential(m=1e11, r_s=20, units=gu.galactic)
+    >>> gpx.io.gala_to_galax(gpot)
+    """
+    params = gala.parameters
+    pot = gpx.JaffePotential(m=params["m"], r_s=params["c"], units=gala.units)
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@gala_to_galax.register
 def _gala_to_galax_nfw(
     gala: gp.NFWPotential, /
 ) -> gpx.NFWPotential | gpx.PotentialFrame:

@@ -28,13 +28,13 @@ class TestHernquistPotential(
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: HernquistPotential, x: gt.Vec3) -> None:
+    def test_potential_energy(self, pot: HernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(-0.94871936, pot.units["specific energy"])
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: HernquistPotential, x: gt.Vec3) -> None:
+    def test_gradient(self, pot: HernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [0.05347411, 0.10694822, 0.16042233], pot.units["acceleration"]
         )
@@ -42,13 +42,13 @@ class TestHernquistPotential(
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: HernquistPotential, x: gt.Vec3) -> None:
+    def test_density(self, pot: HernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(3.989933e08, pot.units["mass density"])
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: HernquistPotential, x: gt.Vec3) -> None:
+    def test_hessian(self, pot: HernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [
                 [0.04362645, -0.01969533, -0.02954299],
@@ -64,7 +64,7 @@ class TestHernquistPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [

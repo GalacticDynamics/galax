@@ -247,8 +247,14 @@ def _gala_to_galax_jaffe(
     >>> import gala.units as gu
     >>> import galax.potential as gpx
 
-    >>> gpot = gp.JaffePotential(m=1e11, r_s=20, units=gu.galactic)
+    >>> gpot = gp.JaffePotential(m=1e11, c=20, units=gu.galactic)
     >>> gpx.io.gala_to_galax(gpot)
+    JaffePotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...}),
+      m=ConstantParameter( ... ),
+      r_s=ConstantParameter( ... )
+    )
     """
     params = gala.parameters
     pot = gpx.JaffePotential(m=params["m"], r_s=params["c"], units=gala.units)

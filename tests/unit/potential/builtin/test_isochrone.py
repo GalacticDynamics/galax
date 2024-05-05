@@ -8,7 +8,7 @@ from unxt import Quantity
 import galax.potential as gp
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMTotMixin, ShapeBParameterMixin
+from .test_common import ParameterMTotMixin, ParameterShapeBMixin
 from galax.potential import AbstractPotentialBase, IsochronePotential
 
 
@@ -16,7 +16,7 @@ class TestIsochronePotential(
     AbstractPotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ShapeBParameterMixin,
+    ParameterShapeBMixin,
 ):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.IsochronePotential]:

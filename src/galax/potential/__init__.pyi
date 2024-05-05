@@ -19,10 +19,13 @@ __all__ = [
     "KeplerPotential",
     "KuzminPotential",
     "LogarithmicPotential",
+    "LongMuraliBarPotential",
     "MiyamotoNagaiPotential",
     "NullPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
+    "SatohPotential",
+    "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
     # nfw
     "NFWPotential",
@@ -61,10 +64,13 @@ from ._potential.builtin.builtin import (
     KeplerPotential,
     KuzminPotential,
     LogarithmicPotential,
+    LongMuraliBarPotential,
     MiyamotoNagaiPotential,
     NullPotential,
     PlummerPotential,
     PowerLawCutoffPotential,
+    SatohPotential,
+    StoneOstriker15Potential,
     TriaxialHernquistPotential,
 )
 from ._potential.builtin.nfw import (

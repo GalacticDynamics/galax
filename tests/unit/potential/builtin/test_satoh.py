@@ -10,58 +10,65 @@ from unxt import AbstractUnitSystem, Quantity
 import galax.potential as gp
 import galax.typing as gt
 from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMTotMixin, ParameterShapeBMixin
-from galax.potential import AbstractPotentialBase, PlummerPotential
-from galax.utils._optional_deps import HAS_GALA
+from .test_common import ParameterMTotMixin, ParameterShapeAMixin, ParameterShapeBMixin
+from galax.potential import AbstractPotentialBase, SatohPotential
+from galax.utils._optional_deps import GSL_ENABLED, HAS_GALA
 
 
-class TestPlummerPotential(
+class TestSatohPotential(
     AbstractPotential_Test,
     # Parameters
     ParameterMTotMixin,
+    ParameterShapeAMixin,
     ParameterShapeBMixin,
 ):
-    """Test the `galax.potential.PlummerPotential` class."""
+    """Test the `galax.potential.SatohPotential` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[gp.PlummerPotential]:
-        return gp.PlummerPotential
+    def pot_cls(self) -> type[gp.SatohPotential]:
+        return gp.SatohPotential
 
     @pytest.fixture(scope="class")
     def fields_(
         self,
         field_m_tot: u.Quantity,
+        field_a: u.Quantity,
         field_b: u.Quantity,
         field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
-        return {"m_tot": field_m_tot, "b": field_b, "units": field_units}
+        return {
+            "m_tot": field_m_tot,
+            "a": field_a,
+            "b": field_b,
+            "units": field_units,
+        }
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: PlummerPotential, x: gt.QVec3) -> None:
-        expect = Quantity(-1.16150826, unit="kpc2 / Myr2")
+    def test_potential_energy(self, pot: SatohPotential, x: gt.QVec3) -> None:
+        expect = Quantity(-0.97415472, unit="kpc2 / Myr2")
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: PlummerPotential, x: gt.QVec3) -> None:
-        expect = Quantity([0.07743388, 0.15486777, 0.23230165], "kpc / Myr2")
+    def test_gradient(self, pot: SatohPotential, x: gt.QVec3) -> None:
+        expect = Quantity([0.0456823, 0.0913646, 0.18038493], "kpc / Myr2")
         assert qnp.allclose(
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: PlummerPotential, x: gt.QVec3) -> None:
-        expect = Quantity(2.73957531e08, "solMass / kpc3")
+    def test_density(self, pot: SatohPotential, x: gt.QVec3) -> None:
+        expect = Quantity(1.08825455e08, "solMass / kpc3")
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: PlummerPotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: SatohPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [
-                [0.06194711, -0.03097355, -0.04646033],
-                [-0.03097355, 0.01548678, -0.09292066],
-                [-0.04646033, -0.09292066, -0.06194711],
+                [0.03925558, -0.01285344, -0.02537707],
+                [-0.01285344, 0.01997543, -0.05075415],
+                [-0.02537707, -0.05075415, -0.05307912],
             ],
             "1/Myr2",
         )
@@ -76,9 +83,9 @@ class TestPlummerPotential(
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [
-                [0.05678485, -0.03097355, -0.04646033],
-                [-0.03097355, 0.01032452, -0.09292066],
-                [-0.04646033, -0.09292066, -0.06710937],
+                [0.03720495, -0.01285344, -0.02537707],
+                [-0.01285344, 0.0179248, -0.05075415],
+                [-0.02537707, -0.05075415, -0.05512975],
             ],
             "1/Myr2",
         )
@@ -89,19 +96,25 @@ class TestPlummerPotential(
     # ---------------------------------
     # Interoperability
 
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
+    def test_galax_to_gala_to_galax_roundtrip(
+        self, pot: gp.AbstractPotentialBase, x: gt.QVec3
+    ) -> None:
+        super().test_galax_to_gala_to_galax_roundtrip(pot, x)
+
+    @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [
             ("potential_energy", "energy", 1e-8),
             ("gradient", "gradient", 1e-8),
-            ("density", "density", 1e-8),  # TODO: why is this different?
-            ("hessian", "hessian", 1e-8),  # TODO: why is gala's 0?
+            ("density", "density", 1e-8),
+            ("hessian", "hessian", 1e-8),
         ],
     )
     def test_method_gala(
         self,
-        pot: PlummerPotential,
+        pot: SatohPotential,
         method0: str,
         method1: str,
         x: gt.QVec3,

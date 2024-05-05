@@ -8,10 +8,13 @@ __all__ = [
     "KeplerPotential",
     "KuzminPotential",
     "LogarithmicPotential",
+    "LongMuraliBarPotential",
     "MiyamotoNagaiPotential",
     "NullPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
+    "SatohPotential",
+    "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
 ]
 
@@ -280,6 +283,44 @@ class LogarithmicPotential(AbstractPotential):
 
 
 @final
+class LongMuraliBarPotential(AbstractPotential):
+    """Long & Murali Bar Potential.
+
+    A simple, triaxial model for a galaxy bar. This is a softened “needle”
+    density distribution with an analytic potential form. See Long & Murali
+    (1992) for details.
+    """
+
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    alpha: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        m_tot = self.m_tot(t)
+        a, b, c = self.a(t), self.b(t), self.c(t)
+        alpha = self.alpha(t)
+
+        x = q[..., 0] * xp.cos(alpha) + q[..., 1] * xp.sin(alpha)
+        y = -q[..., 0] * xp.sin(alpha) + q[..., 1] * xp.cos(alpha)
+        z = q[..., 2]
+
+        Tm = xp.sqrt((a - x) ** 2 + y**2 + (b + xp.sqrt(c**2 + z**2)) ** 2)
+        Tp = xp.sqrt((a + x) ** 2 + y**2 + (b + xp.sqrt(c**2 + z**2)) ** 2)
+
+        return (
+            self.constants["G"] * m_tot / (2 * a) * xp.log((x - a + Tm) / (x + a + Tp))
+        )
+
+
+# -------------------------------------------------------------------
+
+
+@final
 class MiyamotoNagaiPotential(AbstractPotential):
     """Miyamoto-Nagai Potential."""
 
@@ -427,6 +468,94 @@ class PowerLawCutoffPotential(AbstractPotential):
         return (self.constants["G"] * m) * (
             (a - 1.5) * _safe_gamma_inc(1.5 - a, rp2) / (r * qsp.gamma(2.5 - a))
             + _safe_gamma_inc(1 - a, rp2) / (r_c * qsp.gamma(1.5 - a))
+        )
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class SatohPotential(AbstractPotential):
+    r"""SatohPotential(m, a, b, units=None, origin=None, R=None).
+
+    Satoh potential for a flattened mass distribution.
+    This is a good distribution for both disks and spheroids.
+
+    .. math::
+
+        \Phi = -\frac{G M}{\sqrt{R^2 + z^2 + a(a + 2\sqrt{z^2 + b^2})}}
+
+    Parameters
+    ----------
+    m : :class:`~astropy.units.Quantity`, numeric [mass]
+        Mass.
+    a : :class:`~astropy.units.Quantity`, numeric [length]
+        Scale length.
+    b : :class:`~astropy.units.Quantity`, numeric [length]
+        Scale height.
+    """
+
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        a, b = self.a(t), self.b(t)
+        R2 = q[..., 0] ** 2 + q[..., 1] ** 2
+        z = q[..., 2]
+        term = R2 + z**2 + a * (a + 2 * xp.sqrt(z**2 + b**2))
+        return -self.constants["G"] * self.m_tot(t) / xp.sqrt(term)
+
+
+# -------------------------------------------------------------------
+
+
+class StoneOstriker15Potential(AbstractPotential):
+    r"""StoneOstriker15Potential(m, r_c, r_h, units=None, origin=None, R=None).
+
+    Stone potential from `Stone & Ostriker (2015)
+    <http://dx.doi.org/10.1088/2041-8205/806/2/L28>`_.
+
+    .. math::
+
+        \Phi = -\frac{2 G m}{\pi (r_h - r_c)} \left(
+            \frac{r_h}{r} \tan^{-1}(\frac{r}{r_h})
+            - \frac{r_c}{r} \tan^{-1}(\frac{r}{r_c})
+            + \frac{1}{2} \log(\frac{r^2 + r_h^2}{r^2 + r_c^2})
+            \right)
+
+    Parameters
+    ----------
+    m_tot : :class:`~astropy.units.Quantity`, numeric [mass]
+        Total mass.
+    r_c : :class:`~astropy.units.Quantity`, numeric [length]
+        Core radius.
+    r_h : :class:`~astropy.units.Quantity`, numeric [length]
+        Halo radius.
+    """
+
+    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    r_c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    # def __check_init__(self) -> None:
+    #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        r_h = self.r_h(t)
+        r_c = self.r_c(t)
+        r = xp.linalg.vector_norm(q, axis=-1)
+        A = -2 * self.constants["G"] * self.m_tot(t) / (xp.pi * (r_h - r_c))
+        return A * (
+            (r_h / r) * xp.atan2(r, r_h).to_value("rad")
+            - (r_c / r) * xp.atan2(r, r_c).to_value("rad")
+            + 0.5 * xp.log((r**2 + r_h**2) / (r**2 + r_c**2))
         )
 
 

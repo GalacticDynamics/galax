@@ -130,8 +130,63 @@ def _galax_to_gala_jaffe(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
 
 
 @galax_to_gala.register
+def _galax_to_gala_longmuralibar(
+    pot: gpx.LongMuraliBarPotential, /
+) -> gp.LongMuraliBarPotential:
+    """Convert a Galax LongMuraliBarPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, "m_tot", "a", "b", "c", "alpha"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.LongMuraliBarPotential(
+        m=convert(pot.m_tot(0), APYQuantity),
+        a=convert(pot.a(0), APYQuantity),
+        b=convert(pot.b(0), APYQuantity),
+        c=convert(pot.c(0), APYQuantity),
+        alpha=convert(pot.alpha(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
+@galax_to_gala.register
 def _galax_to_gala_null(_: gpx.NullPotential, /) -> gp.NullPotential:
     return gp.NullPotential(units=gala_dimensionless)
+
+
+@galax_to_gala.register
+def _galax_to_gala_satoh(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
+    """Convert a Galax SatohPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, "m_tot", "a", "b"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.SatohPotential(
+        m=convert(pot.m_tot(0), APYQuantity),
+        a=convert(pot.a(0), APYQuantity),
+        b=convert(pot.b(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
+@galax_to_gala.register
+def _galax_to_gala_stoneostriker15(
+    pot: gpx.StoneOstriker15Potential, /
+) -> gp.StonePotential:
+    """Convert a Galax StoneOstriker15Potential to a Gala potential."""
+    if not _all_constant_parameters(pot, "m_tot", "r_c", "r_h"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.StonePotential(
+        m=convert(pot.m_tot(0), APYQuantity),
+        r_c=convert(pot.r_c(0), APYQuantity),
+        r_h=convert(pot.r_h(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
+# -----------------------------------------------------------------------------
+# NFW potentials
 
 
 @galax_to_gala.register
@@ -167,6 +222,10 @@ def _galax_to_gala_leesutotriaxialnfw(
         c=convert(pot.a3(t), APYQuantity),
         units=galax_to_gala_units(pot.units),
     )
+
+
+# -----------------------------------------------------------------------------
+# Composite potentials
 
 
 @galax_to_gala.register

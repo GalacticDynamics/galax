@@ -177,7 +177,7 @@ class ParameterShapeQ2Mixin(ParameterFieldMixin):
 # =============================================================================
 
 
-class ShapeAParameterMixin(ParameterFieldMixin):
+class ParameterShapeAMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
@@ -200,7 +200,7 @@ class ShapeAParameterMixin(ParameterFieldMixin):
         assert pot.a(t=0) == 2
 
 
-class ShapeBParameterMixin(ParameterFieldMixin):
+class ParameterShapeBMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
@@ -223,7 +223,7 @@ class ShapeBParameterMixin(ParameterFieldMixin):
         assert pot.b(t=0) == 2
 
 
-class ShapeCParameterMixin(ParameterFieldMixin):
+class ParameterShapeCMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")

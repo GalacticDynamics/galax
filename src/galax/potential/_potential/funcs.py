@@ -41,7 +41,10 @@ HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape 
 
 # Position and time input options
 PositionalLike: TypeAlias = (
-    cx.Abstract3DVector | gt.LengthBroadBatchVec3 | Shaped[Array, "*#batch 3"]
+    cx.Abstract3DVector
+    | gt.LengthBroadBatchVec3
+    | Shaped[Quantity, "*#batch 3"]
+    | Shaped[Array, "*#batch 3"]
 )
 TimeOptions: TypeAlias = (
     gt.BatchRealQScalar
@@ -50,6 +53,7 @@ TimeOptions: TypeAlias = (
     | gt.BatchableRealScalarLike
     | gt.FloatScalar
     | gt.IntScalar
+    | int  # .e.g. 0
     | APYQuantity
 )
 
@@ -57,7 +61,7 @@ TimeOptions: TypeAlias = (
 # Potential Energy
 
 
-@dispatch
+@dispatch  # type: ignore[misc]
 def potential_energy(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
@@ -116,6 +120,9 @@ def potential_energy(
     """  # noqa: E501
     q = _convert_from_3dvec(pspt.q, units=potential.units)
     return potential._potential_energy(q, pspt.t)  # noqa: SLF001
+
+
+_potential_energy = potential_energy  # Needed to bypass namespace restrictions
 
 
 @dispatch
@@ -205,7 +212,7 @@ def potential_energy(
 
     See the other examples in the positional-only case.
     """
-    return potential.potential_energy(q, t)
+    return _potential_energy(potential, q, t)
 
 
 @dispatch
@@ -298,14 +305,14 @@ def potential_energy(
 
     See the other examples in the positional-only case.
     """
-    return potential.potential_energy(q, t)
+    return _potential_energy(potential, q, t)
 
 
 # =============================================================================
 # Gradient
 
 
-@dispatch
+@dispatch  # type: ignore[misc]
 def gradient(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
@@ -367,6 +374,9 @@ def gradient(
     """  # noqa: E501
     q = _convert_from_3dvec(pspt.q, units=potential.units)
     return potential._gradient(q, pspt.t)  # noqa: SLF001
+
+
+_gradient = gradient  # Needed to bypass namespace restrictions
 
 
 @dispatch
@@ -499,7 +509,7 @@ def gradient(
                                     [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                 unit='kpc / Myr2')
     """  # noqa: E501
-    return potential.gradient(q, t)
+    return _gradient(potential, q, t)
 
 
 @dispatch
@@ -610,14 +620,14 @@ def gradient(
 
     See the other examples in the positional-only case.
     """
-    return potential.gradient(q, t)
+    return _gradient(potential, q, t)
 
 
 # =============================================================================
 # Laplacian
 
 
-@dispatch
+@dispatch  # type: ignore[misc]
 def laplacian(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
@@ -675,6 +685,9 @@ def laplacian(
     """  # noqa: E501
     q = _convert_from_3dvec(pspt.q, units=potential.units)
     return potential._laplacian(q, pspt.t)  # noqa: SLF001
+
+
+_laplacian = laplacian  # Needed to bypass namespace restrictions
 
 
 @dispatch
@@ -796,7 +809,7 @@ def laplacian(
     >>> pot.laplacian(q, t)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
     """  # noqa: E501
-    return potential.laplacian(q, t)
+    return _laplacian(potential, q, t)
 
 
 @dispatch
@@ -900,14 +913,14 @@ def laplacian(
 
     See the other examples in the positional-only case.
     """
-    return potential.laplacian(q, t)
+    return _laplacian(potential, q, t)
 
 
 # =============================================================================
 # Density
 
 
-@dispatch
+@dispatch  # type: ignore[misc]
 def density(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
@@ -965,6 +978,9 @@ def density(
     """  # noqa: E501
     q = _convert_from_3dvec(pspt.q, units=potential.units)
     return potential._density(q, pspt.t)  # noqa: SLF001
+
+
+_density = density  # Needed to bypass namespace restrictions
 
 
 @dispatch
@@ -1054,7 +1070,7 @@ def density(
 
     See the other examples in the positional-only case.
     """  # noqa: E501
-    return potential.density(q, t)
+    return _density(potential, q, t)
 
 
 @dispatch
@@ -1150,14 +1166,14 @@ def density(
 
     See the other examples in the positional-only case.
     """
-    return potential.density(q, t)
+    return _density(potential, q, t)
 
 
 # =============================================================================
 # Hessian
 
 
-@dispatch
+@dispatch  # type: ignore[misc]
 def hessian(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
@@ -1228,6 +1244,9 @@ def hessian(
     """
     q = _convert_from_3dvec(pspt.q, units=potential.units)
     return potential._hessian(q, pspt.t)  # noqa: SLF001
+
+
+_hessian = hessian  # Needed to bypass namespace restrictions
 
 
 @dispatch
@@ -1338,7 +1357,7 @@ def hessian(
 
     See the other examples in the positional-only case.
     """
-    return potential.hessian(q, t)
+    return _hessian(potential, q, t)
 
 
 @dispatch
@@ -1428,14 +1447,14 @@ def hessian(
     *,
     t: TimeOptions,
 ) -> HessianVec:
-    return potential.hessian(q, t)
+    return _hessian(potential, q, t)
 
 
 # =============================================================================
 # Acceleration
 
 
-@dispatch
+@dispatch  # type: ignore[misc]
 def acceleration(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
@@ -1497,6 +1516,9 @@ def acceleration(
     """  # noqa: E501
     q = _convert_from_3dvec(pspt.q, units=potential.units)
     return -potential._gradient(q, pspt.t)  # noqa: SLF001
+
+
+_acceleration = acceleration  # needed to bypass namespace restrictions
 
 
 @dispatch
@@ -1630,7 +1652,7 @@ def acceleration(
                                     [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                 unit='kpc / Myr2')
     """  # noqa: E501
-    return potential.acceleration(q, t)
+    return _acceleration(potential, q, t)
 
 
 @dispatch
@@ -1741,7 +1763,7 @@ def acceleration(
 
     See the other examples in the positional-only case.
     """  # noqa: E501
-    return potential.acceleration(q, t)
+    return _acceleration(potential, q, t)
 
 
 # =============================================================================

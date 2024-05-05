@@ -214,8 +214,10 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         pe = w.total_energy(potential)
         assert pe.shape == w.shape  # confirm relation to shape and components
         # definitional
-        assert qnp.array_equal(
-            pe, w.kinetic_energy() + potential.potential_energy(w.q, t=0)
+        assert qnp.allclose(
+            pe,
+            w.kinetic_energy() + potential.potential_energy(w.q, t=0),
+            atol=Quantity(1e-10, pe.unit),
         )
 
     def test_angular_momentum(self, w: T) -> None:

@@ -50,7 +50,7 @@ requires-python = ">=3.11"
 all = ["galax[interop-all]"]
 # Interoperability dependencies
 interop-all = ["galax[interop-gala]"]
-interop-gala = ["gala"]
+interop-gala = ["gala", "astropy!=6.1.0"]
 # TODO: galpy and agama
 # Documentation dependencies
 docs = [

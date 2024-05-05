@@ -6,10 +6,9 @@ import quaxed.numpy as qnp
 from unxt import Quantity
 
 import galax.typing as gt
-from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMTotMixin, ParameterShapeCMixin
-from galax.potential import HernquistPotential
-from galax.potential._potential.base import AbstractPotentialBase
+from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ..test_common import ParameterMTotMixin, ParameterShapeCMixin
+from galax.potential import AbstractPotentialBase, HernquistPotential
 
 
 class TestHernquistPotential(

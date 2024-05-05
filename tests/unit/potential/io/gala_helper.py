@@ -56,7 +56,7 @@ def galax_to_gala(pot: gpx.AbstractPotentialBase, /) -> gp.PotentialBase:
     """
     msg = (
         "`galax_to_gala` does not have a registered function to convert "
-        f"{pot.__class__.__name__!r} to a `gala.PotentialBase` instance."
+        f"{pot.__class__.__name__!r} to a galax potential."
     )
     raise NotImplementedError(msg)
 
@@ -80,7 +80,6 @@ _GALAX_TO_GALA_REGISTRY: dict[type[gpx.AbstractPotential], type[gp.PotentialBase
 @galax_to_gala.register(gpx.IsochronePotential)
 @galax_to_gala.register(gpx.KeplerPotential)
 @galax_to_gala.register(gpx.KuzminPotential)
-@galax_to_gala.register(gpx.LogarithmicPotential)
 @galax_to_gala.register(gpx.MiyamotoNagaiPotential)
 @galax_to_gala.register(gpx.PlummerPotential)
 @galax_to_gala.register(gpx.PowerLawCutoffPotential)
@@ -188,6 +187,46 @@ def _galax_to_gala_stoneostriker15(
 
 
 # -----------------------------------------------------------------------------
+# Logarithmic potentials
+
+
+@galax_to_gala.register
+def _galax_to_gala_logarithmic(
+    pot: gpx.LogarithmicPotential, /
+) -> gp.LogarithmicPotential:
+    """Convert a Galax LogarithmicPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, "v_c", "r_s"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.LogarithmicPotential(
+        v_c=convert(pot.v_c(0), APYQuantity),
+        r_h=convert(pot.r_s(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
+@galax_to_gala.register
+def _galax_to_gala_logarithmic(
+    pot: gpx.LMJ09LogarithmicPotential, /
+) -> gp.LogarithmicPotential:
+    """Convert a Galax LogarithmicPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, "v_c", "r_s", "q1", "q2", "q3", "phi"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.LogarithmicPotential(
+        v_c=convert(pot.v_c(0), APYQuantity),
+        r_h=convert(pot.r_s(0), APYQuantity),
+        q1=convert(pot.q1(0), APYQuantity),
+        q2=convert(pot.q2(0), APYQuantity),
+        q3=convert(pot.q3(0), APYQuantity),
+        phi=convert(pot.phi(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
+# -----------------------------------------------------------------------------
 # NFW potentials
 
 
@@ -244,6 +283,27 @@ def _galax_to_gala_bovymw2014(
                 return k
 
     return gp.BovyMWPotential2014(
+        **{
+            c: {rename(k): getattr(p, k)(0) for k in p.parameters}
+            for c, p in pot.items()
+        }
+    )
+
+
+@galax_to_gala.register
+def _galax_to_gala_lm10(pot: gpx.LM10Potential, /) -> gp.LM10Potential:
+    """Convert a Galax LM10Potential to a Gala potential."""
+
+    def rename(k: str) -> str:
+        match k:
+            case "m_tot":
+                return "m"
+            case "r_s":
+                return "r_h"
+            case _:
+                return k
+
+    return gp.LM10Potential(
         **{
             c: {rename(k): getattr(p, k)(0) for k in p.parameters}
             for c, p in pot.items()

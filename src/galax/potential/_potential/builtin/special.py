@@ -1,6 +1,10 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["BovyMWPotential2014", "MilkyWayPotential"]
+__all__ = [
+    "BovyMWPotential2014",
+    "LM10Potential",
+    "MilkyWayPotential",
+]
 
 
 from collections.abc import Mapping
@@ -10,17 +14,15 @@ from typing import Any, ClassVar, TypeVar, final
 
 import equinox as eqx
 
+import quaxed.array_api as xp
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsystem
 
-from .base import AbstractPotentialBase, default_constants
-from .builtin.builtin import (
-    HernquistPotential,
-    MiyamotoNagaiPotential,
-    PowerLawCutoffPotential,
-)
-from .builtin.nfw import NFWPotential
-from .composite import AbstractCompositePotential
+from .builtin import HernquistPotential, MiyamotoNagaiPotential, PowerLawCutoffPotential
+from .logarithmic import LMJ09LogarithmicPotential
+from .nfw import NFWPotential
+from galax.potential._potential.base import AbstractPotentialBase, default_constants
+from galax.potential._potential.composite import AbstractCompositePotential
 from galax.utils import ImmutableDict
 
 T = TypeVar("T", bound=AbstractPotentialBase)
@@ -118,6 +120,102 @@ class BovyMWPotential2014(AbstractCompositePotential):
                 PowerLawCutoffPotential, bulge, self._default_bulge, units_
             ),
             halo=_parse_input_comp(NFWPotential, halo, self._default_halo, units_),
+            units=units_,
+            constants=constants,
+        )
+
+
+_sqrt2 = xp.sqrt(xp.asarray(2.0))
+
+
+@final
+class LM10Potential(AbstractCompositePotential):
+    """Law & Majewski (2010) Milky Way mass model.
+
+    The Galactic potential used by Law and Majewski (2010) to represent the
+    Milky Way as a three-component sum of disk, bulge, and halo.
+
+    The disk potential is an axisymmetric
+    :class:`~galax.potential.MiyamotoNagaiPotential`, the bulge potential is a
+    spherical :class:`~galax.potential.HernquistPotential`, and the halo
+    potential is a triaxial :class:`~galax.potential.LMJ09LogarithmicPotential`.
+
+    Default parameters are fixed to those found in LM10 by fitting N-body
+    simulations to the Sagittarius stream.
+
+    Parameters
+    ----------
+    units : `~galax.units.UnitSystem` (optional)
+        Set of non-reducable units that specify (at minimum) the length, mass,
+        time, and angle units.
+    disk : dict (optional)
+        Parameters to be passed to the
+        :class:`~galax.potential.MiyamotoNagaiPotential`.
+    bulge : dict (optional)
+        Parameters to be passed to the
+        :class:`~galax.potential.HernquistPotential`.
+    halo : dict (optional)
+        Parameters to be passed to the
+        :class:`~galax.potential.LMJ09LogarithmicPotential`.
+
+    Note: in subclassing, order of arguments must match order of potential
+    components added at bottom of init.
+    """
+
+    _data: dict[str, AbstractPotentialBase] = eqx.field(init=False)
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(
+        default=galactic, static=True, converter=unitsystem
+    )
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
+
+    # TODO: as an actual `MiyamotoNagaiPotential`, then use `replace`?
+    _default_disk: ClassVar[Mapping[str, Any]] = MappingProxyType(
+        {
+            "m_tot": Quantity(1e11, "Msun"),
+            "a": Quantity(6.5, "kpc"),
+            "b": Quantity(0.26, "kpc"),
+        }
+    )
+    # TODO: as an actual `HernquistPotential`, then use `replace`?
+    _default_bulge: ClassVar[Mapping[str, Any]] = MappingProxyType(
+        {"m_tot": Quantity(3.4e10, "Msun"), "c": Quantity(0.7, "kpc")}
+    )
+    # TODO: as an actual `LMJ09LogarithmicPotential`, then use `replace`?
+    _default_halo: ClassVar[Mapping[str, Any]] = MappingProxyType(
+        {
+            "v_c": Quantity(_sqrt2 * 121.858, "km / s"),
+            "r_s": Quantity(12.0, "kpc"),
+            "q1": 1.38,
+            "q2": 1.0,
+            "q3": 1.36,
+            "phi": Quantity(97, "degree"),
+        }
+    )
+
+    def __init__(
+        self,
+        *,
+        disk: MiyamotoNagaiPotential | Mapping[str, Any] | None = None,
+        bulge: HernquistPotential | Mapping[str, Any] | None = None,
+        halo: LMJ09LogarithmicPotential | Mapping[str, Any] | None = None,
+        units: Any = galactic,
+        constants: Any = default_constants,
+    ) -> None:
+        units_ = unitsystem(units) if units is not None else galactic
+
+        super().__init__(
+            disk=_parse_input_comp(
+                MiyamotoNagaiPotential, disk, self._default_disk, units_
+            ),
+            bulge=_parse_input_comp(
+                HernquistPotential, bulge, self._default_bulge, units_
+            ),
+            halo=_parse_input_comp(
+                LMJ09LogarithmicPotential, halo, self._default_halo, units_
+            ),
             units=units_,
             constants=constants,
         )

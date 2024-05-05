@@ -18,7 +18,7 @@ from ._api import Integrator
 from ._builtin import DiffraxIntegrator
 from galax.coordinates import PhaseSpacePosition
 from galax.dynamics._dynamics.orbit import InterpolatedOrbit, Orbit
-from galax.potential._potential.base import AbstractPotentialBase
+from galax.potential import AbstractPotentialBase
 
 ##############################################################################
 

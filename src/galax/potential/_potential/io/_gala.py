@@ -182,7 +182,6 @@ _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential
     gp.IsochronePotential: gpx.IsochronePotential,
     gp.KeplerPotential: gpx.KeplerPotential,
     gp.KuzminPotential: gpx.KuzminPotential,
-    gp.LogarithmicPotential: gpx.LogarithmicPotential,
     gp.MiyamotoNagaiPotential: gpx.MiyamotoNagaiPotential,
     gp.PlummerPotential: gpx.PlummerPotential,
     gp.PowerLawCutoffPotential: gpx.PowerLawCutoffPotential,
@@ -319,6 +318,62 @@ def _gala_to_galax_stoneostriker15(
 
 
 # -----------------------------------------------------------------------------
+# Logarithmic potentials
+
+
+@gala_to_galax.register
+def _gala_to_galax_logarithmic(
+    gala: gp.LogarithmicPotential, /
+) -> gpx.LogarithmicPotential | gpx.LMJ09LogarithmicPotential | gpx.PotentialFrame:
+    """Convert a Gala LogarithmicPotential to a Galax potential.
+
+    If the flattening or rotation 'phi' is non-zero, the potential is a
+    :class:`galax.potential.LMJ09LogarithmicPotential` (or
+    :class:`galax.potential.PotentialFrame` wrapper thereof). Otherwise, it is a
+    :class:`galax.potential.LogarithmicPotential` (or
+    :class:`galax.potential.PotentialFrame` wrapper thereof).
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import gala.units as gu
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.LogarithmicPotential(v_c=220, r_h=20, units=gu.galactic)
+    >>> gpx.io.gala_to_galax(gpot)
+    LogarithmicPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...}),
+      v_c=ConstantParameter( ... ),
+      r_s=ConstantParameter( ... )
+    )
+    """
+    params = gala.parameters
+
+    if (
+        params["q1"] != 1
+        or params["q2"] != 1
+        or params["q3"] != 1
+        or params["phi"] != 0
+    ):
+        pot = gpx.LMJ09LogarithmicPotential(
+            v_c=params["v_c"],
+            r_s=params["r_h"],
+            q1=params["q1"],
+            q2=params["q2"],
+            q3=params["q3"],
+            phi=params["phi"],
+            units=gala.units,
+        )
+    else:
+        pot = gpx.LogarithmicPotential(
+            v_c=params["v_c"], r_s=params["r_h"], units=gala.units
+        )
+
+    return _apply_frame(_get_frame(gala), pot)
+
+
+# -----------------------------------------------------------------------------
 # NFW potentials
 
 
@@ -421,6 +476,29 @@ def _gala_to_galax_bovymw2014(
 
     """
     return gpx.BovyMWPotential2014(
+        disk=gala_to_galax(pot["disk"]),
+        bulge=gala_to_galax(pot["bulge"]),
+        halo=gala_to_galax(pot["halo"]),
+    )
+
+
+@gala_to_galax.register
+def _gala_to_galax_lm10(pot: gp.LM10Potential, /) -> gpx.LM10Potential:
+    """Convert a Gala LM10Potential to a Galax potential.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.LM10Potential()
+    >>> gpx.io.gala_to_galax(gpot)
+    LM10Potential({'disk': MiyamotoNagaiPotential( ... ),
+                   'bulge': HernquistPotential( ... ),
+                   'halo': NFWPotential( ... )})
+
+    """
+    return gpx.LM10Potential(
         disk=gala_to_galax(pot["disk"]),
         bulge=gala_to_galax(pot["bulge"]),
         halo=gala_to_galax(pot["halo"]),

@@ -5,16 +5,15 @@ import pytest
 import quaxed.numpy as qnp
 from unxt import Quantity
 
-from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import (
+import galax.typing as gt
+from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ..test_common import (
     ParameterMTotMixin,
     ParameterShapeCMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 )
-from galax.potential import TriaxialHernquistPotential
-from galax.potential._potential.base import AbstractPotentialBase
-from galax.typing import Vec3
+from galax.potential import AbstractPotentialBase, TriaxialHernquistPotential
 
 
 class TestTriaxialHernquistPotential(
@@ -43,13 +42,15 @@ class TestTriaxialHernquistPotential(
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: TriaxialHernquistPotential, x: Vec3) -> None:
+    def test_potential_energy(
+        self, pot: TriaxialHernquistPotential, x: gt.QVec3
+    ) -> None:
         expect = Quantity(-0.61215074, pot.units["specific energy"])
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: TriaxialHernquistPotential, x: Vec3) -> None:
+    def test_gradient(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [0.01312095, 0.02168751, 0.15745134], pot.units["acceleration"]
         )
@@ -58,10 +59,10 @@ class TestTriaxialHernquistPotential(
         )
 
     @pytest.mark.xfail(reason="WFF?")
-    def test_density(self, pot: TriaxialHernquistPotential, x: Vec3) -> None:
+    def test_density(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:
         assert pot.density(x, t=0).decompose(pot.units).value >= 0
 
-    def test_hessian(self, pot: TriaxialHernquistPotential, x: Vec3) -> None:
+    def test_hessian(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [
                 [0.01223294, -0.00146778, -0.0106561],
@@ -75,7 +76,7 @@ class TestTriaxialHernquistPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [

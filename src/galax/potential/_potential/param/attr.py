@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, NoReturn, final
 from .field import ParameterField
 
 if TYPE_CHECKING:
-    from galax.potential._potential.base import AbstractPotentialBase
+    from galax.potential import AbstractPotentialBase
 
 
 @final

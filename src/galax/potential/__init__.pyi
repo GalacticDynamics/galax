@@ -18,7 +18,6 @@ __all__ = [
     "JaffePotential",
     "KeplerPotential",
     "KuzminPotential",
-    "LogarithmicPotential",
     "LongMuraliBarPotential",
     "MiyamotoNagaiPotential",
     "NullPotential",
@@ -27,6 +26,9 @@ __all__ = [
     "SatohPotential",
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
+    # logarithmic
+    "LogarithmicPotential",
+    "LMJ09LogarithmicPotential",
     # nfw
     "NFWPotential",
     "LeeSutoTriaxialNFWPotential",
@@ -34,6 +36,7 @@ __all__ = [
     "Vogelsberger08TriaxialNFWPotential",
     # special
     "BovyMWPotential2014",
+    "LM10Potential",
     "MilkyWayPotential",
     # frame
     "PotentialFrame",
@@ -63,7 +66,6 @@ from ._potential.builtin.builtin import (
     JaffePotential,
     KeplerPotential,
     KuzminPotential,
-    LogarithmicPotential,
     LongMuraliBarPotential,
     MiyamotoNagaiPotential,
     NullPotential,
@@ -73,11 +75,20 @@ from ._potential.builtin.builtin import (
     StoneOstriker15Potential,
     TriaxialHernquistPotential,
 )
+from ._potential.builtin.logarithmic import (
+    LMJ09LogarithmicPotential,
+    LogarithmicPotential,
+)
 from ._potential.builtin.nfw import (
     LeeSutoTriaxialNFWPotential,
     NFWPotential,
     TriaxialNFWPotential,
     Vogelsberger08TriaxialNFWPotential,
+)
+from ._potential.builtin.special import (
+    BovyMWPotential2014,
+    LM10Potential,
+    MilkyWayPotential,
 )
 from ._potential.composite import AbstractCompositePotential, CompositePotential
 from ._potential.core import AbstractPotential
@@ -99,4 +110,3 @@ from ._potential.param import (
     ParametersAttribute,
     UserParameter,
 )
-from ._potential.special import BovyMWPotential2014, MilkyWayPotential

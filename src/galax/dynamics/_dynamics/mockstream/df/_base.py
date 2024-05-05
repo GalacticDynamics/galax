@@ -19,7 +19,7 @@ import galax.typing as gt
 from ._progenitor import ConstantMassProtenitor, ProgenitorMassCallable
 from galax.dynamics._dynamics.mockstream.core import MockStream
 from galax.dynamics._dynamics.orbit import Orbit
-from galax.potential._potential.base import AbstractPotentialBase
+from galax.potential import AbstractPotentialBase
 
 Wif: TypeAlias = tuple[
     gt.LengthVec3,

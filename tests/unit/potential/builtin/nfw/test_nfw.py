@@ -10,8 +10,8 @@ from unxt.unitsystems import AbstractUnitSystem
 
 import galax.potential as gp
 import galax.typing as gt
-from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMMixin, ParameterScaleRadiusMixin
+from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ..test_common import ParameterMMixin, ParameterScaleRadiusMixin
 
 ###############################################################################
 

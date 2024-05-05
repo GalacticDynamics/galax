@@ -6,8 +6,8 @@ import quaxed.numpy as qnp
 from unxt import Quantity
 
 import galax.potential as gp
-from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMTotMixin
+from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ..test_common import ParameterMTotMixin
 from galax.potential import AbstractPotentialBase, KeplerPotential
 from galax.typing import QVec3
 

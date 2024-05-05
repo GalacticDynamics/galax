@@ -174,6 +174,29 @@ class ParameterShapeQ2Mixin(ParameterFieldMixin):
         assert pot.q2(t=0) == Quantity(1.2, "")
 
 
+class ParameterShapeQ3Mixin(ParameterFieldMixin):
+    """Test the shape parameter."""
+
+    @pytest.fixture(scope="class")
+    def field_q3(self) -> float:
+        return Quantity(0.5, "")
+
+    # =====================================================
+
+    def test_q3_constant(self, pot_cls, fields):
+        """Test the mass parameter."""
+        fields["q3"] = Quantity(0.6, "")
+        pot = pot_cls(**fields)
+        assert pot.q3(t=0) == Quantity(0.6, "")
+
+    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
+    def test_q3_userfunc(self, pot_cls, fields):
+        """Test the mass parameter."""
+        fields["q3"] = lambda t: t * 1.2
+        pot = pot_cls(**fields)
+        assert pot.q3(t=0) == Quantity(1.2, "")
+
+
 # =============================================================================
 
 

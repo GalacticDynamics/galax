@@ -14,12 +14,10 @@ from unxt import Quantity
 from unxt.unitsystems import UnitSystem, dimensionless, galactic, solarsystem
 
 import galax.potential as gp
-import galax.typing as gt
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.typing import Vec3
 from galax.utils._misc import first
-from galax.utils._optional_deps import HAS_GALA
 
 if TYPE_CHECKING:
     from galax.potential import (
@@ -212,31 +210,6 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
         newkey, newvalue = tuple(newpot.items())[-1]
         assert newkey == "kep2"
         assert newvalue is newpot["kep2"]
-
-    # ==========================================================================
-
-    # ---------------------------------
-    # Interoperability
-
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
-    @pytest.mark.parametrize(
-        ("method0", "method1", "atol"),
-        [
-            ("potential_energy", "energy", 1e-8),
-            ("gradient", "gradient", 1e-8),
-            ("density", "density", 1e-8),
-            ("hessian", "hessian", 1e-8),
-        ],
-    )
-    def test_method_gala(
-        self,
-        pot: AbstractCompositePotential,
-        method0: str,
-        method1: str,
-        x: gt.QVec3,
-        atol: float,
-    ) -> None:
-        super().test_method_gala(pot, method0, method1, x, atol)
 
 
 class TestCompositePotential(AbstractCompositePotential_Test):

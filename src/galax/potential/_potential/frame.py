@@ -12,7 +12,7 @@ from coordinax.operators import OperatorSequence, simplify_op
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
-from galax.potential._potential.base import AbstractPotentialBase
+from .base import AbstractPotentialBase
 from galax.utils import ImmutableDict
 
 

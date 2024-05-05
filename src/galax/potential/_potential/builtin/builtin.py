@@ -28,6 +28,7 @@ from jaxtyping import ArrayLike
 from quax import quaxify
 
 import quaxed.array_api as xp
+import quaxed.lax as qlax
 import quaxed.scipy.special as qsp
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 from unxt.unitsystems import galactic
@@ -209,6 +210,22 @@ class KeplerPotential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / r
+
+    @partial(jax.jit)
+    def _density(
+        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+    ) -> gt.BatchFloatQScalar:
+        r = xp.linalg.vector_norm(q, axis=-1)
+        m = self.m_tot(t)
+        pred = xp.logical_or(  # are we at the origin with non-zero mass?
+            xp.greater(r, xp.zeros_like(r)), xp.equal(m, xp.zeros_like(m))
+        )
+        return Quantity(
+            qlax.select(
+                pred, xp.zeros_like(r.value), xp.full_like(r.value, fill_value=xp.inf)
+            ),
+            self.units["mass density"],
+        )
 
 
 # -------------------------------------------------------------------

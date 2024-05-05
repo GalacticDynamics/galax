@@ -42,7 +42,7 @@ class TestKeplerPotential(
         )
 
     def test_density(self, pot: KeplerPotential, x: QVec3) -> None:
-        expect = Quantity(4.90989768e-07, pot.units["mass density"])
+        expect = Quantity(0.0, pot.units["mass density"])
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

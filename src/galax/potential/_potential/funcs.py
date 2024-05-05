@@ -957,7 +957,7 @@ def density(
     ...                           t=Quantity(0, "Gyr"))
 
     >>> pot.density(w)
-    Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
+    Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     We can also compute the density at multiple positions and times:
 
@@ -965,7 +965,7 @@ def density(
     ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
     ...                           t=Quantity([0, 1], "Gyr"))
     >>> pot.density(w)
-    Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64), unit='solMass / kpc3')
+    Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
 
     Instead of passing a
     :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
@@ -974,8 +974,8 @@ def density(
     >>> from coordinax import FourVector
     >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
     >>> pot.density(w)
-    Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
-    """  # noqa: E501
+    Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
+    """
     q = _convert_from_3dvec(pspt.q, units=potential.units)
     return potential._density(q, pspt.t)  # noqa: SLF001
 
@@ -1014,13 +1014,13 @@ def density(
     >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
     >>> pot.density(q, t)
-    Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
+    Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     We can also compute the density at multiple positions:
 
     >>> q = cx.Cartesian3DVector.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
     >>> pot.density(q, t)
-    Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64), unit='solMass / kpc3')
+    Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
 
     Instead of passing a :class:`~vector.Abstract3DVector` (in this case a
     :class:`~vector.Cartesian3DVector`), we can instead pass a
@@ -1029,7 +1029,7 @@ def density(
 
     >>> q = Quantity([1., 2, 3], "kpc")
     >>> pot.density(q, t)
-    Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
+    Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     Again, this can be batched.  If the input position object has no units
     (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
@@ -1038,8 +1038,8 @@ def density(
     >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> pot.density(q, t)
-    Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64), unit='solMass / kpc3')
-    """  # noqa: E501
+    Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
+    """
     q = parse_to_quantity(q, unit=potential.units["length"])
     t = Quantity.constructor(t, potential.units["time"])
     return potential._density(q, t)  # noqa: SLF001
@@ -1066,10 +1066,10 @@ def density(
     >>> q = cx.Cartesian3DVector.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
     >>> pot.density(q, t=t)
-    Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
+    Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     See the other examples in the positional-only case.
-    """  # noqa: E501
+    """
     return _density(potential, q, t)
 
 
@@ -1104,14 +1104,13 @@ def density(
     >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.density(q, t)
-    Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
+    Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     We can also compute the density at multiple positions:
 
     >>> q = c.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit=u.kpc)
     >>> pot.density(q, t)
-    Quantity['mass density'](Array([3.06868605e-08, 1.53434303e-08], dtype=float64),
-                                unit='solMass / kpc3')
+    Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
 
     Instead of passing a
     :class:`astropy.coordinates.CartesianRepresentation`,
@@ -1120,7 +1119,7 @@ def density(
 
     >>> q = u.Quantity([1, 2, 3], "kpc")
     >>> pot.density(q, t)
-    Quantity['mass density'](Array(4.90989768e-07, dtype=float64), unit='solMass / kpc3')
+    Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     Again, this can be batched.  Also, If the input position object has no
     units (i.e. is an `~numpy.ndarray`), it is assumed to be in the same
@@ -1128,9 +1127,8 @@ def density(
 
     >>> q = np.array([[1, 2, 3], [4, 5, 6]])
     >>> pot.density(q, t)
-    Quantity['mass density'](Array([4.90989768e-07, 0.00000000e+00], dtype=float64),
-                                unit='solMass / kpc3')
-    """  # noqa: E501
+    Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
+    """
     q = parse_to_quantity(q, unit=potential.units["length"])
     t = Quantity.constructor(t, potential.units["time"])
     return potential._density(q, t)  # noqa: SLF001
@@ -1161,8 +1159,7 @@ def density(
     >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.density(q, t=t)
-    Quantity['mass density'](Array(4.90989768e-07, dtype=float64),
-                                unit='solMass / kpc3')
+    Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     See the other examples in the positional-only case.
     """

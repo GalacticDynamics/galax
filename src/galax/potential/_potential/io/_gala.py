@@ -495,7 +495,7 @@ def _gala_to_galax_lm10(pot: gp.LM10Potential, /) -> gpx.LM10Potential:
     >>> gpx.io.gala_to_galax(gpot)
     LM10Potential({'disk': MiyamotoNagaiPotential( ... ),
                    'bulge': HernquistPotential( ... ),
-                   'halo': NFWPotential( ... )})
+                   'halo': LMJ09LogarithmicPotential( ... )})
 
     """
     return gpx.LM10Potential(

@@ -28,12 +28,13 @@ from jaxtyping import ArrayLike
 from quax import quaxify
 
 import quaxed.array_api as xp
+import quaxed.lax as qlax
 import quaxed.scipy.special as qsp
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 from unxt.unitsystems import galactic
 
 import galax.typing as gt
-from galax.potential._potential.base import default_constants
+from galax.potential._potential.base import QMatrix33, default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
 from galax.utils import ImmutableDict
@@ -209,6 +210,22 @@ class KeplerPotential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / r
+
+    @partial(jax.jit)
+    def _density(
+        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+    ) -> gt.BatchFloatQScalar:
+        r = xp.linalg.vector_norm(q, axis=-1)
+        m = self.m_tot(t)
+        pred = xp.logical_or(  # are we at the origin with non-zero mass?
+            xp.greater(r, xp.zeros_like(r)), xp.equal(m, xp.zeros_like(m))
+        )
+        return Quantity(
+            qlax.select(
+                pred, xp.zeros_like(r.value), xp.full_like(r.value, fill_value=xp.inf)
+            ),
+            self.units["mass density"],
+        )
 
 
 # -------------------------------------------------------------------
@@ -389,6 +406,36 @@ class NullPotential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         return Quantity(  # TODO: better unit handling
             xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
+        )
+
+    @partial(jax.jit)
+    def _gradient(self, q: gt.BatchQVec3, /, _: gt.RealQScalar) -> gt.BatchQVec3:
+        """See ``gradient``."""
+        return Quantity(  # TODO: better unit handling
+            xp.zeros(q.shape[:-1] + (3,), dtype=q.dtype), galactic["acceleration"]
+        )
+
+    @partial(jax.jit)
+    def _laplacian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> gt.FloatQScalar:
+        """See ``laplacian``."""
+        return Quantity(  # TODO: better unit handling
+            xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["frequency drift"]
+        )
+
+    @partial(jax.jit)
+    def _density(
+        self, q: gt.BatchQVec3, /, _: gt.BatchRealQScalar | gt.RealQScalar
+    ) -> gt.BatchFloatQScalar:
+        """See ``density``."""
+        return Quantity(  # TODO: better unit handling
+            xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["mass density"]
+        )
+
+    @partial(jax.jit)
+    def _hessian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> QMatrix33:
+        """See ``hessian``."""
+        return Quantity(  # TODO: better unit handling
+            xp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype), galactic["frequency drift"]
         )
 
 

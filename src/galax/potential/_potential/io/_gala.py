@@ -18,7 +18,6 @@ from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
 import coordinax.operators as cxo
 from coordinax.operators import IdentityOperator
 from unxt import Quantity
-from unxt.unitsystems import DimensionlessUnitSystem
 
 import galax.potential as gpx
 
@@ -218,7 +217,7 @@ def _gala_to_galax_registered(
 
 
 @gala_to_galax.register
-def _gala_to_galax_null(_: gp.NullPotential, /) -> gpx.NullPotential:
+def _gala_to_galax_null(pot: gp.NullPotential, /) -> gpx.NullPotential:
     """Convert a Gala NullPotential to a Galax potential.
 
     Examples
@@ -232,7 +231,7 @@ def _gala_to_galax_null(_: gp.NullPotential, /) -> gpx.NullPotential:
                    constants=ImmutableDict({'G': ...}) )
 
     """
-    return gpx.NullPotential(units=DimensionlessUnitSystem())
+    return gpx.NullPotential(units=pot.units)
 
 
 @gala_to_galax.register

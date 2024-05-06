@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 
 import astropy.units as u
 import pytest
-from plum import convert
 from typing_extensions import override
 
 import quaxed.array_api as xp
@@ -237,15 +236,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
         x: gt.QVec3,
         atol: float,
     ) -> None:
-        from .io.gala_helper import galax_to_gala
-
-        galax = getattr(pot, method0)(x, t=0)
-        gala = getattr(galax_to_gala(pot), method1)(convert(x, u.Quantity), t=0 * u.Myr)
-        assert qnp.allclose(
-            qnp.ravel(galax),
-            qnp.ravel(convert(gala, Quantity)),
-            atol=Quantity(atol, galax.unit),
-        )
+        super().test_method_gala(pot, method0, method1, x, atol)
 
 
 class TestCompositePotential(AbstractCompositePotential_Test):

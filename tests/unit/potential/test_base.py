@@ -1,4 +1,5 @@
 import copy
+from abc import ABCMeta, abstractmethod
 from functools import partial
 from typing import Any
 
@@ -20,31 +21,12 @@ from galax.potential._potential.base import default_constants
 from galax.utils import ImmutableDict
 
 
-class TestAbstractPotentialBase(GalaIOMixin):
+class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
     """Test the `galax.potential.AbstractPotentialBase` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[AbstractPotentialBase]:
-        class TestPotential(AbstractPotentialBase):
-            m_tot: AbstractParameter = ParameterField(
-                dimensions="mass", default=1e12 * u.Msun
-            )
-            units: AbstractUnitSystem = eqx.field(default=galactic, static=True)
-            constants: ImmutableDict[Quantity] = eqx.field(
-                default=default_constants, converter=ImmutableDict
-            )
-
-            @partial(jax.jit)
-            def _potential_energy(  # TODO: inputs w/ units
-                self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-            ) -> gt.BatchFloatQScalar:
-                return (
-                    self.constants["G"]
-                    * self.m_tot(t)
-                    / xp.linalg.vector_norm(q, axis=-1)
-                )
-
-        return TestPotential
+    @abstractmethod
+    def pot_cls(self) -> type[AbstractPotentialBase]: ...
 
     @pytest.fixture(scope="class")
     def units(self) -> AbstractUnitSystem:
@@ -117,6 +99,128 @@ class TestAbstractPotentialBase(GalaIOMixin):
 
     ###########################################################################
 
+    @abstractmethod
+    def test_init(self) -> None:
+        """Test the initialization of `AbstractPotentialBase`."""
+        ...
+
+    # =========================================================================
+
+    # ---------------------------------
+
+    @abstractmethod
+    def test_potential_energy(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `potential_energy` method."""
+        ...
+
+    def test_potential_energy_batch(
+        self, pot: AbstractPotentialBase, batchx: gt.BatchQVec3
+    ) -> None:
+        """Test the `AbstractPotentialBase.potential_energy` method."""
+        # Test that the method works on batches.
+        assert pot.potential_energy(batchx, t=0).shape == batchx.shape[:-1]
+        # Test that the batched method is equivalent to the scalar method
+        assert qnp.allclose(
+            pot.potential_energy(batchx, t=0)[0],
+            pot.potential_energy(batchx[0], t=0),
+            atol=Quantity(1e-15, pot.units["specific energy"]),
+        )
+
+    # ---------------------------------
+
+    def test_call(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `AbstractPotentialBase.__call__` method."""
+        assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0))
+
+    @abstractmethod
+    def test_gradient(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `AbstractPotentialBase.gradient` method."""
+        ...
+
+    @abstractmethod
+    def test_density(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `AbstractPotentialBase.density` method."""
+        ...
+
+    @abstractmethod
+    def test_hessian(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `AbstractPotentialBase.hessian` method."""
+        ...
+
+    def test_acceleration(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `AbstractPotentialBase.acceleration` method."""
+        assert qnp.array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
+
+    # ---------------------------------
+    # Convenience methods
+
+    @abstractmethod
+    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+        ...
+
+    # =========================================================================
+
+    def test_evaluate_orbit(self, pot: AbstractPotentialBase, xv: gt.Vec6) -> None:
+        """Test the `AbstractPotentialBase.evaluate_orbit` method."""
+        ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
+
+        orbit = pot.evaluate_orbit(xv, ts)
+        assert isinstance(orbit, gd.Orbit)
+        assert orbit.shape == (len(ts.value),)  # TODO: don't use .value
+        assert qnp.array_equal(orbit.t, ts)
+
+    def test_evaluate_orbit_batch(
+        self, pot: AbstractPotentialBase, xv: gt.Vec6
+    ) -> None:
+        """Test the `AbstractPotentialBase.evaluate_orbit` method."""
+        ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
+
+        # Simple batch
+        orbits = pot.evaluate_orbit(xv[None, :], ts)
+        assert isinstance(orbits, gd.Orbit)
+        assert orbits.shape == (1, len(ts))
+        assert qnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))
+
+        # More complicated batch
+        xv2 = xp.stack([xv, xv], axis=0)
+        orbits = pot.evaluate_orbit(xv2, ts)
+        assert isinstance(orbits, gd.Orbit)
+        assert orbits.shape == (2, len(ts))
+        assert qnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))
+
+
+##############################################################################
+
+
+class TestAbstractPotentialBase(AbstractPotentialBase_Test):
+    """Test the `galax.potential.AbstractPotentialBase` class."""
+
+    @pytest.fixture(scope="class")
+    def pot_cls(self) -> type[AbstractPotentialBase]:
+        class TestPotential(AbstractPotentialBase):
+            m_tot: AbstractParameter = ParameterField(
+                dimensions="mass", default=1e12 * u.Msun
+            )
+            units: AbstractUnitSystem = eqx.field(default=galactic, static=True)
+            constants: ImmutableDict[Quantity] = eqx.field(
+                default=default_constants, converter=ImmutableDict
+            )
+
+            @partial(jax.jit)
+            def _potential_energy(  # TODO: inputs w/ units
+                self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+            ) -> gt.BatchFloatQScalar:
+                return (
+                    self.constants["G"]
+                    * self.m_tot(t)
+                    / xp.linalg.vector_norm(q, axis=-1)
+                )
+
+        return TestPotential
+
+    ###########################################################################
+
     def test_init(self) -> None:
         """Test the initialization of `AbstractPotentialBase`."""
         # Test that the abstract class cannot be instantiated
@@ -150,24 +254,7 @@ class TestAbstractPotentialBase(GalaIOMixin):
             atol=Quantity(1e-8, "kpc2/Myr2"),
         )
 
-    def test_potential_energy_batch(
-        self, pot: AbstractPotentialBase, batchx: gt.BatchQVec3
-    ) -> None:
-        """Test the `AbstractPotentialBase.potential_energy` method."""
-        # Test that the method works on batches.
-        assert pot.potential_energy(batchx, t=0).shape == batchx.shape[:-1]
-        # Test that the batched method is equivalent to the scalar method
-        assert qnp.allclose(
-            pot.potential_energy(batchx, t=0)[0],
-            pot.potential_energy(batchx[0], t=0),
-            atol=Quantity(1e-15, pot.units["specific energy"]),
-        )
-
     # ---------------------------------
-
-    def test_call(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.__call__` method."""
-        assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0))
 
     def test_gradient(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.gradient` method."""
@@ -202,10 +289,6 @@ class TestAbstractPotentialBase(GalaIOMixin):
             pot.hessian(x, t=0), expected, atol=Quantity(1e-8, "1/Myr2")
         )
 
-    def test_acceleration(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.acceleration` method."""
-        assert qnp.array_equal(pot.acceleration(x, t=0), -pot.gradient(x, t=0))
-
     # ---------------------------------
     # Convenience methods
 
@@ -222,33 +305,3 @@ class TestAbstractPotentialBase(GalaIOMixin):
         assert qnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
-
-    # =========================================================================
-
-    def test_evaluate_orbit(self, pot: AbstractPotentialBase, xv: gt.Vec6) -> None:
-        """Test the `AbstractPotentialBase.evaluate_orbit` method."""
-        ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
-
-        orbit = pot.evaluate_orbit(xv, ts)
-        assert isinstance(orbit, gd.Orbit)
-        assert orbit.shape == (len(ts.value),)  # TODO: don't use .value
-        assert qnp.array_equal(orbit.t, ts)
-
-    def test_evaluate_orbit_batch(
-        self, pot: AbstractPotentialBase, xv: gt.Vec6
-    ) -> None:
-        """Test the `AbstractPotentialBase.evaluate_orbit` method."""
-        ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
-
-        # Simple batch
-        orbits = pot.evaluate_orbit(xv[None, :], ts)
-        assert isinstance(orbits, gd.Orbit)
-        assert orbits.shape == (1, len(ts))
-        assert qnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))
-
-        # More complicated batch
-        xv2 = xp.stack([xv, xv], axis=0)
-        orbits = pot.evaluate_orbit(xv2, ts)
-        assert isinstance(orbits, gd.Orbit)
-        assert orbits.shape == (2, len(ts))
-        assert qnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))

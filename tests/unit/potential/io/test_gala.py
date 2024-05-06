@@ -1,8 +1,5 @@
 """Testing the gala potential I/O module."""
 
-from inspect import get_annotations
-from typing import ClassVar
-
 import astropy.units as u
 import pytest
 from plum import convert
@@ -38,15 +35,16 @@ class GalaIOMixin:
     This is mixed into the ``TestAbstractPotentialBase`` class.
     """
 
+    # TODO: get this working again
     # All the Gala-mapped potentials
-    _GALA_CAN_MAP_TO: ClassVar = set(
-        [  # get from GALA_TO_GALAX_REGISTRY or the single-dispatch registry
-            _GALA_TO_GALAX_REGISTRY.get(pot, get_annotations(func)["return"])
-            for pot, func in gp.io.gala_to_galax.registry.items()
-        ]
-        if HAS_GALA
-        else []
-    )
+    # _GALA_CAN_MAP_TO: ClassVar = set(
+    #     [  # get from GALA_TO_GALAX_REGISTRY or the single-dispatch registry
+    #         _GALA_TO_GALAX_REGISTRY.get(pot, get_annotations(func)["return"])
+    #         for pot, func in gp.io.gala_to_galax.registry.items()
+    #     ]
+    #     if HAS_GALA
+    #     else []
+    # )
 
     @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
     def test_galax_to_gala_to_galax_roundtrip(
@@ -56,7 +54,10 @@ class GalaIOMixin:
         from .gala_helper import galax_to_gala
 
         # First we need to check that the potential is gala-compatible
-        if type(pot) not in self._GALA_CAN_MAP_TO:
+        # if type(pot) not in self._GALA_CAN_MAP_TO:
+        try:
+            galax_to_gala(pot)
+        except NotImplementedError:
             pytest.skip(f"potential {pot} cannot be mapped to from gala")
 
         rpot = gp.io.gala_to_galax(galax_to_gala(pot))
@@ -87,8 +88,11 @@ class GalaIOMixin:
         """
         from ..io.gala_helper import galax_to_gala
 
-        if type(pot) not in self._GALA_CAN_MAP_TO:
-            pytest.skip(f"potential {pot} cannot be mapped to gala")
+        # if type(pot) not in self._GALA_CAN_MAP_TO:
+        try:
+            galax_to_gala(pot)
+        except NotImplementedError:
+            pytest.skip(f"potential {pot} cannot be mapped to from gala")
 
         galax = getattr(pot, method0)(x, t=0)
         gala = getattr(galax_to_gala(pot), method1)(convert(x, u.Quantity), t=0 * u.Myr)

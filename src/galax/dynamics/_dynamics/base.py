@@ -25,7 +25,7 @@ from galax.coordinates._psp.utils import (
     _q_converter,
     getitem_vec1time_index,
 )
-from galax.potential._potential.base import AbstractPotentialBase
+from galax.potential import AbstractPotentialBase
 from galax.typing import BatchFloatQScalar, QVec1, QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 

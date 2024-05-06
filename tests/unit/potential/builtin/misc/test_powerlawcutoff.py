@@ -8,9 +8,10 @@ from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
 import galax.typing as gt
-from ..param.test_field import ParameterFieldMixin
-from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMTotMixin
+from ...io.test_gala import parametrize_test_method_gala
+from ...param.test_field import ParameterFieldMixin
+from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ..test_common import ParameterMTotMixin
 from galax.potential import AbstractPotentialBase, PowerLawCutoffPotential
 from galax.utils._optional_deps import GSL_ENABLED, HAS_GALA
 
@@ -149,15 +150,7 @@ class TestPowerLawCutoffPotential(
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 
     @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
-    @pytest.mark.parametrize(
-        ("method0", "method1", "atol"),
-        [
-            ("potential_energy", "energy", 1e-8),
-            ("gradient", "gradient", 1e-8),
-            ("density", "density", 1e-8),
-            ("hessian", "hessian", 1e-8),
-        ],
-    )
+    @parametrize_test_method_gala
     def test_method_gala(
         self,
         pot: PowerLawCutoffPotential,

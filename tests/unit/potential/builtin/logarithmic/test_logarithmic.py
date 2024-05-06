@@ -8,58 +8,58 @@ from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
 import galax.typing as gt
-from ..test_core import TestAbstractPotential as AbstractPotential_Test
-from .test_common import ParameterMMixin, ParameterScaleRadiusMixin
-from galax.potential import AbstractPotentialBase, JaffePotential
+from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from .test_common import ParameterRSMixin, ParameterVCMixin
+from galax.potential import AbstractPotentialBase, LogarithmicPotential
 
 
-class TestJaffePotential(
+class TestLogarithmicPotential(
     AbstractPotential_Test,
     # Parameters
-    ParameterMMixin,
-    ParameterScaleRadiusMixin,
+    ParameterVCMixin,
+    ParameterRSMixin,
 ):
-    """Test the `galax.potential.JaffePotential` class."""
+    """Test the `galax.potential.LogarithmicPotential` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[gp.JaffePotential]:
-        return gp.JaffePotential
+    def pot_cls(self) -> type[gp.LogarithmicPotential]:
+        return gp.LogarithmicPotential
 
     @pytest.fixture(scope="class")
     def fields_(
         self,
-        field_m: u.Quantity,
+        field_v_c: u.Quantity,
         field_r_s: u.Quantity,
         field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
-        return {"m": field_m, "r_s": field_r_s, "units": field_units}
+        return {"v_c": field_v_c, "r_s": field_r_s, "units": field_units}
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: JaffePotential, x: gt.QVec3) -> None:
-        expect = Quantity(-1.06550653, unit="kpc2 / Myr2")
+    def test_potential_energy(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
+        expect = Quantity(0.11027593, unit="kpc2 / Myr2")
         assert qnp.isclose(
             pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: JaffePotential, x: gt.QVec3) -> None:
-        expect = Quantity([0.06776567, 0.13553134, 0.20329701], "kpc / Myr2")
+    def test_gradient(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
+        expect = Quantity([0.00064902, 0.00129804, 0.00194706], "kpc / Myr2")
         assert qnp.allclose(
             pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_density(self, pot: JaffePotential, x: gt.QVec3) -> None:
-        expect = Quantity(2.52814372e08, "solMass / kpc3")
+    def test_density(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
+        expect = Quantity(30321621.61178864, "solMass / kpc3")
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: JaffePotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity(
             [
-                [0.05426528, -0.02700078, -0.04050117],
-                [-0.02700078, 0.01376411, -0.08100233],
-                [-0.04050117, -0.08100233, -0.05373783],
+                [6.32377766e-04, -3.32830403e-05, -4.99245605e-05],
+                [-3.32830403e-05, 5.82453206e-04, -9.98491210e-05],
+                [-4.99245605e-05, -9.98491210e-05, 4.99245605e-04],
             ],
             "1/Myr2",
         )
@@ -74,9 +74,9 @@ class TestJaffePotential(
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [
-                [0.04950143, -0.02700078, -0.04050117],
-                [-0.02700078, 0.00900026, -0.08100233],
-                [-0.04050117, -0.08100233, -0.05850169],
+                [6.10189073e-05, -3.32830403e-05, -4.99245605e-05],
+                [-3.32830403e-05, 1.10943468e-05, -9.98491210e-05],
+                [-4.99245605e-05, -9.98491210e-05, -7.21132541e-05],
             ],
             "1/Myr2",
         )

@@ -11,7 +11,7 @@ from unxt import Quantity
 from unxt.unitsystems import galactic
 
 import galax.typing as gt
-from ..test_composite import AbstractCompositePotential_Test
+from ...test_composite import AbstractCompositePotential_Test
 from galax.potential import MilkyWayPotential
 
 if TYPE_CHECKING:

@@ -24,7 +24,7 @@ from galax.utils.dataclasses import dataclass_items
 if TYPE_CHECKING:
     from typing import Self
 
-    from galax.potential._potential.base import AbstractPotentialBase
+    from galax.potential import AbstractPotentialBase
 
 
 class ComponentShapeTuple(NamedTuple):

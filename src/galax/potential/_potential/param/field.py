@@ -27,7 +27,7 @@ from galax.typing import Unit
 from galax.utils.dataclasses import Sentinel, dataclass_with_converter, field
 
 if TYPE_CHECKING:
-    from galax.potential._potential.base import AbstractPotentialBase
+    from galax.potential import AbstractPotentialBase
 
 
 def converter_parameter(value: Any) -> AbstractParameter:

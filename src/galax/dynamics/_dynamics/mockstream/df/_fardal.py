@@ -18,7 +18,6 @@ from unxt.experimental import grad
 import galax.typing as gt
 from ._base import AbstractStreamDF
 from galax.potential import AbstractPotentialBase
-from galax.potential._potential.base import AbstractPotentialBase
 
 # ============================================================
 # Constants

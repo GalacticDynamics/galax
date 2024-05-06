@@ -11,7 +11,8 @@ from unxt.unitsystems import galactic
 
 import galax.potential as gp
 import galax.typing as gt
-from ..test_composite import AbstractCompositePotential_Test
+from ...io.test_gala import parametrize_test_method_gala
+from ...test_composite import AbstractCompositePotential_Test
 from galax.potential import BovyMWPotential2014
 from galax.utils._optional_deps import GSL_ENABLED, HAS_GALA
 
@@ -109,15 +110,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 
     @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
-    @pytest.mark.parametrize(
-        ("method0", "method1", "atol"),
-        [
-            ("potential_energy", "energy", 1e-8),
-            ("gradient", "gradient", 1e-8),
-            ("density", "density", 1e-8),
-            ("hessian", "hessian", 1e-8),
-        ],
-    )
+    @parametrize_test_method_gala
     def test_method_gala(
         self,
         pot: BovyMWPotential2014,

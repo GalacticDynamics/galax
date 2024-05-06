@@ -25,7 +25,7 @@ from galax.dynamics._dynamics.integrate._funcs import (
     _default_integrator,
     evaluate_orbit,
 )
-from galax.potential._potential.base import AbstractPotentialBase
+from galax.potential import AbstractPotentialBase
 
 Carry: TypeAlias = tuple[gt.IntScalar, gt.VecN, gt.VecN]
 

@@ -272,16 +272,16 @@ def _gala_to_galax_longmuralibar(
     >>> import gala.units as gu
     >>> import galax.potential as gpx
 
-    >>> gpot = gp.LongMuraliBarPotential(m=1e11, a=20, b=10, units=gu.galactic)
+    >>> gpot = gp.LongMuraliBarPotential(m=1e11, a=20, b=10, c=5, units=gu.galactic)
     >>> gpx.io.gala_to_galax(gpot)
     LongMuraliBarPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( ... ),
+      constants=ImmutableDict({'G': Quantity...}),
+      m_tot=ConstantParameter( ... ),
       a=ConstantParameter( ... ),
       b=ConstantParameter( ... ),
       c=ConstantParameter( ... ),
-      alpha=ConstantParameter( ... ),
+      alpha=ConstantParameter( ... )
     )
     """
     params = gala.parameters

@@ -34,7 +34,7 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 from unxt.unitsystems import galactic
 
 import galax.typing as gt
-from galax.potential._potential.base import default_constants
+from galax.potential._potential.base import QMatrix33, default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
 from galax.utils import ImmutableDict
@@ -406,6 +406,36 @@ class NullPotential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         return Quantity(  # TODO: better unit handling
             xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
+        )
+
+    @partial(jax.jit)
+    def _gradient(self, q: gt.BatchQVec3, /, _: gt.RealQScalar) -> gt.BatchQVec3:
+        """See ``gradient``."""
+        return Quantity(  # TODO: better unit handling
+            xp.zeros(q.shape[:-1] + (3,), dtype=q.dtype), galactic["acceleration"]
+        )
+
+    @partial(jax.jit)
+    def _laplacian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> gt.FloatQScalar:
+        """See ``laplacian``."""
+        return Quantity(  # TODO: better unit handling
+            xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["frequency drift"]
+        )
+
+    @partial(jax.jit)
+    def _density(
+        self, q: gt.BatchQVec3, /, _: gt.BatchRealQScalar | gt.RealQScalar
+    ) -> gt.BatchFloatQScalar:
+        """See ``density``."""
+        return Quantity(  # TODO: better unit handling
+            xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["mass density"]
+        )
+
+    @partial(jax.jit)
+    def _hessian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> QMatrix33:
+        """See ``hessian``."""
+        return Quantity(  # TODO: better unit handling
+            xp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype), galactic["frequency drift"]
         )
 
 

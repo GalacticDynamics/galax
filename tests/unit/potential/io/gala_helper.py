@@ -149,8 +149,10 @@ def _galax_to_gala_longmuralibar(
 
 
 @galax_to_gala.register
-def _galax_to_gala_null(_: gpx.NullPotential, /) -> gp.NullPotential:
-    return gp.NullPotential(units=gala_dimensionless)
+def _galax_to_gala_null(pot: gpx.NullPotential, /) -> gp.NullPotential:
+    return gp.NullPotential(
+        units=galax_to_gala_units(pot.units),
+    )
 
 
 @galax_to_gala.register

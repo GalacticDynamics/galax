@@ -261,6 +261,42 @@ def _gala_to_galax_jaffe(
 
 
 @gala_to_galax.register
+def _gala_to_galax_longmuralibar(
+    gala: gp.LongMuraliBarPotential, /
+) -> gpx.LongMuraliBarPotential | gpx.PotentialFrame:
+    """Convert a Gala LongMuraliBarPotential to a Galax potential.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import gala.units as gu
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.LongMuraliBarPotential(m=1e11, a=20, b=10, units=gu.galactic)
+    >>> gpx.io.gala_to_galax(gpot)
+    LongMuraliBarPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...}),
+      m=ConstantParameter( ... ),
+      a=ConstantParameter( ... ),
+      b=ConstantParameter( ... ),
+      c=ConstantParameter( ... ),
+      alpha=ConstantParameter( ... ),
+    )
+    """
+    params = gala.parameters
+    pot = gpx.LongMuraliBarPotential(
+        m_tot=params["m"],
+        a=params["a"],
+        b=params["b"],
+        c=params["c"],
+        alpha=params["alpha"],
+        units=gala.units,
+    )
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@gala_to_galax.register
 def _gala_to_galax_satoh(
     gala: gp.SatohPotential, /
 ) -> gpx.SatohPotential | gpx.PotentialFrame:

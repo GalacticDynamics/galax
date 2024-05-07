@@ -107,7 +107,7 @@ filterwarnings = [
   "error",
   "ignore:ast\\.Str is deprecated:DeprecationWarning",
   "ignore:numpy\\.ndarray size changed:RuntimeWarning",
-  "ignore:Passing arguments 'a':DeprecationWarning",  # upstream: diffrax
+  "ignore:Passing arguments 'a':DeprecationWarning",  # TODO: from diffrax
 ]
 log_cli_level = "INFO"
 markers = [

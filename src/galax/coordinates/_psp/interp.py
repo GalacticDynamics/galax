@@ -11,7 +11,8 @@ from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
-from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
+from .base import ComponentShapeTuple
+from .base_psp import AbstractPhaseSpacePosition
 from .core import PhaseSpacePosition
 from .utils import _p_converter, _q_converter
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape

@@ -2,29 +2,13 @@
 
 __all__: list[str] = []
 
-from functools import partial
 from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
 import jax
-from jaxtyping import Array, Bool, Shaped
-
-import quaxed.array_api as xp
+from jaxtyping import Array, Bool
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
-
-
-@partial(jax.jit, static_argnames="axis")
-def interleave_concat(
-    a: Shaped[Array, "..."], b: Shaped[Array, "..."], /, axis: int
-) -> Shaped[Array, "..."]:
-    a_shp = a.shape
-    return xp.stack((a, b), axis=axis + 1).reshape(
-        *a_shp[:axis], 2 * a_shp[axis], *a_shp[axis + 1 :]
-    )
-
-
-# -------------------------------------------------------------------
 
 
 @runtime_checkable

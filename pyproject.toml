@@ -30,7 +30,7 @@ dependencies = [
   "coordinax @ git+https://github.com/GalacticDynamics/coordinax.git",
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
-  "jax >= 0.4",
+  "jax >= 0.4, != 0.4.27",
   "jaxlib",
   "lazy_loader >= 0.4",
   "quax >= 0.0.3",

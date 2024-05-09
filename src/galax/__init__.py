@@ -11,11 +11,12 @@ __all__ = [
     "typing",
 ]
 
-from jax import config
-
-from . import coordinates, dynamics, potential, typing, utils
+from . import (
+    coordinates,
+    dynamics,
+    potential,
+    setup_package as setup_package,
+    typing,
+    utils,
+)
 from ._version import __version__, __version_tuple__
-
-config.update("jax_enable_x64", True)  # noqa: FBT003
-
-del config

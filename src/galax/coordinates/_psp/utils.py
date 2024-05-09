@@ -6,7 +6,6 @@ from functools import singledispatch
 from typing import Any, Protocol, cast, runtime_checkable
 
 import astropy.coordinates as apyc
-from jaxtyping import Shaped
 
 import coordinax as cx
 import quaxed.array_api as xp
@@ -53,10 +52,10 @@ def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: gt.FloatQAnyShape) 
     return index
 
 
-def _getitem_vec1time_index_shaped(index: Shaped, t: gt.FloatQAnyShape) -> Shaped:
+def _getitem_vec1time_index_shaped(index: HasShape, t: gt.FloatQAnyShape) -> HasShape:
     """Get the time index from a shaped index array."""
     if t.ndim == 1:  # Vec1
-        return cast(Shaped, xp.asarray([True]))
+        return cast(HasShape, xp.asarray([True]))
     if len(index.shape) >= t.ndim:
         msg = f"Index {index} has too many dimensions for time array of shape {t.shape}"
         raise IndexError(msg)

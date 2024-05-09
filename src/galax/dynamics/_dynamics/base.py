@@ -13,14 +13,10 @@ import jax.numpy as jnp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
+import galax.coordinates as gc
 import galax.typing as gt
-from galax.coordinates import (
-    AbstractPhaseSpacePosition,
-    ComponentShapeTuple,
-    PhaseSpacePosition,
-)
 from galax.coordinates._psp.utils import (
-    Shaped,
+    HasShape,
     _p_converter,
     _q_converter,
     getitem_vec1time_index,
@@ -33,7 +29,7 @@ if TYPE_CHECKING:
     from typing import Self
 
 
-class AbstractOrbit(AbstractPhaseSpacePosition):
+class AbstractOrbit(gc.AbstractPhaseSpacePosition):
     """Represents an orbit.
 
     An orbit is a set of ositions and velocities (conjugate momenta) as a
@@ -64,27 +60,29 @@ class AbstractOrbit(AbstractPhaseSpacePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
+    def _shape_tuple(self) -> tuple[gt.Shape, gc.ComponentShapeTuple]:
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
         tbatch, _ = batched_shape(self.t, expect_ndim=1)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
-        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
+        return batch_shape, gc.ComponentShapeTuple(q=qshape, p=pshape, t=1)
 
     @overload
-    def __getitem__(self, index: int) -> PhaseSpacePosition: ...
+    def __getitem__(self, index: int) -> gc.PhaseSpacePosition: ...
 
     @overload
-    def __getitem__(self, index: slice | Shaped | tuple[Any, ...]) -> "Self": ...
+    def __getitem__(self, index: slice | HasShape | tuple[Any, ...]) -> "Self": ...
 
-    def __getitem__(self, index: Any) -> "Self | PhaseSpacePosition":
+    def __getitem__(self, index: Any) -> "Self | gc.PhaseSpacePosition":
         """Return a new object with the given slice applied."""
         # TODO: return an OrbitSnapshot (or similar) instead of PhaseSpacePosition?
         if isinstance(index, int):
-            return PhaseSpacePosition(q=self.q[index], p=self.p[index], t=self.t[index])
+            return gc.PhaseSpacePosition(
+                q=self.q[index], p=self.p[index], t=self.t[index]
+            )
 
-        if isinstance(index, Shaped):
+        if isinstance(index, HasShape):
             msg = "Shaped indexing not yet implemented."
             raise NotImplementedError(msg)
 

@@ -2,21 +2,20 @@
 
 __all__: list[str] = []
 
+from functools import singledispatch
 from typing import Any, Protocol, cast, runtime_checkable
 
+import astropy.coordinates as apyc
+from jaxtyping import Shaped
+
+import coordinax as cx
 import quaxed.array_api as xp
-from coordinax import (
-    Abstract3DVector,
-    Abstract3DVectorDifferential,
-    Cartesian3DVector,
-    CartesianDifferential3D,
-)
 
 import galax.typing as gt
 
 
 @runtime_checkable
-class Shaped(Protocol):
+class HasShape(Protocol):
     """Protocol for a shaped object."""
 
     shape: gt.Shape
@@ -109,7 +108,7 @@ def getitem_vec1time_index(index: Any, t: gt.FloatQAnyShape) -> Any:
     """
     if isinstance(index, tuple):
         return _getitem_vec1time_index_tuple(index, t)
-    if isinstance(index, Shaped):
+    if isinstance(index, HasShape):
         return _getitem_vec1time_index_shaped(index, t)
     return index
 
@@ -117,15 +116,57 @@ def getitem_vec1time_index(index: Any, t: gt.FloatQAnyShape) -> Any:
 # -----------------------------------------------------------------------------
 
 
-def _q_converter(x: Any) -> Abstract3DVector:
+@singledispatch
+def _q_converter(x: Any) -> cx.Abstract3DVector:
     """Convert input to a 3D vector."""
-    return x if isinstance(x, Abstract3DVector) else Cartesian3DVector.constructor(x)
+    return cx.Cartesian3DVector.constructor(x)
 
 
-def _p_converter(x: Any) -> Abstract3DVectorDifferential:
+@_q_converter.register
+def _q_converter_vec(x: cx.Abstract3DVector) -> cx.Abstract3DVector:
+    return x
+
+
+# TODO: move this into coordinax
+_apyc_to_cx_vecs = {
+    apyc.CartesianRepresentation: cx.Cartesian3DVector,
+    apyc.CylindricalRepresentation: cx.CylindricalVector,
+    apyc.SphericalRepresentation: cx.LonLatSphericalVector,
+    apyc.PhysicsSphericalRepresentation: cx.SphericalVector,
+}
+
+
+@_q_converter.register
+def _q_converter_apy(x: apyc.BaseRepresentation) -> cx.Abstract3DVector:
+    return _apyc_to_cx_vecs[type(x)].constructor(x)
+
+
+# -----------------------------------------------------------------------------
+
+
+@singledispatch
+def _p_converter(x: Any) -> cx.Abstract3DVectorDifferential:
     """Convert input to a 3D vector differential."""
-    return (
-        x
-        if isinstance(x, Abstract3DVectorDifferential)
-        else CartesianDifferential3D.constructor(x)
-    )
+    return cx.CartesianDifferential3D.constructor(x)
+
+
+@_p_converter.register
+def _p_converter_vec(
+    x: cx.Abstract3DVectorDifferential,
+) -> cx.Abstract3DVectorDifferential:
+    return x
+
+
+# TODO: move this into coordinax
+_apyc_to_cx_difs = {
+    apyc.CartesianDifferential: cx.CartesianDifferential3D,
+    apyc.CylindricalDifferential: cx.CylindricalDifferential,
+    apyc.SphericalDifferential: cx.LonLatSphericalDifferential,
+    apyc.SphericalCosLatDifferential: cx.LonCosLatSphericalDifferential,
+    apyc.PhysicsSphericalDifferential: cx.SphericalDifferential,
+}
+
+
+@_p_converter.register
+def _p_converter_apy(x: apyc.BaseDifferential) -> cx.Abstract3DVectorDifferential:
+    return _apyc_to_cx_difs[type(x)].constructor(x)

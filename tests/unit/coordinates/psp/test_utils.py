@@ -11,7 +11,7 @@ import quaxed.array_api as xp
 from unxt import Quantity
 
 from galax.coordinates._psp.utils import (
-    Shaped,
+    HasShape,
     getitem_broadscalartime_index,
     getitem_vec1time_index,
 )
@@ -21,8 +21,8 @@ Vec3 = Float[Array, "3"]
 QVec2x3 = Float[Quantity["time"], "2 3"]
 
 
-class TestShaped:
-    """Test :class:`~galax.coordinates._utils.Shaped`."""
+class TestHasShape:
+    """Test :class:`~galax.coordinates._utils.HasShape`."""
 
     def test_runtime(self) -> None:
         """Test Protocol at runtime."""
@@ -30,7 +30,7 @@ class TestShaped:
         class Test:
             shape = (1, 2, 3)
 
-        assert isinstance(Test(), Shaped)
+        assert isinstance(Test(), HasShape)
 
 
 class Test_getitem_broadscalartime_index:

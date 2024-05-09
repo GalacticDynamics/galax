@@ -261,7 +261,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         of motion.  Here we will reproduce what happens with orbit integrations.
 
         >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
-        ...                             c=Quantity(5, "kpc"), units="galactic")
+        ...                             r_s=Quantity(5, "kpc"), units="galactic")
 
         >>> integrator = gd.integrate.DiffraxIntegrator()
         >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")

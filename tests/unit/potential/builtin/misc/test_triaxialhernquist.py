@@ -9,7 +9,7 @@ import galax.typing as gt
 from ...test_core import TestAbstractPotential as AbstractPotential_Test
 from ..test_common import (
     ParameterMTotMixin,
-    ParameterShapeCMixin,
+    ParameterScaleRadiusMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 )
@@ -20,7 +20,7 @@ class TestTriaxialHernquistPotential(
     AbstractPotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ParameterShapeCMixin,
+    ParameterScaleRadiusMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 ):
@@ -30,11 +30,11 @@ class TestTriaxialHernquistPotential(
 
     @pytest.fixture(scope="class")
     def fields_(
-        self, field_m_tot, field_c, field_q1, field_q2, field_units
+        self, field_m_tot, field_r_s, field_q1, field_q2, field_units
     ) -> dict[str, Any]:
         return {
             "m_tot": field_m_tot,
-            "c": field_c,
+            "r_s": field_r_s,
             "q1": field_q1,
             "q2": field_q2,
             "units": field_units,

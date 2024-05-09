@@ -68,7 +68,7 @@ def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractPotentialBase:
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
       m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      c=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
+      r_s=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
 
     Isochrone potential:
 
@@ -178,7 +178,6 @@ def _gala_to_galax_composite(pot: gp.CompositePotential, /) -> gpx.CompositePote
 
 
 _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential]] = {
-    gp.HernquistPotential: gpx.HernquistPotential,
     gp.IsochronePotential: gpx.IsochronePotential,
     gp.KeplerPotential: gpx.KeplerPotential,
     gp.KuzminPotential: gpx.KuzminPotential,
@@ -188,7 +187,6 @@ _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential
 }
 
 
-@gala_to_galax.register(gp.HernquistPotential)
 @gala_to_galax.register(gp.IsochronePotential)
 @gala_to_galax.register(gp.KeplerPotential)
 @gala_to_galax.register(gp.KuzminPotential)
@@ -198,7 +196,7 @@ _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential
 def _gala_to_galax_registered(
     gala: gp.PotentialBase, /
 ) -> gpx.AbstractPotential | gpx.PotentialFrame:
-    """Convert a Gala HernquistPotential to a Galax potential."""
+    """Convert a Gala potential to a Galax potential."""
     if isinstance(gala.units, GalaDimensionlessUnitSystem):
         msg = "Galax does not support converting dimensionless units."
         raise TypeError(msg)
@@ -232,6 +230,32 @@ def _gala_to_galax_null(pot: gp.NullPotential, /) -> gpx.NullPotential:
 
     """
     return gpx.NullPotential(units=pot.units)
+
+
+@gala_to_galax.register
+def _gala_to_galax_hernquist(
+    gala: gp.HernquistPotential, /
+) -> gpx.HernquistPotential | gpx.PotentialFrame:
+    r"""Convert a Gala HernquistPotential to a Galax potential.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import gala.units as gu
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.HernquistPotential(m=1e11, c=20, units=gu.galactic)
+    >>> gpx.io.gala_to_galax(gpot)
+    HernquistPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...}),
+      m_tot=ConstantParameter( ... ),
+      r_s=ConstantParameter( ... )
+    )
+    """
+    params = gala.parameters
+    pot = gpx.HernquistPotential(m_tot=params["m"], r_s=params["c"], units=gala.units)
+    return _apply_frame(_get_frame(gala), pot)
 
 
 @gala_to_galax.register

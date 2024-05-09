@@ -330,16 +330,18 @@ def _galax_to_gala_lm10(pot: gpx.LM10Potential, /) -> gp.LM10Potential:
 def _galax_to_gala_mwpotential(pot: gpx.MilkyWayPotential, /) -> gp.MilkyWayPotential:
     """Convert a Galax MilkyWayPotential to a Gala potential."""
 
-    def rename(k: str) -> str:
+    def rename(c: str, k: str) -> str:
         match k:
             case "m_tot":
                 return "m"
+            case "r_s" if c in ("bulge", "nucleus"):
+                return "c"
             case _:
                 return k
 
     return gp.MilkyWayPotential(
         **{
-            c: {rename(k): getattr(p, k)(0) for k in p.parameters}
+            c: {rename(c, k): getattr(p, k)(0) for k in p.parameters}
             for c, p in pot.items()
         }
     )

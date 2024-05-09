@@ -110,7 +110,8 @@ class HernquistPotential(AbstractPotential):
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     """Total mass of the potential."""
-    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Scale radius"""
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
@@ -123,7 +124,7 @@ class HernquistPotential(AbstractPotential):
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
-        return -self.constants["G"] * self.m_tot(t) / (r + self.c(t))
+        return -self.constants["G"] * self.m_tot(t) / (r + self.r_s(t))
 
 
 # -------------------------------------------------------------------
@@ -620,7 +621,7 @@ class TriaxialHernquistPotential(AbstractPotential):
         :class:`~galax.potential.AbstractParameter` or an appropriate callable
         or constant, like a Quantity. See
         :class:`~galax.potential.ParameterField` for details.
-    c : :class:`~galax.potential.AbstractParameter`['length']
+    r_s : :class:`~galax.potential.AbstractParameter`['length']
         A scale length that determines the concentration of the system.  This
         can be a :class:`~galax.potential.AbstractParameter` or an appropriate
         callable or constant, like a Quantity. See
@@ -647,7 +648,7 @@ class TriaxialHernquistPotential(AbstractPotential):
     >>> from galax.potential import TriaxialHernquistPotential
 
     >>> pot = TriaxialHernquistPotential(m_tot=Quantity(1e12, "Msun"),
-    ...                                  c=Quantity(8, "kpc"), q1=1, q2=0.5,
+    ...                                  r_s=Quantity(8, "kpc"), q1=1, q2=0.5,
     ...                                  units="galactic")
 
     >>> q = Quantity([1, 0, 0], "kpc")
@@ -659,7 +660,7 @@ class TriaxialHernquistPotential(AbstractPotential):
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     """Mass of the potential."""
 
-    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     """Scale a scale length that determines the concentration of the system."""
 
     # TODO: move to a triaxial wrapper
@@ -685,8 +686,8 @@ class TriaxialHernquistPotential(AbstractPotential):
     def _potential_energy(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
-        c, q1, q2 = self.c(t), self.q1(t), self.q2(t)
-        c = eqx.error_if(c, c.value <= 0, "c must be positive")
+        r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
+        r_s = eqx.error_if(r_s, r_s.value <= 0, "r_s must be positive")
 
         rprime = xp.sqrt(q[..., 0] ** 2 + (q[..., 1] / q1) ** 2 + (q[..., 2] / q2) ** 2)
-        return -self.constants["G"] * self.m_tot(t) / (rprime + c)
+        return -self.constants["G"] * self.m_tot(t) / (rprime + r_s)

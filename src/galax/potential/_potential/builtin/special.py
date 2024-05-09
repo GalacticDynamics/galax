@@ -181,7 +181,7 @@ class LM10Potential(AbstractCompositePotential):
     )
     # TODO: as an actual `HernquistPotential`, then use `replace`?
     _default_bulge: ClassVar[Mapping[str, Any]] = MappingProxyType(
-        {"m_tot": Quantity(3.4e10, "Msun"), "c": Quantity(0.7, "kpc")}
+        {"m_tot": Quantity(3.4e10, "Msun"), "r_s": Quantity(0.7, "kpc")}
     )
     # TODO: as an actual `LMJ09LogarithmicPotential`, then use `replace`?
     _default_halo: ClassVar[Mapping[str, Any]] = MappingProxyType(
@@ -273,11 +273,11 @@ class MilkyWayPotential(AbstractCompositePotential):
     )
     # TODO: as an actual `HernquistPotential`, then use `replace`?
     _default_bulge: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
-        {"m_tot": Quantity(5e9, "Msun"), "c": Quantity(1.0, "kpc")}
+        {"m_tot": Quantity(5e9, "Msun"), "r_s": Quantity(1.0, "kpc")}
     )
     # TODO: as an actual `HernquistPotential`, then use `replace`?
     _default_nucleus: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
-        {"m_tot": Quantity(1.71e9, "Msun"), "c": Quantity(0.07, "kpc")}
+        {"m_tot": Quantity(1.71e9, "Msun"), "r_s": Quantity(0.07, "kpc")}
     )
 
     def __init__(

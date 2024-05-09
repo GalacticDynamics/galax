@@ -76,7 +76,6 @@ _GALAX_TO_GALA_REGISTRY: dict[type[gpx.AbstractPotential], type[gp.PotentialBase
 }
 
 
-@galax_to_gala.register(gpx.HernquistPotential)
 @galax_to_gala.register(gpx.IsochronePotential)
 @galax_to_gala.register(gpx.KeplerPotential)
 @galax_to_gala.register(gpx.KuzminPotential)
@@ -112,6 +111,20 @@ def _galax_to_gala_abstractpotential(pot: gpx.AbstractPotential, /) -> gp.Potent
 def _galax_to_gala_bar(pot: gpx.BarPotential, /) -> gp.PotentialBase:
     """Convert a Galax BarPotential to a Gala potential."""
     raise NotImplementedError  # TODO: implement
+
+
+@galax_to_gala.register
+def _galax_to_gala_hernquist(pot: gpx.HernquistPotential, /) -> gp.HernquistPotential:
+    """Convert a Galax HernquistPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, "m_tot", "r_s"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.HernquistPotential(
+        m=convert(pot.m_tot(0), APYQuantity),
+        c=convert(pot.r_s(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
 
 
 @galax_to_gala.register
@@ -294,18 +307,20 @@ def _galax_to_gala_bovymw2014(
 def _galax_to_gala_lm10(pot: gpx.LM10Potential, /) -> gp.LM10Potential:
     """Convert a Galax LM10Potential to a Gala potential."""
 
-    def rename(k: str) -> str:
+    def rename(c: str, k: str) -> str:
         match k:
             case "m_tot":
                 return "m"
-            case "r_s":
+            case "r_s" if c == "halo":
                 return "r_h"
+            case "r_s" if c == "bulge":
+                return "c"
             case _:
                 return k
 
     return gp.LM10Potential(
         **{
-            c: {rename(k): getattr(p, k)(0) for k in p.parameters}
+            c: {rename(c, k): getattr(p, k)(0) for k in p.parameters}
             for c, p in pot.items()
         }
     )

@@ -35,7 +35,7 @@ class PotentialFrame(AbstractPotentialBase):
     Now we define a triaxial Hernquist potential with a time-dependent mass:
 
     >>> mfunc = gp.UserParameter(lambda t: 1e12 * (1 + t.to_units_value("Gyr") / 10), unit="Msun")
-    >>> pot = gp.TriaxialHernquistPotential(m_tot=mfunc, c=Quantity(1, "kpc"),
+    >>> pot = gp.TriaxialHernquistPotential(m_tot=mfunc, r_s=Quantity(1, "kpc"),
     ...                                     q1=1, q2=0.5, units="galactic")
 
     Let's see the triaxiality of the potential:
@@ -171,7 +171,7 @@ class PotentialFrame(AbstractPotentialBase):
     effect of the rotation more obvious:
 
     >>> pot2 = gp.TriaxialHernquistPotential(m_tot=Quantity(1e12, "Msun"),
-    ...     c=Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
+    ...     r_s=Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
 
     >>> op7 = gc.operators.ConstantRotationZOperator(Omega_z=Quantity(90, "deg/Gyr"))
     >>> framedpot7 = gp.PotentialFrame(potential=pot2, operator=op7)

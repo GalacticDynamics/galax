@@ -31,7 +31,7 @@ dependencies = [
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
   "jax >= 0.4, != 0.4.27",
-  "jaxlib",
+  "jaxlib != 0.4.27",
   "lazy_loader >= 0.4",
   "quax >= 0.0.3",
   "quaxed >=0.4",

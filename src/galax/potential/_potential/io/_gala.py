@@ -236,7 +236,7 @@ def _gala_to_galax_null(pot: gp.NullPotential, /) -> gpx.NullPotential:
 def _gala_to_galax_hernquist(
     gala: gp.HernquistPotential, /
 ) -> gpx.HernquistPotential | gpx.PotentialFrame:
-    """Convert a Gala HernquistPotential to a Galax potential.
+    r"""Convert a Gala HernquistPotential to a Galax potential.
 
     Examples
     --------
@@ -249,7 +249,7 @@ def _gala_to_galax_hernquist(
     HernquistPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableDict({'G': ...}),
-      m=ConstantParameter( ... ),
+      m_tot=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )
     )
     """

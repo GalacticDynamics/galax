@@ -277,7 +277,7 @@ class MilkyWayPotential(AbstractCompositePotential):
     )
     # TODO: as an actual `HernquistPotential`, then use `replace`?
     _default_nucleus: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
-        {"m_tot": Quantity(1.71e9, "Msun"), "r_s": Quantity(0.07, "kpc")}
+        {"m_tot": Quantity(1.71e9, "Msun"), "r_s": Quantity(70, "pc")}
     )
 
     def __init__(

@@ -2,7 +2,8 @@
 
 __all__ = ["Orbit", "InterpolatedOrbit"]
 
-from typing import final
+from dataclasses import KW_ONLY
+from typing import Any, final
 
 import equinox as eqx
 
@@ -14,6 +15,7 @@ from .base import AbstractOrbit
 from galax.coordinates._psp.interp import PhaseSpacePositionInterpolant
 from galax.coordinates._psp.utils import _p_converter, _q_converter
 from galax.typing import BatchFloatQScalar, QVec1, QVecTime
+from galax.utils._collections import ImmutableDict
 
 
 @final
@@ -38,6 +40,17 @@ class Orbit(AbstractOrbit):
     potential: gp.AbstractPotentialBase
     """Potential in which the orbit was integrated."""
 
+    _: KW_ONLY
+
+    meta: ImmutableDict[Any] = eqx.field(
+        default_factory=dict,
+        converter=ImmutableDict,
+        static=True,
+        repr=False,
+        compare=False,
+    )
+    """Metadata about the orbit."""
+
 
 # ==========================================================================
 
@@ -61,6 +74,17 @@ class InterpolatedOrbit(AbstractOrbit):
 
     interpolant: PhaseSpacePositionInterpolant
     """The interpolation function."""
+
+    _: KW_ONLY
+
+    meta: ImmutableDict[Any] = eqx.field(
+        default_factory=dict,
+        converter=ImmutableDict,
+        static=True,
+        repr=False,
+        compare=False,
+    )
+    """Metadata about the orbit."""
 
     def __call__(self, t: BatchFloatQScalar) -> Orbit:
         """Call the interpolation."""

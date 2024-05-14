@@ -134,7 +134,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     """
 
     # TODO: add a converter for 1/s -> rad / s.
-    Omega_z: Quantity["angular speed"] = Quantity(0, "mas / yr")
+    Omega_z: Quantity["angular frequency"] = Quantity(0, "mas / yr")
     """The angular speed about the z axis."""
 
     # -------------------------------------------

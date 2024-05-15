@@ -30,7 +30,7 @@ class ComponentShapeTuple(NamedTuple):
     """Shape of the time."""
 
 
-def converter_t(x: Any) -> gt.BroadBatchFloatQScalar | gt.FloatQScalar | None:
+def _converter_t(x: Any) -> gt.BroadBatchFloatQScalar | gt.FloatQScalar | None:
     """Convert `t` to Quantity."""
     return Quantity["time"].constructor(x, dtype=float) if x is not None else None
 
@@ -122,7 +122,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     """
 
     t: gt.BroadBatchFloatQScalar | gt.FloatQScalar | None = eqx.field(
-        default=None, converter=converter_t
+        default=None, converter=_converter_t
     )
     """The time corresponding to the positions.
 

@@ -126,7 +126,7 @@ def call(
     Quantity['length'](Array(2., dtype=float64), unit='kpc')
 
     >>> newpsp.t
-    Quantity['time'](Array(0., dtype=float64, ...), unit='Gyr')
+    Quantity['time'](Array(0., dtype=float64), unit='Gyr')
 
     This spatial translation is time independent.
 
@@ -234,7 +234,7 @@ def call(
     Quantity['length'](Array(2., dtype=float64), unit='kpc')
 
     >>> newpsp.t
-    Quantity['time'](Array(1., dtype=float64, ...), unit='Gyr')
+    Quantity['time'](Array(1., dtype=float64), unit='Gyr')
 
     This spatial translation is time dependent.
 
@@ -294,7 +294,7 @@ def call(
 
     The time is not affected by the rotation.
     >>> newpsp.t
-    Quantity['time'](Array(1., dtype=float64, ...), unit='Gyr')
+    Quantity['time'](Array(1., dtype=float64), unit='Gyr')
     """
     # Shifting the position and time
     q, t = self(psp.q, psp.t)

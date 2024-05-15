@@ -327,8 +327,9 @@ class LongMuraliBarPotential(AbstractPotential):
         y = -q[..., 0] * xp.sin(alpha) + q[..., 1] * xp.cos(alpha)
         z = q[..., 2]
 
-        Tm = xp.sqrt((a - x) ** 2 + y**2 + (b + xp.sqrt(c**2 + z**2)) ** 2)
-        Tp = xp.sqrt((a + x) ** 2 + y**2 + (b + xp.sqrt(c**2 + z**2)) ** 2)
+        _temp = y**2 + (b + xp.sqrt(c**2 + z**2)) ** 2
+        Tm = xp.sqrt((a - x) ** 2 + _temp)
+        Tp = xp.sqrt((a + x) ** 2 + _temp)
 
         return (
             self.constants["G"] * m_tot / (2 * a) * xp.log((x - a + Tm) / (x + a + Tp))

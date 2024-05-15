@@ -30,9 +30,9 @@ class ComponentShapeTuple(NamedTuple):
     """Shape of the time."""
 
 
-def converter_t(x: Any) -> gt.BroadBatchFloatQScalar | gt.QVec1 | None:
+def _converter_t(x: Any) -> gt.BroadBatchFloatQScalar | gt.FloatQScalar | None:
     """Convert `t` to Quantity."""
-    return Quantity["time"].constructor(x) if x is not None else None
+    return Quantity["time"].constructor(x, dtype=float) if x is not None else None
 
 
 @final
@@ -121,8 +121,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.BroadBatchFloatQScalar | gt.QVec1 | None = eqx.field(
-        default=None, converter=converter_t
+    t: gt.BroadBatchFloatQScalar | gt.FloatQScalar | None = eqx.field(
+        default=None, converter=_converter_t
     )
     """The time corresponding to the positions.
 

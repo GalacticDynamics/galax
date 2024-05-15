@@ -1,4 +1,4 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Utilities for phase-space positions."""
 
 __all__: list[str] = []
 

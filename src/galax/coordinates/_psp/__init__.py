@@ -2,6 +2,7 @@
 
 from . import (
     base,
+    compat_apy,  # noqa: F401
     core,
     interp,
     operator_compat,  # noqa: F401

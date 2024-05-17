@@ -15,16 +15,17 @@ from jax.lib.xla_bridge import get_backend
 import quaxed.array_api as xp
 from unxt import AbstractUnitSystem, Quantity
 
+import galax.coordinates as gc
 import galax.typing as gt
 from .core import MockStream
 from .df import AbstractStreamDF, ProgenitorMassCallable
 from .utils import cond_reverse, interleave_concat
-from galax.coordinates import PhaseSpacePosition
 from galax.dynamics._dynamics.integrate._api import Integrator
 from galax.dynamics._dynamics.integrate._funcs import (
     _default_integrator,
     evaluate_orbit,
 )
+from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential import AbstractPotentialBase
 
 Carry: TypeAlias = tuple[gt.IntScalar, gt.VecN, gt.VecN]
@@ -56,6 +57,19 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     def units(self) -> AbstractUnitSystem:
         """Units of the potential."""
         return cast(AbstractUnitSystem, self.potential.units)
+
+    # ==========================================================================
+
+    def _progenitor_trajectory(
+        self, w0: gc.PhaseSpacePosition, ts: gt.QVecTime
+    ) -> Orbit:
+        """Integrate the progenitor orbit."""
+        return cast(
+            Orbit,
+            evaluate_orbit(
+                self.potential, w0, ts, integrator=self.progenitor_integrator
+            ),
+        )
 
     # ==========================================================================
 
@@ -139,11 +153,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         self,
         rng: jr.PRNG,
         ts: gt.QVecTime,
-        prog_w0: PhaseSpacePosition | gt.Vec6,
+        prog_w0: gc.PhaseSpacePosition | gt.Vec6,
         prog_mass: gt.FloatQScalar | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
-    ) -> tuple[MockStream, PhaseSpacePosition]:
+    ) -> tuple[MockStream, gc.PhaseSpacePosition]:
         """Generate mock stellar stream.
 
         Parameters
@@ -191,11 +205,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
 
         # Ensure w0 is a PhaseSpacePosition
-        w0: PhaseSpacePosition
-        if isinstance(prog_w0, PhaseSpacePosition):
+        w0: gc.PhaseSpacePosition
+        if isinstance(prog_w0, gc.PhaseSpacePosition):
             w0 = prog_w0 if prog_w0.t is not None else replace(prog_w0, t=ts[0])
         else:
-            w0 = PhaseSpacePosition(
+            w0 = gc.PhaseSpacePosition(
                 q=Quantity(prog_w0[0:3], self.units["length"]),
                 p=Quantity(prog_w0[3:6], self.units["speed"]),
                 t=ts[0].to_units(self.potential.units["time"]),
@@ -209,9 +223,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         ts = cond_reverse(ts[1] < ts[0], ts)
 
         # Integrate the progenitor orbit, evaluating at the stripping times
-        prog_o = evaluate_orbit(
-            self.potential, w0, ts, integrator=self.progenitor_integrator
-        )
+        prog_o = self._progenitor_trajectory(w0, ts)
 
         # Generate initial conditions from the DF, along the integrated
         # progenitor orbit. The release times are the stripping times.

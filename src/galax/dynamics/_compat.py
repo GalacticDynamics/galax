@@ -40,13 +40,13 @@ def constructor(_: type[gdx.Orbit], obj: gd.Orbit, /) -> gdx.Orbit:
 # MockStream
 
 
-@conversion_method(type_from=gd.MockStream, type_to=gdx.MockStream)  # type: ignore[misc]
-def gala_mockstream_to_galax_mockstream(obj: gd.MockStream, /) -> gdx.MockStream:
-    """`gala.dynamics.MockStream` -> `galax.dynamics.MockStream`."""
-    return gdx.MockStream(q=obj.pos, p=obj.vel, release_time=obj.release_time)
+@conversion_method(type_from=gd.MockStream, type_to=gdx.MockStreamArm)  # type: ignore[misc]
+def gala_mockstream_to_galax_mockstream(obj: gd.MockStream, /) -> gdx.MockStreamArm:
+    """`gala.dynamics.MockStreamArm` -> `galax.dynamics.MockStreamArm`."""
+    return gdx.MockStreamArm(q=obj.pos, p=obj.vel, release_time=obj.release_time)
 
 
-@gdx.MockStream.constructor._f.register  # type: ignore[misc]  # noqa: SLF001
-def constructor(_: type[gdx.MockStream], obj: gd.MockStream, /) -> gdx.MockStream:
-    """Construct a :mod:`galax` MockStream from a :mod:`gala` one."""
-    return cast(gdx.MockStream, gala_mockstream_to_galax_mockstream(obj))
+@gdx.MockStreamArm.constructor._f.register  # type: ignore[misc]  # noqa: SLF001
+def constructor(_: type[gdx.MockStreamArm], obj: gd.MockStream, /) -> gdx.MockStreamArm:
+    """Construct a :mod:`galax` MockStreamArm from a :mod:`gala` one."""
+    return cast(gdx.MockStreamArm, gala_mockstream_to_galax_mockstream(obj))

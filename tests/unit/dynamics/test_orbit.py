@@ -12,7 +12,7 @@ from unxt import Quantity
 from unxt.unitsystems import galactic
 
 import galax.typing as gt
-from ..coordinates.psp.test_base import AbstractPhaseSpacePosition_Test, return_keys
+from ..coordinates.psp.test_base_psp import AbstractPhaseSpacePosition_Test, return_keys
 from galax.coordinates import PhaseSpacePosition
 from galax.dynamics import Orbit
 from galax.potential import AbstractPotentialBase, MilkyWayPotential

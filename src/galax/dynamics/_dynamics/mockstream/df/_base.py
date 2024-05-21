@@ -17,23 +17,13 @@ from unxt import Quantity
 
 import galax.typing as gt
 from ._progenitor import ConstantMassProtenitor, ProgenitorMassCallable
-from galax.dynamics._dynamics.mockstream.core import MockStream
+from galax.dynamics._dynamics.mockstream.core import MockStreamArm
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential import AbstractPotentialBase
 
-Wif: TypeAlias = tuple[
-    gt.LengthVec3,
-    gt.LengthVec3,
-    gt.SpeedVec3,
-    gt.SpeedVec3,
-]
+Wif: TypeAlias = tuple[gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3]
 Carry: TypeAlias = tuple[
-    int,
-    jr.PRNG,
-    gt.LengthVec3,
-    gt.LengthVec3,
-    gt.SpeedVec3,
-    gt.SpeedVec3,
+    int, jr.PRNG, gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3
 ]
 
 
@@ -58,7 +48,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         # />
         /,
         prog_mass: gt.MassScalar | ProgenitorMassCallable,
-    ) -> tuple[MockStream, MockStream]:
+    ) -> tuple[MockStreamArm, MockStreamArm]:
         """Generate stream particle initial conditions.
 
         Parameters
@@ -75,7 +65,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         Returns
         -------
-        mock_lead, mock_trail : MockStream
+        mock_lead, mock_trail : MockStreamArm
             Positions and velocities of the leading and trailing tails.
         """
         # Progenitor positions and times. The orbit times are used as the
@@ -110,13 +100,13 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         )
         x_lead, x_trail, v_lead, v_trail = jax.lax.scan(scan_fn, init_carry, ts)[1]
 
-        mock_lead = MockStream(
+        mock_lead = MockStreamArm(
             q=x_lead.to_units(pot.units["length"]),
             p=v_lead.to_units(pot.units["speed"]),
             t=ts.to_units(pot.units["time"]),
             release_time=ts.to_units(pot.units["time"]),
         )
-        mock_trail = MockStream(
+        mock_trail = MockStreamArm(
             q=x_trail.to_units(pot.units["length"]),
             p=v_trail.to_units(pot.units["speed"]),
             t=ts.to_units(pot.units["time"]),

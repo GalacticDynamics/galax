@@ -1,22 +1,31 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Mock stellar streams."""
 
-__all__ = ["MockStream"]
+__all__ = ["MockStreamArm", "MockStream"]
 
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, final
 
 import equinox as eqx
 import jax.numpy as jnp
+import jax.tree_util as jtu
+from jaxtyping import Array, Shaped
 
+import coordinax as cx
+import quaxed.array_api as xp
 from coordinax import Abstract3DVector, Abstract3DVectorDifferential
 from unxt import Quantity
 
 import galax.typing as gt
-from galax.coordinates import AbstractPhaseSpacePosition, ComponentShapeTuple
+from galax.coordinates import (
+    AbstractCompositePhaseSpacePosition,
+    AbstractPhaseSpacePosition,
+    ComponentShapeTuple,
+)
 from galax.coordinates._psp.utils import (
     _p_converter,
     _q_converter,
     getitem_vec1time_index,
+    interleave_concat,
 )
 from galax.utils._shape import batched_shape, vector_batched_shape
 
@@ -25,8 +34,8 @@ if TYPE_CHECKING:
 
 
 @final
-class MockStream(AbstractPhaseSpacePosition):
-    """Mock stream object.
+class MockStreamArm(AbstractPhaseSpacePosition):
+    """Component of a mock stream object.
 
     Parameters
     ----------
@@ -76,3 +85,55 @@ class MockStream(AbstractPhaseSpacePosition):
             t=self.t[subindex],
             release_time=self.release_time[subindex],
         )
+
+
+##############################################################################
+
+
+@final
+class MockStream(AbstractCompositePhaseSpacePosition):
+    _time_sorter: Shaped[Array, "alltimes"]
+
+    def __init__(
+        self,
+        psps: dict[str, MockStreamArm] | tuple[tuple[str, MockStreamArm], ...] = (),
+        /,
+        **kwargs: MockStreamArm,
+    ) -> None:
+        super().__init__(psps, **kwargs)
+
+        # TODO: check up on the shapes
+
+        # Construct time sorter
+        ts = xp.concat([psp.t for psp in self.values()], axis=0)
+        self._time_sorter = xp.argsort(ts)
+
+    @property
+    def q(self) -> cx.Abstract3DVector:
+        """Positions."""
+        # TODO: interleave by time
+        # TODO: get AbstractVector to work with `stack` directly
+        return jtu.tree_map(
+            lambda *x: interleave_concat(x, axis=-1), *(x.q for x in self.values())
+        )
+
+    @property
+    def p(self) -> cx.Abstract3DVector:
+        """Conjugate momenta."""
+        # TODO: get AbstractVector to work with `stack` directly
+        return jtu.tree_map(
+            lambda *x: xp.concat(x, axis=-1)[..., self._time_sorter],
+            *(x.p for x in self.values()),
+        )
+
+    @property
+    def t(self) -> Shaped[Quantity["time"], "..."]:
+        """Times."""
+        return xp.concat([psp.t for psp in self.values()], axis=0)[self._time_sorter]
+
+    @property
+    def release_time(self) -> Shaped[Quantity["time"], "..."]:
+        """Release times."""
+        return xp.concat([psp.release_time for psp in self.values()], axis=0)[
+            self._time_sorter
+        ]

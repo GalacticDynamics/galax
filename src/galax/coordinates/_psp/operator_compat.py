@@ -21,7 +21,7 @@ from coordinax.operators import (
 from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
 
-from galax.coordinates._psp.base import AbstractPhaseSpacePosition
+from .base_psp import AbstractPhaseSpacePosition
 
 vec_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
 

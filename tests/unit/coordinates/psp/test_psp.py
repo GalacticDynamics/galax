@@ -2,7 +2,7 @@
 
 import pytest
 
-from .test_base import AbstractPhaseSpacePosition_Test
+from .test_base_psp import AbstractPhaseSpacePosition_Test
 from galax.coordinates import PhaseSpacePosition
 
 

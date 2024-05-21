@@ -17,9 +17,9 @@ from unxt import AbstractUnitSystem, Quantity
 
 import galax.coordinates as gc
 import galax.typing as gt
-from .core import MockStream
+from .core import MockStream, MockStreamArm
 from .df import AbstractStreamDF, ProgenitorMassCallable
-from .utils import cond_reverse, interleave_concat
+from .utils import cond_reverse
 from galax.dynamics._dynamics.integrate._api import Integrator
 from galax.dynamics._dynamics.integrate._funcs import (
     _default_integrator,
@@ -75,7 +75,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial(jax.jit)
     def _run_scan(  # TODO: output shape depends on the input shape
-        self, ts: gt.QVecTime, mock0_lead: MockStream, mock0_trail: MockStream
+        self,
+        ts: gt.QVecTime,
+        mock0_lead: MockStreamArm,
+        mock0_trail: MockStreamArm,
     ) -> tuple[gt.BatchVec6, gt.BatchVec6]:
         """Generate stellar stream by scanning over the release model/integration.
 
@@ -121,7 +124,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     @partial(jax.jit)
     def _run_vmap(  # TODO: output shape depends on the input shape
-        self, ts: gt.QVecTime, mock0_lead: MockStream, mock0_trail: MockStream
+        self,
+        ts: gt.QVecTime,
+        mock0_lead: MockStreamArm,
+        mock0_trail: MockStreamArm,
     ) -> tuple[gt.BatchVec6, gt.BatchVec6]:
         """Generate stellar stream by vmapping over the release model/integration.
 
@@ -157,7 +163,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_mass: gt.FloatQScalar | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
-    ) -> tuple[MockStream, gc.PhaseSpacePosition]:
+    ) -> tuple[MockStreamArm, gc.PhaseSpacePosition]:
         """Generate mock stellar stream.
 
         Parameters
@@ -196,7 +202,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Returns
         -------
-        mockstream : :class:`galax.dynamcis.MockStream`
+        mockstream : :class:`galax.dynamcis.MockStreamArm`
             Leading and/or trailing arms of the mock stream.
         prog_o : :class:`galax.coordinates.PhaseSpacePosition`
             The final phase-space(+time) position of the progenitor.
@@ -225,6 +231,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # Integrate the progenitor orbit, evaluating at the stripping times
         prog_o = self._progenitor_trajectory(w0, ts)
 
+        # TODO: here sep out lead vs trailing
         # Generate initial conditions from the DF, along the integrated
         # progenitor orbit. The release times are the stripping times.
         mock0_lead, mock0_trail = self.df.sample(rng, self.potential, prog_o, prog_mass)
@@ -236,34 +243,20 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         t = xp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
 
-        # TODO: have a composite Stream object that has components, e.g. leading
-        #       and trailing.
-        # TODO: move the leading vs trailing logic to the DF
-        if self.df.lead and self.df.trail:
-            axis = len(trail_arm_w.shape) - 2
-            q = interleave_concat(trail_arm_w[:, 0:3], lead_arm_w[:, 0:3], axis=axis)
-            p = interleave_concat(trail_arm_w[:, 3:6], lead_arm_w[:, 3:6], axis=axis)
-            t = interleave_concat(t, t, axis=0)
-            release_time = interleave_concat(
-                mock0_lead.release_time, mock0_trail.release_time, axis=0
+        comps = {}
+        if self.df.lead:
+            comps["lead"] = MockStreamArm(
+                q=Quantity(lead_arm_w[:, 0:3], self.units["length"]),
+                p=Quantity(lead_arm_w[:, 3:6], self.units["speed"]),
+                t=t,
+                release_time=mock0_lead.release_time,
             )
-        elif self.df.lead:
-            q = lead_arm_w[:, 0:3]
-            p = lead_arm_w[:, 3:6]
-            release_time = mock0_lead.release_time
-        elif self.df.trail:
-            q = trail_arm_w[:, 0:3]
-            p = trail_arm_w[:, 3:6]
-            release_time = mock0_trail.release_time
-        else:
-            msg = "You must generate either leading or trailing tails (or both!)"
-            raise ValueError(msg)
+        if self.df.trail:
+            comps["trail"] = MockStreamArm(
+                q=Quantity(trail_arm_w[:, 0:3], self.units["length"]),
+                p=Quantity(trail_arm_w[:, 3:6], self.units["speed"]),
+                t=t,
+                release_time=mock0_trail.release_time,
+            )
 
-        mockstream = MockStream(
-            q=Quantity(q, self.units["length"]),
-            p=Quantity(p, self.units["speed"]),
-            t=t,
-            release_time=release_time,
-        )
-
-        return mockstream, prog_o[-1]
+        return MockStream(comps), prog_o[-1]

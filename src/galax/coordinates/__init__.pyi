@@ -5,7 +5,9 @@ __all__ = [
     # Modules
     "operators",
     # Phase-space positions
+    "AbstractBasePhaseSpacePosition",
     "AbstractPhaseSpacePosition",
+    "AbstractCompositePhaseSpacePosition",
     "PhaseSpacePosition",
     "InterpolatedPhaseSpacePosition",
     "PhaseSpacePositionInterpolant",
@@ -14,6 +16,8 @@ __all__ = [
 
 from . import operators
 from ._psp import (
+    AbstractBasePhaseSpacePosition,
+    AbstractCompositePhaseSpacePosition,
     AbstractPhaseSpacePosition,
     ComponentShapeTuple,
     InterpolatedPhaseSpacePosition,

@@ -14,6 +14,7 @@ def test_all() -> None:
         "Orbit",
         "InterpolatedOrbit",
         "evaluate_orbit",
+        "MockStreamArm",
         "MockStream",
         "MockStreamGenerator",
         "AbstractStreamDF",

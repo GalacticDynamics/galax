@@ -17,7 +17,7 @@ from unxt import Quantity
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
 from galax.utils import ImmutableDict
-from galax.utils._misc import first
+from galax.utils._misc import zeroth
 from galax.utils.dataclasses import dataclass_items
 
 if TYPE_CHECKING:
@@ -142,7 +142,7 @@ class AbstractCompositePhaseSpacePosition(
         # TODO: speed up
         batch_shape = qnp.broadcast_shapes(*[psp.shape for psp in self.values()])
         batch_shape = (*batch_shape[:-1], len(self) * batch_shape[-1])
-        shape = first(self.values())._shape_tuple[1]  # noqa: SLF001
+        shape = zeroth(self.values())._shape_tuple[1]  # noqa: SLF001
         return batch_shape, shape
 
     # ==========================================================================

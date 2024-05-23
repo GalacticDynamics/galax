@@ -17,7 +17,7 @@ import galax.potential as gp
 from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.typing import Vec3
-from galax.utils._misc import first
+from galax.utils._misc import zeroth
 
 if TYPE_CHECKING:
     from galax.potential import (
@@ -151,7 +151,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
 
         assert isinstance(newpot, gp.CompositePotential)
 
-        newkey, newvalue = first(newpot.items())
+        newkey, newvalue = zeroth(newpot.items())
         assert isinstance(newkey, str)
         assert newvalue is single_pot
 
@@ -165,7 +165,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
 
         assert isinstance(newpot, gp.CompositePotential)
 
-        newkey, newvalue = first(newpot.items())
+        newkey, newvalue = zeroth(newpot.items())
         assert newkey == "kep1"
         assert newvalue is newpot["kep1"]
 

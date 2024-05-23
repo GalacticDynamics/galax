@@ -12,13 +12,11 @@ __all__ = [
     "AbstractCompositePotential",
     "CompositePotential",
     # builtin
-    "BarPotential",
     "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
     "KeplerPotential",
     "KuzminPotential",
-    "LongMuraliBarPotential",
     "MiyamotoNagaiPotential",
     "NullPotential",
     "PlummerPotential",
@@ -26,6 +24,9 @@ __all__ = [
     "SatohPotential",
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
+    # bars
+    "BarPotential",
+    "LongMuraliBarPotential",
     # logarithmic
     "LogarithmicPotential",
     "LMJ09LogarithmicPotential",
@@ -59,14 +60,13 @@ __all__ = [
 
 from ._potential import io
 from ._potential.base import AbstractPotentialBase
+from ._potential.builtin.bars import BarPotential, LongMuraliBarPotential
 from ._potential.builtin.builtin import (
-    BarPotential,
     HernquistPotential,
     IsochronePotential,
     JaffePotential,
     KeplerPotential,
     KuzminPotential,
-    LongMuraliBarPotential,
     MiyamotoNagaiPotential,
     NullPotential,
     PlummerPotential,

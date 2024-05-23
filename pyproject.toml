@@ -33,6 +33,7 @@ dependencies = [
   "jax >= 0.4, != 0.4.27",
   "jaxlib != 0.4.27",
   "lazy_loader >= 0.4",
+  "packaging",  # for optional dependencies
   "quax >= 0.0.3",
   "quaxed >=0.4",
   "typing_extensions >= 4.11",

@@ -10,7 +10,7 @@ import galax.potential as gp
 import galax.typing as gt
 from ...io.test_gala import parametrize_test_method_gala
 from ...param.test_field import ParameterFieldMixin
-from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMTotMixin
 from galax.potential import AbstractPotentialBase, PowerLawCutoffPotential
 from galax.utils._optional_deps import GSL_ENABLED, HAS_GALA

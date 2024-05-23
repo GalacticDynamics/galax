@@ -1,6 +1,7 @@
 """galax: Galactic Dynamix in Jax."""
 
 __all__ = [
+    "BurkertPotential",
     "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
@@ -18,7 +19,7 @@ __all__ = [
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import final
+from typing import Any, final
 
 import equinox as eqx
 import jax
@@ -35,6 +36,118 @@ from galax.potential._potential.base import QMatrix33, default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
 from galax.utils import ImmutableDict
+
+# -------------------------------------------------------------------
+
+_burkert_const = 3 * xp.log(xp.asarray(2.0)) - 0.5 * xp.pi
+
+
+@final
+class BurkertPotential(AbstractPotential):
+    """Burkert Potential.
+
+    https://ui.adsabs.harvard.edu/abs/1995ApJ...447L..25B/abstract,
+    https://iopscience.iop.org/article/10.1086/309140/fulltext/50172.text.html.
+    """
+
+    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    r"""Characteristic mass of the potential.
+
+    .. math::
+
+        m0 = \pi \rho_0 r_s^3 (3 \log(2) - \pi / 2)
+
+    """
+
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Scale radius"""
+
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
+    constants: ImmutableDict[Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableDict
+    )
+
+    @partial(jax.jit)
+    def _potential_energy(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        m, r_s = self.m(t), self.r_s(t)
+        x = xp.linalg.vector_norm(q, axis=-1) / r_s
+        xinv = 1 / x
+        return -(self.constants["G"] * m / (r_s * _burkert_const)) * (
+            xp.pi
+            - 2 * (1 + xinv) * xp.atan(x).value
+            + 2 * (1 + xinv) * xp.log(1 + x)
+            - (1 - xinv) * xp.log(1 + x**2)
+        )
+
+    @partial(jax.jit)
+    def _density(
+        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+    ) -> gt.BatchFloatQScalar:
+        m, r_s = self.m(t), self.r_s(t)
+        r = xp.linalg.vector_norm(q, axis=-1)
+        return m / (xp.pi * _burkert_const) / ((r + r_s) * (r**2 + r_s**2))
+
+    @partial(jax.jit)
+    def _mass(
+        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+    ) -> gt.BatchFloatQScalar:
+        x = xp.linalg.vector_norm(q, axis=-1) / self.r_s(t)
+        return (
+            self.m(t)
+            / _burkert_const
+            * (-2 * xp.atan(x) + 2 * xp.log(1 + x) + xp.log(1 + x**2))
+        )
+
+    # -------------------------------------------------------------------
+
+    def rho0(self, t: gt.BatchRealQScalar | gt.RealQScalar) -> gt.BatchFloatQScalar:
+        r"""Central density of the potential.
+
+        .. math::
+
+            m0 = \pi \rho_0 r_s^3 (3 \log(2) - \pi / 2)
+        """
+        return self.m(t) / (xp.pi * self.r_s(t) ** 3 * _burkert_const)
+
+    # -------------------------------------------------------------------
+    # Constructors
+
+    @classmethod
+    def from_central_density(
+        cls, rho_0: Quantity, r_s: Quantity, **kwargs: Any
+    ) -> "BurkertPotential":
+        r"""Create a Burkert potential from the central density.
+
+        Parameters
+        ----------
+        rho_0 : :class:`~unxt.Quantity`[mass density]
+            Central density.
+        r_s : :class:`~unxt.Quantity`[length]
+            Scale radius.
+
+        Returns
+        -------
+        :class:`~galax.potential.BurkertPotential`
+            Burkert potential.
+
+        Examples
+        --------
+        >>> from unxt import Quantity
+        >>> from galax.potential import BurkertPotential
+
+        >>> rho_0 = Quantity(1e6, "Msun / kpc3")
+        >>> r_s = Quantity(1, "kpc")
+        >>> pot = BurkertPotential.from_central_density(rho_0, r_s)
+        >>> pot
+        BurkertPotential( units=..., constants=ImmutableDict({'G': ...}) )
+
+        """
+        m = xp.pi * rho_0 * r_s**3 * _burkert_const
+        return cls(m=m, r_s=r_s, **kwargs)
+
 
 # -------------------------------------------------------------------
 
@@ -55,7 +168,7 @@ class HernquistPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(  # TODO: inputs w/ units
+    def _potential_energy(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)

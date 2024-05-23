@@ -6,7 +6,7 @@ import quaxed.numpy as qnp
 from unxt import Quantity
 
 import galax.typing as gt
-from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ...test_core import AbstractPotential_Test
 from ..test_common import (
     ParameterMTotMixin,
     ParameterScaleRadiusMixin,

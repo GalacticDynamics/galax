@@ -7,7 +7,7 @@ from unxt import Quantity
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMTotMixin, ParameterShapeBMixin
 from galax.potential import AbstractPotentialBase, IsochronePotential
 

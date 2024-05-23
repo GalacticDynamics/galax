@@ -14,7 +14,7 @@ from unxt import Quantity
 from unxt.unitsystems import UnitSystem, dimensionless, galactic, solarsystem
 
 import galax.potential as gp
-from .test_base import TestAbstractPotentialBase as AbstractPotentialBase_Test
+from .test_base import AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.typing import Vec3
 from galax.utils._misc import zeroth

@@ -1,7 +1,7 @@
 import copy
 from abc import ABCMeta, abstractmethod
 from functools import partial
-from typing import Any
+from typing import Any, ClassVar, final
 
 import astropy.units as u
 import equinox as eqx
@@ -99,10 +99,14 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
 
     ###########################################################################
 
-    @abstractmethod
-    def test_init(self) -> None:
-        """Test the initialization of `AbstractPotentialBase`."""
-        ...
+    def test_init(
+        self, pot_cls: type[AbstractPotentialBase], fields_: dict[str, Any]
+    ) -> AbstractPotentialBase:
+        """Create a concrete potential instance for testing."""
+        pot = pot_cls(**fields_)
+        assert isinstance(pot, pot_cls)
+
+        # TODO: more tests
 
     # =========================================================================
 
@@ -193,8 +197,11 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
 ##############################################################################
 
 
+@final
 class TestAbstractPotentialBase(AbstractPotentialBase_Test):
     """Test the `galax.potential.AbstractPotentialBase` class."""
+
+    HAS_GALA_COUNTERPART: ClassVar[bool] = False
 
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[AbstractPotentialBase]:
@@ -221,25 +228,14 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
 
     ###########################################################################
 
-    def test_init(self) -> None:
+    def test_init(self, pot_cls) -> None:
         """Test the initialization of `AbstractPotentialBase`."""
         # Test that the abstract class cannot be instantiated
         with pytest.raises(TypeError):
             AbstractPotentialBase()
 
         # Test that the concrete class can be instantiated
-        class TestPotential(AbstractPotentialBase):
-            units: AbstractUnitSystem = eqx.field(default=galactic, static=True)
-            constants: ImmutableDict[Quantity] = eqx.field(
-                default=default_constants, converter=ImmutableDict
-            )
-
-            def _potential_energy(
-                self, q: gt.QVec3, t: gt.RealQScalar, /
-            ) -> gt.FloatQScalar:
-                return xp.sum(q, axis=-1)
-
-        pot = TestPotential()
+        pot = pot_cls()
         assert isinstance(pot, AbstractPotentialBase)
 
     # =========================================================================

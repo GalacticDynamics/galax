@@ -8,7 +8,7 @@ from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMTotMixin, ParameterShapeAMixin
 from galax.potential import AbstractPotentialBase, KuzminPotential
 from galax.utils._optional_deps import HAS_GALA

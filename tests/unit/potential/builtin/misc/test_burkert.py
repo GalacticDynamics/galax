@@ -1,7 +1,8 @@
-from typing import Any
+from typing import Any, ClassVar
 
 import astropy.units as u
 import pytest
+from packaging.version import Version
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -21,6 +22,8 @@ class TestBurkertPotential(
     ParameterScaleRadiusMixin,
 ):
     """Test the `galax.potential.BurkertPotential` class."""
+
+    HAS_GALA_COUNTERPART: ClassVar[bool] = HAS_GALA and (Version("1.8.2") <= HAS_GALA)
 
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.BurkertPotential]:

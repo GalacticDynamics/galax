@@ -5,6 +5,8 @@ __all__ = ["gala_to_galax"]
 from functools import singledispatch
 from typing import TypeVar
 
+from packaging.version import Version
+
 try:  # TODO: less hacky way of supporting optional dependencies
     import pytest
 except ImportError:  # pragma: no cover
@@ -20,6 +22,7 @@ from coordinax.operators import IdentityOperator
 from unxt import Quantity
 
 import galax.potential as gpx
+from galax.utils._optional_deps import HAS_GALA
 
 ##############################################################################
 # GALA -> GALAX
@@ -230,6 +233,45 @@ def _gala_to_galax_null(pot: gp.NullPotential, /) -> gpx.NullPotential:
 
     """
     return gpx.NullPotential(units=pot.units)
+
+
+if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
+
+    @gala_to_galax.register
+    def _gala_to_galax_burkert(
+        gala: gp.BurkertPotential, /
+    ) -> gpx.BurkertPotential | gpx.PotentialFrame:
+        """Convert a Gala BurkertPotential to a Galax potential.
+
+        Examples
+        --------
+        >>> import gala.potential as gp
+        >>> import gala.units as gu
+        >>> import galax.potential as gpx
+
+        .. invisible-code-block: python
+
+            from packaging.version import Version
+            from galax.utils._optional_deps import HAS_GALA
+
+        .. skip: start if(HAS_GALA < Version("1.8.2"), reason="Gala v1.8.2+")
+
+        >>> gpot = gp.BurkertPotential(rho=4, r0=20, units=gu.galactic)
+        >>> gpx.io.gala_to_galax(gpot)
+        BurkertPotential(
+        units=UnitSystem(kpc, Myr, solMass, rad),
+        constants=ImmutableDict({'G': ...}),
+        m=ConstantParameter( ... ),
+        r_s=ConstantParameter( ... )
+        )
+
+        .. skip: end
+        """
+        params = gala.parameters
+        pot = gpx.BurkertPotential.from_central_density(
+            rho_0=params["rho"], r_s=params["r0"], units=gala.units
+        )
+        return _apply_frame(_get_frame(gala), pot)
 
 
 @gala_to_galax.register

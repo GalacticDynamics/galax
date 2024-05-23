@@ -7,6 +7,7 @@ from functools import singledispatch
 import gala.potential as gp
 from astropy.units import Quantity as APYQuantity
 from gala.units import UnitSystem as GalaUnitSystem, dimensionless as gala_dimensionless
+from packaging.version import Version
 from plum import convert
 
 import quaxed.array_api as xp
@@ -15,6 +16,7 @@ from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
 
 import galax.potential as gpx
 from galax.potential._potential.io._gala import _GALA_TO_GALAX_REGISTRY
+from galax.utils._optional_deps import HAS_GALA
 
 ##############################################################################
 # UnitSystem
@@ -111,6 +113,22 @@ def _galax_to_gala_abstractpotential(pot: gpx.AbstractPotential, /) -> gp.Potent
 def _galax_to_gala_bar(pot: gpx.BarPotential, /) -> gp.PotentialBase:
     """Convert a Galax BarPotential to a Gala potential."""
     raise NotImplementedError  # TODO: implement
+
+
+if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
+
+    @galax_to_gala.register
+    def _galax_to_gala_burkert(pot: gpx.BurkertPotential, /) -> gp.BurkertPotential:
+        """Convert a Galax BurkertPotential to a Gala potential."""
+        if not _all_constant_parameters(pot, "m", "r_s"):
+            msg = "Gala does not support time-dependent parameters."
+            raise TypeError(msg)
+
+        return gp.BurkertPotential(
+            rho=convert(pot.rho0(0), APYQuantity),
+            r0=convert(pot.r_s(0), APYQuantity),
+            units=galax_to_gala_units(pot.units),
+        )
 
 
 @galax_to_gala.register

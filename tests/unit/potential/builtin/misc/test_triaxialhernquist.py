@@ -1,4 +1,6 @@
-from typing import Any
+"""Test the `TriaxialHernquistPotential` class."""
+
+from typing import Any, ClassVar
 
 import pytest
 
@@ -6,7 +8,7 @@ import quaxed.numpy as qnp
 from unxt import Quantity
 
 import galax.typing as gt
-from ...test_core import TestAbstractPotential as AbstractPotential_Test
+from ...test_core import AbstractPotential_Test
 from ..test_common import (
     ParameterMTotMixin,
     ParameterScaleRadiusMixin,
@@ -24,6 +26,8 @@ class TestTriaxialHernquistPotential(
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 ):
+    HAS_GALA_COUNTERPART: ClassVar[bool] = False
+
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[TriaxialHernquistPotential]:
         return TriaxialHernquistPotential

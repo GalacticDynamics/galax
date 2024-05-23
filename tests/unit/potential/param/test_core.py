@@ -40,17 +40,17 @@ class TestAbstractParameter(Generic[T]):
 
     # ===============================================================
 
-    def test_init(self) -> None:
+    def test_init(self, param_cls) -> None:
         """Test init `galax.potential.AbstractParameter` method."""
         # Test that the abstract class cannot be instantiated
         with pytest.raises(TypeError):
-            AbstractParameter()
+            param_cls()
 
-    def test_call(self) -> None:
+    def test_call(self, param_cls) -> None:
         """Test `galax.potential.AbstractParameter` call method."""
         # Test that the abstract class cannot be instantiated
         with pytest.raises(TypeError):
-            AbstractParameter()()
+            param_cls()()
 
     def test_unit_field(self, param: T, field_unit: Unit) -> None:
         """Test `galax.potential.AbstractParameter` unit field."""

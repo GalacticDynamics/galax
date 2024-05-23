@@ -114,6 +114,20 @@ def _galax_to_gala_bar(pot: gpx.BarPotential, /) -> gp.PotentialBase:
 
 
 @galax_to_gala.register
+def _galax_to_gala_burkert(pot: gpx.BurkertPotential, /) -> gp.BurkertPotential:
+    """Convert a Galax BurkertPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, "m", "r_s"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return gp.BurkertPotential(
+        rho=convert(pot.rho0(0), APYQuantity),
+        r0=convert(pot.r_s(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
+@galax_to_gala.register
 def _galax_to_gala_hernquist(pot: gpx.HernquistPotential, /) -> gp.HernquistPotential:
     """Convert a Galax HernquistPotential to a Gala potential."""
     if not _all_constant_parameters(pot, "m_tot", "r_s"):

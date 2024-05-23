@@ -12,6 +12,7 @@ __all__ = [
     "AbstractCompositePotential",
     "CompositePotential",
     # builtin
+    "BurkertPotential",
     "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
@@ -62,6 +63,7 @@ from ._potential import io
 from ._potential.base import AbstractPotentialBase
 from ._potential.builtin.bars import BarPotential, LongMuraliBarPotential
 from ._potential.builtin.builtin import (
+    BurkertPotential,
     HernquistPotential,
     IsochronePotential,
     JaffePotential,

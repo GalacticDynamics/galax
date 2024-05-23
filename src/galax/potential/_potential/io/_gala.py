@@ -233,6 +233,34 @@ def _gala_to_galax_null(pot: gp.NullPotential, /) -> gpx.NullPotential:
 
 
 @gala_to_galax.register
+def _gala_to_galax_burkert(
+    gala: gp.BurkertPotential, /
+) -> gpx.BurkertPotential | gpx.PotentialFrame:
+    """Convert a Gala BurkertPotential to a Galax potential.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import gala.units as gu
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.BurkertPotential(rho=4, r0=20, units=gu.galactic)
+    >>> gpx.io.gala_to_galax(gpot)
+    BurkertPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...}),
+      m=ConstantParameter( ... ),
+      r_s=ConstantParameter( ... )
+    )
+    """
+    params = gala.parameters
+    pot = gpx.BurkertPotential.from_central_density(
+        rho_0=params["rho"], r_s=params["r0"], units=gala.units
+    )
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@gala_to_galax.register
 def _gala_to_galax_hernquist(
     gala: gp.HernquistPotential, /
 ) -> gpx.HernquistPotential | gpx.PotentialFrame:

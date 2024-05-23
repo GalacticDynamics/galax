@@ -8,6 +8,7 @@ from typing import TypeVar
 T = TypeVar("T")
 
 
-def first(x: Iterable[T], /) -> T:
+# TODO: make a mini-package called `zeroth` and move this function there
+def zeroth(x: Iterable[T], /) -> T:
     """Return first element from iterable."""
     return next(iter(x))

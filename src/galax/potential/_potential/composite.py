@@ -15,7 +15,7 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
 from galax.utils import ImmutableDict
-from galax.utils._misc import first
+from galax.utils._misc import zeroth
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -41,7 +41,7 @@ class AbstractCompositePotential(
 
         # __post_init__ stuff:
         # Check that all potentials have the same unit system
-        units_ = units if units is not None else first(self.values()).units
+        units_ = units if units is not None else zeroth(self.values()).units
         usys = unitsystem(units_)
         if not all(p.units == usys for p in self.values()):
             msg = "all potentials must have the same unit system"

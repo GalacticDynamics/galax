@@ -6,7 +6,7 @@ from typing import TypeVar
 import numpy as np
 import pytest
 
-from galax.utils._misc import first
+from galax.utils._misc import zeroth
 
 T = TypeVar("T")
 
@@ -22,6 +22,6 @@ T = TypeVar("T")
         (iter([1, 2, 3]), 1),
     ],
 )
-def test_first(x: Iterable[T], x0: T) -> None:
+def test_zeroth(x: Iterable[T], x0: T) -> None:
     """Test the function :func:`first`."""
-    assert first(x) == x0
+    assert zeroth(x) == x0

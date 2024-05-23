@@ -249,6 +249,13 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
         >>> import gala.units as gu
         >>> import galax.potential as gpx
 
+        .. invisible-code-block: python
+
+            from packaging.version import Version
+            from galax.utils._optional_deps import HAS_GALA
+
+        .. skip: next if(HAS_GALA < Version("1.8.2"), reason="Gala v1.8.2+")
+
         >>> gpot = gp.BurkertPotential(rho=4, r0=20, units=gu.galactic)
         >>> gpx.io.gala_to_galax(gpot)
         BurkertPotential(

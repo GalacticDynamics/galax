@@ -1,4 +1,6 @@
-from typing import Any
+"""Test the `TriaxialHernquistPotential` class."""
+
+from typing import Any, ClassVar
 
 import pytest
 
@@ -24,6 +26,8 @@ class TestTriaxialHernquistPotential(
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 ):
+    HAS_GALA_COUNTERPART: ClassVar[bool] = False
+
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[TriaxialHernquistPotential]:
         return TriaxialHernquistPotential

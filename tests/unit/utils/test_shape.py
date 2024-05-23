@@ -1,10 +1,6 @@
 """Test the `galax.utils._shape` module."""
 
-import re
-from typing import Any
-
 import jax
-import jax.numpy as jnp
 import pytest
 
 import quaxed.array_api as xp
@@ -12,76 +8,7 @@ import quaxed.numpy as qnp
 from unxt import Quantity
 
 import galax.typing as gt
-from galax.utils._shape import (
-    atleast_batched,
-    batched_shape,
-    expand_arr_dims,
-    expand_batch_dims,
-)
-
-
-class TestAtleastBatched:
-    """Test the `atleast_batched` function."""
-
-    def test_atleast_batched_no_args(self) -> None:
-        """Test the `atleast_batched` function with no arguments."""
-        with pytest.raises(
-            ValueError,
-            match=re.escape("atleast_batched() requires at least one argument"),
-        ):
-            _ = atleast_batched()
-
-    def test_atleast_batched_example(self) -> None:
-        """Test the `atleast_batched` function with an example."""
-        x = xp.asarray([1, 2, 3])
-        # `atleast_batched` versus `atleast_2d`
-        assert qnp.array_equal(atleast_batched(x), x[:, None])
-        assert qnp.array_equal(jnp.atleast_2d(x), x[None, :])
-
-    @pytest.mark.parametrize(
-        ("x", "expect"),
-        [
-            # ArrayLike
-            (0, [[0]]),  # scalar -> 2D array
-            ([1], [[1]]),  # 1D array -> 2D array
-            ([1, 2, 3], [[1], [2], [3]]),
-            ([[1]], [[1]]),  # 2D array -> 2D array
-            ([[[1]]], [[[1]]]),  # 3D array -> 3D array
-            # Quantity
-            (Quantity(1, "m"), Quantity([[1]], "m")),  # scalar -> 2D array
-            (Quantity([1], "m"), Quantity([[1]], "m")),  # 1D array -> 2D array
-            (Quantity([1, 2, 3], "m"), Quantity([[1], [2], [3]], "m")),
-            (Quantity([[1]], "m"), Quantity([[1]], "m")),  # 2D array -> 2D array
-            (Quantity([[[1]]], "m"), Quantity([[[1]]], "m")),  # 3D array -> 3D array
-        ],
-    )
-    def test_atleast_batched_one_arg(self, x: Any, expect: Any) -> None:
-        """Test the `atleast_batched` function with one argument."""
-        got = atleast_batched(xp.asarray(x))
-        assert qnp.array_equal(got, xp.asarray(expect))
-        assert got.ndim >= 2
-
-    def test_atleast_batched_multiple_args(self) -> None:
-        """Test the `atleast_batched` function with multiple arguments."""
-        # ArrayLike
-        x = xp.asarray([1, 2, 3])
-        y = xp.asarray([4, 5, 6])
-        result = atleast_batched(x, y)
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        assert qnp.array_equal(result[0], x[:, None])
-        assert qnp.array_equal(result[1], y[:, None])
-
-        # Quantity
-        x = Quantity(x, "m")
-        y = Quantity(y, "m")
-        result = atleast_batched(x, y)
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        assert isinstance(result[0], Quantity)
-        assert isinstance(result[1], Quantity)
-        assert qnp.array_equal(result[0], Quantity(x.value[:, None], "m"))
-        assert qnp.array_equal(result[1], Quantity(y.value[:, None], "m"))
+from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
 
 class TestBatchedShape:

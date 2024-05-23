@@ -2,12 +2,10 @@
 
 __all__: list[str] = []
 
-from functools import partial
-from typing import Any, Literal, NoReturn, TypeAlias, overload
+from typing import Literal, TypeAlias, overload
 
-import jax
 import jax.numpy as jnp
-from jaxtyping import Array, ArrayLike, Shaped
+from jaxtyping import Array, Shaped
 
 import quaxed.array_api as xp
 from coordinax import AbstractVectorBase
@@ -17,77 +15,6 @@ from galax.utils._jax import quaxify
 
 AnyScalar: TypeAlias = Shaped[Array, ""]
 ArrayAnyShape: TypeAlias = Shaped[Array, "..."]
-
-
-@overload
-def atleast_batched() -> NoReturn: ...
-
-
-@overload
-def atleast_batched(x: ArrayLike, /) -> Array: ...
-
-
-@overload
-def atleast_batched(
-    x: ArrayLike, y: ArrayLike, /, *arys: ArrayLike
-) -> tuple[Array, ...]: ...
-
-
-@quaxify
-@partial(jax.jit)
-def atleast_batched(*arys: Any) -> Array | tuple[Array, ...]:
-    """Convert inputs to arrays with at least two dimensions.
-
-    Parameters
-    ----------
-    *arys : array_like
-        One or more array-like sequences. Non-array inputs are converted to
-        arrays. Arrays that already have two or more dimensions are preserved.
-
-    Returns
-    -------
-    res : tuple
-        A tuple of arrays, each with ``a.ndim >= 2``. Copies are made only if
-        necessary.
-
-    Examples
-    --------
-    >>> from galax.utils._shape import atleast_batched
-    >>> atleast_batched(0)
-    Array([[0]], dtype=int64, ...)
-
-    >>> atleast_batched([1])
-    Array([[1]], dtype=int64)
-
-    >>> atleast_batched([[1]])
-    Array([[1]], dtype=int64)
-
-    >>> atleast_batched([[[1]]])
-    Array([[[1]]], dtype=int64)
-
-    >>> atleast_batched([1, 2, 3])
-    Array([[1],
-           [2],
-           [3]], dtype=int64)
-
-    >>> import jax.numpy as jnp
-    >>> jnp.atleast_2d(xp.asarray([1, 2, 3]))
-    Array([[1, 2, 3]], dtype=int64)
-    """
-    if len(arys) == 0:
-        msg = "atleast_batched() requires at least one argument"
-        raise ValueError(msg)
-    if len(arys) == 1:
-        arr = jnp.asarray(arys[0])
-        if arr.ndim >= 2:
-            return arr
-        if arr.ndim == 1:
-            return xp.expand_dims(arr, axis=1)
-        return jnp.expand_dims(arr, axis=(0, 1))
-    return tuple(atleast_batched(arr) for arr in arys)
-
-
-# =============================================================================
 
 
 def vector_batched_shape(obj: AbstractVectorBase) -> tuple[gt.Shape, int]:

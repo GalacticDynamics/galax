@@ -140,7 +140,7 @@ class BurkertPotential(AbstractPotential):
 
         >>> rho_0 = Quantity(1e6, "Msun / kpc3")
         >>> r_s = Quantity(1, "kpc")
-        >>> pot = BurkertPotential.from_central_density(rho_0, r_s)
+        >>> pot = BurkertPotential.from_central_density(rho_0, r_s, units="galactic")
         >>> pot
         BurkertPotential( units=..., constants=ImmutableDict({'G': ...}) )
 

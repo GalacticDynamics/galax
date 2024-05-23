@@ -1,4 +1,6 @@
-from typing import Any
+"""Test the `galax.potential.Vogelsberger08TriaxialNFWPotential` class."""
+
+from typing import Any, ClassVar
 
 import astropy.units as u
 import pytest
@@ -50,6 +52,8 @@ class TestVogelsberger08TriaxialNFWPotential(
     ShapeTransitionRadiusParameterMixin,
 ):
     """Test the `galax.potential.Vogelsberger08TriaxialNFWPotential` class."""
+
+    HAS_GALA_COUNTERPART: ClassVar[bool] = False
 
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.Vogelsberger08TriaxialNFWPotential]:

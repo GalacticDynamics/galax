@@ -260,10 +260,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(cx.Cartesian3DVector)
+        cart = self.represent_as(cx.Cartesian3DVector).to_units(usys)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
-        return xp.concat((q.decompose(usys).value, p.decompose(usys).value), axis=-1)
+        return xp.concat((q.value, p.value), axis=-1)
 
     def wt(self, *, units: Any) -> gt.BatchVec7:
         """Phase-space position as an Array[float, (*batch, 1+Q+P)].
@@ -299,11 +299,11 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(cx.Cartesian3DVector)
+        cart = self.represent_as(cx.Cartesian3DVector).to_units(usys)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
-        t = xp.broadcast_to(self.t.decompose(usys).value[..., None], (*batch, comps.t))
-        return xp.concat((t, q.decompose(usys).value, p.decompose(usys).value), axis=-1)
+        t = xp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
+        return xp.concat((t, q.value, p.value), axis=-1)
 
     def represent_as(
         self,

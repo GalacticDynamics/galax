@@ -294,17 +294,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Tidal tensor
 
-    @partial(jax.jit)
-    def tidal_tensor(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar
-    ) -> BatchMatrix33:
+    def tidal_tensor(self, *args: Any, **kwargs: Any) -> BatchMatrix33:
         """Compute the tidal tensor.
 
         See :func:`~galax.potential.tidal_tensor` for details.
         """
         from .funcs import tidal_tensor
 
-        return tidal_tensor(self, q, t)
+        return tidal_tensor(self, *args, **kwargs)
 
     # =========================================================================
     # Integrating orbits

@@ -107,6 +107,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         Examples
         --------
+        >>> from unxt import Quantity
+        >>> import galax.coordinates as gc
         >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
         ...                           p=Quantity([4, 5, 6], "km/s"),
         ...                           t=Quantity(-1, "Gyr"))

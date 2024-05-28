@@ -5,6 +5,7 @@ __all__ = ["AbstractBasePhaseSpacePosition", "ComponentShapeTuple"]
 from abc import abstractmethod
 from collections.abc import Mapping
 from functools import partial
+from textwrap import indent
 from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 import equinox as eqx
@@ -98,6 +99,28 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         """
         return cls(**obj)
+
+    # ==========================================================================
+
+    def __str__(self) -> str:
+        """Return a string representation of the object.
+
+        Examples
+        --------
+        >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                           p=Quantity([4, 5, 6], "km/s"),
+        ...                           t=Quantity(-1, "Gyr"))
+        >>> print(w)
+        PhaseSpacePosition(
+            q=<Cartesian3DVector (x[kpc], y[kpc], z[kpc])
+                [1. 2. 3.]>,
+            p=<CartesianDifferential3D (d_x[km / s], d_y[km / s], d_z[km / s])
+                [4. 5. 6.]>,
+            t=Quantity['time'](Array(-1., dtype=float64), unit='Gyr'))
+        """
+        fs = [indent(f"{k}={v!s}", "    ") for k, v in dataclass_items(self)]
+        sep = ",\n" if len(fs) > 1 else ", "
+        return f"{self.__class__.__name__}(\n{sep.join(fs)})"
 
     # ==========================================================================
     # Array properties

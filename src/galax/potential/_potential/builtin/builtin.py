@@ -179,6 +179,15 @@ class HernquistPotential(AbstractPotential):
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / (r + self.r_s(t))
 
+    @partial(jax.jit)
+    def _density(
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.BatchFloatQScalar:
+        r_s = self.r_s(t)
+        x = xp.linalg.vector_norm(q, axis=-1) / r_s
+        rho0 = self.m_tot(t) / (2 * xp.pi * r_s**3)
+        return rho0 / (x * (1 + x) ** 3)
+
 
 # -------------------------------------------------------------------
 

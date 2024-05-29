@@ -105,7 +105,7 @@ class MockStream(AbstractCompositePhaseSpacePosition):
         # TODO: check up on the shapes
 
         # Construct time sorter
-        ts = xp.concat([psp.t for psp in self.values()], axis=0)
+        ts = xp.concat([psp.release_time for psp in self.values()], axis=0)
         self._time_sorter = xp.argsort(ts)
 
     @property

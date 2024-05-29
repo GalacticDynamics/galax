@@ -21,6 +21,7 @@ from typing import (
 import astropy.units as u
 
 from unxt import Quantity
+from unxt.unitsystems import AbstractUnitSystem, galactic
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 from galax.typing import Unit
@@ -59,7 +60,9 @@ def converter_parameter(value: Any) -> AbstractParameter:
         out = value
 
     elif callable(value):
-        unit = _get_unit_from_return_annotation(value)
+        # TODO: fix specifying a unit system. It should just extract the
+        # dimensions.
+        unit = _get_unit_from_return_annotation(value, galactic)
         out = UserParameter(func=value, unit=unit)
 
     else:
@@ -191,7 +194,7 @@ class ParameterField:
             self._check_unit(potential, value.unit)
             v = value
         elif callable(value):
-            unit = _get_unit_from_return_annotation(value)
+            unit = _get_unit_from_return_annotation(value, potential.units)
             self._check_unit(potential, unit)  # Check the unit is compatible
             v = UserParameter(func=value, unit=unit)
         else:
@@ -205,19 +208,25 @@ class ParameterField:
 # -------------------------------------------
 
 
-def _get_unit_from_return_annotation(func: ParameterCallable) -> Unit:
+def _get_unit_from_return_annotation(
+    the_callable: ParameterCallable, unitsystem: AbstractUnitSystem
+) -> Unit:
     """Get the unit from the return annotation of a Parameter function.
 
     Parameters
     ----------
-    func : Callable[[Array[float, ()] | float | int], Array[float, (*shape,)]]
+    the_callable : Callable[[Array[float, ()] | float | int], Array[float, (*shape,)]]
         The function to use to compute the parameter value.
+    unitsystem: AbstractUnitSystem
+        The unit system to use to convert the return annotation to a unit.
 
     Returns
     -------
     Unit
         The unit from the return annotation of the function.
     """
+    func = the_callable.__call__ if hasattr(the_callable, "__call__") else the_callable  # noqa: B004
+
     # Get the return annotation
     type_hints = get_type_hints(func, include_extras=True)
     if "return" not in type_hints:
@@ -226,6 +235,15 @@ def _get_unit_from_return_annotation(func: ParameterCallable) -> Unit:
 
     # Check that the return annotation might contain a unit
     return_annotation = type_hints["return"]
+
+    # Astropy compatibility
+    if return_annotation.__module__.startswith("astropy"):
+        return _get_unit_from_astropy_return_annotation(return_annotation)
+
+    return unitsystem[return_annotation.type_parameter]
+
+
+def _get_unit_from_astropy_return_annotation(return_annotation: Any) -> Unit:
     return_origin = get_origin(return_annotation)
     if return_origin is not Annotated:
         msg = "Parameter function return annotation must be annotated"

@@ -55,6 +55,7 @@ __all__ = [
     "ParameterCallable",
     "AbstractParameter",
     "ConstantParameter",
+    "LinearParameter",
     "UserParameter",
     "ParameterField",
 ]
@@ -107,6 +108,7 @@ from ._potential.funcs import (
 from ._potential.param import (
     AbstractParameter,
     ConstantParameter,
+    LinearParameter,
     ParameterCallable,
     ParameterField,
     ParametersAttribute,

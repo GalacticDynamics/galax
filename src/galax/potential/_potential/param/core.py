@@ -4,6 +4,7 @@ __all__ = [
     "ParameterCallable",
     "AbstractParameter",
     "ConstantParameter",
+    "LinearParameter",
     "UserParameter",
 ]
 
@@ -134,6 +135,96 @@ class ConstantParameter(AbstractParameter):
     def __rmul__(self, other: Any) -> "Self":
         value = other * self.value
         return replace(self, value=value, unit=value.unit)
+
+
+#####################################################################
+# Linear time dependence Parameter
+
+
+class LinearParameter(AbstractParameter):
+    """Linear time dependence Parameter.
+
+    This is in point-slope form, where the parameter is given by
+
+    .. math::
+
+        p(t) = m * (t - ti) + p(ti)
+
+    Parameters
+    ----------
+    slope : Quantity[float, (), "[parameter]/[time]"]
+        The slope of the linear parameter.
+    point_time : Array[float, (), "time"]
+        The time at which the parameter is equal to the intercept.
+    point_value : Quantity[float, (), "[parameter]"]
+        The value of the parameter at the ``point_time``.
+
+    Examples
+    --------
+    >>> from galax.potential import LinearParameter
+    >>> from unxt import Quantity
+
+    >>> lp = LinearParameter(slope=Quantity(-1, "Msun/yr"),
+    ...                      point_time=Quantity(0, "Myr"),
+    ...                      point_value=Quantity(1e9, "Msun"),
+    ...                      unit="Msun")
+
+    >>> lp(Quantity(0, "Gyr"))
+    Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
+    >>> lp(Quantity(1, "Gyr"))
+    Quantity['mass'](Array(0., dtype=float64), unit='solMass')
+    """
+
+    slope: FloatQAnyShape = eqx.field(
+        converter=lambda x: Quantity.constructor(x, dtype=float)
+    )
+    point_time: BatchableRealQScalar = eqx.field(
+        converter=lambda x: Quantity["time"].constructor(x, dtype=float)
+    )
+    point_value: FloatQAnyShape = eqx.field(
+        converter=lambda x: Quantity.constructor(x, dtype=float)
+    )
+    _: KW_ONLY
+    unit: Unit = eqx.field(static=True, converter=u.Unit)
+
+    def __check_init__(self) -> None:
+        """Check the initialization of the class."""
+        # TODO: check point_value and slope * point_time have the same dimensions
+
+    def __call__(self, t: BatchableRealQScalar, **_: Any) -> FloatQAnyShape:
+        """Return the parameter value.
+
+        .. math::
+
+            p(t) = m * (t - ti) + p(ti)
+
+        Parameters
+        ----------
+        t : Quantity[float | int, (*batch,), "time"], optional
+
+        Returns
+        -------
+        Array[float, "*shape"]
+            The constant parameter value.
+
+        Examples
+        --------
+        >>> from galax.potential import LinearParameter
+        >>> from unxt import Quantity
+
+        >>> lp = LinearParameter(slope=Quantity(-1, "Msun/yr"),
+        ...                      point_time=Quantity(0, "Myr"),
+        ...                      point_value=Quantity(1e9, "Msun"),
+        ...                      unit="Msun")
+
+        >>> lp(Quantity(0, "Gyr"))
+        Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
+        >>> lp(Quantity(1, "Gyr"))
+        Quantity['mass'](Array(0., dtype=float64), unit='solMass')
+        """
+        return Quantity.constructor(
+            self.slope * (t - self.point_time) + self.point_value, self.unit
+        )
 
 
 #####################################################################

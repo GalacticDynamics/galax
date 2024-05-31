@@ -70,11 +70,12 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         Examples
         --------
-        >>> from galax.dynamics.mockstream import FardalStreamDF
-        >>> from galax.potential import MilkyWayPotential
+        >>> import galax.coordinates as gc
+        >>> import galax.dynamics as gd
+        >>> import galax.potential as gp
 
-        >>> df = FardalStreamDF()
-        >>> pot = MilkyWayPotential()
+        >>> df = gd.FardalStreamDF()
+        >>> pot = gp.MilkyWayPotential()
         >>> w = gc.PhaseSpacePosition(q=Quantity([8.3, 0, 0], "kpc"),
         ...                           p=Quantity([0, 220, 0], "km/s"),
         ...                           t=Quantity(0, u.Gyr))

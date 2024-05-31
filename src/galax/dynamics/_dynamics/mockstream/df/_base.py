@@ -73,6 +73,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         >>> import galax.coordinates as gc
         >>> import galax.dynamics as gd
         >>> import galax.potential as gp
+        >>> import quax.examples.prng as jr
 
         >>> df = gd.FardalStreamDF()
         >>> pot = gp.MilkyWayPotential()
@@ -80,7 +81,8 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         ...                           p=Quantity([0, 220, 0], "km/s"),
         ...                           t=Quantity(0, "Gyr"))
         >>> prog_orbit = pot.evaluate_orbit(w, t=Quantity([0, 1, 2], "Gyr"))
-        >>> stream_ic = df.sample(rng, pot, prog_orbit, prog_mass=1e4)
+        >>> stream_ic = df.sample(jr.ThreeFry(0), pot, prog_orbit,
+        ...                       prog_mass=Quantity(1e4, "Msun"))
         """
         # Progenitor positions and times. The orbit times are used as the
         # release times for the mock stream.

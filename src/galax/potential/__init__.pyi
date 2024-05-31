@@ -43,7 +43,7 @@ __all__ = [
     # frame
     "PotentialFrame",
     # funcs
-    "potential_energy",
+    "potential",
     "gradient",
     "laplacian",
     "density",
@@ -102,7 +102,7 @@ from ._potential.funcs import (
     gradient,
     hessian,
     laplacian,
-    potential_energy,
+    potential,
     tidal_tensor,
 )
 from ._potential.param import (

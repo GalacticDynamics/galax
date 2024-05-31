@@ -116,8 +116,8 @@ class AbstractOrbit(gc.AbstractPhaseSpacePosition):
             The specific potential energy.
         """
         if potential is None:
-            return self.potential.potential_energy(self.q, t=self.t)
-        return potential.potential_energy(self.q, t=self.t)
+            return self.potential.potential(self.q, t=self.t)
+        return potential.potential(self.q, t=self.t)
 
     @partial(jax.jit)
     def total_energy(

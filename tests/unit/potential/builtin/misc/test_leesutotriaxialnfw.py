@@ -123,12 +123,10 @@ class TestLeeSutoTriaxialNFWPotential(
 
     # ==========================================================================
 
-    def test_potential_energy(
-        self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3
-    ) -> None:
+    def test_potential(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity(-9.68797618, pot.units["specific energy"])
         assert qnp.isclose(
-            pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
@@ -180,7 +178,7 @@ class TestLeeSutoTriaxialNFWPotential(
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [
-            ("potential_energy", "energy", 1e-8),
+            ("potential", "energy", 1e-8),
             ("gradient", "gradient", 1e-8),
             ("density", "density", 1e-8),
             # ("hessian", "hessian", 1e-8),  # No hessian method in gala!

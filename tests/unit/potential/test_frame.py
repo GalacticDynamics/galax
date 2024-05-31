@@ -40,20 +40,20 @@ def test_bar_means_of_rotation() -> None:
     assert isinstance(newt, Quantity)
 
     # They should be equivalent at t=0
-    assert framedpot.potential_energy(q, t) == hardpot.potential_energy(q, t)
+    assert framedpot.potential(q, t) == hardpot.potential(q, t)
     assert qnp.array_equal(framedpot.acceleration(q, t), hardpot.acceleration(q, t))
 
     # They should be equivalent at t=110 Myr (1/2 period)
     t = Quantity(110, "Myr")
-    assert framedpot.potential_energy(q, t) == hardpot.potential_energy(q, t)
+    assert framedpot.potential(q, t) == hardpot.potential(q, t)
     assert qnp.array_equal(framedpot.acceleration(q, t), hardpot.acceleration(q, t))
 
     # They should be equivalent at t=220 Myr (1 period)
     t = Quantity(220, "Myr")
-    assert framedpot.potential_energy(q, t) == hardpot.potential_energy(q, t)
+    assert framedpot.potential(q, t) == hardpot.potential(q, t)
     assert qnp.array_equal(framedpot.acceleration(q, t), hardpot.acceleration(q, t))
 
     # They should be equivalent at t=55 Myr (1/4 period)
     t = Quantity(55, "Myr")
-    assert framedpot.potential_energy(q, t) == hardpot.potential_energy(q, t)
+    assert framedpot.potential(q, t) == hardpot.potential(q, t)
     assert qnp.array_equal(framedpot.acceleration(q, t), hardpot.acceleration(q, t))

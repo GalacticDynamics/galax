@@ -52,7 +52,7 @@ class TestAbstractPotential(AbstractPotential_Test):
             )
 
             @partial(jax.jit)
-            def _potential_energy(  # TODO: inputs w/ units
+            def _potential(  # TODO: inputs w/ units
                 self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
             ) -> gt.BatchFloatQScalar:
                 return (
@@ -79,10 +79,10 @@ class TestAbstractPotential(AbstractPotential_Test):
 
     # ---------------------------------
 
-    def test_potential_energy(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.potential_energy` method."""
+    def test_potential(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `AbstractPotentialBase.potential` method."""
         assert qnp.allclose(
-            pot.potential_energy(x, t=0),
+            pot.potential(x, t=0),
             Quantity(1.20227527, "kpc2/Myr2"),
             atol=Quantity(1e-8, "kpc2/Myr2"),
         )

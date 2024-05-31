@@ -32,7 +32,7 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
 
     # TODO: inputs w/ units
     @abc.abstractmethod
-    def _potential_energy(self, q: gt.QVec3, t: gt.RealScalar, /) -> gt.FloatQScalar:
+    def _potential(self, q: gt.QVec3, t: gt.RealScalar, /) -> gt.FloatQScalar:
         raise NotImplementedError
 
     ###########################################################################

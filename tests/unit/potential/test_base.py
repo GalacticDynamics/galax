@@ -113,20 +113,20 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
     # ---------------------------------
 
     @abstractmethod
-    def test_potential_energy(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `potential_energy` method."""
+    def test_potential(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `potential` method."""
         ...
 
-    def test_potential_energy_batch(
+    def test_potential_batch(
         self, pot: AbstractPotentialBase, batchx: gt.BatchQVec3
     ) -> None:
-        """Test the `AbstractPotentialBase.potential_energy` method."""
+        """Test the `AbstractPotentialBase.potential` method."""
         # Test that the method works on batches.
-        assert pot.potential_energy(batchx, t=0).shape == batchx.shape[:-1]
+        assert pot.potential(batchx, t=0).shape == batchx.shape[:-1]
         # Test that the batched method is equivalent to the scalar method
         assert qnp.allclose(
-            pot.potential_energy(batchx, t=0)[0],
-            pot.potential_energy(batchx[0], t=0),
+            pot.potential(batchx, t=0)[0],
+            pot.potential(batchx[0], t=0),
             atol=Quantity(1e-15, pot.units["specific energy"]),
         )
 
@@ -134,7 +134,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
 
     def test_call(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.__call__` method."""
-        assert xp.equal(pot(x, t=0), pot.potential_energy(x, t=0))
+        assert xp.equal(pot(x, t=0), pot.potential(x, t=0))
 
     @abstractmethod
     def test_gradient(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
@@ -215,7 +215,7 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
             )
 
             @partial(jax.jit)
-            def _potential_energy(  # TODO: inputs w/ units
+            def _potential(  # TODO: inputs w/ units
                 self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
             ) -> gt.BatchFloatQScalar:
                 return (
@@ -242,10 +242,10 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
 
     # ---------------------------------
 
-    def test_potential_energy(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.potential_energy` method."""
+    def test_potential(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+        """Test the `AbstractPotentialBase.potential` method."""
         assert qnp.allclose(
-            pot.potential_energy(x, t=0),
+            pot.potential(x, t=0),
             Quantity(1.20227527, "kpc2/Myr2"),
             atol=Quantity(1e-8, "kpc2/Myr2"),
         )

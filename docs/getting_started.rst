@@ -66,7 +66,7 @@ we could compute the potential energy or the acceleration at a Cartesian
 position near the Sun::
 
     >>> xyz = [-8., 0, 0] * u.kpc
-    >>> mw.potential_energy(xyz, t=0).to_units("kpc2 / Myr2")
+    >>> mw.potential(xyz, t=0).to_units("kpc2 / Myr2")
     Quantity['specific energy'](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0).to_units("kpc/Myr2")
     Quantity['acceleration'](Array([ 0.00702262, -0.        , -0.        ], dtype=float64), unit='kpc / Myr2')
@@ -77,7 +77,7 @@ with associated physical units. :class:`~astropy.units.Quantity` objects can be
 re-represented in any equivalent units, so, for example, we could display the
 energy or acceleration in other units::
 
-    >>> mw.potential_energy(xyz, t=0).to_units("kpc2/Myr2")
+    >>> mw.potential(xyz, t=0).to_units("kpc2/Myr2")
     Quantity['specific energy'](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0).to_units("kpc/Myr2")
     Quantity['acceleration'](Array([ 0.00702262, -0.        , -0.        ], dtype=float64), unit='kpc / Myr2')

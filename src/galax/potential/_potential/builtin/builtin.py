@@ -69,7 +69,7 @@ class BurkertPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         m, r_s = self.m(t), self.r_s(t)
@@ -173,7 +173,7 @@ class HernquistPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
@@ -219,7 +219,7 @@ class IsochronePotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(  # TODO: inputs w/ units
+    def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
@@ -238,7 +238,7 @@ class JaffePotential(AbstractPotential):
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
@@ -268,7 +268,7 @@ class KeplerPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(  # TODO: inputs w/ units
+    def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
@@ -319,7 +319,7 @@ class KuzminPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self: "KuzminPotential", q: gt.QVec3, t: gt.RealQScalar, /
     ) -> gt.FloatQScalar:
         return (
@@ -348,7 +348,7 @@ class LogarithmicPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r2 = xp.linalg.vector_norm(q, axis=-1).to_value(self.units["length"]) ** 2
@@ -383,7 +383,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self: "MiyamotoNagaiPotential", q: gt.QVec3, t: gt.RealQScalar, /
     ) -> gt.FloatQScalar:
         R2 = q[..., 0] ** 2 + q[..., 1] ** 2
@@ -409,7 +409,7 @@ class NullPotential(AbstractPotential):
 
     >>> q = Quantity([1, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")
-    >>> pot.potential_energy(q, t)
+    >>> pot.potential(q, t)
     Quantity['specific energy'](Array(0, dtype=int64), unit='kpc2 / Myr2')
 
     """
@@ -423,7 +423,7 @@ class NullPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(  # TODO: inputs w/ units
+    def _potential(  # TODO: inputs w/ units
         self,
         q: gt.BatchQVec3,
         t: gt.BatchableRealQScalar,  # noqa: ARG002
@@ -481,7 +481,7 @@ class PlummerPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r2 = xp.linalg.vector_norm(q, axis=-1) ** 2
@@ -530,7 +530,7 @@ class PowerLawCutoffPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         m, a, r_c = self.m_tot(t), 0.5 * self.alpha(t), self.r_c(t)
@@ -572,7 +572,7 @@ class SatohPotential(AbstractPotential):
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         a, b = self.a(t), self.b(t)
@@ -617,7 +617,7 @@ class StoneOstriker15Potential(AbstractPotential):
     #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r_h = self.r_h(t)
@@ -677,7 +677,7 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     >>> q = Quantity([1, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")
-    >>> pot.potential_energy(q, t)
+    >>> pot.potential(q, t)
     Quantity['specific energy'](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
     """
 
@@ -707,7 +707,7 @@ class TriaxialHernquistPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(  # TODO: inputs w/ units
+    def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)

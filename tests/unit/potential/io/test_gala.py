@@ -23,7 +23,7 @@ else:
 parametrize_test_method_gala = pytest.mark.parametrize(
     ("method0", "method1", "atol"),
     [
-        ("potential_energy", "energy", 1e-8),
+        ("potential", "energy", 1e-8),
         ("gradient", "gradient", 1e-8),
         ("density", "density", 1e-8),
         ("hessian", "hessian", 1e-8),

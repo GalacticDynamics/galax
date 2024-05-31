@@ -17,7 +17,7 @@ from unxt import Quantity
 
 import galax.typing as gt
 from ._progenitor import ConstantMassProtenitor, ProgenitorMassCallable
-from galax.dynamics._dynamics.mockstream.core import MockStreamArm
+from galax.dynamics._dynamics.mockstream.core import MockStream, MockStreamArm
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential import AbstractPotentialBase
 
@@ -33,7 +33,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     lead: bool = eqx.field(default=True, static=True)
     trail: bool = eqx.field(default=True, static=True)
 
-    def __post_init__(self) -> None:
+    def __check_init__(self) -> None:
         if not self.lead and not self.trail:
             msg = "You must generate either leading or trailing tails (or both!)"
             raise ValueError(msg)
@@ -48,7 +48,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         # />
         /,
         prog_mass: gt.MassScalar | ProgenitorMassCallable,
-    ) -> tuple[MockStreamArm, MockStreamArm]:
+    ) -> MockStream:
         """Generate stream particle initial conditions.
 
         Parameters
@@ -65,8 +65,24 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         Returns
         -------
-        mock_lead, mock_trail : MockStreamArm
-            Positions and velocities of the leading and trailing tails.
+        `galax.dynamics.MockStream`
+            Phase-space positions of the leading and trailing arms.
+
+        Examples
+        --------
+        >>> import galax.coordinates as gc
+        >>> import galax.dynamics as gd
+        >>> import galax.potential as gp
+        >>> import quax.examples.prng as jr
+
+        >>> df = gd.FardalStreamDF()
+        >>> pot = gp.MilkyWayPotential()
+        >>> w = gc.PhaseSpacePosition(q=Quantity([8.3, 0, 0], "kpc"),
+        ...                           p=Quantity([0, 220, 0], "km/s"),
+        ...                           t=Quantity(0, "Gyr"))
+        >>> prog_orbit = pot.evaluate_orbit(w, t=Quantity([0, 1, 2], "Gyr"))
+        >>> stream_ic = df.sample(jr.ThreeFry(0), pot, prog_orbit,
+        ...                       prog_mass=Quantity(1e4, "Msun"))
         """
         # Progenitor positions and times. The orbit times are used as the
         # release times for the mock stream.
@@ -75,6 +91,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         v = convert(prog_orbit.p, Quantity)
         ts = prog_orbit.t
 
+        # Progenitor mass
         mprog: ProgenitorMassCallable = (
             ConstantMassProtenitor(m_tot=prog_mass)
             if not callable(prog_mass)
@@ -113,7 +130,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             release_time=ts.to_units(pot.units["time"]),
         )
 
-        return mock_lead, mock_trail
+        return MockStream(lead=mock_lead, trail=mock_trail)
 
     # TODO: keep units and PSP through this func
     @abc.abstractmethod

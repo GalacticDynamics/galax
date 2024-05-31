@@ -234,12 +234,12 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         # TODO: here sep out lead vs trailing
         # Generate initial conditions from the DF, along the integrated
         # progenitor orbit. The release times are the stripping times.
-        mock0_lead, mock0_trail = self.df.sample(rng, self.potential, prog_o, prog_mass)
+        mock0 = self.df.sample(rng, self.potential, prog_o, prog_mass)
 
         if use_vmap:
-            lead_arm_w, trail_arm_w = self._run_vmap(ts, mock0_lead, mock0_trail)
+            lead_arm_w, trail_arm_w = self._run_vmap(ts, mock0["lead"], mock0["trail"])
         else:
-            lead_arm_w, trail_arm_w = self._run_scan(ts, mock0_lead, mock0_trail)
+            lead_arm_w, trail_arm_w = self._run_scan(ts, mock0["lead"], mock0["trail"])
 
         t = xp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
 
@@ -249,14 +249,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
                 q=Quantity(lead_arm_w[:, 0:3], self.units["length"]),
                 p=Quantity(lead_arm_w[:, 3:6], self.units["speed"]),
                 t=t,
-                release_time=mock0_lead.release_time,
+                release_time=mock0["lead"].release_time,
             )
         if self.df.trail:
             comps["trail"] = MockStreamArm(
                 q=Quantity(trail_arm_w[:, 0:3], self.units["length"]),
                 p=Quantity(trail_arm_w[:, 3:6], self.units["speed"]),
                 t=t,
-                release_time=mock0_trail.release_time,
+                release_time=mock0["trail"].release_time,
             )
 
         return MockStream(comps), prog_o[-1]

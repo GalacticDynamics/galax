@@ -78,7 +78,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         >>> pot = gp.MilkyWayPotential()
         >>> w = gc.PhaseSpacePosition(q=Quantity([8.3, 0, 0], "kpc"),
         ...                           p=Quantity([0, 220, 0], "km/s"),
-        ...                           t=Quantity(0, u.Gyr))
+        ...                           t=Quantity(0, "Gyr"))
         >>> prog_orbit = pot.evaluate_orbit(w, t=Quantity([0, 1, 2], "Gyr"))
         >>> stream_ic = df.sample(rng, pot, prog_orbit, prog_mass=1e4)
         """

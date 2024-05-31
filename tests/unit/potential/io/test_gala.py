@@ -105,5 +105,5 @@ def test_offset_hernquist() -> None:
         [1.0, 2, 3] * u.kpc
     )
 
-    assert isinstance(gxpot.potential, gp.HernquistPotential)
+    assert isinstance(gxpot.original_potential, gp.HernquistPotential)
     assert gxpot.units._core_units == galactic._core_units

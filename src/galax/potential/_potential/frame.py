@@ -64,10 +64,10 @@ class PotentialFrame(AbstractPotentialBase):
     >>> op1
     GalileanSpatialTranslationOperator( translation=Cartesian3DVector( ... ) )
 
-    >>> framedpot1 = gp.PotentialFrame(potential=pot, operator=op1)
+    >>> framedpot1 = gp.PotentialFrame(original_potential=pot, operator=op1)
     >>> framedpot1
     PotentialFrame(
-      potential=TriaxialHernquistPotential( ... ),
+      original_potential=TriaxialHernquistPotential( ... ),
       operator=OperatorSequence(
         operators=( GalileanSpatialTranslationOperator( ... ), )
       )
@@ -91,7 +91,7 @@ class PotentialFrame(AbstractPotentialBase):
     >>> op2.translation.t.to_units("Myr")
     Quantity['time'](Array(3.26156366, dtype=float64), unit='Myr')
 
-    >>> framedpot2 = gp.PotentialFrame(potential=pot, operator=op2)
+    >>> framedpot2 = gp.PotentialFrame(original_potential=pot, operator=op2)
 
     We can see that the potential energy is the same as before, since we have
     been evaluating the potential at ``w1.t=t=0``:
@@ -113,7 +113,7 @@ class PotentialFrame(AbstractPotentialBase):
     >>> op3
     GalileanBoostOperator( velocity=CartesianDifferential3D( ... ) )
 
-    >>> framedpot3 = gp.PotentialFrame(potential=pot, operator=op3)
+    >>> framedpot3 = gp.PotentialFrame(original_potential=pot, operator=op3)
     >>> framedpot3.potential(w2)
     Quantity['specific energy'](Array(-1.37421204, dtype=float64), unit='kpc2 / Myr2')
 
@@ -128,7 +128,7 @@ class PotentialFrame(AbstractPotentialBase):
     >>> op4
     GalileanRotationOperator(rotation=f64[3,3])
 
-    >>> framedpot4 = gp.PotentialFrame(potential=pot, operator=op4)
+    >>> framedpot4 = gp.PotentialFrame(original_potential=pot, operator=op4)
     >>> framedpot4.potential(w1)
     Quantity['specific energy'](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
@@ -152,7 +152,7 @@ class PotentialFrame(AbstractPotentialBase):
       velocity=GalileanBoostOperator( ... )
     )
 
-    >>> framedpot5 = gp.PotentialFrame(potential=pot, operator=op5)
+    >>> framedpot5 = gp.PotentialFrame(original_potential=pot, operator=op5)
     >>> framedpot5.potential(w2)
     Quantity['specific energy'](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
@@ -160,7 +160,7 @@ class PotentialFrame(AbstractPotentialBase):
     will make a sequence that mimics the previous example:
 
     >>> op6 = op4 | op2 | op3
-    >>> framedpot6 = gp.PotentialFrame(potential=pot, operator=op6)
+    >>> framedpot6 = gp.PotentialFrame(original_potential=pot, operator=op6)
     >>> framedpot6.potential(w2)
     Quantity['specific energy'](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
@@ -174,7 +174,7 @@ class PotentialFrame(AbstractPotentialBase):
     ...     r_s=Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
 
     >>> op7 = gc.operators.ConstantRotationZOperator(Omega_z=Quantity(90, "deg/Gyr"))
-    >>> framedpot7 = gp.PotentialFrame(potential=pot2, operator=op7)
+    >>> framedpot7 = gp.PotentialFrame(original_potential=pot2, operator=op7)
 
     The potential energy at a given position will change with time:
 
@@ -184,7 +184,7 @@ class PotentialFrame(AbstractPotentialBase):
     Array(-2.23568166, dtype=float64)
     """  # noqa: E501
 
-    potential: AbstractPotentialBase
+    original_potential: AbstractPotentialBase
 
     operator: OperatorSequence = eqx.field(default=(), converter=OperatorSequence)
     """Transformation to reference frame of the potential.
@@ -196,12 +196,12 @@ class PotentialFrame(AbstractPotentialBase):
     @property
     def units(self) -> AbstractUnitSystem:
         """The unit system of the potential."""
-        return cast(AbstractUnitSystem, self.potential.units)
+        return cast(AbstractUnitSystem, self.original_potential.units)
 
     @property
     def constants(self) -> ImmutableDict[Quantity]:
         """The constants of the potential."""
-        return cast("ImmutableDict[Quantity]", self.potential.constants)
+        return cast("ImmutableDict[Quantity]", self.original_potential.constants)
 
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
@@ -228,7 +228,7 @@ class PotentialFrame(AbstractPotentialBase):
         # Transform the position, time.
         qp, tp = inv(q, t)
         # Evaluate the potential energy at the transformed position, time.
-        return self.potential._potential(qp, tp)  # noqa: SLF001
+        return self.original_potential._potential(qp, tp)  # noqa: SLF001
 
     # ruff: noqa: ERA001
     # def _gradient(

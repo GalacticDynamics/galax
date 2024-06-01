@@ -46,12 +46,10 @@ class TestTriaxialHernquistPotential(
 
     # ==========================================================================
 
-    def test_potential_energy(
-        self, pot: TriaxialHernquistPotential, x: gt.QVec3
-    ) -> None:
+    def test_potential(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(-0.61215074, pot.units["specific energy"])
         assert qnp.isclose(
-            pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:

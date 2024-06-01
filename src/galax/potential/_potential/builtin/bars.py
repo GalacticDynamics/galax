@@ -52,7 +52,7 @@ class BarPotential(AbstractPotential):
     @quaxify  # type: ignore[misc]
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _potential_energy(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.FloatQScalar:
+    def _potential(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.FloatQScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
         rotation_matrix = xp.asarray(
@@ -103,7 +103,7 @@ class LongMuraliBarPotential(AbstractPotential):
     alpha: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         m_tot = self.m_tot(t)

@@ -122,7 +122,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # @partial(jax.jit)
     # @vectorize_method(signature="(3),()->()")
     @abc.abstractmethod
-    def _potential_energy(
+    def _potential(
         self, q: gt.QVec3, t: gt.RealQScalar, /
     ) -> Shaped[Quantity["specific energy"], ""]:
         """Compute the potential energy at the given position(s).
@@ -130,7 +130,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         This method MUST be implemented by subclasses.
 
         It is recommended to both JIT and vectorize this function.
-        See ``AbstractPotentialBase.potential_energy`` for an example.
+        See ``AbstractPotentialBase.potential`` for an example.
 
         Parameters
         ----------
@@ -148,16 +148,16 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         """
         raise NotImplementedError
 
-    def potential_energy(
+    def potential(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
     ) -> Quantity["specific energy"]:  # TODO: shape hint
         """Compute the potential energy at the given position(s).
 
-        See :func:`~galax.potential.potential_energy` for details.
+        See :func:`~galax.potential.potential` for details.
         """
-        from .funcs import potential_energy
+        from .funcs import potential
 
-        return potential_energy(self, *args, **kwargs)
+        return potential(self, *args, **kwargs)
 
     @partial(jax.jit)
     def __call__(
@@ -179,9 +179,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         See Also
         --------
-        :meth:`galax.potential.AbstractPotentialBase.potential_energy`
+        :meth:`galax.potential.AbstractPotentialBase.potential`
         """
-        return self.potential_energy(q, t)
+        return self.potential(q, t)
 
     # ---------------------------------------
     # Gradient
@@ -191,7 +191,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def _gradient(self, q: gt.BatchQVec3, /, t: gt.RealQScalar) -> gt.BatchQVec3:
         """See ``gradient``."""
         grad_op = unxt.experimental.grad(
-            self._potential_energy, units=(self.units["length"], self.units["time"])
+            self._potential, units=(self.units["length"], self.units["time"])
         )
         return grad_op(q, t)
 
@@ -259,7 +259,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def _hessian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> QMatrix33:
         """See ``hessian``."""
         hess_op = unxt.experimental.hessian(
-            self._potential_energy, units=(self.units["length"], self.units["time"])
+            self._potential, units=(self.units["length"], self.units["time"])
         )
         return hess_op(q, t)
 

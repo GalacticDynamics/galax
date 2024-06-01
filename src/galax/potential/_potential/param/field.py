@@ -91,7 +91,7 @@ class ParameterField:
 
     >>> class KeplerPotential(gp.AbstractPotential):
     ...     mass: gp.ParameterField = gp.ParameterField(dimensions="mass")
-    ...     def _potential_energy(self, q, t):
+    ...     def _potential(self, q, t):
     ...         return -self.constants["G"] * self.mass(t) / xp.linalg.norm(q, axis=-1)
 
     The `mass` parameter is a `ParameterField` that has dimensions of mass.

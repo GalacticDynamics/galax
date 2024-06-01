@@ -23,7 +23,7 @@ else:
 parametrize_test_method_gala = pytest.mark.parametrize(
     ("method0", "method1", "atol"),
     [
-        ("potential_energy", "energy", 1e-8),
+        ("potential", "energy", 1e-8),
         ("gradient", "gradient", 1e-8),
         ("density", "density", 1e-8),
         ("hessian", "hessian", 1e-8),
@@ -105,5 +105,5 @@ def test_offset_hernquist() -> None:
         [1.0, 2, 3] * u.kpc
     )
 
-    assert isinstance(gxpot.potential, gp.HernquistPotential)
+    assert isinstance(gxpot.original_potential, gp.HernquistPotential)
     assert gxpot.units._core_units == galactic._core_units

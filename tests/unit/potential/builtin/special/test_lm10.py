@@ -50,10 +50,10 @@ class TestLM10Potential(AbstractCompositePotential_Test):
 
     # ==========================================================================
 
-    def test_potential_energy(self, pot: LM10Potential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: LM10Potential, x: gt.QVec3) -> None:
         expect = Quantity(-0.00242568, unit="kpc2 / Myr2")
         assert qnp.isclose(
-            pot.potential_energy(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: LM10Potential, x: gt.QVec3) -> None:
@@ -105,7 +105,7 @@ class TestLM10Potential(AbstractCompositePotential_Test):
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [
-            ("potential_energy", "energy", 1e-8),
+            ("potential", "energy", 1e-8),
             ("gradient", "gradient", 1e-8),
             # ("density", "density", 1e-8),  # TODO: get gala and galax to agree
             # ("hessian", "hessian", 1e-8),  # TODO: get gala and galax to agree

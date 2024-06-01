@@ -56,7 +56,7 @@ class NFWPotential(AbstractPotential):
     )
 
     @partial(jax.jit)
-    def _potential_energy(  # TODO: inputs w/ units
+    def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r"""Potential energy.
@@ -115,15 +115,15 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
 
     >>> q = Quantity([1, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")
-    >>> pot.potential_energy(q, t).decompose(pot.units)
+    >>> pot.potential(q, t).decompose(pot.units)
     Quantity['specific energy'](Array(-0.14620419, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = Quantity([0, 1, 0], "kpc")
-    >>> pot.potential_energy(q, t).decompose(pot.units)
+    >>> pot.potential(q, t).decompose(pot.units)
     Quantity['specific energy'](Array(-0.14593972, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = Quantity([0, 0, 1], "kpc")
-    >>> pot.potential_energy(q, t).decompose(pot.units)
+    >>> pot.potential(q, t).decompose(pot.units)
     Quantity['specific energy'](Array(-0.14570309, dtype=float64), unit='kpc2 / Myr2')
     """
 
@@ -170,7 +170,7 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
         )
 
     @partial(jax.jit)
-    def _potential_energy(  # TODO: inputs w/ units
+    def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         # https://github.com/adrn/gala/blob/2067009de41518a71c674d0252bc74a7b2d78a36/gala/potential/potential/builtin/builtin_potentials.c#L1472
@@ -326,7 +326,7 @@ class TriaxialNFWPotential(AbstractPotential):
         )
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self,
         q: gt.BatchQVec3,
         t: gt.BatchableRealQScalar,
@@ -478,7 +478,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
         return (r_a + r) * r_e / (r_a + r_e)
 
     @partial(jax.jit)
-    def _potential_energy(
+    def _potential(
         self: "Vogelsberger08TriaxialNFWPotential", q: gt.QVec3, t: gt.RealQScalar, /
     ) -> gt.FloatQScalar:
         r = self._r_tilde(q, t)

@@ -491,7 +491,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> w.potential_energy(pot)
         Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """
-        return potential.potential_energy(self.q, t=self.t)
+        return potential.potential(self.q, t=self.t)
 
     @partial(jax.jit)
     def total_energy(self, potential: "AbstractPotentialBase") -> gt.BatchFloatQScalar:

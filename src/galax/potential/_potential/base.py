@@ -161,17 +161,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return potential(self, *args, **kwargs)
 
     @partial(jax.jit)
-    def __call__(
-        self, q: gt.LengthBatchVec3, /, t: gt.BatchableRealQScalar
-    ) -> Float[Quantity["specific energy"], "*batch"]:
+    def __call__(self, *args: Any) -> Float[Quantity["specific energy"], "*batch"]:
         """Compute the potential energy at the given position(s).
 
         Parameters
         ----------
-        q : Quantity[float, (*batch, 3), 'length']
-            The position to compute the value of the potential.
-        t : Array[float | int, *batch] | float | int
-            The time at which to compute the value of the potential.
+        *args : Any
+            Arguments to pass to the potential method.
+            See :func:`~galax.potential.potential`.
 
         Returns
         -------
@@ -180,9 +177,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         See Also
         --------
+        :func:`galax.potential.potential`
         :meth:`galax.potential.AbstractPotentialBase.potential`
         """
-        return self.potential(q, t)
+        return self.potential(*args)
 
     # ---------------------------------------
     # Gradient

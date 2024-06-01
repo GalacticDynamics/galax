@@ -51,7 +51,9 @@ __all__ = [
     "acceleration",
     "tidal_tensor",
     # param
+    "AbstractParametersAttribute",
     "ParametersAttribute",
+    "CompositeParametersAttribute",
     "ParameterCallable",
     "AbstractParameter",
     "ConstantParameter",
@@ -107,6 +109,8 @@ from ._potential.funcs import (
 )
 from ._potential.param import (
     AbstractParameter,
+    AbstractParametersAttribute,
+    CompositeParametersAttribute,
     ConstantParameter,
     LinearParameter,
     ParameterCallable,

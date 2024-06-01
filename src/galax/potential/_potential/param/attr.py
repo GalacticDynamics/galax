@@ -81,10 +81,6 @@ class ParametersAttribute(AbstractParametersAttribute):
         # Called from the instance
         return MappingProxyType({n: getattr(instance, n) for n in self.parameters})
 
-    def __set__(self, instance: Any, _: Any) -> NoReturn:
-        msg = f"cannot set {self._name!r} of {instance!r}."
-        raise AttributeError(msg)
-
 
 @final
 @dataclass(frozen=True, slots=True)
@@ -135,7 +131,3 @@ class CompositeParametersAttribute(AbstractParametersAttribute):
             return self.parameters
         # Called from the instance
         return MappingProxyType({k: p.parameters for k, p in instance.items()})
-
-    def __set__(self, instance: Any, _: Any) -> NoReturn:
-        msg = f"cannot set {self._name!r} of {instance!r}."
-        raise AttributeError(msg)

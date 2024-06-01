@@ -1,7 +1,7 @@
 __all__ = ["AbstractPotentialBase"]
 
 import abc
-from dataclasses import KW_ONLY, fields
+from dataclasses import KW_ONLY, fields, replace
 from functools import partial
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, cast
@@ -22,7 +22,7 @@ from unxt import AbstractUnitSystem, Quantity
 import galax.typing as gt
 from galax.coordinates import PhaseSpacePosition
 from galax.potential._potential.param.attr import ParametersAttribute
-from galax.potential._potential.param.utils import all_parameters
+from galax.potential._potential.param.utils import all_parameters, all_vars
 from galax.utils._collections import ImmutableDict
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
@@ -75,11 +75,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""
         # Replace the ``parameters`` attribute with a mapping of the values
-        type(cls).__setattr__(
-            cls,
-            "parameters",
-            ParametersAttribute(MappingProxyType(all_parameters(cls))),
+        paramattr = replace(
+            all_vars(cls)["parameters"],
+            parameters=MappingProxyType(all_parameters(cls)),
         )
+        paramattr.__set_name__(cls, "parameters")
+        type(cls).__setattr__(cls, "parameters", paramattr)
 
     ###########################################################################
     # Parsing

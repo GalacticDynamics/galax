@@ -4,7 +4,8 @@ __all__ = ["AbstractCompositePotential", "CompositePotential"]
 import uuid
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, TypeVar, final
+from types import MappingProxyType
+from typing import Any, ClassVar, TypeVar, final
 
 import equinox as eqx
 import jax
@@ -14,6 +15,7 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
+from .param.attr import CompositeParametersAttribute
 from galax.utils import ImmutableDict
 from galax.utils._misc import zeroth
 
@@ -108,6 +110,8 @@ class AbstractCompositePotential(
 @final
 class CompositePotential(AbstractCompositePotential):
     """Composite Potential."""
+
+    parameters: ClassVar = CompositeParametersAttribute(MappingProxyType({}))
 
     _data: dict[str, AbstractPotentialBase]
     _: KW_ONLY

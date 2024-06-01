@@ -12,6 +12,13 @@ if TYPE_CHECKING:
     from galax.potential._potential.param.field import ParameterField
 
 
+def all_vars(obj: object | type, /) -> dict[str, Any]:
+    """Get all vars."""
+    # Get all the class variables
+    cls = obj if inspect.isclass(obj) else type(obj)
+    return functools.reduce(operator.__or__, map(vars, cls.mro()[::-1]))
+
+
 def all_parameters(obj: object | type, /) -> dict[str, "ParameterField"]:
     """Get all fields of a dataclass, including those not-yet finalized.
 
@@ -29,9 +36,7 @@ def all_parameters(obj: object | type, /) -> dict[str, "ParameterField"]:
     from .field import ParameterField
 
     # Get all the class variables
-    cls = obj if inspect.isclass(obj) else type(obj)
-    all_cls_vars: dict[str, Any]
-    all_cls_vars = functools.reduce(operator.__or__, map(vars, cls.mro()[::-1]))
+    all_cls_vars = all_vars(obj)
 
     # Get all the fields
     return {

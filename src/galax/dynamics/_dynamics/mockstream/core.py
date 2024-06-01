@@ -112,7 +112,7 @@ class MockStream(AbstractCompositePhaseSpacePosition):
     def q(self) -> cx.Abstract3DVector:
         """Positions."""
         # TODO: interleave by time
-        # TODO: get AbstractVector to work with `stack` directly
+        # TODO: get AbstractPosition to work with `stack` directly
         return jtu.tree_map(
             lambda *x: interleave_concat(x, axis=-1), *(x.q for x in self.values())
         )
@@ -120,7 +120,7 @@ class MockStream(AbstractCompositePhaseSpacePosition):
     @property
     def p(self) -> cx.Abstract3DVector:
         """Conjugate momenta."""
-        # TODO: get AbstractVector to work with `stack` directly
+        # TODO: get AbstractPosition to work with `stack` directly
         return jtu.tree_map(
             lambda *x: xp.concat(x, axis=-1)[..., self._time_sorter],
             *(x.p for x in self.values()),

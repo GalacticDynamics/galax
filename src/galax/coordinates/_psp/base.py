@@ -307,17 +307,17 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
     def represent_as(
         self,
-        position_cls: type[cx.AbstractVectorBase],
+        position_cls: type[cx.AbstractPosition],
         /,
-        differential_cls: type[cx.AbstractVectorDifferential] | None = None,
+        differential_cls: type[cx.AbstractVelocity] | None = None,
     ) -> "Self":
         """Return with the components transformed.
 
         Parameters
         ----------
-        position_cls : type[:class:`~vector.AbstractVectorBase`]
+        position_cls : type[:class:`~vector.AbstractPosition`]
             The target position class.
-        differential_cls : type[:class:`~vector.AbstractVectorDifferential`], optional
+        differential_cls : type[:class:`~vector.AbstractVelocity`], optional
             The target differential class. If `None` (default), the differential
             class of the target position class is used.
 

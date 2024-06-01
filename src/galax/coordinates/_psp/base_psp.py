@@ -68,9 +68,9 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 @dispatch  # type: ignore[misc]
 def represent_as(
     psp: AbstractPhaseSpacePosition,
-    position_cls: type[cx.AbstractVectorBase],
+    position_cls: type[cx.AbstractPosition],
     /,
-    differential: type[cx.AbstractVectorDifferential] | None = None,
+    differential: type[cx.AbstractVelocity] | None = None,
 ) -> AbstractPhaseSpacePosition:
     """Return with the components transformed.
 
@@ -78,9 +78,9 @@ def represent_as(
     ----------
     psp : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
         The phase-space position.
-    position_cls : type[:class:`~vector.AbstractVectorBase`]
+    position_cls : type[:class:`~vector.AbstractPosition`]
         The target position class.
-    differential : type[:class:`~vector.AbstractVectorDifferential`], optional
+    differential : type[:class:`~vector.AbstractVelocity`], optional
         The target differential class. If `None` (default), the differential
         class of the target position class is used.
 

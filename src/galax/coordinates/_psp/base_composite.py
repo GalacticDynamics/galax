@@ -56,7 +56,7 @@ class AbstractCompositePhaseSpacePosition(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> def stack(vs: list[cx.AbstractVectorBase]) -> cx.AbstractVectorBase:
+    >>> def stack(vs: list[cx.AbstractPosition]) -> cx.AbstractPosition:
     ...    comps = {k: xp.stack([getattr(v, k) for v in vs], axis=-1)
     ...             for k in vs[0].components}
     ...    return replace(vs[0], **comps)
@@ -168,9 +168,9 @@ class AbstractCompositePhaseSpacePosition(
 @dispatch  # type: ignore[misc]
 def represent_as(
     psp: AbstractCompositePhaseSpacePosition,
-    position_cls: type[cx.AbstractVectorBase],
+    position_cls: type[cx.AbstractPosition],
     /,
-    differential: type[cx.AbstractVectorDifferential] | None = None,
+    differential: type[cx.AbstractVelocity] | None = None,
 ) -> AbstractCompositePhaseSpacePosition:
     """Return with the components transformed.
 
@@ -178,9 +178,9 @@ def represent_as(
     ----------
     psp : :class:`~galax.coordinates.AbstractCompositePhaseSpacePosition`
         The phase-space position.
-    position_cls : type[:class:`~vector.AbstractVectorBase`]
+    position_cls : type[:class:`~vector.AbstractPosition`]
         The target position class.
-    differential : type[:class:`~vector.AbstractVectorDifferential`], optional
+    differential : type[:class:`~vector.AbstractVelocity`], optional
         The target differential class. If `None` (default), the differential
         class of the target position class is used.
 

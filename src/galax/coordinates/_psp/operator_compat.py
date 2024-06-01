@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from plum import convert
 from quax import quaxify
 
-from coordinax import CartesianDifferential3D
+from coordinax import CartesianVelocity3D
 from coordinax.operators import (
     AbstractCompositeOperator,
     AbstractOperator,
@@ -54,7 +54,7 @@ def call(
 
     >>> op = cx.operators.GalileanSpatialTranslationOperator(Quantity([1, 2, 3], "kpc"))
     >>> op
-    GalileanSpatialTranslationOperator( translation=Cartesian3DVector( ... ) )
+    GalileanSpatialTranslationOperator( translation=CartesianPosition3D( ... ) )
 
     We can then apply the operator to a position:
 
@@ -63,16 +63,16 @@ def call(
     ...                             t=Quantity(0.0, "Gyr"))
     >>> pos
     PhaseSpacePosition(
-        q=Cartesian3DVector( ... ),
-        p=CartesianDifferential3D( ... ),
+        q=CartesianPosition3D( ... ),
+        p=CartesianVelocity3D( ... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
     )
 
     >>> newpos = op(pos)
     >>> newpos
     PhaseSpacePosition(
-        q=Cartesian3DVector( ... ),
-        p=CartesianDifferential3D( ... ),
+        q=CartesianPosition3D( ... ),
+        p=CartesianVelocity3D( ... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
     )
 
@@ -114,7 +114,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> shift = cx.Cartesian3DVector.constructor(Quantity([1, 1, 1], "kpc"))
+    >>> shift = cx.CartesianPosition3D.constructor(Quantity([1, 1, 1], "kpc"))
     >>> op = cx.operators.GalileanSpatialTranslationOperator(shift)
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
@@ -143,7 +143,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(CartesianDifferential3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.represent_as(CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p)
 
@@ -199,7 +199,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(CartesianDifferential3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.represent_as(CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -252,7 +252,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(CartesianDifferential3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.represent_as(CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -302,9 +302,9 @@ def call(
     # coordinates at the original position. Then the rotation is applied to
     # the momentum. The momentum is then transformed back to the original
     # representation, but at the rotated position.
-    pv = convert(psp.p.represent_as(CartesianDifferential3D, psp.q), Quantity)
+    pv = convert(psp.p.represent_as(CartesianVelocity3D, psp.q), Quantity)
     pv = vec_matmul(self.rotation, pv)
-    p = CartesianDifferential3D.constructor(pv).represent_as(type(psp.p), q)
+    p = CartesianVelocity3D.constructor(pv).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -335,8 +335,8 @@ def call(
     ...                             t=Quantity(0, "Gyr"))
 
     >>> op(psp)
-    PhaseSpacePosition( q=Cartesian3DVector( ... ),
-                        p=CartesianDifferential3D( ... ),
+    PhaseSpacePosition( q=CartesianPosition3D( ... ),
+                        p=CartesianVelocity3D( ... ),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
     """
     return x

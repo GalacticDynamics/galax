@@ -51,8 +51,8 @@ def constructor(
 
     >>> gc.PhaseSpacePosition.constructor(vec, t=u.Quantity(0, "Myr"))
     PhaseSpacePosition(
-        q=LonLatSphericalVector( lon=..., lat=..., distance=... ),
-        p=LonCosLatSphericalDifferential( d_lon_coslat=..., d_lat=..., d_distance=... ),
+        q=LonLatSphericalPosition( lon=..., lat=..., distance=... ),
+        p=LonCosLatSphericalVelocity( d_lon_coslat=..., d_lat=..., d_distance=... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Myr"))
     )
 
@@ -103,8 +103,8 @@ def constructor(
 
     >>> gc.PhaseSpacePosition.constructor(vec, dif, t=u.Quantity(0, "Myr"))
     PhaseSpacePosition(
-        q=LonLatSphericalVector( lon=..., lat=..., distance=... ),
-        p=LonCosLatSphericalDifferential( d_lon_coslat=..., d_lat=..., d_distance=... ),
+        q=LonLatSphericalPosition( lon=..., lat=..., distance=... ),
+        p=LonCosLatSphericalVelocity( d_lon_coslat=..., d_lat=..., d_distance=... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Myr"))
     )
 

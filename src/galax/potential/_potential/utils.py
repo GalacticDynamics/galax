@@ -68,9 +68,9 @@ def _convert_from_psp(
     return _convert_from_3dvec(x.q)
 
 
-@parse_to_quantity.register(cx.Abstract3DVector)
-def _convert_from_3dvec(x: cx.Abstract3DVector, /, **_: Any) -> gt.LengthBatchVec3:
-    cart = x.represent_as(cx.Cartesian3DVector)
+@parse_to_quantity.register(cx.AbstractPosition2D)
+def _convert_from_3dvec(x: cx.AbstractPosition2D, /, **_: Any) -> gt.LengthBatchVec3:
+    cart = x.represent_as(cx.CartesianPosition3D)
     qarr: Quantity = convert(cart, Quantity)
     return qarr
 
@@ -93,4 +93,4 @@ def _convert_from_astropy_quantity(value: APYQuantity, /, **_: Any) -> Array:
 
 @parse_to_quantity.register(BaseRepresentation)
 def _convert_from_astropy_baserep(value: BaseRepresentation, /, **_: Any) -> Array:
-    return _convert_from_3dvec(convert(value, cx.Cartesian3DVector))
+    return _convert_from_3dvec(convert(value, cx.CartesianPosition3D))

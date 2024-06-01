@@ -39,7 +39,7 @@ HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape 
 
 # Position and time input options
 PositionalLike: TypeAlias = (
-    cx.Abstract3DVector | gt.LengthBroadBatchVec3 | Shaped[Array, "*#batch 3"]
+    cx.AbstractPosition2D | gt.LengthBroadBatchVec3 | Shaped[Array, "*#batch 3"]
 )
 TimeOptions: TypeAlias = (
     gt.BatchRealQScalar

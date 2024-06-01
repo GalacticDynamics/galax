@@ -47,10 +47,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     :math:`t\in\mathbb{R}^1`.
     """
 
-    q: eqx.AbstractVar[cx.Abstract3DVector]
+    q: eqx.AbstractVar[cx.AbstractPosition2D]
     """Positions."""
 
-    p: eqx.AbstractVar[cx.Abstract3DVectorDifferential]
+    p: eqx.AbstractVar[cx.AbstractVelocity2D]
     """Conjugate momenta at positions ``q``."""
 
     t: eqx.AbstractVar[gt.BroadBatchFloatQScalar]
@@ -92,8 +92,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...        "t": Quantity(0, "Gyr")}
         >>> PhaseSpacePosition.constructor(obj)
         PhaseSpacePosition(
-            q=Cartesian3DVector( ... ),
-            p=CartesianDifferential3D( ... ),
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
             t=Quantity[...](value=f64[], unit=Unit("Gyr"))
         )
 
@@ -114,9 +114,9 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                           t=Quantity(-1, "Gyr"))
         >>> print(w)
         PhaseSpacePosition(
-            q=<Cartesian3DVector (x[kpc], y[kpc], z[kpc])
+            q=<CartesianPosition3D (x[kpc], y[kpc], z[kpc])
                 [1. 2. 3.]>,
-            p=<CartesianDifferential3D (d_x[km / s], d_y[km / s], d_z[km / s])
+            p=<CartesianVelocity3D (d_x[km / s], d_y[km / s], d_z[km / s])
                 [4. 5. 6.]>,
             t=Quantity['time'](Array(-1., dtype=float64), unit='Gyr'))
         """
@@ -149,14 +149,14 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position:
 
-        >>> q = Cartesian3DVector(x=Quantity(1, "kpc"), y=Quantity(2, "kpc"),
+        >>> q = CartesianPosition3D(x=Quantity(1, "kpc"), y=Quantity(2, "kpc"),
         ...                       z=Quantity(3, "kpc"))
-        >>> p = CartesianDifferential3D(d_x=Quantity(4, "km/s"),
+        >>> p = CartesianVelocity3D(d_x=Quantity(4, "km/s"),
         ...                             d_y=Quantity(5, "km/s"),
         ...                             d_z=Quantity(6, "km/s"))
         >>> t = Quantity(0, "Gyr")
@@ -169,7 +169,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         For a batch of phase-space positions, the shape will be non-empty:
 
-        >>> q = Cartesian3DVector(x=Quantity([1, 4], "kpc"), y=Quantity(2, "kpc"),
+        >>> q = CartesianPosition3D(x=Quantity([1, 4], "kpc"), y=Quantity(2, "kpc"),
         ...                       z=Quantity(3, "kpc"))
         >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
         >>> pos.shape
@@ -203,14 +203,14 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position:
 
-        >>> q = Cartesian3DVector(x=Quantity([1], "kpc"), y=Quantity(2, "kpc"),
+        >>> q = CartesianPosition3D(x=Quantity([1], "kpc"), y=Quantity(2, "kpc"),
         ...                       z=Quantity(3, "kpc"))
-        >>> p = CartesianDifferential3D(d_x=Quantity(4, "km/s"),
+        >>> p = CartesianVelocity3D(d_x=Quantity(4, "km/s"),
         ...                             d_y=Quantity(5, "km/s"),
         ...                             d_z=Quantity(6, "km/s"))
         >>> t = Quantity(0, "Gyr")
@@ -260,7 +260,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(cx.Cartesian3DVector).to_units(usys)
+        cart = self.represent_as(cx.CartesianPosition3D).to_units(usys)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
         return xp.concat((q.value, p.value), axis=-1)
@@ -299,7 +299,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(cx.Cartesian3DVector).to_units(usys)
+        cart = self.represent_as(cx.CartesianPosition3D).to_units(usys)
         q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
         p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
         t = xp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
@@ -344,19 +344,19 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can also convert it to a different representation:
 
-        >>> psp.represent_as(cx.CylindricalVector)
-        PhaseSpacePosition( q=CylindricalVector(...),
-                            p=CylindricalDifferential(...),
+        >>> psp.represent_as(cx.CylindricalPosition)
+        PhaseSpacePosition( q=CylindricalPosition(...),
+                            p=CylindricalVelocity(...),
                             t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
         We can also convert it to a different representation with a different
         differential class:
 
-        >>> psp.represent_as(cx.LonLatSphericalVector, cx.LonCosLatSphericalDifferential)
-        PhaseSpacePosition( q=LonLatSphericalVector(...),
-                            p=LonCosLatSphericalDifferential(...),
+        >>> psp.represent_as(cx.LonLatSphericalPosition, cx.LonCosLatSphericalVelocity)
+        PhaseSpacePosition( q=LonLatSphericalPosition(...),
+                            p=LonCosLatSphericalVelocity(...),
                             t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
-        """  # noqa: E501
+        """
         return cast("Self", cx.represent_as(self, position_cls, differential_cls))
 
     @abstractmethod
@@ -388,10 +388,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                          t=Quantity(0, "Gyr"))
         >>> psp.to_units("solarsystem")
         PhaseSpacePosition(
-            q=Cartesian3DVector(
+            q=CartesianPosition3D(
                 x=Quantity[...](value=f64[], unit=Unit("AU")),
                 ... ),
-            p=CartesianDifferential3D(
+            p=CartesianVelocity3D(
                 d_x=Quantity[...]( value=f64[], unit=Unit("AU / yr") ),
                 ... ),
             t=Quantity[...](value=f64[], unit=Unit("yr"))
@@ -421,16 +421,16 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can construct a phase-space position:
 
-        >>> q = Cartesian3DVector(
+        >>> q = CartesianPosition3D(
         ...     x=Quantity(1, "kpc"),
         ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=Quantity(2, "kpc"))
-        >>> p = CartesianDifferential3D(
+        >>> p = CartesianVelocity3D(
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
@@ -469,17 +469,17 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
         >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.potential import MilkyWayPotential
 
         We can construct a phase-space position:
 
-        >>> q = Cartesian3DVector(
+        >>> q = CartesianPosition3D(
         ...     x=Quantity(1, "kpc"),
         ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=Quantity(2, "kpc"))
-        >>> p = CartesianDifferential3D(
+        >>> p = CartesianVelocity3D(
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
@@ -518,17 +518,17 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
+        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
         >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.potential import MilkyWayPotential
 
         We can construct a phase-space position:
 
-        >>> q = Cartesian3DVector(
+        >>> q = CartesianPosition3D(
         ...     x=Quantity(1, "kpc"),
         ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=Quantity(2, "kpc"))
-        >>> p = CartesianDifferential3D(
+        >>> p = CartesianVelocity3D(
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
@@ -577,7 +577,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         # TODO: keep as a vector.
         #       https://github.com/GalacticDynamics/vector/issues/27
-        cart = self.represent_as(cx.Cartesian3DVector)
+        cart = self.represent_as(cx.CartesianPosition3D)
         q = convert(cart.q, Quantity)
         p = convert(cart.p, Quantity)
         return xp.linalg.cross(q, p)

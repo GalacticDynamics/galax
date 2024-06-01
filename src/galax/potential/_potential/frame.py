@@ -62,7 +62,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     >>> op1 = cxo.GalileanSpatialTranslationOperator(Quantity([3, 0, 0], "kpc"))
     >>> op1
-    GalileanSpatialTranslationOperator( translation=Cartesian3DVector( ... ) )
+    GalileanSpatialTranslationOperator( translation=CartesianPosition3D( ... ) )
 
     >>> framedpot1 = gp.PotentialFrame(original_potential=pot, operator=op1)
     >>> framedpot1
@@ -111,7 +111,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     >>> op3 = cxo.GalileanBoostOperator(Quantity([0, 200, 0], "km/s"))
     >>> op3
-    GalileanBoostOperator( velocity=CartesianDifferential3D( ... ) )
+    GalileanBoostOperator( velocity=CartesianVelocity3D( ... ) )
 
     >>> framedpot3 = gp.PotentialFrame(original_potential=pot, operator=op3)
     >>> framedpot3.potential(w2)

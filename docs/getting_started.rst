@@ -130,7 +130,7 @@ phase-space positions at times::
 
     >>> orbit
     Orbit(
-      q=Cartesian3DVector(
+      q=CartesianPosition3D(
         x=Quantity[PhysicalType('length')](value=f64[2000], unit=Unit("kpc")),
         ...
 

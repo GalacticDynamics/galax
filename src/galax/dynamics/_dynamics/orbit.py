@@ -6,7 +6,7 @@ from typing import final
 
 import equinox as eqx
 
-from coordinax import Abstract3DVector, Abstract3DVectorDifferential
+from coordinax import AbstractPosition2D, AbstractVelocity2D
 from unxt import Quantity
 
 import galax.potential as gp
@@ -25,10 +25,10 @@ class Orbit(AbstractOrbit):
     in a given potential.
     """
 
-    q: Abstract3DVector = eqx.field(converter=_q_converter)
+    q: AbstractPosition2D = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
-    p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
+    p: AbstractVelocity2D = eqx.field(converter=_p_converter)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized
@@ -46,10 +46,10 @@ class Orbit(AbstractOrbit):
 class InterpolatedOrbit(AbstractOrbit):
     """Orbit interpolated by the times."""
 
-    q: Abstract3DVector = eqx.field(converter=_q_converter)
+    q: AbstractPosition2D = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
-    p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
+    p: AbstractVelocity2D = eqx.field(converter=_p_converter)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized

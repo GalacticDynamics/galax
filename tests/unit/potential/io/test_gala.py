@@ -53,8 +53,8 @@ class GalaIOMixin:
         rpot = gp.io.gala_to_galax(galax_to_gala(pot))
 
         # quick test that the potential energies are the same
-        got = rpot(x, t=0)
-        exp = pot(x, t=0)
+        got = rpot(x, 0)
+        exp = pot(x, 0)
         assert qnp.allclose(got, exp, atol=Quantity(1e-14, exp.unit))
 
         # TODO: add more robust tests

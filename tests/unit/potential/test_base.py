@@ -134,7 +134,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
 
     def test_call(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.__call__` method."""
-        assert xp.equal(pot(x, t=0), pot.potential(x, t=0))
+        assert xp.equal(pot(x, 0), pot.potential(x, 0))
 
     @abstractmethod
     def test_gradient(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:

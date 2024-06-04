@@ -147,13 +147,13 @@ def getitem_vec1time_index(index: Any, t: gt.FloatQAnyShape) -> Any:
 
 
 @singledispatch
-def _q_converter(x: Any) -> cx.AbstractPosition2D:
+def _q_converter(x: Any) -> cx.AbstractPosition3D:
     """Convert input to a 3D vector."""
     return cx.CartesianPosition3D.constructor(x)
 
 
 @_q_converter.register
-def _q_converter_vec(x: cx.AbstractPosition2D) -> cx.AbstractPosition2D:
+def _q_converter_vec(x: cx.AbstractPosition3D) -> cx.AbstractPosition3D:
     return x
 
 
@@ -167,7 +167,7 @@ _apyc_to_cx_vecs = {
 
 
 @_q_converter.register
-def _q_converter_apy(x: apyc.BaseRepresentation) -> cx.AbstractPosition2D:
+def _q_converter_apy(x: apyc.BaseRepresentation) -> cx.AbstractPosition3D:
     return _apyc_to_cx_vecs[type(x)].constructor(x)
 
 
@@ -175,15 +175,15 @@ def _q_converter_apy(x: apyc.BaseRepresentation) -> cx.AbstractPosition2D:
 
 
 @singledispatch
-def _p_converter(x: Any) -> cx.AbstractVelocity2D:
+def _p_converter(x: Any) -> cx.AbstractVelocity3D:
     """Convert input to a 3D vector differential."""
     return cx.CartesianVelocity3D.constructor(x)
 
 
 @_p_converter.register
 def _p_converter_vec(
-    x: cx.AbstractVelocity2D,
-) -> cx.AbstractVelocity2D:
+    x: cx.AbstractVelocity3D,
+) -> cx.AbstractVelocity3D:
     return x
 
 
@@ -198,5 +198,5 @@ _apyc_to_cx_difs = {
 
 
 @_p_converter.register
-def _p_converter_apy(x: apyc.BaseDifferential) -> cx.AbstractVelocity2D:
+def _p_converter_apy(x: apyc.BaseDifferential) -> cx.AbstractVelocity3D:
     return _apyc_to_cx_difs[type(x)].constructor(x)

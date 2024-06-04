@@ -6,7 +6,7 @@ from typing import final
 
 import equinox as eqx
 
-from coordinax import AbstractPosition2D, AbstractVelocity2D
+from coordinax import AbstractPosition3D, AbstractVelocity2D
 from unxt import Quantity
 
 import galax.potential as gp
@@ -25,7 +25,7 @@ class Orbit(AbstractOrbit):
     in a given potential.
     """
 
-    q: AbstractPosition2D = eqx.field(converter=_q_converter)
+    q: AbstractPosition3D = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
     p: AbstractVelocity2D = eqx.field(converter=_p_converter)
@@ -46,7 +46,7 @@ class Orbit(AbstractOrbit):
 class InterpolatedOrbit(AbstractOrbit):
     """Orbit interpolated by the times."""
 
-    q: AbstractPosition2D = eqx.field(converter=_q_converter)
+    q: AbstractPosition3D = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
     p: AbstractVelocity2D = eqx.field(converter=_p_converter)

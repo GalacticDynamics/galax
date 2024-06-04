@@ -63,11 +63,11 @@ class AbstractCompositePhaseSpacePosition(
 
     >>> class CompositePhaseSpacePosition(gc.AbstractCompositePhaseSpacePosition):
     ...     @property
-    ...     def q(self) -> cx.AbstractPosition2D:
+    ...     def q(self) -> cx.AbstractPosition3D:
     ...         return stack([psp.q for psp in self.values()])
     ...
     ...     @property
-    ...     def p(self) -> cx.AbstractPosition2D:
+    ...     def p(self) -> cx.AbstractPosition3D:
     ...         return stack([psp.p for psp in self.values()])
     ...
     ...     @property
@@ -111,12 +111,12 @@ class AbstractCompositePhaseSpacePosition(
 
     @property
     @abstractmethod
-    def q(self) -> cx.AbstractPosition2D:
+    def q(self) -> cx.AbstractPosition3D:
         """Positions."""
 
     @property
     @abstractmethod
-    def p(self) -> cx.AbstractPosition2D:
+    def p(self) -> cx.AbstractPosition3D:
         """Conjugate momenta."""
 
     @property

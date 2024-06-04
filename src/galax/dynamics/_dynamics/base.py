@@ -10,7 +10,7 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 
-from coordinax import AbstractPosition2D, AbstractVelocity2D
+from coordinax import AbstractPosition3D, AbstractVelocity2D
 from unxt import Quantity
 
 import galax.coordinates as gc
@@ -37,7 +37,7 @@ class AbstractOrbit(gc.AbstractPhaseSpacePosition):
     in a given potential.
     """
 
-    q: AbstractPosition2D = eqx.field(converter=_q_converter)
+    q: AbstractPosition3D = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
     p: AbstractVelocity2D = eqx.field(converter=_p_converter)

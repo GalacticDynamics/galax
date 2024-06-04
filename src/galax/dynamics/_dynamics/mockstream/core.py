@@ -12,7 +12,7 @@ from jaxtyping import Array, Shaped
 
 import coordinax as cx
 import quaxed.array_api as xp
-from coordinax import AbstractPosition2D, AbstractVelocity2D
+from coordinax import AbstractPosition3D, AbstractVelocity2D
 from unxt import Quantity
 
 import galax.typing as gt
@@ -49,7 +49,7 @@ class MockStreamArm(AbstractPhaseSpacePosition):
         Release time of the stream particles [Myr].
     """
 
-    q: AbstractPosition2D = eqx.field(converter=_q_converter)
+    q: AbstractPosition3D = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
     p: AbstractVelocity2D = eqx.field(converter=_p_converter)
@@ -109,7 +109,7 @@ class MockStream(AbstractCompositePhaseSpacePosition):
         self._time_sorter = xp.argsort(ts)
 
     @property
-    def q(self) -> cx.AbstractPosition2D:
+    def q(self) -> cx.AbstractPosition3D:
         """Positions."""
         # TODO: interleave by time
         # TODO: get AbstractPosition to work with `stack` directly
@@ -118,7 +118,7 @@ class MockStream(AbstractCompositePhaseSpacePosition):
         )
 
     @property
-    def p(self) -> cx.AbstractPosition2D:
+    def p(self) -> cx.AbstractPosition3D:
         """Conjugate momenta."""
         # TODO: get AbstractPosition to work with `stack` directly
         return jtu.tree_map(

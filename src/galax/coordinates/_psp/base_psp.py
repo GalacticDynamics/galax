@@ -28,7 +28,7 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 
     Parameters
     ----------
-    q : :class:`~vector.AbstractPosition2D`
+    q : :class:`~vector.AbstractPosition3D`
         Positions.
     p : :class:`~vector.AbstractVelocity2D`
         Conjugate momenta at positions ``q``.

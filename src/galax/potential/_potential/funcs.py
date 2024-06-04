@@ -35,7 +35,7 @@ HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape 
 
 # Position and time input options
 PositionalLike: TypeAlias = (
-    cx.AbstractPosition2D
+    cx.AbstractPosition3D
     | gt.LengthBroadBatchVec3
     | Shaped[Quantity, "*#batch 3"]
     | Shaped[Array, "*#batch 3"]
@@ -158,7 +158,7 @@ def potential(
     >>> pot.potential(q, t)
     Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -222,7 +222,7 @@ def potential(
     supports Astropy objects, like
     :class:`astropy.coordinates.BaseRepresentation` and
     :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
-    counterparts :class:`~vector.AbstractPosition2D` and
+    counterparts :class:`~vector.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
     Examples
@@ -381,7 +381,7 @@ def gradient(
 
     Parameters
     ----------
-    q : :class:`vector.AbstractPosition2D` | (Quantity|Array)[float, (*batch, 3)]
+    q : :class:`vector.AbstractPosition3D` | (Quantity|Array)[float, (*batch, 3)]
         The position to compute the gradient of the potential.  If unitless
         (i.e. is an `~jax.Array`), it is assumed to be in the unit system of
         the potential.
@@ -414,7 +414,7 @@ def gradient(
                                     [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                 unit='kpc / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -482,7 +482,7 @@ def gradient(
                                     [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                 unit='kpc / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -519,7 +519,7 @@ def gradient(
     supports Astropy objects, like
     :class:`astropy.coordinates.BaseRepresentation` and
     :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
-    counterparts :class:`~vector.AbstractPosition2D` and
+    counterparts :class:`~vector.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
     Parameters
@@ -558,7 +558,7 @@ def gradient(
                                     [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
                                 unit='kpc / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -692,7 +692,7 @@ def laplacian(
 
     Parameters
     ----------
-    q : :class:`vector.AbstractPosition2D` | (Quantity|Array)[float, (*batch, 3)]
+    q : :class:`vector.AbstractPosition3D` | (Quantity|Array)[float, (*batch, 3)]
         The position to compute the laplacian of the potential.  If unitless
         (i.e. is an `~jax.Array`), it is assumed to be in the unit system of
         the potential.
@@ -723,7 +723,7 @@ def laplacian(
     >>> pot.laplacian(q, t)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -785,7 +785,7 @@ def laplacian(
     >>> pot.laplacian(q, t)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -819,7 +819,7 @@ def laplacian(
     supports Astropy objects, like
     :class:`astropy.coordinates.BaseRepresentation` and
     :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
-    counterparts :class:`~vector.AbstractPosition2D` and
+    counterparts :class:`~vector.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
     Parameters
@@ -855,7 +855,7 @@ def laplacian(
     >>> pot.laplacian(q, t)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -1016,7 +1016,7 @@ def density(
     >>> pot.density(q, t)
     Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -1080,7 +1080,7 @@ def density(
     supports Astropy objects, like
     :class:`astropy.coordinates.BaseRepresentation` and
     :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
-    counterparts :class:`~vector.AbstractPosition2D` and
+    counterparts :class:`~vector.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
     Examples
@@ -1288,7 +1288,7 @@ def hessian(
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
                     unit='1 / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -1364,7 +1364,7 @@ def hessian(
     supports Astropy objects, like
     :class:`astropy.coordinates.BaseRepresentation` and
     :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
-    counterparts :class:`~vector.AbstractPosition2D` and
+    counterparts :class:`~vector.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
     Examples
@@ -1520,7 +1520,7 @@ def acceleration(
 
     Parameters
     ----------
-    q : :class:`vector.AbstractPosition2D` | (Quantity|Array)[float, (*batch, 3)]
+    q : :class:`vector.AbstractPosition3D` | (Quantity|Array)[float, (*batch, 3)]
         The position to compute the acceleration of the potential.  If unitless
         (i.e. is an `~jax.Array`), it is assumed to be in the unit system of
         the potential.
@@ -1554,7 +1554,7 @@ def acceleration(
                                     [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                 unit='kpc / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -1622,7 +1622,7 @@ def acceleration(
                                     [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                 unit='kpc / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -1659,7 +1659,7 @@ def acceleration(
     supports Astropy objects, like
     :class:`astropy.coordinates.BaseRepresentation` and
     :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
-    counterparts :class:`~vector.AbstractPosition2D` and
+    counterparts :class:`~vector.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
     Parameters
@@ -1698,7 +1698,7 @@ def acceleration(
                                     [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
                                 unit='kpc / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -1923,7 +1923,7 @@ def tidal_tensor(
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
                     unit='1 / Myr2')
 
-    Instead of passing a :class:`~vector.AbstractPosition2D` (in this case a
+    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian
     position:
@@ -2003,7 +2003,7 @@ def tidal_tensor(
     supports Astropy objects, like
     :class:`astropy.coordinates.BaseRepresentation` and
     :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
-    counterparts :class:`~vector.AbstractPosition2D` and
+    counterparts :class:`~vector.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
     Examples

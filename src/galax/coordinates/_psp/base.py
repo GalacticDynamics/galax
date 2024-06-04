@@ -47,7 +47,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     :math:`t\in\mathbb{R}^1`.
     """
 
-    q: eqx.AbstractVar[cx.AbstractPosition2D]
+    q: eqx.AbstractVar[cx.AbstractPosition3D]
     """Positions."""
 
     p: eqx.AbstractVar[cx.AbstractVelocity2D]

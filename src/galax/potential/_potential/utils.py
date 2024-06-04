@@ -68,8 +68,8 @@ def _convert_from_psp(
     return _convert_from_3dvec(x.q)
 
 
-@parse_to_quantity.register(cx.AbstractPosition2D)
-def _convert_from_3dvec(x: cx.AbstractPosition2D, /, **_: Any) -> gt.LengthBatchVec3:
+@parse_to_quantity.register(cx.AbstractPosition3D)
+def _convert_from_3dvec(x: cx.AbstractPosition3D, /, **_: Any) -> gt.LengthBatchVec3:
     cart = x.represent_as(cx.CartesianPosition3D)
     qarr: Quantity = convert(cart, Quantity)
     return qarr

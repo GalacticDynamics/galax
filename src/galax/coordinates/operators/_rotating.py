@@ -10,7 +10,7 @@ from jaxtyping import Float, Shaped
 from plum import convert
 
 import quaxed.array_api as xp
-from coordinax import AbstractPosition2D, CartesianPosition3D, CartesianVelocity3D
+from coordinax import AbstractPosition3D, CartesianPosition3D, CartesianVelocity3D
 from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
 from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
@@ -115,7 +115,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     >>> convert(newv4.q, Quantity).value.round(2)
     Array([0., 1., 0.], dtype=float64)
 
-    We can also apply the rotation to a :class:`~coordinax.AbstractPosition2D`.
+    We can also apply the rotation to a :class:`~coordinax.AbstractPosition3D`.
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 0, 0], "kpc"))
     >>> newq, newt = op(q, t)
@@ -212,10 +212,10 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     @op_call_dispatch(precedence=1)
     def __call__(
         self: "ConstantRotationZOperator",
-        vec: AbstractPosition2D,
+        vec: AbstractPosition3D,
         t: Quantity["time"],
         /,
-    ) -> tuple[AbstractPosition2D, Quantity["time"]]:
+    ) -> tuple[AbstractPosition3D, Quantity["time"]]:
         """Apply the translation to the coordinates.
 
         Examples

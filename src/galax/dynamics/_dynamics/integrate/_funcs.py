@@ -119,7 +119,7 @@ def evaluate_orbit(
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-      q=Cartesian3DVector(...), p=CartesianDifferential3D(...),
+      q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[4], unit=Unit("Myr")),
       potential=KeplerPotential(...)
     )
@@ -134,7 +134,7 @@ def evaluate_orbit(
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-      q=Cartesian3DVector(...), p=CartesianDifferential3D(...),
+      q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[10], unit=Unit("Myr")),
       potential=KeplerPotential(...)
     )
@@ -147,11 +147,11 @@ def evaluate_orbit(
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-      q=Cartesian3DVector(
+      q=CartesianPosition3D(
         x=Quantity[PhysicalType('length')](value=f64[2,10], unit=Unit("kpc")),
         ...
       ),
-      p=CartesianDifferential3D(...),
+      p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[10], unit=Unit("Myr")),
       potential=KeplerPotential(...)
     )

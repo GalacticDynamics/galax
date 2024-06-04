@@ -147,27 +147,27 @@ def getitem_vec1time_index(index: Any, t: gt.FloatQAnyShape) -> Any:
 
 
 @singledispatch
-def _q_converter(x: Any) -> cx.Abstract3DVector:
+def _q_converter(x: Any) -> cx.AbstractPosition3D:
     """Convert input to a 3D vector."""
-    return cx.Cartesian3DVector.constructor(x)
+    return cx.CartesianPosition3D.constructor(x)
 
 
 @_q_converter.register
-def _q_converter_vec(x: cx.Abstract3DVector) -> cx.Abstract3DVector:
+def _q_converter_vec(x: cx.AbstractPosition3D) -> cx.AbstractPosition3D:
     return x
 
 
 # TODO: move this into coordinax
 _apyc_to_cx_vecs = {
-    apyc.CartesianRepresentation: cx.Cartesian3DVector,
-    apyc.CylindricalRepresentation: cx.CylindricalVector,
-    apyc.SphericalRepresentation: cx.LonLatSphericalVector,
-    apyc.PhysicsSphericalRepresentation: cx.SphericalVector,
+    apyc.CartesianRepresentation: cx.CartesianPosition3D,
+    apyc.CylindricalRepresentation: cx.CylindricalPosition,
+    apyc.SphericalRepresentation: cx.LonLatSphericalPosition,
+    apyc.PhysicsSphericalRepresentation: cx.SphericalPosition,
 }
 
 
 @_q_converter.register
-def _q_converter_apy(x: apyc.BaseRepresentation) -> cx.Abstract3DVector:
+def _q_converter_apy(x: apyc.BaseRepresentation) -> cx.AbstractPosition3D:
     return _apyc_to_cx_vecs[type(x)].constructor(x)
 
 
@@ -175,28 +175,28 @@ def _q_converter_apy(x: apyc.BaseRepresentation) -> cx.Abstract3DVector:
 
 
 @singledispatch
-def _p_converter(x: Any) -> cx.Abstract3DVectorDifferential:
+def _p_converter(x: Any) -> cx.AbstractVelocity3D:
     """Convert input to a 3D vector differential."""
-    return cx.CartesianDifferential3D.constructor(x)
+    return cx.CartesianVelocity3D.constructor(x)
 
 
 @_p_converter.register
 def _p_converter_vec(
-    x: cx.Abstract3DVectorDifferential,
-) -> cx.Abstract3DVectorDifferential:
+    x: cx.AbstractVelocity3D,
+) -> cx.AbstractVelocity3D:
     return x
 
 
 # TODO: move this into coordinax
 _apyc_to_cx_difs = {
-    apyc.CartesianDifferential: cx.CartesianDifferential3D,
-    apyc.CylindricalDifferential: cx.CylindricalDifferential,
-    apyc.SphericalDifferential: cx.LonLatSphericalDifferential,
-    apyc.SphericalCosLatDifferential: cx.LonCosLatSphericalDifferential,
-    apyc.PhysicsSphericalDifferential: cx.SphericalDifferential,
+    apyc.CartesianDifferential: cx.CartesianVelocity3D,
+    apyc.CylindricalDifferential: cx.CylindricalVelocity,
+    apyc.SphericalDifferential: cx.LonLatSphericalVelocity,
+    apyc.SphericalCosLatDifferential: cx.LonCosLatSphericalVelocity,
+    apyc.PhysicsSphericalDifferential: cx.SphericalVelocity,
 }
 
 
 @_p_converter.register
-def _p_converter_apy(x: apyc.BaseDifferential) -> cx.Abstract3DVectorDifferential:
+def _p_converter_apy(x: apyc.BaseDifferential) -> cx.AbstractVelocity3D:
     return _apyc_to_cx_difs[type(x)].constructor(x)

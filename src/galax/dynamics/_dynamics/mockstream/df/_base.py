@@ -86,7 +86,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         """
         # Progenitor positions and times. The orbit times are used as the
         # release times for the mock stream.
-        prog_orbit = prog_orbit.represent_as(cx.Cartesian3DVector)
+        prog_orbit = prog_orbit.represent_as(cx.CartesianPosition3D)
         x = convert(prog_orbit.q, Quantity)
         v = convert(prog_orbit.p, Quantity)
         ts = prog_orbit.t

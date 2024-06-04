@@ -12,7 +12,7 @@ from jaxtyping import Array, Shaped
 
 import coordinax as cx
 import quaxed.array_api as xp
-from coordinax import Abstract3DVector, Abstract3DVectorDifferential
+from coordinax import AbstractPosition3D, AbstractVelocity3D
 from unxt import Quantity
 
 import galax.typing as gt
@@ -49,10 +49,10 @@ class MockStreamArm(AbstractPhaseSpacePosition):
         Release time of the stream particles [Myr].
     """
 
-    q: Abstract3DVector = eqx.field(converter=_q_converter)
+    q: AbstractPosition3D = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
-    p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
+    p: AbstractVelocity3D = eqx.field(converter=_p_converter)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     t: gt.QVecTime = eqx.field(converter=Quantity["time"].constructor)
@@ -109,7 +109,7 @@ class MockStream(AbstractCompositePhaseSpacePosition):
         self._time_sorter = xp.argsort(ts)
 
     @property
-    def q(self) -> cx.Abstract3DVector:
+    def q(self) -> cx.AbstractPosition3D:
         """Positions."""
         # TODO: interleave by time
         # TODO: get AbstractPosition to work with `stack` directly
@@ -118,7 +118,7 @@ class MockStream(AbstractCompositePhaseSpacePosition):
         )
 
     @property
-    def p(self) -> cx.Abstract3DVector:
+    def p(self) -> cx.AbstractPosition3D:
         """Conjugate momenta."""
         # TODO: get AbstractPosition to work with `stack` directly
         return jtu.tree_map(

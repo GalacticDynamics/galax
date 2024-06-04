@@ -7,7 +7,7 @@ from typing import Protocol, final, runtime_checkable
 import equinox as eqx
 import jax.numpy as jnp
 
-from coordinax import Abstract3DVector, Abstract3DVectorDifferential
+from coordinax import AbstractPosition3D, AbstractVelocity3D
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
@@ -45,14 +45,14 @@ class PhaseSpacePositionInterpolant(Protocol):
 class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
     """Interpolated phase-space position."""
 
-    q: Abstract3DVector = eqx.field(converter=_q_converter)
-    """Positions, e.g Cartesian3DVector.
+    q: AbstractPosition3D = eqx.field(converter=_q_converter)
+    """Positions, e.g CartesianPosition3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
-    r"""Conjugate momenta, e.g. CartesianDifferential3D.
+    p: AbstractVelocity3D = eqx.field(converter=_p_converter)
+    r"""Conjugate momenta, e.g. CartesianVelocity3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """

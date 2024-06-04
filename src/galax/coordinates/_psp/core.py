@@ -8,7 +8,7 @@ import equinox as eqx
 import jax.numpy as jnp
 from typing_extensions import override
 
-from coordinax import Abstract3DVector, Abstract3DVectorDifferential
+from coordinax import AbstractPosition3D, AbstractVelocity3D
 from unxt import Quantity
 
 import galax.typing as gt
@@ -46,18 +46,18 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     Parameters
     ----------
-    q : :class:`~vector.Abstract3DVector`
+    q : :class:`~vector.AbstractPosition3D`
         A 3-vector of the positions, allowing for batched inputs.  This
-        parameter accepts any 3-vector, e.g.  :class:`~vector.SphericalVector`,
+        parameter accepts any 3-vector, e.g.  :class:`~vector.SphericalPosition`,
         or any input that can be used to make a
-        :class:`~vector.Cartesian3DVector` via
-        :meth:`vector.Abstract3DVector.constructor`.
-    p : :class:`~vector.Abstract3DVectorDifferential`
+        :class:`~vector.CartesianPosition3D` via
+        :meth:`vector.AbstractPosition3D.constructor`.
+    p : :class:`~vector.AbstractVelocity3D`
         A 3-vector of the conjugate specific momenta at positions ``q``,
         allowing for batched inputs.  This parameter accepts any 3-vector
-        differential, e.g.  :class:`~vector.SphericalDifferential`, or any input
-        that can be used to make a :class:`~vector.CartesianDifferential3D` via
-        :meth:`vector.CartesianDifferential3D.constructor`.
+        differential, e.g.  :class:`~vector.SphericalVelocity`, or any input
+        that can be used to make a :class:`~vector.CartesianVelocity3D` via
+        :meth:`vector.CartesianVelocity3D.constructor`.
     t : Quantity[float, (*batch,), 'time'] | None
         The time corresponding to the positions.
 
@@ -70,26 +70,26 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     We assume the following imports:
 
     >>> from unxt import Quantity
-    >>> from coordinax import Cartesian3DVector, CartesianDifferential3D
+    >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
     >>> from galax.coordinates import PhaseSpacePosition
 
     We can create a phase-space position:
 
-    >>> q = Cartesian3DVector(x=Quantity(1, "m"), y=Quantity(2, "m"),
+    >>> q = CartesianPosition3D(x=Quantity(1, "m"), y=Quantity(2, "m"),
     ...                       z=Quantity(3, "m"))
-    >>> p = CartesianDifferential3D(d_x=Quantity(4, "m/s"), d_y=Quantity(5, "m/s"),
+    >>> p = CartesianVelocity3D(d_x=Quantity(4, "m/s"), d_y=Quantity(5, "m/s"),
     ...                             d_z=Quantity(6, "m/s"))
     >>> t = Quantity(7.0, "s")
 
     >>> psp = PhaseSpacePosition(q=q, p=p, t=t)
     >>> psp
     PhaseSpacePosition(
-      q=Cartesian3DVector(
+      q=CartesianPosition3D(
         x=Quantity[...](value=f64[], unit=Unit("m")),
         y=Quantity[...](value=f64[], unit=Unit("m")),
         z=Quantity[...](value=f64[], unit=Unit("m"))
       ),
-      p=CartesianDifferential3D(
+      p=CartesianVelocity3D(
         d_x=Quantity[...]( value=f64[], unit=Unit("m / s") ),
         d_y=Quantity[...]( value=f64[], unit=Unit("m / s") ),
         d_z=Quantity[...]( value=f64[], unit=Unit("m / s") )
@@ -99,8 +99,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     Note that both `q` and `p` have convenience converters, allowing them to
     accept a variety of inputs when constructing a
-    :class:`~vector.Cartesian3DVector` or
-    :class:`~vector.CartesianDifferential3D`, respectively.  For example,
+    :class:`~vector.CartesianPosition3D` or
+    :class:`~vector.CartesianVelocity3D`, respectively.  For example,
 
     >>> psp2 = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
     ...                           p=Quantity([4, 5, 6], "m/s"), t=t)
@@ -109,14 +109,14 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     """
 
-    q: Abstract3DVector = eqx.field(converter=_q_converter)
-    """Positions, e.g Cartesian3DVector.
+    q: AbstractPosition3D = eqx.field(converter=_q_converter)
+    """Positions, e.g CartesianPosition3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: Abstract3DVectorDifferential = eqx.field(converter=_p_converter)
-    r"""Conjugate momenta, e.g. CartesianDifferential3D.
+    p: AbstractVelocity3D = eqx.field(converter=_p_converter)
+    r"""Conjugate momenta, e.g. CartesianVelocity3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """

@@ -17,7 +17,7 @@ from plum import convert
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from coordinax import Cartesian3DVector, CartesianDifferential3D
+from coordinax import CartesianPosition3D, CartesianVelocity3D
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
@@ -240,8 +240,8 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
         class PSP(AbstractPhaseSpacePosition):
             """A phase-space position."""
 
-            q: Cartesian3DVector = eqx.field(converter=_q_converter)
-            p: CartesianDifferential3D = eqx.field(converter=_p_converter)
+            q: CartesianPosition3D = eqx.field(converter=_q_converter)
+            p: CartesianVelocity3D = eqx.field(converter=_p_converter)
             t: Quantity["time"]
 
             @property
@@ -267,7 +267,7 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
                     The full phase-space position, including time.
                 """
                 batch, comps = self._shape_tuple
-                cart = self.represent_as(Cartesian3DVector)
+                cart = self.represent_as(CartesianPosition3D)
                 q = xp.broadcast_to(
                     convert(cart.q, Quantity).decompose(units).value, (*batch, comps.q)
                 )

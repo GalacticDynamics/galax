@@ -99,8 +99,8 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         >>> w = integrator(pot._integrator_F, w0, t0, t1, units=usx.galactic)
         >>> w
         PhaseSpacePosition(
-            q=Cartesian3DVector( ... ),
-            p=CartesianDifferential3D( ... ),
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
             t=Quantity[...](value=f64[], unit=Unit("Myr"))
         )
         >>> w.shape
@@ -112,8 +112,8 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         >>> ws = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic)
         >>> ws
         PhaseSpacePosition(
-            q=Cartesian3DVector( ... ),
-            p=CartesianDifferential3D( ... ),
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
             t=Quantity[...](value=f64[10], unit=Unit("Myr"))
         )
         >>> ws.shape

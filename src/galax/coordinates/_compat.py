@@ -50,8 +50,8 @@ def gala_psp_to_galax_psp(
     >>> galax_w = convert(gala_w, gcx.PhaseSpacePosition)
     >>> galax_w
     PhaseSpacePosition(
-        q=Cartesian3DVector( ... ),
-        p=CartesianDifferential3D( ... ),
+        q=CartesianPosition3D( ... ),
+        p=CartesianVelocity3D( ... ),
         t=None
     )
     """
@@ -80,8 +80,8 @@ def constructor(
     >>> galax_w = gcx.PhaseSpacePosition.constructor(gala_w)
     >>> galax_w
     PhaseSpacePosition(
-        q=Cartesian3DVector( ... ),
-        p=CartesianDifferential3D( ... ),
+        q=CartesianPosition3D( ... ),
+        p=CartesianVelocity3D( ... ),
         t=None
     )
 

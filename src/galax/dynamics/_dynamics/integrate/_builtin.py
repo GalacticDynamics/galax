@@ -268,8 +268,8 @@ class DiffraxIntegrator(AbstractIntegrator):
         >>> w = integrator(pot._integrator_F, w0, t0, t1, units=usx.galactic)
         >>> w
         PhaseSpacePosition(
-            q=Cartesian3DVector( ... ),
-            p=CartesianDifferential3D( ... ),
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
             t=Quantity[...](value=f64[], unit=Unit("Myr"))
         )
         >>> w.shape
@@ -282,8 +282,8 @@ class DiffraxIntegrator(AbstractIntegrator):
         >>> ws = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic)
         >>> ws
         PhaseSpacePosition(
-            q=Cartesian3DVector( ... ),
-            p=CartesianDifferential3D( ... ),
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
             t=Quantity[...](value=f64[10], unit=Unit("Myr"))
         )
         >>> ws.shape
@@ -314,8 +314,8 @@ class DiffraxIntegrator(AbstractIntegrator):
         >>> t = Quantity(xp.e, "Gyr")
         >>> w(t)
         PhaseSpacePosition(
-            q=Cartesian3DVector( ... ),
-            p=CartesianDifferential3D( ... ),
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
             t=Quantity[PhysicalType('time')](value=f64[1], unit=Unit("Gyr"))
         )
 
@@ -324,8 +324,8 @@ class DiffraxIntegrator(AbstractIntegrator):
         >>> t = Quantity(xp.linspace(0, 1, 100), "Gyr")
         >>> w(t)
         PhaseSpacePosition(
-            q=Cartesian3DVector( ... ),
-            p=CartesianDifferential3D( ... ),
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
             t=Quantity[PhysicalType('time')](value=f64[1,100], unit=Unit("Gyr"))
         )
 
@@ -339,8 +339,8 @@ class DiffraxIntegrator(AbstractIntegrator):
         (2,)
         >>> w(t)
         PhaseSpacePosition(
-            q=Cartesian3DVector( ... ),
-            p=CartesianDifferential3D( ... ),
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
             t=Quantity[PhysicalType('time')](value=f64[1,100], unit=Unit("Gyr"))
         )
         """

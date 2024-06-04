@@ -28,9 +28,9 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 
     Parameters
     ----------
-    q : :class:`~vector.Abstract3DVector`
+    q : :class:`~vector.AbstractPosition3D`
         Positions.
-    p : :class:`~vector.Abstract3DVectorDifferential`
+    p : :class:`~vector.AbstractVelocity3D`
         Conjugate momenta at positions ``q``.
     t : :class:`~unxt.Quantity`
         Time corresponding to the positions and momenta.
@@ -102,17 +102,17 @@ def represent_as(
 
     We can also convert it to a different representation:
 
-    >>> psp.represent_as(cx.CylindricalVector)
-    PhaseSpacePosition( q=CylindricalVector(...),
-                        p=CylindricalDifferential(...),
+    >>> psp.represent_as(cx.CylindricalPosition)
+    PhaseSpacePosition( q=CylindricalPosition(...),
+                        p=CylindricalVelocity(...),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
     We can also convert it to a different representation with a different
     differential class:
 
-    >>> psp.represent_as(cx.LonLatSphericalVector, cx.LonCosLatSphericalDifferential)
-    PhaseSpacePosition( q=LonLatSphericalVector(...),
-                        p=LonCosLatSphericalDifferential(...),
+    >>> psp.represent_as(cx.LonLatSphericalPosition, cx.LonCosLatSphericalVelocity)
+    PhaseSpacePosition( q=LonLatSphericalPosition(...),
+                        p=LonCosLatSphericalVelocity(...),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
     """

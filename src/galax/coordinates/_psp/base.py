@@ -50,7 +50,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     q: eqx.AbstractVar[cx.AbstractPosition3D]
     """Positions."""
 
-    p: eqx.AbstractVar[cx.AbstractVelocity2D]
+    p: eqx.AbstractVar[cx.AbstractVelocity3D]
     """Conjugate momenta at positions ``q``."""
 
     t: eqx.AbstractVar[gt.BroadBatchFloatQScalar]

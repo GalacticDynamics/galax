@@ -8,7 +8,7 @@ import equinox as eqx
 import jax.numpy as jnp
 from typing_extensions import override
 
-from coordinax import AbstractPosition3D, AbstractVelocity2D
+from coordinax import AbstractPosition3D, AbstractVelocity3D
 from unxt import Quantity
 
 import galax.typing as gt
@@ -52,7 +52,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         or any input that can be used to make a
         :class:`~vector.CartesianPosition3D` via
         :meth:`vector.AbstractPosition3D.constructor`.
-    p : :class:`~vector.AbstractVelocity2D`
+    p : :class:`~vector.AbstractVelocity3D`
         A 3-vector of the conjugate specific momenta at positions ``q``,
         allowing for batched inputs.  This parameter accepts any 3-vector
         differential, e.g.  :class:`~vector.SphericalVelocity`, or any input
@@ -115,7 +115,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: AbstractVelocity2D = eqx.field(converter=_p_converter)
+    p: AbstractVelocity3D = eqx.field(converter=_p_converter)
     r"""Conjugate momenta, e.g. CartesianVelocity3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.

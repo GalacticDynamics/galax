@@ -12,7 +12,7 @@ from jaxtyping import Array, Shaped
 
 import coordinax as cx
 import quaxed.array_api as xp
-from coordinax import AbstractPosition3D, AbstractVelocity2D
+from coordinax import AbstractPosition3D, AbstractVelocity3D
 from unxt import Quantity
 
 import galax.typing as gt
@@ -52,7 +52,7 @@ class MockStreamArm(AbstractPhaseSpacePosition):
     q: AbstractPosition3D = eqx.field(converter=_q_converter)
     """Positions (x, y, z)."""
 
-    p: AbstractVelocity2D = eqx.field(converter=_p_converter)
+    p: AbstractVelocity3D = eqx.field(converter=_p_converter)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     t: gt.QVecTime = eqx.field(converter=Quantity["time"].constructor)

@@ -30,7 +30,7 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
     ----------
     q : :class:`~vector.AbstractPosition3D`
         Positions.
-    p : :class:`~vector.AbstractVelocity2D`
+    p : :class:`~vector.AbstractVelocity3D`
         Conjugate momenta at positions ``q``.
     t : :class:`~unxt.Quantity`
         Time corresponding to the positions and momenta.

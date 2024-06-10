@@ -22,10 +22,7 @@ from galax.dynamics._dynamics.mockstream.core import MockStream, MockStreamArm
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential import AbstractPotentialBase
 
-Wif: TypeAlias = tuple[gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3]
-Carry: TypeAlias = tuple[
-    int, PRNGKeyArray, gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3
-]
+Carry: TypeAlias = tuple[gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3]
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -93,22 +90,22 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         # Scan over the release times to generate the stream particle initial
         # conditions at each release time.
-        def scan_fn(carry: Carry, t: gt.FloatQScalar) -> tuple[Carry, Wif]:
-            i = carry[0]
-            rng, subrng = jr.split(carry[1], 2)
-            out = self._sample(subrng, pot, x[i], v[i], mprog(t), t)
-            return (i + 1, rng, *out), out
+        def scan_fn(_: Carry, inputs: tuple[int, PRNGKeyArray]) -> tuple[Carry, Carry]:
+            i, key = inputs
+            out = self._sample(key, pot, x[i], v[i], mprog(ts[i]), ts[i])
+            return out, out
 
         # TODO: use ``jax.vmap`` instead of ``jax.lax.scan`` for GPU usage
         init_carry = (
-            0,
-            rng,
             xp.zeros_like(x[0]),
             xp.zeros_like(x[0]),
             xp.zeros_like(v[0]),
             xp.zeros_like(v[0]),
         )
-        x_lead, x_trail, v_lead, v_trail = jax.lax.scan(scan_fn, init_carry, ts)[1]
+        subkeys = jr.split(rng, len(ts))
+        x_lead, x_trail, v_lead, v_trail = jax.lax.scan(
+            scan_fn, init_carry, (xp.arange(len(ts)), subkeys)
+        )[1]
 
         mock_lead = MockStreamArm(
             q=x_lead.to_units(pot.units["length"]),

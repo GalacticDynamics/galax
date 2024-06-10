@@ -4,8 +4,9 @@ from typing import Any
 
 import astropy.units as u
 import jax
+import jax.random as jr
 import pytest
-import quax.examples.prng as jr
+from jaxtyping import PRNGKeyArray
 
 import quaxed.array_api as xp
 from unxt import Quantity, UnitSystem
@@ -20,7 +21,11 @@ df = FardalStreamDF()
 
 @jax.jit
 def compute_loss(
-    params: dict[str, Any], rng: jr.PRNG, ts: QVecTime, w0: Vec6, M_sat: FloatQScalar
+    params: dict[str, Any],
+    rng: PRNGKeyArray,
+    ts: QVecTime,
+    w0: Vec6,
+    M_sat: FloatQScalar,
 ) -> FloatScalar:
     # Generate mock stream
     pot = MilkyWayPotential(**params, units=usys)
@@ -39,7 +44,11 @@ def compute_loss(
 
 @jax.jit
 def compute_derivative(
-    params: dict[str, Any], rng: jr.PRNG, ts: QVecTime, w0: Vec6, M_sat: FloatScalar
+    params: dict[str, Any],
+    rng: PRNGKeyArray,
+    ts: QVecTime,
+    w0: Vec6,
+    M_sat: FloatScalar,
 ) -> dict[str, Any]:
     return jax.jacfwd(compute_loss, argnums=0)(params, rng, ts, w0, M_sat)
 
@@ -66,7 +75,7 @@ def test_first_deriv() -> None:
     M_sat = Quantity(1.0e4, "Msun")
 
     # Compute the first derivative
-    rng = jr.ThreeFry(12)
+    rng = jr.key(12)
     first_deriv = compute_derivative(params, rng, ts, w0, M_sat)
 
     # Test
@@ -94,7 +103,7 @@ def test_second_deriv() -> None:
     M_sat = Quantity(1.0e4, "Msun")
 
     # Compute the second derivative
-    rng = jr.ThreeFry(12)
+    rng = jr.key(12)
     second_deriv = jax.jacfwd(jax.jacfwd(compute_loss, argnums=0))(
         params, rng, ts, w0, M_sat
     )

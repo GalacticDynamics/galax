@@ -9,8 +9,8 @@ from typing import TypeAlias, cast, final
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-import quax.examples.prng as jr
 from jax.lib.xla_bridge import get_backend
+from jaxtyping import PRNGKeyArray
 
 import quaxed.array_api as xp
 from unxt import AbstractUnitSystem, Quantity
@@ -157,7 +157,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial(jax.jit, static_argnames=("vmapped",))
     def run(
         self,
-        rng: jr.PRNG,
+        rng: PRNGKeyArray,
         ts: gt.QVecTime,
         prog_w0: gc.PhaseSpacePosition | gt.Vec6,
         prog_mass: gt.FloatQScalar | ProgenitorMassCallable,
@@ -168,7 +168,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Parameters
         ----------
-        rng : :class:`quax.examples.prng.PRNG`
+        rng : :class:`jaxtyping.PRNGKeyArray`
             Random number generator.
         ts : Quantity[float, (time,), "time"]
             Stripping times.

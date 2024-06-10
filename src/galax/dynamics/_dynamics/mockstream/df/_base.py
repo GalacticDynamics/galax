@@ -8,7 +8,8 @@ from typing import TypeAlias
 
 import equinox as eqx
 import jax
-import quax.examples.prng as jr
+import jax.random as jr
+from jaxtyping import PRNGKeyArray
 from plum import convert
 
 import coordinax as cx
@@ -23,7 +24,7 @@ from galax.potential import AbstractPotentialBase
 
 Wif: TypeAlias = tuple[gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3]
 Carry: TypeAlias = tuple[
-    int, jr.PRNG, gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3
+    int, PRNGKeyArray, gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3
 ]
 
 
@@ -41,7 +42,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     @partial(jax.jit)
     def sample(
         self,
-        rng: jr.PRNG,
+        rng: PRNGKeyArray,
         # <\ parts of gala's ``prog_orbit``
         pot: AbstractPotentialBase,
         prog_orbit: Orbit,
@@ -53,7 +54,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         Parameters
         ----------
-        rng : `quax.examples.prng.PRNG`
+        rng : :class:`jaxtyping.PRNGKeyArray`
             Pseudo-random number generator.
         pot : AbstractPotentialBase, positional-only
             The potential of the host galaxy.
@@ -73,7 +74,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         >>> import galax.coordinates as gc
         >>> import galax.dynamics as gd
         >>> import galax.potential as gp
-        >>> import quax.examples.prng as jr
+        >>> import jax.random as jr
 
         >>> df = gd.FardalStreamDF()
         >>> pot = gp.MilkyWayPotential()
@@ -81,7 +82,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         ...                           p=Quantity([0, 220, 0], "km/s"),
         ...                           t=Quantity(0, "Gyr"))
         >>> prog_orbit = pot.evaluate_orbit(w, t=Quantity([0, 1, 2], "Gyr"))
-        >>> stream_ic = df.sample(jr.ThreeFry(0), pot, prog_orbit,
+        >>> stream_ic = df.sample(jr.key(0), pot, prog_orbit,
         ...                       prog_mass=Quantity(1e4, "Msun"))
         """
         # Progenitor positions and times. The orbit times are used as the
@@ -102,7 +103,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         # conditions at each release time.
         def scan_fn(carry: Carry, t: gt.FloatQScalar) -> tuple[Carry, Wif]:
             i = carry[0]
-            rng, subrng = carry[1].split(2)
+            rng, subrng = jr.split(carry[1], 2)
             out = self._sample(subrng, pot, x[i], v[i], mprog(t), t)
             return (i + 1, rng, *out), out
 
@@ -136,7 +137,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     @abc.abstractmethod
     def _sample(
         self,
-        rng: jr.PRNG,
+        rng: PRNGKeyArray,
         pot: AbstractPotentialBase,
         x: gt.LengthVec3,
         v: gt.SpeedVec3,
@@ -149,7 +150,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         Parameters
         ----------
-        rng : `quax.examples.prng.PRNG`
+        rng : :class:`jaxtyping.PRNGKeyArray`
             Pseudo-random number generator.
         pot : AbstractPotentialBase
             The potential of the host galaxy.

@@ -7,8 +7,8 @@ from functools import partial
 from typing import final
 
 import jax
-import quax.examples.prng as jr
-from jaxtyping import Shaped
+import jax.random as jr
+from jaxtyping import PRNGKeyArray, Shaped
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
@@ -48,7 +48,7 @@ class FardalStreamDF(AbstractStreamDF):
     @partial(jax.jit, static_argnums=(0,))
     def _sample(
         self,
-        rng: jr.PRNG,
+        rng: PRNGKeyArray,
         potential: AbstractPotentialBase,
         x: gt.LengthVec3,
         v: gt.SpeedVec3,
@@ -57,7 +57,7 @@ class FardalStreamDF(AbstractStreamDF):
     ) -> tuple[gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3]:
         """Generate stream particle initial conditions."""
         # Random number generation
-        rng1, rng2, rng3, rng4 = rng.split(4)
+        rng1, rng2, rng3, rng4 = jr.split(rng, 4)
 
         omega_val = orbital_angular_velocity_mag(x, v)
 

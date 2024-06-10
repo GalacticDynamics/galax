@@ -8,7 +8,7 @@ from typing import final
 
 import jax
 import jax.random as jr
-from jaxtyping import Shaped
+from jaxtyping import PRNGKeyArray, Shaped
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
@@ -48,7 +48,7 @@ class FardalStreamDF(AbstractStreamDF):
     @partial(jax.jit, static_argnums=(0,))
     def _sample(
         self,
-        rng: jr.PRNG,
+        rng: PRNGKeyArray,
         potential: AbstractPotentialBase,
         x: gt.LengthVec3,
         v: gt.SpeedVec3,

@@ -13,7 +13,7 @@
 ## Contributors
 
 See the
-`AUTHORS.rst <https://github.com/GalacticDynamics/galax/blob/main/AUTHORS.rst>`\_
+[AUTHORS.rst](https://github.com/GalacticDynamics/galax/blob/main/AUTHORS.rst)
 file for a complete list of contributors to the project.
 
 The [`GalacticDynamics/galax`](https://github.com/GalacticDynamics/galax)

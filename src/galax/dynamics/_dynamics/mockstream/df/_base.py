@@ -22,7 +22,7 @@ from galax.dynamics._dynamics.mockstream.core import MockStream, MockStreamArm
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential import AbstractPotentialBase
 
-Carry: TypeAlias = tuple[gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3]
+Carry: TypeAlias = tuple[gt.LengthVec3, gt.SpeedVec3, gt.LengthVec3, gt.SpeedVec3]
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -95,15 +95,15 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             out = self._sample(key, pot, x[i], v[i], mprog(ts[i]), ts[i])
             return out, out
 
-        # TODO: use ``jax.vmap`` instead of ``jax.lax.scan`` for GPU usage
+        # TODO: use ``jax.vmap`` instead of ``jax.lax.scan``?
         init_carry = (
             xp.zeros_like(x[0]),
-            xp.zeros_like(x[0]),
             xp.zeros_like(v[0]),
+            xp.zeros_like(x[0]),
             xp.zeros_like(v[0]),
         )
         subkeys = jr.split(rng, len(ts))
-        x_lead, x_trail, v_lead, v_trail = jax.lax.scan(
+        x_lead, v_lead, x_trail, v_trail = jax.lax.scan(
             scan_fn, init_carry, (xp.arange(len(ts)), subkeys)
         )[1]
 
@@ -133,7 +133,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         prog_mass: gt.FloatQScalar,
         t: gt.FloatQScalar,
     ) -> tuple[
-        gt.LengthBatchVec3, gt.LengthBatchVec3, gt.SpeedBatchVec3, gt.SpeedBatchVec3
+        gt.LengthBatchVec3, gt.SpeedBatchVec3, gt.LengthBatchVec3, gt.SpeedBatchVec3
     ]:
         """Generate stream particle initial conditions.
 
@@ -154,9 +154,9 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         Returns
         -------
-        x_lead, x_trail : Quantity[float, (*shape, 3), "length"]
-            Positions of the leading and trailing tails.
-        v_lead, v_trail : Quantity[float, (*shape, 3), "speed"]
-            Velocities of the leading and trailing tails.
+        x_lead, v_lead: Quantity[float, (*shape, 3), "length" | "speed"]
+            Position and velocity of the leading arm.
+        x_trail, v_trail : Quantity[float, (*shape, 3), "length" | "speed"]
+            Position and velocity of the trailing arm.
         """
         ...

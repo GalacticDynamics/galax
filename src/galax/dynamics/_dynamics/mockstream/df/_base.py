@@ -31,14 +31,6 @@ Carry: TypeAlias = tuple[
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     """Abstract base class of Stream Distribution Functions."""
 
-    lead: bool = eqx.field(default=True, static=True)
-    trail: bool = eqx.field(default=True, static=True)
-
-    def __check_init__(self) -> None:
-        if not self.lead and not self.trail:
-            msg = "You must generate either leading or trailing tails (or both!)"
-            raise ValueError(msg)
-
     @partial(jax.jit)
     def sample(
         self,

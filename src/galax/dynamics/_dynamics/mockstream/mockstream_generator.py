@@ -244,19 +244,17 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         t = xp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
 
         comps = {}
-        if self.df.lead:
-            comps["lead"] = MockStreamArm(
-                q=Quantity(lead_arm_w[:, 0:3], self.units["length"]),
-                p=Quantity(lead_arm_w[:, 3:6], self.units["speed"]),
-                t=t,
-                release_time=mock0["lead"].release_time,
-            )
-        if self.df.trail:
-            comps["trail"] = MockStreamArm(
-                q=Quantity(trail_arm_w[:, 0:3], self.units["length"]),
-                p=Quantity(trail_arm_w[:, 3:6], self.units["speed"]),
-                t=t,
-                release_time=mock0["trail"].release_time,
-            )
+        comps["lead"] = MockStreamArm(
+            q=Quantity(lead_arm_w[:, 0:3], self.units["length"]),
+            p=Quantity(lead_arm_w[:, 3:6], self.units["speed"]),
+            t=t,
+            release_time=mock0["lead"].release_time,
+        )
+        comps["trail"] = MockStreamArm(
+            q=Quantity(trail_arm_w[:, 0:3], self.units["length"]),
+            p=Quantity(trail_arm_w[:, 3:6], self.units["speed"]),
+            t=t,
+            release_time=mock0["trail"].release_time,
+        )
 
         return MockStream(comps), prog_o[-1]

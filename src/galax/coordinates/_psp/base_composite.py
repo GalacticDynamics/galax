@@ -186,12 +186,39 @@ def represent_as(
 
     Examples
     --------
-    TODO
+    >>> from unxt import Quantity
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
 
+    We define a composite phase-space position with two components.
+    Every component is a phase-space position in Cartesian coordinates.
+
+    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+    ...                              p=Quantity([4, 5, 6], "m/s"),
+    ...                              t=Quantity(7.0, "s"))
+    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=Quantity(6.0, "s"))
+    >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
+
+    We can transform the composite phase-space position to a new position class.
+
+    >>> cx.represent_as(cpsp, cx.CylindricalPosition)
+    CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
+        q=CylindricalPosition( ... ),
+        p=CylindricalVelocity( ... ),
+        t=Quantity...
+      ),
+      'psp2': PhaseSpacePosition(
+        q=CylindricalPosition( ... ),
+        p=CylindricalVelocity( ... ),
+        t=...
+    )})
     """
     differential_cls = (
         position_cls.differential_cls if differential is None else differential
     )
+    # TODO: can we use `replace`?
     return type(psp)(
         **{k: represent_as(v, position_cls, differential_cls) for k, v in psp.items()}
     )

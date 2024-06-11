@@ -78,8 +78,8 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         # Progenitor positions and times. The orbit times are used as the
         # release times for the mock stream.
         prog_orbit = prog_orbit.represent_as(cx.CartesianPosition3D)
-        x = convert(prog_orbit.q, Quantity)
-        v = convert(prog_orbit.p, Quantity)
+        xs = convert(prog_orbit.q, Quantity)
+        vs = convert(prog_orbit.p, Quantity)
         ts = prog_orbit.t
 
         # Progenitor mass
@@ -93,15 +93,15 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         # conditions at each release time.
         def scan_fn(_: Carry, inputs: tuple[int, PRNGKeyArray]) -> tuple[Carry, Carry]:
             i, key = inputs
-            out = self._sample(key, pot, x[i], v[i], mprog(ts[i]), ts[i])
+            out = self._sample(key, pot, xs[i], vs[i], mprog(ts[i]), ts[i])
             return out, out
 
         # TODO: use ``jax.vmap`` instead of ``jax.lax.scan``?
         init_carry = (
-            xp.zeros_like(x[0]),
-            xp.zeros_like(v[0]),
-            xp.zeros_like(x[0]),
-            xp.zeros_like(v[0]),
+            xp.zeros_like(xs[0]),
+            xp.zeros_like(vs[0]),
+            xp.zeros_like(xs[0]),
+            xp.zeros_like(vs[0]),
         )
         subkeys = jr.split(rng, len(ts))
         x_lead, v_lead, x_trail, v_trail = jax.lax.scan(

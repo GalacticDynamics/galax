@@ -45,10 +45,10 @@ class FardalStreamDF(AbstractStreamDF):
     https://ui.adsabs.harvard.edu/abs/2015MNRAS.452..301F/abstract
     """
 
-    @partial(jax.jit, static_argnums=(0,))
+    @partial(jax.jit, inline=True)
     def _sample(
         self,
-        rng: PRNGKeyArray,
+        key: PRNGKeyArray,
         potential: AbstractPotentialBase,
         x: gt.LengthVec3,
         v: gt.SpeedVec3,
@@ -57,7 +57,7 @@ class FardalStreamDF(AbstractStreamDF):
     ) -> tuple[gt.LengthVec3, gt.SpeedVec3, gt.LengthVec3, gt.SpeedVec3]:
         """Generate stream particle initial conditions."""
         # Random number generation
-        rng1, rng2, rng3, rng4 = jr.split(rng, 4)
+        key1, key2, key3, key4 = jr.split(key, 4)
 
         omega_val = orbital_angular_velocity_mag(x, v)
 
@@ -77,10 +77,10 @@ class FardalStreamDF(AbstractStreamDF):
         phi_hat = phi_vec / xp.linalg.vector_norm(phi_vec, axis=-1)
 
         # k vals
-        kr_samp = kr_bar + jr.normal(rng1, (1,)) * sigma_kr
-        kvphi_samp = kr_samp * (kvphi_bar + jr.normal(rng2, (1,)) * sigma_kvphi)
-        kz_samp = kz_bar + jr.normal(rng3, (1,)) * sigma_kz
-        kvz_samp = kvz_bar + jr.normal(rng4, (1,)) * sigma_kvz
+        kr_samp = kr_bar + jr.normal(key1, (1,)) * sigma_kr
+        kvphi_samp = kr_samp * (kvphi_bar + jr.normal(key2, (1,)) * sigma_kvphi)
+        kz_samp = kz_bar + jr.normal(key3, (1,)) * sigma_kz
+        kvz_samp = kvz_bar + jr.normal(key4, (1,)) * sigma_kvz
 
         # Trailing arm
         x_trail = x + r_tidal * (kr_samp * r_hat + kz_samp * z_hat)

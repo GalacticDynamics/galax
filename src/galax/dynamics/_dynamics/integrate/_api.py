@@ -56,7 +56,7 @@ class Integrator(_DataclassInstance, Protocol):
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: SaveT | None = None,
+        saveat: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
@@ -73,7 +73,7 @@ class Integrator(_DataclassInstance, Protocol):
         t0, t1 : Quantity, positional-only
             Initial and final times.
 
-        savet : (Quantity | Array)[float, (T,)] | None, optional
+        saveat : (Quantity | Array)[float, (T,)] | None, optional
             Times to return the computation.
             If `None`, the solution is returned at the final time.
 

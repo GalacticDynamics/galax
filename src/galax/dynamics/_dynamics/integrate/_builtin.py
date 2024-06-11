@@ -177,7 +177,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: SaveT | None = None,
+        saveat: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
         interpolated: Literal[False] = False,
@@ -191,7 +191,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: SaveT | None = None,
+        saveat: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
         interpolated: Literal[True],
@@ -204,7 +204,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: SaveT | None = None,
+        saveat: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
@@ -220,7 +220,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         t0, t1 : Quantity, positional-only
             Initial and final times.
 
-        savet : (Quantity | Array)[float, (T,)] | None, optional
+        saveat : (Quantity | Array)[float, (T,)] | None, optional
             Times to return the computation.  If `None`, the computation is
             returned only at the final time.
 
@@ -276,10 +276,11 @@ class DiffraxIntegrator(AbstractIntegrator):
         ()
 
         Instead of just returning the final position, we can get the state of
-        the system at any times ``savet``:
+        the system at any times ``saveat``:
 
         >>> ts = Quantity(xp.linspace(0, 1, 10), "Gyr")  # 10 steps
-        >>> ws = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic)
+        >>> ws = integrator(pot._integrator_F, w0, t0, t1,
+        ...                 saveat=ts, units=usx.galactic)
         >>> ws
         PhaseSpacePosition(
             q=CartesianPosition3D( ... ),
@@ -350,13 +351,15 @@ class DiffraxIntegrator(AbstractIntegrator):
         )
         t0_: gt.VecTime = to_units_value(t0, units["time"])
         t1_: gt.VecTime = to_units_value(t1, units["time"])
-        savet_ = (
-            xp.asarray([t1_]) if savet is None else to_units_value(savet, units["time"])
+        saveat_ = (
+            xp.asarray([t1_])
+            if saveat is None
+            else to_units_value(saveat, units["time"])
         )
 
         # Perform the integration
-        w, interp = self._call_implementation(F, w0_, t0_, t1_, savet_, interpolated)
-        w = w[..., -1, :] if savet is None else w  # TODO: undo this
+        w, interp = self._call_implementation(F, w0_, t0_, t1_, saveat_, interpolated)
+        w = w[..., -1, :] if saveat is None else w  # TODO: undo this
 
         # Return
         if interpolated:
@@ -372,7 +375,7 @@ class DiffraxIntegrator(AbstractIntegrator):
             out = gc.InterpolatedPhaseSpacePosition(  # shape = (*batch, T)
                 q=Quantity(w[..., 0:3], units["length"]),
                 p=Quantity(w[..., 3:6], units["speed"]),
-                t=Quantity(savet_, units["time"]),
+                t=Quantity(saveat_, units["time"]),
                 interpolant=DiffraxInterpolant(
                     interp, units=units, added_ndim=added_ndim
                 ),

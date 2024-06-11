@@ -33,7 +33,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: (
+        saveat: (
             gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime | None
         ) = None,
         *,
@@ -51,7 +51,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         t0, t1 : Quantity, positional-only
             Initial and final times.
 
-        savet : (Quantity | Array)[float, (T,)] | None, optional
+        saveat : (Quantity | Array)[float, (T,)] | None, optional
             Times to return the computation.  If `None`, the computation is
             returned only at the final time.
 
@@ -109,7 +109,8 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         We can also request the orbit at specific times:
 
         >>> ts = Quantity(xp.linspace(0, 1, 10), "Myr")  # 10 steps
-        >>> ws = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic)
+        >>> ws = integrator(pot._integrator_F, w0, t0, t1,
+        ...                 saveat=ts, units=usx.galactic)
         >>> ws
         PhaseSpacePosition(
             q=CartesianPosition3D( ... ),

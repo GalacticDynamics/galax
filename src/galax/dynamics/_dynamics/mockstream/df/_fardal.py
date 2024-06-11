@@ -54,7 +54,7 @@ class FardalStreamDF(AbstractStreamDF):
         v: gt.SpeedVec3,
         prog_mass: gt.FloatQScalar,
         t: gt.FloatQScalar,
-    ) -> tuple[gt.LengthVec3, gt.LengthVec3, gt.SpeedVec3, gt.SpeedVec3]:
+    ) -> tuple[gt.LengthVec3, gt.SpeedVec3, gt.LengthVec3, gt.SpeedVec3]:
         """Generate stream particle initial conditions."""
         # Random number generation
         rng1, rng2, rng3, rng4 = jr.split(rng, 4)
@@ -90,7 +90,7 @@ class FardalStreamDF(AbstractStreamDF):
         x_lead = x - r_tidal * (kr_samp * r_hat - kz_samp * z_hat)
         v_lead = v - v_circ * (kvphi_samp * phi_hat - kvz_samp * z_hat)
 
-        return x_lead, x_trail, v_lead, v_trail
+        return x_lead, v_lead, x_trail, v_trail
 
 
 #####################################################################

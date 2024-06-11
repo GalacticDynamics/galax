@@ -17,10 +17,10 @@ import astropy.units as u
 import equinox as eqx
 import jax
 
-import quaxed.array_api as xp
 from unxt import Quantity
 
 from galax.typing import BatchableRealQScalar, FloatQAnyShape, Unit
+from galax.utils._shape import expand_batch_dims
 
 if TYPE_CHECKING:
     from typing import Self
@@ -97,6 +97,8 @@ class ConstantParameter(AbstractParameter):
     value: FloatQAnyShape = eqx.field(
         converter=lambda x: Quantity.constructor(x, dtype=float)
     )
+    """The time-independent value of the parameter."""
+
     _: KW_ONLY
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
@@ -126,7 +128,7 @@ class ConstantParameter(AbstractParameter):
         Array[float, "*shape"]
             The constant parameter value.
         """
-        return xp.broadcast_to(self.value, t.shape)
+        return expand_batch_dims(self.value, t.ndim)
 
     # -------------------------------------------
 

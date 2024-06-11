@@ -6,6 +6,7 @@ from functools import singledispatch
 from typing import TypeVar
 
 import gala.potential as gp
+import jax.numpy as jnp
 from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
 from packaging.version import Version
 
@@ -466,6 +467,45 @@ def _gala_to_galax_logarithmic(
             v_c=params["v_c"], r_s=params["r_h"], units=gala.units
         )
 
+    return _apply_frame(_get_frame(gala), pot)
+
+
+# -----------------------------------------------------------------------------
+# Multipole potentials
+
+
+@gala_to_galax.register
+def _gala_to_galax_multipole(
+    gala: gp.MultipolePotential, /
+) -> gpx.MultipoleInnerPotential | gpx.MultipoleOuterPotential | gpx.PotentialFrame:
+    params = gala.parameters
+    cls = (
+        gpx.MultipoleInnerPotential
+        if params["inner"] == 1
+        else gpx.MultipoleOuterPotential
+    )
+
+    l_max = gala._lmax  # noqa: SLF001
+    Slm = jnp.zeros((l_max + 1, l_max + 1), dtype=float)
+    Tlm = jnp.zeros_like(Slm)
+
+    for l, m in zip(*jnp.tril_indices(l_max + 1), strict=True):
+        skey = f"S{l}{m}"
+        if skey in params:
+            Slm = Slm.at[l, m].set(params[skey])
+
+        tkey = f"T{l}{m}"
+        if tkey in params:
+            Tlm = Tlm.at[l, m].set(params[tkey])
+
+    pot = cls(
+        m_tot=params["m"],
+        r_s=params["r_s"],
+        l_max=l_max,
+        Slm=Slm,
+        Tlm=Tlm,
+        units=gala.units,
+    )
     return _apply_frame(_get_frame(gala), pot)
 
 

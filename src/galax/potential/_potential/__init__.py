@@ -30,6 +30,11 @@ __all__ = [
     # logarithmic
     "LogarithmicPotential",
     "LMJ09LogarithmicPotential",
+    # multipole
+    "AbstractMultipolePotential",
+    "MultipoleInnerPotential",
+    "MultipoleOuterPotential",
+    "MultipolePotential",
     # nfw
     "NFWPotential",
     "LeeSutoTriaxialNFWPotential",
@@ -82,6 +87,12 @@ from .builtin.builtin import (
 from .builtin.logarithmic import (
     LMJ09LogarithmicPotential,
     LogarithmicPotential,
+)
+from .builtin.multipole import (
+    AbstractMultipolePotential,
+    MultipoleInnerPotential,
+    MultipoleOuterPotential,
+    MultipolePotential,
 )
 from .builtin.nfw import (
     LeeSutoTriaxialNFWPotential,

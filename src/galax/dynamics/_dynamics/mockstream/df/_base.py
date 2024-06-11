@@ -16,11 +16,12 @@ import coordinax as cx
 import quaxed.array_api as xp
 from unxt import Quantity
 
+import galax.coordinates as gc
+import galax.potential as gp
 import galax.typing as gt
 from ._progenitor import ConstantMassProtenitor, ProgenitorMassCallable
-from galax.dynamics._dynamics.mockstream.core import MockStream, MockStreamArm
+from galax.dynamics._dynamics.mockstream.core import MockStreamArm
 from galax.dynamics._dynamics.orbit import Orbit
-from galax.potential import AbstractPotentialBase
 
 Carry: TypeAlias = tuple[gt.LengthVec3, gt.SpeedVec3, gt.LengthVec3, gt.SpeedVec3]
 
@@ -33,21 +34,21 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         self,
         rng: PRNGKeyArray,
         # <\ parts of gala's ``prog_orbit``
-        pot: AbstractPotentialBase,
+        pot: gp.AbstractPotentialBase,
         prog_orbit: Orbit,
         # />
         /,
         prog_mass: gt.MassScalar | ProgenitorMassCallable,
-    ) -> MockStream:
+    ) -> gc.CompositePhaseSpacePosition:
         """Generate stream particle initial conditions.
 
         Parameters
         ----------
-        rng : :class:`jaxtyping.PRNGKeyArray`
+        rng : :class:`jaxtyping.PRNGKeyArray`, positional-only
             Pseudo-random number generator.
-        pot : AbstractPotentialBase, positional-only
+        pot : :class:`~galax.potential.AbstractPotentialBase`, positional-only
             The potential of the host galaxy.
-        prog_orbit : Orbit, positional-only
+        prog_orbit : :class:`~galax.dynamics.Orbit`, positional-only
             The orbit of the progenitor.
 
         prog_mass : Quantity[float, (), 'mass'] | ProgenitorMassCallable
@@ -55,7 +56,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         Returns
         -------
-        `galax.dynamics.MockStream`
+        `galax.coordinates.CompositePhaseSpacePosition`
             Phase-space positions of the leading and trailing arms.
 
         Examples
@@ -120,14 +121,14 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             release_time=ts.to_units(pot.units["time"]),
         )
 
-        return MockStream(lead=mock_lead, trail=mock_trail)
+        return gc.CompositePhaseSpacePosition(lead=mock_lead, trail=mock_trail)
 
     # TODO: keep units and PSP through this func
     @abc.abstractmethod
     def _sample(
         self,
         rng: PRNGKeyArray,
-        pot: AbstractPotentialBase,
+        pot: gp.AbstractPotentialBase,
         x: gt.LengthVec3,
         v: gt.SpeedVec3,
         prog_mass: gt.FloatQScalar,
@@ -141,7 +142,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         ----------
         rng : :class:`jaxtyping.PRNGKeyArray`
             Pseudo-random number generator.
-        pot : AbstractPotentialBase
+        pot : :class:`galax.potential.AbstractPotentialBase`
             The potential of the host galaxy.
         x : Quantity[float, (3,), "length"]
             3d position (x, y, z)

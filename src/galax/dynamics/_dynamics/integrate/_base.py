@@ -9,7 +9,7 @@ from unxt import AbstractUnitSystem
 
 import galax.coordinates as gc
 import galax.typing as gt
-from ._api import FCallable
+from ._api import VectorField
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -28,7 +28,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     @abc.abstractmethod
     def __call__(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
@@ -44,7 +44,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
 
         Parameters
         ----------
-        F : FCallable, positional-only
+        F : VectorField, positional-only
             The function to integrate.
         w0 : AbstractPhaseSpacePosition | Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.

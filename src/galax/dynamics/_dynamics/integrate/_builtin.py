@@ -19,7 +19,7 @@ from unxt import AbstractUnitSystem, Quantity, to_units_value, unitsystem
 
 import galax.coordinates as gc
 import galax.typing as gt
-from ._api import FCallable, SaveT
+from ._api import SaveT, VectorField
 from ._base import AbstractIntegrator
 from galax.utils import ImmutableDict
 
@@ -125,7 +125,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     @partial(eqx.filter_jit)
     def _call_implementation(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gt.BatchVec6,
         t0: gt.FloatScalar,
         t1: gt.FloatScalar,
@@ -172,7 +172,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     @overload
     def __call__(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
@@ -186,7 +186,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     @overload
     def __call__(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
@@ -199,7 +199,7 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     def __call__(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
@@ -213,7 +213,7 @@ class DiffraxIntegrator(AbstractIntegrator):
 
         Parameters
         ----------
-        F : FCallable, positional-only
+        F : VectorField, positional-only
             The function to integrate.
         w0 : AbstractPhaseSpacePosition | Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
@@ -303,7 +303,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         A cool feature of the integrator is that it can return an interpolated
         solution.
 
-        >>> w = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic,
+        >>> w = integrator(pot._integrator_F, w0, t0, t1, saveat=ts, units=usx.galactic,
         ...                interpolated=True)
         >>> type(w)
         <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>

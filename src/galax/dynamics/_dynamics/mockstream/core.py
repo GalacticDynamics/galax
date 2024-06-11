@@ -25,7 +25,6 @@ from galax.coordinates._psp.utils import (
     _p_converter,
     _q_converter,
     getitem_vec1time_index,
-    interleave_concat,
 )
 from galax.utils._shape import batched_shape, vector_batched_shape
 
@@ -111,10 +110,10 @@ class MockStream(AbstractCompositePhaseSpacePosition):
     @property
     def q(self) -> cx.AbstractPosition3D:
         """Positions."""
-        # TODO: interleave by time
         # TODO: get AbstractPosition to work with `stack` directly
         return jtu.tree_map(
-            lambda *x: interleave_concat(x, axis=-1), *(x.q for x in self.values())
+            lambda *x: xp.concat(x, axis=-1)[..., self._time_sorter],
+            *(x.q for x in self.values()),
         )
 
     @property

@@ -2,46 +2,15 @@
 
 __all__: list[str] = []
 
-from collections.abc import Sequence
-from functools import partial, singledispatch
+from functools import singledispatch
 from typing import Any, Protocol, cast, runtime_checkable
 
 import astropy.coordinates as apyc
-import jax
-from jaxtyping import Array, Shaped
 
 import coordinax as cx
 import quaxed.array_api as xp
-from unxt import Quantity
 
 import galax.typing as gt
-
-
-@partial(jax.jit, static_argnames="axis")
-def interleave_concat(
-    arrays: Sequence[Shaped[Array, "shape"]] | Sequence[Shaped[Quantity, "shape"]],
-    /,
-    axis: int,
-) -> Shaped[Array, "..."] | Shaped[Quantity, "..."]:  # TODO: shape hint
-    # Check if input is a non-empty list
-    if not arrays or not isinstance(arrays, Sequence):
-        msg = "Input should be a non-empty sequence of arrays."
-        raise ValueError(msg)
-
-    # Ensure all arrays have the same shape
-    shape0 = arrays[0].shape
-    if not all(arr.shape == shape0 for arr in arrays):
-        msg = "All arrays must have the same shape."
-        raise ValueError(msg)
-
-    # Stack the arrays along a new axis to prepare for interleaving
-    axis = axis % len(shape0)  # allows for negative axis
-    stacked = xp.stack(arrays, axis=axis + 1)
-
-    # Flatten the new axis by interleaving values
-    return xp.reshape(
-        stacked, (*shape0[:axis], len(arrays) * shape0[axis], *shape0[axis + 1 :])
-    )
 
 
 @runtime_checkable

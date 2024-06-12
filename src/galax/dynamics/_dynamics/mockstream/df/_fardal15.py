@@ -144,7 +144,7 @@ def dphidr(
 @partial(jax.jit)
 @partial(qnp.vectorize, excluded=(0,), signature="(3),()->()")
 def d2phidr2(
-    potential: gp.AbstractPotentialBase, x: gt.LengthVec3, /, t: gt.TimeScalar
+    potential: gp.AbstractPotentialBase, x: gt.LengthVec3, t: gt.TimeScalar, /
 ) -> Shaped[Quantity["1/s^2"], ""]:
     """Compute the second derivative of the potential.
 
@@ -170,7 +170,7 @@ def d2phidr2(
     >>> from galax.potential import NFWPotential
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
     >>> q = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> d2phidr2(pot, q, t=Quantity(0.0, "Myr"))
+    >>> d2phidr2(pot, q, Quantity(0.0, "Myr"))
     Quantity['1'](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
     """
     rhat = r_hat(x)

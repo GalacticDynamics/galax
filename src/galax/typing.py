@@ -134,3 +134,4 @@ LengthBroadBatchVec3 = Shaped[LengthVec3, "*#batch"]
 
 SpeedVec3: TypeAlias = Shaped[Quantity["speed"], "3"]
 SpeedBatchVec3: TypeAlias = Shaped[SpeedVec3, "*batch"]
+SpeedBroadBatchVec3: TypeAlias = Shaped[SpeedVec3, "*#batch"]

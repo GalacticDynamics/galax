@@ -1,15 +1,19 @@
 __all__ = ["AbstractIntegrator"]
 
 import abc
-from typing import Literal
+from typing import Any, Literal, TypeVar
 
 import equinox as eqx
+from plum import overload
 
-from unxt import AbstractUnitSystem
+import quaxed.array_api as xp
+from unxt import AbstractUnitSystem, Quantity, to_units_value
 
 import galax.coordinates as gc
 import galax.typing as gt
-from ._api import VectorField
+from ._api import SaveT, VectorField
+
+Interp = TypeVar("Interp")
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -24,8 +28,66 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     motion.  They must not be stateful since they are used in a functional way.
     """
 
-    # TODO: shape hint of the return type
+    InterpolantClass: eqx.AbstractClassVar[type[gc.PhaseSpacePositionInterpolant]]
+
     @abc.abstractmethod
+    def _call_implementation(
+        self,
+        F: VectorField,
+        w0: gt.BatchVec6,
+        t0: gt.FloatScalar,
+        t1: gt.FloatScalar,
+        ts: gt.BatchVecTime,
+        /,
+        interpolated: Literal[False, True],
+    ) -> tuple[gt.BatchVecTime7, Any | None]:  # TODO: type hint Interpolant
+        """Integrator implementation."""
+        ...
+
+    def _process_interpolation(
+        self, interp: Interp, w0: gt.BatchVec6
+    ) -> tuple[Interp, int]:
+        """Process the interpolation.
+
+        This is the default implementation and will probably need to be
+        overridden in a subclass.
+        """
+        # Determine if an extra dimension was added to the output
+        added_ndim = int(w0.shape[:-1] in ((), (1,)))
+        # Return the interpolation and the number of added dimensions
+        return interp, added_ndim
+
+    # ------------------------------------------------------------------------
+
+    @overload
+    def __call__(
+        self,
+        F: VectorField,
+        w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
+        t0: gt.FloatQScalar | gt.FloatScalar,
+        t1: gt.FloatQScalar | gt.FloatScalar,
+        /,
+        saveat: SaveT | None = None,
+        *,
+        units: AbstractUnitSystem,
+        interpolated: Literal[False] = False,
+    ) -> gc.PhaseSpacePosition: ...
+
+    @overload
+    def __call__(
+        self,
+        F: VectorField,
+        w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
+        t0: gt.FloatQScalar | gt.FloatScalar,
+        t1: gt.FloatQScalar | gt.FloatScalar,
+        /,
+        saveat: SaveT | None = None,
+        *,
+        units: AbstractUnitSystem,
+        interpolated: Literal[True],
+    ) -> gc.InterpolatedPhaseSpacePosition: ...
+
+    # TODO: shape hint of the return type
     def __call__(
         self,
         F: VectorField,
@@ -131,4 +193,41 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         (2,)
 
         """
-        ...
+        # Parse inputs
+        w0_: gt.Vec6 = (
+            w0.w(units=units) if isinstance(w0, gc.AbstractPhaseSpacePosition) else w0
+        )
+        t0_: gt.VecTime = to_units_value(t0, units["time"])
+        t1_: gt.VecTime = to_units_value(t1, units["time"])
+        # Either save at `saveat` or at the final time. The final time is
+        # a scalar and the saveat is a vector, so a dimension is added.
+        saveat_ = (
+            xp.asarray([t1_])
+            if saveat is None
+            else to_units_value(saveat, units["time"])
+        )
+
+        # Perform the integration
+        w, interp = self._call_implementation(F, w0_, t0_, t1_, saveat_, interpolated)
+        w = w[..., -1, :] if saveat is None else w  # get rid of added dimension
+
+        # Return
+        if interpolated:
+            interp, added_ndim = self._process_interpolation(interp, w0_)
+
+            out = gc.InterpolatedPhaseSpacePosition(  # shape = (*batch, T)
+                q=Quantity(w[..., 0:3], units["length"]),
+                p=Quantity(w[..., 3:6], units["speed"]),
+                t=Quantity(saveat_, units["time"]),
+                interpolant=self.InterpolantClass(
+                    interp, units=units, added_ndim=added_ndim
+                ),
+            )
+        else:
+            out = gc.PhaseSpacePosition(  # shape = (*batch, T)
+                q=Quantity(w[..., 0:3], units["length"]),
+                p=Quantity(w[..., 3:6], units["speed"]),
+                t=Quantity(w[..., -1], units["time"]),
+            )
+
+        return out

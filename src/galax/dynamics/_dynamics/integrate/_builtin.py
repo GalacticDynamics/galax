@@ -19,7 +19,7 @@ from unxt import AbstractUnitSystem, Quantity, to_units_value, unitsystem
 
 import galax.coordinates as gc
 import galax.typing as gt
-from ._api import FCallable, SaveT
+from ._api import SaveT, VectorField
 from ._base import AbstractIntegrator
 from galax.utils import ImmutableDict
 
@@ -125,7 +125,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     @partial(eqx.filter_jit)
     def _call_implementation(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gt.BatchVec6,
         t0: gt.FloatScalar,
         t1: gt.FloatScalar,
@@ -172,12 +172,12 @@ class DiffraxIntegrator(AbstractIntegrator):
     @overload
     def __call__(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: SaveT | None = None,
+        saveat: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
         interpolated: Literal[False] = False,
@@ -186,12 +186,12 @@ class DiffraxIntegrator(AbstractIntegrator):
     @overload
     def __call__(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: SaveT | None = None,
+        saveat: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
         interpolated: Literal[True],
@@ -199,12 +199,12 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     def __call__(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: SaveT | None = None,
+        saveat: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
@@ -213,14 +213,14 @@ class DiffraxIntegrator(AbstractIntegrator):
 
         Parameters
         ----------
-        F : FCallable, positional-only
+        F : VectorField, positional-only
             The function to integrate.
         w0 : AbstractPhaseSpacePosition | Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
         t0, t1 : Quantity, positional-only
             Initial and final times.
 
-        savet : (Quantity | Array)[float, (T,)] | None, optional
+        saveat : (Quantity | Array)[float, (T,)] | None, optional
             Times to return the computation.  If `None`, the computation is
             returned only at the final time.
 
@@ -276,10 +276,11 @@ class DiffraxIntegrator(AbstractIntegrator):
         ()
 
         Instead of just returning the final position, we can get the state of
-        the system at any times ``savet``:
+        the system at any times ``saveat``:
 
         >>> ts = Quantity(xp.linspace(0, 1, 10), "Gyr")  # 10 steps
-        >>> ws = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic)
+        >>> ws = integrator(pot._integrator_F, w0, t0, t1,
+        ...                 saveat=ts, units=usx.galactic)
         >>> ws
         PhaseSpacePosition(
             q=CartesianPosition3D( ... ),
@@ -303,7 +304,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         A cool feature of the integrator is that it can return an interpolated
         solution.
 
-        >>> w = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic,
+        >>> w = integrator(pot._integrator_F, w0, t0, t1, saveat=ts, units=usx.galactic,
         ...                interpolated=True)
         >>> type(w)
         <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
@@ -350,13 +351,15 @@ class DiffraxIntegrator(AbstractIntegrator):
         )
         t0_: gt.VecTime = to_units_value(t0, units["time"])
         t1_: gt.VecTime = to_units_value(t1, units["time"])
-        savet_ = (
-            xp.asarray([t1_]) if savet is None else to_units_value(savet, units["time"])
+        saveat_ = (
+            xp.asarray([t1_])
+            if saveat is None
+            else to_units_value(saveat, units["time"])
         )
 
         # Perform the integration
-        w, interp = self._call_implementation(F, w0_, t0_, t1_, savet_, interpolated)
-        w = w[..., -1, :] if savet is None else w  # TODO: undo this
+        w, interp = self._call_implementation(F, w0_, t0_, t1_, saveat_, interpolated)
+        w = w[..., -1, :] if saveat is None else w  # TODO: undo this
 
         # Return
         if interpolated:
@@ -372,7 +375,7 @@ class DiffraxIntegrator(AbstractIntegrator):
             out = gc.InterpolatedPhaseSpacePosition(  # shape = (*batch, T)
                 q=Quantity(w[..., 0:3], units["length"]),
                 p=Quantity(w[..., 3:6], units["speed"]),
-                t=Quantity(savet_, units["time"]),
+                t=Quantity(saveat_, units["time"]),
                 interpolant=DiffraxInterpolant(
                     interp, units=units, added_ndim=added_ndim
                 ),

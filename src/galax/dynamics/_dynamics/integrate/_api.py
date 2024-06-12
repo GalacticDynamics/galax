@@ -1,4 +1,4 @@
-__all__ = ["Integrator"]
+__all__ = ["VectorField", "Integrator"]
 
 from typing import Any, Literal, Protocol, TypeAlias, runtime_checkable
 
@@ -12,7 +12,7 @@ SaveT: TypeAlias = gt.BatchQVecTime | gt.QVecTime | gt.BatchVecTime | gt.VecTime
 
 
 @runtime_checkable
-class FCallable(Protocol):
+class VectorField(Protocol):
     """Protocol for the integration callable."""
 
     def __call__(self, t: gt.FloatScalar, w: gt.Vec6, args: tuple[Any, ...]) -> gt.Vec6:
@@ -51,12 +51,12 @@ class Integrator(_DataclassInstance, Protocol):
     # TODO: shape hint of the return type
     def __call__(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: SaveT | None = None,
+        saveat: SaveT | None = None,
         *,
         units: AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
@@ -65,7 +65,7 @@ class Integrator(_DataclassInstance, Protocol):
 
         Parameters
         ----------
-        F : FCallable, positional-only
+        F : `galax.dynamics.integrate.VectorField`, positional-only
             The function to integrate.
             (t, w, args) -> (v, a).
         w0 : AbstractPhaseSpacePosition | Array[float, (6,)], positional-only
@@ -73,7 +73,7 @@ class Integrator(_DataclassInstance, Protocol):
         t0, t1 : Quantity, positional-only
             Initial and final times.
 
-        savet : (Quantity | Array)[float, (T,)] | None, optional
+        saveat : (Quantity | Array)[float, (T,)] | None, optional
             Times to return the computation.
             If `None`, the solution is returned at the final time.
 

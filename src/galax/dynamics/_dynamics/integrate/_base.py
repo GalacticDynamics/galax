@@ -9,7 +9,7 @@ from unxt import AbstractUnitSystem
 
 import galax.coordinates as gc
 import galax.typing as gt
-from ._api import FCallable
+from ._api import VectorField
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -28,12 +28,12 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
     @abc.abstractmethod
     def __call__(
         self,
-        F: FCallable,
+        F: VectorField,
         w0: gc.AbstractPhaseSpacePosition | gt.BatchVec6,
         t0: gt.FloatQScalar | gt.FloatScalar,
         t1: gt.FloatQScalar | gt.FloatScalar,
         /,
-        savet: (
+        saveat: (
             gt.BatchQVecTime | gt.BatchVecTime | gt.QVecTime | gt.VecTime | None
         ) = None,
         *,
@@ -44,14 +44,14 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
 
         Parameters
         ----------
-        F : FCallable, positional-only
+        F : VectorField, positional-only
             The function to integrate.
         w0 : AbstractPhaseSpacePosition | Array[float, (6,)], positional-only
             Initial conditions ``[q, p]``.
         t0, t1 : Quantity, positional-only
             Initial and final times.
 
-        savet : (Quantity | Array)[float, (T,)] | None, optional
+        saveat : (Quantity | Array)[float, (T,)] | None, optional
             Times to return the computation.  If `None`, the computation is
             returned only at the final time.
 
@@ -109,7 +109,8 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         We can also request the orbit at specific times:
 
         >>> ts = Quantity(xp.linspace(0, 1, 10), "Myr")  # 10 steps
-        >>> ws = integrator(pot._integrator_F, w0, t0, t1, savet=ts, units=usx.galactic)
+        >>> ws = integrator(pot._integrator_F, w0, t0, t1,
+        ...                 saveat=ts, units=usx.galactic)
         >>> ws
         PhaseSpacePosition(
             q=CartesianPosition3D( ... ),

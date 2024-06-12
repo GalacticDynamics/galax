@@ -15,9 +15,9 @@ import quaxed.numpy as qnp
 from unxt import Quantity
 from unxt.experimental import grad
 
+import galax.potential as gp
 import galax.typing as gt
 from ._base import AbstractStreamDF
-from galax.potential import AbstractPotentialBase
 
 # ============================================================
 # Constants
@@ -28,8 +28,8 @@ kvphi_bar = 0.3
 kz_bar = 0.0
 kvz_bar = 0.0
 
-sigma_kr = 0.5
-sigma_kvphi = 0.5
+sigma_kr = 0.5  # TODO: use actual Fardal values
+sigma_kvphi = 0.5  # TODO: use actual Fardal values
 sigma_kz = 0.5
 sigma_kvz = 0.5
 
@@ -49,38 +49,41 @@ class FardalStreamDF(AbstractStreamDF):
     def _sample(
         self,
         key: PRNGKeyArray,
-        potential: AbstractPotentialBase,
-        x: gt.LengthVec3,
-        v: gt.SpeedVec3,
-        prog_mass: gt.FloatQScalar,
-        t: gt.FloatQScalar,
-    ) -> tuple[gt.LengthVec3, gt.SpeedVec3, gt.LengthVec3, gt.SpeedVec3]:
+        potential: gp.AbstractPotentialBase,
+        x: gt.LengthBroadBatchVec3,
+        v: gt.SpeedBroadBatchVec3,
+        prog_mass: gt.BroadBatchFloatQScalar,
+        t: gt.BroadBatchFloatQScalar,
+    ) -> tuple[
+        gt.LengthBatchVec3, gt.SpeedBatchVec3, gt.LengthBatchVec3, gt.SpeedBatchVec3
+    ]:
         """Generate stream particle initial conditions."""
         # Random number generation
         key1, key2, key3, key4 = jr.split(key, 4)
 
-        omega_val = orbital_angular_velocity_mag(x, v)
+        omega_val = orbital_angular_velocity_mag(x, v)[..., None]
 
         # r-hat
-        r = xp.linalg.vector_norm(x, axis=-1)
+        r = xp.linalg.vector_norm(x, axis=-1, keepdims=True)
         r_hat = x / r
 
-        r_tidal = tidal_radius(potential, x, v, prog_mass, t)
+        r_tidal = tidal_radius(potential, x, v, prog_mass, t)[..., None]
         v_circ = omega_val * r_tidal  # relative velocity
 
         # z-hat
         L_vec = qnp.cross(x, v)
-        z_hat = L_vec / xp.linalg.vector_norm(L_vec, axis=-1)
+        z_hat = L_vec / xp.linalg.vector_norm(L_vec, axis=-1, keepdims=True)
 
         # phi-hat
-        phi_vec = v - xp.sum(v * r_hat) * r_hat
-        phi_hat = phi_vec / xp.linalg.vector_norm(phi_vec, axis=-1)
+        phi_vec = v - xp.sum(v * r_hat, axis=-1, keepdims=True) * r_hat
+        phi_hat = phi_vec / xp.linalg.vector_norm(phi_vec, axis=-1, keepdims=True)
 
         # k vals
-        kr_samp = kr_bar + jr.normal(key1, (1,)) * sigma_kr
-        kvphi_samp = kr_samp * (kvphi_bar + jr.normal(key2, (1,)) * sigma_kvphi)
-        kz_samp = kz_bar + jr.normal(key3, (1,)) * sigma_kz
-        kvz_samp = kvz_bar + jr.normal(key4, (1,)) * sigma_kvz
+        shape = r_tidal.shape
+        kr_samp = kr_bar + jr.normal(key1, shape) * sigma_kr
+        kvphi_samp = kr_samp * (kvphi_bar + jr.normal(key2, shape) * sigma_kvphi)
+        kz_samp = kz_bar + jr.normal(key3, shape) * sigma_kz
+        kvz_samp = kvz_bar + jr.normal(key4, shape) * sigma_kvz
 
         # Trailing arm
         x_trail = x + r_tidal * (kr_samp * r_hat + kz_samp * z_hat)
@@ -115,7 +118,7 @@ def r_hat(x: gt.LengthBatchVec3, /) -> Shaped[Quantity[""], "*batch 3"]:
 
 @partial(jax.jit, inline=True)
 def dphidr(
-    potential: AbstractPotentialBase,
+    potential: gp.AbstractPotentialBase,
     x: gt.LengthBatchVec3,
     t: Shaped[Quantity["time"], ""],
 ) -> Shaped[Quantity["acceleration"], "*batch"]:
@@ -123,7 +126,7 @@ def dphidr(
 
     Parameters
     ----------
-    potential: AbstractPotentialBase
+    potential : `galax.potential.AbstractPotentialBase`
         The gravitational potential.
     x: Quantity[float, (3,), 'length']
         3d position (x, y, z)
@@ -139,8 +142,9 @@ def dphidr(
 
 
 @partial(jax.jit)
+@partial(qnp.vectorize, excluded=(0,), signature="(3),()->()")
 def d2phidr2(
-    potential: AbstractPotentialBase, x: gt.LengthVec3, /, t: gt.TimeScalar
+    potential: gp.AbstractPotentialBase, x: gt.LengthVec3, /, t: gt.TimeScalar
 ) -> Shaped[Quantity["1/s^2"], ""]:
     """Compute the second derivative of the potential.
 
@@ -148,7 +152,7 @@ def d2phidr2(
 
     Parameters
     ----------
-    potential: AbstractPotentialBase
+    potential : `galax.potential.AbstractPotentialBase`
         The gravitational potential.
     x: Quantity[Any, (3,), 'length']
         3d position (x, y, z) in [kpc]
@@ -234,7 +238,7 @@ def orbital_angular_velocity_mag(
 
 @partial(jax.jit)
 def tidal_radius(
-    potential: AbstractPotentialBase,
+    potential: gp.AbstractPotentialBase,
     x: gt.LengthVec3,
     v: gt.SpeedVec3,
     /,
@@ -245,7 +249,7 @@ def tidal_radius(
 
     Parameters
     ----------
-    potential: AbstractPotentialBase
+    potential : `galax.potential.AbstractPotentialBase`
         The gravitational potential of the host.
     x: Quantity[float, (3,), "length"]
         3d position (x, y, z).
@@ -283,7 +287,7 @@ def tidal_radius(
 
 @partial(jax.jit)
 def lagrange_points(
-    potential: AbstractPotentialBase,
+    potential: gp.AbstractPotentialBase,
     x: gt.LengthVec3,
     v: gt.SpeedVec3,
     prog_mass: gt.MassScalar,
@@ -293,7 +297,7 @@ def lagrange_points(
 
     Parameters
     ----------
-    potential: AbstractPotentialBase
+    potential : `galax.potential.AbstractPotentialBase`
         The gravitational potential of the host.
     x: Quantity[float, (3,), "length"]
         3d position (x, y, z)

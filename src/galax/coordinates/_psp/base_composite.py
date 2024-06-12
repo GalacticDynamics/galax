@@ -50,6 +50,9 @@ class AbstractCompositePhaseSpacePosition(
 
     Examples
     --------
+    For this example we will use
+    `galax.coordinates.CompositePhaseSpacePosition`.
+
     >>> from dataclasses import replace
     >>> import quaxed.array_api as xp
     >>> from unxt import Quantity
@@ -61,19 +64,6 @@ class AbstractCompositePhaseSpacePosition(
     ...             for k in vs[0].components}
     ...    return replace(vs[0], **comps)
 
-    >>> class CompositePhaseSpacePosition(gc.AbstractCompositePhaseSpacePosition):
-    ...     @property
-    ...     def q(self) -> cx.AbstractPosition3D:
-    ...         return stack([psp.q for psp in self.values()])
-    ...
-    ...     @property
-    ...     def p(self) -> cx.AbstractPosition3D:
-    ...         return stack([psp.p for psp in self.values()])
-    ...
-    ...     @property
-    ...     def t(self) -> Shaped[Quantity["time"], "..."]:
-    ...         return stack([psp.t for psp in self.values()])
-
     >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                              p=Quantity([4, 5, 6], "km/s"),
     ...                              t=Quantity(7, "Myr"))
@@ -81,7 +71,7 @@ class AbstractCompositePhaseSpacePosition(
     ...                              p=Quantity([40, 50, 60], "km/s"),
     ...                              t=Quantity(7, "Myr"))
 
-    >>> c_psp = CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
+    >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
     >>> c_psp["psp1"] is psp1
     True
 
@@ -94,6 +84,15 @@ class AbstractCompositePhaseSpacePosition(
 
     >>> c_psp.p.d_x
     Quantity['speed'](Array([ 4., 40.], dtype=float64), unit='km / s')
+
+    Note that the length of the individual components are 0, but the length of
+    the composite is the sum of the lengths of the components.
+
+    >>> len(psp1)
+    0
+
+    >>> len(c_psp)
+    2
     """
 
     _data: dict[str, AbstractBasePhaseSpacePosition]
@@ -144,6 +143,11 @@ class AbstractCompositePhaseSpacePosition(
         batch_shape = (*batch_shape[:-1], len(self) * batch_shape[-1])
         shape = zeroth(self.values())._shape_tuple[1]  # noqa: SLF001
         return batch_shape, shape
+
+    def __len__(self) -> int:
+        # Length is the sum of the lengths of the components.
+        # For length-0 components, we assume a length of 1.
+        return sum([len(w) or 1 for w in self.values()])
 
     # ==========================================================================
     # Convenience methods

@@ -16,9 +16,11 @@ import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.typing as gt
+from .base import ComponentShapeTuple as BaseComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractPhaseSpacePosition
 from .utils import _p_converter, _q_converter
+from galax.utils._misc import zeroth
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
 
 
@@ -34,8 +36,15 @@ class ComponentShapeTuple(NamedTuple):
     t: int | None
     """Shape of the time."""
 
+    @classmethod
+    def from_basecomponentshapetuple(
+        cls, obj: BaseComponentShapeTuple, /
+    ) -> "ComponentShapeTuple":
+        """Create from a base component shape tuple."""
+        return cls(q=obj.q, p=obj.p, t=obj.t)
 
-def _converter_t(x: Any) -> gt.BroadBatchFloatQScalar | gt.FloatQScalar | None:
+
+def _converter_t(x: Any) -> gt.BatchableFloatQScalar | gt.FloatQScalar | None:
     """Convert `t` to Quantity."""
     return Quantity["time"].constructor(x, dtype=float) if x is not None else None
 
@@ -126,7 +135,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.BroadBatchFloatQScalar | gt.FloatQScalar | None = eqx.field(
+    t: gt.BatchableFloatQScalar | gt.FloatQScalar | None = eqx.field(
         default=None, converter=_converter_t
     )
     """The time corresponding to the positions.
@@ -280,6 +289,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     """
 
     _time_sorter: Shaped[Array, "alltimes"]
+    _time_are_none: bool
 
     def __init__(
         self,
@@ -293,7 +303,20 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         # TODO: check up on the shapes
 
         # Construct time sorter
-        ts = xp.concat([jnp.atleast_1d(psp.t) for psp in self.values()], axis=0)
+        # Either all the times are `None` or real times
+        tisnone = [psp.t is None for psp in self.values()]
+        if not any(tisnone):
+            ts = xp.concat([jnp.atleast_1d(w.t) for w in self.values()], axis=0)
+            self._time_are_none = False
+        elif all(tisnone):
+            # Makes a `arange` counting up the length of each psp. For sorting,
+            # 0-length psps become length 1.
+            ts = jnp.cumsum(jnp.concat([jnp.ones(len(w) or 1) for w in self.values()]))
+            self._time_are_none = True
+        else:
+            msg = "All times must be None or real times."
+            raise ValueError(msg)
+
         self._time_sorter = xp.argsort(ts)
 
     @property
@@ -309,8 +332,26 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         return _concat((x.p for x in self.values()), self._time_sorter)
 
     @property
-    def t(self) -> Shaped[Quantity["time"], "..."]:
+    def t(self) -> Shaped[Quantity["time"], "..."] | list[None]:
         """Times."""
+        if self._time_are_none:
+            return [None] * len(self._time_sorter)
+
         return xp.concat([jnp.atleast_1d(psp.t) for psp in self.values()], axis=0)[
             self._time_sorter
         ]
+
+    # ==========================================================================
+    # Array properties
+
+    @override
+    @property
+    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:  # type: ignore[override]
+        """Batch and component shapes."""
+        batch_shape = jnp.broadcast_shapes(*[psp.shape for psp in self.values()])
+        if not batch_shape:
+            batch_shape = (len(self),)
+        else:
+            batch_shape = (*batch_shape[:-1], len(self) * batch_shape[-1])
+        shape = zeroth(self.values())._shape_tuple[1]  # noqa: SLF001
+        return batch_shape, ComponentShapeTuple.from_basecomponentshapetuple(shape)

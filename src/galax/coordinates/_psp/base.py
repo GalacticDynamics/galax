@@ -53,7 +53,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     p: eqx.AbstractVar[cx.AbstractVelocity3D]
     """Conjugate momenta at positions ``q``."""
 
-    t: eqx.AbstractVar[gt.BroadBatchFloatQScalar]
+    t: eqx.AbstractVar[gt.BatchableFloatQScalar]
     """Time corresponding to the positions and momenta."""
 
     # ---------------------------------------------------------------
@@ -146,21 +146,18 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         Examples
         --------
-        We assume the following imports:
+        We require the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> import coordinax as cx
+        >>> import galax.coordinates as gc
 
         We can create a phase-space position:
 
-        >>> q = CartesianPosition3D(x=Quantity(1, "kpc"), y=Quantity(2, "kpc"),
-        ...                       z=Quantity(3, "kpc"))
-        >>> p = CartesianVelocity3D(d_x=Quantity(4, "km/s"),
-        ...                             d_y=Quantity(5, "km/s"),
-        ...                             d_z=Quantity(6, "km/s"))
+        >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+        >>> p = cx.CartesianVelocity3D.constructor(Quantity([4, 5, 6], "km/s"))
         >>> t = Quantity(0, "Gyr")
-        >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
+        >>> pos = gc.PhaseSpacePosition(q=q, p=p, t=t)
 
         We can access the shape of the position and velocity arrays:
 
@@ -169,8 +166,9 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         For a batch of phase-space positions, the shape will be non-empty:
 
-        >>> q = CartesianPosition3D(x=Quantity([1, 4], "kpc"), y=Quantity(2, "kpc"),
-        ...                       z=Quantity(3, "kpc"))
+        >>> q = cx.CartesianPosition3D(x=Quantity([1, 4], "kpc"),
+        ...                            y=Quantity(2, "kpc"),
+        ...                            z=Quantity(3, "kpc"))
         >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
         >>> pos.shape
         (2,)
@@ -183,8 +181,35 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         return len(self.shape)
 
     def __len__(self) -> int:
-        """Return the number of particles."""
-        return self.shape[0]
+        """Return the length of the leading batch dimension.
+
+        Examples
+        --------
+        We require the following imports:
+
+        >>> from unxt import Quantity
+        >>> import coordinax as cx
+        >>> import galax.coordinates as gc
+
+        We can create a phase-space position:
+
+        >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+        >>> p = cx.CartesianVelocity3D.constructor(Quantity([4, 5, 6], "km/s"))
+        >>> t = Quantity(0, "Gyr")
+        >>> pos = gc.PhaseSpacePosition(q=q, p=p, t=t)
+        >>> len(pos)
+        0
+
+        For a batch of phase-space positions, the length will be non-zero:
+
+        >>> q = cx.CartesianPosition3D(x=Quantity([1, 4], "kpc"),
+        ...                            y=Quantity(2, "kpc"),
+        ...                            z=Quantity(3, "kpc"))
+        >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
+        >>> len(pos)
+        2
+        """
+        return self.shape[0] if self.shape else 0
 
     @abstractmethod
     def __getitem__(self, index: Any) -> "Self":
@@ -203,18 +228,14 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
+        >>> import coordinax as cx
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can create a phase-space position:
 
-        >>> q = CartesianPosition3D(x=Quantity([1], "kpc"), y=Quantity(2, "kpc"),
-        ...                       z=Quantity(3, "kpc"))
-        >>> p = CartesianVelocity3D(d_x=Quantity(4, "km/s"),
-        ...                             d_y=Quantity(5, "km/s"),
-        ...                             d_z=Quantity(6, "km/s"))
-        >>> t = Quantity(0, "Gyr")
-        >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
+        >>> pos = PhaseSpacePosition(q=Quantity([[1, 2, 3]], "kpc"),
+        ...                          p=Quantity([4, 5, 6], "km/s"),
+        ...                          t=Quantity(0, "Gyr"))
         >>> pos.full_shape
         (1, 7)
         """

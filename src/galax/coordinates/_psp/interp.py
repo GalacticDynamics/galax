@@ -61,7 +61,7 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.BroadBatchFloatQScalar | gt.QVec1 = eqx.field(
+    t: gt.BatchableFloatQScalar | gt.QVec1 = eqx.field(
         converter=Quantity["time"].constructor
     )
     """The time corresponding to the positions.

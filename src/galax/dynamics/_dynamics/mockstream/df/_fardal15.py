@@ -50,10 +50,10 @@ class FardalStreamDF(AbstractStreamDF):
         self,
         key: PRNGKeyArray,
         potential: gp.AbstractPotentialBase,
-        x: gt.LengthBroadBatchVec3,
-        v: gt.SpeedBroadBatchVec3,
-        prog_mass: gt.BroadBatchFloatQScalar,
-        t: gt.BroadBatchFloatQScalar,
+        x: gt.LengthBatchableVec3,
+        v: gt.SpeedBatchableVec3,
+        prog_mass: gt.BatchableFloatQScalar,
+        t: gt.BatchableFloatQScalar,
     ) -> tuple[
         gt.LengthBatchVec3, gt.SpeedBatchVec3, gt.LengthBatchVec3, gt.SpeedBatchVec3
     ]:

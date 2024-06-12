@@ -300,15 +300,37 @@ def lagrange_points(
     potential : `galax.potential.AbstractPotentialBase`
         The gravitational potential of the host.
     x: Quantity[float, (3,), "length"]
-        3d position (x, y, z)
+        Cartesian 3D position ($x$, $y$, $z$)
     v: Quantity[float, (3,), "speed"]
-        3d velocity (v_x, v_y, v_z)
+        Cartesian 3D velocity ($v_x$, $v_y$, $v_z$)
     prog_mass: Quantity[float, (), "mass"]
         Cluster mass.
     t: Quantity[float, (), "time"]
         Time.
-    """
-    r_hat = x / xp.linalg.vector_norm(x)
+
+    Returns
+    -------
+    L_1, L_2: Quantity[float, (3,), "length"]
+        The lagrange points L_1 and L_2.
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+
+    >>> pot = gp.MilkyWayPotential()
+    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
+    >>> v = Quantity(xp.asarray([0.0, 220.0, 0.0]), "km/s")
+    >>> prog_mass = Quantity(1e4, "Msun")
+    >>> t = Quantity(0.0, "Gyr")
+
+    >>> L1, L2 = lagrange_points(pot, x, v, prog_mass, t)
+    >>> L1
+    Quantity['length'](Array([7.97070926, 0.        , 0.        ], dtype=float64), unit='kpc')
+    >>> L2
+    Quantity['length'](Array([8.02929074, 0.        , 0.        ], dtype=float64), unit='kpc')
+    """  # noqa: E501
+    r_hat = x / xp.linalg.vector_norm(x, axis=-1, keepdims=True)
     r_t = tidal_radius(potential, x, v, prog_mass, t)
     L_1 = x - r_hat * r_t  # close
     L_2 = x + r_hat * r_t  # far

@@ -4,7 +4,7 @@ import functools
 from collections.abc import Callable, Mapping
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, ClassVar, Literal, ParamSpec, TypeVar, final
+from typing import Any, ClassVar, Literal, ParamSpec, TypeVar, final, no_type_check
 
 import diffrax
 import equinox as eqx
@@ -72,9 +72,10 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
         )
 
 
+@no_type_check  # TODO: jaxtyping doesn't respect
 def vectorize(
-    pyfunc: Callable[P, R], *, signature: str | None = None
-) -> Callable[P, R]:
+    pyfunc: "Callable[P, R]", *, signature: str | None = None
+) -> "Callable[P, R]":
     """Vectorize a function.
 
     Parameters
@@ -90,8 +91,9 @@ def vectorize(
 
     """
 
+    @no_type_check  # TODO: jaxtyping doesn't respect
     @functools.wraps(pyfunc)
-    def wrapped(*args: P.args, **__: P.kwargs) -> R:
+    def wrapped(*args: Any, **_: Any) -> R:  # TODO: P.args, P.kwargs
         vectorized_func = pyfunc
         input_core_dims, _ = _parse_gufunc_signature(signature)
         broadcast_shape, _ = _parse_input_dimensions(args, input_core_dims, "")

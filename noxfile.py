@@ -39,7 +39,7 @@ def pylint(session: nox.Session) -> None:
 @nox.session
 def tests(session: nox.Session) -> None:
     """Run the unit and regular tests."""
-    session.install(".[test]")
+    session.install("-e", ".[test]")
     os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"  # TODO: set in a better way
     session.run("pytest", *session.posargs)
 

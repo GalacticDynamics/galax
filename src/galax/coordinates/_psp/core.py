@@ -3,7 +3,7 @@
 __all__ = ["PhaseSpacePosition", "CompositePhaseSpacePosition"]
 
 from collections.abc import Iterable
-from typing import Any, NamedTuple, final
+from typing import Any, final
 
 import equinox as eqx
 import jax.tree_util as jtu
@@ -16,26 +16,14 @@ import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.typing as gt
+from .base import ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractPhaseSpacePosition
 from .utils import _p_converter, _q_converter
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
 
 
-class ComponentShapeTuple(NamedTuple):
-    """Component shape of the phase-space position."""
-
-    q: int
-    """Shape of the position."""
-
-    p: int
-    """Shape of the momentum."""
-
-    t: int | None
-    """Shape of the time."""
-
-
-def _converter_t(x: Any) -> gt.BroadBatchFloatQScalar | gt.FloatQScalar | None:
+def _converter_t(x: Any) -> gt.BatchableFloatQScalar | gt.FloatQScalar | None:
     """Convert `t` to Quantity."""
     return Quantity["time"].constructor(x, dtype=float) if x is not None else None
 
@@ -107,9 +95,9 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     :class:`~coordinax.CartesianPosition3D` or
     :class:`~coordinax.CartesianVelocity3D`, respectively.  For example,
 
-    >>> psp2 = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+    >>> w2 = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
     ...                           p=Quantity([4, 5, 6], "m/s"), t=t)
-    >>> psp2 == psp
+    >>> w2 == psp
     Array(True, dtype=bool)
 
     """
@@ -126,7 +114,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.BroadBatchFloatQScalar | gt.FloatQScalar | None = eqx.field(
+    t: gt.BatchableFloatQScalar | gt.FloatQScalar | None = eqx.field(
         default=None, converter=_converter_t
     )
     """The time corresponding to the positions.
@@ -148,13 +136,13 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     @property
     @override
-    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:  # type: ignore[override]
+    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
         tbatch: gt.Shape
         if self.t is None:
-            tbatch, tshape = (), None
+            tbatch, tshape = (), 0
         else:
             tbatch, _ = batched_shape(self.t, expect_ndim=0)
             tshape = 1
@@ -219,24 +207,24 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     constructors for Cartesian positions and velocities. To see the full
     constructor, see :class:`~galax.coordinates.PhaseSpacePosition`.
 
-    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                              p=Quantity([4, 5, 6], "m/s"),
-    ...                              t=Quantity(7.0, "s"))
-    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=Quantity(6.0, "s"))
+    >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+    ...                            p=Quantity([4, 5, 6], "m/s"),
+    ...                            t=Quantity(7.0, "s"))
+    >>> w2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
+    ...                            p=Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                            t=Quantity(6.0, "s"))
 
     We can create a composite phase-space position from these two phase-space
     positions:
 
-    >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
-    >>> cpsp
-    CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
+    >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
+    >>> cw
+    CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
         q=CartesianPosition3D( ... ),
         p=CartesianVelocity3D( ... ),
         t=Quantity...
       ),
-      'psp2': PhaseSpacePosition(
+      'w2': PhaseSpacePosition(
         q=CartesianPosition3D( ... ),
         p=CartesianVelocity3D( ... ),
         t=Quantity...
@@ -244,7 +232,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     The individual phase-space positions can be accessed via the keys:
 
-    >>> cpsp["psp1"]
+    >>> cw["w1"]
     PhaseSpacePosition(
       q=CartesianPosition3D( ... ),
       p=CartesianVelocity3D( ... ),
@@ -253,33 +241,43 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     The ``q``, ``p``, and ``t`` attributes are the concatenation of the
     constituent phase-space positions, sorted by ``t``. Note that in this
-    example, the time of ``psp2`` is earlier than ``psp1``.
+    example, the time of ``w2`` is earlier than ``w1``.
 
-    >>> cpsp.t
+    >>> cw.t
     Quantity['time'](Array([6., 7.], dtype=float64), unit='s')
 
-    >>> cpsp.q.x
+    >>> cw.q.x
     Quantity['length'](Array([1.5, 1. ], dtype=float64), unit='m')
 
-    >>> cpsp.p.d_x
+    >>> cw.p.d_x
     Quantity['speed'](Array([4.5, 4. ], dtype=float64), unit='m / s')
 
     We can transform the composite phase-space position to a new position class.
 
-    >>> cx.represent_as(cpsp, cx.CylindricalPosition)
-    CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
+    >>> cx.represent_as(cw, cx.CylindricalPosition)
+    CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
         q=CylindricalPosition( ... ),
         p=CylindricalVelocity( ... ),
         t=Quantity...
       ),
-      'psp2': PhaseSpacePosition(
+      'w2': PhaseSpacePosition(
         q=CylindricalPosition( ... ),
         p=CylindricalVelocity( ... ),
         t=...
     )})
+
+    The shape of the composite phase-space position is the broadcast shape of
+    the individual phase-space positions (with a minimum of 1, even when
+    component has shape 0).
+
+    >>> w1.shape, w2.shape
+    ((), ())
+    >>> cw.shape
+    (2,)
     """
 
     _time_sorter: Shaped[Array, "alltimes"]
+    _time_are_none: bool
 
     def __init__(
         self,
@@ -293,7 +291,20 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         # TODO: check up on the shapes
 
         # Construct time sorter
-        ts = xp.concat([jnp.atleast_1d(psp.t) for psp in self.values()], axis=0)
+        # Either all the times are `None` or real times
+        tisnone = [psp.t is None for psp in self.values()]
+        if not any(tisnone):
+            ts = xp.concat([jnp.atleast_1d(w.t) for w in self.values()], axis=0)
+            self._time_are_none = False
+        elif all(tisnone):
+            # Makes a `arange` counting up the length of each psp. For sorting,
+            # 0-length psps become length 1.
+            ts = jnp.cumsum(jnp.concat([jnp.ones(len(w) or 1) for w in self.values()]))
+            self._time_are_none = True
+        else:
+            msg = "All times must be None or real times."
+            raise ValueError(msg)
+
         self._time_sorter = xp.argsort(ts)
 
     @property
@@ -309,8 +320,11 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         return _concat((x.p for x in self.values()), self._time_sorter)
 
     @property
-    def t(self) -> Shaped[Quantity["time"], "..."]:
+    def t(self) -> Shaped[Quantity["time"], "..."] | list[None]:
         """Times."""
+        if self._time_are_none:
+            return [None] * len(self._time_sorter)
+
         return xp.concat([jnp.atleast_1d(psp.t) for psp in self.values()], axis=0)[
             self._time_sorter
         ]

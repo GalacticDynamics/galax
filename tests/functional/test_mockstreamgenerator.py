@@ -5,33 +5,35 @@ from typing import Any
 import astropy.units as u
 import jax
 import jax.random as jr
+import jax.tree_util as jtu
 import pytest
 from jaxtyping import PRNGKeyArray
 
 import quaxed.array_api as xp
 from unxt import Quantity, UnitSystem
 
-from galax.dynamics import FardalStreamDF, MockStreamGenerator
-from galax.potential import MilkyWayPotential
-from galax.typing import FloatQScalar, FloatScalar, QVecTime, Vec6
+import galax.coordinates as gc
+import galax.dynamics as gd
+import galax.potential as gp
+import galax.typing as gt
 
 usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian)
-df = FardalStreamDF()
+df = gd.FardalStreamDF()
 
 
 @jax.jit
 def compute_loss(
     params: dict[str, Any],
     rng: PRNGKeyArray,
-    ts: QVecTime,
-    w0: Vec6,
-    M_sat: FloatQScalar,
-) -> FloatScalar:
+    ts: gt.QVecTime,
+    w0: gt.Vec6,
+    M_sat: gt.FloatQScalar,
+) -> gt.FloatScalar:
     # Generate mock stream
-    pot = MilkyWayPotential(**params, units=usys)
-    mockgen = MockStreamGenerator(df, pot)
+    pot = gp.MilkyWayPotential(**params, units=usys)
+    mockgen = gd.MockStreamGenerator(df, pot)
     stream, _ = mockgen.run(rng, ts, w0, M_sat)
-    trail_arm, lead_arm = stream[::2], stream[1::2]
+    trail_arm, lead_arm = stream["lead"], stream["trail"]
     # Generate "observed" stream from mock
     lead_arm_obs = jax.lax.stop_gradient(lead_arm)
     trail_arm_obs = jax.lax.stop_gradient(trail_arm)
@@ -46,9 +48,9 @@ def compute_loss(
 def compute_derivative(
     params: dict[str, Any],
     rng: PRNGKeyArray,
-    ts: QVecTime,
-    w0: Vec6,
-    M_sat: FloatScalar,
+    ts: gt.QVecTime,
+    w0: gc.PhaseSpacePosition,
+    M_sat: gt.FloatScalar,
 ) -> dict[str, Any]:
     return jax.jacfwd(compute_loss, argnums=0)(params, rng, ts, w0, M_sat)
 
@@ -63,15 +65,18 @@ def test_first_deriv() -> None:
             "a": Quantity(3.0, "kpc"),
             "b": Quantity(0.25, "kpc"),
         },
-        "halo": {"m": Quantity(1.0e12, "Msun"), "r_s": Quantity(15.0, "kpc")},
+        "halo": {
+            "m": Quantity(1.0e12, "Msun"),
+            "r_s": Quantity(15.0, "kpc"),
+        },
     }
 
-    ts = Quantity(xp.linspace(0.0, 4_000, 10_000, dtype=float), "Myr")
-
-    q0 = ((30, 10, 20) * u.Unit("kpc")).decompose(usys).value
-    p0 = ((10, -150, -20) * u.Unit("km / s")).decompose(usys).value
-    w0 = xp.asarray([*q0, *p0], dtype=float)
-
+    ts = Quantity(xp.linspace(0.0, 4.0, 10_000), "Gyr")
+    w0 = gc.PhaseSpacePosition(
+        q=Quantity([30.0, 10, 20], "kpc"),
+        p=Quantity([10.0, -150, -20], "km / s"),
+        t=None,
+    )
     M_sat = Quantity(1.0e4, "Msun")
 
     # Compute the first derivative
@@ -79,7 +84,7 @@ def test_first_deriv() -> None:
     first_deriv = compute_derivative(params, rng, ts, w0, M_sat)
 
     # Test
-    return xp.asarray(jax.tree_util.tree_flatten(first_deriv)[0])
+    return xp.asarray(jtu.tree_flatten(first_deriv)[0])
 
 
 @pytest.mark.slow()
@@ -92,14 +97,18 @@ def test_second_deriv() -> None:
             "a": Quantity(3.0, "kpc"),
             "b": Quantity(0.25, "kpc"),
         },
-        "halo": {"m": Quantity(1.0e12, "Msun"), "r_s": Quantity(15.0, "kpc")},
+        "halo": {
+            "m": Quantity(1.0e12, "Msun"),
+            "r_s": Quantity(15.0, "kpc"),
+        },
     }
-    ts = Quantity(xp.linspace(0.0, 4_000, 10_000, dtype=float), "Myr")
 
-    q0 = ((30, 10, 20) * u.Unit("kpc")).decompose(usys).value
-    p0 = ((10, -150, -20) * u.Unit("km / s")).decompose(usys).value
-    w0 = xp.asarray([*q0, *p0], dtype=float)
-
+    ts = Quantity(xp.linspace(0.0, 4.0, 10_000), "Gyr")
+    w0 = gc.PhaseSpacePosition(
+        q=Quantity([30.0, 10, 20], "kpc"),
+        p=Quantity([10.0, -150, -20], "km / s"),
+        t=None,
+    )
     M_sat = Quantity(1.0e4, "Msun")
 
     # Compute the second derivative
@@ -109,4 +118,4 @@ def test_second_deriv() -> None:
     )
 
     # Test
-    return xp.asarray(jax.tree_util.tree_flatten(second_deriv)[0])
+    return xp.asarray(jtu.tree_flatten(second_deriv)[0])

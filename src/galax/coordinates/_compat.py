@@ -6,6 +6,7 @@ TODO: make all the `gala` compat be in a linked package.
 
 __all__: list[str] = []
 
+import warnings
 from typing import Any, cast
 
 try:  # TODO: less hacky way of supporting optional dependencies
@@ -16,6 +17,7 @@ else:
     _ = pytest.importorskip("gala")
 
 import gala.dynamics as gd
+from astropy.coordinates import BaseDifferential, BaseRepresentation
 from plum import conversion_method, convert
 
 import galax.coordinates as gcx
@@ -109,6 +111,7 @@ def galax_psp_to_gala_psp(obj: gcx.PhaseSpacePosition, /) -> gd.PhaseSpacePositi
     --------
     With the following imports:
 
+    >>> from warnings import catch_warnings, filterwarnings
     >>> import gala.dynamics as gd
     >>> import galax.coordinates as gcx
     >>> import astropy.units as u
@@ -121,14 +124,16 @@ def galax_psp_to_gala_psp(obj: gcx.PhaseSpacePosition, /) -> gd.PhaseSpacePositi
     ...     q=[1, 2, 3] * u.kpc, p=[4, 5, 6] * u.km / u.s, t=2 * u.Myr
     ... )
 
-    >>> gala_w = convert(galax_w, gd.PhaseSpacePosition)
+    >>> with catch_warnings():
+    ...     filterwarnings("ignore")
+    ...     gala_w = convert(galax_w, gd.PhaseSpacePosition)
     >>> gala_w
     <PhaseSpacePosition cartesian, dim=3, shape=()>
 
     Note that the time is not preserved in the conversion!
 
     """
-    from astropy.coordinates import BaseDifferential, BaseRepresentation
+    warnings.warn("The time is not preserved in the conversion!", stacklevel=2)
 
     return gd.PhaseSpacePosition(
         pos=convert(obj.q, BaseRepresentation), vel=convert(obj.p, BaseDifferential)

@@ -688,7 +688,7 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     # TODO: move to a triaxial wrapper
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1, ""),
+        default=Quantity(1.0, ""),
         dimensions="dimensionless",
     )
     """Scale length in the y direction divided by ``c``."""

@@ -2,6 +2,7 @@ from typing import Any
 
 import astropy.units as u
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -45,9 +46,8 @@ class TestKuzminPotential(
 
     def test_gradient(self, pot: KuzminPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.04674541, 0.09349082, 0.18698165], "kpc / Myr2")
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: KuzminPotential, x: gt.QVec3) -> None:
         expect = Quantity(2.45494884e-07, "solMass / kpc3")

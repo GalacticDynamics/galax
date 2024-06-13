@@ -4,6 +4,7 @@ from typing import Any, ClassVar
 import equinox as eqx
 import jax
 import pytest
+from plum import convert
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
@@ -94,9 +95,8 @@ class TestAbstractPotential(AbstractPotential_Test):
         expect = Quantity(
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""

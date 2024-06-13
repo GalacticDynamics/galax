@@ -2,6 +2,7 @@ from typing import Any
 
 import astropy.units as u
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -103,9 +104,8 @@ class TestLMJ09LogarithmicPotential(
 
     def test_gradient(self, pot: LMJ09LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity([-0.00046885, 0.00181093, 0.00569646], "kpc / Myr2")
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: LMJ09LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity(48995543.34035844, "solMass / kpc3")

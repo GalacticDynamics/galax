@@ -10,7 +10,7 @@ __all__ = [
     "tidal_tensor",
 ]
 
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 import numpy as np
 from astropy.coordinates import BaseRepresentation as APYRepresentation
@@ -311,7 +311,7 @@ def gradient(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
     /,
-) -> Quantity["acceleration"]:  # TODO: shape hint
+) -> cx.CartesianAcceleration3D:  # TODO: shape hint
     """Compute the gradient of the potential at the given position(s).
 
     Parameters
@@ -342,19 +342,19 @@ def gradient(
     ...                           p=Quantity([4, 5, 6], "km/s"),
     ...                           t=Quantity(0, "Gyr"))
 
-    >>> pot.gradient(w)
-    Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(w))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [0.086 0.172 0.258]>
 
     We can also compute the potential energy at multiple positions and times:
 
     >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
     ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
     ...                           t=Quantity([0, 1], "Gyr"))
-    >>> pot.gradient(w)
-    Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
-                                    [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(w))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[0.086 0.172 0.258]
+         [0.027 0.033 0.04 ]]>
 
     Instead of passing a
     :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
@@ -362,12 +362,12 @@ def gradient(
 
     >>> from coordinax import FourVector
     >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
-    >>> pot.gradient(w)
-    Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
-    """  # noqa: E501
+    >>> print(pot.gradient(w))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [0.086 0.172 0.258]>
+    """
     q = _convert_from_3dvec(pspt.q, units=potential.units)
-    return potential._gradient(q, pspt.t)  # noqa: SLF001
+    return cx.CartesianAcceleration3D.constructor(potential._gradient(q, pspt.t))  # noqa: SLF001
 
 
 _gradient = gradient  # Needed to bypass namespace restrictions
@@ -376,7 +376,7 @@ _gradient = gradient  # Needed to bypass namespace restrictions
 @dispatch
 def gradient(
     potential: AbstractPotentialBase, q: PositionalLike, /, t: TimeOptions
-) -> Quantity["acceleration"]:  # TODO: shape hint
+) -> cx.CartesianAcceleration3D:  # TODO: shape hint
     """Compute the gradient of the potential at the given position(s).
 
     Parameters
@@ -403,16 +403,17 @@ def gradient(
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [0.086 0.172 0.258]>
 
     We can also compute the potential energy at multiple positions:
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
-                                    [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[0.086 0.172 0.258]
+         [0.027 0.033 0.04 ]]>
 
     Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
@@ -420,9 +421,9 @@ def gradient(
     position:
 
     >>> q = Quantity([1., 2, 3], "kpc")
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [0.086 0.172 0.258]>
 
     Again, this can be batched.  If the input position object has no units
     (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
@@ -430,20 +431,20 @@ def gradient(
 
     >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1., 2, 3], [4, 5, 6]])
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
-                                    [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
-    """  # noqa: E501
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[0.086 0.172 0.258]
+         [0.027 0.033 0.04 ]]>
+    """
     q = parse_to_quantity(q, unit=potential.units["length"])
     t = Quantity.constructor(t, potential.units["time"])
-    return potential._gradient(q, t)  # noqa: SLF001
+    return cx.CartesianAcceleration3D.constructor(potential._gradient(q, t))  # noqa: SLF001
 
 
 @dispatch
 def gradient(
     potential: AbstractPotentialBase, q: PositionalLike, /, *, t: TimeOptions
-) -> Quantity["acceleration"]:  # TODO: shape hint
+) -> cx.CartesianAcceleration3D:  # TODO: shape hint
     """Compute the gradient at the given position(s).
 
     Parameters
@@ -470,17 +471,17 @@ def gradient(
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [0.086 0.172 0.258]>
 
     We can also compute the gradient at multiple positions:
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
-                                    [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[0.086 0.172 0.258]
+         [0.027 0.033 0.04 ]]>
 
     Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
@@ -488,9 +489,9 @@ def gradient(
     position:
 
     >>> q = Quantity([1., 2, 3], "kpc")
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [0.086 0.172 0.258]>
 
     Again, this can be batched.  If the input position object has no units
     (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
@@ -498,11 +499,11 @@ def gradient(
 
     >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
-                                    [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
-    """  # noqa: E501
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[0.086 0.172 0.258]
+         [0.027 0.033 0.04 ]]>
+    """
     return _gradient(potential, q, t)
 
 
@@ -512,7 +513,7 @@ def gradient(
     q: APYRepresentation | APYQuantity,
     /,
     t: TimeOptions,
-) -> Quantity["acceleration"]:  # TODO: shape hint
+) -> cx.CartesianAcceleration3D:  # TODO: shape hint
     """Compute the gradient at the given position(s).
 
     :meth:`~galax.potential.AbstractPotentialBase.gradient` also
@@ -546,17 +547,17 @@ def gradient(
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [0.086 0.172 0.258]>
 
     We can also compute the potential energy at multiple positions:
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
-                                    [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[0.086 0.172 0.258]
+         [0.027 0.033 0.04 ]]>
 
     Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
@@ -564,9 +565,9 @@ def gradient(
     position:
 
     >>> q = Quantity([1., 2, 3], "kpc")
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [0.086 0.172 0.258]>
 
     Again, this can be batched.  If the input position object has no units
     (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
@@ -574,14 +575,14 @@ def gradient(
 
     >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-    >>> pot.gradient(q, t)
-    Quantity['acceleration'](Array([[0.08587681, 0.17175361, 0.25763042],
-                                    [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
-    """  # noqa: E501
+    >>> print(pot.gradient(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[0.086 0.172 0.258]
+         [0.027 0.033 0.04 ]]>
+    """
     q = parse_to_quantity(q, unit=potential.units["length"])
     t = Quantity.constructor(t, potential.units["time"])  # TODO: value
-    return potential._gradient(q, t)  # noqa: SLF001
+    return cx.CartesianAcceleration3D.constructor(potential._gradient(q, t))  # noqa: SLF001
 
 
 @dispatch
@@ -591,7 +592,7 @@ def gradient(
     /,
     *,
     t: TimeOptions,
-) -> Quantity["acceleration"]:  # TODO: shape hint
+) -> cx.CartesianAcceleration3D:  # TODO: shape hint
     """Compute the gradient when `t` is keyword-only.
 
     Examples
@@ -608,9 +609,9 @@ def gradient(
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
-    >>> pot.gradient(q, t=t)
-    Quantity['acceleration'](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.gradient(q, t=t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [0.086 0.172 0.258]>
 
     See the other examples in the positional-only case.
     """
@@ -1448,19 +1449,23 @@ def hessian(
 @dispatch  # type: ignore[misc]
 def acceleration(
     potential: AbstractPotentialBase,
-    pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
     /,
-) -> Quantity["acceleration"]:  # TODO: shape hint
+    *args: Any,  # defer to `gradient`
+    **kwargs: Any,  # defer to `gradient`
+) -> cx.CartesianAcceleration3D:  # TODO: shape hint
     """Compute the acceleration due to the potential at the given position(s).
 
     Parameters
     ----------
-    pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
-        The phase-space + time position to compute the acceleration.
+    potential : :class:`~galax.potential.AbstractPotentialBase`
+        The potential to compute the acceleration of.
+    *args : Any
+        The phase-space + time position to compute the acceleration. See
+        `~galax.potential.gradient` for more details.
 
     Returns
     -------
-    grad : Quantity[float, *batch, 'acceleration']
+    grad : :class:`coord.CartesianAcceleration3D`
         The acceleration of the potential.
 
     Examples
@@ -1481,280 +1486,67 @@ def acceleration(
     ...                           p=Quantity([4, 5, 6], "km/s"),
     ...                           t=Quantity(0, "Gyr"))
 
-    >>> pot.acceleration(w)
-    Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.acceleration(w))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [-0.086 -0.172 -0.258]>
 
     We can also compute the potential energy at multiple positions and times:
 
     >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
     ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
     ...                           t=Quantity([0, 1], "Gyr"))
-    >>> pot.acceleration(w)
-    Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
-                                    [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.acceleration(w))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[-0.086 -0.172 -0.258]
+         [-0.027 -0.033 -0.04 ]]>
 
-    Instead of passing a
-    :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
     >>> from coordinax import FourVector
     >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
-    >>> pot.acceleration(w)
-    Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
-    """  # noqa: E501
-    q = _convert_from_3dvec(pspt.q, units=potential.units)
-    return -potential._gradient(q, pspt.t)  # noqa: SLF001
+    >>> print(pot.acceleration(w))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [-0.086 -0.172 -0.258]>
 
-
-_acceleration = acceleration  # needed to bypass namespace restrictions
-
-
-@dispatch
-def acceleration(
-    potential: AbstractPotentialBase, q: PositionalLike, /, t: TimeOptions
-) -> Quantity["acceleration"]:  # TODO: shape hint
-    """Compute the acceleration due to the potential at the given position(s).
-
-    Parameters
-    ----------
-    q : :class:`vector.AbstractPosition3D` | (Quantity|Array)[float, (*batch, 3)]
-        The position to compute the acceleration of the potential.  If unitless
-        (i.e. is an `~jax.Array`), it is assumed to be in the unit system of
-        the potential.
-    t : Array[float | int, *batch] | float | int
-        The time at which to compute the acceleration of the potential.  If
-        unitless (i.e. is an `~jax.Array`), it is assumed to be in the unit
-        system of the potential.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
-
-    We can compute the potential energy at a position (and time, if any
-    parameters are time-dependent):
+    We can compute the potential energy at a position (and time, which may be a
+    keyword argument):
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.acceleration(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [-0.086 -0.172 -0.258]>
 
     We can also compute the potential energy at multiple positions:
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
-                                    [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.acceleration(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[-0.086 -0.172 -0.258]
+         [-0.027 -0.033 -0.04 ]]>
 
     Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
     :class:`~vector.CartesianPosition3D`), we can instead pass a
-    :class:`unxt.Quantity`, which is interpreted as a Cartesian
-    position:
+    :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
     >>> q = Quantity([1., 2, 3], "kpc")
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
+    >>> print(pot.acceleration(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [-0.086 -0.172 -0.258]>
 
-    Again, this can be batched.  If the input position object has no units
-    (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
-    as the potential.
+    Again, this can be batched.  If the input position object has no units (i.e.
+    is an `~jax.Array`), it is assumed to be in the same unit system as the
+    potential.
 
     >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
-                                    [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
-    """  # noqa: E501
-    q = parse_to_quantity(q, unit=potential.units["length"])
-    t = Quantity.constructor(t, potential.units["time"])
-    return -potential._gradient(q, t)  # noqa: SLF001
-
-
-@dispatch
-def acceleration(
-    potential: AbstractPotentialBase, q: PositionalLike, /, *, t: TimeOptions
-) -> Quantity["acceleration"]:  # TODO: shape hint
-    """Compute the acceleration at the given position(s).
-
-    Parameters
-    ----------
-    q : PositionalLike
-        The position to compute the acceleration of the potential.  If unitless
-        (i.e. is an `~jax.Array`), it is assumed to be in the unit system of
-        the potential.
-    t : TimeOptions
-        The time at which to compute the acceleration of the potential.  If
-        unitless (i.e. is an `~jax.Array`), it is assumed to be in the unit
-        system of the potential.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
-
-    We can compute the acceleration at a position (and time, if any
-    parameters are time-dependent):
-
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
-    >>> t = Quantity(0, "Gyr")
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
-
-    We can also compute the acceleration at multiple positions:
-
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
-                                    [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
-
-    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
-    :class:`~vector.CartesianPosition3D`), we can instead pass a
-    :class:`unxt.Quantity`, which is interpreted as a Cartesian
-    position:
-
-    >>> q = Quantity([1., 2, 3], "kpc")
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
-
-    Again, this can be batched.  If the input position object has no units
-    (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
-    as the potential.
-
-    >>> import jax.numpy as jnp
-    >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
-                                    [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
-    """  # noqa: E501
-    return _acceleration(potential, q, t)
-
-
-@dispatch
-def acceleration(
-    potential: AbstractPotentialBase,
-    q: APYRepresentation | APYQuantity,
-    /,
-    t: TimeOptions,
-) -> Quantity["acceleration"]:  # TODO: shape hint
-    """Compute the acceleration at the given position(s).
-
-    :meth:`~galax.potential.AbstractPotentialBase.acceleration` also
-    supports Astropy objects, like
-    :class:`astropy.coordinates.BaseRepresentation` and
-    :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
-    counterparts :class:`~vector.AbstractPosition3D` and
-    :class:`~unxt.Quantity`.
-
-    Parameters
-    ----------
-    q : PositionalLike
-        The position to compute the value of the potential.  If unitless
-        (i.e. is an `~jax.Array`), it is assumed to be in the unit system of
-        the potential.
-    t : TimeOptions
-        The time at which to compute the value of the potential.  If
-        unitless (i.e. is an `~jax.Array`), it is assumed to be in the unit
-        system of the potential.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
-
-    We can compute the potential energy at a position (and time, if any
-    parameters are time-dependent):
-
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
-    >>> t = Quantity(0, "Gyr")
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
-
-    We can also compute the potential energy at multiple positions:
-
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
-                                    [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
-
-    Instead of passing a :class:`~vector.AbstractPosition3D` (in this case a
-    :class:`~vector.CartesianPosition3D`), we can instead pass a
-    :class:`unxt.Quantity`, which is interpreted as a Cartesian
-    position:
-
-    >>> q = Quantity([1., 2, 3], "kpc")
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
-
-    Again, this can be batched.  If the input position object has no units
-    (i.e. is an `~jax.Array`), it is assumed to be in the same unit system
-    as the potential.
-
-    >>> import jax.numpy as jnp
-    >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-    >>> pot.acceleration(q, t)
-    Quantity['acceleration'](Array([[-0.08587681, -0.17175361, -0.25763042],
-                                    [-0.02663127, -0.03328908, -0.0399469 ]], dtype=float64),
-                                unit='kpc / Myr2')
-    """  # noqa: E501
-    q = parse_to_quantity(q, unit=potential.units["length"])
-    t = Quantity.constructor(t, potential.units["time"])
-    return -potential._gradient(q, t)  # noqa: SLF001
-
-
-@dispatch
-def acceleration(
-    potential: AbstractPotentialBase,
-    q: APYRepresentation | APYQuantity,
-    /,
-    *,
-    t: TimeOptions,
-) -> Quantity["acceleration"]:  # TODO: shape hint
-    """Compute the acceleration when `t` is keyword-only.
-
-    Examples
-    --------
-    All these examples are covered by the case where `t` is positional.
-    :mod:`plum` dispatches on positional arguments only, so it necessary
-    to redispatch here.
-
-    >>> from unxt import Quantity
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
-
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
-    >>> t = Quantity(0, "Gyr")
-    >>> pot.acceleration(q, t=t)
-    Quantity['acceleration'](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64),
-                                unit='kpc / Myr2')
-
-    See the other examples in the positional-only case.
-    """  # noqa: E501
-    return _acceleration(potential, q, t)
+    >>> print(pot.acceleration(q, t))
+    <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+        [[-0.086 -0.172 -0.258]
+         [-0.027 -0.033 -0.04 ]]>
+    """
+    return -gradient(potential, *args, **kwargs)
 
 
 # =============================================================================

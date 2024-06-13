@@ -3,6 +3,7 @@ from typing import Any, ClassVar
 import astropy.units as u
 import pytest
 from packaging.version import Version
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -48,9 +49,8 @@ class TestBurkertPotential(
 
     def test_gradient(self, pot: BurkertPotential, x: gt.Vec3) -> None:
         expect = Quantity([0.54053104, 1.08106208, 1.62159313], "kpc2 / Myr2")
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: BurkertPotential, x: gt.Vec3) -> None:
         expect = Quantity(8.79860325e09, "solMass / kpc3")

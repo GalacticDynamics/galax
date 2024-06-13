@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import Quantity
@@ -38,9 +39,8 @@ class TestIsochronePotential(
         expect = Quantity(
             [0.04891392, 0.09782784, 0.14674175], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: IsochronePotential, x: gt.QVec3) -> None:
         expect = Quantity(5.04511665e08, pot.units["mass density"])

@@ -9,6 +9,7 @@ from typing import final
 import jax
 import jax.random as jr
 from jaxtyping import PRNGKeyArray, Shaped
+from plum import convert
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
@@ -138,7 +139,8 @@ def dphidr(
     Quantity[float, (3,), 'acceleration']:
         Derivative of potential
     """
-    return xp.sum(potential.gradient(x, t) * r_hat(x), axis=-1)
+    gradient = convert(potential.gradient(x, t), Quantity)
+    return xp.sum(gradient * r_hat(x), axis=-1)
 
 
 @partial(jax.jit)

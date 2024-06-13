@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 import pytest
+from plum import convert
 from typing_extensions import override
 
 import quaxed.numpy as qnp
@@ -71,9 +72,8 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         expect = Quantity(
             [0.00256407, 0.00512815, 0.01115285], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MilkyWayPotential, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential.density` method."""

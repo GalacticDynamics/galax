@@ -2,6 +2,7 @@ from typing import Any
 
 import astropy.units as u
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -86,9 +87,8 @@ class TestLongMuraliBarPotential(
 
     def test_gradient(self, pot: LongMuraliBarPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.04017315, 0.08220449, 0.16854858], "kpc / Myr2")
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: LongMuraliBarPotential, x: gt.QVec3) -> None:
         expect = Quantity(2.02402357e08, "solMass / kpc3")

@@ -82,7 +82,7 @@ class GalaIOMixin:
         if not self.HAS_GALA_COUNTERPART:
             pytest.skip("potential does not have a gala counterpart")
 
-        galax = getattr(pot, method0)(x, t=0)
+        galax = convert(getattr(pot, method0)(x, t=0), Quantity)
         gala = getattr(galax_to_gala(pot), method1)(convert(x, u.Quantity), t=0 * u.Myr)
         assert qnp.allclose(
             qnp.ravel(galax),

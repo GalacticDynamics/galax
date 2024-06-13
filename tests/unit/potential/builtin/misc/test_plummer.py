@@ -2,6 +2,7 @@ from typing import Any
 
 import astropy.units as u
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -44,9 +45,8 @@ class TestPlummerPotential(
 
     def test_gradient(self, pot: PlummerPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.07743388, 0.15486777, 0.23230165], "kpc / Myr2")
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: PlummerPotential, x: gt.QVec3) -> None:
         expect = Quantity(2.73957531e08, "solMass / kpc3")

@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 import pytest
+from plum import convert
 from typing_extensions import override
 
 import quaxed.numpy as qnp
@@ -58,9 +59,8 @@ class TestLM10Potential(AbstractCompositePotential_Test):
 
     def test_gradient(self, pot: LM10Potential, x: gt.QVec3) -> None:
         expect = Quantity([0.00278038, 0.00533753, 0.0111171], "kpc / Myr2")
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: LM10Potential, x: gt.QVec3) -> None:
         expect = Quantity(19085831.78310305, "solMass / kpc3")

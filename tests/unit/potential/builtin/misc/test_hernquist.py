@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import Quantity
@@ -37,9 +38,8 @@ class TestHernquistPotential(
         expect = Quantity(
             [0.05347411, 0.10694822, 0.16042233], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: HernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(3.989933e08, pot.units["mass density"])

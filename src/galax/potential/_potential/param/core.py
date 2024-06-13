@@ -94,7 +94,9 @@ class ConstantParameter(AbstractParameter):
     """Time-independent potential parameter."""
 
     # TODO: link this shape to the return shape from __call__
-    value: FloatQAnyShape = eqx.field(converter=Quantity.constructor)
+    value: FloatQAnyShape = eqx.field(
+        converter=lambda x: Quantity.constructor(x, dtype=float)
+    )
     _: KW_ONLY
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 

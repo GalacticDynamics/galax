@@ -81,6 +81,8 @@ VecTime7 = Float[Vec7, "time"]
 # -----------------
 # Scalars
 
+BatchFloatScalar = Shaped[FloatScalar, "*batch"]
+
 BatchableFloatQScalar = Shaped[FloatQScalar, "*#batch"]
 
 BatchFloatQScalar = Shaped[FloatQScalar, "*batch"]
@@ -120,9 +122,17 @@ FloatQAnyShape = Float[Quantity, "..."]
 
 
 # =============================================================================
+# Matrices
+
+QMatrix33 = Float[Quantity, "3 3"]
+BatchQMatrix33 = Shaped[QMatrix33, "*batch"]
+
+
+# =============================================================================
 
 MassScalar = Shaped[Quantity["mass"], ""]
 MassBatchScalar = Shaped[Quantity["mass"], "*batch"]
+MassBatchableScalar = Shaped[Quantity["mass"], "*#batch"]
 
 TimeScalar = Shaped[Quantity["time"], ""]
 TimeBatchScalar = Shaped[Quantity["time"], "*batch"]
@@ -136,3 +146,6 @@ LengthBatchableVec3 = Shaped[LengthVec3, "*#batch"]
 SpeedVec3: TypeAlias = Shaped[Quantity["speed"], "3"]
 SpeedBatchVec3: TypeAlias = Shaped[SpeedVec3, "*batch"]
 SpeedBatchableVec3: TypeAlias = Shaped[SpeedVec3, "*#batch"]
+
+SpecificEnergyScalar = Float[Quantity["specific_energy"], ""]
+SpecificEnergyBatchScalar = Float[Quantity["specific_energy"], "*batch"]

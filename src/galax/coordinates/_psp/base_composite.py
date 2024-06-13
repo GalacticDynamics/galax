@@ -115,7 +115,7 @@ class AbstractCompositePhaseSpacePosition(
 
     @property
     @abstractmethod
-    def p(self) -> cx.AbstractPosition3D:
+    def p(self) -> cx.AbstractVelocity3D:
         """Conjugate momenta."""
 
     @property

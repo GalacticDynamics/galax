@@ -1,6 +1,5 @@
 """Test :mod:`galax.dynamics.mockstream.mockstreamgenerator`."""
 
-import astropy.units as u
 import jax.numpy as jnp
 import jax.random as jr
 import jax.tree_util as tu
@@ -27,7 +26,9 @@ class TestMockStreamGenerator:
     @pytest.fixture()
     def pot(self) -> NFWPotential:
         """Mock stream DF."""
-        return NFWPotential(m=1.0e12 * u.Msun, r_s=15.0 * u.kpc, units="galactic")
+        return NFWPotential(
+            m=Quantity(1.0e12, "Msun"), r_s=Quantity(15.0, "kpc"), units="galactic"
+        )
 
     @pytest.fixture()
     def mockgen(
@@ -49,7 +50,9 @@ class TestMockStreamGenerator:
     def prog_w0(self) -> gc.PhaseSpacePosition:
         """Progenitor initial conditions."""
         return gc.PhaseSpacePosition(
-            q=[30, 10, 20] * u.kpc, p=[10, -150, -20] * u.km / u.s, t=0.0 * u.Myr
+            q=Quantity([30, 10, 20], "kpc"),
+            p=Quantity([10, -150, -20], "km/s"),
+            t=Quantity(0.0, "Myr"),
         )
 
     @pytest.fixture()

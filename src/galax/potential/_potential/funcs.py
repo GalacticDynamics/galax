@@ -32,8 +32,6 @@ from .base import AbstractPotentialBase
 from .utils import _convert_from_3dvec, parse_to_quantity
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
-QMatrix33: TypeAlias = Float[Quantity, "3 3"]
-BatchQMatrix33: TypeAlias = Shaped[QMatrix33, "*batch"]
 HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
 
 # Position and time input options
@@ -1173,7 +1171,7 @@ def hessian(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
     /,
-) -> BatchQMatrix33:
+) -> gt.BatchQMatrix33:
     """Compute the hessian of the potential at the given position(s).
 
     Parameters
@@ -1184,7 +1182,7 @@ def hessian(
 
     Returns
     -------
-    H : BatchQMatrix33
+    H : gt.BatchQMatrix33
         The hessian matrix of the potential.
 
     Examples
@@ -1559,7 +1557,7 @@ def acceleration(
 @dispatch(precedence=1)  # type: ignore[misc]
 def tidal_tensor(
     potential: AbstractPotentialBase, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar
-) -> BatchQMatrix33:
+) -> gt.BatchQMatrix33:
     """Compute the tidal tensor.
 
     See https://en.wikipedia.org/wiki/Tidal_tensor
@@ -1599,7 +1597,7 @@ def tidal_tensor(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
     /,
-) -> BatchQMatrix33:
+) -> gt.BatchQMatrix33:
     """Compute the tidal tensor of the potential at the given position(s).
 
     Parameters
@@ -1610,7 +1608,7 @@ def tidal_tensor(
 
     Returns
     -------
-    T : BatchQMatrix33
+    T : gt.BatchQMatrix33
         The tidal tensor matrix of the potential.
 
     Examples
@@ -1673,7 +1671,7 @@ def tidal_tensor(
     q: PositionalLike,
     /,
     t: TimeOptions,
-) -> BatchQMatrix33:
+) -> gt.BatchQMatrix33:
     """Compute the tidal tensor of the potential at the given position(s).
 
     Parameters
@@ -1757,7 +1755,7 @@ def tidal_tensor(
     /,
     *,
     t: TimeOptions,
-) -> BatchQMatrix33:
+) -> gt.BatchQMatrix33:
     """Compute the tidal tensor when `t` is keyword-only.
 
     Examples
@@ -1791,7 +1789,7 @@ def tidal_tensor(
     q: APYRepresentation | APYQuantity,
     /,
     t: TimeOptions,
-) -> BatchQMatrix33:
+) -> gt.BatchQMatrix33:
     """Compute the tidal tensor at the given position(s).
 
     :meth:`~galax.potential.AbstractPotentialBase.tidal_tensor` also
@@ -1859,7 +1857,7 @@ def tidal_tensor(
     /,
     *,
     t: TimeOptions,
-) -> BatchQMatrix33:
+) -> gt.BatchQMatrix33:
     return _tidal_tensor(potential, q, t)
 
 

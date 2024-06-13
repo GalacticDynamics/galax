@@ -32,9 +32,6 @@ if TYPE_CHECKING:
     from galax.dynamics._dynamics.orbit import Orbit
 
 
-QMatrix33: TypeAlias = Float[Quantity, "3 3"]
-BatchMatrix33: TypeAlias = Shaped[Float[Array, "3 3"], "*batch"]
-BatchQMatrix33: TypeAlias = Shaped[QMatrix33, "*batch"]
 HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
 
 # Position and time input options
@@ -119,13 +116,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Potential energy
 
-    # TODO: inputs w/ units
-    # @partial(jax.jit)
-    # @vectorize_method(signature="(3),()->()")
     @abc.abstractmethod
     def _potential(
-        self, q: gt.QVec3, t: gt.RealQScalar, /
-    ) -> Shaped[Quantity["specific energy"], ""]:
+        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.SpecificEnergyBatchScalar:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.
@@ -255,7 +249,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> QMatrix33:
+    def _hessian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.QMatrix33:
         """See ``hessian``."""
         hess_op = unxt.experimental.hessian(
             self._potential, units=(self.units["length"], self.units["time"])
@@ -264,7 +258,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def hessian(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
-    ) -> BatchQMatrix33:
+    ) -> gt.BatchQMatrix33:
         """Compute the hessian of the potential at the given position(s).
 
         See :func:`~galax.potential.hessian` for details.
@@ -293,7 +287,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Tidal tensor
 
-    def tidal_tensor(self, *args: Any, **kwargs: Any) -> BatchMatrix33:
+    def tidal_tensor(self, *args: Any, **kwargs: Any) -> gt.BatchQMatrix33:
         """Compute the tidal tensor.
 
         See :func:`~galax.potential.tidal_tensor` for details.

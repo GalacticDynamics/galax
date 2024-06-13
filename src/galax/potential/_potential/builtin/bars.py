@@ -11,7 +11,6 @@ from typing import final
 
 import equinox as eqx
 import jax
-from quax import quaxify
 
 import quaxed.array_api as xp
 from unxt import AbstractUnitSystem, Quantity, unitsystem
@@ -48,11 +47,9 @@ class BarPotential(AbstractPotential):
         default=default_constants, converter=ImmutableDict
     )
 
-    # TODO: inputs w/ units
-    @quaxify  # type: ignore[misc]
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
-    def _potential(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.FloatQScalar:
+    def _potential(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.SpecificEnergyScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
         rotation_matrix = xp.asarray(
@@ -105,7 +102,7 @@ class LongMuraliBarPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         m_tot = self.m_tot(t)
         a, b, c = self.a(t), self.b(t), self.c(t)
         alpha = self.alpha(t)

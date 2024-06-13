@@ -286,7 +286,7 @@ class DiffraxIntegrator(AbstractIntegrator):
         w0: gt.BatchVec6,
         t0: gt.FloatScalar,
         t1: gt.FloatScalar,
-        ts: gt.BatchVecTime,
+        ts: gt.BatchVecTime | gt.VecTime,
         /,
         interpolated: Literal[False, True],
     ) -> tuple[gt.BatchVecTime7, DenseInterpolation | None]:

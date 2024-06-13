@@ -11,7 +11,7 @@ from jaxtyping import Shaped
 from plum import dispatch
 
 import coordinax as cx
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.typing as gt
@@ -137,10 +137,31 @@ class AbstractCompositePhaseSpacePosition(
 
     @property
     def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
-        """Batch and component shapes."""
+        """Batch and component shapes.
+
+        Examples
+        --------
+        >>> from unxt import Quantity
+        >>> import coordinax as cx
+        >>> import galax.coordinates as gc
+
+        >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+        ...                            p=Quantity([4, 5, 6], "m/s"),
+        ...                            t=Quantity(7.0, "s"))
+        >>> w2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
+        ...                            p=Quantity([4.5, 5.5, 6.5], "m/s"),
+        ...                            t=Quantity(6.0, "s"))
+
+        >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
+        >>> cw._shape_tuple
+        ((2,), ComponentShapeTuple(q=3, p=3, t=1))
+        """
         # TODO: speed up
-        batch_shape = qnp.broadcast_shapes(*[psp.shape for psp in self.values()])
-        batch_shape = (*batch_shape[:-1], len(self) * batch_shape[-1])
+        batch_shape = jnp.broadcast_shapes(*[psp.shape for psp in self.values()])
+        if not batch_shape:
+            batch_shape = (len(self),)
+        else:
+            batch_shape = (*batch_shape[:-1], len(self) * batch_shape[-1])
         shape = zeroth(self.values())._shape_tuple[1]  # noqa: SLF001
         return batch_shape, shape
 
@@ -153,6 +174,28 @@ class AbstractCompositePhaseSpacePosition(
     # Convenience methods
 
     def to_units(self, units: Any) -> "Self":
+        """Convert the components to the given units.
+
+        Examples
+        --------
+        For this example we will use
+        `galax.coordinates.CompositePhaseSpacePosition`.
+
+        >>> from unxt import Quantity
+        >>> from unxt.unitsystems import solarsystem
+        >>> import galax.coordinates as gc
+
+        >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+        ...                              p=Quantity([4, 5, 6], "km/s"),
+        ...                              t=Quantity(7, "Myr"))
+
+        >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1)
+        >>> c_psp.to_units(solarsystem)
+        CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
+            q=CartesianPosition3D(
+                x=Quantity[...](value=f64[], unit=Unit("AU")),
+                ...
+        """
         return type(self)(**{k: v.to_units(units) for k, v in self.items()})
 
     # ===============================================================

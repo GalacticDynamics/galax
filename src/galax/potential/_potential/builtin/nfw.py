@@ -261,13 +261,13 @@ class TriaxialNFWPotential(AbstractPotential):
     """Scale radius of the potential."""
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1, ""),
+        default=Quantity(1.0, ""),
         dimensions="dimensionless",
     )
     """Scale length in the y/x direction."""
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1, ""),
+        default=Quantity(1.0, ""),
         dimensions="dimensionless",
     )
     """Scale length in the z/x direction."""

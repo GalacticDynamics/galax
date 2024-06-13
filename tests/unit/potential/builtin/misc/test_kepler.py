@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import Quantity
@@ -37,9 +38,8 @@ class TestKeplerPotential(
         expect = Quantity(
             [0.08587681, 0.17175361, 0.25763042], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: KeplerPotential, x: QVec3) -> None:
         expect = Quantity(0.0, pot.units["mass density"])

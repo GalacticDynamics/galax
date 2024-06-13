@@ -2,6 +2,8 @@
 
 from dataclasses import replace
 
+from plum import convert
+
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
@@ -41,19 +43,31 @@ def test_bar_means_of_rotation() -> None:
 
     # They should be equivalent at t=0
     assert framedpot.potential(q, t) == hardpot.potential(q, t)
-    assert qnp.array_equal(framedpot.acceleration(q, t), hardpot.acceleration(q, t))
+    assert qnp.array_equal(
+        convert(framedpot.acceleration(q, t), Quantity),
+        convert(hardpot.acceleration(q, t), Quantity),
+    )
 
     # They should be equivalent at t=110 Myr (1/2 period)
     t = Quantity(110, "Myr")
     assert framedpot.potential(q, t) == hardpot.potential(q, t)
-    assert qnp.array_equal(framedpot.acceleration(q, t), hardpot.acceleration(q, t))
+    assert qnp.array_equal(
+        convert(framedpot.acceleration(q, t), Quantity),
+        convert(hardpot.acceleration(q, t), Quantity),
+    )
 
     # They should be equivalent at t=220 Myr (1 period)
     t = Quantity(220, "Myr")
     assert framedpot.potential(q, t) == hardpot.potential(q, t)
-    assert qnp.array_equal(framedpot.acceleration(q, t), hardpot.acceleration(q, t))
+    assert qnp.array_equal(
+        convert(framedpot.acceleration(q, t), Quantity),
+        convert(hardpot.acceleration(q, t), Quantity),
+    )
 
     # They should be equivalent at t=55 Myr (1/4 period)
     t = Quantity(55, "Myr")
     assert framedpot.potential(q, t) == hardpot.potential(q, t)
-    assert qnp.array_equal(framedpot.acceleration(q, t), hardpot.acceleration(q, t))
+    assert qnp.array_equal(
+        convert(framedpot.acceleration(q, t), Quantity),
+        convert(hardpot.acceleration(q, t), Quantity),
+    )

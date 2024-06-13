@@ -3,6 +3,7 @@
 from typing import Any, ClassVar
 
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import Quantity
@@ -56,9 +57,8 @@ class TestTriaxialHernquistPotential(
         expect = Quantity(
             [0.01312095, 0.02168751, 0.15745134], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     @pytest.mark.xfail(reason="WFF?")
     def test_density(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:

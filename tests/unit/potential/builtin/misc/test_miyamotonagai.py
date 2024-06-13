@@ -2,6 +2,7 @@ from typing import Any
 
 import astropy.units as u
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -48,9 +49,8 @@ class TestMiyamotoNagaiPotential(
         expect = Quantity(
             [0.04264751, 0.08529503, 0.16840152], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MiyamotoNagaiPotential, x: Vec3) -> None:
         expect = Quantity(1.9949418e08, pot.units["mass density"])

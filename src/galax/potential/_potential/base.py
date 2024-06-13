@@ -187,7 +187,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3)")
-    def _gradient(self, q: gt.BatchQVec3, /, t: gt.RealQScalar) -> gt.BatchQVec3:
+    def _gradient(self, q: gt.BatchQVec3, t: gt.RealQScalar, /) -> gt.BatchQVec3:
         """See ``gradient``."""
         grad_op = unxt.experimental.grad(
             self._potential, units=(self.units["length"], self.units["time"])
@@ -196,7 +196,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def gradient(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
-    ) -> Quantity["acceleration"]:  # TODO: shape hint
+    ) -> cx.CartesianAcceleration3D:  # TODO: shape hint
         """Compute the gradient of the potential at the given position(s).
 
         See :func:`~galax.potential.gradient` for details.
@@ -281,7 +281,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def acceleration(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
-    ) -> Quantity["acceleration"]:  # TODO: shape hint
+    ) -> cx.CartesianAcceleration3D:  # TODO: shape hint
         """Compute the acceleration due to the potential at the given position(s).
 
         See :func:`~galax.potential.acceleration` for details.
@@ -316,13 +316,19 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         args: tuple[Any, ...],  # noqa: ARG002
     ) -> gt.Vec6:
         """Return the derivative of the phase-space position."""
-        a = self.acceleration(w[0:3], t).to_units_value(self.units["acceleration"])
+        # TODO: not require unit munging
+        a = self._gradient(
+            Quantity(w[0:3], self.units["length"]), Quantity(t, self.units["time"])
+        ).to_units_value(self.units["acceleration"])
         return jnp.hstack([w[3:6], a])  # v, a
 
     def evaluate_orbit(
         self,
         w0: PhaseSpacePosition | gt.BatchVec6,
-        t: gt.QVecTime | gt.VecTime | APYQuantity,  # TODO: must be a Quantity
+        t: gt.QVecTime
+        | gt.RealQScalar
+        | gt.VecTime
+        | APYQuantity,  # TODO: must be a Quantity
         *,
         integrator: "Integrator | None" = None,
         interpolated: Literal[True, False] = False,

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from plum import convert
 from typing_extensions import override
 
 import quaxed.numpy as qnp
@@ -60,9 +61,8 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
 
     def test_gradient(self, pot: BovyMWPotential2014, x: gt.QVec3) -> None:
         expect = Quantity([0.00231875, 0.0046375, 0.01042675], "kpc / Myr2")
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: BovyMWPotential2014, x: gt.QVec3) -> None:
         expect = Quantity(24_911_277.33877818, "solMass / kpc3")

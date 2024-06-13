@@ -2,6 +2,7 @@ from typing import Any, ClassVar
 
 import astropy.units as u
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -68,9 +69,8 @@ class TestBarPotential(
         expect = Quantity(
             [0.04011905, 0.08383918, 0.16552719], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: BarPotential, x: gt.QVec3) -> None:
         expect = Quantity(1.94669274e08, "Msun / kpc3")

@@ -7,10 +7,11 @@ from functools import partial
 from typing import Literal
 
 import jax
-import jax.numpy as jnp
 from astropy.units import Quantity as APYQuantity
+from jax.numpy import vectorize as jax_vectorize
 
 import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.typing as gt
@@ -27,7 +28,7 @@ from galax.potential import AbstractPotentialBase
 _default_integrator: Integrator = DiffraxIntegrator()
 
 
-_select_w0 = jnp.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
+_select_w0 = jax_vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
 @partial(jax.jit, static_argnames=("integrator", "interpolated"))
@@ -187,7 +188,7 @@ def evaluate_orbit(
     integrator = replace(integrator) if integrator is not None else _default_integrator
 
     # parse t -> potential units
-    t = Quantity.constructor(t, units["time"])
+    t = jnp.atleast_1d(Quantity.constructor(t, units["time"]))
 
     # Parse w0
     psp0t: Quantity

@@ -2,6 +2,7 @@ from typing import Any
 
 import astropy.units as u
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -100,9 +101,8 @@ class TestPowerLawCutoffPotential(
 
     def test_gradient(self, pot: PowerLawCutoffPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.08587672, 0.17175344, 0.25763016], "kpc / Myr2")
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: PowerLawCutoffPotential, x: gt.QVec3) -> None:
         expect = Quantity(41457.38551946, "solMass / kpc3")

@@ -2,6 +2,7 @@ from typing import Any
 
 import astropy.units as u
 import pytest
+from plum import convert
 
 import quaxed.numpy as qnp
 from unxt import AbstractUnitSystem, Quantity
@@ -44,9 +45,8 @@ class TestJaffePotential(
 
     def test_gradient(self, pot: JaffePotential, x: gt.QVec3) -> None:
         expect = Quantity([0.06776567, 0.13553134, 0.20329701], "kpc / Myr2")
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: JaffePotential, x: gt.QVec3) -> None:
         expect = Quantity(2.52814372e08, "solMass / kpc3")

@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 from jaxtyping import Array
+from plum import convert
 from typing_extensions import override
 
 import quaxed.numpy as qnp
@@ -67,9 +68,8 @@ class TestNullPotential(AbstractPotential_Test):
     def test_gradient(self, pot: gp.NullPotential, x: gt.QVec3) -> None:
         """Test :meth:`NullPotential.gradient`."""
         expect = Quantity([0.0, 0.0, 0.0], pot.units["acceleration"])
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.NullPotential, x: gt.QVec3) -> None:
         """Test :meth:`NullPotential.density`."""

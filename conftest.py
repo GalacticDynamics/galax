@@ -9,7 +9,7 @@ from sybil.parsers.rest import DocTestParser, PythonCodeBlockParser, SkipParser
 
 pytest_collect_file = Sybil(
     parsers=[
-        DocTestParser(optionflags=ELLIPSIS | NORMALIZE_WHITESPACE),
+        DocTestParser(optionflags=NORMALIZE_WHITESPACE | ELLIPSIS),
         PythonCodeBlockParser(),
         SkipParser(),
     ],

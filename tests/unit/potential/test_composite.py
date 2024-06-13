@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import astropy.units as u
 import pytest
+from plum import convert
 from typing_extensions import override
 
 import quaxed.array_api as xp
@@ -325,9 +326,8 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         expect = Quantity(
             [0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: CompositePotential, x: Vec3) -> None:
         expect = Quantity(2.7958598e08, "Msun / kpc3")

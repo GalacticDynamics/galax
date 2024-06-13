@@ -13,11 +13,11 @@ from jaxtyping import PRNGKeyArray, Shaped
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
-from unxt.experimental import grad
 
 import galax.potential as gp
 import galax.typing as gt
 from ._base import AbstractStreamDF
+from galax.potential._potential.funcs import d2phi_dr2
 
 # ============================================================
 # Constants
@@ -98,85 +98,6 @@ class FardalStreamDF(AbstractStreamDF):
 
 #####################################################################
 # TODO: move this to a more general location.
-
-
-def r_hat(x: gt.LengthBatchVec3, /) -> Shaped[Quantity[""], "*batch 3"]:
-    """Compute the unit vector in the radial direction.
-
-    Parameters
-    ----------
-    x: Quantity[float, (*batch, 3), "length"]
-        3d position (x, y, z) in [kpc]
-
-    Returns
-    -------
-    Quantity[float, (*batch, 3), ""]
-        Unit vector in the radial direction.
-    """
-    return x / xp.linalg.vector_norm(x, axis=-1, keepdims=True)
-
-
-@partial(jax.jit, inline=True)
-def dphidr(
-    potential: gp.AbstractPotentialBase,
-    x: gt.LengthBatchVec3,
-    t: Shaped[Quantity["time"], ""],
-) -> Shaped[Quantity["acceleration"], "*batch"]:
-    """Compute the derivative of the potential at a position x.
-
-    Parameters
-    ----------
-    potential : `galax.potential.AbstractPotentialBase`
-        The gravitational potential.
-    x: Quantity[float, (3,), 'length']
-        3d position (x, y, z)
-    t: Quantity[float, (), 'time']
-        Time in [Myr]
-
-    Returns
-    -------
-    Quantity[float, (3,), 'acceleration']:
-        Derivative of potential
-    """
-    return xp.sum(potential.gradient(x, t) * r_hat(x), axis=-1)
-
-
-@partial(jax.jit)
-@partial(qnp.vectorize, excluded=(0,), signature="(3),()->()")
-def d2phidr2(
-    potential: gp.AbstractPotentialBase, x: gt.LengthVec3, t: gt.TimeScalar, /
-) -> Shaped[Quantity["1/s^2"], ""]:
-    """Compute the second derivative of the potential.
-
-    At a position x (in the simulation frame).
-
-    Parameters
-    ----------
-    potential : `galax.potential.AbstractPotentialBase`
-        The gravitational potential.
-    x: Quantity[Any, (3,), 'length']
-        3d position (x, y, z) in [kpc]
-    t: Quantity[Any, (), 'time']
-        Time in [Myr]
-
-    Returns
-    -------
-    Array:
-        Second derivative of force (per unit mass) in [1/Myr^2]
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> from galax.potential import NFWPotential
-    >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
-    >>> q = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> d2phidr2(pot, q, Quantity(0.0, "Myr"))
-    Quantity['1'](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
-    """
-    rhat = r_hat(x)
-    # TODO: this isn't vectorized
-    d2phidr2_func = grad(dphidr, argnums=1, units=(None, x.unit, t.unit))
-    return xp.sum(d2phidr2_func(potential, x, t) * rhat)
 
 
 @partial(jax.jit)
@@ -281,7 +202,7 @@ def tidal_radius(
     return qnp.cbrt(
         potential.constants["G"]
         * prog_mass
-        / (orbital_angular_velocity_mag(x, v) ** 2 - d2phidr2(potential, x, t))
+        / (orbital_angular_velocity_mag(x, v) ** 2 - d2phi_dr2(potential, x, t))
     )
 
 

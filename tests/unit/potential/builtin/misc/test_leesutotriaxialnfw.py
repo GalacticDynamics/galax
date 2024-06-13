@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from plum import convert
 from typing_extensions import override
 
 import quaxed.numpy as qnp
@@ -131,9 +132,8 @@ class TestLeeSutoTriaxialNFWPotential(
 
     def test_gradient(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.3411484, 0.6822968, 1.0234452], pot.units["acceleration"])
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
         expect = Quantity(4.89753338e09, pot.units["mass density"])

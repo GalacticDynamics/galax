@@ -2,6 +2,7 @@ from typing import Any
 
 import astropy.units as u
 import pytest
+from plum import convert
 from typing_extensions import override
 
 import quaxed.numpy as qnp
@@ -49,9 +50,8 @@ class TestNFWPotential(
         expect = Quantity(
             [0.06589185, 0.1317837, 0.19767556], pot.units["acceleration"]
         )
-        assert qnp.allclose(
-            pot.gradient(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
-        )
+        got = convert(pot.gradient(x, t=0), Quantity)
+        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.NFWPotential, x: gt.QVec3) -> None:
         expect = Quantity(9.45944763e08, pot.units["mass density"])

@@ -309,7 +309,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(  # TODO: vectorization the func itself
         signature="(),(6)->(6)", excluded=(2,)
     )
-    def _integrator_F(
+    def _dynamics_deriv(
         self,
         t: gt.FloatScalar,
         w: gt.Vec6,

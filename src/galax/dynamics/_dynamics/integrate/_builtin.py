@@ -173,7 +173,7 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     >>> integrator = gd.integrate.DiffraxIntegrator()
     >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
-    >>> w = integrator(pot._integrator_F, w0, t0, t1, units=galactic)
+    >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
         q=CartesianPosition3D( ... ),
@@ -187,7 +187,7 @@ class DiffraxIntegrator(AbstractIntegrator):
     the system at any times ``saveat``:
 
     >>> ts = Quantity(xp.linspace(0, 1, 10), "Gyr")  # 10 steps
-    >>> ws = integrator(pot._integrator_F, w0, t0, t1,
+    >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1,
     ...                 saveat=ts, units=galactic)
     >>> ws
     PhaseSpacePosition(
@@ -205,14 +205,14 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
     ...                            p=Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
-    >>> ws = integrator(pot._integrator_F, w0, t0, t1, units=galactic)
+    >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
     >>> ws.shape
     (2,)
 
     A cool feature of the integrator is that it can return an interpolated
     solution.
 
-    >>> w = integrator(pot._integrator_F, w0, t0, t1, saveat=ts, units=galactic,
+    >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, saveat=ts, units=galactic,
     ...                interpolated=True)
     >>> type(w)
     <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
@@ -242,7 +242,7 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
     ...                            p=Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
-    >>> ws = integrator(pot._integrator_F, w0, t0, t1, units=galactic,
+    >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic,
     ...                 interpolated=True)
     >>> ws.shape
     (2,)

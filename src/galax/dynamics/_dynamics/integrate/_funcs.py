@@ -215,7 +215,7 @@ def evaluate_orbit(
         psp0t == t[0],
         psp0.w(units=units),  # don't integrate if already at the desired time
         integrator(
-            pot._integrator_F,  # noqa: SLF001
+            pot._dynamics_deriv,  # noqa: SLF001
             psp0,  # w0
             psp0t,  # t0
             xp.full_like(psp0t, t[0]),  # t1
@@ -227,7 +227,7 @@ def evaluate_orbit(
     # Orbit integration
 
     ws = integrator(
-        pot._integrator_F,  # noqa: SLF001
+        pot._dynamics_deriv,  # noqa: SLF001
         qp0,
         t[0],
         t[-1],

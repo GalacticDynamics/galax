@@ -27,14 +27,14 @@ class ParameterRCMixin(ParameterFieldMixin):
         """Test the `r_c` parameter."""
         fields["r_c"] = Quantity(1.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.r_c(t=0) == Quantity(1.0, "kpc")
+        assert pot.r_c(t=Quantity(0, "Myr")) == Quantity(1.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_c_userfunc(self, pot_cls, fields):
         """Test the `r_c` parameter."""
         fields["r_c"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a1(t=0) == 2
+        assert pot.a1(t=Quantity(0, "Myr")) == 2
 
 
 class ParameterRHMixin(ParameterFieldMixin):
@@ -50,14 +50,14 @@ class ParameterRHMixin(ParameterFieldMixin):
         """Test the `r_h` parameter."""
         fields["r_h"] = Quantity(11.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.r_h(t=0) == Quantity(11.0, "kpc")
+        assert pot.r_h(t=Quantity(0, "Myr")) == Quantity(11.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_h_userfunc(self, pot_cls, fields):
         """Test the `r_h` parameter."""
         fields["r_h"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a1(t=0) == 2
+        assert pot.a1(t=Quantity(0, "Myr")) == 2
 
 
 class TestStoneOstriker15Potential(

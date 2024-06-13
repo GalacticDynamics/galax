@@ -47,14 +47,14 @@ class ParameterPhiMixin(ParameterFieldMixin):
         """Test the speed parameter."""
         fields["phi"] = Quantity(1.0, "deg")
         pot = pot_cls(**fields)
-        assert pot.phi(t=0) == Quantity(1.0, "deg")
+        assert pot.phi(t=Quantity(0, "Myr")) == Quantity(1.0, "deg")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_phi_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["phi"] = lambda t: t + 2
         pot = pot_cls(**fields)
-        assert pot.phi(t=0) == 2
+        assert pot.phi(t=Quantity(0, "Myr")) == 2
 
 
 class TestLMJ09LogarithmicPotential(

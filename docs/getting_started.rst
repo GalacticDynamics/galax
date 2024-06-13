@@ -50,8 +50,55 @@ input::
     >>> import galax.potential as gp
     >>> mw = gp.MilkyWayPotential()
     >>> mw
-    MilkyWayPotential({'disk': MiyamotoNagaiPotential(...), 'halo': NFWPotential(...),
-                       'bulge': HernquistPotential(...), 'nucleus': HernquistPotential(...)})
+    MilkyWayPotential({'disk': MiyamotoNagaiPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      m_tot=ConstantParameter(
+        unit=Unit("solMass"),
+        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+      ),
+      a=ConstantParameter(
+        unit=Unit("kpc"),
+        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+      ),
+      b=ConstantParameter(
+        unit=Unit("kpc"),
+        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+      )
+    ), 'halo': NFWPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      m=ConstantParameter(
+        unit=Unit("solMass"),
+        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+      ),
+      r_s=ConstantParameter(
+        unit=Unit("kpc"),
+        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+      )
+    ), 'bulge': HernquistPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      m_tot=ConstantParameter(
+        unit=Unit("solMass"),
+        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+      ),
+      r_s=ConstantParameter(
+        unit=Unit("kpc"),
+        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+      )
+    ), 'nucleus': HernquistPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      m_tot=ConstantParameter(
+        unit=Unit("solMass"),
+        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+      ),
+      r_s=ConstantParameter(
+        unit=Unit("kpc"),
+        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+      )
+    )})
 
 This model, by default, contains four distinct potential components as listed in
 the output above: disk, bulge, nucleus, and halo components. You can configure
@@ -68,8 +115,8 @@ position near the Sun::
     >>> xyz = [-8., 0, 0] * u.kpc
     >>> mw.potential(xyz, t=0).to_units("kpc2 / Myr2")
     Quantity['specific energy'](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
-    >>> mw.acceleration(xyz, t=0).to_units("kpc/Myr2")
-    Quantity['acceleration'](Array([ 0.00702262, -0.        , -0.        ], dtype=float64), unit='kpc / Myr2')
+    >>> mw.acceleration(xyz, t=0)
+    CartesianAcceleration3D...
 
 The values that are returned by most methods in :mod:`galax` are provided as
 Astropy :class:`~astropy.units.Quantity` objects, which represent numerical data
@@ -79,8 +126,8 @@ energy or acceleration in other units::
 
     >>> mw.potential(xyz, t=0).to_units("kpc2/Myr2")
     Quantity['specific energy'](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
-    >>> mw.acceleration(xyz, t=0).to_units("kpc/Myr2")
-    Quantity['acceleration'](Array([ 0.00702262, -0.        , -0.        ], dtype=float64), unit='kpc / Myr2')
+    >>> mw.acceleration(xyz, t=0)
+    CartesianAcceleration3D...
 
 Now that we have a potential model, if we want to compute an orbit, we need to
 specify a set of initial conditions to initialize the numerical orbit

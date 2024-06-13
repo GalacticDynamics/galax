@@ -19,4 +19,4 @@ from . import (
     typing,
     utils,
 )
-from ._version import __version__, __version_tuple__
+from ._version import version as __version__, version_tuple as __version_tuple__

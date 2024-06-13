@@ -1,17 +1,18 @@
 """:mod:`galax.dynamics`."""
 
 from jaxtyping import install_import_hook
-from lazy_loader import attach_stub
 
 from galax.setup_package import RUNTIME_TYPECHECKER
 from galax.utils._optional_deps import HAS_GALA
 
 with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
-    __getattr__, __dir__, __all__ = attach_stub(__name__, __file__)
+    from . import _dynamics
+    from ._dynamics import *
 
-if HAS_GALA:
-    from . import _compat  # noqa: F401
+    if HAS_GALA:
+        from . import _compat  # noqa: F401
 
+__all__ = _dynamics.__all__
 
 # Cleanup
-del install_import_hook, RUNTIME_TYPECHECKER, HAS_GALA
+del install_import_hook, RUNTIME_TYPECHECKER, HAS_GALA, _dynamics

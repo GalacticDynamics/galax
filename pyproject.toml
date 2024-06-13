@@ -258,6 +258,7 @@ messages_control.disable = [
   "unnecessary-ellipsis",
   "unnecessary-lambda-assignment", # ruff E731
   "unnecessary-pass",              # handled by ruff
+  "useless-import-alias",
   "wrong-import-position",
   "wrong-import-order",            # handled by ruff
 ]

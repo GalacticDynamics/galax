@@ -111,6 +111,7 @@ def galax_psp_to_gala_psp(obj: gcx.PhaseSpacePosition, /) -> gd.PhaseSpacePositi
     --------
     With the following imports:
 
+    >>> from warnings import catch_warnings, filterwarnings
     >>> import gala.dynamics as gd
     >>> import galax.coordinates as gcx
     >>> import astropy.units as u
@@ -123,7 +124,9 @@ def galax_psp_to_gala_psp(obj: gcx.PhaseSpacePosition, /) -> gd.PhaseSpacePositi
     ...     q=[1, 2, 3] * u.kpc, p=[4, 5, 6] * u.km / u.s, t=2 * u.Myr
     ... )
 
-    >>> gala_w = convert(galax_w, gd.PhaseSpacePosition)
+    >>> with catch_warnings():
+    ...     filterwarnings("ignore")
+    ...     gala_w = convert(galax_w, gd.PhaseSpacePosition)
     >>> gala_w
     <PhaseSpacePosition cartesian, dim=3, shape=()>
 

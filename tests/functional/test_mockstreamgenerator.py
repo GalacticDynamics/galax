@@ -31,7 +31,7 @@ def compute_loss(
     pot = MilkyWayPotential(**params, units=usys)
     mockgen = MockStreamGenerator(df, pot)
     stream, _ = mockgen.run(rng, ts, w0, M_sat)
-    trail_arm, lead_arm = stream[::2], stream[1::2]
+    trail_arm, lead_arm = stream["lead"], stream["trail"]
     # Generate "observed" stream from mock
     lead_arm_obs = jax.lax.stop_gradient(lead_arm)
     trail_arm_obs = jax.lax.stop_gradient(trail_arm)
@@ -66,10 +66,10 @@ def test_first_deriv() -> None:
         "halo": {"m": Quantity(1.0e12, "Msun"), "r_s": Quantity(15.0, "kpc")},
     }
 
-    ts = Quantity(xp.linspace(0.0, 4_000, 10_000, dtype=float), "Myr")
+    ts = Quantity(xp.linspace(0.0, 4.0, 1_000, dtype=float), "Gyr")
 
-    q0 = ((30, 10, 20) * u.Unit("kpc")).decompose(usys).value
-    p0 = ((10, -150, -20) * u.Unit("km / s")).decompose(usys).value
+    q0 = Quantity([30.0, 10, 20], "kpc").decompose(usys).value
+    p0 = Quantity([10.0, -150, -20], "km / s").decompose(usys).value
     w0 = xp.asarray([*q0, *p0], dtype=float)
 
     M_sat = Quantity(1.0e4, "Msun")
@@ -94,7 +94,7 @@ def test_second_deriv() -> None:
         },
         "halo": {"m": Quantity(1.0e12, "Msun"), "r_s": Quantity(15.0, "kpc")},
     }
-    ts = Quantity(xp.linspace(0.0, 4_000, 10_000, dtype=float), "Myr")
+    ts = Quantity(xp.linspace(0.0, 4.0, 10_000, dtype=float), "Gyr")
 
     q0 = ((30, 10, 20) * u.Unit("kpc")).decompose(usys).value
     p0 = ((10, -150, -20) * u.Unit("km / s")).decompose(usys).value

@@ -142,7 +142,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
 
         >>> integrator = gd.integrate.DiffraxIntegrator()
         >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
-        >>> w = integrator(pot._integrator_F, w0, t0, t1, units=galactic)
+        >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
         >>> w
         PhaseSpacePosition(
             q=CartesianPosition3D( ... ),
@@ -155,7 +155,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
         We can also request the orbit at specific times:
 
         >>> ts = Quantity(xp.linspace(0, 1, 10), "Myr")  # 10 steps
-        >>> ws = integrator(pot._integrator_F, w0, t0, t1,
+        >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1,
         ...                 saveat=ts, units=galactic)
         >>> ws
         PhaseSpacePosition(
@@ -172,7 +172,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
 
         >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
         ...                            p=Quantity([[0, 200, 0], [0, 200, 0]], "km/s"))
-        >>> ws = integrator(pot._integrator_F, w0, t0, t1, units=galactic)
+        >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
         >>> ws.shape
         (2,)
 
@@ -258,7 +258,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
 
         >>> integrator = gd.integrate.DiffraxIntegrator()
         >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
-        >>> w = integrator(pot._integrator_F, w0, t0, t1, units=galactic)
+        >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
         >>> w
         PhaseSpacePosition(
             q=CartesianPosition3D( ... ),
@@ -325,7 +325,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
 
         >>> integrator = gd.integrate.DiffraxIntegrator()
         >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
-        >>> w = integrator(pot._integrator_F, w0, t0, t1, units=galactic)
+        >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
         >>> w
         CompositePhaseSpacePosition({'w01': PhaseSpacePosition(
             q=CartesianPosition3D( ... ),

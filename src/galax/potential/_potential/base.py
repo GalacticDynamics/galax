@@ -309,16 +309,39 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(  # TODO: vectorization the func itself
         signature="(),(6)->(6)", excluded=(2,)
     )
-    def _integrator_F(
+    def _dynamics_deriv(
         self,
         t: gt.FloatScalar,
         w: gt.Vec6,
         args: tuple[Any, ...],  # noqa: ARG002
     ) -> gt.Vec6:
-        """Return the derivative of the phase-space position."""
+        r"""Differential equation derivative for dynamics.
+
+        This is Hamilton's equations for motion for a particle in a potential.
+
+        .. math::
+
+                \dot{q} = \frac{dH}{dp} \\ \dot{p} = -\frac{dH}{dq}
+
+        Parameters
+        ----------
+        t : float
+            Time at which to evaluate the derivative.
+        w : Array[float, (6,)]
+            Phase-space position [q (3,), p (3,)].
+        args : tuple
+            Additional arguments to pass to the derivative. Not used, but
+            required by some dynamics solvers.
+
+        Returns
+        -------
+        dw : Array[float, (6,)]
+            Derivative [p (3,), a (3,)] at the phase-space position.
+        """
         # TODO: not require unit munging
-        a = self._gradient(
-            Quantity(w[0:3], self.units["length"]), Quantity(t, self.units["time"])
+        a = -self._gradient(
+            Quantity(w[0:3], self.units["length"]),
+            Quantity(t, self.units["time"]),
         ).to_units_value(self.units["acceleration"])
         return jnp.hstack([w[3:6], a])  # v, a
 

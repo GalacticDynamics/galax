@@ -161,7 +161,7 @@ class AbstractCompositePhaseSpacePosition(
         if not batch_shape:
             batch_shape = (len(self),)
         else:
-            batch_shape = (*batch_shape[:-1], len(self) * batch_shape[-1])
+            batch_shape = (*batch_shape[:-1], len(self._data) * batch_shape[-1])
         shape = zeroth(self.values())._shape_tuple[1]  # noqa: SLF001
         return batch_shape, shape
 

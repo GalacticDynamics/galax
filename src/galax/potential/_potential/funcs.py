@@ -1554,9 +1554,9 @@ def acceleration(
 # Tidal Tensor
 
 
-@dispatch(precedence=1)  # type: ignore[misc]
+@dispatch  # type: ignore[misc]
 def tidal_tensor(
-    potential: AbstractPotentialBase, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar
+    potential: AbstractPotentialBase, q: gt.BatchQVec3, t: gt.BatchRealQScalar, /
 ) -> gt.BatchQMatrix33:
     """Compute the tidal tensor.
 
@@ -1667,10 +1667,7 @@ def tidal_tensor(
 
 @dispatch
 def tidal_tensor(
-    potential: AbstractPotentialBase,
-    q: PositionalLike,
-    /,
-    t: TimeOptions,
+    potential: AbstractPotentialBase, q: PositionalLike, t: TimeOptions, /
 ) -> gt.BatchQMatrix33:
     """Compute the tidal tensor of the potential at the given position(s).
 
@@ -1750,11 +1747,7 @@ def tidal_tensor(
 
 @dispatch
 def tidal_tensor(
-    potential: AbstractPotentialBase,
-    q: PositionalLike,
-    /,
-    *,
-    t: TimeOptions,
+    potential: AbstractPotentialBase, q: PositionalLike, /, *, t: TimeOptions
 ) -> gt.BatchQMatrix33:
     """Compute the tidal tensor when `t` is keyword-only.
 
@@ -1787,8 +1780,8 @@ def tidal_tensor(
 def tidal_tensor(
     potential: AbstractPotentialBase,
     q: APYRepresentation | APYQuantity,
-    /,
     t: TimeOptions,
+    /,
 ) -> gt.BatchQMatrix33:
     """Compute the tidal tensor at the given position(s).
 

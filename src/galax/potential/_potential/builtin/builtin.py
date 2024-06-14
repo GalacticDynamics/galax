@@ -23,7 +23,6 @@ from typing import Any, final
 
 import equinox as eqx
 import jax
-from jaxtyping import ArrayLike
 
 import quaxed.array_api as xp
 import quaxed.lax as qlax
@@ -32,7 +31,7 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 from unxt.unitsystems import galactic
 
 import galax.typing as gt
-from galax.potential._potential.base import QMatrix33, default_constants
+from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.param import AbstractParameter, ParameterField
 from galax.utils import ImmutableDict
@@ -71,7 +70,7 @@ class BurkertPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         m, r_s = self.m(t), self.r_s(t)
         x = xp.linalg.vector_norm(q, axis=-1) / r_s
         xinv = 1 / x
@@ -175,7 +174,7 @@ class HernquistPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / (r + self.r_s(t))
 
@@ -221,7 +220,7 @@ class IsochronePotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         b = self.b(t)
         return -self.constants["G"] * self.m_tot(t) / (b + xp.sqrt(r**2 + b**2))
@@ -240,7 +239,7 @@ class JaffePotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         r_s = self.r_s(t)
         return -self.constants["G"] * self.m(t) / r_s * xp.log(1 + r_s / r)
@@ -270,7 +269,7 @@ class KeplerPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / r
 
@@ -320,8 +319,8 @@ class KuzminPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential(
-        self: "KuzminPotential", q: gt.QVec3, t: gt.RealQScalar, /
-    ) -> gt.FloatQScalar:
+        self: "KuzminPotential", q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.SpecificEnergyBatchScalar:
         return (
             -self.constants["G"]
             * self.m_tot(t)
@@ -350,7 +349,7 @@ class LogarithmicPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r2 = xp.linalg.vector_norm(q, axis=-1).to_value(self.units["length"]) ** 2
         return (
             0.5
@@ -384,8 +383,8 @@ class MiyamotoNagaiPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential(
-        self: "MiyamotoNagaiPotential", q: gt.QVec3, t: gt.RealQScalar, /
-    ) -> gt.FloatQScalar:
+        self: "MiyamotoNagaiPotential", q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
+    ) -> gt.SpecificEnergyBatchScalar:
         R2 = q[..., 0] ** 2 + q[..., 1] ** 2
         zp2 = (xp.sqrt(q[..., 2] ** 2 + self.b(t) ** 2) + self.a(t)) ** 2
         return -self.constants["G"] * self.m_tot(t) / xp.sqrt(R2 + zp2)
@@ -428,7 +427,7 @@ class NullPotential(AbstractPotential):
         q: gt.BatchQVec3,
         t: gt.BatchableRealQScalar,  # noqa: ARG002
         /,
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         return Quantity(  # TODO: better unit handling
             xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
         )
@@ -457,7 +456,7 @@ class NullPotential(AbstractPotential):
         )
 
     @partial(jax.jit)
-    def _hessian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> QMatrix33:
+    def _hessian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> gt.QMatrix33:
         """See ``hessian``."""
         return Quantity(  # TODO: better unit handling
             xp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype), galactic["frequency drift"]
@@ -483,7 +482,7 @@ class PlummerPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r2 = xp.linalg.vector_norm(q, axis=-1) ** 2
         return -self.constants["G"] * self.m_tot(t) / xp.sqrt(r2 + self.b(t) ** 2)
 
@@ -492,7 +491,7 @@ class PlummerPotential(AbstractPotential):
 
 
 @partial(jax.jit, inline=True)
-def _safe_gamma_inc(a: ArrayLike, x: ArrayLike) -> ArrayLike:  # TODO: types
+def _safe_gamma_inc(a: Quantity, x: Quantity) -> Quantity:  # TODO: types
     return qsp.gammainc(a, x) * qsp.gamma(a)
 
 
@@ -532,7 +531,7 @@ class PowerLawCutoffPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         m, a, r_c = self.m_tot(t), 0.5 * self.alpha(t), self.r_c(t)
         r = xp.linalg.vector_norm(q, axis=-1)
         rp2 = (r / r_c) ** 2
@@ -574,7 +573,7 @@ class SatohPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         a, b = self.a(t), self.b(t)
         R2 = q[..., 0] ** 2 + q[..., 1] ** 2
         z = q[..., 2]
@@ -619,7 +618,7 @@ class StoneOstriker15Potential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r_h = self.r_h(t)
         r_c = self.r_c(t)
         r = xp.linalg.vector_norm(q, axis=-1)
@@ -689,13 +688,13 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     # TODO: move to a triaxial wrapper
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1, ""),
+        default=Quantity(1.0, ""),
         dimensions="dimensionless",
     )
     """Scale length in the y direction divided by ``c``."""
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1, ""),
+        default=Quantity(1.0, ""),
         dimensions="dimensionless",
     )
     """Scale length in the z direction divided by ``c``."""
@@ -709,7 +708,7 @@ class TriaxialHernquistPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
         r_s = eqx.error_if(r_s, r_s.value <= 0, "r_s must be positive")
 

@@ -8,7 +8,7 @@ from typing import final
 
 import jax
 import jax.random as jr
-from jaxtyping import PRNGKeyArray, Shaped
+from jaxtyping import Float, PRNGKeyArray, Shaped
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
@@ -102,8 +102,8 @@ class FardalStreamDF(AbstractStreamDF):
 
 @partial(jax.jit)
 def orbital_angular_velocity(
-    x: gt.LengthVec3, v: gt.SpeedVec3, /
-) -> Shaped[Quantity["frequency"], ""]:
+    x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
+) -> Shaped[Quantity["frequency"], "*batch 3"]:  # TODO: rad/s
     """Compute the orbital angular velocity about the origin.
 
     Arguments:
@@ -131,8 +131,8 @@ def orbital_angular_velocity(
 
 @partial(jax.jit)
 def orbital_angular_velocity_mag(
-    x: gt.LengthVec3, v: gt.SpeedVec3, /
-) -> Shaped[Quantity, "m^2/s"]:
+    x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
+) -> Shaped[Quantity["frequency"], "*batch"]:  # TODO: rad/s
     """Compute the magnitude of the angular momentum in the simulation frame.
 
     Arguments:
@@ -160,12 +160,12 @@ def orbital_angular_velocity_mag(
 @partial(jax.jit)
 def tidal_radius(
     potential: gp.AbstractPotentialBase,
-    x: gt.LengthVec3,
-    v: gt.SpeedVec3,
+    x: gt.LengthBatchVec3,
+    v: gt.SpeedBatchVec3,
     /,
-    prog_mass: gt.MassScalar,
-    t: gt.TimeScalar,
-) -> gt.LengthScalar:
+    prog_mass: gt.MassBatchableScalar,
+    t: gt.TimeBatchableScalar,
+) -> Float[Quantity["length"], "*batch"]:
     """Compute the tidal radius of a cluster in the potential.
 
     Parameters

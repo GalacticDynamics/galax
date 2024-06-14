@@ -205,7 +205,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         """Compute the potential energy at the given position(s).
 
         This method applies the frame operators to the coordinates and then

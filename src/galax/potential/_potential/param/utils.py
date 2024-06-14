@@ -9,7 +9,7 @@ from dataclasses import Field
 from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
-    from galax.potential._potential.param.field import ParameterField
+    from .field import ParameterField
 
 
 def all_vars(obj: object | type, /) -> dict[str, Any]:
@@ -19,7 +19,7 @@ def all_vars(obj: object | type, /) -> dict[str, Any]:
     return functools.reduce(operator.__or__, map(vars, cls.mro()[::-1]))
 
 
-def all_parameters(obj: object | type, /) -> dict[str, "ParameterField"]:
+def all_parameters(obj: object | type, /) -> "dict[str, ParameterField]":
     """Get all fields of a dataclass, including those not-yet finalized.
 
     Parameters

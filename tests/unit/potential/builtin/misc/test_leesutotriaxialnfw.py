@@ -29,14 +29,14 @@ class ShapeA1ParameterMixin(ParameterFieldMixin):
         """Test the `a1` parameter."""
         fields["a1"] = Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.a1(t=0) == Quantity(1.0, "")
+        assert pot.a1(t=Quantity(0, "Myr")) == Quantity(1.0, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a1_userfunc(self, pot_cls, fields):
         """Test the `a1` parameter."""
         fields["a1"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a1(t=0) == 2
+        assert pot.a1(t=Quantity(0, "Myr")) == 2
 
 
 class ShapeA2ParameterMixin(ParameterFieldMixin):
@@ -52,14 +52,14 @@ class ShapeA2ParameterMixin(ParameterFieldMixin):
         """Test the `a2` parameter."""
         fields["a2"] = Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.a2(t=0) == Quantity(1.0, "")
+        assert pot.a2(t=Quantity(0, "Myr")) == Quantity(1.0, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a2_userfunc(self, pot_cls, fields):
         """Test the `a2` parameter."""
         fields["a3"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a2(t=0) == 2
+        assert pot.a2(t=Quantity(0, "Myr")) == 2
 
 
 class ShapeA3ParameterMixin(ParameterFieldMixin):
@@ -75,14 +75,14 @@ class ShapeA3ParameterMixin(ParameterFieldMixin):
         """Test the `a3` parameter."""
         fields["a3"] = Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.a3(t=0) == Quantity(1.0, "")
+        assert pot.a3(t=Quantity(0, "Myr")) == Quantity(1.0, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a3_userfunc(self, pot_cls, fields):
         """Test the `a3` parameter."""
         fields["a3"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a3(t=0) == 2
+        assert pot.a3(t=Quantity(0, "Myr")) == 2
 
 
 ################################################################################

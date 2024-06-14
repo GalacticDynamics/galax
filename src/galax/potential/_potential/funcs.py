@@ -32,15 +32,13 @@ from .base import AbstractPotentialBase
 from .utils import _convert_from_3dvec, parse_to_quantity
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
-QMatrix33: TypeAlias = Float[Quantity, "3 3"]
-BatchQMatrix33: TypeAlias = Shaped[QMatrix33, "*batch"]
 HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
 
 # Position and time input options
 PositionalLike: TypeAlias = (
     cx.AbstractPosition3D
     | gt.LengthBatchableVec3
-    | Shaped[Quantity, "*#batch 3"]
+    | Shaped[Quantity["length"], "*#batch 3"]
     | Shaped[Array, "*#batch 3"]
 )
 TimeOptions: TypeAlias = (
@@ -1173,7 +1171,7 @@ def hessian(
     potential: AbstractPotentialBase,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
     /,
-) -> BatchQMatrix33:
+) -> gt.BatchQMatrix33:
     """Compute the hessian of the potential at the given position(s).
 
     Parameters
@@ -1184,7 +1182,7 @@ def hessian(
 
     Returns
     -------
-    H : BatchQMatrix33
+    H : gt.BatchQMatrix33
         The hessian matrix of the potential.
 
     Examples
@@ -1556,10 +1554,10 @@ def acceleration(
 # Tidal Tensor
 
 
-@dispatch(precedence=1)  # type: ignore[misc]
+@dispatch
 def tidal_tensor(
-    potential: AbstractPotentialBase, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar
-) -> BatchQMatrix33:
+    potential: AbstractPotentialBase, *args: Any, **kwargs: Any
+) -> gt.BatchQMatrix33:
     """Compute the tidal tensor.
 
     See https://en.wikipedia.org/wiki/Tidal_tensor
@@ -1571,47 +1569,15 @@ def tidal_tensor(
 
     Parameters
     ----------
-    q : Quantity[float, (*batch, 3,), 'length']
-        Position to compute the tidal tensor at.
-    t : Quantity[float | int, (*batch,), 'time']
-        Time at which to compute the tidal tensor.
+    potential : :class:`~galax.potential.AbstractPotentialBase`
+        The potential to compute the tidal tensor of.
+    *args, **kwargs : Any
+        The arguments to pass to :func:`~galax.potential.hessian`.
 
     Returns
     -------
     Quantity[float, (*batch, 3, 3), '1/time^2']
         The tidal tensor.
-    """
-    J = hessian(potential, q, t)  # (*batch, 3, 3)
-    batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)
-    traced = (
-        expand_batch_dims(xp.eye(3), ndim=len(batch_shape))
-        * expand_arr_dims(qnp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
-        / 3
-    )
-    return J - traced
-
-
-_tidal_tensor = tidal_tensor  # Needed to bypass namespace restrictions
-
-
-@dispatch
-def tidal_tensor(
-    potential: AbstractPotentialBase,
-    pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
-    /,
-) -> BatchQMatrix33:
-    """Compute the tidal tensor of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
-        The phase-space + time position to compute the tidal tensor of the
-        potential.
-
-    Returns
-    -------
-    T : BatchQMatrix33
-        The tidal tensor matrix of the potential.
 
     Examples
     --------
@@ -1623,7 +1589,7 @@ def tidal_tensor(
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
-    Then we can construct a potential and compute the hessian:
+    Then we can construct a potential and compute the tidal tensor:
 
     >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
@@ -1662,41 +1628,8 @@ def tidal_tensor(
                          [-0.03680435,  0.01226812, -0.11041304],
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
                     unit='1 / Myr2')
-    """
-    q = _convert_from_3dvec(pspt.q, units=potential.units)
-    return _tidal_tensor(potential, q, pspt.t)
 
-
-@dispatch
-def tidal_tensor(
-    potential: AbstractPotentialBase,
-    q: PositionalLike,
-    /,
-    t: TimeOptions,
-) -> BatchQMatrix33:
-    """Compute the tidal tensor of the potential at the given position(s).
-
-    Parameters
-    ----------
-    q : PositionalLike
-        The position to compute the tidal tensor of the potential.  If unitless
-        (i.e. is an `~jax.Array`), it is assumed to be in the unit system of the
-        potential.
-    t : TimeOptions
-        The time at which to compute the tidal tensor of the potential.  If
-        unitless (i.e. is an `~jax.Array`), it is assumed to be in the unit
-        system of the potential.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
-
-    We can compute the tidal tensor at a position (and time, if any
-    parameters are time-dependent):
+    We can compute the tidal tensor at a position and time:
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
@@ -1706,7 +1639,7 @@ def tidal_tensor(
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
                     unit='1 / Myr2')
 
-    We can also compute the tidal tensor at multiple positions:
+    We can also compute the tidal tensor at multiple positions / times:
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
     >>> pot.tidal_tensor(q, t)
@@ -1744,27 +1677,9 @@ def tidal_tensor(
                           [-0.00518791,  0.00017293, -0.00778186],
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
                     unit='1 / Myr2')
-    """
-    q = parse_to_quantity(q, unit=potential.units["length"])
-    t = Quantity.constructor(t, potential.units["time"])
-    return _tidal_tensor(potential, q, t)
 
-
-@dispatch
-def tidal_tensor(
-    potential: AbstractPotentialBase,
-    q: PositionalLike,
-    /,
-    *,
-    t: TimeOptions,
-) -> BatchQMatrix33:
-    """Compute the tidal tensor when `t` is keyword-only.
-
-    Examples
-    --------
-    All these examples are covered by the case where `t` is positional.
     :mod:`plum` dispatches on positional arguments only, so it necessary
-    to redispatch here.
+    to redispatch when `t` is a keyword argument.
 
     >>> from unxt import Quantity
     >>> import coordinax as cx
@@ -1779,19 +1694,24 @@ def tidal_tensor(
                          [-0.03680435,  0.01226812, -0.11041304],
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
                     unit='1 / Myr2')
-
-    See the other examples in the positional-only case.
     """
-    return _tidal_tensor(potential, q, t)
+    J = hessian(potential, *args, **kwargs)  # (*batch, 3, 3)
+    batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)
+    traced = (
+        expand_batch_dims(xp.eye(3), ndim=len(batch_shape))
+        * expand_arr_dims(qnp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
+        / 3
+    )
+    return J - traced
 
 
 @dispatch
 def tidal_tensor(
     potential: AbstractPotentialBase,
     q: APYRepresentation | APYQuantity,
-    /,
     t: TimeOptions,
-) -> BatchQMatrix33:
+    /,
+) -> gt.BatchQMatrix33:
     """Compute the tidal tensor at the given position(s).
 
     :meth:`~galax.potential.AbstractPotentialBase.tidal_tensor` also
@@ -1849,7 +1769,7 @@ def tidal_tensor(
     """
     q = parse_to_quantity(q, unit=potential.units["length"])
     t = Quantity.constructor(t, potential.units["time"])
-    return _tidal_tensor(potential, q, t)
+    return tidal_tensor(potential, q, t)
 
 
 @dispatch
@@ -1859,8 +1779,8 @@ def tidal_tensor(
     /,
     *,
     t: TimeOptions,
-) -> BatchQMatrix33:
-    return _tidal_tensor(potential, q, t)
+) -> gt.BatchQMatrix33:
+    return tidal_tensor(potential, q, t)
 
 
 # =============================================================================

@@ -58,7 +58,7 @@ class NFWPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r"""Potential energy.
 
         .. math::
@@ -172,7 +172,7 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         # https://github.com/adrn/gala/blob/2067009de41518a71c674d0252bc74a7b2d78a36/gala/potential/potential/builtin/builtin_potentials.c#L1472
         # Evaluate the parameters
         r_s = self.r_s(t)
@@ -227,8 +227,13 @@ class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
 
     @partial(jax.jit, static_argnums=(1,))
     def __call__(
-        self, f: Callable[[Shaped[Array, "N"]], Shaped[Array, "N"]], /
-    ) -> Shaped[Array, ""]:
+        self,
+        f: Callable[
+            [Shaped[Array, "N *#batch"]],
+            Shaped[Array, "N *batch"] | Shaped[Quantity["dimensionless"], "N *batch"],
+        ],
+        /,
+    ) -> Shaped[Array, "*batch"] | Shaped[Quantity["dimensionless"], "*batch"]:
         y = f(self.x)
         w = self.w.reshape(self.w.shape + (1,) * (y.ndim - 1))
         return xp.sum(y * w, axis=0)
@@ -256,13 +261,13 @@ class TriaxialNFWPotential(AbstractPotential):
     """Scale radius of the potential."""
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1, ""),
+        default=Quantity(1.0, ""),
         dimensions="dimensionless",
     )
     """Scale length in the y/x direction."""
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1, ""),
+        default=Quantity(1.0, ""),
         dimensions="dimensionless",
     )
     """Scale length in the z/x direction."""
@@ -283,6 +288,7 @@ class TriaxialNFWPotential(AbstractPotential):
     def __post_init__(self) -> None:
         # Gauss-Legendre quadrature
         x, w = np.polynomial.legendre.leggauss(self.integration_order)
+        x, w = xp.asarray(x, dtype=float), xp.asarray(w, dtype=float)
         # Interval change from [-1, 1] to [0, 1]
         x = 0.5 * (x + 1)
         w = 0.5 * w
@@ -306,11 +312,11 @@ class TriaxialNFWPotential(AbstractPotential):
     @partial(jax.jit, inline=True)
     def _ellipsoid_surface(
         self,
-        q: Shaped[Quantity["length"], "*batch 3"],
-        q1: Shaped[Quantity["dimensionless"], "*#batch"],
-        q2: Shaped[Quantity["dimensionless"], "*#batch"],
-        s2: Shaped[Quantity["dimensionless"], "*#batch"],
-    ) -> Shaped[Quantity["length"], "*batch"]:
+        q: Shaped[Quantity["length"], "1 *batch 3"],
+        q1: Shaped[Quantity["dimensionless"], ""],
+        q2: Shaped[Quantity["dimensionless"], ""],
+        s2: Shaped[Array, "N *#batch"],
+    ) -> Shaped[Quantity["area"], "N *batch"]:
         r"""Compute coordinates on the ellipse.
 
         .. math::
@@ -331,7 +337,7 @@ class TriaxialNFWPotential(AbstractPotential):
         q: gt.BatchQVec3,
         t: gt.BatchableRealQScalar,
         /,
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r"""Potential energy for the triaxial NFW.
 
         The NFW potential is spherically symmetric. For the triaxial (density)
@@ -389,6 +395,7 @@ class TriaxialNFWPotential(AbstractPotential):
         """
         # A batch dimension is added here and below for the integration.
         q = q[None]
+        batchdims: int = q.ndim - 2
 
         # Compute the parameters.
         r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
@@ -397,12 +404,16 @@ class TriaxialNFWPotential(AbstractPotential):
 
         # Delta(ψ) = ψ(∞) - ψ(ξ)
         # This factors out the rho0 * r_s^2, moving it to the end
-        def delta_psi_factor(s2: gt.FloatScalar) -> gt.FloatScalar:
+        def delta_psi_factor(
+            s2: Float[Array, "N *#batch"],
+        ) -> Float[Quantity["dimensionless"], "N *batch"]:
             xi = xp.sqrt(self._ellipsoid_surface(q, q1, q2, s2)) / r_s
             return 2.0 / (1.0 + xi)
 
-        def integrand(s: Float[Array, "N"]) -> Float[Array, "N *batch"]:
-            s2 = s.reshape(s.shape + (1,) * (q.ndim - 2)) ** 2
+        def integrand(
+            s: Float[Array, "N"],
+        ) -> Float[Quantity["dimensionless"], "N *batch"]:
+            s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
             denom = xp.sqrt(((q1sq - 1) * s2 + 1) * ((q2sq - 1) * s2 + 1))
             return delta_psi_factor(s2) / denom
 
@@ -418,7 +429,8 @@ class TriaxialNFWPotential(AbstractPotential):
         self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
         r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
-        xi = xp.sqrt(self._ellipsoid_surface(q, q1, q2, 1)) / r_s
+        s2 = xp.asarray([1])
+        xi = xp.sqrt(self._ellipsoid_surface(q[None], q1, q2, s2)[0]) / r_s
         return self.rho0(t) / xi / (1.0 + xi) ** 2
 
 
@@ -479,7 +491,10 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential(
-        self: "Vogelsberger08TriaxialNFWPotential", q: gt.QVec3, t: gt.RealQScalar, /
-    ) -> gt.FloatQScalar:
+        self: "Vogelsberger08TriaxialNFWPotential",
+        q: gt.BatchQVec3,
+        t: gt.BatchableRealQScalar,
+        /,
+    ) -> gt.SpecificEnergyBatchScalar:
         r = self._r_tilde(q, t)
         return -self.constants["G"] * self.m(t) * xp.log(1.0 + r / self.r_s(t)) / r

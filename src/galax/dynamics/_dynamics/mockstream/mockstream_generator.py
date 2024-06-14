@@ -163,7 +163,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_mass: gt.FloatQScalar | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
-    ) -> tuple[MockStreamArm, gc.PhaseSpacePosition]:
+    ) -> tuple[MockStream, gc.PhaseSpacePosition]:
         """Generate mock stellar stream.
 
         Parameters

@@ -117,9 +117,9 @@ class MockStream(AbstractCompositePhaseSpacePosition):
         )
 
     @property
-    def p(self) -> cx.AbstractPosition3D:
+    def p(self) -> cx.AbstractVelocity3D:
         """Conjugate momenta."""
-        # TODO: get AbstractPosition to work with `stack` directly
+        # TODO: get AbstractVelocity to work with `stack` directly
         return jtu.tree_map(
             lambda *x: xp.concat(x, axis=-1)[..., self._time_sorter],
             *(x.p for x in self.values()),

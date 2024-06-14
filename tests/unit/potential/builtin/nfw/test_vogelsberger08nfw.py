@@ -34,14 +34,14 @@ class ShapeTransitionRadiusParameterMixin(ParameterFieldMixin):
         """Test the `a_r` parameter."""
         fields["a_r"] = Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.a_r(t=0) == Quantity(1.0, "")
+        assert pot.a_r(t=Quantity(0, "Myr")) == Quantity(1.0, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a_r_userfunc(self, pot_cls, fields):
         """Test the `a_r` parameter."""
         fields["a_r"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a1(t=0) == 2
+        assert pot.a1(t=Quantity(0, "Myr")) == 2
 
 
 class TestVogelsberger08TriaxialNFWPotential(

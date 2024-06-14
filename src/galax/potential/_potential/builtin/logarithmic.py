@@ -38,7 +38,7 @@ class LogarithmicPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         r2 = xp.linalg.vector_norm(q, axis=-1).to_value(self.units["length"]) ** 2
         return (
             0.5
@@ -72,7 +72,7 @@ class LMJ09LogarithmicPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    ) -> gt.SpecificEnergyBatchScalar:
         # Load parameters
         q1, q2, q3 = self.q1(t), self.q2(t), self.q3(t)
         phi = self.phi(t)

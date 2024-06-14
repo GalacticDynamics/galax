@@ -30,14 +30,14 @@ class AlphaParameterMixin(ParameterFieldMixin):
         """Test the `alpha` parameter."""
         fields["alpha"] = Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.alpha(t=0) == Quantity(1.0, "")
+        assert pot.alpha(t=Quantity(0, "Myr")) == Quantity(1.0, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_alpha_userfunc(self, pot_cls, fields):
         """Test the `alpha` parameter."""
         fields["alpha"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.alpha(t=0) == 2
+        assert pot.alpha(t=Quantity(0, "Myr")) == 2
 
 
 class RCParameterMixin(ParameterFieldMixin):
@@ -53,14 +53,14 @@ class RCParameterMixin(ParameterFieldMixin):
         """Test the `r_c` parameter."""
         fields["r_c"] = Quantity(1.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.r_c(t=0) == Quantity(1.0, "kpc")
+        assert pot.r_c(t=Quantity(0, "Myr")) == Quantity(1.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_c_userfunc(self, pot_cls, fields):
         """Test the `r_c` parameter."""
         fields["r_c"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.r_c(t=0) == 2
+        assert pot.r_c(t=Quantity(0, "Myr")) == 2
 
 
 class TestPowerLawCutoffPotential(

@@ -38,14 +38,14 @@ class ParameterMTotMixin(ParameterFieldMixin):
         """Test the mass parameter."""
         fields["m_tot"] = Quantity(1.0, "Msun")
         pot = pot_cls(**fields)
-        assert pot.m_tot(t=0) == Quantity(1.0, "Msun")
+        assert pot.m_tot(t=Quantity(0, "Myr")) == Quantity(1.0, "Msun")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_m_tot_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["m_tot"] = lambda t: t + 2
         pot = pot_cls(**fields)
-        assert pot.m_tot(t=0) == 2
+        assert pot.m_tot(t=Quantity(0, "Myr")) == 2
 
 
 class ParameterMMixin(ParameterFieldMixin):
@@ -71,14 +71,14 @@ class ParameterMMixin(ParameterFieldMixin):
         """Test the mass parameter."""
         fields["m"] = Quantity(1.0, "Msun")
         pot = pot_cls(**fields)
-        assert pot.m(t=0) == Quantity(1.0, "Msun")
+        assert pot.m(t=Quantity(0, "Myr")) == Quantity(1.0, "Msun")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_m_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["m"] = lambda t: t + 2
         pot = pot_cls(**fields)
-        assert pot.m(t=0) == 2
+        assert pot.m(t=Quantity(0, "Myr")) == 2
 
 
 # =============================================================================
@@ -112,7 +112,7 @@ class ParameterScaleRadiusMixin(ParameterFieldMixin):
         """Test the mass parameter."""
         fields["r_s"] = Quantity(1.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.r_s(t=0) == Quantity(1.0, "kpc")
+        assert pot.r_s(t=Quantity(0, "Myr")) == Quantity(1.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_s_userfunc(
@@ -121,7 +121,7 @@ class ParameterScaleRadiusMixin(ParameterFieldMixin):
         """Test the mass parameter."""
         fields["r_s"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.r_s(t=0) == 1.2
+        assert pot.r_s(t=Quantity(0, "Myr")) == 1.2
 
 
 # =============================================================================
@@ -141,14 +141,14 @@ class ParameterShapeQ1Mixin(ParameterFieldMixin):
         """Test the mass parameter."""
         fields["q1"] = Quantity(1.1, "")
         pot = pot_cls(**fields)
-        assert pot.q1(t=0) == Quantity(1.1, "")
+        assert pot.q1(t=Quantity(0, "Myr")) == Quantity(1.1, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_q1_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["q1"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.q1(t=0) == Quantity(1.2, "")
+        assert pot.q1(t=Quantity(0, "Myr")) == Quantity(1.2, "")
 
 
 class ParameterShapeQ2Mixin(ParameterFieldMixin):
@@ -164,14 +164,14 @@ class ParameterShapeQ2Mixin(ParameterFieldMixin):
         """Test the mass parameter."""
         fields["q2"] = Quantity(0.6, "")
         pot = pot_cls(**fields)
-        assert pot.q2(t=0) == Quantity(0.6, "")
+        assert pot.q2(t=Quantity(0, "Myr")) == Quantity(0.6, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_q2_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["q2"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.q2(t=0) == Quantity(1.2, "")
+        assert pot.q2(t=Quantity(0, "Myr")) == Quantity(1.2, "")
 
 
 class ParameterShapeQ3Mixin(ParameterFieldMixin):
@@ -187,14 +187,14 @@ class ParameterShapeQ3Mixin(ParameterFieldMixin):
         """Test the mass parameter."""
         fields["q3"] = Quantity(0.6, "")
         pot = pot_cls(**fields)
-        assert pot.q3(t=0) == Quantity(0.6, "")
+        assert pot.q3(t=Quantity(0, "Myr")) == Quantity(0.6, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_q3_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["q3"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.q3(t=0) == Quantity(1.2, "")
+        assert pot.q3(t=Quantity(0, "Myr")) == Quantity(1.2, "")
 
 
 # =============================================================================
@@ -213,14 +213,14 @@ class ParameterShapeAMixin(ParameterFieldMixin):
         """Test the `a` parameter."""
         fields["a"] = Quantity(1.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.a(t=0) == Quantity(1.0, "kpc")
+        assert pot.a(t=Quantity(0, "Myr")) == Quantity(1.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a_userfunc(self, pot_cls, fields):
         """Test the `a` parameter."""
         fields["a"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a(t=0) == 2
+        assert pot.a(t=Quantity(0, "Myr")) == 2
 
 
 class ParameterShapeBMixin(ParameterFieldMixin):
@@ -236,14 +236,14 @@ class ParameterShapeBMixin(ParameterFieldMixin):
         """Test the mass parameter."""
         fields["b"] = Quantity(1.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.b(t=0) == Quantity(1.0, "kpc")
+        assert pot.b(t=Quantity(0, "Myr")) == Quantity(1.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_b_userfunc(self, pot_cls, fields):
         """Test the `b` parameter."""
         fields["b"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.b(t=0) == 2
+        assert pot.b(t=Quantity(0, "Myr")) == 2
 
 
 class ParameterShapeCMixin(ParameterFieldMixin):
@@ -259,11 +259,11 @@ class ParameterShapeCMixin(ParameterFieldMixin):
         """Test the mass parameter."""
         fields["c"] = Quantity(1.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.c(t=0) == Quantity(1.0, "kpc")
+        assert pot.c(t=Quantity(0, "Myr")) == Quantity(1.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_c_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["c"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.c(t=0) == 2
+        assert pot.c(t=Quantity(0, "Myr")) == 2

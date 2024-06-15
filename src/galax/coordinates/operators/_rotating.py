@@ -18,7 +18,7 @@ from unxt import Quantity
 
 from galax.coordinates._psp.base_psp import AbstractPhaseSpacePosition
 
-vec_matmul = jnp.vectorize(xp.matmul, signature="(3),()->(3),()")
+vec_matmul = jnp.vectorize(xp.matmul, signature="(3,3),(3)->(3)")
 
 
 def rot_z(

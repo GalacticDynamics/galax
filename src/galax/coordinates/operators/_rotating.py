@@ -10,12 +10,15 @@ from jaxtyping import Float, Shaped
 from plum import convert
 
 import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from coordinax import AbstractPosition3D, CartesianPosition3D, CartesianVelocity3D
 from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
 from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
 
 from galax.coordinates._psp.base_psp import AbstractPhaseSpacePosition
+
+vec_matmul = jnp.vectorize(xp.matmul, signature="(3),()->(3),()")
 
 
 def rot_z(
@@ -205,9 +208,9 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         >>> op(q, Quantity(2, "Gyr"))[0].value.round(2)
         Array([-1.,  0.,  0.], dtype=float64)
 
-        """  # TODO: use xp.round when available
+        """
         Rz = rot_z(self.Omega_z * t)
-        return (Rz @ q, t)
+        return (vec_matmul(Rz, q), t)
 
     @op_call_dispatch(precedence=1)
     def __call__(

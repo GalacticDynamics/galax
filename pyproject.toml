@@ -123,6 +123,7 @@ filterwarnings = [
   "ignore:ast\\.Str is deprecated:DeprecationWarning",
   "ignore:numpy\\.ndarray size changed:RuntimeWarning",
   "ignore:Passing arguments 'a':DeprecationWarning",  # TODO: from diffrax
+  "ignore:jax\\.core\\.pp_eqn_rules is deprecated:DeprecationWarning",
 ]
 log_cli_level = "INFO"
 markers = [

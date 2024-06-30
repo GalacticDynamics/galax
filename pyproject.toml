@@ -38,6 +38,8 @@ dependencies = [
   "quaxed >=0.4",
   "typing_extensions >= 4.11",
   "unxt",
+  # Temporary
+  "plum-dispatch < 2.4.2",
 ]
 description = "Galactic Dynamics in Jax."
 dynamic = ["version"]
@@ -66,7 +68,7 @@ test = [
   "hypothesis[numpy]",
   "nox",
   "pre-commit",
-  "pytest >=6,<8",
+  "pytest >=6",
   "pytest-cov >=3",
   "pytest-arraydiff",
   "sybil",

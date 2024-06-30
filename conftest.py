@@ -17,6 +17,7 @@ pytest_collect_file = Sybil(
 ).pytest()
 
 
+# TODO: via separate optional_deps package
 try:
     import gala  # noqa: F401
 except ImportError:

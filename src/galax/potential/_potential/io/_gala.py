@@ -5,17 +5,9 @@ __all__ = ["gala_to_galax"]
 from functools import singledispatch
 from typing import TypeVar
 
-from packaging.version import Version
-
-try:  # TODO: less hacky way of supporting optional dependencies
-    import pytest
-except ImportError:  # pragma: no cover
-    pass
-else:
-    _ = pytest.importorskip("gala")
-
 import gala.potential as gp
 from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
+from packaging.version import Version
 
 import coordinax.operators as cxo
 from coordinax.operators import IdentityOperator

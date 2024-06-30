@@ -15,3 +15,18 @@ pytest_collect_file = Sybil(
     ],
     patterns=["*.rst", "*.py"],
 ).pytest()
+
+
+try:
+    import gala  # noqa: F401
+except ImportError:
+    HAS_GALA = False
+else:
+    HAS_GALA = True
+
+
+collect_ignore = []
+if not HAS_GALA:
+    collect_ignore.append("src/galax/coordinates/_compat.py")
+    collect_ignore.append("src/galax/dynamics/_compat.py")
+    collect_ignore.append("src/galax/potential/_potential/io/_gala.py")

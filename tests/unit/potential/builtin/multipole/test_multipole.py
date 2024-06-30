@@ -1,5 +1,6 @@
 """Test the `MultipolePotential` class."""
 
+import re
 from typing import Any
 
 import astropy.units as u
@@ -249,6 +250,17 @@ class TestMultipolePotential(
             "OTlm": field_OTlm,
             "units": field_units,
         }
+
+    # ==========================================================================
+
+    def test_check_init(
+        self, pot_cls: type[gp.MultipoleInnerPotential], fields_: dict[str, Any]
+    ) -> None:
+        """Test the `MultipoleInnerPotential.__check_init__` method."""
+        fields_["ISlm"] = fields_["ISlm"][::2]  # make it the wrong shape
+        match = re.escape("I/OSlm and I/OTlm must have the shape")
+        with pytest.raises(ValueError, match=match):
+            pot_cls(**fields_)
 
     # ==========================================================================
 

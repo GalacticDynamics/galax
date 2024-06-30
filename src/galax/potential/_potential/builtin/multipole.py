@@ -60,11 +60,13 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        # TODO: don't use .value
-        if self.Slm.value.shape != shape or self.Tlm.value.shape != shape:
+        t = Quantity(0.0, "Gyr")
+        s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
+        # TODO: check shape across time.
+        if s_shape != shape or t_shape != shape:
             msg = (
                 "Slm and Tlm must have the shape (l_max + 1, l_max + 1)."
-                f"Slm shape: {self.Slm.value.shape}, Tlm shape: {self.Tlm.value.shape}"
+                f"Slm shape: {s_shape}, Tlm shape: {t_shape}"
             )
             raise ValueError(msg)
 
@@ -117,9 +119,14 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        # TODO: don't use .value
-        if self.Slm.value.shape != shape or self.Tlm.value.shape != shape:
-            msg = "Slm and Tlm must have the shape (l_max + 1, l_max + 1)."
+        t = Quantity(0.0, "Gyr")
+        s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
+        # TODO: check shape across time.
+        if s_shape != shape or t_shape != shape:
+            msg = (
+                "Slm and Tlm must have the shape (l_max + 1, l_max + 1)."
+                f"Slm shape: {s_shape}, Tlm shape: {t_shape}"
+            )
             raise ValueError(msg)
 
     @partial(jax.jit, inline=True)
@@ -178,12 +185,15 @@ class MultipolePotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        # TODO: don't use .value
+        t = Quantity(0.0, "Gyr")
+        is_shape, it_shape = self.ISlm(t).shape, self.ITlm(t).shape
+        os_shape, ot_shape = self.OSlm(t).shape, self.OTlm(t).shape
+        # TODO: check shape across time.
         if (
-            self.ISlm.value.shape != shape
-            or self.ITlm.value.shape != shape
-            or self.OSlm.value.shape != shape
-            or self.OTlm.value.shape != shape
+            is_shape != shape
+            or it_shape != shape
+            or os_shape != shape
+            or ot_shape != shape
         ):
             msg = "I/OSlm and I/OTlm must have the shape (l_max + 1, l_max + 1)."
             raise ValueError(msg)

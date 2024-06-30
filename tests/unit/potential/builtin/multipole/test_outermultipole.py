@@ -57,6 +57,16 @@ class TestMultipoleOuterPotential(
 
     # ==========================================================================
 
+    def test_check_init(
+        self, pot_cls: type[gp.MultipoleInnerPotential], fields_: dict[str, Any]
+    ) -> None:
+        """Test the `MultipoleInnerPotential.__check_init__` method."""
+        fields_["Slm"] = fields_["Slm"][::2]  # make it the wrong shape
+        with pytest.raises(ValueError, match="Slm and Tlm must have the shape"):
+            pot_cls(**fields_)
+
+    # ==========================================================================
+
     def test_potential(self, pot: gp.MultipoleOuterPotential, x: gt.QVec3) -> None:
         expect = Quantity(0.62939434, unit="kpc2 / Myr2")
         assert qnp.isclose(

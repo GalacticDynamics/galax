@@ -9,13 +9,6 @@ __all__: list[str] = []
 import warnings
 from typing import Any, cast
 
-try:  # TODO: less hacky way of supporting optional dependencies
-    import pytest
-except ImportError:  # pragma: no cover
-    pass
-else:
-    _ = pytest.importorskip("gala")
-
 import gala.dynamics as gd
 from astropy.coordinates import BaseDifferential, BaseRepresentation
 from plum import conversion_method, convert

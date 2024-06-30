@@ -8,13 +8,6 @@ __all__: list[str] = []
 
 from typing import cast
 
-try:  # TODO: less hacky way of supporting optional dependencies
-    import pytest
-except ImportError:  # pragma: no cover
-    pass
-else:
-    _ = pytest.importorskip("gala")
-
 import gala.dynamics as gd
 from plum import conversion_method
 

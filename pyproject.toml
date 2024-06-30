@@ -35,7 +35,7 @@ dependencies = [
   "lazy_loader >= 0.4",
   "packaging",  # for optional dependencies
   "quax >= 0.0.3",
-  "quaxed >=0.4",
+  "quaxed >= 0.4",
   "typing_extensions >= 4.11",
   "unxt",
   # Temporary
@@ -53,7 +53,12 @@ requires-python = ">=3.11"
 all = ["galax[interop-all]"]
 # Interoperability dependencies
 interop-all = ["galax[interop-gala]"]
-interop-gala = ["gala", "astropy!=6.1.0"]
+interop-gala = [
+  "gala",
+  "astropy!=6.1.0",
+  # Temporary
+  "numpy < 2.0",
+]
 # TODO: galpy and agama
 # Documentation dependencies
 docs = [
@@ -65,7 +70,7 @@ docs = [
 ]
 # Test dependencies
 test = [
-  "hypothesis[numpy]",
+  # "hypothesis[numpy]",
   "nox",
   "pre-commit",
   "pytest >=6",

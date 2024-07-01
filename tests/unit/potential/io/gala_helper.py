@@ -5,6 +5,7 @@ __all__ = ["galax_to_gala"]
 from functools import singledispatch
 
 import gala.potential as gp
+import jax.numpy as jnp
 from astropy.units import Quantity as APYQuantity
 from gala.units import UnitSystem as GalaUnitSystem, dimensionless as gala_dimensionless
 from packaging.version import Version
@@ -253,6 +254,34 @@ def _galax_to_gala_logarithmic(
         q2=convert(pot.q2(0), APYQuantity),
         q3=convert(pot.q3(0), APYQuantity),
         phi=convert(pot.phi(0), APYQuantity),
+        units=galax_to_gala_units(pot.units),
+    )
+
+
+# -----------------------------------------------------------------------------
+# Multipole potentials
+
+
+@galax_to_gala.register(gpx.MultipoleInnerPotential)
+@galax_to_gala.register(gpx.MultipoleOuterPotential)
+def _galax_to_gala_multipole(
+    pot: gpx.MultipoleInnerPotential | gpx.MultipoleOuterPotential, /
+) -> gp.MultipolePotential:
+    """Convert a Galax Multipole to a Gala potential."""
+    if not _all_constant_parameters(pot, "m_tot", "r_s", "Slm", "Tlm"):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    Slm, Tlm = pot.Slm(0).value, pot.Tlm(0).value
+    ls, ms = jnp.tril_indices(pot.l_max + 1)
+
+    return gp.MultipolePotential(
+        m=convert(pot.m_tot(0), APYQuantity),
+        r_s=convert(pot.r_s(0), APYQuantity),
+        lmax=pot.l_max,
+        **{f"S{l}{m}": Slm[l, m] for l, m in zip(ls, ms, strict=True)},
+        **{f"T{l}{m}": Tlm[l, m] for l, m in zip(ls, ms, strict=True)},
+        inner=isinstance(pot, gpx.MultipoleInnerPotential),
         units=galax_to_gala_units(pot.units),
     )
 

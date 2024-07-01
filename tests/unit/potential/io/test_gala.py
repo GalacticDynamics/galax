@@ -50,7 +50,8 @@ class GalaIOMixin:
         if not self.HAS_GALA_COUNTERPART:
             pytest.skip("potential does not have a gala counterpart")
 
-        rpot = gp.io.gala_to_galax(galax_to_gala(pot))
+        gala_pot = galax_to_gala(pot)
+        rpot = gp.io.gala_to_galax(gala_pot)
 
         # quick test that the potential energies are the same
         got = rpot(x, 0)

@@ -31,6 +31,11 @@ __all__ = [
     # logarithmic
     "LogarithmicPotential",
     "LMJ09LogarithmicPotential",
+    # multipole
+    "AbstractMultipolePotential",
+    "MultipoleInnerPotential",
+    "MultipoleOuterPotential",
+    "MultipolePotential",
     # nfw
     "NFWPotential",
     "LeeSutoTriaxialNFWPotential",
@@ -62,59 +67,55 @@ __all__ = [
     "ParameterField",
 ]
 
-from ._potential import io
-from ._potential.base import AbstractPotentialBase
-from ._potential.builtin.bars import BarPotential, LongMuraliBarPotential
-from ._potential.builtin.builtin import (
+from ._potential import (
+    AbstractCompositePotential,
+    AbstractMultipolePotential,
+    AbstractParameter,
+    AbstractParametersAttribute,
+    AbstractPotential,
+    AbstractPotentialBase,
+    BarPotential,
+    BovyMWPotential2014,
     BurkertPotential,
+    CompositeParametersAttribute,
+    CompositePotential,
+    ConstantParameter,
     HernquistPotential,
     IsochronePotential,
     JaffePotential,
     KeplerPotential,
     KuzminPotential,
+    LeeSutoTriaxialNFWPotential,
+    LinearParameter,
+    LM10Potential,
+    LMJ09LogarithmicPotential,
+    LogarithmicPotential,
+    LongMuraliBarPotential,
+    MilkyWayPotential,
     MiyamotoNagaiPotential,
+    MultipoleInnerPotential,
+    MultipoleOuterPotential,
+    MultipolePotential,
+    NFWPotential,
     NullPotential,
+    ParameterCallable,
+    ParameterField,
+    ParametersAttribute,
     PlummerPotential,
+    PotentialFrame,
     PowerLawCutoffPotential,
     SatohPotential,
     StoneOstriker15Potential,
     TriaxialHernquistPotential,
-)
-from ._potential.builtin.logarithmic import (
-    LMJ09LogarithmicPotential,
-    LogarithmicPotential,
-)
-from ._potential.builtin.nfw import (
-    LeeSutoTriaxialNFWPotential,
-    NFWPotential,
     TriaxialNFWPotential,
+    UserParameter,
     Vogelsberger08TriaxialNFWPotential,
-)
-from ._potential.builtin.special import (
-    BovyMWPotential2014,
-    LM10Potential,
-    MilkyWayPotential,
-)
-from ._potential.composite import AbstractCompositePotential, CompositePotential
-from ._potential.core import AbstractPotential
-from ._potential.frame import PotentialFrame
-from ._potential.funcs import (
     acceleration,
     density,
     gradient,
     hessian,
+    io,
     laplacian,
     potential,
     tidal_tensor,
-)
-from ._potential.param import (
-    AbstractParameter,
-    AbstractParametersAttribute,
-    CompositeParametersAttribute,
-    ConstantParameter,
-    LinearParameter,
-    ParameterCallable,
-    ParameterField,
-    ParametersAttribute,
-    UserParameter,
 )

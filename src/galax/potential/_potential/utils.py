@@ -92,5 +92,6 @@ def _convert_from_astropy_quantity(value: APYQuantity, /, **_: Any) -> Array:
 
 
 @parse_to_quantity.register(BaseRepresentation)
-def _convert_from_astropy_baserep(value: BaseRepresentation, /, **_: Any) -> Array:
-    return _convert_from_3dvec(convert(value, cx.CartesianPosition3D))
+def _convert_from_astropy_baserep(rep: BaseRepresentation, /, **_: Any) -> Array:
+    cart = convert(rep, cx.CartesianPosition3D)
+    return _convert_from_3dvec(cart)

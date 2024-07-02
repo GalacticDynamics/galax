@@ -19,6 +19,10 @@ def get_version(package_name: str) -> Version | Literal[False]:
     return parse(version_str)
 
 
+# This is currently a required dependency
+HAS_ASTROPY: Version | Literal[False] = get_version("astropy")
+
+
 HAS_GALA: Version | Literal[False] = get_version("gala")
 if HAS_GALA:  # pragma: no cover  # gala can be installed incorrectly
     try:

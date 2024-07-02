@@ -12,6 +12,7 @@ import jax.numpy as jnp
 from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
 from jaxtyping import Float, Shaped
+from plum import dispatch
 
 import coordinax as cx
 import quaxed.array_api as xp

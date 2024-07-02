@@ -9,9 +9,6 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     from . import _dynamics
     from ._dynamics import *
 
-    if HAS_GALA:
-        from . import _compat  # noqa: F401
-
 __all__ = _dynamics.__all__
 
 # Cleanup

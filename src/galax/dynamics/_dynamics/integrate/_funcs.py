@@ -4,12 +4,10 @@ __all__ = ["evaluate_orbit"]
 
 from dataclasses import replace
 from functools import partial
-from typing import Literal
+from typing import Any, Literal
 
 import jax
-from astropy.units import Quantity as APYQuantity
 from jax.numpy import vectorize as jax_vectorize
-from plum import dispatch
 
 import quaxed.array_api as xp
 import quaxed.numpy as jnp
@@ -32,12 +30,11 @@ _default_integrator: Integrator = DiffraxIntegrator()
 _select_w0 = jax_vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
-@dispatch  # type: ignore[misc]
 @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
-    t: gt.QVecTime | gt.VecTime | APYQuantity,
+    t: Any,
     *,
     integrator: Integrator | None = None,
     interpolated: Literal[True, False] = False,

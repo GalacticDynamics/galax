@@ -15,7 +15,7 @@ import galax.typing as gt
 from galax.utils._optional_deps import HAS_GALA
 
 if HAS_GALA:
-    from galax.potential._potential.io._gala import _GALA_TO_GALAX_REGISTRY
+    from galax._galax_interop_gala.potential import _GALA_TO_GALAX_REGISTRY
 else:
     _GALA_TO_GALAX_REGISTRY = {}
 

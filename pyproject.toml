@@ -25,46 +25,18 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "astropy >= 6.0",
-  "beartype >= 0.18",
-  "coordinax >= 0.7",
-  "diffrax >= 0.5",
-  "equinox >=0.11, != 0.11.3",
-  "jax >= 0.4, != 0.4.27",
-  "jaxlib != 0.4.27",
-  "lazy_loader >= 0.4",
-  "packaging",  # for optional dependencies
-  "quax >= 0.0.3",
-  "quaxed >= 0.4",
-  "typing_extensions >= 4.11",
-  "unxt",
-  # Temporary
-  "plum-dispatch < 2.4.2",
+  "galax @ {root:uri}/packages/galax",
+  "galax-interop-astropy @ {root:uri}/packages/galax_interop_astropy",
+  "galax-interop-gala @ {root:uri}/packages/galax_interop_gala",
 ]
-description = "Galactic Dynamics in Jax."
+description = "Suite of Tools for Galactic Dynamics in Jax."
 dynamic = ["version"]
-name = "galax"
+name = "galax-suite"
 readme = "README.md"
 license.file = "LICENSE"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
-# All runtime dependencies
-all = ["galax[interop-all]"]
-# Interoperability dependencies
-interop-all = ["galax[interop-astropy]", "galax[interop-gala]"]
-interop-astropy = [
-  "astropy >= 6.0",
-]
-interop-gala = [
-  "galax[interop-astropy]",
-  "gala",
-  # Temporary
-  "astropy < 6.1",
-  "numpy < 2.0",
-]
-# TODO: galpy and agama
-# Documentation dependencies
 docs = [
   "sphinx>=7.0",
   "myst_parser>=0.13",
@@ -74,19 +46,12 @@ docs = [
 ]
 # Test dependencies
 test = [
-  # "hypothesis[numpy]",
-  "nox",
-  "pre-commit",
-  "pytest >=6",
-  "pytest-cov >=3",
-  "pytest-arraydiff",
-  "sybil",
+  "galax @ {root:uri}/packages/galax[test]",
 ]
 # Development dependencies
 dev = [
-  "galax[all]",
-  "galax[docs]",
-  "galax[test]",
+  "galax-suite[docs]",
+  "galax-suite[test]",
 ]
 
 [project.urls]
@@ -96,15 +61,16 @@ Discussions = "https://github.com/GalacticDynamics/galax/discussions"
 Homepage = "https://github.com/GalacticDynamics/galax"
 
 
-[tool.hatch]
-build.hooks.vcs.version-file = "src/galax/_version.py"
-metadata.allow-direct-references = true
-version.source = "vcs"
+[tool.hatch.metadata]
+allow-direct-references = true  # to be able to use the direct dependencies above
 
-[tool.hatch.envs.default]
-dependencies = ["pytest", "pytest-cov"]
-features = ["test"]
-scripts.test = "pytest {args}"
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/_version.py"
+
+[tool.hatch.build.targets.wheel]
 
 
 [tool.pytest.ini_options]
@@ -216,8 +182,6 @@ ignore = [
   "TD003",   # Missing issue link on the line following this TODO
   "UP037",   # Remove quote from type annotation  <- jaxtyping
 ]
-# Uncomment if using a _compat.typing backport
-# typing-modules = ["galax._compat.typing"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"]

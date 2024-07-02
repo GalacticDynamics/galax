@@ -21,8 +21,11 @@ from . import (
 )
 from ._version import version as __version__, version_tuple as __version_tuple__
 
+# =============================================================================
+# Import interoperation libraries to register the dispatchers
+
 if utils._optional_deps.HAS_ASTROPY:  # noqa: SLF001
-    from . import _galax_interop_astropy  # noqa: F401
+    import galax_interop_astropy as interop_astropy  # noqa: F401
 
 if utils._optional_deps.HAS_GALA:  # noqa: SLF001
-    from . import _galax_interop_gala  # noqa: F401
+    import galax_interop_gala as interop_gala  # noqa: F401

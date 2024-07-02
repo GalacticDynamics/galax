@@ -12,9 +12,6 @@ with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
     from . import operators
     from ._psp import *
 
-    if HAS_GALA:
-        from . import _compat  # noqa: F401
-
 from . import _psp  # only for __all__
 
 __all__: list[str] = ["operators"]

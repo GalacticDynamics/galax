@@ -1,28 +1,27 @@
-"""Compatibility.
-
-TODO: make all the `astropy` compat be in a linked package.
-
-"""
+"""Compatibility."""
 
 __all__: list[str] = []
 
 from typing import Any
 
 import astropy.coordinates as apyc
+from plum import dispatch
 
-from .core import PhaseSpacePosition
+import coordinax as cx
 
-# --------------------------------------------------
-# Astropy to Galax
+import galax.coordinates as gc
+
+# =============================================================================
+# PhaseSpacePosition
 
 
-@PhaseSpacePosition.constructor._f.register  # noqa: SLF001
+@gc.PhaseSpacePosition.constructor._f.register  # noqa: SLF001
 def constructor(
-    _: type[PhaseSpacePosition],
+    _: type[gc.PhaseSpacePosition],
     vec: apyc.BaseRepresentation,
     /,
     t: Any | None = None,
-) -> PhaseSpacePosition:
+) -> gc.PhaseSpacePosition:
     """Construct a :mod:`galax` PhaseSpacePosition from a :mod:`astropy` coordinate.
 
     Parameters
@@ -61,19 +60,19 @@ def constructor(
         msg = "The astropy representation does not have a velocity differential."
         raise ValueError(msg)
 
-    return PhaseSpacePosition(
+    return gc.PhaseSpacePosition(
         q=vec.without_differentials(), p=vec.differentials["s"], t=t
     )
 
 
-@PhaseSpacePosition.constructor._f.register  # noqa: SLF001
+@gc.PhaseSpacePosition.constructor._f.register  # noqa: SLF001
 def constructor(
-    _: type[PhaseSpacePosition],
+    _: type[gc.PhaseSpacePosition],
     vec: apyc.BaseRepresentation,
     dif: apyc.BaseDifferential,
     /,
     t: Any | None = None,
-) -> PhaseSpacePosition:
+) -> gc.PhaseSpacePosition:
     """Construct a :mod:`galax` PhaseSpacePosition from a :mod:`astropy` coordinate.
 
     Parameters
@@ -109,4 +108,41 @@ def constructor(
     )
 
     """
-    return PhaseSpacePosition(q=vec.without_differentials(), p=dif, t=t)
+    return gc.PhaseSpacePosition(q=vec.without_differentials(), p=dif, t=t)
+
+
+# =============================================================================
+# _converter_to_pos3d
+
+
+# TODO: move this into coordinax
+_apyc_to_cx_vecs = {
+    apyc.CartesianRepresentation: cx.CartesianPosition3D,
+    apyc.CylindricalRepresentation: cx.CylindricalPosition,
+    apyc.SphericalRepresentation: cx.LonLatSphericalPosition,
+    apyc.PhysicsSphericalRepresentation: cx.SphericalPosition,
+}
+
+
+@dispatch  # type: ignore[misc]
+def _converter_to_pos3d(x: apyc.BaseRepresentation) -> cx.AbstractPosition3D:
+    return _apyc_to_cx_vecs[type(x)].constructor(x)
+
+
+# =============================================================================
+# _converter_to_pos3d
+
+
+# TODO: move this into coordinax
+_apyc_to_cx_difs = {
+    apyc.CartesianDifferential: cx.CartesianVelocity3D,
+    apyc.CylindricalDifferential: cx.CylindricalVelocity,
+    apyc.SphericalDifferential: cx.LonLatSphericalVelocity,
+    apyc.SphericalCosLatDifferential: cx.LonCosLatSphericalVelocity,
+    apyc.PhysicsSphericalDifferential: cx.SphericalVelocity,
+}
+
+
+@dispatch  # type: ignore[misc]
+def _converter_to_vel3d(x: apyc.BaseDifferential) -> cx.AbstractVelocity3D:
+    return _apyc_to_cx_difs[type(x)].constructor(x)

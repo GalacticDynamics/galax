@@ -9,17 +9,18 @@ from typing import Literal
 import jax
 from astropy.units import Quantity as APYQuantity
 from jax.numpy import vectorize as jax_vectorize
+from plum import dispatch
 
 import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 
+import galax.coordinates as gc
+import galax.potential as gp
 import galax.typing as gt
 from ._api import Integrator
 from ._builtin import DiffraxIntegrator
-from galax.coordinates import PhaseSpacePosition
 from galax.dynamics._dynamics.orbit import InterpolatedOrbit, Orbit
-from galax.potential import AbstractPotentialBase
 
 ##############################################################################
 
@@ -31,10 +32,11 @@ _default_integrator: Integrator = DiffraxIntegrator()
 _select_w0 = jax_vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
+@dispatch  # type: ignore[misc]
 @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 def evaluate_orbit(
-    pot: AbstractPotentialBase,
-    w0: PhaseSpacePosition | gt.BatchVec6,
+    pot: gp.AbstractPotentialBase,
+    w0: gc.PhaseSpacePosition | gt.BatchVec6,
     t: gt.QVecTime | gt.VecTime | APYQuantity,
     *,
     integrator: Integrator | None = None,
@@ -192,12 +194,12 @@ def evaluate_orbit(
 
     # Parse w0
     psp0t: Quantity
-    if isinstance(w0, PhaseSpacePosition):
+    if isinstance(w0, gc.PhaseSpacePosition):
         # TODO: warn if w0.t is None?
         psp0 = w0
         psp0t = t[0] if w0.t is None else w0.t
     else:
-        psp0 = PhaseSpacePosition(
+        psp0 = gc.PhaseSpacePosition(
             q=Quantity(w0[..., 0:3], units["length"]),
             p=Quantity(w0[..., 3:6], units["speed"]),
             t=t[0],

@@ -13,7 +13,9 @@ from unxt import Quantity
 # =============================================================================
 
 Shape: TypeAlias = tuple[int, ...]
+Dimension: TypeAlias = u.PhysicalType
 Unit: TypeAlias = u.Unit | u.UnitBase | u.CompositeUnit
+UnitEquivalency: TypeAlias = u.Equivalency
 
 # =============================================================================
 # Scalars

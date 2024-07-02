@@ -12,7 +12,7 @@ from unxt import Quantity
 import galax.potential as gp
 from .base import AbstractOrbit
 from galax.coordinates._psp.interp import PhaseSpacePositionInterpolant
-from galax.coordinates._psp.utils import _p_converter, _q_converter
+from galax.coordinates._psp.utils import _converter_to_pos3d, _converter_to_vel3d
 from galax.typing import BatchFloatQScalar, QVec1, QVecTime
 
 
@@ -25,10 +25,10 @@ class Orbit(AbstractOrbit):
     in a given potential.
     """
 
-    q: AbstractPosition3D = eqx.field(converter=_q_converter)
+    q: AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
     """Positions (x, y, z)."""
 
-    p: AbstractVelocity3D = eqx.field(converter=_p_converter)
+    p: AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized
@@ -46,10 +46,10 @@ class Orbit(AbstractOrbit):
 class InterpolatedOrbit(AbstractOrbit):
     """Orbit interpolated by the times."""
 
-    q: AbstractPosition3D = eqx.field(converter=_q_converter)
+    q: AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
     """Positions (x, y, z)."""
 
-    p: AbstractVelocity3D = eqx.field(converter=_p_converter)
+    p: AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized

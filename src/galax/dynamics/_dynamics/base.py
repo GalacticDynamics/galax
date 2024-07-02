@@ -17,8 +17,8 @@ import galax.coordinates as gc
 import galax.typing as gt
 from galax.coordinates._psp.utils import (
     HasShape,
-    _p_converter,
-    _q_converter,
+    _converter_to_pos3d,
+    _converter_to_vel3d,
     getitem_vec1time_index,
 )
 from galax.potential import AbstractPotentialBase
@@ -37,10 +37,10 @@ class AbstractOrbit(gc.AbstractPhaseSpacePosition):
     in a given potential.
     """
 
-    q: AbstractPosition3D = eqx.field(converter=_q_converter)
+    q: AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
     """Positions (x, y, z)."""
 
-    p: AbstractVelocity3D = eqx.field(converter=_p_converter)
+    p: AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized

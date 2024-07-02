@@ -82,7 +82,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             # Other fields, check their metadata
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
-                if isinstance(value, APYQuantity):
+                if isinstance(value, APYQuantity):  # TODO: remove this
                     value = value.to_units_value(
                         self.units[f.metadata.get("dimensions")],
                         equivalencies=f.metadata.get("equivalencies", None),

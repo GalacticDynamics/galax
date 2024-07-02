@@ -81,8 +81,8 @@ features = ["test"]
 scripts.test = "pytest {args}"
 
 [tool.hatch.build]
-directory = "../dist"
-hooks.vcs.version-file = "../../src/galax/_version.py"
+directory = "../../dist"
+# hooks.vcs.version-file = "../../src/galax/_version.py"
 
 [tool.hatch.build.targets.sdist]
 exclude = ["pyproject.toml"]

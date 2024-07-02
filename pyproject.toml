@@ -52,10 +52,13 @@ requires-python = ">=3.11"
 # All runtime dependencies
 all = ["galax[interop-all]"]
 # Interoperability dependencies
-interop-all = ["galax[interop-gala]"]
-interop-gala = [
-  "gala",
+interop-all = ["galax[interop-astropy]", "galax[interop-gala]"]
+interop-astropy = [
   "astropy!=6.1.0",
+]
+interop-gala = [
+  "galax[interop-astropy]",
+  "gala",
   # Temporary
   "numpy < 2.0",
 ]

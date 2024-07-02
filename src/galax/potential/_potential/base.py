@@ -34,10 +34,21 @@ if TYPE_CHECKING:
 
 HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
 
-CONST_G = Quantity(_CONST_G.value, _CONST_G.unit)
+
+default_constants = ImmutableDict({"G": Quantity(_CONST_G.value, _CONST_G.unit)})
 
 
-default_constants = ImmutableDict({"G": CONST_G})
+class InteroperableLibrary(eqx.Enumeration):  # type: ignore[misc]
+    """Enumeration of interoperable libraries."""
+
+    gala: Literal["gala"] = "gala"
+    """The :mod:`gala` library."""
+
+    galpy: Literal["galpy"] = "galpy"
+    """The :mod:`galpy` library."""
+
+    agama: Literal["agama"] = "agama"
+    """The :mod:`agama` library."""
 
 
 ##############################################################################
@@ -256,9 +267,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     ###########################################################################
     # Convenience methods
 
-    # ---------------------------------------
-    # Acceleration
-
     def acceleration(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
     ) -> cx.CartesianAcceleration3D:  # TODO: shape hint
@@ -269,9 +277,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         from .funcs import acceleration
 
         return acceleration(self, *args, **kwargs)
-
-    # ---------------------------------------
-    # Tidal tensor
 
     def tidal_tensor(self, *args: Any, **kwargs: Any) -> gt.BatchQMatrix33:
         """Compute the tidal tensor.
@@ -401,3 +406,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 self, w0, t, integrator=integrator, interpolated=interpolated
             ),
         )
+
+    # =========================================================================
+    # Interoperability
+
+    def as_interop(self, library: InteroperableLibrary) -> object:
+        """Convert the potential to an object of a different library."""
+        raise NotImplementedError

@@ -1,8 +1,4 @@
-"""Compatibility.
-
-TODO: make all the `gala` compat be in a linked package.
-
-"""
+"""Interoperability with :mod:`gala`."""
 
 __all__: list[str] = []
 

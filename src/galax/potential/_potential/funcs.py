@@ -172,8 +172,6 @@ def potential(
     >>> import astropy.coordinates as c
     >>> import astropy.units as u
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 

@@ -6,7 +6,6 @@ from typing import Any
 
 from astropy.coordinates import BaseRepresentation
 from astropy.units import Quantity as APYQuantity
-from jaxtyping import Array
 from plum import convert, dispatch
 
 import coordinax as cx
@@ -17,11 +16,11 @@ from unxt import Quantity
 
 
 @dispatch
-def parse_to_quantity(value: APYQuantity, /, **_: Any) -> Array:
+def parse_to_quantity(value: APYQuantity, /, **_: Any) -> Quantity:
     return convert(value, Quantity)
 
 
 @dispatch
-def parse_to_quantity(rep: BaseRepresentation, /, **_: Any) -> Array:
+def parse_to_quantity(rep: BaseRepresentation, /, **_: Any) -> Quantity:
     cart = convert(rep, cx.CartesianPosition3D)
     return parse_to_quantity(cart)

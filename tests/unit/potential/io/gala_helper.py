@@ -15,7 +15,7 @@ from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
 
 import galax.potential as gpx
-from galax.potential._potential.io._gala import _GALA_TO_GALAX_REGISTRY
+from galax._galax_interop_gala.potential import _GALA_TO_GALAX_REGISTRY
 from galax.utils._optional_deps import HAS_GALA
 
 ##############################################################################

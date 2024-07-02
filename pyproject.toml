@@ -54,12 +54,13 @@ all = ["galax[interop-all]"]
 # Interoperability dependencies
 interop-all = ["galax[interop-astropy]", "galax[interop-gala]"]
 interop-astropy = [
-  "astropy!=6.1.0",
+  "astropy >= 6.0",
 ]
 interop-gala = [
   "galax[interop-astropy]",
   "gala",
   # Temporary
+  "astropy < 6.1",
   "numpy < 2.0",
 ]
 # TODO: galpy and agama
@@ -268,6 +269,7 @@ messages_control.disable = [
   "unnecessary-ellipsis",
   "unnecessary-lambda-assignment", # ruff E731
   "unnecessary-pass",              # handled by ruff
+  "unused-argument",               # handled by ruff
   "useless-import-alias",
   "wrong-import-position",
   "wrong-import-order",            # handled by ruff

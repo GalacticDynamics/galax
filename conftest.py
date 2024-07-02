@@ -27,4 +27,3 @@ if not HAS_ASTROPY:
     collect_ignore.append("src/galax/_galax_interop_astropy.py")
 if not HAS_GALA:
     collect_ignore.append("src/galax/_galax_interop_gala.py")
-    collect_ignore.append("src/galax/potential/_potential/io/_gala.py")

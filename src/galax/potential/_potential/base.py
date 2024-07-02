@@ -20,6 +20,11 @@ import unxt
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
+from .io import (
+    AbstractInteroperableLibrary,
+    InteroperateGalaxLibrary,
+    convert_potential,
+)
 from galax.coordinates import PhaseSpacePosition
 from galax.potential._potential.param.attr import ParametersAttribute
 from galax.potential._potential.param.utils import all_parameters, all_vars
@@ -36,19 +41,6 @@ HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape 
 
 
 default_constants = ImmutableDict({"G": Quantity(_CONST_G.value, _CONST_G.unit)})
-
-
-class InteroperableLibrary(eqx.Enumeration):  # type: ignore[misc]
-    """Enumeration of interoperable libraries."""
-
-    gala: Literal["gala"] = "gala"
-    """The :mod:`gala` library."""
-
-    galpy: Literal["galpy"] = "galpy"
-    """The :mod:`galpy` library."""
-
-    agama: Literal["agama"] = "agama"
-    """The :mod:`agama` library."""
 
 
 ##############################################################################
@@ -410,6 +402,19 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # =========================================================================
     # Interoperability
 
-    def as_interop(self, library: InteroperableLibrary) -> object:
+    def as_interop(self, library: AbstractInteroperableLibrary) -> object:
         """Convert the potential to an object of a different library."""
-        raise NotImplementedError
+        return convert_potential(self, library)
+
+
+##############################################################################
+
+
+@dispatch  # type: ignore[misc]
+def convert_potential(
+    from_: AbstractPotentialBase,
+    to_: type[InteroperateGalaxLibrary],  # noqa: ARG001
+    /,
+) -> AbstractPotentialBase:
+    """Convert the potential to an object of a different library."""
+    return from_

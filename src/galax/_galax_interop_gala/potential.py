@@ -3,11 +3,12 @@
 __all__ = ["gala_to_galax"]
 
 from functools import singledispatch
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import gala.potential as gp
 from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
 from packaging.version import Version
+from plum import dispatch
 
 import coordinax.operators as cxo
 from coordinax.operators import IdentityOperator
@@ -15,6 +16,20 @@ from unxt import Quantity
 
 import galax.potential as gpx
 from galax.utils._optional_deps import HAS_GALA
+
+##############################################################################
+# Hook into general dispatcher
+
+
+@dispatch  # type: ignore[misc]
+def convert_potential(
+    from_: gp.CPotentialBase | gp.PotentialBase,
+    to_: gpx.AbstractPotentialBase | type[gpx.io.InteroperableGalaLibrary],  # noqa: ARG001
+    /,
+    **kwargs: Any,  # noqa: ARG001
+) -> gpx.AbstractPotentialBase:
+    return gala_to_galax(from_)
+
 
 ##############################################################################
 # GALA -> GALAX

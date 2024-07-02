@@ -54,7 +54,7 @@ jobs:
   checks:
     name: Check Python ${{ matrix.python-version }} on ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
-    needs: [pre-commit, smoke]
+    needs: [smoke]
     strategy:
       fail-fast: false
       matrix:

@@ -405,7 +405,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def as_interop(self, library: AbstractInteroperableLibrary) -> object:
         """Convert the potential to an object of a different library."""
-        return convert_potential(self, library)
+        return convert_potential(library, self)
 
 
 ##############################################################################

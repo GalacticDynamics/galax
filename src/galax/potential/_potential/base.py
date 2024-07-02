@@ -23,7 +23,7 @@ from unxt import AbstractUnitSystem, Quantity
 import galax.typing as gt
 from .io import (
     AbstractInteroperableLibrary,
-    InteroperateGalaxLibrary,
+    GalaxLibrary,
     convert_potential,
 )
 from galax.coordinates import PhaseSpacePosition
@@ -413,8 +413,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
 @dispatch  # type: ignore[misc]
 def convert_potential(
+    to_: type[GalaxLibrary],  # noqa: ARG001
     from_: AbstractPotentialBase,
-    to_: type[InteroperateGalaxLibrary],  # noqa: ARG001
     /,
 ) -> AbstractPotentialBase:
     """Convert the potential to an object of a different library."""

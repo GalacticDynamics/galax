@@ -50,7 +50,7 @@ class GalaIOMixin:
         if not self.HAS_GALA_COUNTERPART:
             pytest.skip("potential does not have a gala counterpart")
 
-        rpot = gp.io.gala_to_galax(galax_to_gala(pot))
+        rpot = gp.io.convert_potential(gpx.io.GalaLibrary, galax_to_gala(pot))
 
         # quick test that the potential energies are the same
         got = rpot(x, 0)
@@ -98,7 +98,7 @@ def test_offset_hernquist() -> None:
     from gala.units import galactic
 
     gpot = GalaHernquistPotential(m=1e12, c=5, units=galactic, origin=[1.0, 2, 3])
-    gxpot = gp.io.gala_to_galax(gpot)
+    gxpot = gp.io.convert_potential(gpx.io.GalaLibrary, gpot)
 
     assert isinstance(gxpot, gp.PotentialFrame)
     assert gxpot.operator[0].translation == cx.CartesianPosition3D.constructor(

@@ -9,8 +9,8 @@ Conversion is useful for e.g. converting a
 __all__ = [
     "convert_potential",
     "AbstractInteroperableLibrary",
-    "InteroperateGalaxLibrary",
-    "InteroperableGalaLibrary",
+    "GalaxLibrary",
+    "GalaLibrary",
 ]
 
 
@@ -29,19 +29,19 @@ class AbstractInteroperableLibrary:
 
 
 @final
-class InteroperateGalaxLibrary(AbstractInteroperableLibrary):
+class GalaxLibrary(AbstractInteroperableLibrary):
     """The :mod:`galax` library."""
 
 
 @final
-class InteroperableGalaLibrary(AbstractInteroperableLibrary):
+class GalaLibrary(AbstractInteroperableLibrary):
     """The :mod:`gala` library."""
 
 
 @dispatch.abstract  # type: ignore[misc]
 def convert_potential(
-    from_: Any,
     to_: AbstractInteroperableLibrary | Any,
+    from_: Any,
     /,
     **kwargs: Any,  # noqa: ARG001
 ) -> object:

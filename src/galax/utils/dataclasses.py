@@ -30,6 +30,8 @@ from typing_extensions import ParamSpec, Unpack
 import quaxed.array_api as xp
 from unxt import Quantity
 
+import galax.typing as gt
+
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
 
@@ -63,8 +65,8 @@ def field(
     converter: Callable[[Any], R] | None = None,
     static: bool = False,
     # Units stuff
-    dimensions: str | u.PhysicalType | None = None,
-    equivalencies: u.Equivalency | tuple[u.Equivalency, ...] | None = None,
+    dimensions: str | gt.Dimension | None = None,
+    equivalencies: gt.UnitEquivalency | tuple[gt.UnitEquivalency, ...] | None = None,
     # Dataclass stuff
     **kwargs: Unpack[_DataclassFieldKwargsDefault[R]],
 ) -> R:

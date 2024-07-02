@@ -26,7 +26,7 @@ from unxt.experimental import grad
 import galax.coordinates as gc
 import galax.typing as gt
 from .base import AbstractPotentialBase
-from .utils import _convert_from_3dvec, parse_to_quantity
+from .utils import parse_to_quantity
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
 HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
@@ -93,7 +93,7 @@ def potential(
     >>> pot.potential(w)
     Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
     """  # noqa: E501
-    q = _convert_from_3dvec(pspt.q, units=pot.units)
+    q = parse_to_quantity(pspt.q, units=pot.units)
     return pot._potential(q, pspt.t)  # noqa: SLF001
 
 
@@ -171,8 +171,6 @@ def potential(
     >>> import numpy as np
     >>> import astropy.coordinates as c
     >>> import astropy.units as u
-
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
@@ -324,7 +322,7 @@ def gradient(
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
     """
-    q = _convert_from_3dvec(pspt.q, units=pot.units)
+    q = parse_to_quantity(pspt.q, units=pot.units)
     return cx.CartesianAcceleration3D.constructor(pot._gradient(q, pspt.t))  # noqa: SLF001
 
 
@@ -579,7 +577,7 @@ def laplacian(
     >>> pot.laplacian(w)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
     """  # noqa: E501
-    q = _convert_from_3dvec(pspt.q, units=pot.units)
+    q = parse_to_quantity(pspt.q, units=pot.units)
     return pot._laplacian(q, pspt.t)  # noqa: SLF001
 
 
@@ -809,7 +807,7 @@ def density(
     >>> pot.density(w)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
     """
-    q = _convert_from_3dvec(pspt.q, units=pot.units)
+    q = parse_to_quantity(pspt.q, units=pot.units)
     return pot._density(q, pspt.t)  # noqa: SLF001
 
 
@@ -1037,7 +1035,7 @@ def hessian(
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
                     unit='1 / Myr2')
     """
-    q = _convert_from_3dvec(pspt.q, units=pot.units)
+    q = parse_to_quantity(pspt.q, units=pot.units)
     return pot._hessian(q, pspt.t)  # noqa: SLF001
 
 

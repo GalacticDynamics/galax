@@ -82,7 +82,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             # Other fields, check their metadata
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
-                if isinstance(value, APYQuantity):
+                if isinstance(value, APYQuantity):  # TODO: remove this
                     value = value.to_units_value(
                         self.units[f.metadata.get("dimensions")],
                         equivalencies=f.metadata.get("equivalencies", None),
@@ -328,10 +328,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def evaluate_orbit(
         self,
         w0: PhaseSpacePosition | gt.BatchVec6,
-        t: gt.QVecTime
-        | gt.RealQScalar
-        | gt.VecTime
-        | APYQuantity,  # TODO: must be a Quantity
+        t: Any,
         *,
         integrator: "Integrator | None" = None,
         interpolated: Literal[True, False] = False,
@@ -346,8 +343,6 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Parameters
         ----------
-        pot : :class:`~galax.potential.AbstractPotentialBase`
-            The potential in which to compute the orbit.
         w0 : PhaseSpacePosition
             The phase-space position (includes velocity and time) from which to
             integrate. Integration includes the time of the initial position, so

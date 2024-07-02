@@ -2,10 +2,9 @@
 
 __all__: list[str] = []
 
-from functools import singledispatch
 from typing import Any, Protocol, cast, runtime_checkable
 
-import astropy.coordinates as apyc
+from plum import dispatch
 
 import coordinax as cx
 import quaxed.array_api as xp
@@ -115,57 +114,26 @@ def getitem_vec1time_index(index: Any, t: gt.FloatQAnyShape) -> Any:
 # -----------------------------------------------------------------------------
 
 
-@singledispatch
-def _q_converter(x: Any) -> cx.AbstractPosition3D:
+@dispatch
+def _converter_to_pos3d(x: Any) -> cx.AbstractPosition3D:
     """Convert input to a 3D vector."""
     return cx.CartesianPosition3D.constructor(x)
 
 
-@_q_converter.register
-def _q_converter_vec(x: cx.AbstractPosition3D) -> cx.AbstractPosition3D:
+@dispatch
+def _converter_to_pos3d(x: cx.AbstractPosition3D) -> cx.AbstractPosition3D:
     return x
-
-
-# TODO: move this into coordinax
-_apyc_to_cx_vecs = {
-    apyc.CartesianRepresentation: cx.CartesianPosition3D,
-    apyc.CylindricalRepresentation: cx.CylindricalPosition,
-    apyc.SphericalRepresentation: cx.LonLatSphericalPosition,
-    apyc.PhysicsSphericalRepresentation: cx.SphericalPosition,
-}
-
-
-@_q_converter.register
-def _q_converter_apy(x: apyc.BaseRepresentation) -> cx.AbstractPosition3D:
-    return _apyc_to_cx_vecs[type(x)].constructor(x)
 
 
 # -----------------------------------------------------------------------------
 
 
-@singledispatch
-def _p_converter(x: Any) -> cx.AbstractVelocity3D:
+@dispatch
+def _converter_to_vel3d(x: Any) -> cx.AbstractVelocity3D:
     """Convert input to a 3D vector differential."""
     return cx.CartesianVelocity3D.constructor(x)
 
 
-@_p_converter.register
-def _p_converter_vec(
-    x: cx.AbstractVelocity3D,
-) -> cx.AbstractVelocity3D:
+@dispatch
+def _converter_to_vel3d(x: cx.AbstractVelocity3D) -> cx.AbstractVelocity3D:
     return x
-
-
-# TODO: move this into coordinax
-_apyc_to_cx_difs = {
-    apyc.CartesianDifferential: cx.CartesianVelocity3D,
-    apyc.CylindricalDifferential: cx.CylindricalVelocity,
-    apyc.SphericalDifferential: cx.LonLatSphericalVelocity,
-    apyc.SphericalCosLatDifferential: cx.LonCosLatSphericalVelocity,
-    apyc.PhysicsSphericalDifferential: cx.SphericalVelocity,
-}
-
-
-@_p_converter.register
-def _p_converter_apy(x: apyc.BaseDifferential) -> cx.AbstractVelocity3D:
-    return _apyc_to_cx_difs[type(x)].constructor(x)

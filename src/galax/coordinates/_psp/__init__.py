@@ -4,7 +4,6 @@ from . import (
     base,
     base_composite,
     base_psp,
-    compat_apy,  # noqa: F401
     core,
     interp,
     operator_compat,  # noqa: F401

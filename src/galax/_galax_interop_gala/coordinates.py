@@ -1,8 +1,4 @@
-"""Compatibility.
-
-TODO: make all the ``gala`` compat be in a linked package.
-
-"""
+"""Compatibility with :mod:`gala` coordinates."""
 
 __all__: list[str] = []
 

@@ -29,7 +29,7 @@ description = "Galax <-> Gala."
 dynamic = ["version"]
 name = "galax"
 readme = "README.md"
-license.file = "../../LICENSE"
+license.file = "LICENSE"
 requires-python = ">=3.11"
 
 

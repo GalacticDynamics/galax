@@ -45,7 +45,7 @@ description = "Galactic Dynamics in Jax."
 dynamic = ["version"]
 name = "galax"
 readme = "README.md"
-license.file = "../../LICENSE"
+license.file = "LICENSE"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]

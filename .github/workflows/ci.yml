@@ -94,7 +94,7 @@ jobs:
   check_interop:
     name: Check interoperability
     runs-on: ${{ matrix.runs-on }}
-    needs: [pre-commit, smoke]
+    needs: [smoke]
     strategy:
       fail-fast: false
       matrix:

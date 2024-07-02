@@ -11,7 +11,7 @@ import jax
 import jax.numpy as jnp
 from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
-from jaxtyping import Array, Float, Shaped
+from jaxtyping import Float, Shaped
 
 import coordinax as cx
 import quaxed.array_api as xp
@@ -33,20 +33,6 @@ if TYPE_CHECKING:
 
 
 HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
-
-# Position and time input options
-PositionalLike: TypeAlias = (
-    cx.AbstractPosition3D | gt.LengthBatchableVec3 | Shaped[Array, "*#batch 3"]
-)
-TimeOptions: TypeAlias = (
-    gt.BatchRealQScalar
-    | gt.FloatQScalar
-    | gt.IntQScalar
-    | gt.BatchableRealScalarLike
-    | gt.FloatScalar
-    | gt.IntScalar
-    | APYQuantity
-)
 
 CONST_G = Quantity(_CONST_G.value, _CONST_G.unit)
 

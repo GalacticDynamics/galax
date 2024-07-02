@@ -239,6 +239,12 @@ def potential(
 
     In the following example we will show compatibility with Astropy objects.
 
+    .. invisible-code-block: python
+
+        from galax.utils._optional_deps import HAS_ASTROPY
+
+    .. skip: start if(not HAS_ASTROPY, reason="requires Astropy")
+
     >>> import astropy.coordinates as c
     >>> import astropy.units as u
 
@@ -247,6 +253,7 @@ def potential(
     >>> pot.potential(q, t=t)
     Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
+    .. skip: end
     """
     return potential(pot, q, t)
 
@@ -392,11 +399,14 @@ def gradient(
     counterparts :class:`~coordinax.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
+    .. invisible-code-block: python
+
+        from galax.utils._optional_deps import HAS_ASTROPY
+
+    .. skip: start if(not HAS_ASTROPY, reason="requires Astropy")
+
     >>> import astropy.units as u
     >>> import astropy.coordinates as c
-    >>> import galax.potential as gp
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
@@ -436,6 +446,7 @@ def gradient(
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
+    .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
     t = Quantity.constructor(t, pot.units["time"])
@@ -501,12 +512,6 @@ def gradient(
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
-
-    - - -
-
-    :fun:`~galax.potential.gradient` also supports Astropy objects.
-
-
 
     """
     return gradient(pot, q, t)
@@ -641,6 +646,12 @@ def laplacian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["1/s^2"
     counterparts :class:`~coordinax.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
+    .. invisible-code-block: python
+
+        from galax.utils._optional_deps import HAS_ASTROPY
+
+    .. skip: start if(not HAS_ASTROPY, reason="requires Astropy")
+
     >>> import astropy.units as u
     >>> import astropy.coordinates as c
 
@@ -675,6 +686,7 @@ def laplacian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["1/s^2"
     >>> pot.laplacian(q, t)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
+    .. skip: end
     """  # noqa: E501
     q = parse_to_quantity(q, unit=pot.units["length"])
     t = Quantity.constructor(t, pot.units["time"])
@@ -861,6 +873,12 @@ def density(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["mass den
     counterparts :class:`~coordinax.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
+    .. invisible-code-block: python
+
+        from galax.utils._optional_deps import HAS_ASTROPY
+
+    .. skip: start if(not HAS_ASTROPY, reason="requires Astropy")
+
     >>> import numpy as np
     >>> import astropy.coordinates as c
     >>> import astropy.units as u
@@ -894,6 +912,8 @@ def density(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["mass den
     >>> q = np.array([[1, 2, 3], [4, 5, 6]])
     >>> pot.density(q, t)
     Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
+
+    .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
     t = Quantity.constructor(t, pot.units["time"])
@@ -927,7 +947,12 @@ def density(
 
     :func:`~galax.potential.density` also supports Astropy objects.
 
-    >>> import numpy as np
+    .. invisible-code-block: python
+
+        from galax.utils._optional_deps import HAS_ASTROPY
+
+    .. skip: start if(not HAS_ASTROPY, reason="requires Astropy")
+
     >>> import astropy.coordinates as c
     >>> import astropy.units as u
 
@@ -936,6 +961,7 @@ def density(
     >>> pot.density(q, t=t)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
+    .. skip: end
     """
     return density(pot, q, t)
 
@@ -1093,6 +1119,12 @@ def hessian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> HessianVec:
     counterparts :class:`~coordinax.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
+    .. invisible-code-block: python
+
+        from galax.utils._optional_deps import HAS_ASTROPY
+
+    .. skip: start if(not HAS_ASTROPY, reason="requires Astropy")
+
     >>> import numpy as np
     >>> import astropy.coordinates as c
     >>> import astropy.units as u
@@ -1144,6 +1176,8 @@ def hessian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> HessianVec:
                           [-0.00518791,  0.00017293, -0.00778186],
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
                     unit='1 / Myr2')
+
+    .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
     t = Quantity.constructor(t, pot.units["time"])
@@ -1436,6 +1470,12 @@ def tidal_tensor(
     counterparts :class:`~coordinax.AbstractPosition3D` and
     :class:`~unxt.Quantity`.
 
+    .. invisible-code-block: python
+
+        from galax.utils._optional_deps import HAS_ASTROPY
+
+    .. skip: start if(not HAS_ASTROPY, reason="requires Astropy")
+
     >>> import numpy as np
     >>> import astropy.coordinates as c
     >>> import astropy.units as u
@@ -1476,6 +1516,9 @@ def tidal_tensor(
                     unit='1 / Myr2')
 
     Again, this can be batched.
+
+    .. skip: end
+
     """
     J = hessian(pot, *args, **kwargs)  # (*batch, 3, 3)
     batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)

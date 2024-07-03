@@ -16,8 +16,8 @@ from unxt import Quantity
 import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
-from ._api import Integrator
-from ._builtin import DiffraxIntegrator
+from .api import Integrator
+from .builtin import DiffraxIntegrator
 from galax.dynamics._dynamics.orbit import InterpolatedOrbit, Orbit
 
 ##############################################################################

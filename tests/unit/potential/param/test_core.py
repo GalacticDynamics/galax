@@ -10,8 +10,8 @@ import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
 
-from galax.potential import AbstractParameter, ConstantParameter, UserParameter
-from galax.potential._potential.param.core import ParameterCallable
+from galax.potential._potential.params.core import ParameterCallable
+from galax.potential.params import AbstractParameter, ConstantParameter, UserParameter
 from galax.typing import Unit
 
 T = TypeVar("T", bound=AbstractParameter)

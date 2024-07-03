@@ -163,7 +163,7 @@ class LinearParameter(AbstractParameter):
 
     Examples
     --------
-    >>> from galax.potential import LinearParameter
+    >>> from galax.potential.params import LinearParameter
     >>> from unxt import Quantity
 
     >>> lp = LinearParameter(slope=Quantity(-1, "Msun/yr"),
@@ -211,7 +211,7 @@ class LinearParameter(AbstractParameter):
 
         Examples
         --------
-        >>> from galax.potential import LinearParameter
+        >>> from galax.potential.params import LinearParameter
         >>> from unxt import Quantity
 
         >>> lp = LinearParameter(slope=Quantity(-1, "Msun/yr"),

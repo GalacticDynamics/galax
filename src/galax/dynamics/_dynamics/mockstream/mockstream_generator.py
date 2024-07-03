@@ -20,11 +20,8 @@ import galax.typing as gt
 from .core import MockStream, MockStreamArm
 from .df import AbstractStreamDF, ProgenitorMassCallable
 from .utils import cond_reverse
-from galax.dynamics._dynamics.integrate._api import Integrator
-from galax.dynamics._dynamics.integrate._funcs import (
-    _default_integrator,
-    evaluate_orbit,
-)
+from galax.dynamics._dynamics.integrate.api import Integrator
+from galax.dynamics._dynamics.integrate.funcs import _default_integrator, evaluate_orbit
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential import AbstractPotentialBase
 

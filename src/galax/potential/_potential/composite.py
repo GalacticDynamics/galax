@@ -15,7 +15,7 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
-from .param.attr import CompositeParametersAttribute
+from .params.attr import CompositeParametersAttribute
 from galax.utils import ImmutableDict
 from galax.utils._misc import zeroth
 

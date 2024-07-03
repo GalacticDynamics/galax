@@ -27,8 +27,8 @@ from .io import (
     convert_potential,
 )
 from galax.coordinates import PhaseSpacePosition
-from galax.potential._potential.param.attr import ParametersAttribute
-from galax.potential._potential.param.utils import all_parameters, all_vars
+from galax.potential._potential.params.attr import ParametersAttribute
+from galax.potential._potential.params.utils import all_parameters, all_vars
 from galax.utils._collections import ImmutableDict
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
@@ -73,7 +73,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Parsing
 
     def _init_units(self) -> None:
-        from galax.potential._potential.param.field import ParameterField
+        from galax.potential._potential.params.field import ParameterField
 
         # Handle unit conversion for all fields, e.g. the parameters.
         for f in fields(self):

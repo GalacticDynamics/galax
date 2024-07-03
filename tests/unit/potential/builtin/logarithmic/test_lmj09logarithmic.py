@@ -17,11 +17,8 @@ from ..test_common import (
     ParameterShapeQ3Mixin,
 )
 from .test_common import ParameterRSMixin, ParameterVCMixin
-from galax.potential import (
-    AbstractPotentialBase,
-    ConstantParameter,
-    LMJ09LogarithmicPotential,
-)
+from galax.potential import AbstractPotentialBase, LMJ09LogarithmicPotential
+from galax.potential.params import ConstantParameter
 from galax.utils._optional_deps import HAS_GALA
 
 

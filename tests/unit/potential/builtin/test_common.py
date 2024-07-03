@@ -8,8 +8,9 @@ from unxt import Quantity
 from unxt.unitsystems import galactic
 
 import galax.potential as gp
+import galax.potential.params as gpp
 from ..param.test_field import ParameterFieldMixin
-from galax.potential import ConstantParameter
+from galax.potential.params import ConstantParameter
 
 # =============================================================================
 # Mass
@@ -103,7 +104,7 @@ class ParameterScaleRadiusMixin(ParameterFieldMixin):
         fields["r_s"] = 1.0 * u.Unit(10 * u.kpc)
         fields["units"] = galactic
         pot = pot_cls(**fields)
-        assert isinstance(pot.r_s, gp.ConstantParameter)
+        assert isinstance(pot.r_s, gpp.ConstantParameter)
         assert qnp.isclose(pot.r_s(0), Quantity(10, "kpc"), atol=Quantity(1e-8, "kpc"))
 
     def test_r_s_constant(

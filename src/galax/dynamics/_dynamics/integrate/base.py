@@ -13,7 +13,7 @@ from unxt import AbstractUnitSystem, Quantity, to_units_value
 
 import galax.coordinates as gc
 import galax.typing as gt
-from ._api import VectorField
+from .api import VectorField
 
 Interp = TypeVar("Interp")
 Time: TypeAlias = (

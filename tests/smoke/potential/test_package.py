@@ -6,7 +6,7 @@ from galax.potential._potential import (
     core,
     frame,
     funcs,
-    param,
+    params,
 )
 
 
@@ -15,11 +15,12 @@ def test_all() -> None:
     # Test detailed contents (not order)
     assert set(gp.__all__) == {
         "io",
+        "params",
         *base.__all__,
         *builtin.__all__,
         *composite.__all__,
         *core.__all__,
-        *param.__all__,
+        *params.__all__,
         *frame.__all__,
         *funcs.__all__,
     }

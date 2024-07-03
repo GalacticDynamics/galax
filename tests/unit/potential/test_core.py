@@ -12,6 +12,7 @@ from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, galactic, unitsystem
 
 import galax.potential as gp
+import galax.potential.params as gpp
 import galax.typing as gt
 from .test_base import AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
@@ -42,7 +43,7 @@ class TestAbstractPotential(AbstractPotential_Test):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.AbstractPotentialBase]:
         class TestPotential(gp.AbstractPotentialBase):
-            m_tot: gp.AbstractParameter = gp.ParameterField(
+            m_tot: gpp.AbstractParameter = gpp.ParameterField(
                 dimensions="mass", default=Quantity(1e12, "Msun")
             )
             units: AbstractUnitSystem = eqx.field(

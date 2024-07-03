@@ -33,7 +33,8 @@ from unxt.unitsystems import galactic
 import galax.typing as gt
 from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
-from galax.potential._potential.param import AbstractParameter, ParameterField
+from galax.potential._potential.params.core import AbstractParameter
+from galax.potential._potential.params.field import ParameterField
 from galax.utils import ImmutableDict
 
 # -------------------------------------------------------------------
@@ -688,14 +689,12 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     # TODO: move to a triaxial wrapper
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1.0, ""),
-        dimensions="dimensionless",
+        default=Quantity(1.0, ""), dimensions="dimensionless"
     )
     """Scale length in the y direction divided by ``c``."""
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1.0, ""),
-        dimensions="dimensionless",
+        default=Quantity(1.0, ""), dimensions="dimensionless"
     )
     """Scale length in the z direction divided by ``c``."""
 

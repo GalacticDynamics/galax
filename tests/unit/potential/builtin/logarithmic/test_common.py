@@ -7,7 +7,7 @@ from unxt.unitsystems import galactic
 
 import galax.potential as gp
 from ...param.test_field import ParameterFieldMixin
-from galax.potential import ConstantParameter
+from galax.potential.params import ConstantParameter
 
 
 class ParameterVCMixin(ParameterFieldMixin):

@@ -90,7 +90,7 @@ class ParameterField:
     >>> import galax.potential as gp
 
     >>> class KeplerPotential(gp.AbstractPotential):
-    ...     mass: gp.ParameterField = gp.ParameterField(dimensions="mass")
+    ...     mass: gp.params.ParameterField = gp.params.ParameterField(dimensions="mass")
     ...     def _potential(self, q, t):
     ...         return -self.constants["G"] * self.mass(t) / xp.linalg.norm(q, axis=-1)
 

@@ -17,8 +17,8 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.coordinates as gc
 import galax.typing as gt
-from ._api import VectorField
-from ._base import AbstractIntegrator
+from .api import VectorField
+from .base import AbstractIntegrator
 from galax.utils import ImmutableDict
 
 P = ParamSpec("P")

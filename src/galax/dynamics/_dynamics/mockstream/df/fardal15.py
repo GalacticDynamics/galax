@@ -16,7 +16,7 @@ from unxt import Quantity
 
 import galax.potential as gp
 import galax.typing as gt
-from ._base import AbstractStreamDF
+from .base import AbstractStreamDF
 from galax.potential._potential.funcs import d2phi_dr2
 
 # ============================================================

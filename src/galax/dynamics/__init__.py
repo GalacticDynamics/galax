@@ -1,15 +1,37 @@
 """:mod:`galax.dynamics`."""
 
+__all__ = [
+    # Modules
+    "integrate",
+    "mockstream",
+    # orbit, et al.
+    "AbstractOrbit",
+    "Orbit",
+    "InterpolatedOrbit",
+    # integrate
+    "evaluate_orbit",
+    # mockstream
+    "MockStreamArm",
+    "MockStream",
+    "MockStreamGenerator",
+    # mockstream.df
+    "AbstractStreamDF",
+    "FardalStreamDF",
+]
+
+
 from jaxtyping import install_import_hook
 
 from galax.setup_package import RUNTIME_TYPECHECKER
-from galax.utils._optional_deps import HAS_GALA
 
 with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
-    from . import _dynamics
-    from ._dynamics import *
+    from . import integrate, mockstream
+    from ._dynamics.base import AbstractOrbit
+    from ._dynamics.integrate.funcs import evaluate_orbit
+    from ._dynamics.mockstream import MockStream, MockStreamArm, MockStreamGenerator
+    from ._dynamics.mockstream.df import AbstractStreamDF, FardalStreamDF
+    from ._dynamics.orbit import InterpolatedOrbit, Orbit
 
-__all__ = _dynamics.__all__
 
 # Cleanup
-del install_import_hook, RUNTIME_TYPECHECKER, HAS_GALA, _dynamics
+del install_import_hook, RUNTIME_TYPECHECKER

@@ -18,7 +18,8 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 import galax.typing as gt
 from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
-from galax.potential._potential.param import AbstractParameter, ParameterField
+from galax.potential._potential.params.core import AbstractParameter
+from galax.potential._potential.params.field import ParameterField
 from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 

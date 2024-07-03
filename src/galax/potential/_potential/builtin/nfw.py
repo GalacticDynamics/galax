@@ -24,7 +24,8 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 import galax.typing as gt
 from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
-from galax.potential._potential.param import AbstractParameter, ParameterField
+from galax.potential._potential.params.core import AbstractParameter
+from galax.potential._potential.params.field import ParameterField
 from galax.utils import ImmutableDict
 
 _log2 = xp.log(xp.asarray(2.0))
@@ -137,21 +138,18 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     """Scale radius."""
 
-    a1: AbstractParameter = ParameterField(
-        dimensions="dimensionless",
-        default=Quantity(1.0, ""),  # type: ignore[assignment]
+    a1: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless", default=Quantity(1.0, "")
     )
     """Major axis."""
 
-    a2: AbstractParameter = ParameterField(
-        dimensions="dimensionless",
-        default=Quantity(1.0, ""),  # type: ignore[assignment]
+    a2: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless", default=Quantity(1.0, "")
     )
     """Intermediate axis."""
 
-    a3: AbstractParameter = ParameterField(
-        dimensions="dimensionless",
-        default=Quantity(1.0, ""),  # type: ignore[assignment]
+    a3: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless", default=Quantity(1.0, "")
     )
     """Minor axis."""
 
@@ -261,14 +259,12 @@ class TriaxialNFWPotential(AbstractPotential):
     """Scale radius of the potential."""
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1.0, ""),
-        dimensions="dimensionless",
+        default=Quantity(1.0, ""), dimensions="dimensionless"
     )
     """Scale length in the y/x direction."""
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1.0, ""),
-        dimensions="dimensionless",
+        default=Quantity(1.0, ""), dimensions="dimensionless"
     )
     """Scale length in the z/x direction."""
 
@@ -447,18 +443,16 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     """Scale radius."""
 
-    q1: AbstractParameter = ParameterField(
-        dimensions="dimensionless",
-        default=Quantity(1.0, ""),  # type: ignore[assignment]
+    q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless", default=Quantity(1.0, "")
     )
     """y/x axis ratio.
 
     The z/x axis ratio is defined as :math:`q_2^2 = 3 - q_1^2`
     """
 
-    a_r: AbstractParameter = ParameterField(
-        dimensions="dimensionless",
-        default=Quantity(1.0, ""),  # type: ignore[assignment]
+    a_r: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless", default=Quantity(1.0, "")
     )
     """Transition radius relative to :math:`r_s`.
 

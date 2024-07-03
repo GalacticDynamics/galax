@@ -36,7 +36,9 @@ def _all_constant_parameters(
     pot: "gpx.AbstractPotentialBase",
     *params: str,
 ) -> bool:
-    return all(isinstance(getattr(pot, name), gpx.ConstantParameter) for name in params)
+    return all(
+        isinstance(getattr(pot, name), gpx.params.ConstantParameter) for name in params
+    )
 
 
 # TODO: add an argument to specify how to handle time-dependent parameters.

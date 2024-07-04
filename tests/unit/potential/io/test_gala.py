@@ -91,7 +91,7 @@ def test_offset_hernquist() -> None:
     from gala.units import galactic
 
     gpot = GalaHernquistPotential(m=1e12, c=5, units=galactic, origin=[1.0, 2, 3])
-    gxpot = gp.io.convert_potential(gp.io.GalaLibrary, gpot)
+    gxpot = gp.io.convert_potential(gp.io.GalaxLibrary, gpot)
 
     assert isinstance(gxpot, gp.PotentialFrame)
     assert gxpot.operator[0].translation == cx.CartesianPosition3D.constructor(

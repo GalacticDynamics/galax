@@ -48,13 +48,13 @@ version.raw-options.root = "../.."
 
 [tool.hatch.build]
 directory = "../dist"
-hooks.vcs.version-file = "../../src/galax_interop_astropy/_version.py"
+hooks.vcs.version-file = "../../src/galax_suite/galax_interop_astropy/_version.py"
 
 [tool.hatch.build.targets.sdist]
 exclude = ["pyproject.toml"]
 
 [tool.hatch.build.targets.sdist.force-include]
-"../../src/galax_interop_astropy" = "galax_interop_astropy"
+"../../src/galax_suite/galax_interop_astropy" = "galax_interop_astropy"
 
 [tool.hatch.build.targets.wheel.force-include]
-"../../src/galax_interop_astropy" = "galax_interop_astropy"
+"../../src/galax_suite/galax_interop_astropy" = "galax_interop_astropy"

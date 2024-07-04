@@ -19,8 +19,11 @@ def get_version(package_name: str) -> Version | Literal[False]:
     return parse(version_str)
 
 
-# This is currently a required dependency
 HAS_ASTROPY: Version | Literal[False] = get_version("astropy")
+HAS_GALAX_INTEROP_ASTROPY: Version | Literal[False] = get_version(
+    "galax-interop-astropy"
+)
+HAS_GALAX_INTEROP_GALA: Version | Literal[False] = get_version("galax-interop-gala")
 
 
 HAS_GALA: Version | Literal[False] = get_version("gala")

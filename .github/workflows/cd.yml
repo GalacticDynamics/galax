@@ -30,6 +30,11 @@ jobs:
           fetch-depth: 0
 
       - uses: hynek/build-and-inspect-python-package@v2
+        with:
+          path: packages/galax
+          upload-name-suffix: "-galax"
+
+      # TODO: also galax-interop-astropy and galax-interop-gala
 
   test-publish:
     needs: [dist]

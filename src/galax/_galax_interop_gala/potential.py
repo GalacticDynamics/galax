@@ -23,7 +23,7 @@ from galax.utils._optional_deps import HAS_GALA
 
 @dispatch  # type: ignore[misc]
 def convert_potential(
-    to_: gpx.AbstractPotentialBase | type[gpx.io.GalaLibrary],  # noqa: ARG001
+    to_: gpx.AbstractPotentialBase | type[gpx.io.GalaxLibrary],  # noqa: ARG001
     from_: gp.CPotentialBase | gp.PotentialBase,
     /,
     **kwargs: Any,  # noqa: ARG001

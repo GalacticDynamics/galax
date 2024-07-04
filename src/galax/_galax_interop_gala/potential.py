@@ -35,6 +35,22 @@ def convert_potential(
     from_: gp.CPotentialBase | gp.PotentialBase,
     /,
 ) -> gpx.AbstractPotentialBase:
+    """Convert a :class:`~gala.potential.PotentialBase` to a :class:`~galax.potential.AbstractPotentialBase`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from gala.units import galactic
+    >>> import galax.potential as gp
+
+    >>> pot = galap.KeplerPotential(m=1e11, units=galactic)
+    >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
+    KeplerPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...}),
+      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
+
+    """  # noqa: E501
     return gala_to_galax(from_)
 
 
@@ -44,7 +60,42 @@ def convert_potential(
     from_: gpx.AbstractPotentialBase,
     /,
 ) -> gp.CPotentialBase | gp.PotentialBase:
+    """Convert a :class:`~galax.potential.AbstractPotentialBase` to a :class:`~gala.potential.PotentialBase`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+
+    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e11, "Msun"), units="galactic")
+    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
+    <KeplerPotential: m=1.00e+11 (kpc,Myr,solMass,rad)>
+
+    """  # noqa: E501
     return galax_to_gala(from_)
+
+
+@dispatch
+def convert_potential(
+    to_: gp.CPotentialBase | gp.PotentialBase | type[gpx.io.GalaLibrary],  # noqa: ARG001
+    from_: gp.CPotentialBase | gp.PotentialBase,
+    /,
+) -> gp.CPotentialBase | gp.PotentialBase:
+    """Convert a :class:`~galax.potential.AbstractPotentialBase` to itself.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from gala.units import galactic
+    >>> import galax.potential as gp
+
+    >>> pot = galap.KeplerPotential(m=1e11, units=galactic)
+    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
+    <KeplerPotential: m=1.00e+11 (kpc,Myr,solMass,rad)>
+
+    """
+    return from_
 
 
 ##############################################################################
@@ -311,7 +362,7 @@ def gala_to_galax(
     >>> from gala.units import galactic
     >>> import galax.potential as gp
 
-    >>> pot = galap.IsochronePotential(m=1e11, b=10 * u.kpc, units=galactic)
+    >>> pot = galap.IsochronePotential(m=1e11, b=10, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     IsochronePotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
@@ -582,8 +633,10 @@ def gala_to_galax(pot: gp.NullPotential, /) -> gpx.NullPotential:
 
     >>> pot = gp.NullPotential()
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
-    NullPotential( units=DimensionlessUnitSystem(),
-                   constants=ImmutableMap({'G': ...}) )
+    NullPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableDict({'G': ...})
+    )
 
     """
     return gpx.NullPotential(units=pot.units)
@@ -676,7 +729,7 @@ def gala_to_galax(
     >>> from gala.units import galactic
     >>> import galax.potential as gp
 
-    >>> pot = gp.SatohPotential(m=1e11, a=20, b=10, units=galactic)
+    >>> pot = galap.SatohPotential(m=1e11, a=20, b=10, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     SatohPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
@@ -722,7 +775,7 @@ def gala_to_galax(
     >>> from gala.units import galactic
     >>> import galax.potential as gp
 
-    >>> pot = gp.StonePotential(m=1e11, r_c=20, r_h=10, units=galactic)
+    >>> pot = galap.StonePotential(m=1e11, r_c=20, r_h=10, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     StoneOstriker15Potential(
       units=UnitSystem(kpc, Myr, solMass, rad),

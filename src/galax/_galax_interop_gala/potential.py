@@ -38,7 +38,7 @@ def convert_potential(
 
 @dispatch
 def convert_potential(
-    to_: gp.CPotentialBase | gp.PotentialBase | type[gpx.io.GalaLibrary],  # noqa: ARG001
+    to_: gp.CPotentialBase | gp.PotentialBase | type[gpx.io.GalaxLibrary],  # noqa: ARG001
     from_: gpx.AbstractPotentialBase,
     /,
 ) -> gp.CPotentialBase | gp.PotentialBase:
@@ -126,30 +126,10 @@ def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractPotentialBase:
 
     Going in alphabetical order...
 
-    Composite Potential:
-
-    >>> gpot = gp.CompositePotential(
-    ...     disk=gp.MiyamotoNagaiPotential(m=1e11, a=6.5, b=0.26, units=gu.galactic),
-    ...     halo=gp.NFWPotential(m=1e12, r_s=20, units=gu.galactic),
-    ... )
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
-    CompositePotential({'disk': MiyamotoNagaiPotential( ... ),
-                        'halo': NFWPotential( ... )})
-
-    Hernquist potential:
-
-    >>> gpot = gp.HernquistPotential(m=1e11 * u.Msun, c=10 * u.kpc, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
-    HernquistPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
-
     Isochrone potential:
 
     >>> gpot = gp.IsochronePotential(m=1e11 * u.Msun, b=10 * u.kpc, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     IsochronePotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -159,7 +139,7 @@ def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractPotentialBase:
     Kepler potential:
 
     >>> gpot = gp.KeplerPotential(m=1e11 * u.Msun, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     KeplerPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -167,7 +147,7 @@ def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractPotentialBase:
 
     >>> gpot = gp.LeeSutoTriaxialNFWPotential(
     ...     v_c=220, r_s=20, a=1, b=0.9, c=0.8, units=gu.galactic )
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     LeeSutoTriaxialNFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -181,7 +161,7 @@ def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractPotentialBase:
     Milky Way potential:
 
     >>> gpot = gp.MilkyWayPotential()
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     MilkyWayPotential({'disk': MiyamotoNagaiPotential( ... ),
                        'halo': NFWPotential( ... ),
                        'bulge': HernquistPotential( ... ),
@@ -190,7 +170,7 @@ def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractPotentialBase:
     MiyamotoNagai potential:
 
     >>> gpot = gp.MiyamotoNagaiPotential(m=1e11, a=6.5, b=0.26, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     MiyamotoNagaiPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -201,7 +181,7 @@ def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractPotentialBase:
     NFW potential:
 
     >>> gpot = gp.NFWPotential(m=1e12, r_s=20, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     NFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -211,7 +191,7 @@ def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractPotentialBase:
     Null potential:
 
     >>> gpot = gp.NullPotential()
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     NullPotential( units=DimensionlessUnitSystem(),
                    constants=ImmutableMap({'G': ...}) )
     """  # noqa: E501
@@ -250,9 +230,26 @@ def galax_to_gala(pot: gpx.AbstractPotentialBase, /) -> gp.PotentialBase:
 # Composite potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_composite(pot: gp.CompositePotential, /) -> gpx.CompositePotential:
-    """Convert a Gala CompositePotential to a Galax potential."""
+@dispatch  # type: ignore[misc]
+def gala_to_galax(pot: gp.CompositePotential, /) -> gpx.CompositePotential:
+    """Convert a `gala.potential.CompositePotential` -> `galax.potential.CompositePotential`.
+
+    Examples
+    --------
+    The required imports for the examples below are:
+
+    >>> import gala.potential as galap
+    >>> from gala.units import galactic
+    >>> import galax.potential as gp
+
+    >>> pot = galap.CompositePotential(
+    ...     disk=galap.MiyamotoNagaiPotential(m=1e11, a=6.5, b=0.26, units=galactic),
+    ...     halo=galap.NFWPotential(m=1e12, r_s=20, units=galactic),
+    ... )
+    >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
+    CompositePotential({'disk': MiyamotoNagaiPotential( ... ),
+                        'halo': NFWPotential( ... )})
+    """  # noqa: E501
     return gpx.CompositePotential(**{k: gala_to_galax(p) for k, p in pot.items()})
 
 
@@ -274,16 +271,16 @@ def _galax_to_gala_bar(_: gpx.BarPotential, /) -> gp.PotentialBase:
 
 if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
 
-    @gala_to_galax.register
-    def _gala_to_galax_burkert(
+    @dispatch  # type: ignore[misc]
+    def gala_to_galax(
         gala: gp.BurkertPotential, /
     ) -> gpx.BurkertPotential | gpx.PotentialFrame:
-        """Convert a Gala BurkertPotential to a Galax potential.
+        """Convert a `gala.potential.BurkertPotential` to a galax.potential.BurkertPotential.
 
         Examples
         --------
-        >>> import gala.potential as gp
-        >>> import gala.units as gu
+        >>> import gala.potential as galap
+        >>> from gala.units import galactic
         >>> import galax.potential as gpx
 
         .. invisible-code-block: python
@@ -294,8 +291,8 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
 
         .. skip: start if(skip, reason="Requires Gala v1.8.2+")
 
-        >>> gpot = gp.BurkertPotential(rho=4, r0=20, units=gu.galactic)
-        >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+        >>> pot = galap.BurkertPotential(rho=4, r0=20, units=galactic)
+        >>> gpx.io.convert_potential(gp.io.GalaxLibrary, pot)
         BurkertPotential(
         units=UnitSystem(kpc, Myr, solMass, rad),
         constants=ImmutableMap({'G': ...}),
@@ -304,7 +301,7 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
         )
 
         .. skip: end
-        """
+        """  # noqa: E501
         params = gala.parameters
         pot = gpx.BurkertPotential.from_central_density(
             rho_0=params["rho"], r_s=params["r0"], units=gala.units
@@ -326,27 +323,27 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
 # Hernquist potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_hernquist(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.HernquistPotential, /
 ) -> gpx.HernquistPotential | gpx.PotentialFrame:
-    r"""Convert a Gala HernquistPotential to a Galax potential.
+    r"""Convert a `gala.potential.HernquistPotential` to a `galax.potential.HernquistPotential`.
 
     Examples
     --------
-    >>> import gala.potential as gp
-    >>> import gala.units as gu
-    >>> import galax.potential as gpx
+    >>> import gala.potential as galap
+    >>> from gala.units import galactic
+    >>> import galax.potential as gp
 
-    >>> gpot = gp.HernquistPotential(m=1e11, c=20, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> pot = galap.HernquistPotential(m=1e11, c=20, units=galactic)
+    >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     HernquistPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )
     )
-    """
+    """  # noqa: E501
     params = gala.parameters
     pot = gpx.HernquistPotential(m_tot=params["m"], r_s=params["c"], units=gala.units)
     return _apply_frame(_get_frame(gala), pot)
@@ -368,8 +365,8 @@ def _galax_to_gala_hernquist(pot: gpx.HernquistPotential, /) -> gp.HernquistPote
 # Isochrone potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_isochrone(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.IsochronePotential, /
 ) -> gpx.IsochronePotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
@@ -403,8 +400,8 @@ def _galax_to_gala_isochrone(pot: gpx.IsochronePotential, /) -> gp.IsochronePote
 # Jaffe potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_jaffe(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.JaffePotential, /
 ) -> gpx.JaffePotential | gpx.PotentialFrame:
     """Convert a Gala JaffePotential to a Galax potential.
@@ -416,7 +413,7 @@ def _gala_to_galax_jaffe(
     >>> import galax.potential as gpx
 
     >>> gpot = gp.JaffePotential(m=1e11, c=20, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     JaffePotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -445,8 +442,8 @@ def _galax_to_gala_jaffe(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
 # Kepler potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_kepler(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.KeplerPotential, /
 ) -> gpx.KeplerPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
@@ -480,8 +477,8 @@ def _galax_to_gala_kepler(pot: gpx.KeplerPotential, /) -> gp.KeplerPotential:
 # Kuzmin potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_registered(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.KuzminPotential, /
 ) -> gpx.KuzminPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
@@ -515,8 +512,8 @@ def _galax_to_gala_kuzmin(pot: gpx.KuzminPotential, /) -> gp.KuzminPotential:
 # Long & Murali Bar potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_longmuralibar(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.LongMuraliBarPotential, /
 ) -> gpx.LongMuraliBarPotential | gpx.PotentialFrame:
     """Convert a Gala LongMuraliBarPotential to a Galax potential.
@@ -528,7 +525,7 @@ def _gala_to_galax_longmuralibar(
     >>> import galax.potential as gpx
 
     >>> gpot = gp.LongMuraliBarPotential(m=1e11, a=20, b=10, c=5, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     LongMuraliBarPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': Quantity...}),
@@ -572,8 +569,8 @@ def _galax_to_gala_longmuralibar(
 # Miyamoto-Nagai potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_registered(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.MiyamotoNagaiPotential, /
 ) -> gpx.MiyamotoNagaiPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
@@ -607,8 +604,8 @@ def _galax_to_gala_mn(pot: gpx.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPot
 # Null potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_null(pot: gp.NullPotential, /) -> gpx.NullPotential:
+@dispatch  # type: ignore[misc]
+def gala_to_galax(pot: gp.NullPotential, /) -> gpx.NullPotential:
     """Convert a Gala NullPotential to a Galax potential.
 
     Examples
@@ -617,7 +614,7 @@ def _gala_to_galax_null(pot: gp.NullPotential, /) -> gpx.NullPotential:
     >>> import galax.potential as gpx
 
     >>> gpot = gp.NullPotential()
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     NullPotential( units=DimensionlessUnitSystem(),
                    constants=ImmutableMap({'G': ...}) )
 
@@ -636,8 +633,8 @@ def _galax_to_gala_null(pot: gpx.NullPotential, /) -> gp.NullPotential:
 # Plummer potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_registered(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.PlummerPotential, /
 ) -> gpx.PlummerPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
@@ -671,8 +668,8 @@ def _galax_to_gala_plummer(pot: gpx.PlummerPotential, /) -> gp.PlummerPotential:
 # PowerLawCutoff potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_registered(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.PowerLawCutoffPotential, /
 ) -> gpx.PowerLawCutoffPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
@@ -708,8 +705,8 @@ def _galax_to_gala_powerlaw(
 # Satoh potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_satoh(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.SatohPotential, /
 ) -> gpx.SatohPotential | gpx.PotentialFrame:
     """Convert a Gala SatohPotential to a Galax potential.
@@ -721,7 +718,7 @@ def _gala_to_galax_satoh(
     >>> import galax.potential as gpx
 
     >>> gpot = gp.SatohPotential(m=1e11, a=20, b=10, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     SatohPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -754,8 +751,8 @@ def _galax_to_gala_satoh(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
 # Stone & Ostriker potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_stoneostriker15(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.StonePotential, /
 ) -> gpx.StoneOstriker15Potential | gpx.PotentialFrame:
     """Convert a Gala StonePotential to a Galax potential.
@@ -767,7 +764,7 @@ def _gala_to_galax_stoneostriker15(
     >>> import galax.potential as gpx
 
     >>> gpot = gp.StonePotential(m=1e11, r_c=20, r_h=10, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     StoneOstriker15Potential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -802,8 +799,8 @@ def _galax_to_gala_stoneostriker15(
 # Logarithmic potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_logarithmic(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     gala: gp.LogarithmicPotential, /
 ) -> gpx.LogarithmicPotential | gpx.LMJ09LogarithmicPotential | gpx.PotentialFrame:
     """Convert a Gala LogarithmicPotential to a Galax potential.
@@ -821,7 +818,7 @@ def _gala_to_galax_logarithmic(
     >>> import galax.potential as gpx
 
     >>> gpot = gp.LogarithmicPotential(v_c=220, r_h=20, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     LogarithmicPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -890,10 +887,8 @@ def _galax_to_gala_logarithmic(
 # NFW potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_nfw(
-    gala: gp.NFWPotential, /
-) -> gpx.NFWPotential | gpx.PotentialFrame:
+@dispatch  # type: ignore[misc]
+def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialFrame:
     """Convert a Gala NFWPotential to a Galax potential.
 
     Examples
@@ -903,7 +898,7 @@ def _gala_to_galax_nfw(
     >>> import galax.potential as gpx
 
     >>> gpot = gp.NFWPotential(m=1e12, r_s=20, units=gu.galactic)
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     NFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -929,8 +924,8 @@ def _galax_to_gala_nfw(pot: gpx.NFWPotential, /) -> gp.NFWPotential:
     )
 
 
-@gala_to_galax.register
-def _gala_to_galax_leesutotriaxialnfw(
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
     pot: gp.LeeSutoTriaxialNFWPotential, /
 ) -> gpx.LeeSutoTriaxialNFWPotential:
     """Convert a Gala LeeSutoTriaxialNFWPotential to a Galax potential.
@@ -943,7 +938,7 @@ def _gala_to_galax_leesutotriaxialnfw(
 
     >>> gpot = gp.LeeSutoTriaxialNFWPotential(
     ...     v_c=220, r_s=20, a=1, b=0.9, c=0.8, units=gu.galactic )
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     LeeSutoTriaxialNFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
@@ -996,10 +991,8 @@ def _galax_to_gala_leesutotriaxialnfw(
 # Bovy MWPotential2014
 
 
-@gala_to_galax.register
-def _gala_to_galax_bovymw2014(
-    pot: gp.BovyMWPotential2014, /
-) -> gpx.BovyMWPotential2014:
+@dispatch  # type: ignore[misc]
+def gala_to_galax(pot: gp.BovyMWPotential2014, /) -> gpx.BovyMWPotential2014:
     """Convert a Gala BovyMWPotential2014 to a Galax potential.
 
     Examples
@@ -1014,7 +1007,7 @@ def _gala_to_galax_bovymw2014(
     >>> import galax.potential as gpx
 
     >>> gpot = gp.BovyMWPotential2014()
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     BovyMWPotential2014({'disk': MiyamotoNagaiPotential( ... ),
                         'bulge': PowerLawCutoffPotential( ... ),
                         'halo': NFWPotential( ... )})
@@ -1054,8 +1047,8 @@ def _galax_to_gala_bovymw2014(
 # LM10 potentials
 
 
-@gala_to_galax.register
-def _gala_to_galax_lm10(pot: gp.LM10Potential, /) -> gpx.LM10Potential:
+@dispatch  # type: ignore[misc]
+def gala_to_galax(pot: gp.LM10Potential, /) -> gpx.LM10Potential:
     """Convert a Gala LM10Potential to a Galax potential.
 
     Examples
@@ -1064,7 +1057,7 @@ def _gala_to_galax_lm10(pot: gp.LM10Potential, /) -> gpx.LM10Potential:
     >>> import galax.potential as gpx
 
     >>> gpot = gp.LM10Potential()
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     LM10Potential({'disk': MiyamotoNagaiPotential( ... ),
                    'bulge': HernquistPotential( ... ),
                    'halo': LMJ09LogarithmicPotential( ... )})
@@ -1104,8 +1097,8 @@ def _galax_to_gala_lm10(pot: gpx.LM10Potential, /) -> gp.LM10Potential:
 # Galax MilkyWayPotential
 
 
-@gala_to_galax.register
-def _gala_to_galax_mw(pot: gp.MilkyWayPotential, /) -> gpx.MilkyWayPotential:
+@dispatch  # type: ignore[misc]
+def gala_to_galax(pot: gp.MilkyWayPotential, /) -> gpx.MilkyWayPotential:
     """Convert a Gala MilkyWayPotential to a Galax potential.
 
     Examples
@@ -1114,7 +1107,7 @@ def _gala_to_galax_mw(pot: gp.MilkyWayPotential, /) -> gpx.MilkyWayPotential:
     >>> import galax.potential as gpx
 
     >>> gpot = gp.MilkyWayPotential()
-    >>> gpx.io.convert_potential(gpx.io.GalaLibrary, gpot)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     MilkyWayPotential({'disk': MiyamotoNagaiPotential( ... ),
                        'halo': NFWPotential( ... ),
                        'bulge': HernquistPotential( ... ),

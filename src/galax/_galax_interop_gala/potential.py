@@ -171,7 +171,9 @@ def _get_frame(pot: gp.PotentialBase, /) -> cxo.AbstractOperator:
     return cxo.simplify_op(frame)
 
 
-def _apply_frame(frame: cxo.AbstractOperator, pot: PT, /) -> PT | gpx.PotentialFrame:
+def _apply_frame(
+    frame: cxo.AbstractOperator, pot: PT, /
+) -> PT | gpx.PotentialFrame[PT]:
     return (
         pot if isinstance(frame, IdentityOperator) else gpx.PotentialFrame(pot, frame)
     )
@@ -205,7 +207,7 @@ _GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential
 @gala_to_galax.register(gp.PowerLawCutoffPotential)
 def _gala_to_galax_registered(
     gala: gp.PotentialBase, /
-) -> gpx.AbstractPotential | gpx.PotentialFrame:
+) -> gpx.AbstractPotential | gpx.PotentialFrame[gpx.AbstractPotential]:
     """Convert a Gala potential to a Galax potential."""
     if isinstance(gala.units, GalaDimensionlessUnitSystem):
         msg = "Galax does not support converting dimensionless units."
@@ -247,7 +249,7 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
     @gala_to_galax.register
     def _gala_to_galax_burkert(
         gala: gp.BurkertPotential, /
-    ) -> gpx.BurkertPotential | gpx.PotentialFrame:
+    ) -> gpx.BurkertPotential | gpx.PotentialFrame[gpx.BurkertPotential]:
         """Convert a Gala BurkertPotential to a Galax potential.
 
         Examples
@@ -285,7 +287,7 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
 @gala_to_galax.register
 def _gala_to_galax_hernquist(
     gala: gp.HernquistPotential, /
-) -> gpx.HernquistPotential | gpx.PotentialFrame:
+) -> gpx.HernquistPotential | gpx.PotentialFrame[gpx.HernquistPotential]:
     r"""Convert a Gala HernquistPotential to a Galax potential.
 
     Examples
@@ -311,7 +313,7 @@ def _gala_to_galax_hernquist(
 @gala_to_galax.register
 def _gala_to_galax_jaffe(
     gala: gp.JaffePotential, /
-) -> gpx.JaffePotential | gpx.PotentialFrame:
+) -> gpx.JaffePotential | gpx.PotentialFrame[gpx.JaffePotential]:
     """Convert a Gala JaffePotential to a Galax potential.
 
     Examples
@@ -337,7 +339,7 @@ def _gala_to_galax_jaffe(
 @gala_to_galax.register
 def _gala_to_galax_longmuralibar(
     gala: gp.LongMuraliBarPotential, /
-) -> gpx.LongMuraliBarPotential | gpx.PotentialFrame:
+) -> gpx.LongMuraliBarPotential | gpx.PotentialFrame[gpx.LongMuraliBarPotential]:
     """Convert a Gala LongMuraliBarPotential to a Galax potential.
 
     Examples
@@ -373,7 +375,7 @@ def _gala_to_galax_longmuralibar(
 @gala_to_galax.register
 def _gala_to_galax_satoh(
     gala: gp.SatohPotential, /
-) -> gpx.SatohPotential | gpx.PotentialFrame:
+) -> gpx.SatohPotential | gpx.PotentialFrame[gpx.SatohPotential]:
     """Convert a Gala SatohPotential to a Galax potential.
 
     Examples
@@ -402,7 +404,7 @@ def _gala_to_galax_satoh(
 @gala_to_galax.register
 def _gala_to_galax_stoneostriker15(
     gala: gp.StonePotential, /
-) -> gpx.StoneOstriker15Potential | gpx.PotentialFrame:
+) -> gpx.StoneOstriker15Potential | gpx.PotentialFrame[gpx.StoneOstriker15Potential]:
     """Convert a Gala StonePotential to a Galax potential.
 
     Examples
@@ -435,7 +437,12 @@ def _gala_to_galax_stoneostriker15(
 @gala_to_galax.register
 def _gala_to_galax_logarithmic(
     gala: gp.LogarithmicPotential, /
-) -> gpx.LogarithmicPotential | gpx.LMJ09LogarithmicPotential | gpx.PotentialFrame:
+) -> (
+    gpx.LogarithmicPotential
+    | gpx.LMJ09LogarithmicPotential
+    | gpx.PotentialFrame[gpx.LogarithmicPotential]
+    | gpx.PotentialFrame[gpx.LMJ09LogarithmicPotential]
+):
     """Convert a Gala LogarithmicPotential to a Galax potential.
 
     If the flattening or rotation 'phi' is non-zero, the potential is a
@@ -491,7 +498,7 @@ def _gala_to_galax_logarithmic(
 @gala_to_galax.register
 def _gala_to_galax_nfw(
     gala: gp.NFWPotential, /
-) -> gpx.NFWPotential | gpx.PotentialFrame:
+) -> gpx.NFWPotential | gpx.PotentialFrame[gpx.NFWPotential]:
     """Convert a Gala NFWPotential to a Galax potential.
 
     Examples

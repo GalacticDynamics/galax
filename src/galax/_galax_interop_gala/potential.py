@@ -3,7 +3,7 @@
 __all__ = ["gala_to_galax"]
 
 from functools import singledispatch
-from typing import Any, TypeVar
+from typing import TypeVar
 
 import gala.potential as gp
 from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
@@ -26,7 +26,6 @@ def convert_potential(
     to_: gpx.AbstractPotentialBase | type[gpx.io.GalaxLibrary],  # noqa: ARG001
     from_: gp.CPotentialBase | gp.PotentialBase,
     /,
-    **kwargs: Any,  # noqa: ARG001
 ) -> gpx.AbstractPotentialBase:
     return gala_to_galax(from_)
 

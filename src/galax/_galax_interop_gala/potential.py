@@ -5,6 +5,7 @@ __all__ = ["gala_to_galax", "galax_to_gala"]
 from functools import singledispatch
 from typing import TypeVar
 
+import equinox as eqx
 import gala.potential as gp
 from astropy.units import Quantity as APYQuantity
 from gala.units import (
@@ -96,6 +97,15 @@ def _error_if_not_all_constant_parameters(
         raise TypeError(msg)
 
     return
+
+
+# TODO: check if `galax` handles this internally
+def _check_gala_units(gala: GalaUnitSystem, /) -> GalaUnitSystem:
+    return eqx.error_if(
+        gala,
+        isinstance(gala, GalaDimensionlessUnitSystem),
+        "Galax does not support converting dimensionless units.",
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -345,7 +355,9 @@ def gala_to_galax(
     )
     """  # noqa: E501
     params = gala.parameters
-    pot = gpx.HernquistPotential(m_tot=params["m"], r_s=params["c"], units=gala.units)
+    pot = gpx.HernquistPotential(
+        m_tot=params["m"], r_s=params["c"], units=_check_gala_units(gala.units)
+    )
     return _apply_frame(_get_frame(gala), pot)
 
 
@@ -370,14 +382,10 @@ def gala_to_galax(
     gala: gp.IsochronePotential, /
 ) -> gpx.IsochronePotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
-    if isinstance(gala.units, GalaDimensionlessUnitSystem):
-        msg = "Galax does not support converting dimensionless units."
-        raise TypeError(msg)
-
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
 
-    pot = gpx.IsochronePotential(**params, units=gala.units)
+    pot = gpx.IsochronePotential(**params, units=_check_gala_units(gala.units))
     return _apply_frame(_get_frame(gala), pot)
 
 
@@ -422,7 +430,9 @@ def gala_to_galax(
     )
     """
     params = gala.parameters
-    pot = gpx.JaffePotential(m=params["m"], r_s=params["c"], units=gala.units)
+    pot = gpx.JaffePotential(
+        m=params["m"], r_s=params["c"], units=_check_gala_units(gala.units)
+    )
     return _apply_frame(_get_frame(gala), pot)
 
 
@@ -447,14 +457,10 @@ def gala_to_galax(
     gala: gp.KeplerPotential, /
 ) -> gpx.KeplerPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
-    if isinstance(gala.units, GalaDimensionlessUnitSystem):
-        msg = "Galax does not support converting dimensionless units."
-        raise TypeError(msg)
-
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
 
-    pot = gpx.KeplerPotential(**params, units=gala.units)
+    pot = gpx.KeplerPotential(**params, units=_check_gala_units(gala.units))
     return _apply_frame(_get_frame(gala), pot)
 
 
@@ -482,14 +488,10 @@ def gala_to_galax(
     gala: gp.KuzminPotential, /
 ) -> gpx.KuzminPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
-    if isinstance(gala.units, GalaDimensionlessUnitSystem):
-        msg = "Galax does not support converting dimensionless units."
-        raise TypeError(msg)
-
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
 
-    pot = gpx.KuzminPotential(**params, units=gala.units)
+    pot = gpx.KuzminPotential(**params, units=_check_gala_units(gala.units))
     return _apply_frame(_get_frame(gala), pot)
 
 
@@ -574,14 +576,10 @@ def gala_to_galax(
     gala: gp.MiyamotoNagaiPotential, /
 ) -> gpx.MiyamotoNagaiPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
-    if isinstance(gala.units, GalaDimensionlessUnitSystem):
-        msg = "Galax does not support converting dimensionless units."
-        raise TypeError(msg)
-
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
 
-    pot = gpx.MiyamotoNagaiPotential(**params, units=gala.units)
+    pot = gpx.MiyamotoNagaiPotential(**params, units=_check_gala_units(gala.units))
     return _apply_frame(_get_frame(gala), pot)
 
 
@@ -638,14 +636,10 @@ def gala_to_galax(
     gala: gp.PlummerPotential, /
 ) -> gpx.PlummerPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
-    if isinstance(gala.units, GalaDimensionlessUnitSystem):
-        msg = "Galax does not support converting dimensionless units."
-        raise TypeError(msg)
-
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
 
-    pot = gpx.PlummerPotential(**params, units=gala.units)
+    pot = gpx.PlummerPotential(**params, units=_check_gala_units(gala.units))
     return _apply_frame(_get_frame(gala), pot)
 
 
@@ -673,14 +667,10 @@ def gala_to_galax(
     gala: gp.PowerLawCutoffPotential, /
 ) -> gpx.PowerLawCutoffPotential | gpx.PotentialFrame:
     """Convert a Gala potential to a Galax potential."""
-    if isinstance(gala.units, GalaDimensionlessUnitSystem):
-        msg = "Galax does not support converting dimensionless units."
-        raise TypeError(msg)
-
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
 
-    pot = gpx.PowerLawCutoffPotential(**params, units=gala.units)
+    pot = gpx.PowerLawCutoffPotential(**params, units=_check_gala_units(gala.units))
     return _apply_frame(_get_frame(gala), pot)
 
 
@@ -908,7 +898,9 @@ def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialF
 
     """  # noqa: E501
     params = gala.parameters
-    pot = gpx.NFWPotential(m=params["m"], r_s=params["r_s"], units=gala.units)
+    pot = gpx.NFWPotential(
+        m=params["m"], r_s=params["r_s"], units=_check_gala_units(gala.units)
+    )
     return _apply_frame(_get_frame(gala), pot)
 
 

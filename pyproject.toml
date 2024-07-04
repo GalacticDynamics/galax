@@ -68,7 +68,7 @@ allow-direct-references = true  # to be able to use the direct dependencies abov
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "src/_version.py"
+version-file = "src/galax_suite/_version.py"
 
 [tool.hatch.build.targets.wheel]
 

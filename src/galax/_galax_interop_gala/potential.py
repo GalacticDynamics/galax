@@ -82,11 +82,20 @@ def _galax_to_gala_units(units: AbstractUnitSystem, /) -> GalaUnitSystem:
     return GalaUnitSystem(units)
 
 
-def _all_constant_parameters(pot: gpx.AbstractPotentialBase, *params: str) -> bool:
+def _error_if_not_all_constant_parameters(
+    pot: gpx.AbstractPotentialBase, *params: str
+) -> None:
     """Check if all parameters are constant."""
-    return all(
-        isinstance(getattr(pot, name), gpx.params.ConstantParameter) for name in params
+    is_time_dep = any(
+        not isinstance(getattr(pot, name), gpx.params.ConstantParameter)
+        for name in params
     )
+
+    if is_time_dep:
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    return
 
 
 # -----------------------------------------------------------------------------
@@ -305,9 +314,7 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
     @galax_to_gala.register
     def _galax_to_gala_burkert(pot: gpx.BurkertPotential, /) -> gp.BurkertPotential:
         """Convert a Galax BurkertPotential to a Gala potential."""
-        if not _all_constant_parameters(pot, "m", "r_s"):
-            msg = "Gala does not support time-dependent parameters."
-            raise TypeError(msg)
+        _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
         return gp.BurkertPotential(
             rho=convert(pot.rho0(0), APYQuantity),
@@ -348,9 +355,7 @@ def _gala_to_galax_hernquist(
 @galax_to_gala.register
 def _galax_to_gala_hernquist(pot: gpx.HernquistPotential, /) -> gp.HernquistPotential:
     """Convert a Galax HernquistPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, "m_tot", "r_s"):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.HernquistPotential(
         m=convert(pot.m_tot(0), APYQuantity),
@@ -382,9 +387,7 @@ def _gala_to_galax_isochrone(
 @galax_to_gala.register
 def _galax_to_gala_isochrone(pot: gpx.IsochronePotential, /) -> gp.IsochronePotential:
     """Convert a Galax AbstractPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, *pot.parameters.keys()):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
         k: convert(getattr(pot, k)(0), APYQuantity)
@@ -429,9 +432,7 @@ def _gala_to_galax_jaffe(
 @galax_to_gala.register
 def _galax_to_gala_jaffe(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
     """Convert a Galax JaffePotential to a Gala potential."""
-    if not _all_constant_parameters(pot, "m", "r_s"):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.JaffePotential(
         m=convert(pot.m(0), APYQuantity),
@@ -463,9 +464,7 @@ def _gala_to_galax_kepler(
 @galax_to_gala.register
 def _galax_to_gala_kepler(pot: gpx.KeplerPotential, /) -> gp.KeplerPotential:
     """Convert a Galax AbstractPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, *pot.parameters.keys()):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
         k: convert(getattr(pot, k)(0), APYQuantity)
@@ -500,9 +499,7 @@ def _gala_to_galax_registered(
 @galax_to_gala.register
 def _galax_to_gala_kuzmin(pot: gpx.KuzminPotential, /) -> gp.KuzminPotential:
     """Convert a Galax AbstractPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, *pot.parameters.keys()):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
         k: convert(getattr(pot, k)(0), APYQuantity)
@@ -559,9 +556,7 @@ def _galax_to_gala_longmuralibar(
     pot: gpx.LongMuraliBarPotential, /
 ) -> gp.LongMuraliBarPotential:
     """Convert a Galax LongMuraliBarPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, "m_tot", "a", "b", "c", "alpha"):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.LongMuraliBarPotential(
         m=convert(pot.m_tot(0), APYQuantity),
@@ -596,9 +591,7 @@ def _gala_to_galax_registered(
 @galax_to_gala.register
 def _galax_to_gala_mn(pot: gpx.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotential:
     """Convert a Galax AbstractPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, *pot.parameters.keys()):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
         k: convert(getattr(pot, k)(0), APYQuantity)
@@ -662,9 +655,7 @@ def _gala_to_galax_registered(
 @galax_to_gala.register
 def _galax_to_gala_plummer(pot: gpx.PlummerPotential, /) -> gp.PlummerPotential:
     """Convert a Galax AbstractPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, *pot.parameters.keys()):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
         k: convert(getattr(pot, k)(0), APYQuantity)
@@ -701,9 +692,7 @@ def _galax_to_gala_powerlaw(
     pot: gpx.PowerLawCutoffPotential, /
 ) -> gp.PowerLawCutoffPotential:
     """Convert a Galax AbstractPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, *pot.parameters.keys()):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
         k: convert(getattr(pot, k)(0), APYQuantity)
@@ -751,9 +740,7 @@ def _gala_to_galax_satoh(
 @galax_to_gala.register
 def _galax_to_gala_satoh(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
     """Convert a Galax SatohPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, "m_tot", "a", "b"):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.SatohPotential(
         m=convert(pot.m_tot(0), APYQuantity),
@@ -801,9 +788,7 @@ def _galax_to_gala_stoneostriker15(
     pot: gpx.StoneOstriker15Potential, /
 ) -> gp.StonePotential:
     """Convert a Galax StoneOstriker15Potential to a Gala potential."""
-    if not _all_constant_parameters(pot, "m_tot", "r_c", "r_h"):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.StonePotential(
         m=convert(pot.m_tot(0), APYQuantity),
@@ -874,9 +859,7 @@ def _galax_to_gala_logarithmic(
     pot: gpx.LogarithmicPotential, /
 ) -> gp.LogarithmicPotential:
     """Convert a Galax LogarithmicPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, "v_c", "r_s"):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.LogarithmicPotential(
         v_c=convert(pot.v_c(0), APYQuantity),
@@ -890,9 +873,7 @@ def _galax_to_gala_logarithmic(
     pot: gpx.LMJ09LogarithmicPotential, /
 ) -> gp.LogarithmicPotential:
     """Convert a Galax LogarithmicPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, "v_c", "r_s", "q1", "q2", "q3", "phi"):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.LogarithmicPotential(
         v_c=convert(pot.v_c(0), APYQuantity),
@@ -939,9 +920,7 @@ def _gala_to_galax_nfw(
 @galax_to_gala.register
 def _galax_to_gala_nfw(pot: gpx.NFWPotential, /) -> gp.NFWPotential:
     """Convert a Galax NFWPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, "m", "r_s"):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.NFWPotential(
         m=convert(pot.m(0), APYQuantity),
@@ -996,9 +975,7 @@ def _galax_to_gala_leesutotriaxialnfw(
     pot: gpx.LeeSutoTriaxialNFWPotential, /
 ) -> gp.LeeSutoTriaxialNFWPotential:
     """Convert a Galax LeeSutoTriaxialNFWPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, "m", "r_s", "a1", "a2", "a3"):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     t = Quantity(0.0, pot.units["time"])
 

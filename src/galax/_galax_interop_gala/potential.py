@@ -254,73 +254,6 @@ def _galax_to_gala_composite(pot: gpx.CompositePotential, /) -> gp.CompositePote
 
 
 # -----------------------------------------------------------------------------
-# General rules
-
-_GALA_TO_GALAX_REGISTRY: dict[type[gp.PotentialBase], type[gpx.AbstractPotential]] = {
-    gp.IsochronePotential: gpx.IsochronePotential,
-    gp.KeplerPotential: gpx.KeplerPotential,
-    gp.KuzminPotential: gpx.KuzminPotential,
-    gp.MiyamotoNagaiPotential: gpx.MiyamotoNagaiPotential,
-    gp.PlummerPotential: gpx.PlummerPotential,
-    gp.PowerLawCutoffPotential: gpx.PowerLawCutoffPotential,
-}
-
-
-@gala_to_galax.register(gp.IsochronePotential)
-@gala_to_galax.register(gp.KeplerPotential)
-@gala_to_galax.register(gp.KuzminPotential)
-@gala_to_galax.register(gp.MiyamotoNagaiPotential)
-@gala_to_galax.register(gp.PlummerPotential)
-@gala_to_galax.register(gp.PowerLawCutoffPotential)
-def _gala_to_galax_registered(
-    gala: gp.PotentialBase, /
-) -> gpx.AbstractPotential | gpx.PotentialFrame:
-    """Convert a Gala potential to a Galax potential."""
-    if isinstance(gala.units, GalaDimensionlessUnitSystem):
-        msg = "Galax does not support converting dimensionless units."
-        raise TypeError(msg)
-
-    # TODO: this is a temporary solution. It would be better to map each
-    # potential individually.
-    params = dict(gala.parameters)
-    params["m_tot"] = params.pop("m")
-
-    pot = _GALA_TO_GALAX_REGISTRY[type(gala)](**params, units=gala.units)
-    return _apply_frame(_get_frame(gala), pot)
-
-
-_GALAX_TO_GALA_REGISTRY: dict[type[gpx.AbstractPotential], type[gp.PotentialBase]] = {
-    v: k for k, v in _GALA_TO_GALAX_REGISTRY.items()
-}
-
-
-@galax_to_gala.register(gpx.IsochronePotential)
-@galax_to_gala.register(gpx.KeplerPotential)
-@galax_to_gala.register(gpx.KuzminPotential)
-@galax_to_gala.register(gpx.MiyamotoNagaiPotential)
-@galax_to_gala.register(gpx.PlummerPotential)
-@galax_to_gala.register(gpx.PowerLawCutoffPotential)
-def _galax_to_gala_registered(pot: gpx.AbstractPotential, /) -> gp.PotentialBase:
-    """Convert a Galax AbstractPotential to a Gala potential."""
-    if not _all_constant_parameters(pot, *pot.parameters.keys()):
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
-
-    # TODO: this is a temporary solution. It would be better to map each
-    # potential individually.
-    params = {
-        k: convert(getattr(pot, k)(0), APYQuantity)
-        for (k, f) in type(pot).parameters.items()
-    }
-    if "m_tot" in params:
-        params["m"] = params.pop("m_tot")
-
-    return _GALAX_TO_GALA_REGISTRY[type(pot)](
-        **params, units=_galax_to_gala_units(pot.units)
-    )
-
-
-# -----------------------------------------------------------------------------
 # Builtin potentials
 
 
@@ -427,6 +360,43 @@ def _galax_to_gala_hernquist(pot: gpx.HernquistPotential, /) -> gp.HernquistPote
 
 
 # ---------------------------
+# Isochrone potentials
+
+
+@gala_to_galax.register
+def _gala_to_galax_isochrone(
+    gala: gp.IsochronePotential, /
+) -> gpx.IsochronePotential | gpx.PotentialFrame:
+    """Convert a Gala potential to a Galax potential."""
+    if isinstance(gala.units, GalaDimensionlessUnitSystem):
+        msg = "Galax does not support converting dimensionless units."
+        raise TypeError(msg)
+
+    params = dict(gala.parameters)
+    params["m_tot"] = params.pop("m")
+
+    pot = gpx.IsochronePotential(**params, units=gala.units)
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@galax_to_gala.register
+def _galax_to_gala_isochrone(pot: gpx.IsochronePotential, /) -> gp.IsochronePotential:
+    """Convert a Galax AbstractPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, *pot.parameters.keys()):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    params = {
+        k: convert(getattr(pot, k)(0), APYQuantity)
+        for (k, f) in type(pot).parameters.items()
+    }
+    if "m_tot" in params:
+        params["m"] = params.pop("m_tot")
+
+    return gp.IsochronePotential(**params, units=_galax_to_gala_units(pot.units))
+
+
+# ---------------------------
 # Jaffe potentials
 
 
@@ -468,6 +438,80 @@ def _galax_to_gala_jaffe(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
         c=convert(pot.r_s(0), APYQuantity),
         units=_galax_to_gala_units(pot.units),
     )
+
+
+# ---------------------------
+# Kepler potentials
+
+
+@gala_to_galax.register
+def _gala_to_galax_kepler(
+    gala: gp.KeplerPotential, /
+) -> gpx.KeplerPotential | gpx.PotentialFrame:
+    """Convert a Gala potential to a Galax potential."""
+    if isinstance(gala.units, GalaDimensionlessUnitSystem):
+        msg = "Galax does not support converting dimensionless units."
+        raise TypeError(msg)
+
+    params = dict(gala.parameters)
+    params["m_tot"] = params.pop("m")
+
+    pot = gpx.KeplerPotential(**params, units=gala.units)
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@galax_to_gala.register
+def _galax_to_gala_kepler(pot: gpx.KeplerPotential, /) -> gp.KeplerPotential:
+    """Convert a Galax AbstractPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, *pot.parameters.keys()):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    params = {
+        k: convert(getattr(pot, k)(0), APYQuantity)
+        for (k, f) in type(pot).parameters.items()
+    }
+    if "m_tot" in params:
+        params["m"] = params.pop("m_tot")
+
+    return gp.KeplerPotential(**params, units=_galax_to_gala_units(pot.units))
+
+
+# ---------------------------
+# Kuzmin potentials
+
+
+@gala_to_galax.register
+def _gala_to_galax_registered(
+    gala: gp.KuzminPotential, /
+) -> gpx.KuzminPotential | gpx.PotentialFrame:
+    """Convert a Gala potential to a Galax potential."""
+    if isinstance(gala.units, GalaDimensionlessUnitSystem):
+        msg = "Galax does not support converting dimensionless units."
+        raise TypeError(msg)
+
+    params = dict(gala.parameters)
+    params["m_tot"] = params.pop("m")
+
+    pot = gpx.KuzminPotential(**params, units=gala.units)
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@galax_to_gala.register
+def _galax_to_gala_kuzmin(pot: gpx.KuzminPotential, /) -> gp.KuzminPotential:
+    """Convert a Galax AbstractPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, *pot.parameters.keys()):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    params = {
+        k: convert(getattr(pot, k)(0), APYQuantity)
+        for (k, f) in type(pot).parameters.items()
+    }
+    if "m_tot" in params:
+        params["m"] = params.pop("m_tot")
+
+    return gp.KuzminPotential(**params, units=_galax_to_gala_units(pot.units))
 
 
 # ---------------------------
@@ -530,6 +574,43 @@ def _galax_to_gala_longmuralibar(
 
 
 # ---------------------------
+# Miyamoto-Nagai potentials
+
+
+@gala_to_galax.register
+def _gala_to_galax_registered(
+    gala: gp.MiyamotoNagaiPotential, /
+) -> gpx.MiyamotoNagaiPotential | gpx.PotentialFrame:
+    """Convert a Gala potential to a Galax potential."""
+    if isinstance(gala.units, GalaDimensionlessUnitSystem):
+        msg = "Galax does not support converting dimensionless units."
+        raise TypeError(msg)
+
+    params = dict(gala.parameters)
+    params["m_tot"] = params.pop("m")
+
+    pot = gpx.MiyamotoNagaiPotential(**params, units=gala.units)
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@galax_to_gala.register
+def _galax_to_gala_mn(pot: gpx.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotential:
+    """Convert a Galax AbstractPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, *pot.parameters.keys()):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    params = {
+        k: convert(getattr(pot, k)(0), APYQuantity)
+        for (k, f) in type(pot).parameters.items()
+    }
+    if "m_tot" in params:
+        params["m"] = params.pop("m_tot")
+
+    return gp.MiyamotoNagaiPotential(**params, units=_galax_to_gala_units(pot.units))
+
+
+# ---------------------------
 # Null potentials
 
 
@@ -556,6 +637,82 @@ def _galax_to_gala_null(pot: gpx.NullPotential, /) -> gp.NullPotential:
     return gp.NullPotential(
         units=_galax_to_gala_units(pot.units),
     )
+
+
+# ---------------------------
+# Plummer potentials
+
+
+@gala_to_galax.register
+def _gala_to_galax_registered(
+    gala: gp.PlummerPotential, /
+) -> gpx.PlummerPotential | gpx.PotentialFrame:
+    """Convert a Gala potential to a Galax potential."""
+    if isinstance(gala.units, GalaDimensionlessUnitSystem):
+        msg = "Galax does not support converting dimensionless units."
+        raise TypeError(msg)
+
+    params = dict(gala.parameters)
+    params["m_tot"] = params.pop("m")
+
+    pot = gpx.PlummerPotential(**params, units=gala.units)
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@galax_to_gala.register
+def _galax_to_gala_plummer(pot: gpx.PlummerPotential, /) -> gp.PlummerPotential:
+    """Convert a Galax AbstractPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, *pot.parameters.keys()):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    params = {
+        k: convert(getattr(pot, k)(0), APYQuantity)
+        for (k, f) in type(pot).parameters.items()
+    }
+    if "m_tot" in params:
+        params["m"] = params.pop("m_tot")
+
+    return gp.PlummerPotential(**params, units=_galax_to_gala_units(pot.units))
+
+
+# ---------------------------
+# PowerLawCutoff potentials
+
+
+@gala_to_galax.register
+def _gala_to_galax_registered(
+    gala: gp.PowerLawCutoffPotential, /
+) -> gpx.PowerLawCutoffPotential | gpx.PotentialFrame:
+    """Convert a Gala potential to a Galax potential."""
+    if isinstance(gala.units, GalaDimensionlessUnitSystem):
+        msg = "Galax does not support converting dimensionless units."
+        raise TypeError(msg)
+
+    params = dict(gala.parameters)
+    params["m_tot"] = params.pop("m")
+
+    pot = gpx.PowerLawCutoffPotential(**params, units=gala.units)
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@galax_to_gala.register
+def _galax_to_gala_powerlaw(
+    pot: gpx.PowerLawCutoffPotential, /
+) -> gp.PowerLawCutoffPotential:
+    """Convert a Galax AbstractPotential to a Gala potential."""
+    if not _all_constant_parameters(pot, *pot.parameters.keys()):
+        msg = "Gala does not support time-dependent parameters."
+        raise TypeError(msg)
+
+    params = {
+        k: convert(getattr(pot, k)(0), APYQuantity)
+        for (k, f) in type(pot).parameters.items()
+    }
+    if "m_tot" in params:
+        params["m"] = params.pop("m_tot")
+
+    return gp.PowerLawCutoffPotential(**params, units=_galax_to_gala_units(pot.units))
 
 
 # ---------------------------

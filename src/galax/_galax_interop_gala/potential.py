@@ -39,7 +39,7 @@ def convert_potential(
 
 @dispatch
 def convert_potential(
-    to_: gp.CPotentialBase | gp.PotentialBase | type[gpx.io.GalaxLibrary],  # noqa: ARG001
+    to_: gp.CPotentialBase | gp.PotentialBase | type[gpx.io.GalaLibrary],  # noqa: ARG001
     from_: gpx.AbstractPotentialBase,
     /,
 ) -> gp.CPotentialBase | gp.PotentialBase:

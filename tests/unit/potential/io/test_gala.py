@@ -14,12 +14,6 @@ import galax.potential as gp
 import galax.typing as gt
 from galax.utils._optional_deps import HAS_GALA
 
-if HAS_GALA:
-    from galax._galax_interop_gala.potential import _GALA_TO_GALAX_REGISTRY
-else:
-    _GALA_TO_GALAX_REGISTRY = {}
-
-
 parametrize_test_method_gala = pytest.mark.parametrize(
     ("method0", "method1", "atol"),
     [
@@ -44,13 +38,13 @@ class GalaIOMixin:
         self, pot: gp.AbstractPotentialBase, x: gt.QVec3
     ) -> None:
         """Test roundtripping ``gala_to_galax(galax_to_gala())``."""
-        from .gala_helper import galax_to_gala
-
         # First we need to check that the potential is gala-compatible
         if not self.HAS_GALA_COUNTERPART:
             pytest.skip("potential does not have a gala counterpart")
 
-        rpot = gp.io.convert_potential(gp.io.GalaLibrary, galax_to_gala(pot))
+        rpot = gp.io.convert_potential(
+            gp.io.GalaxLibrary, gp.io.convert_potential(gp.io.GalaLibrary, pot)
+        )
 
         # quick test that the potential energies are the same
         got = rpot(x, 0)
@@ -76,14 +70,13 @@ class GalaIOMixin:
 
         This test only runs if the potential can be mapped to gala.
         """
-        from ..io.gala_helper import galax_to_gala
-
         # First we need to check that the potential is gala-compatible
         if not self.HAS_GALA_COUNTERPART:
             pytest.skip("potential does not have a gala counterpart")
 
         galax = convert(getattr(pot, method0)(x, t=0), Quantity)
-        gala = getattr(galax_to_gala(pot), method1)(convert(x, u.Quantity), t=0 * u.Myr)
+        galap = gp.io.convert_potential(gp.io.GalaLibrary, pot)
+        gala = getattr(galap, method1)(convert(x, u.Quantity), t=0 * u.Myr)
         assert qnp.allclose(
             qnp.ravel(galax),
             qnp.ravel(convert(gala, Quantity)),

@@ -119,7 +119,9 @@ def _get_frame(pot: gp.PotentialBase, /) -> cxo.AbstractOperator:
     return cxo.simplify_op(frame)
 
 
-def _apply_frame(frame: cxo.AbstractOperator, pot: PT, /) -> PT | gpx.PotentialFrame:
+def _apply_frame(
+    frame: cxo.AbstractOperator, pot: PT, /
+) -> PT | gpx.PotentialFrame[PT]:
     """Apply a Galax frame to a potential."""
     # A framed Galax potential never simplifies to a frameless potential. This
     # function applies a frame if it is not the identity operator.
@@ -272,7 +274,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
     @dispatch  # type: ignore[misc]
     def gala_to_galax(
         gala: gp.BurkertPotential, /
-    ) -> gpx.BurkertPotential | gpx.PotentialFrame:
+    ) -> gpx.BurkertPotential | gpx.PotentialFrame[gpx.BurkertPotential]:
         """Convert a `gala.potential.BurkertPotential` to a galax.potential.BurkertPotential.
 
         Examples
@@ -347,7 +349,10 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.HarmonicOscillatorPotential, /
-) -> gpx.HarmonicOscillatorPotential | gpx.PotentialFrame:
+) -> (
+    gpx.HarmonicOscillatorPotential
+    | gpx.PotentialFrame[gpx.HarmonicOscillatorPotential]
+):
     r"""Convert a `gala.potential.HarmonicOscillatorPotential` to a `galax.potential.HarmonicOscillatorPotential`.
 
     Examples
@@ -404,7 +409,7 @@ def galax_to_gala(
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.HernquistPotential, /
-) -> gpx.HernquistPotential | gpx.PotentialFrame:
+) -> gpx.HernquistPotential | gpx.PotentialFrame[gpx.HernquistPotential]:
     r"""Convert a `gala.potential.HernquistPotential` to a `galax.potential.HernquistPotential`.
 
     Examples
@@ -460,7 +465,7 @@ def galax_to_gala(pot: gpx.HernquistPotential, /) -> gp.HernquistPotential:
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.IsochronePotential, /
-) -> gpx.IsochronePotential | gpx.PotentialFrame:
+) -> gpx.IsochronePotential | gpx.PotentialFrame[gpx.IsochronePotential]:
     """Convert a `gala.potential.IsochronePotential` to a `galax.potential.IsochronePotential`.
 
     Examples
@@ -519,7 +524,7 @@ def galax_to_gala(pot: gpx.IsochronePotential, /) -> gp.IsochronePotential:
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.JaffePotential, /
-) -> gpx.JaffePotential | gpx.PotentialFrame:
+) -> gpx.JaffePotential | gpx.PotentialFrame[gpx.JaffePotential]:
     """Convert a Gala JaffePotential to a Galax potential.
 
     Examples
@@ -575,7 +580,7 @@ def galax_to_gala(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.KeplerPotential, /
-) -> gpx.KeplerPotential | gpx.PotentialFrame:
+) -> gpx.KeplerPotential | gpx.PotentialFrame[gpx.KeplerPotential]:
     """Convert a `gala.potential.KeplerPotential` to a `galax.potential.KeplerPotential`.
 
     Examples
@@ -632,7 +637,7 @@ def galax_to_gala(pot: gpx.KeplerPotential, /) -> gp.KeplerPotential:
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.KuzminPotential, /
-) -> gpx.KuzminPotential | gpx.PotentialFrame:
+) -> gpx.KuzminPotential | gpx.PotentialFrame[gpx.KuzminPotential]:
     """Convert a `gala.potential.KuzminPotential` to a `galax.potential.KuzminPotential`.
 
     Examples
@@ -692,7 +697,7 @@ def galax_to_gala(pot: gpx.KuzminPotential, /) -> gp.KuzminPotential:
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.LongMuraliBarPotential, /
-) -> gpx.LongMuraliBarPotential | gpx.PotentialFrame:
+) -> gpx.LongMuraliBarPotential | gpx.PotentialFrame[gpx.LongMuraliBarPotential]:
     """Convert a Gala LongMuraliBarPotential to a Galax potential.
 
     Examples
@@ -766,7 +771,7 @@ def galax_to_gala(pot: gpx.LongMuraliBarPotential, /) -> gp.LongMuraliBarPotenti
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.MiyamotoNagaiPotential, /
-) -> gpx.MiyamotoNagaiPotential | gpx.PotentialFrame:
+) -> gpx.MiyamotoNagaiPotential | gpx.PotentialFrame[gpx.MiyamotoNagaiPotential]:
     """Convert a `gala.potential.MiyamotoNagaiPotential` to a `galax.potential.MiyamotoNagaiPotential`.
 
     Examples
@@ -870,7 +875,7 @@ def galax_to_gala(pot: gpx.NullPotential, /) -> gp.NullPotential:
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.PlummerPotential, /
-) -> gpx.PlummerPotential | gpx.PotentialFrame:
+) -> gpx.PlummerPotential | gpx.PotentialFrame[gpx.PlummerPotential]:
     """Convert a `gala.potential.PlummerPotential` to a `galax.potential.PlummerPotential`.
 
     Examples
@@ -929,7 +934,7 @@ def galax_to_gala(pot: gpx.PlummerPotential, /) -> gp.PlummerPotential:
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.PowerLawCutoffPotential, /
-) -> gpx.PowerLawCutoffPotential | gpx.PotentialFrame:
+) -> gpx.PowerLawCutoffPotential | gpx.PotentialFrame[gpx.PowerLawCutoffPotential]:
     """Convert a `gala.potential.PowerLawCutoffPotential` to a `galax.potential.PowerLawCutoffPotential`.
 
     Examples
@@ -1005,7 +1010,7 @@ def galax_to_gala(pot: gpx.PowerLawCutoffPotential, /) -> gp.PowerLawCutoffPoten
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.SatohPotential, /
-) -> gpx.SatohPotential | gpx.PotentialFrame:
+) -> gpx.SatohPotential | gpx.PotentialFrame[gpx.SatohPotential]:
     """Convert a Gala SatohPotential to a Galax potential.
 
     Examples
@@ -1063,7 +1068,7 @@ def galax_to_gala(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.StonePotential, /
-) -> gpx.StoneOstriker15Potential | gpx.PotentialFrame:
+) -> gpx.StoneOstriker15Potential | gpx.PotentialFrame[gpx.StoneOstriker15Potential]:
     """Convert a `gala.potential.StonePotential` to a `galax.potential.StoneOstriker15Potential`.
 
     Examples
@@ -1121,7 +1126,12 @@ def galax_to_gala(pot: gpx.StoneOstriker15Potential, /) -> gp.StonePotential:
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.LogarithmicPotential, /
-) -> gpx.LogarithmicPotential | gpx.LMJ09LogarithmicPotential | gpx.PotentialFrame:
+) -> (
+    gpx.LogarithmicPotential
+    | gpx.LMJ09LogarithmicPotential
+    | gpx.PotentialFrame[gpx.LogarithmicPotential]
+    | gpx.PotentialFrame[gpx.LMJ09LogarithmicPotential]
+):
     """Convert a Gala LogarithmicPotential to a Galax potential.
 
     If the flattening or rotation 'phi' is non-zero, the potential is a
@@ -1235,7 +1245,12 @@ def galax_to_gala(pot: gpx.LMJ09LogarithmicPotential, /) -> gp.LogarithmicPotent
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.MultipolePotential, /
-) -> gpx.MultipoleInnerPotential | gpx.MultipoleOuterPotential | gpx.PotentialFrame:
+) -> (
+    gpx.MultipoleInnerPotential
+    | gpx.MultipoleOuterPotential
+    | gpx.PotentialFrame[gpx.MultipoleInnerPotential]
+    | gpx.PotentialFrame[gpx.MultipoleOuterPotential]
+):
     params = gala.parameters
     cls = (
         gpx.MultipoleInnerPotential
@@ -1297,7 +1312,9 @@ def galax_to_gala(
 
 
 @dispatch
-def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialFrame:
+def gala_to_galax(
+    gala: gp.NFWPotential, /
+) -> gpx.NFWPotential | gpx.PotentialFrame[gpx.NFWPotential]:
     """Convert a Gala NFWPotential to a Galax potential.
 
     Examples
@@ -1367,7 +1384,9 @@ def gala_to_galax(
 
 
 @dispatch
-def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialFrame:
+def gala_to_galax(
+    gala: gp.NFWPotential, /
+) -> gpx.NFWPotential | gpx.PotentialFrame[gpx.NFWPotential]:
     """Convert a Gala NFWPotential to a Galax potential.
 
     Examples

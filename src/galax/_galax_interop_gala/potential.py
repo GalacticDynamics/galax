@@ -17,6 +17,7 @@ from packaging.version import Version
 from plum import convert, dispatch
 
 import coordinax.operators as cxo
+import quaxed.array_api as xp
 from coordinax.operators import IdentityOperator
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
@@ -932,9 +933,10 @@ def _galax_to_gala_leesutotriaxialnfw(
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     t = Quantity(0.0, pot.units["time"])
+    v_c = convert(xp.sqrt(pot.constants["G"] * pot.m(t) / pot.r_s(t)), APYQuantity)
 
     return gp.LeeSutoTriaxialNFWPotential(
-        v_c=convert(xp.sqrt(pot.constants["G"] * pot.m(t) / pot.r_s(t)), APYQuantity),
+        v_c=v_c,
         r_s=convert(pot.r_s(t), APYQuantity),
         a=convert(pot.a1(t), APYQuantity),
         b=convert(pot.a2(t), APYQuantity),

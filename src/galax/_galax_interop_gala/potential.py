@@ -1,4 +1,4 @@
-"""Interoperability."""
+"""Interoperability with :mod:`gala` potentials."""
 
 __all__ = ["gala_to_galax", "galax_to_gala"]
 

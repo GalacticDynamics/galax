@@ -910,6 +910,12 @@ def galax_to_gala(pot: gpx.PowerLawCutoffPotential, /) -> gp.PowerLawCutoffPoten
 
     Examples
     --------
+    .. invisible-code-block: python
+
+        from galax.utils._optional_deps import GSL_ENABLED
+
+    .. skip: start if(not GSL_ENABLED, reason="requires GSL")
+
     >>> import gala.potential as galap
     >>> from unxt import Quantity
     >>> import galax.potential as gp
@@ -918,6 +924,7 @@ def galax_to_gala(pot: gpx.PowerLawCutoffPotential, /) -> gp.PowerLawCutoffPoten
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <PowerLawCutoffPotential: m=1.00e+11, alpha=1.80, r_c=20.00 (kpc,Myr,solMass,rad)>
 
+    .. skip: end
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 

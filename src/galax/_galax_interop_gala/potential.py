@@ -874,6 +874,12 @@ def gala_to_galax(
 
     Examples
     --------
+    .. invisible-code-block: python
+
+        from galax.utils._optional_deps import GSL_ENABLED
+
+    .. skip: start if(not GSL_ENABLED, reason="requires GSL")
+
     >>> import gala.potential as galap
     >>> from gala.units import galactic
     >>> import galax.potential as gp
@@ -887,6 +893,8 @@ def gala_to_galax(
         alpha=ConstantParameter( ... ),
         r_c=ConstantParameter( ... )
     )
+
+    .. skip: end
 
     """  # noqa: E501
     params = dict(gala.parameters)

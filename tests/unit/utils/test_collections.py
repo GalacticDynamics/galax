@@ -86,6 +86,10 @@ class TestImmutableDict:
         assert d | OrderedDict([("c", 3)]) == ImmutableDict(a=1, b=2, c=3)
         assert d | MappingProxyType({"c": 3}) == ImmutableDict(a=1, b=2, c=3)
 
+        # Should raise TypeError if not a mapping.
+        with pytest.raises(TypeError, match="unsupported operand type"):
+            _ = d | 1
+
     def test_ror(self, d: ImmutableDict[str, Any]) -> None:
         """Test `__ror__`."""
         # Reverse order

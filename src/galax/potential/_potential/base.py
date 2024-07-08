@@ -403,8 +403,38 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # =========================================================================
     # Interoperability
 
-    def as_interop(self, library: AbstractInteroperableLibrary) -> object:
-        """Convert the potential to an object of a different library."""
+    def as_interop(self, library: type[AbstractInteroperableLibrary], /) -> object:
+        """Convert the potential to an object of a different library.
+
+        Parameters
+        ----------
+        library : :class:`~galax.potential.io.AbstractInteroperableLibrary`
+            The library type to convert the potential to.
+
+        Examples
+        --------
+        .. invisible-code-block: python
+
+            from galax.utils._optional_deps import HAS_GALA
+
+        .. skip: start if(not HAS_GALA, reason="requires gala")
+
+        >>> import galax.potential as gp
+        >>> pot = gp.MilkyWayPotential()
+
+        Convert the potential to a :mod:`gala` potential
+        >>> gala_pot = pot.as_interop(gp.io.GalaLibrary)
+        >>> gala_pot
+        <CompositePotential disk,bulge,nucleus,halo>
+
+        Now converting back to a :mod:`galax` potential
+
+        >>> pot2 = gp.io.convert_potential(gp.io.GalaxLibrary, gala_pot)
+        >>> pot2 == pot
+        True
+
+        .. skip: end
+        """
         return convert_potential(library, self)
 
 

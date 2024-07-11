@@ -18,6 +18,7 @@ import coordinax as cx
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
 import unxt
+from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
@@ -29,7 +30,6 @@ from .io import (
 from galax.coordinates import PhaseSpacePosition
 from galax.potential._potential.params.attr import ParametersAttribute
 from galax.potential._potential.params.utils import all_parameters, all_vars
-from galax.utils._collections import ImmutableMap
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
 

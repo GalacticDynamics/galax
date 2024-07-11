@@ -12,11 +12,11 @@ from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
+from immutable_map_jax import ImmutableMap
 from unxt import Quantity
 
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
-from galax.utils import ImmutableDict
 from galax.utils._misc import zeroth
 from galax.utils.dataclasses import dataclass_items
 
@@ -24,9 +24,9 @@ if TYPE_CHECKING:
     from typing import Self
 
 
-# Note: cannot have `strict=True` because of inheriting from ImmutableDict.
+# Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePhaseSpacePosition(
-    ImmutableDict[AbstractBasePhaseSpacePosition],  # TODO: as a TypeVar
+    ImmutableMap[str, AbstractBasePhaseSpacePosition],  # type: ignore[misc]
     AbstractBasePhaseSpacePosition,
     strict=False,  # type: ignore[call-arg]
 ):
@@ -38,8 +38,8 @@ class AbstractCompositePhaseSpacePosition(
     represents a component of the system.
 
     The input signature matches that of :class:`dict` (and
-    :class:`~galax.utils.ImmutableDict`), so you can pass in the components as
-    keyword arguments or as a dictionary.
+    :class:`~immutable_map_jax.ImmutableMap`), so you can pass in the components
+    as keyword arguments or as a dictionary.
 
     The components are stored as a dictionary and can be key accessed. However,
     the composite phase-space position itself acts as a single
@@ -106,7 +106,7 @@ class AbstractCompositePhaseSpacePosition(
         /,
         **kwargs: AbstractBasePhaseSpacePosition,
     ) -> None:
-        super().__init__(psps, **kwargs)  # <- ImmutableDict.__init__
+        super().__init__(psps, **kwargs)  # <- ImmutableMap.__init__
 
     @property
     @abstractmethod

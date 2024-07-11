@@ -13,6 +13,7 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
+from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.typing as gt
@@ -20,7 +21,6 @@ from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.params.core import AbstractParameter
 from galax.potential._potential.params.field import ParameterField
-from galax.utils import ImmutableDict
 from galax.utils._jax import vectorize_method
 
 # -------------------------------------------------------------------
@@ -44,8 +44,8 @@ class BarPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)

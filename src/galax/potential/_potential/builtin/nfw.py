@@ -19,6 +19,7 @@ from jaxtyping import Array, Float, Shaped
 
 import quaxed.array_api as xp
 import quaxed.lax as qlax
+from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.typing as gt
@@ -26,7 +27,6 @@ from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.params.core import AbstractParameter
 from galax.potential._potential.params.field import ParameterField
-from galax.utils import ImmutableDict
 
 _log2 = xp.log(xp.asarray(2.0))
 
@@ -52,8 +52,8 @@ class NFWPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -155,8 +155,8 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     def __check_init__(self) -> None:
@@ -270,8 +270,8 @@ class TriaxialNFWPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     integration_order: int = eqx.field(default=50, static=True)
@@ -462,8 +462,8 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit, inline=True)

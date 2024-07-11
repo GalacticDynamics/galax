@@ -18,6 +18,7 @@ import coordinax as cx
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
 import unxt
+from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
@@ -29,7 +30,6 @@ from .io import (
 from galax.coordinates import PhaseSpacePosition
 from galax.potential._potential.params.attr import ParametersAttribute
 from galax.potential._potential.params.utils import all_parameters, all_vars
-from galax.utils._collections import ImmutableDict
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
 
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
 
 
-default_constants = ImmutableDict({"G": Quantity(_CONST_G.value, _CONST_G.unit)})
+default_constants = ImmutableMap({"G": Quantity(_CONST_G.value, _CONST_G.unit)})
 
 
 ##############################################################################
@@ -56,7 +56,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     units: eqx.AbstractVar[AbstractUnitSystem]
     """The unit system of the potential."""
 
-    constants: eqx.AbstractVar[ImmutableDict[Quantity]]
+    constants: eqx.AbstractVar[ImmutableMap[str, Quantity]]
     """The constants used by the potential."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -95,7 +95,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         # Do unit conversion for the constants
         if self.units != unxt.unitsystems.dimensionless:
-            constants = ImmutableDict(
+            constants = ImmutableMap(
                 {k: v.decompose(self.units) for k, v in self.constants.items()}
             )
             object.__setattr__(self, "constants", constants)

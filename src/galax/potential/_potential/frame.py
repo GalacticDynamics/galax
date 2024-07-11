@@ -9,11 +9,11 @@ from typing import cast, final
 import equinox as eqx
 
 from coordinax.operators import OperatorSequence, simplify_op
+from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.typing as gt
 from .base import AbstractPotentialBase
-from galax.utils import ImmutableDict
 
 
 @final
@@ -199,9 +199,9 @@ class PotentialFrame(AbstractPotentialBase):
         return cast(AbstractUnitSystem, self.original_potential.units)
 
     @property
-    def constants(self) -> ImmutableDict[Quantity]:
+    def constants(self) -> ImmutableMap[str, Quantity]:
         """The constants of the potential."""
-        return cast("ImmutableDict[Quantity]", self.original_potential.constants)
+        return cast("ImmutableMap[str, Quantity]", self.original_potential.constants)
 
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /

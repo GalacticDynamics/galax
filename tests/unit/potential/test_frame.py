@@ -71,3 +71,7 @@ def test_bar_means_of_rotation() -> None:
         convert(framedpot.acceleration(q, t), Quantity),
         convert(hardpot.acceleration(q, t), Quantity),
     )
+
+    # TODO: move this test to a more appropriate location
+    # Test that the frame's constants are the same as the base potential's
+    assert framedpot.constants is base_pot.constants

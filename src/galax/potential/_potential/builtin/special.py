@@ -15,6 +15,7 @@ from typing import Any, ClassVar, TypeVar, final
 import equinox as eqx
 
 import quaxed.array_api as xp
+from immutable_map_jax import ImmutableMap
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsystem
 
@@ -23,7 +24,6 @@ from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
 from galax.potential._potential.base import AbstractPotentialBase, default_constants
 from galax.potential._potential.composite import AbstractCompositePotential
-from galax.utils import ImmutableDict
 
 T = TypeVar("T", bound=AbstractPotentialBase)
 
@@ -76,8 +76,8 @@ class BovyMWPotential2014(AbstractCompositePotential):
     units: AbstractUnitSystem = eqx.field(
         default=galactic, static=True, converter=unitsystem
     )
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     # TODO: as an actual `MiyamotoNagaiPotential`, then use `replace`?
@@ -167,8 +167,8 @@ class LM10Potential(AbstractCompositePotential):
     units: AbstractUnitSystem = eqx.field(
         default=galactic, static=True, converter=unitsystem
     )
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     # TODO: as an actual `MiyamotoNagaiPotential`, then use `replace`?
@@ -255,8 +255,8 @@ class MilkyWayPotential(AbstractCompositePotential):
     _data: dict[str, AbstractPotentialBase] = eqx.field(init=False)
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(init=True, static=True, converter=unitsystem)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     # TODO: as an actual `MiyamotoNagaiPotential`, then use `replace`?

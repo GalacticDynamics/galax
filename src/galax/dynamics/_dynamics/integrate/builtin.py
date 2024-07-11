@@ -13,13 +13,13 @@ import jax.numpy as jnp
 from diffrax import DenseInterpolation
 from jax._src.numpy.vectorize import _parse_gufunc_signature, _parse_input_dimensions
 
+from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.coordinates as gc
 import galax.typing as gt
 from .api import VectorField
 from .base import AbstractIntegrator
-from galax.utils import ImmutableDict
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -266,10 +266,10 @@ class DiffraxIntegrator(AbstractIntegrator):
     diffeq_kw: Mapping[str, Any] = eqx.field(
         default=(("max_steps", None), ("discrete_terminating_event", None)),
         static=True,
-        converter=ImmutableDict,
+        converter=ImmutableMap,
     )
     solver_kw: Mapping[str, Any] = eqx.field(
-        default=(("scan_kind", "bounded"),), static=True, converter=ImmutableDict
+        default=(("scan_kind", "bounded"),), static=True, converter=ImmutableMap
     )
 
     InterpolantClass: ClassVar[type[gc.PhaseSpacePositionInterpolant]] = (  # type: ignore[misc]

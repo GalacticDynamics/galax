@@ -11,21 +11,23 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
+from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
 from .params.attr import CompositeParametersAttribute
-from galax.utils import ImmutableDict
 from galax.utils._misc import zeroth
 
 K = TypeVar("K")
 V = TypeVar("V")
 
 
-# Note: cannot have `strict=True` because of inheriting from ImmutableDict.
+# Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePotential(
-    ImmutableDict[AbstractPotentialBase], AbstractPotentialBase, strict=False
+    ImmutableMap[str, AbstractPotentialBase],  # type: ignore[misc]
+    AbstractPotentialBase,
+    strict=False,
 ):
     def __init__(
         self,
@@ -39,7 +41,7 @@ class AbstractCompositePotential(
         constants: Any = default_constants,
         **kwargs: AbstractPotentialBase,
     ) -> None:
-        super().__init__(potentials, **kwargs)  # <- ImmutableDict.__init__
+        super().__init__(potentials, **kwargs)  # <- ImmutableMap.__init__
 
         # __post_init__ stuff:
         # Check that all potentials have the same unit system
@@ -116,6 +118,6 @@ class CompositePotential(AbstractCompositePotential):
     _data: dict[str, AbstractPotentialBase]
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(init=False, static=True, converter=unitsystem)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )

@@ -38,6 +38,7 @@ dependencies = [
   "quaxed >= 0.4",
   "typing_extensions >= 4.11",
   "unxt",
+  "immutable_map_jax @ git+https://github.com/GalacticDynamics/immutable_map_jax.git",
 ]
 description = "Galactic Dynamics in Jax."
 dynamic = ["version"]
@@ -247,7 +248,7 @@ exempt-modules = []
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-first-party = ["quaxed", "unxt", "coordinax"]
+known-first-party = ["immutable_map_jax", "quaxed", "unxt", "coordinax"]
 known-local-folder = ["galax"]
 
 [tool.ruff.lint.pydocstyle]

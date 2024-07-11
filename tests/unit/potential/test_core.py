@@ -8,6 +8,7 @@ from plum import convert
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
+from immutable_map_jax import ImmutableMap
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, galactic, unitsystem
 
@@ -17,7 +18,6 @@ import galax.typing as gt
 from .test_base import AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.potential._potential.base import default_constants
-from galax.utils import ImmutableDict
 
 
 class AbstractPotential_Test(AbstractPotentialBase_Test, FieldUnitSystemMixin):
@@ -49,8 +49,8 @@ class TestAbstractPotential(AbstractPotential_Test):
             units: AbstractUnitSystem = eqx.field(
                 default=galactic, converter=unitsystem, static=True
             )
-            constants: ImmutableDict[Quantity] = eqx.field(
-                default=default_constants, converter=ImmutableDict
+            constants: ImmutableMap[str, Quantity] = eqx.field(
+                default=default_constants, converter=ImmutableMap
             )
 
             @partial(jax.jit)

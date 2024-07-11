@@ -103,7 +103,7 @@ class ParameterField:
     >>> potential
     KeplerPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...}),
+      constants=ImmutableMap({'G': ...}),
       mass=ConstantParameter(
         unit=Unit("solMass"),
         value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))

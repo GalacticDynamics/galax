@@ -7,12 +7,12 @@ from typing import Any
 
 import equinox as eqx
 
+from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
 from .composite import CompositePotential
-from galax.utils import ImmutableDict
 
 
 class AbstractPotential(AbstractPotentialBase, strict=True):
@@ -20,8 +20,8 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     def __post_init__(self) -> None:

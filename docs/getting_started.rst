@@ -52,7 +52,7 @@ input::
     >>> mw
     MilkyWayPotential({'disk': MiyamotoNagaiPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m_tot=ConstantParameter(
         unit=Unit("solMass"),
         value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
@@ -67,7 +67,7 @@ input::
       )
     ), 'halo': NFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m=ConstantParameter(
         unit=Unit("solMass"),
         value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
@@ -78,7 +78,7 @@ input::
       )
     ), 'bulge': HernquistPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m_tot=ConstantParameter(
         unit=Unit("solMass"),
         value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
@@ -89,7 +89,7 @@ input::
       )
     ), 'nucleus': HernquistPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m_tot=ConstantParameter(
         unit=Unit("solMass"),
         value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))

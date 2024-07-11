@@ -27,6 +27,7 @@ import jax
 import quaxed.array_api as xp
 import quaxed.lax as qlax
 import quaxed.scipy.special as qsp
+from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 from unxt.unitsystems import galactic
 
@@ -35,7 +36,6 @@ from galax.potential._potential.base import default_constants
 from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.params.core import AbstractParameter
 from galax.potential._potential.params.field import ParameterField
-from galax.utils import ImmutableDict
 
 # -------------------------------------------------------------------
 
@@ -64,8 +64,8 @@ class BurkertPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -144,7 +144,7 @@ class BurkertPotential(AbstractPotential):
         >>> pot
         BurkertPotential(
             units=UnitSystem(kpc, Myr, solMass, rad),
-            constants=ImmutableDict({'G': ...}),
+            constants=ImmutableMap({'G': ...}),
             m=ConstantParameter( ... ),
             r_s=ConstantParameter( ... )
         )
@@ -168,8 +168,8 @@ class HernquistPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -214,8 +214,8 @@ class IsochronePotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -263,8 +263,8 @@ class KeplerPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -314,8 +314,8 @@ class KuzminPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -343,8 +343,8 @@ class LogarithmicPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -378,8 +378,8 @@ class MiyamotoNagaiPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -405,7 +405,7 @@ class NullPotential(AbstractPotential):
 
     >>> pot = NullPotential()
     >>> pot
-    NullPotential( units=..., constants=ImmutableDict({'G': ...}) )
+    NullPotential( units=..., constants=ImmutableMap({'G': ...}) )
 
     >>> q = Quantity([1, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")
@@ -418,8 +418,8 @@ class NullPotential(AbstractPotential):
     units: AbstractUnitSystem = eqx.field(
         default="galactic", converter=unitsystem, static=True
     )
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -476,8 +476,8 @@ class PlummerPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -525,8 +525,8 @@ class PowerLawCutoffPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableDict
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit)
@@ -700,8 +700,8 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableDict[Quantity] = eqx.field(
-        converter=ImmutableDict, default=default_constants
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        converter=ImmutableMap, default=default_constants
     )
 
     @partial(jax.jit)

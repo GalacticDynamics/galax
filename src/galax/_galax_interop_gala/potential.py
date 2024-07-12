@@ -46,7 +46,7 @@ def convert_potential(
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     KeplerPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...}),
+      constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
 
     """  # noqa: E501
@@ -414,7 +414,7 @@ def gala_to_galax(
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     IsochronePotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...}),
+      constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
       b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
 
@@ -529,7 +529,7 @@ def gala_to_galax(
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     KeplerPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...}),
+      constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
     """  # noqa: E501
     params = dict(gala.parameters)
@@ -586,7 +586,7 @@ def gala_to_galax(
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     KuzminPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...}),
+      constants=ImmutableMap({'G': ...}),
       m_tot=...,
       a=...
     )
@@ -720,7 +720,7 @@ def gala_to_galax(
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     MiyamotoNagaiPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...}),
+      constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
       a=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
       b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
@@ -777,7 +777,7 @@ def gala_to_galax(pot: gp.NullPotential, /) -> gpx.NullPotential:
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     NullPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...})
+      constants=ImmutableMap({'G': ...})
     )
 
     """
@@ -823,7 +823,7 @@ def gala_to_galax(
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     PlummerPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...}),
+      constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       b=ConstantParameter( ... )
     )
@@ -888,7 +888,7 @@ def gala_to_galax(
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     PowerLawCutoffPotential(
         units=UnitSystem(kpc, Myr, solMass, rad),
-        constants=ImmutableDict({'G': ...}),
+        constants=ImmutableMap({'G': ...}),
         m_tot=ConstantParameter( ... ),
         alpha=ConstantParameter( ... ),
         r_c=ConstantParameter( ... )
@@ -1240,7 +1240,7 @@ def gala_to_galax(
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     LeeSutoTriaxialNFWPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
-      constants=ImmutableDict({'G': ...}),
+      constants=ImmutableMap({'G': ...}),
       m=ConstantParameter( ... ),
       r_s=ConstantParameter( ... ),
       a1=ConstantParameter( ... ),

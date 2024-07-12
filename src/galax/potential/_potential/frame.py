@@ -4,7 +4,7 @@ __all__ = ["PotentialFrame"]
 
 
 from dataclasses import replace
-from typing import cast, final
+from typing import Generic, TypeVar, cast, final
 
 import equinox as eqx
 
@@ -15,9 +15,11 @@ from unxt import AbstractUnitSystem, Quantity
 import galax.typing as gt
 from .base import AbstractPotentialBase
 
+FramedPotT = TypeVar("FramedPotT", bound=AbstractPotentialBase)
+
 
 @final
-class PotentialFrame(AbstractPotentialBase):
+class PotentialFrame(AbstractPotentialBase, Generic[FramedPotT]):
     """Reference frame of the potential.
 
     Examples
@@ -184,7 +186,7 @@ class PotentialFrame(AbstractPotentialBase):
     Array(-2.23568166, dtype=float64)
     """  # noqa: E501
 
-    original_potential: AbstractPotentialBase
+    original_potential: FramedPotT
 
     operator: OperatorSequence = eqx.field(default=(), converter=OperatorSequence)
     """Transformation to reference frame of the potential.
@@ -249,6 +251,6 @@ class PotentialFrame(AbstractPotentialBase):
 
 
 @simplify_op.register  # type: ignore[misc]
-def _simplify_op(frame: PotentialFrame, /) -> PotentialFrame:
+def _simplify_op(frame: PotentialFrame[FramedPotT], /) -> PotentialFrame[FramedPotT]:
     """Simplify the operators in an PotentialFrame."""
     return replace(frame, operator=simplify_op(frame.operator))

@@ -92,8 +92,8 @@ def convert_potential(
     >>> import galax.potential as gp
 
     >>> pot = galap.KeplerPotential(m=1e11, units=galactic)
-    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <KeplerPotential: m=1.00e+11 (kpc,Myr,solMass,rad)>
+    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot) is pot
+    True
 
     """
     return from_

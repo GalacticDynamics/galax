@@ -415,8 +415,8 @@ def gala_to_galax(
     IsochronePotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
+      m_tot=ConstantParameter( ... ),
+      b=ConstantParameter( ... )
 
     """  # noqa: E501
     params = dict(gala.parameters)
@@ -721,9 +721,10 @@ def gala_to_galax(
     MiyamotoNagaiPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      a=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
-      b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
+      m_tot=ConstantParameter( ... ),
+      a=ConstantParameter( ... ),
+      b=ConstantParameter( ... )
+    )
 
     """  # noqa: E501
     params = dict(gala.parameters)

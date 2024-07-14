@@ -51,7 +51,7 @@ requires-python = ">=3.11"
 # All runtime dependencies
 all = ["galax[interop-all]"]
 # Interoperability dependencies
-interop-all = ["galax[interop-astropy]", "galax[interop-gala]"]
+interop-all = ["galax[interop-astropy]", "galax[interop-gala]", "galax[interop-galpy]"]
 interop-astropy = [
   "astropy >= 6.0",
 ]
@@ -62,7 +62,11 @@ interop-gala = [
   "astropy < 6.1",
   "numpy < 2.0",
 ]
-# TODO: galpy and agama
+interop-galpy = [
+  "galax[interop-astropy]",
+  "galpy >= 1.8",
+]
+# TODO: agama
 # Documentation dependencies
 docs = [
   "sphinx>=7.0",

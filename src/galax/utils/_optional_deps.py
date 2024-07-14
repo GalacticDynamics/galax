@@ -1,6 +1,6 @@
 """Optional dependencies."""
 
-__all__ = ["HAS_GALA", "GSL_ENABLED"]
+__all__ = ["HAS_ASTROPY", "HAS_GALA", "GSL_ENABLED", "HAS_GALPY"]
 
 import importlib.metadata
 from typing import Literal
@@ -36,3 +36,6 @@ if HAS_GALA:
     from gala._cconfig import GSL_ENABLED
 else:
     GSL_ENABLED = False
+
+
+HAS_GALPY: Version | Literal[False] = get_version("galpy")

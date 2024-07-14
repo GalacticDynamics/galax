@@ -21,9 +21,12 @@ pytest_collect_file = Sybil(
 # TODO: via separate optional_deps package
 HAS_ASTROPY = find_spec("astropy") is not None
 HAS_GALA = find_spec("gala") is not None
+HAS_GALPY = find_spec("galpy") is not None
 
 collect_ignore_glob = []
 if not HAS_ASTROPY:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_astropy/*")
 if not HAS_GALA:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_gala/*")
+if not HAS_GALPY:
+    collect_ignore_glob.append("src/galax/_interop/galax_interop_galpy/*")

@@ -26,3 +26,6 @@ if utils._optional_deps.HAS_ASTROPY:  # noqa: SLF001
 
 if utils._optional_deps.HAS_GALA:  # noqa: SLF001
     from ._interop import galax_interop_gala  # noqa: F401
+
+if utils._optional_deps.HAS_GALPY:  # noqa: SLF001
+    from ._interop import galax_interop_galpy  # noqa: F401

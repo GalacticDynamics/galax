@@ -24,6 +24,6 @@ HAS_GALA = find_spec("gala") is not None
 
 collect_ignore_glob = []
 if not HAS_ASTROPY:
-    collect_ignore_glob.append("src/galax/_galax_interop_astropy/*")
+    collect_ignore_glob.append("src/galax/_interop/galax_interop_astropy/*")
 if not HAS_GALA:
-    collect_ignore_glob.append("src/galax/_galax_interop_gala/*")
+    collect_ignore_glob.append("src/galax/_interop/galax_interop_gala/*")

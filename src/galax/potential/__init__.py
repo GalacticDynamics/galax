@@ -31,6 +31,11 @@ __all__ = [
     # logarithmic
     "LogarithmicPotential",
     "LMJ09LogarithmicPotential",
+    # multipole
+    "AbstractMultipolePotential",
+    "MultipoleInnerPotential",
+    "MultipoleOuterPotential",
+    "MultipolePotential",
     # nfw
     "NFWPotential",
     "LeeSutoTriaxialNFWPotential",
@@ -78,6 +83,12 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._potential.builtin.logarithmic import (
         LMJ09LogarithmicPotential,
         LogarithmicPotential,
+    )
+    from ._potential.builtin.multipole import (
+        AbstractMultipolePotential,
+        MultipoleInnerPotential,
+        MultipoleOuterPotential,
+        MultipolePotential,
     )
     from ._potential.builtin.nfw import (
         LeeSutoTriaxialNFWPotential,

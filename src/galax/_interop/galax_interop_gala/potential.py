@@ -6,6 +6,7 @@ from typing import TypeVar
 
 import equinox as eqx
 import gala.potential as gp
+import jax.numpy as jnp
 from astropy.units import Quantity as APYQuantity
 from gala.units import (
     DimensionlessUnitSystem as GalaDimensionlessUnitSystem,
@@ -1170,10 +1171,144 @@ def galax_to_gala(pot: gpx.LMJ09LogarithmicPotential, /) -> gp.LogarithmicPotent
 
 
 # -----------------------------------------------------------------------------
-# NFW potentials
+# Multipole potentials
 
 
 @dispatch  # type: ignore[misc]
+def gala_to_galax(
+    gala: gp.MultipolePotential, /
+) -> gpx.MultipoleInnerPotential | gpx.MultipoleOuterPotential | gpx.PotentialFrame:
+    params = gala.parameters
+    cls = (
+        gpx.MultipoleInnerPotential
+        if params["inner"] == 1
+        else gpx.MultipoleOuterPotential
+    )
+
+    l_max = gala._lmax  # noqa: SLF001
+    Slm = jnp.zeros((l_max + 1, l_max + 1), dtype=float)
+    Tlm = jnp.zeros_like(Slm)
+
+    for l, m in zip(*jnp.tril_indices(l_max + 1), strict=True):
+        skey = f"S{l}{m}"
+        if skey in params:
+            Slm = Slm.at[l, m].set(params[skey])
+
+        tkey = f"T{l}{m}"
+        if tkey in params:
+            Tlm = Tlm.at[l, m].set(params[tkey])
+
+    pot = cls(
+        m_tot=params["m"],
+        r_s=params["r_s"],
+        l_max=l_max,
+        Slm=Slm,
+        Tlm=Tlm,
+        units=gala.units,
+    )
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@dispatch.multi((gpx.MultipoleInnerPotential,), (gpx.MultipoleOuterPotential,))  # type: ignore[misc]
+def galax_to_gala(
+    pot: gpx.MultipoleInnerPotential | gpx.MultipoleOuterPotential, /
+) -> gp.MultipolePotential:
+    """Convert a Galax Multipole to a Gala potential."""
+    _error_if_not_all_constant_parameters(pot, "m_tot", "r_s", "Slm", "Tlm")
+
+    Slm, Tlm = pot.Slm(0).value, pot.Tlm(0).value
+    ls, ms = jnp.tril_indices(pot.l_max + 1)
+
+    return gp.MultipolePotential(
+        m=convert(pot.m_tot(0), APYQuantity),
+        r_s=convert(pot.r_s(0), APYQuantity),
+        lmax=pot.l_max,
+        **{
+            f"S{l}{m}": Slm[l, m] for l, m in zip(ls, ms, strict=True) if Slm[l, m] != 0
+        },
+        **{
+            f"T{l}{m}": Tlm[l, m] for l, m in zip(ls, ms, strict=True) if Tlm[l, m] != 0
+        },
+        inner=isinstance(pot, gpx.MultipoleInnerPotential),
+        units=_galax_to_gala_units(pot.units),
+    )
+
+
+# -----------------------------------------------------------------------------
+# NFW potentials
+
+
+@dispatch
+def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialFrame:
+    """Convert a Gala NFWPotential to a Galax potential.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import gala.units as gu
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.NFWPotential(m=1e12, r_s=20, units=gu.galactic)
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
+    NFWPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableMap({'G': ...}),
+      m=ConstantParameter( ... ),
+      r_s=ConstantParameter( ... )
+    )
+
+    """
+    params = gala.parameters
+    pot = gpx.NFWPotential(m=params["m"], r_s=params["r_s"], units=gala.units)
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@dispatch
+def gala_to_galax(
+    pot: gp.LeeSutoTriaxialNFWPotential, /
+) -> gpx.LeeSutoTriaxialNFWPotential:
+    """Convert a :class:`gala.potential.LeeSutoTriaxialNFWPotential` to a :class:`galax.potential.LeeSutoTriaxialNFWPotential`.
+
+    Examples
+    --------
+    >>> import gala.potential as gp
+    >>> import gala.units as gu
+    >>> import galax.potential as gpx
+
+    >>> gpot = gp.LeeSutoTriaxialNFWPotential(
+    ...     v_c=220, r_s=20, a=1, b=0.9, c=0.8, units=gu.galactic )
+    >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
+    LeeSutoTriaxialNFWPotential(
+      units=UnitSystem(kpc, Myr, solMass, rad),
+      constants=ImmutableMap({'G': ...}),
+      m=ConstantParameter( ... ),
+      r_s=ConstantParameter( ... ),
+      a1=ConstantParameter( ... ),
+      a2=ConstantParameter( ... ),
+      a3=ConstantParameter( ... )
+    )
+
+    """  # noqa: E501
+    units = pot.units
+    params = pot.parameters
+    G = Quantity(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
+
+    return gpx.LeeSutoTriaxialNFWPotential(
+        m=params["v_c"] ** 2 * params["r_s"] / G,
+        r_s=params["r_s"],
+        a1=params["a"],
+        a2=params["b"],
+        a3=params["c"],
+        units=units,
+        constants={"G": G},
+    )
+
+
+# -----------------------------------------------------------------------------
+# NFW potentials
+
+
+@dispatch
 def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialFrame:
     """Convert a Gala NFWPotential to a Galax potential.
 

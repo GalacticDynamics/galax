@@ -98,7 +98,9 @@ class LongMuraliBarPotential(AbstractPotential):
     a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
     alpha: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
+    """Position angle of the bar."""
 
     @partial(jax.jit)
     def _potential(

@@ -11,6 +11,7 @@ __all__ = [
     "AbstractInteroperableLibrary",
     "GalaxLibrary",
     "GalaLibrary",
+    "GalpyLibrary",
 ]
 
 
@@ -36,6 +37,11 @@ class GalaxLibrary(AbstractInteroperableLibrary):
 @final
 class GalaLibrary(AbstractInteroperableLibrary):
     """The :mod:`gala` library."""
+
+
+@final
+class GalpyLibrary(AbstractInteroperableLibrary):
+    """The :mod:`galpy` library."""
 
 
 @dispatch.abstract  # type: ignore[misc]

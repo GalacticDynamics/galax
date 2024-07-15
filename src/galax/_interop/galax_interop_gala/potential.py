@@ -92,8 +92,8 @@ def convert_potential(
     >>> import galax.potential as gp
 
     >>> pot = galap.KeplerPotential(m=1e11, units=galactic)
-    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <KeplerPotential: m=1.00e+11 (kpc,Myr,solMass,rad)>
+    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot) is pot
+    True
 
     """
     return from_
@@ -415,8 +415,8 @@ def gala_to_galax(
     IsochronePotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
+      m_tot=ConstantParameter( ... ),
+      b=ConstantParameter( ... )
 
     """  # noqa: E501
     params = dict(gala.parameters)
@@ -721,9 +721,10 @@ def gala_to_galax(
     MiyamotoNagaiPotential(
       units=UnitSystem(kpc, Myr, solMass, rad),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      a=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ),
-      b=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) ) )
+      m_tot=ConstantParameter( ... ),
+      a=ConstantParameter( ... ),
+      b=ConstantParameter( ... )
+    )
 
     """  # noqa: E501
     params = dict(gala.parameters)

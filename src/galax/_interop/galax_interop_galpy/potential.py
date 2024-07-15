@@ -5,6 +5,7 @@ __all__ = ["galpy_to_galax", "galax_to_galpy"]
 
 from typing import Annotated as Antd
 
+import equinox as eqx
 import galpy.potential as gpy
 import numpy as np
 from astropy.units import Quantity as AstropyQuantity
@@ -102,18 +103,18 @@ def convert_potential(
 # Helper functions
 
 
-def _error_if_not_all_constant_parameters(pot: gpx.AbstractPotentialBase) -> None:
+def _error_if_not_all_constant_parameters(
+    pot: gpx.AbstractPotentialBase,
+) -> gpx.AbstractPotentialBase:
     """Check if all parameters are constant."""
     is_time_dep = any(
         not isinstance(getattr(pot, name), gpx.params.ConstantParameter)
         for name in pot.parameters
     )
-
-    if is_time_dep:
-        msg = "Gala does not support time-dependent parameters."
-        raise TypeError(msg)
-
-    return
+    pot: gpx.AbstractPotentialBase = eqx.error_if(
+        pot, is_time_dep, "Gala does not support time-dependent parameters."
+    )
+    return pot
 
 
 def _galpy_mass(pot: gpy.Potential, /) -> Quantity:
@@ -271,7 +272,7 @@ def galax_to_galpy(pot: gpx.BurkertPotential, /) -> gpy.BurkertPotential:
     <galpy.potential...BurkertPotential object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.BurkertPotential(
         amp=convert(pot.rho0(0), AstropyQuantity),
@@ -332,7 +333,7 @@ def galax_to_galpy(pot: gpx.HernquistPotential, /) -> gpy.HernquistPotential:
     <galpy.potential...HernquistPotential object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.HernquistPotential(
         amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
@@ -394,7 +395,7 @@ def galax_to_galpy(pot: gpx.IsochronePotential, /) -> gpy.IsochronePotential:
     <galpy.potential...IsochronePotential object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.IsochronePotential(
         amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
@@ -452,7 +453,7 @@ def galax_to_galpy(pot: gpx.JaffePotential, /) -> gpy.JaffePotential:
     <galpy.potential...JaffePotential object at ...>
 
     """
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.JaffePotential(
         amp=convert(pot.m(0) * pot.constants["G"], AstropyQuantity),
@@ -506,7 +507,7 @@ def galax_to_galpy(pot: gpx.KeplerPotential, /) -> gpy.KeplerPotential:
     <galpy.potential...KeplerPotential object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     # TODO: factor in the constants, e.g. G?
     return gpy.KeplerPotential(amp=pot.m_tot(0) * pot.constants["G"])
@@ -563,7 +564,7 @@ def galax_to_galpy(pot: gpx.KuzminPotential, /) -> gpy.KuzminDiskPotential:
     <galpy.potential...KuzminDiskPotential object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.KuzminDiskPotential(
         amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
@@ -635,7 +636,7 @@ def galax_to_galpy(
     <galpy.potential...SoftenedNeedleBarPotential object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.SoftenedNeedleBarPotential(
         amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
@@ -700,7 +701,7 @@ def galax_to_galpy(pot: gpx.MiyamotoNagaiPotential, /) -> gpy.MiyamotoNagaiPoten
     <galpy.potential...MiyamotoNagaiPotential object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.MiyamotoNagaiPotential(
         amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
@@ -802,7 +803,7 @@ def galax_to_galpy(pot: gpx.PlummerPotential, /) -> gpy.PlummerPotential:
     <galpy.potential...PlummerPotential object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.PlummerPotential(
         amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
@@ -868,7 +869,7 @@ def galax_to_galpy(
     <galpy.potential...PowerSphericalPotentialwCutoff object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.PowerSphericalPotentialwCutoff(
         amp=convert(pot.density(Quantity([0.0, 0, 0], "kpc"), 0.0), AstropyQuantity),
@@ -932,7 +933,7 @@ def galax_to_galpy(pot: gpx.NFWPotential, /) -> gpy.NFWPotential:
     <galpy.potential...NFWPotential object at ...>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot)
+    pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.NFWPotential(
         amp=convert(pot.m(0) * pot.constants["G"], AstropyQuantity),

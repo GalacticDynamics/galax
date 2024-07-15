@@ -17,7 +17,7 @@ import galax.typing as gt
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
 from .test_abstractmultipole import ParameterSlmMixin, ParameterTlmMixin
-from galax.utils._optional_deps import HAS_GALA
+from galax.utils._optional_deps import GSL_ENABLED, HAS_GALA
 
 ###############################################################################
 
@@ -119,7 +119,7 @@ class TestMultipoleOuterPotential(
     # ==========================================================================
     # Interoperability
 
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [

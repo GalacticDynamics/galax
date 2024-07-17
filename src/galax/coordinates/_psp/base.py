@@ -15,10 +15,10 @@ from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.array_api as xp
+from dataclasstools import field_items
 from unxt import Quantity, unitsystem
 
 import galax.typing as gt
-from galax.utils.dataclasses import dataclass_items
 
 if TYPE_CHECKING:
     from typing import Self
@@ -120,7 +120,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
                 [4. 5. 6.]>,
             t=Quantity['time'](Array(-1., dtype=float64), unit='Gyr'))
         """
-        fs = [indent(f"{k}={v!s}", "    ") for k, v in dataclass_items(self)]
+        fs = [indent(f"{k}={v!s}", "    ") for k, v in field_items(self)]
         sep = ",\n" if len(fs) > 1 else ", "
         return f"{self.__class__.__name__}(\n{sep.join(fs)})"
 
@@ -670,4 +670,4 @@ def constructor(
     if type(obj) is cls:  # pylint: disable=unidiomatic-typecheck
         return obj
 
-    return cls(**dict(dataclass_items(obj)))
+    return cls(**dict(field_items(obj)))

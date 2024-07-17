@@ -12,13 +12,13 @@ from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
+from dataclasstools import field_items
 from immutable_map_jax import ImmutableMap
 from unxt import Quantity
 
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
 from galax.utils._misc import zeroth
-from galax.utils.dataclasses import dataclass_items
 
 if TYPE_CHECKING:
     from typing import Self
@@ -204,7 +204,7 @@ class AbstractCompositePhaseSpacePosition(
     @property
     def shapes(self) -> Mapping[str, tuple[int, ...]]:
         """Get the shapes of the components."""
-        return MappingProxyType({k: v.shape for k, v in dataclass_items(self)})
+        return MappingProxyType({k: v.shape for k, v in field_items(self)})
 
 
 # =============================================================================

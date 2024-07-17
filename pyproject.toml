@@ -28,6 +28,7 @@ dependencies = [
   "astropy >= 6.0",
   "beartype >= 0.18",
   "coordinax >= 0.7",
+  "dataclasstools @ git+https://github.com/GalacticDynamics/dataclasstools.git",
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
   "jax >= 0.4, != 0.4.27",
@@ -253,7 +254,7 @@ exempt-modules = []
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-first-party = ["immutable_map_jax", "quaxed", "unxt", "coordinax"]
+known-first-party = ["dataclasstools", "immutable_map_jax", "quaxed", "unxt", "coordinax"]
 known-local-folder = ["galax"]
 
 [tool.ruff.lint.pydocstyle]

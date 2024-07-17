@@ -2,11 +2,11 @@ __all__ = ["VectorField", "Integrator"]
 
 from typing import Any, Literal, Protocol, TypeAlias, runtime_checkable
 
+from dataclasstools import DataclassInstance
 from unxt import AbstractUnitSystem
 
 import galax.coordinates as gc
 import galax.typing as gt
-from galax.utils.dataclasses import _DataclassInstance
 
 SaveT: TypeAlias = gt.BatchQVecTime | gt.QVecTime | gt.BatchVecTime | gt.VecTime
 
@@ -36,7 +36,7 @@ class VectorField(Protocol):
 
 
 @runtime_checkable
-class Integrator(_DataclassInstance, Protocol):
+class Integrator(DataclassInstance, Protocol):  # type: ignore[misc]
     """:class:`typing.Protocol` for integrators.
 
     The integrators are classes that are used to integrate the equations of

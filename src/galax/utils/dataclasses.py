@@ -5,29 +5,17 @@ __all__ = ["field", "dataclass_with_converter", "ModuleMeta"]
 import dataclasses
 import functools as ft
 import inspect
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Mapping
 from enum import Enum, auto
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Generic,
-    NotRequired,
-    Protocol,
-    TypedDict,
-    TypeVar,
-    dataclass_transform,
-    runtime_checkable,
-)
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar, dataclass_transform
 
 import astropy.units as u
 from equinox._module import _has_dataclass_init, _ModuleMeta
 from typing_extensions import ParamSpec, Unpack
 
-import galax.typing as gt
+from dataclasstools import DataclassInstance
 
-if TYPE_CHECKING:
-    from _typeshed import DataclassInstance
+import galax.typing as gt
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -124,20 +112,13 @@ def field(
     return out
 
 
-@runtime_checkable
-class _DataclassInstance(Protocol):
-    """Protocol for dataclass instances."""
-
-    __dataclass_fields__: ClassVar[dict[str, Any]]
-
-
 def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
     """Make a new `__init__` method that applies the converters."""
     original_init = cls.__init__
     sig = inspect.signature(original_init)
 
     @ft.wraps(original_init)
-    def init(self: _DataclassInstance, *args: Any, **kwargs: Any) -> None:
+    def init(self: DataclassInstance, *args: Any, **kwargs: Any) -> None:
         __tracebackhide__ = True  # pylint: disable=unused-variable
 
         # Apply any converter to its argument.
@@ -148,7 +129,7 @@ def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
         # Call the original `__init__`.
         init.__wrapped__(*ba.args, **ba.kwargs)
 
-    cls.__init__ = init  # type: ignore[assignment,method-assign]
+    cls.__init__ = init  # type: ignore[method-assign]
 
     return cls
 
@@ -256,12 +237,3 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
             cls = _add_converter_init_to_class(cls)
 
         return cls
-
-
-##############################################################################
-# Utils
-
-
-def dataclass_items(obj: "DataclassInstance") -> Iterator[tuple[str, Any]]:
-    """Return the field names and values of a dataclass instance."""
-    yield from ((f.name, getattr(obj, f.name)) for f in dataclasses.fields(obj))

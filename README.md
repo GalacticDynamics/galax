@@ -91,8 +91,8 @@ file for a complete list of contributors to the project.
 The [`GalacticDynamics/galax`](https://github.com/GalacticDynamics/galax)
 maintainers would like to thank
 [@Michael Anckaert](https://github.com/MichaelAnckaert) for transferring the
-`galax` project domain on `PyPI` for use by this package. Without his generosity
-this package would have had a worse name.
+`galax` project domain on [`PyPI`][pypi-link] for use by this package.
+Without his generosity this package would have had a worse name.
 
 <!-- SPHINX-START -->
 

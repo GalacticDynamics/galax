@@ -238,24 +238,23 @@ class MatplotlibBackend(AbstractPlottingBackend):
 class PlotDescriptor(InstanceDescriptor[BndTo]):
     """Descriptor for plotting functions."""
 
-    def contours(
+    def potential_contours(
         self,
         backend: type[AbstractPlottingBackend] = MatplotlibBackend,
         **kwargs: Any,
     ) -> Any:
         """Plot equipotentials contours.
 
-        This calls `galax.potential.plot.plot_contours`.
-
+        This calls `galax.potential.plot.plot_potential_contours`.
 
         """
-        return plot_contours(self.enclosing, backend, **kwargs)
+        return plot_potential_contours(self.enclosing, backend, **kwargs)
 
 
 # TODO: it would be nice to have a default value for `backend` so that it
 #       doesn't need to be passed in every time.
 @dispatch.abstract  # type: ignore[misc]
-def plot_contours(
+def plot_potential_contours(
     pot: ProxyAbstractPotentialBase,  # type: ignore[valid-type]  # noqa: ARG001
     backend: type[AbstractPlottingBackend] = MatplotlibBackend,  # noqa: ARG001
     /,

@@ -21,11 +21,26 @@ from . import (
 )
 from ._version import version as __version__, version_tuple as __version_tuple__
 
+# ---------------------------
+# Optional dependencies
+# The act of importing registers in the functionality
+
 if utils._optional_deps.HAS_ASTROPY:  # noqa: SLF001
-    from ._interop import galax_interop_astropy  # noqa: F401
+    from ._interop import galax_interop_astropy
+
+    del galax_interop_astropy
 
 if utils._optional_deps.HAS_GALA:  # noqa: SLF001
-    from ._interop import galax_interop_gala  # noqa: F401
+    from ._interop import galax_interop_gala
+
+    del galax_interop_gala
 
 if utils._optional_deps.HAS_GALPY:  # noqa: SLF001
-    from ._interop import galax_interop_galpy  # noqa: F401
+    from ._interop import galax_interop_galpy
+
+    del galax_interop_galpy
+
+if utils._optional_deps.HAS_MATPLOTLIB:  # noqa: SLF001
+    from ._interop import matplotlib
+
+    del matplotlib

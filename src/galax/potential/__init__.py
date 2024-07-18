@@ -4,6 +4,7 @@ __all__ = [
     # Modules
     "io",
     "params",
+    "plot",
     # base
     "AbstractPotentialBase",
     # core
@@ -62,7 +63,7 @@ from jaxtyping import install_import_hook
 from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
-    from . import io, params
+    from . import io, params, plot
     from ._potential.base import AbstractPotentialBase
     from ._potential.builtin.bars import BarPotential, LongMuraliBarPotential
     from ._potential.builtin.builtin import (

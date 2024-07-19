@@ -27,6 +27,7 @@ from .io import (
     GalaxLibrary,
     convert_potential,
 )
+from .plot import PlotDescriptor
 from galax.coordinates import PhaseSpacePosition
 from galax.potential._potential.params.attr import ParametersAttribute
 from galax.potential._potential.params.utils import all_parameters, all_vars
@@ -51,6 +52,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     """Abstract Potential Class."""
 
     parameters: ClassVar = ParametersAttribute(MappingProxyType({}))
+    plot: ClassVar = PlotDescriptor()
 
     _: KW_ONLY
     units: eqx.AbstractVar[AbstractUnitSystem]

@@ -15,13 +15,12 @@ from typing import Any, TypeAlias
 
 import jax
 from jaxtyping import Shaped
-from plum import convert, dispatch
+from plum import dispatch
 
 import coordinax as cx
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
-from unxt.experimental import grad
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -1551,38 +1550,10 @@ def _r_hat(x: gt.LengthBatchVec3, /) -> Shaped[Quantity[""], "*batch 3"]:
 
 # TODO: make public
 @partial(jax.jit, inline=True)
-def dphi_dr(
-    pot: AbstractPotentialBase,
-    x: gt.LengthBatchVec3,
-    t: gt.TimeScalar,
-) -> Shaped[Quantity["acceleration"], "*batch"]:
-    """Compute the r-derivative of the potential at a position x.
-
-    Parameters
-    ----------
-    potential : `galax.potential.AbstractPotentialBase`
-        The gravitational potential.
-    x: Quantity[float, (3,), 'length']
-        3d position (x, y, z)
-    t: Quantity[float, (), 'time']
-        Time in [Myr]
-
-    Returns
-    -------
-    Quantity[float, (3,), 'acceleration']:
-        Derivative of potential
-    """
-    grad = convert(gradient(pot, x, t), Quantity)
-    return xp.sum(grad * _r_hat(x), axis=-1)
-
-
-# TODO: make public
-@partial(jax.jit)
-@partial(qnp.vectorize, excluded=(0,), signature="(3),()->()")
-def d2phi_dr2(
-    pot: AbstractPotentialBase, x: gt.LengthVec3, t: gt.TimeScalar, /
-) -> Shaped[Quantity["1/s^2"], ""]:
-    """Compute the second derivative of the potential.
+def d2potential_dr2(
+    pot: AbstractPotentialBase, x: gt.LengthBatchVec3, t: gt.TimeBatchableScalar, /
+) -> Shaped[Quantity["1/s^2"], "*batch"]:
+    """Compute the second derivative of the potential at the position.
 
     At a position x (in the simulation frame).
 
@@ -1590,15 +1561,15 @@ def d2phi_dr2(
     ----------
     potential : `galax.potential.AbstractPotentialBase`
         The gravitational potential.
-    x: Quantity[Any, (3,), 'length']
+    x: Quantity[Any, (*batch, 3,), 'length']
         3d position (x, y, z) in [kpc]
-    t: Quantity[Any, (), 'time']
+    t: Quantity[Any, (*#batch,), 'time']
         Time in [Myr]
 
     Returns
     -------
-    Array:
-        Second derivative of force (per unit mass) in [1/Myr^2]
+    Quantity[float, (*batch,), 'frequency^2']:
+        Second radial derivative of the potential.
 
     Examples
     --------
@@ -1606,10 +1577,10 @@ def d2phi_dr2(
     >>> from galax.potential import NFWPotential
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
     >>> q = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> d2phi_dr2(pot, q, Quantity(0.0, "Myr"))
+    >>> d2potential_dr2(pot, q, Quantity(0.0, "Myr"))
     Quantity['1'](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
     """
     rhat = _r_hat(x)
-    # TODO: this isn't vectorized
-    d2phi_dr2_func = grad(dphi_dr, argnums=1, units=(None, x.unit, t.unit))
-    return xp.sum(d2phi_dr2_func(pot, x, t) * rhat)
+    H = pot.hessian(x, t=t)
+    # vectorized dot product of rhat · H · rhat
+    return qnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)

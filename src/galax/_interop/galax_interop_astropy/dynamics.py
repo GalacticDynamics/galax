@@ -2,10 +2,8 @@
 
 __all__: list[str] = []
 
-from functools import partial
 from typing import Literal
 
-import jax
 from astropy.units import Quantity as APYQuantity
 from plum import dispatch
 
@@ -19,7 +17,7 @@ import galax.typing as gt
 
 
 @dispatch  # type: ignore[misc]
-@partial(jax.jit, static_argnames=("integrator", "interpolated"))
+# @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,

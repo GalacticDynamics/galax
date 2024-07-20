@@ -3,7 +3,6 @@
 __all__ = ["evaluate_orbit"]
 
 from dataclasses import replace
-from functools import partial
 from typing import Any, Literal
 
 import jax
@@ -30,7 +29,7 @@ _default_integrator: Integrator = DiffraxIntegrator()
 _select_w0 = jax_vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
-@partial(jax.jit, static_argnames=("integrator", "interpolated"))
+# @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,

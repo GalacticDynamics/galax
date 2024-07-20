@@ -17,7 +17,7 @@ from unxt import Quantity
 import galax.potential as gp
 import galax.typing as gt
 from .base import AbstractStreamDF
-from galax.potential._potential.funcs import d2phi_dr2
+from galax.potential._potential.funcs import d2potential_dr2
 
 # ============================================================
 # Constants
@@ -100,7 +100,7 @@ class FardalStreamDF(AbstractStreamDF):
 # TODO: move this to a more general location.
 
 
-@partial(jax.jit)
+@partial(jax.jit, inline=True)
 def orbital_angular_velocity(
     x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
 ) -> Shaped[Quantity["frequency"], "*batch 3"]:  # TODO: rad/s
@@ -129,7 +129,7 @@ def orbital_angular_velocity(
     return qnp.cross(x, v) / r**2
 
 
-@partial(jax.jit)
+@partial(jax.jit, inline=True)
 def orbital_angular_velocity_mag(
     x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
 ) -> Shaped[Quantity["frequency"], "*batch"]:  # TODO: rad/s
@@ -157,7 +157,7 @@ def orbital_angular_velocity_mag(
     return xp.linalg.vector_norm(orbital_angular_velocity(x, v), axis=-1)
 
 
-@partial(jax.jit)
+@partial(jax.jit, inline=True)
 def tidal_radius(
     potential: gp.AbstractPotentialBase,
     x: gt.LengthBatchVec3,
@@ -199,11 +199,9 @@ def tidal_radius(
     >>> tidal_radius(pot, x, v, prog_mass=prog_mass, t=Quantity(0, "Myr"))
     Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
     """
-    return qnp.cbrt(
-        potential.constants["G"]
-        * prog_mass
-        / (orbital_angular_velocity_mag(x, v) ** 2 - d2phi_dr2(potential, x, t))
-    )
+    omega = orbital_angular_velocity_mag(x, v)
+    d2phi_dr2 = d2potential_dr2(potential, x, t)
+    return qnp.cbrt(potential.constants["G"] * prog_mass / (omega**2 - d2phi_dr2))
 
 
 @partial(jax.jit)

@@ -693,7 +693,39 @@ def add(
     other: AbstractBasePhaseSpacePosition,
     /,
 ) -> AbstractBasePhaseSpacePosition:
-    """Add to a phase-space positions."""
+    """Add two phase-space positions.
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> from galax.coordinates import PhaseSpacePosition
+
+    >>> w1 = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+    ...                         p=Quantity([4, 5, 6], "km/s"),
+    ...                         t=Quantity(0, "Gyr"))
+    >>> w2 = PhaseSpacePosition(q=Quantity([-1, -2, -3], "kpc"),
+    ...                         p=Quantity([-4, -5, -6], "km/s"),
+    ...                         t=Quantity(0, "Gyr"))
+    >>> w3 = w1 + w2
+    >>> w3
+    PhaseSpacePosition(
+      q=CartesianPosition3D( ... ),
+      p=CartesianVelocity3D( ... ),
+      t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
+    )
+
+    >>> w3.q.x.value
+    Array(0., dtype=float64)
+
+    If the times are different, an error is raised:
+
+    >>> from dataclasstools import replace
+    >>> w4 = replace(w2, t=Quantity(1, "Gyr"))
+    >>> try: w1 + w4
+    ... except ValueError as e: print(e)
+    Cannot add phase-space positions with different times
+
+    """
     if not isinstance(other, type(self)):
         msg = f"Cannot add {type(self)} and {type(other)}"
         raise TypeError(msg)

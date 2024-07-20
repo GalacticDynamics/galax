@@ -26,9 +26,6 @@ Value = TypeVar("Value", int, float, Array)
 def parse_to_quantity(value: Any, /, *, units: AbstractUnitSystem, **_: Any) -> Any:
     """Parse input arguments.
 
-    This function uses :func:`~functools.singledispatch` to dispatch on the type
-    of the input argument.
-
     Parameters
     ----------
     value : Any, positional-only

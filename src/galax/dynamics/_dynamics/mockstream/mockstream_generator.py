@@ -103,7 +103,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             def integ_ics(ics: gt.Vec6) -> gt.VecN:
                 # TODO: only return the final state
                 return evaluate_orbit(
-                    self.potential, ics, tstep, integrator=self.stream_integrator
+                    self.potential,
+                    ics,
+                    tstep,
+                    integrator=self.stream_integrator,
+                    include_meta=False,
                 ).w(units=self.units)[-1]
 
             # vmap integration over leading and trailing arm
@@ -138,10 +142,18 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         ) -> tuple[gt.Vec6, gt.Vec6]:
             tstep = xp.asarray([ts[i], t_f])
             w_lead = evaluate_orbit(
-                self.potential, w0_l_i, tstep, integrator=self.stream_integrator
+                self.potential,
+                w0_l_i,
+                tstep,
+                integrator=self.stream_integrator,
+                include_meta=False,
             ).w(units=self.potential.units)[-1]
             w_trail = evaluate_orbit(
-                self.potential, w0_t_i, tstep, integrator=self.stream_integrator
+                self.potential,
+                w0_t_i,
+                tstep,
+                integrator=self.stream_integrator,
+                include_meta=False,
             ).w(units=self.potential.units)[-1]
             return w_lead, w_trail
 
@@ -151,7 +163,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg)(pt_ids, w0_lead, w0_trail)
         return lead_arm_w, trail_arm_w
 
-    @partial(jax.jit, static_argnames=("vmapped",))
+    @partial(jax.jit, static_argnames=("vmapped", "include_meta"))
     def run(
         self,
         rng: PRNGKeyArray,
@@ -160,6 +172,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         prog_mass: gt.FloatQScalar | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
+        include_meta: bool = False,
     ) -> tuple[MockStream, gc.PhaseSpacePosition]:
         """Generate mock stellar stream.
 
@@ -196,6 +209,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             usage, while ``vmapped=False`` is recommended for CPU usage.  If
             `None` (default), then `jax.vmap` is used on GPU and `jax.lax.scan`
             otherwise.
+
+        include_meta : bool, optional keyword-only
+            Whether to include metadata in the output.
 
         Returns
         -------
@@ -246,12 +262,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             p=Quantity(lead_arm_w[:, 3:6], self.units["speed"]),
             t=t,
             release_time=mock0["lead"].release_time,
+            meta={"use_vmap": use_vmap} if include_meta else {},
         )
         comps["trail"] = MockStreamArm(
             q=Quantity(trail_arm_w[:, 0:3], self.units["length"]),
             p=Quantity(trail_arm_w[:, 3:6], self.units["speed"]),
             t=t,
             release_time=mock0["trail"].release_time,
+            meta={"use_vmap": use_vmap} if include_meta else {},
         )
 
         return MockStream(comps), prog_o[-1]

@@ -2,7 +2,7 @@
 
 __all__ = ["AbstractOrbit"]
 
-from dataclasses import replace
+from dataclasses import KW_ONLY, replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, overload
 
@@ -11,6 +11,7 @@ import jax
 import jax.numpy as jnp
 
 from coordinax import AbstractPosition3D, AbstractVelocity3D
+from immutable_map_jax import ImmutableMap
 from unxt import Quantity
 
 import galax.coordinates as gc
@@ -49,6 +50,17 @@ class AbstractOrbit(gc.AbstractPhaseSpacePosition):
 
     potential: AbstractPotentialBase
     """Potential in which the orbit was integrated."""
+
+    _: KW_ONLY
+
+    meta: ImmutableMap[Any] = eqx.field(
+        default_factory=dict,
+        converter=ImmutableMap,
+        static=True,
+        repr=False,
+        compare=False,
+    )
+    """Metadata about the orbit."""
 
     def __post_init__(self) -> None:
         """Post-initialization."""

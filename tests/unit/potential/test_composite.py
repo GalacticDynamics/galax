@@ -13,12 +13,12 @@ import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
 from unxt.unitsystems import UnitSystem, dimensionless, galactic, solarsystem
+from zeroth import zeroth
 
 import galax.potential as gp
 from .test_base import AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.typing import Vec3
-from galax.utils._misc import zeroth
 
 if TYPE_CHECKING:
     from galax.potential import (

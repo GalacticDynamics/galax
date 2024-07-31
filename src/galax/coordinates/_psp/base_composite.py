@@ -16,10 +16,10 @@ import quaxed.numpy as jnp
 from dataclassish import field_items
 from immutable_map_jax import ImmutableMap
 from unxt import Quantity
+from zeroth import zeroth
 
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
-from galax.utils._misc import zeroth
 
 if TYPE_CHECKING:
     from typing import Self

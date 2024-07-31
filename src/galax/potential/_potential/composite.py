@@ -15,11 +15,11 @@ from plum import dispatch
 import quaxed.array_api as xp
 from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
+from zeroth import zeroth
 
 import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants
 from .params.attr import CompositeParametersAttribute
-from galax.utils._misc import zeroth
 
 K = TypeVar("K")
 V = TypeVar("V")

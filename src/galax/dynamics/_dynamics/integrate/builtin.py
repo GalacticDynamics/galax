@@ -259,7 +259,7 @@ class DiffraxIntegrator(AbstractIntegrator):
 
     _: KW_ONLY
     Solver: type[diffrax.AbstractSolver] = eqx.field(
-        default=diffrax.Dopri5, static=True
+        default=diffrax.Dopri8, static=True
     )
     stepsize_controller: diffrax.AbstractStepSizeController = eqx.field(
         default=diffrax.PIDController(rtol=1e-7, atol=1e-7), static=True

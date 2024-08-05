@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+import equinox as eqx
 from jaxtyping import Shaped
 from plum import dispatch
 
@@ -269,3 +270,85 @@ def represent_as(
     return type(psp)(
         **{k: represent_as(v, position_cls, differential_cls) for k, v in psp.items()}
     )
+
+
+# =================
+
+
+@dispatch(precedence=1)
+def replace(
+    obj: AbstractCompositePhaseSpacePosition, /, **kwargs: Any
+) -> AbstractCompositePhaseSpacePosition:
+    """Replace the components of the composite phase-space position.
+
+    Examples
+    --------
+    >>> import galax.coordinates as gc
+    >>> from dataclasstools import replace
+
+    We define a composite phase-space position with two components.
+    Every component is a phase-space position in Cartesian coordinates.
+
+    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+    ...                              p=Quantity([4, 5, 6], "m/s"),
+    ...                              t=Quantity(7.0, "s"))
+    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=Quantity(6.0, "s"))
+    >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
+
+    We can replace the components of the composite phase-space position.
+
+    >>> cpsp2 = replace(cpsp, psp1=psp2, psp2=psp1)
+
+    >>> cpsp2["psp1"] != psp1
+    True
+
+    >>> cpsp2["psp1"] == psp2
+    Array(True, dtype=bool)
+
+    >>> cpsp2["psp2"] == psp1
+    Array(True, dtype=bool)
+
+    """
+    # TODO: directly call the Mapping implementation
+    extra_keys = set(kwargs) - set(obj)
+    kwargs = eqx.error_if(kwargs, any(extra_keys), "invalid keys {extra_keys}.")
+
+    return type(obj)(**{**obj, **kwargs})
+
+
+@dispatch
+def replace(
+    obj: AbstractCompositePhaseSpacePosition,
+    replacements: Mapping[str, Mapping[str, Any]],
+    /,
+) -> AbstractCompositePhaseSpacePosition:
+    """Replace the components of the composite phase-space position.
+
+    Examples
+    --------
+    >>> import galax.coordinates as gc
+    >>> from dataclasstools import replace
+
+    We define a composite phase-space position with two components. Every
+    component is a phase-space position in Cartesian coordinates.
+
+    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+    ...                              p=Quantity([4, 5, 6], "m/s"),
+    ...                              t=Quantity(7.0, "s"))
+    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=Quantity(6.0, "s"))
+    >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
+
+    We can selectively replace the ``t`` component of each constituent
+    phase-space position.
+
+    >>> cpsp2 = replace(cpsp, {"psp1": {"t": Quantity(10.0, "s")},
+    ...                        "psp2": {"t": Quantity(11.0, "s")}})
+
+    """
+    # replacements is a dictionary of dictionaries for deep replacement.
+    kwargs = {k: replace(obj[k], **v) for k, v in replacements.items()}
+    return type(obj)(**{**obj, **kwargs})

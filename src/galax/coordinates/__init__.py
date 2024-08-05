@@ -10,6 +10,7 @@ from galax.utils._optional_deps import HAS_GALA
 
 with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
     from . import _psp, operators
+    from ._psp import operator_compat
     from ._psp.base import *
     from ._psp.base_composite import *
     from ._psp.base_psp import *
@@ -26,4 +27,4 @@ __all__ += _psp.interp.__all__
 __all__ += _psp.utils.__all__
 
 # Clean up the namespace
-del install_import_hook, RUNTIME_TYPECHECKER, HAS_GALA, _psp
+del install_import_hook, RUNTIME_TYPECHECKER, HAS_GALA, _psp, operator_compat

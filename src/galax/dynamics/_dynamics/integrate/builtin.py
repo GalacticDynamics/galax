@@ -44,7 +44,7 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
     position output.
     """
 
-    added_ndim: gt.Shape = eqx.field(static=True)
+    added_ndim: int = eqx.field(static=True)
     """The number of dimensions added to the output of the interpolation.
 
     This is used to reshape the output of the interpolation to match the batch
@@ -53,8 +53,9 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
     in an extra dimension when the integration was on a scalar input.
     """
 
+    # TODO: better time annotation
     # @partial(jax.jit)
-    def __call__(self, t: gt.QVecTime, **_: Any) -> gc.PhaseSpacePosition:
+    def __call__(self, t: Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
         # Parse t
         t_ = jnp.atleast_1d(t.to_units_value(self.units["time"]))

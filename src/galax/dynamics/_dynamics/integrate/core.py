@@ -186,7 +186,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     Parameters
     ----------
     Solver : type[diffrax.AbstractSolver], optional
-        The solver to use. Default is :class:`diffrax.Dopri5`.
+        The solver to use. Default is :class:`diffrax.Dopri8`.
     stepsize_controller : diffrax.AbstractStepSizeController, optional
         The stepsize controller to use. Default is a PID controller with
         relative and absolute tolerances of 1e-7.
@@ -309,7 +309,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     _: KW_ONLY
     Solver: type[diffrax.AbstractSolver] = eqx.field(
-        default=diffrax.Dopri5, static=True
+        default=diffrax.Dopri8, static=True
     )
     stepsize_controller: diffrax.AbstractStepSizeController = eqx.field(
         default=diffrax.PIDController(rtol=1e-7, atol=1e-7), static=True

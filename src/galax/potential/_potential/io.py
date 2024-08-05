@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-from typing import Any, Never, final
+from typing import Any, NoReturn, final
 
 from plum import dispatch
 
@@ -23,7 +23,7 @@ from plum import dispatch
 class AbstractInteroperableLibrary:
     """Abstract base class for library type on which to dispatch."""
 
-    def __new__(cls: type["AbstractInteroperableLibrary"]) -> Never:
+    def __new__(cls: type["AbstractInteroperableLibrary"]) -> NoReturn:
         msg = "cannot instantiate AbstractInteroperableLibrary"
 
         raise ValueError(msg)

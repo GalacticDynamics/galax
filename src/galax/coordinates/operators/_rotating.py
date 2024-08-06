@@ -316,6 +316,6 @@ def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> AbstractOperator:
     IdentityOperator()
 
     """
-    if frame.Omega_z == Quantity(0, "rad / s"):
+    if frame.Omega_z == 0:
         return IdentityOperator()
     return frame

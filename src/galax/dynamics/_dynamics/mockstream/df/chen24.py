@@ -83,7 +83,6 @@ class ChenStreamDF(AbstractStreamDF):
 
         Dr = posvel[:, 0] * r_tidal
 
-        # v_esc = escape_velocity(potential, Dr, prog_mass)[..., None]
         v_esc = qnp.sqrt(2 * potential.constants["G"] * prog_mass / Dr)
         Dv = posvel[:, 3] * v_esc
 

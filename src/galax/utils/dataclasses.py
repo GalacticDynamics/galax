@@ -13,7 +13,7 @@ import astropy.units as u
 from equinox._module import _has_dataclass_init, _ModuleMeta
 from typing_extensions import ParamSpec, Unpack
 
-from dataclasstools import DataclassInstance
+from dataclassish import DataclassInstance
 
 import galax.typing as gt
 

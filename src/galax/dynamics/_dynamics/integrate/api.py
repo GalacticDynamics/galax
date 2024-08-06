@@ -2,7 +2,7 @@ __all__ = ["VectorField", "Integrator"]
 
 from typing import Any, Literal, Protocol, TypeAlias, runtime_checkable
 
-from dataclasstools import DataclassInstance
+from dataclassish import DataclassInstance
 from unxt import AbstractUnitSystem
 
 import galax.coordinates as gc

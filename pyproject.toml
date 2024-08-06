@@ -125,6 +125,7 @@ filterwarnings = [
   "ignore:numpy\\.ndarray size changed:RuntimeWarning",
   "ignore:Passing arguments 'a':DeprecationWarning",  # TODO: from diffrax
   "ignore:jax\\.core\\.pp_eqn_rules is deprecated:DeprecationWarning",
+  "ignore:unhashable type:FutureWarning",  # TODO: from diffrax
 ]
 log_cli_level = "INFO"
 markers = [

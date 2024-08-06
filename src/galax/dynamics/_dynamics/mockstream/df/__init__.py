@@ -1,9 +1,9 @@
 """galax: Galactic Dynamix in Jax."""
 
-from . import base, fardal15, chen24, progenitor
+from . import base, chen24, fardal15, progenitor
 from .base import *
-from .fardal15 import *
 from .chen24 import *
+from .fardal15 import *
 from .progenitor import *
 
 __all__: list[str] = []

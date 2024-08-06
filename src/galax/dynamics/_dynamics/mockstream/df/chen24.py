@@ -22,16 +22,18 @@ from galax.potential._potential.funcs import d2potential_dr2
 # ============================================================
 # Constants
 
-mean = qnp.array(
-    [1.6,    -30,   0,    1,    20,   0  ])
+mean = qnp.array([1.6, -30, 0, 1, 20, 0])
 
-cov  = qnp.array([
-    [ 0.1225, 0,    0,    0,   -4.9,  0  ],
-    [ 0,      529,  0,    0,    0,    0  ],
-    [ 0,      0,    144,  0,    0,    0  ],
-    [ 0,      0,    0,    0,    0,    0  ],
-    [-4.9,    0,    0,    0,    400,  0  ],
-    [ 0,      0,    0,    0,    0,    484]])
+cov = qnp.array(
+    [
+        [0.1225, 0, 0, 0, -4.9, 0],
+        [0, 529, 0, 0, 0, 0],
+        [0, 0, 144, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [-4.9, 0, 0, 0, 400, 0],
+        [0, 0, 0, 0, 0, 484],
+    ]
+)
 
 # ============================================================
 
@@ -75,41 +77,56 @@ class ChenStreamDF(AbstractStreamDF):
         r_tidal = tidal_radius(potential, x, v, prog_mass, t)
 
         # Bill Chen: method="cholesky" doesn't work here!
-        posvel = jr.multivariate_normal(key, mean, cov, shape=r_tidal.shape, method="svd")
+        posvel = jr.multivariate_normal(
+            key, mean, cov, shape=r_tidal.shape, method="svd"
+        )
 
-        Dr = posvel[:,0] * r_tidal
+        Dr = posvel[:, 0] * r_tidal
 
         # v_esc = escape_velocity(potential, Dr, prog_mass)[..., None]
-        v_esc = qnp.sqrt(2*potential.constants["G"]*prog_mass/Dr)
-        Dv = posvel[:,3] * v_esc
+        v_esc = qnp.sqrt(2 * potential.constants["G"] * prog_mass / Dr)
+        Dv = posvel[:, 3] * v_esc
 
         # convert degrees to radians
-        phi   = posvel[:,1] * 0.017453292519943295
-        theta = posvel[:,2] * 0.017453292519943295
-        alpha = posvel[:,4] * 0.017453292519943295
-        beta  = posvel[:,5] * 0.017453292519943295
+        phi = posvel[:, 1] * 0.017453292519943295
+        theta = posvel[:, 2] * 0.017453292519943295
+        alpha = posvel[:, 4] * 0.017453292519943295
+        beta = posvel[:, 5] * 0.017453292519943295
 
         # Trailing arm
-        x_trail = x + (Dr * qnp.cos(theta) * qnp.cos(phi)  )[:, qnp.newaxis] * x_new_hat \
-                    + (Dr * qnp.cos(theta) * qnp.sin(phi)  )[:, qnp.newaxis] * y_new_hat \
-                    + (Dr * qnp.sin(theta)                 )[:, qnp.newaxis] * z_new_hat
-        v_trail = v + (Dv * qnp.cos(beta)  * qnp.cos(alpha))[:, qnp.newaxis] * x_new_hat \
-                    + (Dv * qnp.cos(beta)  * qnp.sin(alpha))[:, qnp.newaxis] * y_new_hat \
-                    + (Dv * qnp.sin(beta)                  )[:, qnp.newaxis] * z_new_hat
+        x_trail = (
+            x
+            + (Dr * qnp.cos(theta) * qnp.cos(phi))[:, qnp.newaxis] * x_new_hat
+            + (Dr * qnp.cos(theta) * qnp.sin(phi))[:, qnp.newaxis] * y_new_hat
+            + (Dr * qnp.sin(theta))[:, qnp.newaxis] * z_new_hat
+        )
+        v_trail = (
+            v
+            + (Dv * qnp.cos(beta) * qnp.cos(alpha))[:, qnp.newaxis] * x_new_hat
+            + (Dv * qnp.cos(beta) * qnp.sin(alpha))[:, qnp.newaxis] * y_new_hat
+            + (Dv * qnp.sin(beta))[:, qnp.newaxis] * z_new_hat
+        )
 
         # Leading arm
-        x_lead  = x - (Dr * qnp.cos(theta) * qnp.cos(phi)  )[:, qnp.newaxis] * x_new_hat \
-                    - (Dr * qnp.cos(theta) * qnp.sin(phi)  )[:, qnp.newaxis] * y_new_hat \
-                    + (Dr * qnp.sin(theta)                 )[:, qnp.newaxis] * z_new_hat
-        v_lead  = v - (Dv * qnp.cos(beta)  * qnp.cos(alpha))[:, qnp.newaxis] * x_new_hat \
-                    - (Dv * qnp.cos(beta)  * qnp.sin(alpha))[:, qnp.newaxis] * y_new_hat \
-                    + (Dv * qnp.sin(beta)                  )[:, qnp.newaxis] * z_new_hat
+        x_lead = (
+            x
+            - (Dr * qnp.cos(theta) * qnp.cos(phi))[:, qnp.newaxis] * x_new_hat
+            - (Dr * qnp.cos(theta) * qnp.sin(phi))[:, qnp.newaxis] * y_new_hat
+            + (Dr * qnp.sin(theta))[:, qnp.newaxis] * z_new_hat
+        )
+        v_lead = (
+            v
+            - (Dv * qnp.cos(beta) * qnp.cos(alpha))[:, qnp.newaxis] * x_new_hat
+            - (Dv * qnp.cos(beta) * qnp.sin(alpha))[:, qnp.newaxis] * y_new_hat
+            + (Dv * qnp.sin(beta))[:, qnp.newaxis] * z_new_hat
+        )
 
         return x_lead, v_lead, x_trail, v_trail
 
 
 #####################################################################
 # TODO: move this to a more general location.
+
 
 @partial(jax.jit, inline=True)
 def escape_velocity(
@@ -134,7 +151,7 @@ def escape_velocity(
     Quantity[float, (), "velocity"]
         Escape velocity at the radius.
     """
-    return qnp.sqrt(2*potential.constants["G"]*prog_mass/rad)
+    return qnp.sqrt(2 * potential.constants["G"] * prog_mass / rad)
 
 
 #####################################################################

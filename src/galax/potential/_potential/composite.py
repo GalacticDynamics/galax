@@ -119,7 +119,7 @@ def replace(
 
     Examples
     --------
-    >>> from dataclasstools import replace
+    >>> from dataclassish import replace
     >>> from unxt import Quantity
     >>> import galax.potential as gp
 
@@ -150,7 +150,7 @@ def replace(
 
     Examples
     --------
-    >>> from dataclasstools import replace
+    >>> from dataclassish import replace
     >>> from unxt import Quantity
     >>> import galax.potential as gp
 

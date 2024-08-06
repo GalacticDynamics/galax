@@ -16,7 +16,7 @@ from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.array_api as xp
-from dataclasstools import field_items
+from dataclassish import field_items
 from unxt import Quantity, unitsystem
 
 import galax.typing as gt
@@ -719,7 +719,7 @@ def add(
 
     If the times are different, an error is raised:
 
-    >>> from dataclasstools import replace
+    >>> from dataclassish import replace
     >>> w4 = replace(w2, t=Quantity(1, "Gyr"))
     >>> try: w1 + w4
     ... except ValueError as e: print(e)

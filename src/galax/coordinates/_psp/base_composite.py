@@ -13,7 +13,7 @@ from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from dataclasstools import field_items
+from dataclassish import field_items
 from immutable_map_jax import ImmutableMap
 from unxt import Quantity
 
@@ -284,7 +284,7 @@ def replace(
     Examples
     --------
     >>> import galax.coordinates as gc
-    >>> from dataclasstools import replace
+    >>> from dataclassish import replace
 
     We define a composite phase-space position with two components.
     Every component is a phase-space position in Cartesian coordinates.
@@ -329,7 +329,7 @@ def replace(
     Examples
     --------
     >>> import galax.coordinates as gc
-    >>> from dataclasstools import replace
+    >>> from dataclassish import replace
 
     We define a composite phase-space position with two components. Every
     component is a phase-space position in Cartesian coordinates.

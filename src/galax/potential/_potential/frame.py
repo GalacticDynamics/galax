@@ -9,8 +9,8 @@ from typing import cast, final
 import equinox as eqx
 
 from coordinax.operators import OperatorSequence, simplify_op
-from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity
+from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from .base import AbstractPotentialBase

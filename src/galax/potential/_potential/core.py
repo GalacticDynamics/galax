@@ -7,8 +7,8 @@ from typing import Any
 
 import equinox as eqx
 
-from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
+from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from .base import AbstractPotentialBase, default_constants

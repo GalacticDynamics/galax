@@ -13,8 +13,8 @@ import jax.numpy as jnp
 from diffrax import DenseInterpolation
 from jax._src.numpy.vectorize import _parse_gufunc_signature, _parse_input_dimensions
 
-from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
+from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
 import galax.typing as gt

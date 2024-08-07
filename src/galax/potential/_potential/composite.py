@@ -13,8 +13,8 @@ import jax
 from plum import dispatch
 
 import quaxed.array_api as xp
-from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
+from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
 import galax.typing as gt

@@ -575,8 +575,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         return self.kinetic_energy() + self.potential_energy(potential)
 
-    # TODO: property?
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def angular_momentum(self) -> gt.BatchQVec3:
         r"""Compute the angular momentum.
 
@@ -608,12 +607,9 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> w.angular_momentum()
         Quantity[...](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
         """
-        # TODO: keep as a vector.
-        #       https://github.com/GalacticDynamics/vector/issues/27
-        cart = self.represent_as(cx.CartesianPosition3D)
-        q = convert(cart.q, Quantity)
-        p = convert(cart.p, Quantity)
-        return xp.linalg.cross(q, p)
+        from galax.dynamics import specific_angular_momentum
+
+        return specific_angular_momentum(self)
 
 
 # =============================================================================

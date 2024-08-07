@@ -18,6 +18,10 @@ __all__ = [
     "AbstractStreamDF",
     "FardalStreamDF",
     "ChenStreamDF",
+    # functions
+    "specific_angular_momentum",
+    "lagrange_points",
+    "tidal_radius",
 ]
 
 
@@ -28,6 +32,11 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     from . import integrate, mockstream
     from ._dynamics.base import AbstractOrbit
+    from ._dynamics.funcs import (
+        lagrange_points,
+        specific_angular_momentum,
+        tidal_radius,
+    )
     from ._dynamics.integrate.funcs import evaluate_orbit
     from ._dynamics.mockstream import MockStream, MockStreamArm, MockStreamGenerator
     from ._dynamics.mockstream.df import AbstractStreamDF, ChenStreamDF, FardalStreamDF

@@ -17,7 +17,7 @@ import quaxed.numpy as qnp
 import galax.potential as gp
 import galax.typing as gt
 from .base import AbstractStreamDF
-from .fardal15 import tidal_radius
+from galax.dynamics._dynamics.funcs import tidal_radius
 
 # ============================================================
 # Constants

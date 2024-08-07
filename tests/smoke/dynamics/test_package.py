@@ -20,4 +20,8 @@ def test_all() -> None:
         "AbstractStreamDF",
         "ChenStreamDF",
         "FardalStreamDF",
+        # functions
+        "specific_angular_momentum",
+        "tidal_radius",
+        "lagrange_points",
     }

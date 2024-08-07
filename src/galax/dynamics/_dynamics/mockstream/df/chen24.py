@@ -48,11 +48,12 @@ class ChenStreamDF(AbstractStreamDF):
     https://ui.adsabs.harvard.edu/abs/2024arXiv240801496C/abstract
     """
 
-    def __init__(self):
-        super(ChenStreamDF, self).__init__()
+    def __init__(self) -> None:
+        super().__init__()
         warnings.warn(
-            '\nCurrently only the "no progenitor" version of the Chen+24 model is supported!',
-            RuntimeWarning,
+            'Currently only the "no progenitor" version '
+            'of the Chen+24 model is supported!',
+            RuntimeWarning, stacklevel=1
         )
 
     @partial(jax.jit, inline=True)

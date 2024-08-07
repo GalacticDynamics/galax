@@ -5,6 +5,7 @@ __all__ = ["ChenStreamDF"]
 
 from functools import partial
 from typing import final
+import warnings
 
 import jax
 import jax.random as jr
@@ -46,6 +47,12 @@ class ChenStreamDF(AbstractStreamDF):
     generating stellar streams based on Chen et al. 2024
     https://ui.adsabs.harvard.edu/abs/2024arXiv240801496C/abstract
     """
+
+    def __init__(self):
+        super(ChenStreamDF, self).__init__()
+        warnings.warn(
+            "\nCurrently only the \"no progenitor\" version of the Chen+24 model is supported!",
+            RuntimeWarning)
 
     @partial(jax.jit, inline=True)
     def _sample(

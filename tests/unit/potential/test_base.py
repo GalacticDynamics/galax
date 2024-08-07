@@ -11,9 +11,9 @@ from plum import convert
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity
 from unxt.unitsystems import galactic
+from xmmutablemap import ImmutableMap
 
 import galax.dynamics as gd
 import galax.potential as gp

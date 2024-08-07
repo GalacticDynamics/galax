@@ -15,9 +15,9 @@ from typing import Any, ClassVar, TypeVar, final
 import equinox as eqx
 
 import quaxed.array_api as xp
-from immutable_map_jax import ImmutableMap
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsystem
+from xmmutablemap import ImmutableMap
 
 from .builtin import HernquistPotential, MiyamotoNagaiPotential, PowerLawCutoffPotential
 from .logarithmic import LMJ09LogarithmicPotential

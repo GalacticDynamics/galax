@@ -13,8 +13,8 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
-from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity, unitsystem
+from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from galax.potential._potential.base import default_constants

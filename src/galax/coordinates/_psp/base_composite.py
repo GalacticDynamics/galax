@@ -14,8 +14,8 @@ from plum import dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 from dataclassish import field_items
-from immutable_map_jax import ImmutableMap
 from unxt import Quantity
+from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
 import galax.typing as gt
@@ -39,7 +39,7 @@ class AbstractCompositePhaseSpacePosition(
     represents a component of the system.
 
     The input signature matches that of :class:`dict` (and
-    :class:`~immutable_map_jax.ImmutableMap`), so you can pass in the components
+    :class:`~xmmutablemap.ImmutableMap`), so you can pass in the components
     as keyword arguments or as a dictionary.
 
     The components are stored as a dictionary and can be key accessed. However,

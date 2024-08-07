@@ -18,8 +18,8 @@ import coordinax as cx
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
 import unxt
-from immutable_map_jax import ImmutableMap
 from unxt import AbstractUnitSystem, Quantity
+from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from .io import (

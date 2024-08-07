@@ -13,7 +13,12 @@ from unxt import Quantity
 
 import galax.coordinates as gc
 import galax.typing as gt
-from galax.dynamics import AbstractStreamDF, ChenStreamDF, FardalStreamDF, MockStreamGenerator
+from galax.dynamics import (
+    AbstractStreamDF,
+    ChenStreamDF,
+    FardalStreamDF,
+    MockStreamGenerator,
+)
 from galax.potential import AbstractPotentialBase, NFWPotential
 
 
@@ -98,6 +103,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         assert allfinite(mock.q)
         assert allfinite(mock.p)
         assert xp.isfinite(mock.t).all()
+
 
 class TestFardalMockStreamGenerator(MockStreamGeneratorBase_Test):
     """Test the MockStreamGenerator class with FardalStreamDF."""

@@ -134,36 +134,6 @@ class ChenStreamDF(AbstractStreamDF):
 
 
 #####################################################################
-# TODO: move this to a more general location.
-
-
-@partial(jax.jit, inline=True)
-def escape_velocity(
-    potential: gp.AbstractPotentialBase,
-    rad: Shaped[Quantity["length"], "*#batch"],
-    /,
-    prog_mass: gt.MassBatchableScalar,
-) -> Float[Quantity["velocity"], "*batch"]:
-    """Compute the escape velocity of a point progenitor mass.
-
-    Parameters
-    ----------
-    potential : `galax.potential.AbstractPotentialBase`
-        The gravitational potential of the host.
-    rad: Quantity[float, (), "length"]
-        Radius.
-    prog_mass : Quantity[float, (), "mass"]
-        Cluster mass.
-
-    Returns
-    -------
-    Quantity[float, (), "velocity"]
-        Escape velocity at the radius.
-    """
-    return qnp.sqrt(2 * potential.constants["G"] * prog_mass / rad)
-
-
-#####################################################################
 # TODO: below is copied from fardal15.py
 #       Change accordingly when moved to a more general location.
 

@@ -9,17 +9,15 @@ from typing import final
 
 import jax
 import jax.random as jr
-from jaxtyping import Float, PRNGKeyArray, Shaped
+from jaxtyping import PRNGKeyArray
 
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
-from unxt import Quantity
 
 import galax.potential as gp
 import galax.typing as gt
 from .base import AbstractStreamDF
 from .fardal15 import tidal_radius
-from galax.potential._potential.funcs import d2potential_dr2
 
 # ============================================================
 # Constants

@@ -52,8 +52,9 @@ class ChenStreamDF(AbstractStreamDF):
         super().__init__()
         warnings.warn(
             'Currently only the "no progenitor" version '
-            'of the Chen+24 model is supported!',
-            RuntimeWarning, stacklevel=1
+            "of the Chen+24 model is supported!",
+            RuntimeWarning,
+            stacklevel=1,
         )
 
     @partial(jax.jit, inline=True)

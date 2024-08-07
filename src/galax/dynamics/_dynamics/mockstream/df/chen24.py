@@ -3,9 +3,9 @@
 __all__ = ["ChenStreamDF"]
 
 
+import warnings
 from functools import partial
 from typing import final
-import warnings
 
 import jax
 import jax.random as jr
@@ -51,8 +51,9 @@ class ChenStreamDF(AbstractStreamDF):
     def __init__(self):
         super(ChenStreamDF, self).__init__()
         warnings.warn(
-            "\nCurrently only the \"no progenitor\" version of the Chen+24 model is supported!",
-            RuntimeWarning)
+            '\nCurrently only the "no progenitor" version of the Chen+24 model is supported!',
+            RuntimeWarning,
+        )
 
     @partial(jax.jit, inline=True)
     def _sample(

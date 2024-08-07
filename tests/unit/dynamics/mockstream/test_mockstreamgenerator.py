@@ -1,5 +1,7 @@
 """Test :mod:`galax.dynamics.mockstream.mockstreamgenerator`."""
 
+from abc import ABCMeta, abstractmethod
+
 import jax.numpy as jnp
 import jax.random as jr
 import jax.tree_util as tu
@@ -11,17 +13,16 @@ from unxt import Quantity
 
 import galax.coordinates as gc
 import galax.typing as gt
-from galax.dynamics import AbstractStreamDF, FardalStreamDF, MockStreamGenerator
+from galax.dynamics import AbstractStreamDF, ChenStreamDF, FardalStreamDF, MockStreamGenerator
 from galax.potential import AbstractPotentialBase, NFWPotential
 
 
-class TestMockStreamGenerator:
+class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     """Test the MockStreamGenerator class."""
 
     @pytest.fixture()
-    def df(self) -> AbstractStreamDF:
-        """Mock stream DF."""
-        return FardalStreamDF()
+    @abstractmethod
+    def df(self) -> AbstractStreamDF: ...
 
     @pytest.fixture()
     def pot(self) -> NFWPotential:
@@ -97,3 +98,21 @@ class TestMockStreamGenerator:
         assert allfinite(mock.q)
         assert allfinite(mock.p)
         assert xp.isfinite(mock.t).all()
+
+class TestFardalMockStreamGenerator(MockStreamGeneratorBase_Test):
+    """Test the MockStreamGenerator class with FardalStreamDF."""
+
+    @pytest.fixture()
+    def df(self) -> AbstractStreamDF:
+        """Mock stream DF."""
+        return FardalStreamDF()
+
+
+class TestChenMockStreamGenerator(MockStreamGeneratorBase_Test):
+    """Test the MockStreamGenerator class with ChenStreamDF."""
+
+    @pytest.fixture()
+    def df(self) -> AbstractStreamDF:
+        """Mock stream DF."""
+        with pytest.warns(RuntimeWarning):
+            return ChenStreamDF()

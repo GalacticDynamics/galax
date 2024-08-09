@@ -34,7 +34,7 @@ from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
-    from galax.dynamics._dynamics.integrate.base import DiffraxIntegrator
+    from galax.dynamics._dynamics.integrate.base import Integrator
     from galax.dynamics._dynamics.orbit import Orbit
 
 
@@ -328,7 +328,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         w0: PhaseSpacePosition | gt.BatchVec6,
         t: Any,
         *,
-        integrator: "DiffraxIntegrator | None" = None,
+        integrator: "Integrator | None" = None,
         interpolated: Literal[True, False] = False,
     ) -> "Orbit":
         """Compute an orbit in a potential.
@@ -368,12 +368,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
                 This is NOT the timesteps to use for integration, which are
                 controlled by the `integrator`; the default integrator
-                :class:`~galax.integrator.DiffraxIntegrator` uses adaptive
+                :class:`~galax.integrator.Integrator` uses adaptive
                 timesteps.
 
-        integrator : :class:`~galax.integrate.DiffraxIntegrator`, keyword-only
+        integrator : :class:`~galax.integrate.Integrator`, keyword-only
             Integrator to use.  If `None`, the default integrator
-            :class:`~galax.integrator.DiffraxIntegrator` is used.
+            :class:`~galax.integrator.Integrator` is used.
 
         interpolated: bool, optional keyword-only
                 If `True`, return an interpolated orbit.  If `False`, return the orbit

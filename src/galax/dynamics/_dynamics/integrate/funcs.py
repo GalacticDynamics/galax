@@ -15,14 +15,14 @@ from unxt import Quantity
 import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
-from .base import DiffraxIntegrator
+from .base import Integrator
 from galax.dynamics._dynamics.orbit import InterpolatedOrbit, Orbit
 
 ##############################################################################
 
 
 # TODO: enable setting the default integrator
-_default_integrator: DiffraxIntegrator = DiffraxIntegrator()
+_default_integrator: Integrator = Integrator()
 
 
 _select_w0 = jax_vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
@@ -34,7 +34,7 @@ def evaluate_orbit(
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
     t: Any,
     *,
-    integrator: DiffraxIntegrator | None = None,
+    integrator: Integrator | None = None,
     interpolated: Literal[True, False] = False,
 ) -> Orbit | InterpolatedOrbit:
     """Compute an orbit in a potential.
@@ -73,12 +73,12 @@ def evaluate_orbit(
 
             This is NOT the timesteps to use for integration, which are
             controlled by the `integrator`; the default integrator
-            :class:`~galax.integrator.DiffraxIntegrator` uses adaptive
+            :class:`~galax.integrator.Integrator` uses adaptive
             timesteps.
 
-    integrator : :class:`~galax.integrate.DiffraxIntegrator`, keyword-only
+    integrator : :class:`~galax.integrate.Integrator`, keyword-only
         Integrator to use.  If `None`, the default integrator
-        :class:`~galax.integrator.DiffraxIntegrator` is used.  This integrator
+        :class:`~galax.integrator.Integrator` is used.  This integrator
         is used twice: once to integrate from `w0.t` to `t[0]` and then from
         `t[0]` to `t[1]`.
 

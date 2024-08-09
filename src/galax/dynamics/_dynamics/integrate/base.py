@@ -1,8 +1,8 @@
-__all__ = ["AbstractIntegrator"]
+__all__ = ["AbstractIntegrator", "VectorField"]
 
 import abc
 from functools import partial
-from typing import Any, Literal, TypeAlias, TypeVar
+from typing import Any, Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
 
 import equinox as eqx
 import jax
@@ -13,9 +13,9 @@ from unxt import AbstractUnitSystem, Quantity, to_units_value
 
 import galax.coordinates as gc
 import galax.typing as gt
-from .api import VectorField
 
 Interp = TypeVar("Interp")
+SaveT: TypeAlias = gt.BatchQVecTime | gt.QVecTime | gt.BatchVecTime | gt.VecTime
 Time: TypeAlias = (
     gt.TimeScalar | gt.TimeBatchableScalar | gt.RealScalar | gt.BatchableRealScalar
 )
@@ -25,6 +25,30 @@ _call_jit_kw = {
     "static_argnames": ("units", "interpolated"),
     "inline": True,
 }
+
+
+@runtime_checkable
+class VectorField(Protocol):
+    """Protocol for the integration callable."""
+
+    def __call__(self, t: gt.FloatScalar, w: gt.Vec6, args: tuple[Any, ...]) -> gt.Vec6:
+        """Integration function.
+
+        Parameters
+        ----------
+        t : float
+            The time. This is the integration variable.
+        w : Array[float, (6,)]
+            The position and velocity.
+        args : tuple[Any, ...]
+            Additional arguments.
+
+        Returns
+        -------
+        Array[float, (6,)]
+            Velocity and acceleration [v (3,), a (3,)].
+        """
+        ...
 
 
 class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, misc]

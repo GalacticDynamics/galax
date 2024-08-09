@@ -18,8 +18,7 @@ from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
 import galax.typing as gt
-from .api import VectorField
-from .base import AbstractIntegrator
+from .base import AbstractIntegrator, VectorField
 
 P = ParamSpec("P")
 R = TypeVar("R")

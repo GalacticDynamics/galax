@@ -18,5 +18,6 @@ def test_all() -> None:
         "MockStream",
         "MockStreamGenerator",
         "AbstractStreamDF",
+        "ChenStreamDF",
         "FardalStreamDF",
     }

@@ -17,6 +17,7 @@ __all__ = [
     # mockstream.df
     "AbstractStreamDF",
     "FardalStreamDF",
+    "ChenStreamDF",
 ]
 
 
@@ -29,7 +30,7 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     from ._dynamics.base import AbstractOrbit
     from ._dynamics.integrate.funcs import evaluate_orbit
     from ._dynamics.mockstream import MockStream, MockStreamArm, MockStreamGenerator
-    from ._dynamics.mockstream.df import AbstractStreamDF, FardalStreamDF
+    from ._dynamics.mockstream.df import AbstractStreamDF, ChenStreamDF, FardalStreamDF
     from ._dynamics.orbit import InterpolatedOrbit, Orbit
 
 

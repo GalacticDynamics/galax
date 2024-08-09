@@ -15,7 +15,7 @@ from unxt import Quantity
 import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
-from .base import Integrator
+from .core import Integrator
 from galax.dynamics._dynamics.orbit import InterpolatedOrbit, Orbit
 
 ##############################################################################

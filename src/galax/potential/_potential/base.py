@@ -34,7 +34,7 @@ from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
-    from galax.dynamics._dynamics.integrate.builtin import DiffraxIntegrator
+    from galax.dynamics._dynamics.integrate.base import DiffraxIntegrator
     from galax.dynamics._dynamics.orbit import Orbit
 
 

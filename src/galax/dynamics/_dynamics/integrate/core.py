@@ -398,7 +398,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     @dispatch
     @partial(jax.jit, **_call_jit_kw)
     def __call__(
-        self: "DiffaxIntegrator",
+        self: "Integrator",
         F: VectorField,
         w0: gt.BatchVec6,
         t0: Time,
@@ -540,7 +540,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     @dispatch
     @partial(jax.jit, **_call_jit_kw)
     def __call__(
-        self: "DiffaxIntegrator",
+        self: "Integrator",
         F: VectorField,
         w0: gc.AbstractPhaseSpacePosition,
         t0: Time,
@@ -598,7 +598,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     @dispatch
     @partial(jax.jit, **_call_jit_kw)
     def __call__(
-        self: "DiffaxIntegrator",
+        self: "Integrator",
         F: VectorField,
         w0: gc.AbstractCompositePhaseSpacePosition,
         t0: Time,

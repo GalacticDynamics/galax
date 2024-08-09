@@ -34,7 +34,7 @@ from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
-    from galax.dynamics._dynamics.integrate._api import Integrator
+    from galax.dynamics._dynamics.integrate.builtin import DiffraxIntegrator
     from galax.dynamics._dynamics.orbit import Orbit
 
 
@@ -328,7 +328,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         w0: PhaseSpacePosition | gt.BatchVec6,
         t: Any,
         *,
-        integrator: "Integrator | None" = None,
+        integrator: "DiffraxIntegrator | None" = None,
         interpolated: Literal[True, False] = False,
     ) -> "Orbit":
         """Compute an orbit in a potential.
@@ -371,7 +371,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 :class:`~galax.integrator.DiffraxIntegrator` uses adaptive
                 timesteps.
 
-        integrator : :class:`~galax.integrate.Integrator`, keyword-only
+        integrator : :class:`~galax.integrate.DiffraxIntegrator`, keyword-only
             Integrator to use.  If `None`, the default integrator
             :class:`~galax.integrator.DiffraxIntegrator` is used.
 

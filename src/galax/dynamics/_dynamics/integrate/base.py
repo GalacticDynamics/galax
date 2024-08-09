@@ -32,8 +32,7 @@ class AbstractIntegrator(eqx.Module, strict=True):  # type: ignore[call-arg, mis
 
     This class is the base for the hierarchy of concrete integrator classes
     provided in this package. It is not necessary, but it is recommended, to
-    inherit from this class to implement an integrator. The Protocol
-    :class:`Integrator` must be implemented.
+    inherit from this class to implement an integrator.
 
     The integrators are classes that are used to integrate the equations of
     motion.  They must not be stateful since they are used in a functional way.

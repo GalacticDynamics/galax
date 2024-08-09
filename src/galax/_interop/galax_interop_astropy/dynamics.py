@@ -23,7 +23,7 @@ def evaluate_orbit(
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
     t: APYQuantity,
     *,
-    integrator: gd.integrate.Integrator | None = None,
+    integrator: gd.integrate.DiffraxIntegrator | None = None,
     interpolated: Literal[True, False] = False,
 ) -> gd.Orbit | gd.InterpolatedOrbit:
     out: gd.Orbit | gd.InterpolatedOrbit

@@ -20,7 +20,7 @@ import galax.typing as gt
 from .core import MockStream, MockStreamArm
 from .df import AbstractStreamDF, ProgenitorMassCallable
 from .utils import cond_reverse
-from galax.dynamics._dynamics.integrate.api import Integrator
+from galax.dynamics._dynamics.integrate.builtin import DiffraxIntegrator
 from galax.dynamics._dynamics.integrate.funcs import _default_integrator, evaluate_orbit
 from galax.dynamics._dynamics.orbit import Orbit
 from galax.potential import AbstractPotentialBase
@@ -42,12 +42,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     """Potential in which the progenitor orbits and creates a stream."""
 
     _: KW_ONLY
-    progenitor_integrator: Integrator = eqx.field(
+    progenitor_integrator: DiffraxIntegrator = eqx.field(
         default=_default_integrator, static=True
     )
     """Integrator for the progenitor orbit."""
 
-    stream_integrator: Integrator = eqx.field(default=_default_integrator, static=True)
+    stream_integrator: DiffraxIntegrator = eqx.field(
+        default=_default_integrator, static=True
+    )
     """Integrator for the stream."""
 
     @property

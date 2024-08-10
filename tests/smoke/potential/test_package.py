@@ -16,6 +16,7 @@ def test_all() -> None:
     assert set(gp.__all__) == {
         "io",
         "params",
+        "plot",
         *base.__all__,
         *builtin.__all__,
         *composite.__all__,

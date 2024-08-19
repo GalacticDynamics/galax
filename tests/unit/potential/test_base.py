@@ -42,7 +42,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
     def fields_(self, field_units: AbstractUnitSystem) -> dict[str, Any]:
         return {"units": field_units}
 
-    @pytest.fixture()
+    @pytest.fixture
     def fields(self, fields_) -> dict[str, Any]:
         return copy.copy(fields_)
 

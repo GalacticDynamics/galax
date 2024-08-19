@@ -38,12 +38,12 @@ class Test_getitem_broadscalartime_index:
 
     get_index: ClassVar = staticmethod(getitem_broadscalartime_index)
 
-    @pytest.fixture()
+    @pytest.fixture
     def t3(self) -> QVec3:
         """Return a Array[Float, 3]."""
         return Quantity([1.0, 2.0, 3.0], "Myr")
 
-    @pytest.fixture()
+    @pytest.fixture
     def t2x3(self) -> QVec2x3:
         """Return a Array[Float, 2x3]."""
         return Quantity([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], "Myr")
@@ -105,12 +105,12 @@ class Test_getitem_vec1time_index:
 
     get_index: ClassVar = staticmethod(getitem_vec1time_index)
 
-    @pytest.fixture()
+    @pytest.fixture
     def t3(self) -> QVec3:
         """Return a Array[Float, 3]."""
         return Quantity([1.0, 2.0, 3.0], "Myr")
 
-    @pytest.fixture()
+    @pytest.fixture
     def t2x3(self) -> QVec2x3:
         """Return a Array[Float, 2x3]."""
         return Quantity([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], "Myr")

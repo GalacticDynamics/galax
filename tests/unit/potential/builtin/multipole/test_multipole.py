@@ -316,13 +316,13 @@ class TestMultipolePotential(
     # ==========================================================================
     # Interoperability
 
-    @pytest.mark.xfail()
+    @pytest.mark.xfail
     def test_galax_to_gala_to_galax_roundtrip(
         self, pot: gp.AbstractPotentialBase, x: gt.QVec3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 
-    @pytest.mark.xfail()
+    @pytest.mark.xfail
     @parametrize_test_method_gala
     def test_method_gala(
         self,

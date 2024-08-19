@@ -72,7 +72,7 @@ class TestConverterToUtils:
 class FieldUnitSystemMixin:
     """Mixin for testing the ``units`` field on a ``Potential``."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def fields_unitless(self, fields: dict[str, Any]) -> dict[str, Array]:
         """Fields with no units."""
         return {

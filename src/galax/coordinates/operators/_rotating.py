@@ -13,7 +13,7 @@ import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from coordinax import AbstractPosition3D, CartesianPosition3D, CartesianVelocity3D
 from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
-from coordinax.operators._base import op_call_dispatch
+from coordinax._coordinax.operators.base import op_call_dispatch
 from unxt import Quantity
 
 from galax.coordinates._psp.base_psp import AbstractPhaseSpacePosition

@@ -18,7 +18,7 @@ from coordinax.operators import (
     GalileanTranslationOperator,
     IdentityOperator,
 )
-from coordinax.operators._base import op_call_dispatch
+from coordinax._coordinax.operators.base import op_call_dispatch
 from unxt import Quantity
 
 from .base_psp import AbstractPhaseSpacePosition

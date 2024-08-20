@@ -65,7 +65,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         t = Quantity(jr.normal(next(subkeys), shape), "Myr")
         return w_cls(q=q, p=p, t=t)
 
-    @pytest.fixture()
+    @pytest.fixture
     def w(self, w_cls: type[T], shape: gt.Shape) -> T:
         """Return a phase-space position."""
         return self.make_w(w_cls, shape)

@@ -44,7 +44,7 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
         t = Quantity(jr.normal(next(subkeys), shape[-1:]), unit=potential.units["time"])
         return w_cls(q=q, p=p, t=t, potential=potential)
 
-    @pytest.fixture()
+    @pytest.fixture
     def w(self, w_cls: type[T], shape: gt.Shape, potential: AbstractPotentialBase) -> T:
         """Return a phase-space position."""
         return self.make_w(w_cls, shape, potential)

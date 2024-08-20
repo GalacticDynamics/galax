@@ -9,6 +9,7 @@ from plum import convert
 from quax import quaxify
 
 from coordinax import CartesianVelocity3D
+from coordinax._coordinax.operators.base import op_call_dispatch
 from coordinax.operators import (
     AbstractCompositeOperator,
     AbstractOperator,
@@ -18,7 +19,6 @@ from coordinax.operators import (
     GalileanTranslationOperator,
     IdentityOperator,
 )
-from coordinax.operators._base import op_call_dispatch
 from unxt import Quantity
 
 from .base_psp import AbstractPhaseSpacePosition

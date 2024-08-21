@@ -9,64 +9,10 @@ import pytest
 from jax import Array
 from plum import NotFoundLookupError
 
-from unxt import UnitSystem, unitsystem
-from unxt.unitsystems import dimensionless, galactic, solarsystem
+from unxt import unitsystem
+from unxt.unitsystems import galactic, solarsystem
 
 from galax.potential import AbstractPotentialBase
-from galax.utils._optional_deps import HAS_GALA
-
-
-class TestConverterToUtils:
-    """Tests for `galax.potential._potential.utils.unitsystem`."""
-
-    def test_invalid(self) -> None:
-        """Test conversion from unsupported value."""
-        msg = "`unitsystem(1234567890)` could not be resolved."
-        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
-            unitsystem(1234567890)
-
-    def test_from_usys(self) -> None:
-        """Test conversion from UnitSystem."""
-        usys = UnitSystem(u.km, u.s, u.Msun, u.radian)
-        assert unitsystem(usys) == usys
-
-    def test_from_none(self) -> None:
-        """Test conversion from None."""
-        assert unitsystem(None) == dimensionless
-
-    def test_from_args(self) -> None:
-        """Test conversion from tuple."""
-        value = UnitSystem(u.km, u.s, u.Msun, u.radian)
-        assert unitsystem(value) == value
-
-    def test_from_name(self) -> None:
-        """Test conversion from named string."""
-        assert unitsystem("dimensionless") == dimensionless
-        assert unitsystem("solarsystem") == solarsystem
-        assert unitsystem("galactic") == galactic
-
-        with pytest.raises(KeyError, match="invalid_value"):
-            unitsystem("invalid_value")
-
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
-    def test_from_gala(self) -> None:
-        """Test conversion from gala."""
-        # -------------------------------
-        # UnitSystem
-        from gala.units import UnitSystem as GalaUnitSystem
-
-        value = GalaUnitSystem(u.km, u.s, u.Msun, u.radian)
-        assert unitsystem(value) == UnitSystem(*value._core_units)
-
-        # -------------------------------
-        # DimensionlessUnitSystem
-        from gala.units import DimensionlessUnitSystem as GalaDimensionlessUnitSystem
-
-        value = GalaDimensionlessUnitSystem()
-        assert unitsystem(value) == dimensionless
-
-
-# ============================================================================
 
 
 class FieldUnitSystemMixin:
@@ -89,7 +35,7 @@ class FieldUnitSystemMixin:
 
     def test_init_units_from_usys(self, pot: AbstractPotentialBase) -> None:
         """Test unit system from UnitSystem."""
-        usys = UnitSystem(u.km, u.s, u.Msun, u.radian)
+        usys = unitsystem(u.km, u.s, u.Msun, u.radian)
         assert replace(pot, units=usys).units == usys
 
     # TODO: sort this out
@@ -108,7 +54,7 @@ class FieldUnitSystemMixin:
     def test_init_units_from_tuple(self, pot: AbstractPotentialBase) -> None:
         """Test unit system from tuple."""
         units = (u.km, u.s, u.Msun, u.radian)
-        assert replace(pot, units=units).units == UnitSystem(*units)
+        assert replace(pot, units=units).units == unitsystem(*units)
 
     def test_init_units_from_name(
         self, pot_cls: type[AbstractPotentialBase], fields_unitless: dict[str, Array]

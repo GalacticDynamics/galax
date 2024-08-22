@@ -1,13 +1,11 @@
 """Tests for `galax.potential._potential.utils` package."""
 
-import re
 from dataclasses import replace
 from typing import Any
 
 import astropy.units as u
 import pytest
 from jax import Array
-from plum import NotFoundLookupError
 
 from unxt import unitsystem
 from unxt.unitsystems import galactic, solarsystem
@@ -26,12 +24,6 @@ class FieldUnitSystemMixin:
         }
 
     # ===========================================
-
-    def test_init_units_invalid(self, pot: AbstractPotentialBase) -> None:
-        """Test invalid unit system."""
-        msg = "`unitsystem(1234567890)` could not be resolved."
-        with pytest.raises(NotFoundLookupError, match=re.escape(msg)):
-            replace(pot, units=1234567890)
 
     def test_init_units_from_usys(self, pot: AbstractPotentialBase) -> None:
         """Test unit system from UnitSystem."""

@@ -2,7 +2,7 @@ __all__ = ["AbstractCompositePotential", "CompositePotential"]
 
 
 import uuid
-from collections.abc import Mapping
+from collections.abc import Hashable, Mapping
 from dataclasses import KW_ONLY
 from functools import partial
 from types import MappingProxyType
@@ -140,7 +140,7 @@ def replace(
     return type(obj)(**{**obj, **kwargs})
 
 
-@dispatch
+@dispatch(precedence=1)
 def replace(
     obj: AbstractCompositePotential,
     replacements: Mapping[str, Mapping[str, Any]],
@@ -164,9 +164,10 @@ def replace(
     Quantity['mass'](Array(1.e+12, dtype=float64), unit='solMass')
 
     """  # noqa: E501
-    # replacements is a dictionary of dictionaries for deep replacement.
-    kwargs = {k: replace(obj[k], **v) for k, v in replacements.items()}
-    return type(obj)(**{**obj, **kwargs})
+    # AbstractCompositePhaseSpacePosition is both a Mapping and a dataclass
+    # so we need to disambiguate the method to call
+    method = replace.invoke(Mapping[Hashable, Any], Mapping[str, Any])
+    return method(obj, replacements)
 
 
 ###########################################################################

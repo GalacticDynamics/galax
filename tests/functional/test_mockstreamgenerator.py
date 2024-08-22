@@ -10,14 +10,14 @@ import pytest
 from jaxtyping import PRNGKeyArray
 
 import quaxed.array_api as xp
-from unxt import Quantity, UnitSystem
+from unxt import Quantity, unitsystem
 
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
 import galax.typing as gt
 
-usys = UnitSystem(u.kpc, u.Myr, u.Msun, u.radian)
+usys = unitsystem(u.kpc, u.Myr, u.Msun, u.radian)
 df = gd.FardalStreamDF()
 
 

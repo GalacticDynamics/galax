@@ -39,7 +39,7 @@ def convert_potential(
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     KeplerPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=...
     )
@@ -229,7 +229,7 @@ def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gpx.BurkertPotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     BurkertPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )
@@ -298,7 +298,7 @@ def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gpx.HernquistPotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     HernquistPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )
@@ -359,7 +359,7 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gpx.IsochronePotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     IsochronePotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       b=ConstantParameter( ... )
@@ -420,7 +420,7 @@ def galpy_to_galax(pot: gpy.JaffePotential, /) -> gpx.JaffePotential:
     >>> pot = gpy.JaffePotential(amp=u.Quantity(1e11, "Msun"), a=1.0)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     JaffePotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )
@@ -479,7 +479,7 @@ def galpy_to_galax(pot: gpy.KeplerPotential, /) -> gpx.KeplerPotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     KeplerPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=...
     )
@@ -531,7 +531,7 @@ def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gpx.KuzminPotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     KuzminPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       a=ConstantParameter( ... )
@@ -592,7 +592,7 @@ def galpy_to_galax(
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     LongMuraliBarPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       a=ConstantParameter( ... ),
@@ -665,7 +665,7 @@ def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gpx.MiyamotoNagaiPoten
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     MiyamotoNagaiPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       a=ConstantParameter( ... ),
@@ -727,7 +727,7 @@ def galpy_to_galax(_: gpy.NullPotential, /) -> gpx.NullPotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     NullPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...})
     )
 
@@ -770,7 +770,7 @@ def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gpx.PlummerPotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     PlummerPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       b=ConstantParameter( ... )
@@ -831,7 +831,7 @@ def galpy_to_galax(
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     PowerLawCutoffPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       alpha=ConstantParameter( ... ),
@@ -900,7 +900,7 @@ def galpy_to_galax(pot: gpy.NFWPotential, /) -> gpx.NFWPotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     NFWPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )

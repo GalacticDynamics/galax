@@ -51,7 +51,7 @@ input::
     >>> mw = gp.MilkyWayPotential()
     >>> mw
     MilkyWayPotential({'disk': MiyamotoNagaiPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m_tot=ConstantParameter(
         unit=Unit("solMass"),
@@ -66,7 +66,7 @@ input::
         value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
       )
     ), 'halo': NFWPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m=ConstantParameter(
         unit=Unit("solMass"),
@@ -77,7 +77,7 @@ input::
         value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
       )
     ), 'bulge': HernquistPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m_tot=ConstantParameter(
         unit=Unit("solMass"),
@@ -88,7 +88,7 @@ input::
         value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
       )
     ), 'nucleus': HernquistPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m_tot=ConstantParameter(
         unit=Unit("solMass"),
@@ -152,7 +152,7 @@ which you can check by calling the
 object::
 
     >>> mw.units
-    UnitSystem(kpc, Myr, solMass, rad)
+    unitsystem(kpc, Myr, solMass, rad)
 
 Here, our Milky Way potential model has a unit system with dimensional units.
 Note that we could have used any length unit for the position and any velocity

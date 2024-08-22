@@ -102,7 +102,7 @@ class ParameterField:
     >>> potential = KeplerPotential(mass=1e12 * u.Msun, units="galactic")
     >>> potential
     KeplerPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       mass=ConstantParameter(
         unit=Unit("solMass"),

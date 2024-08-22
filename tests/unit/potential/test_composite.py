@@ -12,7 +12,7 @@ from typing_extensions import override
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
 from unxt import Quantity
-from unxt.unitsystems import UnitSystem, dimensionless, galactic, solarsystem
+from unxt.unitsystems import dimensionless, galactic, solarsystem, unitsystem
 from zeroth import zeroth
 
 import galax.potential as gp
@@ -63,8 +63,8 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
         pot_cls: type[AbstractCompositePotential],
         pot_map: Mapping[str, Any],
     ) -> None:
-        """Test unit system from UnitSystem."""
-        usys = UnitSystem(u.km, u.s, u.Msun, u.radian)
+        """Test unit system from unitsystem."""
+        usys = unitsystem(u.km, u.s, u.Msun, u.radian)
         assert pot_cls(**pot_map, units=usys).units == usys
 
     @override
@@ -75,7 +75,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     ) -> None:
         """Test unit system from tuple."""
         units = (u.km, u.s, u.Msun, u.radian)
-        assert pot_cls(**pot_map, units=units).units == UnitSystem(*units)
+        assert pot_cls(**pot_map, units=units).units == unitsystem(*units)
 
     @override
     def test_init_units_from_name(
@@ -259,7 +259,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         pot_map: Mapping[str, AbstractPotentialBase],
     ) -> None:
         """Test unit system from UnitSystem."""
-        usys = UnitSystem(u.km, u.s, u.Msun, u.radian)
+        usys = unitsystem(u.km, u.s, u.Msun, u.radian)
         pot_map_ = {k: replace(v, units=usys) for k, v in pot_map.items()}
         assert pot_cls(**pot_map_, units=usys).units == usys
 
@@ -283,7 +283,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         """Test unit system from tuple."""
         units = (u.km, u.s, u.Msun, u.radian)
         pot_map = {k: replace(v, units=units) for k, v in pot_map.items()}
-        assert pot_cls(**pot_map, units=units).units == UnitSystem(*units)
+        assert pot_cls(**pot_map, units=units).units == unitsystem(*units)
 
     @override
     def test_init_units_from_name(

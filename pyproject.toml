@@ -27,8 +27,8 @@ classifiers = [
 dependencies = [
   "astropy >= 6.0",
   "beartype >= 0.18",
-  "coordinax >= 0.8",
-  "dataclassish",
+  "coordinax >= 0.9.3",
+  "dataclassish >= 0.2",
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
   "jax >= 0.4, != 0.4.27",
@@ -36,11 +36,11 @@ dependencies = [
   "lazy_loader >= 0.4",
   "packaging",  # for optional dependencies
   "quax >= 0.0.3",
-  "quaxed >= 0.4",
+  "quaxed >= 0.5",
   "typing_extensions >= 4.11",
-  "unxt",
-  "xmmutablemap",
-  "zeroth",
+  "unxt >= 0.15",
+  "xmmutablemap >= 0.1",
+  "zeroth >= 0.1",
 ]
 description = "Galactic Dynamics in Jax."
 dynamic = ["version"]

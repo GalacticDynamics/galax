@@ -46,7 +46,7 @@ def convert_potential(
     >>> pot = galap.KeplerPotential(m=1e11, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     KeplerPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
 
@@ -292,7 +292,7 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
         >>> pot = galap.BurkertPotential(rho=4, r0=20, units=galactic)
         >>> gpx.io.convert_potential(gp.io.GalaxLibrary, pot)
         BurkertPotential(
-        units=UnitSystem(kpc, Myr, solMass, rad),
+        units=LTMAUnitSystem( length=Unit("kpc"), ...),
         constants=ImmutableMap({'G': ...}),
         m=ConstantParameter( ... ),
         r_s=ConstantParameter( ... )
@@ -358,7 +358,7 @@ def gala_to_galax(
     >>> pot = galap.HernquistPotential(m=1e11, c=20, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     HernquistPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )
@@ -414,7 +414,7 @@ def gala_to_galax(
     >>> pot = galap.IsochronePotential(m=1e11, b=10, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     IsochronePotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       b=ConstantParameter( ... )
@@ -473,7 +473,7 @@ def gala_to_galax(
     >>> pot = galap.JaffePotential(m=1e11, c=20, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     JaffePotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )
@@ -529,7 +529,7 @@ def gala_to_galax(
     >>> pot = galap.KeplerPotential(m=1e11, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     KeplerPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
     """  # noqa: E501
@@ -586,7 +586,7 @@ def gala_to_galax(
     >>> pot = galap.KuzminPotential(m=1e11, a=20, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     KuzminPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=...,
       a=...
@@ -646,7 +646,7 @@ def gala_to_galax(
     >>> pot = galap.LongMuraliBarPotential(m=1e11, a=20, b=10, c=5, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     LongMuraliBarPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': Quantity...}),
       m_tot=ConstantParameter( ... ),
       a=ConstantParameter( ... ),
@@ -720,7 +720,7 @@ def gala_to_galax(
     >>> pot = galap.MiyamotoNagaiPotential(m=1e11, a=6.5, b=0.26, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     MiyamotoNagaiPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       a=ConstantParameter( ... ),
@@ -778,7 +778,7 @@ def gala_to_galax(pot: gp.NullPotential, /) -> gpx.NullPotential:
     >>> pot = gp.NullPotential()
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     NullPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...})
     )
 
@@ -824,7 +824,7 @@ def gala_to_galax(
     >>> pot = galap.PlummerPotential(m=1e11, b=1, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     PlummerPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       b=ConstantParameter( ... )
@@ -889,7 +889,7 @@ def gala_to_galax(
     >>> pot = galap.PowerLawCutoffPotential(m=1e11, alpha=1.8, r_c=20, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     PowerLawCutoffPotential(
-        units=UnitSystem(kpc, Myr, solMass, rad),
+        units=LTMAUnitSystem( length=Unit("kpc"), ...),
         constants=ImmutableMap({'G': ...}),
         m_tot=ConstantParameter( ... ),
         alpha=ConstantParameter( ... ),
@@ -959,7 +959,7 @@ def gala_to_galax(
     >>> pot = galap.SatohPotential(m=1e11, a=20, b=10, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     SatohPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       a=ConstantParameter( ... ),
@@ -1017,7 +1017,7 @@ def gala_to_galax(
     >>> pot = galap.StonePotential(m=1e11, r_c=20, r_h=10, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     StoneOstriker15Potential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
       r_c=ConstantParameter( ... ),
@@ -1081,7 +1081,7 @@ def gala_to_galax(
     >>> pot = galap.LogarithmicPotential(v_c=220, r_h=20, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     LogarithmicPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       v_c=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )
@@ -1251,7 +1251,7 @@ def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialF
     >>> gpot = gp.NFWPotential(m=1e12, r_s=20, units=gu.galactic)
     >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     NFWPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m=ConstantParameter( ... ),
       r_s=ConstantParameter( ... )
@@ -1279,7 +1279,7 @@ def gala_to_galax(
     ...     v_c=220, r_s=20, a=1, b=0.9, c=0.8, units=gu.galactic )
     >>> gpx.io.convert_potential(gpx.io.GalaxLibrary, gpot)
     LeeSutoTriaxialNFWPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m=ConstantParameter( ... ),
       r_s=ConstantParameter( ... ),
@@ -1321,7 +1321,7 @@ def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialF
     >>> pot = galap.NFWPotential(m=1e12, r_s=20, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     NFWPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
       r_s=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) )
@@ -1375,7 +1375,7 @@ def gala_to_galax(
     ...     v_c=220, r_s=20, a=1, b=0.9, c=0.8, units=galactic )
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     LeeSutoTriaxialNFWPotential(
-      units=UnitSystem(kpc, Myr, solMass, rad),
+      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m=ConstantParameter( ... ),
       r_s=ConstantParameter( ... ),

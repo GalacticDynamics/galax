@@ -36,11 +36,11 @@ dependencies = [
   "lazy_loader >= 0.4",
   "packaging",  # for optional dependencies
   "quax >= 0.0.3",
-  "quaxed >= 0.4",
+  "quaxed >= 0.5",
   "typing_extensions >= 4.11",
-  "unxt",
-  "xmmutablemap",
-  "zeroth",
+  "unxt >= 0.15",
+  "xmmutablemap >= 0.1",
+  "zeroth >= 0.1",
 ]
 description = "Galactic Dynamics in Jax."
 dynamic = ["version"]

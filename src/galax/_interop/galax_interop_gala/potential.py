@@ -327,6 +327,7 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
 
         >>> pot = gp.BurkertPotential(m=Quantity(1e11, "Msun"), r_s=Quantity(20, "kpc"), units="galactic")
         >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
+        <BurkertPotential: rho=7.82e+06, r0=20.00 (kpc,Myr,solMass,rad)>
 
         .. skip: end
 

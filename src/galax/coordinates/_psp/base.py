@@ -17,7 +17,7 @@ from plum import convert, dispatch
 import coordinax as cx
 import quaxed.array_api as xp
 from dataclassish import field_items
-from unxt import Quantity, unitsystem
+from unxt import Quantity, UncheckedQuantity as FastQ, unitsystem
 
 import galax.typing as gt
 
@@ -291,9 +291,11 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(cx.CartesianPosition3D).to_units(usys)
-        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
-        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
+        cart = self.represent_as(cx.CartesianPosition3D)
+        q = xp.broadcast_to(convert(cart.q, FastQ).decompose(usys), (*batch, comps.q))
+        p = xp.broadcast_to(  # TODO: convert to FastQ
+            convert(cart.p, Quantity).decompose(usys), (*batch, comps.p)
+        )
         return xp.concat((q.value, p.value), axis=-1)
 
     def wt(self, *, units: Any) -> gt.BatchVec7:

@@ -143,7 +143,7 @@ class BurkertPotential(AbstractPotential):
         >>> pot = BurkertPotential.from_central_density(rho_0, r_s, units="galactic")
         >>> pot
         BurkertPotential(
-            units=UnitSystem(kpc, Myr, solMass, rad),
+            units=LTMAUnitSystem( length=Unit("kpc"), ...),
             constants=ImmutableMap({'G': ...}),
             m=ConstantParameter( ... ),
             r_s=ConstantParameter( ... )

@@ -3,7 +3,7 @@
 __all__ = ["AbstractCompositePhaseSpacePosition"]
 
 from abc import abstractmethod
-from collections.abc import Mapping
+from collections.abc import Hashable, Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
@@ -318,10 +318,10 @@ def replace(
     return type(obj)(**{**obj, **kwargs})
 
 
-@dispatch
+@dispatch(precedence=1)
 def replace(
     obj: AbstractCompositePhaseSpacePosition,
-    replacements: Mapping[str, Mapping[str, Any]],
+    replacements: Mapping[str, Any],
     /,
 ) -> AbstractCompositePhaseSpacePosition:
     """Replace the components of the composite phase-space position.
@@ -349,6 +349,7 @@ def replace(
     ...                        "psp2": {"t": Quantity(11.0, "s")}})
 
     """
-    # replacements is a dictionary of dictionaries for deep replacement.
-    kwargs = {k: replace(obj[k], **v) for k, v in replacements.items()}
-    return type(obj)(**{**obj, **kwargs})
+    # AbstractCompositePhaseSpacePosition is both a Mapping and a dataclass
+    # so we need to disambiguate the method to call
+    method = replace.invoke(Mapping[Hashable, Any], Mapping[str, Any])
+    return method(obj, replacements)

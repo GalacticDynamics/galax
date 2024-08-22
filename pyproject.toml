@@ -53,16 +53,17 @@ requires-python = ">=3.11"
 # All runtime dependencies
 all = ["galax[interop-all]"]
 # Interoperability dependencies
-interop-all = ["galax[interop-astropy]", "galax[interop-gala]", "galax[interop-galpy]"]
+interop-all = [
+  "galax[interop-astropy]",
+  "galax[interop-gala]",
+  "galax[interop-galpy]"
+]
 interop-astropy = [
   "astropy >= 6.0",
 ]
 interop-gala = [
   "galax[interop-astropy]",
-  "gala",
-  # Temporary
-  "astropy < 6.1",
-  "numpy < 2.0",
+  "gala >= 1.9",
 ]
 interop-galpy = [
   "galax[interop-astropy]",
@@ -78,6 +79,7 @@ docs = [
   "furo>=2023.08.17",
 ]
 # Test dependencies
+test-all = ["galax[all,test]", "galax[test-mpl]"]
 test = [
   # "hypothesis[numpy]",
   "nox",
@@ -87,12 +89,9 @@ test = [
   "pytest-arraydiff",
   "sybil",
 ]
+test-mpl = ["pytest-mpl"]
 # Development dependencies
-dev = [
-  "galax[all]",
-  "galax[docs]",
-  "galax[test]",
-]
+dev = ["galax[all,docs,test-all]"]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"

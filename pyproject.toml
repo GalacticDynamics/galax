@@ -28,7 +28,7 @@ dependencies = [
   "astropy >= 6.0",
   "beartype >= 0.18",
   "coordinax >= 0.9",
-  "dataclassish",
+  "dataclassish >= 0.2",
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
   "jax >= 0.4, != 0.4.27",

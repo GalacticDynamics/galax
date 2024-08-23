@@ -56,6 +56,9 @@ class PlotDescriptor(InstanceDescriptor[BndTo]):
         return plot_density_contours(self.enclosing, backend, **kwargs)
 
 
+# --------------------------------------------------
+
+
 @dispatch.abstract  # type: ignore[misc]
 def plot_potential_contours(
     pot: ProxyAbstractPotentialBase,  # type: ignore[valid-type]  # noqa: ARG001

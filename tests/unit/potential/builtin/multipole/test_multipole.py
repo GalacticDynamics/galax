@@ -33,7 +33,7 @@ class ParameterISlmMixin(ParameterAngularCoefficientsMixin):
         """ISlm parameter."""
         ISlm = jnp.zeros((field_l_max + 1, field_l_max + 1))
         ISlm = ISlm.at[1, 0].set(5.0)
-        return ISlm  # noqa: RET504
+        return ISlm
 
     # =====================================================
 
@@ -126,7 +126,7 @@ class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
         """OSlm parameter."""
         OSlm = jnp.zeros((field_l_max + 1, field_l_max + 1))
         OSlm = OSlm.at[1, 0].set(5.0)
-        return OSlm  # noqa: RET504
+        return OSlm
 
     # =====================================================
 

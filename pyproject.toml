@@ -83,13 +83,14 @@ docs = [
 # Test dependencies
 test-all = ["galax[all,test]", "galax[test-mpl]"]
 test = [
-  # "hypothesis[numpy]",
   "nox",
   "pre-commit",
   "pytest >=6",
   "pytest-cov >=3",
   "pytest-arraydiff",
   "sybil",
+  # temporary
+  "numpy>=2.1"
 ]
 test-mpl = ["pytest-mpl"]
 # Development dependencies

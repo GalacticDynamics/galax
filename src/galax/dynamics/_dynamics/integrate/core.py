@@ -6,7 +6,6 @@ from dataclasses import KW_ONLY
 from functools import partial
 from typing import (
     Any,
-    ClassVar,
     Literal,
     ParamSpec,
     Protocol,
@@ -104,8 +103,6 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
     in an extra dimension when the integration was on a scalar input.
     """
 
-    # TODO: better time annotation
-    # @partial(jax.jit)
     def __call__(self, t: Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
         # Parse t
@@ -113,6 +110,8 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
 
         # Evaluate the interpolation
         ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)
+
+        # Squeeze the output
         extra_dims: int = ys.ndim - 3 + self.added_ndim + (t_.ndim - t.ndim)
         ys = ys[(0,) * extra_dims]
 
@@ -124,9 +123,9 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
         )
 
 
-@no_type_check  # TODO: jaxtyping doesn't respect
+@no_type_check
 def vectorize(
-    pyfunc: "Callable[P, R]", *, signature: str | None = None
+    pyfunc: Callable[P, R], *, signature: str | None = None
 ) -> "Callable[P, R]":
     """Vectorize a function.
 
@@ -143,9 +142,9 @@ def vectorize(
 
     """
 
-    @no_type_check  # TODO: jaxtyping doesn't respect
+    @no_type_check
     @functools.wraps(pyfunc)
-    def wrapped(*args: Any, **_: Any) -> R:  # TODO: P.args, P.kwargs
+    def wrapped(*args: P.args, **_: P.kwargs) -> R:
         vectorized_func = pyfunc
         input_core_dims, _ = _parse_gufunc_signature(signature)
         broadcast_shape, _ = _parse_input_dimensions(args, input_core_dims, "")
@@ -324,63 +323,12 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         default=(("scan_kind", "bounded"),), static=True, converter=ImmutableMap
     )
 
-    InterpolantClass: ClassVar[type[gc.PhaseSpacePositionInterpolant]] = (
-        DiffraxInterpolant
-    )
-
     # =====================================================
     # Call
 
-    @partial(eqx.filter_jit)
-    def _call_implementation(
-        self,
-        F: VectorField,
-        w0: gt.BatchVec6,
-        t0: gt.FloatScalar,
-        t1: gt.FloatScalar,
-        ts: gt.BatchVecTime | gt.VecTime,
-        /,
-        interpolated: Literal[False, True],
-    ) -> tuple[gt.BatchVecTime7, DenseInterpolation | None]:
-        # TODO: less awkward munging of the diffrax API
-        kw = dict(self.diffeq_kw)
-        if interpolated and kw.get("max_steps") is None:
-            kw.pop("max_steps")
-
-        terms = diffrax.ODETerm(F)
-        solver = self.Solver(**self.solver_kw)
-
-        # TODO: can the vectorize be pushed into diffeqsolve?
-        @partial(vectorize, signature="(6),(),(),(T)->()")
-        def solve_diffeq(
-            w0: gt.Vec6, t0: gt.FloatScalar, t1: gt.FloatScalar, ts: gt.VecTime
-        ) -> diffrax.Solution:
-            return diffrax.diffeqsolve(
-                terms=terms,
-                solver=solver,
-                t0=t0,
-                t1=t1,
-                y0=w0,
-                dt0=None,
-                args=(),
-                saveat=diffrax.SaveAt(t0=False, t1=False, ts=ts, dense=interpolated),
-                stepsize_controller=self.stepsize_controller,
-                **kw,
-            )
-
-        # Perform the integration
-        solution = solve_diffeq(w0, t0, t1, jnp.atleast_2d(ts))
-
-        # Parse the solution
-        w = jnp.concat((solution.ys, solution.ts[..., None]), axis=-1)
-        w = w[None] if w0.shape[0] == 1 else w  # re-add squeezed batch dim
-        interp = solution.interpolation
-
-        return w, interp
-
-    def _process_interpolation(
-        self, interp: DenseInterpolation, w0: gt.BatchVec6
-    ) -> tuple[DenseInterpolation, int]:
+    def _process_interp(
+        self, interp: DenseInterpolation, w0: gt.BatchVec6, units: AbstractUnitSystem
+    ) -> gc.PhaseSpacePositionInterpolant:
         # Determine if an extra dimension was added to the output
         added_ndim = int(w0.shape[:-1] in ((), (1,)))
         # If one was, then the interpolant must be reshaped since the input
@@ -390,7 +338,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             arr = jax.tree_util.tree_map(lambda x: x[None], arr)
             interp = eqx.combine(arr, narr)
 
-        return interp, added_ndim
+        return DiffraxInterpolant(interp, units=units, added_ndim=added_ndim)
 
     # -----------------------------------------------------
 
@@ -501,41 +449,73 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         (2,)
 
         """
+        # ---------------------------------------
         # Parse inputs
+
         t0_: gt.VecTime = to_units_value(t0, units["time"])
         t1_: gt.VecTime = to_units_value(t1, units["time"])
         # Either save at `saveat` or at the final time. The final time is
         # a scalar and the saveat is a vector, so a dimension is added.
-        saveat_ = (
+        ts = (
             xp.asarray([t1_])
             if saveat is None
             else to_units_value(saveat, units["time"])
         )
 
+        diffeq_kw = dict(self.diffeq_kw)
+        if interpolated and diffeq_kw.get("max_steps") is None:
+            diffeq_kw.pop("max_steps")
+
+        # ---------------------------------------
         # Perform the integration
-        w, interp = self._call_implementation(F, w0, t0_, t1_, saveat_, interpolated)
-        w = w[..., -1, :] if saveat is None else w  # get rid of added dimension
 
+        terms = diffrax.ODETerm(F)
+        solver = self.Solver(**self.solver_kw)
+
+        # TODO: can the vectorize be pushed into diffeqsolve?
+        @partial(vectorize, signature="(6),(),(),(T)->()")
+        def solve_diffeq(
+            w0: gt.Vec6, t0: gt.FloatScalar, t1: gt.FloatScalar, ts: gt.VecTime
+        ) -> diffrax.Solution:
+            return diffrax.diffeqsolve(
+                terms=terms,
+                solver=solver,
+                t0=t0,
+                t1=t1,
+                y0=w0,
+                dt0=None,
+                args=(),
+                saveat=diffrax.SaveAt(t0=False, t1=False, ts=ts, dense=interpolated),
+                stepsize_controller=self.stepsize_controller,
+                **diffeq_kw,
+            )
+
+        # Perform the integration
+        solution = solve_diffeq(w0, t0_, t1_, jnp.atleast_2d(ts))
+
+        # Parse the solution
+        w = jnp.concat((solution.ys, solution.ts[..., None]), axis=-1)
+        w = w[None] if w0.shape[0] == 1 else w  # spatial dimensions
+        w = w[..., -1, :] if saveat is None else w  # time dimensions
+
+        # ---------------------------------------
         # Return
+
         if interpolated:
-            interp, added_ndim = self._process_interpolation(interp, w0)
-
-            out = gc.InterpolatedPhaseSpacePosition(  # shape = (*batch, T)
-                q=Quantity(w[..., 0:3], units["length"]),
-                p=Quantity(w[..., 3:6], units["speed"]),
-                t=Quantity(saveat_, units["time"]),
-                interpolant=self.InterpolantClass(
-                    interp, units=units, added_ndim=added_ndim
-                ),
-            )
+            out_cls = gc.InterpolatedPhaseSpacePosition
+            out_kw = {
+                "interpolant": self._process_interp(solution.interpolation, w0, units)
+            }
         else:
-            out = gc.PhaseSpacePosition(  # shape = (*batch, T)
-                q=Quantity(w[..., 0:3], units["length"]),
-                p=Quantity(w[..., 3:6], units["speed"]),
-                t=Quantity(w[..., -1], units["time"]),
-            )
+            out_cls = gc.PhaseSpacePosition
+            out_kw = {}
 
-        return out
+        return out_cls(  # shape = (*batch, T)
+            q=Quantity(w[..., 0:3], units["length"]),
+            p=Quantity(w[..., 3:6], units["speed"]),
+            t=Quantity(w[..., -1], units["time"]),
+            **out_kw,
+        )
 
     @dispatch
     @partial(jax.jit, **_call_jit_kw)

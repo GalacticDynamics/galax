@@ -104,8 +104,6 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
     in an extra dimension when the integration was on a scalar input.
     """
 
-    # TODO: better time annotation
-    # @partial(jax.jit)
     def __call__(self, t: Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
         # Parse t
@@ -113,6 +111,8 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
 
         # Evaluate the interpolation
         ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)
+
+        # Squeeze the output
         extra_dims: int = ys.ndim - 3 + self.added_ndim + (t_.ndim - t.ndim)
         ys = ys[(0,) * extra_dims]
 
@@ -124,9 +124,9 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
         )
 
 
-@no_type_check  # TODO: jaxtyping doesn't respect
+@no_type_check
 def vectorize(
-    pyfunc: "Callable[P, R]", *, signature: str | None = None
+    pyfunc: Callable[P, R], *, signature: str | None = None
 ) -> "Callable[P, R]":
     """Vectorize a function.
 
@@ -143,9 +143,9 @@ def vectorize(
 
     """
 
-    @no_type_check  # TODO: jaxtyping doesn't respect
+    @no_type_check
     @functools.wraps(pyfunc)
-    def wrapped(*args: Any, **_: Any) -> R:  # TODO: P.args, P.kwargs
+    def wrapped(*args: P.args, **_: P.kwargs) -> R:
         vectorized_func = pyfunc
         input_core_dims, _ = _parse_gufunc_signature(signature)
         broadcast_shape, _ = _parse_input_dimensions(args, input_core_dims, "")

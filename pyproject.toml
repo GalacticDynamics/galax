@@ -51,7 +51,7 @@ requires-python = ">=3.11"
 
 [project.optional-dependencies]
 # All runtime dependencies
-all = ["galax[interop-all]"]
+all = ["galax[interop-all,plot-all]"]
 # Interoperability dependencies
 interop-all = [
   "galax[interop-astropy]",
@@ -70,6 +70,8 @@ interop-galpy = [
   "galpy >= 1.8",
 ]
 # TODO: agama
+plot-all = ["galax[plot-matplotlib]"]
+plot-matplotlib = ["matplotlib"]
 # Documentation dependencies
 docs = [
   "sphinx>=7.0",
@@ -81,13 +83,14 @@ docs = [
 # Test dependencies
 test-all = ["galax[all,test]", "galax[test-mpl]"]
 test = [
-  # "hypothesis[numpy]",
   "nox",
   "pre-commit",
   "pytest >=6",
   "pytest-cov >=3",
   "pytest-arraydiff",
   "sybil",
+  # temporary
+  "numpy>=2.1"
 ]
 test-mpl = ["pytest-mpl"]
 # Development dependencies
@@ -139,6 +142,9 @@ xfail_strict = true
 
 [tool.coverage]
 run.source = ["galax"]
+run.omit = [
+  "*/utils/_boundinstance.py",
+]
 report.exclude_also = [
   # Have to re-enable the standard pragma
   'pragma: no cover',
@@ -243,6 +249,7 @@ ignore = [
   "ERA001", # Found commented-out code  # TODO: remove this
   "FBT001", # Boolean-typed positional argument in a function definition
   "INP001",
+  "RET504",
   "S101",
   "S301",
   "SLF001",

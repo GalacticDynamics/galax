@@ -30,7 +30,7 @@ class ParameterSlmMixin(ParameterAngularCoefficientsMixin):
         """Slm parameter."""
         Slm = jnp.zeros((field_l_max + 1, field_l_max + 1))
         Slm = Slm.at[1, 0].set(5.0)
-        return Slm  # noqa: RET504
+        return Slm
 
     # =====================================================
 

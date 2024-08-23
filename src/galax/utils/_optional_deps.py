@@ -39,3 +39,6 @@ else:
 
 
 HAS_GALPY: Version | Literal[False] = get_version("galpy")
+
+HAS_MATPLOTLIB: Version | Literal[False] = get_version("matplotlib")
+"""Whether matplotlib is installed."""

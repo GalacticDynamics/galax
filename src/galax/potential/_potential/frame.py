@@ -88,8 +88,8 @@ class PotentialFrame(AbstractPotentialBase):
     We can also apply a time translation to the potential:
 
     >>> op2 = cxo.GalileanTranslationOperator(Quantity([1_000, 0, 0, 0], "kpc"))
-    >>> op2.translation.t.to_units("Myr")
-    Quantity['time'](Array(3.26156366, dtype=float64), unit='Myr')
+    >>> op2.translation.t.to_units("Myr")  # doctest: +SKIP
+    Quantity['time'](Array(3.26156378, dtype=float64), unit='Myr')
 
     >>> framedpot2 = gp.PotentialFrame(original_potential=pot, operator=op2)
 

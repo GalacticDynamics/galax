@@ -1,4 +1,7 @@
-"""Copyright (c) 2023 galax maintainers. All rights reserved."""
+"""Galax package setup.
+
+Copyright (c) 2023 galax maintainers. All rights reserved.
+"""
 
 import os
 

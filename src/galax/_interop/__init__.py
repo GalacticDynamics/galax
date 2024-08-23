@@ -13,3 +13,6 @@ if _optional_deps.HAS_GALA:
 
 if _optional_deps.HAS_GALPY:
     from . import galax_interop_galpy
+
+if _optional_deps.HAS_MATPLOTLIB:
+    from . import matplotlib

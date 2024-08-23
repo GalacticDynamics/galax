@@ -2,13 +2,15 @@
 
 __all__ = [
     # Functions
-    "plot_contours",
+    "plot_potential_contours",
     # Backends
     "AbstractPlottingBackend",
+    "MatplotlibBackend",
 ]
 
 
 from ._potential.plot import (
     AbstractPlottingBackend,
-    plot_contours,
+    MatplotlibBackend,
+    plot_potential_contours,
 )

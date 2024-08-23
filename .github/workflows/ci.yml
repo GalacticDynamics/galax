@@ -92,7 +92,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   check_interop:
-    name: Check interoperability
+    name: Check Interoperability
     runs-on: ${{ matrix.runs-on }}
     needs: [smoke]
     strategy:
@@ -112,13 +112,13 @@ jobs:
           allow-prereleases: true
 
       - name: Install package
-        run: python -m pip install '.[test,interop-all]'
+        run: python -m pip install '.[all,test-all]'
 
       - name: Test package
         run: >-
-          python -m pytest src docs tests/unit tests/functional -ra --cov
-          --cov-report=xml --cov-report=term --durations=20 --arraydiff -m"not
-          slow"
+          python -m pytest src docs tests/unit tests/functional -ra
+          --durations=20 --cov --cov-report=xml --cov-report=term --arraydiff
+          -m"not slow" --mpl
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4.5.0

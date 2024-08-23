@@ -10,8 +10,9 @@ import jax
 import jax.random as jr
 from jaxtyping import Float, PRNGKeyArray, Shaped
 
+import coordinax as cx
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.potential as gp
@@ -64,19 +65,18 @@ class FardalStreamDF(AbstractStreamDF):
         omega_val = orbital_angular_velocity_mag(x, v)[..., None]
 
         # r-hat
-        r = xp.linalg.vector_norm(x, axis=-1, keepdims=True)
-        r_hat = x / r
+        r_hat = cx.normalize_vector(x)
 
         r_tidal = tidal_radius(potential, x, v, prog_mass, t)[..., None]
         v_circ = omega_val * r_tidal  # relative velocity
 
         # z-hat
-        L_vec = qnp.cross(x, v)
-        z_hat = L_vec / xp.linalg.vector_norm(L_vec, axis=-1, keepdims=True)
+        L_vec = jnp.cross(x, v)
+        z_hat = cx.normalize_vector(L_vec)
 
         # phi-hat
         phi_vec = v - xp.sum(v * r_hat, axis=-1, keepdims=True) * r_hat
-        phi_hat = phi_vec / xp.linalg.vector_norm(phi_vec, axis=-1, keepdims=True)
+        phi_hat = cx.normalize_vector(phi_vec)
 
         # k vals
         shape = r_tidal.shape
@@ -126,7 +126,7 @@ def orbital_angular_velocity(
     Quantity['frequency'](Array([0., 0., 0.], dtype=float64), unit='1 / s')
     """
     r = xp.linalg.vector_norm(x, axis=-1, keepdims=True)
-    return qnp.cross(x, v) / r**2
+    return jnp.cross(x, v) / r**2
 
 
 @partial(jax.jit, inline=True)
@@ -201,7 +201,7 @@ def tidal_radius(
     """
     omega = orbital_angular_velocity_mag(x, v)
     d2phi_dr2 = d2potential_dr2(potential, x, t)
-    return qnp.cbrt(potential.constants["G"] * prog_mass / (omega**2 - d2phi_dr2))
+    return jnp.cbrt(potential.constants["G"] * prog_mass / (omega**2 - d2phi_dr2))
 
 
 @partial(jax.jit)
@@ -249,7 +249,7 @@ def lagrange_points(
     >>> L2
     Quantity['length'](Array([8.02929074, 0.        , 0.        ], dtype=float64), unit='kpc')
     """  # noqa: E501
-    r_hat = x / xp.linalg.vector_norm(x, axis=-1, keepdims=True)
+    r_hat = cx.normalize_vector(x)
     r_t = tidal_radius(potential, x, v, prog_mass, t)
     L_1 = x - r_hat * r_t  # close
     L_2 = x + r_hat * r_t  # far

@@ -144,7 +144,7 @@ def vectorize(
 
     @no_type_check
     @functools.wraps(pyfunc)
-    def wrapped(*args: P.args, **_: P.kwargs) -> R:
+    def wrapped(*args: Any, **_: Any) -> R:  # P.args, P.kwargs
         vectorized_func = pyfunc
         input_core_dims, _ = _parse_gufunc_signature(signature)
         broadcast_shape, _ = _parse_input_dimensions(args, input_core_dims, "")

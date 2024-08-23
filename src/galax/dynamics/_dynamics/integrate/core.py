@@ -451,6 +451,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         """
         # ---------------------------------------
         # Parse inputs
+
         t0_: gt.VecTime = to_units_value(t0, units["time"])
         t1_: gt.VecTime = to_units_value(t1, units["time"])
         # Either save at `saveat` or at the final time. The final time is
@@ -495,8 +496,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Parse the solution
         w = jnp.concat((solution.ys, solution.ts[..., None]), axis=-1)
         w = w[None] if w0.shape[0] == 1 else w  # re-add squeezed batch dim
-        interp = solution.interpolation
-
         w = w[..., -1, :] if saveat is None else w  # get rid of added dimension
 
         # ---------------------------------------
@@ -504,7 +503,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         if interpolated:
             out_cls = gc.InterpolatedPhaseSpacePosition
-            out_kw = {"interpolant": self._process_interpolation(interp, w0, units)}
+            out_kw = {
+                "interpolant": self._process_interpolation(
+                    solution.interpolation, w0, units
+                )
+            }
         else:
             out_cls = gc.PhaseSpacePosition
             out_kw = {}

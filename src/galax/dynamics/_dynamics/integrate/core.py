@@ -326,7 +326,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     # =====================================================
     # Call
 
-    def _process_interpolation(
+    def _process_interp(
         self, interp: DenseInterpolation, w0: gt.BatchVec6, units: AbstractUnitSystem
     ) -> gc.PhaseSpacePositionInterpolant:
         # Determine if an extra dimension was added to the output
@@ -495,8 +495,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         # Parse the solution
         w = jnp.concat((solution.ys, solution.ts[..., None]), axis=-1)
-        w = w[None] if w0.shape[0] == 1 else w  # re-add squeezed batch dim
-        w = w[..., -1, :] if saveat is None else w  # get rid of added dimension
+        w = w[None] if w0.shape[0] == 1 else w  # spatial dimensions
+        w = w[..., -1, :] if saveat is None else w  # time dimensions
 
         # ---------------------------------------
         # Return
@@ -504,9 +504,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         if interpolated:
             out_cls = gc.InterpolatedPhaseSpacePosition
             out_kw = {
-                "interpolant": self._process_interpolation(
-                    solution.interpolation, w0, units
-                )
+                "interpolant": self._process_interp(solution.interpolation, w0, units)
             }
         else:
             out_cls = gc.PhaseSpacePosition

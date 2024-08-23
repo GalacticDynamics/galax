@@ -11,21 +11,19 @@ __all__ = [
     "typing",
 ]
 
+from . import setup_package as setup_package
+
+# isort: split
 from . import (
     coordinates,
     dynamics,
     potential,
-    setup_package as setup_package,
     typing,
     utils,
 )
 from ._version import version as __version__, version_tuple as __version_tuple__
 
-if utils._optional_deps.HAS_ASTROPY:  # noqa: SLF001
-    from ._interop import galax_interop_astropy  # noqa: F401
-
-if utils._optional_deps.HAS_GALA:  # noqa: SLF001
-    from ._interop import galax_interop_gala  # noqa: F401
-
-if utils._optional_deps.HAS_GALPY:  # noqa: SLF001
-    from ._interop import galax_interop_galpy  # noqa: F401
+# Optional dependencies
+# The act of importing registers in the functionality
+# isort: split
+from ._interop import *

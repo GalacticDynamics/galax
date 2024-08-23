@@ -144,7 +144,7 @@ def vectorize(
 
     @no_type_check
     @functools.wraps(pyfunc)
-    def wrapped(*args: P.args, **_: P.kwargs) -> R:
+    def wrapped(*args: Any, **_: Any) -> R:  # P.args, P.kwargs
         vectorized_func = pyfunc
         input_core_dims, _ = _parse_gufunc_signature(signature)
         broadcast_shape, _ = _parse_input_dimensions(args, input_core_dims, "")
@@ -494,7 +494,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         solution = solve_diffeq(w0, t0_, t1_, jnp.atleast_2d(ts))
 
         # Parse the solution
-        w = jnp.concat((solution.ys, solution.ts[..., None]), axis=-1)
+        w = jnp.concat((solution.ts[..., None], solution.ys), axis=-1)
         w = w[None] if w0.shape[0] == 1 else w  # spatial dimensions
         w = w[..., -1, :] if saveat is None else w  # time dimensions
 
@@ -511,9 +511,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             out_kw = {}
 
         return out_cls(  # shape = (*batch, T)
-            q=Quantity(w[..., 0:3], units["length"]),
-            p=Quantity(w[..., 3:6], units["speed"]),
-            t=Quantity(w[..., -1], units["time"]),
+            q=Quantity(w[..., 1:4], units["length"]),
+            p=Quantity(w[..., 4:7], units["speed"]),
+            t=Quantity(w[..., 0], units["time"]),
             **out_kw,
         )
 

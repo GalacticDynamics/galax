@@ -142,6 +142,9 @@ xfail_strict = true
 
 [tool.coverage]
 run.source = ["galax"]
+run.omit = [
+  "*/utils/_boundinstance.py",
+]
 report.exclude_also = [
   # Have to re-enable the standard pragma
   'pragma: no cover',

@@ -1529,23 +1529,6 @@ def tidal_tensor(
 
 # =============================================================================
 # Misc
-# TODO: sort
-
-
-def _r_hat(x: gt.LengthBatchVec3, /) -> Shaped[Quantity[""], "*batch 3"]:
-    """Compute the unit vector in the radial direction.
-
-    Parameters
-    ----------
-    x: Quantity[float, (*batch, 3), "length"]
-        3d position (x, y, z) in [kpc]
-
-    Returns
-    -------
-    Quantity[float, (*batch, 3), ""]
-        Unit vector in the radial direction.
-    """
-    return x / xp.linalg.vector_norm(x, axis=-1, keepdims=True)
 
 
 # TODO: make public
@@ -1580,7 +1563,7 @@ def d2potential_dr2(
     >>> d2potential_dr2(pot, q, Quantity(0.0, "Myr"))
     Quantity['1'](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
     """
-    rhat = _r_hat(x)
+    rhat = cx.normalize_vector(x)
     H = pot.hessian(x, t=t)
     # vectorized dot product of rhat · H · rhat
     return qnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)

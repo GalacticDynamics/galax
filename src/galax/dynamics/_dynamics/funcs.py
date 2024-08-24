@@ -8,7 +8,6 @@ __all__ = [
 
 
 from functools import partial
-from typing import Any
 
 import jax
 from jaxtyping import Float, Shaped
@@ -141,15 +140,15 @@ def specific_angular_momentum(w: gc.AbstractBasePhaseSpacePosition) -> gt.BatchQ
 
 
 # ===================================================================
-# Orbital angular velocity
+# Orbital angular frequency
 
 
 @dispatch
 @partial(jax.jit, inline=True)
-def _orbital_angular_velocity(
+def _orbital_angular_frequency(
     x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
-) -> Shaped[Quantity["frequency"], "*batch 3"]:
-    """Compute the orbital angular velocity about the origin.
+) -> Shaped[Quantity["frequency"], "*batch"]:
+    """Compute the orbital angular frequency about the origin.
 
     Arguments:
     ---------
@@ -166,69 +165,39 @@ def _orbital_angular_velocity(
     Examples
     --------
     >>> from unxt import Quantity
-    >>> import galax.dynamics as gd
 
     >>> x = Quantity([8.0, 0.0, 0.0], "m")
-    >>> v = Quantity([8.0, 0.0, 0.0], "m/s")
-    >>> _orbital_angular_velocity(x, v)
-    Quantity['frequency'](Array([0., 0., 0.], dtype=float64), unit='1 / s')
+    >>> v = Quantity([0.0, 8.0, 0.0], "m/s")
+    >>> _orbital_angular_frequency(x, v)
+    Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
     """
     r = xp.linalg.vector_norm(x, axis=-1, keepdims=True)
-    return xp.linalg.cross(x, v) / r**2
+    omega = xp.linalg.cross(x, v) / r**2
+    return xp.linalg.vector_norm(omega, axis=-1)
 
 
 @dispatch
 @partial(jax.jit, inline=True)
-def _orbital_angular_velocity(
+def _orbital_angular_frequency(
     x: cx.AbstractPosition3D, v: cx.AbstractVelocity3D, /
-) -> Shaped[Quantity["frequency"], "*batch 3"]:
-    """Compute the orbital angular velocity about the origin.
+) -> Shaped[Quantity["frequency"], "*batch"]:
+    """Compute the orbital angular frequency about the origin.
 
     Examples
     --------
     >>> from unxt import Quantity
     >>> import coordinax as cx
-    >>> import galax.dynamics as gd
 
     >>> x = cx.CartesianPosition3D.constructor(Quantity([8.0, 0.0, 0.0], "m"))
-    >>> v = cx.CartesianVelocity3D.constructor(Quantity([8.0, 0.0, 0.0], "m/s"))
-    >>> _orbital_angular_velocity(x, v)
-    Quantity['frequency'](Array([0., 0., 0.], dtype=float64), unit='1 / s')
+    >>> v = cx.CartesianVelocity3D.constructor(Quantity([0.0, 8.0, 0.0], "m/s"))
+    >>> _orbital_angular_frequency(x, v)
+    Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
+
     """
     # TODO: more directly using the vectors
     x = convert(x.represent_as(cx.CartesianPosition3D), Quantity)
     v = convert(v.represent_as(cx.CartesianVelocity3D, x), Quantity)
-    return _orbital_angular_velocity(x, v)
-
-
-# ===================================================================
-
-
-# TODO: make public?
-@partial(jax.jit, inline=True)
-def _orbital_angular_velocity_mag(
-    *args: Any, **kwargs: Any
-) -> Shaped[Quantity["frequency"], "*batch"]:
-    """Compute the magnitude of the angular momentum in the simulation frame.
-
-    Arguments:
-    ---------
-    *args, **kwargs : Any
-        Passed to ``_orbital_angular_velocity_mag``
-
-    Returns
-    -------
-    Quantity[Any, (3,), "frequency"]
-        Angular velocity magnitude.
-
-    Examples
-    --------
-    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
-    >>> _orbital_angular_velocity_mag(x, v)
-    Quantity['frequency'](Array(0., dtype=float64), unit='1 / Myr')
-    """
-    return xp.linalg.vector_norm(_orbital_angular_velocity(*args, **kwargs), axis=-1)
+    return _orbital_angular_frequency(x, v)
 
 
 # ===================================================================
@@ -276,7 +245,7 @@ def tidal_radius(
     >>> tidal_radius(pot, x, v, prog_mass=prog_mass, t=Quantity(0, "Myr"))
     Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
     """
-    omega = _orbital_angular_velocity_mag(x, v)
+    omega = _orbital_angular_frequency(x, v)
     d2phi_dr2 = d2potential_dr2(potential, x, t)
     return jnp.cbrt(potential.constants["G"] * prog_mass / (omega**2 - d2phi_dr2))
 

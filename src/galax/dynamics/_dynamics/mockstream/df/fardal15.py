@@ -16,7 +16,7 @@ import quaxed.array_api as xp
 import galax.potential as gp
 import galax.typing as gt
 from .base import AbstractStreamDF
-from galax.dynamics._dynamics.funcs import _orbital_angular_velocity_mag, tidal_radius
+from galax.dynamics._dynamics.funcs import _orbital_angular_frequency, tidal_radius
 
 # ============================================================
 # Constants
@@ -60,7 +60,7 @@ class FardalStreamDF(AbstractStreamDF):
         # Random number generation
         key1, key2, key3, key4 = jr.split(key, 4)
 
-        omega_val = _orbital_angular_velocity_mag(x, v)[..., None]
+        omega_val = _orbital_angular_frequency(x, v)[..., None]
 
         # r-hat
         r_hat = cx.normalize_vector(x)

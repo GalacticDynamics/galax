@@ -274,6 +274,7 @@ ignore-paths = [".*/_version.py"]
 messages_control.disable = [
   "design",
   "fixme",
+  "function-redefined",
   "import-outside-toplevel",
   "invalid-name",                  # ruff N80*
   "line-too-long",

@@ -11,13 +11,14 @@ import jax
 import jax.random as jr
 from jaxtyping import PRNGKeyArray
 
+import coordinax as cx
 import quaxed.array_api as xp
 import quaxed.numpy as qnp
 
 import galax.potential as gp
 import galax.typing as gt
 from .base import AbstractStreamDF
-from .fardal15 import tidal_radius
+from galax.dynamics._dynamics.funcs import specific_angular_momentum, tidal_radius
 
 # ============================================================
 # Constants
@@ -76,12 +77,12 @@ class ChenStreamDF(AbstractStreamDF):
         x_new_hat = x / r
 
         # z_new-hat
-        L_vec = qnp.cross(x, v)
-        z_new_hat = L_vec / xp.linalg.vector_norm(L_vec, axis=-1, keepdims=True)
+        L_vec = specific_angular_momentum(x, v)
+        z_new_hat = cx.normalize_vector(L_vec)
 
         # y_new-hat
         phi_vec = v - xp.sum(v * x_new_hat, axis=-1, keepdims=True) * x_new_hat
-        y_new_hat = phi_vec / xp.linalg.vector_norm(phi_vec, axis=-1, keepdims=True)
+        y_new_hat = cx.normalize_vector(phi_vec)
 
         r_tidal = tidal_radius(potential, x, v, prog_mass, t)
 
@@ -101,32 +102,37 @@ class ChenStreamDF(AbstractStreamDF):
         alpha = posvel[:, 4] * 0.017453292519943295
         beta = posvel[:, 5] * 0.017453292519943295
 
+        ctheta, stheta = qnp.cos(theta), qnp.sin(theta)
+        cphi, sphi = qnp.cos(phi), qnp.sin(phi)
+        calpha, salpha = qnp.cos(alpha), qnp.sin(alpha)
+        cbeta, sbeta = qnp.cos(beta), qnp.sin(beta)
+
         # Trailing arm
         x_trail = (
             x
-            + (Dr * qnp.cos(theta) * qnp.cos(phi))[:, qnp.newaxis] * x_new_hat
-            + (Dr * qnp.cos(theta) * qnp.sin(phi))[:, qnp.newaxis] * y_new_hat
-            + (Dr * qnp.sin(theta))[:, qnp.newaxis] * z_new_hat
+            + (Dr * ctheta * cphi)[:, None] * x_new_hat
+            + (Dr * ctheta * sphi)[:, None] * y_new_hat
+            + (Dr * stheta)[:, None] * z_new_hat
         )
         v_trail = (
             v
-            + (Dv * qnp.cos(beta) * qnp.cos(alpha))[:, qnp.newaxis] * x_new_hat
-            + (Dv * qnp.cos(beta) * qnp.sin(alpha))[:, qnp.newaxis] * y_new_hat
-            + (Dv * qnp.sin(beta))[:, qnp.newaxis] * z_new_hat
+            + (Dv * cbeta * calpha)[:, None] * x_new_hat
+            + (Dv * cbeta * salpha)[:, None] * y_new_hat
+            + (Dv * sbeta)[:, None] * z_new_hat
         )
 
         # Leading arm
         x_lead = (
             x
-            - (Dr * qnp.cos(theta) * qnp.cos(phi))[:, qnp.newaxis] * x_new_hat
-            - (Dr * qnp.cos(theta) * qnp.sin(phi))[:, qnp.newaxis] * y_new_hat
-            + (Dr * qnp.sin(theta))[:, qnp.newaxis] * z_new_hat
+            - (Dr * ctheta * cphi)[:, None] * x_new_hat
+            - (Dr * ctheta * sphi)[:, None] * y_new_hat
+            + (Dr * stheta)[:, None] * z_new_hat
         )
         v_lead = (
             v
-            - (Dv * qnp.cos(beta) * qnp.cos(alpha))[:, qnp.newaxis] * x_new_hat
-            - (Dv * qnp.cos(beta) * qnp.sin(alpha))[:, qnp.newaxis] * y_new_hat
-            + (Dv * qnp.sin(beta))[:, qnp.newaxis] * z_new_hat
+            - (Dv * cbeta * calpha)[:, None] * x_new_hat
+            - (Dv * cbeta * salpha)[:, None] * y_new_hat
+            + (Dv * sbeta)[:, None] * z_new_hat
         )
 
         return x_lead, v_lead, x_trail, v_trail

@@ -8,17 +8,15 @@ from typing import final
 
 import jax
 import jax.random as jr
-from jaxtyping import Float, PRNGKeyArray, Shaped
+from jaxtyping import PRNGKeyArray
 
 import coordinax as cx
 import quaxed.array_api as xp
-import quaxed.numpy as jnp
-from unxt import Quantity
 
 import galax.potential as gp
 import galax.typing as gt
 from .base import AbstractStreamDF
-from galax.potential._potential.funcs import d2potential_dr2
+from galax.dynamics._dynamics.funcs import _orbital_angular_velocity_mag, tidal_radius
 
 # ============================================================
 # Constants
@@ -62,7 +60,7 @@ class FardalStreamDF(AbstractStreamDF):
         # Random number generation
         key1, key2, key3, key4 = jr.split(key, 4)
 
-        omega_val = orbital_angular_velocity_mag(x, v)[..., None]
+        omega_val = _orbital_angular_velocity_mag(x, v)[..., None]
 
         # r-hat
         r_hat = cx.normalize_vector(x)
@@ -71,7 +69,7 @@ class FardalStreamDF(AbstractStreamDF):
         v_circ = omega_val * r_tidal  # relative velocity
 
         # z-hat
-        L_vec = jnp.cross(x, v)
+        L_vec = xp.linalg.cross(x, v)
         z_hat = cx.normalize_vector(L_vec)
 
         # phi-hat
@@ -94,163 +92,3 @@ class FardalStreamDF(AbstractStreamDF):
         v_lead = v - v_circ * (kvphi_samp * phi_hat - kvz_samp * z_hat)
 
         return x_lead, v_lead, x_trail, v_trail
-
-
-#####################################################################
-# TODO: move this to a more general location.
-
-
-@partial(jax.jit, inline=True)
-def orbital_angular_velocity(
-    x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
-) -> Shaped[Quantity["frequency"], "*batch 3"]:  # TODO: rad/s
-    """Compute the orbital angular velocity about the origin.
-
-    Arguments:
-    ---------
-    x: Array[Any, (3,)]
-        3d position (x, y, z) in [length]
-    v: Array[Any, (3,)]
-        3d velocity (v_x, v_y, v_z) in [length/time]
-
-    Returns
-    -------
-    Array
-        Angular velocity in [rad/time]
-
-    Examples
-    --------
-    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "m")
-    >>> v = Quantity(xp.asarray([8.0, 0.0, 0.0]), "m/s")
-    >>> orbital_angular_velocity(x, v)
-    Quantity['frequency'](Array([0., 0., 0.], dtype=float64), unit='1 / s')
-    """
-    r = xp.linalg.vector_norm(x, axis=-1, keepdims=True)
-    return jnp.cross(x, v) / r**2
-
-
-@partial(jax.jit, inline=True)
-def orbital_angular_velocity_mag(
-    x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
-) -> Shaped[Quantity["frequency"], "*batch"]:  # TODO: rad/s
-    """Compute the magnitude of the angular momentum in the simulation frame.
-
-    Arguments:
-    ---------
-    x: Quantity[float, (3,), "length"]
-        3d position (x, y, z) in [kpc]
-    v: Quantity[float, (3,), "speed"]
-        3d velocity (v_x, v_y, v_z) in [kpc/Myr]
-
-    Returns
-    -------
-    Quantity[float, (3,), "length^2/time"]
-        Magnitude of specific angular momentum.
-
-    Examples
-    --------
-    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
-    >>> orbital_angular_velocity_mag(x, v)
-    Quantity['frequency'](Array(0., dtype=float64), unit='1 / Myr')
-    """
-    return xp.linalg.vector_norm(orbital_angular_velocity(x, v), axis=-1)
-
-
-@partial(jax.jit, inline=True)
-def tidal_radius(
-    potential: gp.AbstractPotentialBase,
-    x: gt.LengthBatchVec3,
-    v: gt.SpeedBatchVec3,
-    /,
-    prog_mass: gt.MassBatchableScalar,
-    t: gt.TimeBatchableScalar,
-) -> Float[Quantity["length"], "*batch"]:
-    """Compute the tidal radius of a cluster in the potential.
-
-    Parameters
-    ----------
-    potential : `galax.potential.AbstractPotentialBase`
-        The gravitational potential of the host.
-    x: Quantity[float, (3,), "length"]
-        3d position (x, y, z).
-    v: Quantity[float, (3,), "speed"]
-        3d velocity (v_x, v_y, v_z).
-    prog_mass : Quantity[float, (), "mass"]
-        Cluster mass.
-    t: Quantity[float, (), "time"]
-        Time.
-
-    Returns
-    -------
-    Quantity[float, (), "length"]
-        Tidal radius of the cluster.
-
-    Examples
-    --------
-    >>> from galax.potential import NFWPotential
-
-    >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
-
-    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
-    >>> prog_mass = Quantity(1e4, "Msun")
-
-    >>> tidal_radius(pot, x, v, prog_mass=prog_mass, t=Quantity(0, "Myr"))
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
-    """
-    omega = orbital_angular_velocity_mag(x, v)
-    d2phi_dr2 = d2potential_dr2(potential, x, t)
-    return jnp.cbrt(potential.constants["G"] * prog_mass / (omega**2 - d2phi_dr2))
-
-
-@partial(jax.jit)
-def lagrange_points(
-    potential: gp.AbstractPotentialBase,
-    x: gt.LengthVec3,
-    v: gt.SpeedVec3,
-    prog_mass: gt.MassScalar,
-    t: gt.TimeScalar,
-) -> tuple[gt.LengthVec3, gt.LengthVec3]:
-    """Compute the lagrange points of a cluster in a host potential.
-
-    Parameters
-    ----------
-    potential : `galax.potential.AbstractPotentialBase`
-        The gravitational potential of the host.
-    x: Quantity[float, (3,), "length"]
-        Cartesian 3D position ($x$, $y$, $z$)
-    v: Quantity[float, (3,), "speed"]
-        Cartesian 3D velocity ($v_x$, $v_y$, $v_z$)
-    prog_mass: Quantity[float, (), "mass"]
-        Cluster mass.
-    t: Quantity[float, (), "time"]
-        Time.
-
-    Returns
-    -------
-    L_1, L_2: Quantity[float, (3,), "length"]
-        The lagrange points L_1 and L_2.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import galax.potential as gp
-
-    >>> pot = gp.MilkyWayPotential()
-    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = Quantity(xp.asarray([0.0, 220.0, 0.0]), "km/s")
-    >>> prog_mass = Quantity(1e4, "Msun")
-    >>> t = Quantity(0.0, "Gyr")
-
-    >>> L1, L2 = lagrange_points(pot, x, v, prog_mass, t)
-    >>> L1
-    Quantity['length'](Array([7.97070926, 0.        , 0.        ], dtype=float64), unit='kpc')
-    >>> L2
-    Quantity['length'](Array([8.02929074, 0.        , 0.        ], dtype=float64), unit='kpc')
-    """  # noqa: E501
-    r_hat = cx.normalize_vector(x)
-    r_t = tidal_radius(potential, x, v, prog_mass, t)
-    L_1 = x - r_hat * r_t  # close
-    L_2 = x + r_hat * r_t  # far
-    return L_1, L_2

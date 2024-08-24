@@ -4,6 +4,7 @@ __all__ = [
     "BovyMWPotential2014",
     "LM10Potential",
     "MilkyWayPotential",
+    "MilkyWayPotential2022",
 ]
 
 
@@ -19,7 +20,12 @@ from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsy
 from xmmutablemap import ImmutableMap
 
 from ._const import _sqrt2
-from .builtin import HernquistPotential, MiyamotoNagaiPotential, PowerLawCutoffPotential
+from .builtin import (
+    HernquistPotential,
+    MiyamotoNagaiPotential,
+    MN3ExponentialPotential,
+    PowerLawCutoffPotential,
+)
 from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
 from galax.potential._src.base import AbstractPotentialBase, default_constants
@@ -38,7 +44,7 @@ def _parse_input_comp(
         return instance
 
     if units == dimensionless:
-        default = {k: v.value for k, v in default.items()}
+        default = {k: v.value if hasattr(v, "value") else v for k, v in default.items()}
 
     return cls(units=units, **dict(default) | (dict(instance or {})))
 
@@ -292,6 +298,96 @@ class MilkyWayPotential(AbstractCompositePotential):
         super().__init__(
             disk=_parse_input_comp(
                 MiyamotoNagaiPotential, disk, self._default_disk, units_
+            ),
+            halo=_parse_input_comp(NFWPotential, halo, self._default_halo, units_),
+            bulge=_parse_input_comp(
+                HernquistPotential, bulge, self._default_bulge, units_
+            ),
+            nucleus=_parse_input_comp(
+                HernquistPotential, nucleus, self._default_nucleus, units_
+            ),
+            units=units_,
+            constants=constants,
+        )
+
+
+@final
+class MilkyWayPotential2022(AbstractCompositePotential):
+    """Milky Way mass model.
+
+    A mass-model for the Milky Way consisting of a spherical nucleus and bulge, a
+    3-component sum of Miyamoto-Nagai disks to represent an exponential disk, and a
+    spherical NFW dark matter halo.
+
+    The disk model is fit to the Eilers et al. 2019 rotation curve for the radial
+    dependence, and the shape of the phase-space spiral in the solar neighborhood is
+    used to set the vertical structure in Darragh-Ford et al. 2023.
+
+    Other parameters are fixed by fitting to a compilation of recent mass measurements
+    of the Milky Way, from 10 pc to ~150 kpc.
+
+    Parameters
+    ----------
+    units : `~unxt.AbstractUnitSystem` (optional)
+        Set of non-reducible units.
+    disk : dict (optional)
+        Parameters to be passed to the :class:`~galax.potential.MiyamotoNagaiPotential`.
+    bulge : dict (optional)
+        Parameters to be passed to the :class:`~galax.potential.HernquistPotential`.
+    halo : dict (optional)
+        Parameters to be passed to the :class:`~galax.potential.NFWPotential`.
+    nucleus : dict (optional)
+        Parameters to be passed to the :class:`~galax.potential.HernquistPotential`.
+
+    Note: in subclassing, order of arguments must match order of potential
+    components added at bottom of init.
+    """
+
+    _data: dict[str, AbstractPotentialBase] = eqx.field(init=False)
+    _: KW_ONLY
+    units: AbstractUnitSystem = eqx.field(init=True, static=True, converter=unitsystem)
+    constants: ImmutableMap[str, Quantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
+    )
+
+    # TODO: as an actual potential instance, then use `replace`?
+    _default_disk: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
+        {
+            "m_tot": Quantity(4.7717e10, "Msun"),
+            "h_R": Quantity(2.6, "kpc"),
+            "h_z": Quantity(0.3, "kpc"),
+            "positive_density": True,
+            "sech2_z": True,
+        }
+    )
+    # TODO: as an actual `NFWPotential`, then use `replace`?
+    _default_halo: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
+        {"m": Quantity(5.5427e11, "Msun"), "r_s": Quantity(15.626, "kpc")}
+    )
+    # TODO: as an actual `HernquistPotential`, then use `replace`?
+    _default_bulge: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
+        {"m_tot": Quantity(5e9, "Msun"), "r_s": Quantity(1.0, "kpc")}
+    )
+    # TODO: as an actual `HernquistPotential`, then use `replace`?
+    _default_nucleus: ClassVar[MappingProxyType[str, Quantity]] = MappingProxyType(
+        {"m_tot": Quantity(1.8142e9, "Msun"), "r_s": Quantity(68.8867, "pc")}
+    )
+
+    def __init__(
+        self,
+        *,
+        disk: MN3ExponentialPotential | Mapping[str, Any] | None = None,
+        halo: NFWPotential | Mapping[str, Any] | None = None,
+        bulge: HernquistPotential | Mapping[str, Any] | None = None,
+        nucleus: HernquistPotential | Mapping[str, Any] | None = None,
+        units: Any = galactic,
+        constants: Any = default_constants,
+    ) -> None:
+        units_ = unitsystem(units) if units is not None else galactic
+
+        super().__init__(
+            disk=_parse_input_comp(
+                MN3ExponentialPotential, disk, self._default_disk, units_
             ),
             halo=_parse_input_comp(NFWPotential, halo, self._default_halo, units_),
             bulge=_parse_input_comp(

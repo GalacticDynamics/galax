@@ -14,11 +14,11 @@ from typing import Any, ClassVar, TypeVar, final
 
 import equinox as eqx
 
-import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsystem
 from xmmutablemap import ImmutableMap
 
+from ._const import _sqrt2
 from .builtin import HernquistPotential, MiyamotoNagaiPotential, PowerLawCutoffPotential
 from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
@@ -123,9 +123,6 @@ class BovyMWPotential2014(AbstractCompositePotential):
             units=units_,
             constants=constants,
         )
-
-
-_sqrt2 = jnp.sqrt(jnp.asarray(2.0))
 
 
 @final

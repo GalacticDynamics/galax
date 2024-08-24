@@ -35,14 +35,13 @@ from unxt.unitsystems import galactic
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
+from ._const import _burkert_const
 from galax.potential._src.base import default_constants
 from galax.potential._src.core import AbstractPotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
 # -------------------------------------------------------------------
-
-_burkert_const = 3 * jnp.log(jnp.asarray(2.0)) - 0.5 * jnp.pi
 
 
 @final

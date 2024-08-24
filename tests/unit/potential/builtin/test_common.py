@@ -268,3 +268,49 @@ class ParameterShapeCMixin(ParameterFieldMixin):
         fields["c"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
         assert pot.c(t=Quantity(0, "Myr")) == 2
+
+
+class ParameterShapeHRMixin(ParameterFieldMixin):
+    """Test the radial scale length parameter."""
+
+    @pytest.fixture(scope="class")
+    def field_h_R(self) -> Quantity["length"]:
+        return Quantity(1.0, "kpc")
+
+    # =====================================================
+
+    def test_h_R_constant(self, pot_cls, fields):
+        """Test the `h_R` parameter."""
+        fields["h_R"] = Quantity(1.0, "kpc")
+        pot = pot_cls(**fields)
+        assert pot.h_R(t=Quantity(0, "Myr")) == Quantity(1.0, "kpc")
+
+    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
+    def test_h_R_userfunc(self, pot_cls, fields):
+        """Test the `h_R` parameter."""
+        fields["h_R"] = lambda t: t * 1.2
+        pot = pot_cls(**fields)
+        assert pot.h_R(t=Quantity(0, "Myr")) == 2
+
+
+class ParameterShapeHZMixin(ParameterFieldMixin):
+    """Test the scale height parameter."""
+
+    @pytest.fixture(scope="class")
+    def field_h_z(self) -> Quantity["length"]:
+        return Quantity(1.0, "kpc")
+
+    # =====================================================
+
+    def test_h_z_constant(self, pot_cls, fields):
+        """Test the `h_z` parameter."""
+        fields["h_z"] = Quantity(1.0, "kpc")
+        pot = pot_cls(**fields)
+        assert pot.h_z(t=Quantity(0, "Myr")) == Quantity(1.0, "kpc")
+
+    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
+    def test_h_z_userfunc(self, pot_cls, fields):
+        """Test the `h_z` parameter."""
+        fields["h_z"] = lambda t: t * 1.2
+        pot = pot_cls(**fields)
+        assert pot.h_z(t=Quantity(0, "Myr")) == 2

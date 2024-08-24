@@ -1781,3 +1781,74 @@ def galax_to_gala(pot: gpx.MilkyWayPotential, /) -> gp.MilkyWayPotential:
             for c, p in pot.items()
         }
     )
+
+
+# ---------------------------
+# Galax MilkyWayPotential2022
+
+
+@dispatch  # type: ignore[misc]
+def gala_to_galax(pot: gp.MilkyWayPotential2022, /) -> gpx.MilkyWayPotential2022:
+    """Convert a `gala.potential.MilkyWayPotential` to a `galax.potential.MilkyWayPotential`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> import galax.potential as gp
+
+    >>> pot = galap.MilkyWayPotential2022()
+    >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
+    MilkyWayPotential({'disk': MN3ExponentialPotential( ... ),
+                       'halo': NFWPotential( ... ),
+                       'bulge': HernquistPotential( ... ),
+                       'nucleus': HernquistPotential( ... )})
+
+    """  # noqa: E501
+    return gpx.MilkyWayPotential2022(
+        disk=gala_to_galax(pot["disk"]),
+        halo=gala_to_galax(pot["halo"]),
+        bulge=gala_to_galax(pot["bulge"]),
+        nucleus=gala_to_galax(pot["nucleus"]),
+    )
+
+
+@dispatch  # type: ignore[misc]
+def galax_to_gala(pot: gpx.MilkyWayPotential2022, /) -> gp.MilkyWayPotential2022:
+    """Convert a `galax.potential.MilkyWayPotential2022` to a `gala.potential.MilkyWayPotential2022`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+
+    >>> pot = gp.MilkyWayPotential2022(
+    ...     disk=dict(m_tot=Quantity(1e11, "Msun"), h_R=Quantity(2.8, "kpc"), h_z=Quantity(0.25, "kpc")),
+    ...     halo=dict(m=Quantity(1e12, "Msun"), r_s=Quantity(20, "kpc")),
+    ...     bulge=dict(m_tot=Quantity(1e10, "Msun"), r_s=Quantity(1, "kpc")),
+    ...     nucleus=dict(m_tot=Quantity(1e9, "Msun"), r_s=Quantity(0.1, "kpc")),
+    ... )
+
+    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
+    <CompositePotential disk,bulge,nucleus,halo>
+
+    """  # noqa: E501
+
+    def rename(c: str, k: str) -> str:
+        match k:
+            case "m_tot":
+                return "m"
+            case "r_s" if c in ("bulge", "nucleus"):
+                return "c"
+            case _:
+                return k
+
+    return gp.MilkyWayPotential2022(
+        **{
+            c: {
+                rename(c, k): convert(getattr(p, k)(0), APYQuantity)
+                for k in p.parameters
+            }
+            for c, p in pot.items()
+        }
+    )

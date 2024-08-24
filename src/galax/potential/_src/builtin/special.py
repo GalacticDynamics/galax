@@ -58,7 +58,7 @@ class BovyMWPotential2014(AbstractCompositePotential):
     Parameters
     ----------
     units : `~gala.units.UnitSystem` (optional)
-        Set of non-reducable units that specify (at minimum) the
+        Set of non-reducible units that specify (at minimum) the
         length, mass, time, and angle units.
     disk : dict (optional)
         Parameters to be passed to the :class:`~gala.potential.MiyamotoNagaiPotential`.
@@ -143,7 +143,7 @@ class LM10Potential(AbstractCompositePotential):
     Parameters
     ----------
     units : `~galax.units.UnitSystem` (optional)
-        Set of non-reducable units that specify (at minimum) the length, mass,
+        Set of non-reducible units that specify (at minimum) the length, mass,
         time, and angle units.
     disk : dict (optional)
         Parameters to be passed to the
@@ -235,7 +235,7 @@ class MilkyWayPotential(AbstractCompositePotential):
     Parameters
     ----------
     units : `~unxt.AbstractUnitSystem` (optional)
-        Set of non-reducable units.
+        Set of non-reducible units.
     disk : dict (optional)
         Parameters to be passed to the :class:`~galax.potential.MiyamotoNagaiPotential`.
     bulge : dict (optional)

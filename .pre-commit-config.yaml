@@ -17,7 +17,7 @@ repos:
       - id: check-useless-excludes
 
   - repo: https://github.com/scientific-python/cookie
-    rev: 2024.04.23
+    rev: 2024.08.19
     hooks:
       - id: sp-repo-review
 
@@ -43,14 +43,14 @@ repos:
       - id: rst-inline-touching-normal
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.29.1
+    rev: 0.29.2
     hooks:
       - id: check-dependabot
       - id: check-github-workflows
       - id: check-readthedocs
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.6.1"
+    rev: "v0.6.2"
     hooks:
       # Run the linter
       - id: ruff
@@ -74,7 +74,7 @@ repos:
         args: [--prose-wrap=always]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.11.1"
+    rev: "v1.11.2"
     hooks:
       - id: mypy
         files: src

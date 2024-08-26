@@ -64,24 +64,6 @@ def parse_time_specification(
     -------
     Quantity['time']
         An array of times.
-    """
-    return parse_time_spec(units, t, t0, dt, n_steps, t1)
-
-
-# -----------------------------------------------
-
-
-@dispatch
-def parse_time_spec(
-    units: Any,
-    t: Quantity["time"] | ArrayLike | list[int] | tuple[int, ...],
-    t0: None,  # noqa: ARG001
-    dt: None,  # noqa: ARG001
-    n_steps: None,  # noqa: ARG001
-    t1: None,  # noqa: ARG001
-    /,
-) -> Quantity["time"]:
-    """Return the given array of times as a :class:`unxt.Quantity`.
 
     Examples
     --------
@@ -110,28 +92,6 @@ def parse_time_spec(
     >>> gdi.parse_time_specification(units="galactic", t=[1, 2, 3])
     Quantity['time'](Array([1, 2, 3], dtype=int64), unit='Myr')
 
-    """  # noqa: E501
-    unit = unitsystem(units)["time"] if units is not None else None
-    return Quantity.constructor(t, unit)
-
-
-@dispatch
-def parse_time_spec(
-    units: Any,
-    t: None,  # noqa: ARG001
-    t0: Any,
-    dt: None,  # noqa: ARG001
-    n_steps: int,
-    t1: Any,
-    /,
-) -> Shaped[Quantity["time"], "{n_steps}"]:
-    """Return a time array from the initial and final times and number of steps.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import galax.dynamics.integrate as gdi
-
     From the starting time, ending time, and number of steps:
 
     >>> gdi.parse_time_specification(t0=Quantity(0, "Myr"), t1=Quantity(1, "Myr"), n_steps=3)
@@ -147,28 +107,6 @@ def parse_time_spec(
 
     >>> gdi.parse_time_specification(units="solarsystem", t0=0, t1=1, n_steps=3)
     Quantity['time'](Array([0. , 0.5, 1. ], dtype=float64), unit='yr')
-
-    """  # noqa: E501
-    unit = unitsystem(units)["time"] if units is not None else None
-    return Quantity.constructor(xp.linspace(t0, t1, n_steps), unit)
-
-
-@dispatch
-def parse_time_spec(
-    units: Any,
-    t: None,
-    t0: Any,
-    dt: Any,
-    n_steps: int,
-    t1: None,  # noqa: ARG001
-    /,
-) -> Shaped[Quantity["time"], "{n_steps}"]:
-    """Return a time array from the initial time, timestep, and number of steps.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import galax.dynamics.integrate as gdi
 
     From the starting time, timestep, and number of steps:
 
@@ -186,27 +124,6 @@ def parse_time_spec(
     >>> gdi.parse_time_specification(units="solarsystem", t0=0, dt=1, n_steps=3)
     Quantity['time'](Array([0. , 1.5, 3. ], dtype=float64), unit='yr')
 
-    """  # noqa: E501
-    return parse_time_spec(units, t, t0, None, n_steps, t0 + dt * n_steps)
-
-
-@dispatch
-def parse_time_spec(
-    units: Any,
-    t: None,  # noqa: ARG001
-    t0: Any,
-    dt: Any,
-    n_steps: None,  # noqa: ARG001
-    t1: Any,
-    /,
-) -> Quantity["time"]:
-    """Return a time array from the initial and final times and the time step.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import galax.dynamics.integrate as gdi
-
     From the starting time, time step, and ending time:
 
     >>> gdi.parse_time_specification(t0=Quantity(0, "Myr"), dt=Quantity(1, "Myr"), t1=Quantity(3, "Myr"))
@@ -221,7 +138,87 @@ def parse_time_spec(
     >>> gdi.parse_time_specification(units="solarsystem", t0=0, dt=1, t1=3)
     Quantity['time'](Array([0, 1, 2], dtype=int64), unit='yr')
 
+    From the starting time and an array of time steps:
+
+    >>> gdi.parse_time_specification(t0=Quantity(0, "Myr"), dt=Quantity([1, 2], "Myr"))
+    Quantity['time'](Array([0, 1, 3], dtype=int64), unit='Myr')
+
+    From non-Quantity numbers, interpreted as having the time units of the given
+    unit system:
+
+    >>> import jax.numpy as jnp
+    >>> gdi.parse_time_specification(units="galactic", t0=0, dt=jnp.asarray([1, 2]))
+    Quantity['time'](Array([0, 1, 3], dtype=int64), unit='Myr')
+
+    From non-Quantity numbers, interpreted as having the time units of the given
+    unit system:
+
+    >>> import jax.numpy as jnp
+    >>> gdi.parse_time_specification(units="galactic", t0=0, dt=[1, 2])
+    Quantity['time'](Array([0, 1, 3], dtype=int64), unit='Myr')
+
     """  # noqa: E501
+    return parse_time_spec(units, t, t0, dt, n_steps, t1)
+
+
+# -----------------------------------------------
+
+
+@dispatch
+def parse_time_spec(
+    units: Any,
+    t: Quantity["time"] | ArrayLike | list[int] | tuple[int, ...],
+    t0: None,  # noqa: ARG001
+    dt: None,  # noqa: ARG001
+    n_steps: None,  # noqa: ARG001
+    t1: None,  # noqa: ARG001
+    /,
+) -> Quantity["time"]:
+    """Return the given array of times as a :class:`unxt.Quantity`."""
+    unit = unitsystem(units)["time"] if units is not None else None
+    return Quantity.constructor(t, unit)
+
+
+@dispatch
+def parse_time_spec(
+    units: Any,
+    t: None,  # noqa: ARG001
+    t0: Any,
+    dt: None,  # noqa: ARG001
+    n_steps: int,
+    t1: Any,
+    /,
+) -> Shaped[Quantity["time"], "{n_steps}"]:
+    """Return a time array from the initial and final times and number of steps."""
+    unit = unitsystem(units)["time"] if units is not None else None
+    return Quantity.constructor(xp.linspace(t0, t1, n_steps), unit)
+
+
+@dispatch
+def parse_time_spec(
+    units: Any,
+    t: None,
+    t0: Any,
+    dt: Any,
+    n_steps: int,
+    t1: None,  # noqa: ARG001
+    /,
+) -> Shaped[Quantity["time"], "{n_steps}"]:
+    """Return a time array from the initial time, timestep, and number of steps."""
+    return parse_time_spec(units, t, t0, None, n_steps, t0 + dt * n_steps)
+
+
+@dispatch
+def parse_time_spec(
+    units: Any,
+    t: None,  # noqa: ARG001
+    t0: Any,
+    dt: Any,
+    n_steps: None,  # noqa: ARG001
+    t1: Any,
+    /,
+) -> Quantity["time"]:
+    """Return a time array from the initial and final times and the time step."""
     unit = unitsystem(units)["time"] if units is not None else None
     return Quantity.constructor(xp.arange(t0, t1, dt), unit)
 
@@ -236,26 +233,7 @@ def parse_time_spec(
     t1: None,  # noqa: ARG001
     /,
 ) -> Shaped[Quantity["time"], "N+1"]:
-    """Return a time array from the initial time and an array of time steps.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import galax.dynamics.integrate as gdi
-
-    From the starting time and an array of time steps:
-
-    >>> gdi.parse_time_specification(t0=Quantity(0, "Myr"), dt=Quantity([1, 2], "Myr"))
-    Quantity['time'](Array([0, 1, 3], dtype=int64), unit='Myr')
-
-    From non-Quantity numbers, interpreted as having the time units of the given
-    unit system:
-
-    >>> import jax.numpy as jnp
-    >>> gdi.parse_time_specification(units="galactic", t0=0, dt=jnp.asarray([1, 2]))
-    Quantity['time'](Array([0, 1, 3], dtype=int64), unit='Myr')
-
-    """
+    """Return a time array from the initial time and an array of time steps."""
     unit = unitsystem(units)["time"] if units is not None else None
     t0 = Quantity.constructor(t0, unit)
     dt = Quantity.constructor(dt, unit)
@@ -272,19 +250,5 @@ def parse_time_spec(
     t1: None,
     /,
 ) -> Quantity["time"]:
-    """Return a time array from the initial time and a Sequence of time steps.
-
-    Examples
-    --------
-    >>> from unxt import Quantity
-    >>> import galax.dynamics.integrate as gdi
-
-    From non-Quantity numbers, interpreted as having the time units of the given
-    unit system:
-
-    >>> import jax.numpy as jnp
-    >>> gdi.parse_time_specification(units="galactic", t0=0, dt=[1, 2])
-    Quantity['time'](Array([0, 1, 3], dtype=int64), unit='Myr')
-
-    """
+    """Return a time array from the initial time and a Sequence of time steps."""
     return parse_time_spec(units, t, t0, xp.asarray(dt), n_steps, t1)

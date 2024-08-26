@@ -48,7 +48,7 @@ def convert_potential(
     KeplerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
+      m_tot=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
 
     """  # noqa: E501
     return gala_to_galax(from_)
@@ -532,7 +532,7 @@ def gala_to_galax(
     KeplerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
+      m_tot=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
     """  # noqa: E501
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
@@ -1324,11 +1324,11 @@ def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialF
     NFWPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( unit=Unit("kpc"), value=Quantity[...](value=f64[], unit=Unit("kpc")) )
+      m=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ),
+      r_s=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("kpc")) )
     )
 
-    """  # noqa: E501
+    """
     params = gala.parameters
     pot = gpx.NFWPotential(
         m=params["m"], r_s=params["r_s"], units=_check_gala_units(gala.units)

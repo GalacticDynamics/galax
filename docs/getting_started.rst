@@ -52,51 +52,42 @@ input::
     >>> mw
     MilkyWayPotential({'disk': MiyamotoNagaiPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
-      constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      constants=ImmutableMap({'G': Quantity[...](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m_tot=ConstantParameter(
-        unit=Unit("solMass"),
-        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+        value=Quantity[...](value=f64[], unit=Unit("solMass"))
       ),
       a=ConstantParameter(
-        unit=Unit("kpc"),
-        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+        value=Quantity[...](value=f64[], unit=Unit("kpc"))
       ),
       b=ConstantParameter(
-        unit=Unit("kpc"),
-        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+        value=Quantity[...](value=f64[], unit=Unit("kpc"))
       )
     ), 'halo': NFWPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
-      constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      constants=ImmutableMap({'G': Quantity[...](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m=ConstantParameter(
-        unit=Unit("solMass"),
-        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+        value=Quantity[...](value=f64[], unit=Unit("solMass"))
       ),
       r_s=ConstantParameter(
-        unit=Unit("kpc"),
-        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+        value=Quantity[...](value=f64[], unit=Unit("kpc"))
       )
     ), 'bulge': HernquistPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
-      constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      constants=ImmutableMap({'G': Quantity[...](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m_tot=ConstantParameter(
-        unit=Unit("solMass"),
-        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+        value=Quantity[...](value=f64[], unit=Unit("solMass"))
       ),
       r_s=ConstantParameter(
-        unit=Unit("kpc"),
-        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+        value=Quantity[...](value=f64[], unit=Unit("kpc"))
       )
     ), 'nucleus': HernquistPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
-      constants=ImmutableMap({'G': Quantity['m3 kg-1 s-2'](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
+      constants=ImmutableMap({'G': Quantity[...](Array(4.49850215e-12, dtype=float64), unit='kpc3 / (solMass Myr2)')}),
       m_tot=ConstantParameter(
-        unit=Unit("solMass"),
-        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+        value=Quantity[...](value=f64[], unit=Unit("solMass"))
       ),
       r_s=ConstantParameter(
-        unit=Unit("kpc"),
-        value=Quantity[PhysicalType('length')](value=f64[], unit=Unit("kpc"))
+        value=Quantity[...](value=f64[], unit=Unit("kpc"))
       )
     )})
 

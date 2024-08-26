@@ -5,23 +5,23 @@ from __future__ import annotations
 __all__ = ["ParameterField"]
 
 from dataclasses import KW_ONLY, is_dataclass
+from inspect import isclass
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Literal,
     cast,
     final,
     get_args,
-    get_origin,
     get_type_hints,
     overload,
 )
 
 import astropy.units as u
+from astropy.units import PhysicalType as Dimensions
 
-from unxt import Quantity
-from unxt.unitsystems import AbstractUnitSystem, galactic
+from unxt import AbstractQuantity, Quantity
+from unxt._unxt.unitsystems.utils import is_annotated
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 from galax.typing import Unit
@@ -60,16 +60,13 @@ def converter_parameter(value: Any) -> AbstractParameter:
         out = value
 
     elif callable(value):
-        # TODO: fix specifying a unit system. It should just extract the
-        # dimensions.
-        unit = _get_unit_from_return_annotation(value, galactic)
-        out = UserParameter(func=value, unit=unit)
+        # TODO: check dimensions ``_get_dimensions_from_return_annotation``
+        out = UserParameter(func=value)
 
     else:
         # `Quantity.constructor`` handles errors if the value cannot be
         # converted to a Quantity.
-        value = Quantity.constructor(value)
-        out = ConstantParameter(value, unit=value.unit)
+        out = ConstantParameter(Quantity.constructor(value))
 
     return out
 
@@ -105,7 +102,6 @@ class ParameterField:
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       mass=ConstantParameter(
-        unit=Unit("solMass"),
         value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
       )
     )
@@ -168,7 +164,7 @@ class ParameterField:
 
     # -----------------------------
 
-    def _check_unit(self, potential: "AbstractPotentialBase", unit: Unit) -> None:
+    def _check_dimensions(self, potential: "AbstractPotentialBase", unit: Unit) -> None:
         """Check that the given unit is compatible with the parameter's."""
         # When the potential is being constructed, the units may not have been
         # set yet, so we don't check the unit.
@@ -188,18 +184,16 @@ class ParameterField:
         potential: "AbstractPotentialBase",
         value: AbstractParameter | ParameterCallable | Any | Literal[Sentinel.MISSING],
     ) -> None:
-        # TODO: use converter_parameter.
         # Convert
         if isinstance(value, AbstractParameter):
-            self._check_unit(potential, value.unit)
             v = value
         elif callable(value):
-            unit = _get_unit_from_return_annotation(value, potential.units)
-            self._check_unit(potential, unit)  # Check the unit is compatible
-            v = UserParameter(func=value, unit=unit)
+            dims = _get_dimensions_from_return_annotation(value)
+            self._check_dimensions(potential, dims)  # Check the unit is compatible
+            v = UserParameter(func=value)
         else:
             unit = potential.units[self.dimensions]
-            v = ConstantParameter(Quantity.constructor(value, unit), unit=unit)
+            v = ConstantParameter(Quantity.constructor(value, unit))
 
         # Set
         potential.__dict__[self.name] = v
@@ -208,64 +202,60 @@ class ParameterField:
 # -------------------------------------------
 
 
-def _get_unit_from_return_annotation(
-    the_callable: ParameterCallable, unitsystem: AbstractUnitSystem
-) -> Unit:
-    """Get the unit from the return annotation of a Parameter function.
+def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimensions:
+    """Get the dimensions from the return annotation of a Parameter function.
 
     Parameters
     ----------
-    the_callable : Callable[[Array[float, ()] | float | int], Array[float, (*shape,)]]
+    func : Callable[[Array[float, ()] | float | int], Array[float, (*shape,)]]
         The function to use to compute the parameter value.
-    unitsystem: AbstractUnitSystem
-        The unit system to use to convert the return annotation to a unit.
 
     Returns
     -------
-    Unit
-        The unit from the return annotation of the function.
-    """
-    func = the_callable.__call__ if hasattr(the_callable, "__call__") else the_callable  # noqa: B004
+    Dimensions
+        The dimensions from the return annotation of the function.
 
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> def func(t: Quantity["time"]) -> Quantity["mass"]: pass
+    >>> _get_dimensions_from_return_annotation(func)
+    PhysicalType('mass')
+
+    >>> import astropy.units as u
+    >>> def func(t: u.Quantity["time"]) -> u.Quantity["mass"]: pass
+    >>> _get_dimensions_from_return_annotation(func)
+    PhysicalType('mass')
+
+    """
     # Get the return annotation
     type_hints = get_type_hints(func, include_extras=True)
     if "return" not in type_hints:
         msg = "Parameter function must have a return annotation"
         raise TypeError(msg)
 
-    # Check that the return annotation might contain a unit
-    return_annotation = type_hints["return"]
+    ann = type_hints["return"]
+
+    # Get the dimensions from the return annotation
+    dims: Dimensions | None = None
+
+    # `unxt.Quantity`
+    if isclass(ann) and issubclass(ann, AbstractQuantity):
+        dims = ann.type_parameter
 
     # Astropy compatibility
-    if return_annotation.__module__.startswith("astropy"):
-        return _get_unit_from_astropy_return_annotation(return_annotation)
+    elif is_annotated(ann):
+        args = get_args(ann)
 
-    return unitsystem[return_annotation.type_parameter]
+        if (
+            len(args) == 2
+            and issubclass(args[0], u.Quantity)
+            and isinstance(args[1], Dimensions)
+        ):
+            dims = args[1]
 
-
-def _get_unit_from_astropy_return_annotation(return_annotation: Any) -> Unit:
-    return_origin = get_origin(return_annotation)
-    if return_origin is not Annotated:
-        msg = "Parameter function return annotation must be annotated"
+    if dims is None:
+        msg = "Parameter function return annotation must be a Quantity"
         raise TypeError(msg)
 
-    # Get the unit from the return annotation
-    return_args = get_args(return_annotation)
-    has_unit = False
-    for arg in return_args[1:]:
-        # Try to convert the argument to a unit
-        try:
-            unit = u.Unit(arg)
-        except ValueError:
-            continue
-        # Only one unit annotation is allowed
-        if has_unit:
-            msg = "function has more than one unit annotation"
-            raise ValueError(msg)
-        has_unit = True
-
-    if not has_unit:
-        msg = "function did not have a valid unit annotation"
-        raise ValueError(msg)
-
-    return unit
+    return dims

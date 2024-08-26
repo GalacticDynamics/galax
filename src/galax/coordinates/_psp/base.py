@@ -436,7 +436,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     # Dynamical quantities
 
     # TODO: property?
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def kinetic_energy(self) -> Shaped[Quantity["specific energy"], "*batch"]:
         r"""Return the specific kinetic energy.
 
@@ -526,7 +526,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         return potential.potential(self.q, t=self.t)
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def total_energy(self, potential: "AbstractPotentialBase") -> gt.BatchFloatQScalar:
         r"""Return the specific total energy.
 

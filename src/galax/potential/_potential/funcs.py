@@ -1579,7 +1579,7 @@ def d2potential_dr2(
 
 # TODO: should this be moved to `galax.dynamics`?
 @dispatch
-@partial(jax.jit)
+@partial(jax.jit, inline=True)
 def circular_velocity(
     pot: AbstractPotentialBase, x: gt.LengthVec3, /, t: gt.TimeScalar
 ) -> gt.BatchableRealQScalar:
@@ -1618,7 +1618,7 @@ def circular_velocity(
 
 
 @dispatch
-@partial(jax.jit)
+@partial(jax.jit, inline=True)
 def circular_velocity(
     pot: AbstractPotentialBase, x: gt.LengthVec3, /, *, t: gt.TimeScalar
 ) -> gt.BatchableRealQScalar:
@@ -1626,7 +1626,7 @@ def circular_velocity(
 
 
 @dispatch
-@partial(jax.jit)
+@partial(jax.jit, inline=True)
 def circular_velocity(
     pot: AbstractPotentialBase, q: cx.AbstractPosition3D, /, t: gt.TimeScalar
 ) -> gt.BatchableRealQScalar:
@@ -1649,7 +1649,7 @@ def circular_velocity(
 
 
 @dispatch
-@partial(jax.jit)
+@partial(jax.jit, inline=True)
 def circular_velocity(
     pot: AbstractPotentialBase, q: cx.AbstractPosition3D, /, *, t: gt.TimeScalar
 ) -> gt.BatchableRealQScalar:
@@ -1657,7 +1657,7 @@ def circular_velocity(
 
 
 @dispatch
-@partial(jax.jit)
+@partial(jax.jit, inline=True)
 def circular_velocity(
     pot: AbstractPotentialBase, w: gc.AbstractPhaseSpacePosition, /
 ) -> gt.BatchableRealQScalar:

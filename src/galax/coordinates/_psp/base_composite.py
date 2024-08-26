@@ -217,8 +217,8 @@ class AbstractCompositePhaseSpacePosition(
 def represent_as(
     psp: AbstractCompositePhaseSpacePosition,
     position_cls: type[cx.AbstractPosition],
+    velocity_cls: type[cx.AbstractVelocity] | None = None,
     /,
-    differential: type[cx.AbstractVelocity] | None = None,
 ) -> AbstractCompositePhaseSpacePosition:
     """Return with the components transformed.
 
@@ -228,7 +228,7 @@ def represent_as(
         The phase-space position.
     position_cls : type[:class:`~vector.AbstractPosition`]
         The target position class.
-    differential : type[:class:`~vector.AbstractVelocity`], optional
+    velocity_cls : type[:class:`~vector.AbstractVelocity`], optional
         The target differential class. If `None` (default), the differential
         class of the target position class is used.
 
@@ -262,13 +262,12 @@ def represent_as(
         p=CylindricalVelocity( ... ),
         t=...
     )})
+
     """
-    differential_cls = (
-        position_cls.differential_cls if differential is None else differential
-    )
+    vel_cls = position_cls.differential_cls if velocity_cls is None else velocity_cls
     # TODO: can we use `replace`?
     return type(psp)(
-        **{k: represent_as(v, position_cls, differential_cls) for k, v in psp.items()}
+        **{k: represent_as(v, position_cls, vel_cls) for k, v in psp.items()}
     )
 
 

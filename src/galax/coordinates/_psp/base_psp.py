@@ -69,8 +69,8 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 def represent_as(
     psp: AbstractPhaseSpacePosition,
     position_cls: type[cx.AbstractPosition],
+    velocity_cls: type[cx.AbstractVelocity] | None = None,
     /,
-    differential: type[cx.AbstractVelocity] | None = None,
 ) -> AbstractPhaseSpacePosition:
     """Return with the components transformed.
 
@@ -80,7 +80,7 @@ def represent_as(
         The phase-space position.
     position_cls : type[:class:`~vector.AbstractPosition`]
         The target position class.
-    differential : type[:class:`~vector.AbstractVelocity`], optional
+    velocity_cls : type[:class:`~vector.AbstractVelocity`], optional
         The target differential class. If `None` (default), the differential
         class of the target position class is used.
 
@@ -116,11 +116,9 @@ def represent_as(
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
     """
-    differential_cls = (
-        position_cls.differential_cls if differential is None else differential
-    )
+    diff_cls = position_cls.differential_cls if velocity_cls is None else velocity_cls
     return replace(
         psp,
         q=psp.q.represent_as(position_cls),
-        p=psp.p.represent_as(differential_cls, psp.q),
+        p=psp.p.represent_as(diff_cls, psp.q),
     )

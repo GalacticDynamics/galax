@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 import jax
 from jax.numpy import vectorize as jax_vectorize
+from plum import dispatch
 
 import quaxed.array_api as xp
 import quaxed.numpy as jnp
@@ -29,6 +30,7 @@ _select_w0 = jax_vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
 # @partial(jax.jit, static_argnames=("integrator", "interpolated"))
+@dispatch
 def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
@@ -96,16 +98,15 @@ def evaluate_orbit(
     We start by integrating a single orbit in the potential of a point mass.  A
     few standard imports are needed:
 
-    >>> import astropy.units as u
     >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
+    >>> from unxt import Quantity
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
-    >>> from unxt.unitsystems import galactic
 
     We can then create the point-mass' potential, with galactic units:
 
-    >>> potential = gp.KeplerPotential(m_tot=1e12 * u.Msun, units=galactic)
+    >>> potential = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
@@ -244,3 +245,47 @@ def evaluate_orbit(
         out = Orbit(q=ws.q, p=ws.p, t=wt, potential=pot)
 
     return out
+
+
+@dispatch
+def evaluate_orbit(
+    pot: gp.AbstractPotentialBase,
+    w0: gc.PhaseSpacePosition | gt.BatchVec6,
+    *,
+    t: Any,
+    integrator: Integrator | None = None,
+    interpolated: Literal[True, False] = False,
+) -> Orbit | InterpolatedOrbit:
+    """Compute an orbit in a potential, supporting `t` as a keyword argument.
+
+    Examples
+    --------
+    First some imports:
+
+    >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
+    >>> from unxt import Quantity
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    We can then create the point-mass' potential, with galactic units:
+
+    >>> potential = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+
+    We can then integrate an initial phase-space position in this potential to
+    get an orbit:
+
+    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
+    ...                            p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                            t=Quantity(-100, "Myr"))
+    >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
+    >>> orbit = gd.evaluate_orbit(potential, w0, t=ts)
+    >>> orbit
+    Orbit(
+      q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
+      t=Quantity[...](value=f64[4], unit=Unit("Myr")),
+      potential=KeplerPotential(...)
+    )
+
+    """
+    return evaluate_orbit(pot, w0, t, integrator=integrator, interpolated=interpolated)

@@ -5,7 +5,7 @@ import pytest
 from packaging.version import Version
 from plum import convert
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
@@ -43,18 +43,18 @@ class TestBurkertPotential(
 
     def test_potential(self, pot: BurkertPotential, x: gt.Vec3) -> None:
         expect = Quantity(-15.76623941, "kpc2 / Myr2")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: BurkertPotential, x: gt.Vec3) -> None:
         expect = Quantity([0.54053104, 1.08106208, 1.62159313], "kpc2 / Myr2")
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: BurkertPotential, x: gt.Vec3) -> None:
         expect = Quantity(8.79860325e09, "solMass / kpc3")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -67,7 +67,7 @@ class TestBurkertPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -84,7 +84,7 @@ class TestBurkertPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 

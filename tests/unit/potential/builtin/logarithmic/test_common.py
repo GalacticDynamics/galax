@@ -1,7 +1,7 @@
 import astropy.units as u
 import pytest
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
@@ -60,7 +60,7 @@ class ParameterRSMixin(ParameterFieldMixin):
         fields["units"] = galactic
         pot = pot_cls(**fields)
         assert isinstance(pot.r_s, ConstantParameter)
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.r_s.value, Quantity(10, "kpc"), atol=Quantity(1e-15, "kpc")
         )
 

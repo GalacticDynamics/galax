@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from plum import convert
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.potential as gp
@@ -31,7 +31,7 @@ class TestIsochronePotential(
 
     def test_potential(self, pot: IsochronePotential, x: gt.QVec3) -> None:
         expect = Quantity(-0.9231515, pot.units["specific energy"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -40,11 +40,11 @@ class TestIsochronePotential(
             [0.04891392, 0.09782784, 0.14674175], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: IsochronePotential, x: gt.QVec3) -> None:
         expect = Quantity(5.04511665e08, pot.units["mass density"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -57,7 +57,7 @@ class TestIsochronePotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -74,6 +74,6 @@ class TestIsochronePotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

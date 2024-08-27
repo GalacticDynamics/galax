@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from plum import convert
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.typing as gt
@@ -30,7 +30,7 @@ class TestHernquistPotential(
 
     def test_potential(self, pot: HernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(-0.94871936, pot.units["specific energy"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -39,11 +39,11 @@ class TestHernquistPotential(
             [0.05347411, 0.10694822, 0.16042233], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: HernquistPotential, x: gt.QVec3) -> None:
         expect = Quantity(3.989933e08, pot.units["mass density"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -56,7 +56,7 @@ class TestHernquistPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -73,6 +73,6 @@ class TestHernquistPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

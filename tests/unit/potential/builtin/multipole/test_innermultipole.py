@@ -8,7 +8,7 @@ from jaxtyping import Array, Shaped
 from plum import convert
 from typing_extensions import override
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem
 
@@ -69,7 +69,7 @@ class TestMultipoleInnerPotential(
 
     def test_potential(self, pot: gp.MultipoleInnerPotential, x: gt.QVec3) -> None:
         expect = Quantity(32.96969177, unit="kpc2 / Myr2")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -78,11 +78,11 @@ class TestMultipoleInnerPotential(
             [4.74751335e-16, 9.49502670e-16, 10.9898973], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MultipoleInnerPotential, x: gt.QVec3) -> None:
         expect = Quantity(2.89194575e-05, unit="solMass / kpc3")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -95,7 +95,7 @@ class TestMultipoleInnerPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -112,7 +112,7 @@ class TestMultipoleInnerPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 

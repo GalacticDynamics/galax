@@ -7,7 +7,7 @@ import astropy.units as u
 import pytest
 
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 from galax.potential._potential.params.core import ParameterCallable
@@ -83,7 +83,7 @@ class TestConstantParameter(TestAbstractParameter[ConstantParameter]):
         assert param(t=1.0 * u.s) == field_value
         # Calling the parameter doesn't broadcast the shape, only the number of
         # dimensions
-        assert qnp.array_equal(param(t=xp.asarray([1.0, 2.0])), [field_value])
+        assert jnp.array_equal(param(t=xp.asarray([1.0, 2.0])), [field_value])
 
     def test_mul(self, param: T, field_value: float) -> None:
         """Test `galax.potential.ConstantParameter` multiplication."""

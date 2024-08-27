@@ -7,7 +7,7 @@ import pytest
 from plum import convert
 
 import coordinax as cx
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.potential as gp
@@ -48,7 +48,7 @@ class GalaIOMixin:
         # quick test that the potential energies are the same
         got = rpot(x, 0)
         exp = pot(x, 0)
-        assert qnp.allclose(got, exp, atol=Quantity(1e-14, exp.unit))
+        assert jnp.allclose(got, exp, atol=Quantity(1e-14, exp.unit))
 
         # TODO: add more robust tests
 
@@ -76,9 +76,9 @@ class GalaIOMixin:
         galax = convert(getattr(pot, method0)(x, t=0), Quantity)
         galap = gp.io.convert_potential(gp.io.GalaLibrary, pot)
         gala = getattr(galap, method1)(convert(x, u.Quantity), t=0 * u.Myr)
-        assert qnp.allclose(
-            qnp.ravel(galax),
-            qnp.ravel(convert(gala, Quantity)),
+        assert jnp.allclose(
+            jnp.ravel(galax),
+            jnp.ravel(convert(gala, Quantity)),
             atol=Quantity(atol, galax.unit),
         )
 

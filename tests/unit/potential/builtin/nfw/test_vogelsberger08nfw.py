@@ -6,7 +6,7 @@ import astropy.units as u
 import pytest
 from plum import convert
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
@@ -83,7 +83,7 @@ class TestVogelsberger08TriaxialNFWPotential(
         self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QVec3
     ) -> None:
         expect = Quantity(-1.91410199, unit="kpc2 / Myr2")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -92,13 +92,13 @@ class TestVogelsberger08TriaxialNFWPotential(
     ) -> None:
         expect = Quantity([0.07701115, 0.14549116, 0.19849185], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(
         self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QVec3
     ) -> None:
         expect = Quantity(1.10157433e09, "solMass / kpc3")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -113,7 +113,7 @@ class TestVogelsberger08TriaxialNFWPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -130,6 +130,6 @@ class TestVogelsberger08TriaxialNFWPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

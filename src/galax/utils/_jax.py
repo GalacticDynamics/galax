@@ -9,7 +9,7 @@ from typing import Any, NotRequired, TypedDict, TypeVar, cast
 import quax
 from typing_extensions import ParamSpec, Unpack
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -44,7 +44,7 @@ def vectorize_method(
     excluded = excluded if excluded[0] == -1 else (-1, *excluded)
     kw["excluded"] = tuple(i + 1 for i in excluded)
 
-    return partial(qnp.vectorize, **kw)
+    return partial(jnp.vectorize, **kw)
 
 
 # ============================================================================

@@ -10,7 +10,7 @@ from matplotlib.cm import Blues
 from matplotlib.figure import Figure
 from plum import dispatch
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 from galax.potential._potential.base import AbstractPotentialBase
@@ -138,7 +138,7 @@ def _plot_potential_countours_1d(
     x1 = grids[0][1].to_value(pot.units["length"])
 
     # Create q array
-    q = qnp.zeros((len(x1), len(grids) + len(slices)))
+    q = jnp.zeros((len(x1), len(grids) + len(slices)))
     q = q.at[:, grids[0][0]].set(x1)
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
@@ -172,7 +172,7 @@ def _plot_potential_countours_2d(
 ) -> None:
     # Create meshgrid
     # TODO: don't take to_value when Quantity.at is implemented
-    x1, x2 = qnp.meshgrid(
+    x1, x2 = jnp.meshgrid(
         grids[0][1].to_value(pot.units["length"]),
         grids[1][1].to_value(pot.units["length"]),
     )
@@ -180,9 +180,9 @@ def _plot_potential_countours_2d(
 
     # Create q array
     # TODO: use Quantity.at when it's implemented
-    q = qnp.zeros((x1.size, len(grids) + len(slices)))
-    q = q.at[:, grids[0][0]].set(qnp.ravel(x1))
-    q = q.at[:, grids[1][0]].set(qnp.ravel(x2))
+    q = jnp.zeros((x1.size, len(grids) + len(slices)))
+    q = q.at[:, grids[0][0]].set(jnp.ravel(x1))
+    q = q.at[:, grids[1][0]].set(jnp.ravel(x2))
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
     q = Quantity(q, pot.units["length"])
@@ -294,7 +294,7 @@ def _plot_density_countours_1d(
     x1 = grids[0][1].to_value(pot.units["length"])
 
     # Create q array
-    q = qnp.zeros((len(x1), len(grids) + len(slices)))
+    q = jnp.zeros((len(x1), len(grids) + len(slices)))
     q = q.at[:, grids[0][0]].set(x1)
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
@@ -328,7 +328,7 @@ def _plot_density_countours_2d(
 ) -> None:
     # Create meshgrid
     # TODO: don't take to_value when Quantity.at is implemented
-    x1, x2 = qnp.meshgrid(
+    x1, x2 = jnp.meshgrid(
         grids[0][1].to_value(pot.units["length"]),
         grids[1][1].to_value(pot.units["length"]),
     )
@@ -336,9 +336,9 @@ def _plot_density_countours_2d(
 
     # Create q array
     # TODO: use Quantity.at when it's implemented
-    q = qnp.zeros((x1.size, len(grids) + len(slices)))
-    q = q.at[:, grids[0][0]].set(qnp.ravel(x1))
-    q = q.at[:, grids[1][0]].set(qnp.ravel(x2))
+    q = jnp.zeros((x1.size, len(grids) + len(slices)))
+    q = q.at[:, grids[0][0]].set(jnp.ravel(x1))
+    q = q.at[:, grids[1][0]].set(jnp.ravel(x2))
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
     q = Quantity(q, pot.units["length"])

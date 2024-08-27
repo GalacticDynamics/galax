@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, cast
 
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
 from jaxtyping import Float, Shaped
@@ -16,7 +15,7 @@ from plum import dispatch
 
 import coordinax as cx
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 import unxt
 from unxt import AbstractUnitSystem, Quantity
 from xmmutablemap import ImmutableMap
@@ -201,7 +200,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         jac_op = unxt.experimental.jacfwd(
             self._gradient, units=(self.units["length"], self.units["time"])
         )
-        return qnp.trace(jac_op(q, t))
+        return jnp.trace(jac_op(q, t))
 
     def laplacian(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any

@@ -433,21 +433,21 @@ class NullPotential(AbstractPotential):
             xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
         )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _gradient(self, q: gt.BatchQVec3, /, _: gt.RealQScalar) -> gt.BatchQVec3:
         """See ``gradient``."""
         return Quantity(  # TODO: better unit handling
             xp.zeros(q.shape[:-1] + (3,), dtype=q.dtype), galactic["acceleration"]
         )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _laplacian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> gt.FloatQScalar:
         """See ``laplacian``."""
         return Quantity(  # TODO: better unit handling
             xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["frequency drift"]
         )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _density(
         self, q: gt.BatchQVec3, /, _: gt.BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
@@ -456,7 +456,7 @@ class NullPotential(AbstractPotential):
             xp.zeros(q.shape[:-1], dtype=q.dtype), galactic["mass density"]
         )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _hessian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> gt.QMatrix33:
         """See ``hessian``."""
         return Quantity(  # TODO: better unit handling

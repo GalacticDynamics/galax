@@ -36,7 +36,7 @@ class LogarithmicPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -67,7 +67,7 @@ class LMJ09LogarithmicPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:

@@ -480,7 +480,7 @@ class PlummerPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -529,7 +529,7 @@ class PowerLawCutoffPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -571,7 +571,7 @@ class SatohPotential(AbstractPotential):
     a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -616,7 +616,7 @@ class StoneOstriker15Potential(AbstractPotential):
     # def __check_init__(self) -> None:
     #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -704,7 +704,7 @@ class TriaxialHernquistPotential(AbstractPotential):
         converter=ImmutableMap, default=default_constants
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:

@@ -639,28 +639,36 @@ class MN3ExponentialPotential(AbstractPotential):
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
+        unit = self.units["specific energy"]
         return Quantity(
             xp.sum(
                 xp.asarray(
-                    [mn.potential(q, t).value for mn in self._get_mn_components(t)]
+                    [
+                        mn.potential(q, t).to_value(unit)
+                        for mn in self._get_mn_components(t)
+                    ]
                 ),
                 axis=0,
             ),
-            self.units["specific energy"],
+            unit,
         )
 
     @partial(jax.jit)
     def _density(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
+        unit = self.units["mass density"]
         return Quantity(
             xp.sum(
                 xp.asarray(
-                    [mn.density(q, t).value for mn in self._get_mn_components(t)]
+                    [
+                        mn.density(q, t).to_value(unit)
+                        for mn in self._get_mn_components(t)
+                    ]
                 ),
                 axis=0,
             ),
-            self.units["mass density"],
+            unit,
         )
 
 

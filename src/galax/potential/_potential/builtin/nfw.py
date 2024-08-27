@@ -483,7 +483,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
         r = xp.linalg.vector_norm(q, axis=-1)
         return (r_a + r) * r_e / (r_a + r_e)
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self: "Vogelsberger08TriaxialNFWPotential",
         q: gt.BatchQVec3,

@@ -23,11 +23,11 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from ._const import _log2
-from galax.potential._src.base import default_constants
-from galax.potential._src.core import AbstractPotential
-from galax.potential._src.params.core import AbstractParameter
-from galax.potential._src.params.field import ParameterField
+from .const import _log2
+from galax.potential._potential.base import default_constants
+from galax.potential._potential.core import AbstractPotential
+from galax.potential._potential.params.core import AbstractParameter
+from galax.potential._potential.params.field import ParameterField
 
 # -------------------------------------------------------------------
 

@@ -19,13 +19,13 @@ from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsystem
 from xmmutablemap import ImmutableMap
 
-from ._const import _sqrt2
 from .builtin import (
     HernquistPotential,
     MiyamotoNagaiPotential,
     MN3ExponentialPotential,
     PowerLawCutoffPotential,
 )
+from .const import _sqrt2
 from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
 from galax.potential._src.base import AbstractPotentialBase, default_constants

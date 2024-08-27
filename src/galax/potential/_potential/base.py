@@ -4,13 +4,13 @@ import abc
 from dataclasses import KW_ONLY, fields, replace
 from functools import partial
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 
 import equinox as eqx
 import jax
 from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
-from jaxtyping import Float, Shaped
+from jaxtyping import Float
 from plum import dispatch
 
 import coordinax as cx
@@ -36,10 +36,6 @@ from galax.utils.dataclasses import ModuleMeta
 if TYPE_CHECKING:
     from galax.dynamics._dynamics.integrate.core import Integrator
     from galax.dynamics._dynamics.orbit import Orbit
-
-
-HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
-
 
 default_constants = ImmutableMap({"G": Quantity(_CONST_G.value, _CONST_G.unit)})
 

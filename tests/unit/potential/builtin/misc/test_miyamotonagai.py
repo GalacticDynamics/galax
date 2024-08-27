@@ -3,8 +3,8 @@ from typing import Any
 import astropy.units as u
 import pytest
 from plum import convert
-import quaxed.numpy as jnp
 
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp

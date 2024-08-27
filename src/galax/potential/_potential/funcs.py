@@ -20,7 +20,7 @@ from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.coordinates as gc
@@ -1523,7 +1523,7 @@ def tidal_tensor(
     batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)
     traced = (
         expand_batch_dims(xp.eye(3), ndim=len(batch_shape))
-        * expand_arr_dims(qnp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
+        * expand_arr_dims(jnp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
         / 3
     )
     return J - traced
@@ -1571,7 +1571,7 @@ def d2potential_dr2(
     rhat = cx.normalize_vector(x)
     H = pot.hessian(x, t=t)
     # vectorized dot product of rhat · H · rhat
-    return qnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)
+    return jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)
 
 
 # ===================================================================

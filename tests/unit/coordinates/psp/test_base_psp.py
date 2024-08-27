@@ -9,14 +9,13 @@ from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 
 import astropy.units as u
 import equinox as eqx
-import jax.numpy as jnp
 import jax.random as jr
 import pytest
 from jaxtyping import Array
 from plum import convert
 
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from coordinax import CartesianPosition3D, CartesianVelocity3D
 from unxt import Quantity
 from unxt.unitsystems import galactic
@@ -206,7 +205,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert pe.shape == w.shape  # confirm relation to shape and components
         assert xp.all(pe <= Quantity(0, "km2/s2"))
         # definitional
-        assert qnp.allclose(pe, pot.potential(w.q, t=0), atol=Quantity(1e-10, pe.unit))
+        assert jnp.allclose(pe, pot.potential(w.q, t=0), atol=Quantity(1e-10, pe.unit))
 
     @pytest.mark.parametrize("potential", potentials)
     def test_total_energy(self, w: T, potential: AbstractPotentialBase) -> None:
@@ -214,7 +213,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         pe = w.total_energy(potential)
         assert pe.shape == w.shape  # confirm relation to shape and components
         # definitional
-        assert qnp.allclose(
+        assert jnp.allclose(
             pe,
             w.kinetic_energy() + potential.potential(w.q, t=0),
             atol=Quantity(1e-10, pe.unit),

@@ -12,7 +12,7 @@ from plum import dispatch
 from typing_extensions import Doc
 
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 
 
@@ -237,7 +237,7 @@ def parse_time_spec(
     unit = unitsystem(units)["time"] if units is not None else None
     t0 = Quantity.constructor(t0, unit)
     dt = Quantity.constructor(dt, unit)
-    return xp.concat((t0[None], qnp.cumsum(t0 + dt)))
+    return xp.concat((t0[None], jnp.cumsum(t0 + dt)))
 
 
 @dispatch

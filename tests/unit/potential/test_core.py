@@ -7,7 +7,7 @@ import pytest
 from plum import convert
 
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, galactic, unitsystem
 from xmmutablemap import ImmutableMap
@@ -83,7 +83,7 @@ class TestAbstractPotential(AbstractPotential_Test):
 
     def test_potential(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.potential` method."""
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.potential(x, t=0),
             Quantity(1.20227527, "kpc2/Myr2"),
             atol=Quantity(1e-8, "kpc2/Myr2"),
@@ -97,13 +97,13 @@ class TestAbstractPotential(AbstractPotential_Test):
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
         # TODO: fix negative density!!!
         expect = Quantity(-2.647e-7, pot.units["mass density"])
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -119,7 +119,7 @@ class TestAbstractPotential(AbstractPotential_Test):
             ),
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expected, atol=Quantity(1e-8, "1/Myr2")
         )
 
@@ -136,6 +136,6 @@ class TestAbstractPotential(AbstractPotential_Test):
             ],
             pot.units["frequency drift"],
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

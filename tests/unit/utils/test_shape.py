@@ -4,7 +4,7 @@ import jax
 import pytest
 
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.typing as gt
@@ -69,7 +69,7 @@ class TestExpandBatchDims:
     ) -> None:
         """Test :func:`galax.utils._shape.expand_batch_dims`."""
         got = expand_batch_dims(arr, ndim=ndim)
-        assert qnp.array_equal(got, expect)
+        assert jnp.array_equal(got, expect)
         assert got.shape == expect.shape
 
 
@@ -102,5 +102,5 @@ class TestExpandArrDims:
     ) -> None:
         """Test :func:`galax.utils._shape.expand_arr_dims`."""
         got = expand_arr_dims(arr, ndim=ndim)
-        assert qnp.array_equal(got, expect)
+        assert jnp.array_equal(got, expect)
         assert got.shape == expect.shape

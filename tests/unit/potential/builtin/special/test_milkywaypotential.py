@@ -7,7 +7,7 @@ import pytest
 from plum import convert
 from typing_extensions import override
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
@@ -63,7 +63,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     def test_potential(self, pot: MilkyWayPotential, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential.potential` method."""
         expect = Quantity(-0.19386052, pot.units["specific energy"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -73,12 +73,12 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
             [0.00256407, 0.00512815, 0.01115285], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MilkyWayPotential, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential.density` method."""
         expect = Quantity(33_365_858.46361218, pot.units["mass density"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -92,7 +92,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -109,6 +109,6 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

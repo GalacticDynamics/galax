@@ -4,7 +4,7 @@ import astropy.units as u
 import pytest
 from plum import convert
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
@@ -39,18 +39,18 @@ class TestLogarithmicPotential(
 
     def test_potential(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity(0.11027593, unit="kpc2 / Myr2")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.00064902, 0.00129804, 0.00194706], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: LogarithmicPotential, x: gt.QVec3) -> None:
         expect = Quantity(30321621.61178864, "solMass / kpc3")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -63,7 +63,7 @@ class TestLogarithmicPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -80,6 +80,6 @@ class TestLogarithmicPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

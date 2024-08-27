@@ -4,7 +4,7 @@ import astropy.units as u
 import pytest
 from plum import convert
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
@@ -39,18 +39,18 @@ class TestPlummerPotential(
 
     def test_potential(self, pot: PlummerPotential, x: gt.QVec3) -> None:
         expect = Quantity(-1.16150826, unit="kpc2 / Myr2")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: PlummerPotential, x: gt.QVec3) -> None:
         expect = Quantity([0.07743388, 0.15486777, 0.23230165], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: PlummerPotential, x: gt.QVec3) -> None:
         expect = Quantity(2.73957531e08, "solMass / kpc3")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -63,7 +63,7 @@ class TestPlummerPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -80,6 +80,6 @@ class TestPlummerPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

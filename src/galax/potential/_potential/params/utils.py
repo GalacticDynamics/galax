@@ -33,7 +33,7 @@ def all_parameters(obj: object | type, /) -> "dict[str, ParameterField]":
         All fields of the dataclass, including those not yet finalized in the class, if
         it's still under construction, e.g. in ``__init_subclass__``.
     """
-    from .field import ParameterField
+    from galax.potential.params import ParameterField
 
     # Get all the class variables
     all_cls_vars = all_vars(obj)

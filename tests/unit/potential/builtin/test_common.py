@@ -3,7 +3,7 @@ from typing import Any
 import astropy.units as u
 import pytest
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
@@ -105,7 +105,7 @@ class ParameterScaleRadiusMixin(ParameterFieldMixin):
         fields["units"] = galactic
         pot = pot_cls(**fields)
         assert isinstance(pot.r_s, gpp.ConstantParameter)
-        assert qnp.isclose(pot.r_s(0), Quantity(10, "kpc"), atol=Quantity(1e-8, "kpc"))
+        assert jnp.isclose(pot.r_s(0), Quantity(10, "kpc"), atol=Quantity(1e-8, "kpc"))
 
     def test_r_s_constant(
         self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]

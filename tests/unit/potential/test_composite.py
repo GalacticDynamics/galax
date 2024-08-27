@@ -10,7 +10,7 @@ from plum import convert
 from typing_extensions import override
 
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import dimensionless, galactic, solarsystem, unitsystem
 from zeroth import zeroth
@@ -318,7 +318,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
 
     def test_potential(self, pot: CompositePotential, x: Vec3) -> None:
         expect = Quantity(xp.asarray(-0.6753781), "kpc2 / Myr2")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -327,11 +327,11 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             [0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: CompositePotential, x: Vec3) -> None:
         expect = Quantity(2.7958598e08, "Msun / kpc3")
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -346,7 +346,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             ),
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -363,6 +363,6 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             ],
             pot.units["frequency drift"],
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

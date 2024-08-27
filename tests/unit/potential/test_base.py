@@ -10,7 +10,7 @@ import pytest
 from plum import convert
 
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity
 from unxt.unitsystems import galactic
 from xmmutablemap import ImmutableMap
@@ -126,7 +126,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
         # Test that the method works on batches.
         assert pot.potential(batchx, t=0).shape == batchx.shape[:-1]
         # Test that the batched method is equivalent to the scalar method
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.potential(batchx, t=0)[0],
             pot.potential(batchx[0], t=0),
             atol=Quantity(1e-15, pot.units["specific energy"]),
@@ -157,7 +157,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
         """Test the `AbstractPotentialBase.acceleration` method."""
         acc = convert(pot.acceleration(x, t=0), Quantity)
         grad = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.array_equal(acc, -grad)
+        assert jnp.array_equal(acc, -grad)
 
     # ---------------------------------
     # Convenience methods
@@ -176,7 +176,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
         orbit = pot.evaluate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
         assert orbit.shape == (len(ts.value),)  # TODO: don't use .value
-        assert qnp.array_equal(orbit.t, ts)
+        assert jnp.array_equal(orbit.t, ts)
 
     def test_evaluate_orbit_batch(
         self, pot: gp.AbstractPotentialBase, xv: gt.Vec6
@@ -188,14 +188,14 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
         orbits = pot.evaluate_orbit(xv[None, :], ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (1, len(ts))
-        assert qnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))
+        assert jnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))
 
         # More complicated batch
         xv2 = xp.stack([xv, xv], axis=0)
         orbits = pot.evaluate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts))
-        assert qnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))
+        assert jnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))
 
 
 ##############################################################################
@@ -248,7 +248,7 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
 
     def test_potential(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.potential` method."""
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.potential(x, t=0),
             Quantity(1.20227527, "kpc2/Myr2"),
             atol=Quantity(1e-8, "kpc2/Myr2"),
@@ -262,13 +262,13 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.density` method."""
         # TODO: fix negative density!!!
         expect = Quantity(-2.647e-7, pot.units["mass density"])
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
@@ -284,7 +284,7 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
             ),
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expected, atol=Quantity(1e-8, "1/Myr2")
         )
 
@@ -301,6 +301,6 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
             ],
             pot.units["frequency drift"],
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )

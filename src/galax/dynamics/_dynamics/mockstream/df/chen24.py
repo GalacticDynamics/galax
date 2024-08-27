@@ -13,7 +13,7 @@ from jaxtyping import PRNGKeyArray
 
 import coordinax as cx
 import quaxed.array_api as xp
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 
 import galax.potential as gp
 import galax.typing as gt
@@ -23,9 +23,9 @@ from galax.dynamics._dynamics.funcs import specific_angular_momentum, tidal_radi
 # ============================================================
 # Constants
 
-mean = qnp.array([1.6, -30, 0, 1, 20, 0])
+mean = jnp.array([1.6, -30, 0, 1, 20, 0])
 
-cov = qnp.array(
+cov = jnp.array(
     [
         [0.1225, 0, 0, 0, -4.9, 0],
         [0, 529, 0, 0, 0, 0],
@@ -93,7 +93,7 @@ class ChenStreamDF(AbstractStreamDF):
 
         Dr = posvel[:, 0] * r_tidal
 
-        v_esc = qnp.sqrt(2 * potential.constants["G"] * prog_mass / Dr)
+        v_esc = xp.sqrt(2 * potential.constants["G"] * prog_mass / Dr)
         Dv = posvel[:, 3] * v_esc
 
         # convert degrees to radians
@@ -102,10 +102,10 @@ class ChenStreamDF(AbstractStreamDF):
         alpha = posvel[:, 4] * 0.017453292519943295
         beta = posvel[:, 5] * 0.017453292519943295
 
-        ctheta, stheta = qnp.cos(theta), qnp.sin(theta)
-        cphi, sphi = qnp.cos(phi), qnp.sin(phi)
-        calpha, salpha = qnp.cos(alpha), qnp.sin(alpha)
-        cbeta, sbeta = qnp.cos(beta), qnp.sin(beta)
+        ctheta, stheta = xp.cos(theta), xp.sin(theta)
+        cphi, sphi = xp.cos(phi), xp.sin(phi)
+        calpha, salpha = xp.cos(alpha), xp.sin(alpha)
+        cbeta, sbeta = xp.cos(beta), xp.sin(beta)
 
         # Trailing arm
         x_trail = (

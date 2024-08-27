@@ -48,34 +48,31 @@ class TestMN3ExponentialPotential(
     # ==========================================================================
 
     def test_potential(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
-        # TODO: need to update expected value
-        expect = Quantity(-0.95208676, pot.units["specific energy"])
+        expect = Quantity(-1.15401718, pot.units["specific energy"])
         assert qnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
-        # TODO: need to update expected value
         expect = Quantity(
-            [0.04264751, 0.08529503, 0.16840152], pot.units["acceleration"]
+            [0.0689723071793, 0.1379446143587, 0.2013372530559],
+            pot.units["acceleration"],
         )
         got = convert(pot.gradient(x, t=0), Quantity)
         assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
-        # TODO: need to update expected value
-        expect = Quantity(1.9949418e08, pot.units["mass density"])
+        expect = Quantity(731_782_542.3781165, pot.units["mass density"])
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
-        # TODO: need to update expected value
         expect = Quantity(
             [
-                [0.03691649, -0.01146205, -0.02262999],
-                [-0.01146205, 0.01972342, -0.04525999],
-                [-0.02262999, -0.04525999, -0.04536254],
+                [0.05679591, -0.02435279, -0.03538017],
+                [-0.02435279, 0.02026672, -0.07076034],
+                [-0.03538017, -0.07076034, -0.03569508],
             ],
             "1/Myr2",
         )
@@ -88,12 +85,11 @@ class TestMN3ExponentialPotential(
 
     def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
-        # TODO: need to update expected value
         expect = Quantity(
             [
-                [0.03315736, -0.01146205, -0.02262999],
-                [-0.01146205, 0.0159643, -0.04525999],
-                [-0.02262999, -0.04525999, -0.04912166],
+                [0.04300673, -0.02435279, -0.03538017],
+                [-0.02435279, 0.00647754, -0.07076034],
+                [-0.03538017, -0.07076034, -0.04948426],
             ],
             "1/Myr2",
         )

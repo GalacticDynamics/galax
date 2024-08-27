@@ -62,37 +62,34 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
 
     def test_potential(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential2022.potential` method."""
-        # TODO: need to update expected value
-        expect = Quantity(-0.19386052, pot.units["specific energy"])
+        expect = Quantity(-0.1906119, pot.units["specific energy"])
         assert qnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential2022.gradient` method."""
-        # TODO: need to update expected value
         expect = Quantity(
-            [0.00256407, 0.00512815, 0.01115285], pot.units["acceleration"]
+            [0.00235500422114, 0.00471000844229, 0.0101667940117],
+            pot.units["acceleration"],
         )
         got = convert(pot.gradient(x, t=0), Quantity)
         assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential2022.density` method."""
-        # TODO: need to update expected value
-        expect = Quantity(33_365_858.46361218, pot.units["mass density"])
+        expect = Quantity(33_807_052.01837142, pot.units["mass density"])
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential2022.hessian` method."""
-        # TODO: need to update expected value
         expect = Quantity(
             [
-                [0.00231057, -0.000507, -0.00101276],
-                [-0.000507, 0.00155007, -0.00202552],
-                [-0.00101276, -0.00202552, -0.00197448],
+                [0.0021196, -0.00047082, -0.0008994],
+                [-0.00047082, 0.00141337, -0.0017988],
+                [-0.0008994, -0.0017988, -0.00162186],
             ],
             "1/Myr2",
         )
@@ -105,12 +102,11 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
 
     def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
-        # TODO: need to update expected value
         expect = Quantity(
             [
-                [0.00168185, -0.000507, -0.00101276],
-                [-0.000507, 0.00092135, -0.00202552],
-                [-0.00101276, -0.00202552, -0.0026032],
+                [0.00148256, -0.00047082, -0.0008994],
+                [-0.00047082, 0.00077633, -0.0017988],
+                [-0.0008994, -0.0017988, -0.00225889],
             ],
             "1/Myr2",
         )

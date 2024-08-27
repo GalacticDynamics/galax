@@ -21,11 +21,7 @@ from unxt import AbstractUnitSystem, Quantity
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .io import (
-    AbstractInteroperableLibrary,
-    GalaxLibrary,
-    convert_potential,
-)
+from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
 from .plot import PlotDescriptor
 from galax.coordinates import PhaseSpacePosition
 from galax.potential._potential.params.attr import ParametersAttribute
@@ -34,8 +30,8 @@ from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
-    from galax.dynamics._dynamics.integrate.core import Integrator
-    from galax.dynamics._dynamics.orbit import Orbit
+    from galax.dynamics import Orbit
+    from galax.dynamics.integrate import Integrator  # type: ignore[attr-defined]
 
 default_constants = ImmutableMap({"G": Quantity(_CONST_G.value, _CONST_G.unit)})
 
@@ -69,7 +65,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     ###########################################################################
     # Parsing
 
-    def _init_units(self) -> None:
+    def _apply_unitsystem(self) -> None:
         from galax.potential._potential.params.field import ParameterField
 
         # Handle unit conversion for all fields, e.g. the parameters.

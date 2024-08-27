@@ -60,7 +60,7 @@ class AbstractCompositePotential(
         object.__setattr__(self, "constants", constants)
 
         # Apply the unit system to any parameters.
-        self._init_units()
+        self._apply_unitsystem()
 
     # === Potential ===
 

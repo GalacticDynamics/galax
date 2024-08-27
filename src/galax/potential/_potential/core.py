@@ -25,7 +25,7 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
     )
 
     def __post_init__(self) -> None:
-        self._init_units()
+        self._apply_unitsystem()
 
     ###########################################################################
     # Abstract methods that must be implemented by subclasses

@@ -68,7 +68,7 @@ class BurkertPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -82,7 +82,7 @@ class BurkertPotential(AbstractPotential):
             - (1 - xinv) * xp.log(1 + x**2)
         )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _density(
         self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
@@ -90,7 +90,7 @@ class BurkertPotential(AbstractPotential):
         r = xp.linalg.vector_norm(q, axis=-1)
         return m / (xp.pi * _burkert_const) / ((r + r_s) * (r**2 + r_s**2))
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _mass(
         self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
@@ -172,14 +172,14 @@ class HernquistPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / (r + self.r_s(t))
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _density(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
@@ -218,7 +218,7 @@ class IsochronePotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -237,7 +237,7 @@ class JaffePotential(AbstractPotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -267,14 +267,14 @@ class KeplerPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
         r = xp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / r
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _density(
         self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
@@ -318,7 +318,7 @@ class KuzminPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self: "KuzminPotential", q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -347,7 +347,7 @@ class LogarithmicPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -382,7 +382,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self: "MiyamotoNagaiPotential", q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
@@ -422,7 +422,7 @@ class NullPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
         self,
         q: gt.BatchQVec3,

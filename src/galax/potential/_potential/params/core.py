@@ -50,6 +50,9 @@ class ParameterCallable(Protocol):
         ...
 
 
+# -------------------------------------------
+
+
 class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     """Abstract base class for Parameters on a Potential.
 

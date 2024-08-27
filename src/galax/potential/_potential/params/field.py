@@ -24,7 +24,6 @@ from is_annotated import isannotated
 from unxt import AbstractQuantity, Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
-from galax.typing import Unit
 from galax.utils.dataclasses import Sentinel, dataclass_with_converter, field
 
 if TYPE_CHECKING:
@@ -157,6 +156,7 @@ class ParameterField:
                 if self.default is Sentinel.MISSING:
                     raise AttributeError
                 return self.default
+            # The normal return is the descriptor itself
             return self
 
         # Get from instance
@@ -164,7 +164,9 @@ class ParameterField:
 
     # -----------------------------
 
-    def _check_dimensions(self, potential: "AbstractPotentialBase", unit: Unit) -> None:
+    def _check_dimensions(
+        self, potential: "AbstractPotentialBase", dims: Dimensions
+    ) -> None:
         """Check that the given unit is compatible with the parameter's."""
         # When the potential is being constructed, the units may not have been
         # set yet, so we don't check the unit.
@@ -172,10 +174,10 @@ class ParameterField:
             return
 
         # Check the unit is compatible
-        if not unit.is_equivalent(potential.units[self.dimensions]):
+        if not dims.is_equivalent(self.dimensions):
             msg = (
-                "Parameter function must return a value "
-                f"with units consistent with {self.dimensions}."
+                "Parameter function must return a value with "
+                f"dimensions consistent with {self.dimensions}."
             )
             raise ValueError(msg)
 

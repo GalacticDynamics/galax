@@ -19,9 +19,9 @@ from typing import (
 
 import astropy.units as u
 from astropy.units import PhysicalType as Dimensions
+from is_annotated import isannotated
 
 from unxt import AbstractQuantity, Quantity
-from unxt._unxt.unitsystems.utils import is_annotated
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 from galax.typing import Unit
@@ -244,7 +244,7 @@ def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimens
         dims = ann.type_parameter
 
     # Astropy compatibility
-    elif is_annotated(ann):
+    elif isannotated(ann):
         args = get_args(ann)
 
         if (

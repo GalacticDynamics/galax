@@ -31,6 +31,7 @@ dependencies = [
   "dataclassish >= 0.2",
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
+  "is_annotated >= 1.0",
   "jax >= 0.4, != 0.4.27",
   "jaxlib != 0.4.27",
   "jaxtyping >= 0.2.33",

@@ -5,6 +5,7 @@ from jaxtyping import Array
 from plum import convert
 from typing_extensions import override
 
+import quaxed.numpy as jnp
 import unxt.unitsystems as usx
 from unxt import AbstractUnitSystem, Quantity
 

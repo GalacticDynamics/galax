@@ -61,10 +61,10 @@ class PlotDescriptor(InstanceDescriptor[BndTo]):
 
 @dispatch.abstract  # type: ignore[misc]
 def plot_potential_contours(
-    pot: ProxyAbstractPotentialBase,  # type: ignore[valid-type]  # noqa: ARG001
-    backend: type[AbstractPlottingBackend] = MatplotlibBackend,  # noqa: ARG001
+    pot: ProxyAbstractPotentialBase,  # type: ignore[valid-type]
+    backend: type[AbstractPlottingBackend] = MatplotlibBackend,
     /,
-    **kwargs: Any,  # noqa: ARG001
+    **kwargs: Any,
 ) -> Any:
     """Plot equipotentials contours of the potential.
 
@@ -91,10 +91,10 @@ def plot_potential_contours(
 
 @dispatch.abstract  # type: ignore[misc]
 def plot_density_contours(
-    pot: ProxyAbstractPotentialBase,  # type: ignore[valid-type]  # noqa: ARG001
-    backend: type[AbstractPlottingBackend] = MatplotlibBackend,  # noqa: ARG001
+    pot: ProxyAbstractPotentialBase,  # type: ignore[valid-type]
+    backend: type[AbstractPlottingBackend] = MatplotlibBackend,
     /,
-    **kwargs: Any,  # noqa: ARG001
+    **kwargs: Any,
 ) -> Any:
     """Plot density contours of the potential.
 

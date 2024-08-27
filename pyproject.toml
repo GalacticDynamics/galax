@@ -199,7 +199,6 @@ module = [
 
 
 [tool.ruff]
-src = ["src"]
 
 [tool.ruff.lint]
 extend-select = ["ALL"]

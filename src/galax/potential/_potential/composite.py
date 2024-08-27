@@ -64,7 +64,7 @@ class AbstractCompositePotential(
 
     # === Potential ===
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:

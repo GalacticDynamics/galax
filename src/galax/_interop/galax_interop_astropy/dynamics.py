@@ -19,7 +19,6 @@ import galax.typing as gt
 
 
 @dispatch  # type: ignore[misc]
-# @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,

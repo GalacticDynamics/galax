@@ -48,7 +48,7 @@ class BarPotential(AbstractPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->()")
     def _potential(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.SpecificEnergyScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
@@ -102,7 +102,7 @@ class LongMuraliBarPotential(AbstractPotential):
     alpha: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
     """Position angle of the bar."""
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:

@@ -94,7 +94,7 @@ class AbstractOrbit(gc.AbstractPhaseSpacePosition):
     # ==========================================================================
     # Dynamical quantities
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def potential_energy(
         self, potential: AbstractPotentialBase | None = None, /
     ) -> BatchFloatQScalar:
@@ -119,7 +119,7 @@ class AbstractOrbit(gc.AbstractPhaseSpacePosition):
             return self.potential.potential(self.q, t=self.t)
         return potential.potential(self.q, t=self.t)
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def total_energy(
         self, potential: "AbstractPotentialBase | None" = None, /
     ) -> BatchFloatQScalar:

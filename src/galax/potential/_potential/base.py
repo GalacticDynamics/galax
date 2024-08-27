@@ -146,7 +146,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         return potential(self, *args, **kwargs)
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def __call__(self, *args: Any) -> Float[Quantity["specific energy"], "*batch"]:
         """Compute the potential energy at the given position(s).
 
@@ -171,7 +171,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Gradient
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->(3)")
     def _gradient(self, q: gt.BatchQVec3, t: gt.RealQScalar, /) -> gt.BatchQVec3:
         """See ``gradient``."""
@@ -194,7 +194,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Laplacian
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->()")
     def _laplacian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.FloatQScalar:
         """See ``laplacian``."""
@@ -217,7 +217,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Density
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def _density(
         self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
@@ -239,7 +239,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # ---------------------------------------
     # Hessian
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->(3,3)")
     def _hessian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.QMatrix33:
         """See ``hessian``."""

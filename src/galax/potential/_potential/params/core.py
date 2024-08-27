@@ -110,7 +110,7 @@ class ConstantParameter(AbstractParameter):
             "The value must have the same dimensions as the parameter.",
         )
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def __call__(self, t: BatchableRealQScalar = t0, **_: Any) -> FloatQAnyShape:
         """Return the constant parameter value.
 
@@ -253,7 +253,7 @@ class UserParameter(AbstractParameter):
     _: KW_ONLY
     unit: Unit = eqx.field(static=True, converter=u.Unit)
 
-    @partial(jax.jit)
+    @partial(jax.jit, inline=True)
     def __call__(self, t: BatchableRealQScalar, **kwargs: Any) -> FloatQAnyShape:
         # TODO: think more about unit handling
         return Quantity.constructor(self.func(t, **kwargs), self.unit)

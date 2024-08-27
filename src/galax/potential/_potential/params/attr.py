@@ -16,13 +16,32 @@ if TYPE_CHECKING:
     from galax.potential import AbstractPotentialBase
 
 
+@dataclass(frozen=True, slots=True)
 class AbstractParametersAttribute:
-    """Mapping of the :class:`~galax.potential.ParameterField` values."""
+    """Mapping of the :class:`~galax.potential.ParameterField` values.
+
+    Examples
+    --------
+    The normal usage of this class is the ``parameters`` attribute of
+    :class:`~galax.potential.AbstractPotentialBase`.
+
+    >>> import galax.potential as gp
+    >>> gp.KeplerPotential.parameters
+    mappingproxy({'m_tot': ParameterField(...)})
+
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> pot.parameters
+    mappingproxy({'m_tot': ConstantParameter(
+      unit=Unit("solMass"),
+      value=Quantity[...](value=f64[], unit=Unit("solMass"))
+    )})
+
+    """
 
     parameters: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint
     """Class attribute name on Potential."""
 
-    _name: str
+    _name: str = field(init=False)
     """The name of the descriptor on the containing class."""
 
     def __set_name__(self, _: Any, name: str) -> None:
@@ -51,24 +70,19 @@ class ParametersAttribute(AbstractParametersAttribute):
     The normal usage of this class is the ``parameters`` attribute of
     :class:`~galax.potential.AbstractPotentialBase`.
 
+    >>> from unxt import Quantity
     >>> import galax.potential as gp
 
     >>> gp.KeplerPotential.parameters
     mappingproxy({'m_tot': ParameterField(...)})
 
-    >>> import astropy.units as u
-    >>> kepler = gp.KeplerPotential(m_tot=1e12 * u.solMass, units="galactic")
+    >>> kepler = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> kepler.parameters
     mappingproxy({'m_tot': ConstantParameter(
         unit=Unit("solMass"), value=Quantity[...](value=f64[], unit=Unit("solMass"))
         )})
+
     """
-
-    parameters: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint
-    """Class attribute name on Potential."""
-
-    _name: str = field(init=False)
-    """The name of the descriptor on the containing class."""
 
     def __get__(
         self,
@@ -100,26 +114,21 @@ class CompositeParametersAttribute(AbstractParametersAttribute):
     The normal usage of this class is the ``parameters`` attribute of
     :class:`~galax.potential.AbstractPotentialBase`.
 
+    >>> from unxt import Quantity
     >>> import galax.potential as gp
 
     >>> gp.CompositePotential.parameters
     mappingproxy({})
 
-    >>> import astropy.units as u
-    >>> kepler = gp.KeplerPotential(m_tot=1e12 * u.solMass, units="galactic")
+    >>> kepler = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> composite = gp.CompositePotential(kepler=kepler)
     >>> composite.parameters
     mappingproxy({'kepler': mappingproxy({'m_tot': ConstantParameter(
       unit=Unit("solMass"),
       value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
     )})})
+
     """
-
-    parameters: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint
-    """Class attribute name on Potential."""
-
-    _name: str = field(init=False)
-    """The name of the descriptor on the containing class."""
 
     def __get__(
         self,

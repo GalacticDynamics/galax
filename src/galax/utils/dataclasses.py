@@ -38,7 +38,6 @@ R = TypeVar("R")
 
 class Sentinel(Enum):
     MISSING = auto()
-    NOTMISSING = auto()
 
 
 # TODO: how to express default_factory is mutually exclusive with default?

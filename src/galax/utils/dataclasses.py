@@ -5,9 +5,19 @@ __all__ = ["field", "dataclass_with_converter", "ModuleMeta"]
 import dataclasses
 import functools as ft
 import inspect
+from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Mapping
 from enum import Enum, auto
-from typing import Any, Generic, NotRequired, TypedDict, TypeVar, dataclass_transform
+from typing import (
+    Any,
+    Generic,
+    NotRequired,
+    TypedDict,
+    TypeVar,
+    cast,
+    dataclass_transform,
+    overload,
+)
 
 import astropy.units as u
 from equinox._module import _has_dataclass_init, _ModuleMeta
@@ -176,6 +186,71 @@ def dataclass_with_converter(
         return _add_converter_init_to_class(cls)
 
     return wrapper
+
+
+# --------------------------------------------------------------------------
+# Converters
+
+ArgT = TypeVar("ArgT")  # Input type
+RetT = TypeVar("RetT")  # Return type
+SenT = TypeVar("SenT", bound=Enum)  # Sentinel type
+
+
+class AbstractConverter(Generic[ArgT, RetT], metaclass=ABCMeta):
+    """Abstract converter class."""
+
+    converter: Callable[[ArgT], RetT]
+
+    @abstractmethod
+    def __call__(self, value: ArgT, /) -> Any:
+        raise NotImplementedError
+
+
+@dataclasses.dataclass(frozen=True, slots=True, eq=False)
+class sentineled(AbstractConverter[ArgT, RetT], Generic[ArgT, RetT, SenT]):
+    """Optional converter with a defined sentinel value.
+
+    This converter allows for a field to be optional, i.e., it can be set to
+    some sentinel value.  This is useful when a field is required in some
+    contexts but not in others.
+
+    See Also
+    --------
+    :class:`optional`
+
+    Examples
+    --------
+    >>> from typing import Literal
+    >>> import equinox as eqx
+    >>> from galax.utils.dataclasses import sentineled, Sentinel
+
+    >>> class Class(eqx.Module):
+    ...     a: int | Literal[Sentinel.MISSING] = eqx.field(
+    ...         default=Sentinel.MISSING, converter=sentineled(int, Sentinel.MISSING))
+
+    >>> obj = Class()
+    >>> obj.a
+    <Sentinel.MISSING: 1>
+
+    >>> obj = Class(a=1)
+    >>> obj.a
+    1
+
+    """
+
+    converter: Callable[[ArgT], RetT]
+    sentinel: SenT
+
+    @overload
+    def __call__(self, value: SenT, /) -> SenT: ...
+
+    @overload
+    def __call__(self, value: ArgT, /) -> RetT: ...
+
+    def __call__(self, value: ArgT | SenT, /) -> RetT | SenT:
+        if value is self.sentinel:
+            return cast(SenT, value)
+        return self.converter(cast(ArgT, value))
 
 
 ##############################################################################

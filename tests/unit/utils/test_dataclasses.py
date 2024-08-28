@@ -42,7 +42,7 @@ def test_field_on_equinox_object() -> None:
     """Test that `field` works on Equinox objects."""
 
     class A(eqx.Module):
-        x: int = field(converter=lambda x: int(x))
+        x: int = field(converter=int)
 
     obj = A(1.0)  # float -> int
     assert isinstance(obj.x, int)

@@ -24,7 +24,12 @@ from is_annotated import isannotated
 from unxt import AbstractQuantity, Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
-from galax.utils.dataclasses import Sentinel, dataclass_with_converter, field
+from galax.utils.dataclasses import (
+    Sentinel,
+    dataclass_with_converter,
+    field,
+    sentineled,
+)
 
 if TYPE_CHECKING:
     from galax.potential import AbstractPotentialBase
@@ -113,7 +118,7 @@ class ParameterField:
     _: KW_ONLY
     default: AbstractParameter | Literal[Sentinel.MISSING] = field(
         default=Sentinel.MISSING,
-        converter=lambda x: x if x is Sentinel.MISSING else converter_parameter(x),
+        converter=sentineled(converter_parameter, sentinel=Sentinel.MISSING),
     )
     """The default value of the parameter."""
 

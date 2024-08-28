@@ -20,6 +20,7 @@ from jaxtyping import Array, Float, Shaped
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity, unitsystem
+from unxt.unitsystems import dimensionless
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -88,6 +89,81 @@ class NFWPotential(AbstractPotential):
         rho0 = self.m(t) / (4 * jnp.pi * r_s**3)
         u = r / r_s
         return rho0 / u / (1 + u) ** 2
+
+    @staticmethod
+    def _vc_rs_rref_to_m(
+        v_c: Quantity["velocity"], r_s: Quantity["length"], r_ref: Quantity["length"]
+    ) -> Quantity["mass"]:
+        uu = r_ref / r_s
+        vs2 = v_c**2 / uu / (xp.log(1 + uu) / uu**2 - 1 / (uu * (1 + uu)))
+        return r_s * vs2 / default_constants["G"]
+
+    @classmethod
+    def from_circular_velocity(
+        cls,
+        v_c: Quantity["velocity"],
+        r_s: Quantity["length"],
+        r_ref: Quantity["length"] | None = None,
+        units: AbstractUnitSystem | None = None,
+    ) -> "NFWPotential":
+        r"""Create an NFW potential from the circular velocity at a given radius.
+
+        Parameters
+        ----------
+        v_c
+            Circular velocity (at the specified reference radius).
+        r_s
+            Scale radius.
+        r_ref (optional)
+            The reference radius for the circular velocity. If None, the scale radius is
+            used.
+
+        Returns
+        -------
+        NFWPotential
+            NFW potential instance with the given circular velocity and scale radius.
+        """
+        r_ref = r_ref or r_s
+        units = units or dimensionless
+
+        m = NFWPotential._vc_rs_rref_to_m(v_c, r_s, r_ref).to(units["mass"])
+        return NFWPotential(m=m, r_s=r_s, units=units)  # type: ignore[call-arg]
+
+    @classmethod
+    def from_M200_c(
+        cls,
+        M200: Quantity["mass"],
+        c: Quantity["dimensionless"],
+        units: AbstractUnitSystem,
+        rho_c: Quantity["mass density"] | None = None,
+    ) -> "NFWPotential":
+        """Create an NFW potential from a virial mass and concentration.
+
+        Parameters
+        ----------
+        M200
+            Virial mass, or mass at 200 times the critical density, ``rho_c``.
+        c
+            NFW halo concentration.
+        rho_c (optional)
+            Critical density at z=0. If not specified, uses the default astropy
+            cosmology to obtain this, `~astropy.cosmology.default_cosmology`.
+        """
+        if rho_c is None:
+            from astropy.cosmology import default_cosmology
+
+            cosmo = default_cosmology.get()
+            rho_c = (3 * cosmo.H(0.0) ** 2 / (8 * np.pi * default_constants["G"])).to(
+                units["mass density"]
+            )
+
+        Rvir = xp.cbrt(M200 / (200 * rho_c) / (4.0 / 3 * xp.pi)).to(units["length"])
+        r_s = Rvir / c
+
+        A_NFW = xp.log(1 + c) - c / (1 + c)
+        m = M200 / A_NFW
+
+        return NFWPotential(m=m, r_s=r_s, units=units)  # type: ignore[call-arg]
 
 
 # -------------------------------------------------------------------

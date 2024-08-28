@@ -845,10 +845,7 @@ def gala_to_galax(
     params["m_tot"] = params.pop("m")
     params["positive_density"] = gala.positive_density
 
-    if gala.sech2_z:
-        cls = gpx.MN3Sech2Potential
-    else:
-        cls = gpx.MN3ExponentialPotential
+    cls = gpx.MN3Sech2Potential if gala.sech2_z else gpx.MN3ExponentialPotential
 
     pot = cls(**params, units=_check_gala_units(gala.units))
     return _apply_frame(_get_frame(gala), pot)

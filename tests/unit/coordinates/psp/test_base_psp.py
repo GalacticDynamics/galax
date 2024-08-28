@@ -14,9 +14,9 @@ import pytest
 from jaxtyping import Array
 from plum import convert
 
+import coordinax as cx
 import quaxed.array_api as xp
 import quaxed.numpy as jnp
-from coordinax import CartesianPosition3D, CartesianVelocity3D
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
@@ -239,8 +239,8 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
         class PSP(AbstractPhaseSpacePosition):
             """A phase-space position."""
 
-            q: CartesianPosition3D = eqx.field(converter=_converter_to_pos3d)
-            p: CartesianVelocity3D = eqx.field(converter=_converter_to_vel3d)
+            q: cx.AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
+            p: cx.AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
             t: Quantity["time"]
 
             @property
@@ -266,7 +266,7 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
                     The full phase-space position, including time.
                 """
                 batch, comps = self._shape_tuple
-                cart = self.represent_as(CartesianPosition3D)
+                cart = self.represent_as(cx.CartesianPosition3D)
                 q = xp.broadcast_to(
                     convert(cart.q, Quantity).decompose(units).value, (*batch, comps.q)
                 )

@@ -7,8 +7,8 @@ from typing import Literal, TypeAlias, overload
 import jax.numpy as jnp
 from jaxtyping import Array, Shaped
 
+import coordinax as cx
 import quaxed.array_api as xp
-from coordinax import AbstractVector
 
 import galax.typing as gt
 from galax.utils._jax import quaxify
@@ -17,7 +17,7 @@ AnyScalar: TypeAlias = Shaped[Array, ""]
 ArrayAnyShape: TypeAlias = Shaped[Array, "..."]
 
 
-def vector_batched_shape(obj: AbstractVector) -> tuple[gt.Shape, int]:
+def vector_batched_shape(obj: cx.AbstractVector) -> tuple[gt.Shape, int]:
     """Return the batch and component shape of a vector."""
     return obj.shape, len(obj.components)
 

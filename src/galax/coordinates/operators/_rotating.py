@@ -9,9 +9,9 @@ from typing import Literal, final
 from jaxtyping import Float, Shaped
 from plum import convert
 
+import coordinax as cx
 import quaxed.array_api as xp
 import quaxed.numpy as jnp
-from coordinax import AbstractPosition3D, CartesianPosition3D, CartesianVelocity3D
 from coordinax._coordinax.operators.base import op_call_dispatch
 from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
 from unxt import Quantity
@@ -164,7 +164,6 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         Examples
         --------
         >>> from unxt import Quantity
-        >>> from coordinax import CartesianPosition3D
         >>> from galax.coordinates.operators import ConstantRotationZOperator
 
         >>> op = ConstantRotationZOperator(Omega_z=Quantity(360, "deg / Gyr"))
@@ -215,22 +214,22 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
     @op_call_dispatch(precedence=1)
     def __call__(
         self: "ConstantRotationZOperator",
-        vec: AbstractPosition3D,
+        vec: cx.AbstractPosition3D,
         t: Quantity["time"],
         /,
-    ) -> tuple[AbstractPosition3D, Quantity["time"]]:
+    ) -> tuple[cx.AbstractPosition3D, Quantity["time"]]:
         """Apply the translation to the coordinates.
 
         Examples
         --------
         >>> from plum import convert
         >>> from unxt import Quantity
-        >>> from coordinax import CartesianPosition3D
+        >>> import coordinax as cx
         >>> from galax.coordinates.operators import ConstantRotationZOperator
 
         >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
 
-        >>> q = CartesianPosition3D.constructor(Quantity([1, 0, 0], "kpc"))
+        >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 0, 0], "kpc"))
         >>> t = Quantity(1, "Gyr")
         >>> newq, newt = op(q, t)
         >>> convert(newq, Quantity).value.round(2)
@@ -245,9 +244,9 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         Array([-1., 0., 0.], dtype=float64)
 
         """
-        q = convert(vec.represent_as(CartesianPosition3D), Quantity)
+        q = convert(vec.represent_as(cx.CartesianPosition3D), Quantity)
         qp, tp = self(q, t)
-        vecp = CartesianPosition3D.constructor(qp).represent_as(type(vec))
+        vecp = cx.CartesianPosition3D.constructor(qp).represent_as(type(vec))
         return (vecp, tp)
 
     @op_call_dispatch
@@ -292,7 +291,9 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         # the momentum to Cartesian coordinates at the original position. Then
         # transform the momentum back to the original representation, but at the
         # translated position.
-        p = psp.p.represent_as(CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
+        p = psp.p.represent_as(cx.CartesianVelocity3D, psp.q).represent_as(
+            type(psp.p), q
+        )
         # Reasseble and return
         return replace(psp, q=q, p=p, t=t)
 

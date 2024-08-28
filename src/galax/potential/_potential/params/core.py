@@ -90,7 +90,7 @@ class ConstantParameter(AbstractParameter):
 
     # TODO: link this shape to the return shape from __call__
     value: FloatQAnyShape = eqx.field(
-        converter=lambda x: Quantity.constructor(x, dtype=float)
+        converter=partial(Quantity.constructor, dtype=float)
     )
     """The time-independent value of the parameter."""
 
@@ -164,13 +164,13 @@ class LinearParameter(AbstractParameter):
     """
 
     slope: FloatQAnyShape = eqx.field(
-        converter=lambda x: Quantity.constructor(x, dtype=float)
+        converter=partial(Quantity.constructor, dtype=float)
     )
     point_time: BatchableRealQScalar = eqx.field(
-        converter=lambda x: Quantity["time"].constructor(x, dtype=float)
+        converter=partial(Quantity["time"].constructor, dtype=float)
     )
     point_value: FloatQAnyShape = eqx.field(
-        converter=lambda x: Quantity.constructor(x, dtype=float)
+        converter=partial(Quantity.constructor, dtype=float)
     )
 
     def __check_init__(self) -> None:

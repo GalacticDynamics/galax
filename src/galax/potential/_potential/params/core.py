@@ -9,17 +9,16 @@ __all__ = [
 ]
 
 import abc
-from dataclasses import KW_ONLY, replace
+from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, Protocol, final, runtime_checkable
 
-import astropy.units as u
 import equinox as eqx
 import jax
 
 from unxt import Quantity
 
-from galax.typing import BatchableRealQScalar, FloatQAnyShape, Unit
+from galax.typing import BatchableRealQScalar, FloatQAnyShape
 from galax.utils._shape import expand_batch_dims
 
 if TYPE_CHECKING:
@@ -51,6 +50,9 @@ class ParameterCallable(Protocol):
         ...
 
 
+# -------------------------------------------
+
+
 class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     """Abstract base class for Parameters on a Potential.
 
@@ -58,14 +60,7 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     Potential. They can be constant (see `ConstantParameter`), or they can be
     functions of time.
 
-    Parameters
-    ----------
-    unit : Unit
-        The output unit of the parameter.
     """
-
-    _: KW_ONLY
-    unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @abc.abstractmethod
     def __call__(self, t: BatchableRealQScalar, **kwargs: Any) -> FloatQAnyShape:
@@ -99,17 +94,6 @@ class ConstantParameter(AbstractParameter):
     )
     """The time-independent value of the parameter."""
 
-    _: KW_ONLY
-    unit: Unit = eqx.field(static=True, converter=u.Unit)
-
-    def __check_init__(self) -> None:
-        """Check the initialization of the class."""
-        _ = eqx.error_if(
-            self.value,
-            self.value.unit.physical_type != self.unit.physical_type,
-            "The value must have the same dimensions as the parameter.",
-        )
-
     @partial(jax.jit, inline=True)
     def __call__(self, t: BatchableRealQScalar = t0, **_: Any) -> FloatQAnyShape:
         """Return the constant parameter value.
@@ -133,12 +117,10 @@ class ConstantParameter(AbstractParameter):
     # -------------------------------------------
 
     def __mul__(self, other: Any) -> "Self":
-        value = self.value * other
-        return replace(self, value=value, unit=value.unit)
+        return replace(self, value=self.value * other)
 
     def __rmul__(self, other: Any) -> "Self":
-        value = other * self.value
-        return replace(self, value=value, unit=value.unit)
+        return replace(self, value=other * self.value)
 
 
 #####################################################################
@@ -167,16 +149,18 @@ class LinearParameter(AbstractParameter):
     --------
     >>> from galax.potential.params import LinearParameter
     >>> from unxt import Quantity
+    >>> import quaxed.numpy as jnp
 
     >>> lp = LinearParameter(slope=Quantity(-1, "Msun/yr"),
     ...                      point_time=Quantity(0, "Myr"),
-    ...                      point_value=Quantity(1e9, "Msun"),
-    ...                      unit="Msun")
+    ...                      point_value=Quantity(1e9, "Msun"))
 
-    >>> lp(Quantity(0, "Gyr"))
+    >>> lp(Quantity(0, "Gyr")).to("Msun")
     Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
-    >>> lp(Quantity(1, "Gyr"))
-    Quantity['mass'](Array(0., dtype=float64), unit='solMass')
+
+    >>> jnp.round(lp(Quantity(1.0, "Gyr")), 3)
+    Quantity['mass'](Array(0., dtype=float64), unit='Gyr solMass / yr')
+
     """
 
     slope: FloatQAnyShape = eqx.field(
@@ -188,13 +172,12 @@ class LinearParameter(AbstractParameter):
     point_value: FloatQAnyShape = eqx.field(
         converter=lambda x: Quantity.constructor(x, dtype=float)
     )
-    _: KW_ONLY
-    unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     def __check_init__(self) -> None:
         """Check the initialization of the class."""
         # TODO: check point_value and slope * point_time have the same dimensions
 
+    @partial(jax.jit, inline=True)
     def __call__(self, t: BatchableRealQScalar, **_: Any) -> FloatQAnyShape:
         """Return the parameter value.
 
@@ -215,20 +198,20 @@ class LinearParameter(AbstractParameter):
         --------
         >>> from galax.potential.params import LinearParameter
         >>> from unxt import Quantity
+        >>> import quaxed.numpy as jnp
 
         >>> lp = LinearParameter(slope=Quantity(-1, "Msun/yr"),
         ...                      point_time=Quantity(0, "Myr"),
-        ...                      point_value=Quantity(1e9, "Msun"),
-        ...                      unit="Msun")
+        ...                      point_value=Quantity(1e9, "Msun"))
 
-        >>> lp(Quantity(0, "Gyr"))
+        >>> lp(Quantity(0, "Gyr")).to("Msun")
         Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
-        >>> lp(Quantity(1, "Gyr"))
-        Quantity['mass'](Array(0., dtype=float64), unit='solMass')
+
+        >>> jnp.round(lp(Quantity(1, "Gyr")), 3)
+        Quantity['mass'](Array(0., dtype=float64), unit='Gyr solMass / yr')
+
         """
-        return Quantity.constructor(
-            self.slope * (t - self.point_time) + self.point_value, self.unit
-        )
+        return self.slope * (t - self.point_time) + self.point_value
 
 
 #####################################################################
@@ -244,16 +227,23 @@ class UserParameter(AbstractParameter):
     ----------
     func : Callable[[BatchableRealQScalar], Array[float, (*shape,)]]
         The function to use to compute the parameter value.
-    unit : Unit, keyword-only
-        The output unit of the parameter.
+
+    Examples
+    --------
+    >>> from galax.potential.params import UserParameter
+    >>> from unxt import Quantity
+
+    >>> def func(t: Quantity["time"]) -> Quantity["mass"]:
+    ...     return Quantity(1e9, "Msun/Gyr") * t
+
+    >>> up = UserParameter(func=func)
+    >>> up(Quantity(1e3, "Myr"))
+    Quantity['mass'](Array(1.e+12, dtype=float64, ...), unit='Myr solMass / Gyr')
+
     """
 
-    # TODO: unit handling
     func: ParameterCallable = eqx.field(static=True)
-    _: KW_ONLY
-    unit: Unit = eqx.field(static=True, converter=u.Unit)
 
     @partial(jax.jit, inline=True)
     def __call__(self, t: BatchableRealQScalar, **kwargs: Any) -> FloatQAnyShape:
-        # TODO: think more about unit handling
-        return Quantity.constructor(self.func(t, **kwargs), self.unit)
+        return self.func(t, **kwargs)

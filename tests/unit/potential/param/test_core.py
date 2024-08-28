@@ -52,10 +52,6 @@ class TestAbstractParameter(Generic[T]):
         with pytest.raises(TypeError):
             param_cls()()
 
-    def test_unit_field(self, param: T, field_unit: Unit) -> None:
-        """Test `galax.potential.AbstractParameter` unit field."""
-        assert param.unit == field_unit
-
 
 ##############################################################################
 
@@ -73,7 +69,7 @@ class TestConstantParameter(TestAbstractParameter[ConstantParameter]):
 
     @pytest.fixture(scope="class")
     def param(self, param_cls: type[T], field_unit: Unit, field_value: float) -> T:
-        return param_cls(field_value, unit=field_unit)
+        return param_cls(Quantity.constructor(field_value, unit=field_unit))
 
     # ===============================================================
 
@@ -107,10 +103,8 @@ class TestParameterCallable:
         assert not issubclass(object, ParameterCallable)
 
     def test_isinstance(self) -> None:
-        assert isinstance(
-            ConstantParameter(Quantity(1.0, "km"), unit=u.km), ParameterCallable
-        )
-        assert isinstance(UserParameter(lambda t: t, unit=u.km), ParameterCallable)
+        assert isinstance(ConstantParameter(Quantity(1.0, "km")), ParameterCallable)
+        assert isinstance(UserParameter(lambda t: t << u.km), ParameterCallable)
 
 
 class TestUserParameter(TestAbstractParameter[UserParameter]):
@@ -131,7 +125,7 @@ class TestUserParameter(TestAbstractParameter[UserParameter]):
     def param(
         self, param_cls: type[T], field_unit: Unit, field_func: ParameterCallable
     ) -> T:
-        return param_cls(field_func, unit=field_unit)
+        return param_cls(field_func)
 
     # ===============================================================
 

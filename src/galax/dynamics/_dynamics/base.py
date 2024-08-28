@@ -10,7 +10,7 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 
-from coordinax import AbstractPosition3D, AbstractVelocity3D
+import coordinax as cx
 from unxt import Quantity
 
 import galax.coordinates as gc
@@ -37,10 +37,10 @@ class AbstractOrbit(gc.AbstractPhaseSpacePosition):
     in a given potential.
     """
 
-    q: AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
+    q: cx.AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
     """Positions (x, y, z)."""
 
-    p: AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
+    p: cx.AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized

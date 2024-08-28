@@ -63,6 +63,7 @@ def potential(
     First some imports:
 
     >>> from unxt import Quantity
+    >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
@@ -89,8 +90,7 @@ def potential(
     :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~coordinax.FourVector`:
 
-    >>> from coordinax import FourVector
-    >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
     >>> pot.potential(w)
     Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
     """  # noqa: E501
@@ -289,6 +289,7 @@ def gradient(
     First some imports:
 
     >>> from unxt import Quantity
+    >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
@@ -317,8 +318,7 @@ def gradient(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> from coordinax import FourVector
-    >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
     >>> print(pot.gradient(w))
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
@@ -548,6 +548,7 @@ def laplacian(
     First some imports:
 
     >>> from unxt import Quantity
+    >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
@@ -573,8 +574,7 @@ def laplacian(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> from coordinax import FourVector
-    >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
     >>> pot.laplacian(w)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
     """  # noqa: E501
@@ -778,6 +778,7 @@ def density(
     First some imports:
 
     >>> from unxt import Quantity
+    >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
@@ -803,8 +804,7 @@ def density(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> from coordinax import FourVector
-    >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
     >>> pot.density(w)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
     """
@@ -994,6 +994,7 @@ def hessian(
     First some imports:
 
     >>> from unxt import Quantity
+    >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
@@ -1028,8 +1029,7 @@ def hessian(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> from coordinax import FourVector
-    >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
     >>> pot.hessian(w)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1243,6 +1243,7 @@ def acceleration(
     First some imports:
 
     >>> from unxt import Quantity
+    >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
@@ -1271,8 +1272,7 @@ def acceleration(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> from coordinax import FourVector
-    >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
     >>> print(pot.acceleration(w))
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [-0.086 -0.172 -0.258]>
@@ -1353,6 +1353,7 @@ def tidal_tensor(
     First some imports:
 
     >>> from unxt import Quantity
+    >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
@@ -1387,8 +1388,7 @@ def tidal_tensor(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> from coordinax import FourVector
-    >>> w = FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
     >>> pot.tidal_tensor(w)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],

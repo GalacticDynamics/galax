@@ -12,7 +12,6 @@ from jaxtyping import Array, Shaped
 
 import coordinax as cx
 import quaxed.array_api as xp
-from coordinax import AbstractPosition3D, AbstractVelocity3D
 from unxt import Quantity
 
 import galax.typing as gt
@@ -48,10 +47,10 @@ class MockStreamArm(AbstractPhaseSpacePosition):
         Release time of the stream particles [Myr].
     """
 
-    q: AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
+    q: cx.AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
     """Positions (x, y, z)."""
 
-    p: AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
+    p: cx.AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     t: gt.QVecTime = eqx.field(converter=Quantity["time"].constructor)

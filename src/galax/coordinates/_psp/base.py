@@ -454,16 +454,16 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
+        >>> import coordinax as cx
         >>> from galax.coordinates import PhaseSpacePosition
 
         We can construct a phase-space position:
 
-        >>> q = CartesianPosition3D(
+        >>> q = cx.CartesianPosition3D(
         ...     x=Quantity(1, "kpc"),
         ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=Quantity(2, "kpc"))
-        >>> p = CartesianVelocity3D(
+        >>> p = cx.CartesianVelocity3D(
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
@@ -502,17 +502,17 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
+        >>> import coordinax as cx
         >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.potential import MilkyWayPotential
 
         We can construct a phase-space position:
 
-        >>> q = CartesianPosition3D(
+        >>> q = cx.CartesianPosition3D(
         ...     x=Quantity(1, "kpc"),
         ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=Quantity(2, "kpc"))
-        >>> p = CartesianVelocity3D(
+        >>> p = cx.CartesianVelocity3D(
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
@@ -551,17 +551,17 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports:
 
         >>> from unxt import Quantity
-        >>> from coordinax import CartesianPosition3D, CartesianVelocity3D
+        >>> import coordinax as cx
         >>> from galax.coordinates import PhaseSpacePosition
         >>> from galax.potential import MilkyWayPotential
 
         We can construct a phase-space position:
 
-        >>> q = CartesianPosition3D(
+        >>> q = cx.CartesianPosition3D(
         ...     x=Quantity(1, "kpc"),
         ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=Quantity(2, "kpc"))
-        >>> p = CartesianVelocity3D(
+        >>> p = cx.CartesianVelocity3D(
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))

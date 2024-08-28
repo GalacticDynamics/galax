@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from plum import convert
 from quax import quaxify
 
-from coordinax import CartesianVelocity3D
+import coordinax as cx
 from coordinax._coordinax.operators.base import op_call_dispatch
 from coordinax.operators import (
     AbstractCompositeOperator,
@@ -143,7 +143,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.represent_as(cx.CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p)
 
@@ -199,7 +199,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.represent_as(cx.CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -252,7 +252,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.represent_as(cx.CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -302,9 +302,9 @@ def call(
     # coordinates at the original position. Then the rotation is applied to
     # the momentum. The momentum is then transformed back to the original
     # representation, but at the rotated position.
-    pv = convert(psp.p.represent_as(CartesianVelocity3D, psp.q), Quantity)
+    pv = convert(psp.p.represent_as(cx.CartesianVelocity3D, psp.q), Quantity)
     pv = vec_matmul(self.rotation, pv)
-    p = CartesianVelocity3D.constructor(pv).represent_as(type(psp.p), q)
+    p = cx.CartesianVelocity3D.constructor(pv).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 

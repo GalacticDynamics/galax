@@ -827,8 +827,8 @@ def galax_to_gala(pot: gpx.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotenti
 @dispatch  # type: ignore[misc]
 def gala_to_galax(
     gala: gp.MN3ExponentialDiskPotential, /
-) -> gpx.MN3ExponentialPotential | gpx.PotentialFrame:
-    """Convert a `gala.potential.MN3ExponentialDiskPotential` to a `galax.potential.MN3ExponentialPotential`.
+) -> gpx.MN3ExponentialPotential | gpx.MN3Sech2Potential | gpx.PotentialFrame:
+    """Convert a `gala.potential.MN3ExponentialDiskPotential` to a `galax.potential.MN3ExponentialPotential` or `galax.potential.MN3Sech2Potential`.
 
     Examples
     --------
@@ -839,29 +839,26 @@ def gala_to_galax(
     >>> pot = galap.MN3ExponentialDiskPotential(m=1e11, h_R=3., h_z=0.2, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     TODO
-    MiyamotoNagaiPotential(
-      units=LTMAUnitSystem( length=Unit("kpc"), ...),
-      constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... ),
-      b=ConstantParameter( ... )
-    )
 
     """  # noqa: E501
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
-    params["sech2_z"] = gala.sech2_z
     params["positive_density"] = gala.positive_density
 
-    pot = gpx.MN3ExponentialPotential(**params, units=_check_gala_units(gala.units))
+    if gala.sech2_z:
+        cls = gpx.MN3Sech2Potential
+    else:
+        cls = gpx.MN3ExponentialPotential
+
+    pot = cls(**params, units=_check_gala_units(gala.units))
     return _apply_frame(_get_frame(gala), pot)
 
 
 @dispatch  # type: ignore[misc]
 def galax_to_gala(
-    pot: gpx.MN3ExponentialPotential, /
+    pot: gpx.MN3ExponentialPotential | gpx.MN3Sech2Potential, /
 ) -> gp.MN3ExponentialDiskPotential:
-    """Convert a `galax.potential.MN3ExponentialPotential` to a `gala.potential.MN3ExponentialDiskPotential`.
+    """Convert a `galax.potential.MN3ExponentialPotential` or `galax.potential.MN3Sech2Potential` to a `gala.potential.MN3ExponentialDiskPotential`.
 
     Examples
     --------
@@ -884,7 +881,7 @@ def galax_to_gala(
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
 
-    params["sech2_z"] = pot.sech2_z
+    params["sech2_z"] = isinstance(pot, gpx.MN3Sech2Potential)
     params["positive_density"] = pot.positive_density
 
     return gp.MN3ExponentialDiskPotential(

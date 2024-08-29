@@ -127,7 +127,7 @@ class NFWPotential(AbstractPotential):
         units = units or dimensionless
 
         m = NFWPotential._vc_rs_rref_to_m(v_c, r_s, r_ref).to(units["mass"])
-        return NFWPotential(m=m, r_s=r_s, units=units)  # type: ignore[call-arg]
+        return NFWPotential(m=m, r_s=r_s, units=units)
 
     @classmethod
     def from_M200_c(
@@ -163,7 +163,7 @@ class NFWPotential(AbstractPotential):
         A_NFW = xp.log(1 + c) - c / (1 + c)
         m = M200 / A_NFW
 
-        return NFWPotential(m=m, r_s=r_s, units=units)  # type: ignore[call-arg]
+        return NFWPotential(m=m, r_s=r_s, units=units)
 
 
 # -------------------------------------------------------------------

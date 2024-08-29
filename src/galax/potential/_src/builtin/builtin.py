@@ -27,6 +27,7 @@ from typing import Any, Final, final
 
 import equinox as eqx
 import jax
+from jaxtyping import Array
 
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
@@ -533,7 +534,7 @@ class MiyamotoNagaiPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
-_mn3_K_pos_dens: Final = xp.asarray(
+_mn3_K_pos_dens: Final = jnp.array(  # noqa: N816
     [
         [0.0036, -0.0330, 0.1117, -0.1335, 0.1749],
         [-0.0131, 0.1090, -0.3035, 0.2921, -5.7976],
@@ -543,7 +544,7 @@ _mn3_K_pos_dens: Final = xp.asarray(
         [-0.0326, 0.1816, -0.2943, -0.6329, 2.3193],
     ]
 )
-_mn3_K_neg_dens: Final = xp.asarray(
+_mn3_K_neg_dens: Final = jnp.array(  # noqa: N816
     [
         [-0.0090, 0.0640, -0.1653, 0.1164, 1.9487],
         [0.0173, -0.0903, 0.0877, 0.2029, -1.3077],
@@ -553,8 +554,8 @@ _mn3_K_neg_dens: Final = xp.asarray(
         [-0.0247, 0.1718, -0.4124, -0.5944, 0.7333],
     ]
 )
-_mn3_b_coeffs_exp: Final = xp.asarray([-0.269, 1.08, 1.092])
-_mn3_b_coeffs_sech2: Final = xp.asarray([-0.033, 0.262, 0.659])
+_mn3_b_coeffs_exp: Final = jnp.array([-0.269, 1.08, 1.092])
+_mn3_b_coeffs_sech2: Final = jnp.array([-0.033, 0.262, 0.659])
 
 
 class AbstractMN3Potential(AbstractPotential):
@@ -563,7 +564,7 @@ class AbstractMN3Potential(AbstractPotential):
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     """Total mass of the potential."""
 
-    h_R: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    h_R: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment] # noqa: N815
     """Radial (exponential) scale length."""
 
     h_z: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
@@ -607,7 +608,7 @@ class AbstractMN3Potential(AbstractPotential):
         mn_b = b_hR * hR.value
 
         return [
-            MiyamotoNagaiPotential(m_tot=m, a=a, b=mn_b, units=self.units)  # type: ignore[call-arg]
+            MiyamotoNagaiPotential(m_tot=m, a=a, b=mn_b, units=self.units)
             for m, a in zip(mn_ms, mn_as, strict=True)
         ]
 
@@ -669,7 +670,7 @@ class MN3ExponentialPotential(AbstractMN3Potential):
     """
 
     @property
-    def _b_coeffs(self) -> Any:
+    def _b_coeffs(self) -> Array:
         return _mn3_b_coeffs_exp
 
 
@@ -693,7 +694,7 @@ class MN3Sech2Potential(AbstractMN3Potential):
     """
 
     @property
-    def _b_coeffs(self) -> Any:
+    def _b_coeffs(self) -> Array:
         return _mn3_b_coeffs_sech2
 
 

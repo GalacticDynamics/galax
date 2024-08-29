@@ -20,11 +20,7 @@ from galax.coordinates import (
     AbstractPhaseSpacePosition,
     ComponentShapeTuple,
 )
-from galax.coordinates._psp.utils import (
-    _converter_to_pos3d,
-    _converter_to_vel3d,
-    getitem_vec1time_index,
-)
+from galax.coordinates._psp.utils import getitem_vec1time_index
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 if TYPE_CHECKING:
@@ -47,10 +43,10 @@ class MockStreamArm(AbstractPhaseSpacePosition):
         Release time of the stream particles [Myr].
     """
 
-    q: cx.AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
+    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.constructor)
     """Positions (x, y, z)."""
 
-    p: cx.AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
+    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.constructor)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     t: gt.QVecTime = eqx.field(converter=Quantity["time"].constructor)

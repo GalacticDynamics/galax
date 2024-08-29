@@ -22,7 +22,6 @@ from unxt.unitsystems import galactic
 
 import galax.typing as gt
 from galax.coordinates import AbstractPhaseSpacePosition, ComponentShapeTuple
-from galax.coordinates._psp.utils import _converter_to_pos3d, _converter_to_vel3d
 from galax.potential import AbstractPotentialBase, KeplerPotential, MilkyWayPotential
 
 if TYPE_CHECKING:
@@ -239,8 +238,12 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
         class PSP(AbstractPhaseSpacePosition):
             """A phase-space position."""
 
-            q: cx.AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
-            p: cx.AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
+            q: cx.AbstractPosition3D = eqx.field(
+                converter=cx.AbstractPosition3D.constructor
+            )
+            p: cx.AbstractVelocity3D = eqx.field(
+                converter=cx.AbstractVelocity3D.constructor
+            )
             t: Quantity["time"]
 
             @property

@@ -3,6 +3,7 @@
 __all__ = ["PhaseSpacePosition", "CompositePhaseSpacePosition"]
 
 from collections.abc import Iterable
+from functools import partial
 from typing import Any, final
 
 import equinox as eqx
@@ -13,19 +14,14 @@ from typing_extensions import override
 import coordinax as cx
 import quaxed.array_api as xp
 import quaxed.numpy as jnp
+from dataclassish.converters import Optional
 from unxt import Quantity
 
 import galax.typing as gt
 from .base import ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractPhaseSpacePosition
-from .utils import _converter_to_pos3d, _converter_to_vel3d
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
-
-
-def _converter_t(x: Any) -> gt.BatchableFloatQScalar | gt.FloatQScalar | None:
-    """Convert `t` to Quantity."""
-    return Quantity["time"].constructor(x, dtype=float) if x is not None else None
 
 
 @final
@@ -102,20 +98,21 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     """
 
-    q: cx.AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
+    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.constructor)
     """Positions, e.g CartesianPosition3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: cx.AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
+    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.constructor)
     r"""Conjugate momenta, e.g. CartesianVelocity3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
     t: gt.BatchableFloatQScalar | gt.FloatQScalar | None = eqx.field(
-        default=None, converter=_converter_t
+        default=None,
+        converter=Optional(partial(Quantity["time"].constructor, dtype=float)),
     )
     """The time corresponding to the positions.
 

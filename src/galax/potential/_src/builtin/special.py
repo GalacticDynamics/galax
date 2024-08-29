@@ -22,7 +22,7 @@ from xmmutablemap import ImmutableMap
 from .builtin import (
     HernquistPotential,
     MiyamotoNagaiPotential,
-    MN3ExponentialPotential,
+    MN3Sech2Potential,
     PowerLawCutoffPotential,
 )
 from .const import _sqrt2
@@ -357,7 +357,6 @@ class MilkyWayPotential2022(AbstractCompositePotential):
             "h_R": Quantity(2.6, "kpc"),
             "h_z": Quantity(0.3, "kpc"),
             "positive_density": True,
-            "sech2_z": True,
         }
     )
     # TODO: as an actual `NFWPotential`, then use `replace`?
@@ -376,7 +375,7 @@ class MilkyWayPotential2022(AbstractCompositePotential):
     def __init__(
         self,
         *,
-        disk: MN3ExponentialPotential | Mapping[str, Any] | None = None,
+        disk: MN3Sech2Potential | Mapping[str, Any] | None = None,
         halo: NFWPotential | Mapping[str, Any] | None = None,
         bulge: HernquistPotential | Mapping[str, Any] | None = None,
         nucleus: HernquistPotential | Mapping[str, Any] | None = None,
@@ -386,9 +385,7 @@ class MilkyWayPotential2022(AbstractCompositePotential):
         units_ = unitsystem(units) if units is not None else galactic
 
         super().__init__(
-            disk=_parse_input_comp(
-                MN3ExponentialPotential, disk, self._default_disk, units_
-            ),
+            disk=_parse_input_comp(MN3Sech2Potential, disk, self._default_disk, units_),
             halo=_parse_input_comp(NFWPotential, halo, self._default_halo, units_),
             bulge=_parse_input_comp(
                 HernquistPotential, bulge, self._default_bulge, units_

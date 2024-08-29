@@ -10,9 +10,7 @@ def test_all() -> None:
         #       .pyi file
         "integrate",
         "mockstream",
-        "AbstractOrbit",
         "Orbit",
-        "InterpolatedOrbit",
         "evaluate_orbit",
         "MockStreamArm",
         "MockStream",

@@ -20,7 +20,7 @@ import diffrax
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from diffrax import DenseInterpolation
+from diffrax import DenseInterpolation, Solution
 from jax._src.numpy.vectorize import _parse_gufunc_signature, _parse_input_dimensions
 from plum import dispatch
 
@@ -327,12 +327,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     # Call
 
     def _process_interp(
-        self, interp: DenseInterpolation, w0: gt.BatchVec6, units: AbstractUnitSystem
+        self, sol: Solution, w0: gt.BatchVec6, units: AbstractUnitSystem
     ) -> gc.PhaseSpacePositionInterpolant:
         # Determine if an extra dimension was added to the output
         added_ndim = int(w0.shape[:-1] in ((), (1,)))
         # If one was, then the interpolant must be reshaped since the input
         # was squeezed beforehand and the dimension must be added back.
+        interp = sol.interpolation
         if added_ndim == 1:
             arr, narr = eqx.partition(interp, eqx.is_array)
             arr = jax.tree_util.tree_map(lambda x: x[None], arr)
@@ -452,15 +453,12 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # ---------------------------------------
         # Parse inputs
 
-        t0_: gt.VecTime = to_units_value(t0, units["time"])
-        t1_: gt.VecTime = to_units_value(t1, units["time"])
+        time = units["time"]
+        t0_: gt.VecTime = to_units_value(t0, time)
+        t1_: gt.VecTime = to_units_value(t1, time)
         # Either save at `saveat` or at the final time. The final time is
         # a scalar and the saveat is a vector, so a dimension is added.
-        ts = (
-            xp.asarray([t1_])
-            if saveat is None
-            else to_units_value(saveat, units["time"])
-        )
+        ts = to_units_value(xp.asarray([t1_]) if saveat is None else saveat, time)
 
         diffeq_kw = dict(self.diffeq_kw)
         if interpolated and diffeq_kw.get("max_steps") is None:
@@ -493,7 +491,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Perform the integration
         solution = solve_diffeq(w0, t0_, t1_, jnp.atleast_2d(ts))
 
-        # Parse the solution
+        # Parse the solution (t, [q, p])
         w = jnp.concat((solution.ts[..., None], solution.ys), axis=-1)
         w = w[None] if w0.shape[0] == 1 else w  # spatial dimensions
         w = w[..., -1, :] if saveat is None else w  # time dimensions
@@ -503,9 +501,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         if interpolated:
             out_cls = gc.InterpolatedPhaseSpacePosition
-            out_kw = {
-                "interpolant": self._process_interp(solution.interpolation, w0, units)
-            }
+            out_kw = {"interpolant": self._process_interp(solution, w0, units)}
         else:
             out_cls = gc.PhaseSpacePosition
             out_kw = {}
@@ -513,7 +509,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         return out_cls(  # shape = (*batch, T)
             q=Quantity(w[..., 1:4], units["length"]),
             p=Quantity(w[..., 4:7], units["speed"]),
-            t=Quantity(w[..., 0], units["time"]),
+            t=Quantity(w[..., 0], time),
             **out_kw,
         )
 

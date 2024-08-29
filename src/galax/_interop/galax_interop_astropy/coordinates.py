@@ -5,9 +5,6 @@ __all__: list[str] = []
 from typing import Any
 
 import astropy.coordinates as apyc
-from plum import dispatch
-
-import coordinax as cx
 
 import galax.coordinates as gc
 
@@ -109,40 +106,3 @@ def constructor(
 
     """
     return gc.PhaseSpacePosition(q=vec.without_differentials(), p=dif, t=t)
-
-
-# =============================================================================
-# _converter_to_pos3d
-
-
-# TODO: move this into coordinax
-_apyc_to_cx_vecs = {
-    apyc.CartesianRepresentation: cx.CartesianPosition3D,
-    apyc.CylindricalRepresentation: cx.CylindricalPosition,
-    apyc.SphericalRepresentation: cx.LonLatSphericalPosition,
-    apyc.PhysicsSphericalRepresentation: cx.SphericalPosition,
-}
-
-
-@dispatch  # type: ignore[misc]
-def _converter_to_pos3d(x: apyc.BaseRepresentation) -> cx.AbstractPosition3D:
-    return _apyc_to_cx_vecs[type(x)].constructor(x)
-
-
-# =============================================================================
-# _converter_to_pos3d
-
-
-# TODO: move this into coordinax
-_apyc_to_cx_difs = {
-    apyc.CartesianDifferential: cx.CartesianVelocity3D,
-    apyc.CylindricalDifferential: cx.CylindricalVelocity,
-    apyc.SphericalDifferential: cx.LonLatSphericalVelocity,
-    apyc.SphericalCosLatDifferential: cx.LonCosLatSphericalVelocity,
-    apyc.PhysicsSphericalDifferential: cx.SphericalVelocity,
-}
-
-
-@dispatch  # type: ignore[misc]
-def _converter_to_vel3d(x: apyc.BaseDifferential) -> cx.AbstractVelocity3D:
-    return _apyc_to_cx_difs[type(x)].constructor(x)

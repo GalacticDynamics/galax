@@ -4,9 +4,6 @@ __all__: list[str] = []
 
 from typing import Any, Protocol, cast, runtime_checkable
 
-from plum import dispatch
-
-import coordinax as cx
 import quaxed.array_api as xp
 
 import galax.typing as gt
@@ -109,31 +106,3 @@ def getitem_vec1time_index(index: Any, t: gt.FloatQAnyShape) -> Any:
     if isinstance(index, HasShape):
         return _getitem_vec1time_index_shaped(index, t)
     return index
-
-
-# -----------------------------------------------------------------------------
-
-
-@dispatch
-def _converter_to_pos3d(x: Any) -> cx.AbstractPosition3D:
-    """Convert input to a 3D vector."""
-    return cx.CartesianPosition3D.constructor(x)
-
-
-@dispatch
-def _converter_to_pos3d(x: cx.AbstractPosition3D) -> cx.AbstractPosition3D:
-    return x
-
-
-# -----------------------------------------------------------------------------
-
-
-@dispatch
-def _converter_to_vel3d(x: Any) -> cx.AbstractVelocity3D:
-    """Convert input to a 3D vector differential."""
-    return cx.CartesianVelocity3D.constructor(x)
-
-
-@dispatch
-def _converter_to_vel3d(x: cx.AbstractVelocity3D) -> cx.AbstractVelocity3D:
-    return x

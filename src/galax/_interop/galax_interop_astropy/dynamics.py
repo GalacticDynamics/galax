@@ -53,6 +53,7 @@ def evaluate_orbit(
     ...                            p=Quantity([0., 0.1, 0.], "km/s"),
     ...                            t=Quantity(-100, "Myr"))
     >>> ts = Quantity(np.linspace(0., 1., 4), "Gyr")
+
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(

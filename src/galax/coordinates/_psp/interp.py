@@ -14,7 +14,6 @@ import galax.typing as gt
 from .base import ComponentShapeTuple
 from .base_psp import AbstractPhaseSpacePosition
 from .core import PhaseSpacePosition
-from .utils import _converter_to_pos3d, _converter_to_vel3d
 from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
 
 
@@ -49,13 +48,13 @@ class PhaseSpacePositionInterpolant(Protocol):
 class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
     """Interpolated phase-space position."""
 
-    q: cx.AbstractPosition3D = eqx.field(converter=_converter_to_pos3d)
+    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.constructor)
     """Positions, e.g CartesianPosition3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: cx.AbstractVelocity3D = eqx.field(converter=_converter_to_vel3d)
+    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.constructor)
     r"""Conjugate momenta, e.g. CartesianVelocity3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.

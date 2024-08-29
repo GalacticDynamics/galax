@@ -27,8 +27,8 @@ classifiers = [
 dependencies = [
   "astropy >= 6.0",
   "beartype >= 0.18",
-  "coordinax >= 0.9.3",
-  "dataclassish >= 0.2",
+  "coordinax >= 0.9.4",
+  "dataclassish >= 0.3",
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
   "is_annotated >= 1.0",

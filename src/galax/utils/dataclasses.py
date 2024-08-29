@@ -5,7 +5,6 @@ __all__ = ["field", "dataclass_with_converter", "ModuleMeta"]
 import dataclasses
 import functools as ft
 import inspect
-from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Mapping
 from enum import Enum, auto
 from typing import (
@@ -24,6 +23,7 @@ from equinox._module import _has_dataclass_init, _ModuleMeta
 from typing_extensions import ParamSpec, Unpack
 
 from dataclassish import DataclassInstance
+from dataclassish.converters import AbstractConverter
 
 import galax.typing as gt
 
@@ -196,18 +196,8 @@ RetT = TypeVar("RetT")  # Return type
 SenT = TypeVar("SenT", bound=Enum)  # Sentinel type
 
 
-class AbstractConverter(Generic[ArgT, RetT], metaclass=ABCMeta):
-    """Abstract converter class."""
-
-    converter: Callable[[ArgT], RetT]
-
-    @abstractmethod
-    def __call__(self, value: ArgT, /) -> Any:
-        raise NotImplementedError
-
-
 @dataclasses.dataclass(frozen=True, slots=True, eq=False)
-class sentineled(AbstractConverter[ArgT, RetT], Generic[ArgT, RetT, SenT]):
+class sentineled(AbstractConverter[ArgT, RetT], Generic[ArgT, RetT, SenT]):  # type: ignore[misc]
     """Optional converter with a defined sentinel value.
 
     This converter allows for a field to be optional, i.e., it can be set to

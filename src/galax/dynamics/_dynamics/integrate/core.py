@@ -452,15 +452,12 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # ---------------------------------------
         # Parse inputs
 
-        t0_: gt.VecTime = to_units_value(t0, units["time"])
-        t1_: gt.VecTime = to_units_value(t1, units["time"])
+        time = units["time"]
+        t0_: gt.VecTime = to_units_value(t0, time)
+        t1_: gt.VecTime = to_units_value(t1, time)
         # Either save at `saveat` or at the final time. The final time is
         # a scalar and the saveat is a vector, so a dimension is added.
-        ts = (
-            xp.asarray([t1_])
-            if saveat is None
-            else to_units_value(saveat, units["time"])
-        )
+        ts = to_units_value(xp.asarray([t1_]) if saveat is None else saveat, time)
 
         diffeq_kw = dict(self.diffeq_kw)
         if interpolated and diffeq_kw.get("max_steps") is None:
@@ -513,7 +510,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         return out_cls(  # shape = (*batch, T)
             q=Quantity(w[..., 1:4], units["length"]),
             p=Quantity(w[..., 4:7], units["speed"]),
-            t=Quantity(w[..., 0], units["time"]),
+            t=Quantity(w[..., 0], time),
             **out_kw,
         )
 

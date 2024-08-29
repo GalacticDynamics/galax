@@ -26,7 +26,7 @@ def evaluate_orbit(
     *,
     integrator: gd.integrate.Integrator | None = None,
     interpolated: Literal[True, False] = False,
-) -> gd.Orbit | gd.InterpolatedOrbit:
+) -> gd.Orbit:
     """Compute an orbit in a potential.
 
     This is the Astropy-compatible version of the function.
@@ -59,7 +59,8 @@ def evaluate_orbit(
     Orbit(
       q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[4], unit=Unit("Myr")),
-      potential=KeplerPotential(...)
+      potential=KeplerPotential(...),
+      interpolant=None
     )
 
     >>> ts = Quantity(np.linspace(0., 1., 10), "Gyr")
@@ -68,7 +69,8 @@ def evaluate_orbit(
     Orbit(
       q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[10], unit=Unit("Myr")),
-      potential=KeplerPotential(...)
+      potential=KeplerPotential(...),
+      interpolant=None
     )
 
     We can also integrate a batch of orbits at once:
@@ -85,7 +87,8 @@ def evaluate_orbit(
       ),
       p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[10], unit=Unit("Myr")),
-      potential=KeplerPotential(...)
+      potential=KeplerPotential(...),
+      interpolant=None
     )
 
     :class:`~galax.dynamics.PhaseSpacePosition` has a ``t`` argument for the
@@ -101,12 +104,11 @@ def evaluate_orbit(
     Array([ 9.779, -0.3102,  0.        ], dtype=float64)
 
     """
-    out: gd.Orbit | gd.InterpolatedOrbit
-    out = gd.evaluate_orbit(
+    orbit: gd.Orbit = gd.evaluate_orbit(
         pot,
         w0,
         convert(t, Quantity),
         integrator=integrator,
         interpolated=interpolated,
     )
-    return out
+    return orbit

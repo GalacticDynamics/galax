@@ -17,7 +17,7 @@ import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
 from .core import Integrator
-from galax.dynamics._dynamics.orbit import InterpolatedOrbit, Orbit
+from galax.dynamics._dynamics.orbit import Orbit
 
 ##############################################################################
 
@@ -38,7 +38,7 @@ def evaluate_orbit(
     *,
     integrator: Integrator | None = None,
     interpolated: Literal[True, False] = False,
-) -> Orbit | InterpolatedOrbit:
+) -> Orbit:
     """Compute an orbit in a potential.
 
     :class:`~galax.coordinates.PhaseSpacePosition` includes a time in addition
@@ -120,7 +120,8 @@ def evaluate_orbit(
     Orbit(
       q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[4], unit=Unit("Myr")),
-      potential=KeplerPotential(...)
+      potential=KeplerPotential(...),
+      interpolant=None
     )
 
     Note how there are 4 points in the orbit, corresponding to the 4 requested
@@ -135,7 +136,8 @@ def evaluate_orbit(
     Orbit(
       q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[10], unit=Unit("Myr")),
-      potential=KeplerPotential(...)
+      potential=KeplerPotential(...),
+      interpolant=None
     )
 
     We can also integrate a batch of orbits at once:
@@ -152,7 +154,8 @@ def evaluate_orbit(
       ),
       p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[10], unit=Unit("Myr")),
-      potential=KeplerPotential(...)
+      potential=KeplerPotential(...),
+      interpolant=None
     )
 
     :class:`~galax.dynamics.PhaseSpacePosition` has a ``t`` argument for the
@@ -236,15 +239,13 @@ def evaluate_orbit(
     wt = t
 
     # Construct the orbit object
-    # TODO: easier construction from the (Interpolated)PhaseSpacePosition
-    if interpolated:
-        out = InterpolatedOrbit(
-            q=ws.q, p=ws.p, t=wt, interpolant=ws.interpolant, potential=pot
-        )
-    else:
-        out = Orbit(q=ws.q, p=ws.p, t=wt, potential=pot)
-
-    return out
+    return Orbit(
+        q=ws.q,
+        p=ws.p,
+        t=wt,
+        interpolant=getattr(ws, "interpolant", None),
+        potential=pot,
+    )
 
 
 @dispatch
@@ -255,7 +256,7 @@ def evaluate_orbit(
     t: Any,
     integrator: Integrator | None = None,
     interpolated: Literal[True, False] = False,
-) -> Orbit | InterpolatedOrbit:
+) -> Orbit:
     """Compute an orbit in a potential, supporting `t` as a keyword argument.
 
     Examples
@@ -284,7 +285,8 @@ def evaluate_orbit(
     Orbit(
       q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
       t=Quantity[...](value=f64[4], unit=Unit("Myr")),
-      potential=KeplerPotential(...)
+      potential=KeplerPotential(...),
+      interpolant=None
     )
 
     """

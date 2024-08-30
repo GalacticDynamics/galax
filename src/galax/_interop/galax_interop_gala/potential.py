@@ -1798,10 +1798,10 @@ def gala_to_galax(pot: gp.MilkyWayPotential2022, /) -> gpx.MilkyWayPotential2022
 
     >>> pot = galap.MilkyWayPotential2022()
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
-    MilkyWayPotentia2022({'disk': MN3Sech2Potential( ... ),
-                          'halo': NFWPotential( ... ),
-                          'bulge': HernquistPotential( ... ),
-                          'nucleus': HernquistPotential( ... )})
+    MilkyWayPotential2022({'disk': MN3Sech2Potential( ... ),
+                           'halo': NFWPotential( ... ),
+                           'bulge': HernquistPotential( ... ),
+                           'nucleus': HernquistPotential( ... )})
 
     """  # noqa: E501
     return gpx.MilkyWayPotential2022(

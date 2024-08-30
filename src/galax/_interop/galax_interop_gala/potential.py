@@ -838,7 +838,14 @@ def gala_to_galax(
 
     >>> pot = galap.MN3ExponentialDiskPotential(m=1e11, h_R=3., h_z=0.2, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
-    TODO
+    MN3Sech2Potential(
+      units=LTMAUnitSystem( ... ),
+      constants=ImmutableMap({'G': ...}),
+      m_tot=ConstantParameter( ... ),
+      h_R=ConstantParameter( ... ),
+      h_z=ConstantParameter( ... ),
+      positive_density=True
+    )
 
     """  # noqa: E501
     params = dict(gala.parameters)
@@ -865,8 +872,7 @@ def galax_to_gala(
 
     >>> pot = gp.MN3ExponentialPotential(m_tot=Quantity(1e11, "Msun"), h_R=Quantity(3.0, "kpc"), h_z=Quantity(0.2, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    TODO
-    <MiyamotoNagaiPotential: m=1.00e+11, a=6.50, b=0.26 (kpc,Myr,solMass,rad)>
+    <MN3ExponentialDiskPotential: m=1.00e+11, h_R=3.00, h_z=0.20 (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -1792,10 +1798,10 @@ def gala_to_galax(pot: gp.MilkyWayPotential2022, /) -> gpx.MilkyWayPotential2022
 
     >>> pot = galap.MilkyWayPotential2022()
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
-    MilkyWayPotential({'disk': MN3ExponentialPotential( ... ),
-                       'halo': NFWPotential( ... ),
-                       'bulge': HernquistPotential( ... ),
-                       'nucleus': HernquistPotential( ... )})
+    MilkyWayPotentia2022({'disk': MN3Sech2Potential( ... ),
+                          'halo': NFWPotential( ... ),
+                          'bulge': HernquistPotential( ... ),
+                          'nucleus': HernquistPotential( ... )})
 
     """  # noqa: E501
     return gpx.MilkyWayPotential2022(

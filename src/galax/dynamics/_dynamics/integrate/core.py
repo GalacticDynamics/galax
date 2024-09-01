@@ -25,7 +25,7 @@ from jax._src.numpy.vectorize import _parse_gufunc_signature, _parse_input_dimen
 from plum import dispatch
 
 import quaxed.array_api as xp
-from unxt import AbstractUnitSystem, Quantity, to_units, unitsystem
+from unxt import AbstractUnitSystem, Quantity, unitsystem
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
@@ -454,11 +454,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Parse inputs
 
         time = units["time"]
-        t0_: gt.VecTime = to_units(t0, time).value
-        t1_: gt.VecTime = to_units(t1, time).value
+        t0_: gt.VecTime = Quantity.constructor(t0, time).value
+        t1_: gt.VecTime = Quantity.constructor(t1, time).value
         # Either save at `saveat` or at the final time. The final time is
         # a scalar and the saveat is a vector, so a dimension is added.
-        ts = to_units(xp.asarray([t1_]) if saveat is None else saveat, time).value
+        ts = Quantity.constructor(
+            xp.asarray([t1_]) if saveat is None else saveat, time
+        ).value
 
         diffeq_kw = dict(self.diffeq_kw)
         if interpolated and diffeq_kw.get("max_steps") is None:

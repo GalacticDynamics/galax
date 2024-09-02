@@ -601,15 +601,19 @@ class AbstractMN3Potential(AbstractPotential):
         param_vec = K @ x
 
         # use fitting function to get the Miyamoto-Nagai component parameters
-        # NOTE(adrn): I had to add .value here otherwise when @jit'ing, this function
-        # would hang indefinitely...not sure why
-        mn_ms = param_vec[:3] * self.m_tot(t).value
-        mn_as = param_vec[3:] * hR.value
-        mn_b = b_hR * hR.value
-
+        mn_ms = param_vec[:3] * self.m_tot(t)
+        mn_as = param_vec[3:] * hR
+        mn_b = b_hR * hR
         return [
-            MiyamotoNagaiPotential(m_tot=m, a=a, b=mn_b, units=self.units)
-            for m, a in zip(mn_ms, mn_as, strict=True)
+            MiyamotoNagaiPotential(
+                m_tot=mn_ms[0], a=mn_as[0], b=mn_b, units=self.units
+            ),
+            MiyamotoNagaiPotential(
+                m_tot=mn_ms[1], a=mn_as[1], b=mn_b, units=self.units
+            ),
+            MiyamotoNagaiPotential(
+                m_tot=mn_ms[2], a=mn_as[2], b=mn_b, units=self.units
+            ),
         ]
 
     @partial(jax.jit)

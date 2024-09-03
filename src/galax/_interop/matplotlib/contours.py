@@ -11,7 +11,7 @@ from matplotlib.figure import Figure
 from plum import dispatch
 
 import quaxed.numpy as jnp
-from unxt import Quantity
+from unxt import Quantity, uconvert, ustrip
 
 from galax.potential._potential.base import AbstractPotentialBase
 from galax.potential._potential.plot import MatplotlibBackend
@@ -135,7 +135,7 @@ def _plot_potential_countours_1d(
     labels: tuple[str, ...] | None,
     kwargs: dict[str, Any],
 ) -> None:
-    x1 = grids[0][1].to_value(pot.units["length"])
+    x1 = uconvert(pot.units["length"], grids[0][1])
 
     # Create q array
     q = jnp.zeros((len(x1), len(grids) + len(slices)))
@@ -148,11 +148,7 @@ def _plot_potential_countours_1d(
     Z = pot.potential(q, t)
 
     # Plot potential
-    ax.plot(  # TODO: solve matplotlib-Quantity issue
-        x1,
-        Z.to_units_value(pot.units["specific energy"]),
-        **kwargs,
-    )
+    ax.plot(x1, ustrip(pot.units["specific energy"], Z), **kwargs)
 
     if labels is not None:
         ax.set_xlabel(labels[0])
@@ -173,8 +169,8 @@ def _plot_potential_countours_2d(
     # Create meshgrid
     # TODO: don't take to_value when Quantity.at is implemented
     x1, x2 = jnp.meshgrid(
-        grids[0][1].to_value(pot.units["length"]),
-        grids[1][1].to_value(pot.units["length"]),
+        ustrip(pot.units["length"], grids[0][1]),
+        ustrip(pot.units["length"], grids[1][1]),
     )
     shape = x1.shape
 
@@ -193,12 +189,7 @@ def _plot_potential_countours_2d(
     # Plot contours
     kwargs.setdefault("cmap", Blues)  # better default colormap
     plot_func = ax.contourf if filled else ax.contour
-    plot_func(  # TODO: solve matplotlib-Quantity issue
-        x1,
-        x2,
-        Z.reshape(shape).to_value(pot.units["specific energy"]),
-        **kwargs,
-    )
+    plot_func(x1, x2, ustrip(pot.units["specific energy"], Z.reshape(shape)), **kwargs)
 
     if labels is not None:
         ax.set_xlabel(labels[0])
@@ -291,7 +282,7 @@ def _plot_density_countours_1d(
     labels: tuple[str, ...] | None,
     kwargs: dict[str, Any],
 ) -> None:
-    x1 = grids[0][1].to_value(pot.units["length"])
+    x1 = ustrip(pot.units["length"], grids[0][1])
 
     # Create q array
     q = jnp.zeros((len(x1), len(grids) + len(slices)))
@@ -304,11 +295,7 @@ def _plot_density_countours_1d(
     Z = pot.density(q, t)
 
     # Plot mass density
-    ax.plot(  # TODO: solve matplotlib-Quantity issue
-        x1,
-        Z.to_units_value(pot.units["mass density"]),
-        **kwargs,
-    )
+    ax.plot(x1, ustrip(pot.units["mass density"], Z), **kwargs)
 
     if labels is not None:
         ax.set_xlabel(labels[0])
@@ -329,8 +316,8 @@ def _plot_density_countours_2d(
     # Create meshgrid
     # TODO: don't take to_value when Quantity.at is implemented
     x1, x2 = jnp.meshgrid(
-        grids[0][1].to_value(pot.units["length"]),
-        grids[1][1].to_value(pot.units["length"]),
+        ustrip(pot.units["length"], grids[0][1]),
+        ustrip(pot.units["length"], grids[1][1]),
     )
     shape = x1.shape
 
@@ -349,12 +336,7 @@ def _plot_density_countours_2d(
     # Plot contours
     kwargs.setdefault("cmap", Blues)  # better default colormap
     plot_func = ax.contourf if filled else ax.contour
-    plot_func(  # TODO: solve matplotlib-Quantity issue
-        x1,
-        x2,
-        Z.reshape(shape).to_value(pot.units["mass density"]),
-        **kwargs,
-    )
+    plot_func(x1, x2, ustrip(pot.units["mass density"], Z.reshape(shape)), **kwargs)
 
     if labels is not None:
         ax.set_xlabel(labels[0])

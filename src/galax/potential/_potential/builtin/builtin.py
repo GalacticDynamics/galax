@@ -28,7 +28,7 @@ from typing_extensions import Doc
 import quaxed.array_api as xp
 import quaxed.lax as qlax
 import quaxed.scipy.special as qsp
-from unxt import AbstractUnitSystem, Quantity, unitsystem
+from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
 from unxt.unitsystems import galactic
 from xmmutablemap import ImmutableMap
 
@@ -355,11 +355,11 @@ class LogarithmicPotential(AbstractPotential):
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
-        r2 = xp.linalg.vector_norm(q, axis=-1).to_value(self.units["length"]) ** 2
+        r2 = ustrip(self.units["length"], xp.linalg.vector_norm(q, axis=-1)) ** 2
         return (
             0.5
             * self.v_c(t) ** 2
-            * xp.log(self.r_h(t).to_value(self.units["length"]) ** 2 + r2)
+            * xp.log(ustrip(self.units["length"], self.r_h(t)) ** 2 + r2)
         )
 
 
@@ -629,8 +629,8 @@ class StoneOstriker15Potential(AbstractPotential):
         r = xp.linalg.vector_norm(q, axis=-1)
         A = -2 * self.constants["G"] * self.m_tot(t) / (xp.pi * (r_h - r_c))
         return A * (
-            (r_h / r) * xp.atan2(r, r_h).to_value("rad")
-            - (r_c / r) * xp.atan2(r, r_c).to_value("rad")
+            (r_h / r) * ustrip("rad", xp.atan2(r, r_h))
+            - (r_c / r) * ustrip("rad", xp.atan2(r, r_c))
             + 0.5 * xp.log((r**2 + r_h**2) / (r**2 + r_c**2))
         )
 

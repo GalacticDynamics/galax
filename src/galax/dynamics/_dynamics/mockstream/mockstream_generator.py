@@ -215,7 +215,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             w0 = gc.PhaseSpacePosition(
                 q=Quantity(prog_w0[0:3], self.units["length"]),
                 p=Quantity(prog_w0[3:6], self.units["speed"]),
-                t=ts[0].to_units(self.potential.units["time"]),
+                t=uconvert(self.potential.units["time"], ts[0]),
             )
         w0 = eqx.error_if(w0, w0.ndim > 0, "prog_w0 must be scalar")
         # TODO: allow for multiple progenitors

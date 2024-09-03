@@ -13,7 +13,7 @@ import equinox as eqx
 import jax
 
 import quaxed.array_api as xp
-from unxt import AbstractUnitSystem, Quantity, unitsystem
+from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -40,8 +40,8 @@ class LogarithmicPotential(AbstractPotential):
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
-        r_s = self.r_s(t).to_value(self.units["length"])
-        r = xp.linalg.vector_norm(q, axis=-1).to_value(self.units["length"])
+        r_s = ustrip(self.units["length"], self.r_s(t))
+        r = ustrip(self.units["length"], xp.linalg.vector_norm(q, axis=-1))
         return 0.5 * self.v_c(t) ** 2 * xp.log(r_s**2 + r**2)
 
 
@@ -86,7 +86,7 @@ class LMJ09LogarithmicPotential(AbstractPotential):
             0.5
             * self.v_c(t) ** 2
             * xp.log(
-                self.r_s(t).to_value(self.units["length"]) ** 2
-                + r2.to_value(self.units["area"])
+                ustrip(self.units["length"], self.r_s(t)) ** 2
+                + ustrip(self.units["area"], r2)
             )
         )

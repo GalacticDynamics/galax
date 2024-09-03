@@ -18,7 +18,7 @@ from jaxtyping import Array, Float
 
 import quaxed.array_api as xp
 import quaxed.numpy as jnp
-from unxt import Quantity
+from unxt import Quantity, ustrip
 
 import galax.typing as gt
 from galax.potential._potential.core import AbstractPotential
@@ -259,8 +259,8 @@ def cartesian_to_normalized_spherical(
     """
     r = xp.linalg.vector_norm(q, axis=-1)
     s = r / r_s
-    theta = xp.acos(q[..., 2] / r).to_value("rad")  # theta
-    phi = xp.atan2(q[..., 1], q[..., 0]).to_value("rad")  # atan(y/x)
+    theta = ustrip("rad", xp.acos(q[..., 2] / r))  # theta
+    phi = ustrip("rad", xp.atan2(q[..., 1], q[..., 0]))  # atan(y/x)
 
     # Return, converting Quantity["dimensionless"] -> Array
     return s.value, theta, phi

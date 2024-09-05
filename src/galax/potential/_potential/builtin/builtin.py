@@ -19,10 +19,11 @@ __all__ = [
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, final
+from typing import Annotated as Ann, Any, final
 
 import equinox as eqx
 import jax
+from typing_extensions import Doc
 
 import quaxed.array_api as xp
 import quaxed.lax as qlax
@@ -161,10 +162,13 @@ class BurkertPotential(AbstractPotential):
 class HernquistPotential(AbstractPotential):
     """Hernquist Potential."""
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the potential."""
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale radius"""
+    m_tot: Ann[AbstractParameter, Doc("Total mass of the potential.")] = ParameterField(  # type: ignore[assignment]
+        dimensions="mass"
+    )
+
+    r_s: Ann[AbstractParameter, Doc("Scale radius")] = ParameterField(
+        dimensions="length"
+    )  # type: ignore[assignment]
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)

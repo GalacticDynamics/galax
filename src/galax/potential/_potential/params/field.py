@@ -5,7 +5,7 @@ from __future__ import annotations
 __all__ = ["ParameterField"]
 
 from dataclasses import KW_ONLY, is_dataclass
-from inspect import isclass
+from inspect import isclass, isfunction
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -253,7 +253,11 @@ def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimens
 
     """
     # Get the function, unwarpping if necessary
-    func = func.__call__ if hasattr(func, "__call__") else func  # noqa: B004
+    func = (
+        func.__call__
+        if hasattr(func, "__call__") and not isfunction(func)  # noqa: B004
+        else func
+    )
 
     # Get the return annotation
     type_hints = get_type_hints(func, include_extras=True)

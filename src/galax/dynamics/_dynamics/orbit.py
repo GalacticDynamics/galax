@@ -96,7 +96,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     potential: AbstractPotentialBase
     """Potential in which the orbit was integrated."""
 
-    interpolant: PhaseSpacePositionInterpolant | None
+    interpolant: PhaseSpacePositionInterpolant | None = None
     """The interpolation function."""
 
     def __post_init__(self) -> None:

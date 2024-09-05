@@ -5,7 +5,7 @@ from __future__ import annotations
 __all__ = ["ParameterField"]
 
 from dataclasses import KW_ONLY, is_dataclass
-from inspect import isclass
+from inspect import isclass, isfunction
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -20,7 +20,9 @@ from typing import (
 import astropy.units as u
 from astropy.units import PhysicalType as Dimensions
 from is_annotated import isannotated
+from typing_extensions import Doc, override
 
+from dataclassish.converters import Optional
 from unxt import AbstractQuantity, Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
@@ -125,12 +127,27 @@ class ParameterField:
     dimensions: u.PhysicalType = field(converter=u.get_physical_type)
     """The dimensions (unit-wise) of the parameter."""
 
+    doc: str | None = field(default=None, compare=False, converter=Optional(str))
+
     # ===========================================
     # Descriptor
 
     def __set_name__(self, owner: "type[AbstractPotentialBase]", name: str) -> None:
         """Set the name of the parameter."""
         object.__setattr__(self, "name", name)
+
+        # Try to get the documentation from the annotation
+        ann = owner.__annotations__[name]  # Get the annotation from the class
+        if isannotated(ann):
+            for arg in get_args(ann)[1:]:
+                if isinstance(arg, Doc):
+                    object.__setattr__(self, "doc", arg.documentation)
+
+    @property
+    @override
+    def __doc__(self) -> str | None:  # type: ignore[override]
+        """The docstring of the parameter."""
+        return self.__doc__ if self.doc is None else self.doc
 
     # -----------------------------
     # Getting
@@ -178,8 +195,8 @@ class ParameterField:
         if not hasattr(potential, "units"):
             return
 
-        # Check the unit is compatible
-        if not dims.is_equivalent(self.dimensions):
+        # Check the dimensions are compatible
+        if dims != self.dimensions:
             msg = (
                 "Parameter function must return a value with "
                 f"dimensions consistent with {self.dimensions}."
@@ -235,8 +252,16 @@ def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimens
     PhysicalType('mass')
 
     """
+    # Get the function, unwarpping if necessary
+    func = (
+        func.__call__
+        if hasattr(func, "__call__") and not isfunction(func)  # noqa: B004
+        else func
+    )
+
     # Get the return annotation
     type_hints = get_type_hints(func, include_extras=True)
+
     if "return" not in type_hints:
         msg = "Parameter function must have a return annotation"
         raise TypeError(msg)

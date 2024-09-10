@@ -267,7 +267,7 @@ def galax_to_gala(_: gpx.BarPotential, /) -> gp.PotentialBase:
     raise NotImplementedError  # TODO: implement
 
 
-if OptDeps.GALA.is_installed and (Version("1.8.2") <= OptDeps.GALA.version):
+if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 
     @dispatch  # type: ignore[misc]
     def gala_to_galax(
@@ -285,7 +285,7 @@ if OptDeps.GALA.is_installed and (Version("1.8.2") <= OptDeps.GALA.version):
 
             from packaging.version import Version
             from galax._interop.optional_deps import OptDeps
-            skip = not OptDeps.GALA.is_installed or OptDeps.GALA.version < Version("1.8.2")
+            skip = not OptDeps.GALA.installed or OptDeps.GALA < Version("1.8.2")
 
         .. skip: start if(skip, reason="Requires Gala v1.8.2+")
 
@@ -321,7 +321,7 @@ if OptDeps.GALA.is_installed and (Version("1.8.2") <= OptDeps.GALA.version):
 
             from packaging.version import Version
             from galax._interop.optional_deps import OptDeps
-            skip = not OptDeps.GALA.is_installed or OptDeps.GALA.version < Version("1.8.2")
+            skip = not OptDeps.GALA.installed or OptDeps.GALA < Version("1.8.2")
 
         .. skip: start if(skip, reason="Requires Gala v1.8.2+")
 

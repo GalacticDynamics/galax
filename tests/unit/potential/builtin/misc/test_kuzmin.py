@@ -88,7 +88,7 @@ class TestKuzminPotential(
     # ---------------------------------
     # Interoperability
 
-    @pytest.mark.skipif(not OptDeps.GALA.is_installed, reason="requires gala")
+    @pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [

@@ -120,7 +120,7 @@ class TestMultipoleOuterPotential(
     # Interoperability
 
     @pytest.mark.skipif(
-        not OptDeps.GALA.is_installed or not GSL_ENABLED, reason="requires gala + GSL"
+        not OptDeps.GALA.installed or not GSL_ENABLED, reason="requires gala + GSL"
     )
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),

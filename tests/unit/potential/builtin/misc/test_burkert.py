@@ -24,8 +24,8 @@ class TestBurkertPotential(
 ):
     """Test the `galax.potential.BurkertPotential` class."""
 
-    HAS_GALA_COUNTERPART: ClassVar[bool] = OptDeps.GALA.is_installed and (
-        Version("1.8.2") <= OptDeps.GALA.version
+    HAS_GALA_COUNTERPART: ClassVar[bool] = OptDeps.GALA.installed and (
+        Version("1.8.2") <= OptDeps.GALA
     )
 
     @pytest.fixture(scope="class")
@@ -93,7 +93,7 @@ class TestBurkertPotential(
     # ==========================================================================
     # Interoperability
 
-    @pytest.mark.skipif(not OptDeps.GALA.is_installed, reason="requires gala")
+    @pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [

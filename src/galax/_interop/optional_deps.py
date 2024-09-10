@@ -17,7 +17,7 @@ class OptDeps(OptionalDependencyEnum):  # type: ignore[misc]
 
 
 GSL_ENABLED: bool
-if OptDeps.GALA.is_installed:
+if OptDeps.GALA.installed:
     from gala._cconfig import GSL_ENABLED
 else:
     GSL_ENABLED = False

@@ -30,9 +30,9 @@ class OptDeps(OptionalDependencyEnum):
 
 
 collect_ignore_glob = []
-if not OptDeps.ASTROPY.is_installed:
+if not OptDeps.ASTROPY.installed:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_astropy/*")
-if not OptDeps.GALA.is_installed:
+if not OptDeps.GALA.installed:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_gala/*")
-if not OptDeps.GALPY.is_installed:
+if not OptDeps.GALPY.installed:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_galpy/*")

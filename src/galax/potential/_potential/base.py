@@ -410,7 +410,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
             from galax._interop.optional_deps import OptDeps
 
-        .. skip: start if(not OptDeps.GALA.is_installed, reason="requires gala")
+        .. skip: start if(not OptDeps.GALA.installed, reason="requires gala")
 
         >>> import galax.potential as gp
         >>> pot = gp.MilkyWayPotential()

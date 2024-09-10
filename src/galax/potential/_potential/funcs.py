@@ -167,7 +167,7 @@ def potential(
 
         from galax._interop.optional_deps import OptDeps
 
-    .. skip: start if(not OptDeps.ASTROPY.is_installed, reason="requires Astropy")
+    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import numpy as np
     >>> import astropy.coordinates as c
@@ -242,7 +242,7 @@ def potential(
 
         from galax._interop.optional_deps import OptDeps
 
-    .. skip: start if(not OptDeps.ASTROPY.is_installed, reason="requires Astropy")
+    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import astropy.coordinates as c
     >>> import astropy.units as u
@@ -402,7 +402,7 @@ def gradient(
 
         from galax._interop.optional_deps import OptDeps
 
-    .. skip: start if(not OptDeps.ASTROPY.is_installed, reason="requires Astropy")
+    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import astropy.units as u
     >>> import astropy.coordinates as c
@@ -649,7 +649,7 @@ def laplacian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["1/s^2"
 
         from galax._interop.optional_deps import OptDeps
 
-    .. skip: start if(not OptDeps.ASTROPY.is_installed, reason="requires Astropy")
+    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import astropy.units as u
     >>> import astropy.coordinates as c
@@ -876,7 +876,7 @@ def density(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["mass den
 
         from galax._interop.optional_deps import OptDeps
 
-    .. skip: start if(not OptDeps.ASTROPY.is_installed, reason="requires Astropy")
+    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import numpy as np
     >>> import astropy.coordinates as c
@@ -950,7 +950,7 @@ def density(
 
         from galax._interop.optional_deps import OptDeps
 
-    .. skip: start if(not OptDeps.ASTROPY.is_installed, reason="requires Astropy")
+    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import astropy.coordinates as c
     >>> import astropy.units as u
@@ -1122,7 +1122,7 @@ def hessian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> HessianVec:
 
         from galax._interop.optional_deps import OptDeps
 
-    .. skip: start if(not OptDeps.ASTROPY.is_installed, reason="requires Astropy")
+    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import numpy as np
     >>> import astropy.coordinates as c
@@ -1473,7 +1473,7 @@ def tidal_tensor(
 
         from galax._interop.optional_deps import OptDeps
 
-    .. skip: start if(not OptDeps.ASTROPY.is_installed, reason="requires Astropy")
+    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import numpy as np
     >>> import astropy.coordinates as c

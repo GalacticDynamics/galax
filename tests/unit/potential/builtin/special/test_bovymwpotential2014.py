@@ -104,7 +104,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
     # Interoperability
 
     @pytest.mark.skipif(
-        not OptDeps.GALA.is_installed or not GSL_ENABLED, reason="requires gala + GSL"
+        not OptDeps.GALA.installed or not GSL_ENABLED, reason="requires gala + GSL"
     )
     def test_galax_to_gala_to_galax_roundtrip(
         self, pot: gp.AbstractPotentialBase, x: gt.QVec3
@@ -112,7 +112,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 
     @pytest.mark.skipif(
-        not OptDeps.GALA.is_installed or not GSL_ENABLED, reason="requires gala + GSL"
+        not OptDeps.GALA.installed or not GSL_ENABLED, reason="requires gala + GSL"
     )
     @parametrize_test_method_gala
     def test_method_gala(

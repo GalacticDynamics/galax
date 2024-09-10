@@ -4,23 +4,14 @@ __all__ = ["OptDeps", "GSL_ENABLED"]
 
 
 from optional_dependencies import OptionalDependencyEnum, auto
-from optional_dependencies.utils import chain_checks, get_version
-
-
-def _double_check_gala() -> bool:
-    """Double check that gala is installed."""
-    try:
-        import gala.dynamics  # noqa: F401
-    except Exception:  # noqa: BLE001
-        return False
-    return True
+from optional_dependencies.utils import chain_checks, get_version, is_installed
 
 
 class OptDeps(OptionalDependencyEnum):  # type: ignore[misc]
     """Optional dependencies for ``galax``."""
 
     ASTROPY = auto()
-    GALA = chain_checks(get_version("gala"), _double_check_gala())
+    GALA = chain_checks(get_version("gala"), is_installed("gala.dynamics"))
     GALPY = auto()
     MATPLOTLIB = auto()
 

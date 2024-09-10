@@ -8,6 +8,7 @@ from sybil import Sybil
 from sybil.parsers.rest import DocTestParser, PythonCodeBlockParser, SkipParser
 
 from optional_dependencies import OptionalDependencyEnum, auto
+from optional_dependencies.utils import chain_checks, get_version, is_installed
 
 pytest_collect_file = Sybil(
     parsers=[
@@ -23,7 +24,7 @@ class OptDeps(OptionalDependencyEnum):
     """Optional dependencies for ``galax``."""
 
     ASTROPY = auto()
-    GALA = auto()
+    GALA = chain_checks(get_version("gala"), is_installed("gala.dynamics"))
     GALPY = auto()
     MATPLOTLIB = auto()
 

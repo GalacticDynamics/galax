@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from doctest import ELLIPSIS, NORMALIZE_WHITESPACE
-from importlib.util import find_spec
 
 from sybil import Sybil
 from sybil.parsers.rest import DocTestParser, PythonCodeBlockParser, SkipParser
+
+from optional_dependencies import OptionalDependencyEnum, auto
 
 pytest_collect_file = Sybil(
     parsers=[
@@ -18,15 +19,19 @@ pytest_collect_file = Sybil(
 ).pytest()
 
 
-# TODO: via separate optional_deps package
-HAS_ASTROPY = find_spec("astropy") is not None
-HAS_GALA = find_spec("gala") is not None
-HAS_GALPY = find_spec("galpy") is not None
+class OptDeps(OptionalDependencyEnum):
+    """Optional dependencies for ``galax``."""
+
+    ASTROPY = auto()
+    GALA = auto()
+    GALPY = auto()
+    MATPLOTLIB = auto()
+
 
 collect_ignore_glob = []
-if not HAS_ASTROPY:
+if not OptDeps.ASTROPY.is_installed:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_astropy/*")
-if not HAS_GALA:
+if not OptDeps.GALA.is_installed:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_gala/*")
-if not HAS_GALPY:
+if not OptDeps.GALPY.is_installed:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_galpy/*")

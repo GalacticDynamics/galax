@@ -11,8 +11,8 @@ import galax.potential as gp
 import galax.typing as gt
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMTotMixin, ParameterShapeAMixin
+from galax._interop.optional_deps import OptDeps
 from galax.potential import AbstractPotentialBase, KuzminPotential
-from galax.utils._optional_deps import HAS_GALA
 
 
 class TestKuzminPotential(
@@ -88,7 +88,7 @@ class TestKuzminPotential(
     # ---------------------------------
     # Interoperability
 
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.skipif(not OptDeps.GALA.is_installed, reason="requires gala")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [

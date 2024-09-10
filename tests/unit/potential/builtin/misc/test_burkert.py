@@ -12,8 +12,8 @@ import galax.potential as gp
 import galax.typing as gt
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMMixin, ParameterScaleRadiusMixin
+from galax._interop.optional_deps import OptDeps
 from galax.potential import AbstractPotentialBase, BurkertPotential
-from galax.utils._optional_deps import HAS_GALA
 
 
 class TestBurkertPotential(
@@ -24,7 +24,9 @@ class TestBurkertPotential(
 ):
     """Test the `galax.potential.BurkertPotential` class."""
 
-    HAS_GALA_COUNTERPART: ClassVar[bool] = HAS_GALA and (Version("1.8.2") <= HAS_GALA)
+    HAS_GALA_COUNTERPART: ClassVar[bool] = OptDeps.GALA.is_installed and (
+        Version("1.8.2") <= OptDeps.GALA.version
+    )
 
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.BurkertPotential]:

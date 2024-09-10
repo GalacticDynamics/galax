@@ -12,7 +12,7 @@ from unxt import Quantity
 
 import galax.potential as gp
 import galax.typing as gt
-from galax.utils._optional_deps import HAS_GALA
+from galax._interop.optional_deps import OptDeps
 
 parametrize_test_method_gala = pytest.mark.parametrize(
     ("method0", "method1", "atol"),
@@ -33,7 +33,7 @@ class GalaIOMixin:
 
     HAS_GALA_COUNTERPART: ClassVar[bool] = True
 
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.skipif(not OptDeps.GALA.is_installed, reason="requires gala")
     def test_galax_to_gala_to_galax_roundtrip(
         self, pot: gp.AbstractPotentialBase, x: gt.QVec3
     ) -> None:
@@ -55,7 +55,7 @@ class GalaIOMixin:
     # ---------------------------------
     # Interoperability
 
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.skipif(not OptDeps.GALA.is_installed, reason="requires gala")
     @parametrize_test_method_gala
     def test_method_gala(
         self,
@@ -83,7 +83,7 @@ class GalaIOMixin:
         )
 
 
-@pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+@pytest.mark.skipif(not OptDeps.GALA.is_installed, reason="requires gala")
 def test_offset_hernquist() -> None:
     """Test gala potential with an offset Hernquist potential."""
     from gala.potential import HernquistPotential as GalaHernquistPotential

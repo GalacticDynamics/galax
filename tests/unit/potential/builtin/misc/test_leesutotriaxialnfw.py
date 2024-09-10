@@ -13,7 +13,7 @@ import galax.typing as gt
 from ...param.test_field import ParameterFieldMixin
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMMixin, ParameterScaleRadiusMixin
-from galax.utils._optional_deps import HAS_GALA
+from galax._interop.optional_deps import OptDeps
 
 
 class ShapeA1ParameterMixin(ParameterFieldMixin):
@@ -174,7 +174,7 @@ class TestLeeSutoTriaxialNFWPotential(
     # ==========================================================================
     # I/O
 
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.skipif(not OptDeps.GALA.is_installed, reason="requires gala")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [

@@ -23,7 +23,7 @@ from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
 
 import galax.potential as gpx
-from galax.utils._optional_deps import HAS_GALA
+from galax._interop.optional_deps import OptDeps
 
 ##############################################################################
 # Hook into general dispatcher
@@ -267,7 +267,7 @@ def galax_to_gala(_: gpx.BarPotential, /) -> gp.PotentialBase:
     raise NotImplementedError  # TODO: implement
 
 
-if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
+if OptDeps.GALA.is_installed and (Version("1.8.2") <= OptDeps.GALA.version):
 
     @dispatch  # type: ignore[misc]
     def gala_to_galax(
@@ -284,8 +284,8 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
         .. invisible-code-block: python
 
             from packaging.version import Version
-            from galax.utils._optional_deps import HAS_GALA
-            skip = not HAS_GALA or HAS_GALA < Version("1.8.2")
+            from galax._interop.optional_deps import OptDeps
+            skip = not OptDeps.GALA.is_installed or OptDeps.GALA.version < Version("1.8.2")
 
         .. skip: start if(skip, reason="Requires Gala v1.8.2+")
 
@@ -320,8 +320,8 @@ if HAS_GALA and (Version("1.8.2") <= HAS_GALA):
         .. invisible-code-block: python
 
             from packaging.version import Version
-            from galax.utils._optional_deps import HAS_GALA
-            skip = not HAS_GALA or HAS_GALA < Version("1.8.2")
+            from galax._interop.optional_deps import OptDeps
+            skip = not OptDeps.GALA.is_installed or OptDeps.GALA.version < Version("1.8.2")
 
         .. skip: start if(skip, reason="Requires Gala v1.8.2+")
 
@@ -879,7 +879,7 @@ def gala_to_galax(
     --------
     .. invisible-code-block: python
 
-        from galax.utils._optional_deps import GSL_ENABLED
+        from galax._interop.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -915,7 +915,7 @@ def galax_to_gala(pot: gpx.PowerLawCutoffPotential, /) -> gp.PowerLawCutoffPoten
     --------
     .. invisible-code-block: python
 
-        from galax.utils._optional_deps import GSL_ENABLED
+        from galax._interop.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1455,7 +1455,7 @@ def gala_to_galax(pot: gp.BovyMWPotential2014, /) -> gpx.BovyMWPotential2014:
     --------
     .. invisible-code-block: python
 
-        from galax.utils._optional_deps import GSL_ENABLED
+        from galax._interop.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1486,7 +1486,7 @@ def galax_to_gala(pot: gpx.BovyMWPotential2014, /) -> gp.BovyMWPotential2014:
     --------
     .. invisible-code-block: python
 
-        from galax.utils._optional_deps import GSL_ENABLED
+        from galax._interop.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 

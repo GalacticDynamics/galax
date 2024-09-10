@@ -14,8 +14,8 @@ from unxt.unitsystems import galactic
 import galax.potential as gp
 import galax.typing as gt
 from ...test_composite import AbstractCompositePotential_Test
+from galax._interop.optional_deps import OptDeps
 from galax.potential import AbstractCompositePotential, LM10Potential
-from galax.utils._optional_deps import HAS_GALA
 
 if TYPE_CHECKING:
     from galax.potential import AbstractPotentialBase
@@ -101,7 +101,7 @@ class TestLM10Potential(AbstractCompositePotential_Test):
     # ==========================================================================
     # Interoperability
 
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.skipif(not OptDeps.GALA.is_installed, reason="requires gala")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [

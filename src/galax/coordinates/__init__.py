@@ -6,7 +6,6 @@ Copyright (c) 2023 galax maintainers. All rights reserved.
 from jaxtyping import install_import_hook
 
 from galax.setup_package import RUNTIME_TYPECHECKER
-from galax.utils._optional_deps import HAS_GALA
 
 with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
     from . import _psp, operators
@@ -27,4 +26,4 @@ __all__ += _psp.interp.__all__
 __all__ += _psp.utils.__all__
 
 # Clean up the namespace
-del install_import_hook, RUNTIME_TYPECHECKER, HAS_GALA, _psp, operator_compat
+del install_import_hook, RUNTIME_TYPECHECKER, _psp, operator_compat

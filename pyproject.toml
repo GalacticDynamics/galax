@@ -35,6 +35,7 @@ dependencies = [
   "jax >= 0.4, != 0.4.27",
   "jaxlib != 0.4.27",
   "jaxtyping >= 0.2.33",
+  "optional_dependencies >= 0.2.1",
   "packaging",  # for optional dependencies
   "quax >= 0.0.3",
   "quaxed >= 0.5",
@@ -262,7 +263,7 @@ exempt-modules = []
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-first-party = ["coordinax", "dataclassish", "quaxed", "unxt", "xmmutablemap", "zeroth"]
+known-first-party = ["coordinax", "dataclassish", "optional_dependencies", "quaxed", "unxt", "xmmutablemap", "zeroth"]
 known-local-folder = ["galax"]
 
 [tool.ruff.lint.pydocstyle]

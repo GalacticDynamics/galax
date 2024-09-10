@@ -14,8 +14,8 @@ import galax.potential as gp
 import galax.typing as gt
 from ...io.test_gala import parametrize_test_method_gala
 from ...test_composite import AbstractCompositePotential_Test
+from galax._interop.optional_deps import GSL_ENABLED, OptDeps
 from galax.potential import BovyMWPotential2014
-from galax.utils._optional_deps import GSL_ENABLED, HAS_GALA
 
 if TYPE_CHECKING:
     from galax.potential import AbstractPotentialBase
@@ -103,13 +103,17 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
     # ---------------------------------
     # Interoperability
 
-    @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
+    @pytest.mark.skipif(
+        not OptDeps.GALA.is_installed or not GSL_ENABLED, reason="requires gala + GSL"
+    )
     def test_galax_to_gala_to_galax_roundtrip(
         self, pot: gp.AbstractPotentialBase, x: gt.QVec3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 
-    @pytest.mark.skipif(not HAS_GALA or not GSL_ENABLED, reason="requires gala + GSL")
+    @pytest.mark.skipif(
+        not OptDeps.GALA.is_installed or not GSL_ENABLED, reason="requires gala + GSL"
+    )
     @parametrize_test_method_gala
     def test_method_gala(
         self,

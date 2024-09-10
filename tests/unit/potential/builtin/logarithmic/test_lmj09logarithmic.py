@@ -17,9 +17,9 @@ from ..test_common import (
     ParameterShapeQ3Mixin,
 )
 from .test_common import ParameterRSMixin, ParameterVCMixin
+from galax._interop.optional_deps import OptDeps
 from galax.potential import AbstractPotentialBase, LMJ09LogarithmicPotential
 from galax.potential.params import ConstantParameter
-from galax.utils._optional_deps import HAS_GALA
 
 
 class ParameterPhiMixin(ParameterFieldMixin):
@@ -143,7 +143,7 @@ class TestLMJ09LogarithmicPotential(
     # ==========================================================================
     # Interoperability
 
-    @pytest.mark.skipif(not HAS_GALA, reason="requires gala")
+    @pytest.mark.skipif(not OptDeps.GALA.is_installed, reason="requires gala")
     @pytest.mark.parametrize(
         ("method0", "method1", "atol"),
         [

@@ -3,16 +3,16 @@
 
 __all__: list[str] = []
 
-from galax.utils import _optional_deps
+from .optional_deps import OptDeps
 
-if _optional_deps.HAS_ASTROPY:
+if OptDeps.ASTROPY.is_installed:
     from . import galax_interop_astropy
 
-if _optional_deps.HAS_GALA:
+if OptDeps.GALA.is_installed:
     from . import galax_interop_gala
 
-if _optional_deps.HAS_GALPY:
+if OptDeps.GALPY.is_installed:
     from . import galax_interop_galpy
 
-if _optional_deps.HAS_MATPLOTLIB:
+if OptDeps.MATPLOTLIB.is_installed:
     from . import matplotlib

@@ -13,7 +13,7 @@ from galpy.util import conversion
 from plum import convert, dispatch
 from typing_extensions import Doc
 
-from galactic_dynamics_interoperability import galax as gdio
+import galactic_dynamics_interoperability as gdio
 from unxt import Quantity
 
 import galax.potential as gpx

@@ -1,4 +1,4 @@
-""":mod:`galax.potential.params`."""
+"""Re-export the machinery of ``galactic_dynamics_interoperability``."""
 
 __all__ = [
     "convert_potential",
@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 
-from ._potential.io import (
+from galactic_dynamics_interoperability import (
     AbstractInteroperableLibrary,
     GalaLibrary,
     GalaxLibrary,

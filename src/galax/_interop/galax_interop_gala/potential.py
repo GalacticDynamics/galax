@@ -17,6 +17,7 @@ from packaging.version import Version
 from plum import convert, dispatch
 
 import coordinax.operators as cxo
+import galactic_dynamics_interoperability as gdio
 import quaxed.array_api as xp
 from coordinax.operators import IdentityOperator
 from unxt import Quantity
@@ -31,7 +32,7 @@ from galax._interop.optional_deps import OptDeps
 
 @dispatch
 def convert_potential(
-    to_: gpx.AbstractPotentialBase | type[gpx.io.GalaxLibrary],  # noqa: ARG001
+    to_: gpx.AbstractPotentialBase | type[gdio.GalaxLibrary],  # noqa: ARG001
     from_: gp.CPotentialBase | gp.PotentialBase,
     /,
 ) -> gpx.AbstractPotentialBase:
@@ -56,7 +57,7 @@ def convert_potential(
 
 @dispatch
 def convert_potential(
-    to_: gp.CPotentialBase | gp.PotentialBase | type[gpx.io.GalaLibrary],  # noqa: ARG001
+    to_: gp.CPotentialBase | gp.PotentialBase | type[gdio.GalaLibrary],  # noqa: ARG001
     from_: gpx.AbstractPotentialBase,
     /,
 ) -> gp.CPotentialBase | gp.PotentialBase:
@@ -80,7 +81,7 @@ def convert_potential(
 # so does not support this function, this is totally fine.
 @dispatch
 def convert_potential(
-    to_: gp.CPotentialBase | gp.PotentialBase | type[gpx.io.GalaLibrary],  # noqa: ARG001
+    to_: gp.CPotentialBase | gp.PotentialBase | type[gdio.GalaLibrary],  # noqa: ARG001
     from_: gp.CPotentialBase | gp.PotentialBase,
     /,
 ) -> gp.CPotentialBase | gp.PotentialBase:
@@ -290,7 +291,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         .. skip: start if(skip, reason="Requires Gala v1.8.2+")
 
         >>> pot = galap.BurkertPotential(rho=4, r0=20, units=galactic)
-        >>> gpx.io.convert_potential(gp.io.GalaxLibrary, pot)
+        >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
         BurkertPotential(
         units=LTMAUnitSystem( length=Unit("kpc"), ...),
         constants=ImmutableMap({'G': ...}),

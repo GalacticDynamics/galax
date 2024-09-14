@@ -19,10 +19,10 @@ from typing import (
 
 import astropy.units as u
 from astropy.units import PhysicalType as Dimensions
-from is_annotated import isannotated
 from typing_extensions import Doc, override
 
 from dataclassish.converters import Optional
+from is_annotated import isannotated
 from unxt import AbstractQuantity, Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter

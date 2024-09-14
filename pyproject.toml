@@ -31,7 +31,7 @@ dependencies = [
   "dataclassish >= 0.3",
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
-  "galactic_dynamics_interoperability @ git+https://github.com/GalacticDynamics/galax.git",
+  "galactic_dynamics_interoperability @ git+https://github.com/GalacticDynamics/galactic_dynamics_interoperability.git",
   "is_annotated >= 1.0",
   "jax >= 0.4, != 0.4.27",
   "jaxlib != 0.4.27",

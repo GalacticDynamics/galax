@@ -31,6 +31,7 @@ dependencies = [
   "dataclassish >= 0.3",
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
+  "galactic_dynamics_interoperability @ git+https://github.com/GalacticDynamics/galactic_dynamics_interoperability.git",
   "is_annotated >= 1.0",
   "jax >= 0.4, != 0.4.27",
   "jaxlib != 0.4.27",
@@ -264,7 +265,17 @@ exempt-modules = []
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-first-party = ["coordinax", "dataclassish", "optional_dependencies", "quaxed", "unxt", "xmmutablemap", "zeroth"]
+known-first-party = [
+  "coordinax",
+  "dataclassish",
+  "galactic_dynamics_interoperability",
+  "is_annotated",
+  "optional_dependencies",
+  "quaxed",
+  "unxt",
+  "xmmutablemap",
+  "zeroth"
+]
 known-local-folder = ["galax"]
 
 [tool.ruff.lint.pydocstyle]

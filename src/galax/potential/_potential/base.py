@@ -17,11 +17,15 @@ import coordinax as cx
 import quaxed.array_api as xp
 import quaxed.numpy as jnp
 import unxt
+from galactic_dynamics_interoperability import (
+    AbstractInteroperableLibrary,
+    GalaxLibrary,
+    convert_potential,
+)
 from unxt import AbstractUnitSystem, Quantity
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
 from .plot import PlotDescriptor
 from galax.coordinates import PhaseSpacePosition
 from galax.potential._potential.params.attr import ParametersAttribute

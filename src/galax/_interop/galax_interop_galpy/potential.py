@@ -13,6 +13,7 @@ from galpy.util import conversion
 from plum import convert, dispatch
 from typing_extensions import Doc
 
+import galactic_dynamics_interoperability as gdio
 from unxt import Quantity
 
 import galax.potential as gpx
@@ -23,7 +24,7 @@ import galax.potential as gpx
 
 @dispatch
 def convert_potential(
-    to_: gpx.AbstractPotentialBase | type[gpx.io.GalaxLibrary],  # noqa: ARG001
+    to_: gpx.AbstractPotentialBase | type[gdio.GalaxLibrary],  # noqa: ARG001
     from_: gpy.Potential | list[gpy.Potential],
     /,
 ) -> gpx.AbstractPotentialBase:
@@ -52,7 +53,7 @@ def convert_potential(
 
 @dispatch
 def convert_potential(
-    to_: gpy.Potential | list[gpy.Potential] | type[gpx.io.GalpyLibrary],  # noqa: ARG001
+    to_: gpy.Potential | list[gpy.Potential] | type[gdio.GalpyLibrary],  # noqa: ARG001
     from_: gpx.AbstractPotentialBase,
     /,
 ) -> gpy.Potential | list[gpy.Potential]:
@@ -76,7 +77,7 @@ def convert_potential(
 # so does not support this function, this is totally fine.
 @dispatch
 def convert_potential(
-    to_: gpy.Potential | list[gpy.Potential] | type[gpx.io.GalpyLibrary],  # noqa: ARG001
+    to_: gpy.Potential | list[gpy.Potential] | type[gdio.GalpyLibrary],  # noqa: ARG001
     from_: gpy.Potential | list[gpy.Potential],
     /,
 ) -> gpy.Potential:

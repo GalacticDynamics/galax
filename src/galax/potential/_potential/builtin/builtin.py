@@ -420,14 +420,14 @@ class NullPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
-        default="galactic", converter=unitsystem, static=True
+        default=galactic, converter=unitsystem, static=True
     )
     constants: ImmutableMap[str, Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
     @partial(jax.jit, inline=True)
-    def _potential(  # TODO: inputs w/ units
+    def _potential(
         self,
         q: gt.BatchQVec3,
         t: gt.BatchableRealQScalar,  # noqa: ARG002

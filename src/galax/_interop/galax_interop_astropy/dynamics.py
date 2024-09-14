@@ -23,6 +23,7 @@ def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
     t: APYQuantity,
+    /,
     *,
     integrator: gd.integrate.Integrator | None = None,
     interpolated: Literal[True, False] = False,

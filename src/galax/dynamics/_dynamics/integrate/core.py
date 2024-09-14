@@ -21,7 +21,6 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 from diffrax import DenseInterpolation, Solution
-from jax._src.numpy.vectorize import _parse_gufunc_signature, _parse_input_dimensions
 from plum import dispatch
 
 import quaxed.array_api as xp
@@ -124,9 +123,7 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
 
 
 @no_type_check
-def vectorize(
-    pyfunc: Callable[P, R], *, signature: str | None = None
-) -> "Callable[P, R]":
+def vectorize_diffeq(pyfunc: Callable[P, R]) -> "Callable[P, R]":
     """Vectorize a function.
 
     Parameters
@@ -141,20 +138,19 @@ def vectorize(
     Callable[P, R]
 
     """
+    input_core_dims = [("6",), (), (), ("T",)]
 
     @no_type_check
     @functools.wraps(pyfunc)
     def wrapped(*args: Any, **_: Any) -> R:  # P.args, P.kwargs
         vectorized_func = pyfunc
-        input_core_dims, _ = _parse_gufunc_signature(signature)
-        broadcast_shape, _ = _parse_input_dimensions(args, input_core_dims, "")
 
         squeezed_args = []
         rev_filled_shapes = []
         for arg, core_dims in zip(args, input_core_dims, strict=True):
             noncore_shape = jnp.shape(arg)[: jnp.ndim(arg) - len(core_dims)]
 
-            pad_ndim = len(broadcast_shape) - len(noncore_shape)
+            pad_ndim = 1 - len(noncore_shape)
             filled_shape = pad_ndim * (1,) + noncore_shape
             rev_filled_shapes.append(filled_shape[::-1])
 
@@ -472,8 +468,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         terms = diffrax.ODETerm(F)
         solver = self.Solver(**self.solver_kw)
 
-        # TODO: can the vectorize be pushed into diffeqsolve?
-        @partial(vectorize, signature="(6),(),(),(T)->()")
+        @vectorize_diffeq
         def solve_diffeq(
             w0: gt.Vec6, t0: gt.FloatScalar, t1: gt.FloatScalar, ts: gt.VecTime
         ) -> diffrax.Solution:
@@ -509,9 +504,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             out_kw = {}
 
         return out_cls(  # shape = (*batch, T)
+            t=Quantity(w[..., 0], time),
             q=Quantity(w[..., 1:4], units["length"]),
             p=Quantity(w[..., 4:7], units["speed"]),
-            t=Quantity(w[..., 0], time),
             **out_kw,
         )
 

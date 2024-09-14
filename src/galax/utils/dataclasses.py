@@ -248,6 +248,7 @@ class sentineled(AbstractConverter[ArgT, RetT], Generic[ArgT, RetT, SenT]):  # t
 
 
 # TODO: upstream this to Equinox
+# TODO: Equinox doesn't seem to respect the conversion of the default value anymore.
 class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
     """Equinox-compatible module metaclass.
 

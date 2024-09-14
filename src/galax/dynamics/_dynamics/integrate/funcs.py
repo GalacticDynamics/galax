@@ -35,6 +35,7 @@ def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
     t: Any,
+    /,
     *,
     integrator: Integrator | None = None,
     interpolated: Literal[True, False] = False,
@@ -252,6 +253,7 @@ def evaluate_orbit(
 def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
+    /,
     *,
     t: Any,
     integrator: Integrator | None = None,

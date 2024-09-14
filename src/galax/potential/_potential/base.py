@@ -68,6 +68,8 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     def _apply_unitsystem(self) -> None:
         from galax.potential._potential.params.field import ParameterField
 
+        usys = self.units
+
         # Handle unit conversion for all fields, e.g. the parameters.
         for f in fields(self):
             # Process ParameterFields
@@ -81,7 +83,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 value = getattr(self, f.name)
                 if isinstance(value, APYQuantity):  # TODO: remove this
                     value = value.to_units_value(
-                        self.units[f.metadata.get("dimensions")],
+                        usys[f.metadata.get("dimensions")],
                         equivalencies=f.metadata.get("equivalencies", None),
                     )
                     object.__setattr__(self, f.name, value)
@@ -89,7 +91,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         # Do unit conversion for the constants
         if self.units != unxt.unitsystems.dimensionless:
             constants = ImmutableMap(
-                {k: v.decompose(self.units) for k, v in self.constants.items()}
+                {k: v.decompose(usys) for k, v in self.constants.items()}
             )
             object.__setattr__(self, "constants", constants)
 

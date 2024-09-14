@@ -126,7 +126,8 @@ addopts = [
 ]
 filterwarnings = [
   "error",
-  "ignore:ast\\.Str is deprecated:DeprecationWarning",
+  "ignore:ast\\.Str is deprecated:DeprecationWarning",  # from Sybil
+  "ignore:Attribute s is deprecated:DeprecationWarning",  # from Sybil
   "ignore:numpy\\.ndarray size changed:RuntimeWarning",
   "ignore:Passing arguments 'a':DeprecationWarning",  # TODO: from diffrax
   "ignore:jax\\.core\\.pp_eqn_rules is deprecated:DeprecationWarning",

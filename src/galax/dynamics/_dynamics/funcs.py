@@ -233,12 +233,13 @@ def tidal_radius(
 
     Examples
     --------
+    >>> import jax.numpy as jnp
     >>> from galax.potential import NFWPotential
 
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
 
-    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
+    >>> x = Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
+    >>> v = Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
     >>> prog_mass = Quantity(1e4, "Msun")
 
     >>> tidal_radius(pot, x, v, prog_mass=prog_mass, t=Quantity(0, "Myr"))
@@ -286,8 +287,8 @@ def lagrange_points(
     >>> import galax.potential as gp
 
     >>> pot = gp.MilkyWayPotential()
-    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = Quantity(xp.asarray([0.0, 220.0, 0.0]), "km/s")
+    >>> x = Quantity([8.0, 0.0, 0.0], "kpc")
+    >>> v = Quantity([0.0, 220.0, 0.0], "km/s")
     >>> prog_mass = Quantity(1e4, "Msun")
     >>> t = Quantity(0.0, "Gyr")
 

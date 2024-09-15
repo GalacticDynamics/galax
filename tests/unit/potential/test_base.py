@@ -58,17 +58,17 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
     @pytest.fixture(scope="class")
     def x(self, units: AbstractUnitSystem) -> gt.QVec3:
         """Create a position vector for testing."""
-        return Quantity(xp.asarray([1, 2, 3], dtype=float), units["length"])
+        return Quantity(jnp.asarray([1, 2, 3], dtype=float), units["length"])
 
     @pytest.fixture(scope="class")
     def v(sel, units: AbstractUnitSystem) -> gt.QVec3:
         """Create a velocity vector for testing."""
-        return Quantity(xp.asarray([4, 5, 6], dtype=float), units["speed"])
+        return Quantity(jnp.asarray([4, 5, 6], dtype=float), units["speed"])
 
     @pytest.fixture(scope="class")
     def xv(self, x: gt.QVec3, v: gt.QVec3) -> gt.Vec6:
         """Create a phase-space vector for testing."""
-        return xp.concat([x.value, v.value])
+        return jnp.concat([x.value, v.value])
 
     # ---------------------------------
 
@@ -76,21 +76,21 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
     def batchx(self, units: AbstractUnitSystem) -> gt.BatchQVec3:
         """Create a batch of position vectors for testing."""
         return Quantity(
-            xp.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=float), units["length"]
+            jnp.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=float), units["length"]
         )
 
     @pytest.fixture(scope="class")
     def batchv(self, units: AbstractUnitSystem) -> gt.BatchQVec3:
         """Create a batch of velocity vectors for testing."""
         return Quantity(
-            xp.asarray([[4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float),
+            jnp.asarray([[4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float),
             units["speed"],
         )
 
     @pytest.fixture(scope="class")
     def batchxv(self, batchx: gt.BatchQVec3, batchv: gt.BatchQVec3) -> gt.BatchVec3:
         """Create a batch of phase-space vectors for testing."""
-        return xp.concatenate([batchx.value, batchv.value], axis=-1)
+        return jnp.concatenate([batchx.value, batchv.value], axis=-1)
 
     # ---------------------------------
 
@@ -225,7 +225,7 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
                 return (
                     self.constants["G"]
                     * self.m_tot(t)
-                    / xp.linalg.vector_norm(q, axis=-1)
+                    / jnp.linalg.vector_norm(q, axis=-1)
                 )
 
         return TestPotential

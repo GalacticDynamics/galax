@@ -16,7 +16,6 @@ from equinox import field
 from jax.scipy.special import sph_harm
 from jaxtyping import Array, Float
 
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity, ustrip
 
@@ -89,9 +88,9 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
         # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
         def summand(l: int, m: int) -> Float[Array, "*batch"]:
             cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            return xp.pow(s, l) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
+            return jnp.pow(s, l) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
 
-        summation = xp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
+        summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
         if is_scalar:
             summation = summation[0]
 
@@ -148,9 +147,9 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
         # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
         def summand(l: int, m: int) -> Float[Array, "*batch"]:
             cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            return xp.pow(s, -(l + 1)) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
+            return jnp.pow(s, -(l + 1)) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
 
-        summation = xp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
+        summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
         if is_scalar:
             summation = summation[0]
 
@@ -218,11 +217,11 @@ class MultipolePotential(AbstractMultipolePotential):
         # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
         def summand(l: int, m: int) -> Float[Array, "*batch"]:
             cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            inner = xp.pow(s, l) * (ISlm[l, m] * cPlm + ITlm[l, m] * sPlm)
-            outer = xp.pow(s, -l - 1) * (OSlm[l, m] * cPlm + OTlm[l, m] * sPlm)
+            inner = jnp.pow(s, l) * (ISlm[l, m] * cPlm + ITlm[l, m] * sPlm)
+            outer = jnp.pow(s, -l - 1) * (OSlm[l, m] * cPlm + OTlm[l, m] * sPlm)
             return inner + outer
 
-        summation = xp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
+        summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
         if is_scalar:
             summation = summation[0]
 
@@ -257,10 +256,10 @@ def cartesian_to_normalized_spherical(
     phi : Quantity[float, (*batch,), "angle"]
         phi angle.
     """
-    r = xp.linalg.vector_norm(q, axis=-1)
+    r = jnp.linalg.vector_norm(q, axis=-1)
     s = r / r_s
-    theta = ustrip("rad", xp.acos(q[..., 2] / r))  # theta
-    phi = ustrip("rad", xp.atan2(q[..., 1], q[..., 0]))  # atan(y/x)
+    theta = ustrip("rad", jnp.acos(q[..., 2] / r))  # theta
+    phi = ustrip("rad", jnp.atan2(q[..., 1], q[..., 0]))  # atan(y/x)
 
     # Return, converting Quantity["dimensionless"] -> Array
     return s.value, theta, phi

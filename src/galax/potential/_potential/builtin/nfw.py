@@ -17,8 +17,8 @@ import jax
 import numpy as np
 from jaxtyping import Array, Float, Shaped
 
-import quaxed.array_api as xp
 import quaxed.lax as qlax
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 from xmmutablemap import ImmutableMap
 
@@ -28,7 +28,7 @@ from galax.potential._potential.core import AbstractPotential
 from galax.potential._potential.params.core import AbstractParameter
 from galax.potential._potential.params.field import ParameterField
 
-_log2 = xp.log(xp.asarray(2.0))
+_log2 = jnp.log(jnp.asarray(2.0))
 
 # -------------------------------------------------------------------
 
@@ -66,11 +66,11 @@ class NFWPotential(AbstractPotential):
 
             \Phi(r) = -\frac{G M}{r_s} \frac{r_s}{r} \log(1 + \frac{r}{r_s})
         """
-        r = xp.linalg.vector_norm(q, axis=-1)
+        r = jnp.linalg.vector_norm(q, axis=-1)
         r_s = self.r_s(t)
         u = r / r_s
         v_h2 = self.constants["G"] * self.m(t) / r_s
-        return -v_h2 * xp.log(1.0 + u) / u
+        return -v_h2 * jnp.log(1.0 + u) / u
 
     @partial(jax.jit)
     def _density(
@@ -84,9 +84,9 @@ class NFWPotential(AbstractPotential):
             \rho_0 = \frac{v_{h2}}{4 \pi G r_s^2}
             \rho(r) = \frac{\rho_0}{u (1 + u)^2}
         """
-        r = xp.linalg.vector_norm(q, axis=-1)
+        r = jnp.linalg.vector_norm(q, axis=-1)
         r_s = self.r_s(t)
-        rho0 = self.m(t) / (4 * xp.pi * r_s**3)
+        rho0 = self.m(t) / (4 * jnp.pi * r_s**3)
         u = r / r_s
         return rho0 / u / (1 + u) ** 2
 
@@ -178,18 +178,18 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
         a1, a2, a3 = self.a1(t), self.a2(t), self.a3(t)
 
         # 1- eccentricities
-        e_b2 = 1 - xp.square(a2 / a1)
-        e_c2 = 1 - xp.square(a3 / a1)
+        e_b2 = 1 - jnp.square(a2 / a1)
+        e_c2 = 1 - jnp.square(a3 / a1)
 
         # The potential at the origin
         phi0 = v_c2 / (_log2 - 0.5 + (_log2 - 0.75) * (e_b2 + e_c2))
 
         # The potential at the given position
-        r = xp.linalg.vector_norm(q, axis=-1)
+        r = jnp.linalg.vector_norm(q, axis=-1)
         u = r / r_s
 
         # The functions F1, F2, and F3 and some useful quantities
-        log1pu = xp.log(1 + u)
+        log1pu = jnp.log(1 + u)
         u2 = u**2
         um3 = u ** (-3)
         costh2 = q[..., 2] ** 2 / r**2  # z^2 / r^2
@@ -204,7 +204,7 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
         # Select the output, r=0 is a special case.
         out: gt.BatchFloatQScalar = phi0 * qlax.select(
             u == 0,
-            xp.ones_like(u),
+            jnp.ones_like(u),
             (
                 F1
                 + (e_b2 + e_c2) / 2 * F2
@@ -234,7 +234,7 @@ class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
     ) -> Shaped[Array, "*batch"] | Shaped[Quantity["dimensionless"], "*batch"]:
         y = f(self.x)
         w = self.w.reshape(self.w.shape + (1,) * (y.ndim - 1))
-        return xp.sum(y * w, axis=0)
+        return jnp.sum(y * w, axis=0)
 
 
 @final
@@ -284,7 +284,7 @@ class TriaxialNFWPotential(AbstractPotential):
     def __post_init__(self) -> None:
         # Gauss-Legendre quadrature
         x, w = np.polynomial.legendre.leggauss(self.integration_order)
-        x, w = xp.asarray(x, dtype=float), xp.asarray(w, dtype=float)
+        x, w = jnp.asarray(x, dtype=float), jnp.asarray(w, dtype=float)
         # Interval change from [-1, 1] to [0, 1]
         x = 0.5 * (x + 1)
         w = 0.5 * w
@@ -300,7 +300,7 @@ class TriaxialNFWPotential(AbstractPotential):
 
             \rho_0 = \frac{M}{4 \pi r_s^3}
         """
-        return self.m(t) / (4 * xp.pi * self.r_s(t) ** 3)
+        return self.m(t) / (4 * jnp.pi * self.r_s(t) ** 3)
 
     # ==========================================================================
     # Potential energy
@@ -403,20 +403,22 @@ class TriaxialNFWPotential(AbstractPotential):
         def delta_psi_factor(
             s2: Float[Array, "N *#batch"],
         ) -> Float[Quantity["dimensionless"], "N *batch"]:
-            xi = xp.sqrt(self._ellipsoid_surface(q, q1, q2, s2)) / r_s
+            xi = jnp.sqrt(self._ellipsoid_surface(q, q1, q2, s2)) / r_s
             return 2.0 / (1.0 + xi)
 
         def integrand(
             s: Float[Array, "N"],
         ) -> Float[Quantity["dimensionless"], "N *batch"]:
             s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
-            denom = xp.sqrt(((q1sq - 1) * s2 + 1) * ((q2sq - 1) * s2 + 1))
+            denom = jnp.sqrt(((q1sq - 1) * s2 + 1) * ((q2sq - 1) * s2 + 1))
             return delta_psi_factor(s2) / denom
 
         # TODO: option to do integrate.quad
         integral = self._integrator(integrand)
 
-        return (-2.0 * xp.pi * self.constants["G"] * rho0 * r_s**2 * q1 * q2) * integral
+        return (
+            -2.0 * jnp.pi * self.constants["G"] * rho0 * r_s**2 * q1 * q2
+        ) * integral
 
     # ==========================================================================
 
@@ -425,8 +427,8 @@ class TriaxialNFWPotential(AbstractPotential):
         self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
     ) -> gt.BatchFloatQScalar:
         r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
-        s2 = xp.asarray([1])
-        xi = xp.sqrt(self._ellipsoid_surface(q[None], q1, q2, s2)[0]) / r_s
+        s2 = jnp.asarray([1])
+        xi = jnp.sqrt(self._ellipsoid_surface(q[None], q1, q2, s2)[0]) / r_s
         return self.rho0(t) / xi / (1.0 + xi) ** 2
 
 
@@ -472,7 +474,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         q1sq = self.q1(t) ** 2
         q2sq = 3 - q1sq
-        return xp.sqrt(q[..., 0] ** 2 + q[..., 1] ** 2 / q1sq + q[..., 2] ** 2 / q2sq)
+        return jnp.sqrt(q[..., 0] ** 2 + q[..., 1] ** 2 / q1sq + q[..., 2] ** 2 / q2sq)
 
     @partial(jax.jit, inline=True)
     def _r_tilde(
@@ -480,7 +482,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         r_a = self.a_r(t) * self.r_s(t)
         r_e = self._r_e(q, t)
-        r = xp.linalg.vector_norm(q, axis=-1)
+        r = jnp.linalg.vector_norm(q, axis=-1)
         return (r_a + r) * r_e / (r_a + r_e)
 
     @partial(jax.jit)
@@ -491,4 +493,4 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
         /,
     ) -> gt.SpecificEnergyBatchScalar:
         r = self._r_tilde(q, t)
-        return -self.constants["G"] * self.m(t) * xp.log(1.0 + r / self.r_s(t)) / r
+        return -self.constants["G"] * self.m(t) * jnp.log(1.0 + r / self.r_s(t)) / r

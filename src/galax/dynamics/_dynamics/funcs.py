@@ -14,7 +14,6 @@ from jaxtyping import Float, Shaped
 from plum import convert, dispatch
 
 import coordinax as cx
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 
@@ -57,7 +56,7 @@ def specific_angular_momentum(
     Quantity['diffusivity'](Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
 
     """
-    return xp.linalg.cross(x, v)
+    return jnp.linalg.cross(x, v)
 
 
 @dispatch
@@ -171,9 +170,9 @@ def _orbital_angular_frequency(
     >>> _orbital_angular_frequency(x, v)
     Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
     """
-    r = xp.linalg.vector_norm(x, axis=-1, keepdims=True)
-    omega = xp.linalg.cross(x, v) / r**2
-    return xp.linalg.vector_norm(omega, axis=-1)
+    r = jnp.linalg.vector_norm(x, axis=-1, keepdims=True)
+    omega = jnp.linalg.cross(x, v) / r**2
+    return jnp.linalg.vector_norm(omega, axis=-1)
 
 
 @dispatch

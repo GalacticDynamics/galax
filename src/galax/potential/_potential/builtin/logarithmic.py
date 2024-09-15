@@ -12,7 +12,7 @@ from typing import final
 import equinox as eqx
 import jax
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
 from xmmutablemap import ImmutableMap
 
@@ -41,8 +41,8 @@ class LogarithmicPotential(AbstractPotential):
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
         r_s = ustrip(self.units["length"], self.r_s(t))
-        r = ustrip(self.units["length"], xp.linalg.vector_norm(q, axis=-1))
-        return 0.5 * self.v_c(t) ** 2 * xp.log(r_s**2 + r**2)
+        r = ustrip(self.units["length"], jnp.linalg.vector_norm(q, axis=-1))
+        return 0.5 * self.v_c(t) ** 2 * jnp.log(r_s**2 + r**2)
 
 
 @final
@@ -76,7 +76,7 @@ class LMJ09LogarithmicPotential(AbstractPotential):
         phi = self.phi(t)
 
         # Rotated and scaled coordinates
-        sphi, cphi = xp.sin(phi), xp.cos(phi)
+        sphi, cphi = jnp.sin(phi), jnp.cos(phi)
         x = q[..., 0] * cphi + q[..., 1] * sphi
         y = -q[..., 0] * sphi + q[..., 1] * cphi
         r2 = (x / q1) ** 2 + (y / q2) ** 2 + (q[..., 2] / q3) ** 2
@@ -85,7 +85,7 @@ class LMJ09LogarithmicPotential(AbstractPotential):
         return (
             0.5
             * self.v_c(t) ** 2
-            * xp.log(
+            * jnp.log(
                 ustrip(self.units["length"], self.r_s(t)) ** 2
                 + ustrip(self.units["area"], r2)
             )

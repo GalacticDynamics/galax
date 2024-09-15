@@ -24,7 +24,7 @@ from diffrax import DenseInterpolation, Solution
 from plum import dispatch
 
 import quaxed.array_api as xp
-from unxt import AbstractUnitSystem, Quantity, unitsystem
+from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
@@ -105,7 +105,7 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
     def __call__(self, t: Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
         # Parse t
-        t_ = jnp.atleast_1d(t.to_units_value(self.units["time"]))
+        t_ = jnp.atleast_1d(ustrip(self.units["time"], t))
 
         # Evaluate the interpolation
         ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)

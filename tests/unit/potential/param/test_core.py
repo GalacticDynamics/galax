@@ -8,7 +8,7 @@ import pytest
 
 import quaxed.array_api as xp
 import quaxed.numpy as jnp
-from unxt import Quantity
+from unxt import Quantity, ustrip
 
 from galax.potential._potential.params.core import ParameterCallable
 from galax.potential.params import AbstractParameter, ConstantParameter, UserParameter
@@ -117,7 +117,7 @@ class TestUserParameter(TestAbstractParameter[UserParameter]):
     @pytest.fixture(scope="class")
     def field_func(self) -> ParameterCallable:
         def func(t: Quantity["time"], **kwargs: Any) -> Any:
-            return Quantity(t.to_units_value("Gyr"), "kpc")
+            return Quantity(ustrip("Gyr", t), "kpc")
 
         return func
 

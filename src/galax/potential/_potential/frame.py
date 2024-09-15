@@ -27,14 +27,14 @@ class PotentialFrame(AbstractPotentialBase):
 
     First some imports:
 
-    >>> from unxt import Quantity
+    >>> from unxt import Quantity, ustrip
     >>> import coordinax.operators as cxo
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
 
     Now we define a triaxial Hernquist potential with a time-dependent mass:
 
-    >>> mfunc = gp.params.UserParameter(lambda t: Quantity(1e12 * (1 + t.to_units_value("Gyr") / 10), "Msun"))
+    >>> mfunc = gp.params.UserParameter(lambda t: Quantity(1e12 * (1 + ustrip("Gyr", t) / 10), "Msun"))
     >>> pot = gp.TriaxialHernquistPotential(m_tot=mfunc, r_s=Quantity(1, "kpc"),
     ...                                     q1=1, q2=0.5, units="galactic")
 

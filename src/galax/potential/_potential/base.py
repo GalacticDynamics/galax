@@ -22,7 +22,7 @@ from galactic_dynamics_interoperability import (
     GalaxLibrary,
     convert_potential,
 )
-from unxt import AbstractUnitSystem, Quantity
+from unxt import AbstractUnitSystem, Quantity, unitsystems, ustrip
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -93,7 +93,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                     object.__setattr__(self, f.name, value)
 
         # Do unit conversion for the constants
-        if self.units != unxt.unitsystems.dimensionless:
+        if self.units != unitsystems.dimensionless:
             constants = ImmutableMap(
                 {k: v.decompose(usys) for k, v in self.constants.items()}
             )
@@ -252,9 +252,9 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         See :func:`~galax.potential.hessian` for details.
         """
-        from .funcs import hessian
+        from .funcs import hessian as hessian_func
 
-        return hessian(self, *args, **kwargs)
+        return hessian_func(self, *args, **kwargs)
 
     ###########################################################################
     # Convenience methods
@@ -316,10 +316,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             Derivative [p (3,), a (3,)] at the phase-space position.
         """
         # TODO: not require unit munging
-        a = -self._gradient(
-            Quantity(w[0:3], self.units["length"]),
-            Quantity(t, self.units["time"]),
-        ).to_units_value(self.units["acceleration"])
+        a = ustrip(
+            self.units["acceleration"],
+            -self._gradient(
+                Quantity(w[0:3], self.units["length"]), Quantity(t, self.units["time"])
+            ),
+        )
         return jnp.hstack([w[3:6], a])  # v, a
 
     def evaluate_orbit(

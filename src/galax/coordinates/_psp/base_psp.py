@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from plum import dispatch
 
 import coordinax as cx
-from unxt import unitsystem
+from unxt import uconvert, unitsystem
 
 from .base import AbstractBasePhaseSpacePosition
 from .utils import getitem_broadscalartime_index
@@ -55,7 +55,7 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
             self,
             q=self.q.to_units(usys),
             p=self.p.to_units(usys),
-            t=self.t.to_units(usys["time"]) if self.t is not None else None,
+            t=uconvert(usys["time"], self.t) if self.t is not None else None,
         )
 
 

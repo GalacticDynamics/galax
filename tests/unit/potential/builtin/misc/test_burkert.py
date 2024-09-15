@@ -50,7 +50,7 @@ class TestBurkertPotential(
         )
 
     def test_gradient(self, pot: BurkertPotential, x: gt.Vec3) -> None:
-        expect = Quantity([0.54053104, 1.08106208, 1.62159313], "kpc2 / Myr2")
+        expect = Quantity([0.54053104, 1.08106208, 1.62159313], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), Quantity)
         assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 

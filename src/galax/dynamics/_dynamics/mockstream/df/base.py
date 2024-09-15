@@ -12,7 +12,7 @@ from jaxtyping import PRNGKeyArray
 from plum import convert
 
 import coordinax as cx
-from unxt import Quantity
+from unxt import Quantity, uconvert
 
 import galax.coordinates as gc
 import galax.potential as gp
@@ -106,17 +106,18 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             ts,
         )
 
+        ts = uconvert(pot.units["time"], ts)
         mock_lead = MockStreamArm(
-            q=x_lead.to_units(pot.units["length"]),
-            p=v_lead.to_units(pot.units["speed"]),
-            t=ts.to_units(pot.units["time"]),
-            release_time=ts.to_units(pot.units["time"]),
+            q=uconvert(pot.units["length"], x_lead),
+            p=uconvert(pot.units["speed"], v_lead),
+            t=ts,
+            release_time=ts,
         )
         mock_trail = MockStreamArm(
-            q=x_trail.to_units(pot.units["length"]),
-            p=v_trail.to_units(pot.units["speed"]),
-            t=ts.to_units(pot.units["time"]),
-            release_time=ts.to_units(pot.units["time"]),
+            q=uconvert(pot.units["length"], x_trail),
+            p=uconvert(pot.units["speed"], v_trail),
+            t=ts,
+            release_time=ts,
         )
 
         return gc.CompositePhaseSpacePosition(lead=mock_lead, trail=mock_trail)

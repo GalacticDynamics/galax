@@ -19,7 +19,6 @@ from jaxtyping import Shaped
 from plum import convert, dispatch
 
 import coordinax as cx
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 
@@ -1522,7 +1521,7 @@ def tidal_tensor(
     J = hessian(pot, *args, **kwargs)  # (*batch, 3, 3)
     batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)
     traced = (
-        expand_batch_dims(xp.eye(3), ndim=len(batch_shape))
+        expand_batch_dims(jnp.eye(3), ndim=len(batch_shape))
         * expand_arr_dims(jnp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
         / 3
     )
@@ -1563,7 +1562,7 @@ def d2potential_dr2(
 
     >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
     ...                       units="galactic")
-    >>> q = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
+    >>> q = Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
     >>> d2potential_dr2(pot, q, Quantity(0.0, "Myr"))
     Quantity['1'](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
 
@@ -1611,10 +1610,10 @@ def circular_velocity(
     Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
 
     """
-    r = xp.linalg.vector_norm(x, axis=-1)
+    r = jnp.linalg.vector_norm(x, axis=-1)
     dPhi_dxyz = convert(pot.gradient(x, t=t), Quantity)
-    dPhi_dr = xp.sum(dPhi_dxyz * x / r[..., None], axis=-1)
-    return xp.sqrt(r * xp.abs(dPhi_dr))
+    dPhi_dr = jnp.sum(dPhi_dxyz * x / r[..., None], axis=-1)
+    return jnp.sqrt(r * jnp.abs(dPhi_dr))
 
 
 @dispatch

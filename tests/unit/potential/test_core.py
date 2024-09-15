@@ -6,7 +6,6 @@ import jax
 import pytest
 from plum import convert
 
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, galactic, unitsystem
@@ -60,7 +59,7 @@ class TestAbstractPotential(AbstractPotential_Test):
                 return (
                     self.constants["G"]
                     * self.m_tot(t)
-                    / xp.linalg.vector_norm(q, axis=-1)
+                    / jnp.linalg.vector_norm(q, axis=-1)
                 )
 
         return TestPotential
@@ -110,7 +109,7 @@ class TestAbstractPotential(AbstractPotential_Test):
     def test_hessian(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.hessian` method."""
         expected = Quantity(
-            xp.asarray(
+            jnp.asarray(
                 [
                     [-0.06747463, 0.03680435, 0.05520652],
                     [0.03680435, -0.01226812, 0.11041304],

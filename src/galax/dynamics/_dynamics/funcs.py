@@ -14,7 +14,6 @@ from jaxtyping import Float, Shaped
 from plum import convert, dispatch
 
 import coordinax as cx
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 
@@ -57,7 +56,7 @@ def specific_angular_momentum(
     Quantity['diffusivity'](Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
 
     """
-    return xp.linalg.cross(x, v)
+    return jnp.linalg.cross(x, v)
 
 
 @dispatch
@@ -171,9 +170,9 @@ def _orbital_angular_frequency(
     >>> _orbital_angular_frequency(x, v)
     Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
     """
-    r = xp.linalg.vector_norm(x, axis=-1, keepdims=True)
-    omega = xp.linalg.cross(x, v) / r**2
-    return xp.linalg.vector_norm(omega, axis=-1)
+    r = jnp.linalg.vector_norm(x, axis=-1, keepdims=True)
+    omega = jnp.linalg.cross(x, v) / r**2
+    return jnp.linalg.vector_norm(omega, axis=-1)
 
 
 @dispatch
@@ -234,12 +233,13 @@ def tidal_radius(
 
     Examples
     --------
+    >>> import jax.numpy as jnp
     >>> from galax.potential import NFWPotential
 
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
 
-    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
+    >>> x = Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
+    >>> v = Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
     >>> prog_mass = Quantity(1e4, "Msun")
 
     >>> tidal_radius(pot, x, v, prog_mass=prog_mass, t=Quantity(0, "Myr"))
@@ -287,8 +287,8 @@ def lagrange_points(
     >>> import galax.potential as gp
 
     >>> pot = gp.MilkyWayPotential()
-    >>> x = Quantity(xp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = Quantity(xp.asarray([0.0, 220.0, 0.0]), "km/s")
+    >>> x = Quantity([8.0, 0.0, 0.0], "kpc")
+    >>> v = Quantity([0.0, 220.0, 0.0], "km/s")
     >>> prog_mass = Quantity(1e4, "Msun")
     >>> t = Quantity(0.0, "Gyr")
 

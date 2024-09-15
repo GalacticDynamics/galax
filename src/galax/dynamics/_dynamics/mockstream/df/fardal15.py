@@ -11,7 +11,7 @@ import jax.random as jr
 from jaxtyping import PRNGKeyArray
 
 import coordinax as cx
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 
 import galax.potential as gp
 import galax.typing as gt
@@ -69,11 +69,11 @@ class FardalStreamDF(AbstractStreamDF):
         v_circ = omega_val * r_tidal  # relative velocity
 
         # z-hat
-        L_vec = xp.linalg.cross(x, v)
+        L_vec = jnp.linalg.cross(x, v)
         z_hat = cx.normalize_vector(L_vec)
 
         # phi-hat
-        phi_vec = v - xp.sum(v * r_hat, axis=-1, keepdims=True) * r_hat
+        phi_vec = v - jnp.sum(v * r_hat, axis=-1, keepdims=True) * r_hat
         phi_hat = cx.normalize_vector(phi_vec)
 
         # k vals

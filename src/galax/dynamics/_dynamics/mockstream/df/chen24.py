@@ -12,7 +12,6 @@ import jax.random as jr
 from jaxtyping import PRNGKeyArray
 
 import coordinax as cx
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 
 import galax.potential as gp
@@ -73,7 +72,7 @@ class ChenStreamDF(AbstractStreamDF):
         # Random number generation
 
         # x_new-hat
-        r = xp.linalg.vector_norm(x, axis=-1, keepdims=True)
+        r = jnp.linalg.vector_norm(x, axis=-1, keepdims=True)
         x_new_hat = x / r
 
         # z_new-hat
@@ -81,7 +80,7 @@ class ChenStreamDF(AbstractStreamDF):
         z_new_hat = cx.normalize_vector(L_vec)
 
         # y_new-hat
-        phi_vec = v - xp.sum(v * x_new_hat, axis=-1, keepdims=True) * x_new_hat
+        phi_vec = v - jnp.sum(v * x_new_hat, axis=-1, keepdims=True) * x_new_hat
         y_new_hat = cx.normalize_vector(phi_vec)
 
         r_tidal = tidal_radius(potential, x, v, prog_mass, t)
@@ -93,7 +92,7 @@ class ChenStreamDF(AbstractStreamDF):
 
         Dr = posvel[:, 0] * r_tidal
 
-        v_esc = xp.sqrt(2 * potential.constants["G"] * prog_mass / Dr)
+        v_esc = jnp.sqrt(2 * potential.constants["G"] * prog_mass / Dr)
         Dv = posvel[:, 3] * v_esc
 
         # convert degrees to radians
@@ -102,10 +101,10 @@ class ChenStreamDF(AbstractStreamDF):
         alpha = posvel[:, 4] * 0.017453292519943295
         beta = posvel[:, 5] * 0.017453292519943295
 
-        ctheta, stheta = xp.cos(theta), xp.sin(theta)
-        cphi, sphi = xp.cos(phi), xp.sin(phi)
-        calpha, salpha = xp.cos(alpha), xp.sin(alpha)
-        cbeta, sbeta = xp.cos(beta), xp.sin(beta)
+        ctheta, stheta = jnp.cos(theta), jnp.sin(theta)
+        cphi, sphi = jnp.cos(phi), jnp.sin(phi)
+        calpha, salpha = jnp.cos(alpha), jnp.sin(alpha)
+        cbeta, sbeta = jnp.cos(beta), jnp.sin(beta)
 
         # Trailing arm
         x_trail = (

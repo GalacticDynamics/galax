@@ -332,7 +332,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         interp = sol.interpolation
         if added_ndim == 1:
             arr, narr = eqx.partition(interp, eqx.is_array)
-            arr = jax.tree_util.tree_map(lambda x: x[None], arr)
+            arr = jax.tree.map(lambda x: x[None], arr)
             interp = eqx.combine(arr, narr)
 
         return DiffraxInterpolant(interp, units=units, added_ndim=added_ndim)

@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 
 import jax.numpy as jnp
 import jax.random as jr
-import jax.tree_util as tu
+import jax.tree as jtu
 import pytest
 from jaxtyping import PRNGKeyArray
 
@@ -98,7 +98,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
 
         # Test that the positions and momenta are finite
         allfinite = lambda x: all(
-            tu.tree_flatten(tu.tree_map(lambda x: jnp.isfinite(x).all(), x))[0]
+            jtu.flatten(jtu.map(lambda x: jnp.isfinite(x).all(), x))[0]
         )
         assert allfinite(mock.q)
         assert allfinite(mock.p)

@@ -7,12 +7,11 @@ from functools import partial
 from typing import Any, final
 
 import equinox as eqx
-import jax.tree_util as jtu
+import jax.tree as jtu
 from jaxtyping import Array, Int, PyTree, Shaped
 from typing_extensions import override
 
 import coordinax as cx
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from dataclassish.converters import Optional
 from unxt import Quantity
@@ -160,8 +159,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
 
 def _concat(values: Iterable[PyTree], time_sorter: Int[Array, "..."]) -> PyTree:
-    return jtu.tree_map(
-        lambda *xs: xp.concat(tuple(jnp.atleast_1d(x) for x in xs), axis=-1)[
+    return jtu.map(
+        lambda *xs: jnp.concat(tuple(jnp.atleast_1d(x) for x in xs), axis=-1)[
             ..., time_sorter
         ],
         *values,
@@ -291,7 +290,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         # Either all the times are `None` or real times
         tisnone = [psp.t is None for psp in self.values()]
         if not any(tisnone):
-            ts = xp.concat([jnp.atleast_1d(w.t) for w in self.values()], axis=0)
+            ts = jnp.concat([jnp.atleast_1d(w.t) for w in self.values()], axis=0)
             self._time_are_none = False
         elif all(tisnone):
             # Makes a `arange` counting up the length of each psp. For sorting,
@@ -302,7 +301,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
             msg = "All times must be None or real times."
             raise ValueError(msg)
 
-        self._time_sorter = xp.argsort(ts)
+        self._time_sorter = jnp.argsort(ts)
 
     @property
     def q(self) -> cx.AbstractPosition3D:
@@ -322,6 +321,6 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         if self._time_are_none:
             return [None] * len(self._time_sorter)
 
-        return xp.concat([jnp.atleast_1d(psp.t) for psp in self.values()], axis=0)[
+        return jnp.concat([jnp.atleast_1d(psp.t) for psp in self.values()], axis=0)[
             self._time_sorter
         ]

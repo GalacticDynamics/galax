@@ -3,7 +3,6 @@
 import jax
 import pytest
 
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 
@@ -18,11 +17,11 @@ class TestBatchedShape:
         ("arr", "expect_ndim", "expect"),
         [
             # ArrayLike
-            (xp.asarray(42), 0, ((), ())),
-            (xp.asarray([1]), 0, ((1,), ())),
-            (xp.asarray([1, 2, 3]), 1, ((), (3,))),
-            (xp.asarray([[1, 2], [3, 4]]), 1, ((2,), (2,))),
-            (xp.asarray([[1, 2], [3, 4]]), 2, ((), (2, 2))),
+            (jnp.asarray(42), 0, ((), ())),
+            (jnp.asarray([1]), 0, ((1,), ())),
+            (jnp.asarray([1, 2, 3]), 1, ((), (3,))),
+            (jnp.asarray([[1, 2], [3, 4]]), 1, ((2,), (2,))),
+            (jnp.asarray([[1, 2], [3, 4]]), 2, ((), (2, 2))),
             # Quantity
             (Quantity(42, "m"), 0, ((), ())),
             (Quantity([1], "m"), 0, ((1,), ())),
@@ -47,13 +46,13 @@ class TestExpandBatchDims:
         ("arr", "ndim", "expect"),
         [
             # ArrayLike
-            (xp.asarray(1), 0, xp.asarray(1)),
-            (xp.asarray([2]), 0, xp.asarray([2])),
-            (xp.asarray([1, 2]), 0, xp.asarray([1, 2])),
-            (xp.asarray(1), 1, xp.asarray([1])),
-            (xp.asarray([2]), 1, xp.asarray([[2]])),
-            (xp.asarray([1, 2]), 1, xp.asarray([[1, 2]])),
-            (xp.asarray(1), 2, xp.asarray([[1]])),
+            (jnp.asarray(1), 0, jnp.asarray(1)),
+            (jnp.asarray([2]), 0, jnp.asarray([2])),
+            (jnp.asarray([1, 2]), 0, jnp.asarray([1, 2])),
+            (jnp.asarray(1), 1, jnp.asarray([1])),
+            (jnp.asarray([2]), 1, jnp.asarray([[2]])),
+            (jnp.asarray([1, 2]), 1, jnp.asarray([[1, 2]])),
+            (jnp.asarray(1), 2, jnp.asarray([[1]])),
             # Quantity
             (Quantity(1, "m"), 0, Quantity(1, "m")),
             (Quantity([2], "m"), 0, Quantity([2], "m")),
@@ -80,13 +79,13 @@ class TestExpandArrDims:
         ("arr", "ndim", "expect"),
         [
             # ArrayLike
-            (xp.asarray(1), 0, xp.asarray(1)),
-            (xp.asarray([2]), 0, xp.asarray([2])),
-            (xp.asarray([1, 2]), 0, xp.asarray([1, 2])),
-            (xp.asarray(1), 1, xp.asarray([1])),
-            (xp.asarray([2]), 1, xp.asarray([[2]])),
-            (xp.asarray([1, 2]), 1, xp.asarray([[1], [2]])),
-            (xp.asarray(1), 2, xp.asarray([[1]])),
+            (jnp.asarray(1), 0, jnp.asarray(1)),
+            (jnp.asarray([2]), 0, jnp.asarray([2])),
+            (jnp.asarray([1, 2]), 0, jnp.asarray([1, 2])),
+            (jnp.asarray(1), 1, jnp.asarray([1])),
+            (jnp.asarray([2]), 1, jnp.asarray([[2]])),
+            (jnp.asarray([1, 2]), 1, jnp.asarray([[1], [2]])),
+            (jnp.asarray(1), 2, jnp.asarray([[1]])),
             # Quantity
             (Quantity(1, "m"), 0, Quantity(1, "m")),
             (Quantity([2], "m"), 0, Quantity([2], "m")),

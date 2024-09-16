@@ -4,11 +4,10 @@ __all__: list[str] = []
 
 from typing import Literal, TypeAlias, overload
 
-import jax.numpy as jnp
 from jaxtyping import Array, Shaped
 
 import coordinax as cx
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 
 import galax.typing as gt
 from galax.utils._jax import quaxify
@@ -70,39 +69,39 @@ def batched_shape(
     --------
     Standard imports:
 
-        >>> import quaxed.array_api as xp
+        >>> import quaxed.numpy as jnp
         >>> from galax.utils._shape import batched_shape
 
     Expecting a scalar:
 
         >>> batched_shape(0, expect_ndim=0)
         ((), ())
-        >>> batched_shape(xp.asarray([1]), expect_ndim=0)
+        >>> batched_shape(jnp.asarray([1]), expect_ndim=0)
         ((1,), ())
-        >>> batched_shape(xp.asarray([1, 2, 3]), expect_ndim=0)
+        >>> batched_shape(jnp.asarray([1, 2, 3]), expect_ndim=0)
         ((3,), ())
 
     Expecting a 1D vector:
 
-        >>> batched_shape(xp.asarray(0), expect_ndim=1)
+        >>> batched_shape(jnp.asarray(0), expect_ndim=1)
         ((), ())
-        >>> batched_shape(xp.asarray([1]), expect_ndim=1)
+        >>> batched_shape(jnp.asarray([1]), expect_ndim=1)
         ((), (1,))
-        >>> batched_shape(xp.asarray([1, 2, 3]), expect_ndim=1)
+        >>> batched_shape(jnp.asarray([1, 2, 3]), expect_ndim=1)
         ((), (3,))
-        >>> batched_shape(xp.asarray([[1, 2, 3]]), expect_ndim=1)
+        >>> batched_shape(jnp.asarray([[1, 2, 3]]), expect_ndim=1)
         ((1,), (3,))
 
     Expecting a 2D matrix:
 
-        >>> batched_shape(xp.asarray([[1]]), expect_ndim=2)
+        >>> batched_shape(jnp.asarray([[1]]), expect_ndim=2)
         ((), (1, 1))
-        >>> batched_shape(xp.asarray([[[1]]]), expect_ndim=2)
+        >>> batched_shape(jnp.asarray([[[1]]]), expect_ndim=2)
         ((1,), (1, 1))
-        >>> batched_shape(xp.asarray([[[1]], [[1]]]), expect_ndim=2)
+        >>> batched_shape(jnp.asarray([[[1]], [[1]]]), expect_ndim=2)
         ((2,), (1, 1))
     """
-    shape: gt.Shape = xp.asarray(arr).shape
+    shape: gt.Shape = jnp.asarray(arr).shape
     ndim = len(shape)
     return shape[: ndim - expect_ndim], shape[ndim - expect_ndim :]
 

@@ -48,15 +48,15 @@ class PotentialFrame(AbstractPotentialBase):
     The triaxiality can be seen in the potential energy of the three positions:
 
     >>> pot.potential(w1)
-    Quantity['specific energy'](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = Quantity([0, 1, 0], "kpc")
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = Quantity([0, 0, 1], "kpc")
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     Let's apply a spatial translation to the potential:
 
@@ -77,13 +77,13 @@ class PotentialFrame(AbstractPotentialBase):
     translated by 3 kpc in the x-direction:
 
     >>> framedpot1.potential(w1)
-    Quantity['specific energy'](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     This is the same as evaluating the untranslated potential at [-2, 0, 0] kpc:
 
     >>> q = Quantity([-2, 0, 0], "kpc")
     >>> pot.potential(q, Quantity(0, "Gyr"))
-    Quantity['specific energy'](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     We can also apply a time translation to the potential:
 
@@ -97,7 +97,7 @@ class PotentialFrame(AbstractPotentialBase):
     been evaluating the potential at ``w1.t=t=0``:
 
     >>> framedpot2.potential(w1)
-    Quantity['specific energy'](Array(-2.24851747, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-2.24851747, dtype=float64), unit='kpc2 / Myr2')
 
     But if we evaluate the potential at a different time, the potential energy
     will be different:
@@ -105,7 +105,7 @@ class PotentialFrame(AbstractPotentialBase):
     >>> from dataclasses import replace
     >>> w2 = replace(w1, t=Quantity(10, "Myr"))
     >>> framedpot2.potential(w2)
-    Quantity['specific energy'](Array(-2.25076672, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-2.25076672, dtype=float64), unit='kpc2 / Myr2')
 
     Now let's boost the potential by 200 km/s in the y-direction:
 
@@ -115,26 +115,26 @@ class PotentialFrame(AbstractPotentialBase):
 
     >>> framedpot3 = gp.PotentialFrame(original_potential=pot, operator=op3)
     >>> framedpot3.potential(w2)
-    Quantity['specific energy'](Array(-1.37421204, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.37421204, dtype=float64), unit='kpc2 / Myr2')
 
     Alternatively we can rotate the potential by 90 degrees about the y-axis:
 
-    >>> import quaxed.array_api as xp
+    >>> import quaxed.numpy as jnp
     >>> theta = Quantity(90, "deg")
-    >>> Ry = xp.asarray([[xp.cos(theta),  0, xp.sin(theta)],
+    >>> Ry = jnp.asarray([[jnp.cos(theta),  0, jnp.sin(theta)],
     ...                  [0,              1, 0            ],
-    ...                  [-xp.sin(theta), 0, xp.cos(theta)]])
+    ...                  [-jnp.sin(theta), 0, jnp.cos(theta)]])
     >>> op4 = cxo.GalileanRotationOperator(Ry)
     >>> op4
     GalileanRotationOperator(rotation=f64[3,3])
 
     >>> framedpot4 = gp.PotentialFrame(original_potential=pot, operator=op4)
     >>> framedpot4.potential(w1)
-    Quantity['specific energy'](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = Quantity([0, 0, 1], "kpc")
     >>> framedpot4.potential(q, t)
-    Quantity['specific energy'](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
     If you look all the way back to the first examples, you will see that the
     potential energy at [1, 0, 0] and [0, 0, 1] have swapped, as expected for a
@@ -154,7 +154,7 @@ class PotentialFrame(AbstractPotentialBase):
 
     >>> framedpot5 = gp.PotentialFrame(original_potential=pot, operator=op5)
     >>> framedpot5.potential(w2)
-    Quantity['specific energy'](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
     The second way is to create a custom sequence of operators. In this case we
     will make a sequence that mimics the previous example:
@@ -162,7 +162,7 @@ class PotentialFrame(AbstractPotentialBase):
     >>> op6 = op4 | op2 | op3
     >>> framedpot6 = gp.PotentialFrame(original_potential=pot, operator=op6)
     >>> framedpot6.potential(w2)
-    Quantity['specific energy'](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
     We've seen that the potential can be time-dependent, but so far the
     operators have been Galilean. Let's fix the time-dependent mass of the

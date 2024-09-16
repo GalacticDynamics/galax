@@ -75,7 +75,7 @@ def potential(
     ...                           t=Quantity(0, "Gyr"))
 
     >>> pot.potential(w)
-    Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     We can also compute the potential energy at multiple positions and times:
 
@@ -83,7 +83,7 @@ def potential(
     ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
     ...                           t=Quantity([0, 1], "Gyr"))
     >>> pot.potential(w)
-    Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
     Instead of passing a
     :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
@@ -91,8 +91,8 @@ def potential(
 
     >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
     >>> pot.potential(w)
-    Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
-    """  # noqa: E501
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+    """
     q = parse_to_quantity(pspt.q, units=pot.units)
     return pot._potential(q, pspt.t)  # noqa: SLF001
 
@@ -129,13 +129,13 @@ def potential(
     >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     We can also compute the potential energy at multiple positions:
 
     >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
     Instead of passing a :class:`~coordinax.AbstractPosition3D` (in this case a
     :class:`~coordinax.CartesianPosition3D`), we can instead pass a
@@ -143,7 +143,7 @@ def potential(
 
     >>> q = Quantity([1., 2, 3], "kpc")
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is an `~jax.Array`), it is assumed to be in the same unit system as the
@@ -152,7 +152,7 @@ def potential(
     >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
     - - -
 
@@ -178,13 +178,13 @@ def potential(
     >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     We can also compute the potential energy at multiple positions:
 
     >>> q = c.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit=u.kpc)
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array([-0.55372734, -0.46647294], dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array([-0.55372734, -0.46647294], dtype=float64), unit='kpc2 / Myr2')
 
     Instead of passing a :class:`astropy.coordinates.CartesianRepresentation`,
     we can instead pass a :class:`astropy.units.Quantity`, which is interpreted
@@ -192,7 +192,7 @@ def potential(
 
     >>> q = u.Quantity([1, 2, 3], "kpc")
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     Again, this can be batched.  Also, If the input position object has no units
     (i.e. is an `~numpy.ndarray`), it is assumed to be in the same unit system
@@ -200,11 +200,11 @@ def potential(
 
     >>> q = np.array([[1, 2, 3], [4, 5, 6]])
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
     .. skip: end
 
-    """  # noqa: E501
+    """
     q = parse_to_quantity(q, unit=pot.units["length"])
     t = Quantity.constructor(t, pot.units["time"])
     return pot._potential(q, t)  # noqa: SLF001
@@ -231,7 +231,7 @@ def potential(
     >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
     >>> pot.potential(q, t=t)
-    Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     - - -
 
@@ -249,7 +249,7 @@ def potential(
     >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t=t)
-    Quantity['specific energy'](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     .. skip: end
     """
@@ -1564,7 +1564,7 @@ def d2potential_dr2(
     ...                       units="galactic")
     >>> q = Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
     >>> d2potential_dr2(pot, q, Quantity(0.0, "Myr"))
-    Quantity['1'](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
+    Quantity[...](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
 
     """
     rhat = cx.normalize_vector(x)

@@ -12,7 +12,7 @@ import equinox as eqx
 import jax
 from plum import dispatch
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 from xmmutablemap import ImmutableMap
 from zeroth import zeroth
@@ -68,8 +68,8 @@ class AbstractCompositePotential(
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
-        return xp.sum(
-            xp.asarray(
+        return jnp.sum(
+            jnp.asarray(
                 [p._potential(q, t) for p in self.values()]  # noqa: SLF001
             ),
             axis=0,

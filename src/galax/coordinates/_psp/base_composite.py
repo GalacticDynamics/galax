@@ -55,13 +55,13 @@ class AbstractCompositePhaseSpacePosition(
     `galax.coordinates.CompositePhaseSpacePosition`.
 
     >>> from dataclasses import replace
-    >>> import quaxed.array_api as xp
+    >>> import quaxed.numpy as jnp
     >>> from unxt import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
     >>> def stack(vs: list[cx.AbstractPosition]) -> cx.AbstractPosition:
-    ...    comps = {k: xp.stack([getattr(v, k) for v in vs], axis=-1)
+    ...    comps = {k: jnp.stack([getattr(v, k) for v in vs], axis=-1)
     ...             for k in vs[0].components}
     ...    return replace(vs[0], **comps)
 

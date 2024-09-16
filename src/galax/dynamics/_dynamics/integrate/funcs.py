@@ -9,7 +9,6 @@ import jax
 from jax.numpy import vectorize as jax_vectorize
 from plum import dispatch
 
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 
@@ -99,7 +98,7 @@ def evaluate_orbit(
     We start by integrating a single orbit in the potential of a point mass.  A
     few standard imports are needed:
 
-    >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
+    >>> import quaxed.numpy as jnp
     >>> from unxt import Quantity
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
@@ -115,7 +114,7 @@ def evaluate_orbit(
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
     ...                            p=Quantity([0., 0.1, 0.], "km/s"),
     ...                            t=Quantity(-100, "Myr"))
-    >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
+    >>> ts = jnp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -131,7 +130,7 @@ def evaluate_orbit(
     defined at `t=-100`, but the orbit is integrated from `t=0` to `t=1000`.
     Changing the number of times is easy:
 
-    >>> ts = xp.linspace(0., 1000, 10)  # (1 Gyr, 10 steps)
+    >>> ts = jnp.linspace(0., 1000, 10)  # (1 Gyr, 10 steps)
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -166,7 +165,7 @@ def evaluate_orbit(
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
     ...                            p=Quantity([0., 0.1, 0.], "km/s"),
     ...                            t=Quantity(0, "Myr"))
-    >>> ts = xp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
+    >>> ts = jnp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
     Array([ 9.779, -0.3102,  0.        ], dtype=float64)
@@ -220,7 +219,7 @@ def evaluate_orbit(
             pot._dynamics_deriv,  # noqa: SLF001
             psp0,  # w0
             psp0t,  # t0
-            xp.full_like(psp0t, t[0]),  # t1
+            jnp.full_like(psp0t, t[0]),  # t1
             units=units,
         ).w(units=units),
     )
@@ -265,7 +264,7 @@ def evaluate_orbit(
     --------
     First some imports:
 
-    >>> import quaxed.array_api as xp  # preferred over `jax.numpy`
+    >>> import quaxed.numpy as jnp
     >>> from unxt import Quantity
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
@@ -281,7 +280,7 @@ def evaluate_orbit(
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
     ...                            p=Quantity([0., 0.1, 0.], "km/s"),
     ...                            t=Quantity(-100, "Myr"))
-    >>> ts = xp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
+    >>> ts = jnp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
     >>> orbit = gd.evaluate_orbit(potential, w0, t=ts)
     >>> orbit
     Orbit(

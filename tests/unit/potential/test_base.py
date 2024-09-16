@@ -9,7 +9,6 @@ import jax
 import pytest
 from plum import convert
 
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity
 from unxt.unitsystems import galactic
@@ -136,7 +135,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
 
     def test_call(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.__call__` method."""
-        assert xp.equal(pot(x, 0), pot.potential(x, 0))
+        assert jnp.equal(pot(x, 0), pot.potential(x, 0))
 
     @abstractmethod
     def test_gradient(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
@@ -171,7 +170,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
 
     def test_evaluate_orbit(self, pot: gp.AbstractPotentialBase, xv: gt.Vec6) -> None:
         """Test the `AbstractPotentialBase.evaluate_orbit` method."""
-        ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
+        ts = Quantity(jnp.linspace(0.0, 1.0, 100), "Myr")
 
         orbit = pot.evaluate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
@@ -182,7 +181,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
         self, pot: gp.AbstractPotentialBase, xv: gt.Vec6
     ) -> None:
         """Test the `AbstractPotentialBase.evaluate_orbit` method."""
-        ts = Quantity(xp.linspace(0.0, 1.0, 100), "Myr")
+        ts = Quantity(jnp.linspace(0.0, 1.0, 100), "Myr")
 
         # Simple batch
         orbits = pot.evaluate_orbit(xv[None, :], ts)
@@ -191,7 +190,7 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
         assert jnp.allclose(orbits.t, ts, atol=Quantity(1e-16, "Myr"))
 
         # More complicated batch
-        xv2 = xp.stack([xv, xv], axis=0)
+        xv2 = jnp.stack([xv, xv], axis=0)
         orbits = pot.evaluate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts))
@@ -275,7 +274,7 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
     def test_hessian(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.hessian` method."""
         expected = Quantity(
-            xp.asarray(
+            jnp.asarray(
                 [
                     [-0.06747463, 0.03680435, 0.05520652],
                     [0.03680435, -0.01226812, 0.11041304],

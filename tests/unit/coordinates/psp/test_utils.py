@@ -3,11 +3,10 @@
 import re
 from typing import ClassVar
 
-import jax.numpy as jnp
 import pytest
 from jaxtyping import Array, Float
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 from galax.coordinates._psp.utils import (
@@ -165,11 +164,11 @@ class Test_getitem_vec1time_index:
         """Test shaped index on 1D array."""
         # 1D shaped index
         index = jnp.array([True, False, True])
-        assert self.get_index(index, t3) == xp.asarray([True])
+        assert self.get_index(index, t3) == jnp.asarray([True])
 
         # 2D shaped index
         index = jnp.array([[True, False, True], [False, True, False]])
-        assert self.get_index(index, t3) == xp.asarray([True])
+        assert self.get_index(index, t3) == jnp.asarray([True])
 
     def test_shaped_nd(self, t2x3: QVec2x3) -> None:
         """Test shaped index on N-dimensional array."""

@@ -6,7 +6,7 @@ from typing import Protocol, runtime_checkable
 
 import equinox as eqx
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.typing as gt
@@ -47,4 +47,4 @@ class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
         t : TimeBatchScalar
             The times at which to evaluate the progenitor mass.
         """
-        return xp.ones(t.shape) * self.m_tot
+        return jnp.ones(t.shape) * self.m_tot

@@ -11,7 +11,6 @@ from jaxtyping import Array, ArrayLike, Shaped
 from plum import dispatch
 from typing_extensions import Doc
 
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 
@@ -191,7 +190,7 @@ def parse_time_spec(
 ) -> Shaped[Quantity["time"], "{n_steps}"]:
     """Return a time array from the initial and final times and number of steps."""
     unit = unitsystem(units)["time"] if units is not None else None
-    return Quantity.constructor(xp.linspace(t0, t1, n_steps), unit)
+    return Quantity.constructor(jnp.linspace(t0, t1, n_steps), unit)
 
 
 @dispatch
@@ -220,7 +219,7 @@ def parse_time_spec(
 ) -> Quantity["time"]:
     """Return a time array from the initial and final times and the time step."""
     unit = unitsystem(units)["time"] if units is not None else None
-    return Quantity.constructor(xp.arange(t0, t1, dt), unit)
+    return Quantity.constructor(jnp.arange(t0, t1, dt), unit)
 
 
 @dispatch
@@ -237,7 +236,7 @@ def parse_time_spec(
     unit = unitsystem(units)["time"] if units is not None else None
     t0 = Quantity.constructor(t0, unit)
     dt = Quantity.constructor(dt, unit)
-    return xp.concat((t0[None], jnp.cumsum(t0 + dt)))
+    return jnp.concat((t0[None], jnp.cumsum(t0 + dt)))
 
 
 @dispatch
@@ -251,4 +250,4 @@ def parse_time_spec(
     /,
 ) -> Quantity["time"]:
     """Return a time array from the initial time and a Sequence of time steps."""
-    return parse_time_spec(units, t, t0, xp.asarray(dt), n_steps, t1)
+    return parse_time_spec(units, t, t0, jnp.asarray(dt), n_steps, t1)

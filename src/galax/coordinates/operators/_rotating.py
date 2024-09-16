@@ -10,7 +10,6 @@ from jaxtyping import Float, Shaped
 from plum import convert
 
 import coordinax as cx
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from coordinax._coordinax.operators.base import op_call_dispatch
 from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
@@ -18,7 +17,7 @@ from unxt import Quantity
 
 from galax.coordinates._psp.base_psp import AbstractPhaseSpacePosition
 
-vec_matmul = jnp.vectorize(xp.matmul, signature="(3,3),(3)->(3)")
+vec_matmul = jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)")
 
 
 def rot_z(
@@ -36,10 +35,10 @@ def rot_z(
     tuple[Quantity[float, "angle"], Quantity[float, "angle"]]
         The sine and cosine of the angle.
     """
-    return xp.asarray(
+    return jnp.asarray(
         [
-            [xp.cos(theta), -xp.sin(theta), 0],
-            [xp.sin(theta), xp.cos(theta), 0.0],
+            [jnp.cos(theta), -jnp.sin(theta), 0],
+            [jnp.sin(theta), jnp.cos(theta), 0.0],
             [0.0, 0.0, 1.0],
         ]
     )

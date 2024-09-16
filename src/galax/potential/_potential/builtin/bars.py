@@ -12,7 +12,7 @@ from typing import final
 import equinox as eqx
 import jax
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 from xmmutablemap import ImmutableMap
 
@@ -53,31 +53,31 @@ class BarPotential(AbstractPotential):
     def _potential(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.SpecificEnergyScalar:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
-        rotation_matrix = xp.asarray(
+        rotation_matrix = jnp.asarray(
             [
-                [xp.cos(ang), -xp.sin(ang), 0],
-                [xp.sin(ang), xp.cos(ang), 0.0],
+                [jnp.cos(ang), -jnp.sin(ang), 0],
+                [jnp.sin(ang), jnp.cos(ang), 0.0],
                 [0.0, 0.0, 1.0],
             ],
         )
-        q_corot = xp.matmul(rotation_matrix, q)
+        q_corot = jnp.matmul(rotation_matrix, q)
 
         a = self.a(t)
         b = self.b(t)
         c = self.c(t)
-        T_plus = xp.sqrt(
+        T_plus = jnp.sqrt(
             (a + q_corot[0]) ** 2
             + q_corot[1] ** 2
-            + (b + xp.sqrt(c**2 + q_corot[2] ** 2)) ** 2
+            + (b + jnp.sqrt(c**2 + q_corot[2] ** 2)) ** 2
         )
-        T_minus = xp.sqrt(
+        T_minus = jnp.sqrt(
             (a - q_corot[0]) ** 2
             + q_corot[1] ** 2
-            + (b + xp.sqrt(c**2 + q_corot[2] ** 2)) ** 2
+            + (b + jnp.sqrt(c**2 + q_corot[2] ** 2)) ** 2
         )
 
         # potential in a corotating frame
-        return (self.constants["G"] * self.m_tot(t) / (2.0 * a)) * xp.log(
+        return (self.constants["G"] * self.m_tot(t) / (2.0 * a)) * jnp.log(
             (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus),
         )
 
@@ -112,14 +112,14 @@ class LongMuraliBarPotential(AbstractPotential):
         a, b, c = self.a(t), self.b(t), self.c(t)
         alpha = self.alpha(t)
 
-        x = q[..., 0] * xp.cos(alpha) + q[..., 1] * xp.sin(alpha)
-        y = -q[..., 0] * xp.sin(alpha) + q[..., 1] * xp.cos(alpha)
+        x = q[..., 0] * jnp.cos(alpha) + q[..., 1] * jnp.sin(alpha)
+        y = -q[..., 0] * jnp.sin(alpha) + q[..., 1] * jnp.cos(alpha)
         z = q[..., 2]
 
-        _temp = y**2 + (b + xp.sqrt(c**2 + z**2)) ** 2
-        Tm = xp.sqrt((a - x) ** 2 + _temp)
-        Tp = xp.sqrt((a + x) ** 2 + _temp)
+        _temp = y**2 + (b + jnp.sqrt(c**2 + z**2)) ** 2
+        Tm = jnp.sqrt((a - x) ** 2 + _temp)
+        Tp = jnp.sqrt((a + x) ** 2 + _temp)
 
         return (
-            self.constants["G"] * m_tot / (2 * a) * xp.log((x - a + Tm) / (x + a + Tp))
+            self.constants["G"] * m_tot / (2 * a) * jnp.log((x - a + Tm) / (x + a + Tp))
         )

@@ -19,11 +19,10 @@ from typing import (
 import diffrax
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 from diffrax import DenseInterpolation, Solution
 from plum import dispatch
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
 from xmmutablemap import ImmutableMap
 
@@ -199,7 +198,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     --------
     First some imports:
 
-    >>> import quaxed.array_api as xp
+    >>> import quaxed.numpy as jnp
     >>> from unxt import Quantity
     >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
@@ -235,7 +234,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     Instead of just returning the final position, we can get the state of
     the system at any times ``saveat``:
 
-    >>> ts = Quantity(xp.linspace(0, 1, 10), "Gyr")  # 10 steps
+    >>> ts = Quantity(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
     >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1,
     ...                 saveat=ts, units=galactic)
     >>> ws
@@ -269,7 +268,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     The interpolated solution can be evaluated at any time in the domain to get
     the phase-space position at that time:
 
-    >>> t = Quantity(xp.e, "Gyr")
+    >>> t = Quantity(jnp.e, "Gyr")
     >>> w(t)
     PhaseSpacePosition(
         q=CartesianPosition3D( ... ),
@@ -279,7 +278,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     The interpolant is vectorized:
 
-    >>> t = Quantity(xp.linspace(0, 1, 100), "Gyr")
+    >>> t = Quantity(jnp.linspace(0, 1, 100), "Gyr")
     >>> w(t)
     PhaseSpacePosition(
         q=CartesianPosition3D( ... ),
@@ -388,7 +387,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         First some imports:
 
-        >>> import quaxed.array_api as xp
+        >>> import quaxed.numpy as jnp
         >>> from unxt import Quantity
         >>> from unxt.unitsystems import galactic
         >>> import galax.coordinates as gc
@@ -397,7 +396,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         Then we define initial conditions:
 
-        >>> w0 = xp.concat((Quantity([10.0, 0, 0], "kpc").decompose(galactic).value,
+        >>> w0 = jnp.concat((Quantity([10.0, 0, 0], "kpc").decompose(galactic).value,
         ...                 Quantity([0, 200.0, 0], "km/s").decompose(galactic).value))
 
         (Note that the ``t`` attribute is not used.)
@@ -423,7 +422,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         We can also request the orbit at specific times:
 
-        >>> ts = Quantity(xp.linspace(0, 1, 10), "Myr")  # 10 steps
+        >>> ts = Quantity(jnp.linspace(0, 1, 10), "Myr")  # 10 steps
         >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1,
         ...                 saveat=ts, units=galactic)
         >>> ws
@@ -455,7 +454,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Either save at `saveat` or at the final time. The final time is
         # a scalar and the saveat is a vector, so a dimension is added.
         ts = Quantity.constructor(
-            xp.asarray([t1_]) if saveat is None else saveat, time
+            jnp.asarray([t1_]) if saveat is None else saveat, time
         ).value
 
         diffeq_kw = dict(self.diffeq_kw)
@@ -538,7 +537,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         First some imports:
 
-        >>> import quaxed.array_api as xp
+        >>> import quaxed.numpy as jnp
         >>> from unxt import Quantity
         >>> from unxt.unitsystems import galactic
         >>> import galax.coordinates as gc
@@ -602,7 +601,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         First some imports:
 
-        >>> import quaxed.array_api as xp
+        >>> import quaxed.numpy as jnp
         >>> from unxt import Quantity
         >>> from unxt.unitsystems import galactic
         >>> import galax.coordinates as gc

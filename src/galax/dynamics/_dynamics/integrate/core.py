@@ -510,7 +510,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         )
 
     @dispatch
-    @partial(jax.jit, **_call_jit_kw)
     def __call__(
         self: "Integrator",
         F: VectorField,
@@ -568,7 +567,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         )
 
     @dispatch
-    @partial(jax.jit, **_call_jit_kw)
     def __call__(
         self: "Integrator",
         F: VectorField,

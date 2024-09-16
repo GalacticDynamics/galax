@@ -8,11 +8,10 @@ from typing import TypeAlias, cast, final
 
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 from jax.lib.xla_bridge import get_backend
 from jaxtyping import PRNGKeyArray
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity
 
 import galax.coordinates as gc
@@ -98,7 +97,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
                 Index of the current point.
             """
             i, w0_l_i, w0_t_i = carry
-            tstep = xp.asarray([ts[i], t_f])
+            tstep = jnp.asarray([ts[i], t_f])
 
             def integ_ics(ics: gt.Vec6) -> gt.VecN:
                 # TODO: only return the final state
@@ -107,14 +106,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
                 ).w(units=self.units)[-1]
 
             # vmap integration over leading and trailing arm
-            w0_lt_i = jnp.vstack([w0_l_i, w0_t_i])  # TODO: xp.stack
+            w0_lt_i = jnp.vstack([w0_l_i, w0_t_i])
             w_l, w_t = jax.vmap(integ_ics, in_axes=(0,))(w0_lt_i)
             # Prepare for next iteration
             carry_out = (i + 1, w0_lead[i + 1, :], w0_trail[i + 1, :])
             return carry_out, (w_l, w_t)
 
         carry_init = (0, w0_lead[0, :], w0_trail[0, :])
-        pt_ids = xp.arange(len(w0_lead))
+        pt_ids = jnp.arange(len(w0_lead))
         lead_arm_w, trail_arm_w = jax.lax.scan(one_pt_intg, carry_init, pt_ids)[1]
 
         return lead_arm_w, trail_arm_w
@@ -238,7 +237,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         else:
             lead_arm_w, trail_arm_w = self._run_scan(ts, mock0["lead"], mock0["trail"])
 
-        t = xp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
+        t = jnp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
 
         comps = {}
         comps["lead"] = MockStreamArm(

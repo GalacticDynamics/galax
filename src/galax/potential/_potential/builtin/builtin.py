@@ -416,7 +416,7 @@ class NullPotential(AbstractPotential):
     >>> q = Quantity([1, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array(0, dtype=int64), unit='kpc2 / Myr2')
+    Quantity[...](Array(0, dtype=int64), unit='kpc2 / Myr2')
 
     """
 
@@ -684,7 +684,7 @@ class TriaxialHernquistPotential(AbstractPotential):
     >>> q = Quantity([1, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity['specific energy'](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
     """
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]

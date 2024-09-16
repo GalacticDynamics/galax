@@ -4,7 +4,6 @@ from dataclasses import replace
 
 from plum import convert
 
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 
@@ -24,7 +23,7 @@ def test_bar_means_of_rotation() -> None:
     )
 
     Omega_z_freq = Quantity(220.0, "1/Myr")
-    Omega_z_angv = xp.multiply(Omega_z_freq, Quantity(1.0, "rad"))
+    Omega_z_angv = jnp.multiply(Omega_z_freq, Quantity(1.0, "rad"))
 
     # Hard-coded means of rotation
     hardpot = replace(base_pot, Omega=Omega_z_freq)

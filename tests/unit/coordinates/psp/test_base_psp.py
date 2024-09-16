@@ -15,7 +15,6 @@ from jaxtyping import Array
 from plum import convert
 
 import coordinax as cx
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import galactic
@@ -131,14 +130,14 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
 
     def test_getitem_boolarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        idx = xp.ones(w.q.shape, dtype=bool)
+        idx = jnp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
         assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx])
 
     def test_getitem_intarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        idx = xp.asarray([0, 2, 1])
+        idx = jnp.asarray([0, 2, 1])
         assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx])
 
     # TODO: further tests for getitem
@@ -194,7 +193,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         """Test method ``kinetic_energy``."""
         ke = w.kinetic_energy()
         assert ke.shape == w.shape  # confirm relation to shape and components
-        assert xp.all(ke >= Quantity(0, "km2/s2"))
+        assert jnp.all(ke >= Quantity(0, "km2/s2"))
         # TODO: more tests
 
     @pytest.mark.parametrize("pot", potentials)
@@ -202,7 +201,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         """Test method ``potential``."""
         pe = w.potential_energy(pot)
         assert pe.shape == w.shape  # confirm relation to shape and components
-        assert xp.all(pe <= Quantity(0, "km2/s2"))
+        assert jnp.all(pe <= Quantity(0, "km2/s2"))
         # definitional
         assert jnp.allclose(pe, pot.potential(w.q, t=0), atol=Quantity(1e-10, pe.unit))
 
@@ -270,15 +269,15 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
                 """
                 batch, comps = self._shape_tuple
                 cart = self.represent_as(cx.CartesianPosition3D)
-                q = xp.broadcast_to(
+                q = jnp.broadcast_to(
                     convert(cart.q, Quantity).decompose(units).value, (*batch, comps.q)
                 )
-                p = xp.broadcast_to(
+                p = jnp.broadcast_to(
                     convert(cart.p, Quantity).decompose(units).value, (*batch, comps.p)
                 )
-                t = xp.broadcast_to(
+                t = jnp.broadcast_to(
                     self.t.decompose(units).value[..., None], (*batch, comps.t)
                 )
-                return xp.concat((t, q, p), axis=-1)
+                return jnp.concat((t, q, p), axis=-1)
 
         return PSP

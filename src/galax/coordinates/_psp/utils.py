@@ -4,7 +4,7 @@ __all__: list[str] = []
 
 from typing import Any, Protocol, cast, runtime_checkable
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 
 import galax.typing as gt
 
@@ -51,7 +51,7 @@ def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: gt.FloatQAnyShape) 
 def _getitem_vec1time_index_shaped(index: HasShape, t: gt.FloatQAnyShape) -> HasShape:
     """Get the time index from a shaped index array."""
     if t.ndim == 1:  # Vec1
-        return cast(HasShape, xp.asarray([True]))
+        return cast(HasShape, jnp.asarray([True]))
     if len(index.shape) >= t.ndim:
         msg = f"Index {index} has too many dimensions for time array of shape {t.shape}"
         raise IndexError(msg)

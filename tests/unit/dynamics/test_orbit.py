@@ -2,12 +2,11 @@
 
 from typing import TypeVar
 
-import jax.numpy as jnp
 import jax.random as jr
 import pytest
 from plum import convert
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
@@ -58,7 +57,7 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
 
     def test_getitem_boolarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        idx = xp.ones(w.q.shape, dtype=bool)
+        idx = jnp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
         with pytest.raises(NotImplementedError):
@@ -66,7 +65,7 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
 
     def test_getitem_intarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        idx = xp.asarray([0, 2, 1])
+        idx = jnp.asarray([0, 2, 1])
         with pytest.raises(NotImplementedError):
             _ = w[idx]
 

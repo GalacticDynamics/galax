@@ -6,12 +6,11 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any, final
 
 import equinox as eqx
-import jax.numpy as jnp
 import jax.tree as jtu
 from jaxtyping import Array, Shaped
 
 import coordinax as cx
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.typing as gt
@@ -99,15 +98,15 @@ class MockStream(AbstractCompositePhaseSpacePosition):
         # TODO: check up on the shapes
 
         # Construct time sorter
-        ts = xp.concat([psp.release_time for psp in self.values()], axis=0)
-        self._time_sorter = xp.argsort(ts)
+        ts = jnp.concat([psp.release_time for psp in self.values()], axis=0)
+        self._time_sorter = jnp.argsort(ts)
 
     @property
     def q(self) -> cx.AbstractPosition3D:
         """Positions."""
         # TODO: get AbstractPosition to work with `stack` directly
         return jtu.map(
-            lambda *x: xp.concat(x, axis=-1)[..., self._time_sorter],
+            lambda *x: jnp.concat(x, axis=-1)[..., self._time_sorter],
             *(x.q for x in self.values()),
         )
 
@@ -116,18 +115,18 @@ class MockStream(AbstractCompositePhaseSpacePosition):
         """Conjugate momenta."""
         # TODO: get AbstractVelocity to work with `stack` directly
         return jtu.map(
-            lambda *x: xp.concat(x, axis=-1)[..., self._time_sorter],
+            lambda *x: jnp.concat(x, axis=-1)[..., self._time_sorter],
             *(x.p for x in self.values()),
         )
 
     @property
     def t(self) -> Shaped[Quantity["time"], "..."]:
         """Times."""
-        return xp.concat([psp.t for psp in self.values()], axis=0)[self._time_sorter]
+        return jnp.concat([psp.t for psp in self.values()], axis=0)[self._time_sorter]
 
     @property
     def release_time(self) -> Shaped[Quantity["time"], "..."]:
         """Release times."""
-        return xp.concat([psp.release_time for psp in self.values()], axis=0)[
+        return jnp.concat([psp.release_time for psp in self.values()], axis=0)[
             self._time_sorter
         ]

@@ -14,7 +14,6 @@ from jaxtyping import Float
 from plum import dispatch
 
 import coordinax as cx
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 import unxt
 from galactic_dynamics_interoperability import (
@@ -220,7 +219,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     ) -> gt.BatchFloatQScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
-        return self._laplacian(q, t) / (4 * xp.pi * self.constants["G"])
+        return self._laplacian(q, t) / (4 * jnp.pi * self.constants["G"])
 
     def density(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any

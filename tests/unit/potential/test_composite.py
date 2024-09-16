@@ -9,7 +9,6 @@ import pytest
 from plum import convert
 from typing_extensions import override
 
-import quaxed.array_api as xp
 import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import dimensionless, galactic, solarsystem, unitsystem
@@ -317,7 +316,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # ==========================================================================
 
     def test_potential(self, pot: CompositePotential, x: Vec3) -> None:
-        expect = Quantity(xp.asarray(-0.6753781), "kpc2 / Myr2")
+        expect = Quantity(jnp.asarray(-0.6753781), "kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
@@ -337,7 +336,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
 
     def test_hessian(self, pot: CompositePotential, x: Vec3) -> None:
         expect = Quantity(
-            xp.asarray(
+            jnp.asarray(
                 [
                     [0.00996317, -0.0025614, -0.00384397],
                     [-0.0025614, 0.00612107, -0.00768793],

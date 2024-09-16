@@ -105,7 +105,7 @@ position near the Sun::
 
     >>> xyz = [-8., 0, 0] * u.kpc
     >>> mw.potential(xyz, t=0).to_units("kpc2 / Myr2")
-    Quantity['specific energy'](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0)
     CartesianAcceleration3D...
 
@@ -116,7 +116,7 @@ re-represented in any equivalent units, so, for example, we could display the
 energy or acceleration in other units::
 
     >>> mw.potential(xyz, t=0).to_units("kpc2/Myr2")
-    Quantity['specific energy'](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
+    Quantity[...](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0)
     CartesianAcceleration3D...
 

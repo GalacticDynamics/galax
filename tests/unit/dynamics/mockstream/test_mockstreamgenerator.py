@@ -2,13 +2,12 @@
 
 from abc import ABCMeta, abstractmethod
 
-import jax.numpy as jnp
 import jax.random as jr
 import jax.tree as jtu
 import pytest
 from jaxtyping import PRNGKeyArray
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.coordinates as gc
@@ -50,7 +49,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     @pytest.fixture
     def t_stripping(self) -> gt.QVecTime:
         """Time vector for stripping."""
-        return Quantity(xp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
+        return Quantity(jnp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
 
     @pytest.fixture
     def prog_w0(self) -> gc.PhaseSpacePosition:
@@ -102,7 +101,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         )
         assert allfinite(mock.q)
         assert allfinite(mock.p)
-        assert xp.isfinite(mock.t).all()
+        assert jnp.isfinite(mock.t).all()
 
 
 class TestFardalMockStreamGenerator(MockStreamGeneratorBase_Test):

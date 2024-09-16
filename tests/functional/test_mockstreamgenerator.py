@@ -9,7 +9,7 @@ import jax.tree_util as jtu
 import pytest
 from jaxtyping import PRNGKeyArray
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import Quantity, unitsystem
 
 import galax.coordinates as gc
@@ -38,7 +38,7 @@ def compute_loss(
     lead_arm_obs = jax.lax.stop_gradient(lead_arm)
     trail_arm_obs = jax.lax.stop_gradient(trail_arm)
     # Compute loss
-    return -xp.sum(
+    return -jnp.sum(
         (lead_arm.w(units=usys) - lead_arm_obs.w(units=usys)) ** 2
         + (trail_arm.w(units=usys) - trail_arm_obs.w(units=usys)) ** 2
     )
@@ -71,7 +71,7 @@ def test_first_deriv() -> None:
         },
     }
 
-    ts = Quantity(xp.linspace(0.0, 4.0, 10_000), "Gyr")
+    ts = Quantity(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
     w0 = gc.PhaseSpacePosition(
         q=Quantity([30.0, 10, 20], "kpc"),
         p=Quantity([10.0, -150, -20], "km / s"),
@@ -84,7 +84,7 @@ def test_first_deriv() -> None:
     first_deriv = compute_derivative(params, rng, ts, w0, M_sat)
 
     # Test
-    return xp.asarray(jtu.tree_flatten(first_deriv)[0])
+    return jnp.asarray(jtu.tree_flatten(first_deriv)[0])
 
 
 @pytest.mark.slow
@@ -103,7 +103,7 @@ def test_second_deriv() -> None:
         },
     }
 
-    ts = Quantity(xp.linspace(0.0, 4.0, 10_000), "Gyr")
+    ts = Quantity(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
     w0 = gc.PhaseSpacePosition(
         q=Quantity([30.0, 10, 20], "kpc"),
         p=Quantity([10.0, -150, -20], "km / s"),
@@ -118,4 +118,4 @@ def test_second_deriv() -> None:
     )
 
     # Test
-    return xp.asarray(jtu.tree_flatten(second_deriv)[0])
+    return jnp.asarray(jtu.tree_flatten(second_deriv)[0])

@@ -6,7 +6,6 @@ from typing import TypeVar
 
 import equinox as eqx
 import gala.potential as gp
-import jax.numpy as jnp
 from astropy.units import Quantity as APYQuantity
 from gala.units import (
     DimensionlessUnitSystem as GalaDimensionlessUnitSystem,
@@ -18,7 +17,7 @@ from plum import convert, dispatch
 
 import coordinax.operators as cxo
 import galactic_dynamics_interoperability as gdio
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from coordinax.operators import IdentityOperator
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
@@ -1429,7 +1428,7 @@ def galax_to_gala(
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     t = Quantity(0.0, pot.units["time"])
-    v_c = convert(xp.sqrt(pot.constants["G"] * pot.m(t) / pot.r_s(t)), APYQuantity)
+    v_c = convert(jnp.sqrt(pot.constants["G"] * pot.m(t) / pot.r_s(t)), APYQuantity)
 
     return gp.LeeSutoTriaxialNFWPotential(
         v_c=v_c,

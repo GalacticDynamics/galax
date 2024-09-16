@@ -15,7 +15,7 @@ from jaxtyping import Shaped
 from plum import convert, dispatch
 
 import coordinax as cx
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from dataclassish import field_items
 from unxt import Quantity, UncheckedQuantity as FastQ, unitsystem
 
@@ -292,11 +292,11 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
         cart = self.represent_as(cx.CartesianPosition3D)
-        q = xp.broadcast_to(convert(cart.q, FastQ).decompose(usys), (*batch, comps.q))
-        p = xp.broadcast_to(  # TODO: convert to FastQ
+        q = jnp.broadcast_to(convert(cart.q, FastQ).decompose(usys), (*batch, comps.q))
+        p = jnp.broadcast_to(  # TODO: convert to FastQ
             convert(cart.p, Quantity).decompose(usys), (*batch, comps.p)
         )
-        return xp.concat((q.value, p.value), axis=-1)
+        return jnp.concat((q.value, p.value), axis=-1)
 
     def wt(self, *, units: Any) -> gt.BatchVec7:
         """Phase-space position as an Array[float, (*batch, 1+Q+P)].
@@ -333,10 +333,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
         cart = self.represent_as(cx.CartesianPosition3D).to_units(usys)
-        q = xp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
-        p = xp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
-        t = xp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
-        return xp.concat((t, q.value, p.value), axis=-1)
+        q = jnp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
+        p = jnp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
+        t = jnp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
+        return jnp.concat((t, q.value, p.value), axis=-1)
 
     def represent_as(
         self,
@@ -473,8 +473,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We can compute the kinetic energy:
 
         >>> w.kinetic_energy()
-        Quantity['specific energy'](Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
-                                    dtype=float64), unit='km2 / s2')
+        Quantity[...](Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
+                            dtype=float64), unit='km2 / s2')
         """
         return 0.5 * self.p.norm(self.q) ** 2
 
@@ -522,7 +522,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> pot = MilkyWayPotential()
         >>> w.potential_energy(pot)
-        Quantity['specific energy'](Array(..., dtype=float64), unit='kpc2 / Myr2')
+        Quantity[...](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """
         return potential.potential(self.q, t=self.t)
 
@@ -571,7 +571,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> pot = MilkyWayPotential()
         >>> w.total_energy(pot)
-        Quantity['specific energy'](Array(..., dtype=float64), unit='km2 / s2')
+        Quantity[...](Array(..., dtype=float64), unit='km2 / s2')
         """
         return self.kinetic_energy() + self.potential_energy(potential)
 
@@ -729,7 +729,7 @@ def add(
         raise TypeError(msg)
 
     # Check the times are the same
-    if not xp.all(self.t == other.t):
+    if not jnp.all(self.t == other.t):
         msg = "Cannot add phase-space positions with different times"
         raise ValueError(msg)
 

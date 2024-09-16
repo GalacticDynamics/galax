@@ -14,7 +14,7 @@ from typing import Any, ClassVar, TypeVar, final
 
 import equinox as eqx
 
-import quaxed.array_api as xp
+import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsystem
 from xmmutablemap import ImmutableMap
@@ -125,7 +125,7 @@ class BovyMWPotential2014(AbstractCompositePotential):
         )
 
 
-_sqrt2 = xp.sqrt(xp.asarray(2.0))
+_sqrt2 = jnp.sqrt(jnp.asarray(2.0))
 
 
 @final

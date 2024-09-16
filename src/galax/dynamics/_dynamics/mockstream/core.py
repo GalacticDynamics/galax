@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, final
 
 import equinox as eqx
 import jax.numpy as jnp
-import jax.tree_util as jtu
+import jax.tree as jtu
 from jaxtyping import Array, Shaped
 
 import coordinax as cx
@@ -106,7 +106,7 @@ class MockStream(AbstractCompositePhaseSpacePosition):
     def q(self) -> cx.AbstractPosition3D:
         """Positions."""
         # TODO: get AbstractPosition to work with `stack` directly
-        return jtu.tree_map(
+        return jtu.map(
             lambda *x: xp.concat(x, axis=-1)[..., self._time_sorter],
             *(x.q for x in self.values()),
         )
@@ -115,7 +115,7 @@ class MockStream(AbstractCompositePhaseSpacePosition):
     def p(self) -> cx.AbstractVelocity3D:
         """Conjugate momenta."""
         # TODO: get AbstractVelocity to work with `stack` directly
-        return jtu.tree_map(
+        return jtu.map(
             lambda *x: xp.concat(x, axis=-1)[..., self._time_sorter],
             *(x.p for x in self.values()),
         )

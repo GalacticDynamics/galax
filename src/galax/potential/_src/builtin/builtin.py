@@ -463,7 +463,7 @@ class NullPotential(AbstractPotential):
         )
 
     @partial(jax.jit, inline=True)
-    def _hessian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> gt.QMatrix33:
+    def _hessian(self, q: gt.QVec3, _: gt.RealQScalar, /) -> gt.QMatrix33:
         """See ``hessian``."""
         return Quantity(  # TODO: better unit handling
             jnp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype), galactic["frequency drift"]

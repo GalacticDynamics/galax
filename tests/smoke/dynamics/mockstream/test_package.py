@@ -1,7 +1,7 @@
 """Testing :mod:`galax.dynamics.mockstream` module."""
 
 from galax.dynamics import mockstream
-from galax.dynamics._dynamics.mockstream import core, df, mockstream_generator
+from galax.dynamics._src.mockstream import core, df, mockstream_generator
 
 
 def test_all() -> None:

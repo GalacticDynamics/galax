@@ -29,15 +29,15 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     from . import integrate, mockstream
-    from ._dynamics.funcs import (
+    from ._src.funcs import (
         lagrange_points,
         specific_angular_momentum,
         tidal_radius,
     )
-    from ._dynamics.integrate.funcs import evaluate_orbit
-    from ._dynamics.mockstream import MockStream, MockStreamArm, MockStreamGenerator
-    from ._dynamics.mockstream.df import AbstractStreamDF, ChenStreamDF, FardalStreamDF
-    from ._dynamics.orbit import Orbit
+    from ._src.integrate.funcs import evaluate_orbit
+    from ._src.mockstream import MockStream, MockStreamArm, MockStreamGenerator
+    from ._src.mockstream.df import AbstractStreamDF, ChenStreamDF, FardalStreamDF
+    from ._src.orbit import Orbit
 
 
 # Cleanup

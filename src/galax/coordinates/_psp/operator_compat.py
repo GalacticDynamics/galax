@@ -9,7 +9,6 @@ from plum import convert
 from quax import quaxify
 
 import coordinax as cx
-from coordinax._coordinax.operators.base import op_call_dispatch
 from coordinax.operators import (
     AbstractCompositeOperator,
     AbstractOperator,
@@ -29,7 +28,7 @@ vec_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
 # Abstract Operators
 
 
-@op_call_dispatch
+@AbstractOperator.__call__.dispatch
 def call(
     self: AbstractOperator,  # noqa: ARG001
     x: AbstractPhaseSpacePosition,  # noqa: ARG001
@@ -87,7 +86,7 @@ def call(
 # Composite operators
 
 
-@op_call_dispatch
+@AbstractOperator.__call__.dispatch
 def call(
     self: AbstractCompositeOperator, x: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
@@ -101,7 +100,7 @@ def call(
 # Galilean spatial translation
 
 
-@op_call_dispatch
+@AbstractOperator.__call__.dispatch
 def call(
     self: GalileanSpatialTranslationOperator, psp: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
@@ -152,7 +151,7 @@ def call(
 # Galilean translation
 
 
-@op_call_dispatch
+@AbstractOperator.__call__.dispatch
 def call(
     self: GalileanTranslationOperator, psp: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
@@ -208,7 +207,7 @@ def call(
 # Galilean boost
 
 
-@op_call_dispatch
+@AbstractOperator.__call__.dispatch
 def call(
     self: GalileanBoostOperator,
     psp: AbstractPhaseSpacePosition,
@@ -257,7 +256,7 @@ def call(
     return replace(psp, q=q, p=p, t=t)
 
 
-@op_call_dispatch
+@AbstractOperator.__call__.dispatch
 def call(
     self: GalileanRotationOperator, psp: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
@@ -312,7 +311,7 @@ def call(
 ######################################################################
 
 
-@op_call_dispatch(precedence=1)
+@AbstractOperator.__call__.dispatch(precedence=1)
 def call(
     self: IdentityOperator,  # noqa: ARG001
     x: AbstractPhaseSpacePosition,

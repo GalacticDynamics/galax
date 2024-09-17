@@ -8,7 +8,7 @@ from typing import TypeAlias, cast, final
 
 import equinox as eqx
 import jax
-from jax.lib.xla_bridge import get_backend
+from jax.extend.backend import get_backend
 from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp

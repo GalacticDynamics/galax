@@ -6,7 +6,6 @@ from dataclasses import replace
 from typing import Any, Literal
 
 import jax
-from jax.numpy import vectorize as jax_vectorize
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -25,7 +24,7 @@ from galax.dynamics._dynamics.orbit import Orbit
 _default_integrator: Integrator = Integrator()
 
 
-_select_w0 = jax_vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
+_select_w0 = jax.numpy.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
 # @partial(jax.jit, static_argnames=("integrator", "interpolated"))

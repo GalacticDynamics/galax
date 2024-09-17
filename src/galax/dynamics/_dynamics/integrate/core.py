@@ -22,15 +22,16 @@ import jax
 from diffrax import DenseInterpolation, Solution
 from plum import dispatch
 
-import quaxed.numpy as jnp
+import quaxed.numpy as xp
 from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
 import galax.typing as gt
 
+P = ParamSpec("P")
+R = TypeVar("R")
 Interp = TypeVar("Interp")
-SaveT: TypeAlias = gt.BatchQVecTime | gt.QVecTime | gt.BatchVecTime | gt.VecTime
 Time: TypeAlias = (
     gt.TimeScalar | gt.TimeBatchableScalar | gt.RealScalar | gt.BatchableRealScalar
 )
@@ -40,6 +41,10 @@ _call_jit_kw = {
     "static_argnames": ("units", "interpolated"),
     "inline": True,
 }
+
+
+# ============================================================================
+# Type hints
 
 
 @runtime_checkable
@@ -67,10 +72,7 @@ class VectorField(Protocol):
 
 
 # ============================================================================
-
-
-P = ParamSpec("P")
-R = TypeVar("R")
+# Interpolant
 
 
 class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
@@ -104,7 +106,7 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
     def __call__(self, t: Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
         # Parse t
-        t_ = jnp.atleast_1d(ustrip(self.units["time"], t))
+        t_ = xp.atleast_1d(ustrip(self.units["time"], t))
 
         # Evaluate the interpolation
         ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)
@@ -119,6 +121,10 @@ class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
             p=Quantity(ys[..., 3:6], self.units["speed"]),
             t=t,
         )
+
+
+# ============================================================================
+# Integration
 
 
 @no_type_check
@@ -147,7 +153,7 @@ def vectorize_diffeq(pyfunc: Callable[P, R]) -> "Callable[P, R]":
         squeezed_args = []
         rev_filled_shapes = []
         for arg, core_dims in zip(args, input_core_dims, strict=True):
-            noncore_shape = jnp.shape(arg)[: jnp.ndim(arg) - len(core_dims)]
+            noncore_shape = xp.shape(arg)[: xp.ndim(arg) - len(core_dims)]
 
             pad_ndim = 1 - len(noncore_shape)
             filled_shape = pad_ndim * (1,) + noncore_shape
@@ -156,7 +162,7 @@ def vectorize_diffeq(pyfunc: Callable[P, R]) -> "Callable[P, R]":
             squeeze_indices = tuple(
                 i for i, size in enumerate(noncore_shape) if size == 1
             )
-            squeezed_arg = jnp.squeeze(arg, axis=squeeze_indices)
+            squeezed_arg = xp.squeeze(arg, axis=squeeze_indices)
             squeezed_args.append(squeezed_arg)
 
         for _, axis_sizes in enumerate(zip(*rev_filled_shapes, strict=True)):
@@ -371,12 +377,12 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         units : `unxt.AbstractUnitSystem`
             The unit system to use.
-        interpolated : bool, keyword-only
+        interpolated : bool
             Whether to return an interpolated solution.
 
         Returns
         -------
-        PhaseSpacePosition[float, (time, 7)]
+        `galax.coordinates.PhaseSpacePosition`[float, (time, 7)]
             The solution of the integrator [q, p, t], where q, p are the
             generalized 3-coordinates.
 
@@ -396,8 +402,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         Then we define initial conditions:
 
-        >>> w0 = jnp.concat((Quantity([10.0, 0, 0], "kpc").decompose(galactic).value,
-        ...                 Quantity([0, 200.0, 0], "km/s").decompose(galactic).value))
+        >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
+        ...                            p=Quantity([0., 200., 0.], "km/s")
+        ...                            ).w(units=galactic)
+        >>> w0.shape
+        (6,)
 
         (Note that the ``t`` attribute is not used.)
 
@@ -449,13 +458,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Parse inputs
 
         time = units["time"]
-        t0_: gt.VecTime = Quantity.constructor(t0, time).value
-        t1_: gt.VecTime = Quantity.constructor(t1, time).value
+        t0_: gt.VecTime = Quantity.constructor(t0, time)
+        t1_: gt.VecTime = Quantity.constructor(t1, time)
         # Either save at `saveat` or at the final time. The final time is
         # a scalar and the saveat is a vector, so a dimension is added.
-        ts = Quantity.constructor(
-            jnp.asarray([t1_]) if saveat is None else saveat, time
-        ).value
+        ts = Quantity.constructor(xp.asarray([t1_]) if saveat is None else saveat, time)
 
         diffeq_kw = dict(self.diffeq_kw)
         if interpolated and diffeq_kw.get("max_steps") is None:
@@ -469,14 +476,14 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         @vectorize_diffeq
         def solve_diffeq(
-            w0: gt.Vec6, t0: gt.FloatScalar, t1: gt.FloatScalar, ts: gt.VecTime
+            y0: gt.Vec6, t0: gt.FloatScalar, t1: gt.FloatScalar, ts: gt.VecTime
         ) -> diffrax.Solution:
             return diffrax.diffeqsolve(
                 terms=terms,
                 solver=solver,
                 t0=t0,
                 t1=t1,
-                y0=w0,
+                y0=y0,
                 dt0=None,
                 args=(),
                 saveat=diffrax.SaveAt(t0=False, t1=False, ts=ts, dense=interpolated),
@@ -484,11 +491,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
                 **diffeq_kw,
             )
 
-        # Perform the integration
-        solution = solve_diffeq(w0, t0_, t1_, jnp.atleast_2d(ts))
+        # Perform the integration (doesn't handle units)
+        solution = solve_diffeq(w0, t0_.value, t1_.value, xp.atleast_2d(ts.value))
 
         # Parse the solution (t, [q, p])
-        w = jnp.concat((solution.ts[..., None], solution.ys), axis=-1)
+        w = xp.concat((solution.ts[..., None], solution.ys), axis=-1)
         w = w[None] if w0.shape[0] == 1 else w  # spatial dimensions
         w = w[..., -1, :] if saveat is None else w  # time dimensions
 
@@ -510,7 +517,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         )
 
     @dispatch
-    @partial(jax.jit, **_call_jit_kw)
     def __call__(
         self: "Integrator",
         F: VectorField,
@@ -537,7 +543,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         First some imports:
 
-        >>> import quaxed.numpy as jnp
+        >>> import quaxed.numpy as xp
         >>> from unxt import Quantity
         >>> from unxt.unitsystems import galactic
         >>> import galax.coordinates as gc
@@ -568,7 +574,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         )
 
     @dispatch
-    @partial(jax.jit, **_call_jit_kw)
     def __call__(
         self: "Integrator",
         F: VectorField,
@@ -601,7 +606,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         First some imports:
 
-        >>> import quaxed.numpy as jnp
+        >>> import quaxed.numpy as xp
         >>> from unxt import Quantity
         >>> from unxt.unitsystems import galactic
         >>> import galax.coordinates as gc

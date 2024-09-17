@@ -22,8 +22,8 @@ from xmmutablemap import ImmutableMap
 from .builtin import HernquistPotential, MiyamotoNagaiPotential, PowerLawCutoffPotential
 from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
-from galax.potential._potential.base import AbstractPotentialBase, default_constants
-from galax.potential._potential.composite import AbstractCompositePotential
+from galax.potential._src.base import AbstractPotentialBase, default_constants
+from galax.potential._src.composite import AbstractCompositePotential
 
 T = TypeVar("T", bound=AbstractPotentialBase)
 

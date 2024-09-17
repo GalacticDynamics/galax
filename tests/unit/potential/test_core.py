@@ -16,7 +16,7 @@ import galax.potential.params as gpp
 import galax.typing as gt
 from .test_base import AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
-from galax.potential._potential.base import default_constants
+from galax.potential._src.base import default_constants
 
 
 class AbstractPotential_Test(AbstractPotentialBase_Test, FieldUnitSystemMixin):

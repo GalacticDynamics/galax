@@ -1,4 +1,4 @@
-"""Test :mod:`galax.potential._potential.param.core`."""
+"""Test :mod:`galax.potential._src.param.core`."""
 
 from dataclasses import replace
 from typing import Any, Generic, TypeVar
@@ -9,7 +9,7 @@ import pytest
 import quaxed.numpy as jnp
 from unxt import Quantity, ustrip
 
-from galax.potential._potential.params.core import ParameterCallable
+from galax.potential._src.params.core import ParameterCallable
 from galax.potential.params import AbstractParameter, ConstantParameter, UserParameter
 from galax.typing import Unit
 

@@ -27,8 +27,8 @@ from xmmutablemap import ImmutableMap
 import galax.typing as gt
 from .plot import PlotDescriptor
 from galax.coordinates import PhaseSpacePosition
-from galax.potential._potential.params.attr import ParametersAttribute
-from galax.potential._potential.params.utils import all_parameters, all_vars
+from galax.potential._src.params.attr import ParametersAttribute
+from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
 
@@ -69,7 +69,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Parsing
 
     def _apply_unitsystem(self) -> None:
-        from galax.potential._potential.params.field import ParameterField
+        from galax.potential._src.params.field import ParameterField
 
         usys = self.units
 

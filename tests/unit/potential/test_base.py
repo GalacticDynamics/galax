@@ -19,7 +19,7 @@ import galax.potential as gp
 import galax.potential.params as gpp
 import galax.typing as gt
 from .io.test_gala import GalaIOMixin
-from galax.potential._potential.base import default_constants
+from galax.potential._src.base import default_constants
 
 
 class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):

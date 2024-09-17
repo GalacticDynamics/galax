@@ -26,7 +26,7 @@ import galax.coordinates as gc
 import galax.typing as gt
 from .base import AbstractPotentialBase
 from .utils import parse_to_quantity
-from galax.potential._potential.base import AbstractPotentialBase
+from galax.potential._src.base import AbstractPotentialBase
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
 HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch

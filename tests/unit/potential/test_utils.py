@@ -1,4 +1,4 @@
-"""Tests for `galax.potential._potential.utils` package."""
+"""Tests for `galax.potential._src.utils` package."""
 
 from dataclasses import replace
 from typing import Any

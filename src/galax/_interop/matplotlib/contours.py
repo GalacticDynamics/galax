@@ -13,8 +13,8 @@ from plum import dispatch
 import quaxed.numpy as jnp
 from unxt import Quantity, uconvert, ustrip
 
-from galax.potential._potential.base import AbstractPotentialBase
-from galax.potential._potential.plot import MatplotlibBackend
+from galax.potential._src.base import AbstractPotentialBase
+from galax.potential._src.plot import MatplotlibBackend
 
 
 def _get_figure(

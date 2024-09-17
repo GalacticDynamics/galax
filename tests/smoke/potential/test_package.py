@@ -1,5 +1,5 @@
 import galax.potential as gp
-from galax.potential._potential import (
+from galax.potential._src import (
     base,
     builtin,
     composite,

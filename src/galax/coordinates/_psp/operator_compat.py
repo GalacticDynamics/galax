@@ -265,14 +265,14 @@ def call(
 
     Examples
     --------
-    >>> import quaxed.numpy as xp
+    >>> import quaxed.numpy as jnp
     >>> from unxt import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
     >>> theta = Quantity(45, "deg")
-    >>> Rz = xp.asarray([[xp.cos(theta), -xp.sin(theta), 0],
-    ...                  [xp.sin(theta), xp.cos(theta),  0],
+    >>> Rz = jnp.asarray([[jnp.cos(theta), -jnp.sin(theta), 0],
+    ...                  [jnp.sin(theta), jnp.cos(theta),  0],
     ...                  [0,             0,              1]])
     >>> op = cx.operators.GalileanRotationOperator(Rz)
 

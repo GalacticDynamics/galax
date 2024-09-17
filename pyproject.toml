@@ -27,7 +27,7 @@ classifiers = [
 dependencies = [
   "astropy >= 6.0",
   "beartype >= 0.18",
-  "coordinax >= 0.9.6",
+  "coordinax >= 0.9.8",
   "dataclassish >= 0.3",
   "diffrax >= 0.5",
   "equinox >=0.11, != 0.11.3",
@@ -38,10 +38,10 @@ dependencies = [
   "jaxtyping >= 0.2.33",
   "optional_dependencies >= 0.3",
   "packaging",  # for optional dependencies
-  "quax >= 0.0.3",
-  "quaxed >= 0.5",
+  "quax >= 0.0.4",
+  "quaxed >= 0.6.2",
   "typing_extensions >= 4.11",
-  "unxt >= 0.16",
+  "unxt >= 0.16.2",
   "xmmutablemap >= 0.1",
   "zeroth >= 0.1",
 ]

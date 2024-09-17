@@ -11,7 +11,6 @@ from plum import convert
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from coordinax._coordinax.operators.base import op_call_dispatch
 from coordinax.operators import AbstractOperator, IdentityOperator, simplify_op
 from unxt import Quantity
 
@@ -175,7 +174,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
 
     # -------------------------------------------
 
-    @op_call_dispatch(precedence=1)
+    @AbstractOperator.__call__.dispatch(precedence=1)
     def __call__(
         self: "ConstantRotationZOperator",
         q: Quantity["length"],
@@ -210,7 +209,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         Rz = rot_z(self.Omega_z * t)
         return (vec_matmul(Rz, q), t)
 
-    @op_call_dispatch(precedence=1)
+    @AbstractOperator.__call__.dispatch(precedence=1)
     def __call__(
         self: "ConstantRotationZOperator",
         vec: cx.AbstractPosition3D,
@@ -248,7 +247,7 @@ class ConstantRotationZOperator(AbstractOperator):  # type: ignore[misc]
         vecp = cx.CartesianPosition3D.constructor(qp).represent_as(type(vec))
         return (vecp, tp)
 
-    @op_call_dispatch
+    @AbstractOperator.__call__.dispatch
     def __call__(
         self: "ConstantRotationZOperator", psp: AbstractPhaseSpacePosition, /
     ) -> AbstractPhaseSpacePosition:

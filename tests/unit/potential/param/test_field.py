@@ -1,4 +1,4 @@
-"""Test :mod:`galax.potential._potential.param.core`."""
+"""Test :mod:`galax.potential._src.param.core`."""
 
 
 class ParameterFieldMixin:

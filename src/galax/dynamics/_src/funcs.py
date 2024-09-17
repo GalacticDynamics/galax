@@ -20,7 +20,7 @@ from unxt import Quantity
 import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
-from galax.potential._potential.funcs import d2potential_dr2
+from galax.potential._src.funcs import d2potential_dr2
 
 # ===================================================================
 # Specific angular momentum

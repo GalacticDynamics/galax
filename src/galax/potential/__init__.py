@@ -65,9 +65,9 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from . import io, params, plot
-    from ._potential.base import AbstractPotentialBase
-    from ._potential.builtin.bars import BarPotential, LongMuraliBarPotential
-    from ._potential.builtin.builtin import (
+    from ._src.base import AbstractPotentialBase
+    from ._src.builtin.bars import BarPotential, LongMuraliBarPotential
+    from ._src.builtin.builtin import (
         BurkertPotential,
         HernquistPotential,
         IsochronePotential,
@@ -82,31 +82,31 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         StoneOstriker15Potential,
         TriaxialHernquistPotential,
     )
-    from ._potential.builtin.logarithmic import (
+    from ._src.builtin.logarithmic import (
         LMJ09LogarithmicPotential,
         LogarithmicPotential,
     )
-    from ._potential.builtin.multipole import (
+    from ._src.builtin.multipole import (
         AbstractMultipolePotential,
         MultipoleInnerPotential,
         MultipoleOuterPotential,
         MultipolePotential,
     )
-    from ._potential.builtin.nfw import (
+    from ._src.builtin.nfw import (
         LeeSutoTriaxialNFWPotential,
         NFWPotential,
         TriaxialNFWPotential,
         Vogelsberger08TriaxialNFWPotential,
     )
-    from ._potential.builtin.special import (
+    from ._src.builtin.special import (
         BovyMWPotential2014,
         LM10Potential,
         MilkyWayPotential,
     )
-    from ._potential.composite import AbstractCompositePotential, CompositePotential
-    from ._potential.core import AbstractPotential
-    from ._potential.frame import PotentialFrame
-    from ._potential.funcs import (
+    from ._src.composite import AbstractCompositePotential, CompositePotential
+    from ._src.core import AbstractPotential
+    from ._src.frame import PotentialFrame
+    from ._src.funcs import (
         acceleration,
         circular_velocity,
         density,

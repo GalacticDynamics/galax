@@ -13,16 +13,16 @@ __all__ = [
 ]
 
 
-from ._potential.params.attr import (
+from ._src.params.attr import (
     AbstractParametersAttribute,
     CompositeParametersAttribute,
     ParametersAttribute,
 )
-from ._potential.params.core import (
+from ._src.params.core import (
     AbstractParameter,
     ConstantParameter,
     LinearParameter,
     ParameterCallable,
     UserParameter,
 )
-from ._potential.params.field import ParameterField
+from ._src.params.field import ParameterField

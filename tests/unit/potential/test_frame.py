@@ -1,4 +1,4 @@
-"""Tests for `galax.potential._potential.frame` package."""
+"""Tests for `galax.potential._src.frame` package."""
 
 from dataclasses import replace
 

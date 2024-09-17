@@ -10,7 +10,7 @@ __all__ = [
 ]
 
 
-from ._potential.plot import (
+from ._src.plot import (
     AbstractPlottingBackend,
     MatplotlibBackend,
     plot_density_contours,

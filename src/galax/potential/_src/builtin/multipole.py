@@ -20,9 +20,9 @@ import quaxed.numpy as jnp
 from unxt import Quantity, ustrip
 
 import galax.typing as gt
-from galax.potential._potential.core import AbstractPotential
-from galax.potential._potential.params.core import AbstractParameter
-from galax.potential._potential.params.field import ParameterField
+from galax.potential._src.core import AbstractPotential
+from galax.potential._src.params.core import AbstractParameter
+from galax.potential._src.params.field import ParameterField
 
 
 class AbstractMultipolePotential(AbstractPotential):

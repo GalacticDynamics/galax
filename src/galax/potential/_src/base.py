@@ -215,7 +215,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
     ) -> gt.BatchFloatQScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))

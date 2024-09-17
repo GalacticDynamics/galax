@@ -74,7 +74,7 @@ class NFWPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r"""Density.
 
@@ -424,7 +424,7 @@ class TriaxialNFWPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
         s2 = jnp.asarray([1])

@@ -85,7 +85,7 @@ class BurkertPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
     ) -> gt.BatchFloatQScalar:
         m, r_s = self.m(t), self.r_s(t)
         r = jnp.linalg.vector_norm(q, axis=-1)
@@ -280,7 +280,7 @@ class KeplerPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
     ) -> gt.BatchFloatQScalar:
         r = jnp.linalg.vector_norm(q, axis=-1)
         m = self.m_tot(t)
@@ -455,7 +455,7 @@ class NullPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BatchQVec3, /, _: gt.BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, _: gt.BatchRealQScalar | gt.RealQScalar, /
     ) -> gt.BatchFloatQScalar:
         """See ``density``."""
         return Quantity(  # TODO: better unit handling

@@ -166,7 +166,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     In all these examples the integrator was used to integrate a single
     position. The integrator can also be used to integrate a batch of initial
     conditions at once, returning a batch of final conditions (or a batch of
-    conditions at the requested times):
+    conditions at the requested times ``saveat``):
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
     ...                            p=Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
@@ -442,18 +442,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Run the integrator.
 
-        Other Parameters
-        ----------------
-        w0 : AbstractPhaseSpacePosition, positional-only
-            Initial conditions ``[q, p]``.
-
         Examples
         --------
-        For this example, we will use the
-        :class:`~galax.integrate.Integrator`
-
-        First some imports:
-
         >>> import quaxed.numpy as xp
         >>> from unxt import Quantity
         >>> from unxt.unitsystems import galactic
@@ -461,13 +451,15 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         >>> import galax.dynamics as gd
         >>> import galax.potential as gp
 
-        Then we define initial conditions:
+        We define initial conditions and a potential:
 
         >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
         ...                            p=Quantity([0., 200., 0.], "km/s"))
 
         >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
         ...                             r_s=Quantity(5, "kpc"), units="galactic")
+
+        We can integrate the phase-space position:
 
         >>> integrator = gd.integrate.Integrator()
         >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
@@ -497,26 +489,10 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         units: AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
     ) -> gc.CompositePhaseSpacePosition:
-        """Run the integrator.
-
-        Other Parameters
-        ----------------
-        w0 : `galax.coordinates.CompositePhaseSpacePosition`, positional-only
-            Composite initial conditions ``[q, p]``.
-
-        Returns
-        -------
-        `galax.coordinates.CompositePhaseSpacePosition`
-            The solution of the integrator for each contained phase-space
-            position.
+        """Run the integrator on a composite phase-space position.
 
         Examples
         --------
-        For this example, we will use the
-        :class:`~galax.integrate.Integrator`
-
-        First some imports:
-
         >>> import quaxed.numpy as xp
         >>> from unxt import Quantity
         >>> from unxt.unitsystems import galactic
@@ -524,7 +500,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         >>> import galax.dynamics as gd
         >>> import galax.potential as gp
 
-        Then we define initial conditions:
+        We define initial conditions and a potential:
 
         >>> w01 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
         ...                             p=Quantity([0., 200., 0.], "km/s"))
@@ -534,6 +510,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
         ...                             r_s=Quantity(5, "kpc"), units="galactic")
+
+        We can integrate the composite phase-space position:
 
         >>> integrator = gd.integrate.Integrator()
         >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")

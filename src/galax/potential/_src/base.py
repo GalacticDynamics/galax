@@ -215,7 +215,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
+        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
     ) -> gt.BatchFloatQScalar:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
@@ -237,7 +237,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.QMatrix33:
+    def _hessian(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.QMatrix33:
         """See ``hessian``."""
         hess_op = unxt.experimental.hessian(
             self._potential, units=(self.units["length"], self.units["time"])

@@ -193,9 +193,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         relative and absolute tolerances of 1e-7.
     diffeq_kw : Mapping[str, Any], optional
         Keyword arguments to pass to :func:`diffrax.diffeqsolve`. Default is
-        ``{"max_steps": None, "discrete_terminating_event": None}``. The
-        ``"max_steps"`` key is removed if ``interpolated=True`` in the
-        :meth`Integrator.__call__` method.
+        ``{"max_steps": None, "event": None}``. The ``"max_steps"`` key is
+        removed if ``interpolated=True`` in the :meth`Integrator.__call__`
+        method.
     solver_kw : Mapping[str, Any], optional
         Keyword arguments to pass to the solver. Default is ``{"scan_kind":
         "bounded"}``.
@@ -218,9 +218,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     (Note that the ``t`` attribute is not used.)
 
-    Now we can integrate the phase-space position for 1 Gyr, getting the
-    final position.  The integrator accepts any function for the equations
-    of motion.  Here we will reproduce what happens with orbit integrations.
+    Now we can integrate the phase-space position for 1 Gyr, getting the final
+    position.  The integrator accepts any function for the equations of motion.
+    Here we will reproduce what happens with orbit integrations.
 
     >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
     ...                             r_s=Quantity(5, "kpc"), units="galactic")
@@ -237,8 +237,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> w.shape
     ()
 
-    Instead of just returning the final position, we can get the state of
-    the system at any times ``saveat``:
+    Instead of just returning the final position, we can get the state of the
+    system at any times ``saveat``:
 
     >>> ts = Quantity(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
     >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1,
@@ -253,9 +253,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     (10,)
 
     In all these examples the integrator was used to integrate a single
-    position. The integrator can also be used to integrate a batch of
-    initial conditions at once, returning a batch of final conditions (or a
-    batch of conditions at the requested times):
+    position. The integrator can also be used to integrate a batch of initial
+    conditions at once, returning a batch of final conditions (or a batch of
+    conditions at the requested times):
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
     ...                            p=Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
@@ -363,12 +363,12 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         Parameters
         ----------
-        F : VectorField, positional-only
+        F : VectorField
             The function to integrate.
-        w0 : Array[float, (6,)], positional-only
+        w0 : Array[float, (6,)]
             Initial conditions ``[q, p]``.
             This is assumed to be in ``units``.
-        t0, t1 : Quantity, positional-only
+        t0, t1 : Quantity["time"]
             Initial and final times.
 
         saveat : (Quantity | Array)[float, (T,)] | None, optional
@@ -404,7 +404,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
         ...                            p=Quantity([0., 200., 0.], "km/s")
-        ...                            ).w(units=galactic)
+        ...                            ).w(units="galactic")
         >>> w0.shape
         (6,)
 

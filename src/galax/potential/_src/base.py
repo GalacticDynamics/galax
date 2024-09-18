@@ -34,7 +34,7 @@ from galax.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
     from galax.dynamics import Orbit
-    from galax.dynamics.integrate import Integrator  # type: ignore[attr-defined]
+    from galax.dynamics.integrate import Integrator
 
 default_constants = ImmutableMap({"G": Quantity(_CONST_G.value, _CONST_G.unit)})
 

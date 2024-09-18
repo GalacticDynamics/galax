@@ -1,20 +1,10 @@
-__all__ = ["Integrator", "VectorField"]
+__all__ = ["Integrator"]
 
 import functools
 from collections.abc import Callable, Mapping
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import (
-    Any,
-    Literal,
-    ParamSpec,
-    Protocol,
-    TypeAlias,
-    TypeVar,
-    final,
-    no_type_check,
-    runtime_checkable,
-)
+from typing import Any, Literal, ParamSpec, TypeAlias, TypeVar, final, no_type_check
 
 import diffrax
 import equinox as eqx
@@ -28,6 +18,7 @@ from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
 import galax.typing as gt
+from .type_hints import VectorField
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -41,34 +32,6 @@ _call_jit_kw = {
     "static_argnames": ("units", "interpolated"),
     "inline": True,
 }
-
-
-# ============================================================================
-# Type hints
-
-
-@runtime_checkable
-class VectorField(Protocol):
-    """Protocol for the integration callable."""
-
-    def __call__(self, t: gt.FloatScalar, w: gt.Vec6, args: tuple[Any, ...]) -> gt.Vec6:
-        """Integration function.
-
-        Parameters
-        ----------
-        t : float
-            The time. This is the integration variable.
-        w : Array[float, (6,)]
-            The position and velocity.
-        args : tuple[Any, ...]
-            Additional arguments.
-
-        Returns
-        -------
-        Array[float, (6,)]
-            Velocity and acceleration [v (3,), a (3,)].
-        """
-        ...
 
 
 # ============================================================================

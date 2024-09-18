@@ -35,58 +35,6 @@ _call_jit_kw = {
 
 
 # ============================================================================
-# Interpolant
-
-
-class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
-    """Wrapper for ``diffrax.DenseInterpolation``."""
-
-    interpolant: DenseInterpolation
-    """:class:`diffrax.DenseInterpolation` object.
-
-    This object is the result of the integration and can be used to evaluate the
-    interpolated solution at any time. However it does not understand units, so
-    the input is the time in ``units["time"]``. The output is a 6-vector of
-    (q, p) values in the units of the integrator.
-    """
-
-    units: AbstractUnitSystem = eqx.field(static=True, converter=unitsystem)
-    """The :class:`unxt.AbstractUnitSystem`.
-
-    This is used to convert the time input to the interpolant and the phase-space
-    position output.
-    """
-
-    added_ndim: int = eqx.field(static=True)
-    """The number of dimensions added to the output of the interpolation.
-
-    This is used to reshape the output of the interpolation to match the batch
-    shape of the input to the integrator. The means of vectorizing the
-    interpolation means that the input must always be a batched array, resulting
-    in an extra dimension when the integration was on a scalar input.
-    """
-
-    def __call__(self, t: Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
-        """Evaluate the interpolation."""
-        # Parse t
-        t_ = xp.atleast_1d(ustrip(self.units["time"], t))
-
-        # Evaluate the interpolation
-        ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)
-
-        # Squeeze the output
-        extra_dims: int = ys.ndim - 3 + self.added_ndim + (t_.ndim - t.ndim)
-        ys = ys[(0,) * extra_dims]
-
-        # Construct and return the result
-        return gc.PhaseSpacePosition(
-            q=Quantity(ys[..., 0:3], self.units["length"]),
-            p=Quantity(ys[..., 3:6], self.units["speed"]),
-            t=t,
-        )
-
-
-# ============================================================================
 # Integration
 
 
@@ -303,7 +251,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             arr = jax.tree.map(lambda x: x[None], arr)
             interp = eqx.combine(arr, narr)
 
-        return DiffraxInterpolant(interp, units=units, added_ndim=added_ndim)
+        return Interpolant(interp, units=units, added_ndim=added_ndim)
 
     # -----------------------------------------------------
 
@@ -608,4 +556,56 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
                 k: self(F, v, t0, t1, saveat, units=units, interpolated=interpolated)
                 for k, v in w0.items()
             }
+        )
+
+
+# ============================================================================
+# Interpolant
+
+
+class Interpolant(eqx.Module):  # type: ignore[misc]#
+    """Wrapper for ``diffrax.DenseInterpolation``."""
+
+    interpolant: DenseInterpolation
+    """:class:`diffrax.DenseInterpolation` object.
+
+    This object is the result of the integration and can be used to evaluate the
+    interpolated solution at any time. However it does not understand units, so
+    the input is the time in ``units["time"]``. The output is a 6-vector of
+    (q, p) values in the units of the integrator.
+    """
+
+    units: AbstractUnitSystem = eqx.field(static=True, converter=unitsystem)
+    """The :class:`unxt.AbstractUnitSystem`.
+
+    This is used to convert the time input to the interpolant and the phase-space
+    position output.
+    """
+
+    added_ndim: int = eqx.field(static=True)
+    """The number of dimensions added to the output of the interpolation.
+
+    This is used to reshape the output of the interpolation to match the batch
+    shape of the input to the integrator. The means of vectorizing the
+    interpolation means that the input must always be a batched array, resulting
+    in an extra dimension when the integration was on a scalar input.
+    """
+
+    def __call__(self, t: Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
+        """Evaluate the interpolation."""
+        # Parse t
+        t_ = xp.atleast_1d(ustrip(self.units["time"], t))
+
+        # Evaluate the interpolation
+        ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)
+
+        # Squeeze the output
+        extra_dims: int = ys.ndim - 3 + self.added_ndim + (t_.ndim - t.ndim)
+        ys = ys[(0,) * extra_dims]
+
+        # Construct and return the result
+        return gc.PhaseSpacePosition(
+            q=Quantity(ys[..., 0:3], self.units["length"]),
+            p=Quantity(ys[..., 3:6], self.units["speed"]),
+            t=t,
         )

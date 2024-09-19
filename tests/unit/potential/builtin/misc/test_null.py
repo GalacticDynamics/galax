@@ -1,9 +1,9 @@
 from typing import Any
+from typing_extensions import override
 
 import pytest
 from jaxtyping import Array
 from plum import convert
-from typing_extensions import override
 
 import quaxed.numpy as jnp
 import unxt.unitsystems as usx

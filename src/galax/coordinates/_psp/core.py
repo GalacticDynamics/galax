@@ -5,11 +5,11 @@ __all__ = ["PhaseSpacePosition", "CompositePhaseSpacePosition"]
 from collections.abc import Iterable
 from functools import partial
 from typing import Any, final
+from typing_extensions import override
 
 import equinox as eqx
 import jax.tree as jtu
 from jaxtyping import Array, Int, PyTree, Shaped
-from typing_extensions import override
 
 import coordinax as cx
 import quaxed.numpy as jnp

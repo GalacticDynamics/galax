@@ -6,6 +6,7 @@ from dataclasses import replace
 from typing import Any, Literal
 
 import jax
+from jax.lax import stop_gradient
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -27,8 +28,8 @@ _default_integrator: Integrator = Integrator()
 _select_w0 = jax.numpy.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
 
 
-# @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 @dispatch
+# @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
@@ -37,6 +38,7 @@ def evaluate_orbit(
     *,
     integrator: Integrator | None = None,
     interpolated: Literal[True, False] = False,
+    include_meta: Literal[True, False] = False,
 ) -> Orbit:
     """Compute an orbit in a potential.
 
@@ -83,9 +85,15 @@ def evaluate_orbit(
         is used twice: once to integrate from `w0.t` to `t[0]` and then from
         `t[0]` to `t[1]`.
 
-    interpolated: bool, optional keyword-only
+    interpolated : bool, optional keyword-only
         If `True`, return an interpolated orbit.  If `False`, return the orbit
         at the requested times.  Default is `False`.
+
+    include_meta : bool, optional keyword-only
+        Metadata is attached as an :class:`~immutable_map_jax.ImmutableMap`.
+        If `True`, the metadata is populated with:
+
+        - `'has_t0'`: Whether `w0` has time information.
 
     Returns
     -------
@@ -191,11 +199,13 @@ def evaluate_orbit(
     t = jnp.atleast_1d(Quantity.constructor(t, units["time"]))
 
     # Parse w0
+    has_t0: bool
     psp0t: Quantity
     if isinstance(w0, gc.PhaseSpacePosition):
         # TODO: warn if w0.t is None?
         psp0 = w0
         psp0t = t[0] if w0.t is None else w0.t
+        has_t0 = w0.t is not None
     else:
         psp0 = gc.PhaseSpacePosition(
             q=Quantity(w0[..., 0:3], units["length"]),
@@ -203,6 +213,7 @@ def evaluate_orbit(
             t=t[0],
         )
         psp0t = t[0]
+        has_t0 = False
 
     # -------------
     # Initial integration
@@ -238,12 +249,14 @@ def evaluate_orbit(
     wt = t
 
     # Construct the orbit object
+    meta = {"has_t0": stop_gradient(has_t0)} if include_meta else {}
     return Orbit(
         q=ws.q,
         p=ws.p,
         t=wt,
-        interpolant=getattr(ws, "interpolant", None),
         potential=pot,
+        interpolant=getattr(ws, "interpolant", None),
+        meta=meta,
     )
 
 

@@ -12,6 +12,7 @@ import jax.numpy as jnp
 
 import coordinax as cx
 from unxt import Quantity
+from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -98,6 +99,15 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     interpolant: PhaseSpacePositionInterpolant | None = None
     """The interpolation function."""
+
+    meta: ImmutableMap[Any] = eqx.field(
+        default_factory=dict,
+        converter=ImmutableMap,
+        static=True,
+        repr=False,
+        compare=False,
+    )
+    """Metadata about the orbit."""
 
     def __post_init__(self) -> None:
         """Post-initialization."""

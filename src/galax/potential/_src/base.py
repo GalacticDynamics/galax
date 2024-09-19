@@ -330,6 +330,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         *,
         integrator: "Integrator | None" = None,
         interpolated: Literal[True, False] = False,
+        include_meta: Literal[True, False] = False,
     ) -> "Orbit":
         """Compute an orbit in a potential.
 
@@ -357,7 +358,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
                 A :class:`~galax.coordinates.PhaseSpacePosition` will be
                 constructed, interpreting the array as the  'q', 'p' (each
                 Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
-        t: Quantity[float, (time,)]
+        t : Quantity[float, (time,)]
             Array of times at which to compute the orbit. The first element
             should be the initial time and the last element should be the final
             time and the array should be monotonically moving from the first to
@@ -375,10 +376,16 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             Integrator to use.  If `None`, the default integrator
             :class:`~galax.integrator.Integrator` is used.
 
-        interpolated: bool, optional keyword-only
-                If `True`, return an interpolated orbit.  If `False`, return the orbit
-                at the requested times.  Default is `False`.
+        interpolated : bool, optional keyword-only
+            If `True`, return an interpolated orbit.  If `False`, return the
+            orbit at the requested times.  Default is `False`.
 
+        include_meta : bool, optional keyword-only
+            Metadata is attached as an :class:`~immutable_map_jax.ImmutableMap`.
+            If `True`, the metadata is populated with:
+
+            - `'integrator'`: The integrator used.
+            - `'has_t0'`: Whether `w0` has time information.
 
         Returns
         -------
@@ -396,7 +403,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return cast(
             "Orbit",
             evaluate_orbit(
-                self, w0, t, integrator=integrator, interpolated=interpolated
+                self,
+                w0,
+                t,
+                integrator=integrator,
+                interpolated=interpolated,
+                include_meta=include_meta,
             ),
         )
 

@@ -67,7 +67,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
       p=CartesianVelocity3D( ... ),
       t=Quantity[...](value=f64[10], unit=Unit("Myr")),
       potential=KeplerPotential( ... ),
-      interpolant=DiffraxInterpolant( ... )
+      interpolant=Interpolant( ... )
     )
 
     >>> orbit(Quantity(0.5, "Gyr"))

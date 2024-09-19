@@ -1,20 +1,10 @@
-__all__ = ["Integrator", "VectorField"]
+__all__ = ["Integrator"]
 
 import functools
 from collections.abc import Callable, Mapping
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import (
-    Any,
-    Literal,
-    ParamSpec,
-    Protocol,
-    TypeAlias,
-    TypeVar,
-    final,
-    no_type_check,
-    runtime_checkable,
-)
+from typing import Any, Literal, ParamSpec, TypeAlias, TypeVar, final, no_type_check
 
 import diffrax
 import equinox as eqx
@@ -28,6 +18,7 @@ from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
 import galax.typing as gt
+from .type_hints import VectorField
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -41,86 +32,6 @@ _call_jit_kw = {
     "static_argnames": ("units", "interpolated"),
     "inline": True,
 }
-
-
-# ============================================================================
-# Type hints
-
-
-@runtime_checkable
-class VectorField(Protocol):
-    """Protocol for the integration callable."""
-
-    def __call__(self, t: gt.FloatScalar, w: gt.Vec6, args: tuple[Any, ...]) -> gt.Vec6:
-        """Integration function.
-
-        Parameters
-        ----------
-        t : float
-            The time. This is the integration variable.
-        w : Array[float, (6,)]
-            The position and velocity.
-        args : tuple[Any, ...]
-            Additional arguments.
-
-        Returns
-        -------
-        Array[float, (6,)]
-            Velocity and acceleration [v (3,), a (3,)].
-        """
-        ...
-
-
-# ============================================================================
-# Interpolant
-
-
-class DiffraxInterpolant(eqx.Module):  # type: ignore[misc]#
-    """Wrapper for ``diffrax.DenseInterpolation``."""
-
-    interpolant: DenseInterpolation
-    """:class:`diffrax.DenseInterpolation` object.
-
-    This object is the result of the integration and can be used to evaluate the
-    interpolated solution at any time. However it does not understand units, so
-    the input is the time in ``units["time"]``. The output is a 6-vector of
-    (q, p) values in the units of the integrator.
-    """
-
-    units: AbstractUnitSystem = eqx.field(static=True, converter=unitsystem)
-    """The :class:`unxt.AbstractUnitSystem`.
-
-    This is used to convert the time input to the interpolant and the phase-space
-    position output.
-    """
-
-    added_ndim: int = eqx.field(static=True)
-    """The number of dimensions added to the output of the interpolation.
-
-    This is used to reshape the output of the interpolation to match the batch
-    shape of the input to the integrator. The means of vectorizing the
-    interpolation means that the input must always be a batched array, resulting
-    in an extra dimension when the integration was on a scalar input.
-    """
-
-    def __call__(self, t: Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
-        """Evaluate the interpolation."""
-        # Parse t
-        t_ = xp.atleast_1d(ustrip(self.units["time"], t))
-
-        # Evaluate the interpolation
-        ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)
-
-        # Squeeze the output
-        extra_dims: int = ys.ndim - 3 + self.added_ndim + (t_.ndim - t.ndim)
-        ys = ys[(0,) * extra_dims]
-
-        # Construct and return the result
-        return gc.PhaseSpacePosition(
-            q=Quantity(ys[..., 0:3], self.units["length"]),
-            p=Quantity(ys[..., 3:6], self.units["speed"]),
-            t=t,
-        )
 
 
 # ============================================================================
@@ -193,9 +104,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         relative and absolute tolerances of 1e-7.
     diffeq_kw : Mapping[str, Any], optional
         Keyword arguments to pass to :func:`diffrax.diffeqsolve`. Default is
-        ``{"max_steps": None, "discrete_terminating_event": None}``. The
-        ``"max_steps"`` key is removed if ``interpolated=True`` in the
-        :meth`Integrator.__call__` method.
+        ``{"max_steps": None, "event": None}``. The ``"max_steps"`` key is
+        removed if ``interpolated=True`` in the :meth`Integrator.__call__`
+        method.
     solver_kw : Mapping[str, Any], optional
         Keyword arguments to pass to the solver. Default is ``{"scan_kind":
         "bounded"}``.
@@ -218,9 +129,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     (Note that the ``t`` attribute is not used.)
 
-    Now we can integrate the phase-space position for 1 Gyr, getting the
-    final position.  The integrator accepts any function for the equations
-    of motion.  Here we will reproduce what happens with orbit integrations.
+    Now we can integrate the phase-space position for 1 Gyr, getting the final
+    position.  The integrator accepts any function for the equations of motion.
+    Here we will reproduce what happens with orbit integrations.
 
     >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
     ...                             r_s=Quantity(5, "kpc"), units="galactic")
@@ -237,8 +148,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> w.shape
     ()
 
-    Instead of just returning the final position, we can get the state of
-    the system at any times ``saveat``:
+    Instead of just returning the final position, we can get the state of the
+    system at any times ``saveat``:
 
     >>> ts = Quantity(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
     >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1,
@@ -253,9 +164,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     (10,)
 
     In all these examples the integrator was used to integrate a single
-    position. The integrator can also be used to integrate a batch of
-    initial conditions at once, returning a batch of final conditions (or a
-    batch of conditions at the requested times):
+    position. The integrator can also be used to integrate a batch of initial
+    conditions at once, returning a batch of final conditions (or a batch of
+    conditions at the requested times ``saveat``):
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
     ...                            p=Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
@@ -316,7 +227,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         default=diffrax.PIDController(rtol=1e-7, atol=1e-7), static=True
     )
     diffeq_kw: Mapping[str, Any] = eqx.field(
-        default=(("max_steps", None), ("discrete_terminating_event", None)),
+        default=(("max_steps", None), ("event", None)),
         static=True,
         converter=ImmutableMap,
     )
@@ -340,7 +251,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             arr = jax.tree.map(lambda x: x[None], arr)
             interp = eqx.combine(arr, narr)
 
-        return DiffraxInterpolant(interp, units=units, added_ndim=added_ndim)
+        return Interpolant(interp, units=units, added_ndim=added_ndim)
 
     # -----------------------------------------------------
 
@@ -363,12 +274,12 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         Parameters
         ----------
-        F : VectorField, positional-only
+        F : VectorField
             The function to integrate.
-        w0 : Array[float, (6,)], positional-only
+        w0 : Array[float, (6,)]
             Initial conditions ``[q, p]``.
             This is assumed to be in ``units``.
-        t0, t1 : Quantity, positional-only
+        t0, t1 : Quantity["time"]
             Initial and final times.
 
         saveat : (Quantity | Array)[float, (T,)] | None, optional
@@ -404,7 +315,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
         ...                            p=Quantity([0., 200., 0.], "km/s")
-        ...                            ).w(units=galactic)
+        ...                            ).w(units="galactic")
         >>> w0.shape
         (6,)
 
@@ -531,18 +442,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Run the integrator.
 
-        Other Parameters
-        ----------------
-        w0 : AbstractPhaseSpacePosition, positional-only
-            Initial conditions ``[q, p]``.
-
         Examples
         --------
-        For this example, we will use the
-        :class:`~galax.integrate.Integrator`
-
-        First some imports:
-
         >>> import quaxed.numpy as xp
         >>> from unxt import Quantity
         >>> from unxt.unitsystems import galactic
@@ -550,13 +451,15 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         >>> import galax.dynamics as gd
         >>> import galax.potential as gp
 
-        Then we define initial conditions:
+        We define initial conditions and a potential:
 
         >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
         ...                            p=Quantity([0., 200., 0.], "km/s"))
 
         >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
         ...                             r_s=Quantity(5, "kpc"), units="galactic")
+
+        We can integrate the phase-space position:
 
         >>> integrator = gd.integrate.Integrator()
         >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
@@ -586,26 +489,10 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         units: AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
     ) -> gc.CompositePhaseSpacePosition:
-        """Run the integrator.
-
-        Other Parameters
-        ----------------
-        w0 : `galax.coordinates.CompositePhaseSpacePosition`, positional-only
-            Composite initial conditions ``[q, p]``.
-
-        Returns
-        -------
-        `galax.coordinates.CompositePhaseSpacePosition`
-            The solution of the integrator for each contained phase-space
-            position.
+        """Run the integrator on a composite phase-space position.
 
         Examples
         --------
-        For this example, we will use the
-        :class:`~galax.integrate.Integrator`
-
-        First some imports:
-
         >>> import quaxed.numpy as xp
         >>> from unxt import Quantity
         >>> from unxt.unitsystems import galactic
@@ -613,7 +500,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         >>> import galax.dynamics as gd
         >>> import galax.potential as gp
 
-        Then we define initial conditions:
+        We define initial conditions and a potential:
 
         >>> w01 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
         ...                             p=Quantity([0., 200., 0.], "km/s"))
@@ -623,6 +510,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
         ...                             r_s=Quantity(5, "kpc"), units="galactic")
+
+        We can integrate the composite phase-space position:
 
         >>> integrator = gd.integrate.Integrator()
         >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
@@ -645,4 +534,56 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
                 k: self(F, v, t0, t1, saveat, units=units, interpolated=interpolated)
                 for k, v in w0.items()
             }
+        )
+
+
+# ============================================================================
+# Interpolant
+
+
+class Interpolant(eqx.Module):  # type: ignore[misc]#
+    """Wrapper for ``diffrax.DenseInterpolation``."""
+
+    interpolant: DenseInterpolation
+    """:class:`diffrax.DenseInterpolation` object.
+
+    This object is the result of the integration and can be used to evaluate the
+    interpolated solution at any time. However it does not understand units, so
+    the input is the time in ``units["time"]``. The output is a 6-vector of
+    (q, p) values in the units of the integrator.
+    """
+
+    units: AbstractUnitSystem = eqx.field(static=True, converter=unitsystem)
+    """The :class:`unxt.AbstractUnitSystem`.
+
+    This is used to convert the time input to the interpolant and the phase-space
+    position output.
+    """
+
+    added_ndim: int = eqx.field(static=True)
+    """The number of dimensions added to the output of the interpolation.
+
+    This is used to reshape the output of the interpolation to match the batch
+    shape of the input to the integrator. The means of vectorizing the
+    interpolation means that the input must always be a batched array, resulting
+    in an extra dimension when the integration was on a scalar input.
+    """
+
+    def __call__(self, t: Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
+        """Evaluate the interpolation."""
+        # Parse t
+        t_ = xp.atleast_1d(ustrip(self.units["time"], t))
+
+        # Evaluate the interpolation
+        ys = jax.vmap(lambda s: jax.vmap(s.evaluate)(t_))(self.interpolant)
+
+        # Squeeze the output
+        extra_dims: int = ys.ndim - 3 + self.added_ndim + (t_.ndim - t.ndim)
+        ys = ys[(0,) * extra_dims]
+
+        # Construct and return the result
+        return gc.PhaseSpacePosition(
+            q=Quantity(ys[..., 0:3], self.units["length"]),
+            p=Quantity(ys[..., 3:6], self.units["speed"]),
+            t=t,
         )

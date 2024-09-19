@@ -384,9 +384,9 @@ def galax_to_gala(
     >>> from unxt import Quantity
     >>> import galax.potential as gp
 
-    >>> pot = gp.HarmonicOscillatorPotential(omega=Quantity(1, "Hz"), units="galactic")
+    >>> pot = gp.HarmonicOscillatorPotential(omega=Quantity(1, "1/Myr"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <HarmonicOscillatorPotential: omega=1.00 (Hz,Myr,rad)>
+    <HarmonicOscillatorPotential: omega=[1.] (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())

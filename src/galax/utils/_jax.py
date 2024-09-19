@@ -5,9 +5,9 @@ __all__: list[str] = []
 from collections.abc import Callable, Sequence
 from functools import partial
 from typing import Any, NotRequired, TypedDict, TypeVar, cast
+from typing_extensions import ParamSpec, Unpack
 
 import quax
-from typing_extensions import ParamSpec, Unpack
 
 import quaxed.numpy as jnp
 

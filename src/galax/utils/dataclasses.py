@@ -17,10 +17,10 @@ from typing import (
     dataclass_transform,
     overload,
 )
+from typing_extensions import ParamSpec, Unpack
 
 import astropy.units as u
 from equinox._module import _has_dataclass_init, _ModuleMeta
-from typing_extensions import ParamSpec, Unpack
 
 from dataclassish import DataclassInstance
 from dataclassish.converters import AbstractConverter

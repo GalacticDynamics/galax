@@ -16,10 +16,10 @@ from typing import (
     get_type_hints,
     overload,
 )
+from typing_extensions import Doc, override
 
 import astropy.units as u
 from astropy.units import PhysicalType as Dimensions
-from typing_extensions import Doc, override
 
 from dataclassish.converters import Optional
 from is_annotated import isannotated

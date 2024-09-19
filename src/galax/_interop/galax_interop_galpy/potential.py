@@ -4,6 +4,7 @@ __all__ = ["galpy_to_galax", "galax_to_galpy"]
 
 
 from typing import Annotated as Antd
+from typing_extensions import Doc
 
 import equinox as eqx
 import galpy.potential as gpy
@@ -11,7 +12,6 @@ import numpy as np
 from astropy.units import Quantity as AstropyQuantity
 from galpy.util import conversion
 from plum import convert, dispatch
-from typing_extensions import Doc
 
 import galactic_dynamics_interoperability as gdio
 from unxt import Quantity

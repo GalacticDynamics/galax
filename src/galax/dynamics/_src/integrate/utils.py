@@ -6,10 +6,10 @@ __all__ = ["parse_time_specification"]
 from collections.abc import Sequence
 from numbers import Number
 from typing import Annotated as Ann, Any
+from typing_extensions import Doc
 
 from jaxtyping import Array, ArrayLike, Shaped
 from plum import dispatch
-from typing_extensions import Doc
 
 import quaxed.numpy as jnp
 from unxt import AbstractUnitSystem, Quantity, unitsystem

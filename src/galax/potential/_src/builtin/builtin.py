@@ -20,10 +20,10 @@ __all__ = [
 from dataclasses import KW_ONLY
 from functools import partial
 from typing import Annotated as Ann, Any, final
+from typing_extensions import Doc
 
 import equinox as eqx
 import jax
-from typing_extensions import Doc
 
 import quaxed.lax as qlax
 import quaxed.numpy as jnp

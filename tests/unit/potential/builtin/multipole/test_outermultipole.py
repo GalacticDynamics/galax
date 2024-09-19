@@ -1,12 +1,12 @@
 """Test the `MultipoleOuterPotential` class."""
 
 from typing import Any
+from typing_extensions import override
 
 import astropy.units as u
 import pytest
 from jaxtyping import Array, Shaped
 from plum import convert
-from typing_extensions import override
 
 import quaxed.numpy as jnp
 from unxt import Quantity

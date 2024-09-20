@@ -9,28 +9,20 @@ from plum import convert
 from quax import quaxify
 
 import coordinax as cx
-from coordinax.operators import (
-    AbstractCompositeOperator,
-    AbstractOperator,
-    GalileanBoostOperator,
-    GalileanRotationOperator,
-    GalileanSpatialTranslationOperator,
-    GalileanTranslationOperator,
-    IdentityOperator,
-)
+import coordinax.operators as cxop
 from unxt import Quantity
 
 from .base_psp import AbstractPhaseSpacePosition
 
-vec_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
+batched_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
 
 ######################################################################
 # Abstract Operators
 
 
-@AbstractOperator.__call__.dispatch
+@cxop.AbstractOperator.__call__.dispatch
 def call(
-    self: AbstractOperator,  # noqa: ARG001
+    self: cxop.AbstractOperator,  # noqa: ARG001
     x: AbstractPhaseSpacePosition,  # noqa: ARG001
     /,
 ) -> AbstractPhaseSpacePosition:
@@ -86,9 +78,9 @@ def call(
 # Composite operators
 
 
-@AbstractOperator.__call__.dispatch
+@cxop.AbstractOperator.__call__.dispatch
 def call(
-    self: AbstractCompositeOperator, x: AbstractPhaseSpacePosition, /
+    self: cxop.AbstractCompositeOperator, x: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
     """Apply the operator to the coordinates."""
     for op in self.operators:
@@ -100,9 +92,9 @@ def call(
 # Galilean spatial translation
 
 
-@AbstractOperator.__call__.dispatch
+@cxop.AbstractOperator.__call__.dispatch
 def call(
-    self: GalileanSpatialTranslationOperator, psp: AbstractPhaseSpacePosition, /
+    self: cxop.GalileanSpatialTranslationOperator, psp: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
@@ -151,9 +143,9 @@ def call(
 # Galilean translation
 
 
-@AbstractOperator.__call__.dispatch
+@cxop.AbstractOperator.__call__.dispatch
 def call(
-    self: GalileanTranslationOperator, psp: AbstractPhaseSpacePosition, /
+    self: cxop.GalileanTranslationOperator, psp: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
@@ -207,9 +199,9 @@ def call(
 # Galilean boost
 
 
-@AbstractOperator.__call__.dispatch
+@cxop.AbstractOperator.__call__.dispatch
 def call(
-    self: GalileanBoostOperator,
+    self: cxop.GalileanBoostOperator,
     psp: AbstractPhaseSpacePosition,
     /,
 ) -> AbstractPhaseSpacePosition:
@@ -256,9 +248,9 @@ def call(
     return replace(psp, q=q, p=p, t=t)
 
 
-@AbstractOperator.__call__.dispatch
+@cxop.AbstractOperator.__call__.dispatch
 def call(
-    self: GalileanRotationOperator, psp: AbstractPhaseSpacePosition, /
+    self: cxop.GalileanRotationOperator, psp: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
@@ -302,7 +294,7 @@ def call(
     # the momentum. The momentum is then transformed back to the original
     # representation, but at the rotated position.
     pv = convert(psp.p.represent_as(cx.CartesianVelocity3D, psp.q), Quantity)
-    pv = vec_matmul(self.rotation, pv)
+    pv = batched_matmul(self.rotation, pv)
     p = cx.CartesianVelocity3D.constructor(pv).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
@@ -311,9 +303,9 @@ def call(
 ######################################################################
 
 
-@AbstractOperator.__call__.dispatch(precedence=1)
+@cxop.AbstractOperator.__call__.dispatch(precedence=1)
 def call(
-    self: IdentityOperator,  # noqa: ARG001
+    self: cxop.IdentityOperator,  # noqa: ARG001
     x: AbstractPhaseSpacePosition,
     /,
 ) -> AbstractPhaseSpacePosition:

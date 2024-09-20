@@ -1,4 +1,4 @@
-"""Test :class:`~galax.coordinates._pspt`."""
+"""Test :class:`~galax.coordinates._src.psps.core`."""
 
 import pytest
 

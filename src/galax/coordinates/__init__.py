@@ -8,22 +8,23 @@ from jaxtyping import install_import_hook
 from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
-    from . import _psp, operators
-    from ._psp import operator_compat
-    from ._psp.base import *
-    from ._psp.base_composite import *
-    from ._psp.base_psp import *
-    from ._psp.core import *
-    from ._psp.interp import *
-    from ._psp.utils import *
+    from . import operators
+    from ._src import psps
+    from ._src.psps import operator_compat
+    from ._src.psps.base import *
+    from ._src.psps.base_composite import *
+    from ._src.psps.base_psp import *
+    from ._src.psps.core import *
+    from ._src.psps.interp import *
+    from ._src.psps.utils import *
 
 __all__: list[str] = ["operators"]
-__all__ += _psp.base.__all__
-__all__ += _psp.base_psp.__all__
-__all__ += _psp.base_composite.__all__
-__all__ += _psp.core.__all__
-__all__ += _psp.interp.__all__
-__all__ += _psp.utils.__all__
+__all__ += psps.base.__all__
+__all__ += psps.base_psp.__all__
+__all__ += psps.base_composite.__all__
+__all__ += psps.core.__all__
+__all__ += psps.interp.__all__
+__all__ += psps.utils.__all__
 
 # Clean up the namespace
-del install_import_hook, RUNTIME_TYPECHECKER, _psp, operator_compat
+del install_import_hook, RUNTIME_TYPECHECKER, psps, operator_compat

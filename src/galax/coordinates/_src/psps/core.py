@@ -90,8 +90,9 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     :class:`~coordinax.CartesianPosition3D` or
     :class:`~coordinax.CartesianVelocity3D`, respectively.  For example,
 
-    >>> w2 = PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                           p=Quantity([4, 5, 6], "m/s"), t=t)
+    >>> w2 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+    ...                            p=Quantity([4, 5, 6], "m/s"),
+    ...                            t=t)
     >>> w2 == psp
     Array(True, dtype=bool)
 
@@ -149,6 +150,13 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     # Convenience methods
 
     def wt(self, *, units: Any) -> gt.BatchVec7:
+        """Return the phase-space-time position as a 7-vector.
+
+        Raises
+        ------
+        Exception
+            If the time is not defined.
+        """
         _ = eqx.error_if(
             self.t, self.t is None, "No time defined for phase-space position"
         )

@@ -14,10 +14,9 @@ import coordinax as cx
 from unxt import Quantity
 
 import galax.coordinates as gc
+import galax.potential as gp
 import galax.typing as gt
-from galax.coordinates._psp.interp import PhaseSpacePositionInterpolant
-from galax.coordinates._psp.utils import HasShape, getitem_vec1time_index
-from galax.potential import AbstractPotentialBase
+from galax.coordinates._src.psps.utils import HasShape, getitem_vec1time_index
 from galax.typing import BatchFloatQScalar, QVec1, QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
@@ -93,10 +92,10 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     _: KW_ONLY
 
-    potential: AbstractPotentialBase
+    potential: gp.AbstractPotentialBase
     """Potential in which the orbit was integrated."""
 
-    interpolant: PhaseSpacePositionInterpolant | None = None
+    interpolant: gc.PhaseSpacePositionInterpolant | None = None
     """The interpolation function."""
 
     def __post_init__(self) -> None:
@@ -158,7 +157,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     @partial(jax.jit, inline=True)
     def potential_energy(
-        self, potential: AbstractPotentialBase | None = None, /
+        self, potential: gp.AbstractPotentialBase | None = None, /
     ) -> BatchFloatQScalar:
         r"""Return the specific potential energy.
 
@@ -183,7 +182,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     @partial(jax.jit, inline=True)
     def total_energy(
-        self, potential: "AbstractPotentialBase | None" = None, /
+        self, potential: "gp.AbstractPotentialBase | None" = None, /
     ) -> BatchFloatQScalar:
         r"""Return the specific total energy.
 

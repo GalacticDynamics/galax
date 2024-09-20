@@ -59,7 +59,7 @@ all = ["galax[interop-all,plot-all]"]
 interop-all = [
   "galax[interop-astropy]",
   "galax[interop-gala]",
-  "galax[interop-galpy]"
+  "galax[interop-galpy]",
 ]
 interop-astropy = [
   "astropy >= 6.0",
@@ -72,7 +72,7 @@ interop-galpy = [
   "galax[interop-astropy]",
   "galpy >= 1.8",
 ]
-# TODO: agama
+# Plotting dependencies
 plot-all = ["galax[plot-matplotlib]"]
 plot-matplotlib = ["matplotlib"]
 # Documentation dependencies
@@ -91,6 +91,7 @@ test = [
   "pytest >=6",
   "pytest-cov >=3",
   "pytest-arraydiff",
+  "pytest-codspeed",
   "sybil != 7.1.0",
   # temporary
   "numpy>=2.1"

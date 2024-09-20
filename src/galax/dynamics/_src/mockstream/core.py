@@ -19,7 +19,7 @@ from galax.coordinates import (
     AbstractPhaseSpacePosition,
     ComponentShapeTuple,
 )
-from galax.coordinates._psp.utils import getitem_vec1time_index
+from galax.coordinates._src.psps.utils import getitem_vec1time_index
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 if TYPE_CHECKING:

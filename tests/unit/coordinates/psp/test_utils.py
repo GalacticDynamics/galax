@@ -9,7 +9,7 @@ from jaxtyping import Array, Float
 import quaxed.numpy as jnp
 from unxt import Quantity
 
-from galax.coordinates._psp.utils import (
+from galax.coordinates._src.psps.utils import (
     HasShape,
     getitem_broadscalartime_index,
     getitem_vec1time_index,

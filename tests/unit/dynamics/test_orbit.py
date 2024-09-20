@@ -1,4 +1,4 @@
-"""Test :class:`~galax.coordinates._pspt`."""
+"""Test :class:`~galax.dynamics._src.orbit`."""
 
 from typing import TypeVar
 

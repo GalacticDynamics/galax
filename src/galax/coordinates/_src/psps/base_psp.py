@@ -50,6 +50,7 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
     # Convenience methods
 
     def to_units(self, units: Any) -> "Self":
+        """Return a new object with the components converted to the given units."""
         usys = unitsystem(units)
         return replace(
             self,

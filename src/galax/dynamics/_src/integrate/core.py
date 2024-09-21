@@ -237,11 +237,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         time = units["time"]
         t0_: gt.RealScalar = Quantity.constructor(t0, time).value
         t1_: gt.RealScalar = Quantity.constructor(t1, time).value
-        # Either save at `saveat` or at the final time. The final time is
-        # a scalar and the saveat is a vector, so a dimension is added.
-        ts: gt.VecTime = Quantity.constructor(
-            xp.asarray([t1_]) if saveat is None else saveat, time
-        ).value
+        # Either save at `saveat` or at the final time.
+        save_at = diffrax.SaveAt(
+            t0=False,
+            t1=saveat is None,
+            ts=Quantity.constructor(saveat, time).value if saveat is not None else None,
+            dense=interpolated,
+        )
 
         diffeq_kw = dict(self.diffeq_kw)
         if interpolated and diffeq_kw.get("max_steps") is None:
@@ -258,7 +260,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             y0=y0,
             dt0=None,
             args=(),
-            saveat=diffrax.SaveAt(t0=False, t1=False, ts=ts, dense=interpolated),
+            saveat=save_at,
             stepsize_controller=self.stepsize_controller,
             **diffeq_kw,
         )

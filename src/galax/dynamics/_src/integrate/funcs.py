@@ -196,16 +196,13 @@ def evaluate_orbit(
 
     # Parse w0
     psp0t: Quantity
+    psp0w: gt.BatchableVec6
     if isinstance(w0, gc.PhaseSpacePosition):
         # TODO: warn if w0.t is None?
-        psp0 = w0
+        psp0w = w0.w(units=units)
         psp0t = t[0] if w0.t is None else w0.t
     else:
-        psp0 = gc.PhaseSpacePosition(
-            q=Quantity(w0[..., 0:3], units["length"]),
-            p=Quantity(w0[..., 3:6], units["speed"]),
-            t=t[0],
-        )
+        psp0w = w0
         psp0t = t[0]
 
     # -------------
@@ -216,12 +213,14 @@ def evaluate_orbit(
     # handle this case separately.
     # NOTE: The slowest step BY FAR is the ``.w(units=units)``
     # TODO: make _select_w0 work on PSPs
+    # TODO: get diffrax's `solver_state` to speed the second integration.
+    # TODO: get diffrax's `controller_state` to speed the second integration.
     qp0 = _select_w0(
         psp0t == t[0],
-        psp0.w(units=units),  # don't integrate if already at the desired time
+        psp0w,  # don't integrate if already at the desired time
         integrator(
             pot._dynamics_deriv,  # noqa: SLF001
-            psp0,  # w0
+            psp0w,  # w0
             psp0t,  # t0
             jnp.full_like(psp0t, t[0]),  # t1
             units=units,
@@ -259,8 +258,7 @@ def evaluate_orbit(
     /,
     *,
     t: Any,
-    integrator: Integrator | None = None,
-    interpolated: Literal[True, False] = False,
+    **kwargs: Any,
 ) -> Orbit:
     """Compute an orbit in a potential, supporting `t` as a keyword argument.
 
@@ -295,4 +293,4 @@ def evaluate_orbit(
     )
 
     """
-    return evaluate_orbit(pot, w0, t, integrator=integrator, interpolated=interpolated)
+    return evaluate_orbit(pot, w0, t, **kwargs)

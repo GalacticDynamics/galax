@@ -104,6 +104,7 @@ BatchQVec3 = Shaped[QVec3, "*batch"]
 
 # Zero or more batches of 6-vectors
 BatchVec6 = Shaped[Vec6, "*batch"]
+BatchableVec6 = Shaped[Vec6, "*#batch"]
 
 # Zero or more batches of 7-vectors
 BatchVec7 = Shaped[Vec7, "*batch"]

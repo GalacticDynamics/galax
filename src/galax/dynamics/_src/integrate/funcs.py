@@ -2,10 +2,12 @@
 
 __all__ = ["evaluate_orbit"]
 
+from collections.abc import Callable
 from dataclasses import replace
 from typing import Any, Literal
 
 import jax
+from jaxtyping import Array
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -24,11 +26,13 @@ from galax.dynamics._src.orbit import Orbit
 _default_integrator: Integrator = Integrator()
 
 
-_select_w0 = jax.numpy.vectorize(jax.lax.select, signature="(),(6),(6)->(6)")
+_select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
+    jax.lax.select, signature="(),(6),(6)->(6)"
+)
 
 
-# @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 @dispatch
+# @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
@@ -111,9 +115,9 @@ def evaluate_orbit(
     get an orbit:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                            p=Quantity([0., 200, 0.], "km/s"),
     ...                            t=Quantity(-100, "Myr"))
-    >>> ts = jnp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
+    >>> ts = Quantity(jnp.linspace(0., 1, 4), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -129,7 +133,7 @@ def evaluate_orbit(
     defined at `t=-100`, but the orbit is integrated from `t=0` to `t=1000`.
     Changing the number of times is easy:
 
-    >>> ts = jnp.linspace(0., 1000, 10)  # (1 Gyr, 10 steps)
+    >>> ts = Quantity(jnp.linspace(0., 1, 10), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -142,7 +146,7 @@ def evaluate_orbit(
     We can also integrate a batch of orbits at once:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
-    ...                            p=Quantity([[0, 0.1, 0], [0, 0.2, 0]], "km/s"),
+    ...                            p=Quantity([[0, 200, 0], [0, 220, 0]], "km/s"),
     ...                            t=Quantity([-100, -150], "Myr"))
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
@@ -162,9 +166,9 @@ def evaluate_orbit(
     integrate from a different time than the initial time of the position:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                            p=Quantity([0., 200, 0.], "km/s"),
     ...                            t=Quantity(0, "Myr"))
-    >>> ts = jnp.linspace(300, 1000, 8)  # (0.3 to 1 Gyr, 10 steps)
+    >>> ts = Quantity(jnp.linspace(0.3, 1, 8), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
     Array([ 9.779, -0.3102,  0.        ], dtype=float64)
@@ -192,16 +196,13 @@ def evaluate_orbit(
 
     # Parse w0
     psp0t: Quantity
+    psp0w: gt.BatchableVec6
     if isinstance(w0, gc.PhaseSpacePosition):
         # TODO: warn if w0.t is None?
-        psp0 = w0
+        psp0w = w0.w(units=units)
         psp0t = t[0] if w0.t is None else w0.t
     else:
-        psp0 = gc.PhaseSpacePosition(
-            q=Quantity(w0[..., 0:3], units["length"]),
-            p=Quantity(w0[..., 3:6], units["speed"]),
-            t=t[0],
-        )
+        psp0w = w0
         psp0t = t[0]
 
     # -------------
@@ -210,13 +211,16 @@ def evaluate_orbit(
     # Need to integrate `w0.t` to `t[0]`.
     # The integral int_a_a is not well defined (can be inf) so we need to
     # handle this case separately.
-    # TODO: make _select_w0 work on PSPTs
+    # NOTE: The slowest step BY FAR is the ``.w(units=units)``
+    # TODO: make _select_w0 work on PSPs
+    # TODO: get diffrax's `solver_state` to speed the second integration.
+    # TODO: get diffrax's `controller_state` to speed the second integration.
     qp0 = _select_w0(
         psp0t == t[0],
-        psp0.w(units=units),  # don't integrate if already at the desired time
+        psp0w,  # don't integrate if already at the desired time
         integrator(
             pot._dynamics_deriv,  # noqa: SLF001
-            psp0,  # w0
+            psp0w,  # w0
             psp0t,  # t0
             jnp.full_like(psp0t, t[0]),  # t1
             units=units,
@@ -254,8 +258,7 @@ def evaluate_orbit(
     /,
     *,
     t: Any,
-    integrator: Integrator | None = None,
-    interpolated: Literal[True, False] = False,
+    **kwargs: Any,
 ) -> Orbit:
     """Compute an orbit in a potential, supporting `t` as a keyword argument.
 
@@ -277,7 +280,7 @@ def evaluate_orbit(
     get an orbit:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                            p=Quantity([0., 200, 0.], "km/s"),
     ...                            t=Quantity(-100, "Myr"))
     >>> ts = jnp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
     >>> orbit = gd.evaluate_orbit(potential, w0, t=ts)
@@ -290,4 +293,4 @@ def evaluate_orbit(
     )
 
     """
-    return evaluate_orbit(pot, w0, t, integrator=integrator, interpolated=interpolated)
+    return evaluate_orbit(pot, w0, t, **kwargs)

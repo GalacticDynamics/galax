@@ -24,10 +24,6 @@ class PhaseSpacePositionInterpolant(Protocol):
     units: AbstractUnitSystem
     """The unit system for the interpolation."""
 
-    added_ndim: int
-    """The number of dimensions added to the input time."""
-    # TODO: not require this for Diffrax
-
     def __call__(self, t: gt.QVecTime) -> PhaseSpacePosition:
         """Evaluate the interpolation.
 

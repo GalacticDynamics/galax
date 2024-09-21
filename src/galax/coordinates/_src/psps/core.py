@@ -20,7 +20,7 @@ import galax.typing as gt
 from .base import ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractPhaseSpacePosition
-from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
+from galax.utils._shape import batched_shape, vector_batched_shape
 
 
 @final
@@ -110,7 +110,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.BatchableFloatQScalar | gt.FloatQScalar | None = eqx.field(
+    t: gt.TimeBatchableScalar | gt.TimeScalar | None = eqx.field(
         default=None,
         converter=Optional(partial(Quantity["time"].constructor, dtype=float)),
     )
@@ -120,13 +120,6 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     velocities.  If `t` is a scalar it will be broadcast to the same batch shape
     as `q` and `p`.
     """
-
-    def __post_init__(self) -> None:
-        """Post-initialization."""
-        # Need to ensure t shape is correct. Can be Vec0.
-        if (t := self.t) is not None and t.ndim in (0, 1):
-            t = expand_batch_dims(t, ndim=self.q.ndim - t.ndim)
-            object.__setattr__(self, "t", t)
 
     # ==========================================================================
     # Array properties

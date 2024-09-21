@@ -51,7 +51,7 @@ def evaluate_orbit(
     get an orbit:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                            p=Quantity([0., 200, 0.], "km/s"),
     ...                            t=Quantity(-100, "Myr"))
     >>> ts = Quantity(np.linspace(0., 1., 4), "Gyr")
 
@@ -77,7 +77,7 @@ def evaluate_orbit(
     We can also integrate a batch of orbits at once:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
-    ...                            p=Quantity([[0, 0.1, 0], [0, 0.2, 0]], "km/s"),
+    ...                            p=Quantity([[0, 200, 0], [0, 220, 0]], "km/s"),
     ...                            t=Quantity([-100, -150], "Myr"))
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
@@ -97,7 +97,7 @@ def evaluate_orbit(
     integrate from a different time than the initial time of the position:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 0.1, 0.], "km/s"),
+    ...                            p=Quantity([0., 200, 0.], "km/s"),
     ...                            t=Quantity(0, "Myr"))
     >>> ts = Quantity(np.linspace(0.3, 1.0, 8), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)

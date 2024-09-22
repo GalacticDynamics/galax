@@ -7,28 +7,20 @@ https:://github.com/nstarman/bound-class. See the license in the LICENSE files.
 
 __all__: list[str] = []
 
-from typing import Any, final
+from typing import Any
 
 from plum import PromisedType, dispatch
 
 from galax.utils._boundinstance import BndTo, InstanceDescriptor
+from galax.utils.plot import AbstractPlottingBackend, MatplotlibBackend
 
 ProxyAbstractPotentialBase = PromisedType("AbstractPotentialBase")
-
-
-class AbstractPlottingBackend:
-    """Abstract base class for plotting backends."""
-
-
-@final
-class MatplotlibBackend(AbstractPlottingBackend):
-    """Matplotlib plotting backend."""
 
 
 # --------------------------------------------------
 
 
-class PlotDescriptor(InstanceDescriptor[BndTo]):
+class PlotPotentialDescriptor(InstanceDescriptor[BndTo]):
     """Descriptor for plotting functions."""
 
     def potential_contours(

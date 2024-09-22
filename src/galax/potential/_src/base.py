@@ -25,7 +25,7 @@ from unxt import AbstractUnitSystem, Quantity, unitsystems, ustrip
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .plot import PlotDescriptor
+from .plot import PlotPotentialDescriptor
 from galax.coordinates import PhaseSpacePosition
 from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars
@@ -46,7 +46,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     """Abstract Potential Class."""
 
     parameters: ClassVar = ParametersAttribute(MappingProxyType({}))
-    plot: ClassVar = PlotDescriptor()
+    plot: ClassVar = PlotPotentialDescriptor()
 
     _: KW_ONLY
     units: eqx.AbstractVar[AbstractUnitSystem]

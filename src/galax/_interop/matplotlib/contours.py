@@ -14,7 +14,7 @@ import quaxed.numpy as jnp
 from unxt import Quantity, uconvert, ustrip
 
 from galax.potential._src.base import AbstractPotentialBase
-from galax.potential._src.plot import MatplotlibBackend
+from galax.utils.plot import MatplotlibBackend
 
 
 def _get_figure(

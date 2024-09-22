@@ -68,3 +68,9 @@ def test_orbit_plot_time_color(orbit: gd.Orbit) -> Figure:
     ax = orbit.plot(x="x", y="y", plot_function="scatter", c="orbit.t")
 
     return ax.figure
+
+
+def test_orbit_no_attribute(orbit: gd.Orbit) -> None:
+    """Test failed plot."""
+    with pytest.raises(AttributeError):
+        orbit.plot(x="z", y="not_an_attribute")

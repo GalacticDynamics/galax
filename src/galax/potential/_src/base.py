@@ -26,7 +26,6 @@ from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from .plot import PlotPotentialDescriptor
-from galax.coordinates import PhaseSpacePosition
 from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.utils._jax import vectorize_method
@@ -325,7 +324,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def evaluate_orbit(
         self,
-        w0: PhaseSpacePosition | gt.BatchVec6,
+        w0: Any,
         t: Any,
         *,
         integrator: "Integrator | None" = None,
@@ -341,7 +340,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         Parameters
         ----------
-        w0 : PhaseSpacePosition
+        w0 : Any
             The phase-space position (includes velocity and time) from which to
             integrate. Integration includes the time of the initial position, so
             be sure to set the initial time to the desired value. See the `t`

@@ -1,4 +1,5 @@
 {
+  "integration.matplotlib.test_orbit.test_orbit_plot": "dbd49d89938e23eea1e8301d38ba94f53c5c800966e8888144ecc45615504a41",
   "integration.matplotlib.test_potential.test_kepler_potential_contours": "f21ac32338c8120f0f8851f1fef3c516bc906bb21452539868361cf86833e561",
   "integration.matplotlib.test_potential.test_kernel_density_contours": "51f9e6ca266b063efdd9fd6914b09d689b9ff4be55554a5b0a981e54b972e8d3"
 }

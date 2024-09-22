@@ -2,6 +2,7 @@
 
 import jax.numpy as jnp
 import pytest
+from matplotlib.figure import Figure
 
 from unxt import Quantity
 
@@ -9,7 +10,7 @@ import galax.potential as gp
 
 
 @pytest.mark.mpl_image_compare(deterministic=True)
-def test_kepler_potential_contours():
+def test_kepler_potential_contours() -> Figure:
     """Test plotting Kepler potential contours."""
     pot = gp.KeplerPotential(
         m_tot=Quantity(1e11, "Msun"),
@@ -24,7 +25,7 @@ def test_kepler_potential_contours():
 
 
 @pytest.mark.mpl_image_compare(deterministic=True)
-def test_kernel_density_contours():
+def test_kernel_density_contours() -> Figure:
     """Test plotting kernel density contours."""
     pot = gp.KeplerPotential(
         m_tot=Quantity(1e11, "Msun"),

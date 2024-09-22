@@ -13,14 +13,13 @@ from galax.utils.plot import MatplotlibBackend
 
 
 def _get_component(orbit: gd.Orbit, coord: str) -> AbstractQuantity:
-    try:
+    if hasattr(orbit.q, coord):
         out = getattr(orbit.q, coord)
-    except AttributeError:
-        try:
-            out = getattr(orbit.p, coord)
-        except AttributeError:
-            msg = f"Orbit does not have attribute {coord}"
-            raise AttributeError(msg) from None
+    elif hasattr(orbit.p, coord):
+        out = getattr(orbit.p, coord)
+    else:
+        msg = f"Orbit does not have attribute {coord}"
+        raise AttributeError(msg) from None
 
     return out
 

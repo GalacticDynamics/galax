@@ -32,9 +32,9 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     ----------
     q : :class:`~coordinax.AbstractPosition3D`
         A 3-vector of the positions, allowing for batched inputs.  This
-        parameter accepts any 3-vector, e.g.  :class:`~coordinax.SphericalPosition`,
-        or any input that can be used to make a
-        :class:`~coordinax.CartesianPosition3D` via
+        parameter accepts any 3-vector, e.g.
+        :class:`~coordinax.SphericalPosition`, or any input that can be used to
+        make a :class:`~coordinax.CartesianPosition3D` via
         :meth:`coordinax.AbstractPosition3D.constructor`.
     p : :class:`~coordinax.AbstractVelocity3D`
         A 3-vector of the conjugate specific momenta at positions ``q``,
@@ -51,46 +51,55 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     Examples
     --------
-    We assume the following imports:
-
     >>> from unxt import Quantity
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
-
-    We can create a phase-space position:
-
-    >>> q = cx.CartesianPosition3D(x=Quantity(1, "m"), y=Quantity(2, "m"),
-    ...                            z=Quantity(3, "m"))
-    >>> p = cx.CartesianVelocity3D(d_x=Quantity(4, "m/s"), d_y=Quantity(5, "m/s"),
-    ...                            d_z=Quantity(6, "m/s"))
-    >>> t = Quantity(7.0, "s")
-
-    >>> psp = gc.PhaseSpacePosition(q=q, p=p, t=t)
-    >>> psp
-    PhaseSpacePosition(
-      q=CartesianPosition3D(
-        x=Quantity[...](value=f64[], unit=Unit("m")),
-        y=Quantity[...](value=f64[], unit=Unit("m")),
-        z=Quantity[...](value=f64[], unit=Unit("m"))
-      ),
-      p=CartesianVelocity3D(
-        d_x=Quantity[...]( value=f64[], unit=Unit("m / s") ),
-        d_y=Quantity[...]( value=f64[], unit=Unit("m / s") ),
-        d_z=Quantity[...]( value=f64[], unit=Unit("m / s") )
-      ),
-      t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
-    )
 
     Note that both `q` and `p` have convenience converters, allowing them to
     accept a variety of inputs when constructing a
     :class:`~coordinax.CartesianPosition3D` or
     :class:`~coordinax.CartesianVelocity3D`, respectively.  For example,
 
-    >>> w2 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                            p=Quantity([4, 5, 6], "m/s"),
-    ...                            t=t)
-    >>> w2 == psp
+    >>> t = Quantity(7.0, "s")
+    >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+    ...                           p=Quantity([4, 5, 6], "m/s"),
+    ...                           t=t)
+    >>> w
+    PhaseSpacePosition(
+      q=CartesianPosition3D( ... ),
+      p=CartesianVelocity3D( ... ),
+      t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
+    )
+
+    This can be done more explicitly:
+
+    >>> q = cx.CartesianPosition3D.constructor([1, 2, 3], "m")
+    >>> p = cx.CartesianVelocity3D.constructor([4, 5, 6], "m/s")
+
+    >>> w2 = gc.PhaseSpacePosition(q=q, p=p, t=t)
+    >>> w2 == w
     Array(True, dtype=bool)
+
+    When using the explicit constructors, the inputs can be any
+    `coordinax.AbstractPosition3D` and `coordinax.AbstractVelocity3D` types:
+
+    >>> q = cx.SphericalPosition(r=Quantity(1, "m"), theta=Quantity(2, "deg"),
+    ...                          phi=Quantity(3, "deg"))
+    >>> w3 = gc.PhaseSpacePosition(q=q, p=p, t=t)
+    >>> isinstance(w3.q, cx.SphericalPosition)
+    True
+
+    Of course a similar effect can be achieved by using the
+    `coordinax.represent_as` function (or convenience method on the phase-space
+    position):
+
+    >>> w4 = cx.represent_as(w3, cx.SphericalPosition, cx.CartesianVelocity3D)
+    >>> w4
+    PhaseSpacePosition(
+      q=SphericalPosition( ... ),
+      p=CartesianVelocity3D( ... ),
+      t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
+    )
 
     """
 

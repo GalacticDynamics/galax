@@ -38,6 +38,9 @@ class ComponentShapeTuple(NamedTuple):
     """Shape of the time component."""
 
 
+# =============================================================================
+
+
 class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     r"""ABC underlying phase-space positions and their composites.
 
@@ -293,9 +296,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         batch, comps = self._shape_tuple
         cart = self.represent_as(cx.CartesianPosition3D)
         q = jnp.broadcast_to(convert(cart.q, FastQ).decompose(usys), (*batch, comps.q))
-        p = jnp.broadcast_to(  # TODO: convert to FastQ
-            convert(cart.p, Quantity).decompose(usys), (*batch, comps.p)
-        )
+        p = jnp.broadcast_to(convert(cart.p, FastQ).decompose(usys), (*batch, comps.p))
         return jnp.concat((q.value, p.value), axis=-1)
 
     def wt(self, *, units: Any) -> gt.BatchVec7:
@@ -333,8 +334,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
         cart = self.represent_as(cx.CartesianPosition3D).to_units(usys)
-        q = jnp.broadcast_to(convert(cart.q, Quantity), (*batch, comps.q))
-        p = jnp.broadcast_to(convert(cart.p, Quantity), (*batch, comps.p))
+        q = jnp.broadcast_to(convert(cart.q, FastQ), (*batch, comps.q))
+        p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))
         t = jnp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
         return jnp.concat((t, q.value, p.value), axis=-1)
 

@@ -19,9 +19,6 @@ import galax.typing as gt
 from .core import Integrator
 from galax.dynamics._src.orbit import Orbit
 
-##############################################################################
-
-
 # TODO: enable setting the default integrator
 _default_integrator: Integrator = Integrator()
 
@@ -32,7 +29,6 @@ _select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
 
 
 @dispatch
-# @partial(jax.jit, static_argnames=("integrator", "interpolated"))
 def evaluate_orbit(
     pot: gp.AbstractPotentialBase,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
@@ -239,13 +235,12 @@ def evaluate_orbit(
         units=units,
         interpolated=interpolated,
     )
-    wt = t
 
     # Construct the orbit object
     return Orbit(
         q=ws.q,
         p=ws.p,
-        t=wt,
+        t=t,
         interpolant=getattr(ws, "interpolant", None),
         potential=pot,
     )

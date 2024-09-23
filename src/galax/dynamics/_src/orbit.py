@@ -4,7 +4,7 @@ __all__ = ["Orbit"]
 
 from dataclasses import KW_ONLY, replace
 from functools import partial
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, ClassVar, overload
 
 import equinox as eqx
 import jax
@@ -16,6 +16,7 @@ from unxt import Quantity
 import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
+from .orbit_plot import PlotOrbitDescriptor, ProxyOrbit
 from galax.coordinates._src.psps.utils import HasShape, getitem_vec1time_index
 from galax.typing import BatchFloatQScalar, QVec1, QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
@@ -103,6 +104,11 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         # Need to ensure t shape is correct. Can be Vec0.
         if self.t.ndim == 0:
             object.__setattr__(self, "t", self.t[None])
+
+    # -------------------------------------------------------------------------
+
+    plot: ClassVar = PlotOrbitDescriptor()
+    """Plot the orbit."""
 
     # ==========================================================================
     # Interpolation
@@ -204,3 +210,6 @@ class Orbit(gc.AbstractPhaseSpacePosition):
             The kinetic energy.
         """
         return self.kinetic_energy() + self.potential_energy(potential)
+
+
+ProxyOrbit.deliver(Orbit)

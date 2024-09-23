@@ -133,6 +133,7 @@ filterwarnings = [
   "ignore:Passing arguments 'a':DeprecationWarning",  # TODO: from diffrax
   "ignore:jax\\.core\\.pp_eqn_rules is deprecated:DeprecationWarning",
   "ignore:unhashable type:FutureWarning",  # TODO: from diffrax
+  "ignore:auto\\-close\\(\\)ing of figures upon backend switching is deprecated:DeprecationWarning",
 ]
 log_cli_level = "INFO"
 markers = [

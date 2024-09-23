@@ -4,6 +4,7 @@ __all__ = [
     # Modules
     "integrate",
     "mockstream",
+    "plot",
     # orbit, et al.
     "Orbit",
     # integrate
@@ -28,7 +29,7 @@ from jaxtyping import install_import_hook
 from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
-    from . import integrate, mockstream
+    from . import integrate, mockstream, plot
     from ._src.funcs import (
         lagrange_points,
         specific_angular_momentum,

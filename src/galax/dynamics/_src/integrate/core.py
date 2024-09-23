@@ -416,7 +416,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     def __call__(
         self,
         F: VectorField,
-        y0: Shaped[gt.Vec6, "*#batch"],
+        y0: gt.BatchableVec6,
         t0: Shaped[Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
         t1: Shaped[Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
         /,

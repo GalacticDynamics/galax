@@ -16,23 +16,6 @@ class HasShape(Protocol):
     shape: gt.Shape
 
 
-def _getitem_broadscalartime_index_tuple(
-    index: tuple[Any, ...],
-    t: gt.FloatQAnyShape,  # noqa: ARG001
-) -> Any:
-    """Get the time index from a slice."""
-    if len(index) == 0:  # slice is an empty tuple
-        return slice(None)
-    return index
-
-
-def getitem_broadscalartime_index(index: Any, t: gt.FloatQAnyShape) -> Any:
-    """Get the time index from an index."""
-    if isinstance(index, tuple):
-        return _getitem_broadscalartime_index_tuple(index, t)
-    return index
-
-
 # -----------------------------------------------------------------------------
 
 

@@ -13,21 +13,17 @@ import coordinax as cx
 import quaxed.numpy as jnp
 from unxt import Quantity
 
+import galax.coordinates as gc
 import galax.typing as gt
-from galax.coordinates import (
-    AbstractCompositePhaseSpacePosition,
-    AbstractPhaseSpacePosition,
-    ComponentShapeTuple,
-)
 from galax.coordinates._src.psps.utils import getitem_vec1time_index
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 if TYPE_CHECKING:
-    from typing import Self
+    pass
 
 
 @final
-class MockStreamArm(AbstractPhaseSpacePosition):
+class MockStreamArm(gc.AbstractPhaseSpacePosition):
     """Component of a mock stream object.
 
     Parameters
@@ -58,14 +54,18 @@ class MockStreamArm(AbstractPhaseSpacePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
+    def _shape_tuple(self) -> tuple[gt.Shape, gc.ComponentShapeTuple]:
         """Batch ."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
         tbatch, _ = batched_shape(self.t, expect_ndim=0)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
-        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
+        return batch_shape, gc.ComponentShapeTuple(q=qshape, p=pshape, t=1)
 
+    # -------------------------------------------------------------------------
+    # Getitem
+
+    # TODO: switch to dispatch
     def __getitem__(self, index: Any) -> "Self":
         """Return a new object with the given slice applied."""
         # Compute subindex
@@ -84,7 +84,7 @@ class MockStreamArm(AbstractPhaseSpacePosition):
 
 
 @final
-class MockStream(AbstractCompositePhaseSpacePosition):
+class MockStream(gc.AbstractCompositePhaseSpacePosition):
     _time_sorter: Shaped[Array, "alltimes"]
 
     def __init__(

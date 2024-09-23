@@ -127,15 +127,6 @@ class AbstractCompositePhaseSpacePosition(
     # ==========================================================================
     # Array properties
 
-    def __getitem__(self, key: Any) -> "Self":
-        """Get item from the key."""
-        # Get specific item
-        if isinstance(key, str):
-            return self._data[key]
-
-        # Get from each value, e.g. a slice
-        return type(self)(**{k: v[key] for k, v in self.items()})
-
     @property
     def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
         """Batch and component shapes.
@@ -170,6 +161,68 @@ class AbstractCompositePhaseSpacePosition(
         # Length is the sum of the lengths of the components.
         # For length-0 components, we assume a length of 1.
         return sum([len(w) or 1 for w in self.values()])
+
+    # ---------------------------------------------------------------
+    # Getitem
+
+    @AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    def __getitem__(
+        self: "AbstractCompositePhaseSpacePosition", key: Any
+    ) -> "AbstractCompositePhaseSpacePosition":
+        """Get item from the key.
+
+        Examples
+        --------
+        >>> from unxt import Quantity
+        >>> import galax.coordinates as gc
+
+        >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+        ...                            p=Quantity([4, 5, 6], "m/s"),
+        ...                            t=Quantity(7.0, "s"))
+        >>> w2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
+        ...                            p=Quantity([4.5, 5.5, 6.5], "m/s"),
+        ...                            t=Quantity(6.0, "s"))
+        >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
+
+        >>> cw[...]
+        CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
+            t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
+          ), 'w2': PhaseSpacePosition(
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
+            t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
+        )})
+
+        """
+        # Get from each value, e.g. a slice
+        return type(self)(**{k: v[key] for k, v in self.items()})
+
+    @AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    def __getitem__(
+        self: "AbstractCompositePhaseSpacePosition", key: str
+    ) -> AbstractBasePhaseSpacePosition:
+        """Get item from the key.
+
+        Examples
+        --------
+        >>> from unxt import Quantity
+        >>> import galax.coordinates as gc
+
+        >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+        ...                            p=Quantity([4, 5, 6], "m/s"),
+        ...                            t=Quantity(7.0, "s"))
+        >>> w2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
+        ...                            p=Quantity([4.5, 5.5, 6.5], "m/s"),
+        ...                            t=Quantity(6.0, "s"))
+        >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
+
+        >>> cw["w1"] is w1
+        True
+
+        """
+        return self._data[key]
 
     # ==========================================================================
     # Convenience methods

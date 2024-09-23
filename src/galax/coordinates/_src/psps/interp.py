@@ -14,7 +14,7 @@ import galax.typing as gt
 from .base import ComponentShapeTuple
 from .base_psp import AbstractPhaseSpacePosition
 from .core import PhaseSpacePosition
-from galax.utils._shape import batched_shape, expand_batch_dims, vector_batched_shape
+from galax.utils._shape import batched_shape, vector_batched_shape
 
 
 @runtime_checkable
@@ -68,13 +68,6 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
 
     interpolant: PhaseSpacePositionInterpolant
     """The interpolation function."""
-
-    def __post_init__(self) -> None:
-        """Post-initialization."""
-        # Need to ensure t shape is correct. Can be Vec0.
-        if self.t.ndim in (0, 1):
-            t = expand_batch_dims(self.t, ndim=self.q.ndim - self.t.ndim)
-            object.__setattr__(self, "t", t)
 
     def __call__(self, t: gt.BatchFloatQScalar) -> PhaseSpacePosition:
         """Call the interpolation."""

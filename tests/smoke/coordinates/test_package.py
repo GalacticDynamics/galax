@@ -6,6 +6,7 @@ from galax.coordinates._src.psps import (
     base_composite,
     base_psp,
     core,
+    core_composite,
     interp,
     utils,
 )
@@ -19,6 +20,7 @@ def test_all() -> None:
         *base_psp.__all__,
         *base_composite.__all__,
         *core.__all__,
+        *core_composite.__all__,
         *interp.__all__,
         *utils.__all__,
     }

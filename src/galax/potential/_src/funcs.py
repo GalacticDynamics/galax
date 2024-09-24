@@ -983,7 +983,7 @@ def hessian(
 
     Returns
     -------
-    H : gt.BatchQMatrix33
+    H : Quantity[float, (*batch, 3, 3), '1/time^2']
         The hessian matrix of the potential.
 
     Examples
@@ -1009,7 +1009,7 @@ def hessian(
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
-                    unit='1 / Myr2')
+                  unit='1 / Myr2')
 
     We can also compute the potential energy at multiple positions and times:
 
@@ -1023,7 +1023,7 @@ def hessian(
                           [[ 0.00250749, -0.00518791, -0.00622549],
                           [-0.00518791,  0.00017293, -0.00778186],
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
-                    unit='1 / Myr2')
+                  unit='1 / Myr2')
 
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
@@ -1033,7 +1033,7 @@ def hessian(
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
-                    unit='1 / Myr2')
+                  unit='1 / Myr2')
     """
     q = parse_to_quantity(pspt.q, units=pot.units)
     return pot._hessian(q, pspt.t)  # noqa: SLF001

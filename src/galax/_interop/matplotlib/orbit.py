@@ -5,11 +5,11 @@ from typing import Any, Protocol, runtime_checkable
 from matplotlib.axes import Axes
 from plum import dispatch
 
+from plotting_backends import MatplotlibBackend
 from unxt import AbstractQuantity, ustrip
 
 import galax.dynamics as gd
 from .potential import _get_figure
-from galax.utils.plot import MatplotlibBackend
 
 
 def _get_component(orbit: gd.Orbit, coord: str) -> AbstractQuantity:

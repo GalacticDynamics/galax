@@ -11,10 +11,10 @@ from matplotlib.figure import Figure
 from plum import dispatch
 
 import quaxed.numpy as jnp
+from plotting_backends import MatplotlibBackend
 from unxt import Quantity, uconvert, ustrip
 
 from galax.potential._src.base import AbstractPotentialBase
-from galax.utils.plot import MatplotlibBackend
 
 
 def _get_figure(

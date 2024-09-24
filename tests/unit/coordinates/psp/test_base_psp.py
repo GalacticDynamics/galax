@@ -1,4 +1,4 @@
-"""Test :attr:`~galax.coordinates._base`."""
+"""Test `galax.coordinates.AbstractPhaseSpacePosition`."""
 
 from __future__ import annotations
 

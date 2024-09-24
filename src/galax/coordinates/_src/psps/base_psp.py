@@ -34,6 +34,7 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
         Conjugate momenta at positions ``q``.
     t : :class:`~unxt.Quantity`
         Time corresponding to the positions and momenta.
+
     """
 
     # ==========================================================================

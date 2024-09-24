@@ -15,6 +15,7 @@ with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
     from ._src.psps.base_composite import *
     from ._src.psps.base_psp import *
     from ._src.psps.core import *
+    from ._src.psps.core_composite import *
     from ._src.psps.interp import *
     from ._src.psps.utils import *
 
@@ -23,6 +24,7 @@ __all__ += psps.base.__all__
 __all__ += psps.base_psp.__all__
 __all__ += psps.base_composite.__all__
 __all__ += psps.core.__all__
+__all__ += psps.core_composite.__all__
 __all__ += psps.interp.__all__
 __all__ += psps.utils.__all__
 

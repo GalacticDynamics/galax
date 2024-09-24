@@ -1,7 +1,6 @@
-from __future__ import annotations
+"""Test the `galax.potential.MilkyWayPotential` class."""
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
 from typing_extensions import override
 
 import pytest
@@ -11,13 +10,9 @@ import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
+import galax.potential as gp
 import galax.typing as gt
 from ...test_composite import AbstractCompositePotential_Test
-from galax.potential import MilkyWayPotential
-
-if TYPE_CHECKING:
-    from galax.potential import AbstractPotentialBase
-
 
 ##############################################################################
 
@@ -26,12 +21,12 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     """Test the `galax.potential.MilkyWayPotential` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[MilkyWayPotential]:
-        return MilkyWayPotential
+    def pot_cls(self) -> type[gp.MilkyWayPotential]:
+        return gp.MilkyWayPotential
 
     @pytest.fixture(scope="class")
     def pot_map(
-        self, pot_cls: type[MilkyWayPotential]
+        self, pot_cls: type[gp.MilkyWayPotential]
     ) -> dict[str, dict[str, Quantity]]:
         """Composite potential."""
         return {
@@ -42,7 +37,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         }
 
     @pytest.fixture(scope="class")
-    def pot_map_unitless(self, pot_map) -> Mapping[str, AbstractPotentialBase]:
+    def pot_map_unitless(self, pot_map) -> Mapping[str, gp.AbstractPotentialBase]:
         """Composite potential."""
         return {k: {kk: vv.value for kk, vv in v.items()} for k, v in pot_map.items()}
 
@@ -51,8 +46,8 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_args(
         self,
-        pot_cls: type[MilkyWayPotential],
-        pot_map: Mapping[str, AbstractPotentialBase],
+        pot_cls: type[gp.MilkyWayPotential],
+        pot_map: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
         """Test unit system from None."""
         pot = pot_cls(**pot_map, units=None)
@@ -60,14 +55,14 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
 
     # ==========================================================================
 
-    def test_potential(self, pot: MilkyWayPotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: gp.MilkyWayPotential, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential.potential` method."""
         expect = Quantity(-0.19386052, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: MilkyWayPotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: gp.MilkyWayPotential, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential.gradient` method."""
         expect = Quantity(
             [0.00256407, 0.00512815, 0.01115285], pot.units["acceleration"]
@@ -75,14 +70,14 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         got = convert(pot.gradient(x, t=0), Quantity)
         assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: MilkyWayPotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: gp.MilkyWayPotential, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential.density` method."""
         expect = Quantity(33_365_858.46361218, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: MilkyWayPotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: gp.MilkyWayPotential, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential.hessian` method."""
         expect = Quantity(
             [
@@ -99,7 +94,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [

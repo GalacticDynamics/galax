@@ -1,6 +1,6 @@
-from __future__ import annotations
+"""Unit tests for the `galax.potential.BovyMWPotential2014` class."""
 
-from typing import TYPE_CHECKING
+from collections.abc import Mapping
 from typing_extensions import override
 
 import pytest
@@ -15,10 +15,6 @@ import galax.typing as gt
 from ...io.test_gala import parametrize_test_method_gala
 from ...test_composite import AbstractCompositePotential_Test
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps
-from galax.potential import BovyMWPotential2014
-
-if TYPE_CHECKING:
-    from galax.potential import AbstractPotentialBase
 
 
 class TestBovyMWPotential2014(AbstractCompositePotential_Test):
@@ -30,7 +26,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
 
     @pytest.fixture(scope="class")
     def pot_map(
-        self, pot_cls: type[BovyMWPotential2014]
+        self, pot_cls: type[gp.BovyMWPotential2014]
     ) -> dict[str, dict[str, Quantity]]:
         """Composite potential."""
         return {
@@ -44,8 +40,8 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_args(
         self,
-        pot_cls: type[MilkyWayPotential],
-        pot_map: Mapping[str, AbstractPotentialBase],
+        pot_cls: type[gp.MilkyWayPotential],
+        pot_map: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
         """Test unit system from None."""
         pot = pot_cls(**pot_map, units=None)
@@ -53,24 +49,24 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
 
     # ==========================================================================
 
-    def test_potential(self, pot: BovyMWPotential2014, x: gt.QVec3) -> None:
+    def test_potential(self, pot: gp.BovyMWPotential2014, x: gt.QVec3) -> None:
         expect = Quantity(-0.09550731, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: BovyMWPotential2014, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: gp.BovyMWPotential2014, x: gt.QVec3) -> None:
         expect = Quantity([0.00231875, 0.0046375, 0.01042675], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), Quantity)
         assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: BovyMWPotential2014, x: gt.QVec3) -> None:
+    def test_density(self, pot: gp.BovyMWPotential2014, x: gt.QVec3) -> None:
         expect = Quantity(24_911_277.33877818, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: BovyMWPotential2014, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: gp.BovyMWPotential2014, x: gt.QVec3) -> None:
         expect = Quantity(
             [
                 [0.00208414, -0.00046922, -0.0009568],
@@ -86,7 +82,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [
@@ -117,7 +113,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
     @parametrize_test_method_gala
     def test_method_gala(
         self,
-        pot: BovyMWPotential2014,
+        pot: gp.BovyMWPotential2014,
         method0: str,
         method1: str,
         x: gt.QVec3,

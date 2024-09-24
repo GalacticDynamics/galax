@@ -38,6 +38,7 @@ dependencies = [
   "jaxtyping >= 0.2.33",
   "optional_dependencies >= 0.3",
   "packaging",  # for optional dependencies
+  "plotting_backends >= 0.1",
   "quax >= 0.0.4",
   "quaxed >= 0.6.2",
   "typing_extensions >= 4.11",
@@ -273,6 +274,7 @@ known-first-party = [
   "galactic_dynamics_interoperability",
   "is_annotated",
   "optional_dependencies",
+  "plotting_backends",
   "quaxed",
   "unxt",
   "xmmutablemap",

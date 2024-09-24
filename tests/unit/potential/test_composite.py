@@ -1,8 +1,8 @@
-from __future__ import annotations
+"""Tests for the `galax.potential.CompositePotential` class."""
 
 from collections.abc import Mapping
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from typing_extensions import override
 
 import astropy.units as u
@@ -19,13 +19,6 @@ from .test_base import AbstractPotentialBase_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.typing import Vec3
 
-if TYPE_CHECKING:
-    from galax.potential import (
-        AbstractCompositePotential,
-        AbstractPotentialBase,
-        CompositePotential,
-    )
-
 
 # TODO: write the base-class test
 class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSystemMixin):
@@ -34,9 +27,9 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     @pytest.fixture(scope="class")
     def pot(
         self,
-        pot_cls: type[AbstractCompositePotential],
+        pot_cls: type[gp.AbstractCompositePotential],
         pot_map: Mapping[str, Any],
-    ) -> AbstractCompositePotential:
+    ) -> gp.AbstractCompositePotential:
         """Composite potential."""
         return pot_cls(**pot_map)
 
@@ -47,7 +40,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     @override
     def test_init_units_invalid(
         self,
-        pot_cls: type[AbstractCompositePotential],
+        pot_cls: type[gp.AbstractCompositePotential],
         pot_map: Mapping[str, Any],
     ) -> None:
         """Test invalid unit system."""
@@ -59,7 +52,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     @override
     def test_init_units_from_usys(
         self,
-        pot_cls: type[AbstractCompositePotential],
+        pot_cls: type[gp.AbstractCompositePotential],
         pot_map: Mapping[str, Any],
     ) -> None:
         """Test unit system from unitsystem."""
@@ -69,7 +62,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     @override
     def test_init_units_from_tuple(
         self,
-        pot_cls: type[AbstractCompositePotential],
+        pot_cls: type[gp.AbstractCompositePotential],
         pot_map: Mapping[str, Any],
     ) -> None:
         """Test unit system from tuple."""
@@ -79,8 +72,8 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     @override
     def test_init_units_from_name(
         self,
-        pot_cls: type[MilkyWayPotential],
-        pot_map: Mapping[str, AbstractPotentialBase],
+        pot_cls: type[gp.MilkyWayPotential],
+        pot_map: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
         """Test unit system from named string."""
         # TODO: sort this out
@@ -102,12 +95,12 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     # --------------------------
     # `__or__`
 
-    def test_or_incorrect(self, pot: AbstractCompositePotential) -> None:
+    def test_or_incorrect(self, pot: gp.AbstractCompositePotential) -> None:
         """Test the `__or__` method with incorrect inputs."""
         with pytest.raises(TypeError, match="unsupported operand type"):
             _ = pot | 1
 
-    def test_or_pot(self, pot: AbstractCompositePotential) -> None:
+    def test_or_pot(self, pot: gp.AbstractCompositePotential) -> None:
         """Test the `__or__` method with a single potential."""
         single_pot = gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic)
         newpot = pot | single_pot
@@ -118,7 +111,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
         assert isinstance(newkey, str)
         assert newvalue is single_pot
 
-    def test_or_compot(self, pot: AbstractCompositePotential) -> None:
+    def test_or_compot(self, pot: gp.AbstractCompositePotential) -> None:
         """Test the `__or__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
             kep1=gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
@@ -139,12 +132,12 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     # --------------------------
     # `__ror__`
 
-    def test_ror_incorrect(self, pot: CompositePotential) -> None:
+    def test_ror_incorrect(self, pot: gp.CompositePotential) -> None:
         """Test the `__or__` method with incorrect inputs."""
         with pytest.raises(TypeError, match="unsupported operand type"):
             _ = 1 | pot
 
-    def test_ror_pot(self, pot: CompositePotential) -> None:
+    def test_ror_pot(self, pot: gp.CompositePotential) -> None:
         """Test the `__ror__` method with a single potential."""
         single_pot = gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic)
         newpot = single_pot | pot
@@ -155,7 +148,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
         assert isinstance(newkey, str)
         assert newvalue is single_pot
 
-    def test_ror_compot(self, pot: CompositePotential) -> None:
+    def test_ror_compot(self, pot: gp.CompositePotential) -> None:
         """Test the `__ror__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
             kep1=gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
@@ -176,13 +169,13 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
     # --------------------------
     # `__add__`
 
-    def test_add_incorrect(self, pot: CompositePotential) -> None:
+    def test_add_incorrect(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with incorrect inputs."""
         # TODO: specific error
         with pytest.raises(Exception):  # noqa: B017, PT011
             _ = pot + 1
 
-    def test_add_pot(self, pot: CompositePotential) -> None:
+    def test_add_pot(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with a single potential."""
         single_pot = gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic)
         newpot = pot + single_pot
@@ -193,7 +186,7 @@ class AbstractCompositePotential_Test(AbstractPotentialBase_Test, FieldUnitSyste
         assert isinstance(newkey, str)
         assert newvalue is single_pot
 
-    def test_add_compot(self, pot: CompositePotential) -> None:
+    def test_add_compot(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
             kep1=gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
@@ -216,12 +209,12 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     """Test the `galax.potential.CompositePotential` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[CompositePotential]:
+    def pot_cls(self) -> type[gp.CompositePotential]:
         """Composite potential class."""
         return gp.CompositePotential
 
     @pytest.fixture(scope="class")
-    def pot_map(self) -> Mapping[str, AbstractPotentialBase]:
+    def pot_map(self) -> Mapping[str, gp.AbstractPotentialBase]:
         """Composite potential."""
         return {
             "disk": gp.MiyamotoNagaiPotential(
@@ -254,8 +247,8 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_usys(
         self,
-        pot_cls: type[AbstractCompositePotential],
-        pot_map: Mapping[str, AbstractPotentialBase],
+        pot_cls: type[gp.AbstractCompositePotential],
+        pot_map: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
         """Test unit system from UnitSystem."""
         usys = unitsystem(u.km, u.s, u.Msun, u.radian)
@@ -266,8 +259,8 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_args(
         self,
-        pot_cls: type[CompositePotential],
-        pot_map: Mapping[str, AbstractPotentialBase],
+        pot_cls: type[gp.CompositePotential],
+        pot_map: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
         """Test unit system from None."""
         pot = pot_cls(**pot_map, units=None)
@@ -276,8 +269,8 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_tuple(
         self,
-        pot_cls: type[CompositePotential],
-        pot_map: Mapping[str, AbstractPotentialBase],
+        pot_cls: type[gp.AbstractCompositePotential],
+        pot_map: Mapping[str, gp.AbstractPotentialBase],
     ) -> None:
         """Test unit system from tuple."""
         units = (u.km, u.s, u.Msun, u.radian)
@@ -287,8 +280,8 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     @override
     def test_init_units_from_name(
         self,
-        pot_cls: type[CompositePotential],
-        pot_map: Mapping[str, AbstractPotentialBase],
+        pot_cls: type[gp.CompositePotential],
+        pot_map: Mapping[str, gp.AbstractPotentialBase],
         # pot_map_unitless: Mapping[str, AbstractPotentialBase],
     ) -> None:
         """Test unit system from named string."""
@@ -315,26 +308,26 @@ class TestCompositePotential(AbstractCompositePotential_Test):
 
     # ==========================================================================
 
-    def test_potential(self, pot: CompositePotential, x: Vec3) -> None:
+    def test_potential(self, pot: gp.CompositePotential, x: Vec3) -> None:
         expect = Quantity(jnp.asarray(-0.6753781), "kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: CompositePotential, x: Vec3) -> None:
+    def test_gradient(self, pot: gp.CompositePotential, x: Vec3) -> None:
         expect = Quantity(
             [0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), Quantity)
         assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: CompositePotential, x: Vec3) -> None:
+    def test_density(self, pot: gp.CompositePotential, x: Vec3) -> None:
         expect = Quantity(2.7958598e08, "Msun / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: CompositePotential, x: Vec3) -> None:
+    def test_hessian(self, pot: gp.CompositePotential, x: Vec3) -> None:
         expect = Quantity(
             jnp.asarray(
                 [
@@ -352,7 +345,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: Vec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: Vec3) -> None:
         """Test the `AbstractPotentialBase.tidal_tensor` method."""
         expect = Quantity(
             [

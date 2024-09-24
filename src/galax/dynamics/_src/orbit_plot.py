@@ -11,8 +11,9 @@ from typing import Any
 
 from plum import PromisedType, dispatch
 
+from plotting_backends import AbstractPlottingBackend, MatplotlibBackend
+
 from galax.utils._boundinstance import BndTo, InstanceDescriptor
-from galax.utils.plot import AbstractPlottingBackend, MatplotlibBackend
 
 ProxyOrbit = PromisedType("Orbit")
 

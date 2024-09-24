@@ -1,7 +1,5 @@
 """Doctest configuration."""
 
-from __future__ import annotations
-
 from doctest import ELLIPSIS, NORMALIZE_WHITESPACE
 
 from sybil import Sybil

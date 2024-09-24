@@ -8,7 +8,7 @@ from typing import TypeAlias
 import astropy.units as u
 from jaxtyping import Array, Float, Integer, Shaped
 
-from unxt import Quantity
+from unxt import AbstractQuantity, Quantity
 
 # =============================================================================
 
@@ -22,12 +22,12 @@ UnitEquivalency: TypeAlias = u.Equivalency
 
 # An integer scalar.
 IntScalar = Integer[Array, ""]
-IntQScalar = Integer[Quantity, ""]
+IntQScalar = Integer[AbstractQuantity, ""]
 IntLike = IntScalar | int
 
 # A float scalar.
 FloatScalar = Float[Array, ""]
-FloatQScalar = Float[Quantity, ""]
+FloatQScalar = Float[AbstractQuantity, ""]
 
 FloatLike = FloatScalar | float | int
 """A float(/int) or float scalar."""
@@ -48,11 +48,11 @@ RealScalarLike = FloatLike | IntLike
 
 # 1-vector
 Vec1 = Float[Array, "1"]
-QVec1 = Float[Quantity, "1"]
+QVec1 = Float[AbstractQuantity, "1"]
 
 # A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz).
 Vec3 = Float[Array, "3"]
-QVec3 = Float[Quantity, "3"]
+QVec3 = Float[AbstractQuantity, "3"]
 
 Vec4 = Float[Array, "4"]
 """A 4-vector e.g. w=(t, x, y, z)."""
@@ -71,7 +71,7 @@ VecN = Float[Array, "N"]
 
 # Time vector
 VecTime = Float[Array, "time"]
-QVecTime = Float[Quantity, "time"]
+QVecTime = Float[AbstractQuantity, "time"]
 VecTime1 = Float[Vec1, "time"]
 VecTime3 = Float[Vec3, "time"]
 VecTime6 = Float[Vec6, "time"]
@@ -121,13 +121,13 @@ BatchQVecTime = Shaped[QVecTime, "*batch"]
 # Any Shape
 
 # A float array with any shape.
-FloatQAnyShape = Float[Quantity, "..."]
+FloatQAnyShape = Float[AbstractQuantity, "..."]
 
 
 # =============================================================================
 # Matrices
 
-QMatrix33 = Float[Quantity, "3 3"]
+QMatrix33 = Float[AbstractQuantity, "3 3"]
 BatchQMatrix33 = Shaped[QMatrix33, "*batch"]
 
 

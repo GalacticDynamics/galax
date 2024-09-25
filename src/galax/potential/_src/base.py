@@ -84,10 +84,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
                 if isinstance(value, APYQuantity):  # TODO: remove this
-                    value = value.to_units_value(
-                        usys[f.metadata.get("dimensions")],
-                        equivalencies=f.metadata.get("equivalencies", None),
-                    )
+                    value = value.to_value(usys[f.metadata.get("dimensions")])
                     object.__setattr__(self, f.name, value)
 
         # Do unit conversion for the constants

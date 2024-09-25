@@ -1,6 +1,5 @@
 """Type hints for galax."""
 
-# TODO: Finalize variable names and make everything public.
 __all__: list[str] = []
 
 from typing import TypeAlias
@@ -15,7 +14,6 @@ from unxt import AbstractQuantity, Quantity
 Shape: TypeAlias = tuple[int, ...]
 Dimension: TypeAlias = u.PhysicalType
 Unit: TypeAlias = u.Unit | u.UnitBase | u.CompositeUnit
-UnitEquivalency: TypeAlias = u.Equivalency
 
 # =============================================================================
 # Scalars
@@ -54,9 +52,6 @@ QVec1 = Float[AbstractQuantity, "1"]
 Vec3 = Float[Array, "3"]
 QVec3 = Float[AbstractQuantity, "3"]
 
-Vec4 = Float[Array, "4"]
-"""A 4-vector e.g. w=(t, x, y, z)."""
-
 Vec6 = Float[Array, "6"]
 """A 6-vector e.g. w=(x, y, z, vx, vy, vz)."""
 
@@ -72,10 +67,6 @@ VecN = Float[Array, "N"]
 # Time vector
 VecTime = Float[Array, "time"]
 QVecTime = Float[AbstractQuantity, "time"]
-VecTime1 = Float[Vec1, "time"]
-VecTime3 = Float[Vec3, "time"]
-VecTime6 = Float[Vec6, "time"]
-VecTime7 = Float[Vec7, "time"]
 
 # -----------------------------------------------------------------------------
 # Vector Batches
@@ -92,8 +83,6 @@ BatchFloatQScalar = Shaped[FloatQScalar, "*batch"]
 BatchRealQScalar = Shaped[RealQScalar, "*batch"]
 BatchableRealScalar = Shaped[RealScalar, "*#batch"]
 BatchableRealQScalar = Shaped[RealQScalar, "*#batch"]
-
-BatchableRealScalarLike = BatchableRealScalar | RealScalarLike
 
 # -----------------
 # Batched
@@ -133,7 +122,6 @@ TimeScalar = Shaped[Quantity["time"], ""]
 TimeBatchScalar = Shaped[Quantity["time"], "*batch"]
 TimeBatchableScalar = Shaped[Quantity["time"], "*#batch"]
 
-LengthScalar = Shaped[Quantity["length"], ""]
 LengthVec3 = Shaped[Quantity["length"], "3"]
 LengthBatchVec3 = Shaped[LengthVec3, "*batch"]
 LengthBatchableVec3 = Shaped[LengthVec3, "*#batch"]

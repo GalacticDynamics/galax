@@ -230,20 +230,6 @@ class PotentialFrame(AbstractPotentialBase):
         # Evaluate the potential energy at the transformed position, time.
         return self.original_potential._potential(qp, tp)  # noqa: SLF001
 
-    # ruff: noqa: ERA001
-    # def _gradient(
-    #     self, q: BatchVec3, /, t: BatchableRealScalarLike | RealScalar
-    # ) -> BatchVec3:  # TODO: inputs w/ units
-    #     """See ``gradient``."""
-    #     # Transform the position, time.
-    #     qp, tp = self.operator.inverse(
-    #         Quantity(q, self.units["length"]), Quantity(t, self.units["time"])
-    #     )
-    #     # Evaluate the gradient at the transformed position, time.
-    #     gradp = self.potential._gradient(qp.value, tp.value)
-    #     grad, _ = self.operator(Quantity(gradp, self.units["acceleration"]), tp)
-    #     return grad.value
-
 
 #####################################################################
 

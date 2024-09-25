@@ -58,7 +58,6 @@ def field(
     static: bool = False,
     # Units stuff
     dimensions: str | gt.Dimension | None = None,
-    equivalencies: gt.UnitEquivalency | tuple[gt.UnitEquivalency, ...] | None = None,
     # Dataclass stuff
     **kwargs: Unpack[_DataclassFieldKwargsDefault[R]],
 ) -> R:
@@ -76,9 +75,6 @@ def field(
     dimensions : str or `~astropy.units.physical.PhysicalType`, optional
         The physical type of the field. See Astropy's
         `~astropy.units.physical.PhysicalType` for more information.
-    equivalencies : ``Equivalency`` or tuple thereof, optional
-        Equivalencies to use for the field. See Astropy's
-        `~astropy.units.Equivalency` for more information.
 
     **kwargs : Any
         Additional keyword arguments to pass to ``dataclasses.field``.
@@ -96,8 +92,6 @@ def field(
             if isinstance(dimensions, str)
             else dimensions
         )
-    if equivalencies is not None:
-        metadata["equivalencies"] = equivalencies
 
     # --------------------------------
     # Equinox stuff

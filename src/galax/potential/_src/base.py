@@ -21,7 +21,14 @@ from galactic_dynamics_interoperability import (
     GalaxLibrary,
     convert_potential,
 )
-from unxt import AbstractUnitSystem, Quantity, unitsystems, ustrip
+from unxt import (
+    AbstractQuantity,
+    AbstractUnitSystem,
+    Quantity,
+    uconvert,
+    unitsystems,
+    ustrip,
+)
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -77,14 +84,15 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             # Process ParameterFields
             param = getattr(self.__class__, f.name, None)
             if isinstance(param, ParameterField):
-                # Set, since the ``.units`` are now known
+                # Re-call setter, since the ``.units`` are now known
                 param.__set__(self, getattr(self, f.name))  # pylint: disable=C2801
 
             # Other fields, check their metadata
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
-                if isinstance(value, APYQuantity):  # TODO: remove this
-                    value = value.to_value(usys[f.metadata.get("dimensions")])
+                # Only need to set again if a conversion is needed
+                if isinstance(value, AbstractQuantity | APYQuantity):
+                    value = uconvert(usys[f.metadata.get("dimensions")], value)
                     object.__setattr__(self, f.name, value)
 
         # Do unit conversion for the constants

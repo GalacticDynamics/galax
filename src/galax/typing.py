@@ -110,14 +110,6 @@ BatchableVec6 = Shaped[Vec6, "*#batch"]
 BatchVec7 = Shaped[Vec7, "*batch"]
 
 # -----------------
-# Specific
-
-BatchVecTime = Shaped[VecTime, "*batch"]
-BatchVecTime6 = Shaped[VecTime6, "*batch"]
-BatchVecTime7 = Shaped[VecTime7, "*batch"]
-BatchQVecTime = Shaped[QVecTime, "*batch"]
-
-# -----------------
 # Any Shape
 
 # A float array with any shape.

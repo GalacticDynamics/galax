@@ -88,6 +88,8 @@ repos:
     hooks:
       - id: codespell
         exclude: ^(notebooks|AUTHORS\.rst)$
+        additional_dependencies:
+          - tomli
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: "v0.19"

@@ -101,7 +101,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         """Post-initialization."""
         # Need to ensure t shape is correct. Can be initialized as Vec0.
         if self.t.ndim == 0:
-            object.__setattr__(self, "t", self.t[None])
+            object.__setattr__(self, "t", jnp.atleast_1d(self.t))
 
     # -------------------------------------------------------------------------
 
@@ -262,13 +262,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         self: "Orbit", index: Int[Array, "..."] | Bool[Array, "..."] | ndarray
     ) -> "Orbit":
         """Get the orbit at specific indices."""
-        match index.ndim:
-            case 0:  # is this possible?
-                msg = "Invalid index."
-                raise IndexError(msg)
-            case _:
-                tindex = index
-
+        tindex = Ellipsis if index.ndim < self.ndim else index
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
     # ==========================================================================

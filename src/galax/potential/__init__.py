@@ -15,6 +15,7 @@ __all__ = [
     # builtin
     "BurkertPotential",
     "HarmonicOscillatorPotential",
+    "HenonHeilesPotential",
     "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
@@ -71,6 +72,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._src.builtin.builtin import (
         BurkertPotential,
         HarmonicOscillatorPotential,
+        HenonHeilesPotential,
         HernquistPotential,
         IsochronePotential,
         JaffePotential,

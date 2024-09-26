@@ -3,6 +3,7 @@
 __all__ = [
     "BurkertPotential",
     "HarmonicOscillatorPotential",
+    "HenonHeilesPotential",
     "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
@@ -220,6 +221,71 @@ class HarmonicOscillatorPotential(AbstractPotential):
         omega = jnp.atleast_1d(self.omega(t))
         denom = 4 * jnp.pi * self.constants["G"]
         return jnp.sum(omega**2, axis=-1) / denom
+
+
+# -------------------------------------------------------------------
+
+
+@final
+class HenonHeilesPotential(AbstractPotential):
+    r"""Henon-Heiles Potential.
+
+    This is a modified version of the [classical Henon-Heiles
+    potential](https://en.wikipedia.org/wiki/Hénon-Heiles_system).
+
+    .. math::
+
+        \Phi * t_s^2 = \frac{1}{2} (x^2 + y^2) + \lambda (x^2 y - y^3 / 3)
+
+    Note the timescale :math:`t_s` is introduced to convert the potential to
+    specific energy, from the classical area units.
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+
+    >>> pot = gp.HenonHeilesPotential(coeff=Quantity(1, "1 / kpc"),
+    ...                               timescale=Quantity(1, "Myr"),
+    ...                               units="galactic")
+    >>> pot
+    HenonHeilesPotential(
+      units=LTMAUnitSystem( ... ),
+      constants=ImmutableMap({'G': ...}),
+      coeff=ConstantParameter( ... ),
+      timescale=ConstantParameter( ... )
+    )
+
+    >>> q = Quantity([1.0, 0, 0], "kpc")
+    >>> t = Quantity(0, "Gyr")
+    >>> pot.potential(q, t)
+    Quantity['...'](Array(0.5, dtype=float64), unit='kpc2 / Myr2')
+
+    """
+
+    coeff: AbstractParameter = ParameterField(dimensions="wavenumber")  # type: ignore[assignment]
+    """Coefficient for the cubic terms."""
+
+    timescale: AbstractParameter = ParameterField(dimensions="time")  # type: ignore[assignment]
+    """Timescale of the potential.
+
+    The [classical Henon-Heiles
+    potential](https://en.wikipedia.org/wiki/Hénon-Heiles_system) has a
+    potential with units of area.
+    `galax` requires the potential to have units of specific energy, so we
+    introduce a timescale parameter to convert the potential to specific
+    energy.
+
+    """
+
+    @partial(jax.jit, inline=True)
+    def _potential(
+        self, q: gt.BatchQVec3, /, t: gt.BatchableRealQScalar
+    ) -> gt.SpecificEnergyBatchScalar:
+        ts2, coeff = self.timescale(t) ** 2, self.coeff(t)
+        x2, y = q[..., 0] ** 2, q[..., 1]
+        R2 = x2 + y**2
+        return (R2 / 2 + coeff * (x2 * y - y**3 / 3.0)) / ts2
 
 
 # -------------------------------------------------------------------

@@ -9,6 +9,8 @@ from typing import Any, ClassVar
 import equinox as eqx
 import jax
 import jax.numpy as jnp
+from jaxtyping import Array, Bool, Int
+from numpy import ndarray
 
 import coordinax as cx
 from unxt import Quantity
@@ -254,6 +256,20 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
         """
         return gc.PhaseSpacePosition(q=self.q[index], p=self.p[index], t=self.t[index])
+
+    @gc.AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    def __getitem__(
+        self: "Orbit", index: Int[Array, "..."] | Bool[Array, "..."] | ndarray
+    ) -> "Orbit":
+        """Get the orbit at specific indices."""
+        match index.ndim:
+            case 0:  # is this possible?
+                msg = "Invalid index."
+                raise IndexError(msg)
+            case _:
+                tindex = index
+
+        return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
     # ==========================================================================
     # Dynamical quantities

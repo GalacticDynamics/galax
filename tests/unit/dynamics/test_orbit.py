@@ -57,17 +57,24 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
 
     def test_getitem_boolarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        idx = jnp.ones(w.q.shape, dtype=bool)
+        idx = jnp.ones(len(w.q), dtype=bool)
         idx = idx.at[::2].set(values=False)
 
-        with pytest.raises(NotImplementedError):
-            _ = w[idx]
+        new = w[idx]
+        assert new.shape == (5,)  # 10 // 2
+        assert jnp.array_equal(new.q, w.q[idx])
+        assert jnp.array_equal(new.p, w.p[idx])
+        assert jnp.array_equal(new.t, w.t[idx])
 
     def test_getitem_intarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         idx = jnp.asarray([0, 2, 1])
-        with pytest.raises(NotImplementedError):
-            _ = w[idx]
+
+        new = w[idx]
+        assert new.shape == (3,)
+        assert jnp.array_equal(new.q, w.q[idx])
+        assert jnp.array_equal(new.p, w.p[idx])
+        assert jnp.array_equal(new.t, w.t[idx])
 
     # ===============================================================
 

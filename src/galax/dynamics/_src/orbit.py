@@ -8,11 +8,11 @@ from typing import Any, ClassVar
 
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 from jaxtyping import Array, Bool, Int
 from numpy import ndarray
 
 import coordinax as cx
+import quaxed.numpy as jnp
 from unxt import Quantity
 
 import galax.coordinates as gc

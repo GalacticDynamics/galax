@@ -1,6 +1,7 @@
 """Test :class:`~galax.dynamics._src.orbit`."""
 
 from typing import TypeVar
+from typing_extensions import override
 
 import jax.random as jr
 import pytest
@@ -10,30 +11,30 @@ import quaxed.numpy as jnp
 from unxt import Quantity
 from unxt.unitsystems import galactic
 
+import galax.coordinates as gc
+import galax.dynamics as gd
+import galax.potential as gp
 import galax.typing as gt
 from ..coordinates.psp.test_base_psp import AbstractPhaseSpacePosition_Test, return_keys
-from galax.coordinates import PhaseSpacePosition
-from galax.dynamics import Orbit
-from galax.potential import AbstractPotentialBase, MilkyWayPotential
 
-T = TypeVar("T", bound=Orbit)
+T = TypeVar("T", bound=gd.Orbit)
 
 
-class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
+class TestOrbit(AbstractPhaseSpacePosition_Test[gd.Orbit]):
     """Test :class:`~galax.coordinates.PhaseSpacePosition`."""
 
     @pytest.fixture(scope="class")
     def w_cls(self) -> type[T]:
         """Return the class of a phase-space position."""
-        return Orbit
+        return gd.Orbit
 
     @pytest.fixture(scope="class")
-    def potential(self) -> AbstractPotentialBase:
+    def potential(self) -> gp.AbstractPotentialBase:
         """Return a potential."""
-        return MilkyWayPotential()
+        return gp.MilkyWayPotential()
 
     def make_w(
-        self, w_cls: type[T], shape: gt.Shape, potential: AbstractPotentialBase
+        self, w_cls: type[T], shape: gt.Shape, potential: gp.AbstractPotentialBase
     ) -> T:
         """Return a phase-space position."""
         _, subkeys = return_keys(3)
@@ -44,7 +45,9 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
         return w_cls(q=q, p=p, t=t, potential=potential, interpolant=None)
 
     @pytest.fixture
-    def w(self, w_cls: type[T], shape: gt.Shape, potential: AbstractPotentialBase) -> T:
+    def w(
+        self, w_cls: type[T], shape: gt.Shape, potential: gp.AbstractPotentialBase
+    ) -> T:
         """Return a phase-space position."""
         return self.make_w(w_cls, shape, potential=potential)
 
@@ -53,21 +56,31 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[Orbit]):
     def test_getitem_int(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         assert not isinstance(w[0], type(w))
-        assert w[0] == PhaseSpacePosition(q=w.q[0], p=w.p[0], t=w.t[0])
+        assert w[0] == gc.PhaseSpacePosition(q=w.q[0], p=w.p[0], t=w.t[0])
 
-    def test_getitem_boolarray(self, w: T) -> None:
+    @override
+    def test_getitem_boolarray(self, w: T, shape: gt.Shape) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        idx = jnp.ones(w.q.shape, dtype=bool)
+        idx = jnp.ones(len(w.q), dtype=bool)
         idx = idx.at[::2].set(values=False)
+        tidx = Ellipsis if idx.ndim < w.ndim else idx
 
-        with pytest.raises(NotImplementedError):
-            _ = w[idx]
+        new = w[idx]
+        assert new.shape == (int(sum(idx)), *shape[1:])
+        assert jnp.array_equal(new.q, w.q[idx])
+        assert jnp.array_equal(new.p, w.p[idx])
+        assert jnp.array_equal(new.t, w.t[tidx])
 
-    def test_getitem_intarray(self, w: T) -> None:
+    def test_getitem_intarray(self, w: T, shape: gt.Shape) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         idx = jnp.asarray([0, 2, 1])
-        with pytest.raises(NotImplementedError):
-            _ = w[idx]
+        tidx = Ellipsis if idx.ndim < w.ndim else idx
+
+        new = w[idx]
+        assert new.shape == (int(sum(idx)), *shape[1:])
+        assert jnp.array_equal(new.q, w.q[idx])
+        assert jnp.array_equal(new.p, w.p[idx])
+        assert jnp.array_equal(new.t, w.t[tidx])
 
     # ===============================================================
 

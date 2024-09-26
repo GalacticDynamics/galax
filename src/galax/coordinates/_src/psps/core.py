@@ -2,6 +2,7 @@
 
 __all__ = ["PhaseSpacePosition"]
 
+from dataclasses import replace
 from functools import partial
 from typing import Any, final
 from typing_extensions import override
@@ -14,7 +15,7 @@ from dataclassish.converters import Optional
 from unxt import Quantity
 
 import galax.typing as gt
-from .base import ComponentShapeTuple
+from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
 from .base_psp import AbstractPhaseSpacePosition
 from galax.utils._shape import batched_shape, vector_batched_shape
 
@@ -115,7 +116,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.TimeBatchableScalar | gt.TimeScalar | None = eqx.field(
+    t: gt.TimeBatchableScalar | gt.VecN | gt.TimeScalar | None = eqx.field(
         default=None,
         converter=Optional(partial(Quantity["time"].constructor, dtype=float)),
     )
@@ -143,6 +144,129 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
             tshape = 1
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=tshape)
+
+    # ---------------------------------------------------------------
+    # Getitem
+
+    @AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    def __getitem__(
+        self: "PhaseSpacePosition", index: tuple[Any, ...]
+    ) -> "PhaseSpacePosition":
+        """Return a new object with the given tuple selection applied.
+
+        Examples
+        --------
+        >>> from unxt import Quantity
+        >>> import coordinax as cx
+        >>> import galax.coordinates as gc
+
+        >>> q = Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
+        >>> p = Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
+
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
+        >>> w[()] is w
+        True
+
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
+        >>> w[0, 1].q.x
+        Quantity['length'](Array(4., dtype=float64), unit='m')
+        >>> w[0, 1].t is None
+        True
+
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=Quantity(0, "Myr"))
+        >>> w[0, 1].q.x
+        Quantity['length'](Array(4., dtype=float64), unit='m')
+        >>> w[0, 1].t
+        Quantity['time'](Array(0., dtype=float64), unit='Myr')
+
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=Quantity([0], "Myr"))
+        >>> w[0, 1].q.x
+        Quantity['length'](Array(4., dtype=float64), unit='m')
+        >>> w[0, 1].t
+        Quantity['time'](Array(0., dtype=float64), unit='Myr')
+
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=Quantity([[[0],[1]]], "Myr"))
+        >>> w[0, :].t
+        Quantity['time'](Array([[0.], [1.]], dtype=float64), unit='Myr')
+
+        """
+        # Empty selection w[()] should return the same object
+        if len(index) == 0:
+            return self
+
+        # If `t` is None, then we can't index it
+        if self.t is None:
+            return replace(self, q=self.q[index], p=self.p[index])
+
+        # Handle the time index
+        #  - If `t` is a vector, then
+        match self.t.ndim:
+            case 0:  # `t` is a scalar, return as is
+                tindex = Ellipsis
+            case 1 if len(index) == self.ndim:  # apply last index
+                tindex = index[-1]
+            case _:  # apply indices as normal
+                tindex = index
+
+        return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
+
+    @AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    def __getitem__(
+        self: "PhaseSpacePosition", index: slice | int
+    ) -> "PhaseSpacePosition":
+        """Return a new object with the given slice selection applied.
+
+        Examples
+        --------
+        >>> from unxt import Quantity
+        >>> import coordinax as cx
+        >>> import galax.coordinates as gc
+
+        >>> q = Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
+        >>> p = Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
+
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
+        >>> w[0].q.x
+        Quantity['length'](Array([1., 4.], dtype=float64), unit='m')
+
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=Quantity(0, "Myr"))
+        >>> w[0].shape
+        (2,)
+        >>> w[0].t
+        Quantity['time'](Array(0., dtype=float64), unit='Myr')
+
+        >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3]], "m"),
+        ...                           p=Quantity([[4, 5, 6]], "m/s"),
+        ...                           t=Quantity([7], "s"))
+        >>> w[0].q.shape
+        ()
+        >>> w[0].t
+        Quantity['time'](Array(7., dtype=float64), unit='s')
+
+        >>> w = gc.PhaseSpacePosition(q=Quantity([[[1, 2, 3], [1, 2, 3]]], "m"),
+        ...                           p=Quantity([[[4, 5, 6], [4, 5, 6]]], "m/s"),
+        ...                           t=Quantity([[7]], "s"))
+        >>> w[0].q.shape
+        (2,)
+        >>> w[0].t
+        Quantity['time'](Array([7.], dtype=float64), unit='s')
+
+        """
+        # If `t` is None, then we can't index it
+        if self.t is None:
+            return replace(self, q=self.q[index], p=self.p[index])
+
+        # Handle the time index
+        match self.t.ndim:
+            case 0:  # `t` is a scalar, return as is
+                tindex = Ellipsis
+            case 1 if self.ndim > 1:  # t vec on batched q, p
+                tindex = Ellipsis
+            case _:  # apply index as normal
+                tindex = index
+
+        # TODO: have to broadcast q, p
+        return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
     # ==========================================================================
     # Convenience methods

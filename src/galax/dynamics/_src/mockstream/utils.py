@@ -3,21 +3,16 @@
 __all__: list[str] = []
 
 from functools import partial
-from typing import Any, Protocol, TypeVar, cast, runtime_checkable
+from typing import TypeVar, cast
 
 import jax
 from jaxtyping import Array, Bool
 from quax import quaxify
 
+from galax.utils._types import SupportsGetItem
+
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
-
-
-@runtime_checkable
-class SupportsGetItem(Protocol[T_co]):
-    """Protocol for types that support the `__getitem__` method."""
-
-    def __getitem__(self, key: Any) -> T_co: ...
 
 
 def _identity(x: T) -> T:

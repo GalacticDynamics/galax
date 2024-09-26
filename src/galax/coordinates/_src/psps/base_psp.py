@@ -11,7 +11,6 @@ import coordinax as cx
 from unxt import uconvert, unitsystem
 
 from .base import AbstractBasePhaseSpacePosition
-from .utils import getitem_broadscalartime_index
 
 if TYPE_CHECKING:
     from typing import Self
@@ -36,16 +35,6 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
         Time corresponding to the positions and momenta.
 
     """
-
-    # ==========================================================================
-    # Array properties
-
-    def __getitem__(self, index: Any) -> "Self":
-        """Return a new object with the given slice applied."""
-        # Compute subindex
-        subindex = getitem_broadscalartime_index(index, self.t)
-        # Apply slice
-        return replace(self, q=self.q[index], p=self.p[index], t=self.t[subindex])
 
     # ==========================================================================
     # Convenience methods

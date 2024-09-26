@@ -42,7 +42,7 @@ def return_keys(num: int, key: Array | int = 0) -> Iterable[jr.PRNGKey]:
 class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
     """Test :class:`~galax.coordinates.AbstractPhaseSpacePosition`."""
 
-    @pytest.fixture(scope="class", params=[(10,), (5, 4)])
+    @pytest.fixture(scope="class", params=[(10,), (5, 4)], ids=lambda param: str(param))
     def shape(self, request: FixtureRequest) -> gt.Shape:
         """Return a shape."""
         return request.param
@@ -196,7 +196,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert jnp.all(ke >= Quantity(0, "km2/s2"))
         # TODO: more tests
 
-    @pytest.mark.parametrize("pot", potentials)
+    @pytest.mark.parametrize("pot", potentials, ids=lambda p: type(p).__name__)
     def test_potential(self, w: T, pot: AbstractPotentialBase) -> None:
         """Test method ``potential``."""
         pe = w.potential_energy(pot)
@@ -205,15 +205,15 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         # definitional
         assert jnp.allclose(pe, pot.potential(w.q, t=0), atol=Quantity(1e-10, pe.unit))
 
-    @pytest.mark.parametrize("potential", potentials)
-    def test_total_energy(self, w: T, potential: AbstractPotentialBase) -> None:
+    @pytest.mark.parametrize("pot", potentials, ids=lambda p: type(p).__name__)
+    def test_total_energy(self, w: T, pot: AbstractPotentialBase) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.energy`."""
-        pe = w.total_energy(potential)
+        pe = w.total_energy(pot)
         assert pe.shape == w.shape  # confirm relation to shape and components
         # definitional
         assert jnp.allclose(
             pe,
-            w.kinetic_energy() + potential.potential(w.q, t=0),
+            w.kinetic_energy() + pot.potential(w.q, t=0),
             atol=Quantity(1e-10, pe.unit),
         )
 

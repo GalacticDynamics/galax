@@ -215,10 +215,43 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         return self.shape[0] if self.shape else 0
 
-    @abstractmethod
-    def __getitem__(self, index: Any) -> "Self":
-        """Return a new object with the given slice applied."""
-        ...
+    @dispatch  # type: ignore[misc]
+    def __getitem__(
+        self: "AbstractBasePhaseSpacePosition", index: Any
+    ) -> "AbstractBasePhaseSpacePosition":
+        """Return a new object with the given slice applied.
+
+        Examples
+        --------
+        >>> import quaxed.numpy as jnp
+        >>> from unxt import Quantity
+        >>> import coordinax as cx
+        >>> import galax.coordinates as gc
+
+        >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3]], "kpc"),
+        ...                           p=Quantity([[4, 5, 6]], "km/s"),
+        ...                           t=Quantity([0], "Gyr"))
+
+        >>> w[jnp.array(0)]
+        PhaseSpacePosition(
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
+            t=Quantity[...](value=f64[], unit=Unit("Gyr"))
+        )
+
+        >>> w[jnp.array([0])]
+        PhaseSpacePosition(
+            q=CartesianPosition3D( ... ),
+            p=CartesianVelocity3D( ... ),
+            t=Quantity[...](value=f64[1], unit=Unit("Gyr"))
+        )
+
+        """
+        # The base assumption is to apply the index to all array fields
+        arrays, non_arrays = eqx.partition(self, eqx.is_array)
+        indexed_arrays = jax.tree.map(lambda x: x[index], arrays)
+        new: "Self" = eqx.combine(indexed_arrays, non_arrays)
+        return new
 
     # ---------------------------------------------------------------
 

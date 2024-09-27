@@ -33,7 +33,7 @@ from jaxtyping import Array
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import quaxed.scipy.special as qsp
-from unxt import AbstractUnitSystem, Quantity, unitsystem
+from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
 from unxt.unitsystems import dimensionless, galactic
 from xmmutablemap import ImmutableMap
 

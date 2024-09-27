@@ -7,7 +7,7 @@ from plum import convert
 
 import quaxed.numpy as jnp
 from unxt import Quantity
-from unxt.unitsystems import AbstractUnitSystem
+from unxt.unitsystems import AbstractUnitSystem, galactic
 
 import galax.potential as gp
 import galax.typing as gt
@@ -70,6 +70,54 @@ class TestNFWPotential(
         )
         assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+        )
+
+    def test_special_inits(self) -> None:
+        """Test specialized initializers of the NFW potential."""
+        pot = gp.NFWPotential.from_circular_velocity(
+            v_c=Quantity(220.0, "km/s"), r_s=Quantity(15.0, "kpc"), units=galactic
+        )
+        expect = Quantity(-0.23399598, "kpc2 / Myr2")
+        assert jnp.allclose(
+            pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0),
+            expect,
+            atol=Quantity(1e-8, expect.unit),
+        )
+
+        pot = gp.NFWPotential.from_circular_velocity(
+            v_c=Quantity(220.0, "km/s"),
+            r_s=Quantity(15.0, "kpc"),
+            r_ref=Quantity(20.0, "kpc"),
+            units=galactic,
+        )
+        expect = Quantity(-0.21843999, "kpc2 / Myr2")
+        assert jnp.allclose(
+            pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0),
+            expect,
+            atol=Quantity(1e-8, expect.unit),
+        )
+
+        pot = gp.NFWPotential.from_M200_c(
+            M200=Quantity(1e12, "Msun"), c=15.0, units=galactic
+        )
+        expect = Quantity(-0.15451932, "kpc2 / Myr2")
+        assert jnp.allclose(
+            pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0),
+            expect,
+            atol=Quantity(1e-8, expect.unit),
+        )
+
+        pot = gp.NFWPotential.from_M200_c(
+            M200=Quantity(1e12, "Msun"),
+            c=15.0,
+            rho_c=Quantity(1, "g / m3"),
+            units=galactic,
+        )
+        expect = Quantity(-10.73095438, "kpc2 / Myr2")
+        assert jnp.allclose(
+            pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0),
+            expect,
+            atol=Quantity(1e-8, expect.unit),
         )
 
     # ---------------------------------

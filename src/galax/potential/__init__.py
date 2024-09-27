@@ -22,6 +22,8 @@ __all__ = [
     "KeplerPotential",
     "KuzminPotential",
     "MiyamotoNagaiPotential",
+    "MN3ExponentialPotential",
+    "MN3Sech2Potential",
     "NullPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
@@ -48,6 +50,7 @@ __all__ = [
     "BovyMWPotential2014",
     "LM10Potential",
     "MilkyWayPotential",
+    "MilkyWayPotential2022",
     # frame
     "PotentialFrame",
     # funcs
@@ -79,6 +82,8 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         KeplerPotential,
         KuzminPotential,
         MiyamotoNagaiPotential,
+        MN3ExponentialPotential,
+        MN3Sech2Potential,
         NullPotential,
         PlummerPotential,
         PowerLawCutoffPotential,
@@ -106,6 +111,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         BovyMWPotential2014,
         LM10Potential,
         MilkyWayPotential,
+        MilkyWayPotential2022,
     )
     from ._src.composite import AbstractCompositePotential, CompositePotential
     from ._src.core import AbstractPotential

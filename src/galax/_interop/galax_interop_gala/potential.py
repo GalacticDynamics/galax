@@ -821,6 +821,78 @@ def galax_to_gala(pot: gpx.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotenti
 
 
 # ---------------------------
+# MN3 potentials
+
+
+@dispatch  # type: ignore[misc]
+def gala_to_galax(
+    gala: gp.MN3ExponentialDiskPotential, /
+) -> gpx.MN3ExponentialPotential | gpx.MN3Sech2Potential | gpx.PotentialFrame:
+    """Convert a `gala.potential.MN3ExponentialDiskPotential` to a `galax.potential.MN3ExponentialPotential` or `galax.potential.MN3Sech2Potential`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from gala.units import galactic
+    >>> import galax.potential as gp
+
+    >>> pot = galap.MN3ExponentialDiskPotential(m=1e11, h_R=3., h_z=0.2, units=galactic)
+    >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
+    MN3Sech2Potential(
+      units=LTMAUnitSystem( ... ),
+      constants=ImmutableMap({'G': ...}),
+      m_tot=ConstantParameter( ... ),
+      h_R=ConstantParameter( ... ),
+      h_z=ConstantParameter( ... ),
+      positive_density=True
+    )
+
+    """  # noqa: E501
+    params = dict(gala.parameters)
+    params["m_tot"] = params.pop("m")
+    params["positive_density"] = gala.positive_density
+
+    cls = gpx.MN3Sech2Potential if gala.sech2_z else gpx.MN3ExponentialPotential
+
+    pot = cls(**params, units=_check_gala_units(gala.units))
+    return _apply_frame(_get_frame(gala), pot)
+
+
+@dispatch  # type: ignore[misc]
+def galax_to_gala(
+    pot: gpx.MN3ExponentialPotential | gpx.MN3Sech2Potential, /
+) -> gp.MN3ExponentialDiskPotential:
+    """Convert a `galax.potential.MN3ExponentialPotential` or `galax.potential.MN3Sech2Potential` to a `gala.potential.MN3ExponentialDiskPotential`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+
+    >>> pot = gp.MN3ExponentialPotential(m_tot=Quantity(1e11, "Msun"), h_R=Quantity(3.0, "kpc"), h_z=Quantity(0.2, "kpc"), units="galactic")
+    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
+    <MN3ExponentialDiskPotential: m=1.00e+11, h_R=3.00, h_z=0.20 (kpc,Myr,solMass,rad)>
+
+    """  # noqa: E501
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+
+    params = {
+        k: convert(getattr(pot, k)(0), APYQuantity)
+        for (k, f) in type(pot).parameters.items()
+    }
+    if "m_tot" in params:
+        params["m"] = params.pop("m_tot")
+
+    params["sech2_z"] = isinstance(pot, gpx.MN3Sech2Potential)
+    params["positive_density"] = pot.positive_density
+
+    return gp.MN3ExponentialDiskPotential(
+        **params, units=_galax_to_gala_units(pot.units)
+    )
+
+
+# ---------------------------
 # Null potentials
 
 
@@ -1706,6 +1778,77 @@ def galax_to_gala(pot: gpx.MilkyWayPotential, /) -> gp.MilkyWayPotential:
     return gp.MilkyWayPotential(
         **{
             c: {rename(c, k): getattr(p, k)(0) for k in p.parameters}
+            for c, p in pot.items()
+        }
+    )
+
+
+# ---------------------------
+# Galax MilkyWayPotential2022
+
+
+@dispatch  # type: ignore[misc]
+def gala_to_galax(pot: gp.MilkyWayPotential2022, /) -> gpx.MilkyWayPotential2022:
+    """Convert a `gala.potential.MilkyWayPotential` to a `galax.potential.MilkyWayPotential`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> import galax.potential as gp
+
+    >>> pot = galap.MilkyWayPotential2022()
+    >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
+    MilkyWayPotential2022({'disk': MN3Sech2Potential( ... ),
+                           'halo': NFWPotential( ... ),
+                           'bulge': HernquistPotential( ... ),
+                           'nucleus': HernquistPotential( ... )})
+
+    """  # noqa: E501
+    return gpx.MilkyWayPotential2022(
+        disk=gala_to_galax(pot["disk"]),
+        halo=gala_to_galax(pot["halo"]),
+        bulge=gala_to_galax(pot["bulge"]),
+        nucleus=gala_to_galax(pot["nucleus"]),
+    )
+
+
+@dispatch  # type: ignore[misc]
+def galax_to_gala(pot: gpx.MilkyWayPotential2022, /) -> gp.MilkyWayPotential2022:
+    """Convert a `galax.potential.MilkyWayPotential2022` to a `gala.potential.MilkyWayPotential2022`.
+
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from unxt import Quantity
+    >>> import galax.potential as gp
+
+    >>> pot = gp.MilkyWayPotential2022(
+    ...     disk=dict(m_tot=Quantity(1e11, "Msun"), h_R=Quantity(2.8, "kpc"), h_z=Quantity(0.25, "kpc")),
+    ...     halo=dict(m=Quantity(1e12, "Msun"), r_s=Quantity(20, "kpc")),
+    ...     bulge=dict(m_tot=Quantity(1e10, "Msun"), r_s=Quantity(1, "kpc")),
+    ...     nucleus=dict(m_tot=Quantity(1e9, "Msun"), r_s=Quantity(0.1, "kpc")),
+    ... )
+
+    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
+    <CompositePotential disk,bulge,nucleus,halo>
+
+    """  # noqa: E501
+
+    def rename(c: str, k: str) -> str:
+        match k:
+            case "m_tot":
+                return "m"
+            case "r_s" if c in ("bulge", "nucleus"):
+                return "c"
+            case _:
+                return k
+
+    return gp.MilkyWayPotential2022(
+        **{
+            c: {
+                rename(c, k): convert(getattr(p, k)(0), APYQuantity)
+                for k in p.parameters
+            }
             for c, p in pot.items()
         }
     )

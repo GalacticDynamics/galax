@@ -23,7 +23,8 @@ __all__ = [
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, Final, final
+from typing import Annotated as Ann, Any, Final, final
+from typing_extensions import Doc
 
 import equinox as eqx
 import jax
@@ -38,10 +39,10 @@ from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from .const import _burkert_const
-from galax.potential._potential.base import default_constants
-from galax.potential._potential.core import AbstractPotential
-from galax.potential._potential.params.core import AbstractParameter
-from galax.potential._potential.params.field import ParameterField
+from galax.potential._src.base import default_constants
+from galax.potential._src.core import AbstractPotential
+from galax.potential._src.params.core import AbstractParameter
+from galax.potential._src.params.field import ParameterField
 
 # -------------------------------------------------------------------
 

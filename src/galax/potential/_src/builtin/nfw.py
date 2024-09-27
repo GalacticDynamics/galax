@@ -25,10 +25,10 @@ from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from .const import _log2
-from galax.potential._potential.base import default_constants
-from galax.potential._potential.core import AbstractPotential
-from galax.potential._potential.params.core import AbstractParameter
-from galax.potential._potential.params.field import ParameterField
+from galax.potential._src.base import default_constants
+from galax.potential._src.core import AbstractPotential
+from galax.potential._src.params.core import AbstractParameter
+from galax.potential._src.params.field import ParameterField
 
 # -------------------------------------------------------------------
 
@@ -95,7 +95,7 @@ class NFWPotential(AbstractPotential):
         v_c: Quantity["velocity"], r_s: Quantity["length"], r_ref: Quantity["length"]
     ) -> Quantity["mass"]:
         uu = r_ref / r_s
-        vs2 = v_c**2 / uu / (xp.log(1 + uu) / uu**2 - 1 / (uu * (1 + uu)))
+        vs2 = v_c**2 / uu / (jnp.log(1 + uu) / uu**2 - 1 / (uu * (1 + uu)))
         return r_s * vs2 / default_constants["G"]
 
     @classmethod
@@ -123,7 +123,7 @@ class NFWPotential(AbstractPotential):
         NFWPotential
             NFW potential instance with the given circular velocity and scale radius.
         """
-        r_ref = r_ref or r_s
+        r_ref = r_s if r_ref is None else r_ref
         units = units or dimensionless
 
         m = NFWPotential._vc_rs_rref_to_m(v_c, r_s, r_ref).to(units["mass"])
@@ -156,11 +156,12 @@ class NFWPotential(AbstractPotential):
             rho_c = (3 * cosmo.H(0.0) ** 2 / (8 * np.pi * default_constants["G"])).to(
                 units["mass density"]
             )
+            rho_c = Quantity(rho_c.value, units["mass density"])
 
-        Rvir = xp.cbrt(M200 / (200 * rho_c) / (4.0 / 3 * xp.pi)).to(units["length"])
+        Rvir = jnp.cbrt(M200 / (200 * rho_c) / (4.0 / 3 * jnp.pi)).to(units["length"])
         r_s = Rvir / c
 
-        A_NFW = xp.log(1 + c) - c / (1 + c)
+        A_NFW = jnp.log(1 + c) - c / (1 + c)
         m = M200 / A_NFW
 
         return NFWPotential(m=m, r_s=r_s, units=units)

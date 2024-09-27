@@ -623,8 +623,8 @@ class AbstractMN3Potential(AbstractPotential):
     ) -> gt.SpecificEnergyBatchScalar:
         unit = self.units["specific energy"]
         return Quantity(
-            xp.sum(
-                xp.asarray(
+            jnp.sum(
+                jnp.asarray(
                     [
                         mn.potential(q, t).to_value(unit)
                         for mn in self._get_mn_components(t)
@@ -641,8 +641,8 @@ class AbstractMN3Potential(AbstractPotential):
     ) -> gt.BatchFloatQScalar:
         unit = self.units["mass density"]
         return Quantity(
-            xp.sum(
-                xp.asarray(
+            jnp.sum(
+                jnp.asarray(
                     [
                         mn.density(q, t).to_value(unit)
                         for mn in self._get_mn_components(t)

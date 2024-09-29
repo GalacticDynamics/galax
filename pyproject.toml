@@ -40,7 +40,7 @@ dependencies = [
   "packaging",  # for optional dependencies
   "plotting_backends >= 0.1",
   "quax >= 0.0.4",
-  "quaxed >= 0.6.2",
+  "quaxed >= 0.6.4",
   "typing_extensions >= 4.11",
   "unxt >= 0.16.2",
   "xmmutablemap >= 0.1",

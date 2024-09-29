@@ -467,7 +467,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         """
         # Vectorize the call
         # This depends on the shape of saveat
-        vec_call = jax.numpy.vectorize(
+        vec_call = xp.vectorize(
             lambda *args: self._call_(*args, units=units, saveat=saveat, **kwargs),
             signature="(6),(),()->(T)" if saveat is not None else "(6),(),()->()",
             excluded=(0,),

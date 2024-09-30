@@ -139,6 +139,17 @@ def evaluate_orbit(
       interpolant=None
     )
 
+    Or evaluating at a single time:
+
+    >>> orbit = gd.evaluate_orbit(potential, w0, Quantity(0.5, "Gyr"))
+    >>> orbit
+    Orbit(
+        q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
+        t=Quantity[...](value=...f64[1], unit=Unit("Myr")),
+        potential=KeplerPotential(...),
+        interpolant=None
+    )
+
     We can also integrate a batch of orbits at once:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
@@ -192,6 +203,8 @@ def evaluate_orbit(
 
     # Parse w0
     psp0t = w0.t if isinstance(w0, gc.PhaseSpacePosition) and w0.t is not None else t[0]
+
+    # -------------
 
     # Initial integration `w0.t` to `t[0]`.
     # TODO: get diffrax's `solver_state` to speed the second integration.

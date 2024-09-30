@@ -213,6 +213,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> len(pos)
         2
         """
+        # scalars shape 0, instead of raising an error
         return self.shape[0] if self.shape else 0
 
     @dispatch  # type: ignore[misc]

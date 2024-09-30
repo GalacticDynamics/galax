@@ -191,41 +191,21 @@ def evaluate_orbit(
     t = jnp.atleast_1d(Quantity.constructor(t, units["time"]))
 
     # Parse w0
-    psp0t: Quantity
-    psp0w: gt.BatchableVec6
-    if isinstance(w0, gc.PhaseSpacePosition):
-        # TODO: warn if w0.t is None?
-        psp0w = w0.w(units=units)
-        psp0t = t[0] if w0.t is None else w0.t
-    else:
-        psp0w = w0
-        psp0t = t[0]
+    psp0t = w0.t if isinstance(w0, gc.PhaseSpacePosition) and w0.t is not None else t[0]
 
-    # -------------
-    # Initial integration
-
-    # Need to integrate `w0.t` to `t[0]`.
-    # The integral int_a_a is not well defined (can be inf) so we need to
-    # handle this case separately.
-    # NOTE: The slowest step BY FAR is the ``.w(units=units)``
-    # TODO: make _select_w0 work on PSPs
+    # Initial integration `w0.t` to `t[0]`.
     # TODO: get diffrax's `solver_state` to speed the second integration.
     # TODO: get diffrax's `controller_state` to speed the second integration.
-    qp0 = _select_w0(
-        psp0t == t[0],
-        psp0w,  # don't integrate if already at the desired time
-        integrator(
-            pot._dynamics_deriv,  # noqa: SLF001
-            psp0w,  # w0
-            psp0t,  # t0
-            jnp.full_like(psp0t, t[0]),  # t1
-            units=units,
-        ).w(units=units),
+    qp0 = integrator(
+        pot._dynamics_deriv,  # noqa: SLF001
+        w0,  # w0
+        psp0t,  # t0
+        jnp.full_like(psp0t, t[0]),  # t1
+        units=units,
+        interpolated=False,
     )
 
-    # -------------
-    # Orbit integration
-
+    # Orbit integration `t[0]` to `t[-1]`
     ws = integrator(
         pot._dynamics_deriv,  # noqa: SLF001
         qp0,
@@ -236,14 +216,8 @@ def evaluate_orbit(
         interpolated=interpolated,
     )
 
-    # Construct the orbit object
-    return Orbit(
-        q=ws.q,
-        p=ws.p,
-        t=t,
-        interpolant=getattr(ws, "interpolant", None),
-        potential=pot,
-    )
+    # Return the orbit object
+    return Orbit._from_psp(ws, t, pot)  # noqa: SLF001
 
 
 @dispatch

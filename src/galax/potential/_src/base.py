@@ -15,19 +15,11 @@ from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
-import unxt
+import unxt as ux
 from galactic_dynamics_interoperability import (
     AbstractInteroperableLibrary,
     GalaxLibrary,
     convert_potential,
-)
-from unxt import (
-    AbstractQuantity,
-    AbstractUnitSystem,
-    Quantity,
-    uconvert,
-    unitsystems,
-    ustrip,
 )
 from xmmutablemap import ImmutableMap
 
@@ -42,7 +34,7 @@ if TYPE_CHECKING:
     from galax.dynamics import Orbit
     from galax.dynamics.integrate import Integrator
 
-default_constants = ImmutableMap({"G": Quantity(_CONST_G.value, _CONST_G.unit)})
+default_constants = ImmutableMap({"G": ux.Quantity(_CONST_G.value, _CONST_G.unit)})
 
 
 ##############################################################################
@@ -55,10 +47,10 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     plot: ClassVar = PlotPotentialDescriptor()
 
     _: KW_ONLY
-    units: eqx.AbstractVar[AbstractUnitSystem]
+    units: eqx.AbstractVar[ux.AbstractUnitSystem]
     """The unit system of the potential."""
 
-    constants: eqx.AbstractVar[ImmutableMap[str, Quantity]]
+    constants: eqx.AbstractVar[ImmutableMap[str, ux.Quantity]]
     """The constants used by the potential."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -91,12 +83,12 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
                 # Only need to set again if a conversion is needed
-                if isinstance(value, AbstractQuantity | APYQuantity):
-                    value = uconvert(usys[f.metadata.get("dimensions")], value)
+                if isinstance(value, ux.AbstractQuantity | APYQuantity):
+                    value = ux.uconvert(usys[f.metadata.get("dimensions")], value)
                     object.__setattr__(self, f.name, value)
 
         # Do unit conversion for the constants
-        if self.units != unitsystems.dimensionless:
+        if self.units != ux.unitsystems.dimensionless:
             constants = ImmutableMap(
                 {k: v.decompose(usys) for k, v in self.constants.items()}
             )
@@ -137,7 +129,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def potential(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
-    ) -> Quantity["specific energy"]:  # TODO: shape hint
+    ) -> ux.Quantity["specific energy"]:  # TODO: shape hint
         """Compute the potential energy at the given position(s).
 
         See :func:`~galax.potential.potential` for details.
@@ -147,7 +139,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return potential(self, *args, **kwargs)
 
     @partial(jax.jit, inline=True)
-    def __call__(self, *args: Any) -> Float[Quantity["specific energy"], "*batch"]:
+    def __call__(self, *args: Any) -> Float[ux.Quantity["specific energy"], "*batch"]:
         """Compute the potential energy at the given position(s).
 
         Parameters
@@ -175,7 +167,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(signature="(3),()->(3)")
     def _gradient(self, q: gt.BatchQVec3, t: gt.RealQScalar, /) -> gt.BatchQVec3:
         """See ``gradient``."""
-        grad_op = unxt.experimental.grad(
+        grad_op = ux.experimental.grad(
             self._potential, units=(self.units["length"], self.units["time"])
         )
         return grad_op(q, t)
@@ -198,14 +190,14 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(signature="(3),()->()")
     def _laplacian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.FloatQScalar:
         """See ``laplacian``."""
-        jac_op = unxt.experimental.jacfwd(
+        jac_op = ux.experimental.jacfwd(
             self._gradient, units=(self.units["length"], self.units["time"])
         )
         return jnp.trace(jac_op(q, t))
 
     def laplacian(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
-    ) -> Quantity["1/s^2"]:  # TODO: shape hint
+    ) -> ux.Quantity["1/s^2"]:  # TODO: shape hint
         """Compute the laplacian of the potential at the given position(s).
 
         See :func:`~galax.potential.laplacian` for details.
@@ -227,7 +219,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def density(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
-    ) -> Quantity["mass density"]:  # TODO: shape hint
+    ) -> ux.Quantity["mass density"]:  # TODO: shape hint
         """Compute the density at the given position(s).
 
         See :func:`~galax.potential.density` for details.
@@ -243,7 +235,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(signature="(3),()->(3,3)")
     def _hessian(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.QMatrix33:
         """See ``hessian``."""
-        hess_op = unxt.experimental.hessian(
+        hess_op = ux.experimental.hessian(
             self._potential, units=(self.units["length"], self.units["time"])
         )
         return hess_op(q, t)
@@ -319,10 +311,11 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             Derivative [p (3,), a (3,)] at the phase-space position.
         """
         # TODO: not require unit munging
-        a = ustrip(
+        a = ux.ustrip(
             self.units["acceleration"],
             -self._gradient(
-                Quantity(w[0:3], self.units["length"]), Quantity(t, self.units["time"])
+                ux.Quantity(w[0:3], self.units["length"]),
+                ux.Quantity(t, self.units["time"]),
             ),
         )
         return jnp.hstack([w[3:6], a])  # v, a

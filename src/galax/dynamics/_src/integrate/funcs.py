@@ -74,14 +74,13 @@ def evaluate_orbit(
 
             This is NOT the timesteps to use for integration, which are
             controlled by the `integrator`; the default integrator
-            :class:`~galax.integrator.Integrator` uses adaptive
-            timesteps.
+            :class:`~galax.integrator.Integrator` uses adaptive timesteps.
 
     integrator : :class:`~galax.integrate.Integrator`, keyword-only
         Integrator to use.  If `None`, the default integrator
-        :class:`~galax.integrator.Integrator` is used.  This integrator
-        is used twice: once to integrate from `w0.t` to `t[0]` and then from
-        `t[0]` to `t[1]`.
+        :class:`~galax.integrator.Integrator` is used.  This integrator is used
+        twice: once to integrate from `w0.t` to `t[0]` and then from `t[0]` to
+        `t[1]`.
 
     interpolated: bool, optional keyword-only
         If `True`, return an interpolated orbit.  If `False`, return the orbit
@@ -186,8 +185,8 @@ def evaluate_orbit(
     .. note::
 
         If you want to reproduce :mod:`gala`'s behavior, you can use
-        :class:`~galax.dynamics.PhaseSpacePosition` which does not have a time
-        and will assume ``w0`` is defined at `t`[0].
+        :class:`~galax.dynamics.PhaseSpacePosition` with ``t=None``.
+        `evaluate_orbit` will then assume ``w0`` is defined at `t`[0].
     """
     # -------------
     # Setup

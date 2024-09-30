@@ -238,10 +238,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         t0_: gt.RealScalar = Quantity.constructor(t0, time).value
         t1_: gt.RealScalar = Quantity.constructor(t1, time).value
         # Either save at `saveat` or at the final time.
+        only_final = saveat is None or len(saveat) <= 1
         save_at = diffrax.SaveAt(
             t0=False,
-            t1=saveat is None,
-            ts=Quantity.constructor(saveat, time).value if saveat is not None else None,
+            t1=only_final,
+            ts=Quantity.constructor(saveat, time).value if not only_final else None,
             dense=interpolated,
         )
 

@@ -74,14 +74,13 @@ def evaluate_orbit(
 
             This is NOT the timesteps to use for integration, which are
             controlled by the `integrator`; the default integrator
-            :class:`~galax.integrator.Integrator` uses adaptive
-            timesteps.
+            :class:`~galax.integrator.Integrator` uses adaptive timesteps.
 
     integrator : :class:`~galax.integrate.Integrator`, keyword-only
         Integrator to use.  If `None`, the default integrator
-        :class:`~galax.integrator.Integrator` is used.  This integrator
-        is used twice: once to integrate from `w0.t` to `t[0]` and then from
-        `t[0]` to `t[1]`.
+        :class:`~galax.integrator.Integrator` is used.  This integrator is used
+        twice: once to integrate from `w0.t` to `t[0]` and then from `t[0]` to
+        `t[1]`.
 
     interpolated: bool, optional keyword-only
         If `True`, return an interpolated orbit.  If `False`, return the orbit
@@ -139,6 +138,17 @@ def evaluate_orbit(
       interpolant=None
     )
 
+    Or evaluating at a single time:
+
+    >>> orbit = gd.evaluate_orbit(potential, w0, Quantity(0.5, "Gyr"))
+    >>> orbit
+    Orbit(
+        q=CartesianPosition3D(...), p=CartesianVelocity3D(...),
+        t=Quantity[...](value=...f64[1], unit=Unit("Myr")),
+        potential=KeplerPotential(...),
+        interpolant=None
+    )
+
     We can also integrate a batch of orbits at once:
 
     >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
@@ -175,8 +185,8 @@ def evaluate_orbit(
     .. note::
 
         If you want to reproduce :mod:`gala`'s behavior, you can use
-        :class:`~galax.dynamics.PhaseSpacePosition` which does not have a time
-        and will assume ``w0`` is defined at `t`[0].
+        :class:`~galax.dynamics.PhaseSpacePosition` with ``t=None``.
+        `evaluate_orbit` will then assume ``w0`` is defined at `t`[0].
     """
     # -------------
     # Setup
@@ -191,41 +201,23 @@ def evaluate_orbit(
     t = jnp.atleast_1d(Quantity.constructor(t, units["time"]))
 
     # Parse w0
-    psp0t: Quantity
-    psp0w: gt.BatchableVec6
-    if isinstance(w0, gc.PhaseSpacePosition):
-        # TODO: warn if w0.t is None?
-        psp0w = w0.w(units=units)
-        psp0t = t[0] if w0.t is None else w0.t
-    else:
-        psp0w = w0
-        psp0t = t[0]
+    psp0t = w0.t if isinstance(w0, gc.PhaseSpacePosition) and w0.t is not None else t[0]
 
     # -------------
-    # Initial integration
 
-    # Need to integrate `w0.t` to `t[0]`.
-    # The integral int_a_a is not well defined (can be inf) so we need to
-    # handle this case separately.
-    # NOTE: The slowest step BY FAR is the ``.w(units=units)``
-    # TODO: make _select_w0 work on PSPs
+    # Initial integration `w0.t` to `t[0]`.
     # TODO: get diffrax's `solver_state` to speed the second integration.
     # TODO: get diffrax's `controller_state` to speed the second integration.
-    qp0 = _select_w0(
-        psp0t == t[0],
-        psp0w,  # don't integrate if already at the desired time
-        integrator(
-            pot._dynamics_deriv,  # noqa: SLF001
-            psp0w,  # w0
-            psp0t,  # t0
-            jnp.full_like(psp0t, t[0]),  # t1
-            units=units,
-        ).w(units=units),
+    qp0 = integrator(
+        pot._dynamics_deriv,  # noqa: SLF001
+        w0,  # w0
+        psp0t,  # t0
+        jnp.full_like(psp0t, t[0]),  # t1
+        units=units,
+        interpolated=False,
     )
 
-    # -------------
-    # Orbit integration
-
+    # Orbit integration `t[0]` to `t[-1]`
     ws = integrator(
         pot._dynamics_deriv,  # noqa: SLF001
         qp0,
@@ -236,14 +228,8 @@ def evaluate_orbit(
         interpolated=interpolated,
     )
 
-    # Construct the orbit object
-    return Orbit(
-        q=ws.q,
-        p=ws.p,
-        t=t,
-        interpolant=getattr(ws, "interpolant", None),
-        potential=pot,
-    )
+    # Return the orbit object
+    return Orbit._from_psp(ws, t, pot)  # noqa: SLF001
 
 
 @dispatch

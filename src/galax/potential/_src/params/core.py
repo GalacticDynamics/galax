@@ -116,6 +116,23 @@ class ConstantParameter(AbstractParameter):
 
     # -------------------------------------------
 
+    def __repr__(self) -> str:
+        """Return the string representation.
+
+        Examples
+        --------
+        >>> from galax.potential.params import ConstantParameter
+        >>> from unxt import Quantity
+
+        >>> cp = ConstantParameter(value=Quantity(1e9, "Msun"))
+        >>> cp
+        ConstantParameter(Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass'))
+
+        """  # noqa: E501
+        return f"{self.__class__.__name__}({self.value!r})"
+
+    # -------------------------------------------
+
     def __mul__(self, other: Any) -> "Self":
         return replace(self, value=self.value * other)
 
@@ -127,6 +144,7 @@ class ConstantParameter(AbstractParameter):
 # Linear time dependence Parameter
 
 
+@final
 class LinearParameter(AbstractParameter):
     """Linear time dependence Parameter.
 

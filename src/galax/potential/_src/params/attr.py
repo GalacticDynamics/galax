@@ -31,11 +31,9 @@ class AbstractParametersAttribute:
 
     >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> pot.parameters
-    mappingproxy({'m_tot': ConstantParameter(
-      value=Quantity[...](value=f64[], unit=Unit("solMass"))
-    )})
+    mappingproxy({'m_tot': ConstantParameter(Quantity['mass'](Array(1.e+12, dtype=float64), unit='solMass'))})
 
-    """
+    """  # noqa: E501
 
     parameters: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint
     """Class attribute name on Potential."""
@@ -77,11 +75,9 @@ class ParametersAttribute(AbstractParametersAttribute):
 
     >>> kepler = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> kepler.parameters
-    mappingproxy({'m_tot': ConstantParameter(
-        value=Quantity[...](value=f64[], unit=Unit("solMass"))
-        )})
+    mappingproxy({'m_tot': ConstantParameter(Quantity['mass'](Array(1.e+12, dtype=float64), unit='solMass'))})
 
-    """
+    """  # noqa: E501
 
     def __get__(
         self,
@@ -122,11 +118,9 @@ class CompositeParametersAttribute(AbstractParametersAttribute):
     >>> kepler = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> composite = gp.CompositePotential(kepler=kepler)
     >>> composite.parameters
-    mappingproxy({'kepler': mappingproxy({'m_tot': ConstantParameter(
-      value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
-    )})})
+    mappingproxy({'kepler': mappingproxy({'m_tot': ConstantParameter(Quantity['mass'](Array(1.e+12, dtype=float64), unit='solMass'))})})
 
-    """
+    """  # noqa: E501
 
     def __get__(
         self,

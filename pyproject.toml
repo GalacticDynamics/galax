@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
   "astropy >= 6.0",
-  "beartype >= 0.18",
+  "beartype>=0.18",
   "coordinax >= 0.10.0",
   "dataclassish >= 0.3",
   "diffrax >= 0.5",
@@ -37,12 +37,13 @@ dependencies = [
   "jaxlib != 0.4.27",
   "jaxtyping >= 0.2.33",
   "optional_dependencies >= 0.3",
-  "packaging",  # for optional dependencies
+  "packaging>=24.1",
+  # for optional dependencies
   "plotting_backends >= 0.1",
   "quax >= 0.0.4",
   "quaxed >= 0.6.4",
   "typing_extensions >= 4.11",
-  "unxt >= 0.16.2",
+  "unxt>=0.16.2",
   "xmmutablemap >= 0.1",
   "zeroth >= 0.1",
 ]
@@ -75,28 +76,28 @@ interop-galpy = [
 ]
 # TODO: agama
 plot-all = ["galax[plot-matplotlib]"]
-plot-matplotlib = ["matplotlib"]
+plot-matplotlib = ["matplotlib>=3.8"]
 # Documentation dependencies
 docs = [
   "sphinx>=7.0",
   "myst_parser>=0.13",
-  "sphinx_copybutton",
-  "sphinx_autodoc_typehints",
+  "sphinx_copybutton>=0.5.2",
+  "sphinx_autodoc_typehints>=2.4.4",
   "furo>=2023.08.17",
 ]
 # Test dependencies
 test-all = ["galax[all,test]", "galax[test-mpl]"]
 test = [
-  "nox",
-  "pre-commit",
-  "pytest >=6",
-  "pytest-cov >=3",
-  "pytest-arraydiff",
+  "nox>=2024.4.15",
+  "pre-commit>=4.0",
+  "pytest>=6",
+  "pytest-cov>=3",
+  "pytest-arraydiff>=0.6.1",
   "sybil != 7.1.0",
   # temporary
   "numpy>=2.1"
 ]
-test-mpl = ["pytest-mpl"]
+test-mpl = ["pytest-mpl>=0.17.0"]
 # Development dependencies
 dev = ["galax[all,docs,test-all]"]
 
@@ -308,3 +309,6 @@ messages_control.disable = [
 py-version = "3.11"
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
+
+[tool.uv.sources]
+unxt = { path = "../unxt", editable = true }

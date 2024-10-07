@@ -180,7 +180,7 @@ warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_configs = true
 
-disable_error_code = ["no-redef"]                                            # <- plum multiple dispatch
+disable_error_code = ["no-redef"] # <- plum multiple dispatch
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
 [[tool.mypy.overrides]]
@@ -234,8 +234,6 @@ ignore = [
   "TD003",   # Missing issue link on the line following this TODO
   "UP037",   # Remove quote from type annotation  <- jaxtyping
 ]
-# Uncomment if using a _compat.typing backport
-# typing-modules = ["galax._compat.typing"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"]

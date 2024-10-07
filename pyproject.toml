@@ -33,8 +33,8 @@ dependencies = [
   "equinox >=0.11, != 0.11.3",
   "galactic_dynamics_interoperability @ git+https://github.com/GalacticDynamics/galactic_dynamics_interoperability.git",
   "is_annotated >= 1.0",
-  "jax >= 0.4, != 0.4.27",
-  "jaxlib != 0.4.27",
+  "jax>=0.4.34",
+  "jaxlib>=0.4.34",
   "jaxtyping >= 0.2.33",
   "optional_dependencies >= 0.3",
   "packaging>=24.1",
@@ -309,6 +309,13 @@ messages_control.disable = [
 py-version = "3.11"
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.3",
+    "pytest-arraydiff>=0.6.1",
+    "sybil>=8.0.0",
+]
 
 [tool.uv.sources]
 unxt = { path = "../unxt", editable = true }

@@ -70,9 +70,9 @@ def converter_parameter(value: Any) -> AbstractParameter:
         out = UserParameter(func=value)
 
     else:
-        # `Quantity.constructor`` handles errors if the value cannot be
+        # `Quantity.from_`` handles errors if the value cannot be
         # converted to a Quantity.
-        out = ConstantParameter(Quantity.constructor(value))
+        out = ConstantParameter(Quantity.from_(value))
 
     return out
 
@@ -218,7 +218,7 @@ class ParameterField:
             v = UserParameter(func=value)
         else:
             unit = potential.units[self.dimensions]
-            v = ConstantParameter(Quantity.constructor(value, unit))
+            v = ConstantParameter(Quantity.from_(value, unit))
 
         # Set
         potential.__dict__[self.name] = v

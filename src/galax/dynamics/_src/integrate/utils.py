@@ -175,7 +175,7 @@ def parse_time_spec(
 ) -> Quantity["time"]:
     """Return the given array of times as a :class:`unxt.Quantity`."""
     unit = unitsystem(units)["time"] if units is not None else None
-    return Quantity.constructor(t, unit)
+    return Quantity.from_(t, unit)
 
 
 @dispatch
@@ -190,7 +190,7 @@ def parse_time_spec(
 ) -> Shaped[Quantity["time"], "{n_steps}"]:
     """Return a time array from the initial and final times and number of steps."""
     unit = unitsystem(units)["time"] if units is not None else None
-    return Quantity.constructor(jnp.linspace(t0, t1, n_steps), unit)
+    return Quantity.from_(jnp.linspace(t0, t1, n_steps), unit)
 
 
 @dispatch
@@ -219,7 +219,7 @@ def parse_time_spec(
 ) -> Quantity["time"]:
     """Return a time array from the initial and final times and the time step."""
     unit = unitsystem(units)["time"] if units is not None else None
-    return Quantity.constructor(jnp.arange(t0, t1, dt), unit)
+    return Quantity.from_(jnp.arange(t0, t1, dt), unit)
 
 
 @dispatch
@@ -234,8 +234,8 @@ def parse_time_spec(
 ) -> Shaped[Quantity["time"], "N+1"]:
     """Return a time array from the initial time and an array of time steps."""
     unit = unitsystem(units)["time"] if units is not None else None
-    t0 = Quantity.constructor(t0, unit)
-    dt = Quantity.constructor(dt, unit)
+    t0 = Quantity.from_(t0, unit)
+    dt = Quantity.from_(dt, unit)
     return jnp.concat((t0[None], jnp.cumsum(t0 + dt)))
 
 

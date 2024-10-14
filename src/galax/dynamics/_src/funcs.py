@@ -72,8 +72,8 @@ def specific_angular_momentum(
     >>> import coordinax as cx
     >>> import galax.dynamics as gd
 
-    >>> x = cx.CartesianPosition3D.constructor(Quantity([8.0, 0.0, 0.0], "m"))
-    >>> v = cx.CartesianVelocity3D.constructor(Quantity([0.0, 8.0, 0.0], "m/s"))
+    >>> x = cx.CartesianPosition3D.from_([8.0, 0.0, 0.0], "m")
+    >>> v = cx.CartesianVelocity3D.from_([0.0, 8.0, 0.0], "m/s")
     >>> gd.specific_angular_momentum(x, v)
     Quantity['diffusivity'](Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
 
@@ -93,8 +93,8 @@ def specific_angular_momentum(w: cx.Space) -> gt.BatchQVec3:
     Examples
     --------
     >>> import coordinax as cx
-    >>> w = cx.Space(length=cx.CartesianPosition3D.constructor([[[7., 0, 0], [8, 0, 0]]], "m"),
-    ...              speed=cx.CartesianVelocity3D.constructor([[[0., 5, 0], [0, 6, 0]]], "m/s"))
+    >>> w = cx.Space(length=cx.CartesianPosition3D.from_([[[7., 0, 0], [8, 0, 0]]], "m"),
+    ...              speed=cx.CartesianVelocity3D.from_([[[0., 5, 0], [0, 6, 0]]], "m/s"))
 
     >>> specific_angular_momentum(w)
     Quantity['diffusivity'](Array([[[ 0.,  0., 35.], [ 0.,  0., 48.]]], dtype=float64), unit='m2 / s')
@@ -187,8 +187,8 @@ def _orbital_angular_frequency(
     >>> from unxt import Quantity
     >>> import coordinax as cx
 
-    >>> x = cx.CartesianPosition3D.constructor(Quantity([8.0, 0.0, 0.0], "m"))
-    >>> v = cx.CartesianVelocity3D.constructor(Quantity([0.0, 8.0, 0.0], "m/s"))
+    >>> x = cx.CartesianPosition3D.from_([8.0, 0.0, 0.0], "m")
+    >>> v = cx.CartesianVelocity3D.from_([0.0, 8.0, 0.0], "m/s")
     >>> _orbital_angular_frequency(x, v)
     Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
 

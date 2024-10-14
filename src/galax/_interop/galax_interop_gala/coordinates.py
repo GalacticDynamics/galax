@@ -23,8 +23,8 @@ def gala_psp_to_galax_psp(
     return gcx.PhaseSpacePosition(q=obj.pos, p=obj.vel, t=t)
 
 
-@gcx.PhaseSpacePosition.constructor._f.register  # type: ignore[misc]  # noqa: SLF001
-def constructor(
+@gcx.PhaseSpacePosition.from_._f.register  # type: ignore[misc]  # noqa: SLF001
+def from_(
     _: type[gcx.PhaseSpacePosition], obj: gd.PhaseSpacePosition, /, t: Any | None = None
 ) -> gcx.PhaseSpacePosition:
     """Construct a :mod:`galax` PhaseSpacePosition from a :mod:`gala` one."""

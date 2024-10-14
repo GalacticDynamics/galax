@@ -79,14 +79,14 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     """
 
-    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.constructor)
+    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.from_)
     """Positions (x, y, z)."""
 
-    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.constructor)
+    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.from_)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized
-    t: QVecTime | QVec1 = eqx.field(converter=Quantity["time"].constructor)
+    t: QVecTime | QVec1 = eqx.field(converter=Quantity["time"].from_)
     """Array of times corresponding to the positions."""
 
     _: KW_ONLY

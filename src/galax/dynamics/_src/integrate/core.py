@@ -235,14 +235,14 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Parse inputs
 
         time = units["time"]
-        t0_: gt.RealScalar = Quantity.constructor(t0, time).value
-        t1_: gt.RealScalar = Quantity.constructor(t1, time).value
+        t0_: gt.RealScalar = Quantity.from_(t0, time).value
+        t1_: gt.RealScalar = Quantity.from_(t1, time).value
         # Either save at `saveat` or at the final time.
         only_final = saveat is None or len(saveat) <= 1
         save_at = diffrax.SaveAt(
             t0=False,
             t1=only_final,
-            ts=Quantity.constructor(saveat, time).value if not only_final else None,
+            ts=Quantity.from_(saveat, time).value if not only_final else None,
             dense=interpolated,
         )
 
@@ -476,8 +476,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         # TODO: vectorize with units!
         time = units["time"]
-        t0_: gt.VecTime = Quantity.constructor(t0, time).value
-        t1_: gt.VecTime = Quantity.constructor(t1, time).value
+        t0_: gt.VecTime = Quantity.from_(t0, time).value
+        t1_: gt.VecTime = Quantity.from_(t1, time).value
 
         return vec_call(F, y0, t0_, t1_)
 

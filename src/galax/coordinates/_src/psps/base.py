@@ -65,7 +65,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
     @classmethod
     @dispatch  # type: ignore[misc]
-    def constructor(
+    def from_(
         cls: "type[AbstractBasePhaseSpacePosition]", obj: Mapping[str, Any], /
     ) -> "AbstractBasePhaseSpacePosition":
         """Construct from a mapping.
@@ -94,7 +94,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> obj = {"q": Quantity([1, 2, 3], "kpc"),
         ...        "p": Quantity([4, 5, 6], "km/s"),
         ...        "t": Quantity(0, "Gyr")}
-        >>> PhaseSpacePosition.constructor(obj)
+        >>> PhaseSpacePosition.from_(obj)
         PhaseSpacePosition(
             q=CartesianPosition3D( ... ),
             p=CartesianVelocity3D( ... ),
@@ -158,8 +158,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can create a phase-space position:
 
-        >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
-        >>> p = cx.CartesianVelocity3D.constructor(Quantity([4, 5, 6], "km/s"))
+        >>> q = cx.CartesianPosition3D.from_(Quantity([1, 2, 3], "kpc"))
+        >>> p = cx.CartesianVelocity3D.from_(Quantity([4, 5, 6], "km/s"))
         >>> t = Quantity(0, "Gyr")
         >>> pos = gc.PhaseSpacePosition(q=q, p=p, t=t)
 
@@ -197,8 +197,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can create a phase-space position:
 
-        >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
-        >>> p = cx.CartesianVelocity3D.constructor(Quantity([4, 5, 6], "km/s"))
+        >>> q = cx.CartesianPosition3D.from_(Quantity([1, 2, 3], "kpc"))
+        >>> p = cx.CartesianVelocity3D.from_(Quantity([4, 5, 6], "km/s"))
         >>> t = Quantity(0, "Gyr")
         >>> pos = gc.PhaseSpacePosition(q=q, p=p, t=t)
         >>> len(pos)
@@ -654,8 +654,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 # Register additional constructors
 
 
-@AbstractBasePhaseSpacePosition.constructor._f.register  # type: ignore[misc]  # noqa: SLF001
-def constructor(
+@AbstractBasePhaseSpacePosition.from_._f.register  # type: ignore[misc]  # noqa: SLF001
+def from_(
     cls: type[AbstractBasePhaseSpacePosition], obj: AbstractBasePhaseSpacePosition, /
 ) -> AbstractBasePhaseSpacePosition:
     """Construct from a `AbstractBasePhaseSpacePosition`.
@@ -690,7 +690,7 @@ def constructor(
     >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                          p=Quantity([4, 5, 6], "km/s"),
     ...                          t=Quantity(0, "Gyr"))
-    >>> PhaseSpacePosition.constructor(psp) is psp
+    >>> PhaseSpacePosition.from_(psp) is psp
     True
 
     Note that the constructed object is the same as the input object because
@@ -699,7 +699,7 @@ def constructor(
     new object from the input object that is an instance of the new class:
 
     >>> class NewPhaseSpacePosition(PhaseSpacePosition): pass
-    >>> new_psp = NewPhaseSpacePosition.constructor(psp)
+    >>> new_psp = NewPhaseSpacePosition.from_(psp)
     >>> new_psp is psp
     False
     >>> isinstance(new_psp, NewPhaseSpacePosition)

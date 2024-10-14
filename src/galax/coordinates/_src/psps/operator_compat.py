@@ -105,7 +105,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> shift = cx.CartesianPosition3D.constructor(Quantity([1, 1, 1], "kpc"))
+    >>> shift = cx.CartesianPosition3D.from_(Quantity([1, 1, 1], "kpc"))
     >>> op = cx.operators.GalileanSpatialTranslationOperator(shift)
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
@@ -295,7 +295,7 @@ def call(
     # representation, but at the rotated position.
     pv = convert(psp.p.represent_as(cx.CartesianVelocity3D, psp.q), Quantity)
     pv = batched_matmul(self.rotation, pv)
-    p = cx.CartesianVelocity3D.constructor(pv).represent_as(type(psp.p), q)
+    p = cx.CartesianVelocity3D.from_(pv).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 

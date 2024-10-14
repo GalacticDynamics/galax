@@ -314,6 +314,3 @@ dev-dependencies = [
     "pytest-arraydiff>=0.6.1",
     "sybil>=8.0.0",
 ]
-
-[tool.uv.sources]
-unxt = { path = "../unxt", editable = true }

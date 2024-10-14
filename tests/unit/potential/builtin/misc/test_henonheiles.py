@@ -60,7 +60,7 @@ class ParameterTimeScaleMixin(ParameterFieldMixin):
         """Test the `timescale` parameter."""
 
         def func(t: Quantity["time"]) -> Quantity["time"]:
-            return Quantity.constructor(t * 1.2, "Myr")
+            return Quantity.from_(t * 1.2, "Myr")
 
         fields["timescale"] = func
         pot = pot_cls(**fields)

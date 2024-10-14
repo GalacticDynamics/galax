@@ -120,7 +120,7 @@ def _error_if_not_all_constant_parameters(
 
 def _galpy_mass(pot: gpy.Potential, /) -> Quantity:
     """Get the total mass of a Galpy potential."""
-    return Quantity.constructor(
+    return Quantity.from_(
         pot._amp * conversion.mass_in_msol(pot._vo, pot._ro),  # noqa: SLF001
         "Msun",
     )
@@ -309,8 +309,8 @@ def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gpx.HernquistPotential:
     # TODO: factor in the constants, e.g. G?
     # TODO: unit management
     return gpx.HernquistPotential(
-        m_tot=Quantity.constructor(pot.mass(np.inf), "Msun"),
-        r_s=Quantity.constructor(pot.a, "kpc"),
+        m_tot=Quantity.from_(pot.mass(np.inf), "Msun"),
+        r_s=Quantity.from_(pot.a, "kpc"),
         units="galactic",
     )
 
@@ -541,7 +541,7 @@ def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gpx.KuzminPotential:
     """  # noqa: E501
     return gpx.KuzminPotential(
         m_tot=_galpy_mass(pot),
-        a=Quantity.constructor(pot._a * pot._ro, "kpc"),  # noqa: SLF001
+        a=Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -605,11 +605,11 @@ def galpy_to_galax(
     """  # noqa: E501
     return gpx.LongMuraliBarPotential(
         m_tot=_galpy_mass(pot),
-        a=Quantity.constructor(pot._a * pot._ro, "kpc"),  # noqa: SLF001
-        b=Quantity.constructor(pot._b * pot._ro, "kpc"),  # noqa: SLF001
-        c=Quantity.constructor(np.sqrt(pot._c2) * pot._ro, "kpc"),  # noqa: SLF001
+        a=Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
+        b=Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
+        c=Quantity.from_(np.sqrt(pot._c2) * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
-        alpha=Quantity.constructor(pot._pa, "rad"),  # noqa: SLF001
+        alpha=Quantity.from_(pot._pa, "rad"),  # noqa: SLF001
     )
 
 
@@ -676,8 +676,8 @@ def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gpx.MiyamotoNagaiPoten
     """  # noqa: E501
     return gpx.MiyamotoNagaiPotential(
         m_tot=_galpy_mass(pot),
-        a=Quantity.constructor(pot._a * pot._ro, "kpc"),  # noqa: SLF001
-        b=Quantity.constructor(pot._b * pot._ro, "kpc"),  # noqa: SLF001
+        a=Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
+        b=Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -780,7 +780,7 @@ def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gpx.PlummerPotential:
     """  # noqa: E501
     return gpx.PlummerPotential(
         m_tot=_galpy_mass(pot),
-        b=Quantity.constructor(pot._b * pot._ro, "kpc"),  # noqa: SLF001
+        b=Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -843,7 +843,7 @@ def galpy_to_galax(
     return gpx.PowerLawCutoffPotential(
         m_tot=_galpy_mass(pot),
         alpha=Quantity(pot.alpha, ""),
-        r_c=Quantity.constructor(pot.rc * pot._ro, "kpc"),  # noqa: SLF001
+        r_c=Quantity.from_(pot.rc * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -910,7 +910,7 @@ def galpy_to_galax(pot: gpy.NFWPotential, /) -> gpx.NFWPotential:
     """  # noqa: E501
     return gpx.NFWPotential(
         m=_galpy_mass(pot),
-        r_s=Quantity.constructor(pot.a * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=Quantity.from_(pot.a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 

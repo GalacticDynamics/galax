@@ -36,13 +36,13 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         parameter accepts any 3-vector, e.g.
         :class:`~coordinax.SphericalPosition`, or any input that can be used to
         make a :class:`~coordinax.CartesianPosition3D` via
-        :meth:`coordinax.AbstractPosition3D.constructor`.
+        :meth:`coordinax.AbstractPosition3D.from_`.
     p : :class:`~coordinax.AbstractVelocity3D`
         A 3-vector of the conjugate specific momenta at positions ``q``,
         allowing for batched inputs.  This parameter accepts any 3-vector
         differential, e.g.  :class:`~coordinax.SphericalVelocity`, or any input
         that can be used to make a :class:`~coordinax.CartesianVelocity3D` via
-        :meth:`coordinax.CartesianVelocity3D.constructor`.
+        :meth:`coordinax.CartesianVelocity3D.from_`.
     t : Quantity[float, (*batch,), 'time'] | None
         The time corresponding to the positions.
 
@@ -74,8 +74,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     This can be done more explicitly:
 
-    >>> q = cx.CartesianPosition3D.constructor([1, 2, 3], "m")
-    >>> p = cx.CartesianVelocity3D.constructor([4, 5, 6], "m/s")
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "m")
+    >>> p = cx.CartesianVelocity3D.from_([4, 5, 6], "m/s")
 
     >>> w2 = gc.PhaseSpacePosition(q=q, p=p, t=t)
     >>> w2 == w
@@ -104,13 +104,13 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     """
 
-    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.constructor)
+    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.from_)
     """Positions, e.g CartesianPosition3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.constructor)
+    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.from_)
     r"""Conjugate momenta, e.g. CartesianVelocity3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
@@ -118,7 +118,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     t: gt.TimeBatchableScalar | gt.VecN | gt.TimeScalar | None = eqx.field(
         default=None,
-        converter=Optional(partial(Quantity["time"].constructor, dtype=float)),
+        converter=Optional(partial(Quantity["time"].from_, dtype=float)),
     )
     """The time corresponding to the positions.
 

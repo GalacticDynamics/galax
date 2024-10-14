@@ -89,9 +89,7 @@ class ConstantParameter(AbstractParameter):
     """Time-independent potential parameter."""
 
     # TODO: link this shape to the return shape from __call__
-    value: FloatQAnyShape = eqx.field(
-        converter=partial(Quantity.constructor, dtype=float)
-    )
+    value: FloatQAnyShape = eqx.field(converter=partial(Quantity.from_, dtype=float))
     """The time-independent value of the parameter."""
 
     @partial(jax.jit, inline=True)
@@ -163,14 +161,12 @@ class LinearParameter(AbstractParameter):
 
     """
 
-    slope: FloatQAnyShape = eqx.field(
-        converter=partial(Quantity.constructor, dtype=float)
-    )
+    slope: FloatQAnyShape = eqx.field(converter=partial(Quantity.from_, dtype=float))
     point_time: BatchableRealQScalar = eqx.field(
-        converter=partial(Quantity["time"].constructor, dtype=float)
+        converter=partial(Quantity["time"].from_, dtype=float)
     )
     point_value: FloatQAnyShape = eqx.field(
-        converter=partial(Quantity.constructor, dtype=float)
+        converter=partial(Quantity.from_, dtype=float)
     )
 
     def __check_init__(self) -> None:

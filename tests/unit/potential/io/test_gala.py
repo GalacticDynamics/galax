@@ -93,7 +93,7 @@ def test_offset_hernquist() -> None:
     gxpot = gp.io.convert_potential(gp.io.GalaxLibrary, gpot)
 
     assert isinstance(gxpot, gp.PotentialFrame)
-    assert gxpot.operator[0].translation == cx.CartesianPosition3D.constructor(
+    assert gxpot.operator[0].translation == cx.CartesianPosition3D.from_(
         [1.0, 2, 3] * u.kpc
     )
 

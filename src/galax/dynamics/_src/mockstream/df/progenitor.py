@@ -36,7 +36,7 @@ class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
         The progenitor mass.
     """
 
-    m_tot: gt.MassScalar = eqx.field(converter=Quantity["mass"].constructor)
+    m_tot: gt.MassScalar = eqx.field(converter=Quantity["mass"].from_)
     """The progenitor mass."""
 
     def __call__(self, t: gt.TimeBatchScalar, /) -> gt.MassBatchScalar:

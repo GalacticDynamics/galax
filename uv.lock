@@ -228,7 +228,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.10.1"
+version = "0.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -244,9 +244,9 @@ dependencies = [
     { name = "unxt" },
     { name = "xmmutablemap" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4a/82/f772f7f351480a17c558ab4cbc834e2452cb7f136a8ef5ae69da003ffaec/coordinax-0.10.1.tar.gz", hash = "sha256:2221a82b95a911805e7ff25fd39548e6279d3baaebb808eac081efefcfd87420", size = 79738 }
+sdist = { url = "https://files.pythonhosted.org/packages/43/50/558f7883528485ec8d8ff72c232d2700de63529c6085b2f4494e59b40ec3/coordinax-0.11.0.tar.gz", hash = "sha256:eb91ba8f0e9c8f5970baae281977674f5a9b348210448d90717c6d48a02f57d3", size = 129413 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c6/a8/f8bb816571a57366db014d6c06e35a32d9c785bc188cf66af5e16567bd80/coordinax-0.10.1-py3-none-any.whl", hash = "sha256:bed214e3ab4c67d920b8ed95b82775e98151f838901b3c62610af5fce8514d61", size = 106880 },
+    { url = "https://files.pythonhosted.org/packages/c2/51/bde39cc010a8c32129f685b6bbf5cfc08a9133ff33a3efe1b997e380728d/coordinax-0.11.0-py3-none-any.whl", hash = "sha256:1815742e150218c300df8ce902f43426f1071d495b8c0794a4d2ce7b8f8d8e48", size = 112095 },
 ]
 
 [[package]]
@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "galax"
-version = "0.0.3.dev123+gfb5d6a10.d20241007"
+version = "0.0.3.dev121+g9fc643f0.d20241014"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
@@ -618,7 +618,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.0" },
     { name = "astropy", marker = "extra == 'test-all'", specifier = ">=6.0" },
     { name = "beartype", specifier = ">=0.18" },
-    { name = "coordinax", specifier = ">=0.10.0" },
+    { name = "coordinax", specifier = ">=0.11" },
     { name = "dataclassish", specifier = ">=0.3" },
     { name = "diffrax", specifier = ">=0.5" },
     { name = "equinox", specifier = ">=0.11,!=0.11.3" },
@@ -1670,7 +1670,7 @@ wheels = [
 
 [[package]]
 name = "unxt"
-version = "0.17.1.dev3+ge9246bd"
+version = "0.18.0"
 source = { editable = "../unxt" }
 dependencies = [
     { name = "astropy" },

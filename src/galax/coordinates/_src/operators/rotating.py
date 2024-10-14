@@ -118,7 +118,7 @@ class ConstantRotationZOperator(cxop.AbstractOperator):  # type: ignore[misc]
 
     We can also apply the rotation to a :class:`~coordinax.AbstractPosition3D`.
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 0, 0], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_(Quantity([1, 0, 0], "kpc"))
     >>> newq, newt = op(q, t)
     >>> convert(newq, Quantity).value.round(2)
     Array([0., 1., 0.], dtype=float64)
@@ -228,7 +228,7 @@ class ConstantRotationZOperator(cxop.AbstractOperator):  # type: ignore[misc]
 
         >>> op = ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
 
-        >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 0, 0], "kpc"))
+        >>> q = cx.CartesianPosition3D.from_(Quantity([1, 0, 0], "kpc"))
         >>> t = Quantity(1, "Gyr")
         >>> newq, newt = op(q, t)
         >>> convert(newq, Quantity).value.round(2)
@@ -245,7 +245,7 @@ class ConstantRotationZOperator(cxop.AbstractOperator):  # type: ignore[misc]
         """
         q = convert(vec.represent_as(cx.CartesianPosition3D), Quantity)
         qp, tp = self(q, t)
-        vecp = cx.CartesianPosition3D.constructor(qp).represent_as(type(vec))
+        vecp = cx.CartesianPosition3D.from_(qp).represent_as(type(vec))
         return (vecp, tp)
 
     @cxop.AbstractOperator.__call__.dispatch

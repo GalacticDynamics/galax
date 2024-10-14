@@ -12,8 +12,8 @@ import galax.coordinates as gc
 # PhaseSpacePosition
 
 
-@gc.PhaseSpacePosition.constructor._f.register  # noqa: SLF001
-def constructor(
+@gc.PhaseSpacePosition.from_._f.register  # noqa: SLF001
+def from_(
     _: type[gc.PhaseSpacePosition],
     vec: apyc.BaseRepresentation,
     /,
@@ -45,7 +45,7 @@ def constructor(
         (10., 34., 3.)
      (has differentials w.r.t.: 's')>
 
-    >>> gc.PhaseSpacePosition.constructor(vec, t=u.Quantity(0, "Myr"))
+    >>> gc.PhaseSpacePosition.from_(vec, t=u.Quantity(0, "Myr"))
     PhaseSpacePosition(
         q=LonLatSphericalPosition( lon=..., lat=..., distance=... ),
         p=LonCosLatSphericalVelocity( d_lon_coslat=..., d_lat=..., d_distance=... ),
@@ -62,8 +62,8 @@ def constructor(
     )
 
 
-@gc.PhaseSpacePosition.constructor._f.register  # noqa: SLF001
-def constructor(
+@gc.PhaseSpacePosition.from_._f.register  # noqa: SLF001
+def from_(
     _: type[gc.PhaseSpacePosition],
     vec: apyc.BaseRepresentation,
     dif: apyc.BaseDifferential,
@@ -97,7 +97,7 @@ def constructor(
     <SphericalRepresentation (lon, lat, distance) in (deg, deg, kpc)
         (10., 34., 3.)>
 
-    >>> gc.PhaseSpacePosition.constructor(vec, dif, t=u.Quantity(0, "Myr"))
+    >>> gc.PhaseSpacePosition.from_(vec, dif, t=u.Quantity(0, "Myr"))
     PhaseSpacePosition(
         q=LonLatSphericalPosition( lon=..., lat=..., distance=... ),
         p=LonCosLatSphericalVelocity( d_lon_coslat=..., d_lat=..., d_distance=... ),

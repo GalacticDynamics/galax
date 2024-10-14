@@ -68,7 +68,7 @@ class TestConstantParameter(TestAbstractParameter[ConstantParameter]):
 
     @pytest.fixture(scope="class")
     def param(self, param_cls: type[T], field_unit: Unit, field_value: float) -> T:
-        return param_cls(Quantity.constructor(field_value, unit=field_unit))
+        return param_cls(Quantity.from_(field_value, unit=field_unit))
 
     # ===============================================================
 

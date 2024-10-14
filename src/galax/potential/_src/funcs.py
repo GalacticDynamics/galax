@@ -113,7 +113,7 @@ def potential(
 
     t : Any, positional-only
         The time at which to compute the value of the potential. See
-        :meth:`unxt.Quantity.constructor` for more details.
+        :meth:`unxt.Quantity.from_` for more details.
 
     Examples
     --------
@@ -126,14 +126,14 @@ def potential(
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.potential(q, t)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     We can also compute the potential energy at multiple positions:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> pot.potential(q, t)
     Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
@@ -206,7 +206,7 @@ def potential(
 
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.constructor(t, pot.units["time"])
+    t = Quantity.from_(t, pot.units["time"])
     return pot._potential(q, t)  # noqa: SLF001
 
 
@@ -228,7 +228,7 @@ def potential(
 
     >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.potential(q, t=t)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
@@ -323,7 +323,7 @@ def gradient(
         [0.086 0.172 0.258]>
     """
     q = parse_to_quantity(pspt.q, units=pot.units)
-    return cx.CartesianAcceleration3D.constructor(pot._gradient(q, pspt.t))  # noqa: SLF001
+    return cx.CartesianAcceleration3D.from_(pot._gradient(q, pspt.t))  # noqa: SLF001
 
 
 @dispatch
@@ -342,7 +342,7 @@ def gradient(
 
     t : Any, positional-only
         The time at which to compute the gradient of the potential. See
-        :meth:`unxt.Quantity.constructor` for more details.
+        :meth:`unxt.Quantity.from_` for more details.
 
     Examples
     --------
@@ -355,7 +355,7 @@ def gradient(
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> print(pot.gradient(q, t))
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
@@ -363,7 +363,7 @@ def gradient(
 
     We can also compute the potential energy at multiple positions:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> print(pot.gradient(q, t))
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [[0.086 0.172 0.258]
@@ -447,8 +447,8 @@ def gradient(
     .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.constructor(t, pot.units["time"])
-    return cx.CartesianAcceleration3D.constructor(pot._gradient(q, t))  # noqa: SLF001
+    t = Quantity.from_(t, pot.units["time"])
+    return cx.CartesianAcceleration3D.from_(pot._gradient(q, t))  # noqa: SLF001
 
 
 @dispatch
@@ -477,7 +477,7 @@ def gradient(
     We can compute the gradient at a position (and time, if any parameters are
     time-dependent):
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> print(pot.gradient(q, t))
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
@@ -485,7 +485,7 @@ def gradient(
 
     We can also compute the gradient at multiple positions:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> print(pot.gradient(q, t))
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [[0.086 0.172 0.258]
@@ -608,14 +608,14 @@ def laplacian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["1/s^2"
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.laplacian(q, t)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
     We can also compute the potential energy at multiple positions:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> pot.laplacian(q, t)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
@@ -687,7 +687,7 @@ def laplacian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["1/s^2"
     .. skip: end
     """  # noqa: E501
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.constructor(t, pot.units["time"])
+    t = Quantity.from_(t, pot.units["time"])
     return pot._laplacian(q, t)  # noqa: SLF001
 
 
@@ -715,14 +715,14 @@ def laplacian(pot: AbstractPotentialBase, q: Any, /, *, t: Any) -> Quantity["1/s
     We can compute the laplacian at a position (and time, if any parameters are
     time-dependent):
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.laplacian(q, t)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
     We can also compute the laplacian at multiple positions:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> pot.laplacian(q, t)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
@@ -822,7 +822,7 @@ def density(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["mass den
         See `parse_to_quantity` for more details.
     t : Any, positional-only
         The time at which to compute the density of the potential.
-        See :meth:`unxt.Quantity.constructor` for more details.
+        See :meth:`unxt.Quantity.from_` for more details.
 
     Examples
     --------
@@ -835,14 +835,14 @@ def density(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["mass den
     We can compute the density at a position (and time, if any parameters are
     time-dependent):
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.density(q, t)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     We can also compute the density at multiple positions:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> pot.density(q, t)
     Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
 
@@ -914,7 +914,7 @@ def density(pot: AbstractPotentialBase, q: Any, t: Any, /) -> Quantity["mass den
     .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.constructor(t, pot.units["time"])
+    t = Quantity.from_(t, pot.units["time"])
     return pot._density(q, t)  # noqa: SLF001
 
 
@@ -936,7 +936,7 @@ def density(
 
     >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.density(q, t=t)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
@@ -1050,7 +1050,7 @@ def hessian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> HessianVec:
         `parse_to_quantity` for more details.
     t : Any, positional-only
         The time at which to compute the hessian of the potential. See
-        :meth:`~unxt.array.Quantity.constructor` for more details.
+        :meth:`~unxt.array.Quantity.from_` for more details.
 
     Examples
     --------
@@ -1063,7 +1063,7 @@ def hessian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> HessianVec:
     We can compute the hessian at a position (and time, if any parameters are
     time-dependent):
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.hessian(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -1073,7 +1073,7 @@ def hessian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> HessianVec:
 
     We can also compute the hessian at multiple positions:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> pot.hessian(q, t)
     Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                           [-0.03680435,  0.01226812, -0.11041304],
@@ -1178,7 +1178,7 @@ def hessian(pot: AbstractPotentialBase, q: Any, t: Any, /) -> HessianVec:
     .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.constructor(t, pot.units["time"])
+    t = Quantity.from_(t, pot.units["time"])
     return pot._hessian(q, t)  # noqa: SLF001
 
 
@@ -1198,7 +1198,7 @@ def hessian(pot: AbstractPotentialBase, q: Any, /, *, t: Any) -> HessianVec:
 
     >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.hessian(q, t=t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -1279,7 +1279,7 @@ def acceleration(
     We can compute the potential energy at a position (and time, which may be a
     keyword argument):
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> print(pot.acceleration(q, t))
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
@@ -1287,7 +1287,7 @@ def acceleration(
 
     We can also compute the potential energy at multiple positions:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> print(pot.acceleration(q, t))
     <CartesianAcceleration3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [[-0.086 -0.172 -0.258]
@@ -1396,7 +1396,7 @@ def tidal_tensor(
 
     We can compute the tidal tensor at a position and time:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "kpc")
     >>> t = Quantity(0, "Gyr")
     >>> pot.tidal_tensor(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -1406,7 +1406,7 @@ def tidal_tensor(
 
     We can also compute the tidal tensor at multiple positions / times:
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([[1, 2, 3], [4, 5, 6]], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> pot.tidal_tensor(q, t)
     Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                           [-0.03680435,  0.01226812, -0.11041304],
@@ -1451,7 +1451,7 @@ def tidal_tensor(
 
     >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
 
-    >>> q = cx.CartesianPosition3D.constructor(Quantity([1, 2, 3], "kpc"))
+    >>> q = cx.CartesianPosition3D.from_(Quantity([1, 2, 3], "kpc"))
     >>> t = Quantity(0, "Gyr")
     >>> pot.tidal_tensor(q, t=t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -1639,7 +1639,7 @@ def circular_velocity(
 
     >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
     ...                       units="galactic")
-    >>> x = cx.CartesianPosition3D.constructor([8.0, 0.0, 0.0], "kpc")
+    >>> x = cx.CartesianPosition3D.from_([8.0, 0.0, 0.0], "kpc")
     >>> gp.circular_velocity(pot, x, t=Quantity(0.0, "Gyr"))
     Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
 

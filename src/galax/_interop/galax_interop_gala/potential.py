@@ -16,13 +16,13 @@ from packaging.version import Version
 from plum import convert, dispatch
 
 import coordinax.operators as cxo
-import galactic_dynamics_interoperability as gdio
 import quaxed.numpy as jnp
 from coordinax.operators import IdentityOperator
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
 
 import galax.potential as gpx
+import galax.potential.io as gdio
 from galax._interop.optional_deps import OptDeps
 
 ##############################################################################

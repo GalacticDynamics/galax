@@ -1,4 +1,4 @@
-"""Re-export the machinery of ``galactic_dynamics_interoperability``."""
+"""I/O for potentials."""
 
 __all__ = [
     "convert_potential",
@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 
-from galactic_dynamics_interoperability import (
+from ._src.io import (
     AbstractInteroperableLibrary,
     GalaLibrary,
     GalaxLibrary,

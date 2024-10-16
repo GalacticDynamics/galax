@@ -1,316 +1,305 @@
 [build-system]
-build-backend = "hatchling.build"
-requires = ["hatchling", "hatch-vcs"]
+  build-backend = "hatchling.build"
+  requires      = ["hatch-vcs", "hatchling"]
 
 
 [project]
-authors = [
-  { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
-  { name = "Jake Nibauer", email = "jnibauer@princeton.edu" },
-  { name = "Adrian Price-Whelan", email = "adrianmpw@gmail.com" },
-  { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
-]
-classifiers = [
-  "Development Status :: 1 - Planning",
-  "Intended Audience :: Science/Research",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Topic :: Scientific/Engineering",
-  "Typing :: Typed",
-]
-dependencies = [
-  "astropy >= 6.0",
-  "beartype>=0.18",
-  "coordinax>=0.12.0",
-  "dataclassish >= 0.3",
-  "diffrax >= 0.5",
-  "equinox>=0.11.8",
-  "is_annotated >= 1.0",
-  "jax>=0.4.33,!=0.4.34",
-  "jaxlib>=0.4.33,!=0.4.34",
-  "jaxtyping >= 0.2.33",
-  "optional_dependencies >= 0.3",
-  "packaging>=24.1",
-  # for optional dependencies
-  "plotting_backends >= 0.1",
-  "quax >= 0.0.4",
-  "quaxed >= 0.6.4",
-  "typing_extensions >= 4.11",
-  "unxt>=0.20.0",
-  "xmmutablemap >= 0.1",
-  "zeroth >= 0.1",
-]
-description = "Galactic Dynamics in Jax."
-dynamic = ["version"]
-name = "galax"
-readme = "README.md"
-license = {text = "MIT License"}
-requires-python = ">=3.11"
+  authors = [
+    { name = "Adrian Price-Whelan", email = "adrianmpw@gmail.com" },
+    { name = "Jake Nibauer", email = "jnibauer@princeton.edu" },
+    { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
+    { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
+  ]
+  classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
+  ]
+  dependencies = [
+    "astropy >= 6.0",
+    "beartype>=0.18",
+    "coordinax>=0.12.0",
+    "dataclassish >= 0.3",
+    "diffrax >= 0.5",
+    "equinox>=0.11.8",
+    "is_annotated >= 1.0",
+    "jax>=0.4.33,!=0.4.34",
+    "jaxlib>=0.4.33,!=0.4.34",
+    "jaxtyping >= 0.2.33",
+    "optional_dependencies >= 0.3",
+    "packaging>=24.1",
+    "plotting_backends >= 0.1",
+    "quax >= 0.0.4",
+    "quaxed >= 0.6.4",
+    "typing_extensions >= 4.11",
+    "unxt>=0.20.0",
+    "xmmutablemap >= 0.1",
+    "zeroth >= 0.1",
+  ]
+  description = "Galactic Dynamics in Jax."
+  dynamic = ["version"]
+  license = { text = "MIT License" }
+  name = "galax"
+  readme = "README.md"
+  requires-python = ">=3.11"
 
-[project.optional-dependencies]
-# All runtime dependencies
-all = ["galax[interop-all,plot-all]"]
-# Interoperability dependencies
-interop-all = [
-  "galax[interop-astropy]",
-  "galax[interop-gala]",
-  "galax[interop-galpy]"
-]
-interop-astropy = [
-  "astropy >= 6.0",
-]
-interop-gala = [
-  "galax[interop-astropy]",
-  "gala >= 1.9",
-]
-interop-galpy = [
-  "galax[interop-astropy]",
-  "galpy >= 1.8",
-]
-# TODO: agama
-plot-all = ["galax[plot-matplotlib]"]
-plot-matplotlib = ["matplotlib>=3.8"]
-# Documentation dependencies
-docs = [
-  "sphinx>=7.0",
-  "myst_parser>=0.13",
-  "sphinx_copybutton>=0.5.2",
-  "sphinx_autodoc_typehints>=2.4.4",
-  "furo>=2023.08.17",
-]
-# Test dependencies
-test-all = ["galax[all,test]", "galax[test-mpl]"]
-test = [
-  "nox>=2024.4.15",
-  "pre-commit>=4.0",
-  "pytest>=6",
-  "pytest-cov>=3",
-  "pytest-arraydiff>=0.6.1",
-  "sybil != 7.1.0",
-  # temporary
-  "numpy>=2.1"
-]
-test-mpl = ["pytest-mpl>=0.17.0"]
-# Development dependencies
-dev = ["galax[all,docs,test-all]"]
+  [project.optional-dependencies]
+    # All runtime dependencies
+    all = ["galax[interop-all,plot-all]"]
+    # Interoperability dependencies
+    interop-all = [
+      "galax[interop-astropy]",
+      "galax[interop-gala]",
+      "galax[interop-galpy]",
+    ]
+    interop-astropy = ["astropy >= 6.0"]
+    interop-gala = ["gala >= 1.9", "galax[interop-astropy]"]
+    interop-galpy = ["galax[interop-astropy]", "galpy >= 1.8"]
+    # TODO: agama
+    plot-all        = ["galax[plot-matplotlib]"]
+    plot-matplotlib = ["matplotlib>=3.8"]
+    # Documentation dependencies
+    docs = [
+      "furo>=2023.08.17",
+      "myst_parser>=0.13",
+      "sphinx>=7.0",
+      "sphinx_autodoc_typehints>=2.4.4",
+      "sphinx_copybutton>=0.5.2",
+    ]
+    # Test dependencies
+    test = [
+      "nox>=2024.4.15",
+      "pre-commit>=4.0",
+      "pytest-arraydiff>=0.6.1",
+      "pytest-cov>=3",
+      "pytest>=6",
+      "sybil != 7.1.0",
+      # temporary
+      "numpy>=2.1",
+    ]
+    test-all = ["galax[all,test]", "galax[test-mpl]"]
+    test-mpl = ["pytest-mpl>=0.17.0"]
+    # Development dependencies
+    dev = ["galax[all,docs,test-all]"]
 
-[project.urls]
-"Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
-Changelog = "https://github.com/GalacticDynamics/galax/releases"
-Discussions = "https://github.com/GalacticDynamics/galax/discussions"
-Homepage = "https://github.com/GalacticDynamics/galax"
+  [project.urls]
+    "Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
+    Changelog     = "https://github.com/GalacticDynamics/galax/releases"
+    Discussions   = "https://github.com/GalacticDynamics/galax/discussions"
+    Homepage      = "https://github.com/GalacticDynamics/galax"
 
 
 [tool.hatch]
-build.hooks.vcs.version-file = "src/galax/_version.py"
-metadata.allow-direct-references = true
-version.source = "vcs"
+  build.hooks.vcs.version-file     = "src/galax/_version.py"
+  metadata.allow-direct-references = true
+  version.source                   = "vcs"
 
-[tool.hatch.envs.default]
-dependencies = ["pytest", "pytest-cov"]
-features = ["test"]
-scripts.test = "pytest {args}"
+  [tool.hatch.envs.default]
+    dependencies = ["pytest", "pytest-cov"]
+    features     = ["test"]
+    scripts.test = "pytest {args}"
 
 
 [tool.pytest.ini_options]
-addopts = [
-  "-ra",
-  "--arraydiff",
-  "--showlocals",
-  "--strict-markers",
-  "--strict-config",
-]
-filterwarnings = [
-  "error",
-  "ignore:ast\\.Str is deprecated:DeprecationWarning",  # from Sybil
-  "ignore:Attribute s is deprecated:DeprecationWarning",  # from Sybil
-  "ignore:numpy\\.ndarray size changed:RuntimeWarning",
-  "ignore:Passing arguments 'a':DeprecationWarning",  # TODO: from diffrax
-  "ignore:jax\\.core\\.pp_eqn_rules is deprecated:DeprecationWarning",
-  "ignore:unhashable type:FutureWarning",  # TODO: from diffrax
-  "ignore:auto\\-close\\(\\)ing of figures upon backend switching is deprecated:DeprecationWarning",
-]
-log_cli_level = "INFO"
-markers = [
-  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-  "serial",
-]
-minversion = "6.0"
-testpaths = ["tests/", "docs", "src/galax"]
-xfail_strict = true
+  addopts = [
+    "--arraydiff",
+    "--showlocals",
+    "--strict-config",
+    "--strict-markers",
+    "-ra",
+  ]
+  filterwarnings = [
+    "error",
+    "ignore:Attribute s is deprecated:DeprecationWarning",                                             # from Sybil
+    "ignore:Passing arguments 'a':DeprecationWarning",                                                 # TODO: from diffrax
+    "ignore:ast\\.Str is deprecated:DeprecationWarning",                                               # from Sybil
+    "ignore:auto\\-close\\(\\)ing of figures upon backend switching is deprecated:DeprecationWarning",
+    "ignore:jax\\.core\\.pp_eqn_rules is deprecated:DeprecationWarning",
+    "ignore:numpy\\.ndarray size changed:RuntimeWarning",
+    "ignore:unhashable type:FutureWarning",                                                            # TODO: from diffrax
+  ]
+  log_cli_level = "INFO"
+  markers = [
+    "serial",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  ]
+  minversion = "6.0"
+  testpaths = ["docs", "src/galax", "tests/"]
+  xfail_strict = true
 
 
 [tool.coverage]
-run.source = ["galax"]
-run.omit = [
-  "*/utils/_boundinstance.py",
-]
-report.exclude_also = [
-  # Have to re-enable the standard pragma
-  'pragma: no cover',
-  # Ignore type-checking stuff
-  'if typing.TYPE_CHECKING:',
-  'if TYPE_CHECKING:',
-  '\.\.\.',
-  # Ignore contents of abstract methods
-  '@abc.abstractmethod',
-  '@abstractmethod',
-]
+  report.exclude_also = [
+    # Have to re-enable the standard pragma
+    'pragma: no cover',
+    # Ignore type-checking stuff
+    '\.\.\.',
+    'if TYPE_CHECKING:',
+    'if typing.TYPE_CHECKING:',
+    # Ignore contents of abstract methods
+    '@abc.abstractmethod',
+    '@abstractmethod',
+  ]
+  run.omit = ["*/utils/_boundinstance.py"]
+  run.source = ["galax"]
 
 
 [tool.mypy]
-python_version = "3.11"
+  python_version = "3.11"
 
-disallow_incomplete_defs = true
-disallow_untyped_defs = true
-exclude = [
-  '(^/)docs/',      # docs
-  '(^|/)tests/',    # tests
-  '^conftest\.py$', # nox test configuration
-]
-strict = true
-warn_redundant_casts = true
-warn_unreachable = true
-warn_unused_configs = true
+  disallow_incomplete_defs = true
+  disallow_untyped_defs = true
+  exclude = [
+    '(^/)docs/',      # docs
+    '(^|/)tests/',    # tests
+    '^conftest\.py$', # nox test configuration
+  ]
+  strict = true
+  warn_redundant_casts = true
+  warn_unreachable = true
+  warn_unused_configs = true
 
-disable_error_code = ["no-redef"] # <- plum multiple dispatch
-enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+  disable_error_code = ["no-redef"]                                             # <- plum multiple dispatch
+  enable_error_code  = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
-[[tool.mypy.overrides]]
-disable_error_code = ["name-defined"] # <- jaxtyping
-module = "galax.*"
+  [[tool.mypy.overrides]]
+    disable_error_code = ["name-defined"] # <- jaxtyping
+    module             = "galax.*"
 
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = [
-  "astropy.*",
-  "beartype.*",
-  "diffrax.*",
-  "equinox.*",
-  "hypothesis.*",
-  "jax.*",
-  "jax_cosmo.*",
-  "jaxtyping.*",
-  "numpy.*",
-  "scipy.*",
-  "sympy.*",
-  "sympy2jax.*",
-]
+  [[tool.mypy.overrides]]
+    ignore_missing_imports = true
+    module = [
+      "astropy.*",
+      "beartype.*",
+      "diffrax.*",
+      "equinox.*",
+      "hypothesis.*",
+      "jax.*",
+      "jax_cosmo.*",
+      "jaxtyping.*",
+      "numpy.*",
+      "scipy.*",
+      "sympy.*",
+      "sympy2jax.*",
+    ]
 
 
 [tool.ruff]
 
-[tool.ruff.lint]
-extend-select = ["ALL"]
-ignore = [
-  "ANN101",  # Missing type annotation for self in method
-  "ANN102",  # Missing type annotation for cls in classmethod
-  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in `*args`
-  "COM812",  # Missing trailing comma in Python 3.6+
-  "D203",    # 1 blank line required before class docstring
-  "D105",    # Missing docstring in magic method
-  "D107",    # Missing docstring in `__init__`
-  "D213",    # Multi-line docstring summary should start at the second line
-  "E741",    # Ambiguous variable name
-  "F722",    # Syntax error in forward annotation  <- jaxtyping
-  "F811",    # Redefinition <- plum multiple dispatch
-  "F821",    # undefined name  <- jaxtyping
-  "FIX002",  # Line contains TODO, consider resolving the issue
-  "ISC001",  # Implicit string concatenation <- ruff-format
-  "N80",     # Naming conventions.
-  "PD",      # pandas-vet
-  "PLC0414", # Import alias does not rename original package
-  "PLR",     # Design related pylint codes
-  "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict
-  "TCH00",   # Move into a type-checking block
-  "TD002",   # Missing author in TODO
-  "TD003",   # Missing issue link on the line following this TODO
-  "UP037",   # Remove quote from type annotation  <- jaxtyping
-]
+  [tool.ruff.lint]
+    extend-select = ["ALL"]
+    ignore = [
+      "ANN101",  # Missing type annotation for self in method
+      "ANN102",  # Missing type annotation for cls in classmethod
+      "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in `*args`
+      "COM812",  # Missing trailing comma in Python 3.6+
+      "D105",    # Missing docstring in magic method
+      "D107",    # Missing docstring in `__init__`
+      "D203",    # 1 blank line required before class docstring
+      "D213",    # Multi-line docstring summary should start at the second line
+      "E741",    # Ambiguous variable name
+      "F722",    # Syntax error in forward annotation  <- jaxtyping
+      "F811",    # Redefinition <- plum multiple dispatch
+      "F821",    # undefined name  <- jaxtyping
+      "FIX002",  # Line contains TODO, consider resolving the issue
+      "ISC001",  # Implicit string concatenation <- ruff-format
+      "N80",     # Naming conventions.
+      "PD",      # pandas-vet
+      "PLC0414", # Import alias does not rename original package
+      "PLR",     # Design related pylint codes
+      "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict
+      "TCH00",   # Move into a type-checking block
+      "TD002",   # Missing author in TODO
+      "TD003",   # Missing issue link on the line following this TODO
+      "UP037",   # Remove quote from type annotation  <- jaxtyping
+    ]
 
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F403"]
-"__init__.pyi" = ["F401", "F403"]
-"docs/conf.py" = [
-  "A001",   # Variable `copyright` is shadowing a Python builtin
-  "INP001", # implicit namespace package
-]
-"notebooks/**" = ["ANN", "D103", "FBT", "T201"]
-"noxfile.py" = ["ERA001", "T20"]
-"tests/**" = [
-  "ANN",
-  "ARG001",
-  "ARG002",
-  "D10",
-  "E731",
-  "ERA001", # Found commented-out code  # TODO: remove this
-  "FBT001", # Boolean-typed positional argument in a function definition
-  "INP001",
-  "RET504",
-  "S101",
-  "S301",
-  "SLF001",
-  "T20",
-  "TID252", # Relative imports from parent modules are banned
-]
+    [tool.ruff.lint.per-file-ignores]
+      "__init__.py" = ["F403"]
+      "__init__.pyi" = ["F401", "F403"]
+      "docs/conf.py" = [
+        "A001",   # Variable `copyright` is shadowing a Python builtin
+        "INP001", # implicit namespace package
+      ]
+      "notebooks/**" = ["ANN", "D103", "FBT", "T201"]
+      "noxfile.py" = ["ERA001", "T20"]
+      "tests/**" = [
+        "ANN",
+        "ARG001",
+        "ARG002",
+        "D10",
+        "E731",
+        "ERA001", # Found commented-out code  # TODO: remove this
+        "FBT001", # Boolean-typed positional argument in a function definition
+        "INP001",
+        "RET504",
+        "S101",
+        "S301",
+        "SLF001",
+        "T20",
+        "TID252", # Relative imports from parent modules are banned
+      ]
 
-[tool.ruff.lint.flake8-type-checking]
-exempt-modules = []
+    [tool.ruff.lint.flake8-type-checking]
+      exempt-modules = []
 
-[tool.ruff.lint.isort]
-combine-as-imports = true
-extra-standard-library = ["typing_extensions"]
-known-first-party = [
-  "coordinax",
-  "dataclassish",
-  "galactic_dynamics_interoperability",
-  "is_annotated",
-  "optional_dependencies",
-  "plotting_backends",
-  "quaxed",
-  "unxt",
-  "xmmutablemap",
-  "zeroth"
-]
-known-local-folder = ["galax"]
+    [tool.ruff.lint.isort]
+      combine-as-imports = true
+      extra-standard-library = ["typing_extensions"]
+      known-first-party = [
+        "coordinax",
+        "dataclassish",
+        "galactic_dynamics_interoperability",
+        "is_annotated",
+        "optional_dependencies",
+        "plotting_backends",
+        "quaxed",
+        "unxt",
+        "xmmutablemap",
+        "zeroth",
+      ]
+      known-local-folder = ["galax"]
 
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
+    [tool.ruff.lint.pydocstyle]
+      convention = "numpy"
 
 
 [tool.pylint]
-ignore-paths = [".*/_version.py"]
-messages_control.disable = [
-  "design",
-  "fixme",
-  "function-redefined",
-  "import-outside-toplevel",
-  "invalid-name",                  # ruff N80*
-  "line-too-long",
-  "missing-module-docstring",
-  "protected-access",              # ruff SLF001
-  "unnecessary-ellipsis",
-  "unnecessary-lambda-assignment", # ruff E731
-  "unnecessary-pass",              # handled by ruff
-  "unused-argument",               # handled by ruff
-  "useless-import-alias",
-  "wrong-import-position",
-  "wrong-import-order",            # handled by ruff
-]
-py-version = "3.11"
-reports.output-format = "colorized"
-similarities.ignore-imports = "yes"
+  ignore-paths = [".*/_version.py"]
+  messages_control.disable = [
+    "design",
+    "fixme",
+    "function-redefined",
+    "import-outside-toplevel",
+    "invalid-name",                  # ruff N80*
+    "line-too-long",
+    "missing-module-docstring",
+    "protected-access",              # ruff SLF001
+    "unnecessary-ellipsis",
+    "unnecessary-lambda-assignment", # ruff E731
+    "unnecessary-pass",              # handled by ruff
+    "unused-argument",               # handled by ruff
+    "useless-import-alias",
+    "wrong-import-order",            # handled by ruff
+    "wrong-import-position",
+  ]
+  py-version = "3.11"
+  reports.output-format = "colorized"
+  similarities.ignore-imports = "yes"
 
 [tool.uv]
-dev-dependencies = [
-    "pytest>=8.3.3",
-    "pytest-arraydiff>=0.6.1",
-    "sybil>=8.0.0",
+  dev-dependencies = [
     "ipykernel>=6.29.5",
-]
+    "pytest-arraydiff>=0.6.1",
+    "pytest>=8.3.3",
+    "sybil>=8.0.0",
+  ]

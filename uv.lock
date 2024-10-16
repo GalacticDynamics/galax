@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "galax"
-version = "0.0.3.dev121+g9fc643f0.d20241014"
+version = "0.0.3.dev123+g72891aae"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
@@ -682,7 +682,7 @@ requires-dist = [
     { name = "sybil", marker = "extra == 'test'", specifier = "!=7.1.0" },
     { name = "sybil", marker = "extra == 'test-all'", specifier = "!=7.1.0" },
     { name = "typing-extensions", specifier = ">=4.11" },
-    { name = "unxt", editable = "../unxt" },
+    { name = "unxt", specifier = ">=0.18" },
     { name = "xmmutablemap", specifier = ">=0.1" },
     { name = "zeroth", specifier = ">=0.1" },
 ]
@@ -1670,8 +1670,8 @@ wheels = [
 
 [[package]]
 name = "unxt"
-version = "0.18.0"
-source = { editable = "../unxt" }
+version = "0.18.1"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
     { name = "dataclassish" },
@@ -1686,89 +1686,9 @@ dependencies = [
     { name = "quaxed" },
     { name = "xmmutablemap" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "astropy", specifier = ">=6.0" },
-    { name = "astropy", marker = "extra == 'all'", specifier = ">=6.0" },
-    { name = "astropy", marker = "extra == 'backend-astropy'", specifier = ">=6.0" },
-    { name = "astropy", marker = "extra == 'dev'", specifier = ">=6.0" },
-    { name = "astropy", marker = "extra == 'test-all'", specifier = ">=6.0" },
-    { name = "dataclassish", specifier = ">=0.3" },
-    { name = "equinox", specifier = ">0.11" },
-    { name = "gala", marker = "extra == 'all'" },
-    { name = "gala", marker = "extra == 'dev'" },
-    { name = "gala", marker = "extra == 'interop-gala'" },
-    { name = "gala", marker = "extra == 'test-all'" },
-    { name = "griffe", marker = "extra == 'dev'", specifier = "<1.0" },
-    { name = "griffe", marker = "extra == 'docs'", specifier = "<1.0" },
-    { name = "hypothesis", extras = ["numpy"], marker = "extra == 'dev'" },
-    { name = "hypothesis", extras = ["numpy"], marker = "extra == 'test'" },
-    { name = "hypothesis", extras = ["numpy"], marker = "extra == 'test-all'" },
-    { name = "is-annotated", specifier = ">=1.0" },
-    { name = "jax", specifier = ">0.4" },
-    { name = "jaxlib", specifier = ">0.4" },
-    { name = "jaxtyping", specifier = ">=0.2.34" },
-    { name = "jinja2", marker = "extra == 'dev'", specifier = "==3.1" },
-    { name = "jinja2", marker = "extra == 'docs'", specifier = "==3.1" },
-    { name = "matplotlib", marker = "extra == 'all'" },
-    { name = "matplotlib", marker = "extra == 'dev'" },
-    { name = "matplotlib", marker = "extra == 'interop-mpl'" },
-    { name = "matplotlib", marker = "extra == 'test-all'" },
-    { name = "mkdocs", marker = "extra == 'dev'", specifier = "==1.6.0" },
-    { name = "mkdocs", marker = "extra == 'docs'", specifier = "==1.6.0" },
-    { name = "mkdocs-include-exclude-files", marker = "extra == 'dev'", specifier = "==0.0.1" },
-    { name = "mkdocs-include-exclude-files", marker = "extra == 'docs'", specifier = "==0.0.1" },
-    { name = "mkdocs-material", marker = "extra == 'dev'", specifier = "==9.5" },
-    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = "==9.5" },
-    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'dev'", specifier = ">=0.18" },
-    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.18" },
-    { name = "mknotebooks", marker = "extra == 'dev'", specifier = "==0.8" },
-    { name = "mknotebooks", marker = "extra == 'docs'", specifier = "==0.8" },
-    { name = "nbconvert", marker = "extra == 'dev'", specifier = "==7.16" },
-    { name = "nbconvert", marker = "extra == 'docs'", specifier = "==7.16" },
-    { name = "optional-dependencies", specifier = ">=0.3.2" },
-    { name = "plum-dispatch", specifier = ">=2.4.3" },
-    { name = "pygments", marker = "extra == 'dev'", specifier = "==2.16.0" },
-    { name = "pygments", marker = "extra == 'docs'", specifier = "==2.16.0" },
-    { name = "pymdown-extensions", marker = "extra == 'dev'", specifier = "==10.2" },
-    { name = "pymdown-extensions", marker = "extra == 'docs'", specifier = "==10.2" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=6" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=6" },
-    { name = "pytest", marker = "extra == 'test-all'", specifier = ">=6" },
-    { name = "pytest-arraydiff", marker = "extra == 'dev'" },
-    { name = "pytest-arraydiff", marker = "extra == 'test'" },
-    { name = "pytest-arraydiff", marker = "extra == 'test-all'" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=3" },
-    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=3" },
-    { name = "pytest-cov", marker = "extra == 'test-all'", specifier = ">=3" },
-    { name = "pytest-github-actions-annotate-failures", marker = "extra == 'dev'" },
-    { name = "pytest-github-actions-annotate-failures", marker = "extra == 'test'" },
-    { name = "pytest-github-actions-annotate-failures", marker = "extra == 'test-all'" },
-    { name = "pytest-mpl", marker = "extra == 'dev'" },
-    { name = "pytest-mpl", marker = "extra == 'test-all'" },
-    { name = "pytest-mpl", marker = "extra == 'test-mpl'" },
-    { name = "pytkdocs-tweaks", marker = "extra == 'dev'", specifier = "==0.0.8" },
-    { name = "pytkdocs-tweaks", marker = "extra == 'docs'", specifier = "==0.0.8" },
-    { name = "quax", specifier = ">=0.0.5" },
-    { name = "quaxed", specifier = ">=0.6.4" },
-    { name = "sybil", marker = "extra == 'dev'" },
-    { name = "sybil", marker = "extra == 'test'" },
-    { name = "sybil", marker = "extra == 'test-all'" },
-    { name = "xmmutablemap", specifier = ">=0.1" },
-    { name = "zeroth", marker = "extra == 'all'" },
-    { name = "zeroth", marker = "extra == 'dev'" },
-    { name = "zeroth", marker = "extra == 'interop-mpl'" },
-    { name = "zeroth", marker = "extra == 'test-all'" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.112.2" },
-    { name = "ipykernel", specifier = ">=6.29.5" },
-    { name = "pytest", specifier = ">=8.3.3" },
-    { name = "pytest-arraydiff", specifier = ">=0.6.1" },
-    { name = "sybil", specifier = ">=8.0.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/71/ac/adb575a8beb00b7dbf2a93f82114e9c548a287cb93abd89f6092729d0fd9/unxt-0.18.1.tar.gz", hash = "sha256:1c117ad0885702aa1a7be49b53756037a8bc6e28be6762b5c742f43ccf1b6c43", size = 653142 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b8/73/c905a5bbc69c4a75a35c4acb6310fa2924bcfd96a6c313c77a4c15759e4c/unxt-0.18.1-py3-none-any.whl", hash = "sha256:2f08f87fa5c3596fccfe1c8828364d82f2730a26721a5808534da0484cc6a439", size = 53147 },
 ]
 
 [[package]]

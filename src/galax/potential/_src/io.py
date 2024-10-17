@@ -37,7 +37,7 @@ class AbstractInteroperableLibrary:
     In this example we show how to use this class as a target for dispatching
 
     >>> from numbers import Number
-    >>> from galactic_dynamics_interoperability import AbstractInteroperableLibrary
+    >>> from galax.potential.io import AbstractInteroperableLibrary
     >>> from plum import dispatch
 
     We define a library class that is a subclass of

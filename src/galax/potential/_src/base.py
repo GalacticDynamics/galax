@@ -16,14 +16,10 @@ from plum import dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as ux
-from galactic_dynamics_interoperability import (
-    AbstractInteroperableLibrary,
-    GalaxLibrary,
-    convert_potential,
-)
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
+from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
 from .plot import PlotPotentialDescriptor
 from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars

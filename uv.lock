@@ -484,16 +484,8 @@ wheels = [
 ]
 
 [[package]]
-name = "galactic-dynamics-interoperability"
-version = "0.1.dev7+g9052075"
-source = { git = "https://github.com/GalacticDynamics/galactic_dynamics_interoperability.git#90520753c34aff6bad572bbc68fe06e62de0d82c" }
-dependencies = [
-    { name = "plum-dispatch" },
-]
-
-[[package]]
 name = "galax"
-version = "0.0.3.dev123+g72891aae"
+version = "0.0.3.dev124+g8026aaff.d20241016"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
@@ -502,7 +494,6 @@ dependencies = [
     { name = "dataclassish" },
     { name = "diffrax" },
     { name = "equinox" },
-    { name = "galactic-dynamics-interoperability" },
     { name = "is-annotated" },
     { name = "jax" },
     { name = "jaxlib" },
@@ -629,7 +620,6 @@ requires-dist = [
     { name = "gala", marker = "extra == 'interop-all'", specifier = ">=1.9" },
     { name = "gala", marker = "extra == 'interop-gala'", specifier = ">=1.9" },
     { name = "gala", marker = "extra == 'test-all'", specifier = ">=1.9" },
-    { name = "galactic-dynamics-interoperability", git = "https://github.com/GalacticDynamics/galactic_dynamics_interoperability.git" },
     { name = "galpy", marker = "extra == 'all'", specifier = ">=1.8" },
     { name = "galpy", marker = "extra == 'dev'", specifier = ">=1.8" },
     { name = "galpy", marker = "extra == 'interop-all'", specifier = ">=1.8" },

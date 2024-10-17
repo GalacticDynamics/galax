@@ -13,10 +13,10 @@ from astropy.units import Quantity as AstropyQuantity
 from galpy.util import conversion
 from plum import convert, dispatch
 
-import galactic_dynamics_interoperability as gdio
 from unxt import Quantity
 
 import galax.potential as gpx
+import galax.potential.io as gdio
 
 ##############################################################################
 # Hook into general dispatcher

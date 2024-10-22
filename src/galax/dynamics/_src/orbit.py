@@ -51,8 +51,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-      q=CartesianPosition3D( ... ),
-      p=CartesianVelocity3D( ... ),
+      q=CartesianPos3D( ... ),
+      p=CartesianVel3D( ... ),
       t=Quantity[...](value=f64[10], unit=Unit("Myr")),
       potential=KeplerPotential( ... ),
       interpolant=None
@@ -61,8 +61,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     >>> orbit = gd.evaluate_orbit(potential, w0, ts, interpolated=True)
     >>> orbit
     Orbit(
-      q=CartesianPosition3D( ... ),
-      p=CartesianVelocity3D( ... ),
+      q=CartesianPos3D( ... ),
+      p=CartesianVel3D( ... ),
       t=Quantity[...](value=f64[10], unit=Unit("Myr")),
       potential=KeplerPotential( ... ),
       interpolant=Interpolant( ... )
@@ -70,8 +70,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     >>> orbit(Quantity(0.5, "Gyr"))
     Orbit(
-      q=CartesianPosition3D( ... ),
-      p=CartesianVelocity3D( ... ),
+      q=CartesianPos3D( ... ),
+      p=CartesianVel3D( ... ),
       t=Quantity[...](value=f64[1], unit=Unit("Gyr")),
       potential=KeplerPotential( ... ),
       interpolant=None
@@ -79,10 +79,10 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     """
 
-    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.from_)
+    q: cx.AbstractPos3D = eqx.field(converter=cx.AbstractPos3D.from_)
     """Positions (x, y, z)."""
 
-    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.from_)
+    p: cx.AbstractVel3D = eqx.field(converter=cx.AbstractVel3D.from_)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized
@@ -178,10 +178,10 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
         >>> orbit[(slice(None),)]
         Orbit(
-          q=CartesianPosition3D(
+          q=CartesianPos3D(
             x=Quantity[...](value=f64[10], unit=Unit("kpc")),
             ... ),
-          p=CartesianVelocity3D(
+          p=CartesianVel3D(
             d_x=Quantity[...]( value=f64[10], unit=Unit("kpc / Myr") ),
             ... ),
           t=Quantity[PhysicalType('time')](value=f64[10], unit=Unit("Myr")),
@@ -222,11 +222,11 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
         >>> orbit[0:2]
         Orbit(
-          q=CartesianPosition3D(
+          q=CartesianPos3D(
             x=Quantity[...](value=f64[2], unit=Unit("kpc")),
             ...
           ),
-          p=CartesianVelocity3D(
+          p=CartesianVel3D(
             d_x=Quantity[...]( value=f64[2], unit=Unit("kpc / Myr") ),
             ...
           ),
@@ -264,8 +264,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
         >>> orbit[0]
         PhaseSpacePosition(
-          q=CartesianPosition3D( ... ),
-          p=CartesianVelocity3D( ... ),
+          q=CartesianPos3D( ... ),
+          p=CartesianVel3D( ... ),
           t=Quantity[...](value=f64[], unit=Unit("Myr"))
         )
         >>> orbit[0].t

@@ -51,10 +51,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     :math:`t\in\mathbb{R}^1`.
     """
 
-    q: eqx.AbstractVar[cx.AbstractPosition3D]
+    q: eqx.AbstractVar[cx.AbstractPos3D]
     """Positions."""
 
-    p: eqx.AbstractVar[cx.AbstractVelocity3D]
+    p: eqx.AbstractVar[cx.AbstractVel3D]
     """Conjugate momenta at positions ``q``."""
 
     t: eqx.AbstractVar[gt.BatchableFloatQScalar]
@@ -96,8 +96,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...        "t": Quantity(0, "Gyr")}
         >>> PhaseSpacePosition.from_(obj)
         PhaseSpacePosition(
-            q=CartesianPosition3D( ... ),
-            p=CartesianVelocity3D( ... ),
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             t=Quantity[...](value=f64[], unit=Unit("Gyr"))
         )
 
@@ -118,9 +118,9 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                           t=Quantity(-1, "Gyr"))
         >>> print(w)
         PhaseSpacePosition(
-            q=<CartesianPosition3D (x[kpc], y[kpc], z[kpc])
+            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
                 [1. 2. 3.]>,
-            p=<CartesianVelocity3D (d_x[km / s], d_y[km / s], d_z[km / s])
+            p=<CartesianVel3D (d_x[km / s], d_y[km / s], d_z[km / s])
                 [4. 5. 6.]>,
             t=Quantity['time'](Array(-1., dtype=float64), unit='Gyr'))
         """
@@ -158,8 +158,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can create a phase-space position:
 
-        >>> q = cx.CartesianPosition3D.from_(Quantity([1, 2, 3], "kpc"))
-        >>> p = cx.CartesianVelocity3D.from_(Quantity([4, 5, 6], "km/s"))
+        >>> q = cx.CartesianPos3D.from_(Quantity([1, 2, 3], "kpc"))
+        >>> p = cx.CartesianVel3D.from_(Quantity([4, 5, 6], "km/s"))
         >>> t = Quantity(0, "Gyr")
         >>> pos = gc.PhaseSpacePosition(q=q, p=p, t=t)
 
@@ -170,7 +170,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         For a batch of phase-space positions, the shape will be non-empty:
 
-        >>> q = cx.CartesianPosition3D(x=Quantity([1, 4], "kpc"),
+        >>> q = cx.CartesianPos3D(x=Quantity([1, 4], "kpc"),
         ...                            y=Quantity(2, "kpc"),
         ...                            z=Quantity(3, "kpc"))
         >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
@@ -197,8 +197,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can create a phase-space position:
 
-        >>> q = cx.CartesianPosition3D.from_(Quantity([1, 2, 3], "kpc"))
-        >>> p = cx.CartesianVelocity3D.from_(Quantity([4, 5, 6], "km/s"))
+        >>> q = cx.CartesianPos3D.from_(Quantity([1, 2, 3], "kpc"))
+        >>> p = cx.CartesianVel3D.from_(Quantity([4, 5, 6], "km/s"))
         >>> t = Quantity(0, "Gyr")
         >>> pos = gc.PhaseSpacePosition(q=q, p=p, t=t)
         >>> len(pos)
@@ -206,7 +206,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         For a batch of phase-space positions, the length will be non-zero:
 
-        >>> q = cx.CartesianPosition3D(x=Quantity([1, 4], "kpc"),
+        >>> q = cx.CartesianPos3D(x=Quantity([1, 4], "kpc"),
         ...                            y=Quantity(2, "kpc"),
         ...                            z=Quantity(3, "kpc"))
         >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
@@ -235,15 +235,15 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> w[jnp.array(0)]
         PhaseSpacePosition(
-            q=CartesianPosition3D( ... ),
-            p=CartesianVelocity3D( ... ),
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             t=Quantity[...](value=f64[], unit=Unit("Gyr"))
         )
 
         >>> w[jnp.array([0])]
         PhaseSpacePosition(
-            q=CartesianPosition3D( ... ),
-            p=CartesianVelocity3D( ... ),
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             t=Quantity[...](value=f64[1], unit=Unit("Gyr"))
         )
 
@@ -328,7 +328,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(cx.CartesianPosition3D)
+        cart = self.represent_as(cx.CartesianPos3D)
         q = jnp.broadcast_to(
             ustrip(usys["length"], convert(cart.q, FastQ)), (*batch, comps.q)
         )
@@ -371,7 +371,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(cx.CartesianPosition3D).to_units(usys)
+        cart = self.represent_as(cx.CartesianPos3D).to_units(usys)
         q = jnp.broadcast_to(convert(cart.q, FastQ), (*batch, comps.q))
         p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))
         t = jnp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
@@ -379,17 +379,17 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
     def represent_as(
         self,
-        position_cls: type[cx.AbstractPosition],
-        velocity_cls: type[cx.AbstractVelocity] | None = None,
+        position_cls: type[cx.AbstractPos],
+        velocity_cls: type[cx.AbstractVel] | None = None,
         /,
     ) -> "Self":
         """Return with the components transformed.
 
         Parameters
         ----------
-        position_cls : type[:class:`~vector.AbstractPosition`]
+        position_cls : type[:class:`~vector.AbstractPos`]
             The target position class.
-        velocity_cls : type[:class:`~vector.AbstractVelocity`], optional
+        velocity_cls : type[:class:`~vector.AbstractVel`], optional
             The target differential class. If `None` (default), the differential
             class of the target position class is used.
 
@@ -416,17 +416,17 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can also convert it to a different representation:
 
-        >>> psp.represent_as(cx.CylindricalPosition)
-        PhaseSpacePosition( q=CylindricalPosition(...),
-                            p=CylindricalVelocity(...),
+        >>> psp.represent_as(cx.CylindricalPos)
+        PhaseSpacePosition( q=CylindricalPos(...),
+                            p=CylindricalVel(...),
                             t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
         We can also convert it to a different representation with a different
         differential class:
 
-        >>> psp.represent_as(cx.LonLatSphericalPosition, cx.LonCosLatSphericalVelocity)
-        PhaseSpacePosition( q=LonLatSphericalPosition(...),
-                            p=LonCosLatSphericalVelocity(...),
+        >>> psp.represent_as(cx.LonLatSphericalPos, cx.LonCosLatSphericalVel)
+        PhaseSpacePosition( q=LonLatSphericalPos(...),
+                            p=LonCosLatSphericalVel(...),
                             t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
         """
         return cast("Self", cx.represent_as(self, position_cls, velocity_cls))
@@ -460,10 +460,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                          t=Quantity(0, "Gyr"))
         >>> psp.to_units("solarsystem")
         PhaseSpacePosition(
-            q=CartesianPosition3D(
+            q=CartesianPos3D(
                 x=Quantity[...](value=f64[], unit=Unit("AU")),
                 ... ),
-            p=CartesianVelocity3D(
+            p=CartesianVel3D(
                 d_x=Quantity[...]( value=f64[], unit=Unit("AU / yr") ),
                 ... ),
             t=Quantity[...](value=f64[], unit=Unit("yr"))
@@ -498,11 +498,11 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can construct a phase-space position:
 
-        >>> q = cx.CartesianPosition3D(
+        >>> q = cx.CartesianPos3D(
         ...     x=Quantity(1, "kpc"),
         ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=Quantity(2, "kpc"))
-        >>> p = cx.CartesianVelocity3D(
+        >>> p = cx.CartesianVel3D(
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
@@ -547,11 +547,11 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can construct a phase-space position:
 
-        >>> q = cx.CartesianPosition3D(
+        >>> q = cx.CartesianPos3D(
         ...     x=Quantity(1, "kpc"),
         ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=Quantity(2, "kpc"))
-        >>> p = cx.CartesianVelocity3D(
+        >>> p = cx.CartesianVel3D(
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
@@ -596,11 +596,11 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can construct a phase-space position:
 
-        >>> q = cx.CartesianPosition3D(
+        >>> q = cx.CartesianPos3D(
         ...     x=Quantity(1, "kpc"),
         ...     y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=Quantity(2, "kpc"))
-        >>> p = cx.CartesianVelocity3D(
+        >>> p = cx.CartesianVel3D(
         ...     d_x=Quantity(0, "km/s"),
         ...     d_y=Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=Quantity(0, "km/s"))
@@ -746,8 +746,8 @@ def add(
     >>> w3 = w1 + w2
     >>> w3
     PhaseSpacePosition(
-      q=CartesianPosition3D( ... ),
-      p=CartesianVelocity3D( ... ),
+      q=CartesianPos3D( ... ),
+      p=CartesianVel3D( ... ),
       t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
     )
 

@@ -5,7 +5,7 @@ __all__ = ["AbstractCompositePhaseSpacePosition"]
 from abc import abstractmethod
 from collections.abc import Hashable, Mapping
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import equinox as eqx
 from jaxtyping import Shaped
@@ -27,8 +27,8 @@ if TYPE_CHECKING:
 
 # Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePhaseSpacePosition(
-    ImmutableMap[str, AbstractBasePhaseSpacePosition],  # type: ignore[misc]
     AbstractBasePhaseSpacePosition,
+    ImmutableMap[str, AbstractBasePhaseSpacePosition],  # type: ignore[misc]
     strict=False,  # type: ignore[call-arg]
 ):
     r"""Abstract base class of composite phase-space positions.
@@ -60,7 +60,7 @@ class AbstractCompositePhaseSpacePosition(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> def stack(vs: list[cx.AbstractPosition]) -> cx.AbstractPosition:
+    >>> def stack(vs: list[cx.AbstractPos]) -> cx.AbstractPos:
     ...    comps = {k: jnp.stack([getattr(v, k) for v in vs], axis=-1)
     ...             for k in vs[0].components}
     ...    return replace(vs[0], **comps)
@@ -77,7 +77,7 @@ class AbstractCompositePhaseSpacePosition(
     True
 
     >>> c_psp.q
-    CartesianPosition3D(
+    CartesianPos3D(
       x=Quantity[...](value=f64[2], unit=Unit("kpc")),
       y=Quantity[...](value=f64[2], unit=Unit("kpc")),
       z=Quantity[...](value=f64[2], unit=Unit("kpc"))
@@ -107,22 +107,25 @@ class AbstractCompositePhaseSpacePosition(
         /,
         **kwargs: AbstractBasePhaseSpacePosition,
     ) -> None:
-        super().__init__(psps, **kwargs)  # <- ImmutableMap.__init__
+        ImmutableMap.__init__(self, psps, **kwargs)  # <- ImmutableMap.__init__
 
     @property
     @abstractmethod
-    def q(self) -> cx.AbstractPosition3D:
+    def q(self) -> cx.AbstractPos3D:
         """Positions."""
 
     @property
     @abstractmethod
-    def p(self) -> cx.AbstractVelocity3D:
+    def p(self) -> cx.AbstractVel3D:
         """Conjugate momenta."""
 
     @property
     @abstractmethod
     def t(self) -> Shaped[Quantity["time"], "..."]:
         """Times."""
+
+    def __repr__(self) -> str:
+        return cast(str, ImmutableMap.__repr__(self))
 
     # ==========================================================================
     # Array properties
@@ -186,12 +189,12 @@ class AbstractCompositePhaseSpacePosition(
 
         >>> cw[...]
         CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
-            q=CartesianPosition3D( ... ),
-            p=CartesianVelocity3D( ... ),
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
           ), 'w2': PhaseSpacePosition(
-            q=CartesianPosition3D( ... ),
-            p=CartesianVelocity3D( ... ),
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
         )})
 
@@ -246,7 +249,7 @@ class AbstractCompositePhaseSpacePosition(
         >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1)
         >>> c_psp.to_units(solarsystem)
         CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
-            q=CartesianPosition3D(
+            q=CartesianPos3D(
                 x=Quantity[...](value=f64[], unit=Unit("AU")),
                 ...
         """
@@ -269,8 +272,8 @@ class AbstractCompositePhaseSpacePosition(
 @dispatch  # type: ignore[misc]
 def represent_as(
     psp: AbstractCompositePhaseSpacePosition,
-    position_cls: type[cx.AbstractPosition],
-    velocity_cls: type[cx.AbstractVelocity] | None = None,
+    position_cls: type[cx.AbstractPos],
+    velocity_cls: type[cx.AbstractVel] | None = None,
     /,
 ) -> AbstractCompositePhaseSpacePosition:
     """Return with the components transformed.
@@ -279,9 +282,9 @@ def represent_as(
     ----------
     psp : :class:`~galax.coordinates.AbstractCompositePhaseSpacePosition`
         The phase-space position.
-    position_cls : type[:class:`~vector.AbstractPosition`]
+    position_cls : type[:class:`~vector.AbstractPos`]
         The target position class.
-    velocity_cls : type[:class:`~vector.AbstractVelocity`], optional
+    velocity_cls : type[:class:`~vector.AbstractVel`], optional
         The target differential class. If `None` (default), the differential
         class of the target position class is used.
 
@@ -304,15 +307,15 @@ def represent_as(
 
     We can transform the composite phase-space position to a new position class.
 
-    >>> cx.represent_as(cpsp, cx.CylindricalPosition)
+    >>> cx.represent_as(cpsp, cx.CylindricalPos)
     CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
-        q=CylindricalPosition( ... ),
-        p=CylindricalVelocity( ... ),
+        q=CylindricalPos( ... ),
+        p=CylindricalVel( ... ),
         t=Quantity...
       ),
       'psp2': PhaseSpacePosition(
-        q=CylindricalPosition( ... ),
-        p=CylindricalVelocity( ... ),
+        q=CylindricalPos( ... ),
+        p=CylindricalVel( ... ),
         t=...
     )})
 

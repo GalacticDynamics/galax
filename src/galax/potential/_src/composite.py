@@ -27,8 +27,8 @@ V = TypeVar("V")
 
 # Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePotential(
-    ImmutableMap[str, AbstractPotentialBase],  # type: ignore[misc]
     AbstractPotentialBase,
+    ImmutableMap[str, AbstractPotentialBase],  # type: ignore[misc]
     strict=False,
 ):
     def __init__(
@@ -43,7 +43,7 @@ class AbstractCompositePotential(
         constants: Any = default_constants,
         **kwargs: AbstractPotentialBase,
     ) -> None:
-        super().__init__(potentials, **kwargs)  # <- ImmutableMap.__init__
+        ImmutableMap.__init__(self, potentials, **kwargs)  # <- ImmutableMap.__init__
 
         # __post_init__ stuff:
         # Check that all potentials have the same unit system

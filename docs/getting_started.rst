@@ -107,7 +107,7 @@ position near the Sun::
     >>> mw.potential(xyz, t=0).to_units("kpc2 / Myr2")
     Quantity[...](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0)
-    CartesianAcceleration3D...
+    CartesianAcc3D...
 
 The values that are returned by most methods in :mod:`galax` are provided as
 Astropy :class:`~astropy.units.Quantity` objects, which represent numerical data
@@ -118,7 +118,7 @@ energy or acceleration in other units::
     >>> mw.potential(xyz, t=0).to_units("kpc2/Myr2")
     Quantity[...](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0)
-    CartesianAcceleration3D...
+    CartesianAcc3D...
 
 Now that we have a potential model, if we want to compute an orbit, we need to
 specify a set of initial conditions to initialize the numerical orbit
@@ -168,7 +168,7 @@ phase-space positions at times::
 
     >>> orbit
     Orbit(
-      q=CartesianPosition3D(
+      q=CartesianPos3D(
         x=Quantity[PhysicalType('length')](value=f64[2000], unit=Unit("kpc")),
         ...
 

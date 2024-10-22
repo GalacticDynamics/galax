@@ -170,7 +170,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def gradient(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
-    ) -> cx.CartesianAcceleration3D:  # TODO: shape hint
+    ) -> cx.CartesianAcc3D:  # TODO: shape hint
         """Compute the gradient of the potential at the given position(s).
 
         See :func:`~galax.potential.gradient` for details.
@@ -252,7 +252,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def acceleration(
         self: "AbstractPotentialBase", *args: Any, **kwargs: Any
-    ) -> cx.CartesianAcceleration3D:  # TODO: shape hint
+    ) -> cx.CartesianAcc3D:  # TODO: shape hint
         """Compute the acceleration due to the potential at the given position(s).
 
         See :func:`~galax.potential.acceleration` for details.

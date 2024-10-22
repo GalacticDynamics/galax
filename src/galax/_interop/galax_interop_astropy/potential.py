@@ -22,5 +22,5 @@ def parse_to_quantity(value: APYQuantity, /, **_: Any) -> Quantity:
 
 @dispatch
 def parse_to_quantity(rep: BaseRepresentation, /, **_: Any) -> Quantity:
-    cart = convert(rep, cx.CartesianPosition3D)
+    cart = convert(rep, cx.CartesianPos3D)
     return parse_to_quantity(cart)

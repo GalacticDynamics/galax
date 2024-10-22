@@ -42,11 +42,11 @@ pot = gp.MilkyWayPotential()
 orbit = gd.evaluate_orbit(pot, w, Quantity(jnp.linspace(0, 1, 100), "Gyr"))
 print(orbit)
 # Orbit(
-#     q=<CartesianPosition3D (x[kpc], y[kpc], z[kpc])
+#     q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
 #         [[ 8.     0.     0.   ]
 #          ...
 #          [ 7.804 -0.106  0.   ]]>,
-#     p=<CartesianVelocity3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+#     p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
 #         [[ 0.     0.225  0.   ]
 #          ...
 #          [ 0.018  0.23   0.   ]]>,
@@ -54,10 +54,10 @@ print(orbit)
 #     potential=MilkyWayPotential(...)
 # )
 
-orbit_sph = orbit.represent_as(cx.LonLatSphericalPosition)
+orbit_sph = orbit.represent_as(cx.LonLatSphericalPos)
 print(orbit_sph)
 # Orbit(
-#     q=<LonLatSphericalPosition (lon[rad], lat[deg], distance[kpc])
+#     q=<LonLatSphericalPos (lon[rad], lat[deg], distance[kpc])
 #         [[0.000e+00 3.858e-16 8.000e+00]
 #          ...
 #          [6.270e+00 3.858e-16 7.805e+00]]>,

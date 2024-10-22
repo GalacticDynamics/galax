@@ -85,8 +85,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity[...](value=f64[], unit=Unit("Myr"))
     )
     >>> w.shape
@@ -100,8 +100,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     ...                 saveat=ts, units=galactic)
     >>> ws
     PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity[...](value=f64[10], unit=Unit("Myr"))
     )
     >>> ws.shape
@@ -132,10 +132,10 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> t = Quantity(jnp.e, "Gyr")
     >>> w(t)
     PhaseSpacePosition(
-      q=CartesianPosition3D(
+      q=CartesianPos3D(
         x=Quantity[...](value=f64[2], unit=Unit("kpc")),
         ... ),
-      p=CartesianVelocity3D( ... ),
+      p=CartesianVel3D( ... ),
       t=Quantity[...](value=f64[], unit=Unit("Gyr"))
     )
 
@@ -144,10 +144,10 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> t = Quantity(jnp.linspace(0, 1, 100), "Gyr")
     >>> w(t)
     PhaseSpacePosition(
-      q=CartesianPosition3D(
+      q=CartesianPos3D(
         x=Quantity[...](value=f64[2,100], unit=Unit("kpc")),
         ... ),
-      p=CartesianVelocity3D( ... ),
+      p=CartesianVel3D( ... ),
       t=Quantity[...](value=f64[100], unit=Unit("Gyr"))
     )
 
@@ -161,8 +161,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     (2,)
     >>> w(t)
     PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity[PhysicalType('time')](value=f64[100], unit=Unit("Gyr"))
     )
     """
@@ -383,8 +383,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
         >>> w
         PhaseSpacePosition(
-            q=CartesianPosition3D( ... ),
-            p=CartesianVelocity3D( ... ),
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             t=Quantity[...](value=f64[], unit=Unit("Myr"))
         )
         >>> w.shape
@@ -397,8 +397,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         ...                 saveat=ts, units=galactic)
         >>> ws
         PhaseSpacePosition(
-            q=CartesianPosition3D( ... ),
-            p=CartesianVelocity3D( ... ),
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             t=Quantity[...](value=f64[10], unit=Unit("Myr"))
         )
         >>> ws.shape
@@ -525,8 +525,8 @@ def call(
     >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity[...](value=f64[], unit=Unit("Myr"))
     )
 
@@ -584,12 +584,12 @@ def call(
     >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
     >>> w
     CompositePhaseSpacePosition({'w01': PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity...,
         'w02': PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity...
     )})
 

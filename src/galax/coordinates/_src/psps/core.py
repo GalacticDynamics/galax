@@ -31,18 +31,18 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     Parameters
     ----------
-    q : :class:`~coordinax.AbstractPosition3D`
+    q : :class:`~coordinax.AbstractPos3D`
         A 3-vector of the positions, allowing for batched inputs.  This
         parameter accepts any 3-vector, e.g.
-        :class:`~coordinax.SphericalPosition`, or any input that can be used to
-        make a :class:`~coordinax.CartesianPosition3D` via
-        :meth:`coordinax.AbstractPosition3D.from_`.
-    p : :class:`~coordinax.AbstractVelocity3D`
+        :class:`~coordinax.SphericalPos`, or any input that can be used to
+        make a :class:`~coordinax.CartesianPos3D` via
+        :meth:`coordinax.AbstractPos3D.from_`.
+    p : :class:`~coordinax.AbstractVel3D`
         A 3-vector of the conjugate specific momenta at positions ``q``,
         allowing for batched inputs.  This parameter accepts any 3-vector
         differential, e.g.  :class:`~coordinax.SphericalVelocity`, or any input
-        that can be used to make a :class:`~coordinax.CartesianVelocity3D` via
-        :meth:`coordinax.CartesianVelocity3D.from_`.
+        that can be used to make a :class:`~coordinax.CartesianVel3D` via
+        :meth:`coordinax.CartesianVel3D.from_`.
     t : Quantity[float, (*batch,), 'time'] | None
         The time corresponding to the positions.
 
@@ -58,8 +58,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     Note that both `q` and `p` have convenience converters, allowing them to
     accept a variety of inputs when constructing a
-    :class:`~coordinax.CartesianPosition3D` or
-    :class:`~coordinax.CartesianVelocity3D`, respectively.  For example,
+    :class:`~coordinax.CartesianPos3D` or
+    :class:`~coordinax.CartesianVel3D`, respectively.  For example,
 
     >>> t = Quantity(7.0, "s")
     >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
@@ -67,51 +67,51 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     ...                           t=t)
     >>> w
     PhaseSpacePosition(
-      q=CartesianPosition3D( ... ),
-      p=CartesianVelocity3D( ... ),
+      q=CartesianPos3D( ... ),
+      p=CartesianVel3D( ... ),
       t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
     )
 
     This can be done more explicitly:
 
-    >>> q = cx.CartesianPosition3D.from_([1, 2, 3], "m")
-    >>> p = cx.CartesianVelocity3D.from_([4, 5, 6], "m/s")
+    >>> q = cx.CartesianPos3D.from_([1, 2, 3], "m")
+    >>> p = cx.CartesianVel3D.from_([4, 5, 6], "m/s")
 
     >>> w2 = gc.PhaseSpacePosition(q=q, p=p, t=t)
     >>> w2 == w
     Array(True, dtype=bool)
 
     When using the explicit constructors, the inputs can be any
-    `coordinax.AbstractPosition3D` and `coordinax.AbstractVelocity3D` types:
+    `coordinax.AbstractPos3D` and `coordinax.AbstractVel3D` types:
 
-    >>> q = cx.SphericalPosition(r=Quantity(1, "m"), theta=Quantity(2, "deg"),
-    ...                          phi=Quantity(3, "deg"))
+    >>> q = cx.SphericalPos(r=Quantity(1, "m"), theta=Quantity(2, "deg"),
+    ...                     phi=Quantity(3, "deg"))
     >>> w3 = gc.PhaseSpacePosition(q=q, p=p, t=t)
-    >>> isinstance(w3.q, cx.SphericalPosition)
+    >>> isinstance(w3.q, cx.SphericalPos)
     True
 
     Of course a similar effect can be achieved by using the
     `coordinax.represent_as` function (or convenience method on the phase-space
     position):
 
-    >>> w4 = cx.represent_as(w3, cx.SphericalPosition, cx.CartesianVelocity3D)
+    >>> w4 = cx.represent_as(w3, cx.SphericalPos, cx.CartesianVel3D)
     >>> w4
     PhaseSpacePosition(
-      q=SphericalPosition( ... ),
-      p=CartesianVelocity3D( ... ),
+      q=SphericalPos( ... ),
+      p=CartesianVel3D( ... ),
       t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
     )
 
     """
 
-    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.from_)
-    """Positions, e.g CartesianPosition3D.
+    q: cx.AbstractPos3D = eqx.field(converter=cx.AbstractPos3D.from_)
+    """Positions, e.g CartesianPos3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.from_)
-    r"""Conjugate momenta, e.g. CartesianVelocity3D.
+    p: cx.AbstractVel3D = eqx.field(converter=cx.AbstractVel3D.from_)
+    r"""Conjugate momenta, e.g. CartesianVel3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """

@@ -27,10 +27,10 @@ classifiers = [
 dependencies = [
   "astropy >= 6.0",
   "beartype>=0.18",
-  "coordinax >= 0.11",
+  "coordinax>=0.12.0",
   "dataclassish >= 0.3",
   "diffrax >= 0.5",
-  "equinox >=0.11, != 0.11.3",
+  "equinox>=0.11.8",
   "is_annotated >= 1.0",
   "jax>=0.4.33,!=0.4.34",
   "jaxlib>=0.4.33,!=0.4.34",
@@ -42,7 +42,7 @@ dependencies = [
   "quax >= 0.0.4",
   "quaxed >= 0.6.4",
   "typing_extensions >= 4.11",
-  "unxt>=0.18",
+  "unxt>=0.20.0",
   "xmmutablemap >= 0.1",
   "zeroth >= 0.1",
 ]
@@ -312,4 +312,5 @@ dev-dependencies = [
     "pytest>=8.3.3",
     "pytest-arraydiff>=0.6.1",
     "sybil>=8.0.0",
+    "ipykernel>=6.29.5",
 ]

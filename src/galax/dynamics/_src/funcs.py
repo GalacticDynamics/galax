@@ -62,7 +62,7 @@ def specific_angular_momentum(
 @dispatch
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
-    x: cx.AbstractPosition3D, v: cx.AbstractVelocity3D, /
+    x: cx.AbstractPos3D, v: cx.AbstractVel3D, /
 ) -> gt.BatchQVec3:
     """Compute the specific angular momentum.
 
@@ -72,16 +72,16 @@ def specific_angular_momentum(
     >>> import coordinax as cx
     >>> import galax.dynamics as gd
 
-    >>> x = cx.CartesianPosition3D.from_([8.0, 0.0, 0.0], "m")
-    >>> v = cx.CartesianVelocity3D.from_([0.0, 8.0, 0.0], "m/s")
+    >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "m")
+    >>> v = cx.CartesianVel3D.from_([0.0, 8.0, 0.0], "m/s")
     >>> gd.specific_angular_momentum(x, v)
     Quantity['diffusivity'](Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
 
     """
     # TODO: keep as a vector.
     #       https://github.com/GalacticDynamics/vector/issues/27
-    x = convert(x.represent_as(cx.CartesianPosition3D), Quantity)
-    v = convert(v.represent_as(cx.CartesianVelocity3D, x), Quantity)
+    x = convert(x.represent_as(cx.CartesianPos3D), Quantity)
+    v = convert(v.represent_as(cx.CartesianVel3D, x), Quantity)
     return specific_angular_momentum(x, v)
 
 
@@ -93,8 +93,8 @@ def specific_angular_momentum(w: cx.Space) -> gt.BatchQVec3:
     Examples
     --------
     >>> import coordinax as cx
-    >>> w = cx.Space(length=cx.CartesianPosition3D.from_([[[7., 0, 0], [8, 0, 0]]], "m"),
-    ...              speed=cx.CartesianVelocity3D.from_([[[0., 5, 0], [0, 6, 0]]], "m/s"))
+    >>> w = cx.Space(length=cx.CartesianPos3D.from_([[[7., 0, 0], [8, 0, 0]]], "m"),
+    ...              speed=cx.CartesianVel3D.from_([[[0., 5, 0], [0, 6, 0]]], "m/s"))
 
     >>> specific_angular_momentum(w)
     Quantity['diffusivity'](Array([[[ 0.,  0., 35.], [ 0.,  0., 48.]]], dtype=float64), unit='m2 / s')
@@ -178,7 +178,7 @@ def _orbital_angular_frequency(
 @dispatch
 @partial(jax.jit, inline=True)
 def _orbital_angular_frequency(
-    x: cx.AbstractPosition3D, v: cx.AbstractVelocity3D, /
+    x: cx.AbstractPos3D, v: cx.AbstractVel3D, /
 ) -> Shaped[Quantity["frequency"], "*batch"]:
     """Compute the orbital angular frequency about the origin.
 
@@ -187,15 +187,15 @@ def _orbital_angular_frequency(
     >>> from unxt import Quantity
     >>> import coordinax as cx
 
-    >>> x = cx.CartesianPosition3D.from_([8.0, 0.0, 0.0], "m")
-    >>> v = cx.CartesianVelocity3D.from_([0.0, 8.0, 0.0], "m/s")
+    >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "m")
+    >>> v = cx.CartesianVel3D.from_([0.0, 8.0, 0.0], "m/s")
     >>> _orbital_angular_frequency(x, v)
     Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
 
     """
     # TODO: more directly using the vectors
-    x = convert(x.represent_as(cx.CartesianPosition3D), Quantity)
-    v = convert(v.represent_as(cx.CartesianVelocity3D, x), Quantity)
+    x = convert(x.represent_as(cx.CartesianPos3D), Quantity)
+    v = convert(v.represent_as(cx.CartesianVel3D, x), Quantity)
     return _orbital_angular_frequency(x, v)
 
 

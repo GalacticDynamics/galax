@@ -27,9 +27,9 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 
     Parameters
     ----------
-    q : :class:`~vector.AbstractPosition3D`
+    q : :class:`~vector.AbstractPos3D`
         Positions.
-    p : :class:`~vector.AbstractVelocity3D`
+    p : :class:`~vector.AbstractVel3D`
         Conjugate momenta at positions ``q``.
     t : :class:`~unxt.Quantity`
         Time corresponding to the positions and momenta.
@@ -59,8 +59,8 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 @dispatch  # type: ignore[misc]
 def represent_as(
     psp: AbstractPhaseSpacePosition,
-    position_cls: type[cx.AbstractPosition],
-    velocity_cls: type[cx.AbstractVelocity] | None = None,
+    position_cls: type[cx.AbstractPos],
+    velocity_cls: type[cx.AbstractVel] | None = None,
     /,
 ) -> AbstractPhaseSpacePosition:
     """Return with the components transformed.
@@ -69,9 +69,9 @@ def represent_as(
     ----------
     psp : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
         The phase-space position.
-    position_cls : type[:class:`~vector.AbstractPosition`]
+    position_cls : type[:class:`~vector.AbstractPos`]
         The target position class.
-    velocity_cls : type[:class:`~vector.AbstractVelocity`], optional
+    velocity_cls : type[:class:`~vector.AbstractVel`], optional
         The target differential class. If `None` (default), the differential
         class of the target position class is used.
 
@@ -93,17 +93,17 @@ def represent_as(
 
     We can also convert it to a different representation:
 
-    >>> psp.represent_as(cx.CylindricalPosition)
-    PhaseSpacePosition( q=CylindricalPosition(...),
-                        p=CylindricalVelocity(...),
+    >>> psp.represent_as(cx.CylindricalPos)
+    PhaseSpacePosition( q=CylindricalPos(...),
+                        p=CylindricalVel(...),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
     We can also convert it to a different representation with a different
     differential class:
 
-    >>> psp.represent_as(cx.LonLatSphericalPosition, cx.LonCosLatSphericalVelocity)
-    PhaseSpacePosition( q=LonLatSphericalPosition(...),
-                        p=LonCosLatSphericalVelocity(...),
+    >>> psp.represent_as(cx.LonLatSphericalPos, cx.LonCosLatSphericalVel)
+    PhaseSpacePosition( q=LonLatSphericalPos(...),
+                        p=LonCosLatSphericalVel(...),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
     """

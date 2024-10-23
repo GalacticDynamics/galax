@@ -44,14 +44,14 @@ class PhaseSpacePositionInterpolant(Protocol):
 class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
     """Interpolated phase-space position."""
 
-    q: cx.AbstractPosition3D = eqx.field(converter=cx.AbstractPosition3D.from_)
-    """Positions, e.g CartesianPosition3D.
+    q: cx.AbstractPos3D = eqx.field(converter=cx.AbstractPos3D.from_)
+    """Positions, e.g CartesianPos3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: cx.AbstractVelocity3D = eqx.field(converter=cx.AbstractVelocity3D.from_)
-    r"""Conjugate momenta, e.g. CartesianVelocity3D.
+    p: cx.AbstractVel3D = eqx.field(converter=cx.AbstractVel3D.from_)
+    r"""Conjugate momenta, e.g. CartesianVel3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """

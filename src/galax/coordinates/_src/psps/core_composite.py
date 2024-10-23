@@ -74,13 +74,13 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
     >>> cw
     CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity...
       ),
       'w2': PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity...
     )})
 
@@ -88,8 +88,8 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     >>> cw["w1"]
     PhaseSpacePosition(
-      q=CartesianPosition3D( ... ),
-      p=CartesianVelocity3D( ... ),
+      q=CartesianPos3D( ... ),
+      p=CartesianVel3D( ... ),
       t=Quantity...
     )
 
@@ -108,15 +108,15 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     We can transform the composite phase-space position to a new position class.
 
-    >>> cx.represent_as(cw, cx.CylindricalPosition)
+    >>> cx.represent_as(cw, cx.CylindricalPos)
     CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
-        q=CylindricalPosition( ... ),
-        p=CylindricalVelocity( ... ),
+        q=CylindricalPos( ... ),
+        p=CylindricalVel( ... ),
         t=Quantity...
       ),
       'w2': PhaseSpacePosition(
-        q=CylindricalPosition( ... ),
-        p=CylindricalVelocity( ... ),
+        q=CylindricalPos( ... ),
+        p=CylindricalVel( ... ),
         t=...
     )})
 
@@ -162,15 +162,15 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         self._time_sorter = jnp.argsort(ts)
 
     @property
-    def q(self) -> cx.AbstractPosition3D:
+    def q(self) -> cx.AbstractPos3D:
         """Positions."""
-        # TODO: get AbstractPosition to work with `stack` directly
+        # TODO: get AbstractPos to work with `stack` directly
         return _concat((x.q for x in self.values()), self._time_sorter)
 
     @property
-    def p(self) -> cx.AbstractVelocity3D:
+    def p(self) -> cx.AbstractVel3D:
         """Conjugate momenta."""
-        # TODO: get AbstractPosition to work with `stack` directly
+        # TODO: get AbstractPos to work with `stack` directly
         return _concat((x.p for x in self.values()), self._time_sorter)
 
     @property

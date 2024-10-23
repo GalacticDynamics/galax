@@ -47,8 +47,8 @@ def from_(
 
     >>> gc.PhaseSpacePosition.from_(vec, t=u.Quantity(0, "Myr"))
     PhaseSpacePosition(
-        q=LonLatSphericalPosition( lon=..., lat=..., distance=... ),
-        p=LonCosLatSphericalVelocity( d_lon_coslat=..., d_lat=..., d_distance=... ),
+        q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
+        p=LonCosLatSphericalVel( d_lon_coslat=..., d_lat=..., d_distance=... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Myr"))
     )
 
@@ -99,8 +99,8 @@ def from_(
 
     >>> gc.PhaseSpacePosition.from_(vec, dif, t=u.Quantity(0, "Myr"))
     PhaseSpacePosition(
-        q=LonLatSphericalPosition( lon=..., lat=..., distance=... ),
-        p=LonCosLatSphericalVelocity( d_lon_coslat=..., d_lat=..., d_distance=... ),
+        q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
+        p=LonCosLatSphericalVel( d_lon_coslat=..., d_lat=..., d_distance=... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Myr"))
     )
 

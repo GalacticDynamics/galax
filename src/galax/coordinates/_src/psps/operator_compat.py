@@ -45,7 +45,7 @@ def call(
 
     >>> op = cx.operators.GalileanSpatialTranslationOperator(Quantity([1, 2, 3], "kpc"))
     >>> op
-    GalileanSpatialTranslationOperator( translation=CartesianPosition3D( ... ) )
+    GalileanSpatialTranslationOperator( translation=CartesianPos3D( ... ) )
 
     We can then apply the operator to a position:
 
@@ -54,16 +54,16 @@ def call(
     ...                             t=Quantity(0.0, "Gyr"))
     >>> pos
     PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
     )
 
     >>> newpos = op(pos)
     >>> newpos
     PhaseSpacePosition(
-        q=CartesianPosition3D( ... ),
-        p=CartesianVelocity3D( ... ),
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
         t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
     )
 
@@ -105,7 +105,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> shift = cx.CartesianPosition3D.from_(Quantity([1, 1, 1], "kpc"))
+    >>> shift = cx.CartesianPos3D.from_(Quantity([1, 1, 1], "kpc"))
     >>> op = cx.operators.GalileanSpatialTranslationOperator(shift)
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
@@ -134,7 +134,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(cx.CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.represent_as(cx.CartesianVel3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p)
 
@@ -190,7 +190,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(cx.CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.represent_as(cx.CartesianVel3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -243,7 +243,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(cx.CartesianVelocity3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.represent_as(cx.CartesianVel3D, psp.q).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -293,9 +293,9 @@ def call(
     # coordinates at the original position. Then the rotation is applied to
     # the momentum. The momentum is then transformed back to the original
     # representation, but at the rotated position.
-    pv = convert(psp.p.represent_as(cx.CartesianVelocity3D, psp.q), Quantity)
+    pv = convert(psp.p.represent_as(cx.CartesianVel3D, psp.q), Quantity)
     pv = batched_matmul(self.rotation, pv)
-    p = cx.CartesianVelocity3D.from_(pv).represent_as(type(psp.p), q)
+    p = cx.CartesianVel3D.from_(pv).represent_as(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -326,8 +326,8 @@ def call(
     ...                             t=Quantity(0, "Gyr"))
 
     >>> op(psp)
-    PhaseSpacePosition( q=CartesianPosition3D( ... ),
-                        p=CartesianVelocity3D( ... ),
+    PhaseSpacePosition( q=CartesianPos3D( ... ),
+                        p=CartesianVel3D( ... ),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
     """
     return x

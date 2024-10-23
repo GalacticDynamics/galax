@@ -74,20 +74,20 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         ...                       prog_mass=Quantity(1e4, "Msun"))
         >>> stream_ic
         CompositePhaseSpacePosition({'lead': MockStreamArm(
-            q=CartesianPosition3D( ... ),
-            p=CartesianVelocity3D( ... ),
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             t=Quantity...,
             release_time=Quantity... ),
           'trail': MockStreamArm(
-            q=CartesianPosition3D( ... ),
-            p=CartesianVelocity3D( ... ),
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             t=Quantity...,
             release_time=Quantity...
         )})
         """
         # Progenitor positions and times. The orbit times are used as the
         # release times for the mock stream.
-        prog_orbit = prog_orbit.represent_as(cx.CartesianPosition3D)
+        prog_orbit = prog_orbit.represent_as(cx.CartesianPos3D)
         ts = prog_orbit.t
 
         # Progenitor mass

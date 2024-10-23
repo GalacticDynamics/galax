@@ -124,7 +124,7 @@ class AbstractCompositePhaseSpacePosition(
     def t(self) -> Shaped[Quantity["time"], "..."]:
         """Times."""
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # TODO: not need this hack
         return cast(str, ImmutableMap.__repr__(self))
 
     # ==========================================================================

@@ -6,7 +6,7 @@ from collections.abc import Hashable, Mapping
 from dataclasses import KW_ONLY
 from functools import partial
 from types import MappingProxyType
-from typing import Any, ClassVar, TypeVar, final
+from typing import Any, ClassVar, TypeVar, cast, final
 
 import equinox as eqx
 import jax
@@ -61,6 +61,9 @@ class AbstractCompositePotential(
 
         # Apply the unit system to any parameters.
         self._apply_unitsystem()
+
+    def __repr__(self) -> str:  # TODO: not need this hack
+        return cast(str, ImmutableMap.__repr__(self))
 
     # === Potential ===
 

@@ -424,7 +424,7 @@ class AbstractPotentialBase(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         >>> pot2 = gp.io.convert_potential(gp.io.GalaxLibrary, gala_pot)
         >>> pot2 == pot
-        True
+        Array(True, dtype=bool)
 
         .. skip: end
         """

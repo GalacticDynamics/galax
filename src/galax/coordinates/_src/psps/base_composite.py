@@ -368,7 +368,7 @@ def replace(
     """
     # TODO: directly call the Mapping implementation
     extra_keys = set(kwargs) - set(obj)
-    kwargs = eqx.error_if(kwargs, any(extra_keys), "invalid keys {extra_keys}.")
+    kwargs = eqx.error_if(kwargs, any(extra_keys), f"invalid keys {extra_keys}.")
 
     return type(obj)(**{**obj, **kwargs})
 

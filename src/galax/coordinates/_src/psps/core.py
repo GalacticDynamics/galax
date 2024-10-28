@@ -16,6 +16,7 @@ from unxt import Quantity
 
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
+from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractPhaseSpacePosition
 from galax.utils._shape import batched_shape, vector_batched_shape
 
@@ -283,3 +284,37 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
             self.t, self.t is None, "No time defined for phase-space position"
         )
         return super().wt(units=units)
+
+
+# TODO: generalize
+@PhaseSpacePosition.from_._f.dispatch(precedence=1)  # type: ignore[misc]  # noqa: SLF001
+@partial(eqx.filter_jit, inline=True)
+def from_(
+    cls: type[PhaseSpacePosition], obj: AbstractCompositePhaseSpacePosition, /
+) -> PhaseSpacePosition:
+    """Return a new PhaseSpacePosition from the given object.
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> import galax.coordinates as gc
+
+
+    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+    ...                              p=Quantity([4, 5, 6], "km/s"),
+    ...                              t=Quantity(7, "Myr"))
+    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([10, 20, 30], "kpc"),
+    ...                              p=Quantity([40, 50, 60], "km/s"),
+    ...                              t=Quantity(7, "Myr"))
+
+    >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
+
+    >>> gc.PhaseSpacePosition.from_(c_psp)
+    PhaseSpacePosition(
+      q=CartesianPos3D( ... ),
+      p=CartesianVel3D( ... ),
+      t=Quantity[...](value=f64[2], unit=Unit("Myr"))
+    )
+
+    """
+    return cls(q=obj.q, p=obj.p, t=obj.t)

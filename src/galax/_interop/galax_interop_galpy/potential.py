@@ -240,7 +240,7 @@ def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gpx.BurkertPotential:
     Quantity['mass'](Array(8.18153508e+10, dtype=float64), unit='solMass')
 
     >>> pot.r_s(0)
-    Quantity['length'](Array(8., dtype=float64), unit='kpc')
+    Quantity['length'](Array(8., dtype=float64,...), unit='kpc')
 
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?

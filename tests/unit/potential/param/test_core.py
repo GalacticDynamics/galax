@@ -1,6 +1,5 @@
 """Test :mod:`galax.potential._src.param.core`."""
 
-from dataclasses import replace
 from typing import Any, Generic, TypeVar
 
 import astropy.units as u
@@ -82,7 +81,7 @@ class TestConstantParameter(TestAbstractParameter[ConstantParameter]):
 
     def test_mul(self, param: T, field_value: float) -> None:
         """Test `galax.potential.ConstantParameter` multiplication."""
-        expected = replace(param, value=field_value * 2)
+        expected = 2 * field_value
         assert param * 2 == expected
         assert 2 * param == expected
 

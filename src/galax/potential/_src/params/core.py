@@ -9,21 +9,17 @@ __all__ = [
 ]
 
 import abc
-from dataclasses import replace
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, final, runtime_checkable
+from typing import Any, Protocol, final, runtime_checkable
 
 import equinox as eqx
 import jax
 
-from unxt import Quantity
+from dataclassish.converters import Unless
+from unxt import AbstractQuantity, Quantity
 
 from galax.typing import BatchableRealQScalar, FloatQAnyShape
 from galax.utils._shape import expand_batch_dims
-
-if TYPE_CHECKING:
-    from typing import Self
-
 
 t0 = Quantity(0, "Myr")
 
@@ -86,10 +82,58 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
 
 @final
 class ConstantParameter(AbstractParameter):
-    """Time-independent potential parameter."""
+    """Time-independent potential parameter.
+
+    Examples
+    --------
+    >>> from galax.potential.params import ConstantParameter
+    >>> from unxt import Quantity
+
+    >>> p = ConstantParameter(value=Quantity(1., "Msun"))
+    >>> p
+    ConstantParameter(Quantity['mass'](Array(1., dtype=float64, ...), unit='solMass'))
+
+    The parameter value is constant:
+
+    >>> p(Quantity(0, "Gyr"))
+    Quantity['mass'](Array(1., dtype=float64, ...), unit='solMass')
+
+    >>> p(Quantity(1, "Gyr")) - p(Quantity(2, "Gyr"))
+    Quantity['mass'](Array(0., dtype=float64, ...), unit='solMass')
+
+    We can do some arithmetic with the parameter, which degrades it
+    back to a `unxt.Quantity`:
+
+    >>> p + Quantity(2, "Msun")
+    Quantity['mass'](Array(3., dtype=float64, ...), unit='solMass')
+
+    >>> Quantity(2, "Msun") + p
+    Quantity['mass'](Array(3., dtype=float64, ...), unit='solMass')
+
+    >>> p - Quantity(2, "Msun")
+    Quantity['mass'](Array(-1., dtype=float64, ...), unit='solMass')
+
+    >>> Quantity(2, "Msun") - p
+    Quantity['mass'](Array(1., dtype=float64, ...), unit='solMass')
+
+    >>> p * 2
+    Quantity['mass'](Array(2., dtype=float64, ...), unit='solMass')
+
+    >>> 2 * p
+    Quantity['mass'](Array(2., dtype=float64, ...), unit='solMass')
+
+    >>> p / 2
+    Quantity['mass'](Array(0.5, dtype=float64, ...), unit='solMass')
+
+    >>> 2 / p
+    Quantity['kg-1'](Array(2., dtype=float64, ...), unit='1 / solMass')
+
+    """
 
     # TODO: link this shape to the return shape from __call__
-    value: FloatQAnyShape = eqx.field(converter=partial(Quantity.from_, dtype=float))
+    value: FloatQAnyShape = eqx.field(
+        converter=Unless(AbstractQuantity, partial(Quantity.from_, dtype=float))
+    )
     """The time-independent value of the parameter."""
 
     @partial(jax.jit, inline=True)
@@ -99,9 +143,8 @@ class ConstantParameter(AbstractParameter):
         Parameters
         ----------
         t : `~galax.typing.BatchableRealQScalar`, optional
-            This is ignored and is thus optional.
-            Note that for most :class:`~galax.potential.AbstractParameter`
-            the time is required.
+            This is ignored and is thus optional. Note that for most
+            :class:`~galax.potential.AbstractParameter` the time is required.
         **kwargs : Any
             This is ignored.
 
@@ -113,12 +156,34 @@ class ConstantParameter(AbstractParameter):
         return expand_batch_dims(self.value, t.ndim)
 
     # -------------------------------------------
+    # String representation
 
-    def __mul__(self, other: Any) -> "Self":
-        return replace(self, value=self.value * other)
+    def __repr__(self) -> str:
+        """Return string representation.
 
-    def __rmul__(self, other: Any) -> "Self":
-        return replace(self, value=other * self.value)
+        Examples
+        --------
+        >>> from galax.potential.params import ConstantParameter
+        >>> from unxt import Quantity
+
+        >>> p = ConstantParameter(value=Quantity(1, "Msun"))
+        >>> p
+        ConstantParameter(Quantity['mass'](Array(1, dtype=int64, ...), unit='solMass'))
+
+        """
+        return f"{self.__class__.__name__}({self.value!r})"
+
+    # -------------------------------------------
+    # Arithmetic operations
+    # TODO: do better than the lambda functions
+    __add__ = lambda self, other: self.value + other  # noqa: E731
+    __radd__ = lambda self, other: other + self.value  # noqa: E731
+    __sub__ = lambda self, other: self.value - other  # noqa: E731
+    __rsub__ = lambda self, other: other - self.value  # noqa: E731
+    __mul__ = lambda self, other: self.value * other  # noqa: E731
+    __rmul__ = lambda self, other: other * self.value  # noqa: E731
+    __truediv__ = lambda self, other: self.value / other  # noqa: E731
+    __rtruediv__ = lambda self, other: other / self.value  # noqa: E731
 
 
 #####################################################################

@@ -183,8 +183,9 @@ class HarmonicOscillatorPotential(AbstractPotential):
     HarmonicOscillatorPotential(
       units=LTMAUnitSystem( ... ),
       constants=ImmutableMap({'G': ...}),
-      omega=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("1 / Myr")) )
-    )
+      omega=ConstantParameter(
+        value=Quantity[...]( value=...i64[], unit=Unit("1 / Myr") )
+      ) )
 
     >>> q = Quantity([1.0, 0, 0], "kpc")
     >>> t = Quantity(0, "Gyr")

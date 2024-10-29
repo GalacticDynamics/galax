@@ -46,9 +46,10 @@ def convert_potential(
     >>> pot = galap.KeplerPotential(m=1e11, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     KeplerPotential(
-      units=LTMAUnitSystem( length=Unit("kpc"), ...),
+      units=LTMAUnitSystem( ... ),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
+      m_tot=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) )
+    )
 
     """  # noqa: E501
     return gala_to_galax(from_)

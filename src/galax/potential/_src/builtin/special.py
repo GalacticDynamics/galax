@@ -29,7 +29,7 @@ from .const import _sqrt2
 from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
 from galax.potential._src.base import AbstractBasePotential, default_constants
-from galax.potential._src.composite import AbstractCompositePotential
+from galax.potential._src.base_multi import AbstractCompositePotential
 
 T = TypeVar("T", bound=AbstractBasePotential)
 

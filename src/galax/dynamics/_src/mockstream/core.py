@@ -3,7 +3,7 @@
 __all__ = ["MockStreamArm", "MockStream"]
 
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any, final
+from typing import Any, final
 
 import equinox as eqx
 import jax.tree as jtu
@@ -17,9 +17,6 @@ import galax.coordinates as gc
 import galax.typing as gt
 from galax.coordinates._src.psps.utils import getitem_vec1time_index
 from galax.utils._shape import batched_shape, vector_batched_shape
-
-if TYPE_CHECKING:
-    pass
 
 
 @final

@@ -10,7 +10,7 @@ __all__ = [
 
 import abc
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, final, runtime_checkable
+from typing import Any, Protocol, final, runtime_checkable
 
 import equinox as eqx
 import jax
@@ -20,10 +20,6 @@ from unxt import AbstractQuantity, Quantity
 
 from galax.typing import BatchableRealQScalar, FloatQAnyShape
 from galax.utils._shape import expand_batch_dims
-
-if TYPE_CHECKING:
-    pass
-
 
 t0 = Quantity(0, "Myr")
 

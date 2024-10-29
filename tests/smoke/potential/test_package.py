@@ -1,9 +1,9 @@
 import galax.potential as gp
 from galax.potential._src import (
     base,
+    base_single,
     builtin,
     composite,
-    core,
     frame,
     funcs,
     params,
@@ -18,9 +18,9 @@ def test_all() -> None:
         "params",
         "plot",
         *base.__all__,
+        *base_single.__all__,
         *builtin.__all__,
         *composite.__all__,
-        *core.__all__,
         *params.__all__,
         *frame.__all__,
         *funcs.__all__,

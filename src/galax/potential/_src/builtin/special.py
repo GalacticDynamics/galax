@@ -16,7 +16,7 @@ from typing import Any, ClassVar, TypeVar, final
 import equinox as eqx
 
 from unxt import Quantity
-from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic, unitsystem
+from unxt.unitsystems import AbstractUnitSystem, galactic, unitsystem
 from xmmutablemap import ImmutableMap
 
 from .builtin import (
@@ -42,10 +42,6 @@ def _parse_input_comp(
 ) -> T:
     if isinstance(instance, cls):
         return instance
-
-    if units == dimensionless:
-        default = {k: v.value if hasattr(v, "value") else v for k, v in default.items()}
-
     return cls(units=units, **dict(default) | (dict(instance or {})))
 
 

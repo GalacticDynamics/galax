@@ -223,23 +223,6 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             "halo": gp.NFWPotential(m=1e12 * u.solMass, r_s=5 * u.kpc, units=galactic),
         }
 
-    # TODO(@nstarman): figure out what to do with unitless potentials. I think
-    #                 they NOT be allowed.
-    # @pytest.fixture(scope="class")
-    # def pot_map_unitless(self) -> Mapping[str, AbstractPotentialBase]:
-    #     """Composite potential."""
-    #     return {
-    #         "disk": gp.MiyamotoNagaiPotential(
-    #             m=Quantity(1e10, "Msun"),
-    #             a=Quantity(6.5, "kpc"),
-    #             b=Quantity(4.5, "kpc"),
-    #             units=None,
-    #         ),
-    #         "halo": gp.NFWPotential(
-    #             m=Quantity(1e12, "Msun"), r_s=Quantity(5, "kpc"), units=None
-    #         ),
-    #     }
-
     # ==========================================================================
     # TODO: use a universal `replace` function then don't need to override
     #       these tests.

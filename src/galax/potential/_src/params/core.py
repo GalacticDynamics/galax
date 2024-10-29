@@ -86,7 +86,28 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
 
 @final
 class ConstantParameter(AbstractParameter):
-    """Time-independent potential parameter."""
+    """Time-independent potential parameter.
+
+    Examples
+    --------
+    >>> from galax.potential.params import ConstantParameter
+    >>> from unxt import Quantity
+
+    >>> p = ConstantParameter(value=Quantity(1e9, "Msun"))
+    >>> p
+    ConstantParameter(Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass'))
+
+    The parameter value is constant:
+
+    >>> p(Quantity(0, "Gyr"))
+    Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
+
+    >>> p(Quantity(1, "Gyr")) - p(Quantity(2, "Gyr"))
+    Quantity['mass'](Array(0., dtype=float64), unit='solMass')
+
+    We can do some arithmetic with the parameter:
+
+    """
 
     # TODO: link this shape to the return shape from __call__
     value: FloatQAnyShape = eqx.field(converter=partial(Quantity.from_, dtype=float))
@@ -99,9 +120,8 @@ class ConstantParameter(AbstractParameter):
         Parameters
         ----------
         t : `~galax.typing.BatchableRealQScalar`, optional
-            This is ignored and is thus optional.
-            Note that for most :class:`~galax.potential.AbstractParameter`
-            the time is required.
+            This is ignored and is thus optional. Note that for most
+            :class:`~galax.potential.AbstractParameter` the time is required.
         **kwargs : Any
             This is ignored.
 
@@ -113,11 +133,54 @@ class ConstantParameter(AbstractParameter):
         return expand_batch_dims(self.value, t.ndim)
 
     # -------------------------------------------
+    # String representation
+
+    def __repr__(self) -> str:
+        """Return string representation.
+
+        Examples
+        --------
+        >>> from galax.potential.params import ConstantParameter
+        >>> from unxt import Quantity
+
+        >>> p = ConstantParameter(value=Quantity(1, "Msun"))
+        >>> p
+        ConstantParameter(Quantity['mass'](Array(1., dtype=float64), unit='solMass'))
+
+        """
+        return f"{self.__class__.__name__}({self.value!r})"
+
+    # -------------------------------------------
+    # Arithmetic operations
 
     def __mul__(self, other: Any) -> "Self":
+        """Multiply the parameter value.
+
+        Examples
+        --------
+        >>> from galax.potential.params import ConstantParameter
+        >>> from unxt import Quantity
+
+        >>> p = ConstantParameter(value=Quantity(1, "Msun"))
+        >>> p * 2
+        ConstantParameter(Quantity['mass'](Array(2., dtype=float64), unit='solMass'))
+
+        """
         return replace(self, value=self.value * other)
 
     def __rmul__(self, other: Any) -> "Self":
+        """Multiply the parameter value.
+
+        Examples
+        --------
+        >>> from galax.potential.params import ConstantParameter
+        >>> from unxt import Quantity
+
+        >>> p = ConstantParameter(value=Quantity(1, "Msun"))
+        >>> 2 * p
+        ConstantParameter(Quantity['mass'](Array(2., dtype=float64), unit='solMass'))
+
+        """
         return replace(self, value=other * self.value)
 
 

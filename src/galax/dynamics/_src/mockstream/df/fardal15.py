@@ -48,7 +48,7 @@ class FardalStreamDF(AbstractStreamDF):
     def _sample(
         self,
         key: PRNGKeyArray,
-        potential: gp.AbstractPotentialBase,
+        potential: gp.AbstractBasePotential,
         x: gt.LengthBatchableVec3,
         v: gt.SpeedBatchableVec3,
         prog_mass: gt.BatchableFloatQScalar,

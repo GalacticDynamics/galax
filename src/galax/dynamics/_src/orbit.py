@@ -91,7 +91,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     _: KW_ONLY
 
-    potential: gp.AbstractPotentialBase
+    potential: gp.AbstractBasePotential
     """Potential in which the orbit was integrated."""
 
     interpolant: gc.PhaseSpacePositionInterpolant | None = None
@@ -114,7 +114,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         cls,
         w: gc.AbstractPhaseSpacePosition,
         t: QVecTime,
-        potential: gp.AbstractPotentialBase,
+        potential: gp.AbstractBasePotential,
     ) -> "Orbit":
         """Create an orbit from a phase-space position."""
         return Orbit(
@@ -287,7 +287,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     @partial(jax.jit, inline=True)
     def potential_energy(
-        self, potential: gp.AbstractPotentialBase | None = None, /
+        self, potential: gp.AbstractBasePotential | None = None, /
     ) -> BatchFloatQScalar:
         r"""Return the specific potential energy.
 
@@ -297,7 +297,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
         Parameters
         ----------
-        potential : `galax.potential.AbstractPotentialBase` | None
+        potential : `galax.potential.AbstractBasePotential` | None
             The potential object to compute the energy from. If `None`
             (default), use the potential attribute of the orbit.
 
@@ -312,7 +312,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     @partial(jax.jit, inline=True)
     def total_energy(
-        self, potential: "gp.AbstractPotentialBase | None" = None, /
+        self, potential: "gp.AbstractBasePotential | None" = None, /
     ) -> BatchFloatQScalar:
         r"""Return the specific total energy.
 
@@ -324,7 +324,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
         Parameters
         ----------
-        potential : `galax.potential.AbstractPotentialBase` | None
+        potential : `galax.potential.AbstractBasePotential` | None
             The potential object to compute the energy from. If `None`
             (default), use the potential attribute of the orbit.
 

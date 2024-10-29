@@ -9,7 +9,7 @@ from unxt import Quantity
 import galax.typing as gt
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
-from galax.potential import AbstractPotentialBase, HernquistPotential
+from galax.potential import AbstractBasePotential, HernquistPotential
 
 
 class TestHernquistPotential(
@@ -63,8 +63,8 @@ class TestHernquistPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.0361081, -0.01969533, -0.02954299],

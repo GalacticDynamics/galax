@@ -9,7 +9,7 @@ from unxt import Quantity
 import galax.potential as gp
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMTotMixin
-from galax.potential import AbstractPotentialBase, KeplerPotential
+from galax.potential import AbstractBasePotential, KeplerPotential
 from galax.typing import QVec3
 
 
@@ -63,8 +63,8 @@ class TestKeplerPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.06747463, -0.03680435, -0.05520652],

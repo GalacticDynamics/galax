@@ -11,7 +11,7 @@ import galax.potential as gp
 import galax.typing as gt
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterFieldMixin, ParameterMTotMixin
-from galax.potential import AbstractPotentialBase, StoneOstriker15Potential
+from galax.potential import AbstractBasePotential, StoneOstriker15Potential
 
 
 class ParameterRCMixin(ParameterFieldMixin):
@@ -123,8 +123,8 @@ class TestStoneOstriker15Potential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.00601307, -0.00327986, -0.00491978],

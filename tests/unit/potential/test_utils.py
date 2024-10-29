@@ -10,7 +10,7 @@ from jax import Array
 from unxt import unitsystem
 from unxt.unitsystems import galactic, solarsystem
 
-from galax.potential import AbstractPotentialBase
+from galax.potential import AbstractBasePotential
 
 
 class FieldUnitSystemMixin:
@@ -25,14 +25,14 @@ class FieldUnitSystemMixin:
 
     # ===========================================
 
-    def test_init_units_from_usys(self, pot: AbstractPotentialBase) -> None:
+    def test_init_units_from_usys(self, pot: AbstractBasePotential) -> None:
         """Test unit system from UnitSystem."""
         usys = unitsystem(u.km, u.s, u.Msun, u.radian)
         assert replace(pot, units=usys).units == usys
 
     # TODO: sort this out
     # def test_init_units_from_args(
-    #     self, pot_cls: type[AbstractPotentialBase], fields_unitless: dict[str, Array]
+    #     self, pot_cls: type[AbstractBasePotential], fields_unitless: dict[str, Array]
     # ) -> None:
     #     """Test unit system from None."""
     #     # strip the units from the fields otherwise the test will fail
@@ -43,13 +43,13 @@ class FieldUnitSystemMixin:
     #     pot = pot_cls(**fields_unitless, units=None)
     #     assert pot.units == dimensionless
 
-    def test_init_units_from_tuple(self, pot: AbstractPotentialBase) -> None:
+    def test_init_units_from_tuple(self, pot: AbstractBasePotential) -> None:
         """Test unit system from tuple."""
         units = (u.km, u.s, u.Msun, u.radian)
         assert replace(pot, units=units).units == unitsystem(*units)
 
     def test_init_units_from_name(
-        self, pot_cls: type[AbstractPotentialBase], fields_unitless: dict[str, Array]
+        self, pot_cls: type[AbstractBasePotential], fields_unitless: dict[str, Array]
     ) -> None:
         """Test unit system from named string."""
         fields_unitless.pop("units")

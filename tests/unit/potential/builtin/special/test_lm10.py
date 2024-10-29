@@ -40,7 +40,7 @@ class TestLM10Potential(AbstractCompositePotential_Test):
     def test_init_units_from_args(
         self,
         pot_cls: type[gp.AbstractCompositePotential],
-        pot_map: Mapping[str, gp.AbstractPotentialBase],
+        pot_map: Mapping[str, gp.AbstractBasePotential],
     ) -> None:
         """Test unit system from None."""
         pot = pot_cls(**pot_map, units=None)
@@ -81,8 +81,8 @@ class TestLM10Potential(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.0019815, -0.00081663, -0.0013405],
@@ -110,7 +110,7 @@ class TestLM10Potential(AbstractCompositePotential_Test):
     )
     def test_method_gala(
         self,
-        pot: gp.AbstractPotentialBase,
+        pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
         x: gt.QVec3,

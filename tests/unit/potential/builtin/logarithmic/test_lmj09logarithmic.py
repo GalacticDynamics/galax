@@ -18,7 +18,7 @@ from ..test_common import (
 )
 from .test_common import ParameterRSMixin, ParameterVCMixin
 from galax._interop.optional_deps import OptDeps
-from galax.potential import AbstractPotentialBase, LMJ09LogarithmicPotential
+from galax.potential import AbstractBasePotential, LMJ09LogarithmicPotential
 from galax.potential.params import ConstantParameter
 
 
@@ -126,8 +126,8 @@ class TestLMJ09LogarithmicPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [8.28469691e-05, -7.08263497e-04, 1.05514716e-04],
@@ -155,7 +155,7 @@ class TestLMJ09LogarithmicPotential(
     )
     def test_method_gala(
         self,
-        pot: gp.AbstractPotentialBase,
+        pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
         x: gt.QVec3,

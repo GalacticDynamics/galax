@@ -14,7 +14,7 @@ import quaxed.numpy as jnp
 from plotting_backends import MatplotlibBackend
 from unxt import Quantity, uconvert, ustrip
 
-from galax.potential._src.base import AbstractPotentialBase
+from galax.potential._src.base import AbstractBasePotential
 
 
 def _get_figure(
@@ -48,7 +48,7 @@ def _parse_grid(
 
 @dispatch  # type: ignore[misc]
 def plot_potential_contours(
-    pot: AbstractPotentialBase,
+    pot: AbstractBasePotential,
     _: type[MatplotlibBackend] = MatplotlibBackend,
     /,
     *,
@@ -64,7 +64,7 @@ def plot_potential_contours(
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.base.AbstractPotentialBase`
+    pot : :class:`~galax.potential.base.AbstractBasePotential`
         Potential object to plot.
     backend : type[:class:`~galax.potential.plot.MatplotlibBackend`]
         The Matplotlib plotting backend.
@@ -126,7 +126,7 @@ def plot_potential_contours(
 
 
 def _plot_potential_countours_1d(
-    pot: AbstractPotentialBase,
+    pot: AbstractBasePotential,
     t: Quantity["time"],
     *,
     ax: Axes,
@@ -156,7 +156,7 @@ def _plot_potential_countours_1d(
 
 
 def _plot_potential_countours_2d(
-    pot: AbstractPotentialBase,
+    pot: AbstractBasePotential,
     t: Quantity["time"],
     *,
     ax: Axes,
@@ -202,7 +202,7 @@ def _plot_potential_countours_2d(
 
 @dispatch  # type: ignore[misc]
 def plot_density_contours(
-    pot: AbstractPotentialBase,
+    pot: AbstractBasePotential,
     _: type[MatplotlibBackend] = MatplotlibBackend,
     /,
     *,
@@ -273,7 +273,7 @@ def plot_density_contours(
 
 
 def _plot_density_countours_1d(
-    pot: AbstractPotentialBase,
+    pot: AbstractBasePotential,
     t: Quantity["time"],
     *,
     ax: Axes,
@@ -303,7 +303,7 @@ def _plot_density_countours_1d(
 
 
 def _plot_density_countours_2d(
-    pot: AbstractPotentialBase,
+    pot: AbstractBasePotential,
     t: Quantity["time"],
     *,
     ax: Axes,

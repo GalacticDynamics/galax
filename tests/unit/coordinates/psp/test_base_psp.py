@@ -21,7 +21,7 @@ from unxt.unitsystems import galactic
 
 import galax.typing as gt
 from galax.coordinates import AbstractPhaseSpacePosition, ComponentShapeTuple
-from galax.potential import AbstractPotentialBase, KeplerPotential, MilkyWayPotential
+from galax.potential import AbstractBasePotential, KeplerPotential, MilkyWayPotential
 
 if TYPE_CHECKING:
     from pytest import FixtureRequest  # noqa: PT013
@@ -197,7 +197,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         # TODO: more tests
 
     @pytest.mark.parametrize("pot", potentials, ids=lambda p: type(p).__name__)
-    def test_potential(self, w: T, pot: AbstractPotentialBase) -> None:
+    def test_potential(self, w: T, pot: AbstractBasePotential) -> None:
         """Test method ``potential``."""
         pe = w.potential_energy(pot)
         assert pe.shape == w.shape  # confirm relation to shape and components
@@ -206,7 +206,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert jnp.allclose(pe, pot.potential(w.q, t=0), atol=Quantity(1e-10, pe.unit))
 
     @pytest.mark.parametrize("pot", potentials, ids=lambda p: type(p).__name__)
-    def test_total_energy(self, w: T, pot: AbstractPotentialBase) -> None:
+    def test_total_energy(self, w: T, pot: AbstractBasePotential) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.energy`."""
         pe = w.total_energy(pot)
         assert pe.shape == w.shape  # confirm relation to shape and components

@@ -34,7 +34,7 @@ from galax.utils.dataclasses import (
 )
 
 if TYPE_CHECKING:
-    from galax.potential import AbstractPotentialBase
+    from galax.potential import AbstractBasePotential
 
 
 def converter_parameter(value: Any) -> AbstractParameter:
@@ -133,7 +133,7 @@ class ParameterField:
     # ===========================================
     # Descriptor
 
-    def __set_name__(self, owner: "type[AbstractPotentialBase]", name: str) -> None:
+    def __set_name__(self, owner: "type[AbstractBasePotential]", name: str) -> None:
         """Set the name of the parameter."""
         object.__setattr__(self, "name", name)
 
@@ -155,18 +155,18 @@ class ParameterField:
 
     @overload  # TODO: use `Self` when beartype is happy
     def __get__(
-        self, instance: None, owner: "type[AbstractPotentialBase]"
+        self, instance: None, owner: "type[AbstractBasePotential]"
     ) -> "ParameterField": ...
 
     @overload
     def __get__(
-        self, instance: "AbstractPotentialBase", owner: None
+        self, instance: "AbstractBasePotential", owner: None
     ) -> AbstractParameter: ...
 
     def __get__(  # TODO: use `Self` when beartype is happy
         self,
-        instance: "AbstractPotentialBase | None",
-        owner: "type[AbstractPotentialBase] | None",
+        instance: "AbstractBasePotential | None",
+        owner: "type[AbstractBasePotential] | None",
     ) -> ParameterField | AbstractParameter:
         # Get from class
         if instance is None:
@@ -188,7 +188,7 @@ class ParameterField:
     # -----------------------------
 
     def _check_dimensions(
-        self, potential: "AbstractPotentialBase", dims: Dimensions
+        self, potential: "AbstractBasePotential", dims: Dimensions
     ) -> None:
         """Check that the given unit is compatible with the parameter's."""
         # When the potential is being constructed, the units may not have been
@@ -206,7 +206,7 @@ class ParameterField:
 
     def __set__(
         self,
-        potential: "AbstractPotentialBase",
+        potential: "AbstractBasePotential",
         value: AbstractParameter | ParameterCallable | Any | Literal[Sentinel.MISSING],
     ) -> None:
         # Convert

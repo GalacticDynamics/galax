@@ -22,7 +22,7 @@ from .utils import cond_reverse
 from galax.dynamics._src.integrate.core import Integrator
 from galax.dynamics._src.integrate.funcs import _default_integrator, evaluate_orbit
 from galax.dynamics._src.orbit import Orbit
-from galax.potential import AbstractPotentialBase
+from galax.potential import AbstractBasePotential
 
 Carry: TypeAlias = tuple[gt.IntScalar, gt.VecN, gt.VecN]
 
@@ -37,7 +37,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     E.g. ``galax.dynamics.mockstream.FardalStreamDF``.
     """
 
-    potential: AbstractPotentialBase
+    potential: AbstractBasePotential
     """Potential in which the progenitor orbits and creates a stream."""
 
     _: KW_ONLY

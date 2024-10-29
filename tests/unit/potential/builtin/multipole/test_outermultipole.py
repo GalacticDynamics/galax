@@ -102,8 +102,8 @@ class TestMultipoleOuterPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
@@ -133,7 +133,7 @@ class TestMultipoleOuterPotential(
     )
     def test_method_gala(
         self,
-        pot: gp.AbstractPotentialBase,
+        pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
         x: gt.QVec3,

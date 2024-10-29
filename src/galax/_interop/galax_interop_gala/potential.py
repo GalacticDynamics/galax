@@ -48,7 +48,7 @@ def convert_potential(
     KeplerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( value=Quantity[...](value=f64[], unit=Unit("solMass")) ) )
+      m_tot=ConstantParameter(Quantity[...](value=f64[], unit=Unit("solMass"))) )
 
     """  # noqa: E501
     return gala_to_galax(from_)

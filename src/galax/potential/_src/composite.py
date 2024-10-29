@@ -12,7 +12,7 @@ import equinox as eqx
 from unxt import AbstractUnitSystem, Quantity, unitsystem
 from xmmutablemap import ImmutableMap
 
-from .base import default_constants
+from .base import AbstractBasePotential, default_constants
 from .base_multi import AbstractCompositePotential
 from .params.attr import CompositeParametersAttribute
 

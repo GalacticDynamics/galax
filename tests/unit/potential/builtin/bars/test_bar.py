@@ -15,7 +15,7 @@ from ..test_common import (
     ParameterShapeBMixin,
     ParameterShapeCMixin,
 )
-from galax.potential import AbstractPotentialBase, BarPotential
+from galax.potential import AbstractBasePotential, BarPotential
 
 
 class TestBarPotential(
@@ -94,8 +94,8 @@ class TestBarPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.03163021, -0.01038389, -0.02050134],

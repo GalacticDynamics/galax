@@ -32,7 +32,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         self,
         rng: PRNGKeyArray,
         # <\ parts of gala's ``prog_orbit``
-        pot: gp.AbstractPotentialBase,
+        pot: gp.AbstractBasePotential,
         prog_orbit: Orbit,
         # />
         /,
@@ -44,7 +44,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         ----------
         rng : :class:`jaxtyping.PRNGKeyArray`, positional-only
             Pseudo-random number generator. Not split, used as is.
-        pot : :class:`~galax.potential.AbstractPotentialBase`, positional-only
+        pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
             The potential of the host galaxy.
         prog_orbit : :class:`~galax.dynamics.Orbit`, positional-only
             The orbit of the progenitor.
@@ -127,7 +127,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     def _sample(
         self,
         key: PRNGKeyArray,
-        potential: gp.AbstractPotentialBase,
+        potential: gp.AbstractBasePotential,
         x: gt.LengthBatchableVec3,
         v: gt.SpeedBatchableVec3,
         prog_mass: gt.BatchableFloatQScalar,
@@ -141,7 +141,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         ----------
         rng : :class:`jaxtyping.PRNGKeyArray`
             Pseudo-random number generator.
-        potential : :class:`galax.potential.AbstractPotentialBase`
+        potential : :class:`galax.potential.AbstractBasePotential`
             The potential of the host galaxy.
         x : Quantity[float, (*#batch, 3), "length"]
             3d position (x, y, z)

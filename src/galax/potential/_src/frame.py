@@ -13,11 +13,11 @@ from unxt import AbstractUnitSystem, Quantity
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .base import AbstractPotentialBase
+from .base import AbstractBasePotential
 
 
 @final
-class PotentialFrame(AbstractPotentialBase):
+class PotentialFrame(AbstractBasePotential):
     """Reference frame of the potential.
 
     Examples
@@ -184,7 +184,7 @@ class PotentialFrame(AbstractPotentialBase):
     Array(-2.23568166, dtype=float64)
     """  # noqa: E501
 
-    original_potential: AbstractPotentialBase
+    original_potential: AbstractBasePotential
 
     operator: OperatorSequence = eqx.field(default=(), converter=OperatorSequence)
     """Transformation to reference frame of the potential.

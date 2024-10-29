@@ -30,7 +30,7 @@ _select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
 
 @dispatch
 def evaluate_orbit(
-    pot: gp.AbstractPotentialBase,
+    pot: gp.AbstractBasePotential,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
     t: Any,
     /,
@@ -47,7 +47,7 @@ def evaluate_orbit(
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractPotentialBase`
+    pot : :class:`~galax.potential.AbstractBasePotential`
         The potential in which to integrate the orbit.
     w0 : PhaseSpacePosition | Array[float, (*batch, 6)]
         The phase-space position (includes velocity and time) from which to
@@ -234,7 +234,7 @@ def evaluate_orbit(
 
 @dispatch
 def evaluate_orbit(
-    pot: gp.AbstractPotentialBase,
+    pot: gp.AbstractBasePotential,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
     /,
     *,

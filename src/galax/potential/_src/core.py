@@ -11,11 +11,11 @@ from unxt import AbstractUnitSystem, Quantity, unitsystem
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .base import AbstractPotentialBase, default_constants
+from .base import AbstractBasePotential, default_constants
 from .composite import CompositePotential
 
 
-class AbstractPotential(AbstractPotentialBase, strict=True):
+class AbstractPotential(AbstractBasePotential, strict=True):
     """Abstract base class for all potential objects."""
 
     _: KW_ONLY
@@ -40,7 +40,7 @@ class AbstractPotential(AbstractPotentialBase, strict=True):
     ###########################################################################
 
     def __add__(self, other: Any) -> CompositePotential:
-        if not isinstance(other, AbstractPotentialBase):
+        if not isinstance(other, AbstractBasePotential):
             return NotImplemented
 
         if isinstance(other, CompositePotential):

@@ -37,7 +37,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
         }
 
     @pytest.fixture(scope="class")
-    def pot_map_unitless(self, pot_map) -> Mapping[str, gp.AbstractPotentialBase]:
+    def pot_map_unitless(self, pot_map) -> Mapping[str, gp.AbstractBasePotential]:
         """Composite potential."""
         return {k: {kk: vv.value for kk, vv in v.items()} for k, v in pot_map.items()}
 
@@ -47,7 +47,7 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     def test_init_units_from_args(
         self,
         pot_cls: type[gp.MilkyWayPotential],
-        pot_map: Mapping[str, gp.AbstractPotentialBase],
+        pot_map: Mapping[str, gp.AbstractBasePotential],
     ) -> None:
         """Test unit system from None."""
         pot = pot_cls(**pot_map, units=None)
@@ -94,8 +94,8 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.00168185, -0.000507, -0.00101276],

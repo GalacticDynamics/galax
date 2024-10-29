@@ -20,7 +20,7 @@ import galax.typing as gt
 
 @dispatch  # type: ignore[misc]
 def evaluate_orbit(
-    pot: gp.AbstractPotentialBase,
+    pot: gp.AbstractBasePotential,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
     t: APYQuantity,
     /,

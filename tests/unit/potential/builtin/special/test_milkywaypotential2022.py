@@ -16,7 +16,7 @@ from ...test_composite import AbstractCompositePotential_Test
 from galax.potential import MilkyWayPotential2022
 
 if TYPE_CHECKING:
-    from galax.potential import AbstractPotentialBase
+    from galax.potential import AbstractBasePotential
 
 
 ##############################################################################
@@ -42,7 +42,7 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
         }
 
     @pytest.fixture(scope="class")
-    def pot_map_unitless(self, pot_map) -> Mapping[str, AbstractPotentialBase]:
+    def pot_map_unitless(self, pot_map) -> Mapping[str, AbstractBasePotential]:
         """Composite potential."""
         return {k: {kk: vv.value for kk, vv in v.items()} for k, v in pot_map.items()}
 
@@ -52,7 +52,7 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
     def test_init_units_from_args(
         self,
         pot_cls: type[MilkyWayPotential2022],
-        pot_map: Mapping[str, AbstractPotentialBase],
+        pot_map: Mapping[str, AbstractBasePotential],
     ) -> None:
         """Test unit system from None."""
         pot = pot_cls(**pot_map, units=None)
@@ -100,8 +100,8 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.00148256, -0.00047082, -0.0008994],

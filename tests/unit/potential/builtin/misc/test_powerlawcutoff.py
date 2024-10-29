@@ -14,7 +14,7 @@ from ...param.test_field import ParameterFieldMixin
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMTotMixin
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps
-from galax.potential import AbstractPotentialBase, PowerLawCutoffPotential
+from galax.potential import AbstractBasePotential, PowerLawCutoffPotential
 
 
 class AlphaParameterMixin(ParameterFieldMixin):
@@ -126,8 +126,8 @@ class TestPowerLawCutoffPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.06747395, -0.03680397, -0.05520596],
@@ -147,7 +147,7 @@ class TestPowerLawCutoffPotential(
         not OptDeps.GALA.installed or not GSL_ENABLED, reason="requires gala + GSL"
     )
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractPotentialBase, x: gt.QVec3
+        self, pot: gp.AbstractBasePotential, x: gt.QVec3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 

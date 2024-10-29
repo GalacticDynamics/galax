@@ -22,12 +22,12 @@ from .io.test_gala import GalaIOMixin
 from galax.potential._src.base import default_constants
 
 
-class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
-    """Test the `galax.potential.AbstractPotentialBase` class."""
+class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
+    """Test the `galax.potential.AbstractBasePotential` class."""
 
     @pytest.fixture(scope="class")
     @abstractmethod
-    def pot_cls(self) -> type[gp.AbstractPotentialBase]: ...
+    def pot_cls(self) -> type[gp.AbstractBasePotential]: ...
 
     @pytest.fixture(scope="class")
     def units(self) -> AbstractUnitSystem:
@@ -47,8 +47,8 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
 
     @pytest.fixture(scope="class")
     def pot(
-        self, pot_cls: type[gp.AbstractPotentialBase], fields_: dict[str, Any]
-    ) -> gp.AbstractPotentialBase:
+        self, pot_cls: type[gp.AbstractBasePotential], fields_: dict[str, Any]
+    ) -> gp.AbstractBasePotential:
         """Create a concrete potential instance for testing."""
         return pot_cls(**fields_)
 
@@ -101,8 +101,8 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
     ###########################################################################
 
     def test_init(
-        self, pot_cls: type[gp.AbstractPotentialBase], fields_: dict[str, Any]
-    ) -> gp.AbstractPotentialBase:
+        self, pot_cls: type[gp.AbstractBasePotential], fields_: dict[str, Any]
+    ) -> gp.AbstractBasePotential:
         """Create a concrete potential instance for testing."""
         pot = pot_cls(**fields_)
         assert isinstance(pot, pot_cls)
@@ -114,14 +114,14 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
     # ---------------------------------
 
     @abstractmethod
-    def test_potential(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
+    def test_potential(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `potential` method."""
         ...
 
     def test_potential_batch(
-        self, pot: gp.AbstractPotentialBase, batchx: gt.BatchQVec3
+        self, pot: gp.AbstractBasePotential, batchx: gt.BatchQVec3
     ) -> None:
-        """Test the `AbstractPotentialBase.potential` method."""
+        """Test the `AbstractBasePotential.potential` method."""
         # Test that the method works on batches.
         assert pot.potential(batchx, t=0).shape == batchx.shape[:-1]
         # Test that the batched method is equivalent to the scalar method
@@ -133,27 +133,27 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
 
     # ---------------------------------
 
-    def test_call(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.__call__` method."""
+    def test_call(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.__call__` method."""
         assert jnp.equal(pot(x, 0), pot.potential(x, 0))
 
     @abstractmethod
-    def test_gradient(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.gradient` method."""
+    def test_gradient(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.gradient` method."""
         ...
 
     @abstractmethod
-    def test_density(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.density` method."""
+    def test_density(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.density` method."""
         ...
 
     @abstractmethod
-    def test_hessian(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.hessian` method."""
+    def test_hessian(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.hessian` method."""
         ...
 
-    def test_acceleration(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.acceleration` method."""
+    def test_acceleration(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.acceleration` method."""
         acc = convert(pot.acceleration(x, t=0), Quantity)
         grad = convert(pot.gradient(x, t=0), Quantity)
         assert jnp.array_equal(acc, -grad)
@@ -162,14 +162,14 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
     # Convenience methods
 
     @abstractmethod
-    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         ...
 
     # =========================================================================
 
-    def test_evaluate_orbit(self, pot: gp.AbstractPotentialBase, xv: gt.Vec6) -> None:
-        """Test the `AbstractPotentialBase.evaluate_orbit` method."""
+    def test_evaluate_orbit(self, pot: gp.AbstractBasePotential, xv: gt.Vec6) -> None:
+        """Test the `AbstractBasePotential.evaluate_orbit` method."""
         ts = Quantity(jnp.linspace(0.0, 1.0, 100), "Myr")
 
         orbit = pot.evaluate_orbit(xv, ts)
@@ -178,9 +178,9 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
         assert jnp.array_equal(orbit.t, ts)
 
     def test_evaluate_orbit_batch(
-        self, pot: gp.AbstractPotentialBase, xv: gt.Vec6
+        self, pot: gp.AbstractBasePotential, xv: gt.Vec6
     ) -> None:
-        """Test the `AbstractPotentialBase.evaluate_orbit` method."""
+        """Test the `AbstractBasePotential.evaluate_orbit` method."""
         ts = Quantity(jnp.linspace(0.0, 1.0, 100), "Myr")
 
         # Simple batch
@@ -201,14 +201,14 @@ class AbstractPotentialBase_Test(GalaIOMixin, metaclass=ABCMeta):
 
 
 @final
-class TestAbstractPotentialBase(AbstractPotentialBase_Test):
-    """Test the `galax.potential.AbstractPotentialBase` class."""
+class TestAbstractBasePotential(AbstractBasePotential_Test):
+    """Test the `galax.potential.AbstractBasePotential` class."""
 
     HAS_GALA_COUNTERPART: ClassVar[bool] = False
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[gp.AbstractPotentialBase]:
-        class TestPotential(gp.AbstractPotentialBase):
+    def pot_cls(self) -> type[gp.AbstractBasePotential]:
+        class TestPotential(gp.AbstractBasePotential):
             m_tot: gpp.AbstractParameter = gpp.ParameterField(
                 dimensions="mass", default=1e12 * u.Msun
             )
@@ -232,21 +232,21 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
     ###########################################################################
 
     def test_init(self, pot_cls) -> None:
-        """Test the initialization of `AbstractPotentialBase`."""
+        """Test the initialization of `AbstractBasePotential`."""
         # Test that the abstract class cannot be instantiated
         with pytest.raises(TypeError):
-            gp.AbstractPotentialBase()
+            gp.AbstractBasePotential()
 
         # Test that the concrete class can be instantiated
         pot = pot_cls()
-        assert isinstance(pot, gp.AbstractPotentialBase)
+        assert isinstance(pot, gp.AbstractBasePotential)
 
     # =========================================================================
 
     # ---------------------------------
 
-    def test_potential(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.potential` method."""
+    def test_potential(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.potential` method."""
         assert jnp.allclose(
             pot.potential(x, t=0),
             Quantity(1.20227527, "kpc2/Myr2"),
@@ -255,24 +255,24 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
 
     # ---------------------------------
 
-    def test_gradient(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.gradient` method."""
+    def test_gradient(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.gradient` method."""
         expect = Quantity(
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), Quantity)
         assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.density` method."""
+    def test_density(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.density` method."""
         # TODO: fix negative density!!!
         expect = Quantity(-2.647e-7, pot.units["mass density"])
         assert jnp.allclose(
             pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.hessian` method."""
+    def test_hessian(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.hessian` method."""
         expected = Quantity(
             jnp.asarray(
                 [
@@ -290,8 +290,8 @@ class TestAbstractPotentialBase(AbstractPotentialBase_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [-0.06747463, 0.03680435, 0.05520652],

@@ -15,7 +15,7 @@ from plotting_backends import AbstractPlottingBackend, MatplotlibBackend
 
 from galax.utils._boundinstance import BndTo, InstanceDescriptor
 
-ProxyAbstractPotentialBase = PromisedType("AbstractPotentialBase")
+ProxyAbstractBasePotential = PromisedType("AbstractBasePotential")
 
 
 # --------------------------------------------------
@@ -54,7 +54,7 @@ class PlotPotentialDescriptor(InstanceDescriptor[BndTo]):
 
 @dispatch.abstract  # type: ignore[misc]
 def plot_potential_contours(
-    pot: ProxyAbstractPotentialBase,  # type: ignore[valid-type]
+    pot: ProxyAbstractBasePotential,  # type: ignore[valid-type]
     backend: type[AbstractPlottingBackend] = MatplotlibBackend,
     /,
     **kwargs: Any,
@@ -63,7 +63,7 @@ def plot_potential_contours(
 
     Parameters
     ----------
-    pot : AbstractPotentialBase, positional-only
+    pot : AbstractBasePotential, positional-only
         The potential for which to plot equipotential contours.
 
     backend: type[AbstractPlottingBackend], optional positional-only
@@ -84,7 +84,7 @@ def plot_potential_contours(
 
 @dispatch.abstract  # type: ignore[misc]
 def plot_density_contours(
-    pot: ProxyAbstractPotentialBase,  # type: ignore[valid-type]
+    pot: ProxyAbstractBasePotential,  # type: ignore[valid-type]
     backend: type[AbstractPlottingBackend] = MatplotlibBackend,
     /,
     **kwargs: Any,
@@ -93,7 +93,7 @@ def plot_density_contours(
 
     Parameters
     ----------
-    pot : AbstractPotentialBase, positional-only
+    pot : AbstractBasePotential, positional-only
         The potential for which to plot density contours.
 
     backend: type[AbstractPlottingBackend], optional positional-only
@@ -114,6 +114,6 @@ def plot_density_contours(
 
 # NOTE: this avoids a circular import
 # isort: split
-from .base import AbstractPotentialBase  # noqa: E402
+from .base import AbstractBasePotential  # noqa: E402
 
-ProxyAbstractPotentialBase.deliver(AbstractPotentialBase)
+ProxyAbstractBasePotential.deliver(AbstractBasePotential)

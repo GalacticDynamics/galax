@@ -11,7 +11,7 @@ import galax.potential as gp
 import galax.typing as gt
 from ...test_core import AbstractPotential_Test
 from .test_common import ParameterRSMixin, ParameterVCMixin
-from galax.potential import AbstractPotentialBase, LogarithmicPotential
+from galax.potential import AbstractBasePotential, LogarithmicPotential
 
 
 class TestLogarithmicPotential(
@@ -70,8 +70,8 @@ class TestLogarithmicPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [6.10189073e-05, -3.32830403e-05, -4.99245605e-05],

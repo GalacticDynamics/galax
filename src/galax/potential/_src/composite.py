@@ -18,7 +18,7 @@ from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
 import galax.typing as gt
-from .base import AbstractPotentialBase, default_constants
+from .base import AbstractBasePotential, default_constants
 from .params.attr import CompositeParametersAttribute
 
 K = TypeVar("K")
@@ -27,21 +27,21 @@ V = TypeVar("V")
 
 # Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePotential(
-    AbstractPotentialBase,
-    ImmutableMap[str, AbstractPotentialBase],  # type: ignore[misc]
+    AbstractBasePotential,
+    ImmutableMap[str, AbstractBasePotential],  # type: ignore[misc]
     strict=False,
 ):
     def __init__(
         self,
         potentials: (
-            dict[str, AbstractPotentialBase]
-            | tuple[tuple[str, AbstractPotentialBase], ...]
+            dict[str, AbstractBasePotential]
+            | tuple[tuple[str, AbstractBasePotential], ...]
         ) = (),
         /,
         *,
         units: Any = None,
         constants: Any = default_constants,
-        **kwargs: AbstractPotentialBase,
+        **kwargs: AbstractBasePotential,
     ) -> None:
         ImmutableMap.__init__(self, potentials, **kwargs)  # <- ImmutableMap.__init__
 
@@ -82,7 +82,7 @@ class AbstractCompositePotential(
     # Composite potentials
 
     def __or__(self, other: Any) -> "CompositePotential":
-        if not isinstance(other, AbstractPotentialBase):
+        if not isinstance(other, AbstractBasePotential):
             return NotImplemented
 
         return CompositePotential(  # combine the two dictionaries
@@ -95,7 +95,7 @@ class AbstractCompositePotential(
         )
 
     def __ror__(self, other: Any) -> "CompositePotential":
-        if not isinstance(other, AbstractPotentialBase):
+        if not isinstance(other, AbstractBasePotential):
             return NotImplemented
 
         return CompositePotential(  # combine the two dictionaries
@@ -107,7 +107,7 @@ class AbstractCompositePotential(
             | self._data
         )
 
-    def __add__(self, other: AbstractPotentialBase) -> "CompositePotential":
+    def __add__(self, other: AbstractBasePotential) -> "CompositePotential":
         return self | other
 
 
@@ -182,7 +182,7 @@ class CompositePotential(AbstractCompositePotential):
 
     parameters: ClassVar = CompositeParametersAttribute(MappingProxyType({}))
 
-    _data: dict[str, AbstractPotentialBase]
+    _data: dict[str, AbstractBasePotential]
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(init=False, static=True, converter=unitsystem)
     constants: ImmutableMap[str, Quantity] = eqx.field(

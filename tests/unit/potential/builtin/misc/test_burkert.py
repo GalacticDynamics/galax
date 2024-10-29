@@ -13,7 +13,7 @@ import galax.typing as gt
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMMixin, ParameterScaleRadiusMixin
 from galax._interop.optional_deps import OptDeps
-from galax.potential import AbstractPotentialBase, BurkertPotential
+from galax.potential import AbstractBasePotential, BurkertPotential
 
 
 class TestBurkertPotential(
@@ -76,8 +76,8 @@ class TestBurkertPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.Vec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.Vec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.29443581, -0.16060135, -0.24090202],
@@ -105,7 +105,7 @@ class TestBurkertPotential(
     )
     def test_method_gala(
         self,
-        pot: gp.AbstractPotentialBase,
+        pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
         x: gt.QVec3,

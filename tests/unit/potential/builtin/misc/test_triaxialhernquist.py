@@ -16,7 +16,7 @@ from ..test_common import (
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 )
-from galax.potential import AbstractPotentialBase, TriaxialHernquistPotential
+from galax.potential import AbstractBasePotential, TriaxialHernquistPotential
 
 
 class TestTriaxialHernquistPotential(
@@ -78,8 +78,8 @@ class TestTriaxialHernquistPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.03047921, -0.00146778, -0.0106561],

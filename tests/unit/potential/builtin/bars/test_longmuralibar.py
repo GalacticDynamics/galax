@@ -17,7 +17,7 @@ from ..test_common import (
     ParameterShapeBMixin,
     ParameterShapeCMixin,
 )
-from galax.potential import AbstractPotentialBase, LongMuraliBarPotential
+from galax.potential import AbstractBasePotential, LongMuraliBarPotential
 
 
 class AlphaParameterMixin(ParameterFieldMixin):
@@ -112,8 +112,8 @@ class TestLongMuraliBarPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.0334102, -0.01077521, -0.02078279],

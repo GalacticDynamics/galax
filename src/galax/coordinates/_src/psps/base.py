@@ -518,7 +518,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         return 0.5 * self.p.norm(self.q) ** 2
 
     def potential_energy(
-        self, potential: "AbstractPotentialBase"
+        self, potential: "AbstractBasePotential"
     ) -> Quantity["specific energy"]:
         r"""Return the specific potential energy.
 
@@ -528,7 +528,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         Parameters
         ----------
-        potential : `galax.potential.AbstractPotentialBase`
+        potential : `galax.potential.AbstractBasePotential`
             The potential object to compute the energy from.
 
         Returns
@@ -566,7 +566,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         return potential.potential(self.q, t=self.t)
 
     @partial(jax.jit, inline=True)
-    def total_energy(self, potential: "AbstractPotentialBase") -> gt.BatchFloatQScalar:
+    def total_energy(self, potential: "AbstractBasePotential") -> gt.BatchFloatQScalar:
         r"""Return the specific total energy.
 
         .. math::
@@ -577,7 +577,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         Parameters
         ----------
-        potential : `galax.potential.AbstractPotentialBase`
+        potential : `galax.potential.AbstractBasePotential`
             The potential object to compute the energy from.
 
         Returns

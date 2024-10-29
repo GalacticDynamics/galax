@@ -41,7 +41,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
     def test_init_units_from_args(
         self,
         pot_cls: type[gp.MilkyWayPotential],
-        pot_map: Mapping[str, gp.AbstractPotentialBase],
+        pot_map: Mapping[str, gp.AbstractBasePotential],
     ) -> None:
         """Test unit system from None."""
         pot = pot_cls(**pot_map, units=None)
@@ -82,8 +82,8 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity(
             [
                 [0.00161473, -0.00046922, -0.0009568],
@@ -103,7 +103,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
         not OptDeps.GALA.installed or not GSL_ENABLED, reason="requires gala + GSL"
     )
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractPotentialBase, x: gt.QVec3
+        self, pot: gp.AbstractBasePotential, x: gt.QVec3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 

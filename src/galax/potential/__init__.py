@@ -6,7 +6,7 @@ __all__ = [
     "params",
     "plot",
     # base
-    "AbstractPotentialBase",
+    "AbstractBasePotential",
     # core
     "AbstractPotential",
     # composite
@@ -70,7 +70,7 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from . import io, params, plot
-    from ._src.base import AbstractPotentialBase
+    from ._src.base import AbstractBasePotential
     from ._src.builtin.bars import BarPotential, LongMuraliBarPotential
     from ._src.builtin.builtin import (
         BurkertPotential,

@@ -26,7 +26,7 @@ class TestNullPotential(AbstractPotential_Test):
     # ==========================================================================
 
     def test_init_units_from_args(
-        self, pot_cls: type[gp.AbstractPotentialBase], fields_unitless: dict[str, Array]
+        self, pot_cls: type[gp.AbstractBasePotential], fields_unitless: dict[str, Array]
     ) -> None:
         """Test unit system from None."""
         # strip the units from the fields otherwise the test will fail
@@ -39,7 +39,7 @@ class TestNullPotential(AbstractPotential_Test):
 
     @override
     def test_init_units_from_name(
-        self, pot_cls: type[gp.AbstractPotentialBase], fields_unitless: dict[str, Array]
+        self, pot_cls: type[gp.AbstractBasePotential], fields_unitless: dict[str, Array]
     ) -> None:
         """Test unit system from named string."""
         fields_unitless.pop("units")
@@ -88,8 +88,8 @@ class TestNullPotential(AbstractPotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractPotentialBase, x: gt.QVec3) -> None:
-        """Test the `AbstractPotentialBase.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+        """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = Quantity([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
         assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)

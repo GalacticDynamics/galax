@@ -81,6 +81,8 @@ class AbstractCompositePotential(
     # Composite potentials
 
     def __or__(self, other: Any) -> "CompositePotential":
+        from .composite import CompositePotential
+
         if not isinstance(other, AbstractBasePotential):
             return NotImplemented
 
@@ -94,6 +96,8 @@ class AbstractCompositePotential(
         )
 
     def __ror__(self, other: Any) -> "CompositePotential":
+        from .composite import CompositePotential
+
         if not isinstance(other, AbstractBasePotential):
             return NotImplemented
 

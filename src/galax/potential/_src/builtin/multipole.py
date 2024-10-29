@@ -20,7 +20,7 @@ import quaxed.numpy as jnp
 from unxt import Quantity, ustrip
 
 import galax.typing as gt
-from galax.potential._src.core import AbstractPotential
+from galax.potential._src.base_single import AbstractPotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 

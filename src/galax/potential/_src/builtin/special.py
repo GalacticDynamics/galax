@@ -10,10 +10,9 @@ __all__ = [
 
 from collections.abc import Mapping
 from dataclasses import KW_ONLY
-from typing import Any, ClassVar, TypeVar, final
+from typing import Any, ClassVar, TypeVar, cast, final
 
 import equinox as eqx
-from plum import dispatch
 
 from dataclassish import replace
 from unxt import Quantity
@@ -35,22 +34,18 @@ from galax.potential._src.base_multi import AbstractCompositePotential
 T = TypeVar("T", bound=AbstractBasePotential)
 
 
-@dispatch
-def _parse_input_comp(
-    base: AbstractBasePotential,  # noqa: ARG001
-    instance: AbstractBasePotential,
-    units: AbstractUnitSystem,  # noqa: ARG001
-) -> AbstractBasePotential:
-    return instance
-
-
-@dispatch
-def _parse_input_comp(
+def _parse_potential(
     base: AbstractBasePotential,
-    instance: Mapping[str, Any] | None,
-    units: AbstractUnitSystem,
+    instance: AbstractBasePotential | Mapping[str, Any] | None,
+    units: Any,
 ) -> AbstractBasePotential:
-    return replace(base, **(instance or {}), units=units)
+    if isinstance(instance, type(base)):
+        return instance
+    if isinstance(instance, AbstractBasePotential):
+        msg = f"instance must be of type {type(base)}, not {type(instance)}"
+        raise TypeError(msg)
+
+    return cast(AbstractBasePotential, replace(base, **(instance or {}), units=units))
 
 
 # =============================================================================
@@ -123,9 +118,9 @@ class BovyMWPotential2014(AbstractCompositePotential):
         units_ = unitsystem(units)
 
         super().__init__(
-            disk=_parse_input_comp(self._default_disk, disk, units_),
-            bulge=_parse_input_comp(self._default_bulge, bulge, units_),
-            halo=_parse_input_comp(self._default_halo, halo, units_),
+            disk=_parse_potential(self._default_disk, disk, units_),
+            bulge=_parse_potential(self._default_bulge, bulge, units_),
+            halo=_parse_potential(self._default_halo, halo, units_),
             units=units_,
             constants=constants,
         )
@@ -205,9 +200,9 @@ class LM10Potential(AbstractCompositePotential):
         units_ = unitsystem(units)
 
         super().__init__(
-            disk=_parse_input_comp(self._default_disk, disk, units_),
-            bulge=_parse_input_comp(self._default_bulge, bulge, units_),
-            halo=_parse_input_comp(self._default_halo, halo, units_),
+            disk=_parse_potential(self._default_disk, disk, units_),
+            bulge=_parse_potential(self._default_bulge, bulge, units_),
+            halo=_parse_potential(self._default_halo, halo, units_),
             units=units_,
             constants=constants,
         )
@@ -283,10 +278,10 @@ class MilkyWayPotential(AbstractCompositePotential):
         units_ = unitsystem(units) if units is not None else galactic
 
         super().__init__(
-            disk=_parse_input_comp(self._default_disk, disk, units_),
-            halo=_parse_input_comp(self._default_halo, halo, units_),
-            bulge=_parse_input_comp(self._default_bulge, bulge, units_),
-            nucleus=_parse_input_comp(self._default_nucleus, nucleus, units_),
+            disk=_parse_potential(self._default_disk, disk, units_),
+            halo=_parse_potential(self._default_halo, halo, units_),
+            bulge=_parse_potential(self._default_bulge, bulge, units_),
+            nucleus=_parse_potential(self._default_nucleus, nucleus, units_),
             units=units_,
             constants=constants,
         )
@@ -365,10 +360,10 @@ class MilkyWayPotential2022(AbstractCompositePotential):
         units_ = unitsystem(units) if units is not None else galactic
 
         super().__init__(
-            disk=_parse_input_comp(self._default_disk, disk, units_),
-            halo=_parse_input_comp(self._default_halo, halo, units_),
-            bulge=_parse_input_comp(self._default_bulge, bulge, units_),
-            nucleus=_parse_input_comp(self._default_nucleus, nucleus, units_),
+            disk=_parse_potential(self._default_disk, disk, units_),
+            halo=_parse_potential(self._default_halo, halo, units_),
+            bulge=_parse_potential(self._default_bulge, bulge, units_),
+            nucleus=_parse_potential(self._default_nucleus, nucleus, units_),
             units=units_,
             constants=constants,
         )

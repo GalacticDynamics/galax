@@ -30,6 +30,8 @@ class AbstractCompositePotential(
     ImmutableMap[str, AbstractBasePotential],  # type: ignore[misc]
     strict=False,
 ):
+    """Abstract base class for all composite potential objects."""
+
     def __init__(
         self,
         potentials: (
@@ -70,6 +72,11 @@ class AbstractCompositePotential(
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
+        """Compute the potential energy at a position `q` and time `t`.
+
+        This is the sum of all the component potentials.
+
+        """
         return jnp.sum(
             jnp.asarray(
                 [p._potential(q, t) for p in self.values()]  # noqa: SLF001
@@ -114,7 +121,8 @@ class AbstractCompositePotential(
         return self | other
 
 
-# =================
+# ===================================================================
+# replace
 
 
 @dispatch(precedence=1)

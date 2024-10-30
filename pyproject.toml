@@ -293,7 +293,8 @@
 [tool.uv]
   dev-dependencies = [
     "ipykernel>=6.29.5",
+    "matplotlib>=3.9.2",
     "pytest-arraydiff>=0.6.1",
     "pytest>=8.3.3",
     "sybil>=8.0.0",
-  ]
+]

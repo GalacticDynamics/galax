@@ -16,7 +16,7 @@ import equinox as eqx
 import jax
 
 from dataclassish.converters import Unless
-from unxt import AbstractQuantity, Quantity
+from unxt.quantity import AbstractQuantity, Quantity
 
 from galax.typing import BatchableRealQScalar, FloatQAnyShape
 from galax.utils._shape import expand_batch_dims

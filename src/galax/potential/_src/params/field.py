@@ -23,7 +23,7 @@ from astropy.units import PhysicalType as Dimensions
 
 from dataclassish.converters import Optional
 from is_annotated import isannotated
-from unxt import AbstractQuantity, Quantity
+from unxt.quantity import AbstractQuantity, Quantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 from galax.utils.dataclasses import (

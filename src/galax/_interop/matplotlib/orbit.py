@@ -6,7 +6,7 @@ from matplotlib.axes import Axes
 from plum import dispatch
 
 from plotting_backends import MatplotlibBackend
-from unxt import AbstractQuantity, ustrip
+from unxt.quantity import AbstractQuantity, ustrip
 
 import galax.dynamics as gd
 from .potential import _get_figure

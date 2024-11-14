@@ -7,7 +7,7 @@ from typing import TypeAlias
 import astropy.units as u
 from jaxtyping import Array, Float, Integer, Shaped
 
-from unxt import AbstractQuantity, Quantity
+from unxt.quantity import AbstractQuantity, Quantity
 
 # =============================================================================
 

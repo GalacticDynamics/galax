@@ -17,7 +17,8 @@ from plum import convert, dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 from dataclassish import field_items
-from unxt import Quantity, UncheckedQuantity as FastQ, unitsystem, ustrip
+from unxt import Quantity, unitsystem, ustrip
+from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.typing as gt
 

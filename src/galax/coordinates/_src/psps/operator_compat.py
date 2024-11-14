@@ -22,8 +22,8 @@ batched_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
 
 @cxop.AbstractOperator.__call__.dispatch
 def call(
-    self: cxop.AbstractOperator,  # noqa: ARG001
-    x: AbstractPhaseSpacePosition,  # noqa: ARG001
+    self: cxop.AbstractOperator,
+    x: AbstractPhaseSpacePosition,
     /,
 ) -> AbstractPhaseSpacePosition:
     """Apply the operator to a phase-space-time position.

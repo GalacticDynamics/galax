@@ -43,13 +43,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: "3.x"
-      - name: Install package
-        run: python -m pip install ".[test]"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+      - name: Install the project
+        run: uv sync --group test
       - name: Run smoke test
-        run: python -m pytest tests/smoke -ra
+        run: uv run pytest tests/smoke -ra
 
   checks:
     name: Check Python ${{ matrix.python-version }} on ${{ matrix.runs-on }}
@@ -72,17 +78,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
-      - name: Install package
-        run: python -m pip install '.[test]'
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install the project
+        run: uv sync --group test
 
       - name: Test package
         run: >-
-          python -m pytest src docs tests/unit tests/functional -ra --cov
+          uv run pytest src docs tests/unit tests/functional -ra --cov
           --cov-report=xml --cov-report=term --durations=20 --arraydiff -m"not
           slow"
 
@@ -106,20 +116,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
-      - name: Install package
-        run: python -m pip install '.[all,test-all]'
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install the project
+        run: uv sync --extra all --group test-all
 
       - name: Test package
         run: >-
-          python -m pytest tests/integration src docs tests/unit
-          tests/functional -ra --durations=20 --cov --cov-report=xml
-          --cov-report=term --arraydiff -m"not slow" --mpl
-          --mpl-hash-library=hashes.json --mpl-deterministic
+          uv run pytest tests/integration src docs tests/unit tests/functional
+          -ra --durations=20 --cov --cov-report=xml --cov-report=term
+          --arraydiff -m"not slow" --mpl --mpl-hash-library=hashes.json
+          --mpl-deterministic
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4.6.0

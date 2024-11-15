@@ -1,11 +1,10 @@
 from typing import Any
 
-import astropy.units as u
 import pytest
 from plum import convert
 
 import quaxed.numpy as qnp
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
 
 from ...test_core import AbstractPotential_Test
 from ..test_common import (
@@ -40,7 +39,7 @@ class TestMN3ExponentialPotential(
         field_m_tot: u.Quantity,
         field_h_R: u.Quantity,
         field_h_z: u.Quantity,
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m_tot": field_m_tot,
@@ -52,27 +51,27 @@ class TestMN3ExponentialPotential(
     # ==========================================================================
 
     def test_potential(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
-        expect = Quantity(-1.15401718, pot.units["specific energy"])
+        expect = u.Quantity(-1.15401718, pot.units["specific energy"])
         assert qnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [0.0689723071793, 0.1379446143587, 0.2013372530559],
             pot.units["acceleration"],
         )
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert qnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
-        expect = Quantity(731_782_542.3781165, pot.units["mass density"])
+        expect = u.Quantity(731_782_542.3781165, pot.units["mass density"])
         assert qnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.05679591, -0.02435279, -0.03538017],
                 [-0.02435279, 0.02026672, -0.07076034],
@@ -81,7 +80,7 @@ class TestMN3ExponentialPotential(
             "1/Myr2",
         )
         assert qnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -89,7 +88,7 @@ class TestMN3ExponentialPotential(
 
     def test_tidal_tensor(self, pot: AbstractBasePotential, x: Vec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.04300673, -0.02435279, -0.03538017],
                 [-0.02435279, 0.00647754, -0.07076034],
@@ -98,7 +97,7 @@ class TestMN3ExponentialPotential(
             "1/Myr2",
         )
         assert qnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
 
@@ -121,7 +120,7 @@ class TestMN3Sech2Potential(
         field_m_tot: u.Quantity,
         field_h_R: u.Quantity,
         field_h_z: u.Quantity,
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m_tot": field_m_tot,
@@ -133,27 +132,27 @@ class TestMN3Sech2Potential(
     # ==========================================================================
 
     def test_potential(self, pot: MN3Sech2Potential, x: Vec3) -> None:
-        expect = Quantity(-1.13545211, pot.units["specific energy"])
+        expect = u.Quantity(-1.13545211, pot.units["specific energy"])
         assert qnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: MN3Sech2Potential, x: Vec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [0.059397338333485615, 0.11879467666697123, 0.21959289808834268],
             pot.units["acceleration"],
         )
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert qnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MN3Sech2Potential, x: Vec3) -> None:
-        expect = Quantity(211_769_063.98948175, pot.units["mass density"])
+        expect = u.Quantity(211_769_063.98948175, pot.units["mass density"])
         assert qnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: MN3Sech2Potential, x: Vec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.05071981, -0.01735505, -0.03287182],
                 [-0.01735505, 0.02468723, -0.06574365],
@@ -162,7 +161,7 @@ class TestMN3Sech2Potential(
             "1/Myr2",
         )
         assert qnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -170,7 +169,7 @@ class TestMN3Sech2Potential(
 
     def test_tidal_tensor(self, pot: AbstractBasePotential, x: Vec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.04672939, -0.01735505, -0.03287182],
                 [-0.01735505, 0.02069681, -0.06574365],
@@ -179,5 +178,5 @@ class TestMN3Sech2Potential(
             "1/Myr2",
         )
         assert qnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

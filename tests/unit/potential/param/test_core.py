@@ -2,11 +2,10 @@
 
 from typing import Any, Generic, TypeVar
 
-import astropy.units as u
 import pytest
 
 import quaxed.numpy as jnp
-from unxt import Quantity, ustrip
+import unxt as u
 
 from galax.potential._src.params.core import ParameterCallable
 from galax.potential.params import AbstractParameter, ConstantParameter, UserParameter
@@ -24,7 +23,7 @@ class TestAbstractParameter(Generic[T]):
 
     @pytest.fixture(scope="class")
     def field_unit(self) -> Unit:
-        return u.km
+        return u.unit("km")
 
     @pytest.fixture(scope="class")
     def param(self, param_cls: type[T], field_unit: Unit) -> T:
@@ -63,18 +62,18 @@ class TestConstantParameter(TestAbstractParameter[ConstantParameter]):
 
     @pytest.fixture(scope="class")
     def field_value(self, field_unit) -> float:
-        return Quantity(1.0, field_unit)
+        return u.Quantity(1.0, field_unit)
 
     @pytest.fixture(scope="class")
     def param(self, param_cls: type[T], field_unit: Unit, field_value: float) -> T:
-        return param_cls(Quantity.from_(field_value, unit=field_unit))
+        return param_cls(u.Quantity.from_(field_value, unit=field_unit))
 
     # ===============================================================
 
     def test_call(self, param: T, field_value: float) -> None:
         """Test `galax.potential.ConstantParameter` call method."""
         assert param(t=1.0) == field_value
-        assert param(t=1.0 * u.s) == field_value
+        assert param(t=u.Quantity(1.0, "s")) == field_value
         # Calling the parameter doesn't broadcast the shape, only the number of
         # dimensions
         assert jnp.array_equal(param(t=jnp.asarray([1.0, 2.0])), [field_value])
@@ -101,8 +100,10 @@ class TestParameterCallable:
         assert not issubclass(object, ParameterCallable)
 
     def test_isinstance(self) -> None:
-        assert isinstance(ConstantParameter(Quantity(1.0, "km")), ParameterCallable)
-        assert isinstance(UserParameter(lambda t: t << u.km), ParameterCallable)
+        assert isinstance(ConstantParameter(u.Quantity(1.0, "km")), ParameterCallable)
+        assert isinstance(
+            UserParameter(lambda t: u.Quantity.from_(t, "km")), ParameterCallable
+        )
 
 
 class TestUserParameter(TestAbstractParameter[UserParameter]):
@@ -114,8 +115,8 @@ class TestUserParameter(TestAbstractParameter[UserParameter]):
 
     @pytest.fixture(scope="class")
     def field_func(self) -> ParameterCallable:
-        def func(t: Quantity["time"], **kwargs: Any) -> Any:
-            return Quantity(ustrip("Gyr", t), "kpc")
+        def func(t: u.Quantity["time"], **kwargs: Any) -> Any:
+            return u.Quantity(u.ustrip("Gyr", t), "kpc")
 
         return func
 
@@ -129,10 +130,10 @@ class TestUserParameter(TestAbstractParameter[UserParameter]):
 
     def test_call(self, param: T) -> None:
         """Test :class:`galax.potential.UserParameter` call method."""
-        assert param(t=Quantity(1.0, "Gyr")) == Quantity(1.0, "kpc")
+        assert param(t=u.Quantity(1.0, "Gyr")) == u.Quantity(1.0, "kpc")
 
         # TODO: sort out what this tests
-        # assert param(t=Quantity(1.0, u.s)) == Quantity(0.97779222, "km")
+        # assert param(t=u.Quantity(1.0, u.unit("s"))) == u.Quantity(0.97779222, "km")
 
         # t = jnp.asarray([1.0, 2.0])
         # assert array_equal(param(t=t), t)

@@ -1,11 +1,10 @@
 from typing import Any
 
-import astropy.units as u
 import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
@@ -24,23 +23,23 @@ class AlphaParameterMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
-    def field_alpha(self) -> Quantity["angle"]:
-        return Quantity(0.9, "rad")
+    def field_alpha(self) -> u.Quantity["angle"]:
+        return u.Quantity(0.9, "rad")
 
     # =====================================================
 
     def test_alpha_constant(self, pot_cls, fields):
         """Test the `alpha` parameter."""
-        fields["alpha"] = Quantity(1.0, "rad")
+        fields["alpha"] = u.Quantity(1.0, "rad")
         pot = pot_cls(**fields)
-        assert pot.alpha(t=Quantity(0, "Myr")) == Quantity(1.0, "rad")
+        assert pot.alpha(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "rad")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_alpha_userfunc(self, pot_cls, fields):
         """Test the `alpha` parameter."""
         fields["alpha"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.alpha(t=Quantity(0, "Myr")) == 2
+        assert pot.alpha(t=u.Quantity(0, "Myr")) == 2
 
 
 class TestLongMuraliBarPotential(
@@ -66,7 +65,7 @@ class TestLongMuraliBarPotential(
         field_b: u.Quantity,
         field_c: u.Quantity,
         field_alpha: u.Quantity,
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m_tot": field_m_tot,
@@ -80,24 +79,24 @@ class TestLongMuraliBarPotential(
     # ==========================================================================
 
     def test_potential(self, pot: LongMuraliBarPotential, x: gt.QVec3) -> None:
-        expect = Quantity(-0.9494695, unit="kpc2 / Myr2")
+        expect = u.Quantity(-0.9494695, unit="kpc2 / Myr2")
         assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: LongMuraliBarPotential, x: gt.QVec3) -> None:
-        expect = Quantity([0.04017315, 0.08220449, 0.16854858], "kpc / Myr2")
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        expect = u.Quantity([0.04017315, 0.08220449, 0.16854858], "kpc / Myr2")
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: LongMuraliBarPotential, x: gt.QVec3) -> None:
-        expect = Quantity(2.02402357e08, "solMass / kpc3")
+        expect = u.Quantity(2.02402357e08, "solMass / kpc3")
         assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: LongMuraliBarPotential, x: gt.QVec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.03722412, -0.01077521, -0.02078279],
                 [-0.01077521, 0.02101076, -0.04320745],
@@ -106,7 +105,7 @@ class TestLongMuraliBarPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -114,7 +113,7 @@ class TestLongMuraliBarPotential(
 
     def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.0334102, -0.01077521, -0.02078279],
                 [-0.01077521, 0.01719683, -0.04320745],
@@ -123,5 +122,5 @@ class TestLongMuraliBarPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

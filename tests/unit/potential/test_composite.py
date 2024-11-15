@@ -5,12 +5,11 @@ from dataclasses import replace
 from typing import Any
 from typing_extensions import override
 
-import astropy.units as u
 import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 from unxt.unitsystems import dimensionless, galactic, solarsystem, unitsystem
 from zeroth import zeroth
 
@@ -56,7 +55,7 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
         pot_map: Mapping[str, Any],
     ) -> None:
         """Test unit system from unitsystem."""
-        usys = unitsystem(u.km, u.s, u.Msun, u.radian)
+        usys = unitsystem("km", "s", "Msun", "radian")
         assert pot_cls(**pot_map, units=usys).units == usys
 
     @override
@@ -66,7 +65,7 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
         pot_map: Mapping[str, Any],
     ) -> None:
         """Test unit system from tuple."""
-        units = (u.km, u.s, u.Msun, u.radian)
+        units = ("km", "s", "Msun", "radian")
         assert pot_cls(**pot_map, units=units).units == unitsystem(*units)
 
     @override
@@ -102,7 +101,9 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
 
     def test_or_pot(self, pot: gp.AbstractCompositePotential) -> None:
         """Test the `__or__` method with a single potential."""
-        single_pot = gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic)
+        single_pot = gp.KeplerPotential(
+            m_tot=u.Quantity(1e12, "solMass"), units=galactic
+        )
         newpot = pot | single_pot
 
         assert isinstance(newpot, gp.CompositePotential)
@@ -114,8 +115,8 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
     def test_or_compot(self, pot: gp.AbstractCompositePotential) -> None:
         """Test the `__or__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
-            kep1=gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
-            kep2=gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
+            kep1=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
+            kep2=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
         )
         newpot = pot | comp_pot
 
@@ -139,7 +140,9 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
 
     def test_ror_pot(self, pot: gp.CompositePotential) -> None:
         """Test the `__ror__` method with a single potential."""
-        single_pot = gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic)
+        single_pot = gp.KeplerPotential(
+            m_tot=u.Quantity(1e12, "solMass"), units=galactic
+        )
         newpot = single_pot | pot
 
         assert isinstance(newpot, gp.CompositePotential)
@@ -151,8 +154,8 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
     def test_ror_compot(self, pot: gp.CompositePotential) -> None:
         """Test the `__ror__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
-            kep1=gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
-            kep2=gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
+            kep1=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
+            kep2=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
         )
         newpot = comp_pot | pot
 
@@ -177,7 +180,9 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
 
     def test_add_pot(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with a single potential."""
-        single_pot = gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic)
+        single_pot = gp.KeplerPotential(
+            m_tot=u.Quantity(1e12, "solMass"), units=galactic
+        )
         newpot = pot + single_pot
 
         assert isinstance(newpot, gp.CompositePotential)
@@ -189,8 +194,8 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
     def test_add_compot(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
-            kep1=gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
-            kep2=gp.KeplerPotential(m_tot=1e12 * u.solMass, units=galactic),
+            kep1=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
+            kep2=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
         )
         newpot = pot + comp_pot
 
@@ -218,9 +223,14 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         """Composite potential."""
         return {
             "disk": gp.MiyamotoNagaiPotential(
-                m_tot=1e10 * u.solMass, a=6.5 * u.kpc, b=4.5 * u.kpc, units=galactic
+                m_tot=u.Quantity(1e10, "solMass"),
+                a=u.Quantity(6.5, "kpc"),
+                b=u.Quantity(4.5, "kpc"),
+                units=galactic,
             ),
-            "halo": gp.NFWPotential(m=1e12 * u.solMass, r_s=5 * u.kpc, units=galactic),
+            "halo": gp.NFWPotential(
+                m=u.Quantity(1e12, "solMass"), r_s=u.Quantity(5, "kpc"), units=galactic
+            ),
         }
 
     # ==========================================================================
@@ -234,7 +244,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         pot_map: Mapping[str, gp.AbstractBasePotential],
     ) -> None:
         """Test unit system from UnitSystem."""
-        usys = unitsystem(u.km, u.s, u.Msun, u.radian)
+        usys = unitsystem("km", "s", "Msun", "radian")
         pot_map_ = {k: replace(v, units=usys) for k, v in pot_map.items()}
         assert pot_cls(**pot_map_, units=usys).units == usys
 
@@ -256,7 +266,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         pot_map: Mapping[str, gp.AbstractBasePotential],
     ) -> None:
         """Test unit system from tuple."""
-        units = (u.km, u.s, u.Msun, u.radian)
+        units = ("km", "s", "Msun", "radian")
         pot_map = {k: replace(v, units=units) for k, v in pot_map.items()}
         assert pot_cls(**pot_map, units=units).units == unitsystem(*units)
 
@@ -292,26 +302,26 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # ==========================================================================
 
     def test_potential(self, pot: gp.CompositePotential, x: Vec3) -> None:
-        expect = Quantity(jnp.asarray(-0.6753781), "kpc2 / Myr2")
+        expect = u.Quantity(jnp.asarray(-0.6753781), "kpc2 / Myr2")
         assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: gp.CompositePotential, x: Vec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.CompositePotential, x: Vec3) -> None:
-        expect = Quantity(2.7958598e08, "Msun / kpc3")
+        expect = u.Quantity(2.7958598e08, "Msun / kpc3")
         assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: gp.CompositePotential, x: Vec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             jnp.asarray(
                 [
                     [0.00996317, -0.0025614, -0.00384397],
@@ -322,7 +332,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -330,7 +340,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
 
     def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: Vec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.00469486, -0.0025614, -0.00384397],
                 [-0.0025614, 0.00085275, -0.00768793],
@@ -339,5 +349,5 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             pot.units["frequency drift"],
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

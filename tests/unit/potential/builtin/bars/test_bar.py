@@ -1,11 +1,10 @@
 from typing import Any, ClassVar
 
-import astropy.units as u
 import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
 
 import galax.typing as gt
 from ...test_core import AbstractPotential_Test
@@ -35,8 +34,8 @@ class TestBarPotential(
         return BarPotential
 
     @pytest.fixture(scope="class")
-    def field_Omega(self) -> Quantity["frequency"]:
-        return Quantity(0, "Hz")
+    def field_Omega(self) -> u.Quantity["frequency"]:
+        return u.Quantity(0, "Hz")
 
     @pytest.fixture(scope="class")
     def fields_(
@@ -46,7 +45,7 @@ class TestBarPotential(
         field_b: u.Quantity,
         field_c: u.Quantity,
         field_Omega: u.Quantity,
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m_tot": field_m_tot,
@@ -60,26 +59,26 @@ class TestBarPotential(
     # ==========================================================================
 
     def test_potential(self, pot: BarPotential, x: gt.QVec3) -> None:
-        expect = Quantity(-0.94601574, pot.units["specific energy"])
+        expect = u.Quantity(-0.94601574, pot.units["specific energy"])
         assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: BarPotential, x: gt.QVec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [0.04011905, 0.08383918, 0.16552719], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: BarPotential, x: gt.QVec3) -> None:
-        expect = Quantity(1.94669274e08, "Msun / kpc3")
+        expect = u.Quantity(1.94669274e08, "Msun / kpc3")
         assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: BarPotential, x: gt.QVec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.03529841, -0.01038389, -0.02050134],
                 [-0.01038389, 0.0195721, -0.04412159],
@@ -88,7 +87,7 @@ class TestBarPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -96,7 +95,7 @@ class TestBarPotential(
 
     def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.03163021, -0.01038389, -0.02050134],
                 [-0.01038389, 0.01590389, -0.04412159],
@@ -105,5 +104,5 @@ class TestBarPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

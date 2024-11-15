@@ -18,9 +18,9 @@ from typing import (
 )
 from typing_extensions import Doc, override
 
-import astropy.units as u
-from astropy.units import PhysicalType as Dimensions
+from astropy.units import PhysicalType as Dimension, Quantity as AstropyQuantity
 
+import unxt as u
 from dataclassish.converters import Optional
 from is_annotated import isannotated
 from unxt.quantity import AbstractQuantity, Quantity
@@ -85,12 +85,12 @@ class ParameterField:
     Parameters
     ----------
     dimensions : PhysicalType
-        Dimensions (unit-wise) of the parameter.
+        Dimension (unit-wise) of the parameter.
 
     Examples
     --------
     >>> import jax.numpy as jnp
-    >>> import astropy.units as u
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> class KeplerPotential(gp.AbstractPotential):
@@ -103,13 +103,13 @@ class ParameterField:
 
     The simplest example is a constant mass:
 
-    >>> potential = KeplerPotential(mass=1e12 * u.Msun, units="galactic")
+    >>> potential = KeplerPotential(mass=u.Quantity(1e12, "Msun"), units="galactic")
     >>> potential
     KeplerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       mass=ConstantParameter(
-        value=Quantity[PhysicalType('mass')](value=f64[], unit=Unit("solMass"))
+        value=Quantity[PhysicalType('mass')](value=...f64[], unit=Unit("solMass"))
       )
     )
 
@@ -125,7 +125,7 @@ class ParameterField:
     )
     """The default value of the parameter."""
 
-    dimensions: u.PhysicalType = field(converter=u.get_physical_type)
+    dimensions: Dimension = field(converter=u.dimension)
     """The dimensions (unit-wise) of the parameter."""
 
     doc: str | None = field(default=None, compare=False, converter=Optional(str))
@@ -188,7 +188,7 @@ class ParameterField:
     # -----------------------------
 
     def _check_dimensions(
-        self, potential: "AbstractBasePotential", dims: Dimensions
+        self, potential: "AbstractBasePotential", dims: Dimension
     ) -> None:
         """Check that the given unit is compatible with the parameter's."""
         # When the potential is being constructed, the units may not have been
@@ -227,7 +227,7 @@ class ParameterField:
 # -------------------------------------------
 
 
-def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimensions:
+def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimension:
     """Get the dimensions from the return annotation of a Parameter function.
 
     Parameters
@@ -237,13 +237,13 @@ def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimens
 
     Returns
     -------
-    Dimensions
+    Dimension
         The dimensions from the return annotation of the function.
 
     Examples
     --------
-    >>> from unxt import Quantity
-    >>> def func(t: Quantity["time"]) -> Quantity["mass"]: pass
+    >>> import unxt as u
+    >>> def func(t: u.Quantity["time"]) -> u.Quantity["mass"]: pass
     >>> _get_dimensions_from_return_annotation(func)
     PhysicalType('mass')
 
@@ -270,7 +270,7 @@ def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimens
     ann = type_hints["return"]
 
     # Get the dimensions from the return annotation
-    dims: Dimensions | None = None
+    dims: Dimension | None = None
 
     # `unxt.Quantity`
     if isclass(ann) and issubclass(ann, AbstractQuantity):
@@ -282,8 +282,8 @@ def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimens
 
         if (
             len(args) == 2
-            and issubclass(args[0], u.Quantity)
-            and isinstance(args[1], Dimensions)
+            and issubclass(args[0], AstropyQuantity)
+            and isinstance(args[1], Dimension)
         ):
             dims = args[1]
 

@@ -3,14 +3,12 @@
 from typing import Any
 from typing_extensions import override
 
-import astropy.units as u
 import pytest
 from jaxtyping import Array, Shaped
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import Quantity
-from unxt.unitsystems import AbstractUnitSystem
+import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
@@ -44,7 +42,7 @@ class TestMultipoleOuterPotential(
         field_l_max: int,
         field_Slm: Shaped[Array, "3 3"],
         field_Tlm: Shaped[Array, "3 3"],
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m_tot": field_m_tot,
@@ -68,26 +66,26 @@ class TestMultipoleOuterPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.MultipoleOuterPotential, x: gt.QVec3) -> None:
-        expect = Quantity(0.62939434, unit="kpc2 / Myr2")
+        expect = u.Quantity(0.62939434, unit="kpc2 / Myr2")
         assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: gp.MultipoleOuterPotential, x: gt.QVec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [-0.13487022, -0.26974043, -0.19481253], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MultipoleOuterPotential, x: gt.QVec3) -> None:
-        expect = Quantity(4.90989768e-07, unit="solMass / kpc3")
+        expect = u.Quantity(4.90989768e-07, unit="solMass / kpc3")
         assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: gp.MultipoleOuterPotential, x: gt.QVec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
                 [0.09633587, 0.05780152, 0.19909413],
@@ -96,7 +94,7 @@ class TestMultipoleOuterPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -104,7 +102,7 @@ class TestMultipoleOuterPotential(
 
     def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
                 [0.09633587, 0.05780152, 0.19909413],
@@ -113,7 +111,7 @@ class TestMultipoleOuterPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ==========================================================================

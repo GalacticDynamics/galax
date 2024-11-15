@@ -2,7 +2,7 @@
 
 from typing import ClassVar
 
-import astropy.units as u
+import astropy.units as apyu
 import pytest
 from plum import convert
 
@@ -75,7 +75,7 @@ class GalaIOMixin:
 
         galax = convert(getattr(pot, method0)(x, t=0), Quantity)
         galap = gp.io.convert_potential(gp.io.GalaLibrary, pot)
-        gala = getattr(galap, method1)(convert(x, u.Quantity), t=0 * u.Myr)
+        gala = getattr(galap, method1)(convert(x, apyu.Quantity), t=0 * apyu.Myr)
         assert jnp.allclose(
             jnp.ravel(galax),
             jnp.ravel(convert(gala, Quantity)),
@@ -93,7 +93,7 @@ def test_offset_hernquist() -> None:
     gxpot = gp.io.convert_potential(gp.io.GalaxLibrary, gpot)
 
     assert isinstance(gxpot, gp.PotentialFrame)
-    assert gxpot.operator[0].translation == cx.CartesianPos3D.from_([1.0, 2, 3] * u.kpc)
+    assert gxpot.operator[0].translation == cx.CartesianPos3D.from_([1.0, 2, 3], "kpc")
 
     assert isinstance(gxpot.original_potential, gp.HernquistPotential)
     assert set(gxpot.units.base_units) == set(galactic._core_units)

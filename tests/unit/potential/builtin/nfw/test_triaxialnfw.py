@@ -2,12 +2,11 @@
 
 from typing import Any, ClassVar
 
-import astropy.units as u
 import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
@@ -44,7 +43,7 @@ class TestTriaxialNFWPotential(
         field_r_s: u.Quantity,
         field_q1: u.Quantity,
         field_q2: u.Quantity,
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m": field_m,
@@ -57,24 +56,24 @@ class TestTriaxialNFWPotential(
     # ==========================================================================
 
     def test_potential(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity(-1.06475915, unit="kpc2 / Myr2")
+        expect = u.Quantity(-1.06475915, unit="kpc2 / Myr2")
         assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity([0.03189139, 0.0604938, 0.13157674], "kpc / Myr2")
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        expect = u.Quantity([0.03189139, 0.0604938, 0.13157674], "kpc / Myr2")
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity(2.32106514e08, "solMass / kpc3")
+        expect = u.Quantity(2.32106514e08, "solMass / kpc3")
         assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: TriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.02774251, -0.00788965, -0.0165603],
                 [-0.00788965, 0.01521376, -0.03105306],
@@ -83,7 +82,7 @@ class TestTriaxialNFWPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -91,7 +90,7 @@ class TestTriaxialNFWPotential(
 
     def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.02336886, -0.00788965, -0.0165603],
                 [-0.00788965, 0.01084011, -0.03105306],
@@ -100,5 +99,5 @@ class TestTriaxialNFWPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

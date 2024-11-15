@@ -38,7 +38,7 @@ def evaluate_orbit(
     few standard imports are needed:
 
     >>> import numpy as np
-    >>> from astropy.units import Quantity
+    >>> from unxt import Quantity
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd

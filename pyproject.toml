@@ -6,10 +6,10 @@
   readme = "README.md"
   requires-python = ">=3.11"
   authors = [
+    { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
     { name = "Adrian Price-Whelan", email = "adrianmpw@gmail.com" },
     { name = "Jake Nibauer", email = "jnibauer@princeton.edu" },
     { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
-    { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
   ]
   classifiers = [
     "Development Status :: 3 - Alpha",
@@ -28,7 +28,7 @@
   dependencies = [
     "astropy>=6.1.4",
     "beartype>=0.19",
-    "coordinax>=0.13.3",
+    "coordinax>=0.13.4",
     "dataclassish >= 0.3",
     "diffrax>=0.6",
     "equinox>=0.11.8",
@@ -42,7 +42,7 @@
     "quax>=0.0.4",
     "quaxed>=0.6.4",
     "typing-extensions>=4.11",
-    "unxt>=0.21.0",
+    "unxt>=0.22.0",
     "xmmutablemap>=0.1",
     "zeroth>=0.1",
 ]

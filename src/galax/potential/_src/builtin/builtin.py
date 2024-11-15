@@ -870,18 +870,15 @@ class SatohPotential(AbstractPotential):
 
         \Phi = -\frac{G M}{\sqrt{R^2 + z^2 + a(a + 2\sqrt{z^2 + b^2})}}
 
-    Parameters
-    ----------
-    m : :class:`~astropy.units.Quantity`, numeric [mass]
-        Mass.
-    a : :class:`~astropy.units.Quantity`, numeric [length]
-        Scale length.
-    b : :class:`~astropy.units.Quantity`, numeric [length]
-        Scale height.
     """
 
+    #: Characteristic mass
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+
+    #: Scale length
     a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    #: Scale height
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial(jax.jit, inline=True)
@@ -912,18 +909,15 @@ class StoneOstriker15Potential(AbstractPotential):
             + \frac{1}{2} \log(\frac{r^2 + r_h^2}{r^2 + r_c^2})
             \right)
 
-    Parameters
-    ----------
-    m_tot : :class:`~astropy.units.Quantity`, numeric [mass]
-        Total mass.
-    r_c : :class:`~astropy.units.Quantity`, numeric [length]
-        Core radius.
-    r_h : :class:`~astropy.units.Quantity`, numeric [length]
-        Halo radius.
     """
 
+    #: Total mass.
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+
+    #: Core radius.
     r_c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+
+    #: Halo radius.
     r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     # def __check_init__(self) -> None:

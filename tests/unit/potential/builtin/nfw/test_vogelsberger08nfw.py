@@ -2,12 +2,11 @@
 
 from typing import Any, ClassVar
 
-import astropy.units as u
 import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
@@ -25,23 +24,23 @@ class ShapeTransitionRadiusParameterMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
-    def field_a_r(self) -> Quantity["dimensionless"]:
-        return Quantity(1.0, "")
+    def field_a_r(self) -> u.Quantity["dimensionless"]:
+        return u.Quantity(1.0, "")
 
     # =====================================================
 
     def test_a_r_constant(self, pot_cls, fields):
         """Test the `a_r` parameter."""
-        fields["a_r"] = Quantity(1.0, "")
+        fields["a_r"] = u.Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.a_r(t=Quantity(0, "Myr")) == Quantity(1.0, "")
+        assert pot.a_r(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a_r_userfunc(self, pot_cls, fields):
         """Test the `a_r` parameter."""
         fields["a_r"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a1(t=Quantity(0, "Myr")) == 2
+        assert pot.a1(t=u.Quantity(0, "Myr")) == 2
 
 
 class TestVogelsberger08TriaxialNFWPotential(
@@ -67,7 +66,7 @@ class TestVogelsberger08TriaxialNFWPotential(
         field_r_s: u.Quantity,
         field_q1: u.Quantity,
         field_a_r: u.Quantity,
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m": field_m,
@@ -82,30 +81,30 @@ class TestVogelsberger08TriaxialNFWPotential(
     def test_potential(
         self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QVec3
     ) -> None:
-        expect = Quantity(-1.91410199, unit="kpc2 / Myr2")
+        expect = u.Quantity(-1.91410199, unit="kpc2 / Myr2")
         assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(
         self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QVec3
     ) -> None:
-        expect = Quantity([0.07701115, 0.14549116, 0.19849185], "kpc / Myr2")
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        expect = u.Quantity([0.07701115, 0.14549116, 0.19849185], "kpc / Myr2")
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(
         self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QVec3
     ) -> None:
-        expect = Quantity(1.10157433e09, "solMass / kpc3")
+        expect = u.Quantity(1.10157433e09, "solMass / kpc3")
         assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(
         self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QVec3
     ) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.06195284, -0.0274773, -0.0351074],
                 [-0.0274773, 0.02218247, -0.06568078],
@@ -114,7 +113,7 @@ class TestVogelsberger08TriaxialNFWPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -122,7 +121,7 @@ class TestVogelsberger08TriaxialNFWPotential(
 
     def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.04119557, -0.0274773, -0.0351074],
                 [-0.0274773, 0.00142519, -0.06568078],
@@ -131,5 +130,5 @@ class TestVogelsberger08TriaxialNFWPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

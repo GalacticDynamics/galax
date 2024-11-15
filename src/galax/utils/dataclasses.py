@@ -19,9 +19,9 @@ from typing import (
 )
 from typing_extensions import ParamSpec, Unpack
 
-import astropy.units as u
 from equinox._module import _has_dataclass_init, _ModuleMeta
 
+import unxt as u
 from dataclassish import DataclassInstance
 from dataclassish.converters import AbstractConverter
 
@@ -88,9 +88,7 @@ def field(
 
     if dimensions is not None:
         metadata["dimensions"] = (
-            u.get_physical_type(dimensions)
-            if isinstance(dimensions, str)
-            else dimensions
+            u.dimension(dimensions) if isinstance(dimensions, str) else dimensions
         )
 
     # --------------------------------

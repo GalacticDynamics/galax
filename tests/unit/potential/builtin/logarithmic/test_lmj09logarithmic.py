@@ -1,11 +1,10 @@
 from typing import Any
 
-import astropy.units as u
 import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
@@ -28,30 +27,30 @@ class ParameterPhiMixin(ParameterFieldMixin):
     pot_cls: type[gp.AbstractPotential]
 
     @pytest.fixture(scope="class")
-    def field_phi(self) -> Quantity["angle"]:
-        return Quantity(220, "deg")
+    def field_phi(self) -> u.Quantity["angle"]:
+        return u.Quantity(220, "deg")
 
     # =====================================================
 
     def test_phi_units(self, pot_cls, fields):
         """Test the speed parameter."""
-        fields["phi"] = Quantity(1.0, u.Unit(220 * u.deg))
+        fields["phi"] = u.Quantity(1.0, u.unit(220 * u.unit("deg")))
         pot = pot_cls(**fields)
         assert isinstance(pot.phi, ConstantParameter)
-        assert pot.phi.value == Quantity(220, "deg")
+        assert pot.phi.value == u.Quantity(220, "deg")
 
     def test_phi_constant(self, pot_cls, fields):
         """Test the speed parameter."""
-        fields["phi"] = Quantity(1.0, "deg")
+        fields["phi"] = u.Quantity(1.0, "deg")
         pot = pot_cls(**fields)
-        assert pot.phi(t=Quantity(0, "Myr")) == Quantity(1.0, "deg")
+        assert pot.phi(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "deg")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_phi_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["phi"] = lambda t: t + 2
         pot = pot_cls(**fields)
-        assert pot.phi(t=Quantity(0, "Myr")) == 2
+        assert pot.phi(t=u.Quantity(0, "Myr")) == 2
 
 
 class TestLMJ09LogarithmicPotential(
@@ -79,7 +78,7 @@ class TestLMJ09LogarithmicPotential(
         field_q2: u.Quantity,
         field_q3: u.Quantity,
         field_phi: u.Quantity,
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "v_c": field_v_c,
@@ -94,24 +93,24 @@ class TestLMJ09LogarithmicPotential(
     # ==========================================================================
 
     def test_potential(self, pot: LMJ09LogarithmicPotential, x: gt.QVec3) -> None:
-        expect = Quantity(0.11819267, unit="kpc2 / Myr2")
+        expect = u.Quantity(0.11819267, unit="kpc2 / Myr2")
         assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: LMJ09LogarithmicPotential, x: gt.QVec3) -> None:
-        expect = Quantity([-0.00046885, 0.00181093, 0.00569646], "kpc / Myr2")
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        expect = u.Quantity([-0.00046885, 0.00181093, 0.00569646], "kpc / Myr2")
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: LMJ09LogarithmicPotential, x: gt.QVec3) -> None:
-        expect = Quantity(48995543.34035844, "solMass / kpc3")
+        expect = u.Quantity(48995543.34035844, "solMass / kpc3")
         assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: LMJ09LogarithmicPotential, x: gt.QVec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.00100608, -0.00070826, 0.00010551],
                 [-0.00070826, 0.00114681, -0.00040755],
@@ -120,7 +119,7 @@ class TestLMJ09LogarithmicPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -128,7 +127,7 @@ class TestLMJ09LogarithmicPotential(
 
     def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [8.28469691e-05, -7.08263497e-04, 1.05514716e-04],
                 [-7.08263497e-04, 2.23569293e-04, -4.07553647e-04],
@@ -137,7 +136,7 @@ class TestLMJ09LogarithmicPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ==========================================================================

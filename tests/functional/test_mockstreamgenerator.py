@@ -2,7 +2,6 @@
 
 from typing import Any
 
-import astropy.units as u
 import jax
 import jax.random as jr
 import jax.tree_util as jtu
@@ -10,14 +9,15 @@ import pytest
 from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp
-from unxt import Quantity, unitsystem
+import unxt as u
+from unxt import Quantity
 
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
 import galax.typing as gt
 
-usys = unitsystem(u.kpc, u.Myr, u.Msun, u.radian)
+usys = u.unitsystem("kpc", "Myr", "Msun", "radian")
 df = gd.FardalStreamDF()
 
 

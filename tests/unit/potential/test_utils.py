@@ -3,11 +3,10 @@
 from dataclasses import replace
 from typing import Any
 
-import astropy.units as u
 import pytest
 from jax import Array
 
-from unxt import unitsystem
+import unxt as u
 from unxt.unitsystems import galactic, solarsystem
 
 from galax.potential import AbstractBasePotential
@@ -27,7 +26,7 @@ class FieldUnitSystemMixin:
 
     def test_init_units_from_usys(self, pot: AbstractBasePotential) -> None:
         """Test unit system from UnitSystem."""
-        usys = unitsystem(u.km, u.s, u.Msun, u.radian)
+        usys = u.unitsystem("km", "s", "Msun", "radian")
         assert replace(pot, units=usys).units == usys
 
     # TODO: sort this out
@@ -45,8 +44,8 @@ class FieldUnitSystemMixin:
 
     def test_init_units_from_tuple(self, pot: AbstractBasePotential) -> None:
         """Test unit system from tuple."""
-        units = (u.km, u.s, u.Msun, u.radian)
-        assert replace(pot, units=units).units == unitsystem(*units)
+        units = ("km", "s", "Msun", "radian")
+        assert replace(pot, units=units).units == u.unitsystem(*units)
 
     def test_init_units_from_name(
         self, pot_cls: type[AbstractBasePotential], fields_unitless: dict[str, Array]

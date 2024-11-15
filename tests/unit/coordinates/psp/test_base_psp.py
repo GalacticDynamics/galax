@@ -7,7 +7,6 @@ from collections.abc import Iterable
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 
-import astropy.units as u
 import equinox as eqx
 import jax.random as jr
 import pytest
@@ -16,7 +15,7 @@ from plum import convert
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 from unxt.unitsystems import galactic
 
 import galax.typing as gt
@@ -29,7 +28,10 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound=AbstractPhaseSpacePosition)
 
-potentials = [KeplerPotential(m_tot=1e12 * u.Msun, units=galactic), MilkyWayPotential()]
+potentials = [
+    KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units=galactic),
+    MilkyWayPotential(),
+]
 
 
 def return_keys(num: int, key: Array | int = 0) -> Iterable[jr.PRNGKey]:
@@ -57,9 +59,9 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         """Return a phase-space position."""
         _, subkeys = return_keys(3)
 
-        q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
-        p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
-        t = Quantity(jr.normal(next(subkeys), shape), "Myr")
+        q = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
+        p = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
+        t = u.Quantity(jr.normal(next(subkeys), shape), "Myr")
         return w_cls(q=q, p=p, t=t)
 
     @pytest.fixture
@@ -172,10 +174,10 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert wt.shape == w.full_shape
         assert jnp.array_equal(wt[..., 0], w.t.decompose(galactic).value)
         assert jnp.array_equal(
-            wt[..., 1:4], convert(w.q, Quantity).decompose(galactic).value
+            wt[..., 1:4], convert(w.q, u.Quantity).decompose(galactic).value
         )
         assert jnp.array_equal(
-            wt[..., 4:7], convert(w.p, Quantity).decompose(galactic).value
+            wt[..., 4:7], convert(w.p, u.Quantity).decompose(galactic).value
         )
 
     def test_to_units(self, w: T) -> None:
@@ -193,7 +195,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         """Test method ``kinetic_energy``."""
         ke = w.kinetic_energy()
         assert ke.shape == w.shape  # confirm relation to shape and components
-        assert jnp.all(ke >= Quantity(0, "km2/s2"))
+        assert jnp.all(ke >= u.Quantity(0, "km2/s2"))
         # TODO: more tests
 
     @pytest.mark.parametrize("pot", potentials, ids=lambda p: type(p).__name__)
@@ -201,9 +203,11 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         """Test method ``potential``."""
         pe = w.potential_energy(pot)
         assert pe.shape == w.shape  # confirm relation to shape and components
-        assert jnp.all(pe <= Quantity(0, "km2/s2"))
+        assert jnp.all(pe <= u.Quantity(0, "km2/s2"))
         # definitional
-        assert jnp.allclose(pe, pot.potential(w.q, t=0), atol=Quantity(1e-10, pe.unit))
+        assert jnp.allclose(
+            pe, pot.potential(w.q, t=0), atol=u.Quantity(1e-10, pe.unit)
+        )
 
     @pytest.mark.parametrize("pot", potentials, ids=lambda p: type(p).__name__)
     def test_total_energy(self, w: T, pot: AbstractBasePotential) -> None:
@@ -214,7 +218,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert jnp.allclose(
             pe,
             w.kinetic_energy() + pot.potential(w.q, t=0),
-            atol=Quantity(1e-10, pe.unit),
+            atol=u.Quantity(1e-10, pe.unit),
         )
 
     def test_angular_momentum(self, w: T) -> None:
@@ -239,7 +243,7 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
 
             q: cx.AbstractPos3D = eqx.field(converter=cx.AbstractPos3D.from_)
             p: cx.AbstractVel3D = eqx.field(converter=cx.AbstractVel3D.from_)
-            t: Quantity["time"]
+            t: u.Quantity["time"]
 
             @property
             def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
@@ -266,10 +270,12 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
                 batch, comps = self._shape_tuple
                 cart = self.represent_as(cx.CartesianPos3D)
                 q = jnp.broadcast_to(
-                    convert(cart.q, Quantity).decompose(units).value, (*batch, comps.q)
+                    convert(cart.q, u.Quantity).decompose(units).value,
+                    (*batch, comps.q),
                 )
                 p = jnp.broadcast_to(
-                    convert(cart.p, Quantity).decompose(units).value, (*batch, comps.p)
+                    convert(cart.p, u.Quantity).decompose(units).value,
+                    (*batch, comps.p),
                 )
                 t = jnp.broadcast_to(
                     self.t.decompose(units).value[..., None], (*batch, comps.t)

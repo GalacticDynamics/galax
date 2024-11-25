@@ -218,7 +218,7 @@ class LinearParameter(AbstractParameter):
     ...                      point_time=Quantity(0, "Myr"),
     ...                      point_value=Quantity(1e9, "Msun"))
 
-    >>> lp(Quantity(0, "Gyr")).to_units("Msun")
+    >>> lp(Quantity(0, "Gyr")).uconvert("Msun")
     Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
 
     >>> jnp.round(lp(Quantity(1.0, "Gyr")), 3)
@@ -265,7 +265,7 @@ class LinearParameter(AbstractParameter):
         ...                      point_time=Quantity(0, "Myr"),
         ...                      point_value=Quantity(1e9, "Msun"))
 
-        >>> lp(Quantity(0, "Gyr")).to_units("Msun")
+        >>> lp(Quantity(0, "Gyr")).uconvert("Msun")
         Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
 
         >>> jnp.round(lp(Quantity(1, "Gyr")), 3)

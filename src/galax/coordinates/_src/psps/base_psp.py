@@ -44,8 +44,8 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
         usys = unitsystem(units)
         return replace(
             self,
-            q=self.q.to_units(usys),
-            p=self.p.to_units(usys),
+            q=self.q.uconvert(usys),
+            p=self.p.uconvert(usys),
             t=uconvert(usys["time"], self.t) if self.t is not None else None,
         )
 

@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["field", "dataclass_with_converter", "ModuleMeta"]
+__all__ = ["ModuleMeta", "dataclass_with_converter", "field"]
 
 import dataclasses
 import functools as ft

@@ -244,7 +244,8 @@
       "PLC0414", # Import alias does not rename original package
       "PLR",     # Design related pylint codes
       "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict
-      "TCH00",   # Move into a type-checking block
+      "RUF022",  # `__all__` is not sorted
+      "TC00",    # Move into a type-checking block
       "TD002",   # Missing author in TODO
       "TD003",   # Missing issue link on the line following this TODO
       "UP037",   # Remove quote from type annotation  <- jaxtyping

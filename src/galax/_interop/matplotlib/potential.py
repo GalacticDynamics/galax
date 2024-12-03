@@ -1,4 +1,4 @@
-__all__ = ["plot_potential_contours", "plot_density_contours"]
+__all__ = ["plot_density_contours", "plot_potential_contours"]
 
 
 from typing import Any

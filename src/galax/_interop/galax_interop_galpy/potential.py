@@ -1,6 +1,6 @@
 """Interoperability with :mod:`galpy` potentials."""
 
-__all__ = ["galpy_to_galax", "galax_to_galpy"]
+__all__ = ["galax_to_galpy", "galpy_to_galax"]
 
 
 from typing import Annotated as Antd

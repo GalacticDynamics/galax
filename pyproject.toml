@@ -26,10 +26,10 @@
     "Typing :: Typed",
   ]
   dependencies = [
-    "astropy>=6.1.4",
+    "astropy>=7.0",
     "beartype>=0.19",
-    "coordinax>=0.14.0",
-    "dataclassish >= 0.3",
+    "coordinax>=0.15.0",
+    "dataclassish>=0.4",
     "diffrax>=0.6",
     "equinox>=0.11.8",
     "is-annotated>=1.0",
@@ -42,9 +42,9 @@
     "quax>=0.0.5",
     "quaxed>=0.6.7",
     "typing-extensions>=4.11",
-    "unxt>=0.23.2",
+    "unxt>=1.0",
     "xmmutablemap>=0.1",
-    "zeroth>=0.1",
+    "zeroth>=1.0",
 ]
 
   [project.optional-dependencies]
@@ -110,6 +110,10 @@
   build.hooks.vcs.version-file     = "src/galax/_version.py"
   metadata.allow-direct-references = true
   version.source                   = "vcs"
+
+
+[tool.commitizen]
+  name = "cz_gitmoji"
 
 
 [tool.coverage]
@@ -244,7 +248,8 @@
       "PLC0414", # Import alias does not rename original package
       "PLR",     # Design related pylint codes
       "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict
-      "TCH00",   # Move into a type-checking block
+      "RUF022",  # `__all__` is not sorted
+      "TC00",    # Move into a type-checking block
       "TD002",   # Missing author in TODO
       "TD003",   # Missing issue link on the line following this TODO
       "UP037",   # Remove quote from type annotation  <- jaxtyping

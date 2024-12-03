@@ -44,7 +44,7 @@
     "typing-extensions>=4.11",
     "unxt>=1.0",
     "xmmutablemap>=0.1",
-    "zeroth>=0.1",
+    "zeroth>=1.0",
 ]
 
   [project.optional-dependencies]

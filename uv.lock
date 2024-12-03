@@ -602,7 +602,7 @@ wheels = [
 
 [[package]]
 name = "galax"
-version = "0.0.3.dev146+gd23bda98.d20241203"
+version = "0.0.3.dev147+ged159944.d20241203"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
@@ -734,7 +734,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.11" },
     { name = "unxt", specifier = ">=1.0" },
     { name = "xmmutablemap", specifier = ">=0.1" },
-    { name = "zeroth", specifier = ">=0.1" },
+    { name = "zeroth", specifier = ">=1.0" },
 ]
 
 [package.metadata.requires-dev]

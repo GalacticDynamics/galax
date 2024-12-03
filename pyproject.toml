@@ -112,6 +112,10 @@
   version.source                   = "vcs"
 
 
+[tool.commitizen]
+  name = "cz_gitmoji"
+
+
 [tool.coverage]
   report.exclude_also = [
     # Have to re-enable the standard pragma

@@ -10,8 +10,7 @@ repos:
     rev: v4.0.0
     hooks:
       - id: commitizen
-      # - id: commitizen-branch
-      #   stages: [push]
+        additional_dependencies: [cz-conventional-gitmoji]
 
   - repo: meta
     hooks:

@@ -62,6 +62,7 @@ def represent_as(
     position_cls: type[cx.AbstractPos],
     velocity_cls: type[cx.AbstractVel] | None = None,
     /,
+    **kwargs: Any,
 ) -> AbstractPhaseSpacePosition:
     """Return with the components transformed.
 
@@ -74,6 +75,8 @@ def represent_as(
     velocity_cls : type[:class:`~vector.AbstractVel`], optional
         The target differential class. If `None` (default), the differential
         class of the target position class is used.
+    **kwargs
+        Additional keyword arguments are passed through to `coordinax.represent_as`.
 
     Examples
     --------
@@ -106,10 +109,18 @@ def represent_as(
                         p=LonCosLatSphericalVel(...),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
+    If the new representation requires keyword arguments, they can be passed
+    through:
+
+    >>> psp.represent_as(cx.ProlateSpheroidalPos, Delta=Quantity(2.0, "kpc"))
+    PhaseSpacePosition( q=ProlateSpheroidalPos(...),
+                        p=ProlateSpheroidalVel(...),
+                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+
     """
     diff_cls = position_cls.differential_cls if velocity_cls is None else velocity_cls
     return replace(
         psp,
-        q=psp.q.represent_as(position_cls),
-        p=psp.p.represent_as(diff_cls, psp.q),
+        q=psp.q.represent_as(position_cls, **kwargs),
+        p=psp.p.represent_as(diff_cls, psp.q, **kwargs),
     )

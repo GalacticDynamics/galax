@@ -383,6 +383,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         position_cls: type[cx.AbstractPos],
         velocity_cls: type[cx.AbstractVel] | None = None,
         /,
+        **kwargs: Any,
     ) -> "Self":
         """Return with the components transformed.
 
@@ -393,6 +394,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         velocity_cls : type[:class:`~vector.AbstractVel`], optional
             The target differential class. If `None` (default), the differential
             class of the target position class is used.
+        **kwargs
+            Additional keyword arguments are passed through to `coordinax.represent_as`.
 
         Returns
         -------
@@ -430,7 +433,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
                             p=LonCosLatSphericalVel(...),
                             t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
         """
-        return cast("Self", cx.represent_as(self, position_cls, velocity_cls))
+        return cast("Self", cx.represent_as(self, position_cls, velocity_cls, **kwargs))
 
     @abstractmethod
     def to_units(self, units: Any) -> "Self":

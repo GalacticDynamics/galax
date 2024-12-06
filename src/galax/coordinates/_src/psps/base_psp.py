@@ -109,6 +109,14 @@ def represent_as(
                         p=LonCosLatSphericalVel(...),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
+    If the new representation requires keyword arguments, they can be passed
+    through:
+
+    >>> psp.represent_as(cx.ProlateSpheroidalPos, Delta=Quantity(2.0, "kpc"))
+    PhaseSpacePosition( q=ProlateSpheroidalPos(...),
+                        p=ProlateSpheroidalVel(...),
+                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+
     """
     diff_cls = position_cls.differential_cls if velocity_cls is None else velocity_cls
     return replace(

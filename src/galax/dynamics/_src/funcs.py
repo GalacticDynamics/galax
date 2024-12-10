@@ -62,7 +62,7 @@ def specific_angular_momentum(
 @dispatch
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
-    x: cx.AbstractPos3D, v: cx.AbstractVel3D, /
+    x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /
 ) -> gt.BatchQVec3:
     """Compute the specific angular momentum.
 
@@ -178,7 +178,7 @@ def _orbital_angular_frequency(
 @dispatch
 @partial(jax.jit, inline=True)
 def _orbital_angular_frequency(
-    x: cx.AbstractPos3D, v: cx.AbstractVel3D, /
+    x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /
 ) -> Shaped[Quantity["frequency"], "*batch"]:
     """Compute the orbital angular frequency about the origin.
 

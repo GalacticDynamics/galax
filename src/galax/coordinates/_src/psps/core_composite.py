@@ -162,13 +162,13 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         self._time_sorter = jnp.argsort(ts)
 
     @property
-    def q(self) -> cx.AbstractPos3D:
+    def q(self) -> cx.vecs.AbstractPos3D:
         """Positions."""
         # TODO: get AbstractPos to work with `stack` directly
         return _concat((x.q for x in self.values()), self._time_sorter)
 
     @property
-    def p(self) -> cx.AbstractVel3D:
+    def p(self) -> cx.vecs.AbstractVel3D:
         """Conjugate momenta."""
         # TODO: get AbstractPos to work with `stack` directly
         return _concat((x.p for x in self.values()), self._time_sorter)

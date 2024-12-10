@@ -9,7 +9,7 @@ from plum import convert
 from quax import quaxify
 
 import coordinax as cx
-import coordinax.operators as cxop
+import coordinax.ops as cxo
 from unxt import Quantity
 
 from .base_psp import AbstractPhaseSpacePosition
@@ -20,9 +20,9 @@ batched_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
 # Abstract Operators
 
 
-@cxop.AbstractOperator.__call__.dispatch
+@cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxop.AbstractOperator,
+    self: cxo.AbstractOperator,
     x: AbstractPhaseSpacePosition,
     /,
 ) -> AbstractPhaseSpacePosition:
@@ -43,9 +43,9 @@ def call(
 
     We can then create a spatial translation operator:
 
-    >>> op = cx.operators.GalileanSpatialTranslationOperator(Quantity([1, 2, 3], "kpc"))
+    >>> op = cx.operators.GalileanSpatialTranslation(Quantity([1, 2, 3], "kpc"))
     >>> op
-    GalileanSpatialTranslationOperator( translation=CartesianPos3D( ... ) )
+    GalileanSpatialTranslation( translation=CartesianPos3D( ... ) )
 
     We can then apply the operator to a position:
 
@@ -78,9 +78,9 @@ def call(
 # Composite operators
 
 
-@cxop.AbstractOperator.__call__.dispatch
+@cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxop.AbstractCompositeOperator, x: AbstractPhaseSpacePosition, /
+    self: cxo.AbstractCompositeOperator, x: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
     """Apply the operator to the coordinates."""
     for op in self.operators:
@@ -92,9 +92,9 @@ def call(
 # Galilean spatial translation
 
 
-@cxop.AbstractOperator.__call__.dispatch
+@cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxop.GalileanSpatialTranslationOperator, psp: AbstractPhaseSpacePosition, /
+    self: cxo.GalileanSpatialTranslation, psp: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
@@ -106,7 +106,7 @@ def call(
     >>> import galax.coordinates as gc
 
     >>> shift = cx.CartesianPos3D.from_(Quantity([1, 1, 1], "kpc"))
-    >>> op = cx.operators.GalileanSpatialTranslationOperator(shift)
+    >>> op = cx.operators.GalileanSpatialTranslation(shift)
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
@@ -143,9 +143,9 @@ def call(
 # Galilean translation
 
 
-@cxop.AbstractOperator.__call__.dispatch
+@cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxop.GalileanTranslationOperator, psp: AbstractPhaseSpacePosition, /
+    self: cxo.GalileanTranslation, psp: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
@@ -156,7 +156,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.operators.GalileanTranslationOperator(Quantity([2_000, 1, 1, 1], "kpc"))
+    >>> op = cx.operators.GalileanTranslation(Quantity([2_000, 1, 1, 1], "kpc"))
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
@@ -199,9 +199,9 @@ def call(
 # Galilean boost
 
 
-@cxop.AbstractOperator.__call__.dispatch
+@cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxop.GalileanBoostOperator,
+    self: cxo.GalileanBoost,
     psp: AbstractPhaseSpacePosition,
     /,
 ) -> AbstractPhaseSpacePosition:
@@ -214,7 +214,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.operators.GalileanBoostOperator(Quantity([1, 1, 1], "kpc/Gyr"))
+    >>> op = cx.operators.GalileanBoost(Quantity([1, 1, 1], "kpc/Gyr"))
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
@@ -248,9 +248,9 @@ def call(
     return replace(psp, q=q, p=p, t=t)
 
 
-@cxop.AbstractOperator.__call__.dispatch
+@cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxop.GalileanRotationOperator, psp: AbstractPhaseSpacePosition, /
+    self: cxo.GalileanRotation, psp: AbstractPhaseSpacePosition, /
 ) -> AbstractPhaseSpacePosition:
     """Apply the translation to the coordinates.
 
@@ -265,7 +265,7 @@ def call(
     >>> Rz = jnp.asarray([[jnp.cos(theta), -jnp.sin(theta), 0],
     ...                  [jnp.sin(theta), jnp.cos(theta),  0],
     ...                  [0,             0,              1]])
-    >>> op = cx.operators.GalileanRotationOperator(Rz)
+    >>> op = cx.operators.GalileanRotation(Rz)
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "m"),
     ...                             p=Quantity([1, 0, 0], "m/s"),
@@ -303,9 +303,9 @@ def call(
 ######################################################################
 
 
-@cxop.AbstractOperator.__call__.dispatch(precedence=1)
+@cxo.AbstractOperator.__call__.dispatch(precedence=1)
 def call(
-    self: cxop.IdentityOperator,  # noqa: ARG001
+    self: cxo.Identity,  # noqa: ARG001
     x: AbstractPhaseSpacePosition,
     /,
 ) -> AbstractPhaseSpacePosition:
@@ -319,7 +319,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.operators.IdentityOperator()
+    >>> op = cx.operators.Identity()
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),

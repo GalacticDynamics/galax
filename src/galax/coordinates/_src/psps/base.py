@@ -52,10 +52,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     :math:`t\in\mathbb{R}^1`.
     """
 
-    q: eqx.AbstractVar[cx.AbstractPos3D]
+    q: eqx.AbstractVar[cx.vecs.AbstractPos3D]
     """Positions."""
 
-    p: eqx.AbstractVar[cx.AbstractVel3D]
+    p: eqx.AbstractVar[cx.vecs.AbstractVel3D]
     """Conjugate momenta at positions ``q``."""
 
     t: eqx.AbstractVar[gt.BatchableFloatQScalar]
@@ -380,8 +380,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
     def represent_as(
         self,
-        position_cls: type[cx.AbstractPos],
-        velocity_cls: type[cx.AbstractVel] | None = None,
+        position_cls: type[cx.vecs.AbstractPos],
+        velocity_cls: type[cx.vecs.AbstractVel] | None = None,
         /,
         **kwargs: Any,
     ) -> "Self":

@@ -306,7 +306,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.15.0"
+version = "0.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -322,9 +322,9 @@ dependencies = [
     { name = "unxt" },
     { name = "xmmutablemap" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/52/b3/6e37e14ccb431da6efc64c65ea0119b642ebc7324f40d9d349d8774e297a/coordinax-0.15.0.tar.gz", hash = "sha256:8a28303eead802ffa532dfc2e65ec68daef151d5b3663847531eda725b23e89a", size = 160599 }
+sdist = { url = "https://files.pythonhosted.org/packages/ab/b0/a6d8daede7f7ac114ea1f3c6a0942e7db4ca16c183798d72cefaa980c704/coordinax-0.16.1.tar.gz", hash = "sha256:137744654d25367af81771274fa94c52b74fbcb52b347ea7a7562539628b03a6", size = 168887 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e7/34/6af03fd32c2c4b87b3134713747a65c86faaf20e51e3a44b45f27cc5ee25/coordinax-0.15.0-py3-none-any.whl", hash = "sha256:677bd42f77bf4c27694b61803ef64b47b776e2ada0ed8b513ee6c1f1159a6adc", size = 146219 },
+    { url = "https://files.pythonhosted.org/packages/ce/5d/a77297bf71b01c0cd659c5fca67ffde113ade07bed99e89b859effc65c4b/coordinax-0.16.1-py3-none-any.whl", hash = "sha256:4390e2ab504eb068e3fd9394ae0168413561c9ea9033a461038fc6272cf9eb79", size = 159462 },
 ]
 
 [[package]]
@@ -424,15 +424,15 @@ wheels = [
 
 [[package]]
 name = "dataclassish"
-version = "0.4.0"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "plum-dispatch" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e2/ca/43f3a6b2de1cb62217771d71b9531890d41e53e16486d506bd167103a78b/dataclassish-0.4.0.tar.gz", hash = "sha256:9bb875d5525d601265c9184c59c9829f518dca6b2e90d622aa21b3a21ebc87a5", size = 28939 }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/2f/40dc1909c6560b73d293d9032a7132922e6ad28fb965bc37075d19f36a31/dataclassish-0.6.0.tar.gz", hash = "sha256:76022500a2bd6b164e3e7686071182b4bbdf3ed72112391b3867abfacb2f51ed", size = 49120 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/63/a7378ed17163b044ff1b51828a052098bbc9697589b0b473adc806e8cc2d/dataclassish-0.4.0-py3-none-any.whl", hash = "sha256:16bea5f72a80133897715524edee6bfc65125f8f0cb519598614a0baa6d7ba7d", size = 14323 },
+    { url = "https://files.pythonhosted.org/packages/3f/22/9871c5128b59d5c2a22fe352b301aa217beb91029133b800d463cc67e360/dataclassish-0.6.0-py3-none-any.whl", hash = "sha256:96b20b234cf14927de4431081a966a9f3a8fb64e1ce269bc6564473a8ba698c1", size = 21463 },
 ]
 
 [[package]]
@@ -602,7 +602,7 @@ wheels = [
 
 [[package]]
 name = "galax"
-version = "0.0.3.dev148+g8cfbdaec.d20241203"
+version = "0.0.3.dev147+g306f55a8.d20241210"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
@@ -709,7 +709,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.19" },
-    { name = "coordinax", specifier = ">=0.15.0" },
+    { name = "coordinax", specifier = ">=0.16.1" },
     { name = "dataclassish", specifier = ">=0.4" },
     { name = "diffrax", specifier = ">=0.6" },
     { name = "equinox", specifier = ">=0.11.8" },

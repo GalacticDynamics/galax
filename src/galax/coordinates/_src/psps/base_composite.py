@@ -60,7 +60,7 @@ class AbstractCompositePhaseSpacePosition(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> def stack(vs: list[cx.AbstractPos]) -> cx.AbstractPos:
+    >>> def stack(vs: list[cx.vecs.AbstractPos]) -> cx.vecs.AbstractPos:
     ...    comps = {k: jnp.stack([getattr(v, k) for v in vs], axis=-1)
     ...             for k in vs[0].components}
     ...    return replace(vs[0], **comps)
@@ -111,12 +111,12 @@ class AbstractCompositePhaseSpacePosition(
 
     @property
     @abstractmethod
-    def q(self) -> cx.AbstractPos3D:
+    def q(self) -> cx.vecs.AbstractPos3D:
         """Positions."""
 
     @property
     @abstractmethod
-    def p(self) -> cx.AbstractVel3D:
+    def p(self) -> cx.vecs.AbstractVel3D:
         """Conjugate momenta."""
 
     @property
@@ -272,8 +272,8 @@ class AbstractCompositePhaseSpacePosition(
 @dispatch  # type: ignore[misc]
 def represent_as(
     psp: AbstractCompositePhaseSpacePosition,
-    position_cls: type[cx.AbstractPos],
-    velocity_cls: type[cx.AbstractVel] | None = None,
+    position_cls: type[cx.vecs.AbstractPos],
+    velocity_cls: type[cx.vecs.AbstractVel] | None = None,
     /,
     **kwargs: Any,
 ) -> AbstractCompositePhaseSpacePosition:

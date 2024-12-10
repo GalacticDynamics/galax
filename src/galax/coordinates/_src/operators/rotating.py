@@ -10,7 +10,7 @@ from jaxtyping import Float, Shaped
 from plum import convert
 
 import coordinax as cx
-import coordinax.operators as cxop
+import coordinax.ops as cxo
 import quaxed.numpy as jnp
 from unxt import Quantity
 
@@ -44,7 +44,7 @@ def rot_z(
 
 
 @final
-class ConstantRotationZOperator(cxop.AbstractOperator):  # type: ignore[misc]
+class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
     r"""Operator for constant rotation in the x-y plane.
 
     The coordinate transform is given by:
@@ -175,7 +175,7 @@ class ConstantRotationZOperator(cxop.AbstractOperator):  # type: ignore[misc]
 
     # -------------------------------------------
 
-    @cxop.AbstractOperator.__call__.dispatch(precedence=1)
+    @cxo.AbstractOperator.__call__.dispatch(precedence=1)
     def __call__(
         self: "ConstantRotationZOperator",
         q: Quantity["length"],
@@ -210,13 +210,13 @@ class ConstantRotationZOperator(cxop.AbstractOperator):  # type: ignore[misc]
         Rz = rot_z(self.Omega_z * t)
         return (vec_matmul(Rz, q), t)
 
-    @cxop.AbstractOperator.__call__.dispatch(precedence=1)
+    @cxo.AbstractOperator.__call__.dispatch(precedence=1)
     def __call__(
         self: "ConstantRotationZOperator",
-        vec: cx.AbstractPos3D,
+        vec: cx.vecs.AbstractPos3D,
         t: Quantity["time"],
         /,
-    ) -> tuple[cx.AbstractPos3D, Quantity["time"]]:
+    ) -> tuple[cx.vecs.AbstractPos3D, Quantity["time"]]:
         """Apply the translation to the coordinates.
 
         Examples
@@ -248,7 +248,7 @@ class ConstantRotationZOperator(cxop.AbstractOperator):  # type: ignore[misc]
         vecp = cx.CartesianPos3D.from_(qp).represent_as(type(vec))
         return (vecp, tp)
 
-    @cxop.AbstractOperator.__call__.dispatch
+    @cxo.AbstractOperator.__call__.dispatch
     def __call__(
         self: "ConstantRotationZOperator", psp: AbstractPhaseSpacePosition, /
     ) -> AbstractPhaseSpacePosition:
@@ -295,8 +295,8 @@ class ConstantRotationZOperator(cxop.AbstractOperator):  # type: ignore[misc]
         return replace(psp, q=q, p=p, t=t)
 
 
-@cxop.simplify_op.register  # type: ignore[misc]
-def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> cxop.AbstractOperator:
+@cxo.simplify_op.register  # type: ignore[misc]
+def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> cxo.AbstractOperator:
     """Simplify the operators in an PotentialFrame.
 
     Examples
@@ -311,9 +311,9 @@ def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> cxop.AbstractOpera
 
     >>> op = gco.ConstantRotationZOperator(Omega_z=Quantity(0, "deg / Gyr"))
     >>> cx.operators.simplify_op(op)
-    IdentityOperator()
+    Identity()
 
     """
     if frame.Omega_z == 0:
-        return cxop.IdentityOperator()
+        return cxo.Identity()
     return frame

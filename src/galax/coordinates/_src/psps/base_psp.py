@@ -59,8 +59,8 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 @dispatch  # type: ignore[misc]
 def represent_as(
     psp: AbstractPhaseSpacePosition,
-    position_cls: type[cx.AbstractPos],
-    velocity_cls: type[cx.AbstractVel] | None = None,
+    position_cls: type[cx.vecs.AbstractPos],
+    velocity_cls: type[cx.vecs.AbstractVel] | None = None,
     /,
     **kwargs: Any,
 ) -> AbstractPhaseSpacePosition:

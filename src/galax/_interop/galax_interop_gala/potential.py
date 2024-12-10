@@ -17,7 +17,7 @@ from plum import convert, dispatch
 
 import coordinax.operators as cxo
 import quaxed.numpy as jnp
-from coordinax.operators import IdentityOperator
+from coordinax.operators import Identity
 from unxt import Quantity
 from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
 
@@ -112,11 +112,11 @@ PT = TypeVar("PT", bound=gpx.AbstractBasePotential)
 
 def _get_frame(pot: gp.PotentialBase, /) -> cxo.AbstractOperator:
     """Convert a Gala frame to a Galax frame."""
-    frame = cxo.GalileanSpatialTranslationOperator(
+    frame = cxo.GalileanSpatialTranslation(
         Quantity(pot.origin, unit=pot.units["length"])
     )
     if pot.R is not None:
-        frame = cxo.GalileanRotationOperator(pot.R) | frame
+        frame = cxo.GalileanRotation(pot.R) | frame
     return cxo.simplify_op(frame)
 
 
@@ -124,9 +124,7 @@ def _apply_frame(frame: cxo.AbstractOperator, pot: PT, /) -> PT | gpx.PotentialF
     """Apply a Galax frame to a potential."""
     # A framed Galax potential never simplifies to a frameless potential. This
     # function applies a frame if it is not the identity operator.
-    return (
-        pot if isinstance(frame, IdentityOperator) else gpx.PotentialFrame(pot, frame)
-    )
+    return pot if isinstance(frame, Identity) else gpx.PotentialFrame(pot, frame)
 
 
 def _galax_to_gala_units(units: AbstractUnitSystem, /) -> GalaUnitSystem:

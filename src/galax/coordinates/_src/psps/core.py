@@ -92,10 +92,10 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     True
 
     Of course a similar effect can be achieved by using the
-    `coordinax.represent_as` function (or convenience method on the phase-space
+    `coordinax.vconvert` function (or convenience method on the phase-space
     position):
 
-    >>> w4 = cx.represent_as(w3, cx.SphericalPos, cx.CartesianVel3D)
+    >>> w4 = w3.vconvert(cx.SphericalPos, cx.CartesianVel3D)
     >>> w4
     PhaseSpacePosition(
       q=SphericalPos( ... ),

@@ -42,7 +42,7 @@ def plot_components(
     x: str,
     y: str,
     plot_function: str | PlotFunctionCallable = "plot",
-    represent_as: Any = None,
+    vector_representation: Any = None,
     ax: Any | None = None,
     subplots_kw: dict[str, Any] | None = None,
     **kwargs: Any,
@@ -50,8 +50,8 @@ def plot_components(
     # Process figure and axes
     _, ax = _get_figure(ax, subplots_kw)
 
-    if represent_as is not None:
-        orbit = orbit.represent_as(represent_as)
+    if vector_representation is not None:
+        orbit = orbit.vconvert(vector_representation)
 
     # get the x, y data
     x_data = _get_component(orbit, x)

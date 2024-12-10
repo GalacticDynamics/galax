@@ -54,7 +54,7 @@ print(orbit)
 #     potential=MilkyWayPotential(...)
 # )
 
-orbit_sph = orbit.represent_as(cx.LonLatSphericalPos)
+orbit_sph = orbit.vconvert(cx.vecs.LonLatSphericalPos)
 print(orbit_sph)
 # Orbit(
 #     q=<LonLatSphericalPos (lon[rad], lat[deg], distance[kpc])

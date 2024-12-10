@@ -77,11 +77,11 @@ class ChenStreamDF(AbstractStreamDF):
 
         # z_new-hat
         L_vec = specific_angular_momentum(x, v)
-        z_new_hat = cx.normalize_vector(L_vec)
+        z_new_hat = cx.vecs.normalize_vector(L_vec)
 
         # y_new-hat
         phi_vec = v - jnp.sum(v * x_new_hat, axis=-1, keepdims=True) * x_new_hat
-        y_new_hat = cx.normalize_vector(phi_vec)
+        y_new_hat = cx.vecs.normalize_vector(phi_vec)
 
         r_tidal = tidal_radius(potential, x, v, prog_mass, t)
 

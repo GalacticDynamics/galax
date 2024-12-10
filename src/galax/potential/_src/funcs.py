@@ -1565,7 +1565,7 @@ def d2potential_dr2(
     Quantity[...](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
 
     """
-    rhat = cx.normalize_vector(x)
+    rhat = cx.vecs.normalize_vector(x)
     H = pot.hessian(x, t=t)
     # vectorized dot product of rhat · H · rhat
     return jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)

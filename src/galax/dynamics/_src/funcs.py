@@ -80,8 +80,8 @@ def specific_angular_momentum(
     """
     # TODO: keep as a vector.
     #       https://github.com/GalacticDynamics/vector/issues/27
-    x = convert(x.represent_as(cx.CartesianPos3D), Quantity)
-    v = convert(v.represent_as(cx.CartesianVel3D, x), Quantity)
+    x = convert(x.vconvert(cx.CartesianPos3D), Quantity)
+    v = convert(v.vconvert(cx.CartesianVel3D, x), Quantity)
     return specific_angular_momentum(x, v)
 
 
@@ -194,8 +194,8 @@ def _orbital_angular_frequency(
 
     """
     # TODO: more directly using the vectors
-    x = convert(x.represent_as(cx.CartesianPos3D), Quantity)
-    v = convert(v.represent_as(cx.CartesianVel3D, x), Quantity)
+    x = convert(x.vconvert(cx.CartesianPos3D), Quantity)
+    v = convert(v.vconvert(cx.CartesianVel3D, x), Quantity)
     return _orbital_angular_frequency(x, v)
 
 
@@ -298,7 +298,7 @@ def lagrange_points(
     >>> L2
     Quantity['length'](Array([8.02929074, 0.        , 0.        ], dtype=float64), unit='kpc')
     """  # noqa: E501
-    r_hat = cx.normalize_vector(x)
+    r_hat = cx.vecs.normalize_vector(x)
     r_t = tidal_radius(potential, x, v, prog_mass, t)
     L_1 = x - r_hat * r_t  # close
     L_2 = x + r_hat * r_t  # far

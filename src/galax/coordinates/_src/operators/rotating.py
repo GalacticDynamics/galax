@@ -243,9 +243,9 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         Array([-1., 0., 0.], dtype=float64)
 
         """
-        q = convert(vec.represent_as(cx.CartesianPos3D), Quantity)
+        q = convert(vec.vconvert(cx.CartesianPos3D), Quantity)
         qp, tp = self(q, t)
-        vecp = cx.CartesianPos3D.from_(qp).represent_as(type(vec))
+        vecp = cx.CartesianPos3D.from_(qp).vconvert(type(vec))
         return (vecp, tp)
 
     @cxo.AbstractOperator.__call__.dispatch
@@ -290,7 +290,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         # the momentum to Cartesian coordinates at the original position. Then
         # transform the momentum back to the original representation, but at the
         # translated position.
-        p = psp.p.represent_as(cx.CartesianVel3D, psp.q).represent_as(type(psp.p), q)
+        p = psp.p.vconvert(cx.CartesianVel3D, psp.q).vconvert(type(psp.p), q)
         # Reasseble and return
         return replace(psp, q=q, p=p, t=t)
 
@@ -306,11 +306,11 @@ def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> cxo.AbstractOperat
     >>> import galax.coordinates.operators as gco
 
     >>> op = gco.ConstantRotationZOperator(Omega_z=Quantity(90, "deg / Gyr"))
-    >>> cx.operators.simplify_op(op) == op
+    >>> cx.ops.simplify_op(op) == op
     Array(True, dtype=bool)
 
     >>> op = gco.ConstantRotationZOperator(Omega_z=Quantity(0, "deg / Gyr"))
-    >>> cx.operators.simplify_op(op)
+    >>> cx.ops.simplify_op(op)
     Identity()
 
     """

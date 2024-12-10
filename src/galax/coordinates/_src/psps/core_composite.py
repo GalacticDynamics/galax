@@ -108,7 +108,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     We can transform the composite phase-space position to a new position class.
 
-    >>> cx.represent_as(cw, cx.CylindricalPos)
+    >>> cw.vconvert(cx.vecs.CylindricalPos)
     CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
         q=CylindricalPos( ... ),
         p=CylindricalVel( ... ),

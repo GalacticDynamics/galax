@@ -43,9 +43,9 @@ def call(
 
     We can then create a spatial translation operator:
 
-    >>> op = cx.operators.GalileanSpatialTranslation(Quantity([1, 2, 3], "kpc"))
+    >>> op = cx.ops.GalileanSpatialTranslation(Quantity([1, 2, 3], "kpc"))
     >>> op
-    GalileanSpatialTranslation( translation=CartesianPos3D( ... ) )
+    GalileanSpatialTranslation(CartesianPos3D( ... ))
 
     We can then apply the operator to a position:
 
@@ -106,7 +106,7 @@ def call(
     >>> import galax.coordinates as gc
 
     >>> shift = cx.CartesianPos3D.from_(Quantity([1, 1, 1], "kpc"))
-    >>> op = cx.operators.GalileanSpatialTranslation(shift)
+    >>> op = cx.ops.GalileanSpatialTranslation(shift)
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
@@ -134,7 +134,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(cx.CartesianVel3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.vconvert(cx.CartesianVel3D, psp.q).vconvert(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p)
 
@@ -156,7 +156,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.operators.GalileanTranslation(Quantity([2_000, 1, 1, 1], "kpc"))
+    >>> op = cx.ops.GalileanTranslation(Quantity([2_000, 1, 1, 1], "kpc"))
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
@@ -190,7 +190,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(cx.CartesianVel3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.vconvert(cx.CartesianVel3D, psp.q).vconvert(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -214,7 +214,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.operators.GalileanBoost(Quantity([1, 1, 1], "kpc/Gyr"))
+    >>> op = cx.ops.GalileanBoost(Quantity([1, 1, 1], "kpc/Gyr"))
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
@@ -243,7 +243,7 @@ def call(
     # the momentum to Cartesian coordinates at the original position. Then
     # transform the momentum back to the original representation, but at the
     # translated position.
-    p = psp.p.represent_as(cx.CartesianVel3D, psp.q).represent_as(type(psp.p), q)
+    p = psp.p.vconvert(cx.CartesianVel3D, psp.q).vconvert(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -265,7 +265,7 @@ def call(
     >>> Rz = jnp.asarray([[jnp.cos(theta), -jnp.sin(theta), 0],
     ...                  [jnp.sin(theta), jnp.cos(theta),  0],
     ...                  [0,             0,              1]])
-    >>> op = cx.operators.GalileanRotation(Rz)
+    >>> op = cx.ops.GalileanRotation(Rz)
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "m"),
     ...                             p=Quantity([1, 0, 0], "m/s"),
@@ -293,9 +293,9 @@ def call(
     # coordinates at the original position. Then the rotation is applied to
     # the momentum. The momentum is then transformed back to the original
     # representation, but at the rotated position.
-    pv = convert(psp.p.represent_as(cx.CartesianVel3D, psp.q), Quantity)
+    pv = convert(psp.p.vconvert(cx.CartesianVel3D, psp.q), Quantity)
     pv = batched_matmul(self.rotation, pv)
-    p = cx.CartesianVel3D.from_(pv).represent_as(type(psp.p), q)
+    p = cx.CartesianVel3D.from_(pv).vconvert(type(psp.p), q)
     # Reasseble and return
     return replace(psp, q=q, p=p, t=t)
 
@@ -319,7 +319,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.operators.Identity()
+    >>> op = cx.ops.Identity()
 
     >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
     ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),

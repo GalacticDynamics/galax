@@ -15,13 +15,14 @@ from typing import Any, Protocol, final, runtime_checkable
 import equinox as eqx
 import jax
 
+import unxt as u
 from dataclassish.converters import Unless
-from unxt.quantity import AbstractQuantity, Quantity
+from unxt.quantity import AbstractQuantity
 
 from galax.typing import BatchableRealQScalar, FloatQAnyShape
 from galax.utils._shape import expand_batch_dims
 
-t0 = Quantity(0, "Myr")
+t0 = u.Quantity(0, "Myr")
 
 
 @runtime_checkable
@@ -87,33 +88,33 @@ class ConstantParameter(AbstractParameter):
     Examples
     --------
     >>> from galax.potential.params import ConstantParameter
-    >>> from unxt import Quantity
+    >>> import unxt as u
 
-    >>> p = ConstantParameter(value=Quantity(1., "Msun"))
+    >>> p = ConstantParameter(value=u.Quantity(1., "Msun"))
     >>> p
     ConstantParameter(Quantity['mass'](Array(1., dtype=float64, ...), unit='solMass'))
 
     The parameter value is constant:
 
-    >>> p(Quantity(0, "Gyr"))
+    >>> p(u.Quantity(0, "Gyr"))
     Quantity['mass'](Array(1., dtype=float64, ...), unit='solMass')
 
-    >>> p(Quantity(1, "Gyr")) - p(Quantity(2, "Gyr"))
+    >>> p(u.Quantity(1, "Gyr")) - p(u.Quantity(2, "Gyr"))
     Quantity['mass'](Array(0., dtype=float64, ...), unit='solMass')
 
     We can do some arithmetic with the parameter, which degrades it
     back to a `unxt.Quantity`:
 
-    >>> p + Quantity(2, "Msun")
+    >>> p + u.Quantity(2, "Msun")
     Quantity['mass'](Array(3., dtype=float64, ...), unit='solMass')
 
-    >>> Quantity(2, "Msun") + p
+    >>> u.Quantity(2, "Msun") + p
     Quantity['mass'](Array(3., dtype=float64, ...), unit='solMass')
 
-    >>> p - Quantity(2, "Msun")
+    >>> p - u.Quantity(2, "Msun")
     Quantity['mass'](Array(-1., dtype=float64, ...), unit='solMass')
 
-    >>> Quantity(2, "Msun") - p
+    >>> u.Quantity(2, "Msun") - p
     Quantity['mass'](Array(1., dtype=float64, ...), unit='solMass')
 
     >>> p * 2
@@ -132,7 +133,7 @@ class ConstantParameter(AbstractParameter):
 
     # TODO: link this shape to the return shape from __call__
     value: FloatQAnyShape = eqx.field(
-        converter=Unless(AbstractQuantity, partial(Quantity.from_, dtype=float))
+        converter=Unless(AbstractQuantity, partial(u.Quantity.from_, dtype=float))
     )
     """The time-independent value of the parameter."""
 
@@ -164,9 +165,9 @@ class ConstantParameter(AbstractParameter):
         Examples
         --------
         >>> from galax.potential.params import ConstantParameter
-        >>> from unxt import Quantity
+        >>> import unxt as u
 
-        >>> p = ConstantParameter(value=Quantity(1, "Msun"))
+        >>> p = ConstantParameter(value=u.Quantity(1, "Msun"))
         >>> p
         ConstantParameter(Quantity['mass'](Array(1, dtype=int64, ...), unit='solMass'))
 
@@ -211,27 +212,27 @@ class LinearParameter(AbstractParameter):
     Examples
     --------
     >>> from galax.potential.params import LinearParameter
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import quaxed.numpy as jnp
 
-    >>> lp = LinearParameter(slope=Quantity(-1, "Msun/yr"),
-    ...                      point_time=Quantity(0, "Myr"),
-    ...                      point_value=Quantity(1e9, "Msun"))
+    >>> lp = LinearParameter(slope=u.Quantity(-1, "Msun/yr"),
+    ...                      point_time=u.Quantity(0, "Myr"),
+    ...                      point_value=u.Quantity(1e9, "Msun"))
 
-    >>> lp(Quantity(0, "Gyr")).uconvert("Msun")
+    >>> lp(u.Quantity(0, "Gyr")).uconvert("Msun")
     Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
 
-    >>> jnp.round(lp(Quantity(1.0, "Gyr")), 3)
+    >>> jnp.round(lp(u.Quantity(1.0, "Gyr")), 3)
     Quantity['mass'](Array(0., dtype=float64), unit='Gyr solMass / yr')
 
     """
 
-    slope: FloatQAnyShape = eqx.field(converter=partial(Quantity.from_, dtype=float))
+    slope: FloatQAnyShape = eqx.field(converter=partial(u.Quantity.from_, dtype=float))
     point_time: BatchableRealQScalar = eqx.field(
-        converter=partial(Quantity["time"].from_, dtype=float)
+        converter=partial(u.Quantity["time"].from_, dtype=float)
     )
     point_value: FloatQAnyShape = eqx.field(
-        converter=partial(Quantity.from_, dtype=float)
+        converter=partial(u.Quantity.from_, dtype=float)
     )
 
     def __check_init__(self) -> None:
@@ -258,17 +259,17 @@ class LinearParameter(AbstractParameter):
         Examples
         --------
         >>> from galax.potential.params import LinearParameter
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import quaxed.numpy as jnp
 
-        >>> lp = LinearParameter(slope=Quantity(-1, "Msun/yr"),
-        ...                      point_time=Quantity(0, "Myr"),
-        ...                      point_value=Quantity(1e9, "Msun"))
+        >>> lp = LinearParameter(slope=u.Quantity(-1, "Msun/yr"),
+        ...                      point_time=u.Quantity(0, "Myr"),
+        ...                      point_value=u.Quantity(1e9, "Msun"))
 
-        >>> lp(Quantity(0, "Gyr")).uconvert("Msun")
+        >>> lp(u.Quantity(0, "Gyr")).uconvert("Msun")
         Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
 
-        >>> jnp.round(lp(Quantity(1, "Gyr")), 3)
+        >>> jnp.round(lp(u.Quantity(1, "Gyr")), 3)
         Quantity['mass'](Array(0., dtype=float64), unit='Gyr solMass / yr')
 
         """
@@ -292,13 +293,13 @@ class UserParameter(AbstractParameter):
     Examples
     --------
     >>> from galax.potential.params import UserParameter
-    >>> from unxt import Quantity
+    >>> import unxt as u
 
-    >>> def func(t: Quantity["time"]) -> Quantity["mass"]:
-    ...     return Quantity(1e9, "Msun/Gyr") * t
+    >>> def func(t: u.Quantity["time"]) -> u.Quantity["mass"]:
+    ...     return u.Quantity(1e9, "Msun/Gyr") * t
 
     >>> up = UserParameter(func=func)
-    >>> up(Quantity(1e3, "Myr"))
+    >>> up(u.Quantity(1e3, "Myr"))
     Quantity['mass'](Array(1.e+12, dtype=float64, ...), unit='Myr solMass / Gyr')
 
     """

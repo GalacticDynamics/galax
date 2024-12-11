@@ -13,7 +13,7 @@ import jax
 from plum import dispatch
 
 import quaxed.numpy as jnp
-from unxt import unitsystem
+import unxt as u
 from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
@@ -47,7 +47,7 @@ class AbstractCompositePotential(
         # __post_init__ stuff:
         # Check that all potentials have the same unit system
         units_ = units if units is not None else zeroth(self.values()).units
-        usys = unitsystem(units_)
+        usys = u.unitsystem(units_)
         if not all(p.units == usys for p in self.values()):
             msg = "all potentials must have the same unit system"
             raise ValueError(msg)
@@ -126,15 +126,15 @@ def replace(
     Examples
     --------
     >>> from dataclassish import replace
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.CompositePotential(
-    ...     disk=gp.MiyamotoNagaiPotential(m_tot=Quantity(1e11, "Msun"), a=6.5, b=0.26, units="galactic"),
-    ...     halo=gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=20, units="galactic"),
+    ...     disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e11, "Msun"), a=6.5, b=0.26, units="galactic"),
+    ...     halo=gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=20, units="galactic"),
     ... )
 
-    >>> new_pot = replace(pot, disk=gp.MiyamotoNagaiPotential(m_tot=Quantity(1e12, "Msun"), a=6.5, b=0.26, units="galactic"))
+    >>> new_pot = replace(pot, disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e12, "Msun"), a=6.5, b=0.26, units="galactic"))
     >>> new_pot["disk"].m_tot.value
     Quantity['mass'](Array(1.e+12, dtype=float64,...), unit='solMass')
 
@@ -157,15 +157,15 @@ def replace(
     Examples
     --------
     >>> from dataclassish import replace
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.CompositePotential(
-    ...     disk=gp.MiyamotoNagaiPotential(m_tot=Quantity(1e11, "Msun"), a=6.5, b=0.26, units="galactic"),
-    ...     halo=gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=20, units="galactic"),
+    ...     disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e11, "Msun"), a=6.5, b=0.26, units="galactic"),
+    ...     halo=gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=20, units="galactic"),
     ... )
 
-    >>> new_pot = replace(pot, {"disk": {"m_tot": Quantity(1e12, "Msun")}})
+    >>> new_pot = replace(pot, {"disk": {"m_tot": u.Quantity(1e12, "Msun")}})
     >>> new_pot["disk"].m_tot.value
     Quantity['mass'](Array(1.e+12, dtype=float64,...), unit='solMass')
 

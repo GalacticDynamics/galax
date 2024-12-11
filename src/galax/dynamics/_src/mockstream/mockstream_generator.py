@@ -12,7 +12,7 @@ from jax.extend.backend import get_backend
 from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -50,9 +50,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     """Integrator for the stream."""
 
     @property
-    def units(self) -> AbstractUnitSystem:
+    def units(self) -> u.AbstractUnitSystem:
         """Units of the potential."""
-        return cast(AbstractUnitSystem, self.potential.units)
+        return cast(u.AbstractUnitSystem, self.potential.units)
 
     # ==========================================================================
 
@@ -82,7 +82,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)
-        t_f = ts[-1] + Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
+        t_f = ts[-1] + u.Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         def one_pt_intg(
             carry: Carry, _: gt.IntScalar
@@ -129,13 +129,13 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Better for GPU usage.
         """
-        t_f = ts[-1] + Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
+        t_f = ts[-1] + u.Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         @partial(jax.jit, inline=True)
         def one_pt_intg(
             i: gt.IntScalar, w0_l_i: gt.Vec6, w0_t_i: gt.Vec6
         ) -> tuple[gt.Vec6, gt.Vec6]:
-            tstep = xp.asarray([ts[i], t_f])
+            tstep = jnp.asarray([ts[i], t_f])
             w_lead = evaluate_orbit(
                 self.potential, w0_l_i, tstep, integrator=self.stream_integrator
             ).w(units=self.potential.units)[-1]
@@ -146,7 +146,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)
-        pt_ids = xp.arange(len(w0_lead))
+        pt_ids = jnp.arange(len(w0_lead))
         lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg)(pt_ids, w0_lead, w0_trail)
         return lead_arm_w, trail_arm_w
 
@@ -212,8 +212,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             w0 = prog_w0 if prog_w0.t is not None else replace(prog_w0, t=ts[0])
         else:
             w0 = gc.PhaseSpacePosition(
-                q=Quantity(prog_w0[0:3], self.units["length"]),
-                p=Quantity(prog_w0[3:6], self.units["speed"]),
+                q=u.Quantity(prog_w0[0:3], self.units["length"]),
+                p=u.Quantity(prog_w0[3:6], self.units["speed"]),
                 t=uconvert(self.potential.units["time"], ts[0]),
             )
         w0 = eqx.error_if(w0, w0.ndim > 0, "prog_w0 must be scalar")
@@ -241,14 +241,14 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         comps = {}
         comps["lead"] = MockStreamArm(
-            q=Quantity(lead_arm_w[:, 0:3], self.units["length"]),
-            p=Quantity(lead_arm_w[:, 3:6], self.units["speed"]),
+            q=u.Quantity(lead_arm_w[:, 0:3], self.units["length"]),
+            p=u.Quantity(lead_arm_w[:, 3:6], self.units["speed"]),
             t=t,
             release_time=mock0["lead"].release_time,
         )
         comps["trail"] = MockStreamArm(
-            q=Quantity(trail_arm_w[:, 0:3], self.units["length"]),
-            p=Quantity(trail_arm_w[:, 3:6], self.units["speed"]),
+            q=u.Quantity(trail_arm_w[:, 0:3], self.units["length"]),
+            p=u.Quantity(trail_arm_w[:, 3:6], self.units["speed"]),
             t=t,
             release_time=mock0["trail"].release_time,
         )

@@ -13,7 +13,7 @@ from numpy import ndarray
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 import galax.coordinates as gc
 import galax.potential as gp
@@ -36,17 +36,17 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     potential:
 
     >>> import jax.numpy as jnp
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
     >>> import galax.potential as gp
 
     >>> potential = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> w0 = gc.PhaseSpacePosition(
-    ...     q=Quantity([8., 0., 0.], "kpc"),
-    ...     p=Quantity([0., 230, 0.], "km/s"),
-    ...     t=Quantity(0, "Myr"))
-    >>> ts = Quantity(jnp.linspace(0., 1., 10), "Gyr")
+    ...     q=u.Quantity([8., 0., 0.], "kpc"),
+    ...     p=u.Quantity([0., 230, 0.], "km/s"),
+    ...     t=u.Quantity(0, "Myr"))
+    >>> ts = u.Quantity(jnp.linspace(0., 1., 10), "Gyr")
 
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
@@ -68,7 +68,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
       interpolant=Interpolant( ... )
     )
 
-    >>> orbit(Quantity(0.5, "Gyr"))
+    >>> orbit(u.Quantity(0.5, "Gyr"))
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
@@ -86,7 +86,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized
-    t: QVecTime | QVec1 = eqx.field(converter=Quantity["time"].from_)
+    t: QVecTime | QVec1 = eqx.field(converter=u.Quantity["time"].from_)
     """Array of times corresponding to the positions."""
 
     _: KW_ONLY
@@ -160,17 +160,17 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         Examples
         --------
         >>> import quaxed.numpy as jnp
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
 
         >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
         >>> w0 = gc.PhaseSpacePosition(
-        ...     q=Quantity([8., 0., 0.], "kpc"),
-        ...     p=Quantity([0., 230, 0.], "km/s"),
-        ...     t=Quantity(0, "Myr"))
-        >>> ts = Quantity(jnp.linspace(0, 1, 10), "Gyr")
+        ...     q=u.Quantity([8., 0., 0.], "kpc"),
+        ...     p=u.Quantity([0., 230, 0.], "km/s"),
+        ...     t=u.Quantity(0, "Myr"))
+        >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")
         >>> orbit = gd.evaluate_orbit(pot, w0, ts)
 
         >>> orbit[()] is orbit
@@ -207,17 +207,17 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         Examples
         --------
         >>> import quaxed.numpy as jnp
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
 
         >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
         >>> w0 = gc.PhaseSpacePosition(
-        ...     q=Quantity([8., 0., 0.], "kpc"),
-        ...     p=Quantity([0., 230, 0.], "km/s"),
-        ...     t=Quantity(0, "Myr"))
-        >>> ts = Quantity(jnp.linspace(0, 1, 10), "Gyr")
+        ...     q=u.Quantity([8., 0., 0.], "kpc"),
+        ...     p=u.Quantity([0., 230, 0.], "km/s"),
+        ...     t=u.Quantity(0, "Myr"))
+        >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")
         >>> orbit = gd.evaluate_orbit(pot, w0, ts)
 
         >>> orbit[0:2]
@@ -249,17 +249,17 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
         Examples
         --------
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
 
         >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
         >>> w0 = gc.PhaseSpacePosition(
-        ...     q=Quantity([8., 0., 0.], "kpc"),
-        ...     p=Quantity([0., 230, 0.], "km/s"),
-        ...     t=Quantity(0, "Myr"))
-        >>> ts = Quantity([0., 1.], "Gyr")
+        ...     q=u.Quantity([8., 0., 0.], "kpc"),
+        ...     p=u.Quantity([0., 230, 0.], "km/s"),
+        ...     t=u.Quantity(0, "Myr"))
+        >>> ts = u.Quantity([0., 1.], "Gyr")
         >>> orbit = gd.evaluate_orbit(pot, w0, ts)
 
         >>> orbit[0]

@@ -8,7 +8,7 @@ import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 from unxt.unitsystems import galactic
 
 import galax.coordinates as gc
@@ -39,9 +39,11 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[gd.Orbit]):
         """Return a phase-space position."""
         _, subkeys = return_keys(3)
 
-        q = Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
-        p = Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
-        t = Quantity(jr.normal(next(subkeys), shape[-1:]), unit=potential.units["time"])
+        q = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
+        p = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
+        t = u.Quantity(
+            jr.normal(next(subkeys), shape[-1:]), unit=potential.units["time"]
+        )
         return w_cls(q=q, p=p, t=t, potential=potential, interpolant=None)
 
     @pytest.fixture
@@ -92,8 +94,8 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[gd.Orbit]):
             wt[(*(0,) * (w.ndim - 1), slice(None), 0)], w.t.decompose(galactic).value
         )
         assert jnp.array_equal(
-            wt[..., 1:4], convert(w.q, Quantity).decompose(galactic).value
+            wt[..., 1:4], convert(w.q, u.Quantity).decompose(galactic).value
         )
         assert jnp.array_equal(
-            wt[..., 4:7], convert(w.p, Quantity).decompose(galactic).value
+            wt[..., 4:7], convert(w.p, u.Quantity).decompose(galactic).value
         )

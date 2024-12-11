@@ -24,22 +24,23 @@ familiar!
 Let's compute an orbit!
 
 ```python
+import jax.numpy as jnp
+
+import unxt as u
 import coordinax as cx
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-import jax.numpy as jnp
-from unxt import Quantity
 
 w = gc.PhaseSpacePosition(
-    q=Quantity([8, 0, 0], "kpc"),
-    p=Quantity([0, 220, 0], "km/s"),
-    t=Quantity(0, "Myr"),
+    q=u.Quantity([8, 0, 0], "kpc"),
+    p=u.Quantity([0, 220, 0], "km/s"),
+    t=u.Quantity(0, "Myr"),
 )
 
 pot = gp.MilkyWayPotential()
 
-orbit = gd.evaluate_orbit(pot, w, Quantity(jnp.linspace(0, 1, 100), "Gyr"))
+orbit = gd.evaluate_orbit(pot, w, u.Quantity(jnp.linspace(0, 1, 100), "Gyr"))
 print(orbit)
 # Orbit(
 #     q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])

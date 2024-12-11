@@ -17,7 +17,7 @@ from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
 
 import galax.potential as gpx
@@ -65,10 +65,10 @@ def convert_potential(
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e11, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e11, "Msun"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <KeplerPotential: m=1.00e+11 (kpc,Myr,solMass,rad)>
 
@@ -112,7 +112,7 @@ PT = TypeVar("PT", bound=gpx.AbstractBasePotential)
 def _get_frame(pot: gp.PotentialBase, /) -> cx.ops.AbstractOperator:
     """Convert a Gala frame to a Galax frame."""
     frame = cx.ops.GalileanSpatialTranslation(
-        Quantity(pot.origin, unit=pot.units["length"])
+        u.Quantity(pot.origin, unit=pot.units["length"])
     )
     if pot.R is not None:
         frame = cx.ops.GalileanRotation(pot.R) | frame
@@ -241,12 +241,12 @@ def galax_to_gala(pot: gpx.CompositePotential, /) -> gp.CompositePotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.CompositePotential(
-    ...     disk=gp.MiyamotoNagaiPotential(m_tot=Quantity(1e11, "Msun"), a=6.5, b=0.26, units="galactic"),
-    ...     halo=gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=20, units="galactic"),
+    ...     disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e11, "Msun"), a=6.5, b=0.26, units="galactic"),
+    ...     halo=gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=20, units="galactic"),
     ... )
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <CompositePotential disk,halo>
@@ -312,7 +312,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         Examples
         --------
         >>> import gala.potential as galap
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import galax.potential as gp
 
         .. invisible-code-block: python
@@ -323,7 +323,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 
         .. skip: start if(skip, reason="Requires Gala v1.8.2+")
 
-        >>> pot = gp.BurkertPotential(m=Quantity(1e11, "Msun"), r_s=Quantity(20, "kpc"), units="galactic")
+        >>> pot = gp.BurkertPotential(m=u.Quantity(1e11, "Msun"), r_s=u.Quantity(20, "kpc"), units="galactic")
         >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
         <BurkertPotential: rho=7.82e+06, r0=20.00 (kpc,Myr,solMass,rad)>
 
@@ -379,10 +379,10 @@ def galax_to_gala(
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.HarmonicOscillatorPotential(omega=Quantity(1, "1/Myr"), units="galactic")
+    >>> pot = gp.HarmonicOscillatorPotential(omega=u.Quantity(1, "1/Myr"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <HarmonicOscillatorPotential: omega=[1.] (kpc,Myr,solMass,rad)>
 
@@ -434,10 +434,10 @@ def galax_to_gala(pot: gpx.HernquistPotential, /) -> gp.HernquistPotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.HernquistPotential(m_tot=Quantity(1e11, "Msun"), r_s=Quantity(20, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e11, "Msun"), r_s=u.Quantity(20, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <HernquistPotential: m=1.00e+11, c=20.00 (kpc,Myr,solMass,rad)>
 
@@ -490,10 +490,10 @@ def galax_to_gala(pot: gpx.IsochronePotential, /) -> gp.IsochronePotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.IsochronePotential(m_tot=Quantity(1e11, "Msun"), b=Quantity(10, "kpc"), units="galactic")
+    >>> pot = gp.IsochronePotential(m_tot=u.Quantity(1e11, "Msun"), b=u.Quantity(10, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <IsochronePotential: m=1.00e+11, b=10.00 (kpc,Myr,solMass,rad)>
 
@@ -549,10 +549,10 @@ def galax_to_gala(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.JaffePotential(m=Quantity(1e11, "Msun"), r_s=Quantity(20, "kpc"), units="galactic")
+    >>> pot = gp.JaffePotential(m=u.Quantity(1e11, "Msun"), r_s=u.Quantity(20, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <JaffePotential: m=1.00e+11, c=20.00 (kpc,Myr,solMass,rad)>
 
@@ -603,10 +603,10 @@ def galax_to_gala(pot: gpx.KeplerPotential, /) -> gp.KeplerPotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e11, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e11, "Msun"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <KeplerPotential: m=1.00e+11 (kpc,Myr,solMass,rad)>
 
@@ -663,10 +663,10 @@ def galax_to_gala(pot: gpx.KuzminPotential, /) -> gp.KuzminPotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.KuzminPotential(m_tot=Quantity(1e11, "Msun"), a=Quantity(20, "kpc"), units="galactic")
+    >>> pot = gp.KuzminPotential(m_tot=u.Quantity(1e11, "Msun"), a=u.Quantity(20, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <KuzminPotential: m=1.00e+11, a=20.00 (kpc,Myr,solMass,rad)>
 
@@ -730,15 +730,15 @@ def galax_to_gala(pot: gpx.LongMuraliBarPotential, /) -> gp.LongMuraliBarPotenti
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.LongMuraliBarPotential(
-    ...     m_tot=Quantity(1e11, "Msun"),
-    ...     a=Quantity(20, "kpc"),
-    ...     b=Quantity(10, "kpc"),
-    ...     c=Quantity(5, "kpc"),
-    ...     alpha=Quantity(0.1, "rad"),
+    ...     m_tot=u.Quantity(1e11, "Msun"),
+    ...     a=u.Quantity(20, "kpc"),
+    ...     b=u.Quantity(10, "kpc"),
+    ...     c=u.Quantity(5, "kpc"),
+    ...     alpha=u.Quantity(0.1, "rad"),
     ...     units="galactic",
     ... )
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
@@ -798,10 +798,10 @@ def galax_to_gala(pot: gpx.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotenti
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.MiyamotoNagaiPotential(m_tot=Quantity(1e11, "Msun"), a=Quantity(6.5, "kpc"), b=Quantity(0.26, "kpc"), units="galactic")
+    >>> pot = gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e11, "Msun"), a=u.Quantity(6.5, "kpc"), b=u.Quantity(0.26, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <MiyamotoNagaiPotential: m=1.00e+11, a=6.50, b=0.26 (kpc,Myr,solMass,rad)>
 
@@ -865,10 +865,10 @@ def galax_to_gala(
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.MN3ExponentialPotential(m_tot=Quantity(1e11, "Msun"), h_R=Quantity(3.0, "kpc"), h_z=Quantity(0.2, "kpc"), units="galactic")
+    >>> pot = gp.MN3ExponentialPotential(m_tot=u.Quantity(1e11, "Msun"), h_R=u.Quantity(3.0, "kpc"), h_z=u.Quantity(0.2, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <MN3ExponentialDiskPotential: m=1.00e+11, h_R=3.00, h_z=0.20 (kpc,Myr,solMass,rad)>
 
@@ -973,10 +973,10 @@ def galax_to_gala(pot: gpx.PlummerPotential, /) -> gp.PlummerPotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.PlummerPotential(m_tot=Quantity(1e11, "Msun"), b=Quantity(10, "kpc"), units="galactic")
+    >>> pot = gp.PlummerPotential(m_tot=u.Quantity(1e11, "Msun"), b=u.Quantity(10, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <PlummerPotential: m=1.00e+11, b=10.00 (kpc,Myr,solMass,rad)>
     """  # noqa: E501
@@ -1047,10 +1047,10 @@ def galax_to_gala(pot: gpx.PowerLawCutoffPotential, /) -> gp.PowerLawCutoffPoten
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.PowerLawCutoffPotential(m_tot=Quantity(1e11, "Msun"), alpha=1.8, r_c=Quantity(20, "kpc"), units="galactic")
+    >>> pot = gp.PowerLawCutoffPotential(m_tot=u.Quantity(1e11, "Msun"), alpha=1.8, r_c=u.Quantity(20, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <PowerLawCutoffPotential: m=1.00e+11, alpha=1.80, r_c=20.00 (kpc,Myr,solMass,rad)>
 
@@ -1108,10 +1108,10 @@ def galax_to_gala(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.SatohPotential(m_tot=Quantity(1e11, "Msun"), a=Quantity(20, "kpc"), b=Quantity(10, "kpc"), units="galactic")
+    >>> pot = gp.SatohPotential(m_tot=u.Quantity(1e11, "Msun"), a=u.Quantity(20, "kpc"), b=u.Quantity(10, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <SatohPotential: m=1.00e+11, a=20.00, b=10.00 (kpc,Myr,solMass,rad)>
 
@@ -1166,10 +1166,10 @@ def galax_to_gala(pot: gpx.StoneOstriker15Potential, /) -> gp.StonePotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.StoneOstriker15Potential(m_tot=Quantity(1e11, "Msun"), r_c=Quantity(20, "kpc"), r_h=Quantity(10, "kpc"), units="galactic")
+    >>> pot = gp.StoneOstriker15Potential(m_tot=u.Quantity(1e11, "Msun"), r_c=u.Quantity(20, "kpc"), r_h=u.Quantity(10, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <StonePotential: m=1.00e+11, r_c=20.00, r_h=10.00 (kpc,Myr,solMass,rad)>
 
@@ -1247,10 +1247,10 @@ def galax_to_gala(pot: gpx.LogarithmicPotential, /) -> gp.LogarithmicPotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.LogarithmicPotential(v_c=Quantity(220, "km/s"), r_s=Quantity(20, "kpc"), units="galactic")
+    >>> pot = gp.LogarithmicPotential(v_c=u.Quantity(220, "km/s"), r_s=u.Quantity(20, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <LogarithmicPotential: v_c=0.22, r_h=20.00, q1=1.00, q2=1.00, q3=1.00, phi=0 (kpc,Myr,solMass,rad)>
 
@@ -1271,14 +1271,14 @@ def galax_to_gala(pot: gpx.LMJ09LogarithmicPotential, /) -> gp.LogarithmicPotent
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.LMJ09LogarithmicPotential(
-    ...     v_c=Quantity(220, "km/s"),
-    ...     r_s=Quantity(20, "kpc"),
+    ...     v_c=u.Quantity(220, "km/s"),
+    ...     r_s=u.Quantity(20, "kpc"),
     ...     q1=1.0, q2=1.0, q3=1.0,
-    ...     phi=Quantity(0, "rad"),
+    ...     phi=u.Quantity(0, "rad"),
     ...     units="galactic",
     ... )
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
@@ -1419,7 +1419,7 @@ def gala_to_galax(
     """  # noqa: E501
     units = pot.units
     params = pot.parameters
-    G = Quantity(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
+    G = u.Quantity(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
 
     return gpx.LeeSutoTriaxialNFWPotential(
         m=params["v_c"] ** 2 * params["r_s"] / G,
@@ -1470,10 +1470,10 @@ def galax_to_gala(pot: gpx.NFWPotential, /) -> gp.NFWPotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20, "kpc"), units="galactic")
+    >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <NFWPotential: m=1.00e+12, r_s=20.00, a=1.00, b=1.00, c=1.00 (kpc,Myr,solMass,rad)>
 
@@ -1515,7 +1515,7 @@ def gala_to_galax(
     """  # noqa: E501
     units = pot.units
     params = pot.parameters
-    G = Quantity(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
+    G = u.Quantity(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
 
     return gpx.LeeSutoTriaxialNFWPotential(
         m=params["v_c"] ** 2 * params["r_s"] / G,
@@ -1537,15 +1537,15 @@ def galax_to_gala(
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.LeeSutoTriaxialNFWPotential(
-    ...     m=Quantity(1e12, "Msun"),
-    ...     r_s=Quantity(20, "kpc"),
-    ...     a1=Quantity(1, ""),
-    ...     a2=Quantity(0.9, ""),
-    ...     a3=Quantity(0.8, ""),
+    ...     m=u.Quantity(1e12, "Msun"),
+    ...     r_s=u.Quantity(20, "kpc"),
+    ...     a1=u.Quantity(1, ""),
+    ...     a2=u.Quantity(0.9, ""),
+    ...     a3=u.Quantity(0.8, ""),
     ...     units="galactic",
     ... )
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
@@ -1554,7 +1554,7 @@ def galax_to_gala(
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
-    t = Quantity(0.0, pot.units["time"])
+    t = u.Quantity(0.0, pot.units["time"])
     v_c = convert(jnp.sqrt(pot.constants["G"] * pot.m(t) / pot.r_s(t)), APYQuantity)
 
     return gp.LeeSutoTriaxialNFWPotential(
@@ -1618,13 +1618,13 @@ def galax_to_gala(pot: gpx.BovyMWPotential2014, /) -> gp.BovyMWPotential2014:
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.BovyMWPotential2014(
-    ...     disk=gp.MiyamotoNagaiPotential(m_tot=Quantity(1e11, "Msun"), a=Quantity(6.5, "kpc"), b=Quantity(0.26, "kpc"), units="galactic"),
-    ...     bulge=gp.PowerLawCutoffPotential(m_tot=Quantity(1e10, "Msun"), alpha=1.8, r_c=Quantity(20, "kpc"), units="galactic"),
-    ...     halo=gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20, "kpc"), units="galactic"),
+    ...     disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e11, "Msun"), a=u.Quantity(6.5, "kpc"), b=u.Quantity(0.26, "kpc"), units="galactic"),
+    ...     bulge=gp.PowerLawCutoffPotential(m_tot=u.Quantity(1e10, "Msun"), alpha=1.8, r_c=u.Quantity(20, "kpc"), units="galactic"),
+    ...     halo=gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20, "kpc"), units="galactic"),
     ... )
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <CompositePotential disk,bulge,halo>
@@ -1680,13 +1680,13 @@ def galax_to_gala(pot: gpx.LM10Potential, /) -> gp.LM10Potential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.LM10Potential(
-    ...     disk=gp.MiyamotoNagaiPotential(m_tot=Quantity(1e11, "Msun"), a=Quantity(6.5, "kpc"), b=Quantity(0.26, "kpc"), units="galactic"),
-    ...     bulge=gp.HernquistPotential(m_tot=Quantity(1e10, "Msun"), r_s=Quantity(1, "kpc"), units="galactic"),
-    ...     halo=gp.LMJ09LogarithmicPotential(v_c=Quantity(220, "km/s"), r_s=Quantity(20, "kpc"), q1=1, q2=1, q3=1, phi=Quantity(0, "rad"), units="galactic"),
+    ...     disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e11, "Msun"), a=u.Quantity(6.5, "kpc"), b=u.Quantity(0.26, "kpc"), units="galactic"),
+    ...     bulge=gp.HernquistPotential(m_tot=u.Quantity(1e10, "Msun"), r_s=u.Quantity(1, "kpc"), units="galactic"),
+    ...     halo=gp.LMJ09LogarithmicPotential(v_c=u.Quantity(220, "km/s"), r_s=u.Quantity(20, "kpc"), q1=1, q2=1, q3=1, phi=u.Quantity(0, "rad"), units="galactic"),
     ... )
 
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
@@ -1749,14 +1749,14 @@ def galax_to_gala(pot: gpx.MilkyWayPotential, /) -> gp.MilkyWayPotential:
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.MilkyWayPotential(
-    ...     disk=dict(m_tot=Quantity(1e11, "Msun"), a=Quantity(6.5, "kpc"), b=Quantity(0.26, "kpc")),
-    ...     halo=dict(m=Quantity(1e12, "Msun"), r_s=Quantity(20, "kpc")),
-    ...     bulge=dict(m_tot=Quantity(1e10, "Msun"), r_s=Quantity(1, "kpc")),
-    ...     nucleus=dict(m_tot=Quantity(1e9, "Msun"), r_s=Quantity(0.1, "kpc")),
+    ...     disk=dict(m_tot=u.Quantity(1e11, "Msun"), a=u.Quantity(6.5, "kpc"), b=u.Quantity(0.26, "kpc")),
+    ...     halo=dict(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20, "kpc")),
+    ...     bulge=dict(m_tot=u.Quantity(1e10, "Msun"), r_s=u.Quantity(1, "kpc")),
+    ...     nucleus=dict(m_tot=u.Quantity(1e9, "Msun"), r_s=u.Quantity(0.1, "kpc")),
     ... )
 
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
@@ -1817,14 +1817,14 @@ def galax_to_gala(pot: gpx.MilkyWayPotential2022, /) -> gp.MilkyWayPotential2022
     Examples
     --------
     >>> import gala.potential as galap
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.MilkyWayPotential2022(
-    ...     disk=dict(m_tot=Quantity(1e11, "Msun"), h_R=Quantity(2.8, "kpc"), h_z=Quantity(0.25, "kpc")),
-    ...     halo=dict(m=Quantity(1e12, "Msun"), r_s=Quantity(20, "kpc")),
-    ...     bulge=dict(m_tot=Quantity(1e10, "Msun"), r_s=Quantity(1, "kpc")),
-    ...     nucleus=dict(m_tot=Quantity(1e9, "Msun"), r_s=Quantity(0.1, "kpc")),
+    ...     disk=dict(m_tot=u.Quantity(1e11, "Msun"), h_R=u.Quantity(2.8, "kpc"), h_z=u.Quantity(0.25, "kpc")),
+    ...     halo=dict(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20, "kpc")),
+    ...     bulge=dict(m_tot=u.Quantity(1e10, "Msun"), r_s=u.Quantity(1, "kpc")),
+    ...     nucleus=dict(m_tot=u.Quantity(1e9, "Msun"), r_s=u.Quantity(0.1, "kpc")),
     ... )
 
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)

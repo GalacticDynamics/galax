@@ -11,7 +11,7 @@ from jaxtyping import Array
 from plum import dispatch
 
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 import galax.coordinates as gc
 import galax.potential as gp
@@ -97,22 +97,22 @@ def evaluate_orbit(
     few standard imports are needed:
 
     >>> import quaxed.numpy as jnp
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
     We can then create the point-mass' potential, with galactic units:
 
-    >>> potential = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> potential = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
 
-    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 200, 0.], "km/s"),
-    ...                            t=Quantity(-100, "Myr"))
-    >>> ts = Quantity(jnp.linspace(0., 1, 4), "Gyr")
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
+    ...                            p=u.Quantity([0., 200, 0.], "km/s"),
+    ...                            t=u.Quantity(-100, "Myr"))
+    >>> ts = u.Quantity(jnp.linspace(0., 1, 4), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -128,7 +128,7 @@ def evaluate_orbit(
     defined at `t=-100`, but the orbit is integrated from `t=0` to `t=1000`.
     Changing the number of times is easy:
 
-    >>> ts = Quantity(jnp.linspace(0., 1, 10), "Gyr")
+    >>> ts = u.Quantity(jnp.linspace(0., 1, 10), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -140,7 +140,7 @@ def evaluate_orbit(
 
     Or evaluating at a single time:
 
-    >>> orbit = gd.evaluate_orbit(potential, w0, Quantity(0.5, "Gyr"))
+    >>> orbit = gd.evaluate_orbit(potential, w0, u.Quantity(0.5, "Gyr"))
     >>> orbit
     Orbit(
         q=CartesianPos3D(...), p=CartesianVel3D(...),
@@ -151,9 +151,9 @@ def evaluate_orbit(
 
     We can also integrate a batch of orbits at once:
 
-    >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
-    ...                            p=Quantity([[0, 200, 0], [0, 220, 0]], "km/s"),
-    ...                            t=Quantity([-100, -150], "Myr"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
+    ...                            p=u.Quantity([[0, 200, 0], [0, 220, 0]], "km/s"),
+    ...                            t=u.Quantity([-100, -150], "Myr"))
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -171,10 +171,10 @@ def evaluate_orbit(
     time at which the position is given. As noted earlier, this can be used to
     integrate from a different time than the initial time of the position:
 
-    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 200, 0.], "km/s"),
-    ...                            t=Quantity(0, "Myr"))
-    >>> ts = Quantity(jnp.linspace(0.3, 1, 8), "Gyr")
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
+    ...                            p=u.Quantity([0., 200, 0.], "km/s"),
+    ...                            t=u.Quantity(0, "Myr"))
+    >>> ts = u.Quantity(jnp.linspace(0.3, 1, 8), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
     Array([ 9.779, -0.3102,  0.        ], dtype=float64)
@@ -198,7 +198,7 @@ def evaluate_orbit(
     integrator = replace(integrator) if integrator is not None else _default_integrator
 
     # parse t -> potential units
-    t = jnp.atleast_1d(Quantity.from_(t, units["time"]))
+    t = jnp.atleast_1d(u.Quantity.from_(t, units["time"]))
 
     # Parse w0
     psp0t = w0.t if isinstance(w0, gc.PhaseSpacePosition) and w0.t is not None else t[0]
@@ -248,21 +248,21 @@ def evaluate_orbit(
     First some imports:
 
     >>> import quaxed.numpy as jnp
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
     We can then create the point-mass' potential, with galactic units:
 
-    >>> potential = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> potential = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
 
-    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 200, 0.], "km/s"),
-    ...                            t=Quantity(-100, "Myr"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
+    ...                            p=u.Quantity([0., 200, 0.], "km/s"),
+    ...                            t=u.Quantity(-100, "Myr"))
     >>> ts = jnp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
     >>> orbit = gd.evaluate_orbit(potential, w0, t=ts)
     >>> orbit

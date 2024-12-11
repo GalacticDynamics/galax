@@ -8,7 +8,7 @@ import pytest
 from plum import convert
 
 import quaxed.numpy as qnp
-from unxt import Quantity
+import unxt as u
 from unxt.unitsystems import galactic
 
 import galax.typing as gt
@@ -32,7 +32,7 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
     @pytest.fixture(scope="class")
     def pot_map(
         self, pot_cls: type[MilkyWayPotential2022]
-    ) -> dict[str, dict[str, Quantity]]:
+    ) -> dict[str, dict[str, u.Quantity]]:
         """Composite potential."""
         return {
             "disk": pot_cls._default_disk,
@@ -62,30 +62,30 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
 
     def test_potential(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential2022.potential` method."""
-        expect = Quantity(-0.1906119, pot.units["specific energy"])
+        expect = u.Quantity(-0.1906119, pot.units["specific energy"])
         assert qnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential2022.gradient` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [0.00235500422114, 0.00471000844229, 0.0101667940117],
             pot.units["acceleration"],
         )
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert qnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert qnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential2022.density` method."""
-        expect = Quantity(33_807_052.01837142, pot.units["mass density"])
+        expect = u.Quantity(33_807_052.01837142, pot.units["mass density"])
         assert qnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
         """Test the :meth:`MilkyWayPotential2022.hessian` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.0021196, -0.00047082, -0.0008994],
                 [-0.00047082, 0.00141337, -0.0017988],
@@ -94,7 +94,7 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
             "1/Myr2",
         )
         assert qnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -102,7 +102,7 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
 
     def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.00148256, -0.00047082, -0.0008994],
                 [-0.00047082, 0.00077633, -0.0017988],
@@ -111,5 +111,5 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
             "1/Myr2",
         )
         assert qnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

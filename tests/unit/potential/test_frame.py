@@ -7,7 +7,7 @@ from plum import convert
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax.coordinates.operators as gco
+import galax.coordinates as gc
 import galax.potential as gp
 
 
@@ -29,7 +29,7 @@ def test_bar_means_of_rotation() -> None:
     hardpot = replace(base_pot, Omega=Omega_z_freq)
 
     # Operator means of rotation
-    op = gco.ConstantRotationZOperator(Omega_z=Omega_z_angv)
+    op = gc.ops.ConstantRotationZOperator(Omega_z=Omega_z_angv)
     framedpot = gp.PotentialFrame(base_pot, op)
 
     # quick test of the op

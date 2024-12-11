@@ -8,7 +8,7 @@ from jaxtyping import install_import_hook
 from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
-    from . import operators
+    from . import ops
     from ._src import psps
     from ._src.psps import operator_compat
     from ._src.psps.base import *
@@ -19,7 +19,7 @@ with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
     from ._src.psps.interp import *
     from ._src.psps.utils import *
 
-__all__: list[str] = ["operators"]
+__all__: list[str] = ["ops"]
 __all__ += psps.base.__all__
 __all__ += psps.base_psp.__all__
 __all__ += psps.base_composite.__all__

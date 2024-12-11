@@ -12,7 +12,7 @@ from typing import Literal, final
 
 import equinox as eqx
 
-from coordinax.operators import AbstractOperator
+from coordinax.ops import AbstractOperator
 
 from galax.typing import FloatScalar, RealScalar, Vec3
 

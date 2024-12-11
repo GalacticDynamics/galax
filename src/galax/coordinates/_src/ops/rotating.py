@@ -70,11 +70,10 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
     >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
-    >>> from galax.coordinates.operators import ConstantRotationZOperator
 
     We define a rotation of 90 degrees every gigayear about the z axis.
 
-    >>> op = ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg / Gyr"))
+    >>> op = gc.ops.ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg / Gyr"))
 
     We can apply the rotation to a position.
 
@@ -146,10 +145,9 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
         Examples
         --------
-        >>> import unxt as u
-        >>> from galax.coordinates.operators import ConstantRotationZOperator
+        >>> import galax.coordinates as gc
 
-        >>> op = ConstantRotationZOperator(u.Quantity(360, "deg / Gyr"))
+        >>> op = gc.ops.ConstantRotationZOperator.from_(360, "deg / Gyr")
         >>> op.is_inertial
         False
         """
@@ -162,9 +160,9 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         Examples
         --------
         >>> import unxt as u
-        >>> from galax.coordinates.operators import ConstantRotationZOperator
+        >>> import galax.coordinates as gc
 
-        >>> op = ConstantRotationZOperator(Omega_z=u.Quantity(360, "deg / Gyr"))
+        >>> op = gc.ops.ConstantRotationZOperator.from_(360, "deg / Gyr")
         >>> op.inverse
         ConstantRotationZOperator(
             Omega_z=Quantity[...]( value=...i64[], unit=Unit("deg / Gyr") )
@@ -187,9 +185,9 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         Examples
         --------
         >>> import unxt as u
-        >>> from galax.coordinates.operators import ConstantRotationZOperator
+        >>> import galax.coordinates as gc
 
-        >>> op = ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg / Gyr"))
+        >>> op = gc.ops.ConstantRotationZOperator.from_(90, "deg / Gyr")
 
         >>> q = u.Quantity([1, 0, 0], "kpc")
         >>> t = u.Quantity(1, "Gyr")
@@ -224,11 +222,11 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         >>> from plum import convert
         >>> import unxt as u
         >>> import coordinax as cx
-        >>> from galax.coordinates.operators import ConstantRotationZOperator
+        >>> import galax.coordinates as gc
 
-        >>> op = ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg / Gyr"))
+        >>> op = gc.ops.ConstantRotationZOperator.from_(90, "deg / Gyr")
 
-        >>> q = cx.CartesianPos3D.from_(u.Quantity([1, 0, 0], "kpc"))
+        >>> q = cx.CartesianPos3D.from_([1, 0, 0], "kpc")
         >>> t = u.Quantity(1, "Gyr")
         >>> newq, newt = op(q, t)
         >>> convert(newq, u.Quantity).value.round(2)
@@ -260,7 +258,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         >>> from plum import convert
         >>> import unxt as u
         >>> from galax.coordinates import PhaseSpacePosition
-        >>> from galax.coordinates.operators import ConstantRotationZOperator
+        >>> from galax.coordinates.ops import ConstantRotationZOperator
 
         >>> op = ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg / Gyr"))
 
@@ -303,7 +301,7 @@ def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> cxo.AbstractOperat
     --------
     >>> import unxt as u
     >>> import coordinax as cx
-    >>> import galax.coordinates.operators as gco
+    >>> import galax.coordinates.ops as gco
 
     >>> op = gco.ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg / Gyr"))
     >>> cx.ops.simplify_op(op) == op

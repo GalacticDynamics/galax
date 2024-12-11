@@ -11,8 +11,8 @@ import equinox as eqx
 
 import coordinax as cx
 import quaxed.numpy as jnp
+import unxt as u
 from dataclassish.converters import Optional
-from unxt import Quantity
 
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
@@ -53,7 +53,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
@@ -62,9 +62,9 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     :class:`~coordinax.CartesianPos3D` or
     :class:`~coordinax.CartesianVel3D`, respectively.  For example,
 
-    >>> t = Quantity(7.0, "s")
-    >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                           p=Quantity([4, 5, 6], "m/s"),
+    >>> t = u.Quantity(7.0, "s")
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+    ...                           p=u.Quantity([4, 5, 6], "m/s"),
     ...                           t=t)
     >>> w
     PhaseSpacePosition(
@@ -85,8 +85,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     When using the explicit constructors, the inputs can be any
     `coordinax.AbstractPos3D` and `coordinax.AbstractVel3D` types:
 
-    >>> q = cx.SphericalPos(r=Quantity(1, "m"), theta=Quantity(2, "deg"),
-    ...                     phi=Quantity(3, "deg"))
+    >>> q = cx.SphericalPos(r=u.Quantity(1, "m"), theta=u.Quantity(2, "deg"),
+    ...                     phi=u.Quantity(3, "deg"))
     >>> w3 = gc.PhaseSpacePosition(q=q, p=p, t=t)
     >>> isinstance(w3.q, cx.SphericalPos)
     True
@@ -119,7 +119,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     t: gt.TimeBatchableScalar | gt.VecN | gt.TimeScalar | None = eqx.field(
         default=None,
-        converter=Optional(partial(Quantity["time"].from_, dtype=float)),
+        converter=Optional(partial(u.Quantity["time"].from_, dtype=float)),
     )
     """The time corresponding to the positions.
 
@@ -157,12 +157,12 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
         Examples
         --------
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
 
-        >>> q = Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
-        >>> p = Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
+        >>> q = u.Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
+        >>> p = u.Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
 
         >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
         >>> w[()] is w
@@ -174,19 +174,19 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         >>> w[0, 1].t is None
         True
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=Quantity(0, "Myr"))
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity(0, "Myr"))
         >>> w[0, 1].q.x
         Quantity['length'](Array(4., dtype=float64), unit='m')
         >>> w[0, 1].t
         Quantity['time'](Array(0., dtype=float64), unit='Myr')
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=Quantity([0], "Myr"))
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity([0], "Myr"))
         >>> w[0, 1].q.x
         Quantity['length'](Array(4., dtype=float64), unit='m')
         >>> w[0, 1].t
         Quantity['time'](Array(0., dtype=float64), unit='Myr')
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=Quantity([[[0],[1]]], "Myr"))
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity([[[0],[1]]], "Myr"))
         >>> w[0, :].t
         Quantity['time'](Array([[0.], [1.]], dtype=float64), unit='Myr')
 
@@ -219,34 +219,34 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
         Examples
         --------
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
 
-        >>> q = Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
-        >>> p = Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
+        >>> q = u.Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
+        >>> p = u.Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
 
         >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
         >>> w[0].q.x
         Quantity['length'](Array([1., 4.], dtype=float64), unit='m')
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=Quantity(0, "Myr"))
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity(0, "Myr"))
         >>> w[0].shape
         (2,)
         >>> w[0].t
         Quantity['time'](Array(0., dtype=float64), unit='Myr')
 
-        >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3]], "m"),
-        ...                           p=Quantity([[4, 5, 6]], "m/s"),
-        ...                           t=Quantity([7], "s"))
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3]], "m"),
+        ...                           p=u.Quantity([[4, 5, 6]], "m/s"),
+        ...                           t=u.Quantity([7], "s"))
         >>> w[0].q.shape
         ()
         >>> w[0].t
         Quantity['time'](Array(7., dtype=float64), unit='s')
 
-        >>> w = gc.PhaseSpacePosition(q=Quantity([[[1, 2, 3], [1, 2, 3]]], "m"),
-        ...                           p=Quantity([[[4, 5, 6], [4, 5, 6]]], "m/s"),
-        ...                           t=Quantity([[7]], "s"))
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([[[1, 2, 3], [1, 2, 3]]], "m"),
+        ...                           p=u.Quantity([[[4, 5, 6], [4, 5, 6]]], "m/s"),
+        ...                           t=u.Quantity([[7]], "s"))
         >>> w[0].q.shape
         (2,)
         >>> w[0].t
@@ -296,16 +296,16 @@ def from_(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.coordinates as gc
 
 
-    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                              p=Quantity([4, 5, 6], "km/s"),
-    ...                              t=Quantity(7, "Myr"))
-    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([10, 20, 30], "kpc"),
-    ...                              p=Quantity([40, 50, 60], "km/s"),
-    ...                              t=Quantity(7, "Myr"))
+    >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                              p=u.Quantity([4, 5, 6], "km/s"),
+    ...                              t=u.Quantity(7, "Myr"))
+    >>> psp2 = gc.PhaseSpacePosition(q=u.Quantity([10, 20, 30], "kpc"),
+    ...                              p=u.Quantity([40, 50, 60], "km/s"),
+    ...                              t=u.Quantity(7, "Myr"))
 
     >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
 

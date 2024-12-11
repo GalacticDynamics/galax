@@ -5,8 +5,9 @@ from typing import Any, Protocol, runtime_checkable
 from matplotlib.axes import Axes
 from plum import dispatch
 
+import unxt as u
 from plotting_backends import MatplotlibBackend
-from unxt.quantity import AbstractQuantity, ustrip
+from unxt.quantity import AbstractQuantity
 
 import galax.dynamics as gd
 from .potential import _get_figure
@@ -59,7 +60,7 @@ def plot_components(
 
     # intercept color
     if "c" in kwargs and kwargs["c"] == "orbit.t":
-        kwargs["c"] = ustrip(orbit.potential.units["time"], orbit.t)
+        kwargs["c"] = u.ustrip(orbit.potential.units["time"], orbit.t)
 
     # plot
     plot_fn = (

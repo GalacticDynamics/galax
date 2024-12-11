@@ -33,8 +33,8 @@ from jaxtyping import Array
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import quaxed.scipy.special as qsp
-from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
-from unxt.unitsystems import dimensionless, galactic
+import unxt as u
+from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -68,8 +68,8 @@ class BurkertPotential(AbstractPotential):
     """Scale radius"""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -122,7 +122,7 @@ class BurkertPotential(AbstractPotential):
 
     @classmethod
     def from_central_density(
-        cls, rho_0: Quantity, r_s: Quantity, **kwargs: Any
+        cls, rho_0: u.Quantity, r_s: u.Quantity, **kwargs: Any
     ) -> "BurkertPotential":
         r"""Create a Burkert potential from the central density.
 
@@ -140,11 +140,11 @@ class BurkertPotential(AbstractPotential):
 
         Examples
         --------
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> from galax.potential import BurkertPotential
 
-        >>> rho_0 = Quantity(1e6, "Msun / kpc3")
-        >>> r_s = Quantity(1, "kpc")
+        >>> rho_0 = u.Quantity(1e6, "Msun / kpc3")
+        >>> r_s = u.Quantity(1, "kpc")
         >>> pot = BurkertPotential.from_central_density(rho_0, r_s, units="galactic")
         >>> pot
         BurkertPotential(
@@ -174,10 +174,10 @@ class HarmonicOscillatorPotential(AbstractPotential):
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.HarmonicOscillatorPotential(omega=Quantity(1, "1 / Myr"),
+    >>> pot = gp.HarmonicOscillatorPotential(omega=u.Quantity(1, "1 / Myr"),
     ...                                      units="galactic")
     >>> pot
     HarmonicOscillatorPotential(
@@ -187,8 +187,8 @@ class HarmonicOscillatorPotential(AbstractPotential):
         value=Quantity[...]( value=...i64[], unit=Unit("1 / Myr") )
       ) )
 
-    >>> q = Quantity([1.0, 0, 0], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> q = u.Quantity([1.0, 0, 0], "kpc")
+    >>> t = u.Quantity(0, "Gyr")
 
     >>> pot.potential(q, t)
     Quantity[...](Array(0.5, dtype=float64), unit='kpc2 / Myr2')
@@ -203,8 +203,8 @@ class HarmonicOscillatorPotential(AbstractPotential):
     """The frequency."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -245,11 +245,11 @@ class HenonHeilesPotential(AbstractPotential):
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.HenonHeilesPotential(coeff=Quantity(1, "1 / kpc"),
-    ...                               timescale=Quantity(1, "Myr"),
+    >>> pot = gp.HenonHeilesPotential(coeff=u.Quantity(1, "1 / kpc"),
+    ...                               timescale=u.Quantity(1, "Myr"),
     ...                               units="galactic")
     >>> pot
     HenonHeilesPotential(
@@ -259,8 +259,8 @@ class HenonHeilesPotential(AbstractPotential):
       timescale=ConstantParameter( ... )
     )
 
-    >>> q = Quantity([1.0, 0, 0], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> q = u.Quantity([1.0, 0, 0], "kpc")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
     Quantity['...'](Array(0.5, dtype=float64), unit='kpc2 / Myr2')
 
@@ -307,8 +307,8 @@ class HernquistPotential(AbstractPotential):
     )  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -353,8 +353,8 @@ class IsochronePotential(AbstractPotential):
     """
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -402,8 +402,8 @@ class KeplerPotential(AbstractPotential):
     """Total mass of the potential."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -423,7 +423,7 @@ class KeplerPotential(AbstractPotential):
         pred = jnp.logical_or(  # are we at the origin with non-zero mass?
             jnp.greater(r, jnp.zeros_like(r)), jnp.equal(m, jnp.zeros_like(m))
         )
-        return Quantity(
+        return u.Quantity(
             qlax.select(
                 pred,
                 jnp.zeros_like(r.value),
@@ -455,8 +455,8 @@ class KuzminPotential(AbstractPotential):
     """Scale length."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -484,8 +484,8 @@ class LogarithmicPotential(AbstractPotential):
     r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -519,8 +519,8 @@ class MiyamotoNagaiPotential(AbstractPotential):
     """Scale length in the minor-axis (x-y) plane."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -584,8 +584,8 @@ class AbstractMN3Potential(AbstractPotential):
     """
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -623,7 +623,7 @@ class AbstractMN3Potential(AbstractPotential):
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
         unit = self.units["specific energy"]
-        return Quantity(
+        return u.Quantity(
             jnp.sum(
                 jnp.asarray(
                     [
@@ -641,7 +641,7 @@ class AbstractMN3Potential(AbstractPotential):
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.BatchFloatQScalar:
         unit = self.units["mass density"]
-        return Quantity(
+        return u.Quantity(
             jnp.sum(
                 jnp.asarray(
                     [
@@ -713,15 +713,15 @@ class NullPotential(AbstractPotential):
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> from galax.potential import NullPotential
 
     >>> pot = NullPotential()
     >>> pot
     NullPotential( units=..., constants=ImmutableMap({'G': ...}) )
 
-    >>> q = Quantity([1, 0, 0], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> q = u.Quantity([1, 0, 0], "kpc")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
     Quantity[...](Array(0, dtype=int64), unit='kpc2 / Myr2')
 
@@ -729,9 +729,9 @@ class NullPotential(AbstractPotential):
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
-        default=galactic, converter=unitsystem, static=True
+        default=galactic, converter=u.unitsystem, static=True
     )
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -742,21 +742,21 @@ class NullPotential(AbstractPotential):
         t: gt.BatchableRealQScalar,  # noqa: ARG002
         /,
     ) -> gt.SpecificEnergyBatchScalar:
-        return Quantity(  # TODO: better unit handling
+        return u.Quantity(  # TODO: better unit handling
             jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
         )
 
     @partial(jax.jit, inline=True)
     def _gradient(self, q: gt.BatchQVec3, /, _: gt.RealQScalar) -> gt.BatchQVec3:
         """See ``gradient``."""
-        return Quantity(  # TODO: better unit handling
+        return u.Quantity(  # TODO: better unit handling
             jnp.zeros(q.shape[:-1] + (3,), dtype=q.dtype), galactic["acceleration"]
         )
 
     @partial(jax.jit, inline=True)
     def _laplacian(self, q: gt.QVec3, /, _: gt.RealQScalar) -> gt.FloatQScalar:
         """See ``laplacian``."""
-        return Quantity(  # TODO: better unit handling
+        return u.Quantity(  # TODO: better unit handling
             jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["frequency drift"]
         )
 
@@ -765,14 +765,14 @@ class NullPotential(AbstractPotential):
         self, q: gt.BatchQVec3, _: gt.BatchRealQScalar | gt.RealQScalar, /
     ) -> gt.BatchFloatQScalar:
         """See ``density``."""
-        return Quantity(  # TODO: better unit handling
+        return u.Quantity(  # TODO: better unit handling
             jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["mass density"]
         )
 
     @partial(jax.jit, inline=True)
     def _hessian(self, q: gt.QVec3, _: gt.RealQScalar, /) -> gt.QMatrix33:
         """See ``hessian``."""
-        return Quantity(  # TODO: better unit handling
+        return u.Quantity(  # TODO: better unit handling
             jnp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype), galactic["frequency drift"]
         )
 
@@ -788,8 +788,8 @@ class PlummerPotential(AbstractPotential):
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -805,7 +805,7 @@ class PlummerPotential(AbstractPotential):
 
 
 @partial(jax.jit, inline=True)
-def _safe_gamma_inc(a: Quantity, x: Quantity) -> Quantity:  # TODO: types
+def _safe_gamma_inc(a: u.Quantity, x: u.Quantity) -> u.Quantity:  # TODO: types
     return qsp.gammainc(a, x) * qsp.gamma(a)
 
 
@@ -837,8 +837,8 @@ class PowerLawCutoffPotential(AbstractPotential):
     """Cutoff radius."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -932,8 +932,8 @@ class StoneOstriker15Potential(AbstractPotential):
         r = jnp.linalg.vector_norm(q, axis=-1)
         A = -2 * self.constants["G"] * self.m_tot(t) / (jnp.pi * (r_h - r_c))
         return A * (
-            (r_h / r) * ustrip("rad", jnp.atan2(r, r_h))
-            - (r_c / r) * ustrip("rad", jnp.atan2(r, r_c))
+            (r_h / r) * u.ustrip("rad", jnp.atan2(r, r_h))
+            - (r_c / r) * u.ustrip("rad", jnp.atan2(r, r_c))
             + 0.5 * jnp.log((r**2 + r_h**2) / (r**2 + r_c**2))
         )
 
@@ -975,15 +975,15 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> from galax.potential import TriaxialHernquistPotential
 
-    >>> pot = TriaxialHernquistPotential(m_tot=Quantity(1e12, "Msun"),
-    ...                                  r_s=Quantity(8, "kpc"), q1=1, q2=0.5,
+    >>> pot = TriaxialHernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...                                  r_s=u.Quantity(8, "kpc"), q1=1, q2=0.5,
     ...                                  units="galactic")
 
-    >>> q = Quantity([1, 0, 0], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> q = u.Quantity([1, 0, 0], "kpc")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
     Quantity[...](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
     """
@@ -996,18 +996,18 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     # TODO: move to a triaxial wrapper
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1.0, ""), dimensions="dimensionless"
+        default=u.Quantity(1.0, ""), dimensions="dimensionless"
     )
     """Scale length in the y direction divided by ``c``."""
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1.0, ""), dimensions="dimensionless"
+        default=u.Quantity(1.0, ""), dimensions="dimensionless"
     )
     """Scale length in the z direction divided by ``c``."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         converter=ImmutableMap, default=default_constants
     )
 

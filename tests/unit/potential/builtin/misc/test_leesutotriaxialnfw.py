@@ -5,7 +5,7 @@ import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 from unxt.unitsystems import AbstractUnitSystem
 
 import galax.potential as gp
@@ -20,69 +20,69 @@ class ShapeA1ParameterMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
-    def field_a1(self) -> Quantity["length"]:
-        return Quantity(1.0, "")
+    def field_a1(self) -> u.Quantity["length"]:
+        return u.Quantity(1.0, "")
 
     # =====================================================
 
     def test_a1_constant(self, pot_cls, fields):
         """Test the `a1` parameter."""
-        fields["a1"] = Quantity(1.0, "")
+        fields["a1"] = u.Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.a1(t=Quantity(0, "Myr")) == Quantity(1.0, "")
+        assert pot.a1(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a1_userfunc(self, pot_cls, fields):
         """Test the `a1` parameter."""
         fields["a1"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a1(t=Quantity(0, "Myr")) == 2
+        assert pot.a1(t=u.Quantity(0, "Myr")) == 2
 
 
 class ShapeA2ParameterMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
-    def field_a2(self) -> Quantity["length"]:
-        return Quantity(1.0, "")
+    def field_a2(self) -> u.Quantity["length"]:
+        return u.Quantity(1.0, "")
 
     # =====================================================
 
     def test_a2_constant(self, pot_cls, fields):
         """Test the `a2` parameter."""
-        fields["a2"] = Quantity(1.0, "")
+        fields["a2"] = u.Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.a2(t=Quantity(0, "Myr")) == Quantity(1.0, "")
+        assert pot.a2(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a2_userfunc(self, pot_cls, fields):
         """Test the `a2` parameter."""
         fields["a3"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a2(t=Quantity(0, "Myr")) == 2
+        assert pot.a2(t=u.Quantity(0, "Myr")) == 2
 
 
 class ShapeA3ParameterMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
-    def field_a3(self) -> Quantity["length"]:
-        return Quantity(1.0, "")
+    def field_a3(self) -> u.Quantity["length"]:
+        return u.Quantity(1.0, "")
 
     # =====================================================
 
     def test_a3_constant(self, pot_cls, fields):
         """Test the `a3` parameter."""
-        fields["a3"] = Quantity(1.0, "")
+        fields["a3"] = u.Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.a3(t=Quantity(0, "Myr")) == Quantity(1.0, "")
+        assert pot.a3(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a3_userfunc(self, pot_cls, fields):
         """Test the `a3` parameter."""
         fields["a3"] = lambda t: t * 1.2
         pot = pot_cls(**fields)
-        assert pot.a3(t=Quantity(0, "Myr")) == 2
+        assert pot.a3(t=u.Quantity(0, "Myr")) == 2
 
 
 ################################################################################
@@ -106,11 +106,11 @@ class TestLeeSutoTriaxialNFWPotential(
     @override
     def fields_(
         self,
-        field_m: Quantity,
-        field_r_s: Quantity,
-        field_a1: Quantity,
-        field_a2: Quantity,
-        field_a3: Quantity,
+        field_m: u.Quantity,
+        field_r_s: u.Quantity,
+        field_a1: u.Quantity,
+        field_a2: u.Quantity,
+        field_a3: u.Quantity,
         field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
@@ -125,24 +125,26 @@ class TestLeeSutoTriaxialNFWPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity(-9.68797618, pot.units["specific energy"])
+        expect = u.Quantity(-9.68797618, pot.units["specific energy"])
         assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity([0.3411484, 0.6822968, 1.0234452], pot.units["acceleration"])
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        expect = u.Quantity(
+            [0.3411484, 0.6822968, 1.0234452], pot.units["acceleration"]
+        )
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity(4.89753338e09, pot.units["mass density"])
+        expect = u.Quantity(4.89753338e09, pot.units["mass density"])
         assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.28782066, -0.10665549, -0.15998323],
                 [-0.10665549, 0.12783743, -0.31996646],
@@ -151,7 +153,7 @@ class TestLeeSutoTriaxialNFWPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -159,7 +161,7 @@ class TestLeeSutoTriaxialNFWPotential(
 
     def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity(
+        expect = u.Quantity(
             [
                 [0.19553506, -0.10665549, -0.15998323],
                 [-0.10665549, 0.03555183, -0.31996646],
@@ -168,7 +170,7 @@ class TestLeeSutoTriaxialNFWPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ==========================================================================

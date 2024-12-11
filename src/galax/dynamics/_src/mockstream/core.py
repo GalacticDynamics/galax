@@ -11,7 +11,7 @@ from jaxtyping import Array, Shaped
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -41,10 +41,10 @@ class MockStreamArm(gc.AbstractPhaseSpacePosition):
     p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vecs.AbstractVel3D.from_)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
-    t: gt.QVecTime = eqx.field(converter=Quantity["time"].from_)
+    t: gt.QVecTime = eqx.field(converter=u.Quantity["time"].from_)
     """Array of times corresponding to the positions."""
 
-    release_time: gt.QVecTime = eqx.field(converter=Quantity["time"].from_)
+    release_time: gt.QVecTime = eqx.field(converter=u.Quantity["time"].from_)
     """Release time of the stream particles [Myr]."""
 
     # ==========================================================================
@@ -117,12 +117,12 @@ class MockStream(gc.AbstractCompositePhaseSpacePosition):
         )
 
     @property
-    def t(self) -> Shaped[Quantity["time"], "..."]:
+    def t(self) -> Shaped[u.Quantity["time"], "..."]:
         """Times."""
         return jnp.concat([psp.t for psp in self.values()], axis=0)[self._time_sorter]
 
     @property
-    def release_time(self) -> Shaped[Quantity["time"], "..."]:
+    def release_time(self) -> Shaped[u.Quantity["time"], "..."]:
         """Release times."""
         return jnp.concat([psp.release_time for psp in self.values()], axis=0)[
             self._time_sorter

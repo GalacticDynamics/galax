@@ -11,7 +11,7 @@ from jaxtyping import Array, Shaped
 from plum import convert, dispatch
 
 import coordinax as cx
-from unxt import Quantity
+import unxt as u
 from unxt.unitsystems import AbstractUnitSystem
 
 import galax.coordinates as gc
@@ -47,10 +47,10 @@ def parse_to_quantity(value: Any, /, *, units: AbstractUnitSystem, **_: Any) -> 
 @dispatch
 def parse_to_quantity(
     x: int | float | Array | np.ndarray, /, *, unit: gt.Unit, **_: Any
-) -> Quantity:
+) -> u.Quantity:
     arr = jnp.asarray(x, dtype=None)
     dtype = jnp.promote_types(arr.dtype, canonicalize_dtype(float))
-    return Quantity(jnp.asarray(arr, dtype=dtype), unit=unit)
+    return u.Quantity(jnp.asarray(arr, dtype=dtype), unit=unit)
 
 
 @dispatch
@@ -63,10 +63,12 @@ def parse_to_quantity(
 @dispatch
 def parse_to_quantity(x: cx.vecs.AbstractPos3D, /, **_: Any) -> gt.LengthBatchVec3:
     cart = x.vconvert(cx.CartesianPos3D)
-    qarr: Quantity = convert(cart, Quantity)
+    qarr: u.Quantity = convert(cart, u.Quantity)
     return qarr
 
 
 @dispatch
-def parse_to_quantity(value: Quantity, /, **_: Any) -> Shaped[Quantity, "*#batch 3"]:
+def parse_to_quantity(
+    value: u.Quantity, /, **_: Any
+) -> Shaped[u.Quantity, "*#batch 3"]:
     return value

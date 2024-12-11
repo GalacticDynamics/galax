@@ -20,7 +20,7 @@ from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -29,7 +29,8 @@ from .utils import parse_to_quantity
 from galax.potential._src.base import AbstractBasePotential
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
-HessianVec: TypeAlias = Shaped[Quantity["1/s^2"], "*#shape 3 3"]  # TODO: shape -> batch
+# TODO: shape -> batch
+HessianVec: TypeAlias = Shaped[u.Quantity["1/s^2"], "*#shape 3 3"]
 
 # =============================================================================
 # Potential Energy
@@ -40,7 +41,7 @@ def potential(
     pot: AbstractBasePotential,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
     /,
-) -> Quantity["specific energy"]:
+) -> u.Quantity["specific energy"]:
     """Compute the potential energy at the given position(s).
 
     Parameters
@@ -61,27 +62,27 @@ def potential(
 
     First some imports:
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
     Then we can construct a potential and compute the potential energy:
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                           p=Quantity([4, 5, 6], "km/s"),
-    ...                           t=Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                           p=u.Quantity([4, 5, 6], "km/s"),
+    ...                           t=u.Quantity(0, "Gyr"))
 
     >>> pot.potential(w)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                           t=u.Quantity([0, 1], "Gyr"))
     >>> pot.potential(w)
     Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
@@ -89,7 +90,7 @@ def potential(
     :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~coordinax.FourVector`:
 
-    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> pot.potential(w)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
     """
@@ -100,7 +101,7 @@ def potential(
 @dispatch
 def potential(
     pot: AbstractBasePotential, q: Any, t: Any, /
-) -> Quantity["specific energy"]:
+) -> u.Quantity["specific energy"]:
     """Compute the potential energy at the given position(s).
 
     Parameters
@@ -117,17 +118,17 @@ def potential(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
@@ -141,7 +142,7 @@ def potential(
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = Quantity([1., 2, 3], "kpc")
+    >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> pot.potential(q, t)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
@@ -169,20 +170,20 @@ def potential(
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import numpy as np
-    >>> import astropy.coordinates as c
-    >>> import astropy.units as u
+    >>> import astropy.coordinates as apyc
+    >>> import astropy.units as apyu
 
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 
-    >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = apyc.CartesianRepresentation([1, 2, 3], unit="kpc")
+    >>> t = apyu.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     We can also compute the potential energy at multiple positions:
 
-    >>> q = c.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit=u.kpc)
+    >>> q = apyc.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit="kpc")
     >>> pot.potential(q, t)
     Quantity[...](Array([-0.55372734, -0.46647294], dtype=float64), unit='kpc2 / Myr2')
 
@@ -190,7 +191,7 @@ def potential(
     we can instead pass a :class:`astropy.units.Quantity`, which is interpreted
     as a Cartesian position:
 
-    >>> q = u.Quantity([1, 2, 3], "kpc")
+    >>> q = [1, 2, 3] * apyu.kpc
     >>> pot.potential(q, t)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
@@ -206,14 +207,14 @@ def potential(
 
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.from_(t, pot.units["time"])
+    t = u.Quantity.from_(t, pot.units["time"])
     return pot._potential(q, t)  # noqa: SLF001
 
 
 @dispatch
 def potential(
     pot: AbstractBasePotential, q: Any, /, *, t: Any
-) -> Quantity["specific energy"]:
+) -> u.Quantity["specific energy"]:
     """Compute the potential energy when `t` is keyword-only.
 
     Examples
@@ -222,14 +223,14 @@ def potential(
     :mod:`plum` dispatches on positional arguments only, so it necessary to
     redispatch here. See the other examples in the positional-only case.
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t=t)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
@@ -243,11 +244,11 @@ def potential(
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
-    >>> import astropy.coordinates as c
-    >>> import astropy.units as u
+    >>> import astropy.coordinates as apyc
+    >>> import astropy.units as apyu
 
-    >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = apyc.CartesianRepresentation([1, 2, 3], unit="kpc")
+    >>> t = 0 * apyu.Gyr
     >>> pot.potential(q, t=t)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
@@ -287,18 +288,18 @@ def gradient(
 
     First some imports:
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
     Then we can construct a potential and compute the potential energy:
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                           p=Quantity([4, 5, 6], "km/s"),
-    ...                           t=Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                           p=u.Quantity([4, 5, 6], "km/s"),
+    ...                           t=u.Quantity(0, "Gyr"))
 
     >>> print(pot.gradient(w))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
@@ -306,9 +307,9 @@ def gradient(
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                           t=u.Quantity([0, 1], "Gyr"))
     >>> print(pot.gradient(w))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [[0.086 0.172 0.258]
@@ -317,7 +318,7 @@ def gradient(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> print(pot.gradient(w))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
@@ -344,17 +345,17 @@ def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.Cartesian
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> print(pot.gradient(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
@@ -371,7 +372,7 @@ def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.Cartesian
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = Quantity([1., 2, 3], "kpc")
+    >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.gradient(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
@@ -401,21 +402,21 @@ def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.Cartesian
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
-    >>> import astropy.units as u
-    >>> import astropy.coordinates as c
+    >>> import astropy.units as apyu
+    >>> import astropy.coordinates as apyc
 
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 
-    >>> q = c.CartesianRepresentation(u.Quantity([1, 2, 3], "kpc"))
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = apyc.CartesianRepresentation([1, 2, 3], unit="kpc")
+    >>> t = 0 *  apyu.Gyr
     >>> print(pot.gradient(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
 
     We can also compute the potential energy at multiple positions:
 
-    >>> q = c.CartesianRepresentation(u.Quantity([[1, 4], [2, 5], [3, 6]], "kpc"))
+    >>> q = apyc.CartesianRepresentation([[1, 4], [2, 5], [3, 6]], unit="kpc")
     >>> print(pot.gradient(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [[0.086 0.172 0.258]
@@ -426,7 +427,7 @@ def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.Cartesian
     instead pass a :class:`astropy.units.Quantity`, which is interpreted as a
     Cartesian position:
 
-    >>> q = u.Quantity([1., 2, 3], "kpc")
+    >>> q = [1., 2, 3] * apyu.kpc
     >>> print(pot.gradient(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
@@ -435,7 +436,6 @@ def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.Cartesian
     is an :class:`~numpy.ndarray`), it is assumed to be in the same unit system
     as the potential.
 
-    >>> import numpy as np
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> print(pot.gradient(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
@@ -445,7 +445,7 @@ def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.Cartesian
     .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.from_(t, pot.units["time"])
+    t = u.Quantity.from_(t, pot.units["time"])
     return cx.vecs.CartesianAcc3D.from_(pot._gradient(q, t))  # noqa: SLF001
 
 
@@ -466,17 +466,17 @@ def gradient(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can compute the gradient at a position (and time, if any parameters are
     time-dependent):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> print(pot.gradient(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
@@ -493,7 +493,7 @@ def gradient(
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = Quantity([1., 2, 3], "kpc")
+    >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.gradient(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
@@ -522,7 +522,7 @@ def laplacian(
     pot: AbstractBasePotential,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
     /,
-) -> Quantity["1/s^2"]:
+) -> u.Quantity["1/s^2"]:
     """Compute the laplacian of the potential at the given position(s).
 
     Parameters
@@ -544,34 +544,34 @@ def laplacian(
 
     First some imports:
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
     Then we can construct a potential and compute the potential energy:
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                           p=Quantity([4, 5, 6], "km/s"),
-    ...                           t=Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                           p=u.Quantity([4, 5, 6], "km/s"),
+    ...                           t=u.Quantity(0, "Gyr"))
 
     >>> pot.laplacian(w)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                           t=u.Quantity([0, 1], "Gyr"))
     >>> pot.laplacian(w)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> pot.laplacian(w)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
     """  # noqa: E501
@@ -580,7 +580,7 @@ def laplacian(
 
 
 @dispatch
-def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["1/s^2"]:
+def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> u.Quantity["1/s^2"]:
     """Compute the laplacian of the potential at the given position(s).
 
     Parameters
@@ -597,17 +597,17 @@ def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["1/s^2"
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.laplacian(q, t)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
@@ -621,7 +621,7 @@ def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["1/s^2"
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = Quantity([1., 2, 3], "kpc")
+    >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> pot.laplacian(q, t)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
@@ -648,20 +648,20 @@ def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["1/s^2"
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
-    >>> import astropy.units as u
-    >>> import astropy.coordinates as c
+    >>> import astropy.units as apyu
+    >>> import astropy.coordinates as apyc
 
     We can compute the potential energy at a position (and time, if any
     parameters are time-dependent):
 
-    >>> q = c.CartesianRepresentation(u.Quantity([1, 2, 3], "kpc"))
-    >>> t = Quantity(0, "Gyr")
+    >>> q = apyc.CartesianRepresentation(apyu.Quantity([1, 2, 3], "kpc"))
+    >>> t = 0 * apyu.Gyr
     >>> pot.laplacian(q, t)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
     We can also compute the potential energy at multiple positions:
 
-    >>> q = c.CartesianRepresentation(u.Quantity([[1, 4], [2, 5], [3, 6]], "kpc"))
+    >>> q = apyc.CartesianRepresentation(apyu.Quantity([[1, 4], [2, 5], [3, 6]], "kpc"))
     >>> pot.laplacian(q, t)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
@@ -669,7 +669,7 @@ def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["1/s^2"
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = u.Quantity([1., 2, 3], "kpc")
+    >>> q = [1., 2, 3] * apyu.kpc
     >>> pot.laplacian(q, t)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
@@ -685,12 +685,12 @@ def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["1/s^2"
     .. skip: end
     """  # noqa: E501
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.from_(t, pot.units["time"])
+    t = u.Quantity.from_(t, pot.units["time"])
     return pot._laplacian(q, t)  # noqa: SLF001
 
 
 @dispatch
-def laplacian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> Quantity["1/s^2"]:
+def laplacian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> u.Quantity["1/s^2"]:
     """Compute the laplacian at the given position(s).
 
     Parameters
@@ -704,17 +704,17 @@ def laplacian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> Quantity["1/s
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can compute the laplacian at a position (and time, if any parameters are
     time-dependent):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.laplacian(q, t)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
@@ -728,7 +728,7 @@ def laplacian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> Quantity["1/s
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = Quantity([1., 2, 3], "kpc")
+    >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> pot.laplacian(q, t)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
@@ -753,7 +753,7 @@ def density(
     pot: AbstractBasePotential,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
     /,
-) -> Quantity["mass density"]:
+) -> u.Quantity["mass density"]:
     """Compute the density at the given position(s).
 
     Parameters
@@ -774,34 +774,34 @@ def density(
 
     First some imports:
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
     Then we can construct a potential and compute the density:
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                           p=Quantity([4, 5, 6], "km/s"),
-    ...                           t=Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                           p=u.Quantity([4, 5, 6], "km/s"),
+    ...                           t=u.Quantity(0, "Gyr"))
 
     >>> pot.density(w)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     We can also compute the density at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                           t=u.Quantity([0, 1], "Gyr"))
     >>> pot.density(w)
     Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
 
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> pot.density(w)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
     """
@@ -810,7 +810,9 @@ def density(
 
 
 @dispatch
-def density(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["mass density"]:
+def density(
+    pot: AbstractBasePotential, q: Any, t: Any, /
+) -> u.Quantity["mass density"]:
     """Compute the density at the given position(s).
 
     Parameters
@@ -824,17 +826,17 @@ def density(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["mass den
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can compute the density at a position (and time, if any parameters are
     time-dependent):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.density(q, t)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
@@ -848,7 +850,7 @@ def density(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["mass den
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = Quantity([1., 2, 3], "kpc")
+    >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> pot.density(q, t)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
@@ -876,20 +878,20 @@ def density(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["mass den
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import numpy as np
-    >>> import astropy.coordinates as c
-    >>> import astropy.units as u
+    >>> import astropy.coordinates as apyc
+    >>> import astropy.units as apyu
 
     We can compute the density at a position (and time, if any parameters are
     time-dependent):
 
-    >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = apyc.CartesianRepresentation([1, 2, 3], unit="kpc")
+    >>> t = 0 * apyu.Gyr
     >>> pot.density(q, t)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     We can also compute the density at multiple positions:
 
-    >>> q = c.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit=u.kpc)
+    >>> q = apyc.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit="kpc")
     >>> pot.density(q, t)
     Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
 
@@ -897,7 +899,7 @@ def density(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["mass den
     we can instead pass a :class:`astropy.units.Quantity`, which is interpreted
     as a Cartesian position:
 
-    >>> q = u.Quantity([1, 2, 3], "kpc")
+    >>> q = [1, 2, 3] * apyu.kpc
     >>> pot.density(q, t)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
@@ -912,14 +914,14 @@ def density(pot: AbstractBasePotential, q: Any, t: Any, /) -> Quantity["mass den
     .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.from_(t, pot.units["time"])
+    t = u.Quantity.from_(t, pot.units["time"])
     return pot._density(q, t)  # noqa: SLF001
 
 
 @dispatch
 def density(
     pot: AbstractBasePotential, q: Any, /, *, t: Any
-) -> Quantity["mass density"]:
+) -> u.Quantity["mass density"]:
     """Compute the density when `t` is keyword-only.
 
     Examples
@@ -928,14 +930,14 @@ def density(
     :mod:`plum` dispatches on positional arguments only, so it necessary to
     redispatch here. See the other examples in the positional-only case.
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.density(q, t=t)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
@@ -949,11 +951,11 @@ def density(
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
-    >>> import astropy.coordinates as c
-    >>> import astropy.units as u
+    >>> import astropy.coordinates as apyc
+    >>> import astropy.units as apyu
 
-    >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = apyc.CartesianRepresentation([1, 2, 3], unit="kpc")
+    >>> t = apyu.Quantity(0, "Gyr")
     >>> pot.density(q, t=t)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
@@ -990,18 +992,18 @@ def hessian(
 
     First some imports:
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
     Then we can construct a potential and compute the hessian:
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                           p=Quantity([4, 5, 6], "km/s"),
-    ...                           t=Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                           p=u.Quantity([4, 5, 6], "km/s"),
+    ...                           t=u.Quantity(0, "Gyr"))
 
     >>> pot.hessian(w)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -1011,9 +1013,9 @@ def hessian(
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                           t=u.Quantity([0, 1], "Gyr"))
     >>> pot.hessian(w)
     Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                           [-0.03680435,  0.01226812, -0.11041304],
@@ -1026,7 +1028,7 @@ def hessian(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> pot.hessian(w)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1052,17 +1054,17 @@ def hessian(pot: AbstractBasePotential, q: Any, t: Any, /) -> HessianVec:
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     We can compute the hessian at a position (and time, if any parameters are
     time-dependent):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.hessian(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1085,7 +1087,7 @@ def hessian(pot: AbstractBasePotential, q: Any, t: Any, /) -> HessianVec:
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = Quantity([1., 2, 3], "kpc")
+    >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> pot.hessian(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1122,14 +1124,14 @@ def hessian(pot: AbstractBasePotential, q: Any, t: Any, /) -> HessianVec:
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import numpy as np
-    >>> import astropy.coordinates as c
-    >>> import astropy.units as u
+    >>> import astropy.coordinates as apyc
+    >>> import astropy.units as apyu
 
     We can compute the hessian at a position (and time, if any parameters are
     time-dependent):
 
-    >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = apyc.CartesianRepresentation([1, 2, 3], unit="kpc")
+    >>> t = 0 * apyu.Gyr
     >>> pot.hessian(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1138,7 +1140,7 @@ def hessian(pot: AbstractBasePotential, q: Any, t: Any, /) -> HessianVec:
 
     We can also compute the hessian at multiple positions:
 
-    >>> q = c.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit=u.kpc)
+    >>> q = apyc.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit="kpc")
     >>> pot.hessian(q, t)
     Quantity[...](Array([[[ 0.00800845, -0.00152542, -0.00266948],
                           [-0.00152542,  0.00228813, -0.01067794],
@@ -1152,7 +1154,7 @@ def hessian(pot: AbstractBasePotential, q: Any, t: Any, /) -> HessianVec:
     we can instead pass a :class:`astropy.units.Quantity`, which is interpreted
     as a Cartesian position:
 
-    >>> q = u.Quantity([1, 2, 3], "kpc")
+    >>> q = [1, 2, 3] * apyu.kpc
     >>> pot.hessian(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1176,7 +1178,7 @@ def hessian(pot: AbstractBasePotential, q: Any, t: Any, /) -> HessianVec:
     .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = Quantity.from_(t, pot.units["time"])
+    t = u.Quantity.from_(t, pot.units["time"])
     return pot._hessian(q, t)  # noqa: SLF001
 
 
@@ -1190,14 +1192,14 @@ def hessian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> HessianVec:
     :mod:`plum` dispatches on positional arguments only, so it necessary to
     redispatch here. See the other examples in the positional-only case.
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.hessian(q, t=t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1239,18 +1241,18 @@ def acceleration(
 
     First some imports:
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
     Then we can construct a potential and compute the potential energy:
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                           p=Quantity([4, 5, 6], "km/s"),
-    ...                           t=Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                           p=u.Quantity([4, 5, 6], "km/s"),
+    ...                           t=u.Quantity(0, "Gyr"))
 
     >>> print(pot.acceleration(w))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
@@ -1258,9 +1260,9 @@ def acceleration(
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                           t=u.Quantity([0, 1], "Gyr"))
     >>> print(pot.acceleration(w))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [[-0.086 -0.172 -0.258]
@@ -1269,7 +1271,7 @@ def acceleration(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> print(pot.acceleration(w))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [-0.086 -0.172 -0.258]>
@@ -1278,7 +1280,7 @@ def acceleration(
     keyword argument):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> print(pot.acceleration(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [-0.086 -0.172 -0.258]>
@@ -1295,7 +1297,7 @@ def acceleration(
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = Quantity([1., 2, 3], "kpc")
+    >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.acceleration(q, t))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [-0.086 -0.172 -0.258]>
@@ -1349,18 +1351,18 @@ def tidal_tensor(
 
     First some imports:
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
     >>> import galax.coordinates as gc
 
     Then we can construct a potential and compute the tidal tensor:
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                           p=Quantity([4, 5, 6], "km/s"),
-    ...                           t=Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                           p=u.Quantity([4, 5, 6], "km/s"),
+    ...                           t=u.Quantity(0, "Gyr"))
 
     >>> pot.tidal_tensor(w)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -1370,9 +1372,9 @@ def tidal_tensor(
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                           t=u.Quantity([0, 1], "Gyr"))
     >>> pot.tidal_tensor(w)
     Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                           [-0.03680435,  0.01226812, -0.11041304],
@@ -1385,7 +1387,7 @@ def tidal_tensor(
     Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
-    >>> w = cx.FourVector(q=Quantity([1, 2, 3], "kpc"), t=Quantity(0, "Gyr"))
+    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> pot.tidal_tensor(w)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1395,7 +1397,7 @@ def tidal_tensor(
     We can compute the tidal tensor at a position and time:
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.tidal_tensor(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1418,7 +1420,7 @@ def tidal_tensor(
     :class:`~coordinax.CartesianPos3D`), we can instead pass a
     :class:`unxt.Quantity`, which is interpreted as a Cartesian position:
 
-    >>> q = Quantity([1., 2, 3], "kpc")
+    >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> pot.tidal_tensor(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1443,14 +1445,10 @@ def tidal_tensor(
     :mod:`plum` dispatches on positional arguments only, so it necessary to
     redispatch when `t` is a keyword argument.
 
-    >>> from unxt import Quantity
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> pot = gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
-
-    >>> q = cx.CartesianPos3D.from_(Quantity([1, 2, 3], "kpc"))
-    >>> t = Quantity(0, "Gyr")
+    >>> q = cx.CartesianPos3D.from_(u.Quantity([1, 2, 3], "kpc"))
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.tidal_tensor(q, t=t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1473,14 +1471,14 @@ def tidal_tensor(
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
     >>> import numpy as np
-    >>> import astropy.coordinates as c
-    >>> import astropy.units as u
+    >>> import astropy.coordinates as apyc
+    >>> import astropy.units as apyu
 
     We can compute the tidal tensor at a position (and time, if any
     parameters are time-dependent):
 
-    >>> q = c.CartesianRepresentation([1, 2, 3], unit=u.kpc)
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = apyc.CartesianRepresentation([1, 2, 3], unit="kpc")
+    >>> t = 0 * apyu.Gyr
     >>> pot.tidal_tensor(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1489,7 +1487,7 @@ def tidal_tensor(
 
     We can also compute the tidal tensor at multiple positions:
 
-    >>> q = c.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit=u.kpc)
+    >>> q = apyc.CartesianRepresentation(x=[1, 2], y=[4, 5], z=[7, 8], unit="kpc")
     >>> pot.tidal_tensor(q, t)
     Quantity[...](Array([[[ 0.00800845, -0.00152542, -0.00266948],
                           [-0.00152542,  0.00228813, -0.01067794],
@@ -1504,7 +1502,7 @@ def tidal_tensor(
     we can instead pass a :class:`astropy.units.Quantity`, which is
     interpreted as a Cartesian position:
 
-    >>> q = u.Quantity([1, 2, 3], "kpc")
+    >>> q = [1, 2, 3] * apyu.kpc
     >>> pot.tidal_tensor(q, t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
@@ -1534,7 +1532,7 @@ def tidal_tensor(
 @partial(jax.jit, inline=True)
 def d2potential_dr2(
     pot: AbstractBasePotential, x: gt.LengthBatchVec3, t: gt.TimeBatchableScalar, /
-) -> Shaped[Quantity["1/s^2"], "*batch"]:
+) -> Shaped[u.Quantity["1/s^2"], "*batch"]:
     """Compute the second derivative of the potential at the position.
 
     At a position x (in the simulation frame).
@@ -1555,13 +1553,13 @@ def d2potential_dr2(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
+    >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20.0, "kpc"),
     ...                       units="galactic")
-    >>> q = Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> d2potential_dr2(pot, q, Quantity(0.0, "Myr"))
+    >>> q = u.Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
+    >>> d2potential_dr2(pot, q, u.Quantity(0.0, "Myr"))
     Quantity[...](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
 
     """
@@ -1598,18 +1596,18 @@ def circular_velocity(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
+    >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20.0, "kpc"),
     ...                       units="galactic")
-    >>> x = Quantity([8.0, 0.0, 0.0], "kpc")
-    >>> gp.circular_velocity(pot, x, t=Quantity(0.0, "Gyr"))
+    >>> x = u.Quantity([8.0, 0.0, 0.0], "kpc")
+    >>> gp.circular_velocity(pot, x, t=u.Quantity(0.0, "Gyr"))
     Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
 
     """
     r = jnp.linalg.vector_norm(x, axis=-1)
-    dPhi_dxyz = convert(pot.gradient(x, t=t), Quantity)
+    dPhi_dxyz = convert(pot.gradient(x, t=t), u.Quantity)
     dPhi_dr = jnp.sum(dPhi_dxyz * x / r[..., None], axis=-1)
     return jnp.sqrt(r * jnp.abs(dPhi_dr))
 
@@ -1631,18 +1629,18 @@ def circular_velocity(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
     >>> import coordinax as cx
 
-    >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
+    >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20.0, "kpc"),
     ...                       units="galactic")
     >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "kpc")
-    >>> gp.circular_velocity(pot, x, t=Quantity(0.0, "Gyr"))
+    >>> gp.circular_velocity(pot, x, t=u.Quantity(0.0, "Gyr"))
     Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
 
     """
-    return circular_velocity(pot, convert(q, Quantity), t)
+    return circular_velocity(pot, convert(q, u.Quantity), t)
 
 
 @dispatch
@@ -1662,15 +1660,15 @@ def circular_velocity(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
 
-    >>> pot = gp.NFWPotential(m=Quantity(1e12, "Msun"), r_s=Quantity(20.0, "kpc"),
+    >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20.0, "kpc"),
     ...                       units="galactic")
-    >>> q = gc.PhaseSpacePosition(q=Quantity([8.0, 0.0, 0.0], "kpc"),
-    ...                           p=Quantity([0.0, 0.0, 0.0], "km/s"),
-    ...                           t=Quantity(0.0, "Gyr"))
+    >>> q = gc.PhaseSpacePosition(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
+    ...                           p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
+    ...                           t=u.Quantity(0.0, "Gyr"))
     >>> gp.circular_velocity(pot, q)
     Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
 

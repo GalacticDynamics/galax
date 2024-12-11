@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 import galax.coordinates as gc
 import galax.dynamics as gd
@@ -15,22 +15,22 @@ import galax.potential as gp
 @pytest.fixture
 def potential() -> gp.KeplerPotential:
     """Kepler potential fixture."""
-    return gp.KeplerPotential(m_tot=Quantity(1e12, "Msun"), units="galactic")
+    return gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
 
 @pytest.fixture
 def w0() -> gc.PhaseSpacePosition:
     """Phase space position fixture."""
     return gc.PhaseSpacePosition(
-        q=Quantity([8.0, 0.0, 0.5], "kpc"),
-        p=Quantity([0.0, 220.0, 0.0], "km/s"),
+        q=u.Quantity([8.0, 0.0, 0.5], "kpc"),
+        p=u.Quantity([0.0, 220.0, 0.0], "km/s"),
     )
 
 
 @pytest.fixture
 def orbit(potential: gp.AbstractBasePotential, w0: gc.PhaseSpacePosition) -> gd.Orbit:
     """Orbit fixture."""
-    ts = Quantity(jnp.linspace(0.0, 70, 1000), "Myr")
+    ts = u.Quantity(jnp.linspace(0.0, 70, 1000), "Myr")
     orb: gd.Orbit = gd.evaluate_orbit(potential, w0, ts)
     return orb
 

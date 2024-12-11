@@ -8,7 +8,7 @@ from typing import Any
 from plum import dispatch
 
 import coordinax as cx
-from unxt import uconvert, unitsystem
+import unxt as u
 
 from .base import AbstractBasePhaseSpacePosition
 from .utils import PSPVConvertOptions
@@ -39,12 +39,12 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 
     def to_units(self, units: Any) -> "AbstractPhaseSpacePosition":
         """Return a new object with the components converted to the given units."""
-        usys = unitsystem(units)
+        usys = u.unitsystem(units)
         return replace(
             self,
             q=self.q.uconvert(usys),
             p=self.p.uconvert(usys),
-            t=uconvert(usys["time"], self.t) if self.t is not None else None,
+            t=u.uconvert(usys["time"], self.t) if self.t is not None else None,
         )
 
 
@@ -67,15 +67,15 @@ def vconvert(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax.vecs as cxv
     >>> from galax.coordinates import PhaseSpacePosition
 
     We can create a phase-space position and convert it to a 6-vector:
 
-    >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                          p=Quantity([4, 5, 6], "km/s"),
-    ...                          t=Quantity(0, "Gyr"))
+    >>> psp = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                          p=u.Quantity([4, 5, 6], "km/s"),
+    ...                          t=u.Quantity(0, "Gyr"))
     >>> psp.w(units="galactic")
     Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
 
@@ -107,16 +107,15 @@ def vconvert(
 
     Examples
     --------
-    >>> from unxt import Quantity
-
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
     We can create a phase-space position and convert it to a 6-vector:
 
-    >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                          p=Quantity([4, 5, 6], "km/s"),
-    ...                          t=Quantity(0, "Gyr"))
+    >>> psp = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                          p=u.Quantity([4, 5, 6], "km/s"),
+    ...                          t=u.Quantity(0, "Gyr"))
     >>> psp.w(units="galactic")
     Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
 
@@ -130,7 +129,7 @@ def vconvert(
     If the new representation requires keyword arguments, they can be passed
     through:
 
-    >>> cx.vconvert(cx.vecs.ProlateSpheroidalPos, psp, Delta=Quantity(2.0, "kpc"))
+    >>> cx.vconvert(cx.vecs.ProlateSpheroidalPos, psp, Delta=u.Quantity(2.0, "kpc"))
     PhaseSpacePosition( q=ProlateSpheroidalPos(...),
                         p=ProlateSpheroidalVel(...),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )

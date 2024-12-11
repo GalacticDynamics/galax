@@ -19,8 +19,8 @@ from jaxtyping import Array, Float, Shaped
 
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity, unitsystem
-from unxt.unitsystems import dimensionless
+import unxt as u
+from unxt.unitsystems import AbstractUnitSystem, dimensionless
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -51,8 +51,8 @@ class NFWPotential(AbstractPotential):
     """Scale radius of the potential."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -92,8 +92,10 @@ class NFWPotential(AbstractPotential):
 
     @staticmethod
     def _vc_rs_rref_to_m(
-        v_c: Quantity["velocity"], r_s: Quantity["length"], r_ref: Quantity["length"]
-    ) -> Quantity["mass"]:
+        v_c: u.Quantity["velocity"],
+        r_s: u.Quantity["length"],
+        r_ref: u.Quantity["length"],
+    ) -> u.Quantity["mass"]:
         uu = r_ref / r_s
         vs2 = v_c**2 / uu / (jnp.log(1 + uu) / uu**2 - 1 / (uu * (1 + uu)))
         return r_s * vs2 / default_constants["G"]
@@ -101,9 +103,9 @@ class NFWPotential(AbstractPotential):
     @classmethod
     def from_circular_velocity(
         cls,
-        v_c: Quantity["velocity"],
-        r_s: Quantity["length"],
-        r_ref: Quantity["length"] | None = None,
+        v_c: u.Quantity["velocity"],
+        r_s: u.Quantity["length"],
+        r_ref: u.Quantity["length"] | None = None,
         units: AbstractUnitSystem | None = None,
     ) -> "NFWPotential":
         r"""Create an NFW potential from the circular velocity at a given radius.
@@ -132,10 +134,10 @@ class NFWPotential(AbstractPotential):
     @classmethod
     def from_M200_c(
         cls,
-        M200: Quantity["mass"],
-        c: Quantity["dimensionless"],
+        M200: u.Quantity["mass"],
+        c: u.Quantity["dimensionless"],
         units: AbstractUnitSystem,
-        rho_c: Quantity["mass density"] | None = None,
+        rho_c: u.Quantity["mass density"] | None = None,
     ) -> "NFWPotential":
         """Create an NFW potential from a virial mass and concentration.
 
@@ -156,7 +158,7 @@ class NFWPotential(AbstractPotential):
             rho_c = (3 * cosmo.H(0.0) ** 2 / (8 * np.pi * default_constants["G"])).to(
                 units["mass density"]
             )
-            rho_c = Quantity(rho_c.value, units["mass density"])
+            rho_c = u.Quantity(rho_c.value, units["mass density"])
 
         Rvir = jnp.cbrt(M200 / (200 * rho_c) / (4.0 / 3 * jnp.pi)).to(units["length"])
         r_s = Rvir / c
@@ -183,23 +185,23 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.LeeSutoTriaxialNFWPotential(
-    ...    m=Quantity(1e11, "Msun"), r_s=Quantity(15, "kpc"),
+    ...    m=u.Quantity(1e11, "Msun"), r_s=u.Quantity(15, "kpc"),
     ...    a1=1, a2=0.9, a3=0.8, units="galactic")
 
-    >>> q = Quantity([1, 0, 0], "kpc")
-    >>> t = Quantity(0, "Gyr")
+    >>> q = u.Quantity([1, 0, 0], "kpc")
+    >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t).decompose(pot.units)
     Quantity[...](Array(-0.14620419, dtype=float64), unit='kpc2 / Myr2')
 
-    >>> q = Quantity([0, 1, 0], "kpc")
+    >>> q = u.Quantity([0, 1, 0], "kpc")
     >>> pot.potential(q, t).decompose(pot.units)
     Quantity[...](Array(-0.14593972, dtype=float64), unit='kpc2 / Myr2')
 
-    >>> q = Quantity([0, 0, 1], "kpc")
+    >>> q = u.Quantity([0, 0, 1], "kpc")
     >>> pot.potential(q, t).decompose(pot.units)
     Quantity[...](Array(-0.14570309, dtype=float64), unit='kpc2 / Myr2')
     """
@@ -215,28 +217,28 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
     """Scale radius."""
 
     a1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=Quantity(1.0, "")
+        dimensions="dimensionless", default=u.Quantity(1.0, "")
     )
     """Major axis."""
 
     a2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=Quantity(1.0, "")
+        dimensions="dimensionless", default=u.Quantity(1.0, "")
     )
     """Intermediate axis."""
 
     a3: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=Quantity(1.0, "")
+        dimensions="dimensionless", default=u.Quantity(1.0, "")
     )
     """Minor axis."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
     def __check_init__(self) -> None:
-        t = Quantity(0.0, "Myr")
+        t = u.Quantity(0.0, "Myr")
         _ = eqx.error_if(
             t,
             (self.a1(t) < self.a2(t)) or (self.a2(t) < self.a3(t)),
@@ -304,10 +306,10 @@ class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
         self,
         f: Callable[
             [Shaped[Array, "N *#batch"]],
-            Shaped[Array, "N *batch"] | Shaped[Quantity["dimensionless"], "N *batch"],
+            Shaped[Array, "N *batch"] | Shaped[u.Quantity["dimensionless"], "N *batch"],
         ],
         /,
-    ) -> Shaped[Array, "*batch"] | Shaped[Quantity["dimensionless"], "*batch"]:
+    ) -> Shaped[Array, "*batch"] | Shaped[u.Quantity["dimensionless"], "*batch"]:
         y = f(self.x)
         w = self.w.reshape(self.w.shape + (1,) * (y.ndim - 1))
         return jnp.sum(y * w, axis=0)
@@ -335,18 +337,18 @@ class TriaxialNFWPotential(AbstractPotential):
     """Scale radius of the potential."""
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1.0, ""), dimensions="dimensionless"
+        default=u.Quantity(1.0, ""), dimensions="dimensionless"
     )
     """Scale length in the y/x direction."""
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=Quantity(1.0, ""), dimensions="dimensionless"
+        default=u.Quantity(1.0, ""), dimensions="dimensionless"
     )
     """Scale length in the z/x direction."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -384,11 +386,11 @@ class TriaxialNFWPotential(AbstractPotential):
     @partial(jax.jit, inline=True)
     def _ellipsoid_surface(
         self,
-        q: Shaped[Quantity["length"], "1 *batch 3"],
-        q1: Shaped[Quantity["dimensionless"], ""],
-        q2: Shaped[Quantity["dimensionless"], ""],
+        q: Shaped[u.Quantity["length"], "1 *batch 3"],
+        q1: Shaped[u.Quantity["dimensionless"], ""],
+        q2: Shaped[u.Quantity["dimensionless"], ""],
         s2: Shaped[Array, "N *#batch"],
-    ) -> Shaped[Quantity["area"], "N *batch"]:
+    ) -> Shaped[u.Quantity["area"], "N *batch"]:
         r"""Compute coordinates on the ellipse.
 
         .. math::
@@ -478,13 +480,13 @@ class TriaxialNFWPotential(AbstractPotential):
         # This factors out the rho0 * r_s^2, moving it to the end
         def delta_psi_factor(
             s2: Float[Array, "N *#batch"],
-        ) -> Float[Quantity["dimensionless"], "N *batch"]:
+        ) -> Float[u.Quantity["dimensionless"], "N *batch"]:
             xi = jnp.sqrt(self._ellipsoid_surface(q, q1, q2, s2)) / r_s
             return 2.0 / (1.0 + xi)
 
         def integrand(
             s: Float[Array, "N"],
-        ) -> Float[Quantity["dimensionless"], "N *batch"]:
+        ) -> Float[u.Quantity["dimensionless"], "N *batch"]:
             s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
             denom = jnp.sqrt(((q1sq - 1) * s2 + 1) * ((q2sq - 1) * s2 + 1))
             return delta_psi_factor(s2) / denom
@@ -522,7 +524,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
     """Scale radius."""
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=Quantity(1.0, "")
+        dimensions="dimensionless", default=u.Quantity(1.0, "")
     )
     """y/x axis ratio.
 
@@ -530,7 +532,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
     """
 
     a_r: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=Quantity(1.0, "")
+        dimensions="dimensionless", default=u.Quantity(1.0, "")
     )
     """Transition radius relative to :math:`r_s`.
 
@@ -539,8 +541,8 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
     """
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 

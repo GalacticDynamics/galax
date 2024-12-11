@@ -8,7 +8,7 @@ from plum import convert
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
@@ -48,7 +48,7 @@ class GalaIOMixin:
         # quick test that the potential energies are the same
         got = rpot(x, 0)
         exp = pot(x, 0)
-        assert jnp.allclose(got, exp, atol=Quantity(1e-14, exp.unit))
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-14, exp.unit))
 
         # TODO: add more robust tests
 
@@ -73,13 +73,13 @@ class GalaIOMixin:
         if not self.HAS_GALA_COUNTERPART:
             pytest.skip("potential does not have a gala counterpart")
 
-        galax = convert(getattr(pot, method0)(x, t=0), Quantity)
+        galax = convert(getattr(pot, method0)(x, t=0), u.Quantity)
         galap = gp.io.convert_potential(gp.io.GalaLibrary, pot)
         gala = getattr(galap, method1)(convert(x, apyu.Quantity), t=0 * apyu.Myr)
         assert jnp.allclose(
             jnp.ravel(galax),
-            jnp.ravel(convert(gala, Quantity)),
-            atol=Quantity(atol, galax.unit),
+            jnp.ravel(convert(gala, u.Quantity)),
+            atol=u.Quantity(atol, galax.unit),
         )
 
 

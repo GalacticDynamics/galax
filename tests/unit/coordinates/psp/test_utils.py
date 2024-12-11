@@ -7,13 +7,13 @@ import pytest
 from jaxtyping import Array, Float
 
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 from galax.coordinates._src.psps.utils import HasShape, getitem_vec1time_index
 from galax.typing import QVec3
 
 Vec3 = Float[Array, "3"]
-QVec2x3 = Float[Quantity["time"], "2 3"]
+QVec2x3 = Float[u.Quantity["time"], "2 3"]
 
 
 class TestHasShape:
@@ -36,12 +36,12 @@ class Test_getitem_vec1time_index:
     @pytest.fixture
     def t3(self) -> QVec3:
         """Return a Array[Float, 3]."""
-        return Quantity([1.0, 2.0, 3.0], "Myr")
+        return u.Quantity([1.0, 2.0, 3.0], "Myr")
 
     @pytest.fixture
     def t2x3(self) -> QVec2x3:
         """Return a Array[Float, 2x3]."""
-        return Quantity([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], "Myr")
+        return u.Quantity([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], "Myr")
 
     # ===============================================================
 

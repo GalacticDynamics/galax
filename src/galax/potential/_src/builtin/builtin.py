@@ -141,11 +141,11 @@ class BurkertPotential(AbstractPotential):
         Examples
         --------
         >>> import unxt as u
-        >>> from galax.potential import BurkertPotential
+        >>> import galax.potential as gp
 
         >>> rho_0 = u.Quantity(1e6, "Msun / kpc3")
         >>> r_s = u.Quantity(1, "kpc")
-        >>> pot = BurkertPotential.from_central_density(rho_0, r_s, units="galactic")
+        >>> pot = gp.BurkertPotential.from_central_density(rho_0, r_s, units="galactic")
         >>> pot
         BurkertPotential(
             units=LTMAUnitSystem( length=Unit("kpc"), ...),
@@ -714,9 +714,9 @@ class NullPotential(AbstractPotential):
     Examples
     --------
     >>> import unxt as u
-    >>> from galax.potential import NullPotential
+    >>> import galax.potential as gp
 
-    >>> pot = NullPotential()
+    >>> pot = gp.NullPotential()
     >>> pot
     NullPotential( units=..., constants=ImmutableMap({'G': ...}) )
 
@@ -976,11 +976,11 @@ class TriaxialHernquistPotential(AbstractPotential):
     Examples
     --------
     >>> import unxt as u
-    >>> from galax.potential import TriaxialHernquistPotential
+    >>> import galax.potential as gp
 
-    >>> pot = TriaxialHernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                                  r_s=u.Quantity(8, "kpc"), q1=1, q2=0.5,
-    ...                                  units="galactic")
+    >>> pot = gp.TriaxialHernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...                                     r_s=u.Quantity(8, "kpc"), q1=1, q2=0.5,
+    ...                                     units="galactic")
 
     >>> q = u.Quantity([1, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")

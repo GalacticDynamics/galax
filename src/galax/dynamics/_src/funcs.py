@@ -234,9 +234,9 @@ def tidal_radius(
     Examples
     --------
     >>> import jax.numpy as jnp
-    >>> from galax.potential import NFWPotential
+    >>> import galax.potential as gp
 
-    >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
+    >>> pot = gp.NFWPotential(m=1e12, r_s=20.0, units="galactic")
 
     >>> x = u.Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
     >>> v = u.Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")

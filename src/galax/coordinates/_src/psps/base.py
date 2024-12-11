@@ -542,7 +542,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> import unxt as u
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
-        >>> from galax.potential import MilkyWayPotential
+        >>> import galax.potential as gp
 
         We can construct a phase-space position:
 
@@ -558,7 +558,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can compute the kinetic energy:
 
-        >>> pot = MilkyWayPotential()
+        >>> pot = gp.MilkyWayPotential()
         >>> w.potential_energy(pot)
         Quantity[...](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """
@@ -589,7 +589,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> import unxt as u
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
-        >>> from galax.potential import MilkyWayPotential
+        >>> import galax.potential as gp
 
         We can construct a phase-space position:
 
@@ -605,7 +605,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can compute the kinetic energy:
 
-        >>> pot = MilkyWayPotential()
+        >>> pot = gp.MilkyWayPotential()
         >>> w.total_energy(pot)
         Quantity[...](Array(..., dtype=float64), unit='km2 / s2')
         """

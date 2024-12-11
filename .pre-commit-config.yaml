@@ -55,7 +55,7 @@ repos:
       # Run the linter
       - id: ruff
         types_or: [python, pyi, jupyter]
-        args: ["--fix", "--show-fixes"]
+        args: ["--fix", "--show-fixes", "--ignore", "TC00"]
       # Run the formatter
       - id: ruff-format
         types_or: [python, pyi, jupyter]

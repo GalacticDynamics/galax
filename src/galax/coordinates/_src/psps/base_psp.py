@@ -3,7 +3,7 @@
 __all__ = ["AbstractPhaseSpacePosition"]
 
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from plum import dispatch
 
@@ -11,9 +11,7 @@ import coordinax as cx
 from unxt import uconvert, unitsystem
 
 from .base import AbstractBasePhaseSpacePosition
-
-if TYPE_CHECKING:
-    from typing import Self
+from .utils import PSPVConvertOptions
 
 
 class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
@@ -39,7 +37,7 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
     # ==========================================================================
     # Convenience methods
 
-    def to_units(self, units: Any) -> "Self":
+    def to_units(self, units: Any) -> "AbstractPhaseSpacePosition":
         """Return a new object with the components converted to the given units."""
         usys = unitsystem(units)
         return replace(
@@ -55,35 +53,22 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 
 
 # -----------------------------------------------
-# Register AbstractPhaseSpacePosition with `coordinax.represent_as`
-@dispatch  # type: ignore[misc]
-def represent_as(
+# `coordinax.vconvert` dispatches
+
+
+@dispatch
+def vconvert(
+    target: PSPVConvertOptions,
     psp: AbstractPhaseSpacePosition,
-    position_cls: type[cx.AbstractPos],
-    velocity_cls: type[cx.AbstractVel] | None = None,
     /,
     **kwargs: Any,
 ) -> AbstractPhaseSpacePosition:
-    """Return with the components transformed.
-
-    Parameters
-    ----------
-    psp : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
-        The phase-space position.
-    position_cls : type[:class:`~vector.AbstractPos`]
-        The target position class.
-    velocity_cls : type[:class:`~vector.AbstractVel`], optional
-        The target differential class. If `None` (default), the differential
-        class of the target position class is used.
-    **kwargs
-        Additional keyword arguments are passed through to `coordinax.represent_as`.
+    """Convert the phase-space position to a different representation.
 
     Examples
     --------
-    With the following imports:
-
     >>> from unxt import Quantity
-    >>> import coordinax as cx
+    >>> import coordinax.vecs as cxv
     >>> from galax.coordinates import PhaseSpacePosition
 
     We can create a phase-space position and convert it to a 6-vector:
@@ -94,33 +79,62 @@ def represent_as(
     >>> psp.w(units="galactic")
     Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
 
-    We can also convert it to a different representation:
+    Converting it to a different representation and differential class:
 
-    >>> psp.represent_as(cx.CylindricalPos)
-    PhaseSpacePosition( q=CylindricalPos(...),
-                        p=CylindricalVel(...),
-                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
-
-    We can also convert it to a different representation with a different
-    differential class:
-
-    >>> psp.represent_as(cx.LonLatSphericalPos, cx.LonCosLatSphericalVel)
+    >>> cx.vconvert({"q": cxv.LonLatSphericalPos, "p": cxv.LonCosLatSphericalVel}, psp)
     PhaseSpacePosition( q=LonLatSphericalPos(...),
                         p=LonCosLatSphericalVel(...),
+                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+
+    """
+    q_cls = target["q"]
+    p_cls = q_cls.differential_cls if (mayp := target.get("p")) is None else mayp
+    return replace(
+        psp,
+        q=psp.q.vconvert(q_cls, **kwargs),
+        p=psp.p.vconvert(p_cls, psp.q, **kwargs),
+    )
+
+
+@dispatch
+def vconvert(
+    target_position_cls: type[cx.vecs.AbstractPos],
+    psp: AbstractPhaseSpacePosition,
+    /,
+    **kwargs: Any,
+) -> AbstractPhaseSpacePosition:
+    """Convert the phase-space position to a different representation.
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
+
+    We can create a phase-space position and convert it to a 6-vector:
+
+    >>> psp = PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
+    ...                          p=Quantity([4, 5, 6], "km/s"),
+    ...                          t=Quantity(0, "Gyr"))
+    >>> psp.w(units="galactic")
+    Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
+
+    Converting it to a different representation:
+
+    >>> cx.vconvert(cx.vecs.CylindricalPos, psp)
+    PhaseSpacePosition( q=CylindricalPos(...),
+                        p=CylindricalVel(...),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
     If the new representation requires keyword arguments, they can be passed
     through:
 
-    >>> psp.represent_as(cx.ProlateSpheroidalPos, Delta=Quantity(2.0, "kpc"))
+    >>> cx.vconvert(cx.vecs.ProlateSpheroidalPos, psp, Delta=Quantity(2.0, "kpc"))
     PhaseSpacePosition( q=ProlateSpheroidalPos(...),
                         p=ProlateSpheroidalVel(...),
                         t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
 
     """
-    diff_cls = position_cls.differential_cls if velocity_cls is None else velocity_cls
-    return replace(
-        psp,
-        q=psp.q.represent_as(position_cls, **kwargs),
-        p=psp.p.represent_as(diff_cls, psp.q, **kwargs),
-    )
+    target = {"q": target_position_cls, "p": target_position_cls.differential_cls}
+    return vconvert(target, psp, **kwargs)

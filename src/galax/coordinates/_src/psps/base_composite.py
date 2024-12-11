@@ -5,7 +5,7 @@ __all__ = ["AbstractCompositePhaseSpacePosition"]
 from abc import abstractmethod
 from collections.abc import Hashable, Mapping
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
 import equinox as eqx
 from jaxtyping import Shaped
@@ -20,9 +20,7 @@ from zeroth import zeroth
 
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
-
-if TYPE_CHECKING:
-    from typing import Self
+from .utils import PSPVConvertOptions
 
 
 # Note: cannot have `strict=True` because of inheriting from ImmutableMap.
@@ -60,7 +58,7 @@ class AbstractCompositePhaseSpacePosition(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> def stack(vs: list[cx.AbstractPos]) -> cx.AbstractPos:
+    >>> def stack(vs: list[cx.vecs.AbstractPos]) -> cx.vecs.AbstractPos:
     ...    comps = {k: jnp.stack([getattr(v, k) for v in vs], axis=-1)
     ...             for k in vs[0].components}
     ...    return replace(vs[0], **comps)
@@ -111,12 +109,12 @@ class AbstractCompositePhaseSpacePosition(
 
     @property
     @abstractmethod
-    def q(self) -> cx.AbstractPos3D:
+    def q(self) -> cx.vecs.AbstractPos3D:
         """Positions."""
 
     @property
     @abstractmethod
-    def p(self) -> cx.AbstractVel3D:
+    def p(self) -> cx.vecs.AbstractVel3D:
         """Conjugate momenta."""
 
     @property
@@ -230,7 +228,7 @@ class AbstractCompositePhaseSpacePosition(
     # ==========================================================================
     # Convenience methods
 
-    def to_units(self, units: Any) -> "Self":
+    def to_units(self, units: Any) -> "AbstractCompositePhaseSpacePosition":
         """Convert the components to the given units.
 
         Examples
@@ -267,29 +265,18 @@ class AbstractCompositePhaseSpacePosition(
 # =============================================================================
 # helper functions
 
+# =================
+# `coordinax.vconvert` dispatches
 
-# Register AbstractCompositePhaseSpacePosition with `coordinax.represent_as`
-@dispatch  # type: ignore[misc]
-def represent_as(
-    psp: AbstractCompositePhaseSpacePosition,
-    position_cls: type[cx.AbstractPos],
-    velocity_cls: type[cx.AbstractVel] | None = None,
+
+@dispatch
+def vconvert(
+    target: PSPVConvertOptions,
+    psps: AbstractCompositePhaseSpacePosition,
     /,
     **kwargs: Any,
 ) -> AbstractCompositePhaseSpacePosition:
     """Return with the components transformed.
-
-    Parameters
-    ----------
-    psp : :class:`~galax.coordinates.AbstractCompositePhaseSpacePosition`
-        The phase-space position.
-    position_cls : type[:class:`~vector.AbstractPos`]
-        The target position class.
-    velocity_cls : type[:class:`~vector.AbstractVel`], optional
-        The target differential class. If `None` (default), the differential
-        class of the target position class is used.
-    **kwargs
-        Additional keyword arguments are passed through to `coordinax.represent_as`.
 
     Examples
     --------
@@ -310,7 +297,58 @@ def represent_as(
 
     We can transform the composite phase-space position to a new position class.
 
-    >>> cx.represent_as(cpsp, cx.CylindricalPos)
+    >>> cx.vconvert({"q": cx.vecs.CylindricalPos, "p": cx.vecs.SphericalVel}, cpsp)
+    CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
+            q=CylindricalPos( ... ),
+            p=SphericalVel( ... ),
+            t=Quantity[...](value=f64[], unit=Unit("s"))
+        ),
+        'psp2': PhaseSpacePosition(
+            q=CylindricalPos( ... ),
+            p=SphericalVel( ... ),
+            t=Quantity[...](value=f64[], unit=Unit("s"))
+    )})
+
+    """
+    q_cls = target["q"]
+    target = {
+        "q": q_cls,
+        "p": q_cls.differential_cls if (p_cls := target.get("p")) is None else p_cls,
+    }
+
+    # TODO: use `dataclassish.replace`
+    return type(psps)(**{k: psp.vconvert(target, **kwargs) for k, psp in psps.items()})
+
+
+@dispatch
+def vconvert(
+    target_position_cls: type[cx.vecs.AbstractPos],
+    psps: AbstractCompositePhaseSpacePosition,
+    /,
+    **kwargs: Any,
+) -> AbstractCompositePhaseSpacePosition:
+    """Return with the components transformed.
+
+    Examples
+    --------
+    >>> from unxt import Quantity
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
+
+    We define a composite phase-space position with two components.
+    Every component is a phase-space position in Cartesian coordinates.
+
+    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
+    ...                              p=Quantity([4, 5, 6], "m/s"),
+    ...                              t=Quantity(7.0, "s"))
+    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=Quantity(6.0, "s"))
+    >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
+
+    We can transform the composite phase-space position to a new position class.
+
+    >>> cx.vconvert(cx.vecs.CylindricalPos, cpsp)
     CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
         q=CylindricalPos( ... ),
         p=CylindricalVel( ... ),
@@ -323,11 +361,8 @@ def represent_as(
     )})
 
     """
-    vel_cls = position_cls.differential_cls if velocity_cls is None else velocity_cls
-    # TODO: can we use `replace`?
-    return type(psp)(
-        **{k: represent_as(v, position_cls, vel_cls, **kwargs) for k, v in psp.items()}
-    )
+    target = {"q": target_position_cls, "p": target_position_cls.differential_cls}
+    return vconvert(target, psps, **kwargs)
 
 
 # =================

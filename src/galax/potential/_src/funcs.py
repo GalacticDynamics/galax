@@ -265,7 +265,7 @@ def gradient(
     pot: AbstractBasePotential,
     pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
     /,
-) -> cx.CartesianAcc3D:
+) -> cx.vecs.CartesianAcc3D:
     """Compute the gradient of the potential at the given position(s).
 
     Parameters
@@ -323,11 +323,11 @@ def gradient(
         [0.086 0.172 0.258]>
     """
     q = parse_to_quantity(pspt.q, units=pot.units)
-    return cx.CartesianAcc3D.from_(pot._gradient(q, pspt.t))  # noqa: SLF001
+    return cx.vecs.CartesianAcc3D.from_(pot._gradient(q, pspt.t))  # noqa: SLF001
 
 
 @dispatch
-def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.CartesianAcc3D:
+def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3D:
     """Compute the gradient of the potential at the given position(s).
 
     Parameters
@@ -446,11 +446,13 @@ def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.CartesianAcc3D
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
     t = Quantity.from_(t, pot.units["time"])
-    return cx.CartesianAcc3D.from_(pot._gradient(q, t))  # noqa: SLF001
+    return cx.vecs.CartesianAcc3D.from_(pot._gradient(q, t))  # noqa: SLF001
 
 
 @dispatch
-def gradient(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> cx.CartesianAcc3D:
+def gradient(
+    pot: AbstractBasePotential, q: Any, /, *, t: Any
+) -> cx.vecs.CartesianAcc3D:
     """Compute the gradient at the given position(s).
 
     Parameters
@@ -1215,7 +1217,7 @@ def acceleration(
     /,
     *args: Any,  # defer to `gradient`
     **kwargs: Any,  # defer to `gradient`
-) -> cx.CartesianAcc3D:
+) -> cx.vecs.CartesianAcc3D:
     """Compute the acceleration due to the potential at the given position(s).
 
     Parameters
@@ -1563,7 +1565,7 @@ def d2potential_dr2(
     Quantity[...](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
 
     """
-    rhat = cx.normalize_vector(x)
+    rhat = cx.vecs.normalize_vector(x)
     H = pot.hessian(x, t=t)
     # vectorized dot product of rhat · H · rhat
     return jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)
@@ -1623,7 +1625,7 @@ def circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, q: cx.AbstractPos3D, /, t: gt.TimeScalar
+    pot: AbstractBasePotential, q: cx.vecs.AbstractPos3D, /, t: gt.TimeScalar
 ) -> gt.BatchableRealQScalar:
     """Estimate the circular velocity at the given position.
 
@@ -1646,7 +1648,7 @@ def circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, q: cx.AbstractPos3D, /, *, t: gt.TimeScalar
+    pot: AbstractBasePotential, q: cx.vecs.AbstractPos3D, /, *, t: gt.TimeScalar
 ) -> gt.BatchableRealQScalar:
     return circular_velocity(pot, q, t)
 

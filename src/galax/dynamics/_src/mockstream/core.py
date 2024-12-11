@@ -35,10 +35,10 @@ class MockStreamArm(gc.AbstractPhaseSpacePosition):
         Release time of the stream particles [Myr].
     """
 
-    q: cx.AbstractPos3D = eqx.field(converter=cx.AbstractPos3D.from_)
+    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vecs.AbstractPos3D.from_)
     """Positions (x, y, z)."""
 
-    p: cx.AbstractVel3D = eqx.field(converter=cx.AbstractVel3D.from_)
+    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vecs.AbstractVel3D.from_)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     t: gt.QVecTime = eqx.field(converter=Quantity["time"].from_)
@@ -99,7 +99,7 @@ class MockStream(gc.AbstractCompositePhaseSpacePosition):
         self._time_sorter = jnp.argsort(ts)
 
     @property
-    def q(self) -> cx.AbstractPos3D:
+    def q(self) -> cx.vecs.AbstractPos3D:
         """Positions."""
         # TODO: get AbstractPos to work with `stack` directly
         return jtu.map(
@@ -108,7 +108,7 @@ class MockStream(gc.AbstractCompositePhaseSpacePosition):
         )
 
     @property
-    def p(self) -> cx.AbstractVel3D:
+    def p(self) -> cx.vecs.AbstractVel3D:
         """Conjugate momenta."""
         # TODO: get AbstractVel to work with `stack` directly
         return jtu.map(

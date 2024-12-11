@@ -92,10 +92,10 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     True
 
     Of course a similar effect can be achieved by using the
-    `coordinax.represent_as` function (or convenience method on the phase-space
+    `coordinax.vconvert` function (or convenience method on the phase-space
     position):
 
-    >>> w4 = cx.represent_as(w3, cx.SphericalPos, cx.CartesianVel3D)
+    >>> w4 = w3.vconvert(cx.SphericalPos, cx.CartesianVel3D)
     >>> w4
     PhaseSpacePosition(
       q=SphericalPos( ... ),
@@ -105,13 +105,13 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     """
 
-    q: cx.AbstractPos3D = eqx.field(converter=cx.AbstractPos3D.from_)
+    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vecs.AbstractPos3D.from_)
     """Positions, e.g CartesianPos3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: cx.AbstractVel3D = eqx.field(converter=cx.AbstractVel3D.from_)
+    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vecs.AbstractVel3D.from_)
     r"""Conjugate momenta, e.g. CartesianVel3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.

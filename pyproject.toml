@@ -28,7 +28,7 @@
   dependencies = [
     "astropy>=7.0",
     "beartype>=0.19",
-    "coordinax>=0.15.0",
+    "coordinax>=0.16.1",
     "dataclassish>=0.4",
     "diffrax>=0.6",
     "equinox>=0.11.8",
@@ -229,8 +229,6 @@
   [tool.ruff.lint]
     extend-select = ["ALL"]
     ignore = [
-      "ANN101",  # Missing type annotation for self in method
-      "ANN102",  # Missing type annotation for cls in classmethod
       "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in `*args`
       "COM812",  # Missing trailing comma in Python 3.6+
       "D105",    # Missing docstring in magic method
@@ -249,7 +247,7 @@
       "PLR",     # Design related pylint codes
       "PYI041",  # Use `float` instead of `int | float` <- beartype is more strict
       "RUF022",  # `__all__` is not sorted
-      "TC00",    # Move into a type-checking block
+      # "TC00",    # Move into a type-checking block
       "TD002",   # Missing author in TODO
       "TD003",   # Missing issue link on the line following this TODO
       "UP037",   # Remove quote from type annotation  <- jaxtyping

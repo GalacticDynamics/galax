@@ -7,8 +7,9 @@ from dataclasses import replace
 from typing import cast, final
 
 import equinox as eqx
+from plum import dispatch
 
-from coordinax.operators import OperatorSequence, simplify_op
+import coordinax.ops as cxo
 from unxt import AbstractUnitSystem, Quantity
 from xmmutablemap import ImmutableMap
 
@@ -28,7 +29,7 @@ class PotentialFrame(AbstractBasePotential):
     First some imports:
 
     >>> from unxt import Quantity, ustrip
-    >>> import coordinax.operators as cxo
+    >>> import coordinax as cx
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
 
@@ -60,16 +61,16 @@ class PotentialFrame(AbstractBasePotential):
 
     Let's apply a spatial translation to the potential:
 
-    >>> op1 = cxo.GalileanSpatialTranslationOperator(Quantity([3, 0, 0], "kpc"))
+    >>> op1 = cx.ops.GalileanSpatialTranslation(Quantity([3, 0, 0], "kpc"))
     >>> op1
-    GalileanSpatialTranslationOperator( translation=CartesianPos3D( ... ) )
+    GalileanSpatialTranslation(CartesianPos3D( ... ))
 
     >>> framedpot1 = gp.PotentialFrame(original_potential=pot, operator=op1)
     >>> framedpot1
     PotentialFrame(
       original_potential=TriaxialHernquistPotential( ... ),
-      operator=OperatorSequence(
-        operators=( GalileanSpatialTranslationOperator( ... ), )
+      operator=GalileanSpatialTranslation(
+        translation=CartesianPos3D( ... )
       )
     )
 
@@ -87,7 +88,7 @@ class PotentialFrame(AbstractBasePotential):
 
     We can also apply a time translation to the potential:
 
-    >>> op2 = cxo.GalileanTranslationOperator(Quantity([1_000, 0, 0, 0], "kpc"))
+    >>> op2 = cx.ops.GalileanTranslation(Quantity([1_000, 0, 0, 0], "kpc"))
     >>> op2.translation.t.uconvert("Myr")  # doctest: +SKIP
     Quantity['time'](Array(3.26156378, dtype=float64), unit='Myr')
 
@@ -109,9 +110,9 @@ class PotentialFrame(AbstractBasePotential):
 
     Now let's boost the potential by 200 km/s in the y-direction:
 
-    >>> op3 = cxo.GalileanBoostOperator(Quantity([0, 200, 0], "km/s"))
+    >>> op3 = cx.ops.GalileanBoost(Quantity([0, 200, 0], "km/s"))
     >>> op3
-    GalileanBoostOperator( velocity=CartesianVel3D( ... ) )
+    GalileanBoost(CartesianVel3D( ... ))
 
     >>> framedpot3 = gp.PotentialFrame(original_potential=pot, operator=op3)
     >>> framedpot3.potential(w2)
@@ -124,9 +125,9 @@ class PotentialFrame(AbstractBasePotential):
     >>> Ry = jnp.asarray([[jnp.cos(theta),  0, jnp.sin(theta)],
     ...                  [0,              1, 0            ],
     ...                  [-jnp.sin(theta), 0, jnp.cos(theta)]])
-    >>> op4 = cxo.GalileanRotationOperator(Ry)
+    >>> op4 = cx.ops.GalileanRotation(Ry)
     >>> op4
-    GalileanRotationOperator(rotation=f64[3,3])
+    GalileanRotation(rotation=f64[3,3])
 
     >>> framedpot4 = gp.PotentialFrame(original_potential=pot, operator=op4)
     >>> framedpot4.potential(w1)
@@ -144,12 +145,12 @@ class PotentialFrame(AbstractBasePotential):
     are two ways to do this. The first is to create a pre-defined composite
     operator, like a :class:`~galax.coordinates.operators.GalileanOperator`:
 
-    >>> op5 = cxo.GalileanOperator(rotation=op4, translation=op2, velocity=op3)
+    >>> op5 = cx.ops.GalileanOperator(rotation=op4, translation=op2, velocity=op3)
     >>> op5
     GalileanOperator(
-      rotation=GalileanRotationOperator(rotation=f64[3,3]),
-      translation=GalileanTranslationOperator( ... ),
-      velocity=GalileanBoostOperator( ... )
+      rotation=GalileanRotation(rotation=f64[3,3]),
+      translation=GalileanTranslation( ... ),
+      velocity=GalileanBoost( ... )
     )
 
     >>> framedpot5 = gp.PotentialFrame(original_potential=pot, operator=op5)
@@ -186,7 +187,7 @@ class PotentialFrame(AbstractBasePotential):
 
     original_potential: AbstractBasePotential
 
-    operator: OperatorSequence = eqx.field(default=(), converter=OperatorSequence)
+    operator: cxo.AbstractOperator = eqx.field(default_factory=lambda: cxo.Identity())
     """Transformation to reference frame of the potential.
 
     The default is no transformation, ie the coordinates are specified in the
@@ -234,7 +235,7 @@ class PotentialFrame(AbstractBasePotential):
 #####################################################################
 
 
-@simplify_op.register  # type: ignore[misc]
-def _simplify_op(frame: PotentialFrame, /) -> PotentialFrame:
+@dispatch  # type: ignore[misc]
+def simplify_op(frame: PotentialFrame, /) -> PotentialFrame:
     """Simplify the operators in an PotentialFrame."""
-    return replace(frame, operator=simplify_op(frame.operator))
+    return replace(frame, operator=cxo.simplify_op(frame.operator))

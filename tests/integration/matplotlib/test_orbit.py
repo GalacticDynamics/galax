@@ -49,7 +49,7 @@ def test_orbit_plot(orbit: gd.Orbit) -> Figure:
 @pytest.mark.mpl_image_compare(deterministic=True)
 def test_orbit_plot_represent_as(orbit: gd.Orbit) -> Figure:
     """Test plotting an orbit in a Kepler potential."""
-    ax = orbit.plot(x="rho", y="d_z", represent_as=cx.CylindricalPos)
+    ax = orbit.plot(x="rho", y="d_z", vector_representation=cx.vecs.CylindricalPos)
 
     return ax.figure
 

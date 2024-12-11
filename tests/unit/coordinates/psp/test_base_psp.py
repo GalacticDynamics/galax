@@ -241,8 +241,8 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
         class PSP(AbstractPhaseSpacePosition):
             """A phase-space position."""
 
-            q: cx.AbstractPos3D = eqx.field(converter=cx.AbstractPos3D.from_)
-            p: cx.AbstractVel3D = eqx.field(converter=cx.AbstractVel3D.from_)
+            q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vecs.AbstractPos3D.from_)
+            p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vecs.AbstractVel3D.from_)
             t: u.Quantity["time"]
 
             @property
@@ -268,7 +268,7 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
                     The full phase-space position, including time.
                 """
                 batch, comps = self._shape_tuple
-                cart = self.represent_as(cx.CartesianPos3D)
+                cart = self.vconvert(cx.CartesianPos3D)
                 q = jnp.broadcast_to(
                     convert(cart.q, u.Quantity).decompose(units).value,
                     (*batch, comps.q),

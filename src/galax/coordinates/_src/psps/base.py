@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import replace
 from functools import partial
 from textwrap import indent
-from typing import TYPE_CHECKING, Any, NamedTuple, cast
+from typing import Any, NamedTuple, Self, cast
 
 import equinox as eqx
 import jax
@@ -21,9 +21,6 @@ from unxt import Quantity, unitsystem, ustrip
 from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.typing as gt
-
-if TYPE_CHECKING:
-    from typing import Self
 
 
 class ComponentShapeTuple(NamedTuple):
@@ -52,10 +49,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     :math:`t\in\mathbb{R}^1`.
     """
 
-    q: eqx.AbstractVar[cx.AbstractPos3D]
+    q: eqx.AbstractVar[cx.vecs.AbstractPos3D]
     """Positions."""
 
-    p: eqx.AbstractVar[cx.AbstractVel3D]
+    p: eqx.AbstractVar[cx.vecs.AbstractVel3D]
     """Conjugate momenta at positions ``q``."""
 
     t: eqx.AbstractVar[gt.BatchableFloatQScalar]
@@ -329,7 +326,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(cx.CartesianPos3D)
+        cart = self.vconvert(cx.CartesianPos3D)
         q = jnp.broadcast_to(
             ustrip(usys["length"], convert(cart.q, FastQ)), (*batch, comps.q)
         )
@@ -372,19 +369,26 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         """
         usys = unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.represent_as(cx.CartesianPos3D).to_units(usys)
+        cart = self.vconvert(cx.CartesianPos3D).to_units(usys)
         q = jnp.broadcast_to(convert(cart.q, FastQ), (*batch, comps.q))
         p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))
         t = jnp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
         return jnp.concat((t, q.value, p.value), axis=-1)
 
-    def represent_as(
+    @dispatch(precedence=-1)
+    def vconvert(
+        self, target: Any, *args: Any, **kwargs: Any
+    ) -> "AbstractBasePhaseSpacePosition":
+        return cx.vconvert(target, self, *args, **kwargs)
+
+    @dispatch
+    def vconvert(
         self,
-        position_cls: type[cx.AbstractPos],
-        velocity_cls: type[cx.AbstractVel] | None = None,
+        position_cls: type[cx.vecs.AbstractPos],
+        velocity_cls: type[cx.vecs.AbstractVel] | None = None,
         /,
         **kwargs: Any,
-    ) -> "Self":
+    ) -> "AbstractBasePhaseSpacePosition":
         """Return with the components transformed.
 
         Parameters
@@ -395,7 +399,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
             The target differential class. If `None` (default), the differential
             class of the target position class is used.
         **kwargs
-            Additional keyword arguments are passed through to `coordinax.represent_as`.
+            Additional keyword arguments are passed through to `coordinax.vconvert`.
 
         Returns
         -------
@@ -420,7 +424,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         We can also convert it to a different representation:
 
-        >>> psp.represent_as(cx.CylindricalPos)
+        >>> psp.vconvert(cx.vecs.CylindricalPos)
         PhaseSpacePosition( q=CylindricalPos(...),
                             p=CylindricalVel(...),
                             t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
@@ -428,12 +432,14 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We can also convert it to a different representation with a different
         differential class:
 
-        >>> psp.represent_as(cx.LonLatSphericalPos, cx.LonCosLatSphericalVel)
+        >>> psp.vconvert(cx.vecs.LonLatSphericalPos, cx.vecs.LonCosLatSphericalVel)
         PhaseSpacePosition( q=LonLatSphericalPos(...),
                             p=LonCosLatSphericalVel(...),
                             t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
         """
-        return cast("Self", cx.represent_as(self, position_cls, velocity_cls, **kwargs))
+        return cast(
+            "Self", cx.vconvert({"q": position_cls, "p": velocity_cls}, self, **kwargs)
+        )
 
     @abstractmethod
     def to_units(self, units: Any) -> "Self":

@@ -63,18 +63,18 @@ class FardalStreamDF(AbstractStreamDF):
         omega_val = _orbital_angular_frequency(x, v)[..., None]
 
         # r-hat
-        r_hat = cx.normalize_vector(x)
+        r_hat = cx.vecs.normalize_vector(x)
 
         r_tidal = tidal_radius(potential, x, v, prog_mass, t)[..., None]
         v_circ = omega_val * r_tidal  # relative velocity
 
         # z-hat
         L_vec = jnp.linalg.cross(x, v)
-        z_hat = cx.normalize_vector(L_vec)
+        z_hat = cx.vecs.normalize_vector(L_vec)
 
         # phi-hat
         phi_vec = v - jnp.sum(v * r_hat, axis=-1, keepdims=True) * r_hat
-        phi_hat = cx.normalize_vector(phi_vec)
+        phi_hat = cx.vecs.normalize_vector(phi_vec)
 
         # k vals
         shape = r_tidal.shape

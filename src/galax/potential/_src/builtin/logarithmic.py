@@ -13,7 +13,8 @@ import equinox as eqx
 import jax
 
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
+import unxt as u
+from unxt.unitsystems import AbstractUnitSystem
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -31,8 +32,8 @@ class LogarithmicPotential(AbstractPotential):
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -40,8 +41,8 @@ class LogarithmicPotential(AbstractPotential):
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
     ) -> gt.SpecificEnergyBatchScalar:
-        r_s = ustrip(self.units["length"], self.r_s(t))
-        r = ustrip(self.units["length"], jnp.linalg.vector_norm(q, axis=-1))
+        r_s = u.ustrip(self.units["length"], self.r_s(t))
+        r = u.ustrip(self.units["length"], jnp.linalg.vector_norm(q, axis=-1))
         return 0.5 * self.v_c(t) ** 2 * jnp.log(r_s**2 + r**2)
 
 
@@ -62,8 +63,8 @@ class LMJ09LogarithmicPotential(AbstractPotential):
     phi: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -86,7 +87,7 @@ class LMJ09LogarithmicPotential(AbstractPotential):
             0.5
             * self.v_c(t) ** 2
             * jnp.log(
-                ustrip(self.units["length"], self.r_s(t)) ** 2
-                + ustrip(self.units["area"], r2)
+                u.ustrip(self.units["length"], self.r_s(t)) ** 2
+                + u.ustrip(self.units["area"], r2)
             )
         )

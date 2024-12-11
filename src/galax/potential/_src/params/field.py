@@ -23,7 +23,7 @@ from astropy.units import PhysicalType as Dimension, Quantity as AstropyQuantity
 import unxt as u
 from dataclassish.converters import Optional
 from is_annotated import isannotated
-from unxt.quantity import AbstractQuantity, Quantity
+from unxt.quantity import AbstractQuantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
 from galax.utils.dataclasses import (
@@ -72,7 +72,7 @@ def converter_parameter(value: Any) -> AbstractParameter:
     else:
         # `Quantity.from_`` handles errors if the value cannot be
         # converted to a Quantity.
-        out = ConstantParameter(Quantity.from_(value))
+        out = ConstantParameter(u.Quantity.from_(value))
 
     return out
 
@@ -218,7 +218,7 @@ class ParameterField:
             v = UserParameter(func=value)
         else:
             unit = potential.units[self.dimensions]
-            v = ConstantParameter(Quantity.from_(value, unit))
+            v = ConstantParameter(u.Quantity.from_(value, unit))
 
         # Set
         potential.__dict__[self.name] = v

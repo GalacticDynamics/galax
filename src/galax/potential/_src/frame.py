@@ -10,7 +10,7 @@ import equinox as eqx
 from plum import dispatch
 
 import coordinax.ops as cxo
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -28,22 +28,22 @@ class PotentialFrame(AbstractBasePotential):
 
     First some imports:
 
-    >>> from unxt import Quantity, ustrip
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
 
     Now we define a triaxial Hernquist potential with a time-dependent mass:
 
-    >>> mfunc = gp.params.UserParameter(lambda t: Quantity(1e12 * (1 + ustrip("Gyr", t) / 10), "Msun"))
-    >>> pot = gp.TriaxialHernquistPotential(m_tot=mfunc, r_s=Quantity(1, "kpc"),
+    >>> mfunc = gp.params.UserParameter(lambda t: u.Quantity(1e12 * (1 + u.ustrip("Gyr", t) / 10), "Msun"))
+    >>> pot = gp.TriaxialHernquistPotential(m_tot=mfunc, r_s=u.Quantity(1, "kpc"),
     ...                                     q1=1, q2=0.5, units="galactic")
 
     Let's see the triaxiality of the potential:
 
-    >>> t = Quantity(0, "Gyr")
-    >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "kpc"),
-    ...                            p=Quantity([0, 1, 0], "km/s"),
+    >>> t = u.Quantity(0, "Gyr")
+    >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 0, 0], "kpc"),
+    ...                            p=u.Quantity([0, 1, 0], "km/s"),
     ...                            t=t)
 
     The triaxiality can be seen in the potential energy of the three positions:
@@ -51,17 +51,17 @@ class PotentialFrame(AbstractBasePotential):
     >>> pot.potential(w1)
     Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
-    >>> q = Quantity([0, 1, 0], "kpc")
+    >>> q = u.Quantity([0, 1, 0], "kpc")
     >>> pot.potential(q, t)
     Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
-    >>> q = Quantity([0, 0, 1], "kpc")
+    >>> q = u.Quantity([0, 0, 1], "kpc")
     >>> pot.potential(q, t)
     Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     Let's apply a spatial translation to the potential:
 
-    >>> op1 = cx.ops.GalileanSpatialTranslation(Quantity([3, 0, 0], "kpc"))
+    >>> op1 = cx.ops.GalileanSpatialTranslation.from_([3, 0, 0], "kpc")
     >>> op1
     GalileanSpatialTranslation(CartesianPos3D( ... ))
 
@@ -82,13 +82,13 @@ class PotentialFrame(AbstractBasePotential):
 
     This is the same as evaluating the untranslated potential at [-2, 0, 0] kpc:
 
-    >>> q = Quantity([-2, 0, 0], "kpc")
-    >>> pot.potential(q, Quantity(0, "Gyr"))
+    >>> q = u.Quantity([-2, 0, 0], "kpc")
+    >>> pot.potential(q, u.Quantity(0, "Gyr"))
     Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     We can also apply a time translation to the potential:
 
-    >>> op2 = cx.ops.GalileanTranslation(Quantity([1_000, 0, 0, 0], "kpc"))
+    >>> op2 = cx.ops.GalileanTranslation.from_([1_000, 0, 0, 0], "kpc")
     >>> op2.translation.t.uconvert("Myr")  # doctest: +SKIP
     Quantity['time'](Array(3.26156378, dtype=float64), unit='Myr')
 
@@ -104,13 +104,13 @@ class PotentialFrame(AbstractBasePotential):
     will be different:
 
     >>> from dataclasses import replace
-    >>> w2 = replace(w1, t=Quantity(10, "Myr"))
+    >>> w2 = replace(w1, t=u.Quantity(10, "Myr"))
     >>> framedpot2.potential(w2)
     Quantity[...](Array(-2.25076672, dtype=float64), unit='kpc2 / Myr2')
 
     Now let's boost the potential by 200 km/s in the y-direction:
 
-    >>> op3 = cx.ops.GalileanBoost(Quantity([0, 200, 0], "km/s"))
+    >>> op3 = cx.ops.GalileanBoost.from_([0, 200, 0], "km/s")
     >>> op3
     GalileanBoost(CartesianVel3D( ... ))
 
@@ -121,11 +121,7 @@ class PotentialFrame(AbstractBasePotential):
     Alternatively we can rotate the potential by 90 degrees about the y-axis:
 
     >>> import quaxed.numpy as jnp
-    >>> theta = Quantity(90, "deg")
-    >>> Ry = jnp.asarray([[jnp.cos(theta),  0, jnp.sin(theta)],
-    ...                  [0,              1, 0            ],
-    ...                  [-jnp.sin(theta), 0, jnp.cos(theta)]])
-    >>> op4 = cx.ops.GalileanRotation(Ry)
+    >>> op4 = cx.ops.GalileanRotation.from_euler("y", u.Quantity(90, "deg"))
     >>> op4
     GalileanRotation(rotation=f64[3,3])
 
@@ -133,7 +129,7 @@ class PotentialFrame(AbstractBasePotential):
     >>> framedpot4.potential(w1)
     Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
-    >>> q = Quantity([0, 0, 1], "kpc")
+    >>> q = u.Quantity([0, 0, 1], "kpc")
     >>> framedpot4.potential(q, t)
     Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
@@ -171,10 +167,10 @@ class PotentialFrame(AbstractBasePotential):
     way. We will also exaggerate the triaxiality of the potential to make the
     effect of the rotation more obvious:
 
-    >>> pot2 = gp.TriaxialHernquistPotential(m_tot=Quantity(1e12, "Msun"),
-    ...     r_s=Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
+    >>> pot2 = gp.TriaxialHernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...     r_s=u.Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
 
-    >>> op7 = gc.operators.ConstantRotationZOperator(Omega_z=Quantity(90, "deg/Gyr"))
+    >>> op7 = gc.operators.ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg/Gyr"))
     >>> framedpot7 = gp.PotentialFrame(original_potential=pot2, operator=op7)
 
     The potential energy at a given position will change with time:
@@ -195,14 +191,14 @@ class PotentialFrame(AbstractBasePotential):
     """
 
     @property
-    def units(self) -> AbstractUnitSystem:
+    def units(self) -> u.AbstractUnitSystem:
         """The unit system of the potential."""
-        return cast(AbstractUnitSystem, self.original_potential.units)
+        return cast(u.AbstractUnitSystem, self.original_potential.units)
 
     @property
-    def constants(self) -> ImmutableMap[str, Quantity]:
+    def constants(self) -> ImmutableMap[str, u.Quantity]:
         """The constants of the potential."""
-        return cast("ImmutableMap[str, Quantity]", self.original_potential.constants)
+        return cast(ImmutableMap[str, u.Quantity], self.original_potential.constants)
 
     def _potential(
         self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /

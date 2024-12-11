@@ -8,7 +8,7 @@ import equinox as eqx
 import jax.numpy as jnp
 
 import coordinax as cx
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
 
 import galax.typing as gt
 from .base import ComponentShapeTuple
@@ -21,7 +21,7 @@ from galax.utils._shape import batched_shape, vector_batched_shape
 class PhaseSpacePositionInterpolant(Protocol):
     """Protocol for interpolating phase-space positions."""
 
-    units: AbstractUnitSystem
+    units: u.AbstractUnitSystem
     """The unit system for the interpolation."""
 
     def __call__(self, t: gt.QVecTime) -> PhaseSpacePosition:
@@ -56,7 +56,9 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.BatchableFloatQScalar | gt.QVec1 = eqx.field(converter=Quantity["time"].from_)
+    t: gt.BatchableFloatQScalar | gt.QVec1 = eqx.field(
+        converter=u.Quantity["time"].from_
+    )
     """The time corresponding to the positions.
 
     This is a Quantity with the same batch shape as the positions and

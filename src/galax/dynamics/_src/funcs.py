@@ -15,7 +15,7 @@ from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 import galax.coordinates as gc
 import galax.potential as gp
@@ -30,7 +30,7 @@ from galax.potential._src.funcs import d2potential_dr2
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
     x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
-) -> Shaped[Quantity, "*batch 3"]:
+) -> Shaped[u.Quantity["angular momentum"], "*batch 3"]:
     """Compute the specific angular momentum.
 
     Arguments:
@@ -47,11 +47,11 @@ def specific_angular_momentum(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.dynamics as gd
 
-    >>> x = Quantity([8.0, 0.0, 0.0], "m")
-    >>> v = Quantity([0.0, 8.0, 0.0], "m/s")
+    >>> x = u.Quantity([8.0, 0.0, 0.0], "m")
+    >>> v = u.Quantity([0.0, 8.0, 0.0], "m/s")
     >>> gd.specific_angular_momentum(x, v)
     Quantity['diffusivity'](Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
 
@@ -68,7 +68,7 @@ def specific_angular_momentum(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.dynamics as gd
 
@@ -80,8 +80,8 @@ def specific_angular_momentum(
     """
     # TODO: keep as a vector.
     #       https://github.com/GalacticDynamics/vector/issues/27
-    x = convert(x.vconvert(cx.CartesianPos3D), Quantity)
-    v = convert(v.vconvert(cx.CartesianVel3D, x), Quantity)
+    x = convert(x.vconvert(cx.CartesianPos3D), u.Quantity)
+    v = convert(v.vconvert(cx.CartesianVel3D, x), u.Quantity)
     return specific_angular_momentum(x, v)
 
 
@@ -123,15 +123,15 @@ def specific_angular_momentum(w: gc.AbstractBasePhaseSpacePosition) -> gt.BatchQ
     --------
     We assume the following imports
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
 
     We can compute the angular momentum of a single object
 
-    >>> w = gc.PhaseSpacePosition(q=Quantity([1., 0, 0], "au"),
-    ...                           p=Quantity([0, 2., 0], "au/yr"),
-    ...                           t=Quantity(0, "yr"))
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1., 0, 0], "au"),
+    ...                           p=u.Quantity([0, 2., 0], "au/yr"),
+    ...                           t=u.Quantity(0, "yr"))
     >>> gd.specific_angular_momentum(w)
     Quantity[...](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
     """
@@ -146,7 +146,7 @@ def specific_angular_momentum(w: gc.AbstractBasePhaseSpacePosition) -> gt.BatchQ
 @partial(jax.jit, inline=True)
 def _orbital_angular_frequency(
     x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
-) -> Shaped[Quantity["frequency"], "*batch"]:
+) -> Shaped[u.Quantity["frequency"], "*batch"]:
     """Compute the orbital angular frequency about the origin.
 
     Arguments:
@@ -163,10 +163,10 @@ def _orbital_angular_frequency(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
 
-    >>> x = Quantity([8.0, 0.0, 0.0], "m")
-    >>> v = Quantity([0.0, 8.0, 0.0], "m/s")
+    >>> x = u.Quantity([8.0, 0.0, 0.0], "m")
+    >>> v = u.Quantity([0.0, 8.0, 0.0], "m/s")
     >>> _orbital_angular_frequency(x, v)
     Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
     """
@@ -179,12 +179,12 @@ def _orbital_angular_frequency(
 @partial(jax.jit, inline=True)
 def _orbital_angular_frequency(
     x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /
-) -> Shaped[Quantity["frequency"], "*batch"]:
+) -> Shaped[u.Quantity["frequency"], "*batch"]:
     """Compute the orbital angular frequency about the origin.
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
 
     >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "m")
@@ -194,8 +194,8 @@ def _orbital_angular_frequency(
 
     """
     # TODO: more directly using the vectors
-    x = convert(x.vconvert(cx.CartesianPos3D), Quantity)
-    v = convert(v.vconvert(cx.CartesianVel3D, x), Quantity)
+    x = convert(x.vconvert(cx.CartesianPos3D), u.Quantity)
+    v = convert(v.vconvert(cx.CartesianVel3D, x), u.Quantity)
     return _orbital_angular_frequency(x, v)
 
 
@@ -210,7 +210,7 @@ def tidal_radius(
     /,
     prog_mass: gt.MassBatchableScalar,
     t: gt.TimeBatchableScalar,
-) -> Float[Quantity["length"], "*batch"]:
+) -> Float[u.Quantity["length"], "*batch"]:
     """Compute the tidal radius of a cluster in the potential.
 
     Parameters
@@ -238,11 +238,11 @@ def tidal_radius(
 
     >>> pot = NFWPotential(m=1e12, r_s=20.0, units="galactic")
 
-    >>> x = Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
-    >>> prog_mass = Quantity(1e4, "Msun")
+    >>> x = u.Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
+    >>> v = u.Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
+    >>> prog_mass = u.Quantity(1e4, "Msun")
 
-    >>> tidal_radius(pot, x, v, prog_mass=prog_mass, t=Quantity(0, "Myr"))
+    >>> tidal_radius(pot, x, v, prog_mass=prog_mass, t=u.Quantity(0, "Myr"))
     Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
     """
     omega = _orbital_angular_frequency(x, v)
@@ -283,14 +283,14 @@ def lagrange_points(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.MilkyWayPotential()
-    >>> x = Quantity([8.0, 0.0, 0.0], "kpc")
-    >>> v = Quantity([0.0, 220.0, 0.0], "km/s")
-    >>> prog_mass = Quantity(1e4, "Msun")
-    >>> t = Quantity(0.0, "Gyr")
+    >>> x = u.Quantity([8.0, 0.0, 0.0], "kpc")
+    >>> v = u.Quantity([0.0, 220.0, 0.0], "km/s")
+    >>> prog_mass = u.Quantity(1e4, "Msun")
+    >>> t = u.Quantity(0.0, "Gyr")
 
     >>> L1, L2 = lagrange_points(pot, x, v, prog_mass, t)
     >>> L1

@@ -9,7 +9,7 @@ from typing import ClassVar, final
 
 import equinox as eqx
 
-from unxt import AbstractUnitSystem, Quantity, unitsystem
+import unxt as u
 from xmmutablemap import ImmutableMap
 
 from .base import AbstractBasePotential, default_constants
@@ -25,7 +25,9 @@ class CompositePotential(AbstractCompositePotential):
 
     _data: dict[str, AbstractBasePotential]
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(init=False, static=True, converter=unitsystem)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: u.AbstractUnitSystem = eqx.field(
+        init=False, static=True, converter=u.unitsystem
+    )
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )

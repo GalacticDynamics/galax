@@ -10,7 +10,7 @@ from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import dimensionless, galactic, solarsystem, unitsystem
+from unxt.unitsystems import dimensionless, galactic, solarsystem
 from zeroth import zeroth
 
 import galax.potential as gp
@@ -55,7 +55,7 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
         pot_map: Mapping[str, Any],
     ) -> None:
         """Test unit system from unitsystem."""
-        usys = unitsystem("km", "s", "Msun", "radian")
+        usys = u.unitsystem("km", "s", "Msun", "radian")
         assert pot_cls(**pot_map, units=usys).units == usys
 
     @override
@@ -66,7 +66,7 @@ class AbstractCompositePotential_Test(AbstractBasePotential_Test, FieldUnitSyste
     ) -> None:
         """Test unit system from tuple."""
         units = ("km", "s", "Msun", "radian")
-        assert pot_cls(**pot_map, units=units).units == unitsystem(*units)
+        assert pot_cls(**pot_map, units=units).units == u.unitsystem(*units)
 
     @override
     def test_init_units_from_name(
@@ -244,7 +244,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         pot_map: Mapping[str, gp.AbstractBasePotential],
     ) -> None:
         """Test unit system from UnitSystem."""
-        usys = unitsystem("km", "s", "Msun", "radian")
+        usys = u.unitsystem("km", "s", "Msun", "radian")
         pot_map_ = {k: replace(v, units=usys) for k, v in pot_map.items()}
         assert pot_cls(**pot_map_, units=usys).units == usys
 
@@ -268,7 +268,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         """Test unit system from tuple."""
         units = ("km", "s", "Msun", "radian")
         pot_map = {k: replace(v, units=units) for k, v in pot_map.items()}
-        assert pot_cls(**pot_map, units=units).units == unitsystem(*units)
+        assert pot_cls(**pot_map, units=units).units == u.unitsystem(*units)
 
     @override
     def test_init_units_from_name(

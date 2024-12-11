@@ -67,7 +67,7 @@ class ParametersAttribute(AbstractParametersAttribute):
     The normal usage of this class is the ``parameters`` attribute of
     :class:`~galax.potential.AbstractBasePotential`.
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> gp.KeplerPotential.parameters
@@ -109,7 +109,7 @@ class CompositeParametersAttribute(AbstractParametersAttribute):
     The normal usage of this class is the ``parameters`` attribute of
     :class:`~galax.potential.AbstractBasePotential`.
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> gp.CompositePotential.parameters

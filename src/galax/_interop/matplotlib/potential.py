@@ -11,8 +11,8 @@ from matplotlib.figure import Figure
 from plum import dispatch
 
 import quaxed.numpy as jnp
+import unxt as u
 from plotting_backends import MatplotlibBackend
-from unxt import Quantity, uconvert, ustrip
 
 from galax.potential._src.base import AbstractBasePotential
 
@@ -30,7 +30,7 @@ def _get_figure(
 
 
 def _parse_grid(
-    grid: tuple[Quantity | int, ...],
+    grid: tuple[u.Quantity | int, ...],
 ) -> tuple[list[tuple[int, Any]], list[tuple[int, Any]]]:
     _grids: list[tuple[int, Any]] = []
     _slices: list[tuple[int, Any]] = []
@@ -52,8 +52,8 @@ def plot_potential_contours(
     _: type[MatplotlibBackend] = MatplotlibBackend,
     /,
     *,
-    grid: tuple[Quantity | int, ...],
-    t: Quantity["time"] = Quantity(0.0, "Myr"),  # noqa: B008
+    grid: tuple[u.Quantity | int, ...],
+    t: u.Quantity["time"] = u.Quantity(0.0, "Myr"),  # noqa: B008
     filled: bool = True,
     ax: Any | None = None,
     labels: tuple[str, ...] | None = None,
@@ -72,7 +72,7 @@ def plot_potential_contours(
     grid : tuple[Any, ...]
         Coordinate grids or slice value for each dimension. Should be a
         tuple of 1D arrays or numbers.
-    t : Quantity["time"], optional
+    t : u.Quantity["time"], optional
         The time to evaluate at.
 
     filled : bool, optional keyword-only
@@ -127,7 +127,7 @@ def plot_potential_contours(
 
 def _plot_potential_countours_1d(
     pot: AbstractBasePotential,
-    t: Quantity["time"],
+    t: u.Quantity["time"],
     *,
     ax: Axes,
     grids: list[Any],
@@ -135,20 +135,20 @@ def _plot_potential_countours_1d(
     labels: tuple[str, ...] | None,
     kwargs: dict[str, Any],
 ) -> None:
-    x1 = uconvert(pot.units["length"], grids[0][1])
+    x1 = u.uconvert(pot.units["length"], grids[0][1])
 
     # Create q array
     q = jnp.zeros((len(x1), len(grids) + len(slices)))
     q = q.at[:, grids[0][0]].set(x1)
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
-    q = Quantity(q, pot.units["length"])
+    q = u.Quantity(q, pot.units["length"])
 
     # Evaluate potential
     Z = pot.potential(q, t)
 
     # Plot potential
-    ax.plot(x1, ustrip(pot.units["specific energy"], Z), **kwargs)
+    ax.plot(x1, u.ustrip(pot.units["specific energy"], Z), **kwargs)
 
     if labels is not None:
         ax.set_xlabel(labels[0])
@@ -157,7 +157,7 @@ def _plot_potential_countours_1d(
 
 def _plot_potential_countours_2d(
     pot: AbstractBasePotential,
-    t: Quantity["time"],
+    t: u.Quantity["time"],
     *,
     ax: Axes,
     grids: list[Any],
@@ -169,8 +169,8 @@ def _plot_potential_countours_2d(
     # Create meshgrid
     # TODO: don't take to_value when Quantity.at is implemented
     x1, x2 = jnp.meshgrid(
-        ustrip(pot.units["length"], grids[0][1]),
-        ustrip(pot.units["length"], grids[1][1]),
+        u.ustrip(pot.units["length"], grids[0][1]),
+        u.ustrip(pot.units["length"], grids[1][1]),
     )
     shape = x1.shape
 
@@ -181,7 +181,7 @@ def _plot_potential_countours_2d(
     q = q.at[:, grids[1][0]].set(jnp.ravel(x2))
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
-    q = Quantity(q, pot.units["length"])
+    q = u.Quantity(q, pot.units["length"])
 
     # Evaluate potential
     Z = pot.potential(q, t)
@@ -189,7 +189,9 @@ def _plot_potential_countours_2d(
     # Plot contours
     kwargs.setdefault("cmap", Blues)  # better default colormap
     plot_func = ax.contourf if filled else ax.contour
-    plot_func(x1, x2, ustrip(pot.units["specific energy"], Z.reshape(shape)), **kwargs)
+    plot_func(
+        x1, x2, u.ustrip(pot.units["specific energy"], Z.reshape(shape)), **kwargs
+    )
 
     if labels is not None:
         ax.set_xlabel(labels[0])
@@ -206,8 +208,8 @@ def plot_density_contours(
     _: type[MatplotlibBackend] = MatplotlibBackend,
     /,
     *,
-    grid: tuple[Quantity | int, ...],
-    t: Quantity["time"] = Quantity(0.0, "Myr"),  # noqa: B008
+    grid: tuple[u.Quantity | int, ...],
+    t: u.Quantity["time"] = u.Quantity(0.0, "Myr"),  # noqa: B008
     filled: bool = True,
     ax: Axes | None = None,
     labels: tuple[str, ...] | None = None,
@@ -274,7 +276,7 @@ def plot_density_contours(
 
 def _plot_density_countours_1d(
     pot: AbstractBasePotential,
-    t: Quantity["time"],
+    t: u.Quantity["time"],
     *,
     ax: Axes,
     grids: list[Any],
@@ -282,20 +284,20 @@ def _plot_density_countours_1d(
     labels: tuple[str, ...] | None,
     kwargs: dict[str, Any],
 ) -> None:
-    x1 = ustrip(pot.units["length"], grids[0][1])
+    x1 = u.ustrip(pot.units["length"], grids[0][1])
 
     # Create q array
     q = jnp.zeros((len(x1), len(grids) + len(slices)))
     q = q.at[:, grids[0][0]].set(x1)
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
-    q = Quantity(q, pot.units["length"])
+    q = u.Quantity(q, pot.units["length"])
 
     # Evaluate density
     Z = pot.density(q, t)
 
     # Plot mass density
-    ax.plot(x1, ustrip(pot.units["mass density"], Z), **kwargs)
+    ax.plot(x1, u.ustrip(pot.units["mass density"], Z), **kwargs)
 
     if labels is not None:
         ax.set_xlabel(labels[0])
@@ -304,7 +306,7 @@ def _plot_density_countours_1d(
 
 def _plot_density_countours_2d(
     pot: AbstractBasePotential,
-    t: Quantity["time"],
+    t: u.Quantity["time"],
     *,
     ax: Axes,
     grids: list[Any],
@@ -316,8 +318,8 @@ def _plot_density_countours_2d(
     # Create meshgrid
     # TODO: don't take to_value when Quantity.at is implemented
     x1, x2 = jnp.meshgrid(
-        ustrip(pot.units["length"], grids[0][1]),
-        ustrip(pot.units["length"], grids[1][1]),
+        u.ustrip(pot.units["length"], grids[0][1]),
+        u.ustrip(pot.units["length"], grids[1][1]),
     )
     shape = x1.shape
 
@@ -328,7 +330,7 @@ def _plot_density_countours_2d(
     q = q.at[:, grids[1][0]].set(jnp.ravel(x2))
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
-    q = Quantity(q, pot.units["length"])
+    q = u.Quantity(q, pot.units["length"])
 
     # Evaluate potential
     Z = pot.density(q, t)
@@ -336,7 +338,7 @@ def _plot_density_countours_2d(
     # Plot contours
     kwargs.setdefault("cmap", Blues)  # better default colormap
     plot_func = ax.contourf if filled else ax.contour
-    plot_func(x1, x2, ustrip(pot.units["mass density"], Z.reshape(shape)), **kwargs)
+    plot_func(x1, x2, u.ustrip(pot.units["mass density"], Z.reshape(shape)), **kwargs)
 
     if labels is not None:
         ax.set_xlabel(labels[0])

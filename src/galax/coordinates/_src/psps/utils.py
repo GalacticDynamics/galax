@@ -75,8 +75,8 @@ def getitem_vec1time_index(index: Any, t: gt.FloatQAnyShape) -> Any:
     --------
     We set up a time array.
     >>> import jax.numpy as jnp
-    >>> from unxt import Quantity
-    >>> t = Quantity(jnp.ones((10, 3), dtype=float), "s")
+    >>> import unxt as u
+    >>> t = u.Quantity(jnp.ones((10, 3), dtype=float), "s")
 
     Some standard indexes.
     >>> getitem_vec1time_index(0, t)
@@ -89,7 +89,7 @@ def getitem_vec1time_index(index: Any, t: gt.FloatQAnyShape) -> Any:
     >>> getitem_vec1time_index((0,), t)
     (0,)
 
-    >>> t = Quantity(jnp.ones((1, 2, 3), dtype=float), "s")
+    >>> t = u.Quantity(jnp.ones((1, 2, 3), dtype=float), "s")
     >>> getitem_vec1time_index((0, 1), t)
     (0, 1)
 

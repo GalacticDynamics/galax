@@ -17,7 +17,7 @@ from jax.scipy.special import sph_harm
 from jaxtyping import Array, Float
 
 import quaxed.numpy as jnp
-from unxt import Quantity, ustrip
+import unxt as u
 
 import galax.typing as gt
 from galax.potential._src.base_single import AbstractPotential
@@ -59,7 +59,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        t = Quantity(0.0, "Gyr")
+        t = u.Quantity(0.0, "Gyr")
         s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
         # TODO: check shape across time.
         if s_shape != shape or t_shape != shape:
@@ -118,7 +118,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        t = Quantity(0.0, "Gyr")
+        t = u.Quantity(0.0, "Gyr")
         s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
         # TODO: check shape across time.
         if s_shape != shape or t_shape != shape:
@@ -184,7 +184,7 @@ class MultipolePotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        t = Quantity(0.0, "Gyr")
+        t = u.Quantity(0.0, "Gyr")
         is_shape, it_shape = self.ISlm(t).shape, self.ITlm(t).shape
         os_shape, ot_shape = self.OSlm(t).shape, self.OTlm(t).shape
         # TODO: check shape across time.
@@ -232,8 +232,8 @@ class MultipolePotential(AbstractMultipolePotential):
 
 
 def cartesian_to_normalized_spherical(
-    q: gt.BatchQVec3, r_s: Quantity, /
-) -> tuple[gt.BatchFloatScalar, gt.BatchFloatScalar, Quantity]:
+    q: gt.BatchQVec3, r_s: u.Quantity, /
+) -> tuple[gt.BatchFloatScalar, gt.BatchFloatScalar, u.Quantity]:
     r"""Convert Cartesian coordinates to normalized spherical coordinates.
 
     .. math::
@@ -258,8 +258,8 @@ def cartesian_to_normalized_spherical(
     """
     r = jnp.linalg.vector_norm(q, axis=-1)
     s = r / r_s
-    theta = ustrip("rad", jnp.acos(q[..., 2] / r))  # theta
-    phi = ustrip("rad", jnp.atan2(q[..., 1], q[..., 0]))  # atan(y/x)
+    theta = u.ustrip("rad", jnp.acos(q[..., 2] / r))  # theta
+    phi = u.ustrip("rad", jnp.atan2(q[..., 1], q[..., 0]))  # atan(y/x)
 
     # Return, converting Quantity["dimensionless"] -> Array
     return s.value, theta, phi

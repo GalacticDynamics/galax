@@ -4,16 +4,17 @@ __all__: list[str] = []
 
 from typing import TypeAlias
 
-import astropy.units as u
+import astropy.units as apyu
 from jaxtyping import Array, Float, Integer, Shaped
 
-from unxt.quantity import AbstractQuantity, Quantity
+import unxt as u
+from unxt.quantity import AbstractQuantity
 
 # =============================================================================
 
 Shape: TypeAlias = tuple[int, ...]
-Dimension: TypeAlias = u.PhysicalType
-Unit: TypeAlias = u.Unit | u.UnitBase | u.CompositeUnit
+Dimension: TypeAlias = apyu.PhysicalType
+Unit: TypeAlias = apyu.Unit | apyu.UnitBase | apyu.CompositeUnit
 
 # =============================================================================
 # Scalars
@@ -114,21 +115,21 @@ BatchQMatrix33 = Shaped[QMatrix33, "*batch"]
 
 # =============================================================================
 
-MassScalar = Shaped[Quantity["mass"], ""]
-MassBatchScalar = Shaped[Quantity["mass"], "*batch"]
-MassBatchableScalar = Shaped[Quantity["mass"], "*#batch"]
+MassScalar = Shaped[u.Quantity["mass"], ""]
+MassBatchScalar = Shaped[u.Quantity["mass"], "*batch"]
+MassBatchableScalar = Shaped[u.Quantity["mass"], "*#batch"]
 
-TimeScalar = Shaped[Quantity["time"], ""]
-TimeBatchScalar = Shaped[Quantity["time"], "*batch"]
-TimeBatchableScalar = Shaped[Quantity["time"], "*#batch"]
+TimeScalar = Shaped[u.Quantity["time"], ""]
+TimeBatchScalar = Shaped[u.Quantity["time"], "*batch"]
+TimeBatchableScalar = Shaped[u.Quantity["time"], "*#batch"]
 
-LengthVec3 = Shaped[Quantity["length"], "3"]
+LengthVec3 = Shaped[u.Quantity["length"], "3"]
 LengthBatchVec3 = Shaped[LengthVec3, "*batch"]
 LengthBatchableVec3 = Shaped[LengthVec3, "*#batch"]
 
-SpeedVec3: TypeAlias = Shaped[Quantity["speed"], "3"]
+SpeedVec3: TypeAlias = Shaped[u.Quantity["speed"], "3"]
 SpeedBatchVec3: TypeAlias = Shaped[SpeedVec3, "*batch"]
 SpeedBatchableVec3: TypeAlias = Shaped[SpeedVec3, "*#batch"]
 
-SpecificEnergyScalar = Float[Quantity["specific_energy"], ""]
-SpecificEnergyBatchScalar = Float[Quantity["specific_energy"], "*batch"]
+SpecificEnergyScalar = Float[u.Quantity["specific_energy"], ""]
+SpecificEnergyBatchScalar = Float[u.Quantity["specific_energy"], "*batch"]

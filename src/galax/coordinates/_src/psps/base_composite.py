@@ -13,8 +13,8 @@ from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
+import unxt as u
 from dataclassish import field_items
-from unxt import Quantity
 from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
@@ -54,7 +54,7 @@ class AbstractCompositePhaseSpacePosition(
 
     >>> from dataclasses import replace
     >>> import quaxed.numpy as jnp
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
@@ -63,12 +63,12 @@ class AbstractCompositePhaseSpacePosition(
     ...             for k in vs[0].components}
     ...    return replace(vs[0], **comps)
 
-    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                              p=Quantity([4, 5, 6], "km/s"),
-    ...                              t=Quantity(7, "Myr"))
-    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([10, 20, 30], "kpc"),
-    ...                              p=Quantity([40, 50, 60], "km/s"),
-    ...                              t=Quantity(7, "Myr"))
+    >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                              p=u.Quantity([4, 5, 6], "km/s"),
+    ...                              t=u.Quantity(7, "Myr"))
+    >>> psp2 = gc.PhaseSpacePosition(q=u.Quantity([10, 20, 30], "kpc"),
+    ...                              p=u.Quantity([40, 50, 60], "km/s"),
+    ...                              t=u.Quantity(7, "Myr"))
 
     >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
     >>> c_psp["psp1"] is psp1
@@ -119,7 +119,7 @@ class AbstractCompositePhaseSpacePosition(
 
     @property
     @abstractmethod
-    def t(self) -> Shaped[Quantity["time"], "..."]:
+    def t(self) -> Shaped[u.Quantity["time"], "..."]:
         """Times."""
 
     def __repr__(self) -> str:  # TODO: not need this hack
@@ -134,16 +134,16 @@ class AbstractCompositePhaseSpacePosition(
 
         Examples
         --------
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
 
-        >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-        ...                            p=Quantity([4, 5, 6], "m/s"),
-        ...                            t=Quantity(7.0, "s"))
-        >>> w2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
-        ...                            p=Quantity([4.5, 5.5, 6.5], "m/s"),
-        ...                            t=Quantity(6.0, "s"))
+        >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+        ...                            p=u.Quantity([4, 5, 6], "m/s"),
+        ...                            t=u.Quantity(7.0, "s"))
+        >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+        ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+        ...                            t=u.Quantity(6.0, "s"))
 
         >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
         >>> cw._shape_tuple
@@ -174,15 +174,15 @@ class AbstractCompositePhaseSpacePosition(
 
         Examples
         --------
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import galax.coordinates as gc
 
-        >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-        ...                            p=Quantity([4, 5, 6], "m/s"),
-        ...                            t=Quantity(7.0, "s"))
-        >>> w2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
-        ...                            p=Quantity([4.5, 5.5, 6.5], "m/s"),
-        ...                            t=Quantity(6.0, "s"))
+        >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+        ...                            p=u.Quantity([4, 5, 6], "m/s"),
+        ...                            t=u.Quantity(7.0, "s"))
+        >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+        ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+        ...                            t=u.Quantity(6.0, "s"))
         >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
 
         >>> cw[...]
@@ -208,15 +208,15 @@ class AbstractCompositePhaseSpacePosition(
 
         Examples
         --------
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> import galax.coordinates as gc
 
-        >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-        ...                            p=Quantity([4, 5, 6], "m/s"),
-        ...                            t=Quantity(7.0, "s"))
-        >>> w2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
-        ...                            p=Quantity([4.5, 5.5, 6.5], "m/s"),
-        ...                            t=Quantity(6.0, "s"))
+        >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+        ...                            p=u.Quantity([4, 5, 6], "m/s"),
+        ...                            t=u.Quantity(7.0, "s"))
+        >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+        ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+        ...                            t=u.Quantity(6.0, "s"))
         >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
 
         >>> cw["w1"] is w1
@@ -236,13 +236,13 @@ class AbstractCompositePhaseSpacePosition(
         For this example we will use
         `galax.coordinates.CompositePhaseSpacePosition`.
 
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> from unxt.unitsystems import solarsystem
         >>> import galax.coordinates as gc
 
-        >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-        ...                              p=Quantity([4, 5, 6], "km/s"),
-        ...                              t=Quantity(7, "Myr"))
+        >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                              p=u.Quantity([4, 5, 6], "km/s"),
+        ...                              t=u.Quantity(7, "Myr"))
 
         >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1)
         >>> c_psp.to_units(solarsystem)
@@ -280,19 +280,19 @@ def vconvert(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
     We define a composite phase-space position with two components.
     Every component is a phase-space position in Cartesian coordinates.
 
-    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                              p=Quantity([4, 5, 6], "m/s"),
-    ...                              t=Quantity(7.0, "s"))
-    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=Quantity(6.0, "s"))
+    >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+    ...                              p=u.Quantity([4, 5, 6], "m/s"),
+    ...                              t=u.Quantity(7.0, "s"))
+    >>> psp2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=u.Quantity(6.0, "s"))
     >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
 
     We can transform the composite phase-space position to a new position class.
@@ -331,19 +331,19 @@ def vconvert(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
     We define a composite phase-space position with two components.
     Every component is a phase-space position in Cartesian coordinates.
 
-    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                              p=Quantity([4, 5, 6], "m/s"),
-    ...                              t=Quantity(7.0, "s"))
-    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=Quantity(6.0, "s"))
+    >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+    ...                              p=u.Quantity([4, 5, 6], "m/s"),
+    ...                              t=u.Quantity(7.0, "s"))
+    >>> psp2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=u.Quantity(6.0, "s"))
     >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
 
     We can transform the composite phase-space position to a new position class.
@@ -382,12 +382,12 @@ def replace(
     We define a composite phase-space position with two components.
     Every component is a phase-space position in Cartesian coordinates.
 
-    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                              p=Quantity([4, 5, 6], "m/s"),
-    ...                              t=Quantity(7.0, "s"))
-    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=Quantity(6.0, "s"))
+    >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+    ...                              p=u.Quantity([4, 5, 6], "m/s"),
+    ...                              t=u.Quantity(7.0, "s"))
+    >>> psp2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=u.Quantity(6.0, "s"))
     >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
 
     We can replace the components of the composite phase-space position.
@@ -421,25 +421,26 @@ def replace(
 
     Examples
     --------
+    >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> from dataclassish import replace
 
     We define a composite phase-space position with two components. Every
     component is a phase-space position in Cartesian coordinates.
 
-    >>> psp1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                              p=Quantity([4, 5, 6], "m/s"),
-    ...                              t=Quantity(7.0, "s"))
-    >>> psp2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=Quantity(6.0, "s"))
+    >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+    ...                              p=u.Quantity([4, 5, 6], "m/s"),
+    ...                              t=u.Quantity(7.0, "s"))
+    >>> psp2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=u.Quantity(6.0, "s"))
     >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
 
     We can selectively replace the ``t`` component of each constituent
     phase-space position.
 
-    >>> cpsp2 = replace(cpsp, {"psp1": {"t": Quantity(10.0, "s")},
-    ...                        "psp2": {"t": Quantity(11.0, "s")}})
+    >>> cpsp2 = replace(cpsp, {"psp1": {"t": u.Quantity(10.0, "s")},
+    ...                        "psp2": {"t": u.Quantity(11.0, "s")}})
 
     """
     # AbstractCompositePhaseSpacePosition is both a Mapping and a dataclass

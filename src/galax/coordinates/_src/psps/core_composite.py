@@ -10,7 +10,7 @@ from jaxtyping import Array, Int, PyTree, Shaped
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractPhaseSpacePosition
@@ -53,7 +53,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     --------
     We assume the following imports:
 
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
@@ -61,12 +61,12 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     constructors for Cartesian positions and velocities. To see the full
     constructor, see :class:`~galax.coordinates.PhaseSpacePosition`.
 
-    >>> w1 = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "m"),
-    ...                            p=Quantity([4, 5, 6], "m/s"),
-    ...                            t=Quantity(7.0, "s"))
-    >>> w2 = gc.PhaseSpacePosition(q=Quantity([1.5, 2.5, 3.5], "m"),
-    ...                            p=Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                            t=Quantity(6.0, "s"))
+    >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+    ...                            p=u.Quantity([4, 5, 6], "m/s"),
+    ...                            t=u.Quantity(7.0, "s"))
+    >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+    ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                            t=u.Quantity(6.0, "s"))
 
     We can create a composite phase-space position from these two phase-space
     positions:
@@ -174,7 +174,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         return _concat((x.p for x in self.values()), self._time_sorter)
 
     @property
-    def t(self) -> Shaped[Quantity["time"], "..."] | list[None]:
+    def t(self) -> Shaped[u.Quantity["time"], "..."] | list[None]:
         """Times."""
         if self._time_are_none:
             return [None] * len(self._time_sorter)

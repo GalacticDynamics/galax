@@ -12,7 +12,7 @@ from jaxtyping import ArrayLike, Shaped
 from plum import dispatch
 
 import quaxed.numpy as xp
-from unxt import AbstractUnitSystem, Quantity, unitsystem, ustrip
+import unxt as u
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
@@ -60,7 +60,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     First some imports:
 
     >>> import quaxed.numpy as jnp
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
@@ -68,8 +68,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     Then we define initial conditions:
 
-    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 200., 0.], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
+    ...                            p=u.Quantity([0., 200., 0.], "km/s"))
 
     (Note that the ``t`` attribute is not used.)
 
@@ -77,11 +77,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     position.  The integrator accepts any function for the equations of motion.
     Here we will reproduce what happens with orbit integrations.
 
-    >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
-    ...                             r_s=Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
 
     >>> integrator = gd.integrate.Integrator()
-    >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
+    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
@@ -95,7 +95,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     Instead of just returning the final position, we can get the state of the
     system at any times ``saveat``:
 
-    >>> ts = Quantity(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
+    >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
     >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1,
     ...                 saveat=ts, units=galactic)
     >>> ws
@@ -112,8 +112,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     conditions at once, returning a batch of final conditions (or a batch of
     conditions at the requested times ``saveat``):
 
-    >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
-    ...                            p=Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
+    ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
     >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
     >>> ws.shape
     (2,)
@@ -129,7 +129,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     The interpolated solution can be evaluated at any time in the domain to get
     the phase-space position at that time:
 
-    >>> t = Quantity(jnp.e, "Gyr")
+    >>> t = u.Quantity(jnp.e, "Gyr")
     >>> w(t)
     PhaseSpacePosition(
       q=CartesianPos3D(
@@ -141,7 +141,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     The interpolant is vectorized:
 
-    >>> t = Quantity(jnp.linspace(0, 1, 100), "Gyr")
+    >>> t = u.Quantity(jnp.linspace(0, 1, 100), "Gyr")
     >>> w(t)
     PhaseSpacePosition(
       q=CartesianPos3D(
@@ -153,8 +153,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     And it works on batches:
 
-    >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
-    ...                            p=Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
+    ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
     >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic,
     ...                 interpolated=True)
     >>> ws.shape
@@ -197,7 +197,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         /,
         *,
         saveat: Times | None = None,  # not jitted here
-        units: AbstractUnitSystem,
+        units: u.AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Run the integrator.
@@ -235,14 +235,14 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Parse inputs
 
         time = units["time"]
-        t0_: gt.RealScalar = Quantity.from_(t0, time).value
-        t1_: gt.RealScalar = Quantity.from_(t1, time).value
+        t0_: gt.RealScalar = u.Quantity.from_(t0, time).value
+        t1_: gt.RealScalar = u.Quantity.from_(t1, time).value
         # Either save at `saveat` or at the final time.
         only_final = saveat is None or len(saveat) <= 1
         save_at = diffrax.SaveAt(
             t0=False,
             t1=only_final,
-            ts=Quantity.from_(saveat, time).value if not only_final else None,
+            ts=u.Quantity.from_(saveat, time).value if not only_final else None,
             dense=interpolated,
         )
 
@@ -287,9 +287,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             out_kw = {}
 
         return out_cls(  # shape = (*batch, T)
-            t=Quantity(solt, time),
-            q=Quantity(solq, units["length"]),
-            p=Quantity(solp, units["speed"]),
+            t=u.Quantity(solt, time),
+            q=u.Quantity(solq, units["length"]),
+            p=u.Quantity(solp, units["speed"]),
             **out_kw,
         )
 
@@ -335,7 +335,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         t1: Time,
         /,
         *,
-        units: AbstractUnitSystem,
+        units: u.AbstractUnitSystem,
         saveat: Times | None = None,
         interpolated: bool = False,
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -355,7 +355,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         Examples
         --------
         >>> import quaxed.numpy as jnp
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> from unxt.unitsystems import galactic
         >>> import galax.coordinates as gc
         >>> import galax.dynamics as gd
@@ -363,8 +363,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         We define initial conditions:
 
-        >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-        ...                            p=Quantity([0., 200., 0.], "km/s")
+        >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
+        ...                            p=u.Quantity([0., 200., 0.], "km/s")
         ...                            ).w(units="galactic")
         >>> w0.shape
         (6,)
@@ -375,11 +375,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         final position.  The integrator accepts any function for the equations
         of motion.  Here we will reproduce what happens with orbit integrations.
 
-        >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
-        ...                             r_s=Quantity(5, "kpc"), units="galactic")
+        >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+        ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
 
         >>> integrator = gd.integrate.Integrator()
-        >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
+        >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
         >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
         >>> w
         PhaseSpacePosition(
@@ -392,7 +392,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         We can also request the orbit at specific times:
 
-        >>> ts = Quantity(jnp.linspace(0, 1, 10), "Myr")  # 10 steps
+        >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Myr")  # 10 steps
         >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1,
         ...                 saveat=ts, units=galactic)
         >>> ws
@@ -418,11 +418,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         self,
         F: VectorField,
         y0: gt.BatchableVec6,
-        t0: Shaped[Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
-        t1: Shaped[Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
+        t0: Shaped[u.Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
+        t1: Shaped[u.Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
         /,
         *,
-        units: AbstractUnitSystem,
+        units: u.AbstractUnitSystem,
         saveat: Times | None = None,
         **kwargs: Any,
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -440,7 +440,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         Examples
         --------
         >>> import quaxed.numpy as jnp
-        >>> from unxt import Quantity
+        >>> import unxt as u
         >>> from unxt.unitsystems import galactic
         >>> import galax.coordinates as gc
         >>> import galax.dynamics as gd
@@ -450,15 +450,15 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         once, returning a batch of final conditions (or a batch of conditions at
         the requested times):
 
-        >>> w0 = gc.PhaseSpacePosition(q=Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
-        ...                            p=Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
+        >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10., 0, 0], [11., 0, 0]], "kpc"),
+        ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
 
         Now we can integrate the phase-space position for 1 Gyr, getting the
         final position.  The integrator accepts any function for the equations
         of motion.  Here we will reproduce what happens with orbit integrations.
 
-        >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
-        ...                             r_s=Quantity(5, "kpc"), units="galactic")
+        >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+        ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
 
         >>> integrator = gd.integrate.Integrator()
         >>> ws = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
@@ -476,8 +476,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         # TODO: vectorize with units!
         time = units["time"]
-        t0_: gt.VecTime = Quantity.from_(t0, time).value
-        t1_: gt.VecTime = Quantity.from_(t1, time).value
+        t0_: gt.VecTime = u.Quantity.from_(t0, time).value
+        t1_: gt.VecTime = u.Quantity.from_(t1, time).value
 
         return vec_call(F, y0, t0_, t1_)
 
@@ -495,7 +495,7 @@ def call(
     t1: Any,
     /,
     *,
-    units: AbstractUnitSystem,
+    units: u.AbstractUnitSystem,
     saveat: Times | None = None,
     interpolated: Literal[False, True] = False,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -504,7 +504,7 @@ def call(
     Examples
     --------
     >>> import quaxed.numpy as xp
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
@@ -512,16 +512,16 @@ def call(
 
     We define initial conditions and a potential:
 
-    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 200., 0.], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
+    ...                            p=u.Quantity([0., 200., 0.], "km/s"))
 
-    >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
-    ...                             r_s=Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
 
     We can integrate the phase-space position:
 
     >>> integrator = gd.integrate.Integrator()
-    >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
+    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
@@ -551,7 +551,7 @@ def call(
     t1: Any,
     /,
     *,
-    units: AbstractUnitSystem,
+    units: u.AbstractUnitSystem,
     saveat: Times | None = None,
     interpolated: Literal[False, True] = False,
 ) -> gc.CompositePhaseSpacePosition:
@@ -560,7 +560,7 @@ def call(
     Examples
     --------
     >>> import quaxed.numpy as xp
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
@@ -568,19 +568,19 @@ def call(
 
     We define initial conditions and a potential:
 
-    >>> w01 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                             p=Quantity([0., 200., 0.], "km/s"))
-    >>> w02 = gc.PhaseSpacePosition(q=Quantity([0., 10., 0.], "kpc"),
-    ...                             p=Quantity([-200., 0., 0.], "km/s"))
+    >>> w01 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
+    ...                             p=u.Quantity([0., 200., 0.], "km/s"))
+    >>> w02 = gc.PhaseSpacePosition(q=u.Quantity([0., 10., 0.], "kpc"),
+    ...                             p=u.Quantity([-200., 0., 0.], "km/s"))
     >>> w0 = gc.CompositePhaseSpacePosition(w01=w01, w02=w02)
 
-    >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
-    ...                             r_s=Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
 
     We can integrate the composite phase-space position:
 
     >>> integrator = gd.integrate.Integrator()
-    >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
+    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic)
     >>> w
     CompositePhaseSpacePosition({'w01': PhaseSpacePosition(
@@ -616,7 +616,7 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
     Examples
     --------
     >>> import quaxed.numpy as jnp
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
@@ -624,17 +624,17 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
 
     We define initial conditions and a potential:
 
-    >>> w0 = gc.PhaseSpacePosition(q=Quantity([10., 0., 0.], "kpc"),
-    ...                            p=Quantity([0., 200., 0.], "km/s"))
-    >>> pot = gp.HernquistPotential(m_tot=Quantity(1e12, "Msun"),
-    ...                             r_s=Quantity(5, "kpc"), units="galactic")
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
+    ...                            p=u.Quantity([0., 200., 0.], "km/s"))
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
 
     We can integrate the phase-space position for 1 Gyr, getting the final
     position.  The integrator accepts any function for the equations of motion.
     Here we will reproduce what happens with orbit integrations.
 
     >>> integrator = gd.integrate.Integrator()
-    >>> t0, t1 = Quantity(0, "Gyr"), Quantity(1, "Gyr")
+    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic,
     ...                interpolated=True)
     >>> type(w)
@@ -654,17 +654,17 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
     (q, p) values in the units of the integrator.
     """
 
-    units: AbstractUnitSystem = eqx.field(static=True, converter=unitsystem)
+    units: u.AbstractUnitSystem = eqx.field(static=True, converter=u.unitsystem)
     """The :class:`unxt.AbstractUnitSystem`.
 
     This is used to convert the time input to the interpolant and the phase-space
     position output.
     """
 
-    def __call__(self, t: Quantity["time"], **_: Any) -> Any:
+    def __call__(self, t: u.Quantity["time"], **_: Any) -> Any:
         """Evaluate the interpolation."""
         # Parse t
-        t_ = xp.atleast_1d(ustrip(self.units["time"], t))
+        t_ = xp.atleast_1d(u.ustrip(self.units["time"], t))
 
         # Evaluate the interpolation
         ys = jax.vmap(self.interpolant.evaluate)(t_)
@@ -678,7 +678,7 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
 
         # Construct and return the result
         return gc.PhaseSpacePosition(
-            q=Quantity(ys[..., 0:3], self.units["length"]),
-            p=Quantity(ys[..., 3:6], self.units["speed"]),
+            q=u.Quantity(ys[..., 0:3], self.units["length"]),
+            p=u.Quantity(ys[..., 3:6], self.units["speed"]),
             t=t,
         )

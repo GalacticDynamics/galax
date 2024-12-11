@@ -8,7 +8,7 @@ import pytest
 from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -32,7 +32,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     def pot(self) -> NFWPotential:
         """Mock stream DF."""
         return NFWPotential(
-            m=Quantity(1.0e12, "Msun"), r_s=Quantity(15.0, "kpc"), units="galactic"
+            m=u.Quantity(1.0e12, "Msun"), r_s=u.Quantity(15.0, "kpc"), units="galactic"
         )
 
     @pytest.fixture
@@ -49,21 +49,21 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     @pytest.fixture
     def t_stripping(self) -> gt.QVecTime:
         """Time vector for stripping."""
-        return Quantity(jnp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
+        return u.Quantity(jnp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
 
     @pytest.fixture
     def prog_w0(self) -> gc.PhaseSpacePosition:
         """Progenitor initial conditions."""
         return gc.PhaseSpacePosition(
-            q=Quantity([30, 10, 20], "kpc"),
-            p=Quantity([10, -150, -20], "km/s"),
-            t=Quantity(0.0, "Myr"),
+            q=u.Quantity([30, 10, 20], "kpc"),
+            p=u.Quantity([10, -150, -20], "km/s"),
+            t=u.Quantity(0.0, "Myr"),
         )
 
     @pytest.fixture
     def prog_mass(self) -> gt.MassScalar:
         """Progenitor mass."""
-        return Quantity(1e4, "Msun")
+        return u.Quantity(1e4, "Msun")
 
     @pytest.fixture
     def rng(self) -> PRNGKeyArray:

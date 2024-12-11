@@ -6,8 +6,8 @@ from jaxtyping import Array
 from plum import convert
 
 import quaxed.numpy as jnp
+import unxt as u
 import unxt.unitsystems as usx
-from unxt import AbstractUnitSystem, Quantity
 
 import galax.potential as gp
 import galax.typing as gt
@@ -20,7 +20,7 @@ class TestNullPotential(AbstractPotential_Test):
         return gp.NullPotential
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_units: AbstractUnitSystem) -> dict[str, Any]:
+    def fields_(self, field_units: usx.AbstractUnitSystem) -> dict[str, Any]:
         return {"units": field_units}
 
     # ==========================================================================
@@ -60,29 +60,31 @@ class TestNullPotential(AbstractPotential_Test):
 
     def test_potential(self, pot: gp.NullPotential, x: gt.QVec3) -> None:
         """Test :meth:`NullPotential.potential`."""
-        expect = Quantity(0.0, pot.units["specific energy"])
+        expect = u.Quantity(0.0, pot.units["specific energy"])
         assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: gp.NullPotential, x: gt.QVec3) -> None:
         """Test :meth:`NullPotential.gradient`."""
-        expect = Quantity([0.0, 0.0, 0.0], pot.units["acceleration"])
-        got = convert(pot.gradient(x, t=0), Quantity)
-        assert jnp.allclose(got, expect, atol=Quantity(1e-8, expect.unit))
+        expect = u.Quantity([0.0, 0.0, 0.0], pot.units["acceleration"])
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.NullPotential, x: gt.QVec3) -> None:
         """Test :meth:`NullPotential.density`."""
-        expect = Quantity(0.0, pot.units["mass density"])
+        expect = u.Quantity(0.0, pot.units["mass density"])
         assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_hessian(self, pot: gp.NullPotential, x: gt.QVec3) -> None:
         """Test :meth:`NullPotential.hessian`."""
-        expect = Quantity([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
+        expect = u.Quantity(
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2"
+        )
         assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -90,7 +92,9 @@ class TestNullPotential(AbstractPotential_Test):
 
     def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
-        expect = Quantity([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
+        expect = u.Quantity(
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2"
+        )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

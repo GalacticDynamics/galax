@@ -4,7 +4,7 @@ import jax
 import pytest
 
 import quaxed.numpy as jnp
-from unxt import Quantity
+import unxt as u
 
 import galax.typing as gt
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
@@ -23,11 +23,11 @@ class TestBatchedShape:
             (jnp.asarray([[1, 2], [3, 4]]), 1, ((2,), (2,))),
             (jnp.asarray([[1, 2], [3, 4]]), 2, ((), (2, 2))),
             # Quantity
-            (Quantity(42, "m"), 0, ((), ())),
-            (Quantity([1], "m"), 0, ((1,), ())),
-            (Quantity([1, 2, 3], "m"), 1, ((), (3,))),
-            (Quantity([[1, 2], [3, 4]], "m"), 1, ((2,), (2,))),
-            (Quantity([[1, 2], [3, 4]], "m"), 2, ((), (2, 2))),
+            (u.Quantity(42, "m"), 0, ((), ())),
+            (u.Quantity([1], "m"), 0, ((1,), ())),
+            (u.Quantity([1, 2, 3], "m"), 1, ((), (3,))),
+            (u.Quantity([[1, 2], [3, 4]], "m"), 1, ((2,), (2,))),
+            (u.Quantity([[1, 2], [3, 4]], "m"), 2, ((), (2, 2))),
         ],
     )
     def test_batched_shape(
@@ -54,13 +54,13 @@ class TestExpandBatchDims:
             (jnp.asarray([1, 2]), 1, jnp.asarray([[1, 2]])),
             (jnp.asarray(1), 2, jnp.asarray([[1]])),
             # Quantity
-            (Quantity(1, "m"), 0, Quantity(1, "m")),
-            (Quantity([2], "m"), 0, Quantity([2], "m")),
-            (Quantity([1, 2], "m"), 0, Quantity([1, 2], "m")),
-            (Quantity(1, "m"), 1, Quantity([1], "m")),
-            (Quantity([2], "m"), 1, Quantity([[2]], "m")),
-            (Quantity([1, 2], "m"), 1, Quantity([[1, 2]], "m")),
-            (Quantity(1, "m"), 2, Quantity([[1]], "m")),
+            (u.Quantity(1, "m"), 0, u.Quantity(1, "m")),
+            (u.Quantity([2], "m"), 0, u.Quantity([2], "m")),
+            (u.Quantity([1, 2], "m"), 0, u.Quantity([1, 2], "m")),
+            (u.Quantity(1, "m"), 1, u.Quantity([1], "m")),
+            (u.Quantity([2], "m"), 1, u.Quantity([[2]], "m")),
+            (u.Quantity([1, 2], "m"), 1, u.Quantity([[1, 2]], "m")),
+            (u.Quantity(1, "m"), 2, u.Quantity([[1]], "m")),
         ],
     )
     def test_expand_batch_dims(
@@ -87,13 +87,13 @@ class TestExpandArrDims:
             (jnp.asarray([1, 2]), 1, jnp.asarray([[1], [2]])),
             (jnp.asarray(1), 2, jnp.asarray([[1]])),
             # Quantity
-            (Quantity(1, "m"), 0, Quantity(1, "m")),
-            (Quantity([2], "m"), 0, Quantity([2], "m")),
-            (Quantity([1, 2], "m"), 0, Quantity([1, 2], "m")),
-            (Quantity(1, "m"), 1, Quantity([1], "m")),
-            (Quantity([2], "m"), 1, Quantity([[2]], "m")),
-            (Quantity([1, 2], "m"), 1, Quantity([[1], [2]], "m")),
-            (Quantity(1, "m"), 2, Quantity([[1]], "m")),
+            (u.Quantity(1, "m"), 0, u.Quantity(1, "m")),
+            (u.Quantity([2], "m"), 0, u.Quantity([2], "m")),
+            (u.Quantity([1, 2], "m"), 0, u.Quantity([1, 2], "m")),
+            (u.Quantity(1, "m"), 1, u.Quantity([1], "m")),
+            (u.Quantity([2], "m"), 1, u.Quantity([[2]], "m")),
+            (u.Quantity([1, 2], "m"), 1, u.Quantity([[1], [2]], "m")),
+            (u.Quantity(1, "m"), 2, u.Quantity([[1]], "m")),
         ],
     )
     def test_expand_arr_dims(

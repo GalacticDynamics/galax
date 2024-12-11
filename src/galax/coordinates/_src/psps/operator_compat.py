@@ -10,7 +10,7 @@ from quax import quaxify
 
 import coordinax as cx
 import coordinax.ops as cxo
-from unxt import Quantity
+import unxt as u
 
 from .base_psp import AbstractPhaseSpacePosition
 
@@ -37,21 +37,21 @@ def call(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import coordinax as cx
 
     We can then create a spatial translation operator:
 
-    >>> op = cx.ops.GalileanSpatialTranslation(Quantity([1, 2, 3], "kpc"))
+    >>> op = cx.ops.GalileanSpatialTranslation(u.Quantity([1, 2, 3], "kpc"))
     >>> op
     GalileanSpatialTranslation(CartesianPos3D( ... ))
 
     We can then apply the operator to a position:
 
-    >>> pos = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                             p=Quantity([4, 5, 6], "km/s"),
-    ...                             t=Quantity(0.0, "Gyr"))
+    >>> pos = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0.0, "Gyr"))
     >>> pos
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -101,16 +101,16 @@ def call(
     Examples
     --------
     >>> from dataclasses import replace
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> shift = cx.CartesianPos3D.from_(Quantity([1, 1, 1], "kpc"))
+    >>> shift = cx.CartesianPos3D.from_(u.Quantity([1, 1, 1], "kpc"))
     >>> op = cx.ops.GalileanSpatialTranslation(shift)
 
-    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                             t=Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
@@ -121,7 +121,7 @@ def call(
 
     This spatial translation is time independent.
 
-    >>> psp2 = replace(psp, t=Quantity(1, "Gyr"))
+    >>> psp2 = replace(psp, t=u.Quantity(1, "Gyr"))
     >>> op(psp2).q.x == newpsp.q.x
     Array(True, dtype=bool)
 
@@ -152,15 +152,15 @@ def call(
     Examples
     --------
     >>> from dataclasses import replace
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.ops.GalileanTranslation(Quantity([2_000, 1, 1, 1], "kpc"))
+    >>> op = cx.ops.GalileanTranslation(u.Quantity([2_000, 1, 1, 1], "kpc"))
 
-    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                             t=Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
@@ -171,7 +171,7 @@ def call(
 
     This spatial translation is time independent.
 
-    >>> psp2 = replace(psp, t=Quantity(1, "Gyr"))
+    >>> psp2 = replace(psp, t=u.Quantity(1, "Gyr"))
     >>> op(psp2).q.x == newpsp.q.x
     Array(True, dtype=bool)
 
@@ -210,15 +210,15 @@ def call(
     Examples
     --------
     >>> from dataclasses import replace
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.ops.GalileanBoost(Quantity([1, 1, 1], "kpc/Gyr"))
+    >>> op = cx.ops.GalileanBoost(u.Quantity([1, 1, 1], "kpc/Gyr"))
 
-    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                             t=Quantity(1, "Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=u.Quantity(1, "Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
@@ -229,7 +229,7 @@ def call(
 
     This spatial translation is time dependent.
 
-    >>> psp2 = replace(psp, t=Quantity(2, "Gyr"))
+    >>> psp2 = replace(psp, t=u.Quantity(2, "Gyr"))
     >>> op(psp2).q.x
     Quantity['length'](Array(3., dtype=float64), unit='kpc')
 
@@ -257,19 +257,19 @@ def call(
     Examples
     --------
     >>> import quaxed.numpy as jnp
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> theta = Quantity(45, "deg")
+    >>> theta = u.Quantity(45, "deg")
     >>> Rz = jnp.asarray([[jnp.cos(theta), -jnp.sin(theta), 0],
     ...                  [jnp.sin(theta), jnp.cos(theta),  0],
     ...                  [0,             0,              1]])
     >>> op = cx.ops.GalileanRotation(Rz)
 
-    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 0, 0], "m"),
-    ...                             p=Quantity([1, 0, 0], "m/s"),
-    ...                             t=Quantity(1, "Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 0, 0], "m"),
+    ...                             p=u.Quantity([1, 0, 0], "m/s"),
+    ...                             t=u.Quantity(1, "Gyr"))
 
     >>> newpsp = op(psp)
 
@@ -293,7 +293,7 @@ def call(
     # coordinates at the original position. Then the rotation is applied to
     # the momentum. The momentum is then transformed back to the original
     # representation, but at the rotated position.
-    pv = convert(psp.p.vconvert(cx.CartesianVel3D, psp.q), Quantity)
+    pv = convert(psp.p.vconvert(cx.CartesianVel3D, psp.q), u.Quantity)
     pv = batched_matmul(self.rotation, pv)
     p = cx.CartesianVel3D.from_(pv).vconvert(type(psp.p), q)
     # Reasseble and return
@@ -315,15 +315,15 @@ def call(
 
     Examples
     --------
-    >>> from unxt import Quantity
+    >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
     >>> op = cx.ops.Identity()
 
-    >>> psp = gc.PhaseSpacePosition(q=Quantity([1, 2, 3], "kpc"),
-    ...                             p=Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                             t=Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> op(psp)
     PhaseSpacePosition( q=CartesianPos3D( ... ),

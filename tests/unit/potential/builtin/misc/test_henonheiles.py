@@ -6,7 +6,8 @@ import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity
+import unxt as u
+from unxt.unitsystems import AbstractUnitSystem
 
 import galax.potential as gp
 import galax.typing as gt
@@ -19,16 +20,16 @@ class ParameterCoeffMixin(ParameterFieldMixin):
     """Test the coeff parameter."""
 
     @pytest.fixture(scope="class")
-    def field_coeff(self) -> Quantity["wavenumber"]:
-        return Quantity(1.0, "1/kpc")
+    def field_coeff(self) -> u.Quantity["wavenumber"]:
+        return u.Quantity(1.0, "1/kpc")
 
     # =====================================================
 
     def test_coeff_constant(self, pot_cls, fields):
         """Test the `coeff` parameter."""
-        fields["coeff"] = 1 / Quantity(1.0, "kpc")
+        fields["coeff"] = 1 / u.Quantity(1.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.coeff(t=0) == 1 / Quantity(1.0, "kpc")
+        assert pot.coeff(t=0) == 1 / u.Quantity(1.0, "kpc")
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_coeff_userfunc(self, pot_cls, fields):
@@ -45,26 +46,26 @@ class ParameterTimeScaleMixin(ParameterFieldMixin):
     """Test the timescale parameter."""
 
     @pytest.fixture(scope="class")
-    def field_timescale(self) -> Quantity["time"]:
-        return Quantity(1.0, "Myr")
+    def field_timescale(self) -> u.Quantity["time"]:
+        return u.Quantity(1.0, "Myr")
 
     # =====================================================
 
     def test_timescale_constant(self, pot_cls, fields):
         """Test the `timescale` parameter."""
-        fields["timescale"] = Quantity(1.0, "Myr")
+        fields["timescale"] = u.Quantity(1.0, "Myr")
         pot = pot_cls(**fields)
-        assert pot.timescale(t=0) == Quantity(1.0, "Myr")
+        assert pot.timescale(t=0) == u.Quantity(1.0, "Myr")
 
     def test_timescale_userfunc(self, pot_cls, fields):
         """Test the `timescale` parameter."""
 
-        def func(t: Quantity["time"]) -> Quantity["time"]:
-            return Quantity.from_(t * 1.2, "Myr")
+        def func(t: u.Quantity["time"]) -> u.Quantity["time"]:
+            return u.Quantity.from_(t * 1.2, "Myr")
 
         fields["timescale"] = func
         pot = pot_cls(**fields)
-        assert pot.timescale(t=1) == Quantity(1.2, "Myr")
+        assert pot.timescale(t=1) == u.Quantity(1.2, "Myr")
 
 
 #####################################################################
@@ -88,8 +89,8 @@ class TestHenonHeilesPotential(
     @pytest.fixture(scope="class")
     def fields_(
         self,
-        field_coeff: Quantity,
-        field_timescale: Quantity,
+        field_coeff: u.Quantity,
+        field_timescale: u.Quantity,
         field_units: AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
@@ -102,23 +103,23 @@ class TestHenonHeilesPotential(
 
     def test_potential(self, pot: HenonHeilesPotential, x: gt.Vec3) -> None:
         got = pot.potential(x, t=0)
-        exp = Quantity(1.83333333, unit="kpc2 / Myr2")
-        assert jnp.isclose(got, exp, atol=Quantity(1e-8, exp.unit))
+        exp = u.Quantity(1.83333333, unit="kpc2 / Myr2")
+        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_gradient(self, pot: HenonHeilesPotential, x: gt.Vec3) -> None:
-        got = convert(pot.gradient(x, t=0), Quantity)
-        exp = Quantity([5.0, -1, 0], "kpc / Myr2")
-        assert jnp.allclose(got, exp, atol=Quantity(1e-8, exp.unit))
+        got = convert(pot.gradient(x, t=0), u.Quantity)
+        exp = u.Quantity([5.0, -1, 0], "kpc / Myr2")
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_density(self, pot: HenonHeilesPotential, x: gt.Vec3) -> None:
         got = pot.density(x, t=0)
-        exp = Quantity(3.53795414e10, "solMass / kpc3")
-        assert jnp.isclose(got, exp, atol=Quantity(1e-8, exp.unit))
+        exp = u.Quantity(3.53795414e10, "solMass / kpc3")
+        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_hessian(self, pot: HenonHeilesPotential, x: gt.Vec3) -> None:
         got = pot.hessian(x, t=0)
-        exp = Quantity([[5.0, 2.0, 0.0], [2.0, -3.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
-        assert jnp.allclose(got, exp, atol=Quantity(1e-8, exp.unit))
+        exp = u.Quantity([[5.0, 2.0, 0.0], [2.0, -3.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     # ---------------------------------
     # Convenience methods
@@ -126,8 +127,8 @@ class TestHenonHeilesPotential(
     def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.Vec3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         got = pot.tidal_tensor(x, t=0)
-        exp = Quantity(
+        exp = u.Quantity(
             [[4.33333333, 2.0, 0.0], [2.0, -3.66666667, 0.0], [0.0, 0.0, -0.66666667]],
             "1/Myr2",
         )
-        assert jnp.allclose(got, exp, atol=Quantity(1e-8, exp.unit))
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))

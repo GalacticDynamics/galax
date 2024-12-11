@@ -13,7 +13,7 @@ import equinox as eqx
 import jax
 
 import quaxed.numpy as jnp
-from unxt import AbstractUnitSystem, Quantity, unitsystem
+import unxt as u
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -43,8 +43,8 @@ class BarPotential(AbstractPotential):
     Omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=unitsystem, static=True)
-    constants: ImmutableMap[str, Quantity] = eqx.field(
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 

@@ -12,7 +12,7 @@ from jaxtyping import PRNGKeyArray
 from plum import convert
 
 import coordinax as cx
-from unxt import Quantity, uconvert
+import unxt as u
 
 import galax.coordinates as gc
 import galax.potential as gp
@@ -66,12 +66,12 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         >>> df = gd.FardalStreamDF()
         >>> pot = gp.MilkyWayPotential()
-        >>> w = gc.PhaseSpacePosition(q=Quantity([8.3, 0, 0], "kpc"),
-        ...                           p=Quantity([0, 220, 0], "km/s"),
-        ...                           t=Quantity(0, "Gyr"))
-        >>> prog_orbit = pot.evaluate_orbit(w, t=Quantity([0, 1, 2], "Gyr"))
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([8.3, 0, 0], "kpc"),
+        ...                           p=u.Quantity([0, 220, 0], "km/s"),
+        ...                           t=u.Quantity(0, "Gyr"))
+        >>> prog_orbit = pot.evaluate_orbit(w, t=u.Quantity([0, 1, 2], "Gyr"))
         >>> stream_ic = df.sample(jr.key(0), pot, prog_orbit,
-        ...                       prog_mass=Quantity(1e4, "Msun"))
+        ...                       prog_mass=u.Quantity(1e4, "Msun"))
         >>> stream_ic
         CompositePhaseSpacePosition({'lead': MockStreamArm(
             q=CartesianPos3D( ... ),
@@ -100,22 +100,22 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         x_lead, v_lead, x_trail, v_trail = self._sample(
             rng,
             pot,
-            convert(prog_orbit.q, Quantity),
-            convert(prog_orbit.p, Quantity),
+            convert(prog_orbit.q, u.Quantity),
+            convert(prog_orbit.p, u.Quantity),
             mprog(ts),
             ts,
         )
 
-        ts = uconvert(pot.units["time"], ts)
+        ts = u.uconvert(pot.units["time"], ts)
         mock_lead = MockStreamArm(
-            q=uconvert(pot.units["length"], x_lead),
-            p=uconvert(pot.units["speed"], v_lead),
+            q=u.uconvert(pot.units["length"], x_lead),
+            p=u.uconvert(pot.units["speed"], v_lead),
             t=ts,
             release_time=ts,
         )
         mock_trail = MockStreamArm(
-            q=uconvert(pot.units["length"], x_trail),
-            p=uconvert(pot.units["speed"], v_trail),
+            q=u.uconvert(pot.units["length"], x_trail),
+            p=u.uconvert(pot.units["speed"], v_trail),
             t=ts,
             release_time=ts,
         )

@@ -10,7 +10,6 @@ from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt import Quantity
 
 import galax.coordinates as gc
 import galax.dynamics as gd
@@ -61,23 +60,23 @@ def test_first_deriv() -> None:
     # Inputs
     params = {
         "disk": {
-            "m_tot": Quantity(5.0e10, "Msun"),
-            "a": Quantity(3.0, "kpc"),
-            "b": Quantity(0.25, "kpc"),
+            "m_tot": u.Quantity(5.0e10, "Msun"),
+            "a": u.Quantity(3.0, "kpc"),
+            "b": u.Quantity(0.25, "kpc"),
         },
         "halo": {
-            "m": Quantity(1.0e12, "Msun"),
-            "r_s": Quantity(15.0, "kpc"),
+            "m": u.Quantity(1.0e12, "Msun"),
+            "r_s": u.Quantity(15.0, "kpc"),
         },
     }
 
-    ts = Quantity(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
+    ts = u.Quantity(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
     w0 = gc.PhaseSpacePosition(
-        q=Quantity([30.0, 10, 20], "kpc"),
-        p=Quantity([10.0, -150, -20], "km / s"),
+        q=u.Quantity([30.0, 10, 20], "kpc"),
+        p=u.Quantity([10.0, -150, -20], "km / s"),
         t=None,
     )
-    M_sat = Quantity(1.0e4, "Msun")
+    M_sat = u.Quantity(1.0e4, "Msun")
 
     # Compute the first derivative
     rng = jr.key(12)
@@ -93,23 +92,23 @@ def test_second_deriv() -> None:
     # Inputs
     params = {
         "disk": {
-            "m_tot": Quantity(5.0e10, "Msun"),
-            "a": Quantity(3.0, "kpc"),
-            "b": Quantity(0.25, "kpc"),
+            "m_tot": u.Quantity(5.0e10, "Msun"),
+            "a": u.Quantity(3.0, "kpc"),
+            "b": u.Quantity(0.25, "kpc"),
         },
         "halo": {
-            "m": Quantity(1.0e12, "Msun"),
-            "r_s": Quantity(15.0, "kpc"),
+            "m": u.Quantity(1.0e12, "Msun"),
+            "r_s": u.Quantity(15.0, "kpc"),
         },
     }
 
-    ts = Quantity(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
+    ts = u.Quantity(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
     w0 = gc.PhaseSpacePosition(
-        q=Quantity([30.0, 10, 20], "kpc"),
-        p=Quantity([10.0, -150, -20], "km / s"),
+        q=u.Quantity([30.0, 10, 20], "kpc"),
+        p=u.Quantity([10.0, -150, -20], "km / s"),
         t=None,
     )
-    M_sat = Quantity(1.0e4, "Msun")
+    M_sat = u.Quantity(1.0e4, "Msun")
 
     # Compute the second derivative
     rng = jr.key(12)

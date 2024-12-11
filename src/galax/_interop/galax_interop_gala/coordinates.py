@@ -23,7 +23,7 @@ def gala_psp_to_galax_psp(
     return gcx.PhaseSpacePosition(q=obj.pos, p=obj.vel, t=t)
 
 
-@gcx.PhaseSpacePosition.from_.register  # type: ignore[misc]
+@gcx.PhaseSpacePosition.from_.dispatch  # type: ignore[misc]
 def from_(
     _: type[gcx.PhaseSpacePosition], obj: gd.PhaseSpacePosition, /, t: Any | None = None
 ) -> gcx.PhaseSpacePosition:

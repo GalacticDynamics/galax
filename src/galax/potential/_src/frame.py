@@ -139,7 +139,7 @@ class PotentialFrame(AbstractBasePotential):
 
     Lastly, we can apply a sequence of transformations to the potential. There
     are two ways to do this. The first is to create a pre-defined composite
-    operator, like a :class:`~galax.coordinates.operators.GalileanOperator`:
+    operator, like a :class:`~galax.coordinates.ops.GalileanOperator`:
 
     >>> op5 = cx.ops.GalileanOperator(rotation=op4, translation=op2, velocity=op3)
     >>> op5
@@ -170,7 +170,7 @@ class PotentialFrame(AbstractBasePotential):
     >>> pot2 = gp.TriaxialHernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...     r_s=u.Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
 
-    >>> op7 = gc.operators.ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg/Gyr"))
+    >>> op7 = gc.ops.ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg/Gyr"))
     >>> framedpot7 = gp.PotentialFrame(original_potential=pot2, operator=op7)
 
     The potential energy at a given position will change with time:

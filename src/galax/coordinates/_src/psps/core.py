@@ -287,7 +287,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
 
 # TODO: generalize
-@PhaseSpacePosition.from_._f.dispatch(precedence=1)  # type: ignore[misc]  # noqa: SLF001
+@PhaseSpacePosition.from_.dispatch(precedence=1)  # type: ignore[misc]
 @partial(eqx.filter_jit, inline=True)
 def from_(
     cls: type[PhaseSpacePosition], obj: AbstractCompositePhaseSpacePosition, /

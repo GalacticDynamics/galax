@@ -655,7 +655,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 # Register additional constructors
 
 
-@AbstractBasePhaseSpacePosition.from_._f.register  # type: ignore[misc]  # noqa: SLF001
+@AbstractBasePhaseSpacePosition.from_.dispatch  # type: ignore[misc]
 def from_(
     cls: type[AbstractBasePhaseSpacePosition], obj: AbstractBasePhaseSpacePosition, /
 ) -> AbstractBasePhaseSpacePosition:

@@ -18,15 +18,15 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.unitsystems import galactic
 
+import galax.coordinates as gc
 import galax.typing as gt
-from galax.coordinates import AbstractPhaseSpacePosition, ComponentShapeTuple
 from galax.potential import AbstractBasePotential, KeplerPotential, MilkyWayPotential
 
 if TYPE_CHECKING:
     from pytest import FixtureRequest  # noqa: PT013
 
 
-T = TypeVar("T", bound=AbstractPhaseSpacePosition)
+T = TypeVar("T", bound=gc.AbstractPhaseSpacePosition)
 
 potentials = [
     KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units=galactic),
@@ -238,7 +238,7 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
     def w_cls(self) -> type[T]:
         """Return the class of a phase-space position."""
 
-        class PSP(AbstractPhaseSpacePosition):
+        class PSP(gc.AbstractPhaseSpacePosition):
             """A phase-space position."""
 
             q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vecs.AbstractPos3D.from_)
@@ -246,8 +246,8 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
             t: u.Quantity["time"]
 
             @property
-            def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
-                return self.q.shape, ComponentShapeTuple(p=3, q=3, t=1)
+            def _shape_tuple(self) -> tuple[gt.Shape, gc.ComponentShapeTuple]:
+                return self.q.shape, gc.ComponentShapeTuple(p=3, q=3, t=1)
 
             def __getitem__(self, index: Any) -> Self:
                 return replace(self, q=self.q[index], p=self.p[index], t=self.t[index])

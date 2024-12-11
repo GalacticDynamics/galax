@@ -257,14 +257,13 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         >>> from dataclasses import replace
         >>> from plum import convert
         >>> import unxt as u
-        >>> from galax.coordinates import PhaseSpacePosition
-        >>> from galax.coordinates.ops import ConstantRotationZOperator
+        >>> import galax.coordinates as gc
 
-        >>> op = ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg / Gyr"))
+        >>> op = gc.ops.ConstantRotationZOperator.from_(90, "deg / Gyr")
 
-        >>> psp = PhaseSpacePosition(q=u.Quantity([1, 0, 0], "kpc"),
-        ...                          p=u.Quantity([0, 0, 0], "kpc/Gyr"),
-        ...                          t=u.Quantity(1, "Gyr"))
+        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 0, 0], "kpc"),
+        ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"),
+        ...                             t=u.Quantity(1, "Gyr"))
 
         >>> newpsp = op(psp)
         >>> convert(newpsp.q, u.Quantity).value.round(2)

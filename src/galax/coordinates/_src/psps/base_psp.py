@@ -69,13 +69,13 @@ def vconvert(
     --------
     >>> import unxt as u
     >>> import coordinax.vecs as cxv
-    >>> from galax.coordinates import PhaseSpacePosition
+    >>> import galax.coordinates as gc
 
     We can create a phase-space position and convert it to a 6-vector:
 
-    >>> psp = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                          p=u.Quantity([4, 5, 6], "km/s"),
-    ...                          t=u.Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
     >>> psp.w(units="galactic")
     Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
 
@@ -113,9 +113,9 @@ def vconvert(
 
     We can create a phase-space position and convert it to a 6-vector:
 
-    >>> psp = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                          p=u.Quantity([4, 5, 6], "km/s"),
-    ...                          t=u.Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
     >>> psp.w(units="galactic")
     Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
 

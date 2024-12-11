@@ -85,14 +85,14 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         With the following imports:
 
         >>> import unxt as u
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> import galax.coordinates as gc
 
         We can create a phase-space position from a mapping:
 
         >>> obj = {"q": u.Quantity([1, 2, 3], "kpc"),
         ...        "p": u.Quantity([4, 5, 6], "km/s"),
         ...        "t": u.Quantity(0, "Gyr")}
-        >>> PhaseSpacePosition.from_(obj)
+        >>> gc.PhaseSpacePosition.from_(obj)
         PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
@@ -171,7 +171,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> q = cx.CartesianPos3D(x=u.Quantity([1, 4], "kpc"),
         ...                       y=u.Quantity(2, "kpc"),
         ...                       z=u.Quantity(3, "kpc"))
-        >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
+        >>> pos = gc.PhaseSpacePosition(q=q, p=p, t=t)
         >>> pos.shape
         (2,)
         """
@@ -207,7 +207,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> q = cx.CartesianPos3D(x=u.Quantity([1, 4], "kpc"),
         ...                       y=u.Quantity(2, "kpc"),
         ...                       z=u.Quantity(3, "kpc"))
-        >>> pos = PhaseSpacePosition(q=q, p=p, t=t)
+        >>> pos = gc.PhaseSpacePosition(q=q, p=p, t=t)
         >>> len(pos)
         2
         """
@@ -271,14 +271,13 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         Examples
         --------
         >>> import unxt as u
-        >>> import coordinax as cx
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> import galax.coordinates as gc
 
         We can create a phase-space position:
 
-        >>> pos = PhaseSpacePosition(q=u.Quantity([[1, 2, 3]], "kpc"),
-        ...                          p=u.Quantity([4, 5, 6], "km/s"),
-        ...                          t=u.Quantity(0, "Gyr"))
+        >>> pos = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3]], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"),
+        ...                             t=u.Quantity(0, "Gyr"))
         >>> pos.full_shape
         (1, 7)
         """
@@ -312,13 +311,13 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         Assuming the following imports:
 
         >>> import unxt as u
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> import galax.coordinates as gc
 
         We can create a phase-space position and convert it to a 6-vector:
 
-        >>> psp = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                          p=u.Quantity([4, 5, 6], "km/s"),
-        ...                          t=u.Quantity(0, "Gyr"))
+        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"),
+        ...                             t=u.Quantity(0, "Gyr"))
         >>> psp.w(units="galactic")
         Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
         """
@@ -352,13 +351,13 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         Examples
         --------
         >>> import unxt as u
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> import galax.coordinates as gc
 
         We can create a phase-space position and convert it to a 6-vector:
 
-        >>> psp = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                          p=u.Quantity([4, 5, 6], "km/s"),
-        ...                          t=u.Quantity(7.0, "Myr"))
+        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"),
+        ...                             t=u.Quantity(7.0, "Myr"))
         >>> psp.wt(units="galactic")
             Array([7.00000000e+00, 1.00000000e+00, 2.00000000e+00, 3.00000000e+00,
                 4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64)
@@ -408,13 +407,13 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         >>> import unxt as u
         >>> import coordinax as cx
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> import galax.coordinates as gc
 
         We can create a phase-space position and convert it to a 6-vector:
 
-        >>> psp = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                          p=u.Quantity([4, 5, 6], "km/s"),
-        ...                          t=u.Quantity(0, "Gyr"))
+        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"),
+        ...                             t=u.Quantity(0, "Gyr"))
         >>> psp.w(units="galactic")
         Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
 
@@ -454,16 +453,14 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         Examples
         --------
-        With the following imports:
-
         >>> import unxt as u
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> import galax.coordinates as gc
 
         We can create a phase-space position and convert it to different units:
 
-        >>> psp = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                          p=u.Quantity([4, 5, 6], "km/s"),
-        ...                          t=u.Quantity(0, "Gyr"))
+        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"),
+        ...                             t=u.Quantity(0, "Gyr"))
         >>> psp.to_units("solarsystem")
         PhaseSpacePosition(
             q=CartesianPos3D(
@@ -498,7 +495,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         --------
         >>> import unxt as u
         >>> import coordinax as cx
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> import galax.coordinates as gc
 
         We can construct a phase-space position:
 
@@ -511,7 +508,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...     d_y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=u.Quantity(0, "km/s"))
         >>> t = u.Quantity(0, "Gyr")
-        >>> w = PhaseSpacePosition(q, p, t=t)
+        >>> w = gc.PhaseSpacePosition(q, p, t=t)
 
         We can compute the kinetic energy:
 
@@ -544,8 +541,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         --------
         >>> import unxt as u
         >>> import coordinax as cx
-        >>> from galax.coordinates import PhaseSpacePosition
-        >>> from galax.potential import MilkyWayPotential
+        >>> import galax.coordinates as gc
+        >>> import galax.potential as gp
 
         We can construct a phase-space position:
 
@@ -557,11 +554,11 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...     d_x=u.Quantity(0, "km/s"),
         ...     d_y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=u.Quantity(0, "km/s"))
-        >>> w = PhaseSpacePosition(q, p, t=u.Quantity(0, "Myr"))
+        >>> w = gc.PhaseSpacePosition(q, p, t=u.Quantity(0, "Myr"))
 
         We can compute the kinetic energy:
 
-        >>> pot = MilkyWayPotential()
+        >>> pot = gp.MilkyWayPotential()
         >>> w.potential_energy(pot)
         Quantity[...](Array(..., dtype=float64), unit='kpc2 / Myr2')
         """
@@ -591,8 +588,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         --------
         >>> import unxt as u
         >>> import coordinax as cx
-        >>> from galax.coordinates import PhaseSpacePosition
-        >>> from galax.potential import MilkyWayPotential
+        >>> import galax.coordinates as gc
+        >>> import galax.potential as gp
 
         We can construct a phase-space position:
 
@@ -604,11 +601,11 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...     d_x=u.Quantity(0, "km/s"),
         ...     d_y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     d_z=u.Quantity(0, "km/s"))
-        >>> w = PhaseSpacePosition(q, p, t=u.Quantity(0, "Myr"))
+        >>> w = gc.PhaseSpacePosition(q, p, t=u.Quantity(0, "Myr"))
 
         We can compute the kinetic energy:
 
-        >>> pot = MilkyWayPotential()
+        >>> pot = gp.MilkyWayPotential()
         >>> w.total_energy(pot)
         Quantity[...](Array(..., dtype=float64), unit='km2 / s2')
         """
@@ -635,14 +632,14 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         We assume the following imports
 
         >>> import unxt as u
-        >>> from galax.coordinates import PhaseSpacePosition
+        >>> import galax.coordinates as gc
 
         We can compute the angular momentum of a single object
 
         >>> q = u.Quantity([1., 0, 0], "au")
         >>> p = u.Quantity([0, 2., 0], "au/yr")
         >>> t = u.Quantity(0, "yr")
-        >>> w = PhaseSpacePosition(q=q, p=p, t=t)
+        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=t)
         >>> w.angular_momentum()
         Quantity[...](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
         """
@@ -687,14 +684,14 @@ def from_(
 
     >>> import unxt as u
     >>> import coordinax as cx
-    >>> from galax.coordinates import PhaseSpacePosition
+    >>> import galax.coordinates as gc
 
     We can create a phase-space position and construct a new one from it:
 
-    >>> psp = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                          p=u.Quantity([4, 5, 6], "km/s"),
-    ...                          t=u.Quantity(0, "Gyr"))
-    >>> PhaseSpacePosition.from_(psp) is psp
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
+    >>> gc.PhaseSpacePosition.from_(psp) is psp
     True
 
     Note that the constructed object is the same as the input object because
@@ -702,7 +699,7 @@ def from_(
     :class:`~galax.coordinates.PhaseSpacePosition`, we can construct a
     new object from the input object that is an instance of the new class:
 
-    >>> class NewPhaseSpacePosition(PhaseSpacePosition): pass
+    >>> class NewPhaseSpacePosition(gc.PhaseSpacePosition): pass
     >>> new_psp = NewPhaseSpacePosition.from_(psp)
     >>> new_psp is psp
     False
@@ -735,14 +732,14 @@ def add(
     Examples
     --------
     >>> import unxt as u
-    >>> from galax.coordinates import PhaseSpacePosition
+    >>> import galax.coordinates as gc
 
-    >>> w1 = PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                         p=u.Quantity([4, 5, 6], "km/s"),
-    ...                         t=u.Quantity(0, "Gyr"))
-    >>> w2 = PhaseSpacePosition(q=u.Quantity([-1, -2, -3], "kpc"),
-    ...                         p=u.Quantity([-4, -5, -6], "km/s"),
-    ...                         t=u.Quantity(0, "Gyr"))
+    >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                            p=u.Quantity([4, 5, 6], "km/s"),
+    ...                            t=u.Quantity(0, "Gyr"))
+    >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([-1, -2, -3], "kpc"),
+    ...                            p=u.Quantity([-4, -5, -6], "km/s"),
+    ...                            t=u.Quantity(0, "Gyr"))
     >>> w3 = w1 + w2
     >>> w3
     PhaseSpacePosition(

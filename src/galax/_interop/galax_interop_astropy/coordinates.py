@@ -12,7 +12,7 @@ import galax.coordinates as gc
 # PhaseSpacePosition
 
 
-@gc.PhaseSpacePosition.from_._f.register  # noqa: SLF001
+@gc.PhaseSpacePosition.from_.register
 def from_(
     _: type[gc.PhaseSpacePosition],
     vec: apyc.BaseRepresentation,
@@ -62,7 +62,7 @@ def from_(
     )
 
 
-@gc.PhaseSpacePosition.from_._f.register  # noqa: SLF001
+@gc.PhaseSpacePosition.from_.register
 def from_(
     _: type[gc.PhaseSpacePosition],
     vec: apyc.BaseRepresentation,

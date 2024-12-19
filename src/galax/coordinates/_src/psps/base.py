@@ -96,7 +96,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity[...](value=f64[], unit=Unit("Gyr"))
+            t=Quantity[...](value=...i64[], unit=Unit("Gyr"))
         )
 
         """
@@ -117,10 +117,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> print(w)
         PhaseSpacePosition(
             q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
-                [1. 2. 3.]>,
+                [1 2 3]>,
             p=<CartesianVel3D (d_x[km / s], d_y[km / s], d_z[km / s])
-                [4. 5. 6.]>,
-            t=Quantity['time'](Array(-1., dtype=float64), unit='Gyr'))
+                [4 5 6]>,
+            t=Quantity['time'](Array(-1, dtype=int64, ...), unit='Gyr'))
         """
         fs = [indent(f"{k}={v!s}", "    ") for k, v in field_items(self)]
         sep = ",\n" if len(fs) > 1 else ", "
@@ -235,14 +235,14 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity[...](value=f64[], unit=Unit("Gyr"))
+            t=Quantity[...](value=i64[], unit=Unit("Gyr"))
         )
 
         >>> w[jnp.array([0])]
         PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity[...](value=f64[1], unit=Unit("Gyr"))
+            t=Quantity[...](value=i64[1], unit=Unit("Gyr"))
         )
 
         """
@@ -319,7 +319,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                             p=u.Quantity([4, 5, 6], "km/s"),
         ...                             t=u.Quantity(0, "Gyr"))
         >>> psp.w(units="galactic")
-        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
+        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
         """
         usys = u.unitsystem(units)
         batch, comps = self._shape_tuple
@@ -360,7 +360,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                             t=u.Quantity(7.0, "Myr"))
         >>> psp.wt(units="galactic")
             Array([7.00000000e+00, 1.00000000e+00, 2.00000000e+00, 3.00000000e+00,
-                4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64)
+                4.09084866e-03, 5.11356083e-03, 6.13627299e-03], dtype=float64, ...)
         """
         usys = u.unitsystem(units)
         batch, comps = self._shape_tuple
@@ -415,14 +415,14 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                             p=u.Quantity([4, 5, 6], "km/s"),
         ...                             t=u.Quantity(0, "Gyr"))
         >>> psp.w(units="galactic")
-        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
+        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
 
         We can also convert it to a different representation:
 
         >>> psp.vconvert(cx.vecs.CylindricalPos)
         PhaseSpacePosition( q=CylindricalPos(...),
                             p=CylindricalVel(...),
-                            t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+                            t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
 
         We can also convert it to a different representation with a different
         differential class:
@@ -430,7 +430,7 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> psp.vconvert(cx.vecs.LonLatSphericalPos, cx.vecs.LonCosLatSphericalVel)
         PhaseSpacePosition( q=LonLatSphericalPos(...),
                             p=LonCosLatSphericalVel(...),
-                            t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+                            t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
         """
         return cast(
             "Self", cx.vconvert({"q": position_cls, "p": velocity_cls}, self, **kwargs)
@@ -464,12 +464,12 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> psp.to_units("solarsystem")
         PhaseSpacePosition(
             q=CartesianPos3D(
-                x=Quantity[...](value=f64[], unit=Unit("AU")),
+                x=Quantity[...](value=...f64[], unit=Unit("AU")),
                 ... ),
             p=CartesianVel3D(
-                d_x=Quantity[...]( value=f64[], unit=Unit("AU / yr") ),
+                d_x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
                 ... ),
-            t=Quantity[...](value=f64[], unit=Unit("yr"))
+            t=Quantity[...](value=...f64[], unit=Unit("yr"))
         )
         """
         ...
@@ -745,11 +745,11 @@ def add(
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
+      t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("Gyr"))
     )
 
     >>> w3.q.x.value
-    Array(0., dtype=float64)
+    Array(0, dtype=int64)
 
     If the times are different, an error is raised:
 

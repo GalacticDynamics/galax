@@ -76,13 +76,13 @@ class AbstractCompositePhaseSpacePosition(
 
     >>> c_psp.q
     CartesianPos3D(
-      x=Quantity[...](value=f64[2], unit=Unit("kpc")),
-      y=Quantity[...](value=f64[2], unit=Unit("kpc")),
-      z=Quantity[...](value=f64[2], unit=Unit("kpc"))
+      x=Quantity[...](value=i64[2], unit=Unit("kpc")),
+      y=Quantity[...](value=i64[2], unit=Unit("kpc")),
+      z=Quantity[...](value=i64[2], unit=Unit("kpc"))
     )
 
     >>> c_psp.p.d_x
-    Quantity['speed'](Array([ 4., 40.], dtype=float64), unit='km / s')
+    Quantity['speed'](Array([ 4, 40], dtype=int64), unit='km / s')
 
     Note that the length of the individual components are 0, but the length of
     the composite is the sum of the lengths of the components.
@@ -179,21 +179,21 @@ class AbstractCompositePhaseSpacePosition(
 
         >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
         ...                            p=u.Quantity([4, 5, 6], "m/s"),
-        ...                            t=u.Quantity(7.0, "s"))
+        ...                            t=u.Quantity(7, "s"))
         >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
         ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-        ...                            t=u.Quantity(6.0, "s"))
+        ...                            t=u.Quantity(6, "s"))
         >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
 
         >>> cw[...]
         CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
+            t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("s"))
           ), 'w2': PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
+            t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("s"))
         )})
 
         """
@@ -248,7 +248,7 @@ class AbstractCompositePhaseSpacePosition(
         >>> c_psp.to_units(solarsystem)
         CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
             q=CartesianPos3D(
-                x=Quantity[...](value=f64[], unit=Unit("AU")),
+                x=Quantity[...](value=...f64[], unit=Unit("AU")),
                 ...
         """
         return type(self)(**{k: v.to_units(units) for k, v in self.items()})
@@ -289,10 +289,10 @@ def vconvert(
 
     >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
     ...                              p=u.Quantity([4, 5, 6], "m/s"),
-    ...                              t=u.Quantity(7.0, "s"))
+    ...                              t=u.Quantity(7, "s"))
     >>> psp2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
     ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=u.Quantity(6.0, "s"))
+    ...                              t=u.Quantity(6, "s"))
     >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
 
     We can transform the composite phase-space position to a new position class.
@@ -301,12 +301,12 @@ def vconvert(
     CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
             q=CylindricalPos( ... ),
             p=SphericalVel( ... ),
-            t=Quantity[...](value=f64[], unit=Unit("s"))
+            t=Quantity[...](value=...i64[], unit=Unit("s"))
         ),
         'psp2': PhaseSpacePosition(
             q=CylindricalPos( ... ),
             p=SphericalVel( ... ),
-            t=Quantity[...](value=f64[], unit=Unit("s"))
+            t=Quantity[...](value=...i64[], unit=Unit("s"))
     )})
 
     """
@@ -340,10 +340,10 @@ def vconvert(
 
     >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
     ...                              p=u.Quantity([4, 5, 6], "m/s"),
-    ...                              t=u.Quantity(7.0, "s"))
+    ...                              t=u.Quantity(7, "s"))
     >>> psp2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
     ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=u.Quantity(6.0, "s"))
+    ...                              t=u.Quantity(6, "s"))
     >>> cpsp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
 
     We can transform the composite phase-space position to a new position class.

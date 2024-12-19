@@ -270,7 +270,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         Array([0., 1., 0.], dtype=float64)
 
         >>> newpsp.t
-        Quantity['time'](Array(1., dtype=float64), unit='Gyr')
+        Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
 
         This rotation is time dependent.
 

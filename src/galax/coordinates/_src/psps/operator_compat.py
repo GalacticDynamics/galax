@@ -51,12 +51,12 @@ def call(
 
     >>> pos = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
-    ...                             t=u.Quantity(0.0, "Gyr"))
+    ...                             t=u.Quantity(0, "Gyr"))
     >>> pos
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
+        t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("Gyr"))
     )
 
     >>> newpos = op(pos)
@@ -64,11 +64,11 @@ def call(
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Gyr"))
+        t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("Gyr"))
     )
 
     >>> newpos.q.x
-    Quantity['length'](Array(2., dtype=float64), unit='kpc')
+    Quantity['length'](Array(2, dtype=int64), unit='kpc')
     """
     msg = "implement this method in the subclass"
     raise NotImplementedError(msg)
@@ -114,10 +114,10 @@ def call(
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity['length'](Array(2., dtype=float64), unit='kpc')
+    Quantity['length'](Array(2, dtype=int64), unit='kpc')
 
     >>> newpsp.t
-    Quantity['time'](Array(0., dtype=float64), unit='Gyr')
+    Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr')
 
     This spatial translation is time independent.
 
@@ -164,7 +164,7 @@ def call(
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity['length'](Array(2., dtype=float64), unit='kpc')
+    Quantity['length'](Array(2, dtype=int64), unit='kpc')
 
     >>> newpsp.t.uconvert("Myr")  # doctest: +SKIP
     Quantity['time'](Array(6.52312755, dtype=float64), unit='Myr')
@@ -178,7 +178,7 @@ def call(
     But the time translation is not.
 
     >>> op(psp2).t
-    Quantity['time'](Array(1.00652313, dtype=float64), unit='Gyr')
+    Quantity['time'](Array(1.00652313, dtype=float64, ...), unit='Gyr')
 
     """
     # TODO: ACCOUNT FOR THE VELOCITY?!?
@@ -222,16 +222,16 @@ def call(
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity['length'](Array(2., dtype=float64), unit='kpc')
+    Quantity['length'](Array(2, dtype=int64), unit='kpc')
 
     >>> newpsp.t
-    Quantity['time'](Array(1., dtype=float64), unit='Gyr')
+    Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
 
     This spatial translation is time dependent.
 
     >>> psp2 = replace(psp, t=u.Quantity(2, "Gyr"))
     >>> op(psp2).q.x
-    Quantity['length'](Array(3., dtype=float64), unit='kpc')
+    Quantity['length'](Array(3, dtype=int64), unit='kpc')
 
     """
     # TODO: ACCOUNT FOR THE VELOCITY?!?
@@ -285,7 +285,7 @@ def call(
 
     The time is not affected by the rotation.
     >>> newpsp.t
-    Quantity['time'](Array(1., dtype=float64), unit='Gyr')
+    Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
     """
     # Shifting the position and time
     q, t = self(psp.q, psp.t)
@@ -328,6 +328,6 @@ def call(
     >>> op(psp)
     PhaseSpacePosition( q=CartesianPos3D( ... ),
                         p=CartesianVel3D( ... ),
-                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+                        t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
     """
     return x

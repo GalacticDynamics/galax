@@ -62,7 +62,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     :class:`~coordinax.CartesianPos3D` or
     :class:`~coordinax.CartesianVel3D`, respectively.  For example,
 
-    >>> t = u.Quantity(7.0, "s")
+    >>> t = u.Quantity(7, "s")
     >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
     ...                           p=u.Quantity([4, 5, 6], "m/s"),
     ...                           t=t)
@@ -70,7 +70,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
+      t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("s"))
     )
 
     This can be done more explicitly:
@@ -100,7 +100,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     PhaseSpacePosition(
       q=SphericalPos( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("s"))
+      t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("s"))
     )
 
     """
@@ -119,7 +119,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     t: gt.TimeBatchableScalar | gt.VecN | gt.TimeScalar | None = eqx.field(
         default=None,
-        converter=Optional(partial(u.Quantity["time"].from_, dtype=float)),
+        converter=Optional(u.Quantity["time"].from_),
     )
     """The time corresponding to the positions.
 
@@ -170,25 +170,25 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
         >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
         >>> w[0, 1].q.x
-        Quantity['length'](Array(4., dtype=float64), unit='m')
+        Quantity['length'](Array(4, dtype=int64), unit='m')
         >>> w[0, 1].t is None
         True
 
         >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity(0, "Myr"))
         >>> w[0, 1].q.x
-        Quantity['length'](Array(4., dtype=float64), unit='m')
+        Quantity['length'](Array(4, dtype=int64), unit='m')
         >>> w[0, 1].t
-        Quantity['time'](Array(0., dtype=float64), unit='Myr')
+        Quantity['time'](Array(0, dtype=int64, ...), unit='Myr')
 
         >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity([0], "Myr"))
         >>> w[0, 1].q.x
-        Quantity['length'](Array(4., dtype=float64), unit='m')
+        Quantity['length'](Array(4, dtype=int64), unit='m')
         >>> w[0, 1].t
-        Quantity['time'](Array(0., dtype=float64), unit='Myr')
+        Quantity['time'](Array(0, dtype=int64), unit='Myr')
 
         >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity([[[0],[1]]], "Myr"))
         >>> w[0, :].t
-        Quantity['time'](Array([[0.], [1.]], dtype=float64), unit='Myr')
+        Quantity['time'](Array([[0], [1]], dtype=int64), unit='Myr')
 
         """
         # Empty selection w[()] should return the same object
@@ -228,13 +228,13 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
         >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
         >>> w[0].q.x
-        Quantity['length'](Array([1., 4.], dtype=float64), unit='m')
+        Quantity['length'](Array([1, 4], dtype=int64), unit='m')
 
         >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity(0, "Myr"))
         >>> w[0].shape
         (2,)
         >>> w[0].t
-        Quantity['time'](Array(0., dtype=float64), unit='Myr')
+        Quantity['time'](Array(0, dtype=int64, ...), unit='Myr')
 
         >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3]], "m"),
         ...                           p=u.Quantity([[4, 5, 6]], "m/s"),
@@ -242,7 +242,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         >>> w[0].q.shape
         ()
         >>> w[0].t
-        Quantity['time'](Array(7., dtype=float64), unit='s')
+        Quantity['time'](Array(7, dtype=int64), unit='s')
 
         >>> w = gc.PhaseSpacePosition(q=u.Quantity([[[1, 2, 3], [1, 2, 3]]], "m"),
         ...                           p=u.Quantity([[[4, 5, 6], [4, 5, 6]]], "m/s"),
@@ -250,7 +250,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         >>> w[0].q.shape
         (2,)
         >>> w[0].t
-        Quantity['time'](Array([7.], dtype=float64), unit='s')
+        Quantity['time'](Array([7], dtype=int64), unit='s')
 
         """
         # If `t` is None, then we can't index it
@@ -313,7 +313,7 @@ def from_(
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[...](value=f64[2], unit=Unit("Myr"))
+      t=Quantity[...](value=...i64[2], unit=Unit("Myr"))
     )
 
     """

@@ -63,10 +63,10 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
     ...                            p=u.Quantity([4, 5, 6], "m/s"),
-    ...                            t=u.Quantity(7.0, "s"))
+    ...                            t=u.Quantity(7, "s"))
     >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
     ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                            t=u.Quantity(6.0, "s"))
+    ...                            t=u.Quantity(6, "s"))
 
     We can create a composite phase-space position from these two phase-space
     positions:
@@ -98,7 +98,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     example, the time of ``w2`` is earlier than ``w1``.
 
     >>> cw.t
-    Quantity['time'](Array([6., 7.], dtype=float64), unit='s')
+    Quantity['time'](Array([6, 7], dtype=int64, ...), unit='s')
 
     >>> cw.q.x
     Quantity['length'](Array([1.5, 1. ], dtype=float64), unit='m')

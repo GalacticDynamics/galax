@@ -77,14 +77,14 @@ def vconvert(
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
     ...                             t=u.Quantity(0, "Gyr"))
     >>> psp.w(units="galactic")
-    Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
+    Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
 
     Converting it to a different representation and differential class:
 
     >>> cx.vconvert({"q": cxv.LonLatSphericalPos, "p": cxv.LonCosLatSphericalVel}, psp)
     PhaseSpacePosition( q=LonLatSphericalPos(...),
                         p=LonCosLatSphericalVel(...),
-                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+                        t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
 
     """
     q_cls = target["q"]
@@ -117,14 +117,14 @@ def vconvert(
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
     ...                             t=u.Quantity(0, "Gyr"))
     >>> psp.w(units="galactic")
-    Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64)
+    Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
 
     Converting it to a different representation:
 
     >>> cx.vconvert(cx.vecs.CylindricalPos, psp)
     PhaseSpacePosition( q=CylindricalPos(...),
                         p=CylindricalVel(...),
-                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+                        t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
 
     If the new representation requires keyword arguments, they can be passed
     through:
@@ -132,7 +132,7 @@ def vconvert(
     >>> cx.vconvert(cx.vecs.ProlateSpheroidalPos, psp, Delta=u.Quantity(2.0, "kpc"))
     PhaseSpacePosition( q=ProlateSpheroidalPos(...),
                         p=ProlateSpheroidalVel(...),
-                        t=Quantity[...](value=f64[], unit=Unit("Gyr")) )
+                        t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
 
     """
     target = {"q": target_position_cls, "p": target_position_cls.differential_cls}

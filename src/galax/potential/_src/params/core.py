@@ -133,7 +133,7 @@ class ConstantParameter(AbstractParameter):
 
     # TODO: link this shape to the return shape from __call__
     value: FloatQAnyShape = eqx.field(
-        converter=Unless(AbstractQuantity, partial(u.Quantity.from_, dtype=float))
+        converter=Unless(AbstractQuantity, u.Quantity.from_)
     )
     """The time-independent value of the parameter."""
 
@@ -223,17 +223,13 @@ class LinearParameter(AbstractParameter):
     Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
 
     >>> jnp.round(lp(u.Quantity(1.0, "Gyr")), 3)
-    Quantity['mass'](Array(0., dtype=float64), unit='Gyr solMass / yr')
+    Quantity['mass'](Array(0., dtype=float64, ...), unit='Gyr solMass / yr')
 
     """
 
-    slope: FloatQAnyShape = eqx.field(converter=partial(u.Quantity.from_, dtype=float))
-    point_time: BatchableRealQScalar = eqx.field(
-        converter=partial(u.Quantity["time"].from_, dtype=float)
-    )
-    point_value: FloatQAnyShape = eqx.field(
-        converter=partial(u.Quantity.from_, dtype=float)
-    )
+    slope: FloatQAnyShape = eqx.field(converter=u.Quantity.from_)
+    point_time: BatchableRealQScalar = eqx.field(converter=u.Quantity["time"].from_)
+    point_value: FloatQAnyShape = eqx.field(converter=u.Quantity.from_)
 
     def __check_init__(self) -> None:
         """Check the initialization of the class."""

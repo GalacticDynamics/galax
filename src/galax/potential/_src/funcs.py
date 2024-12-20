@@ -322,9 +322,12 @@ def gradient(
     >>> print(pot.gradient(w))
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [0.086 0.172 0.258]>
+
     """
     q = parse_to_quantity(pspt.q, units=pot.units)
-    return cx.vecs.CartesianAcc3D.from_(pot._gradient(q, pspt.t))  # noqa: SLF001
+    q = q.astype(float)  # TODO: better casting
+    grad = pot._gradient(q, pspt.t)  # noqa: SLF001
+    return cx.vecs.CartesianAcc3D.from_(grad)
 
 
 @dispatch
@@ -445,8 +448,10 @@ def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.Cartesian
     .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
+    q = q.astype(float)  # TODO: better casting
     t = u.Quantity.from_(t, pot.units["time"])
-    return cx.vecs.CartesianAcc3D.from_(pot._gradient(q, t))  # noqa: SLF001
+    grad = pot._gradient(q, t)  # noqa: SLF001
+    return cx.vecs.CartesianAcc3D.from_(grad)
 
 
 @dispatch
@@ -576,6 +581,7 @@ def laplacian(
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
     """  # noqa: E501
     q = parse_to_quantity(pspt.q, units=pot.units)
+    q = q.astype(float)  # TODO: better casting
     return pot._laplacian(q, pspt.t)  # noqa: SLF001
 
 
@@ -685,6 +691,7 @@ def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> u.Quantity["1/s^
     .. skip: end
     """  # noqa: E501
     q = parse_to_quantity(q, unit=pot.units["length"])
+    q = q.astype(float)  # TODO: better casting
     t = u.Quantity.from_(t, pot.units["time"])
     return pot._laplacian(q, t)  # noqa: SLF001
 
@@ -1036,6 +1043,7 @@ def hessian(
                   unit='1 / Myr2')
     """
     q = parse_to_quantity(pspt.q, units=pot.units)
+    q = q.astype(float)  # TODO: better casting
     return pot._hessian(q, pspt.t)  # noqa: SLF001
 
 
@@ -1178,6 +1186,7 @@ def hessian(pot: AbstractBasePotential, q: Any, t: Any, /) -> HessianVec:
     .. skip: end
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
+    q = q.astype(float)  # TODO: better casting
     t = u.Quantity.from_(t, pot.units["time"])
     return pot._hessian(q, t)  # noqa: SLF001
 

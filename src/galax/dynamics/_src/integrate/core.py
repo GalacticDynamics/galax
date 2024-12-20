@@ -133,10 +133,10 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> w(t)
     PhaseSpacePosition(
       q=CartesianPos3D(
-        x=Quantity[...](value=f64[2], unit=Unit("kpc")),
+        x=Quantity[...](value=...f64[2], unit=Unit("kpc")),
         ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[...](value=f64[], unit=Unit("Gyr"))
+      t=Quantity[...](value=...f64[], unit=Unit("Gyr"))
     )
 
     The interpolant is vectorized:

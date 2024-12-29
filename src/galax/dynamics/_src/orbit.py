@@ -79,10 +79,10 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     """
 
-    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vecs.AbstractPos3D.from_)
+    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)
     """Positions (x, y, z)."""
 
-    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vecs.AbstractVel3D.from_)
+    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vector)
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized

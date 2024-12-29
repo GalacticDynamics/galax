@@ -7,6 +7,7 @@ import jax.random as jr
 import pytest
 from plum import convert
 
+import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.unitsystems import galactic
@@ -44,7 +45,14 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[gd.Orbit]):
         t = u.Quantity(
             jr.normal(next(subkeys), shape[-1:]), unit=potential.units["time"]
         )
-        return w_cls(q=q, p=p, t=t, potential=potential, interpolant=None)
+        return w_cls(
+            q=q,
+            p=p,
+            t=t,
+            potential=potential,
+            interpolant=None,
+            frame=cx.frames.NoFrame(),
+        )
 
     @pytest.fixture
     def w(
@@ -58,7 +66,7 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[gd.Orbit]):
     def test_getitem_int(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         assert not isinstance(w[0], type(w))
-        assert w[0] == gc.PhaseSpacePosition(q=w.q[0], p=w.p[0], t=w.t[0])
+        assert jnp.all(w[0] == gc.PhaseSpacePosition(q=w.q[0], p=w.p[0], t=w.t[0]))
 
     @override
     def test_getitem_boolarray(self, w: T, shape: gt.Shape) -> None:

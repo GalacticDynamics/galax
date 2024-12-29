@@ -117,7 +117,8 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity[...](value=f64[4], unit=Unit("Myr")),
+      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      frame=NoFrame(),
       potential=KeplerPotential(...),
       interpolant=None
     )
@@ -133,7 +134,8 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity[...](value=f64[10], unit=Unit("Myr")),
+      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      frame=NoFrame(),
       potential=KeplerPotential(...),
       interpolant=None
     )
@@ -144,7 +146,8 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
         q=CartesianPos3D(...), p=CartesianVel3D(...),
-        t=Quantity[...](value=...f64[1], unit=Unit("Myr")),
+        t=Quantity['time'](Array([500.], dtype=float64, ...), unit='Myr'),
+        frame=NoFrame(),
         potential=KeplerPotential(...),
         interpolant=None
     )
@@ -162,7 +165,8 @@ def evaluate_orbit(
         ...
       ),
       p=CartesianVel3D(...),
-      t=Quantity[...](value=f64[10], unit=Unit("Myr")),
+      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      frame=NoFrame(),
       potential=KeplerPotential(...),
       interpolant=None
     )
@@ -268,7 +272,8 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity[...](value=f64[4], unit=Unit("Myr")),
+      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      frame=NoFrame(),
       potential=KeplerPotential(...),
       interpolant=None
     )

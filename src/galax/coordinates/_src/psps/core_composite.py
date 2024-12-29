@@ -2,15 +2,17 @@
 
 __all__ = ["CompositePhaseSpacePosition"]
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import final
 
 import jax.tree as jtu
 from jaxtyping import Array, Int, PyTree, Shaped
 
 import coordinax as cx
+import coordinax.frames as cxf
 import quaxed.numpy as jnp
 import unxt as u
+from zeroth import zeroth
 
 from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractPhaseSpacePosition
@@ -132,15 +134,39 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     _time_sorter: Shaped[Array, "alltimes"]
     _time_are_none: bool
+    _frame: cxf.AbstractReferenceFrame
 
     def __init__(
         self,
-        psps: dict[str, AbstractPhaseSpacePosition]
+        psps: Mapping[str, AbstractPhaseSpacePosition]
         | tuple[tuple[str, AbstractPhaseSpacePosition], ...] = (),
         /,
+        frame: cxf.AbstractReferenceFrame | None = None,
         **kwargs: AbstractPhaseSpacePosition,
     ) -> None:
-        super().__init__(psps, **kwargs)
+        # Aggregate all the PhaseSpacePositions
+        allpsps = dict(psps, **kwargs)
+
+        # Everything must be transformed to be in the same frame.
+        # Compute and store the frame
+        self._frame = theframe = (
+            frame if frame is not None else zeroth(allpsps.values()).frame
+        )
+        # Transform all the PhaseSpacePositions to that frame. If the frames are
+        # already `NoFrame`, we can skip this step, since no transformation is
+        # possible in `NoFrame`.
+        allpsps = {
+            k: (
+                psp
+                if isinstance(theframe, cxf.NoFrame)
+                and isinstance(psp.frame, cxf.NoFrame)
+                else psp.to_frame(theframe)
+            )
+            for k, psp in allpsps.items()
+        }
+
+        # Now we can set all the PhaseSpacePositions
+        super().__init__(allpsps)
 
         # TODO: check up on the shapes
 
@@ -182,3 +208,8 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         return jnp.concat([jnp.atleast_1d(psp.t) for psp in self.values()], axis=0)[
             self._time_sorter
         ]
+
+    @property
+    def frame(self) -> cxf.AbstractReferenceFrame:
+        """The reference frame."""
+        return self._frame

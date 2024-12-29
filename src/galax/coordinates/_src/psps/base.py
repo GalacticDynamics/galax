@@ -39,7 +39,8 @@ class ComponentShapeTuple(NamedTuple):
 # =============================================================================
 
 
-class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
+# TODO: make it strict=True
+class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[misc]
     r"""ABC underlying phase-space positions and their composites.
 
     The phase-space position is a point in the 3+3+1-dimensional phase space
@@ -57,6 +58,9 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
     t: eqx.AbstractVar[gt.BatchableFloatQScalar]
     """Time corresponding to the positions and momenta."""
+
+    frame: eqx.AbstractVar[cx.frames.NoFrame]  # TODO: support frames
+    """The reference frame of the phase-space position."""
 
     # ---------------------------------------------------------------
     # Constructors
@@ -96,11 +100,40 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity[...](value=...i64[], unit=Unit("Gyr"))
+            t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+            frame=NoFrame()
         )
 
         """
         return cls(**obj)
+
+    # ==========================================================================
+    # Coordinate API
+
+    @classmethod
+    def _dimensionality(cls) -> int:
+        """Return the dimensionality of the phase-space position."""
+        return 7  # TODO: should it be 7? Also make it a Final
+
+    @property
+    def data(self) -> cx.Space:
+        """Return the data as a space.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.coordinates as gc
+
+        We can create a phase-space position:
+
+        >>> pos = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"),
+        ...                             t=u.Quantity(0, "Gyr"))
+        >>> pos.data
+        Space({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) })
+
+        """
+        return cx.Space(length=cx.vecs.FourVector(t=self.t, q=self.q), speed=self.p)
 
     # ==========================================================================
     # Vector API
@@ -157,7 +190,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> psp.vconvert(cx.vecs.CylindricalPos)
         PhaseSpacePosition( q=CylindricalPos(...),
                             p=CylindricalVel(...),
-                            t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
+                            t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                            frame=NoFrame() )
 
         We can also convert it to a different representation with a different
         differential class:
@@ -165,7 +199,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         >>> psp.vconvert(cx.vecs.LonLatSphericalPos, cx.vecs.LonCosLatSphericalVel)
         PhaseSpacePosition( q=LonLatSphericalPos(...),
                             p=LonCosLatSphericalVel(...),
-                            t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
+                            t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                            frame=NoFrame() )
         """
         return cast(
             "Self", cx.vconvert({"q": position_cls, "p": velocity_cls}, self, **kwargs)
@@ -207,8 +242,10 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
             p=CartesianVel3D(
                 d_x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
                 ... ),
-            t=Quantity[...](value=...f64[], unit=Unit("yr"))
+            t=Quantity['time'](..., unit='yr'),
+            frame=NoFrame()
         )
+
         """
         ...
 
@@ -321,14 +358,16 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity[...](value=i64[], unit=Unit("Gyr"))
+            t=Quantity['time'](Array(0, dtype=int64), unit='Gyr'),
+            frame=NoFrame()
         )
 
         >>> w[jnp.array([0])]
         PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity[...](value=i64[1], unit=Unit("Gyr"))
+            t=Quantity['time'](Array([0], dtype=int64), unit='Gyr'),
+            frame=NoFrame()
         )
 
         """
@@ -346,6 +385,9 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     ) -> "AbstractBasePhaseSpacePosition":
         """Add to a phase-space positions."""
         raise NotImplementedError  # pragma: no cover
+
+    def __neg__(self) -> "AbstractBasePhaseSpacePosition":
+        raise NotImplementedError  # TODO: implement
 
     # ==========================================================================
     # Python API
@@ -366,7 +408,8 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
                 [1 2 3]>,
             p=<CartesianVel3D (d_x[km / s], d_y[km / s], d_z[km / s])
                 [4 5 6]>,
-            t=Quantity['time'](Array(-1, dtype=int64, ...), unit='Gyr'))
+            t=Quantity['time'](Array(-1, dtype=int64, ...), unit='Gyr'),
+            frame=NoFrame())
         """
         fs = [indent(f"{k}={v!s}", "    ") for k, v in field_items(self)]
         sep = ",\n" if len(fs) > 1 else ", "
@@ -777,7 +820,8 @@ def add(
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("Gyr"))
+      t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+      frame=NoFrame()
     )
 
     >>> w3.q.x.value

@@ -293,7 +293,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
 
 @cxo.simplify_op.register  # type: ignore[misc]
-def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> cxo.AbstractOperator:
+def _simplify_op_rotz(op: ConstantRotationZOperator, /) -> cxo.AbstractOperator:
     """Simplify the operators in an PotentialFrame.
 
     Examples
@@ -311,6 +311,6 @@ def _simplify_op_rotz(frame: ConstantRotationZOperator, /) -> cxo.AbstractOperat
     Identity()
 
     """
-    if frame.Omega_z == 0:
+    if op.Omega_z == 0:
         return cxo.Identity()
-    return frame
+    return op

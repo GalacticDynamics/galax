@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import KW_ONLY, replace
 from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 
 import equinox as eqx
@@ -62,7 +62,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         q = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
         p = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
         t = u.Quantity(jr.normal(next(subkeys), shape), "Myr")
-        return w_cls(q=q, p=p, t=t)
+        return w_cls(q=q, p=p, t=t, frame=cx.frames.NoFrame())
 
     @pytest.fixture
     def w(self, w_cls: type[T], shape: gt.Shape) -> T:
@@ -124,23 +124,23 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
 
     def test_getitem_int(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        assert w[0] == replace(w, q=w.q[0], p=w.p[0], t=w.t[0])
+        assert jnp.all(w[0] == replace(w, q=w.q[0], p=w.p[0], t=w.t[0]))
 
     def test_getitem_slice(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
-        assert w[:5] == replace(w, q=w.q[:5], p=w.p[:5], t=w.t[:5])
+        assert jnp.all(w[:5] == replace(w, q=w.q[:5], p=w.p[:5], t=w.t[:5]))
 
     def test_getitem_boolarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         idx = jnp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
-        assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx])
+        assert all(w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx]))
 
     def test_getitem_intarray(self, w: T) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         idx = jnp.asarray([0, 2, 1])
-        assert w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx])
+        assert jnp.all(w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx]))
 
     # TODO: further tests for getitem
     # def test_getitem()
@@ -244,6 +244,9 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
             q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)
             p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vector)
             t: u.Quantity["time"]
+
+            _: KW_ONLY
+            frame: cx.frames.AbstractReferenceFrame
 
             @property
             def _shape_tuple(self) -> tuple[gt.Shape, gc.ComponentShapeTuple]:

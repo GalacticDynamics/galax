@@ -77,12 +77,14 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
             t=Quantity...,
-            release_time=Quantity... ),
+            release_time=Quantity...,
+            frame=NoFrame() ),
           'trail': MockStreamArm(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
             t=Quantity...,
-            release_time=Quantity...
+            release_time=Quantity...,
+            frame=NoFrame()
         )})
         """
         # Progenitor positions and times. The orbit times are used as the
@@ -112,15 +114,21 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             p=u.uconvert(pot.units["speed"], v_lead),
             t=ts,
             release_time=ts,
+            frame=prog_orbit.frame,
         )
         mock_trail = MockStreamArm(
             q=u.uconvert(pot.units["length"], x_trail),
             p=u.uconvert(pot.units["speed"], v_trail),
             t=ts,
             release_time=ts,
+            frame=prog_orbit.frame,
         )
 
-        return gc.CompositePhaseSpacePosition(lead=mock_lead, trail=mock_trail)
+        return gc.CompositePhaseSpacePosition(
+            lead=mock_lead,
+            trail=mock_trail,
+            frame=prog_orbit.frame,
+        )
 
     # TODO: keep units and PSP through this func
     @abc.abstractmethod

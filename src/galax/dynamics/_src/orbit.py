@@ -53,7 +53,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[...](value=f64[10], unit=Unit("Myr")),
+      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      frame=NoFrame(),
       potential=KeplerPotential( ... ),
       interpolant=None
     )
@@ -63,7 +64,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[...](value=f64[10], unit=Unit("Myr")),
+      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      frame=NoFrame(),
       potential=KeplerPotential( ... ),
       interpolant=Interpolant( ... )
     )
@@ -72,7 +74,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[...](value=...f64[1], unit=Unit("Gyr")),
+      t=Quantity['time'](Array([0.5], dtype=float64, ...), unit='Gyr'),
+      frame=NoFrame(),
       potential=KeplerPotential( ... ),
       interpolant=None
     )
@@ -90,6 +93,9 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     """Array of times corresponding to the positions."""
 
     _: KW_ONLY
+
+    frame: cx.frames.NoFrame  # TODO: support frames
+    """The reference frame of the phase-space position."""
 
     potential: gp.AbstractBasePotential
     """Potential in which the orbit was integrated."""
@@ -121,6 +127,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
             q=w.q,
             p=w.p,
             t=t,
+            frame=w.frame,
             potential=potential,
             interpolant=getattr(w, "interpolant", None),
         )
@@ -136,7 +143,14 @@ class Orbit(gc.AbstractPhaseSpacePosition):
             "Orbit was not integrated with interpolation.",
         )
         qp = interpolant(t)
-        return Orbit(q=qp.q, p=qp.p, t=qp.t, potential=self.potential, interpolant=None)
+        return Orbit(
+            q=qp.q,
+            p=qp.p,
+            t=qp.t,
+            potential=self.potential,
+            interpolant=None,
+            frame=self.frame,
+        )
 
     # ==========================================================================
     # Array properties
@@ -184,7 +198,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
           p=CartesianVel3D(
             d_x=Quantity[...]( value=f64[10], unit=Unit("kpc / Myr") ),
             ... ),
-          t=Quantity[PhysicalType('time')](value=f64[10], unit=Unit("Myr")),
+          t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+          frame=NoFrame(),
           potential=KeplerPotential( ... ),
           interpolant=None
         )
@@ -217,7 +232,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         ...     q=u.Quantity([8., 0., 0.], "kpc"),
         ...     p=u.Quantity([0., 230, 0.], "km/s"),
         ...     t=u.Quantity(0, "Myr"))
-        >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")
+        >>> ts = u.Quantity(jnp.linspace(0, 1, 11), "Gyr")
         >>> orbit = gd.evaluate_orbit(pot, w0, ts)
 
         >>> orbit[0:2]
@@ -230,7 +245,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
             d_x=Quantity[...]( value=f64[2], unit=Unit("kpc / Myr") ),
             ...
           ),
-          t=Quantity[...](value=f64[2], unit=Unit("Myr")),
+          t=Quantity['time'](Array([  0., 100.], dtype=float64), unit='Myr'),
+          frame=NoFrame(),
           potential=KeplerPotential( ... ),
           interpolant=None
         )
@@ -266,7 +282,8 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         PhaseSpacePosition(
           q=CartesianPos3D( ... ),
           p=CartesianVel3D( ... ),
-          t=Quantity[...](value=f64[], unit=Unit("Myr"))
+          t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
+          frame=NoFrame()
         )
         >>> orbit[0].t
         Quantity['time'](Array(0., dtype=float64), unit='Myr')

@@ -24,7 +24,7 @@ from .utils import PSPVConvertOptions
 
 
 # Note: cannot have `strict=True` because of inheriting from ImmutableMap.
-class AbstractCompositePhaseSpacePosition(
+class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
     AbstractBasePhaseSpacePosition,
     ImmutableMap[str, AbstractBasePhaseSpacePosition],  # type: ignore[misc]
     strict=False,  # type: ignore[call-arg]
@@ -107,6 +107,9 @@ class AbstractCompositePhaseSpacePosition(
     ) -> None:
         ImmutableMap.__init__(self, psps, **kwargs)  # <- ImmutableMap.__init__
 
+    # ==========================================================================
+    # PSP API
+
     @property
     @abstractmethod
     def q(self) -> cx.vecs.AbstractPos3D:
@@ -122,11 +125,36 @@ class AbstractCompositePhaseSpacePosition(
     def t(self) -> Shaped[u.Quantity["time"], "..."]:
         """Times."""
 
-    def __repr__(self) -> str:  # TODO: not need this hack
-        return cast(str, ImmutableMap.__repr__(self))
+    # ==========================================================================
+    # Units API
+
+    def to_units(self, units: Any) -> "AbstractCompositePhaseSpacePosition":
+        """Convert the components to the given units.
+
+        Examples
+        --------
+        For this example we will use
+        `galax.coordinates.CompositePhaseSpacePosition`.
+
+        >>> import unxt as u
+        >>> from unxt.unitsystems import solarsystem
+        >>> import galax.coordinates as gc
+
+        >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                              p=u.Quantity([4, 5, 6], "km/s"),
+        ...                              t=u.Quantity(7, "Myr"))
+
+        >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1)
+        >>> c_psp.to_units(solarsystem)
+        CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
+            q=CartesianPos3D(
+                x=Quantity[...](value=...f64[], unit=Unit("AU")),
+                ...
+        """
+        return type(self)(**{k: v.to_units(units) for k, v in self.items()})
 
     # ==========================================================================
-    # Array properties
+    # Array API
 
     @property
     def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
@@ -225,33 +253,11 @@ class AbstractCompositePhaseSpacePosition(
         """
         return self._data[key]
 
-    # ==========================================================================
-    # Convenience methods
+    # ===============================================================
+    # Python API
 
-    def to_units(self, units: Any) -> "AbstractCompositePhaseSpacePosition":
-        """Convert the components to the given units.
-
-        Examples
-        --------
-        For this example we will use
-        `galax.coordinates.CompositePhaseSpacePosition`.
-
-        >>> import unxt as u
-        >>> from unxt.unitsystems import solarsystem
-        >>> import galax.coordinates as gc
-
-        >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                              p=u.Quantity([4, 5, 6], "km/s"),
-        ...                              t=u.Quantity(7, "Myr"))
-
-        >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1)
-        >>> c_psp.to_units(solarsystem)
-        CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
-            q=CartesianPos3D(
-                x=Quantity[...](value=...f64[], unit=Unit("AU")),
-                ...
-        """
-        return type(self)(**{k: v.to_units(units) for k, v in self.items()})
+    def __repr__(self) -> str:  # TODO: not need this hack
+        return cast(str, ImmutableMap.__repr__(self))
 
     # ===============================================================
     # Collection methods

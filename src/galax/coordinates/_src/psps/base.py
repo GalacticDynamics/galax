@@ -103,31 +103,117 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         return cls(**obj)
 
     # ==========================================================================
+    # Vector API
 
-    def __str__(self) -> str:
-        """Return a string representation of the object.
+    @dispatch(precedence=-1)
+    def vconvert(
+        self, target: Any, *args: Any, **kwargs: Any
+    ) -> "AbstractBasePhaseSpacePosition":
+        return cx.vconvert(target, self, *args, **kwargs)
+
+    @dispatch
+    def vconvert(
+        self,
+        position_cls: type[cx.vecs.AbstractPos],
+        velocity_cls: type[cx.vecs.AbstractVel] | None = None,
+        /,
+        **kwargs: Any,
+    ) -> "AbstractBasePhaseSpacePosition":
+        """Return with the components transformed.
+
+        Parameters
+        ----------
+        position_cls : type[:class:`~vector.AbstractPos`]
+            The target position class.
+        velocity_cls : type[:class:`~vector.AbstractVel`], optional
+            The target differential class. If `None` (default), the differential
+            class of the target position class is used.
+        **kwargs
+            Additional keyword arguments are passed through to `coordinax.vconvert`.
+
+        Returns
+        -------
+        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+            The phase-space position with the components transformed.
+
+        Examples
+        --------
+        With the following imports:
+
+        >>> import unxt as u
+        >>> import coordinax as cx
+        >>> import galax.coordinates as gc
+
+        We can create a phase-space position and convert it to a 6-vector:
+
+        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"),
+        ...                             t=u.Quantity(0, "Gyr"))
+        >>> psp.w(units="galactic")
+        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
+
+        We can also convert it to a different representation:
+
+        >>> psp.vconvert(cx.vecs.CylindricalPos)
+        PhaseSpacePosition( q=CylindricalPos(...),
+                            p=CylindricalVel(...),
+                            t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
+
+        We can also convert it to a different representation with a different
+        differential class:
+
+        >>> psp.vconvert(cx.vecs.LonLatSphericalPos, cx.vecs.LonCosLatSphericalVel)
+        PhaseSpacePosition( q=LonLatSphericalPos(...),
+                            p=LonCosLatSphericalVel(...),
+                            t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
+        """
+        return cast(
+            "Self", cx.vconvert({"q": position_cls, "p": velocity_cls}, self, **kwargs)
+        )
+
+    # ==========================================================================
+    # Units API
+
+    @abstractmethod
+    def to_units(self, units: Any) -> "Self":
+        """Return with the components transformed to the given unit system.
+
+        Parameters
+        ----------
+        units : `unxt.AbstractUnitSystem`
+            The unit system. :func:`~unxt.unitsystem` is used to
+            convert the input to a unit system.
+
+        Returns
+        -------
+        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+            The phase-space position with the components transformed.
 
         Examples
         --------
         >>> import unxt as u
         >>> import galax.coordinates as gc
-        >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                           p=u.Quantity([4, 5, 6], "km/s"),
-        ...                           t=u.Quantity(-1, "Gyr"))
-        >>> print(w)
+
+        We can create a phase-space position and convert it to different units:
+
+        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"),
+        ...                             t=u.Quantity(0, "Gyr"))
+        >>> psp.to_units("solarsystem")
         PhaseSpacePosition(
-            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
-                [1 2 3]>,
-            p=<CartesianVel3D (d_x[km / s], d_y[km / s], d_z[km / s])
-                [4 5 6]>,
-            t=Quantity['time'](Array(-1, dtype=int64, ...), unit='Gyr'))
+            q=CartesianPos3D(
+                x=Quantity[...](value=...f64[], unit=Unit("AU")),
+                ... ),
+            p=CartesianVel3D(
+                d_x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
+                ... ),
+            t=Quantity[...](value=...f64[], unit=Unit("yr"))
+        )
         """
-        fs = [indent(f"{k}={v!s}", "    ") for k, v in field_items(self)]
-        sep = ",\n" if len(fs) > 1 else ", "
-        return f"{self.__class__.__name__}(\n{sep.join(fs)})"
+        ...
 
     # ==========================================================================
-    # Array properties
+    # Array API
 
     @property
     @abstractmethod
@@ -262,6 +348,31 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         raise NotImplementedError  # pragma: no cover
 
     # ==========================================================================
+    # Python API
+
+    def __str__(self) -> str:
+        """Return a string representation of the object.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.coordinates as gc
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                           p=u.Quantity([4, 5, 6], "km/s"),
+        ...                           t=u.Quantity(-1, "Gyr"))
+        >>> print(w)
+        PhaseSpacePosition(
+            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+                [1 2 3]>,
+            p=<CartesianVel3D (d_x[km / s], d_y[km / s], d_z[km / s])
+                [4 5 6]>,
+            t=Quantity['time'](Array(-1, dtype=int64, ...), unit='Gyr'))
+        """
+        fs = [indent(f"{k}={v!s}", "    ") for k, v in field_items(self)]
+        sep = ",\n" if len(fs) > 1 else ", "
+        return f"{self.__class__.__name__}(\n{sep.join(fs)})"
+
+    # ==========================================================================
     # Further Array properties
 
     @property
@@ -369,110 +480,6 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))
         t = jnp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
         return jnp.concat((t, q.value, p.value), axis=-1)
-
-    @dispatch(precedence=-1)
-    def vconvert(
-        self, target: Any, *args: Any, **kwargs: Any
-    ) -> "AbstractBasePhaseSpacePosition":
-        return cx.vconvert(target, self, *args, **kwargs)
-
-    @dispatch
-    def vconvert(
-        self,
-        position_cls: type[cx.vecs.AbstractPos],
-        velocity_cls: type[cx.vecs.AbstractVel] | None = None,
-        /,
-        **kwargs: Any,
-    ) -> "AbstractBasePhaseSpacePosition":
-        """Return with the components transformed.
-
-        Parameters
-        ----------
-        position_cls : type[:class:`~vector.AbstractPos`]
-            The target position class.
-        velocity_cls : type[:class:`~vector.AbstractVel`], optional
-            The target differential class. If `None` (default), the differential
-            class of the target position class is used.
-        **kwargs
-            Additional keyword arguments are passed through to `coordinax.vconvert`.
-
-        Returns
-        -------
-        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
-            The phase-space position with the components transformed.
-
-        Examples
-        --------
-        With the following imports:
-
-        >>> import unxt as u
-        >>> import coordinax as cx
-        >>> import galax.coordinates as gc
-
-        We can create a phase-space position and convert it to a 6-vector:
-
-        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                             p=u.Quantity([4, 5, 6], "km/s"),
-        ...                             t=u.Quantity(0, "Gyr"))
-        >>> psp.w(units="galactic")
-        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
-
-        We can also convert it to a different representation:
-
-        >>> psp.vconvert(cx.vecs.CylindricalPos)
-        PhaseSpacePosition( q=CylindricalPos(...),
-                            p=CylindricalVel(...),
-                            t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
-
-        We can also convert it to a different representation with a different
-        differential class:
-
-        >>> psp.vconvert(cx.vecs.LonLatSphericalPos, cx.vecs.LonCosLatSphericalVel)
-        PhaseSpacePosition( q=LonLatSphericalPos(...),
-                            p=LonCosLatSphericalVel(...),
-                            t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
-        """
-        return cast(
-            "Self", cx.vconvert({"q": position_cls, "p": velocity_cls}, self, **kwargs)
-        )
-
-    @abstractmethod
-    def to_units(self, units: Any) -> "Self":
-        """Return with the components transformed to the given unit system.
-
-        Parameters
-        ----------
-        units : `unxt.AbstractUnitSystem`
-            The unit system. :func:`~unxt.unitsystem` is used to
-            convert the input to a unit system.
-
-        Returns
-        -------
-        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
-            The phase-space position with the components transformed.
-
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-
-        We can create a phase-space position and convert it to different units:
-
-        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                             p=u.Quantity([4, 5, 6], "km/s"),
-        ...                             t=u.Quantity(0, "Gyr"))
-        >>> psp.to_units("solarsystem")
-        PhaseSpacePosition(
-            q=CartesianPos3D(
-                x=Quantity[...](value=...f64[], unit=Unit("AU")),
-                ... ),
-            p=CartesianVel3D(
-                d_x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
-                ... ),
-            t=Quantity[...](value=...f64[], unit=Unit("yr"))
-        )
-        """
-        ...
 
     # ==========================================================================
     # Dynamical quantities

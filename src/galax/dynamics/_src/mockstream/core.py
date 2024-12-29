@@ -35,10 +35,10 @@ class MockStreamArm(gc.AbstractPhaseSpacePosition):
         Release time of the stream particles [Myr].
     """
 
-    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vecs.AbstractPos3D.from_)
+    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)
     """Positions (x, y, z)."""
 
-    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vecs.AbstractVel3D.from_)
+    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vector)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
     t: gt.QVecTime = eqx.field(converter=u.Quantity["time"].from_)

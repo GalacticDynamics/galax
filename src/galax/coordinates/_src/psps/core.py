@@ -37,13 +37,13 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
         parameter accepts any 3-vector, e.g.
         :class:`~coordinax.SphericalPos`, or any input that can be used to
         make a :class:`~coordinax.CartesianPos3D` via
-        :meth:`coordinax.AbstractPos3D.from_`.
+        :meth:`coordinax.vector`.
     p : :class:`~coordinax.AbstractVel3D`
         A 3-vector of the conjugate specific momenta at positions ``q``,
         allowing for batched inputs.  This parameter accepts any 3-vector
         differential, e.g.  :class:`~coordinax.SphericalVelocity`, or any input
         that can be used to make a :class:`~coordinax.CartesianVel3D` via
-        :meth:`coordinax.CartesianVel3D.from_`.
+        :meth:`coordinax.vector`.
     t : Quantity[float, (*batch,), 'time'] | None
         The time corresponding to the positions.
 
@@ -105,13 +105,13 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     """
 
-    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vecs.AbstractPos3D.from_)
+    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)
     """Positions, e.g CartesianPos3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vecs.AbstractVel3D.from_)
+    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vector)
     r"""Conjugate momenta, e.g. CartesianVel3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.

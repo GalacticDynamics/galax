@@ -306,7 +306,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.17.0"
+version = "0.17.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -322,9 +322,9 @@ dependencies = [
     { name = "unxt" },
     { name = "xmmutablemap" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7a/3f/da9b4506a5c1d6ddae1e99adea9277c43186998360da5336fd480aa2b6cf/coordinax-0.17.0.tar.gz", hash = "sha256:84d15aee84c58f40892c560e0b2fd402dad8d8fcba907a51436aa8db1fac4718", size = 170297 }
+sdist = { url = "https://files.pythonhosted.org/packages/29/57/44b29c7a17040ca37eda458a92790d0111a52cdee0fedc326c04dc4ac691/coordinax-0.17.3.tar.gz", hash = "sha256:702d435e8ca8bcd37733f10cc07fbed83752835d7e4ca7c56ef993f37faa2e5e", size = 171450 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/b5/1cd1a800d069dedd88fea2c5fef4be662cd9c30f01a985ddddbf3fb9bb69/coordinax-0.17.0-py3-none-any.whl", hash = "sha256:d0a52e172133f6d1472ec813e7854d158e381703270e04c8c5e5d6d14468c541", size = 160363 },
+    { url = "https://files.pythonhosted.org/packages/1d/d6/33ae15039a4a47d40eb1e114fd8a55a83a93b0fd4577ca9288be4b452eb3/coordinax-0.17.3-py3-none-any.whl", hash = "sha256:91105568813f761051935e171bc36ce629d185c916f4c17102f6d9f30403d3f3", size = 161758 },
 ]
 
 [[package]]
@@ -602,7 +602,7 @@ wheels = [
 
 [[package]]
 name = "galax"
-version = "0.0.3.dev152+gf464e2c2.d20241220"
+version = "0.0.3.dev154+ga856f999.d20241230"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
@@ -710,7 +710,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.19" },
-    { name = "coordinax", specifier = ">=0.17.0" },
+    { name = "coordinax", specifier = ">=0.17.3" },
     { name = "dataclassish", specifier = ">=0.6" },
     { name = "diffrax", specifier = ">=0.6" },
     { name = "equinox", specifier = ">=0.11.8" },

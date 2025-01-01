@@ -49,7 +49,8 @@ def from_(
     PhaseSpacePosition(
         q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
         p=LonCosLatSphericalVel( d_lon_coslat=..., d_lat=..., d_distance=... ),
-        t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Myr"))
+        t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
+        frame=NoFrame()
     )
 
     """
@@ -101,7 +102,8 @@ def from_(
     PhaseSpacePosition(
         q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
         p=LonCosLatSphericalVel( d_lon_coslat=..., d_lat=..., d_distance=... ),
-        t=Quantity[PhysicalType('time')](value=f64[], unit=Unit("Myr"))
+        t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
+        frame=NoFrame()
     )
 
     """

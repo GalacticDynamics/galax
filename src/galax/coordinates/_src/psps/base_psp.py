@@ -84,7 +84,8 @@ def vconvert(
     >>> cx.vconvert({"q": cxv.LonLatSphericalPos, "p": cxv.LonCosLatSphericalVel}, psp)
     PhaseSpacePosition( q=LonLatSphericalPos(...),
                         p=LonCosLatSphericalVel(...),
-                        t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
+                        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                        frame=NoFrame() )
 
     """
     q_cls = target["q"]
@@ -124,7 +125,8 @@ def vconvert(
     >>> cx.vconvert(cx.vecs.CylindricalPos, psp)
     PhaseSpacePosition( q=CylindricalPos(...),
                         p=CylindricalVel(...),
-                        t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
+                        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                        frame=NoFrame() )
 
     If the new representation requires keyword arguments, they can be passed
     through:
@@ -132,7 +134,8 @@ def vconvert(
     >>> cx.vconvert(cx.vecs.ProlateSpheroidalPos, psp, Delta=u.Quantity(2.0, "kpc"))
     PhaseSpacePosition( q=ProlateSpheroidalPos(...),
                         p=ProlateSpheroidalVel(...),
-                        t=Quantity[...](value=...i64[], unit=Unit("Gyr")) )
+                        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                        frame=NoFrame() )
 
     """
     target = {"q": target_position_cls, "p": target_position_cls.differential_cls}

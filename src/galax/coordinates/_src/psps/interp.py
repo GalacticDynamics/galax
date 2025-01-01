@@ -2,6 +2,7 @@
 
 __all__ = ["InterpolatedPhaseSpacePosition", "PhaseSpacePositionInterpolant"]
 
+from dataclasses import KW_ONLY
 from typing import Protocol, final, runtime_checkable
 
 import equinox as eqx
@@ -44,13 +45,13 @@ class PhaseSpacePositionInterpolant(Protocol):
 class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
     """Interpolated phase-space position."""
 
-    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vecs.AbstractPos3D.from_)
+    q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)
     """Positions, e.g CartesianPos3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vecs.AbstractVel3D.from_)
+    p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vector)
     r"""Conjugate momenta, e.g. CartesianVel3D.
 
     This is a 3-vector with a batch shape allowing for vector inputs.
@@ -68,6 +69,11 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
 
     interpolant: PhaseSpacePositionInterpolant
     """The interpolation function."""
+
+    _: KW_ONLY
+
+    frame: cx.frames.AbstractReferenceFrame
+    """The reference frame of the phase-space position."""
 
     def __call__(self, t: gt.BatchFloatQScalar) -> PhaseSpacePosition:
         """Call the interpolation."""

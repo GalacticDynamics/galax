@@ -3,7 +3,6 @@
 __all__ = ["AbstractBasePhaseSpacePosition", "ComponentShapeTuple"]
 
 from abc import abstractmethod
-from collections.abc import Mapping
 from dataclasses import replace
 from functools import partial
 from textwrap import indent
@@ -48,6 +47,28 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
     :math:`\boldsymbol{q}\in\mathbb{R}^3`, the conjugate momentum
     :math:`\boldsymbol{p}\in\mathbb{R}^3`, and the time
     :math:`t\in\mathbb{R}^1`.
+
+    Examples
+    --------
+    With the following imports:
+
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+
+    We can create a phase-space position from a mapping:
+
+    >>> obj = {"q": u.Quantity([1, 2, 3], "kpc"),
+    ...        "p": u.Quantity([4, 5, 6], "km/s"),
+    ...        "t": u.Quantity(0, "Gyr")}
+    >>> gc.PhaseSpacePosition.from_(obj)
+    PhaseSpacePosition(
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
+        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+        frame=NoFrame()
+    )
+
+
     """
 
     q: eqx.AbstractVar[cx.vecs.AbstractPos3D]
@@ -68,44 +89,10 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
     @classmethod
     @dispatch  # type: ignore[misc]
     def from_(
-        cls: "type[AbstractBasePhaseSpacePosition]", obj: Mapping[str, Any], /
+        cls: "type[AbstractBasePhaseSpacePosition]", *args: Any, **kwargs: Any
     ) -> "AbstractBasePhaseSpacePosition":
-        """Construct from a mapping.
-
-        Parameters
-        ----------
-        cls : type[:class:`~galax.coordinates.AbstractBasePhaseSpacePosition`]
-            The class to construct.
-        obj : Mapping[str, Any]
-            The mapping from which to construct.
-
-        Returns
-        -------
-        :class:`~galax.coordinates.AbstractBasePhaseSpacePosition`
-            The constructed phase-space position.
-
-        Examples
-        --------
-        With the following imports:
-
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-
-        We can create a phase-space position from a mapping:
-
-        >>> obj = {"q": u.Quantity([1, 2, 3], "kpc"),
-        ...        "p": u.Quantity([4, 5, 6], "km/s"),
-        ...        "t": u.Quantity(0, "Gyr")}
-        >>> gc.PhaseSpacePosition.from_(obj)
-        PhaseSpacePosition(
-            q=CartesianPos3D( ... ),
-            p=CartesianVel3D( ... ),
-            t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-            frame=NoFrame()
-        )
-
-        """
-        return cls(**obj)
+        """Construct from arguments, defaulting to AbstractVector constructor."""
+        return cast(AbstractBasePhaseSpacePosition, super().from_(*args, **kwargs))
 
     # ==========================================================================
     # Coordinate API

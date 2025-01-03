@@ -13,6 +13,7 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from dataclassish.converters import Optional, Unless
+from unxt.quantity import AbstractQuantity
 
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
@@ -299,7 +300,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
 
 # TODO: generalize
-@AbstractBasePhaseSpacePosition.from_.dispatch(precedence=1)  # type: ignore[misc]
+@AbstractBasePhaseSpacePosition.from_.dispatch(precedence=1)
 @partial(eqx.filter_jit, inline=True)
 def from_(
     cls: type[PhaseSpacePosition], obj: AbstractCompositePhaseSpacePosition, /
@@ -331,3 +332,41 @@ def from_(
 
     """
     return cls(q=obj.q, p=obj.p, t=obj.t)
+
+
+@AbstractBasePhaseSpacePosition.from_.dispatch
+def from_(
+    cls: type[PhaseSpacePosition],
+    data: cx.Space,
+    frame: cx.frames.AbstractReferenceFrame,
+    /,
+) -> PhaseSpacePosition:
+    """Return a new PhaseSpacePosition from the given data and frame.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
+
+    >>> data = u.Quantity([1, 2, 3, 4, 5, 6], "m")
+    >>> frame = cx.frames.Galactic()
+
+    >>> gc.PhaseSpacePosition.from_(data, frame)
+    PhaseSpacePosition(
+      q=CartesianPos3D( ... ),
+      p=CartesianVel3D( ... ),
+      t=None,
+      frame=Galactic()
+    )
+
+    """
+    t: AbstractQuantity | None = None
+
+    # TODO: more thorough constructor
+    q = data["length"]
+    if isinstance(q, cx.vecs.FourVector):
+        t = q.t
+        q = q.q
+
+    return cls(q=q, p=data["speed"], t=t, frame=frame)

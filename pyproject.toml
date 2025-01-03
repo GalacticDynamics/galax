@@ -80,6 +80,7 @@
 [dependency-groups]
   # Development dependencies
   dev = [
+    "cz-conventional-gitmoji>=0.6.1",
     "ipykernel>=6.29.5",
     { include-group = "docs" },
     { include-group = "test-all" },

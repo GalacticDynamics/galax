@@ -11,7 +11,7 @@ from typing import Any, NamedTuple, Self, cast
 import equinox as eqx
 import jax
 from jaxtyping import Shaped
-from plum import convert, dispatch
+from plum import conversion_method, convert, dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -711,7 +711,6 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 
 
 # =============================================================================
-# Helper functions
 
 # -----------------------------------------------
 # Register additional constructors
@@ -777,6 +776,35 @@ def from_(
         return obj
 
     return cls(**dict(field_items(obj)))
+
+
+# -----------------------------------------------
+# Converters
+
+
+@conversion_method(type_from=AbstractBasePhaseSpacePosition, type_to=cx.Coordinate)  # type: ignore[misc]
+def convert_psp_to_coordinax_coordinate(
+    obj: AbstractBasePhaseSpacePosition, /
+) -> cx.Coordinate:
+    """Convert a phase-space position to a coordinax coordinate.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+
+    We can create a phase-space position and convert it to a coordinax coordinate:
+
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
+    >>> convert(psp, cx.Coordinate)
+    Coordinate(
+        data=Space({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) })
+    )
+
+    """
+    return cx.Coordinate(data=obj.data, frame=obj.frame)
 
 
 # -----------------------------------------------

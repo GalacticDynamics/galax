@@ -277,10 +277,10 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @partial(jax.jit, inline=True)  # TODO: inline?
     def _vector_field(
         self,
-        t: gt.FloatScalar,
-        w: gt.Vec6,
+        t: gt.BatchableFloatScalar,
+        w: gt.BatchableVec6,
         args: tuple[Any, ...],  # noqa: ARG002
-    ) -> gt.Vec6:
+    ) -> gt.BatchVec6:
         r"""Differential equation derivative for dynamics.
 
         This is Hamilton's equations for motion for a particle in a potential.

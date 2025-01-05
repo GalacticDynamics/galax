@@ -14,6 +14,7 @@ from plum import dispatch
 
 import quaxed.numpy as xp
 import unxt as u
+from unxt.quantity import UncheckedQuantity as FastQ
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
@@ -237,14 +238,14 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Parse inputs
 
         time = units["time"]
-        t0_: gt.RealScalar = u.Quantity.from_(t0, time).value
-        t1_: gt.RealScalar = u.Quantity.from_(t1, time).value
+        t0_: gt.RealScalar = FastQ.from_(t0, time).ustrip(time)
+        t1_: gt.RealScalar = FastQ.from_(t1, time).ustrip(time)
         # Either save at `saveat` or at the final time.
         only_final = saveat is None or len(saveat) <= 1
         save_at = diffrax.SaveAt(
             t0=False,
             t1=only_final,
-            ts=u.Quantity.from_(saveat, time).value if not only_final else None,
+            ts=FastQ.from_(saveat, time).ustrip(time) if not only_final else None,
             dense=interpolated,
         )
 
@@ -289,9 +290,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             out_kw = {}
 
         return out_cls(  # shape = (*batch, T)
-            t=u.Quantity(solt, time),
-            q=u.Quantity(solq, units["length"]),
-            p=u.Quantity(solp, units["speed"]),
+            t=FastQ(solt, time),
+            q=FastQ(solq, units["length"]),
+            p=FastQ(solp, units["speed"]),
             **out_kw,
         )
 
@@ -478,8 +479,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         # TODO: vectorize with units!
         time = units["time"]
-        t0_: gt.VecTime = u.Quantity.from_(t0, time).value
-        t1_: gt.VecTime = u.Quantity.from_(t1, time).value
+        t0_: gt.VecTime = FastQ.from_(t0, time).ustrip(time)
+        t1_: gt.VecTime = FastQ.from_(t1, time).ustrip(time)
 
         return vec_call(F, y0, t0_, t1_)
 

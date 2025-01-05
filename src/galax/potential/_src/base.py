@@ -167,7 +167,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         grad_op = u.experimental.grad(
             self._potential, units=(self.units["length"], self.units["time"])
         )
-        return grad_op(q, t)
+        return grad_op(q.astype(float), t)
 
     def gradient(
         self: "AbstractBasePotential", *args: Any, **kwargs: Any
@@ -277,10 +277,10 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @partial(jax.jit, inline=True)  # TODO: inline?
     def _vector_field(
         self,
-        t: gt.FloatScalar,
-        w: gt.Vec6,
+        t: gt.BatchableFloatScalar,
+        qp: gt.BatchableQParr,
         args: tuple[Any, ...],  # noqa: ARG002
-    ) -> gt.Vec6:
+    ) -> gt.BatchPAarr:
         r"""Differential equation derivative for dynamics.
 
         This is Hamilton's equations for motion for a particle in a potential.
@@ -293,22 +293,23 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         ----------
         t : float
             Time at which to evaluate the derivative.
-        w : Array[float, (6,)]
-            Phase-space position [q (3,), p (3,)].
+        qp : Array[float, (3,)], Array[float, (3,)]
+            Phase-space position q, p.
         args : tuple
             Additional arguments to pass to the derivative. Not used, but
             required by some dynamics solvers.
 
         Returns
         -------
-        dw : Array[float, (6,)]
-            Derivative [p (3,), a (3,)] at the phase-space position.
+        dw : Array[float, (3,)], Array[float, (3,)]
+            Derivative p, a at the phase-space position.
         """
+        q, p = qp
         a = -self._gradient(
-            FastQ(w[..., 0:3], self.units["length"]),
+            FastQ(q, self.units["length"]),
             FastQ(t, self.units["time"]),
         ).ustrip(self.units["acceleration"])  # TODO: not require unit munging
-        return jnp.hstack([w[..., 3:6], a])  # v, a
+        return (p, a)
 
     def evaluate_orbit(
         self,

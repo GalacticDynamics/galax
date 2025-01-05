@@ -8,6 +8,7 @@ import jax
 
 import quaxed.numpy as xp
 import unxt as u
+from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
 
@@ -29,8 +30,8 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
 
     We define initial conditions and a potential:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
-    ...                            p=u.Quantity([0., 200., 0.], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
+    ...                            p=u.Quantity([0, 200, 0], "km/s"))
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
 
@@ -76,14 +77,16 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
 
         # Reshape (T, *batch) to (*batch, T)
         # ts is already in the correct shape
-        ys = xp.moveaxis(ys, 0, -2)
+        qs = xp.moveaxis(ys[0], 0, -2)
+        ps = xp.moveaxis(ys[1], 0, -2)
         # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
         t_dim_sel = -1 if t.shape == () else slice(None)
-        ys = ys[..., t_dim_sel, :]
+        qs = qs[..., t_dim_sel, :]
+        ps = ps[..., t_dim_sel, :]
 
         # Construct and return the result
         return gc.PhaseSpacePosition(
-            q=u.Quantity(ys[..., 0:3], self.units["length"]),
-            p=u.Quantity(ys[..., 3:6], self.units["speed"]),
+            q=FastQ(qs, self.units["length"]),
+            p=FastQ(ps, self.units["speed"]),
             t=t,
         )

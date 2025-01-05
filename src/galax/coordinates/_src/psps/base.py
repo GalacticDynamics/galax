@@ -398,6 +398,40 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
     # ==========================================================================
     # Convenience methods
 
+    def _qp(self, *, units: u.AbstractUnitSystem) -> gt.BatchQP:
+        """Return q,p as broadcasted quantities in a unit system.
+
+        Returns
+        -------
+        Quantity[number, (*batch, Q), 'length']
+        Quantity[number, (*batch, P), 'speed']
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.coordinates as gc
+
+        We convert a phase-space position to a 2-elt 3-vector tuple:
+
+        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"),
+        ...                             t=u.Quantity(0, "Gyr"))
+        >>> psp._qp(units=u.unitsystem("galactic"))
+        (UncheckedQuantity(Array([1, 2, 3], dtype=int64), unit='kpc'),
+         UncheckedQuantity(Array([0.00409085, 0.00511356, 0.00613627],
+                                 dtype=float64, ...), unit='kpc / Myr'))
+
+        """
+        batch, comps = self._shape_tuple
+        cart = self.vconvert(cx.CartesianPos3D)
+        q = jnp.broadcast_to(
+            convert(cart.q, FastQ).uconvert(units["length"]), (*batch, comps.q)
+        )
+        p = jnp.broadcast_to(
+            convert(cart.p, FastQ).uconvert(units["speed"]), (*batch, comps.p)
+        )
+        return (q, p)
+
     def w(self, *, units: Any) -> gt.BatchVec6:
         """Phase-space position as an Array[float, (*batch, Q + P)].
 
@@ -406,21 +440,18 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
 
         Parameters
         ----------
-        units : `unxt.AbstractUnitSystem`, optional keyword-only
-            The unit system. :func:`~unxt.unitsystem` is used to
-            convert the input to a unit system.
+        units : Any, optional keyword-only
+            The unit system. :func:`~unxt.unitsystem` is used to convert the
+            input to a unit system.
 
         Returns
         -------
-        w : Array[float, (*batch, Q + P)]
+        Array[float, (*batch, Q + P)]
             The phase-space position as a 6-vector in Cartesian coordinates.
-            This will have shape
-            :attr:`AbstractPhaseSpacePosition.full_shape`.
+            This will have shape :attr:`AbstractPhaseSpacePosition.full_shape`.
 
         Examples
         --------
-        Assuming the following imports:
-
         >>> import unxt as u
         >>> import galax.coordinates as gc
 
@@ -431,17 +462,11 @@ class AbstractBasePhaseSpacePosition(eqx.Module, strict=True):  # type: ignore[c
         ...                             t=u.Quantity(0, "Gyr"))
         >>> psp.w(units="galactic")
         Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
+
         """
         usys = u.unitsystem(units)
-        batch, comps = self._shape_tuple
-        cart = self.vconvert(cx.CartesianPos3D)
-        q = jnp.broadcast_to(
-            u.ustrip(usys["length"], convert(cart.q, FastQ)), (*batch, comps.q)
-        )
-        p = jnp.broadcast_to(
-            u.ustrip(usys["speed"], convert(cart.p, FastQ)), (*batch, comps.p)
-        )
-        return jnp.concat((q, p), axis=-1)
+        q, p = self._qp(units=usys)
+        return jnp.concat((q.ustrip(usys["length"]), p.ustrip(usys["speed"])), axis=-1)
 
     def wt(self, *, units: Any) -> gt.BatchVec7:
         """Phase-space position as an Array[float, (*batch, 1+Q+P)].

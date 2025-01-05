@@ -31,7 +31,7 @@ _select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
 @dispatch
 def evaluate_orbit(
     pot: gp.AbstractBasePotential,
-    w0: gc.PhaseSpacePosition | gt.BatchVec6,
+    w0: gc.PhaseSpacePosition | gt.BatchQParr | gt.BatchVec6,
     t: Any,
     /,
     *,
@@ -49,22 +49,26 @@ def evaluate_orbit(
     ----------
     pot : :class:`~galax.potential.AbstractBasePotential`
         The potential in which to integrate the orbit.
-    w0 : PhaseSpacePosition | Array[float, (*batch, 6)]
+    w0 : PhaseSpacePosition | Array[number, (*batch, 6)]
         The phase-space position (includes velocity and time) from which to
         integrate. Integration includes the time of the initial position, so be
         sure to set the initial time to the desired value. See the `t` argument
         for more details.
 
-        - :class:`~galax.dynamics.PhaseSpacePosition`[float, (*batch,)]:
+        - :class:`~galax.dynamics.PhaseSpacePosition`[number, (*batch,)]:
             The full phase-space position, including position, velocity, and
             time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
             integrated from ``t[0]`` to ``t[1]``, returning the orbit calculated
             at `t`. If `w0.t` is `None`, it is assumed to be `t[0]`.
-        - Array[float, (*batch, 6)]:
+        - tuple[Array[number, (*batch, 3)], Array[number, (*batch, 3)]]:
+            A :class:`~galax.coordinates.PhaseSpacePosition` will be
+            constructed, interpreting the array as the  'q', 'p', with 't' set
+            to ``t[0]``.
+        - Array[number, (*batch, 6)]:
             A :class:`~galax.coordinates.PhaseSpacePosition` will be
             constructed, interpreting the array as the  'q', 'p' (each
-            Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
-    t: Quantity[float, (time,), 'time']
+            Array[number, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
+    t: Quantity[number, (time,), 'time']
         Array of times at which to compute the orbit. The first element should
         be the initial time and the last element should be the final time and
         the array should be monotonically moving from the first to final time.
@@ -109,10 +113,10 @@ def evaluate_orbit(
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
-    ...                            p=u.Quantity([0., 200, 0.], "km/s"),
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
+    ...                            p=u.Quantity([0, 200, 0], "km/s"),
     ...                            t=u.Quantity(-100, "Myr"))
-    >>> ts = u.Quantity(jnp.linspace(0., 1, 4), "Gyr")
+    >>> ts = u.Quantity(jnp.linspace(0, 1, 4), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -128,7 +132,7 @@ def evaluate_orbit(
     defined at `t=-100`, but the orbit is integrated from `t=0` to `t=1000`.
     Changing the number of times is easy:
 
-    >>> ts = u.Quantity(jnp.linspace(0., 1, 10), "Gyr")
+    >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -151,7 +155,7 @@ def evaluate_orbit(
 
     We can also integrate a batch of orbits at once:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [10., 0, 0]], "kpc"),
     ...                            p=u.Quantity([[0, 200, 0], [0, 220, 0]], "km/s"),
     ...                            t=u.Quantity([-100, -150], "Myr"))
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
@@ -171,8 +175,8 @@ def evaluate_orbit(
     time at which the position is given. As noted earlier, this can be used to
     integrate from a different time than the initial time of the position:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
-    ...                            p=u.Quantity([0., 200, 0.], "km/s"),
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
+    ...                            p=u.Quantity([0, 200, 0], "km/s"),
     ...                            t=u.Quantity(0, "Myr"))
     >>> ts = u.Quantity(jnp.linspace(0.3, 1, 8), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
@@ -260,10 +264,10 @@ def evaluate_orbit(
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
-    ...                            p=u.Quantity([0., 200, 0.], "km/s"),
+    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
+    ...                            p=u.Quantity([0, 200, 0], "km/s"),
     ...                            t=u.Quantity(-100, "Myr"))
-    >>> ts = jnp.linspace(0., 1000, 4)  # (1 Gyr, 4 steps)
+    >>> ts = jnp.linspace(0, 1000, 4)  # (1 Gyr, 4 steps)
     >>> orbit = gd.evaluate_orbit(potential, w0, t=ts)
     >>> orbit
     Orbit(

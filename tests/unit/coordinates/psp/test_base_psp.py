@@ -241,8 +241,8 @@ class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
         class PSP(gc.AbstractPhaseSpacePosition):
             """A phase-space position."""
 
-            q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vecs.AbstractPos3D.from_)
-            p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vecs.AbstractVel3D.from_)
+            q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)
+            p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vector)
             t: u.Quantity["time"]
 
             @property

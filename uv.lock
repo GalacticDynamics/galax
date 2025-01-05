@@ -91,6 +91,15 @@ wheels = [
 ]
 
 [[package]]
+name = "attrs"
+version = "24.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/48/c8/6260f8ccc11f0917360fc0da435c5c9c7504e3db174d5a12a1494887b045/attrs-24.3.0.tar.gz", hash = "sha256:8f5c07333d543103541ba7be0e2ce16eeee8130cb0b3f9238ab904ce1e85baff", size = 805984 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/89/aa/ab0f7891a01eeb2d2e338ae8fecbe57fcebea1a24dbb64d45801bfab481d/attrs-24.3.0-py3-none-any.whl", hash = "sha256:ac96cd038792094f438ad1f6ff80837353805ac950cd2aa0e0625ef19850c308", size = 63397 },
+]
+
+[[package]]
 name = "babel"
 version = "2.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -256,6 +265,27 @@ wheels = [
 ]
 
 [[package]]
+name = "commitizen"
+version = "4.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "argcomplete" },
+    { name = "charset-normalizer" },
+    { name = "colorama" },
+    { name = "decli" },
+    { name = "jinja2" },
+    { name = "packaging" },
+    { name = "pyyaml" },
+    { name = "questionary" },
+    { name = "termcolor" },
+    { name = "tomlkit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7a/c5/66f1b977b48501a33f5fd33253aba14786483b08aba987718d272e99e732/commitizen-4.1.0.tar.gz", hash = "sha256:4f2d9400ec411aec1c738d4c63fc7fd5807cd6ddf6be970869e03e68b88ff718", size = 51252 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/f7/7f70adfbf3553ffdbe391eaacde72b21dbc1b4226ae56ca32e8ded1bf70b/commitizen-4.1.0-py3-none-any.whl", hash = "sha256:2e6c5fbd442cab4bcc5a04bc86ef2196ef84bcf611317d6c596e87f5bb4c09f5", size = 72282 },
+]
+
+[[package]]
 name = "contourpy"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -306,7 +336,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.17.0"
+version = "0.17.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -322,9 +352,9 @@ dependencies = [
     { name = "unxt" },
     { name = "xmmutablemap" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7a/3f/da9b4506a5c1d6ddae1e99adea9277c43186998360da5336fd480aa2b6cf/coordinax-0.17.0.tar.gz", hash = "sha256:84d15aee84c58f40892c560e0b2fd402dad8d8fcba907a51436aa8db1fac4718", size = 170297 }
+sdist = { url = "https://files.pythonhosted.org/packages/cf/85/5607374af022dc0dca27a77d711ace79c709de9faebd757f7373e51aaa09/coordinax-0.17.4.tar.gz", hash = "sha256:ec1354cac1b4fcc7e18190c7955c066ec52c75a1a1b08af120a839ac5f544bcd", size = 174388 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/b5/1cd1a800d069dedd88fea2c5fef4be662cd9c30f01a985ddddbf3fb9bb69/coordinax-0.17.0-py3-none-any.whl", hash = "sha256:d0a52e172133f6d1472ec813e7854d158e381703270e04c8c5e5d6d14468c541", size = 160363 },
+    { url = "https://files.pythonhosted.org/packages/08/44/e6b4e762a96d046df86ef13e0b48c2ac9d61f4417097a2656fd0224f2b91/coordinax-0.17.4-py3-none-any.whl", hash = "sha256:67ea1b7f2f901d6c3f254af39b618f757bbf0b954c32a847ce050c7ba75cd13f", size = 169142 },
 ]
 
 [[package]]
@@ -423,6 +453,19 @@ wheels = [
 ]
 
 [[package]]
+name = "cz-conventional-gitmoji"
+version = "0.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "commitizen" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/de/6e/0bd29b8df2fc2a1aca050bf92429b81b9dd91672dddf9d20e94008c80d99/cz_conventional_gitmoji-0.6.1.tar.gz", hash = "sha256:3fd4b355fa9a1ffc31192112f1807ab6c33203204c00f38a54c80643a2f407b8", size = 13755 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fc/a3/2d9b33cb8b9898b0d3cc6147242ce9c3cee1e78739d793d1b197d8b573b8/cz_conventional_gitmoji-0.6.1-py3-none-any.whl", hash = "sha256:db8f51ea2f41389e6cc9986234524df6b4e1a3846ad738f5b946a811c3948623", size = 15151 },
+]
+
+[[package]]
 name = "dataclassish"
 version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -454,6 +497,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c3/92/a48e653b19a171434290ecdc5935b7a292a65488139c5271d6d0eceeb0f1/debugpy-1.8.7-cp313-cp313-win32.whl", hash = "sha256:11ad72eb9ddb436afb8337891a986302e14944f0f755fd94e90d0d71e9100bba", size = 5195220 },
     { url = "https://files.pythonhosted.org/packages/4e/b3/dc3c5527edafcd1a6d0f8c4ecc6c5c9bc431f77340cf4193328e98f0ac38/debugpy-1.8.7-cp313-cp313-win_amd64.whl", hash = "sha256:2efb84d6789352d7950b03d7f866e6d180284bc02c7e12cb37b489b7083d81aa", size = 5235333 },
     { url = "https://files.pythonhosted.org/packages/51/b1/a0866521c71a6ae3d3ca320e74835163a4671b1367ba360a55a0a51e5a91/debugpy-1.8.7-py2.py3-none-any.whl", hash = "sha256:57b00de1c8d2c84a61b90880f7e5b6deaf4c312ecbde3a0e8912f2a56c4ac9ae", size = 5210683 },
+]
+
+[[package]]
+name = "decli"
+version = "0.6.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/a0/a4658f93ecb589f479037b164dc13c68d108b50bf6594e54c820749f97ac/decli-0.6.2.tar.gz", hash = "sha256:36f71eb55fd0093895efb4f416ec32b7f6e00147dda448e3365cf73ceab42d6f", size = 7424 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/70/3ea48dc9e958d7d66c44c9944809181f1ca79aaef25703c023b5092d34ff/decli-0.6.2-py3-none-any.whl", hash = "sha256:2fc84106ce9a8f523ed501ca543bdb7e416c064917c12a59ebdc7f311a97b7ed", size = 7854 },
 ]
 
 [[package]]
@@ -602,7 +654,7 @@ wheels = [
 
 [[package]]
 name = "galax"
-version = "0.0.3.dev152+gf464e2c2.d20241220"
+version = "0.0.3.dev156+g48704421.d20250105"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
@@ -659,6 +711,7 @@ plot-matplotlib = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "cz-conventional-gitmoji" },
     { name = "furo" },
     { name = "ipykernel" },
     { name = "myst-parser" },
@@ -710,7 +763,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.19" },
-    { name = "coordinax", specifier = ">=0.17.0" },
+    { name = "coordinax", specifier = ">=0.17.4" },
     { name = "dataclassish", specifier = ">=0.6" },
     { name = "diffrax", specifier = ">=0.6" },
     { name = "equinox", specifier = ">=0.11.8" },
@@ -741,6 +794,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "cz-conventional-gitmoji", specifier = ">=0.6.1" },
     { name = "furo", specifier = ">=2024.8.6" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "myst-parser", specifier = ">=4.0" },
@@ -1771,6 +1825,18 @@ wheels = [
 ]
 
 [[package]]
+name = "questionary"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "prompt-toolkit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/b8/d16eb579277f3de9e56e5ad25280fab52fc5774117fb70362e8c2e016559/questionary-2.1.0.tar.gz", hash = "sha256:6302cdd645b19667d8f6e6634774e9538bfcd1aad9be287e743d96cacaf95587", size = 26775 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ad/3f/11dd4cd4f39e05128bfd20138faea57bec56f9ffba6185d276e3107ba5b2/questionary-2.1.0-py3-none-any.whl", hash = "sha256:44174d237b68bc828e4878c763a9ad6790ee61990e0ae72927694ead57bab8ec", size = 36747 },
+]
+
+[[package]]
 name = "requests"
 version = "2.32.3"
 source = { registry = "https://pypi.org/simple" }
@@ -2001,12 +2067,30 @@ wheels = [
 ]
 
 [[package]]
+name = "termcolor"
+version = "2.5.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/37/72/88311445fd44c455c7d553e61f95412cf89054308a1aa2434ab835075fc5/termcolor-2.5.0.tar.gz", hash = "sha256:998d8d27da6d48442e8e1f016119076b690d962507531df4890fcd2db2ef8a6f", size = 13057 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/be/df630c387a0a054815d60be6a97eb4e8f17385d5d6fe660e1c02750062b4/termcolor-2.5.0-py3-none-any.whl", hash = "sha256:37b17b5fc1e604945c2642c872a3764b5d547a48009871aea3edd3afa180afb8", size = 7755 },
+]
+
+[[package]]
 name = "tomli"
 version = "2.0.2"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/35/b9/de2a5c0144d7d75a57ff355c0c24054f965b2dc3036456ae03a51ea6264b/tomli-2.0.2.tar.gz", hash = "sha256:d46d457a85337051c36524bc5349dd91b1877838e2979ac5ced3e710ed8a60ed", size = 16096 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cf/db/ce8eda256fa131af12e0a76d481711abe4681b6923c27efb9a255c9e4594/tomli-2.0.2-py3-none-any.whl", hash = "sha256:2ebe24485c53d303f690b0ec092806a085f07af5a5aa1464f3931eec36caaa38", size = 13237 },
+]
+
+[[package]]
+name = "tomlkit"
+version = "0.13.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/09/a439bec5888f00a54b8b9f05fa94d7f901d6735ef4e55dcec9bc37b5d8fa/tomlkit-0.13.2.tar.gz", hash = "sha256:fff5fe59a87295b278abd31bec92c15d9bc4a06885ab12bcea52c71119392e79", size = 192885 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/b6/a447b5e4ec71e13871be01ba81f5dfc9d0af7e473da256ff46bc0e24026f/tomlkit-0.13.2-py3-none-any.whl", hash = "sha256:7a974427f6e119197f670fbbbeae7bef749a6c14e793db934baefc1b5f03efde", size = 37955 },
 ]
 
 [[package]]
@@ -2056,7 +2140,7 @@ wheels = [
 
 [[package]]
 name = "unxt"
-version = "1.0.3"
+version = "1.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -2073,9 +2157,9 @@ dependencies = [
     { name = "xmmutablemap" },
     { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/37/026eb0a0073044f6c752c0e064de51a05ece4f9007b7db3ab1b8dca79c69/unxt-1.0.3.tar.gz", hash = "sha256:be558c46c4fb9d7ef235c3efdaebc5550b9eed70f64721e6c03111e0390b1045", size = 656105 }
+sdist = { url = "https://files.pythonhosted.org/packages/99/54/e17c561e931b9e34e78b074b0ce461f3de59d19b27c5c5ed20c3f0709227/unxt-1.0.4.tar.gz", hash = "sha256:5b694bc49ceaaf9b53a1882a8f630dc69842648fb9bc63262c58d61b7cc50e1c", size = 656277 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/b4/403be180f59d9da56ec4639008ef6e373f5470a77473a8d6eb571921f9e9/unxt-1.0.3-py3-none-any.whl", hash = "sha256:b4089a39f2268440a033c8b27e48cd93f9d268c40f411c6bbde0e12c09d87a01", size = 63417 },
+    { url = "https://files.pythonhosted.org/packages/89/8f/5ba24038f730686b85d097b93c0909464d6506563e58835cdce83b5ddc83/unxt-1.0.4-py3-none-any.whl", hash = "sha256:2a89d639d8700d854412baae991056db2117b52b0f1db596bddd3753be72aecf", size = 63678 },
 ]
 
 [[package]]

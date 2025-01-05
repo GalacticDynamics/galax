@@ -16,7 +16,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
-from .core import Integrator
+from .integrator import Integrator
 from galax.dynamics._src.orbit import Orbit
 
 # TODO: enable setting the default integrator

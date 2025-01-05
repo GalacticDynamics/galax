@@ -16,7 +16,7 @@ from plum import dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AbstractQuantity
+from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -275,9 +275,6 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Integrating orbits
 
     @partial(jax.jit, inline=True)  # TODO: inline?
-    @vectorize_method(  # TODO: vectorization the func itself
-        signature="(),(6)->(6)", excluded=(2,)
-    )
     def _dynamics_deriv(
         self,
         t: gt.FloatScalar,
@@ -307,15 +304,11 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         dw : Array[float, (6,)]
             Derivative [p (3,), a (3,)] at the phase-space position.
         """
-        # TODO: not require unit munging
-        a = u.ustrip(
-            self.units["acceleration"],
-            -self._gradient(
-                u.Quantity(w[0:3], self.units["length"]),
-                u.Quantity(t, self.units["time"]),
-            ),
-        )
-        return jnp.hstack([w[3:6], a])  # v, a
+        a = -self._gradient(
+            FastQ(w[..., 0:3], self.units["length"]),
+            FastQ(t, self.units["time"]),
+        ).ustrip(self.units["acceleration"])  # TODO: not require unit munging
+        return jnp.hstack([w[..., 3:6], a])  # v, a
 
     def evaluate_orbit(
         self,

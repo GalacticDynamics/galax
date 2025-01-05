@@ -661,7 +661,7 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
     position output.
     """
 
-    def __call__(self, t: u.Quantity["time"], **_: Any) -> Any:
+    def __call__(self, t: u.Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
         # Parse t
         t_ = xp.atleast_1d(u.ustrip(self.units["time"], t))

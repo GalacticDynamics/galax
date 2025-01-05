@@ -1,4 +1,10 @@
-"""Type hints for galax."""
+"""Type hints for galax.
+
+As indicated by `__all__`, this module does not export any names. The type hints
+defined here may be changed or removed without notice. They are intended for use
+in other modules within the `galax` package.
+
+"""
 
 __all__: list[str] = []
 
@@ -133,3 +139,14 @@ SpeedBatchableVec3: TypeAlias = Shaped[SpeedVec3, "*#batch"]
 
 SpecificEnergyScalar: TypeAlias = Float[u.Quantity["specific_energy"], ""]
 SpecificEnergyBatchScalar: TypeAlias = Float[u.Quantity["specific_energy"], "*batch"]
+
+
+# =============================================================================
+
+Qarr: TypeAlias = Vec3
+BatchQarr: TypeAlias = Shaped[Qarr, "*batch"]
+
+Parr: TypeAlias = Vec3
+BatchParr: TypeAlias = Shaped[Parr, "*batch"]
+
+BatchQParr: TypeAlias = tuple[BatchQarr, BatchParr]

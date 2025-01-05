@@ -209,7 +209,7 @@ def evaluate_orbit(
     # TODO: get diffrax's `solver_state` to speed the second integration.
     # TODO: get diffrax's `controller_state` to speed the second integration.
     qp0 = integrator(
-        pot._dynamics_deriv,  # noqa: SLF001
+        pot._vector_field,  # noqa: SLF001
         w0,  # w0
         psp0t,  # t0
         jnp.full_like(psp0t, t[0]),  # t1
@@ -219,7 +219,7 @@ def evaluate_orbit(
 
     # Orbit integration `t[0]` to `t[-1]`
     ws = integrator(
-        pot._dynamics_deriv,  # noqa: SLF001
+        pot._vector_field,  # noqa: SLF001
         qp0,
         t[0],
         t[-1],

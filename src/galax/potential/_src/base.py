@@ -275,7 +275,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Integrating orbits
 
     @partial(jax.jit, inline=True)  # TODO: inline?
-    def _dynamics_deriv(
+    def _vector_field(
         self,
         t: gt.FloatScalar,
         w: gt.Vec6,

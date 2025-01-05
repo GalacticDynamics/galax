@@ -12,6 +12,7 @@ from plum import convert, dispatch
 
 import coordinax as cx
 import unxt as u
+from unxt.quantity import AbstractQuantity
 from unxt.unitsystems import AbstractUnitSystem
 
 import galax.coordinates as gc
@@ -40,14 +41,21 @@ def parse_to_quantity(value: Any, /, *, units: AbstractUnitSystem, **_: Any) -> 
     Any
         Parsed input value.
     """
-    msg = f"cannot convert {value} using units {units}"
-    raise NotImplementedError(msg)
+    msg = f"cannot convert {value} using units {units}"  # pragma: no cover
+    raise NotImplementedError(msg)  # pragma: no cover
+
+
+@dispatch
+def parse_to_quantity(
+    value: AbstractQuantity, /, **_: Any
+) -> Shaped[AbstractQuantity, "*#batch 3"]:
+    return value
 
 
 @dispatch
 def parse_to_quantity(
     x: int | float | Array | np.ndarray, /, *, unit: gt.Unit, **_: Any
-) -> u.Quantity:
+) -> AbstractQuantity:
     arr = jnp.asarray(x, dtype=None)
     dtype = jnp.promote_types(arr.dtype, canonicalize_dtype(float))
     return u.Quantity(jnp.asarray(arr, dtype=dtype), unit=unit)
@@ -56,7 +64,7 @@ def parse_to_quantity(
 @dispatch
 def parse_to_quantity(
     x: gc.AbstractPhaseSpacePosition, /, **_: Any
-) -> Shaped[Array, "*batch 3"]:
+) -> Shaped[AbstractQuantity, "*batch 3"]:
     return parse_to_quantity(x.q)
 
 
@@ -65,10 +73,3 @@ def parse_to_quantity(x: cx.vecs.AbstractPos3D, /, **_: Any) -> gt.LengthBatchVe
     cart = x.vconvert(cx.CartesianPos3D)
     qarr: u.Quantity = convert(cart, u.Quantity)
     return qarr
-
-
-@dispatch
-def parse_to_quantity(
-    value: u.Quantity, /, **_: Any
-) -> Shaped[u.Quantity, "*#batch 3"]:
-    return value

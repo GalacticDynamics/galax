@@ -40,7 +40,7 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(pot._dynamics_deriv, w0, t0, t1, units=galactic,
+    >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic,
     ...                interpolated=True)
     >>> type(w)
     <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>

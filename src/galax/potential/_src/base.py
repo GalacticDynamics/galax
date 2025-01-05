@@ -15,7 +15,8 @@ from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
-import unxt as ux
+import unxt as u
+from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
     from galax.dynamics import Orbit
     from galax.dynamics.integrate import Integrator
 
-default_constants = ImmutableMap({"G": ux.Quantity(_CONST_G.value, _CONST_G.unit)})
+default_constants = ImmutableMap({"G": u.Quantity(_CONST_G.value, _CONST_G.unit)})
 
 
 ##############################################################################
@@ -43,10 +44,10 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     plot: ClassVar = PlotPotentialDescriptor()
 
     _: KW_ONLY
-    units: eqx.AbstractVar[ux.AbstractUnitSystem]
+    units: eqx.AbstractVar[u.AbstractUnitSystem]
     """The unit system of the potential."""
 
-    constants: eqx.AbstractVar[ImmutableMap[str, ux.Quantity]]
+    constants: eqx.AbstractVar[ImmutableMap[str, AbstractQuantity]]
     """The constants used by the potential."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -79,12 +80,12 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
                 # Only need to set again if a conversion is needed
-                if isinstance(value, ux.AbstractQuantity | APYQuantity):
-                    value = ux.uconvert(usys[f.metadata.get("dimensions")], value)
+                if isinstance(value, AbstractQuantity | APYQuantity):
+                    value = u.uconvert(usys[f.metadata.get("dimensions")], value)
                     object.__setattr__(self, f.name, value)
 
         # Do unit conversion for the constants
-        if self.units != ux.unitsystems.dimensionless:
+        if self.units != u.unitsystems.dimensionless:
             constants = ImmutableMap(
                 {k: v.decompose(usys) for k, v in self.constants.items()}
             )
@@ -125,7 +126,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def potential(
         self: "AbstractBasePotential", *args: Any, **kwargs: Any
-    ) -> ux.Quantity["specific energy"]:  # TODO: shape hint
+    ) -> u.Quantity["specific energy"]:  # TODO: shape hint
         """Compute the potential energy at the given position(s).
 
         See :func:`~galax.potential.potential` for details.
@@ -135,7 +136,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return potential(self, *args, **kwargs)
 
     @partial(jax.jit, inline=True)
-    def __call__(self, *args: Any) -> Float[ux.Quantity["specific energy"], "*batch"]:
+    def __call__(self, *args: Any) -> Float[u.Quantity["specific energy"], "*batch"]:
         """Compute the potential energy at the given position(s).
 
         Parameters
@@ -163,7 +164,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(signature="(3),()->(3)")
     def _gradient(self, q: gt.BatchQVec3, t: gt.RealQScalar, /) -> gt.BatchQVec3:
         """See ``gradient``."""
-        grad_op = ux.experimental.grad(
+        grad_op = u.experimental.grad(
             self._potential, units=(self.units["length"], self.units["time"])
         )
         return grad_op(q, t)
@@ -186,14 +187,14 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(signature="(3),()->()")
     def _laplacian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.FloatQScalar:
         """See ``laplacian``."""
-        jac_op = ux.experimental.jacfwd(
+        jac_op = u.experimental.jacfwd(
             self._gradient, units=(self.units["length"], self.units["time"])
         )
         return jnp.trace(jac_op(q, t))
 
     def laplacian(
         self: "AbstractBasePotential", *args: Any, **kwargs: Any
-    ) -> ux.Quantity["1/s^2"]:  # TODO: shape hint
+    ) -> u.Quantity["1/s^2"]:  # TODO: shape hint
         """Compute the laplacian of the potential at the given position(s).
 
         See :func:`~galax.potential.laplacian` for details.
@@ -215,7 +216,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def density(
         self: "AbstractBasePotential", *args: Any, **kwargs: Any
-    ) -> ux.Quantity["mass density"]:  # TODO: shape hint
+    ) -> u.Quantity["mass density"]:  # TODO: shape hint
         """Compute the density at the given position(s).
 
         See :func:`~galax.potential.density` for details.
@@ -231,7 +232,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(signature="(3),()->(3,3)")
     def _hessian(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.QMatrix33:
         """See ``hessian``."""
-        hess_op = ux.experimental.hessian(
+        hess_op = u.experimental.hessian(
             self._potential, units=(self.units["length"], self.units["time"])
         )
         return hess_op(q, t)
@@ -274,10 +275,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Integrating orbits
 
     @partial(jax.jit, inline=True)  # TODO: inline?
-    @vectorize_method(  # TODO: vectorization the func itself
-        signature="(),(6)->(6)", excluded=(2,)
-    )
-    def _dynamics_deriv(
+    def _vector_field(
         self,
         t: gt.FloatScalar,
         w: gt.Vec6,
@@ -306,15 +304,11 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         dw : Array[float, (6,)]
             Derivative [p (3,), a (3,)] at the phase-space position.
         """
-        # TODO: not require unit munging
-        a = ux.ustrip(
-            self.units["acceleration"],
-            -self._gradient(
-                ux.Quantity(w[0:3], self.units["length"]),
-                ux.Quantity(t, self.units["time"]),
-            ),
-        )
-        return jnp.hstack([w[3:6], a])  # v, a
+        a = -self._gradient(
+            FastQ(w[..., 0:3], self.units["length"]),
+            FastQ(t, self.units["time"]),
+        ).ustrip(self.units["acceleration"])  # TODO: not require unit munging
+        return jnp.hstack([w[..., 3:6], a])  # v, a
 
     def evaluate_orbit(
         self,

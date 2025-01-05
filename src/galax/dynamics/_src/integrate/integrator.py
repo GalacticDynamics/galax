@@ -188,7 +188,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     @partial(eqx.filter_jit)
     def _call_(
         self,
-        F: VectorField,
+        field: VectorField,
         y0: gt.BatchVec6,
         t0: Time,
         t1: Time,
@@ -212,7 +212,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         Parameters
         ----------
-        F : `galax.dynamics.integrate.VectorField`
+        field : `galax.dynamics.integrate.VectorField`
             The field to integrate. Excluded from JIT.
         y0 : Array[float, (*batch, 6)]
             Initial conditions. Can have any (or no) batch dimensions. Included
@@ -252,7 +252,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Perform the integration
 
         soln = diffrax.diffeqsolve(
-            terms=diffrax.ODETerm(F),
+            terms=diffrax.ODETerm(field),
             solver=self.Solver(**self.solver_kw),
             t0=t0_,
             t1=t1_,
@@ -295,7 +295,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     # Call method
 
     @dispatch.abstract  # type: ignore[misc]
-    def __call__(self, F: VectorField, y0: Any, t0: Any, t1: Any, **kwargs: Any) -> Any:
+    def __call__(
+        self, field: VectorField, /, y0: Any, t0: Any, t1: Any, **kwargs: Any
+    ) -> Any:
         """Integrate the equations of motion.
 
         Broadly, the integrator takes the field ``F`` and integrates the initial
@@ -315,7 +317,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 @eqx.filter_jit  # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
 def call(
     self: Integrator,
-    F: VectorField,
+    field: VectorField,
     y0: gt.BatchVec6,
     t0: Time,
     t1: Time,
@@ -392,7 +394,7 @@ def call(
 
     """
     return self._call_(
-        F, y0, t0, t1, saveat=saveat, units=units, interpolated=interpolated
+        field, y0, t0, t1, saveat=saveat, units=units, interpolated=interpolated
     )
 
 
@@ -406,7 +408,7 @@ def call(
     (Integrator, VectorField, Any, Any),  # (F, y0, t0)
 )
 def call(
-    self: Integrator, F: VectorField, *args: Any, **kwargs: Any
+    self: Integrator, field: VectorField, *args: Any, **kwargs: Any
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
     """Support keyword arguments by re-dispatching.
 
@@ -484,7 +486,7 @@ def call(
             match = f"Invalid number of arguments: {args}"
             raise TypeError(match)
 
-    return self(F, y0, t0, t1, **kwargs)
+    return self(field, y0, t0, t1, **kwargs)
 
 
 # -------------------------------------------
@@ -495,7 +497,7 @@ def call(
 @eqx.filter_jit
 def call(
     self: Integrator,
-    F: VectorField,
+    field: VectorField,
     y0: gt.BatchableVec6,
     t0: Shaped[u.Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[u.Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
@@ -558,7 +560,7 @@ def call(
     t0_: gt.VecTime = FastQ.from_(t0, time).ustrip(time)
     t1_: gt.VecTime = FastQ.from_(t1, time).ustrip(time)
 
-    return vec_call(F, y0, t0_, t1_)
+    return vec_call(field, y0, t0_, t1_)
 
 
 # -------------------------------------------
@@ -568,7 +570,7 @@ def call(
 @Integrator.__call__.dispatch
 def call(
     self: Integrator,
-    F: VectorField,
+    field: VectorField,
     w0: gc.AbstractPhaseSpacePosition,
     t0: Any,
     t1: Any,
@@ -611,7 +613,7 @@ def call(
 
     """
     return self(
-        F,
+        field,
         w0.w(units=units),
         t0,
         t1,
@@ -624,7 +626,7 @@ def call(
 @Integrator.__call__.dispatch
 def call(
     self: Integrator,
-    F: VectorField,
+    field: VectorField,
     w0: gc.AbstractCompositePhaseSpacePosition,
     t0: Any,
     t1: Any,
@@ -676,7 +678,15 @@ def call(
     # TODO: Interpolated form
     return gc.CompositePhaseSpacePosition(
         **{
-            k: self(F, v, t0, t1, saveat=saveat, units=units, interpolated=interpolated)
-            for k, v in w0.items()
+            k: self(
+                field,
+                psp0,
+                t0,
+                t1,
+                saveat=saveat,
+                units=units,
+                interpolated=interpolated,
+            )
+            for k, psp0 in w0.items()
         }
     )

@@ -148,9 +148,17 @@ Qarr: TypeAlias = Shaped[Array, "3"]
 BatchQarr: TypeAlias = Shaped[Qarr, "*batch"]
 BatchableQarr: TypeAlias = Shaped[Qarr, "*#batch"]
 
+Q: TypeAlias = Shaped[AbstractQuantity, "3"]
+BatchQ: TypeAlias = Shaped[Q, "*batch"]
+BatchableQ: TypeAlias = Shaped[Q, "*#batch"]
+
 Parr: TypeAlias = Shaped[Array, "3"]
 BatchParr: TypeAlias = Shaped[Parr, "*batch"]
 BatchableParr: TypeAlias = Shaped[Parr, "*#batch"]
+
+P: TypeAlias = Shaped[AbstractQuantity, "3"]
+BatchP: TypeAlias = Shaped[P, "*batch"]
+BatchableP: TypeAlias = Shaped[P, "*#batch"]
 
 Aarr: TypeAlias = Shaped[Array, "3"]
 BatchAarr: TypeAlias = Shaped[Aarr, "*batch"]
@@ -158,6 +166,10 @@ BatchAarr: TypeAlias = Shaped[Aarr, "*batch"]
 QParr: TypeAlias = tuple[Qarr, Parr]
 BatchQParr: TypeAlias = tuple[BatchQarr, BatchParr]
 BatchableQParr: TypeAlias = tuple[BatchableQarr, BatchableParr]
+
+QP: TypeAlias = tuple[Q, P]
+BatchQP: TypeAlias = tuple[BatchQ, BatchP]
+BatchableQP: TypeAlias = tuple[BatchableQ, BatchableP]
 
 PAarr: TypeAlias = tuple[Parr, Aarr]
 BatchPAarr: TypeAlias = tuple[BatchParr, BatchAarr]

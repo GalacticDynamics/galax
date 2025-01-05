@@ -5,7 +5,7 @@ __all__ = ["Integrator"]
 from collections.abc import Mapping
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, Literal, TypeAlias, TypeVar, final
+from typing import Any, Literal, TypeAlias, TypeVar, cast, final
 
 import diffrax
 import equinox as eqx
@@ -14,7 +14,7 @@ from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import UncheckedQuantity as FastQ
+from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
@@ -189,13 +189,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     def _call_(
         self,
         field: VectorField,
-        q0: gt.BatchQarr,
-        p0: gt.BatchQarr,
-        t0: Time,
-        t1: Time,
+        q0: gt.BatchQ,
+        p0: gt.BatchP,
+        t0: gt.TimeScalar,
+        t1: gt.TimeScalar,
         /,
         *,
-        saveat: Times | None = None,  # not jitted here
+        saveat: gt.QVecTime | None = None,  # not jitted here
         units: u.AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -215,13 +215,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         ----------
         field : `galax.dynamics.integrate.VectorField`
             The field to integrate. Excluded from JIT.
-        q0, p0 : Array[float, (*batch, 3)]
+        q0, p0 : Quantity[number, (*batch, 3), 'position' | 'speed']
             Initial conditions. Can have any (or no) batch dimensions. Included
             in JIT.
-        t0, t1 : scalar
+        t0, t1 : Quantity[number, (), 'time']
             Initial and final times. Included in JIT.
 
-        saveat : (Quantity | Array)[float, (T,)] | None, optional
+        saveat : Quantity[float, (T,), 'time'] | None, optional
             Times to return the computation.  If `None`, the computation is
             returned only at the final time. Excluded from JIT.
         units : `unxt.AbstractUnitSystem`
@@ -233,15 +233,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # ---------------------------------------
         # Parse inputs
 
-        time = units["time"]
-        t0_: gt.RealScalar = FastQ.from_(t0, time).ustrip(time)
-        t1_: gt.RealScalar = FastQ.from_(t1, time).ustrip(time)
         # Either save at `saveat` or at the final time.
+        time = units["time"]
         only_final = saveat is None or len(saveat) <= 1
         save_at = diffrax.SaveAt(
             t0=False,
             t1=only_final,
-            ts=FastQ.from_(saveat, time).ustrip(time) if not only_final else None,
+            ts=None if only_final else cast(AbstractQuantity, saveat).ustrip(time),
             dense=interpolated,
         )
 
@@ -252,12 +250,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # ---------------------------------------
         # Perform the integration
 
+        # TODO: quaxify this so don't need to strip units
         soln = diffrax.diffeqsolve(
             terms=diffrax.ODETerm(field),
             solver=self.Solver(**self.solver_kw),
-            t0=t0_,
-            t1=t1_,
-            y0=(q0, p0),
+            t0=t0.ustrip(time),
+            t1=t1.ustrip(time),
+            y0=(q0.ustrip(units["length"]), p0.ustrip(units["speed"])),
             dt0=None,
             args=(),
             saveat=save_at,
@@ -320,7 +319,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 def call(
     self: Integrator,
     field: VectorField,
-    qp0: gt.BatchQParr,
+    qp0: gt.BatchQP | gt.BatchQParr,
     t0: Time,
     t1: Time,
     /,
@@ -397,11 +396,11 @@ def call(
     """
     return self._call_(
         field,
-        qp0[0],  # q
-        qp0[1],  # p
-        t0,
-        t1,
-        saveat=saveat,
+        FastQ.from_(qp0[0], units["length"]),
+        FastQ.from_(qp0[1], units["speed"]),
+        FastQ.from_(t0, units["time"]),
+        FastQ.from_(t1, units["time"]),
+        saveat=FastQ.from_(saveat, units["time"]) if saveat is not None else None,
         units=units,
         interpolated=interpolated,
     )
@@ -543,9 +542,9 @@ def call(
 def call(
     self: Integrator,
     field: VectorField,
-    y0: gt.BatchableQParr,
-    t0: Shaped[u.Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
-    t1: Shaped[u.Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
+    y0: gt.BatchableQP | gt.BatchableQParr,
+    t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
+    t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     /,
     *,
     units: u.AbstractUnitSystem,
@@ -556,28 +555,30 @@ def call(
 
     I/O shapes:
 
-    - y0=(*#B,6), t0=(*#B,), t1=(), saveat=() -> (*B,)
-    - y0=(*#B,6), t0=(), t1=(*#B,), saveat=() -> (*B,)
-    - y0=(*#B,6), t0=(*#B), t1=(*#B,), saveat=() -> (*B,)
-    - y0=(*#B,6), t0=(*#B,), t1=(), saveat=(T,) -> (*B,T)
-    - y0=(*#B,6), t0=(), t1=(*#B,), saveat=(T,) -> (*B,T)
-    - y0=(*#B,6), t0=(*#B), t1=(*#B,), saveat=(T,) -> (*B,T)
+    - y0=((*#B,3),(*#B,3)), t0=(*#B,), t1=(), saveat=() -> (*B,)
+    - y0=((*#B,3),(*#B,3)), t0=(), t1=(*#B,), saveat=() -> (*B,)
+    - y0=((*#B,3),(*#B,3)), t0=(*#B), t1=(*#B,), saveat=() -> (*B,)
+    - y0=((*#B,3),(*#B,3)), t0=(*#B,), t1=(), saveat=(T,) -> (*B,T)
+    - y0=((*#B,3),(*#B,3)), t0=(), t1=(*#B,), saveat=(T,) -> (*B,T)
+    - y0=((*#B,3),(*#B,3)), t0=(*#B), t1=(*#B,), saveat=(T,) -> (*B,T)
 
     """
     # Vectorize the call
     # This depends on the shape of saveat
+    saveat = None if saveat is None else FastQ.from_(saveat, units["time"])
     vec_call = jnp.vectorize(
         lambda *args: self._call_(*args, units=units, saveat=saveat, **kwargs),
-        signature="(3),(3),(),()->(T)" if saveat is not None else "(3),(3),(),()->()",
+        signature="(3),(3),(),()->" + ("()" if saveat is None else "(T)"),
         excluded=(0,),
     )
 
-    # TODO: vectorize with units!
-    time = units["time"]
-    t0_: gt.VecTime = FastQ.from_(t0, time).ustrip(time)
-    t1_: gt.VecTime = FastQ.from_(t1, time).ustrip(time)
-
-    return vec_call(field, y0[0], y0[1], t0_, t1_)
+    return vec_call(
+        field,
+        FastQ.from_(y0[0], units["length"]),
+        FastQ.from_(y0[1], units["speed"]),
+        FastQ.from_(t0, units["time"]),
+        FastQ.from_(t1, units["time"]),
+    )
 
 
 @Integrator.__call__.dispatch(precedence=1)
@@ -586,8 +587,8 @@ def call(
     self: Integrator,
     field: VectorField,
     y0: gt.BatchableVec6,
-    t0: Shaped[u.Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
-    t1: Shaped[u.Quantity["time"], "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
+    t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
+    t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     /,
     *,
     units: u.AbstractUnitSystem,

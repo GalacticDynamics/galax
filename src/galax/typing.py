@@ -82,6 +82,7 @@ QVecTime: TypeAlias = Float[AbstractQuantity, "time"]
 # Scalars
 
 BatchFloatScalar: TypeAlias = Shaped[FloatScalar, "*batch"]
+BatchableFloatScalar: TypeAlias = Shaped[FloatScalar, "*#batch"]
 
 BatchableFloatQScalar: TypeAlias = Shaped[FloatQScalar, "*#batch"]
 
@@ -143,10 +144,20 @@ SpecificEnergyBatchScalar: TypeAlias = Float[u.Quantity["specific_energy"], "*ba
 
 # =============================================================================
 
-Qarr: TypeAlias = Vec3
+Qarr: TypeAlias = Shaped[Array, "3"]
 BatchQarr: TypeAlias = Shaped[Qarr, "*batch"]
+BatchableQarr: TypeAlias = Shaped[Qarr, "*#batch"]
 
-Parr: TypeAlias = Vec3
+Parr: TypeAlias = Shaped[Array, "3"]
 BatchParr: TypeAlias = Shaped[Parr, "*batch"]
+BatchableParr: TypeAlias = Shaped[Parr, "*#batch"]
 
+Aarr: TypeAlias = Shaped[Array, "3"]
+BatchAarr: TypeAlias = Shaped[Aarr, "*batch"]
+
+QParr: TypeAlias = tuple[Qarr, Parr]
 BatchQParr: TypeAlias = tuple[BatchQarr, BatchParr]
+BatchableQParr: TypeAlias = tuple[BatchableQarr, BatchableParr]
+
+PAarr: TypeAlias = tuple[Parr, Aarr]
+BatchPAarr: TypeAlias = tuple[BatchParr, BatchAarr]

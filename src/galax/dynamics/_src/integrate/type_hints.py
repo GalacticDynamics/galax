@@ -9,21 +9,24 @@ import galax.typing as gt
 class VectorField(Protocol):
     """Protocol for the integration callable."""
 
-    def __call__(self, t: gt.FloatScalar, w: gt.Vec6, args: tuple[Any, ...]) -> gt.Vec6:
+    def __call__(
+        self, t: gt.FloatScalar, w: gt.QParr, args: tuple[Any, ...]
+    ) -> gt.PAarr:
         """Integration function.
 
         Parameters
         ----------
         t : float
             The time. This is the integration variable.
-        w : Array[float, (6,)]
+        qp : Array[number, (3,)], Array[number, (3,)]
             The position and velocity.
         args : tuple[Any, ...]
             Additional arguments.
 
         Returns
         -------
-        Array[float, (6,)]
-            Velocity and acceleration [v (3,), a (3,)].
+        Array[number, (3,)], Array[number, (3,)]
+            Velocity and acceleration p, a.
+
         """
         ...

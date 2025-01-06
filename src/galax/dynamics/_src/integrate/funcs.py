@@ -205,7 +205,7 @@ def evaluate_orbit(
     t = jnp.atleast_1d(FastQ.from_(t, units["time"]))
 
     # Parse w0
-    psp0t = w0.t if isinstance(w0, gc.PhaseSpacePosition) and w0.t is not None else t[0]
+    tw0 = w0.t if (isinstance(w0, gc.PhaseSpacePosition) and w0.t is not None) else t[0]
 
     # -------------
 
@@ -214,9 +214,9 @@ def evaluate_orbit(
     # TODO: get diffrax's `controller_state` to speed the second integration.
     qp0 = integrator(
         pot._vector_field,  # noqa: SLF001
-        w0,  # w0
-        psp0t,  # t0
-        jnp.full_like(psp0t, t[0]),  # t1
+        w0,
+        tw0,  # t0
+        jnp.full_like(tw0, fill_value=t[0]),  # t1
         units=units,
         interpolated=False,
     )

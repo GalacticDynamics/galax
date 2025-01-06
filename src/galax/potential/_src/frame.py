@@ -231,7 +231,7 @@ class PotentialFrame(AbstractBasePotential):
 #####################################################################
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def simplify_op(frame: PotentialFrame, /) -> PotentialFrame:
     """Simplify the operators in an PotentialFrame."""
     return replace(frame, operator=cxo.simplify_op(frame.operator))

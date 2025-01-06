@@ -18,7 +18,7 @@ import galax.typing as gt
 # evaluate_orbit
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def evaluate_orbit(
     pot: gp.AbstractBasePotential,
     w0: gc.PhaseSpacePosition | gt.BatchVec6,
@@ -111,7 +111,7 @@ def evaluate_orbit(
     orbit: gd.Orbit = gd.evaluate_orbit(
         pot,
         w0,
-        convert(t, u.Quantity),
+        convert(t, u.Quantity),  # type: ignore[no-untyped-call]
         integrator=integrator,
         interpolated=interpolated,
     )

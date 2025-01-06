@@ -87,7 +87,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
     # Constructors
 
     @classmethod
-    @dispatch  # type: ignore[misc]
+    @dispatch
     def from_(
         cls: "type[AbstractBasePhaseSpacePosition]", *args: Any, **kwargs: Any
     ) -> "AbstractBasePhaseSpacePosition":
@@ -324,7 +324,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         # scalars shape 0, instead of raising an error
         return self.shape[0] if self.shape else 0
 
-    @dispatch  # type: ignore[misc]
+    @dispatch
     def __getitem__(
         self: "AbstractBasePhaseSpacePosition", index: Any
     ) -> "AbstractBasePhaseSpacePosition":
@@ -366,7 +366,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 
     # ---------------------------------------------------------------
 
-    @dispatch.abstract  # type: ignore[misc]
+    @dispatch.abstract
     def __add__(
         self: "AbstractBasePhaseSpacePosition", other: Any, /
     ) -> "AbstractBasePhaseSpacePosition":
@@ -455,10 +455,12 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         batch, comps = self._shape_tuple
         cart = self.vconvert(cx.CartesianPos3D)
         q = jnp.broadcast_to(
-            convert(cart.q, FastQ).uconvert(units["length"]), (*batch, comps.q)
+            convert(cart.q, FastQ).uconvert(units["length"]),  # type: ignore[no-untyped-call]
+            (*batch, comps.q),
         )
         p = jnp.broadcast_to(
-            convert(cart.p, FastQ).uconvert(units["speed"]), (*batch, comps.p)
+            convert(cart.p, FastQ).uconvert(units["speed"]),  # type: ignore[no-untyped-call]
+            (*batch, comps.p),
         )
         return (q, p)
 
@@ -531,8 +533,8 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         usys = u.unitsystem(units)
         batch, comps = self._shape_tuple
         cart = self.vconvert(cx.CartesianPos3D).to_units(usys)
-        q = jnp.broadcast_to(convert(cart.q, FastQ), (*batch, comps.q))
-        p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))
+        q = jnp.broadcast_to(convert(cart.q, FastQ), (*batch, comps.q))  # type: ignore[no-untyped-call]
+        p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))  # type: ignore[no-untyped-call]
         t = jnp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
         return jnp.concat((t, q.value, p.value), axis=-1)
 
@@ -716,7 +718,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 # Register additional constructors
 
 
-@AbstractBasePhaseSpacePosition.from_.dispatch  # type: ignore[misc]
+@AbstractBasePhaseSpacePosition.from_.dispatch  # type: ignore[attr-defined,misc]
 def from_(
     cls: type[AbstractBasePhaseSpacePosition], obj: AbstractBasePhaseSpacePosition, /
 ) -> AbstractBasePhaseSpacePosition:
@@ -782,7 +784,7 @@ def from_(
 # Converters
 
 
-@conversion_method(type_from=AbstractBasePhaseSpacePosition, type_to=cx.Coordinate)  # type: ignore[misc]
+@conversion_method(type_from=AbstractBasePhaseSpacePosition, type_to=cx.Coordinate)  # type: ignore[arg-type,type-abstract]
 def convert_psp_to_coordinax_coordinate(
     obj: AbstractBasePhaseSpacePosition, /
 ) -> cx.Coordinate:

@@ -90,7 +90,7 @@ class GalpyLibrary(AbstractInteroperableLibrary):
     """The :mod:`galpy` library."""
 
 
-@dispatch.abstract  # type: ignore[misc]
+@dispatch.abstract
 def convert_potential(
     to_: Ann[
         AbstractInteroperableLibrary | Any,

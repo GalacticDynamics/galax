@@ -429,7 +429,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 ##############################################################################
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def convert_potential(
     to_: type[GalaxLibrary],  # noqa: ARG001
     from_: AbstractBasePotential,

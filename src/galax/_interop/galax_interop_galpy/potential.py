@@ -129,7 +129,7 @@ def _galpy_mass(pot: gpy.Potential, /) -> u.Quantity:
 # -----------------------------------------------------------------------------
 
 
-@dispatch.abstract  # type: ignore[misc]
+@dispatch.abstract
 def galpy_to_galax(
     _: Antd[gpy.Potential, Doc("The Galpy potential to convert to galax.")], /
 ) -> Antd[gpx.AbstractBasePotential, Doc("The resulting Galax potential.")]:
@@ -146,7 +146,7 @@ def galpy_to_galax(
 # TODO: add an argument to specify how to handle time-dependent parameters.
 #       Gala potentials are not time-dependent, so we need to specify how to
 #       handle time-dependent Galax parameters.
-@dispatch.abstract  # type: ignore[misc]
+@dispatch.abstract
 def galax_to_galpy(
     _: Antd[gpx.AbstractBasePotential, Doc("The galax potential to convert to Galpy")],
     /,
@@ -164,7 +164,7 @@ def galax_to_galpy(
 # Composite potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: list[gpy.Potential], /) -> gpx.CompositePotential:
     """Convert a list of :mod:`galpy` potentials to a `galax.potential.CompositePotential`.
 
@@ -189,7 +189,7 @@ def galpy_to_galax(pot: list[gpy.Potential], /) -> gpx.CompositePotential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.CompositePotential, /) -> list[gpy.Potential]:
     """Convert a :class:`~galax.potential.CompositePotential` to a list of :class:`~galpy.potential.Potential`.
 
@@ -216,7 +216,7 @@ def galax_to_galpy(pot: gpx.CompositePotential, /) -> list[gpy.Potential]:
 # Burkert potential
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gpx.BurkertPotential:
     """Convert a :class:`~galpy.potential.BurkertPotential` to a :class:`~galax.potential.BurkertPotential`.
 
@@ -254,7 +254,7 @@ def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gpx.BurkertPotential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.BurkertPotential, /) -> gpy.BurkertPotential:
     """Convert a :class:`~galax.potential.BurkertPotential` to a :class:`~galpy.potential.BurkertPotential`.
 
@@ -276,8 +276,8 @@ def galax_to_galpy(pot: gpx.BurkertPotential, /) -> gpy.BurkertPotential:
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.BurkertPotential(
-        amp=convert(pot.rho0(0), AstropyQuantity),
-        a=convert(pot.r_s(0), AstropyQuantity),
+        amp=convert(pot.rho0(0), AstropyQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.r_s(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 
@@ -285,7 +285,7 @@ def galax_to_galpy(pot: gpx.BurkertPotential, /) -> gpy.BurkertPotential:
 # Hernquist potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gpx.HernquistPotential:
     """Convert a :class:`~galpy.potential.HernquistPotential` to a :class:`~galax.potential.HernquistPotential`.
 
@@ -315,7 +315,7 @@ def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gpx.HernquistPotential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.HernquistPotential, /) -> gpy.HernquistPotential:
     """Convert a :class:`~galax.potential.HernquistPotential` to a :class:`~galpy.potential.HernquistPotential`.
 
@@ -337,8 +337,8 @@ def galax_to_galpy(pot: gpx.HernquistPotential, /) -> gpy.HernquistPotential:
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.HernquistPotential(
-        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
-        a=convert(pot.r_s(0), AstropyQuantity),
+        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.r_s(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 
@@ -346,7 +346,7 @@ def galax_to_galpy(pot: gpx.HernquistPotential, /) -> gpy.HernquistPotential:
 # Isochrone potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gpx.IsochronePotential:
     """Convert a `galpy.potential.IsochronePotential` to a `galax.potential.IsochronePotential`.
 
@@ -377,7 +377,7 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gpx.IsochronePotential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.IsochronePotential, /) -> gpy.IsochronePotential:
     """Convert a `galax.potential.IsochronePotential` to a `galpy.potential.IsochronePotential`.
 
@@ -399,8 +399,8 @@ def galax_to_galpy(pot: gpx.IsochronePotential, /) -> gpy.IsochronePotential:
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.IsochronePotential(
-        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
-        b=convert(pot.b(0), AstropyQuantity),
+        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),  # type: ignore[no-untyped-call]
+        b=convert(pot.b(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 
@@ -408,7 +408,7 @@ def galax_to_galpy(pot: gpx.IsochronePotential, /) -> gpy.IsochronePotential:
 # Jaffe potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: gpy.JaffePotential, /) -> gpx.JaffePotential:
     """Convert a `galpy.potential.JaffePotential` to a `galax.potential.JaffePotential`.
 
@@ -435,7 +435,7 @@ def galpy_to_galax(pot: gpy.JaffePotential, /) -> gpx.JaffePotential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.JaffePotential, /) -> gpy.JaffePotential:
     """Convert a `galax.potential.JaffePotential` to a `galpy.potential.JaffePotential`.
 
@@ -457,8 +457,8 @@ def galax_to_galpy(pot: gpx.JaffePotential, /) -> gpy.JaffePotential:
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.JaffePotential(
-        amp=convert(pot.m(0) * pot.constants["G"], AstropyQuantity),
-        a=convert(pot.r_s(0), AstropyQuantity),
+        amp=convert(pot.m(0) * pot.constants["G"], AstropyQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.r_s(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 
@@ -466,7 +466,7 @@ def galax_to_galpy(pot: gpx.JaffePotential, /) -> gpy.JaffePotential:
 # Kepler potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: gpy.KeplerPotential, /) -> gpx.KeplerPotential:
     """Convert a :class:`~galpy.potential.KeplerPotential` to a :class:`~galax.potential.KeplerPotential`.
 
@@ -493,7 +493,7 @@ def galpy_to_galax(pot: gpy.KeplerPotential, /) -> gpx.KeplerPotential:
     return gpx.KeplerPotential(m_tot=pot.mass(np.inf), units="galactic")
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.KeplerPotential, /) -> gpy.KeplerPotential:
     """Convert a :class:`~galax.potential.KeplerPotential` to a :class:`~galpy.potential.KeplerPotential`.
 
@@ -518,7 +518,7 @@ def galax_to_galpy(pot: gpx.KeplerPotential, /) -> gpy.KeplerPotential:
 # Kuzmin potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gpx.KuzminPotential:
     """Convert a :class:`~galpy.potential.KuzminDiskPotential` to a :class:`~galax.potentia.KuzminPotential`.
 
@@ -546,7 +546,7 @@ def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gpx.KuzminPotential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.KuzminPotential, /) -> gpy.KuzminDiskPotential:
     """Convert a :class:`~galax.potentia.KuzminPotential` to a :class:`~galpy.potential.KuzminDiskPotential`.
 
@@ -568,8 +568,8 @@ def galax_to_galpy(pot: gpx.KuzminPotential, /) -> gpy.KuzminDiskPotential:
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.KuzminDiskPotential(
-        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
-        a=convert(pot.a(0), AstropyQuantity),
+        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.a(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 
@@ -577,7 +577,7 @@ def galax_to_galpy(pot: gpx.KuzminPotential, /) -> gpy.KuzminDiskPotential:
 # Long & Murali potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(
     pot: gpy.SoftenedNeedleBarPotential, /
 ) -> gpx.LongMuraliBarPotential:
@@ -613,7 +613,7 @@ def galpy_to_galax(
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(
     pot: gpx.LongMuraliBarPotential, /
 ) -> gpy.SoftenedNeedleBarPotential:
@@ -640,11 +640,11 @@ def galax_to_galpy(
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.SoftenedNeedleBarPotential(
-        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
-        a=convert(pot.a(0), AstropyQuantity),
-        b=convert(pot.b(0), AstropyQuantity),
-        c=convert(pot.c(0), AstropyQuantity),
-        pa=convert(pot.alpha(0), AstropyQuantity),
+        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.a(0), AstropyQuantity),  # type: ignore[no-untyped-call]
+        b=convert(pot.b(0), AstropyQuantity),  # type: ignore[no-untyped-call]
+        c=convert(pot.c(0), AstropyQuantity),  # type: ignore[no-untyped-call]
+        pa=convert(pot.alpha(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 
@@ -652,7 +652,7 @@ def galax_to_galpy(
 # Miyamoto-Nagai potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gpx.MiyamotoNagaiPotential:
     """Convert a :class:`~galpy.potential.MiyamotoNagaiPotential` to a :class:`~galax.potential.MiyamotoNagaiPotential`.
 
@@ -682,7 +682,7 @@ def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gpx.MiyamotoNagaiPoten
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.MiyamotoNagaiPotential, /) -> gpy.MiyamotoNagaiPotential:
     """Convert a :class:`~galax.potential.MiyamotoNagaiPotential` to a :class:`~galpy.potential.MiyamotoNagaiPotential`.
 
@@ -705,9 +705,9 @@ def galax_to_galpy(pot: gpx.MiyamotoNagaiPotential, /) -> gpy.MiyamotoNagaiPoten
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.MiyamotoNagaiPotential(
-        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
-        a=convert(pot.a(0), AstropyQuantity),
-        b=convert(pot.b(0), AstropyQuantity),
+        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.a(0), AstropyQuantity),  # type: ignore[no-untyped-call]
+        b=convert(pot.b(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 
@@ -715,7 +715,7 @@ def galax_to_galpy(pot: gpx.MiyamotoNagaiPotential, /) -> gpy.MiyamotoNagaiPoten
 # Null potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(_: gpy.NullPotential, /) -> gpx.NullPotential:
     """Convert a :class:`~galpy.potential.NullPotential` to a :class:`~galax.potential.NullPotential`.
 
@@ -736,7 +736,7 @@ def galpy_to_galax(_: gpy.NullPotential, /) -> gpx.NullPotential:
     return gpx.NullPotential()
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(_: gpx.NullPotential, /) -> gpy.NullPotential:
     """Convert a :class:`~galax.potential.NullPotential` to a :class:`~galpy.potential.NullPotential`.
 
@@ -757,7 +757,7 @@ def galax_to_galpy(_: gpx.NullPotential, /) -> gpy.NullPotential:
 # Plummer potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gpx.PlummerPotential:
     """Convert a :class:`~galpy.potential.PlummerPotential` to a :class:`~galax.potential.PlummerPotential`.
 
@@ -785,7 +785,7 @@ def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gpx.PlummerPotential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.PlummerPotential, /) -> gpy.PlummerPotential:
     """Convert a :class:`~galax.potential.PlummerPotential` to a :class:`~galpy.potential.PlummerPotential`.
 
@@ -807,8 +807,8 @@ def galax_to_galpy(pot: gpx.PlummerPotential, /) -> gpy.PlummerPotential:
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.PlummerPotential(
-        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
-        b=convert(pot.b(0), AstropyQuantity),
+        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),  # type: ignore[no-untyped-call]
+        b=convert(pot.b(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 
@@ -816,7 +816,7 @@ def galax_to_galpy(pot: gpx.PlummerPotential, /) -> gpy.PlummerPotential:
 # PowerLawCutoff potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(
     pot: gpy.PowerSphericalPotentialwCutoff, /
 ) -> gpx.PowerLawCutoffPotential:
@@ -848,7 +848,7 @@ def galpy_to_galax(
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(
     pot: gpx.PowerLawCutoffPotential, /
 ) -> gpy.PowerSphericalPotentialwCutoff:
@@ -873,9 +873,9 @@ def galax_to_galpy(
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.PowerSphericalPotentialwCutoff(
-        amp=convert(pot.density(u.Quantity([0.0, 0, 0], "kpc"), 0.0), AstropyQuantity),
-        alpha=convert(pot.alpha(0), AstropyQuantity),
-        rc=convert(pot.r_c(0), AstropyQuantity),
+        amp=convert(pot.density(u.Quantity([0.0, 0, 0], "kpc"), 0.0), AstropyQuantity),  # type: ignore[no-untyped-call]
+        alpha=convert(pot.alpha(0), AstropyQuantity),  # type: ignore[no-untyped-call]
+        rc=convert(pot.r_c(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 
@@ -887,7 +887,7 @@ def galax_to_galpy(
 # NFW potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galpy_to_galax(pot: gpy.NFWPotential, /) -> gpx.NFWPotential:
     """Convert a :class:`~galpy.potential.NFWPotential` to a :class:`~galax.potential.NFWPotential`.
 
@@ -915,7 +915,7 @@ def galpy_to_galax(pot: gpy.NFWPotential, /) -> gpx.NFWPotential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_galpy(pot: gpx.NFWPotential, /) -> gpy.NFWPotential:
     """Convert a :class:`~galax.potential.NFWPotential` to a :class:`~galpy.potential.NFWPotential`.
 
@@ -937,8 +937,8 @@ def galax_to_galpy(pot: gpx.NFWPotential, /) -> gpy.NFWPotential:
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.NFWPotential(
-        amp=convert(pot.m(0) * pot.constants["G"], AstropyQuantity),
-        a=convert(pot.r_s(0), AstropyQuantity),
+        amp=convert(pot.m(0) * pot.constants["G"], AstropyQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.r_s(0), AstropyQuantity),  # type: ignore[no-untyped-call]
     )
 
 

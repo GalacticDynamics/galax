@@ -46,7 +46,7 @@ def _parse_grid(
 # Plot potential contours
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def plot_potential_contours(
     pot: AbstractBasePotential,
     _: type[MatplotlibBackend] = MatplotlibBackend,
@@ -202,7 +202,7 @@ def _plot_potential_countours_2d(
 # Plot density contours
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def plot_density_contours(
     pot: AbstractBasePotential,
     _: type[MatplotlibBackend] = MatplotlibBackend,

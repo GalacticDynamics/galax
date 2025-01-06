@@ -80,7 +80,8 @@ repos:
         files: src
         exclude: ^(src/galax/__init__\.py|src/galax/.*?/__init__\.py)$
         additional_dependencies:
-          - pytest
+          - dataclassish
+          - plum-dispatch
 
   - repo: https://github.com/codespell-project/codespell
     rev: "v2.3.0"

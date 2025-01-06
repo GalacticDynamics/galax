@@ -131,7 +131,7 @@ def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
         # Call the original `__init__`.
         init.__wrapped__(*ba.args, **ba.kwargs)
 
-    cls.__init__ = init  # type: ignore[method-assign]
+    cls.__init__ = init  # type: ignore[assignment, method-assign]
 
     return cls
 
@@ -189,7 +189,7 @@ SenT = TypeVar("SenT", bound=Enum)  # Sentinel type
 
 
 @dataclasses.dataclass(frozen=True, slots=True, eq=False)
-class sentineled(AbstractConverter[ArgT, RetT], Generic[ArgT, RetT, SenT]):  # type: ignore[misc]
+class sentineled(AbstractConverter[ArgT, RetT], Generic[ArgT, RetT, SenT]):
     """Optional converter with a defined sentinel value.
 
     This converter allows for a field to be optional, i.e., it can be set to

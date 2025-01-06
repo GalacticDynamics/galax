@@ -69,24 +69,20 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
 
     def __call__(self, t: u.Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
-        # Parse t
-        t_ = xp.atleast_1d(u.ustrip(self.units["time"], t))
-
         # Evaluate the interpolation
-        ys = jax.vmap(self.interpolant.evaluate)(t_)
-
+        tshape = t.shape  # store shape for unpacking
+        ys = jax.vmap(self.interpolant.evaluate)(
+            xp.atleast_1d(t.ustrip(self.units["time"]))
+        )
         # Reshape (T, *batch) to (*batch, T)
-        # ts is already in the correct shape
-        qs = xp.moveaxis(ys[0], 0, -2)
-        ps = xp.moveaxis(ys[1], 0, -2)
+        ys = jax.tree.map(lambda x: xp.moveaxis(x, 0, -2), ys)
         # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
-        t_dim_sel = -1 if t.shape == () else slice(None)
-        qs = qs[..., t_dim_sel, :]
-        ps = ps[..., t_dim_sel, :]
+        if tshape == ():
+            ys = jax.tree.map(lambda x: x[..., -1, :], ys)
 
         # Construct and return the result
         return gc.PhaseSpacePosition(
-            q=FastQ(qs, self.units["length"]),
-            p=FastQ(ps, self.units["speed"]),
+            q=FastQ(ys[0], self.units["length"]),
+            p=FastQ(ys[1], self.units["speed"]),
             t=t,
         )

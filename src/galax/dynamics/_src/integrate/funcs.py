@@ -11,7 +11,7 @@ from jaxtyping import Array
 from plum import dispatch
 
 import quaxed.numpy as jnp
-import unxt as u
+from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.potential as gp
@@ -202,7 +202,7 @@ def evaluate_orbit(
     integrator = replace(integrator) if integrator is not None else _default_integrator
 
     # parse t -> potential units
-    t = jnp.atleast_1d(u.Quantity.from_(t, units["time"]))
+    t = jnp.atleast_1d(FastQ.from_(t, units["time"]))
 
     # Parse w0
     psp0t = w0.t if isinstance(w0, gc.PhaseSpacePosition) and w0.t is not None else t[0]

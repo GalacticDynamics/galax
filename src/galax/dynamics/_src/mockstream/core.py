@@ -34,6 +34,8 @@ class MockStreamArm(gc.AbstractPhaseSpacePosition):
         Array of times corresponding to the positions.
     release_time : Array[float, (*batch,)]
         Release time of the stream particles [Myr].
+    frame : AbstractReferenceFrame
+
     """
 
     q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)

@@ -26,6 +26,7 @@ def _concat(values: Iterable[PyTree], time_sorter: Int[Array, "..."]) -> PyTree:
         *values,
     )
 
+
 def _to_frame_if_not_noframe(
     psp: AbstractPhaseSpacePosition, frame: cxf.AbstractReferenceFrame
 ) -> AbstractPhaseSpacePosition:
@@ -168,7 +169,9 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         # Transform all the PhaseSpacePositions to that frame. If the frames are
         # already `NoFrame`, we can skip this step, since no transformation is
         # possible in `NoFrame`.
-        allpsps = {k: _to_frame_if_not_noframe(psp) for k, psp in allpsps.items()}
+        allpsps = {
+            k: _to_frame_if_not_noframe(psp, frame) for k, psp in allpsps.items()
+        }
 
         # Now we can set all the PhaseSpacePositions
         super().__init__(allpsps)

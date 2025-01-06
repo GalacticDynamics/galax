@@ -349,15 +349,16 @@ def from_(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> data = u.Quantity([1, 2, 3, 4, 5, 6], "m")
-    >>> frame = cx.frames.Galactic()
+    >>> data = cx.Space(length=cx.CartesianPos3D.from_([1, 2, 3], "kpc"),
+    ...                 speed=cx.CartesianVel3D.from_([4, 5, 6], "km/s"))
+    >>> frame = cx.frames.NoFrame()
 
     >>> gc.PhaseSpacePosition.from_(data, frame)
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
       t=None,
-      frame=Galactic()
+      frame=NoFrame()
     )
 
     """

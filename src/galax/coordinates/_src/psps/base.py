@@ -800,7 +800,8 @@ def convert_psp_to_coordinax_coordinate(
     ...                             t=u.Quantity(0, "Gyr"))
     >>> convert(psp, cx.Coordinate)
     Coordinate(
-        data=Space({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) })
+        data=Space({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) }),
+        frame=NoFrame()
     )
 
     """

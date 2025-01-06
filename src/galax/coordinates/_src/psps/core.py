@@ -2,7 +2,7 @@
 
 __all__ = ["PhaseSpacePosition"]
 
-from dataclasses import replace
+from dataclasses import KW_ONLY, replace
 from functools import partial
 from typing import Any, final
 from typing_extensions import override
@@ -12,7 +12,8 @@ import equinox as eqx
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from dataclassish.converters import Optional
+from dataclassish.converters import Optional, Unless
+from unxt.quantity import AbstractQuantity
 
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
@@ -70,7 +71,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("s"))
+      t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
+      frame=NoFrame()
     )
 
     This can be done more explicitly:
@@ -100,7 +102,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     PhaseSpacePosition(
       q=SphericalPos( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[PhysicalType('time')](value=...i64[], unit=Unit("s"))
+      t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
+      frame=NoFrame()
     )
 
     """
@@ -127,6 +130,16 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     velocities.  If `t` is a scalar it will be broadcast to the same batch shape
     as `q` and `p`.
     """
+
+    _: KW_ONLY
+
+    frame: cx.frames.NoFrame = eqx.field(
+        default=cx.frames.NoFrame(),
+        converter=Unless(
+            cx.frames.AbstractReferenceFrame, cx.frames.TransformedReferenceFrame.from_
+        ),
+    )
+    """The reference frame of the phase-space position."""
 
     # ==========================================================================
     # Array properties
@@ -287,7 +300,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
 
 # TODO: generalize
-@PhaseSpacePosition.from_.dispatch(precedence=1)  # type: ignore[misc]
+@AbstractBasePhaseSpacePosition.from_.dispatch(precedence=1)
 @partial(eqx.filter_jit, inline=True)
 def from_(
     cls: type[PhaseSpacePosition], obj: AbstractCompositePhaseSpacePosition, /
@@ -313,8 +326,48 @@ def from_(
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[...](value=...i64[2], unit=Unit("Myr"))
+      t=Quantity['time'](Array([7, 7], dtype=int64, ...), unit='Myr'),
+      frame=NoFrame()
     )
 
     """
     return cls(q=obj.q, p=obj.p, t=obj.t)
+
+
+@AbstractBasePhaseSpacePosition.from_.dispatch
+def from_(
+    cls: type[PhaseSpacePosition],
+    data: cx.Space,
+    frame: cx.frames.AbstractReferenceFrame,
+    /,
+) -> PhaseSpacePosition:
+    """Return a new PhaseSpacePosition from the given data and frame.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
+
+    >>> data = cx.Space(length=cx.CartesianPos3D.from_([1, 2, 3], "kpc"),
+    ...                 speed=cx.CartesianVel3D.from_([4, 5, 6], "km/s"))
+    >>> frame = cx.frames.NoFrame()
+
+    >>> gc.PhaseSpacePosition.from_(data, frame)
+    PhaseSpacePosition(
+      q=CartesianPos3D( ... ),
+      p=CartesianVel3D( ... ),
+      t=None,
+      frame=NoFrame()
+    )
+
+    """
+    t: AbstractQuantity | None = None
+
+    # TODO: more thorough constructor
+    q = data["length"]
+    if isinstance(q, cx.vecs.FourVector):
+        t = q.t
+        q = q.q
+
+    return cls(q=q, p=data["speed"], t=t, frame=frame)

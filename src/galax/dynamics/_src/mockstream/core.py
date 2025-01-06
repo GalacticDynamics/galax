@@ -12,6 +12,7 @@ from jaxtyping import Array, Shaped
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
+from zeroth import zeroth
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -33,6 +34,8 @@ class MockStreamArm(gc.AbstractPhaseSpacePosition):
         Array of times corresponding to the positions.
     release_time : Array[float, (*batch,)]
         Release time of the stream particles [Myr].
+    frame : AbstractReferenceFrame
+
     """
 
     q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)
@@ -46,6 +49,9 @@ class MockStreamArm(gc.AbstractPhaseSpacePosition):
 
     release_time: gt.QVecTime = eqx.field(converter=u.Quantity["time"].from_)
     """Release time of the stream particles [Myr]."""
+
+    frame: cx.frames.NoFrame  # TODO: support frames
+    """The reference frame of the phase-space position."""
 
     # ==========================================================================
     # Array properties
@@ -83,6 +89,7 @@ class MockStreamArm(gc.AbstractPhaseSpacePosition):
 @final
 class MockStream(gc.AbstractCompositePhaseSpacePosition):
     _time_sorter: Shaped[Array, "alltimes"]
+    _frame: cx.frames.NoFrame  # TODO: support frames
 
     def __init__(
         self,
@@ -90,6 +97,25 @@ class MockStream(gc.AbstractCompositePhaseSpacePosition):
         /,
         **kwargs: MockStreamArm,
     ) -> None:
+        # Aggregate all the MockStreamArm
+        allpsps = dict(psps, **kwargs)
+
+        # Everything must be transformed to be in the same frame.
+        # Compute and store the frame
+        self._frame = theframe = zeroth(allpsps.values()).frame
+        # Transform all the PhaseSpacePositions to that frame. If the frames are
+        # already `NoFrame`, we can skip this step, since no transformation is
+        # possible in `NoFrame`.
+        allpsps = {
+            k: (
+                psp
+                if isinstance(theframe, cx.frames.NoFrame)
+                and isinstance(psp.frame, cx.frames.NoFrame)
+                else psp.to_frame(theframe)
+            )
+            for k, psp in allpsps.items()
+        }
+
         super().__init__(psps, **kwargs)
 
         # TODO: check up on the shapes
@@ -127,3 +153,8 @@ class MockStream(gc.AbstractCompositePhaseSpacePosition):
         return jnp.concat([psp.release_time for psp in self.values()], axis=0)[
             self._time_sorter
         ]
+
+    @property
+    def frame(self) -> cx.frames.AbstractReferenceFrame:
+        """The reference frame of the phase-space position."""
+        return self._frame

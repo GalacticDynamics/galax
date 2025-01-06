@@ -12,6 +12,7 @@ import equinox as eqx
 from jaxtyping import ArrayLike, Shaped
 from plum import dispatch
 
+import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
@@ -85,7 +86,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity[...](value=f64[], unit=Unit("Myr"))
+        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        frame=NoFrame()
     )
     >>> w.shape
     ()
@@ -100,7 +102,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity[...](value=f64[10], unit=Unit("Myr"))
+        t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+        frame=NoFrame()
     )
     >>> ws.shape
     (10,)
@@ -134,7 +137,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         x=Quantity[...](value=...f64[2], unit=Unit("kpc")),
         ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[...](value=...f64[], unit=Unit("Gyr"))
+      t=Quantity['time'](Array(2.71828183, dtype=float64, ...), unit='Gyr'),
+      frame=NoFrame()
     )
 
     The interpolant is vectorized:
@@ -146,7 +150,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         x=Quantity[...](value=f64[2,100], unit=Unit("kpc")),
         ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity[...](value=f64[100], unit=Unit("Gyr"))
+      t=Quantity['time'](Array(..., dtype=float64), unit='Gyr'),
+      frame=NoFrame()
     )
 
     And it works on batches:
@@ -161,7 +166,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity[PhysicalType('time')](value=f64[100], unit=Unit("Gyr"))
+        t=Quantity['time'](Array(..., dtype=float64), unit='Gyr'),
+        frame=NoFrame()
     )
     """
 
@@ -285,6 +291,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             out_cls = gc.PhaseSpacePosition
             out_kw = {}
 
+        out_kw["frame"] = cx.frames.NoFrame()  # TODO: determine the frame
+
         return out_cls(  # shape = (*batch, T)
             t=FastQ(solt, time),
             q=FastQ(solq, units["length"]),
@@ -374,7 +382,8 @@ def call(
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity[...](value=f64[], unit=Unit("Myr"))
+        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        frame=NoFrame()
     )
     >>> w.shape
     ()
@@ -388,7 +397,8 @@ def call(
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity[...](value=f64[10], unit=Unit("Myr"))
+        t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+        frame=NoFrame()
     )
     >>> ws.shape
     (10,)
@@ -494,7 +504,8 @@ def call(
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'))
+        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        frame=NoFrame())
 
     >>> w = integrator(pot._vector_field, w0, t0=t0, t1=t1, units=galactic)
     >>> print(w)
@@ -503,7 +514,8 @@ def call(
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'))
+        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        frame=NoFrame())
 
     >>> w = integrator(pot._vector_field, y0=w0, t0=t0, t1=t1, units=galactic)
     >>> print(w)
@@ -512,7 +524,8 @@ def call(
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'))
+        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        frame=NoFrame())
 
     """
     # y0: Any, t0: Any, t1: Any
@@ -690,7 +703,8 @@ def call(
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity[...](value=f64[], unit=Unit("Myr"))
+        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        frame=NoFrame()
     )
 
     """
@@ -744,16 +758,22 @@ def call(
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic)
-    >>> w
-    CompositePhaseSpacePosition({'w01': PhaseSpacePosition(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity...,
-        'w02': PhaseSpacePosition(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity...
-    )})
+    >>> print(w)
+    CompositePhaseSpacePosition(
+        w01=PhaseSpacePosition(
+            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+                [ 6.247 -5.121  0.   ]>,
+            p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+                [0.359 0.033 0.   ]>,
+            t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+            frame=NoFrame()),
+        w02=PhaseSpacePosition(
+            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+                [5.121 6.247 0.   ]>,
+            p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+                [-0.033  0.359  0.   ]>,
+            t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+            frame=NoFrame()))
 
     """
     # TODO: Interpolated form

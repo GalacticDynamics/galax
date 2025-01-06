@@ -2,6 +2,7 @@
 
 __all__ = ["InterpolatedPhaseSpacePosition", "PhaseSpacePositionInterpolant"]
 
+from dataclasses import KW_ONLY
 from typing import Protocol, final, runtime_checkable
 
 import equinox as eqx
@@ -68,6 +69,11 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
 
     interpolant: PhaseSpacePositionInterpolant
     """The interpolation function."""
+
+    _: KW_ONLY
+
+    frame: cx.frames.NoFrame  # TODO: support frames
+    """The reference frame of the phase-space position."""
 
     def __call__(self, t: gt.BatchFloatQScalar) -> PhaseSpacePosition:
         """Call the interpolation."""

@@ -11,6 +11,7 @@ import jax
 from jax.extend.backend import get_backend
 from jaxtyping import PRNGKeyArray
 
+import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
@@ -239,18 +240,26 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         t = jnp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
 
+        frame = (
+            prog_w0.frame
+            if isinstance(prog_w0, gc.PhaseSpacePosition)
+            else cx.frames.NoFrame()
+        )
+
         comps = {}
         comps["lead"] = MockStreamArm(
             q=u.Quantity(lead_arm_w[:, 0:3], self.units["length"]),
             p=u.Quantity(lead_arm_w[:, 3:6], self.units["speed"]),
             t=t,
             release_time=mock0["lead"].release_time,
+            frame=frame,
         )
         comps["trail"] = MockStreamArm(
             q=u.Quantity(trail_arm_w[:, 0:3], self.units["length"]),
             p=u.Quantity(trail_arm_w[:, 3:6], self.units["speed"]),
             t=t,
             release_time=mock0["trail"].release_time,
+            frame=frame,
         )
 
         return MockStream(comps), prog_o[-1]

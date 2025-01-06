@@ -163,7 +163,7 @@ def _check_gala_units(gala: GalaUnitSystem, /) -> GalaUnitSystem:
 # -----------------------------------------------------------------------------
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractBasePotential:
     """Convert a :mod:`gala` potential to a :mod:`galax` potential.
 
@@ -188,7 +188,7 @@ def gala_to_galax(pot: gp.PotentialBase, /) -> gpx.AbstractBasePotential:
 # TODO: add an argument to specify how to handle time-dependent parameters.
 #       Gala potentials are not time-dependent, so we need to specify how to
 #       handle time-dependent Galax parameters.
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.AbstractBasePotential, /) -> gp.PotentialBase:
     """Convert a Galax potential to a Gala potential.
 
@@ -213,7 +213,7 @@ def galax_to_gala(pot: gpx.AbstractBasePotential, /) -> gp.PotentialBase:
 # Composite potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(pot: gp.CompositePotential, /) -> gpx.CompositePotential:
     """Convert a `gala.potential.CompositePotential` -> `galax.potential.CompositePotential`.
 
@@ -267,7 +267,7 @@ def galax_to_gala(_: gpx.BarPotential, /) -> gp.PotentialBase:
 
 if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 
-    @dispatch  # type: ignore[misc]
+    @dispatch
     def gala_to_galax(
         gala: gp.BurkertPotential, /
     ) -> gpx.BurkertPotential | gpx.PotentialFrame:
@@ -305,7 +305,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         )
         return _apply_frame(_get_frame(gala), pot)
 
-    @dispatch  # type: ignore[misc]
+    @dispatch
     def galax_to_gala(pot: gpx.BurkertPotential, /) -> gp.BurkertPotential:
         """Convert a `galax.potential.BurkertPotential` to a `gala.potential.BurkertPotential`.
 
@@ -333,8 +333,8 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
         return gp.BurkertPotential(
-            rho=convert(pot.rho0(0), APYQuantity),
-            r0=convert(pot.r_s(0), APYQuantity),
+            rho=convert(pot.rho0(0), APYQuantity),  # type: ignore[no-untyped-call]
+            r0=convert(pot.r_s(0), APYQuantity),  # type: ignore[no-untyped-call]
             units=_galax_to_gala_units(pot.units),
         )
 
@@ -342,7 +342,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 # Harmonic oscillator potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.HarmonicOscillatorPotential, /
 ) -> gpx.HarmonicOscillatorPotential | gpx.PotentialFrame:
@@ -370,7 +370,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(
     pot: gpx.HarmonicOscillatorPotential, /
 ) -> gp.HarmonicOscillatorPotential:
@@ -390,7 +390,7 @@ def galax_to_gala(
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.HarmonicOscillatorPotential(
-        omega=convert(pot.omega(0), APYQuantity),
+        omega=convert(pot.omega(0), APYQuantity),  # type: ignore[no-untyped-call]
         units=_galax_to_gala_units(pot.units),
     )
 
@@ -399,7 +399,7 @@ def galax_to_gala(
 # Hernquist potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.HernquistPotential, /
 ) -> gpx.HernquistPotential | gpx.PotentialFrame:
@@ -427,7 +427,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.HernquistPotential, /) -> gp.HernquistPotential:
     """Convert a `galax.potential.HernquistPotential` to a `gala.potential.HernquistPotential`.
 
@@ -445,8 +445,8 @@ def galax_to_gala(pot: gpx.HernquistPotential, /) -> gp.HernquistPotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.HernquistPotential(
-        m=convert(pot.m_tot(0), APYQuantity),
-        c=convert(pot.r_s(0), APYQuantity),
+        m=convert(pot.m_tot(0), APYQuantity),  # type: ignore[no-untyped-call]
+        c=convert(pot.r_s(0), APYQuantity),  # type: ignore[no-untyped-call]
         units=_galax_to_gala_units(pot.units),
     )
 
@@ -455,7 +455,7 @@ def galax_to_gala(pot: gpx.HernquistPotential, /) -> gp.HernquistPotential:
 # Isochrone potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.IsochronePotential, /
 ) -> gpx.IsochronePotential | gpx.PotentialFrame:
@@ -483,7 +483,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.IsochronePotential, /) -> gp.IsochronePotential:
     """Convert a `galax.potential.IsochronePotential` to a `gala.potential.IsochronePotential`.
 
@@ -501,7 +501,7 @@ def galax_to_gala(pot: gpx.IsochronePotential, /) -> gp.IsochronePotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
-        k: convert(getattr(pot, k)(0), APYQuantity)
+        k: convert(getattr(pot, k)(0), APYQuantity)  # type: ignore[no-untyped-call]
         for (k, f) in type(pot).parameters.items()
     }
     if "m_tot" in params:
@@ -514,7 +514,7 @@ def galax_to_gala(pot: gpx.IsochronePotential, /) -> gp.IsochronePotential:
 # Jaffe potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.JaffePotential, /
 ) -> gpx.JaffePotential | gpx.PotentialFrame:
@@ -542,7 +542,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
     """Convert a `galax.potential.JaffePotential` to a `gala.potential.JaffePotential`.
 
@@ -560,8 +560,8 @@ def galax_to_gala(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.JaffePotential(
-        m=convert(pot.m(0), APYQuantity),
-        c=convert(pot.r_s(0), APYQuantity),
+        m=convert(pot.m(0), APYQuantity),  # type: ignore[no-untyped-call]
+        c=convert(pot.r_s(0), APYQuantity),  # type: ignore[no-untyped-call]
         units=_galax_to_gala_units(pot.units),
     )
 
@@ -570,7 +570,7 @@ def galax_to_gala(pot: gpx.JaffePotential, /) -> gp.JaffePotential:
 # Kepler potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.KeplerPotential, /
 ) -> gpx.KeplerPotential | gpx.PotentialFrame:
@@ -596,7 +596,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.KeplerPotential, /) -> gp.KeplerPotential:
     """Convert a `galax.potential.KeplerPotential` to a `gala.potential.KeplerPotential`.
 
@@ -614,7 +614,7 @@ def galax_to_gala(pot: gpx.KeplerPotential, /) -> gp.KeplerPotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
-        k: convert(getattr(pot, k)(0), APYQuantity)
+        k: convert(getattr(pot, k)(0), APYQuantity)  # type: ignore[no-untyped-call]
         for (k, f) in type(pot).parameters.items()
     }
     if "m_tot" in params:
@@ -627,7 +627,7 @@ def galax_to_gala(pot: gpx.KeplerPotential, /) -> gp.KeplerPotential:
 # Kuzmin potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.KuzminPotential, /
 ) -> gpx.KuzminPotential | gpx.PotentialFrame:
@@ -656,7 +656,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.KuzminPotential, /) -> gp.KuzminPotential:
     """Convert a `galax.potential.KuzminPotential` to a `gala.potential.KuzminPotential`.
 
@@ -674,7 +674,7 @@ def galax_to_gala(pot: gpx.KuzminPotential, /) -> gp.KuzminPotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
-        k: convert(getattr(pot, k)(0), APYQuantity)
+        k: convert(getattr(pot, k)(0), APYQuantity)  # type: ignore[no-untyped-call]
         for (k, f) in type(pot).parameters.items()
     }
     if "m_tot" in params:
@@ -687,7 +687,7 @@ def galax_to_gala(pot: gpx.KuzminPotential, /) -> gp.KuzminPotential:
 # Long & Murali Bar potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.LongMuraliBarPotential, /
 ) -> gpx.LongMuraliBarPotential | gpx.PotentialFrame:
@@ -723,7 +723,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.LongMuraliBarPotential, /) -> gp.LongMuraliBarPotential:
     """Convert a `galax.potential.LongMuraliBarPotential` to a `gala.potential.LongMuraliBarPotential`.
 
@@ -748,11 +748,11 @@ def galax_to_gala(pot: gpx.LongMuraliBarPotential, /) -> gp.LongMuraliBarPotenti
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.LongMuraliBarPotential(
-        m=convert(pot.m_tot(0), APYQuantity),
-        a=convert(pot.a(0), APYQuantity),
-        b=convert(pot.b(0), APYQuantity),
-        c=convert(pot.c(0), APYQuantity),
-        alpha=convert(pot.alpha(0), APYQuantity),
+        m=convert(pot.m_tot(0), APYQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.a(0), APYQuantity),  # type: ignore[no-untyped-call]
+        b=convert(pot.b(0), APYQuantity),  # type: ignore[no-untyped-call]
+        c=convert(pot.c(0), APYQuantity),  # type: ignore[no-untyped-call]
+        alpha=convert(pot.alpha(0), APYQuantity),  # type: ignore[no-untyped-call]
         units=_galax_to_gala_units(pot.units),
     )
 
@@ -761,7 +761,7 @@ def galax_to_gala(pot: gpx.LongMuraliBarPotential, /) -> gp.LongMuraliBarPotenti
 # Miyamoto-Nagai potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.MiyamotoNagaiPotential, /
 ) -> gpx.MiyamotoNagaiPotential | gpx.PotentialFrame:
@@ -791,7 +791,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotential:
     """Convert a `galax.potential.MiyamotoNagaiPotential` to a `gala.potential.MiyamotoNagaiPotential`.
 
@@ -809,7 +809,7 @@ def galax_to_gala(pot: gpx.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotenti
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
-        k: convert(getattr(pot, k)(0), APYQuantity)
+        k: convert(getattr(pot, k)(0), APYQuantity)  # type: ignore[no-untyped-call]
         for (k, f) in type(pot).parameters.items()
     }
     if "m_tot" in params:
@@ -822,7 +822,7 @@ def galax_to_gala(pot: gpx.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotenti
 # MN3 potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.MN3ExponentialDiskPotential, /
 ) -> gpx.MN3ExponentialPotential | gpx.MN3Sech2Potential | gpx.PotentialFrame:
@@ -856,7 +856,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(
     pot: gpx.MN3ExponentialPotential | gpx.MN3Sech2Potential, /
 ) -> gp.MN3ExponentialDiskPotential:
@@ -876,7 +876,7 @@ def galax_to_gala(
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
-        k: convert(getattr(pot, k)(0), APYQuantity)
+        k: convert(getattr(pot, k)(0), APYQuantity)  # type: ignore[no-untyped-call]
         for (k, f) in type(pot).parameters.items()
     }
     if "m_tot" in params:
@@ -894,7 +894,7 @@ def galax_to_gala(
 # Null potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(pot: gp.NullPotential, /) -> gpx.NullPotential:
     """Convert a `gala.potential.NullPotential` to a `galax.potential.NullPotential`.
 
@@ -914,7 +914,7 @@ def gala_to_galax(pot: gp.NullPotential, /) -> gpx.NullPotential:
     return gpx.NullPotential(units=pot.units)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.NullPotential, /) -> gp.NullPotential:
     """Convert a `galax.potential.NullPotential` to a `gala.potential.NullPotential`.
 
@@ -937,7 +937,7 @@ def galax_to_gala(pot: gpx.NullPotential, /) -> gp.NullPotential:
 # Plummer potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.PlummerPotential, /
 ) -> gpx.PlummerPotential | gpx.PotentialFrame:
@@ -966,7 +966,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.PlummerPotential, /) -> gp.PlummerPotential:
     """Convert a `galax.potential.PlummerPotential` to a `gala.potential.PlummerPotential`.
 
@@ -983,7 +983,7 @@ def galax_to_gala(pot: gpx.PlummerPotential, /) -> gp.PlummerPotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
-        k: convert(getattr(pot, k)(0), APYQuantity)
+        k: convert(getattr(pot, k)(0), APYQuantity)  # type: ignore[no-untyped-call]
         for (k, f) in type(pot).parameters.items()
     }
     if "m_tot" in params:
@@ -996,7 +996,7 @@ def galax_to_gala(pot: gpx.PlummerPotential, /) -> gp.PlummerPotential:
 # PowerLawCutoff potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.PowerLawCutoffPotential, /
 ) -> gpx.PowerLawCutoffPotential | gpx.PotentialFrame:
@@ -1034,7 +1034,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.PowerLawCutoffPotential, /) -> gp.PowerLawCutoffPotential:
     """Convert a `galax.potential.PowerLawCutoffPotential` to a `gala.potential.PowerLawCutoffPotential`.
 
@@ -1059,7 +1059,7 @@ def galax_to_gala(pot: gpx.PowerLawCutoffPotential, /) -> gp.PowerLawCutoffPoten
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     params = {
-        k: convert(getattr(pot, k)(0), APYQuantity)
+        k: convert(getattr(pot, k)(0), APYQuantity)  # type: ignore[no-untyped-call]
         for (k, f) in type(pot).parameters.items()
     }
     if "m_tot" in params:
@@ -1072,7 +1072,7 @@ def galax_to_gala(pot: gpx.PowerLawCutoffPotential, /) -> gp.PowerLawCutoffPoten
 # Satoh potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.SatohPotential, /
 ) -> gpx.SatohPotential | gpx.PotentialFrame:
@@ -1101,7 +1101,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
     """Convert a `galax.potential.SatohPotential` to a `gala.potential.SatohPotential`.
 
@@ -1119,9 +1119,9 @@ def galax_to_gala(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.SatohPotential(
-        m=convert(pot.m_tot(0), APYQuantity),
-        a=convert(pot.a(0), APYQuantity),
-        b=convert(pot.b(0), APYQuantity),
+        m=convert(pot.m_tot(0), APYQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.a(0), APYQuantity),  # type: ignore[no-untyped-call]
+        b=convert(pot.b(0), APYQuantity),  # type: ignore[no-untyped-call]
         units=_galax_to_gala_units(pot.units),
     )
 
@@ -1130,7 +1130,7 @@ def galax_to_gala(pot: gpx.SatohPotential, /) -> gp.SatohPotential:
 # Stone & Ostriker potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.StonePotential, /
 ) -> gpx.StoneOstriker15Potential | gpx.PotentialFrame:
@@ -1159,7 +1159,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.StoneOstriker15Potential, /) -> gp.StonePotential:
     """Convert a `galax.potential.StoneOstriker15Potential` to a `gala.potential.StonePotential`.
 
@@ -1177,9 +1177,9 @@ def galax_to_gala(pot: gpx.StoneOstriker15Potential, /) -> gp.StonePotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.StonePotential(
-        m=convert(pot.m_tot(0), APYQuantity),
-        r_c=convert(pot.r_c(0), APYQuantity),
-        r_h=convert(pot.r_h(0), APYQuantity),
+        m=convert(pot.m_tot(0), APYQuantity),  # type: ignore[no-untyped-call]
+        r_c=convert(pot.r_c(0), APYQuantity),  # type: ignore[no-untyped-call]
+        r_h=convert(pot.r_h(0), APYQuantity),  # type: ignore[no-untyped-call]
         units=_galax_to_gala_units(pot.units),
     )
 
@@ -1188,7 +1188,7 @@ def galax_to_gala(pot: gpx.StoneOstriker15Potential, /) -> gp.StonePotential:
 # Logarithmic potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.LogarithmicPotential, /
 ) -> gpx.LogarithmicPotential | gpx.LMJ09LogarithmicPotential | gpx.PotentialFrame:
@@ -1302,7 +1302,7 @@ def galax_to_gala(pot: gpx.LMJ09LogarithmicPotential, /) -> gp.LogarithmicPotent
 # Multipole potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     gala: gp.MultipolePotential, /
 ) -> gpx.MultipoleInnerPotential | gpx.MultipoleOuterPotential | gpx.PotentialFrame:
@@ -1337,7 +1337,7 @@ def gala_to_galax(
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch.multi((gpx.MultipoleInnerPotential,), (gpx.MultipoleOuterPotential,))  # type: ignore[misc]
+@dispatch.multi((gpx.MultipoleInnerPotential,), (gpx.MultipoleOuterPotential,))
 def galax_to_gala(
     pot: gpx.MultipoleInnerPotential | gpx.MultipoleOuterPotential, /
 ) -> gp.MultipolePotential:
@@ -1348,8 +1348,8 @@ def galax_to_gala(
     ls, ms = jnp.tril_indices(pot.l_max + 1)
 
     return gp.MultipolePotential(
-        m=convert(pot.m_tot(0), APYQuantity),
-        r_s=convert(pot.r_s(0), APYQuantity),
+        m=convert(pot.m_tot(0), APYQuantity),  # type: ignore[no-untyped-call]
+        r_s=convert(pot.r_s(0), APYQuantity),  # type: ignore[no-untyped-call]
         lmax=pot.l_max,
         **{
             f"S{l}{m}": Slm[l, m] for l, m in zip(ls, ms, strict=True) if Slm[l, m] != 0
@@ -1463,7 +1463,7 @@ def gala_to_galax(gala: gp.NFWPotential, /) -> gpx.NFWPotential | gpx.PotentialF
     return _apply_frame(_get_frame(gala), pot)
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.NFWPotential, /) -> gp.NFWPotential:
     """Convert a `galax.potential.NFWPotential` to a `gala.potential.NFWPotential`.
 
@@ -1481,13 +1481,13 @@ def galax_to_gala(pot: gpx.NFWPotential, /) -> gp.NFWPotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return gp.NFWPotential(
-        m=convert(pot.m(0), APYQuantity),
-        r_s=convert(pot.r_s(0), APYQuantity),
+        m=convert(pot.m(0), APYQuantity),  # type: ignore[no-untyped-call]
+        r_s=convert(pot.r_s(0), APYQuantity),  # type: ignore[no-untyped-call]
         units=_galax_to_gala_units(pot.units),
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(
     pot: gp.LeeSutoTriaxialNFWPotential, /
 ) -> gpx.LeeSutoTriaxialNFWPotential:
@@ -1528,7 +1528,7 @@ def gala_to_galax(
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(
     pot: gpx.LeeSutoTriaxialNFWPotential, /
 ) -> gp.LeeSutoTriaxialNFWPotential:
@@ -1555,14 +1555,14 @@ def galax_to_gala(
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     t = u.Quantity(0.0, pot.units["time"])
-    v_c = convert(jnp.sqrt(pot.constants["G"] * pot.m(t) / pot.r_s(t)), APYQuantity)
+    v_c = convert(jnp.sqrt(pot.constants["G"] * pot.m(t) / pot.r_s(t)), APYQuantity)  # type: ignore[no-untyped-call]
 
     return gp.LeeSutoTriaxialNFWPotential(
         v_c=v_c,
-        r_s=convert(pot.r_s(t), APYQuantity),
-        a=convert(pot.a1(t), APYQuantity),
-        b=convert(pot.a2(t), APYQuantity),
-        c=convert(pot.a3(t), APYQuantity),
+        r_s=convert(pot.r_s(t), APYQuantity),  # type: ignore[no-untyped-call]
+        a=convert(pot.a1(t), APYQuantity),  # type: ignore[no-untyped-call]
+        b=convert(pot.a2(t), APYQuantity),  # type: ignore[no-untyped-call]
+        c=convert(pot.a3(t), APYQuantity),  # type: ignore[no-untyped-call]
         units=_galax_to_gala_units(pot.units),
     )
 
@@ -1574,7 +1574,7 @@ def galax_to_gala(
 # Bovy MWPotential2014
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(pot: gp.BovyMWPotential2014, /) -> gpx.BovyMWPotential2014:
     """Convert a Gala BovyMWPotential2014 to a Galax potential.
 
@@ -1605,7 +1605,7 @@ def gala_to_galax(pot: gp.BovyMWPotential2014, /) -> gpx.BovyMWPotential2014:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.BovyMWPotential2014, /) -> gp.BovyMWPotential2014:
     """Convert a `gala.potential.BovyMWPotential2014` to a `galax.potential.BovyMWPotential2014`.
 
@@ -1650,7 +1650,7 @@ def galax_to_gala(pot: gpx.BovyMWPotential2014, /) -> gp.BovyMWPotential2014:
 # LM10 potentials
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(pot: gp.LM10Potential, /) -> gpx.LM10Potential:
     """Convert a `gala.potential.LM10Potential` to a `galax.potential.LM10Potential`.
 
@@ -1673,7 +1673,7 @@ def gala_to_galax(pot: gp.LM10Potential, /) -> gpx.LM10Potential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.LM10Potential, /) -> gp.LM10Potential:
     """Convert a `galax.potential.LM10Potential` to a `gala.potential.LM10Potential`.
 
@@ -1717,7 +1717,7 @@ def galax_to_gala(pot: gpx.LM10Potential, /) -> gp.LM10Potential:
 # Galax MilkyWayPotential
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(pot: gp.MilkyWayPotential, /) -> gpx.MilkyWayPotential:
     """Convert a `gala.potential.MilkyWayPotential` to a `galax.potential.MilkyWayPotential`.
 
@@ -1742,7 +1742,7 @@ def gala_to_galax(pot: gp.MilkyWayPotential, /) -> gpx.MilkyWayPotential:
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.MilkyWayPotential, /) -> gp.MilkyWayPotential:
     """Convert a `galax.potential.MilkyWayPotential` to a `gala.potential.MilkyWayPotential`.
 
@@ -1785,7 +1785,7 @@ def galax_to_gala(pot: gpx.MilkyWayPotential, /) -> gp.MilkyWayPotential:
 # Galax MilkyWayPotential2022
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def gala_to_galax(pot: gp.MilkyWayPotential2022, /) -> gpx.MilkyWayPotential2022:
     """Convert a `gala.potential.MilkyWayPotential` to a `galax.potential.MilkyWayPotential`.
 
@@ -1810,7 +1810,7 @@ def gala_to_galax(pot: gp.MilkyWayPotential2022, /) -> gpx.MilkyWayPotential2022
     )
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def galax_to_gala(pot: gpx.MilkyWayPotential2022, /) -> gp.MilkyWayPotential2022:
     """Convert a `galax.potential.MilkyWayPotential2022` to a `gala.potential.MilkyWayPotential2022`.
 
@@ -1844,7 +1844,7 @@ def galax_to_gala(pot: gpx.MilkyWayPotential2022, /) -> gp.MilkyWayPotential2022
     return gp.MilkyWayPotential2022(
         **{
             c: {
-                rename(c, k): convert(getattr(p, k)(0), APYQuantity)
+                rename(c, k): convert(getattr(p, k)(0), APYQuantity)  # type: ignore[no-untyped-call]
                 for k in p.parameters
             }
             for c, p in pot.items()

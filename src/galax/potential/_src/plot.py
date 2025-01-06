@@ -15,7 +15,7 @@ from plotting_backends import AbstractPlottingBackend, MatplotlibBackend
 
 from galax.utils._boundinstance import BndTo, InstanceDescriptor
 
-ProxyAbstractBasePotential = PromisedType("AbstractBasePotential")
+ProxyAbstractBasePotential = PromisedType("AbstractBasePotential")  # type: ignore[no-untyped-call]
 
 
 # --------------------------------------------------
@@ -52,7 +52,7 @@ class PlotPotentialDescriptor(InstanceDescriptor[BndTo]):
 # --------------------------------------------------
 
 
-@dispatch.abstract  # type: ignore[misc]
+@dispatch.abstract
 def plot_potential_contours(
     pot: ProxyAbstractBasePotential,  # type: ignore[valid-type]
     backend: type[AbstractPlottingBackend] = MatplotlibBackend,
@@ -82,7 +82,7 @@ def plot_potential_contours(
     raise NotImplementedError  # pragma: no cover
 
 
-@dispatch.abstract  # type: ignore[misc]
+@dispatch.abstract
 def plot_density_contours(
     pot: ProxyAbstractBasePotential,  # type: ignore[valid-type]
     backend: type[AbstractPlottingBackend] = MatplotlibBackend,
@@ -116,4 +116,4 @@ def plot_density_contours(
 # isort: split
 from .base import AbstractBasePotential  # noqa: E402
 
-ProxyAbstractBasePotential.deliver(AbstractBasePotential)
+ProxyAbstractBasePotential.deliver(AbstractBasePotential)  # type: ignore[no-untyped-call]

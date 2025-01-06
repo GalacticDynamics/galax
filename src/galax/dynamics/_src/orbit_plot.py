@@ -15,7 +15,7 @@ from plotting_backends import AbstractPlottingBackend, MatplotlibBackend
 
 from galax.utils._boundinstance import BndTo, InstanceDescriptor
 
-ProxyOrbit = PromisedType("Orbit")
+ProxyOrbit = PromisedType("Orbit")  # type: ignore[no-untyped-call]
 
 
 # --------------------------------------------------
@@ -44,7 +44,7 @@ class PlotOrbitDescriptor(InstanceDescriptor[BndTo]):
 # --------------------------------------------------
 
 
-@dispatch.abstract  # type: ignore[misc]
+@dispatch.abstract
 def plot_components(
     orbit: ProxyOrbit,  # type: ignore[valid-type]
     backend: type[AbstractPlottingBackend] = MatplotlibBackend,

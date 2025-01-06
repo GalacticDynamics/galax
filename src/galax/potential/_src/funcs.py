@@ -1222,7 +1222,7 @@ def hessian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> HessianVec:
 # Acceleration
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def acceleration(
     pot: AbstractBasePotential,
     /,
@@ -1329,7 +1329,7 @@ def acceleration(
 # Tidal Tensor
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def tidal_tensor(
     pot: AbstractBasePotential, *args: Any, **kwargs: Any
 ) -> gt.BatchQMatrix33:

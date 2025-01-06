@@ -34,7 +34,7 @@ class PlotFunctionCallable(Protocol):
     ) -> Axes: ...
 
 
-@dispatch  # type: ignore[misc]
+@dispatch
 def plot_components(
     orbit: gd.Orbit,
     backend: type[MatplotlibBackend] = MatplotlibBackend,  # noqa: ARG001

@@ -303,7 +303,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     # -----------------------------------------------------
     # Call method
 
-    @dispatch.abstract  # type: ignore[misc]
+    @dispatch.abstract
     def __call__(
         self, field: VectorField, /, y0: Any, t0: Any, t1: Any, **kwargs: Any
     ) -> Any:

@@ -102,8 +102,8 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         x_lead, v_lead, x_trail, v_trail = self._sample(
             rng,
             pot,
-            convert(prog_orbit.q, u.Quantity),
-            convert(prog_orbit.p, u.Quantity),
+            convert(prog_orbit.q, u.Quantity),  # type: ignore[no-untyped-call]
+            convert(prog_orbit.p, u.Quantity),  # type: ignore[no-untyped-call]
             mprog(ts),
             ts,
         )

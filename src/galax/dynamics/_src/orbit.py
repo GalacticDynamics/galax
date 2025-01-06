@@ -353,4 +353,4 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         return self.kinetic_energy() + self.potential_energy(potential)
 
 
-ProxyOrbit.deliver(Orbit)
+ProxyOrbit.deliver(Orbit)  # type: ignore[no-untyped-call]

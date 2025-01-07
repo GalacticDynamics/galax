@@ -467,15 +467,15 @@ wheels = [
 
 [[package]]
 name = "dataclassish"
-version = "0.6.0"
+version = "0.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "plum-dispatch" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f3/2f/40dc1909c6560b73d293d9032a7132922e6ad28fb965bc37075d19f36a31/dataclassish-0.6.0.tar.gz", hash = "sha256:76022500a2bd6b164e3e7686071182b4bbdf3ed72112391b3867abfacb2f51ed", size = 49120 }
+sdist = { url = "https://files.pythonhosted.org/packages/39/21/3880fd4e6cd3db1b4ca3b8dcdd497bbd9fb081d72298a342f10d0cce9b1f/dataclassish-0.7.1.tar.gz", hash = "sha256:80eb3a7626148816044489fdbf6cc889ec52fb61ec244fd0029d9d55ab4c8a41", size = 51294 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/22/9871c5128b59d5c2a22fe352b301aa217beb91029133b800d463cc67e360/dataclassish-0.6.0-py3-none-any.whl", hash = "sha256:96b20b234cf14927de4431081a966a9f3a8fb64e1ce269bc6564473a8ba698c1", size = 21463 },
+    { url = "https://files.pythonhosted.org/packages/d4/b4/00568db462c98317092464da3eeaa00441ba734866bb292ac1d85c4e9c1d/dataclassish-0.7.1-py3-none-any.whl", hash = "sha256:8bc42b89bf4eeeaaefa7fb2811450fd292f97c4fd053b40c47b09da974770855", size = 23119 },
 ]
 
 [[package]]
@@ -654,7 +654,7 @@ wheels = [
 
 [[package]]
 name = "galax"
-version = "0.0.3.dev163+g237c5d55.d20250106"
+version = "0.0.3.dev165+g2ad5e2d8.d20250106"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
@@ -764,7 +764,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.19" },
     { name = "coordinax", specifier = ">=0.17.4" },
-    { name = "dataclassish", specifier = ">=0.6" },
+    { name = "dataclassish", specifier = ">=0.7.1" },
     { name = "diffrax", specifier = ">=0.6" },
     { name = "equinox", specifier = ">=0.11.8" },
     { name = "gala", marker = "extra == 'all'", specifier = ">=1.9" },

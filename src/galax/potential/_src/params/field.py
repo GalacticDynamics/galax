@@ -21,17 +21,13 @@ from typing_extensions import Doc, override
 from astropy.units import PhysicalType as Dimension, Quantity as AstropyQuantity
 
 import unxt as u
+from dataclassish._src.converters import dataclass as dataclass_with_converter, field
 from dataclassish.converters import Optional
 from is_annotated import isannotated
 from unxt.quantity import AbstractQuantity
 
 from .core import AbstractParameter, ConstantParameter, ParameterCallable, UserParameter
-from galax.utils.dataclasses import (
-    Sentinel,
-    dataclass_with_converter,
-    field,
-    sentineled,
-)
+from galax.utils.dataclasses import Sentinel, sentineled
 
 if TYPE_CHECKING:
     from galax.potential import AbstractBasePotential

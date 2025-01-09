@@ -47,6 +47,6 @@ def galax_psp_to_gala_psp(obj: gcx.PhaseSpacePosition, /) -> gd.PhaseSpacePositi
     warnings.warn("The time is not preserved in the conversion!", stacklevel=2)
 
     return gd.PhaseSpacePosition(
-        pos=convert(obj.q, BaseRepresentation),  # type: ignore[no-untyped-call]
-        vel=convert(obj.p, BaseDifferential),  # type: ignore[no-untyped-call]
+        pos=convert(obj.q, BaseRepresentation),
+        vel=convert(obj.p, BaseDifferential),
     )

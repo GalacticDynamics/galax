@@ -15,7 +15,7 @@ from plotting_backends import AbstractPlottingBackend, MatplotlibBackend
 
 from galax.utils._boundinstance import BndTo, InstanceDescriptor
 
-ProxyAbstractBasePotential = PromisedType("AbstractBasePotential")  # type: ignore[no-untyped-call]
+ProxyAbstractBasePotential = PromisedType("AbstractBasePotential")
 
 
 # --------------------------------------------------
@@ -116,4 +116,4 @@ def plot_density_contours(
 # isort: split
 from .base import AbstractBasePotential  # noqa: E402
 
-ProxyAbstractBasePotential.deliver(AbstractBasePotential)  # type: ignore[no-untyped-call]
+ProxyAbstractBasePotential.deliver(AbstractBasePotential)

@@ -111,7 +111,7 @@ def evaluate_orbit(
     orbit: gd.Orbit = gd.evaluate_orbit(
         pot,
         w0,
-        convert(t, u.Quantity),  # type: ignore[no-untyped-call]
+        convert(t, u.Quantity),
         integrator=integrator,
         interpolated=interpolated,
     )

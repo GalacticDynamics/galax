@@ -15,8 +15,7 @@ from plotting_backends import AbstractPlottingBackend, MatplotlibBackend
 
 from galax.utils._boundinstance import BndTo, InstanceDescriptor
 
-ProxyOrbit = PromisedType("Orbit")  # type: ignore[no-untyped-call]
-
+ProxyOrbit = PromisedType("Orbit")
 
 # --------------------------------------------------
 

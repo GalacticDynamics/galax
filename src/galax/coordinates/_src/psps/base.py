@@ -455,12 +455,10 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         batch, comps = self._shape_tuple
         cart = self.vconvert(cx.CartesianPos3D)
         q = jnp.broadcast_to(
-            convert(cart.q, FastQ).uconvert(units["length"]),  # type: ignore[no-untyped-call]
-            (*batch, comps.q),
+            u.uconvert(units["length"], convert(cart.q, FastQ)), (*batch, comps.q)
         )
         p = jnp.broadcast_to(
-            convert(cart.p, FastQ).uconvert(units["speed"]),  # type: ignore[no-untyped-call]
-            (*batch, comps.p),
+            u.uconvert(units["speed"], convert(cart.p, FastQ)), (*batch, comps.p)
         )
         return (q, p)
 
@@ -533,8 +531,8 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         usys = u.unitsystem(units)
         batch, comps = self._shape_tuple
         cart = self.vconvert(cx.CartesianPos3D).to_units(usys)
-        q = jnp.broadcast_to(convert(cart.q, FastQ), (*batch, comps.q))  # type: ignore[no-untyped-call]
-        p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))  # type: ignore[no-untyped-call]
+        q = jnp.broadcast_to(convert(cart.q, FastQ), (*batch, comps.q))
+        p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))
         t = jnp.broadcast_to(self.t.value[..., None], (*batch, comps.t))
         return jnp.concat((t, q.value, p.value), axis=-1)
 

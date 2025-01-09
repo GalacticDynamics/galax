@@ -17,6 +17,7 @@ import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
 from .integrator import Integrator
+from galax.dynamics._src.fields import HamiltonianField
 from galax.dynamics._src.orbit import Orbit
 
 # TODO: enable setting the default integrator
@@ -213,11 +214,13 @@ def evaluate_orbit(
 
     # -------------
 
+    field = HamiltonianField(pot)
+
     # Initial integration `w0.t` to `t[0]`.
     # TODO: get diffrax's `solver_state` to speed the second integration.
     # TODO: get diffrax's `controller_state` to speed the second integration.
     qp0 = integrator(
-        pot._vector_field,  # noqa: SLF001
+        field,
         w0,
         tw0,  # t0
         jnp.full_like(tw0, fill_value=t[0]),  # t1
@@ -227,7 +230,7 @@ def evaluate_orbit(
 
     # Orbit integration `t[0]` to `t[-1]`
     ws = integrator(
-        pot._vector_field,  # noqa: SLF001
+        field,
         qp0,
         t[0],
         t[-1],

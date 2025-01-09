@@ -16,7 +16,7 @@ from plum import dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
+from unxt.quantity import AbstractQuantity
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -273,43 +273,6 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     # =========================================================================
     # Integrating orbits
-
-    @partial(jax.jit, inline=True)  # TODO: inline?
-    def _vector_field(
-        self,
-        t: gt.BatchableFloatScalar,
-        qp: gt.BatchableQParr,
-        args: tuple[Any, ...],  # noqa: ARG002
-    ) -> gt.BatchPAarr:
-        r"""Differential equation derivative for dynamics.
-
-        This is Hamilton's equations for motion for a particle in a potential.
-
-        .. math::
-
-                \dot{q} = \frac{dH}{dp} \\ \dot{p} = -\frac{dH}{dq}
-
-        Parameters
-        ----------
-        t : float
-            Time at which to evaluate the derivative.
-        qp : Array[float, (3,)], Array[float, (3,)]
-            Phase-space position q, p.
-        args : tuple
-            Additional arguments to pass to the derivative. Not used, but
-            required by some dynamics solvers.
-
-        Returns
-        -------
-        dw : Array[float, (3,)], Array[float, (3,)]
-            Derivative p, a at the phase-space position.
-        """
-        q, p = qp
-        a = -self._gradient(
-            FastQ(q, self.units["length"]),
-            FastQ(t, self.units["time"]),
-        ).ustrip(self.units["acceleration"])  # TODO: not require unit munging
-        return (p, a)
 
     def evaluate_orbit(
         self,

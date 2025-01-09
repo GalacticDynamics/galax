@@ -78,10 +78,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -96,7 +97,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     system at any times ``saveat``:
 
     >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
-    >>> ws = integrator(pot._vector_field, w0, t0, t1,
+    >>> ws = integrator(field, w0, t0, t1,
     ...                 saveat=ts, units=galactic)
     >>> ws
     PhaseSpacePosition(
@@ -115,14 +116,14 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
     ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
-    >>> ws = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> ws = integrator(field, w0, t0, t1, units=galactic)
     >>> ws.shape
     (2,)
 
     A cool feature of the integrator is that it can return an interpolated
     solution.
 
-    >>> w = integrator(pot._vector_field, w0, t0, t1, saveat=ts, units=galactic,
+    >>> w = integrator(field, w0, t0, t1, saveat=ts, units=galactic,
     ...                interpolated=True)
     >>> type(w)
     <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
@@ -158,7 +159,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
     ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
-    >>> ws = integrator(pot._vector_field, w0, t0, t1, units=galactic,
+    >>> ws = integrator(field, w0, t0, t1, units=galactic,
     ...                 interpolated=True)
     >>> ws.shape
     (2,)
@@ -374,10 +375,11 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -391,7 +393,7 @@ def call(
     We can also request the orbit at specific times:
 
     >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Myr")  # 10 steps
-    >>> ws = integrator(pot._vector_field, w0, t0, t1,
+    >>> ws = integrator(field, w0, t0, t1,
     ...                 saveat=ts, units=galactic)
     >>> ws
     PhaseSpacePosition(
@@ -491,13 +493,14 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
 
     Different kwargs:
 
-    >>> w = integrator(pot._vector_field, w0, t0, t1=t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1=t1, units=galactic)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -507,7 +510,7 @@ def call(
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=NoFrame())
 
-    >>> w = integrator(pot._vector_field, w0, t0=t0, t1=t1, units=galactic)
+    >>> w = integrator(field, w0, t0=t0, t1=t1, units=galactic)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -517,7 +520,7 @@ def call(
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=NoFrame())
 
-    >>> w = integrator(pot._vector_field, y0=w0, t0=t0, t1=t1, units=galactic)
+    >>> w = integrator(field, y0=w0, t0=t0, t1=t1, units=galactic)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -641,9 +644,10 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
-    >>> ws = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> ws = integrator(field, w0, t0, t1, units=galactic)
     >>> ws.shape
     (2,)
 
@@ -693,12 +697,13 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     We can integrate the phase-space position:
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -752,12 +757,13 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     We can integrate the composite phase-space position:
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1, units=galactic)
     >>> print(w)
     CompositePhaseSpacePosition(
         w01=PhaseSpacePosition(

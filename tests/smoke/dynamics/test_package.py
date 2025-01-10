@@ -7,6 +7,7 @@ def test_all() -> None:
     """Test the `galax.potential` API."""
     assert set(gd.__all__) == {
         # modules
+        "fields",
         "integrate",
         "mockstream",
         "plot",

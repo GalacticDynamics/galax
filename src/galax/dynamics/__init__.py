@@ -2,6 +2,7 @@
 
 __all__ = [
     # Modules
+    "fields",
     "integrate",
     "mockstream",
     "plot",
@@ -29,7 +30,7 @@ from jaxtyping import install_import_hook
 from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
-    from . import integrate, mockstream, plot
+    from . import fields, integrate, mockstream, plot
     from ._src.funcs import (
         lagrange_points,
         specific_angular_momentum,

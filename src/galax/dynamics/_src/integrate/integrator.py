@@ -21,7 +21,7 @@ from xmmutablemap import ImmutableMap
 import galax.coordinates as gc
 import galax.typing as gt
 from .interp import Interpolant
-from .type_hints import VectorField
+from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")
 Interp = TypeVar("Interp")
@@ -78,10 +78,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -96,7 +97,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     system at any times ``saveat``:
 
     >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
-    >>> ws = integrator(pot._vector_field, w0, t0, t1,
+    >>> ws = integrator(field, w0, t0, t1,
     ...                 saveat=ts, units=galactic)
     >>> ws
     PhaseSpacePosition(
@@ -115,14 +116,14 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
     ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
-    >>> ws = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> ws = integrator(field, w0, t0, t1, units=galactic)
     >>> ws.shape
     (2,)
 
     A cool feature of the integrator is that it can return an interpolated
     solution.
 
-    >>> w = integrator(pot._vector_field, w0, t0, t1, saveat=ts, units=galactic,
+    >>> w = integrator(field, w0, t0, t1, saveat=ts, units=galactic,
     ...                interpolated=True)
     >>> type(w)
     <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
@@ -158,7 +159,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
     ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
-    >>> ws = integrator(pot._vector_field, w0, t0, t1, units=galactic,
+    >>> ws = integrator(field, w0, t0, t1, units=galactic,
     ...                 interpolated=True)
     >>> ws.shape
     (2,)
@@ -193,8 +194,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
     @partial(eqx.filter_jit)
     def _call_(
-        self,
-        field: VectorField,
+        self: "Integrator",
+        field: AbstractDynamicsField,
         q0: gt.BatchQ,
         p0: gt.BatchP,
         t0: gt.TimeScalar,
@@ -219,7 +220,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         Parameters
         ----------
-        field : `galax.dynamics.integrate.VectorField`
+        field : `galax.dynamics.fields.AbstractDynamicsField`
             The field to integrate. Excluded from JIT.
         q0, p0 : Quantity[number, (*batch, 3), 'position' | 'speed']
             Initial conditions. Can have any (or no) batch dimensions. Included
@@ -258,7 +259,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         # TODO: quaxify this so don't need to strip units
         soln = diffrax.diffeqsolve(
-            terms=diffrax.ODETerm(field),
+            terms=field.term,
             solver=self.Solver(**self.solver_kw),
             t0=t0.ustrip(time),
             t1=t1.ustrip(time),
@@ -305,7 +306,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     @dispatch.abstract
     def __call__(
-        self, field: VectorField, /, y0: Any, t0: Any, t1: Any, **kwargs: Any
+        self, field: AbstractDynamicsField, /, y0: Any, t0: Any, t1: Any, **kwargs: Any
     ) -> Any:
         """Integrate the equations of motion.
 
@@ -326,7 +327,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 @eqx.filter_jit  # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     qp0: gt.BatchQP | gt.BatchQParr,
     t0: Time,
     t1: Time,
@@ -374,10 +375,11 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -391,7 +393,7 @@ def call(
     We can also request the orbit at specific times:
 
     >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Myr")  # 10 steps
-    >>> ws = integrator(pot._vector_field, w0, t0, t1,
+    >>> ws = integrator(field, w0, t0, t1,
     ...                 saveat=ts, units=galactic)
     >>> ws
     PhaseSpacePosition(
@@ -420,7 +422,7 @@ def call(
 @eqx.filter_jit  # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     y0: gt.BatchVec6,
     t0: Time,
     t1: Time,
@@ -460,12 +462,12 @@ def call(
 
 
 @Integrator.__call__.dispatch_multi(
-    (Integrator, VectorField),  # (F,)
-    (Integrator, VectorField, Any),  # (F, y0)
-    (Integrator, VectorField, Any, Any),  # (F, y0, t0)
+    (Integrator, AbstractDynamicsField),  # (F,)
+    (Integrator, AbstractDynamicsField, Any),  # (F, y0)
+    (Integrator, AbstractDynamicsField, Any, Any),  # (F, y0, t0)
 )
 def call(
-    self: Integrator, field: VectorField, *args: Any, **kwargs: Any
+    self: Integrator, field: AbstractDynamicsField, *args: Any, **kwargs: Any
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
     """Support keyword arguments by re-dispatching.
 
@@ -491,13 +493,14 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
 
     Different kwargs:
 
-    >>> w = integrator(pot._vector_field, w0, t0, t1=t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1=t1, units=galactic)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -507,7 +510,7 @@ def call(
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=NoFrame())
 
-    >>> w = integrator(pot._vector_field, w0, t0=t0, t1=t1, units=galactic)
+    >>> w = integrator(field, w0, t0=t0, t1=t1, units=galactic)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -517,7 +520,7 @@ def call(
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=NoFrame())
 
-    >>> w = integrator(pot._vector_field, y0=w0, t0=t0, t1=t1, units=galactic)
+    >>> w = integrator(field, y0=w0, t0=t0, t1=t1, units=galactic)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -554,7 +557,7 @@ def call(
 @eqx.filter_jit
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     y0: gt.BatchableQP | gt.BatchableQParr,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
@@ -598,7 +601,7 @@ def call(
 @eqx.filter_jit
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     y0: gt.BatchableVec6,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
@@ -641,9 +644,10 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
-    >>> ws = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> ws = integrator(field, w0, t0, t1, units=galactic)
     >>> ws.shape
     (2,)
 
@@ -666,7 +670,7 @@ def call(
 @Integrator.__call__.dispatch
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     w0: gc.AbstractPhaseSpacePosition,
     t0: Any,
     t1: Any,
@@ -693,12 +697,13 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     We can integrate the phase-space position:
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1, units=galactic)
     >>> w
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -722,7 +727,7 @@ def call(
 @Integrator.__call__.dispatch
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     w0: gc.AbstractCompositePhaseSpacePosition,
     t0: Any,
     t1: Any,
@@ -752,12 +757,13 @@ def call(
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
     We can integrate the composite phase-space position:
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(pot._vector_field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1, units=galactic)
     >>> print(w)
     CompositePhaseSpacePosition(
         w01=PhaseSpacePosition(

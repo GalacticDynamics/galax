@@ -21,7 +21,7 @@ from xmmutablemap import ImmutableMap
 import galax.coordinates as gc
 import galax.typing as gt
 from .interp import Interpolant
-from .type_hints import VectorField
+from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")
 Interp = TypeVar("Interp")
@@ -194,8 +194,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
     @partial(eqx.filter_jit)
     def _call_(
-        self,
-        field: VectorField,
+        self: "Integrator",
+        field: AbstractDynamicsField,
         q0: gt.BatchQ,
         p0: gt.BatchP,
         t0: gt.TimeScalar,
@@ -220,7 +220,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         Parameters
         ----------
-        field : `galax.dynamics.integrate.VectorField`
+        field : `galax.dynamics.fields.AbstractDynamicsField`
             The field to integrate. Excluded from JIT.
         q0, p0 : Quantity[number, (*batch, 3), 'position' | 'speed']
             Initial conditions. Can have any (or no) batch dimensions. Included
@@ -259,7 +259,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         # TODO: quaxify this so don't need to strip units
         soln = diffrax.diffeqsolve(
-            terms=diffrax.ODETerm(field),
+            terms=field.term,
             solver=self.Solver(**self.solver_kw),
             t0=t0.ustrip(time),
             t1=t1.ustrip(time),
@@ -306,7 +306,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     @dispatch.abstract
     def __call__(
-        self, field: VectorField, /, y0: Any, t0: Any, t1: Any, **kwargs: Any
+        self, field: AbstractDynamicsField, /, y0: Any, t0: Any, t1: Any, **kwargs: Any
     ) -> Any:
         """Integrate the equations of motion.
 
@@ -327,7 +327,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 @eqx.filter_jit  # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     qp0: gt.BatchQP | gt.BatchQParr,
     t0: Time,
     t1: Time,
@@ -422,7 +422,7 @@ def call(
 @eqx.filter_jit  # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     y0: gt.BatchVec6,
     t0: Time,
     t1: Time,
@@ -462,12 +462,12 @@ def call(
 
 
 @Integrator.__call__.dispatch_multi(
-    (Integrator, VectorField),  # (F,)
-    (Integrator, VectorField, Any),  # (F, y0)
-    (Integrator, VectorField, Any, Any),  # (F, y0, t0)
+    (Integrator, AbstractDynamicsField),  # (F,)
+    (Integrator, AbstractDynamicsField, Any),  # (F, y0)
+    (Integrator, AbstractDynamicsField, Any, Any),  # (F, y0, t0)
 )
 def call(
-    self: Integrator, field: VectorField, *args: Any, **kwargs: Any
+    self: Integrator, field: AbstractDynamicsField, *args: Any, **kwargs: Any
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
     """Support keyword arguments by re-dispatching.
 
@@ -557,7 +557,7 @@ def call(
 @eqx.filter_jit
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     y0: gt.BatchableQP | gt.BatchableQParr,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
@@ -601,7 +601,7 @@ def call(
 @eqx.filter_jit
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     y0: gt.BatchableVec6,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
@@ -670,7 +670,7 @@ def call(
 @Integrator.__call__.dispatch
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     w0: gc.AbstractPhaseSpacePosition,
     t0: Any,
     t1: Any,
@@ -727,7 +727,7 @@ def call(
 @Integrator.__call__.dispatch
 def call(
     self: Integrator,
-    field: VectorField,
+    field: AbstractDynamicsField,
     w0: gc.AbstractCompositePhaseSpacePosition,
     t0: Any,
     t1: Any,

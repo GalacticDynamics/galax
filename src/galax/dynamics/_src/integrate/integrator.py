@@ -259,7 +259,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         # TODO: quaxify this so don't need to strip units
         soln = diffrax.diffeqsolve(
-            terms=field.term,
+            terms=field.terms,
             solver=self.Solver(**self.solver_kw),
             t0=t0.ustrip(time),
             t1=t1.ustrip(time),

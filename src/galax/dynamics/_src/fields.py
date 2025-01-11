@@ -34,7 +34,7 @@ class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-
 
     @property
     @abc.abstractmethod
-    def term(self) -> diffrax.AbstractTerm:
+    def terms(self) -> diffrax.AbstractTerm:
         # TODO: should this be concrete?
         raise NotImplementedError  # pragma: no cover
 
@@ -71,7 +71,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         raise NotImplementedError  # pragma: no cover
 
     @property
-    def term(self) -> diffrax.ODETerm:
+    def terms(self) -> diffrax.ODETerm:
         """Return the ODE term."""
         return diffrax.ODETerm(jax.jit(self.__call__))
 

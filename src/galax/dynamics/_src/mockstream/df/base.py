@@ -78,13 +78,13 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             p=CartesianVel3D( ... ),
             t=Quantity...,
             release_time=Quantity...,
-            frame=NoFrame() ),
+            frame=SimulationFrame() ),
           'trail': MockStreamArm(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
             t=Quantity...,
             release_time=Quantity...,
-            frame=NoFrame()
+            frame=SimulationFrame()
         )})
         """
         # Progenitor positions and times. The orbit times are used as the

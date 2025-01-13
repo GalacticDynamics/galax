@@ -16,6 +16,7 @@ def test_all() -> None:
     """Test the `galax.coordinates` API."""
     assert set(gc.__all__) == {
         "ops",
+        "frames",
         *base.__all__,
         *base_psp.__all__,
         *base_composite.__all__,

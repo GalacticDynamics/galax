@@ -50,7 +50,7 @@ class MockStreamArm(gc.AbstractPhaseSpacePosition):
     release_time: gt.QVecTime = eqx.field(converter=u.Quantity["time"].from_)
     """Release time of the stream particles [Myr]."""
 
-    frame: cx.frames.NoFrame  # TODO: support frames
+    frame: gc.frames.SimulationFrame  # TODO: support frames
     """The reference frame of the phase-space position."""
 
     # ==========================================================================
@@ -89,7 +89,7 @@ class MockStreamArm(gc.AbstractPhaseSpacePosition):
 @final
 class MockStream(gc.AbstractCompositePhaseSpacePosition):
     _time_sorter: Shaped[Array, "alltimes"]
-    _frame: cx.frames.NoFrame  # TODO: support frames
+    _frame: gc.frames.SimulationFrame  # TODO: support frames
 
     def __init__(
         self,
@@ -106,15 +106,7 @@ class MockStream(gc.AbstractCompositePhaseSpacePosition):
         # Transform all the PhaseSpacePositions to that frame. If the frames are
         # already `NoFrame`, we can skip this step, since no transformation is
         # possible in `NoFrame`.
-        allpsps = {
-            k: (
-                psp
-                if isinstance(theframe, cx.frames.NoFrame)
-                and isinstance(psp.frame, cx.frames.NoFrame)
-                else psp.to_frame(theframe)
-            )
-            for k, psp in allpsps.items()
-        }
+        allpsps = {k: psp.to_frame(theframe) for k, psp in allpsps.items()}
 
         super().__init__(psps, **kwargs)
 

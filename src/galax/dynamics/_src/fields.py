@@ -429,6 +429,7 @@ def call(
     --------
     >>> import unxt as u
     >>> import coordinax as cx
+    >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
@@ -438,14 +439,14 @@ def call(
     >>> w = cx.frames.Coordinate(
     ...     {"length": cx.vecs.FourVector.from_([0, 8., 0, 0], "kpc"),
     ...      "speed": cx.vecs.CartesianVel3D.from_([0, 220, 0], "km/s")},
-    ...     cx.frames.NoFrame())
+    ...     gc.frames.SimulationFrame())
 
     >>> field(w, None)
     (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
      Array([-0.0702891, -0.       , -0.       ], dtype=float64))
 
     """
-    # w = w.to_frame(cx.frames.NoFrame())  # TODO: simulation frame  # noqa: ERA001
+    w = w.to_frame(gc.frames.SimulationFrame())  # TODO: enable other frames
     return self(w.data, args)
 
 
@@ -480,5 +481,5 @@ def call(
 
     """
     assert w.t is not None  # noqa: S101
-    # w = w.to_frame(cx.frames.NoFrame())  # TODO: simulation frame  # noqa: ERA001
+    w = w.to_frame(gc.frames.SimulationFrame())  # TODO: enable other frames
     return self(w.t, w._qp(units=self.units), args)  # noqa: SLF001

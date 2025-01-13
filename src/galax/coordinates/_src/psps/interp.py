@@ -15,6 +15,7 @@ import galax.typing as gt
 from .base import ComponentShapeTuple
 from .base_psp import AbstractPhaseSpacePosition
 from .core import PhaseSpacePosition
+from galax.coordinates._src.frames import SimulationFrame
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
@@ -72,7 +73,7 @@ class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
 
     _: KW_ONLY
 
-    frame: cx.frames.NoFrame  # TODO: support frames
+    frame: SimulationFrame  # TODO: support frames
     """The reference frame of the phase-space position."""
 
     def __call__(self, t: gt.BatchFloatQScalar) -> PhaseSpacePosition:

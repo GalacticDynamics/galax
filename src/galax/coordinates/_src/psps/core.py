@@ -19,6 +19,7 @@ import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractPhaseSpacePosition
+from galax.coordinates._src.frames import SimulationFrame
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
@@ -72,7 +73,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
-      frame=NoFrame()
+      frame=SimulationFrame()
     )
 
     This can be done more explicitly:
@@ -103,7 +104,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
       q=SphericalPos( ... ),
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
-      frame=NoFrame()
+      frame=SimulationFrame()
     )
 
     """
@@ -133,8 +134,8 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
     _: KW_ONLY
 
-    frame: cx.frames.NoFrame = eqx.field(
-        default=cx.frames.NoFrame(),
+    frame: SimulationFrame = eqx.field(
+        default=SimulationFrame(),
         converter=Unless(
             cx.frames.AbstractReferenceFrame, cx.frames.TransformedReferenceFrame.from_
         ),
@@ -327,7 +328,7 @@ def from_(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array([7, 7], dtype=int64, ...), unit='Myr'),
-      frame=NoFrame()
+      frame=SimulationFrame()
     )
 
     """
@@ -351,14 +352,14 @@ def from_(
 
     >>> data = cx.Space(length=cx.CartesianPos3D.from_([1, 2, 3], "kpc"),
     ...                 speed=cx.CartesianVel3D.from_([4, 5, 6], "km/s"))
-    >>> frame = cx.frames.NoFrame()
+    >>> frame = gc.frames.SimulationFrame()
 
     >>> gc.PhaseSpacePosition.from_(data, frame)
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
       t=None,
-      frame=NoFrame()
+      frame=SimulationFrame()
     )
 
     """

@@ -218,12 +218,12 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
             t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
-            frame=NoFrame()
+            frame=SimulationFrame()
           ), 'w2': PhaseSpacePosition(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
             t=Quantity['time'](Array(6, dtype=int64, ...), unit='s'),
-            frame=NoFrame()
+            frame=SimulationFrame()
         )})
 
         """
@@ -310,13 +310,13 @@ def vconvert(
             q=CylindricalPos( ... ),
             p=SphericalVel( ... ),
             t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
-            frame=NoFrame()
+            frame=SimulationFrame()
         ),
         'psp2': PhaseSpacePosition(
             q=CylindricalPos( ... ),
             p=SphericalVel( ... ),
             t=Quantity['time'](Array(6, dtype=int64, ...), unit='s'),
-            frame=NoFrame()
+            frame=SimulationFrame()
     )})
 
     """

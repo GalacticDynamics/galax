@@ -54,7 +54,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
-      frame=NoFrame(),
+      frame=SimulationFrame(),
       potential=KeplerPotential( ... ),
       interpolant=None
     )
@@ -65,7 +65,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
-      frame=NoFrame(),
+      frame=SimulationFrame(),
       potential=KeplerPotential( ... ),
       interpolant=Interpolant( ... )
     )
@@ -75,7 +75,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array([0.5], dtype=float64, ...), unit='Gyr'),
-      frame=NoFrame(),
+      frame=SimulationFrame(),
       potential=KeplerPotential( ... ),
       interpolant=None
     )
@@ -94,7 +94,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
     _: KW_ONLY
 
-    frame: cx.frames.NoFrame  # TODO: support frames
+    frame: gc.frames.SimulationFrame  # TODO: support frames
     """The reference frame of the phase-space position."""
 
     potential: gp.AbstractBasePotential
@@ -199,7 +199,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
             d_x=Quantity[...]( value=f64[10], unit=Unit("kpc / Myr") ),
             ... ),
           t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
-          frame=NoFrame(),
+          frame=SimulationFrame(),
           potential=KeplerPotential( ... ),
           interpolant=None
         )
@@ -246,7 +246,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
             ...
           ),
           t=Quantity['time'](Array([  0., 100.], dtype=float64), unit='Myr'),
-          frame=NoFrame(),
+          frame=SimulationFrame(),
           potential=KeplerPotential( ... ),
           interpolant=None
         )
@@ -283,7 +283,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
           q=CartesianPos3D( ... ),
           p=CartesianVel3D( ... ),
           t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
-          frame=NoFrame()
+          frame=SimulationFrame()
         )
         >>> orbit[0].t
         Quantity['time'](Array(0., dtype=float64), unit='Myr')

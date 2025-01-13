@@ -8,7 +8,7 @@ from jaxtyping import install_import_hook
 from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
-    from . import ops
+    from . import frames, ops
     from ._src.psps import (
         AbstractBasePhaseSpacePosition,
         AbstractCompositePhaseSpacePosition,
@@ -23,6 +23,7 @@ with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
 __all__ = [
     # Modules
     "ops",
+    "frames",
     # Contents
     "AbstractBasePhaseSpacePosition",
     "AbstractPhaseSpacePosition",

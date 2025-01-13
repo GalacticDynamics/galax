@@ -11,7 +11,6 @@ import jax
 from jax.extend.backend import get_backend
 from jaxtyping import PRNGKeyArray
 
-import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
@@ -243,7 +242,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         frame = (
             prog_w0.frame
             if isinstance(prog_w0, gc.PhaseSpacePosition)
-            else cx.frames.NoFrame()
+            else gc.frames.SimulationFrame()
         )
 
         comps = {}

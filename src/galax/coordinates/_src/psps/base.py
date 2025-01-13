@@ -20,6 +20,7 @@ from dataclassish import field_items
 from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.typing as gt
+from galax.coordinates._src.frames import SimulationFrame
 
 
 class ComponentShapeTuple(NamedTuple):
@@ -65,7 +66,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
 
 
@@ -80,7 +81,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
     t: eqx.AbstractVar[gt.BatchableFloatQScalar]
     """Time corresponding to the positions and momenta."""
 
-    frame: eqx.AbstractVar[cx.frames.NoFrame]  # TODO: support frames
+    frame: eqx.AbstractVar[SimulationFrame]  # TODO: support frames
     """The reference frame of the phase-space position."""
 
     # ---------------------------------------------------------------
@@ -178,7 +179,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         PhaseSpacePosition( q=CylindricalPos(...),
                             p=CylindricalVel(...),
                             t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-                            frame=NoFrame() )
+                            frame=SimulationFrame() )
 
         We can also convert it to a different representation with a different
         differential class:
@@ -187,7 +188,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         PhaseSpacePosition( q=LonLatSphericalPos(...),
                             p=LonCosLatSphericalVel(...),
                             t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-                            frame=NoFrame() )
+                            frame=SimulationFrame() )
         """
         return cast(
             "Self", cx.vconvert({"q": position_cls, "p": velocity_cls}, self, **kwargs)
@@ -230,7 +231,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
                 d_x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
                 ... ),
             t=Quantity['time'](..., unit='yr'),
-            frame=NoFrame()
+            frame=SimulationFrame()
         )
 
         """
@@ -346,7 +347,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
             t=Quantity['time'](Array(0, dtype=int64), unit='Gyr'),
-            frame=NoFrame()
+            frame=SimulationFrame()
         )
 
         >>> w[jnp.array([0])]
@@ -354,7 +355,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
             t=Quantity['time'](Array([0], dtype=int64), unit='Gyr'),
-            frame=NoFrame()
+            frame=SimulationFrame()
         )
 
         """
@@ -396,7 +397,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
             p=<CartesianVel3D (d_x[km / s], d_y[km / s], d_z[km / s])
                 [4 5 6]>,
             t=Quantity['time'](Array(-1, dtype=int64, ...), unit='Gyr'),
-            frame=NoFrame())
+            frame=SimulationFrame())
         """
         fs = [indent(f"{k}={v!s}", "    ") for k, v in field_items(self)]
         sep = ",\n" if len(fs) > 1 else ", "
@@ -801,7 +802,7 @@ def convert_psp_to_coordinax_coordinate(
     >>> convert(psp, cx.Coordinate)
     Coordinate(
         data=Space({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) }),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
 
     """
@@ -837,7 +838,7 @@ def add(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-      frame=NoFrame()
+      frame=SimulationFrame()
     )
 
     >>> w3.q.x.value

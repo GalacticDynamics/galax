@@ -336,7 +336,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.17.4"
+version = "0.18.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -352,9 +352,9 @@ dependencies = [
     { name = "unxt" },
     { name = "xmmutablemap" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/85/5607374af022dc0dca27a77d711ace79c709de9faebd757f7373e51aaa09/coordinax-0.17.4.tar.gz", hash = "sha256:ec1354cac1b4fcc7e18190c7955c066ec52c75a1a1b08af120a839ac5f544bcd", size = 174388 }
+sdist = { url = "https://files.pythonhosted.org/packages/75/a1/60bd04653475c5ab72fa7ee7187ccf43f4b3e8b98722c8825ed427b1c9da/coordinax-0.18.1.tar.gz", hash = "sha256:bf36d1e78d49e581a6329975edbe5be0409023e387e9845e7968fd91ebe333a0", size = 175377 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/44/e6b4e762a96d046df86ef13e0b48c2ac9d61f4417097a2656fd0224f2b91/coordinax-0.17.4-py3-none-any.whl", hash = "sha256:67ea1b7f2f901d6c3f254af39b618f757bbf0b954c32a847ce050c7ba75cd13f", size = 169142 },
+    { url = "https://files.pythonhosted.org/packages/cb/c1/12970e7102bf1247c9076600add6837a987dc80c5f98a6c0764b3ffde01a/coordinax-0.18.1-py3-none-any.whl", hash = "sha256:b42fb7738854a8bc3836e127d7043e53c4bfcbc775e8e02410b87f8c5bbf51b2", size = 170285 },
 ]
 
 [[package]]
@@ -654,7 +654,7 @@ wheels = [
 
 [[package]]
 name = "galax"
-version = "0.0.3.dev169+gf7545c81.d20250113"
+version = "0.0.3.dev174+ga7a2803c.d20250113"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },
@@ -763,7 +763,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.19" },
-    { name = "coordinax", specifier = ">=0.17.4" },
+    { name = "coordinax", specifier = ">=0.18.1" },
     { name = "dataclassish", specifier = ">=0.7.1" },
     { name = "diffrax", specifier = ">=0.6" },
     { name = "equinox", specifier = ">=0.11.8" },

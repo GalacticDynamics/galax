@@ -16,6 +16,7 @@ from zeroth import zeroth
 
 from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractPhaseSpacePosition
+from galax.coordinates._src.frames import SimulationFrame
 
 
 def _concat(values: Iterable[PyTree], time_sorter: Int[Array, "..."]) -> PyTree:
@@ -24,16 +25,6 @@ def _concat(values: Iterable[PyTree], time_sorter: Int[Array, "..."]) -> PyTree:
             ..., time_sorter
         ],
         *values,
-    )
-
-
-def _to_frame_if_not_noframe(
-    psp: AbstractPhaseSpacePosition, frame: cxf.AbstractReferenceFrame
-) -> AbstractPhaseSpacePosition:
-    return (
-        psp
-        if isinstance(frame, cxf.NoFrame) and isinstance(psp.frame, cxf.NoFrame)
-        else psp.to_frame(frame)
     )
 
 
@@ -144,7 +135,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     _time_sorter: Shaped[Array, "alltimes"]
     _time_are_none: bool
-    _frame: cxf.NoFrame  # TODO: support frames
+    _frame: SimulationFrame  # TODO: support frames
 
     def __init__(
         self,
@@ -169,9 +160,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         # Transform all the PhaseSpacePositions to that frame. If the frames are
         # already `NoFrame`, we can skip this step, since no transformation is
         # possible in `NoFrame`.
-        allpsps = {
-            k: _to_frame_if_not_noframe(psp, frame) for k, psp in allpsps.items()
-        }
+        allpsps = {k: psp.to_frame(frame) for k, psp in allpsps.items()}
 
         # Now we can set all the PhaseSpacePositions
         super().__init__(allpsps)

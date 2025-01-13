@@ -62,7 +62,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         q = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
         p = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
         t = u.Quantity(jr.normal(next(subkeys), shape), "Myr")
-        return w_cls(q=q, p=p, t=t, frame=cx.frames.NoFrame())
+        return w_cls(q=q, p=p, t=t, frame=gc.frames.SimulationFrame())
 
     @pytest.fixture
     def w(self, w_cls: type[T], shape: gt.Shape) -> T:

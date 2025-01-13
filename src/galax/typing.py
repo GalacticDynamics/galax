@@ -81,6 +81,8 @@ QVecTime: TypeAlias = Float[AbstractQuantity, "time"]
 # -----------------
 # Scalars
 
+BatchableScalar: TypeAlias = Shaped[RealScalar, "*#batch"]
+
 BatchFloatScalar: TypeAlias = Shaped[FloatScalar, "*batch"]
 BatchableFloatScalar: TypeAlias = Shaped[FloatScalar, "*#batch"]
 
@@ -105,6 +107,7 @@ BatchableVec6: TypeAlias = Shaped[Vec6, "*#batch"]
 
 # Zero or more batches of 7-vectors
 BatchVec7: TypeAlias = Shaped[Vec7, "*batch"]
+BatchableVec7: TypeAlias = Shaped[Vec7, "*#batch"]
 
 # -----------------
 # Any Shape

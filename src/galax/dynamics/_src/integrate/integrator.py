@@ -39,8 +39,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     Parameters
     ----------
-    Solver : type[diffrax.AbstractSolver], optional
-        The solver to use. Default is :class:`diffrax.Dopri8`.
+    solver : diffrax.AbstractSolver, optional
+        The solver to use. Default is
+        :class:`diffrax.Dopri8`(``scan_kind="bounded"``).
     stepsize_controller : diffrax.AbstractStepSizeController, optional
         The stepsize controller to use. Default is a PID controller with
         relative and absolute tolerances of 1e-7.
@@ -49,9 +50,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         ``{"max_steps": None, "event": None}``. The ``"max_steps"`` key is
         removed if ``interpolated=True`` in the :meth`Integrator.__call__`
         method.
-    solver_kw : Mapping[str, Any], optional
-        Keyword arguments to pass to the solver. Default is ``{"scan_kind":
-        "bounded"}``.
 
     Examples
     --------
@@ -172,8 +170,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     """
 
     _: KW_ONLY
-    Solver: type[diffrax.AbstractSolver] = eqx.field(
-        default=diffrax.Dopri8, static=True
+    solver: diffrax.AbstractSolver = eqx.field(
+        default=diffrax.Dopri8(scan_kind="bounded"), static=True
     )
     stepsize_controller: diffrax.AbstractStepSizeController = eqx.field(
         default=diffrax.PIDController(rtol=1e-7, atol=1e-7), static=True
@@ -182,9 +180,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         default=(("max_steps", None), ("event", None)),
         static=True,
         converter=ImmutableMap,
-    )
-    solver_kw: Mapping[str, Any] = eqx.field(
-        default=(("scan_kind", "bounded"),), static=True, converter=ImmutableMap
     )
 
     # =====================================================
@@ -259,7 +254,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # TODO: quaxify this so don't need to strip units
         soln = diffrax.diffeqsolve(
             terms=field.terms,
-            solver=self.Solver(**self.solver_kw),
+            solver=self.solver,
             t0=t0.ustrip(time),
             t1=t1.ustrip(time),
             y0=(q0.ustrip(units["length"]), p0.ustrip(units["speed"])),

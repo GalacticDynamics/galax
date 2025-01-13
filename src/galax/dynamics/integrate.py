@@ -5,6 +5,9 @@ __all__ = [
     "Integrator",
     "Interpolant",
     "parse_time_specification",
+    "DiffEqSolver",
+    "AbstractSolver",
+    "DynamicsSolver",
 ]
 
 from ._src.integrate import (
@@ -13,3 +16,4 @@ from ._src.integrate import (
     evaluate_orbit,
     parse_time_specification,
 )
+from ._src.solve import AbstractSolver, DiffEqSolver, DynamicsSolver

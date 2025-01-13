@@ -57,7 +57,7 @@ def call(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
 
     >>> newpos = op(pos)
@@ -66,7 +66,7 @@ def call(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
 
     >>> newpos.q.x
@@ -331,6 +331,6 @@ def call(
     PhaseSpacePosition( q=CartesianPos3D( ... ),
                         p=CartesianVel3D( ... ),
                         t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-                        frame=NoFrame() )
+                        frame=SimulationFrame() )
     """
     return x

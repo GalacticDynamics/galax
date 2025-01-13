@@ -7,7 +7,6 @@ import jax.random as jr
 import pytest
 from plum import convert
 
-import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.unitsystems import galactic
@@ -51,7 +50,7 @@ class TestOrbit(AbstractPhaseSpacePosition_Test[gd.Orbit]):
             t=t,
             potential=potential,
             interpolant=None,
-            frame=cx.frames.NoFrame(),
+            frame=gc.frames.SimulationFrame(),
         )
 
     @pytest.fixture

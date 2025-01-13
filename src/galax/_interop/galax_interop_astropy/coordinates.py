@@ -50,7 +50,7 @@ def from_(
         q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
         p=LonCosLatSphericalVel( d_lon_coslat=..., d_lat=..., d_distance=... ),
         t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
 
     """
@@ -103,7 +103,7 @@ def from_(
         q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
         p=LonCosLatSphericalVel( d_lon_coslat=..., d_lat=..., d_distance=... ),
         t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
 
     """

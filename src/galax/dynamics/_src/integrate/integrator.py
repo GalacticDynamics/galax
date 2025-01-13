@@ -12,7 +12,6 @@ import equinox as eqx
 from jaxtyping import ArrayLike, Shaped
 from plum import dispatch
 
-import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
@@ -88,7 +87,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
     >>> w.shape
     ()
@@ -104,7 +103,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
     >>> ws.shape
     (10,)
@@ -139,7 +138,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         ... ),
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(2.71828183, dtype=float64, ...), unit='Gyr'),
-      frame=NoFrame()
+      frame=SimulationFrame()
     )
 
     The interpolant is vectorized:
@@ -152,7 +151,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         ... ),
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(..., dtype=float64), unit='Gyr'),
-      frame=NoFrame()
+      frame=SimulationFrame()
     )
 
     And it works on batches:
@@ -168,7 +167,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity['time'](Array(..., dtype=float64), unit='Gyr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
     """
 
@@ -292,7 +291,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             out_cls = gc.PhaseSpacePosition
             out_kw = {}
 
-        out_kw["frame"] = cx.frames.NoFrame()  # TODO: determine the frame
+        out_kw["frame"] = gc.frames.SimulationFrame()  # TODO: determine the frame
 
         return out_cls(  # shape = (*batch, T)
             t=FastQ(solt, time),
@@ -385,7 +384,7 @@ def call(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
     >>> w.shape
     ()
@@ -400,7 +399,7 @@ def call(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
     >>> ws.shape
     (10,)
@@ -508,7 +507,7 @@ def call(
         p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
             [0.359 0.033 0.   ]>,
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
-        frame=NoFrame())
+        frame=SimulationFrame())
 
     >>> w = integrator(field, w0, t0=t0, t1=t1, units=galactic)
     >>> print(w)
@@ -518,7 +517,7 @@ def call(
         p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
             [0.359 0.033 0.   ]>,
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
-        frame=NoFrame())
+        frame=SimulationFrame())
 
     >>> w = integrator(field, y0=w0, t0=t0, t1=t1, units=galactic)
     >>> print(w)
@@ -528,7 +527,7 @@ def call(
         p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
             [0.359 0.033 0.   ]>,
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
-        frame=NoFrame())
+        frame=SimulationFrame())
 
     """
     # y0: Any, t0: Any, t1: Any
@@ -709,7 +708,7 @@ def call(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
-        frame=NoFrame()
+        frame=SimulationFrame()
     )
 
     """
@@ -772,14 +771,14 @@ def call(
             p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
                 [0.359 0.033 0.   ]>,
             t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
-            frame=NoFrame()),
+            frame=SimulationFrame()),
         w02=PhaseSpacePosition(
             q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
                 [5.121 6.247 0.   ]>,
             p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
                 [-0.033  0.359  0.   ]>,
             t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
-            frame=NoFrame()))
+            frame=SimulationFrame()))
 
     """
     # TODO: Interpolated form

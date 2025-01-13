@@ -17,7 +17,7 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from dataclassish import field_items
-from unxt.quantity import UncheckedQuantity as FastQ
+from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
 
 import galax.typing as gt
 from galax.coordinates._src.frames import SimulationFrame
@@ -121,7 +121,12 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         Space({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) })
 
         """
-        return cx.Space(length=cx.vecs.FourVector(t=self.t, q=self.q), speed=self.p)
+        t = eqx.error_if(
+            self.t,
+            not isinstance(self.t, AbstractQuantity),
+            "time component is not a Quantity",
+        )
+        return cx.Space(length=cx.vecs.FourVector(t=t, q=self.q), speed=self.p)
 
     # ==========================================================================
     # Vector API

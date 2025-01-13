@@ -13,7 +13,7 @@ from typing import Any, final
 import diffrax
 import equinox as eqx
 import jax
-from jaxtyping import Shaped
+from jaxtyping import PyTree, Shaped
 from plum import convert, dispatch
 
 import coordinax as cx
@@ -26,7 +26,14 @@ import galax.typing as gt
 
 
 class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
-    """ABC for dynamics fields."""
+    """ABC for dynamics fields.
+
+    Note that this provides a default implementation for the `terms` property,
+    which is a jitted `diffrax.ODETerm` object. This is a convenience for the
+    user and may be overridden, e.g. to support an SDE or other differential
+    equation types.
+
+    """
 
     @abc.abstractmethod
     def __call__(
@@ -35,10 +42,9 @@ class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-
         raise NotImplementedError  # pragma: no cover
 
     @property
-    @abc.abstractmethod
-    def terms(self) -> diffrax.AbstractTerm:
-        # TODO: should this be concrete?
-        raise NotImplementedError  # pragma: no cover
+    def terms(self) -> PyTree[diffrax.AbstractTerm]:
+        """Return the AbstractTerm."""
+        return diffrax.ODETerm(jax.jit(self.__call__))
 
 
 ##############################################################################
@@ -82,11 +88,6 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         self, t: Any, qp: tuple[Any, Any], args: tuple[Any, ...], /
     ) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
-
-    @property
-    def terms(self) -> diffrax.ODETerm:
-        """Return the ODE term."""
-        return diffrax.ODETerm(jax.jit(self.__call__))
 
 
 # ---------------------------

@@ -187,8 +187,8 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     @vectorize_method(signature="(3),()->()")
     def _laplacian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.FloatQScalar:
         """See ``laplacian``."""
-        jac_op = u.experimental.jacfwd(
-            self._gradient, units=(self.units["length"], self.units["time"])
+        jac_op = u.experimental.jacfwd(  # spatial jacobian
+            self._gradient, argnums=0, units=(self.units["length"], self.units["time"])
         )
         return jnp.trace(jac_op(q, t))
 

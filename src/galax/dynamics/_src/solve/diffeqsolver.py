@@ -43,7 +43,7 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     Examples
     --------
     >>> from diffrax import Dopri5, PIDController, SaveAt, ODETerm
-    >>> from galax.dynamics._src.solve import DiffEqSolver
+    >>> from galax.dynamics.integrate import DiffEqSolver
 
     >>> solver = DiffEqSolver(solver=Dopri5(),
     ...                       stepsize_controller=PIDController(rtol=1e-5, atol=1e-5))

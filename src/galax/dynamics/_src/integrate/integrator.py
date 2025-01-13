@@ -20,12 +20,18 @@ from xmmutablemap import ImmutableMap
 import galax.coordinates as gc
 import galax.typing as gt
 from .interp import Interpolant
+from galax.dynamics._src.solve.diffeqsolver import DiffEqSolver
+from galax.dynamics._src.solve.utils import converter_diffeqsolver
 from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")
 Interp = TypeVar("Interp")
 Time: TypeAlias = gt.TimeScalar | gt.RealScalarLike
 Times: TypeAlias = gt.QVecTime | gt.VecTime
+
+
+default_solver = diffrax.Dopri8(scan_kind="bounded")
+default_stepsize_controller = diffrax.PIDController(rtol=1e-7, atol=1e-7)
 
 
 @final
@@ -169,13 +175,14 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     )
     """
 
+    diffeqsolver: DiffEqSolver = eqx.field(
+        default=DiffEqSolver(
+            solver=diffrax.Dopri8(scan_kind="bounded"),
+            stepsize_controller=diffrax.PIDController(rtol=1e-7, atol=1e-7),
+        ),
+        converter=converter_diffeqsolver,
+    )
     _: KW_ONLY
-    solver: diffrax.AbstractSolver = eqx.field(
-        default=diffrax.Dopri8(scan_kind="bounded"), static=True
-    )
-    stepsize_controller: diffrax.AbstractStepSizeController = eqx.field(
-        default=diffrax.PIDController(rtol=1e-7, atol=1e-7), static=True
-    )
     diffeq_kw: Mapping[str, Any] = eqx.field(
         default=(("max_steps", None), ("event", None)),
         static=True,
@@ -252,17 +259,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Perform the integration
 
         # TODO: quaxify this so don't need to strip units
-        soln = diffrax.diffeqsolve(
-            terms=field.terms,
-            solver=self.solver,
-            t0=t0.ustrip(time),
-            t1=t1.ustrip(time),
-            y0=(q0.ustrip(units["length"]), p0.ustrip(units["speed"])),
-            dt0=None,
-            args=(),
-            saveat=save_at,
-            stepsize_controller=self.stepsize_controller,
-            **diffeq_kw,
+        y0 = (q0.ustrip(units["length"]), p0.ustrip(units["speed"]))
+        t0 = t0.ustrip(time)
+        t1 = t1.ustrip(time)
+        soln: diffrax.Solution = self.diffeqsolver(
+            field.terms, t0, t1, y0=y0, dt0=None, args=(), saveat=save_at, **diffeq_kw
         )
 
         # Reshape (T, *batch) to (*batch, T)

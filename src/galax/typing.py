@@ -11,7 +11,7 @@ __all__: list[str] = []
 from typing import TypeAlias
 
 import astropy.units as apyu
-from jaxtyping import Array, Float, Integer, Shaped
+from jaxtyping import Array, Float, Integer, Scalar, Shaped
 
 import unxt as u
 from unxt.quantity import AbstractQuantity
@@ -81,7 +81,8 @@ QVecTime: TypeAlias = Float[AbstractQuantity, "time"]
 # -----------------
 # Scalars
 
-BatchableScalar: TypeAlias = Shaped[RealScalar, "*#batch"]
+BatchScalar: TypeAlias = Shaped[Scalar, "*batch"]
+BatchableScalar: TypeAlias = Shaped[Scalar, "*#batch"]
 
 BatchFloatScalar: TypeAlias = Shaped[FloatScalar, "*batch"]
 BatchableFloatScalar: TypeAlias = Shaped[FloatScalar, "*#batch"]

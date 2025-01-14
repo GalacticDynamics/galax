@@ -5,15 +5,17 @@ This is private API.
 """
 
 __all__ = [
-    "DiffEqSolver",
     # Dynamics solvers
     "AbstractSolver",
     "DynamicsSolver",
+    # lower-level solver
+    "DiffEqSolver",
     # utils
     "converter_diffeqsolver",
     "parse_saveat",
 ]
 
-from .diffeqsolver import DiffEqSolver
-from .dynamicsolver import AbstractSolver, DynamicsSolver
+from .base import AbstractSolver
+from .diffeq import DiffEqSolver
+from .dynamics import DynamicsSolver
 from .utils import converter_diffeqsolver, parse_saveat

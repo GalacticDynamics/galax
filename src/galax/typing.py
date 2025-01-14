@@ -19,7 +19,7 @@ __all__: list[str] = []
 from typing import TypeAlias
 
 import astropy.units as apyu
-from jaxtyping import Array, Float, Integer, Scalar, Shaped
+from jaxtyping import Array, Float, Int, Scalar, Shaped
 
 import unxt as u
 from unxt.quantity import AbstractQuantity
@@ -34,8 +34,8 @@ Unit: TypeAlias = apyu.Unit | apyu.UnitBase | apyu.CompositeUnit
 # Scalars
 
 # An integer scalar.
-IntSz0: TypeAlias = Integer[Array, ""]
-IntQSz0: TypeAlias = Integer[AbstractQuantity, ""]
+IntSz0: TypeAlias = Int[Array, ""]
+IntQSz0: TypeAlias = Int[AbstractQuantity, ""]
 IntLike: TypeAlias = IntSz0 | int
 
 # A float scalar.

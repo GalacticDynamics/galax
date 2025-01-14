@@ -10,11 +10,11 @@ from plum import dispatch
 import coordinax as cx
 import unxt as u
 
-from .base import AbstractBasePhaseSpacePosition
+from .base import AbstractPhaseSpacePosition
 from .utils import PSPVConvertOptions
 
 
-class AbstractOnePhaseSpacePosition(AbstractBasePhaseSpacePosition):
+class AbstractOnePhaseSpacePosition(AbstractPhaseSpacePosition):
     r"""Abstract base class of phase-space positions.
 
     The phase-space position is a point in the 3+3+1-dimensional phase space

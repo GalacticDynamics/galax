@@ -19,14 +19,14 @@ from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
 import galax.typing as gt
-from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
+from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
 from .utils import PSPVConvertOptions
 
 
 # Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
-    AbstractBasePhaseSpacePosition,
-    ImmutableMap[str, AbstractBasePhaseSpacePosition],  # type: ignore[misc]
+    AbstractPhaseSpacePosition,
+    ImmutableMap[str, AbstractPhaseSpacePosition],  # type: ignore[misc]
     strict=False,  # type: ignore[call-arg]
 ):
     r"""Abstract base class of composite phase-space positions.
@@ -42,7 +42,7 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
 
     The components are stored as a dictionary and can be key accessed. However,
     the composite phase-space position itself acts as a single
-    `AbstractBasePhaseSpacePosition` object, so you can access the composite
+    `AbstractPhaseSpacePosition` object, so you can access the composite
     positions, velocities, and times as if they were a single object. In this
     base class the composition of the components is abstract and must be
     implemented in the subclasses.
@@ -94,16 +94,16 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
     2
     """
 
-    _data: dict[str, AbstractBasePhaseSpacePosition]
+    _data: dict[str, AbstractPhaseSpacePosition]
 
     def __init__(
         self,
         psps: (
-            dict[str, AbstractBasePhaseSpacePosition]
-            | tuple[tuple[str, AbstractBasePhaseSpacePosition], ...]
+            dict[str, AbstractPhaseSpacePosition]
+            | tuple[tuple[str, AbstractPhaseSpacePosition], ...]
         ) = (),
         /,
-        **kwargs: AbstractBasePhaseSpacePosition,
+        **kwargs: AbstractPhaseSpacePosition,
     ) -> None:
         ImmutableMap.__init__(self, psps, **kwargs)  # <- ImmutableMap.__init__
 
@@ -194,7 +194,7 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
     # ---------------------------------------------------------------
     # Getitem
 
-    @AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(
         self: "AbstractCompositePhaseSpacePosition", key: Any
     ) -> "AbstractCompositePhaseSpacePosition":
@@ -230,10 +230,10 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
         # Get from each value, e.g. a slice
         return type(self)(**{k: v[key] for k, v in self.items()})
 
-    @AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(
         self: "AbstractCompositePhaseSpacePosition", key: str
-    ) -> AbstractBasePhaseSpacePosition:
+    ) -> AbstractPhaseSpacePosition:
         """Get item from the key.
 
         Examples

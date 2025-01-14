@@ -167,7 +167,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     # -------------------------------------------------------------------------
     # Getitem
 
-    @gc.AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(self: "Orbit", index: tuple[Any, ...]) -> "Orbit":
         """Get a multi-index selection of the orbit.
 
@@ -215,7 +215,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
 
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
-    @gc.AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(self: "Orbit", index: slice) -> "Orbit":
         """Slice the orbit.
 
@@ -259,7 +259,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
 
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
-    @gc.AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(self: "Orbit", index: int) -> gc.PhaseSpacePosition:
         """Get the orbit at a specific time.
 
@@ -291,7 +291,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
         """
         return gc.PhaseSpacePosition(q=self.q[index], p=self.p[index], t=self.t[index])
 
-    @gc.AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(
         self: "Orbit", index: Int[Array, "..."] | Bool[Array, "..."] | ndarray
     ) -> "Orbit":

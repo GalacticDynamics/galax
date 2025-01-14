@@ -10,9 +10,9 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
     from . import frames, ops
     from ._src.psps import (
-        AbstractBasePhaseSpacePosition,
         AbstractCompositePhaseSpacePosition,
         AbstractOnePhaseSpacePosition,
+        AbstractPhaseSpacePosition,
         ComponentShapeTuple,
         CompositePhaseSpacePosition,
         InterpolatedPhaseSpacePosition,
@@ -25,7 +25,7 @@ __all__ = [
     "ops",
     "frames",
     # Contents
-    "AbstractBasePhaseSpacePosition",
+    "AbstractPhaseSpacePosition",
     "AbstractOnePhaseSpacePosition",
     "PhaseSpacePosition",
     "AbstractCompositePhaseSpacePosition",

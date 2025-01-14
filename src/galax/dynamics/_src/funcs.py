@@ -107,7 +107,7 @@ def specific_angular_momentum(w: cx.Space) -> gt.BatchQVec3:
 
 @dispatch
 @partial(jax.jit, inline=True)
-def specific_angular_momentum(w: gc.AbstractBasePhaseSpacePosition) -> gt.BatchQVec3:
+def specific_angular_momentum(w: gc.AbstractPhaseSpacePosition) -> gt.BatchQVec3:
     r"""Compute the specific angular momentum.
 
     .. math::

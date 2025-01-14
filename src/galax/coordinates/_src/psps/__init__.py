@@ -5,7 +5,7 @@ This is private API.
 """
 
 __all__ = [
-    "AbstractBasePhaseSpacePosition",
+    "AbstractPhaseSpacePosition",
     "AbstractOnePhaseSpacePosition",
     "PhaseSpacePosition",
     "AbstractCompositePhaseSpacePosition",
@@ -17,7 +17,7 @@ __all__ = [
     "ComponentShapeTuple",
 ]
 
-from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
+from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpacePosition
 from .base_psp import AbstractOnePhaseSpacePosition
 from .core import PhaseSpacePosition

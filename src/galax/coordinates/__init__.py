@@ -12,7 +12,7 @@ with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
     from ._src.psps import (
         AbstractBasePhaseSpacePosition,
         AbstractCompositePhaseSpacePosition,
-        AbstractPhaseSpacePosition,
+        AbstractOnePhaseSpacePosition,
         ComponentShapeTuple,
         CompositePhaseSpacePosition,
         InterpolatedPhaseSpacePosition,
@@ -26,7 +26,7 @@ __all__ = [
     "frames",
     # Contents
     "AbstractBasePhaseSpacePosition",
-    "AbstractPhaseSpacePosition",
+    "AbstractOnePhaseSpacePosition",
     "PhaseSpacePosition",
     "AbstractCompositePhaseSpacePosition",
     "CompositePhaseSpacePosition",

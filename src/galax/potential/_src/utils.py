@@ -63,7 +63,7 @@ def parse_to_quantity(
 
 @dispatch
 def parse_to_quantity(
-    x: gc.AbstractPhaseSpacePosition, /, **_: Any
+    x: gc.AbstractOnePhaseSpacePosition, /, **_: Any
 ) -> Shaped[AbstractQuantity, "*batch 3"]:
     return parse_to_quantity(x.q)
 

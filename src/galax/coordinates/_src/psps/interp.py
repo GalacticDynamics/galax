@@ -13,7 +13,7 @@ import unxt as u
 
 import galax.typing as gt
 from .base import ComponentShapeTuple
-from .base_psp import AbstractPhaseSpacePosition
+from .base_psp import AbstractOnePhaseSpacePosition
 from .core import PhaseSpacePosition
 from galax.coordinates._src.frames import SimulationFrame
 from galax.utils._shape import batched_shape, vector_batched_shape
@@ -43,7 +43,7 @@ class PhaseSpacePositionInterpolant(Protocol):
 
 
 @final
-class InterpolatedPhaseSpacePosition(AbstractPhaseSpacePosition):
+class InterpolatedPhaseSpacePosition(AbstractOnePhaseSpacePosition):
     """Interpolated phase-space position."""
 
     q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)

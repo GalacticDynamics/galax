@@ -23,7 +23,7 @@ from galax.typing import BatchFloatQScalar, QVec1, QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
-class Orbit(gc.AbstractPhaseSpacePosition):
+class Orbit(gc.AbstractOnePhaseSpacePosition):
     """Represents an orbit.
 
     An orbit is a set of positions and velocities (conjugate momenta) as a
@@ -118,7 +118,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     @classmethod
     def _from_psp(
         cls,
-        w: gc.AbstractPhaseSpacePosition,
+        w: gc.AbstractOnePhaseSpacePosition,
         t: QVecTime,
         potential: gp.AbstractBasePotential,
     ) -> "Orbit":

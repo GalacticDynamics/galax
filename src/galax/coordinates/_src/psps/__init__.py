@@ -6,7 +6,7 @@ This is private API.
 
 __all__ = [
     "AbstractBasePhaseSpacePosition",
-    "AbstractPhaseSpacePosition",
+    "AbstractOnePhaseSpacePosition",
     "PhaseSpacePosition",
     "AbstractCompositePhaseSpacePosition",
     "CompositePhaseSpacePosition",
@@ -19,7 +19,7 @@ __all__ = [
 
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpacePosition
-from .base_psp import AbstractPhaseSpacePosition
+from .base_psp import AbstractOnePhaseSpacePosition
 from .core import PhaseSpacePosition
 from .core_composite import CompositePhaseSpacePosition
 from .interp import InterpolatedPhaseSpacePosition, PhaseSpacePositionInterpolant

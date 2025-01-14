@@ -159,7 +159,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 
         Returns
         -------
-        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+        w : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`
             The phase-space position with the components transformed.
 
         Examples
@@ -214,7 +214,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 
         Returns
         -------
-        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+        w : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`
             The phase-space position with the components transformed.
 
         Examples
@@ -484,7 +484,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         -------
         Array[float, (*batch, Q + P)]
             The phase-space position as a 6-vector in Cartesian coordinates.
-            This will have shape :attr:`AbstractPhaseSpacePosition.full_shape`.
+            This will have shape :attr:`AbstractOnePhaseSpacePosition.full_shape`.
 
         Examples
         --------

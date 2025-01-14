@@ -1,4 +1,4 @@
-"""Test `galax.coordinates.AbstractPhaseSpacePosition`."""
+"""Test `galax.coordinates.AbstractOnePhaseSpacePosition`."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from pytest import FixtureRequest  # noqa: PT013
 
 
-T = TypeVar("T", bound=gc.AbstractPhaseSpacePosition)
+T = TypeVar("T", bound=gc.AbstractOnePhaseSpacePosition)
 
 potentials = [
     KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units=galactic),
@@ -41,8 +41,8 @@ def return_keys(num: int, key: Array | int = 0) -> Iterable[jr.PRNGKey]:
     return newkey, iter(subkeys)
 
 
-class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
-    """Test :class:`~galax.coordinates.AbstractPhaseSpacePosition`."""
+class AbstractOnePhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
+    """Test :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`."""
 
     @pytest.fixture(scope="class", params=[(10,), (5, 4)], ids=lambda param: str(param))
     def shape(self, request: FixtureRequest) -> gt.Shape:
@@ -73,13 +73,13 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
     # Attributes
 
     def test_q(self, w: T, shape: gt.Shape) -> None:
-        """Test :attr:`~galax.coordinates.AbstractPhaseSpacePosition.q`."""
+        """Test :attr:`~galax.coordinates.AbstractOnePhaseSpacePosition.q`."""
         assert hasattr(w, "q")
         assert w.q.shape == shape
         assert len(w.q.components) == 3
 
     def test_p(self, w: T, shape: gt.Shape) -> None:
-        """Test :attr:`~galax.coordinates.AbstractPhaseSpacePosition.p`."""
+        """Test :attr:`~galax.coordinates.AbstractOnePhaseSpacePosition.p`."""
         assert hasattr(w, "p")
         assert w.p.shape == w.q.shape
         assert w.p.shape == shape
@@ -89,7 +89,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
     # Array properties
 
     def test_shape(self, w: T, shape: gt.Shape) -> None:
-        """Test :attr:`~galax.coordinates.AbstractPhaseSpacePosition.shape`."""
+        """Test :attr:`~galax.coordinates.AbstractOnePhaseSpacePosition.shape`."""
         # Check existence
         assert hasattr(w, "shape")
 
@@ -103,7 +103,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert w.shape == shape
 
     def test_ndim(self, w: T) -> None:
-        """Test :attr:`~galax.coordinates.AbstractPhaseSpacePosition.ndim`."""
+        """Test :attr:`~galax.coordinates.AbstractOnePhaseSpacePosition.ndim`."""
         # Check existence
         assert hasattr(w, "ndim")
 
@@ -112,7 +112,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert w.ndim == w.q.ndim
 
     def test_len(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__len__`."""
+        """Test :meth:`~galax.coordinates.AbstractOnePhaseSpacePosition.__len__`."""
         # Check existence
         assert hasattr(w, "__len__")
 
@@ -123,22 +123,22 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
     # ----------------------------
 
     def test_getitem_int(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
+        """Test `~galax.coordinates.AbstractOnePhaseSpacePosition.__getitem__`."""
         assert jnp.all(w[0] == replace(w, q=w.q[0], p=w.p[0], t=w.t[0]))
 
     def test_getitem_slice(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
+        """Test `~galax.coordinates.AbstractOnePhaseSpacePosition.__getitem__`."""
         assert jnp.all(w[:5] == replace(w, q=w.q[:5], p=w.p[:5], t=w.t[:5]))
 
     def test_getitem_boolarray(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
+        """Test `~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         idx = jnp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
         assert all(w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx]))
 
     def test_getitem_intarray(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
+        """Test `~galax.coordinates.AbstractPhaseSpacePosition.__getitem__`."""
         idx = jnp.asarray([0, 2, 1])
         assert jnp.all(w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx]))
 
@@ -161,7 +161,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
     # Convenience methods
 
     def test_w(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.w`."""
+        """Test :meth:`~galax.coordinates.AbstractOnePhaseSpacePosition.w`."""
         # Check existence
         assert hasattr(w, "w")
 
@@ -169,7 +169,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         assert w.w(units=galactic).shape[:-1] == w.full_shape[:-1]
 
     def test_wt(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.wt`."""
+        """Test :meth:`~galax.coordinates.AbstractOnePhaseSpacePosition.wt`."""
         wt = w.wt(units=galactic)
         assert wt.shape == w.full_shape
         assert jnp.array_equal(wt[..., 0], w.t.decompose(galactic).value)
@@ -181,7 +181,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         )
 
     def test_to_units(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.to_units`."""
+        """Test :meth:`~galax.coordinates.AbstractOnePhaseSpacePosition.to_units`."""
         w2 = w.to_units("solarsystem")
         # TODO: more detailed tests
         assert w2.q.x.unit == "AU"
@@ -211,7 +211,7 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
 
     @pytest.mark.parametrize("pot", potentials, ids=lambda p: type(p).__name__)
     def test_total_energy(self, w: T, pot: AbstractBasePotential) -> None:
-        """Test :meth:`~galax.coordinates.AbstractPhaseSpacePosition.energy`."""
+        """Test :meth:`~galax.coordinates.AbstractOnePhaseSpacePosition.energy`."""
         pe = w.total_energy(pot)
         assert pe.shape == w.shape  # confirm relation to shape and components
         # definitional
@@ -231,14 +231,14 @@ class AbstractPhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
 ##############################################################################
 
 
-class TestAbstractPhaseSpacePosition(AbstractPhaseSpacePosition_Test[T]):
-    """Test :class:`~galax.coordinates.AbstractPhaseSpacePosition`."""
+class TestAbstractOnePhaseSpacePosition(AbstractOnePhaseSpacePosition_Test[T]):
+    """Test :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`."""
 
     @pytest.fixture(scope="class")
     def w_cls(self) -> type[T]:
         """Return the class of a phase-space position."""
 
-        class PSP(gc.AbstractPhaseSpacePosition):
+        class PSP(gc.AbstractOnePhaseSpacePosition):
             """A phase-space position."""
 
             q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)

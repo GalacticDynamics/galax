@@ -18,13 +18,13 @@ from unxt.quantity import AbstractQuantity
 import galax.typing as gt
 from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpacePosition
-from .base_psp import AbstractPhaseSpacePosition
+from .base_psp import AbstractOnePhaseSpacePosition
 from galax.coordinates._src.frames import SimulationFrame
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
 @final
-class PhaseSpacePosition(AbstractPhaseSpacePosition):
+class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
     r"""Phase-Space Position with time.
 
     The phase-space position is a point in the 7-dimensional phase space

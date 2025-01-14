@@ -15,7 +15,7 @@ import unxt as u
 from zeroth import zeroth
 
 from .base_composite import AbstractCompositePhaseSpacePosition
-from .base_psp import AbstractPhaseSpacePosition
+from .base_psp import AbstractOnePhaseSpacePosition
 from galax.coordinates._src.frames import SimulationFrame
 
 
@@ -43,7 +43,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     ----------
     psps: dict | tuple, optional positional-only
         initialize from a (key, value) mapping or tuple.
-    **kwargs : AbstractPhaseSpacePosition
+    **kwargs : AbstractOnePhaseSpacePosition
         The name=value pairs of the phase-space positions.
 
     Notes
@@ -139,11 +139,11 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     def __init__(
         self,
-        psps: Mapping[str, AbstractPhaseSpacePosition]
-        | tuple[tuple[str, AbstractPhaseSpacePosition], ...] = (),
+        psps: Mapping[str, AbstractOnePhaseSpacePosition]
+        | tuple[tuple[str, AbstractOnePhaseSpacePosition], ...] = (),
         /,
         frame: Any = None,
-        **kwargs: AbstractPhaseSpacePosition,
+        **kwargs: AbstractOnePhaseSpacePosition,
     ) -> None:
         # Aggregate all the PhaseSpacePositions
         allpsps = dict(psps, **kwargs)

@@ -466,7 +466,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    w0: gc.PhaseSpacePosition,  # TODO: handle frames
+    w0: gc.AbstractPhaseSpacePosition,  # TODO: handle frames
     t1: gt.RealQScalar,
     /,
     args: Any = (),
@@ -535,7 +535,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    w0: gc.PhaseSpacePosition,  # TODO: handle frames
+    w0: gc.AbstractPhaseSpacePosition,  # TODO: handle frames
     t0: gt.RealQScalar,
     t1: gt.RealQScalar,
     /,

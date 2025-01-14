@@ -39,7 +39,7 @@ HessianVec: TypeAlias = Shaped[u.Quantity["1/s^2"], "*#shape 3 3"]
 @dispatch
 def potential(
     pot: AbstractBasePotential,
-    pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
+    pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> u.Quantity["specific energy"]:
     """Compute the potential energy at the given position(s).
@@ -47,7 +47,7 @@ def potential(
     Parameters
     ----------
     pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
-    pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`, positional-only
+    pspt : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`, positional-only
         The phase-space + time position to compute the value of the
         potential.
 
@@ -87,7 +87,7 @@ def potential(
     Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
     Instead of passing a
-    :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     we can instead pass a :class:`~coordinax.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -264,7 +264,7 @@ def potential(
 @dispatch
 def gradient(
     pot: AbstractBasePotential,
-    pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
+    pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> cx.vecs.CartesianAcc3D:
     """Compute the gradient of the potential at the given position(s).
@@ -273,7 +273,7 @@ def gradient(
     ----------
     pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
         The potential to compute the gradient of.
-    pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    pspt : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     positional-only
         The phase-space + time position to compute the gradient.
 
@@ -315,7 +315,7 @@ def gradient(
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
-    Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    Instead of passing a :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -525,7 +525,7 @@ def gradient(
 @dispatch
 def laplacian(
     pot: AbstractBasePotential,
-    pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
+    pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> u.Quantity["1/s^2"]:
     """Compute the laplacian of the potential at the given position(s).
@@ -534,7 +534,7 @@ def laplacian(
     ----------
     pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
         The potential to compute the laplacian of.
-    pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    pspt : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     positional-only
         The phase-space + time position to compute the laplacian.
 
@@ -573,7 +573,7 @@ def laplacian(
     >>> pot.laplacian(w)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
-    Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    Instead of passing a :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -758,7 +758,7 @@ def laplacian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> u.Quantity["1
 @dispatch
 def density(
     pot: AbstractBasePotential,
-    pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
+    pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> u.Quantity["mass density"]:
     """Compute the density at the given position(s).
@@ -767,7 +767,7 @@ def density(
     ----------
     pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
         The potential to compute the density of.
-    pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+    pspt : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`
         The phase-space + time position to compute the density.
 
     Returns
@@ -805,7 +805,7 @@ def density(
     >>> pot.density(w)
     Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
 
-    Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    Instead of passing a :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -978,14 +978,14 @@ def density(
 @dispatch
 def hessian(
     pot: AbstractBasePotential,
-    pspt: gc.AbstractPhaseSpacePosition | cx.FourVector,
+    pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> gt.BatchQMatrix33:
     """Compute the hessian of the potential at the given position(s).
 
     Parameters
     ----------
-    pspt : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+    pspt : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`
         The phase-space + time position to compute the hessian of the potential.
 
     Returns
@@ -1032,7 +1032,7 @@ def hessian(
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
                   unit='1 / Myr2')
 
-    Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    Instead of passing a :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -1277,7 +1277,7 @@ def acceleration(
         [[-0.086 -0.172 -0.258]
          [-0.027 -0.033 -0.04 ]]>
 
-    Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    Instead of passing a :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -1393,7 +1393,7 @@ def tidal_tensor(
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
                     unit='1 / Myr2')
 
-    Instead of passing a :class:`~galax.coordinates.AbstractPhaseSpacePosition`,
+    Instead of passing a :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     we can instead pass a :class:`~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -1663,7 +1663,7 @@ def circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, w: gc.AbstractPhaseSpacePosition, /
+    pot: AbstractBasePotential, w: gc.AbstractOnePhaseSpacePosition, /
 ) -> gt.BatchableRealQScalar:
     """Estimate the circular velocity at the given position.
 

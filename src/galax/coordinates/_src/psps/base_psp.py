@@ -1,6 +1,6 @@
 """galax: Galactic Dynamics in Jax."""
 
-__all__ = ["AbstractPhaseSpacePosition"]
+__all__ = ["AbstractOnePhaseSpacePosition"]
 
 from dataclasses import replace
 from typing import Any
@@ -10,11 +10,11 @@ from plum import dispatch
 import coordinax as cx
 import unxt as u
 
-from .base import AbstractBasePhaseSpacePosition
+from .base import AbstractPhaseSpacePosition
 from .utils import PSPVConvertOptions
 
 
-class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
+class AbstractOnePhaseSpacePosition(AbstractPhaseSpacePosition):
     r"""Abstract base class of phase-space positions.
 
     The phase-space position is a point in the 3+3+1-dimensional phase space
@@ -37,7 +37,7 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
     # ==========================================================================
     # Convenience methods
 
-    def to_units(self, units: Any) -> "AbstractPhaseSpacePosition":
+    def to_units(self, units: Any) -> "AbstractOnePhaseSpacePosition":
         """Return a new object with the components converted to the given units."""
         usys = u.unitsystem(units)
         return replace(
@@ -59,10 +59,10 @@ class AbstractPhaseSpacePosition(AbstractBasePhaseSpacePosition):
 @dispatch
 def vconvert(
     target: PSPVConvertOptions,
-    psp: AbstractPhaseSpacePosition,
+    psp: AbstractOnePhaseSpacePosition,
     /,
     **kwargs: Any,
-) -> AbstractPhaseSpacePosition:
+) -> AbstractOnePhaseSpacePosition:
     """Convert the phase-space position to a different representation.
 
     Examples
@@ -100,10 +100,10 @@ def vconvert(
 @dispatch
 def vconvert(
     target_position_cls: type[cx.vecs.AbstractPos],
-    psp: AbstractPhaseSpacePosition,
+    psp: AbstractOnePhaseSpacePosition,
     /,
     **kwargs: Any,
-) -> AbstractPhaseSpacePosition:
+) -> AbstractOnePhaseSpacePosition:
     """Convert the phase-space position to a different representation.
 
     Examples

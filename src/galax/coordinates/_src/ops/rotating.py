@@ -14,7 +14,7 @@ import coordinax.ops as cxo
 import quaxed.numpy as jnp
 import unxt as u
 
-from galax.coordinates._src.psps.base_psp import AbstractPhaseSpacePosition
+from galax.coordinates._src.psps.base_psp import AbstractOnePhaseSpacePosition
 
 vec_matmul = jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)")
 
@@ -248,8 +248,8 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
     @cxo.AbstractOperator.__call__.dispatch
     def __call__(
-        self: "ConstantRotationZOperator", psp: AbstractPhaseSpacePosition, /
-    ) -> AbstractPhaseSpacePosition:
+        self: "ConstantRotationZOperator", psp: AbstractOnePhaseSpacePosition, /
+    ) -> AbstractOnePhaseSpacePosition:
         """Apply the translation to the coordinates.
 
         Examples

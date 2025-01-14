@@ -21,7 +21,7 @@ from galax.utils._shape import batched_shape, vector_batched_shape
 
 
 @final
-class MockStreamArm(gc.AbstractPhaseSpacePosition):
+class MockStreamArm(gc.AbstractOnePhaseSpacePosition):
     """Component of a mock stream object.
 
     Parameters

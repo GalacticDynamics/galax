@@ -664,7 +664,7 @@ def call(
 def call(
     self: Integrator,
     field: AbstractDynamicsField,
-    w0: gc.AbstractPhaseSpacePosition,
+    w0: gc.AbstractOnePhaseSpacePosition,
     t0: Any,
     t1: Any,
     /,

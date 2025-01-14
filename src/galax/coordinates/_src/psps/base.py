@@ -1,6 +1,6 @@
 """ABC for phase-space positions."""
 
-__all__ = ["AbstractBasePhaseSpacePosition", "ComponentShapeTuple"]
+__all__ = ["AbstractPhaseSpacePosition", "ComponentShapeTuple"]
 
 from abc import abstractmethod
 from dataclasses import replace
@@ -40,7 +40,7 @@ class ComponentShapeTuple(NamedTuple):
 
 
 # TODO: make it strict=True
-class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[misc]
+class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[misc]
     r"""ABC underlying phase-space positions and their composites.
 
     The phase-space position is a point in the 3+3+1-dimensional phase space
@@ -90,10 +90,10 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
     @classmethod
     @dispatch
     def from_(
-        cls: "type[AbstractBasePhaseSpacePosition]", *args: Any, **kwargs: Any
-    ) -> "AbstractBasePhaseSpacePosition":
+        cls: "type[AbstractPhaseSpacePosition]", *args: Any, **kwargs: Any
+    ) -> "AbstractPhaseSpacePosition":
         """Construct from arguments, defaulting to AbstractVector constructor."""
-        return cast(AbstractBasePhaseSpacePosition, super().from_(*args, **kwargs))
+        return cast(AbstractPhaseSpacePosition, super().from_(*args, **kwargs))
 
     # ==========================================================================
     # Coordinate API
@@ -134,7 +134,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
     @dispatch(precedence=-1)
     def vconvert(
         self, target: Any, *args: Any, **kwargs: Any
-    ) -> "AbstractBasePhaseSpacePosition":
+    ) -> "AbstractPhaseSpacePosition":
         return cx.vconvert(target, self, *args, **kwargs)
 
     @dispatch
@@ -144,7 +144,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         velocity_cls: type[cx.vecs.AbstractVel] | None = None,
         /,
         **kwargs: Any,
-    ) -> "AbstractBasePhaseSpacePosition":
+    ) -> "AbstractPhaseSpacePosition":
         """Return with the components transformed.
 
         Parameters
@@ -159,7 +159,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 
         Returns
         -------
-        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+        w : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`
             The phase-space position with the components transformed.
 
         Examples
@@ -214,7 +214,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 
         Returns
         -------
-        w : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
+        w : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`
             The phase-space position with the components transformed.
 
         Examples
@@ -332,8 +332,8 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 
     @dispatch
     def __getitem__(
-        self: "AbstractBasePhaseSpacePosition", index: Any
-    ) -> "AbstractBasePhaseSpacePosition":
+        self: "AbstractPhaseSpacePosition", index: Any
+    ) -> "AbstractPhaseSpacePosition":
         """Return a new object with the given slice applied.
 
         Examples
@@ -374,12 +374,12 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 
     @dispatch.abstract
     def __add__(
-        self: "AbstractBasePhaseSpacePosition", other: Any, /
-    ) -> "AbstractBasePhaseSpacePosition":
+        self: "AbstractPhaseSpacePosition", other: Any, /
+    ) -> "AbstractPhaseSpacePosition":
         """Add to a phase-space positions."""
         raise NotImplementedError  # pragma: no cover
 
-    def __neg__(self) -> "AbstractBasePhaseSpacePosition":
+    def __neg__(self) -> "AbstractPhaseSpacePosition":
         raise NotImplementedError  # TODO: implement
 
     # ==========================================================================
@@ -484,7 +484,7 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
         -------
         Array[float, (*batch, Q + P)]
             The phase-space position as a 6-vector in Cartesian coordinates.
-            This will have shape :attr:`AbstractPhaseSpacePosition.full_shape`.
+            This will have shape :attr:`AbstractOnePhaseSpacePosition.full_shape`.
 
         Examples
         --------
@@ -722,22 +722,22 @@ class AbstractBasePhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ign
 # Register additional constructors
 
 
-@AbstractBasePhaseSpacePosition.from_.dispatch  # type: ignore[attr-defined,misc]
+@AbstractPhaseSpacePosition.from_.dispatch  # type: ignore[attr-defined,misc]
 def from_(
-    cls: type[AbstractBasePhaseSpacePosition], obj: AbstractBasePhaseSpacePosition, /
-) -> AbstractBasePhaseSpacePosition:
-    """Construct from a `AbstractBasePhaseSpacePosition`.
+    cls: type[AbstractPhaseSpacePosition], obj: AbstractPhaseSpacePosition, /
+) -> AbstractPhaseSpacePosition:
+    """Construct from a `AbstractPhaseSpacePosition`.
 
     Parameters
     ----------
-    cls : type[:class:`~galax.coordinates.AbstractBasePhaseSpacePosition`]
+    cls : type[:class:`~galax.coordinates.AbstractPhaseSpacePosition`]
         The class to construct.
-    obj : :class:`~galax.coordinates.AbstractBasePhaseSpacePosition`
+    obj : :class:`~galax.coordinates.AbstractPhaseSpacePosition`
         The phase-space position object from which to construct.
 
     Returns
     -------
-    :class:`~galax.coordinates.AbstractBasePhaseSpacePosition`
+    :class:`~galax.coordinates.AbstractPhaseSpacePosition`
         The constructed phase-space position.
 
     Raises
@@ -788,9 +788,9 @@ def from_(
 # Converters
 
 
-@conversion_method(type_from=AbstractBasePhaseSpacePosition, type_to=cx.Coordinate)  # type: ignore[arg-type,type-abstract]
+@conversion_method(type_from=AbstractPhaseSpacePosition, type_to=cx.Coordinate)  # type: ignore[arg-type,type-abstract]
 def convert_psp_to_coordinax_coordinate(
-    obj: AbstractBasePhaseSpacePosition, /
+    obj: AbstractPhaseSpacePosition, /
 ) -> cx.Coordinate:
     """Convert a phase-space position to a coordinax coordinate.
 
@@ -818,12 +818,12 @@ def convert_psp_to_coordinax_coordinate(
 # Addition
 
 
-@AbstractBasePhaseSpacePosition.__add__.dispatch  # type: ignore[misc]
+@AbstractPhaseSpacePosition.__add__.dispatch  # type: ignore[misc]
 def add(
-    self: AbstractBasePhaseSpacePosition,
-    other: AbstractBasePhaseSpacePosition,
+    self: AbstractPhaseSpacePosition,
+    other: AbstractPhaseSpacePosition,
     /,
-) -> AbstractBasePhaseSpacePosition:
+) -> AbstractPhaseSpacePosition:
     """Add two phase-space positions.
 
     Examples

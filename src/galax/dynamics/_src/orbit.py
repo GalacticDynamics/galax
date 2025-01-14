@@ -23,7 +23,7 @@ from galax.typing import BatchFloatQScalar, QVec1, QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
-class Orbit(gc.AbstractPhaseSpacePosition):
+class Orbit(gc.AbstractOnePhaseSpacePosition):
     """Represents an orbit.
 
     An orbit is a set of positions and velocities (conjugate momenta) as a
@@ -118,7 +118,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     @classmethod
     def _from_psp(
         cls,
-        w: gc.AbstractPhaseSpacePosition,
+        w: gc.AbstractOnePhaseSpacePosition,
         t: QVecTime,
         potential: gp.AbstractBasePotential,
     ) -> "Orbit":
@@ -167,7 +167,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
     # -------------------------------------------------------------------------
     # Getitem
 
-    @gc.AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(self: "Orbit", index: tuple[Any, ...]) -> "Orbit":
         """Get a multi-index selection of the orbit.
 
@@ -215,7 +215,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
-    @gc.AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(self: "Orbit", index: slice) -> "Orbit":
         """Slice the orbit.
 
@@ -259,7 +259,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
 
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
-    @gc.AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(self: "Orbit", index: int) -> gc.PhaseSpacePosition:
         """Get the orbit at a specific time.
 
@@ -291,7 +291,7 @@ class Orbit(gc.AbstractPhaseSpacePosition):
         """
         return gc.PhaseSpacePosition(q=self.q[index], p=self.p[index], t=self.t[index])
 
-    @gc.AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(
         self: "Orbit", index: Int[Array, "..."] | Bool[Array, "..."] | ndarray
     ) -> "Orbit":

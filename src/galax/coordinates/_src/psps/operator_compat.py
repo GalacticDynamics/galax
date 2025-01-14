@@ -12,7 +12,7 @@ import coordinax as cx
 import coordinax.ops as cxo
 import unxt as u
 
-from .base_psp import AbstractPhaseSpacePosition
+from .base_psp import AbstractOnePhaseSpacePosition
 
 batched_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
 
@@ -23,13 +23,13 @@ batched_matmul = quaxify(jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)"))
 @cxo.AbstractOperator.__call__.dispatch
 def call(
     self: cxo.AbstractOperator,
-    x: AbstractPhaseSpacePosition,
+    x: AbstractOnePhaseSpacePosition,
     /,
-) -> AbstractPhaseSpacePosition:
+) -> AbstractOnePhaseSpacePosition:
     """Apply the operator to a phase-space-time position.
 
     This method calls the method that operates on
-    ``AbstractPhaseSpacePosition`` by separating the time component from
+    ``AbstractOnePhaseSpacePosition`` by separating the time component from
     the rest of the phase-space position.  Subclasses can implement that
     method to avoid having to implement for both phase-space-time and
     phase-space positions.  Alternatively, they can implement this method
@@ -82,8 +82,8 @@ def call(
 
 @cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxo.AbstractCompositeOperator, x: AbstractPhaseSpacePosition, /
-) -> AbstractPhaseSpacePosition:
+    self: cxo.AbstractCompositeOperator, x: AbstractOnePhaseSpacePosition, /
+) -> AbstractOnePhaseSpacePosition:
     """Apply the operator to the coordinates."""
     for op in self.operators:
         x = op(x)
@@ -96,8 +96,8 @@ def call(
 
 @cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxo.GalileanSpatialTranslation, psp: AbstractPhaseSpacePosition, /
-) -> AbstractPhaseSpacePosition:
+    self: cxo.GalileanSpatialTranslation, psp: AbstractOnePhaseSpacePosition, /
+) -> AbstractOnePhaseSpacePosition:
     """Apply the translation to the coordinates.
 
     Examples
@@ -147,8 +147,8 @@ def call(
 
 @cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxo.GalileanTranslation, psp: AbstractPhaseSpacePosition, /
-) -> AbstractPhaseSpacePosition:
+    self: cxo.GalileanTranslation, psp: AbstractOnePhaseSpacePosition, /
+) -> AbstractOnePhaseSpacePosition:
     """Apply the translation to the coordinates.
 
     Examples
@@ -204,9 +204,9 @@ def call(
 @cxo.AbstractOperator.__call__.dispatch
 def call(
     self: cxo.GalileanBoost,
-    psp: AbstractPhaseSpacePosition,
+    psp: AbstractOnePhaseSpacePosition,
     /,
-) -> AbstractPhaseSpacePosition:
+) -> AbstractOnePhaseSpacePosition:
     """Apply the translation to the coordinates.
 
     Examples
@@ -252,8 +252,8 @@ def call(
 
 @cxo.AbstractOperator.__call__.dispatch
 def call(
-    self: cxo.GalileanRotation, psp: AbstractPhaseSpacePosition, /
-) -> AbstractPhaseSpacePosition:
+    self: cxo.GalileanRotation, psp: AbstractOnePhaseSpacePosition, /
+) -> AbstractOnePhaseSpacePosition:
     """Apply the translation to the coordinates.
 
     Examples
@@ -308,9 +308,9 @@ def call(
 @cxo.AbstractOperator.__call__.dispatch(precedence=1)
 def call(
     self: cxo.Identity,  # noqa: ARG001
-    x: AbstractPhaseSpacePosition,
+    x: AbstractOnePhaseSpacePosition,
     /,
-) -> AbstractPhaseSpacePosition:
+) -> AbstractOnePhaseSpacePosition:
     """Apply the Identity operation.
 
     This is the identity operation, which does nothing to the input.

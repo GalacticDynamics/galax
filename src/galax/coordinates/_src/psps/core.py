@@ -16,15 +16,15 @@ from dataclassish.converters import Optional, Unless
 from unxt.quantity import AbstractQuantity
 
 import galax.typing as gt
-from .base import AbstractBasePhaseSpacePosition, ComponentShapeTuple
+from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpacePosition
-from .base_psp import AbstractPhaseSpacePosition
+from .base_psp import AbstractOnePhaseSpacePosition
 from galax.coordinates._src.frames import SimulationFrame
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
 @final
-class PhaseSpacePosition(AbstractPhaseSpacePosition):
+class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
     r"""Phase-Space Position with time.
 
     The phase-space position is a point in the 7-dimensional phase space
@@ -163,7 +163,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
     # ---------------------------------------------------------------
     # Getitem
 
-    @AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(
         self: "PhaseSpacePosition", index: tuple[Any, ...]
     ) -> "PhaseSpacePosition":
@@ -225,7 +225,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
-    @AbstractBasePhaseSpacePosition.__getitem__.dispatch
+    @AbstractPhaseSpacePosition.__getitem__.dispatch
     def __getitem__(
         self: "PhaseSpacePosition", index: slice | int
     ) -> "PhaseSpacePosition":
@@ -301,7 +301,7 @@ class PhaseSpacePosition(AbstractPhaseSpacePosition):
 
 
 # TODO: generalize
-@AbstractBasePhaseSpacePosition.from_.dispatch(precedence=1)
+@AbstractPhaseSpacePosition.from_.dispatch(precedence=1)
 @partial(eqx.filter_jit, inline=True)
 def from_(
     cls: type[PhaseSpacePosition], obj: AbstractCompositePhaseSpacePosition, /
@@ -335,7 +335,7 @@ def from_(
     return cls(q=obj.q, p=obj.p, t=obj.t)
 
 
-@AbstractBasePhaseSpacePosition.from_.dispatch
+@AbstractPhaseSpacePosition.from_.dispatch
 def from_(
     cls: type[PhaseSpacePosition],
     data: cx.Space,

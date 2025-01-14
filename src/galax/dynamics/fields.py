@@ -1,5 +1,5 @@
 """:mod:`galax.dynamics.fields`."""
 
-__all__ = ["AbstractDynamicsField", "HamiltonianField"]
+__all__ = ["AbstractDynamicsField", "HamiltonianField", "NBodyField"]
 
-from ._src.fields import AbstractDynamicsField, HamiltonianField
+from ._src.fields import AbstractDynamicsField, HamiltonianField, NBodyField

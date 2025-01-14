@@ -283,8 +283,10 @@
       ]
 
     [tool.ruff.lint.flake8-import-conventions.extend-aliases]
+      "coordinax" = "cx"
       "diffrax" = "dfx"
       "equinox" = "eqx"
+      "unxt" = "u"
 
     [tool.ruff.lint.flake8-type-checking]
       exempt-modules = []

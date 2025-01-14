@@ -19,7 +19,7 @@ import unxt as u
 from dataclassish.converters import Unless
 from unxt.quantity import AbstractQuantity
 
-from galax.typing import BBtRealQScalar, FloatQAnyShape
+from galax.typing import BBtRealQSz0, FloatQSzAny
 from galax.utils._shape import expand_batch_dims
 
 t0 = u.Quantity(0, "Myr")
@@ -29,12 +29,12 @@ t0 = u.Quantity(0, "Myr")
 class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
-    def __call__(self, t: BBtRealQScalar, **kwargs: Any) -> FloatQAnyShape:
+    def __call__(self, t: BBtRealQSz0, **kwargs: Any) -> FloatQSzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : `~galax.typing.BBtRealQScalar`
+        t : `~galax.typing.BBtRealQSz0`
             Time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
@@ -60,12 +60,12 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     """
 
     @abc.abstractmethod
-    def __call__(self, t: BBtRealQScalar, **kwargs: Any) -> FloatQAnyShape:
+    def __call__(self, t: BBtRealQSz0, **kwargs: Any) -> FloatQSzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : `~galax.typing.BBtRealQScalar`
+        t : `~galax.typing.BBtRealQSz0`
             The time(s) at which to compute the parameter value.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
@@ -132,18 +132,16 @@ class ConstantParameter(AbstractParameter):
     """
 
     # TODO: link this shape to the return shape from __call__
-    value: FloatQAnyShape = eqx.field(
-        converter=Unless(AbstractQuantity, u.Quantity.from_)
-    )
+    value: FloatQSzAny = eqx.field(converter=Unless(AbstractQuantity, u.Quantity.from_))
     """The time-independent value of the parameter."""
 
     @partial(jax.jit, inline=True)
-    def __call__(self, t: BBtRealQScalar = t0, **_: Any) -> FloatQAnyShape:
+    def __call__(self, t: BBtRealQSz0 = t0, **_: Any) -> FloatQSzAny:
         """Return the constant parameter value.
 
         Parameters
         ----------
-        t : `~galax.typing.BBtRealQScalar`, optional
+        t : `~galax.typing.BBtRealQSz0`, optional
             This is ignored and is thus optional. Note that for most
             :class:`~galax.potential.AbstractParameter` the time is required.
         **kwargs : Any
@@ -227,16 +225,16 @@ class LinearParameter(AbstractParameter):
 
     """
 
-    slope: FloatQAnyShape = eqx.field(converter=u.Quantity.from_)
-    point_time: BBtRealQScalar = eqx.field(converter=u.Quantity["time"].from_)
-    point_value: FloatQAnyShape = eqx.field(converter=u.Quantity.from_)
+    slope: FloatQSzAny = eqx.field(converter=u.Quantity.from_)
+    point_time: BBtRealQSz0 = eqx.field(converter=u.Quantity["time"].from_)
+    point_value: FloatQSzAny = eqx.field(converter=u.Quantity.from_)
 
     def __check_init__(self) -> None:
         """Check the initialization of the class."""
         # TODO: check point_value and slope * point_time have the same dimensions
 
     @partial(jax.jit, inline=True)
-    def __call__(self, t: BBtRealQScalar, **_: Any) -> FloatQAnyShape:
+    def __call__(self, t: BBtRealQSz0, **_: Any) -> FloatQSzAny:
         """Return the parameter value.
 
         .. math::
@@ -283,7 +281,7 @@ class UserParameter(AbstractParameter):
 
     Parameters
     ----------
-    func : Callable[[BBtRealQScalar], Array[float, (*shape,)]]
+    func : Callable[[BBtRealQSz0], Array[float, (*shape,)]]
         The function to use to compute the parameter value.
 
     Examples
@@ -303,5 +301,5 @@ class UserParameter(AbstractParameter):
     func: ParameterCallable = eqx.field(static=True)
 
     @partial(jax.jit, inline=True)
-    def __call__(self, t: BBtRealQScalar, **kwargs: Any) -> FloatQAnyShape:
+    def __call__(self, t: BBtRealQSz0, **kwargs: Any) -> FloatQSzAny:
         return self.func(t, **kwargs)

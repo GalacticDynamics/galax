@@ -17,7 +17,7 @@ from galax.potential import (
     MN3ExponentialPotential,
     MN3Sech2Potential,
 )
-from galax.typing import Vec3
+from galax.typing import Sz3
 
 
 class TestMN3ExponentialPotential(
@@ -50,13 +50,13 @@ class TestMN3ExponentialPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
+    def test_potential(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(-1.15401718, pot.units["specific energy"])
         assert qnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
+    def test_gradient(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(
             [0.0689723071793, 0.1379446143587, 0.2013372530559],
             pot.units["acceleration"],
@@ -64,13 +64,13 @@ class TestMN3ExponentialPotential(
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert qnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
+    def test_density(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(731_782_542.3781165, pot.units["mass density"])
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: MN3ExponentialPotential, x: Vec3) -> None:
+    def test_hessian(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(
             [
                 [0.05679591, -0.02435279, -0.03538017],
@@ -86,7 +86,7 @@ class TestMN3ExponentialPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: Sz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -131,13 +131,13 @@ class TestMN3Sech2Potential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: MN3Sech2Potential, x: Vec3) -> None:
+    def test_potential(self, pot: MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(-1.13545211, pot.units["specific energy"])
         assert qnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: MN3Sech2Potential, x: Vec3) -> None:
+    def test_gradient(self, pot: MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(
             [0.059397338333485615, 0.11879467666697123, 0.21959289808834268],
             pot.units["acceleration"],
@@ -145,13 +145,13 @@ class TestMN3Sech2Potential(
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert qnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: MN3Sech2Potential, x: Vec3) -> None:
+    def test_density(self, pot: MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(211_769_063.98948175, pot.units["mass density"])
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: MN3Sech2Potential, x: Vec3) -> None:
+    def test_hessian(self, pot: MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(
             [
                 [0.05071981, -0.01735505, -0.03287182],
@@ -167,7 +167,7 @@ class TestMN3Sech2Potential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: Sz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

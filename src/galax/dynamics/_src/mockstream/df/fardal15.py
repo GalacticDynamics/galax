@@ -49,11 +49,11 @@ class FardalStreamDF(AbstractStreamDF):
         self,
         key: PRNGKeyArray,
         potential: gp.AbstractBasePotential,
-        x: gt.LengthBBtVec3,
-        v: gt.SpeedBBtVec3,
-        prog_mass: gt.BBtFloatQScalar,
-        t: gt.BBtFloatQScalar,
-    ) -> tuple[gt.LengthBtVec3, gt.SpeedBtVec3, gt.LengthBtVec3, gt.SpeedBtVec3]:
+        x: gt.LengthBBtSz3,
+        v: gt.SpeedBBtSz3,
+        prog_mass: gt.BBtFloatQSz0,
+        t: gt.BBtFloatQSz0,
+    ) -> tuple[gt.LengthBtSz3, gt.SpeedBtSz3, gt.LengthBtSz3, gt.SpeedBtSz3]:
         """Generate stream particle initial conditions."""
         # Random number generation
         key1, key2, key3, key4 = jr.split(key, 4)

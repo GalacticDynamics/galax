@@ -70,7 +70,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.RealQScalar,
+    t: gt.RealQSz0,
     q: gt.BBtQ,
     p: gt.BBtP,
     args: tuple[Any, ...] | None,  # noqa: ARG001
@@ -105,7 +105,7 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.RealQScalar,
+    t: gt.RealQSz0,
     qp: gt.BBtQP,
     args: tuple[Any, ...] | None,
     /,
@@ -136,7 +136,7 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.BBtScalar,
+    t: gt.BBtSz0,
     q: gt.BBtQarr,
     p: gt.BBtParr,
     args: tuple[Any, ...] | None,
@@ -179,7 +179,7 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.BBtScalar,
+    t: gt.BBtSz0,
     qp: gt.BBtQParr,
     args: tuple[Any, ...] | None,  # noqa: ARG001
     /,
@@ -220,8 +220,8 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.BBtScalar,
-    qp: gt.BBtVec6,
+    t: gt.BBtSz0,
+    qp: gt.BBtSz6,
     args: tuple[Any, ...] | None,
     /,
 ) -> gt.BtPAarr:
@@ -257,7 +257,7 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    qp: gt.BBtVec7,
+    qp: gt.BBtSz7,
     args: tuple[Any, ...] | None,
     /,
 ) -> gt.BtPAarr:
@@ -293,7 +293,7 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.TimeBBtScalar,
+    t: gt.TimeBBtSz0,
     q: cx.vecs.AbstractPos3D,
     p: cx.vecs.AbstractVel3D,
     args: tuple[Any, ...] | None,

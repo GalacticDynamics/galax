@@ -48,24 +48,24 @@ class TestLM10Potential(AbstractCompositePotential_Test):
 
     # ==========================================================================
 
-    def test_potential(self, pot: gp.LM10Potential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: gp.LM10Potential, x: gt.QSz3) -> None:
         expect = u.Quantity(-0.00242568, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: gp.LM10Potential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: gp.LM10Potential, x: gt.QSz3) -> None:
         expect = u.Quantity([0.00278038, 0.00533753, 0.0111171], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.LM10Potential, x: gt.QVec3) -> None:
+    def test_density(self, pot: gp.LM10Potential, x: gt.QSz3) -> None:
         expect = u.Quantity(19085831.78310305, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.LM10Potential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: gp.LM10Potential, x: gt.QSz3) -> None:
         expect = u.Quantity(
             [
                 [0.00234114, -0.00081663, -0.0013405],
@@ -81,7 +81,7 @@ class TestLM10Potential(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -113,7 +113,7 @@ class TestLM10Potential(AbstractCompositePotential_Test):
         pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
-        x: gt.QVec3,
+        x: gt.QSz3,
         atol: float,
     ) -> None:
         """Test the equivalence of methods between gala and galax.

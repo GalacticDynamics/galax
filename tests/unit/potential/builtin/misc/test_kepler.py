@@ -10,7 +10,7 @@ import galax.potential as gp
 from ...test_core import AbstractPotential_Test
 from ..test_common import ParameterMTotMixin
 from galax.potential import AbstractBasePotential, KeplerPotential
-from galax.typing import QVec3
+from galax.typing import QSz3
 
 
 class TestKeplerPotential(
@@ -28,26 +28,26 @@ class TestKeplerPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: KeplerPotential, x: QVec3) -> None:
+    def test_potential(self, pot: KeplerPotential, x: QSz3) -> None:
         expect = u.Quantity(-1.20227527, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: KeplerPotential, x: QVec3) -> None:
+    def test_gradient(self, pot: KeplerPotential, x: QSz3) -> None:
         expect = u.Quantity(
             [0.08587681, 0.17175361, 0.25763042], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: KeplerPotential, x: QVec3) -> None:
+    def test_density(self, pot: KeplerPotential, x: QSz3) -> None:
         expect = u.Quantity(0.0, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: KeplerPotential, x: QVec3) -> None:
+    def test_hessian(self, pot: KeplerPotential, x: QSz3) -> None:
         expect = u.Quantity(
             [
                 [0.06747463, -0.03680435, -0.05520652],
@@ -63,7 +63,7 @@ class TestKeplerPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: QVec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: QSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

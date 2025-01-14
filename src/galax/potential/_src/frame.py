@@ -200,9 +200,7 @@ class PotentialFrame(AbstractBasePotential):
         """The constants of the potential."""
         return cast(ImmutableMap[str, u.Quantity], self.original_potential.constants)
 
-    def _potential(
-        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
-    ) -> gt.SpecificEnergyBtScalar:
+    def _potential(self, q: gt.BtQSz3, t: gt.BBtRealQSz0, /) -> gt.SpecificEnergyBtSz0:
         """Compute the potential energy at the given position(s).
 
         This method applies the frame operators to the coordinates and then

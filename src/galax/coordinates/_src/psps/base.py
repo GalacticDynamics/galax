@@ -78,7 +78,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
     p: eqx.AbstractVar[cx.vecs.AbstractVel3D]
     """Conjugate momenta at positions ``q``."""
 
-    t: eqx.AbstractVar[gt.BBtFloatQScalar]
+    t: eqx.AbstractVar[gt.BBtFloatQSz0]
     """Time corresponding to the positions and momenta."""
 
     frame: eqx.AbstractVar[SimulationFrame]  # TODO: support frames
@@ -468,7 +468,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         )
         return (q, p)
 
-    def w(self, *, units: Any) -> gt.BtVec6:
+    def w(self, *, units: Any) -> gt.BtSz6:
         """Phase-space position as an Array[float, (*batch, Q + P)].
 
         This is the full phase-space position, not including the time (if a
@@ -504,7 +504,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         q, p = self._qp(units=usys)
         return jnp.concat((q.ustrip(usys["length"]), p.ustrip(usys["speed"])), axis=-1)
 
-    def wt(self, *, units: Any) -> gt.BtVec7:
+    def wt(self, *, units: Any) -> gt.BtSz7:
         """Phase-space position as an Array[float, (*batch, 1+Q+P)].
 
         This is the full phase-space position, including the time.
@@ -633,7 +633,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         return potential.potential(self.q, t=self.t)
 
     @partial(jax.jit, inline=True)
-    def total_energy(self, potential: "AbstractBasePotential") -> gt.BtFloatQScalar:
+    def total_energy(self, potential: "AbstractBasePotential") -> gt.BtFloatQSz0:
         r"""Return the specific total energy.
 
         .. math::
@@ -680,7 +680,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         return self.kinetic_energy() + self.potential_energy(potential)
 
     @partial(jax.jit, inline=True)
-    def angular_momentum(self) -> gt.BtQVec3:
+    def angular_momentum(self) -> gt.BtQSz3:
         r"""Compute the angular momentum.
 
         .. math::

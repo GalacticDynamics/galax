@@ -24,7 +24,7 @@ from galax.dynamics._src.integrate.integrator import Integrator
 from galax.dynamics._src.orbit import Orbit
 from galax.potential import AbstractBasePotential
 
-Carry: TypeAlias = tuple[gt.IntScalar, gt.VecN, gt.VecN]
+Carry: TypeAlias = tuple[gt.IntSz0, gt.SzN, gt.SzN]
 
 
 @final
@@ -57,7 +57,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     # ==========================================================================
 
     def _progenitor_trajectory(
-        self, w0: gc.PhaseSpacePosition, ts: gt.QVecTime
+        self, w0: gc.PhaseSpacePosition, ts: gt.QSzTime
     ) -> Orbit:
         """Integrate the progenitor orbit."""
         return cast(
@@ -72,10 +72,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial(jax.jit)
     def _run_scan(  # TODO: output shape depends on the input shape
         self,
-        ts: gt.QVecTime,
+        ts: gt.QSzTime,
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
-    ) -> tuple[gt.BtVec6, gt.BtVec6]:
+    ) -> tuple[gt.BtSz6, gt.BtSz6]:
         """Generate stellar stream by scanning over the release model/integration.
 
         Better for CPU usage.
@@ -85,13 +85,13 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         t_f = ts[-1] + u.Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         def one_pt_intg(
-            carry: Carry, _: gt.IntScalar
-        ) -> tuple[Carry, tuple[gt.VecN, gt.VecN]]:
+            carry: Carry, _: gt.IntSz0
+        ) -> tuple[Carry, tuple[gt.SzN, gt.SzN]]:
             """Integrate one point along the stream.
 
             Parameters
             ----------
-            carry : tuple[int, VecN, VecN]
+            carry : tuple[int, SzN, SzN]
                 Initial state of the particle at index `idx`.
             idx : int
                 Index of the current point.
@@ -99,7 +99,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             i, w0_l_i, w0_t_i = carry
             tstep = jnp.asarray([ts[i], t_f])
 
-            def integ_ics(ics: gt.Vec6) -> gt.VecN:
+            def integ_ics(ics: gt.Sz6) -> gt.SzN:
                 # TODO: only return the final state
                 return evaluate_orbit(
                     self.potential, ics, tstep, integrator=self.stream_integrator
@@ -121,10 +121,10 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial(jax.jit)
     def _run_vmap(  # TODO: output shape depends on the input shape
         self,
-        ts: gt.QVecTime,
+        ts: gt.QSzTime,
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
-    ) -> tuple[gt.BtVec6, gt.BtVec6]:
+    ) -> tuple[gt.BtSz6, gt.BtSz6]:
         """Generate stellar stream by vmapping over the release model/integration.
 
         Better for GPU usage.
@@ -133,8 +133,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         @partial(jax.jit, inline=True)
         def one_pt_intg(
-            i: gt.IntScalar, w0_l_i: gt.Vec6, w0_t_i: gt.Vec6
-        ) -> tuple[gt.Vec6, gt.Vec6]:
+            i: gt.IntSz0, w0_l_i: gt.Sz6, w0_t_i: gt.Sz6
+        ) -> tuple[gt.Sz6, gt.Sz6]:
             tstep = jnp.asarray([ts[i], t_f])
             w_lead = evaluate_orbit(
                 self.potential, w0_l_i, tstep, integrator=self.stream_integrator
@@ -154,9 +154,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     def run(
         self,
         rng: PRNGKeyArray,
-        ts: gt.QVecTime,
-        prog_w0: gc.PhaseSpacePosition | gt.Vec6,
-        prog_mass: gt.FloatQScalar | ProgenitorMassCallable,
+        ts: gt.QSzTime,
+        prog_w0: gc.PhaseSpacePosition | gt.Sz6,
+        prog_mass: gt.FloatQSz0 | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
     ) -> tuple[MockStream, gc.PhaseSpacePosition]:

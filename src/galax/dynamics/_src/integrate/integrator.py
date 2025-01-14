@@ -27,8 +27,8 @@ from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")
 Interp = TypeVar("Interp")
-Time: TypeAlias = gt.TimeScalar | gt.RealScalarLike
-Times: TypeAlias = gt.QVecTime | gt.VecTime
+Time: TypeAlias = gt.TimeSz0 | gt.RealSz0Like
+Times: TypeAlias = gt.QSzTime | gt.SzTime
 
 
 default_solver = diffrax.Dopri8(scan_kind="bounded")
@@ -202,11 +202,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         field: AbstractDynamicsField,
         q0: gt.BtQ,
         p0: gt.BtP,
-        t0: gt.TimeScalar,
-        t1: gt.TimeScalar,
+        t0: gt.TimeSz0,
+        t1: gt.TimeSz0,
         /,
         *,
-        saveat: gt.QVecTime | None = None,  # not jitted here
+        saveat: gt.QSzTime | None = None,  # not jitted here
         units: u.AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -416,7 +416,7 @@ def call(
 def call(
     self: Integrator,
     field: AbstractDynamicsField,
-    y0: gt.BtVec6,
+    y0: gt.BtSz6,
     t0: Time,
     t1: Time,
     /,
@@ -595,7 +595,7 @@ def call(
 def call(
     self: Integrator,
     field: AbstractDynamicsField,
-    y0: gt.BBtVec6,
+    y0: gt.BBtSz6,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     /,

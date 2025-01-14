@@ -32,7 +32,7 @@ _select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
 @dispatch
 def evaluate_orbit(
     pot: gp.AbstractBasePotential,
-    w0: gc.PhaseSpacePosition | gt.BtQParr | gt.BtVec6,
+    w0: gc.PhaseSpacePosition | gt.BtQParr | gt.BtSz6,
     t: Any,
     /,
     *,
@@ -246,7 +246,7 @@ def evaluate_orbit(
 @dispatch
 def evaluate_orbit(
     pot: gp.AbstractBasePotential,
-    w0: gc.PhaseSpacePosition | gt.BtVec6,
+    w0: gc.PhaseSpacePosition | gt.BtSz6,
     /,
     *,
     t: Any,

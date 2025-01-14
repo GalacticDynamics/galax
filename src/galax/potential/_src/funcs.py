@@ -980,7 +980,7 @@ def hessian(
     pot: AbstractBasePotential,
     pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
-) -> gt.BtQMatrix33:
+) -> gt.BtQSz33:
     """Compute the hessian of the potential at the given position(s).
 
     Parameters
@@ -1330,9 +1330,7 @@ def acceleration(
 
 
 @dispatch
-def tidal_tensor(
-    pot: AbstractBasePotential, *args: Any, **kwargs: Any
-) -> gt.BtQMatrix33:
+def tidal_tensor(pot: AbstractBasePotential, *args: Any, **kwargs: Any) -> gt.BtQSz33:
     """Compute the tidal tensor.
 
     See https://en.wikipedia.org/wiki/Tidal_tensor
@@ -1540,7 +1538,7 @@ def tidal_tensor(
 # TODO: make public
 @partial(jax.jit, inline=True)
 def d2potential_dr2(
-    pot: AbstractBasePotential, x: gt.LengthBtVec3, t: gt.TimeBBtScalar, /
+    pot: AbstractBasePotential, x: gt.LengthBtSz3, t: gt.TimeBBtSz0, /
 ) -> Shaped[u.Quantity["1/s^2"], "*batch"]:
     """Compute the second derivative of the potential at the position.
 
@@ -1585,8 +1583,8 @@ def d2potential_dr2(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, x: gt.LengthVec3, /, t: gt.TimeScalar
-) -> gt.BBtRealQScalar:
+    pot: AbstractBasePotential, x: gt.LengthSz3, /, t: gt.TimeSz0
+) -> gt.BBtRealQSz0:
     """Estimate the circular velocity at the given position.
 
     Parameters
@@ -1624,16 +1622,16 @@ def circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, x: gt.LengthVec3, /, *, t: gt.TimeScalar
-) -> gt.BBtRealQScalar:
+    pot: AbstractBasePotential, x: gt.LengthSz3, /, *, t: gt.TimeSz0
+) -> gt.BBtRealQSz0:
     return circular_velocity(pot, x, t)
 
 
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, q: cx.vecs.AbstractPos3D, /, t: gt.TimeScalar
-) -> gt.BBtRealQScalar:
+    pot: AbstractBasePotential, q: cx.vecs.AbstractPos3D, /, t: gt.TimeSz0
+) -> gt.BBtRealQSz0:
     """Estimate the circular velocity at the given position.
 
     Examples
@@ -1655,8 +1653,8 @@ def circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, q: cx.vecs.AbstractPos3D, /, *, t: gt.TimeScalar
-) -> gt.BBtRealQScalar:
+    pot: AbstractBasePotential, q: cx.vecs.AbstractPos3D, /, *, t: gt.TimeSz0
+) -> gt.BBtRealQSz0:
     return circular_velocity(pot, q, t)
 
 
@@ -1664,7 +1662,7 @@ def circular_velocity(
 @partial(jax.jit, inline=True)
 def circular_velocity(
     pot: AbstractBasePotential, w: gc.AbstractOnePhaseSpacePosition, /
-) -> gt.BBtRealQScalar:
+) -> gt.BBtRealQSz0:
     """Estimate the circular velocity at the given position.
 
     Examples

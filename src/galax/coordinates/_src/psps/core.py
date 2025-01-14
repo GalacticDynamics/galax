@@ -121,7 +121,7 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.TimeBBtScalar | gt.VecN | gt.TimeScalar | None = eqx.field(
+    t: gt.TimeBBtSz0 | gt.SzN | gt.TimeSz0 | None = eqx.field(
         default=None,
         converter=Optional(u.Quantity["time"].from_),
     )
@@ -286,7 +286,7 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
     # ==========================================================================
     # Convenience methods
 
-    def wt(self, *, units: Any) -> gt.BtVec7:
+    def wt(self, *, units: Any) -> gt.BtSz7:
         """Return the phase-space-time position as a 7-vector.
 
         Raises

@@ -29,26 +29,26 @@ class TestIsochronePotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: IsochronePotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: IsochronePotential, x: gt.QSz3) -> None:
         expect = u.Quantity(-0.9231515, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: IsochronePotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: IsochronePotential, x: gt.QSz3) -> None:
         expect = u.Quantity(
             [0.04891392, 0.09782784, 0.14674175], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: IsochronePotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: IsochronePotential, x: gt.QSz3) -> None:
         expect = u.Quantity(5.04511665e08, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: IsochronePotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: IsochronePotential, x: gt.QSz3) -> None:
         expect = u.Quantity(
             [
                 [0.0404695, -0.01688883, -0.02533324],
@@ -64,7 +64,7 @@ class TestIsochronePotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

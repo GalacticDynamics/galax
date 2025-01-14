@@ -60,14 +60,14 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
 
     # ==========================================================================
 
-    def test_potential(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
+    def test_potential(self, pot: MilkyWayPotential2022, x: gt.QSz3) -> None:
         """Test the :meth:`MilkyWayPotential2022.potential` method."""
         expect = u.Quantity(-0.1906119, pot.units["specific energy"])
         assert qnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: MilkyWayPotential2022, x: gt.QSz3) -> None:
         """Test the :meth:`MilkyWayPotential2022.gradient` method."""
         expect = u.Quantity(
             [0.00235500422114, 0.00471000844229, 0.0101667940117],
@@ -76,14 +76,14 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert qnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
+    def test_density(self, pot: MilkyWayPotential2022, x: gt.QSz3) -> None:
         """Test the :meth:`MilkyWayPotential2022.density` method."""
         expect = u.Quantity(33_807_052.01837142, pot.units["mass density"])
         assert qnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: MilkyWayPotential2022, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: MilkyWayPotential2022, x: gt.QSz3) -> None:
         """Test the :meth:`MilkyWayPotential2022.hessian` method."""
         expect = u.Quantity(
             [
@@ -100,7 +100,7 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

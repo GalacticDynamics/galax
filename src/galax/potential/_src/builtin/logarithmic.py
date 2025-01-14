@@ -38,9 +38,7 @@ class LogarithmicPotential(AbstractPotential):
     )
 
     @partial(jax.jit, inline=True)
-    def _potential(
-        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
-    ) -> gt.SpecificEnergyBtScalar:
+    def _potential(self, q: gt.BtQSz3, t: gt.BBtRealQSz0, /) -> gt.SpecificEnergyBtSz0:
         r_s = u.ustrip(self.units["length"], self.r_s(t))
         r = u.ustrip(self.units["length"], jnp.linalg.vector_norm(q, axis=-1))
         return 0.5 * self.v_c(t) ** 2 * jnp.log(r_s**2 + r**2)
@@ -69,9 +67,7 @@ class LMJ09LogarithmicPotential(AbstractPotential):
     )
 
     @partial(jax.jit, inline=True)
-    def _potential(
-        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
-    ) -> gt.SpecificEnergyBtScalar:
+    def _potential(self, q: gt.BtQSz3, t: gt.BBtRealQSz0, /) -> gt.SpecificEnergyBtSz0:
         # Load parameters
         q1, q2, q3 = self.q1(t), self.q2(t), self.q3(t)
         phi = self.phi(t)

@@ -44,10 +44,10 @@ class MockStreamArm(gc.AbstractOnePhaseSpacePosition):
     p: cx.vecs.AbstractVel3D = eqx.field(converter=cx.vector)
     r"""Conjugate momenta (v_x, v_y, v_z)."""
 
-    t: gt.QVecTime = eqx.field(converter=u.Quantity["time"].from_)
+    t: gt.QSzTime = eqx.field(converter=u.Quantity["time"].from_)
     """Array of times corresponding to the positions."""
 
-    release_time: gt.QVecTime = eqx.field(converter=u.Quantity["time"].from_)
+    release_time: gt.QSzTime = eqx.field(converter=u.Quantity["time"].from_)
     """Release time of the stream particles [Myr]."""
 
     frame: gc.frames.SimulationFrame  # TODO: support frames

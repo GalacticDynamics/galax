@@ -124,26 +124,26 @@ class TestLeeSutoTriaxialNFWPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QSz3) -> None:
         expect = u.Quantity(-9.68797618, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QSz3) -> None:
         expect = u.Quantity(
             [0.3411484, 0.6822968, 1.0234452], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QSz3) -> None:
         expect = u.Quantity(4.89753338e09, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: gp.LeeSutoTriaxialNFWPotential, x: gt.QSz3) -> None:
         expect = u.Quantity(
             [
                 [0.28782066, -0.10665549, -0.15998323],
@@ -159,7 +159,7 @@ class TestLeeSutoTriaxialNFWPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -191,7 +191,7 @@ class TestLeeSutoTriaxialNFWPotential(
         pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
-        x: gt.QVec3,
+        x: gt.QSz3,
         atol: float,
     ) -> None:
         """Test the equivalence of methods between gala and galax.

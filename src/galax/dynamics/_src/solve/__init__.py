@@ -17,5 +17,5 @@ __all__ = [
 
 from .base import AbstractSolver
 from .diffeq import DiffEqSolver
-from .dynamicsolver import DynamicsSolver
+from .dynamics import DynamicsSolver
 from .utils import converter_diffeqsolver, parse_saveat

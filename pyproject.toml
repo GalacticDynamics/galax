@@ -287,6 +287,9 @@
       "diffrax" = "dfx"
       "equinox" = "eqx"
       "unxt" = "u"
+      "galax.coordinates" = "gc"
+      "galax.potential" = "gp"
+      "galax.dynamics" = "gd"
 
     [tool.ruff.lint.flake8-type-checking]
       exempt-modules = []

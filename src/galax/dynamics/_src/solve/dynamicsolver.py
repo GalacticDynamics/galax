@@ -4,10 +4,9 @@ This is private API.
 
 """
 
-__all__ = ["AbstractSolver", "DynamicsSolver"]
+__all__ = ["DynamicsSolver"]
 
 
-import abc
 from typing import Any
 
 import diffrax
@@ -20,38 +19,10 @@ from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.typing as gt
+from .base import AbstractSolver
 from .diffeq import DiffEqSolver
 from .utils import converter_diffeqsolver, parse_saveat
 from galax.dynamics._src.fields import AbstractDynamicsField
-
-
-class AbstractSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
-    """ABC for solvers.
-
-    Notes
-    -----
-    The ``init``, ``step``, and ``solve`` methods are abstract and should be
-    implemented by subclasses.
-
-    """
-
-    @abc.abstractmethod
-    def init(self, *args: Any, **kwargs: Any) -> Any:
-        """Initialize the solver."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def step(self, *args: Any, **kwargs: Any) -> Any:
-        """Step the solver."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def solve(self, *args: Any, **kwargs: Any) -> Any:
-        """Solve, initializing and stepping to the solution."""
-        raise NotImplementedError
-
-
-##############################################################################
 
 
 class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]

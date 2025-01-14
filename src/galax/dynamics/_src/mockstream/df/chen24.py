@@ -61,13 +61,11 @@ class ChenStreamDF(AbstractStreamDF):
         self,
         key: PRNGKeyArray,
         potential: gp.AbstractBasePotential,
-        x: gt.LengthBatchableVec3,
-        v: gt.SpeedBatchableVec3,
-        prog_mass: gt.BatchableFloatQScalar,
-        t: gt.BatchableFloatQScalar,
-    ) -> tuple[
-        gt.LengthBatchVec3, gt.SpeedBatchVec3, gt.LengthBatchVec3, gt.SpeedBatchVec3
-    ]:
+        x: gt.LengthBBtVec3,
+        v: gt.SpeedBBtVec3,
+        prog_mass: gt.BBtFloatQScalar,
+        t: gt.BBtFloatQScalar,
+    ) -> tuple[gt.LengthBtVec3, gt.SpeedBtVec3, gt.LengthBtVec3, gt.SpeedBtVec3]:
         """Generate stream particle initial conditions."""
         # Random number generation
 

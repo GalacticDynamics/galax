@@ -201,8 +201,8 @@ class PotentialFrame(AbstractBasePotential):
         return cast(ImmutableMap[str, u.Quantity], self.original_potential.constants)
 
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         """Compute the potential energy at the given position(s).
 
         This method applies the frame operators to the coordinates and then

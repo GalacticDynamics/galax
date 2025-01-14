@@ -94,7 +94,7 @@ default_saveat = diffrax.SaveAt(t1=True)
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    qp: tuple[gt.BatchableQ, gt.BatchableP],
+    qp: tuple[gt.BBtQ, gt.BBtP],
     t0: gt.RealQScalar,
     t1: gt.RealQScalar,
     /,

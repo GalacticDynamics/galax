@@ -75,8 +75,8 @@ class BurkertPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         m, r_s = self.m(t), self.r_s(t)
         x = jnp.linalg.vector_norm(q, axis=-1) / r_s
         xinv = 1 / x
@@ -89,16 +89,16 @@ class BurkertPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+        self, q: gt.BtQVec3, t: gt.BtRealQScalar | gt.RealQScalar, /
+    ) -> gt.BtFloatQScalar:
         m, r_s = self.m(t), self.r_s(t)
         r = jnp.linalg.vector_norm(q, axis=-1)
         return m / (jnp.pi * _burkert_const) / ((r + r_s) * (r**2 + r_s**2))
 
     @partial(jax.jit, inline=True)
     def _mass(
-        self, q: gt.BatchQVec3, /, t: gt.BatchRealQScalar | gt.RealQScalar
-    ) -> gt.BatchFloatQScalar:
+        self, q: gt.BtQVec3, /, t: gt.BtRealQScalar | gt.RealQScalar
+    ) -> gt.BtFloatQScalar:
         x = jnp.linalg.vector_norm(q, axis=-1) / self.r_s(t)
         return (
             self.m(t)
@@ -108,7 +108,7 @@ class BurkertPotential(AbstractPotential):
 
     # -------------------------------------------------------------------
 
-    def rho0(self, t: gt.BatchRealQScalar | gt.RealQScalar) -> gt.BatchFloatQScalar:
+    def rho0(self, t: gt.BtRealQScalar | gt.RealQScalar) -> gt.BtFloatQScalar:
         r"""Central density of the potential.
 
         .. math::
@@ -210,16 +210,16 @@ class HarmonicOscillatorPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         # \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
         omega = jnp.atleast_1d(self.omega(t))
         return 0.5 * jnp.sum(jnp.square(omega * q), axis=-1)
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, _: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+        self, _: gt.BtQVec3, t: gt.BtRealQScalar | gt.RealQScalar, /
+    ) -> gt.BtFloatQScalar:
         # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i \omega_i^2
         omega = jnp.atleast_1d(self.omega(t))
         denom = 4 * jnp.pi * self.constants["G"]
@@ -283,8 +283,8 @@ class HenonHeilesPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, /, t: gt.BatchableRealQScalar
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, /, t: gt.BBtRealQScalar
+    ) -> gt.SpecificEnergyBtScalar:
         ts2, coeff = self.timescale(t) ** 2, self.coeff(t)
         x2, y = q[..., 0] ** 2, q[..., 1]
         R2 = x2 + y**2
@@ -314,15 +314,13 @@ class HernquistPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         r = jnp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / (r + self.r_s(t))
 
     @partial(jax.jit, inline=True)
-    def _density(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    def _density(self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /) -> gt.BtFloatQScalar:
         r_s = self.r_s(t)
         x = jnp.linalg.vector_norm(q, axis=-1) / r_s
         rho0 = self.m_tot(t) / (2 * jnp.pi * r_s**3)
@@ -360,8 +358,8 @@ class IsochronePotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         r = jnp.linalg.vector_norm(q, axis=-1)
         b = self.b(t)
         return -self.constants["G"] * self.m_tot(t) / (b + jnp.sqrt(r**2 + b**2))
@@ -379,8 +377,8 @@ class JaffePotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         r = jnp.linalg.vector_norm(q, axis=-1)
         r_s = self.r_s(t)
         return -self.constants["G"] * self.m(t) / r_s * jnp.log(1 + r_s / r)
@@ -409,15 +407,15 @@ class KeplerPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         r = jnp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / r
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+        self, q: gt.BtQVec3, t: gt.BtRealQScalar | gt.RealQScalar, /
+    ) -> gt.BtFloatQScalar:
         r = jnp.linalg.vector_norm(q, axis=-1)
         m = self.m_tot(t)
         pred = jnp.logical_or(  # are we at the origin with non-zero mass?
@@ -462,8 +460,8 @@ class KuzminPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self: "KuzminPotential", q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self: "KuzminPotential", q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         return (
             -self.constants["G"]
             * self.m_tot(t)
@@ -491,8 +489,8 @@ class LogarithmicPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         r2 = ustrip(self.units["length"], jnp.linalg.vector_norm(q, axis=-1)) ** 2
         return (
             0.5
@@ -526,8 +524,8 @@ class MiyamotoNagaiPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self: "MiyamotoNagaiPotential", q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self: "MiyamotoNagaiPotential", q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         R2 = q[..., 0] ** 2 + q[..., 1] ** 2
         zp2 = (jnp.sqrt(q[..., 2] ** 2 + self.b(t) ** 2) + self.a(t)) ** 2
         return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(R2 + zp2)
@@ -590,7 +588,7 @@ class AbstractMN3Potential(AbstractPotential):
     )
 
     def _get_mn_components(
-        self, t: gt.BatchableRealQScalar, /
+        self, t: gt.BBtRealQScalar, /
     ) -> list[MiyamotoNagaiPotential]:
         hR = self.h_R(t)
         hzR = (self.h_z(t) / hR).decompose(dimensionless).value
@@ -620,8 +618,8 @@ class AbstractMN3Potential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         unit = self.units["specific energy"]
         return u.Quantity(
             jnp.sum(
@@ -637,9 +635,7 @@ class AbstractMN3Potential(AbstractPotential):
         )
 
     @partial(jax.jit)
-    def _density(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+    def _density(self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /) -> gt.BtFloatQScalar:
         unit = self.units["mass density"]
         return u.Quantity(
             jnp.sum(
@@ -738,16 +734,16 @@ class NullPotential(AbstractPotential):
     @partial(jax.jit, inline=True)
     def _potential(
         self,
-        q: gt.BatchQVec3,
-        t: gt.BatchableRealQScalar,  # noqa: ARG002
+        q: gt.BtQVec3,
+        t: gt.BBtRealQScalar,  # noqa: ARG002
         /,
-    ) -> gt.SpecificEnergyBatchScalar:
+    ) -> gt.SpecificEnergyBtScalar:
         return u.Quantity(  # TODO: better unit handling
             jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
         )
 
     @partial(jax.jit, inline=True)
-    def _gradient(self, q: gt.BatchQVec3, /, _: gt.RealQScalar) -> gt.BatchQVec3:
+    def _gradient(self, q: gt.BtQVec3, /, _: gt.RealQScalar) -> gt.BtQVec3:
         """See ``gradient``."""
         return u.Quantity(  # TODO: better unit handling
             jnp.zeros(q.shape[:-1] + (3,), dtype=q.dtype), galactic["acceleration"]
@@ -762,8 +758,8 @@ class NullPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BatchQVec3, _: gt.BatchRealQScalar | gt.RealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+        self, q: gt.BtQVec3, _: gt.BtRealQScalar | gt.RealQScalar, /
+    ) -> gt.BtFloatQScalar:
         """See ``density``."""
         return u.Quantity(  # TODO: better unit handling
             jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["mass density"]
@@ -795,8 +791,8 @@ class PlummerPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         r2 = jnp.linalg.vector_norm(q, axis=-1) ** 2
         return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(r2 + self.b(t) ** 2)
 
@@ -844,8 +840,8 @@ class PowerLawCutoffPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         m, a, r_c = self.m_tot(t), 0.5 * self.alpha(t), self.r_c(t)
         r = jnp.linalg.vector_norm(q, axis=-1)
         rp2 = (r / r_c) ** 2
@@ -883,8 +879,8 @@ class SatohPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         a, b = self.a(t), self.b(t)
         R2 = q[..., 0] ** 2 + q[..., 1] ** 2
         z = q[..., 2]
@@ -925,8 +921,8 @@ class StoneOstriker15Potential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         r_h = self.r_h(t)
         r_c = self.r_c(t)
         r = jnp.linalg.vector_norm(q, axis=-1)
@@ -1013,8 +1009,8 @@ class TriaxialHernquistPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+    ) -> gt.SpecificEnergyBtScalar:
         r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
         r_s = eqx.error_if(r_s, r_s.value <= 0, "r_s must be positive")
 

@@ -4,6 +4,11 @@ As indicated by `__all__`, this module does not export any names. The type hints
 defined here may be changed or removed without notice. They are intended for use
 in other modules within the `galax` package.
 
+Notes
+-----
+- "Bt" stands for "batch", which in `jaxtyping` is '#batch'.
+- "BBt" stands for broadcast batchable, which in `jaxtyping` is '*#batch'.
+
 """
 
 __all__: list[str] = []
@@ -81,34 +86,34 @@ QVecTime: TypeAlias = Float[AbstractQuantity, "time"]
 # -----------------
 # Scalars
 
-BatchScalar: TypeAlias = Shaped[Scalar, "*batch"]
-BatchableScalar: TypeAlias = Shaped[Scalar, "*#batch"]
+BtScalar: TypeAlias = Shaped[Scalar, "*batch"]
+BBtScalar: TypeAlias = Shaped[Scalar, "*#batch"]
 
-BatchFloatScalar: TypeAlias = Shaped[FloatScalar, "*batch"]
-BatchableFloatScalar: TypeAlias = Shaped[FloatScalar, "*#batch"]
+BtFloatScalar: TypeAlias = Shaped[FloatScalar, "*batch"]
+BBtFloatScalar: TypeAlias = Shaped[FloatScalar, "*#batch"]
 
-BatchableFloatQScalar: TypeAlias = Shaped[FloatQScalar, "*#batch"]
+BBtFloatQScalar: TypeAlias = Shaped[FloatQScalar, "*#batch"]
 
-BatchFloatQScalar: TypeAlias = Shaped[FloatQScalar, "*batch"]
+BtFloatQScalar: TypeAlias = Shaped[FloatQScalar, "*batch"]
 
-BatchRealQScalar: TypeAlias = Shaped[RealQScalar, "*batch"]
-BatchableRealScalar: TypeAlias = Shaped[RealScalar, "*#batch"]
-BatchableRealQScalar: TypeAlias = Shaped[RealQScalar, "*#batch"]
+BtRealQScalar: TypeAlias = Shaped[RealQScalar, "*batch"]
+BBtRealScalar: TypeAlias = Shaped[RealScalar, "*#batch"]
+BBtRealQScalar: TypeAlias = Shaped[RealQScalar, "*#batch"]
 
 # -----------------
 # Batched
 
 # Zero or more batches of 3-vectors.
-BatchVec3: TypeAlias = Shaped[Vec3, "*batch"]
-BatchQVec3: TypeAlias = Shaped[QVec3, "*batch"]
+BtVec3: TypeAlias = Shaped[Vec3, "*batch"]
+BtQVec3: TypeAlias = Shaped[QVec3, "*batch"]
 
 # Zero or more batches of 6-vectors
-BatchVec6: TypeAlias = Shaped[Vec6, "*batch"]
-BatchableVec6: TypeAlias = Shaped[Vec6, "*#batch"]
+BtVec6: TypeAlias = Shaped[Vec6, "*batch"]
+BBtVec6: TypeAlias = Shaped[Vec6, "*#batch"]
 
 # Zero or more batches of 7-vectors
-BatchVec7: TypeAlias = Shaped[Vec7, "*batch"]
-BatchableVec7: TypeAlias = Shaped[Vec7, "*#batch"]
+BtVec7: TypeAlias = Shaped[Vec7, "*batch"]
+BBtVec7: TypeAlias = Shaped[Vec7, "*#batch"]
 
 # -----------------
 # Any Shape
@@ -121,59 +126,59 @@ FloatQAnyShape: TypeAlias = Float[AbstractQuantity, "..."]
 # Matrices
 
 QMatrix33: TypeAlias = Float[AbstractQuantity, "3 3"]
-BatchQMatrix33: TypeAlias = Shaped[QMatrix33, "*batch"]
+BtQMatrix33: TypeAlias = Shaped[QMatrix33, "*batch"]
 
 
 # =============================================================================
 
 MassScalar: TypeAlias = Shaped[u.Quantity["mass"], ""]
-MassBatchScalar: TypeAlias = Shaped[u.Quantity["mass"], "*batch"]
-MassBatchableScalar: TypeAlias = Shaped[u.Quantity["mass"], "*#batch"]
+MassBtScalar: TypeAlias = Shaped[u.Quantity["mass"], "*batch"]
+MassBBtScalar: TypeAlias = Shaped[u.Quantity["mass"], "*#batch"]
 
 TimeScalar: TypeAlias = Shaped[u.Quantity["time"], ""]
-TimeBatchScalar: TypeAlias = Shaped[u.Quantity["time"], "*batch"]
-TimeBatchableScalar: TypeAlias = Shaped[u.Quantity["time"], "*#batch"]
+TimeBtScalar: TypeAlias = Shaped[u.Quantity["time"], "*batch"]
+TimeBBtScalar: TypeAlias = Shaped[u.Quantity["time"], "*#batch"]
 
 LengthVec3: TypeAlias = Shaped[u.Quantity["length"], "3"]
-LengthBatchVec3: TypeAlias = Shaped[LengthVec3, "*batch"]
-LengthBatchableVec3: TypeAlias = Shaped[LengthVec3, "*#batch"]
+LengthBtVec3: TypeAlias = Shaped[LengthVec3, "*batch"]
+LengthBBtVec3: TypeAlias = Shaped[LengthVec3, "*#batch"]
 
 SpeedVec3: TypeAlias = Shaped[u.Quantity["speed"], "3"]
-SpeedBatchVec3: TypeAlias = Shaped[SpeedVec3, "*batch"]
-SpeedBatchableVec3: TypeAlias = Shaped[SpeedVec3, "*#batch"]
+SpeedBtVec3: TypeAlias = Shaped[SpeedVec3, "*batch"]
+SpeedBBtVec3: TypeAlias = Shaped[SpeedVec3, "*#batch"]
 
 SpecificEnergyScalar: TypeAlias = Float[u.Quantity["specific_energy"], ""]
-SpecificEnergyBatchScalar: TypeAlias = Float[u.Quantity["specific_energy"], "*batch"]
+SpecificEnergyBtScalar: TypeAlias = Float[u.Quantity["specific_energy"], "*batch"]
 
 
 # =============================================================================
 
 Qarr: TypeAlias = Shaped[Array, "3"]
-BatchQarr: TypeAlias = Shaped[Qarr, "*batch"]
-BatchableQarr: TypeAlias = Shaped[Qarr, "*#batch"]
+BtQarr: TypeAlias = Shaped[Qarr, "*batch"]
+BBtQarr: TypeAlias = Shaped[Qarr, "*#batch"]
 
 Q: TypeAlias = Shaped[AbstractQuantity, "3"]
-BatchQ: TypeAlias = Shaped[Q, "*batch"]
-BatchableQ: TypeAlias = Shaped[Q, "*#batch"]
+BtQ: TypeAlias = Shaped[Q, "*batch"]
+BBtQ: TypeAlias = Shaped[Q, "*#batch"]
 
 Parr: TypeAlias = Shaped[Array, "3"]
-BatchParr: TypeAlias = Shaped[Parr, "*batch"]
-BatchableParr: TypeAlias = Shaped[Parr, "*#batch"]
+BtParr: TypeAlias = Shaped[Parr, "*batch"]
+BBtParr: TypeAlias = Shaped[Parr, "*#batch"]
 
 P: TypeAlias = Shaped[AbstractQuantity, "3"]
-BatchP: TypeAlias = Shaped[P, "*batch"]
-BatchableP: TypeAlias = Shaped[P, "*#batch"]
+BtP: TypeAlias = Shaped[P, "*batch"]
+BBtP: TypeAlias = Shaped[P, "*#batch"]
 
 Aarr: TypeAlias = Shaped[Array, "3"]
-BatchAarr: TypeAlias = Shaped[Aarr, "*batch"]
+BtAarr: TypeAlias = Shaped[Aarr, "*batch"]
 
 QParr: TypeAlias = tuple[Qarr, Parr]
-BatchQParr: TypeAlias = tuple[BatchQarr, BatchParr]
-BatchableQParr: TypeAlias = tuple[BatchableQarr, BatchableParr]
+BtQParr: TypeAlias = tuple[BtQarr, BtParr]
+BBtQParr: TypeAlias = tuple[BBtQarr, BBtParr]
 
 QP: TypeAlias = tuple[Q, P]
-BatchQP: TypeAlias = tuple[BatchQ, BatchP]
-BatchableQP: TypeAlias = tuple[BatchableQ, BatchableP]
+BtQP: TypeAlias = tuple[BtQ, BtP]
+BBtQP: TypeAlias = tuple[BBtQ, BBtP]
 
 PAarr: TypeAlias = tuple[Parr, Aarr]
-BatchPAarr: TypeAlias = tuple[BatchParr, BatchAarr]
+BtPAarr: TypeAlias = tuple[BtParr, BtAarr]

@@ -54,8 +54,8 @@ class TestAbstractPotential(AbstractPotential_Test):
 
             @partial(jax.jit, inline=True)
             def _potential(  # TODO: inputs w/ units
-                self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-            ) -> gt.SpecificEnergyBatchScalar:
+                self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+            ) -> gt.SpecificEnergyBtScalar:
                 return (
                     self.constants["G"]
                     * self.m_tot(t)

@@ -71,14 +71,14 @@ class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
     # ---------------------------------
 
     @pytest.fixture(scope="class")
-    def batchx(self, units: u.AbstractUnitSystem) -> gt.BatchQVec3:
+    def batchx(self, units: u.AbstractUnitSystem) -> gt.BtQVec3:
         """Create a batch of position vectors for testing."""
         return u.Quantity(
             jnp.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=float), units["length"]
         )
 
     @pytest.fixture(scope="class")
-    def batchv(self, units: u.AbstractUnitSystem) -> gt.BatchQVec3:
+    def batchv(self, units: u.AbstractUnitSystem) -> gt.BtQVec3:
         """Create a batch of velocity vectors for testing."""
         return u.Quantity(
             jnp.asarray([[4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float),
@@ -86,7 +86,7 @@ class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
         )
 
     @pytest.fixture(scope="class")
-    def batchxv(self, batchx: gt.BatchQVec3, batchv: gt.BatchQVec3) -> gt.BatchVec3:
+    def batchxv(self, batchx: gt.BtQVec3, batchv: gt.BtQVec3) -> gt.BtVec3:
         """Create a batch of phase-space vectors for testing."""
         return jnp.concatenate([batchx.value, batchv.value], axis=-1)
 
@@ -118,7 +118,7 @@ class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
         ...
 
     def test_potential_batch(
-        self, pot: gp.AbstractBasePotential, batchx: gt.BatchQVec3
+        self, pot: gp.AbstractBasePotential, batchx: gt.BtQVec3
     ) -> None:
         """Test the `AbstractBasePotential.potential` method."""
         # Test that the method works on batches.
@@ -218,8 +218,8 @@ class TestAbstractBasePotential(AbstractBasePotential_Test):
 
             @partial(jax.jit, inline=True)
             def _potential(  # TODO: inputs w/ units
-                self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-            ) -> gt.SpecificEnergyBatchScalar:
+                self, q: gt.BtQVec3, t: gt.BBtRealQScalar, /
+            ) -> gt.SpecificEnergyBtScalar:
                 return (
                     self.constants["G"]
                     * self.m_tot(t)

@@ -75,7 +75,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         ts: gt.QVecTime,
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
-    ) -> tuple[gt.BatchVec6, gt.BatchVec6]:
+    ) -> tuple[gt.BtVec6, gt.BtVec6]:
         """Generate stellar stream by scanning over the release model/integration.
 
         Better for CPU usage.
@@ -124,7 +124,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         ts: gt.QVecTime,
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
-    ) -> tuple[gt.BatchVec6, gt.BatchVec6]:
+    ) -> tuple[gt.BtVec6, gt.BtVec6]:
         """Generate stellar stream by vmapping over the release model/integration.
 
         Better for GPU usage.

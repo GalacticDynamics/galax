@@ -19,7 +19,7 @@ import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
 from .orbit_plot import PlotOrbitDescriptor, ProxyOrbit
-from galax.typing import BatchFloatQScalar, QVec1, QVecTime
+from galax.typing import BtFloatQScalar, QVec1, QVecTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
@@ -135,7 +135,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     # ==========================================================================
     # Interpolation
 
-    def __call__(self, t: BatchFloatQScalar) -> "Orbit":
+    def __call__(self, t: BtFloatQScalar) -> "Orbit":
         """Call the interpolation."""
         interpolant = eqx.error_if(
             self.interpolant,
@@ -305,7 +305,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     @partial(jax.jit, inline=True)
     def potential_energy(
         self, potential: gp.AbstractBasePotential | None = None, /
-    ) -> BatchFloatQScalar:
+    ) -> BtFloatQScalar:
         r"""Return the specific potential energy.
 
         .. math::
@@ -330,7 +330,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     @partial(jax.jit, inline=True)
     def total_energy(
         self, potential: "gp.AbstractBasePotential | None" = None, /
-    ) -> BatchFloatQScalar:
+    ) -> BtFloatQScalar:
         r"""Return the specific total energy.
 
         .. math::

@@ -8,7 +8,7 @@ from numbers import Number
 from typing import Annotated as Ann, Any
 from typing_extensions import Doc
 
-import diffrax
+import diffrax as dfx
 from jaxtyping import Array, ArrayLike, Shaped
 from plum import dispatch
 
@@ -24,10 +24,10 @@ def converter_dynamicsolver(obj: Any, /) -> DynamicsSolver:
 
     Examples
     --------
-    >>> import diffrax
+    >>> import diffrax as dfx
     >>> from galax.dynamics.integrate import DynamicsSolver, DiffEqSolver
 
-    >>> diffeqsolve = DynamicsSolver(DiffEqSolver(diffrax.Dopri5()))
+    >>> diffeqsolve = DynamicsSolver(DiffEqSolver(dfx.Dopri5()))
     >>> converter_dynamicsolver(diffeqsolve)
     DynamicsSolver(
       diffeqsolver=DiffEqSolver(
@@ -37,7 +37,7 @@ def converter_dynamicsolver(obj: Any, /) -> DynamicsSolver:
       )
     )
 
-    >>> diffeqsolve = DiffEqSolver(diffrax.Dopri5())
+    >>> diffeqsolve = DiffEqSolver(dfx.Dopri5())
     >>> converter_dynamicsolver(diffeqsolve)
     DynamicsSolver(
       diffeqsolver=DiffEqSolver(
@@ -47,7 +47,7 @@ def converter_dynamicsolver(obj: Any, /) -> DynamicsSolver:
       )
     )
 
-    >>> converter_dynamicsolver(diffrax.Dopri5())
+    >>> converter_dynamicsolver(dfx.Dopri5())
     DynamicsSolver(
       diffeqsolver=DiffEqSolver(
         solver=Dopri5(scan_kind=None),
@@ -63,7 +63,7 @@ def converter_dynamicsolver(obj: Any, /) -> DynamicsSolver:
     """
     if isinstance(obj, DynamicsSolver):
         out = obj
-    elif isinstance(obj, DiffEqSolver | diffrax.AbstractSolver):
+    elif isinstance(obj, DiffEqSolver | dfx.AbstractSolver):
         out = DynamicsSolver(obj)
     else:
         msg = f"cannot convert {obj} to a `DynamicsSolver`."  # type: ignore[unreachable]

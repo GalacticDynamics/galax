@@ -7,7 +7,7 @@ from dataclasses import KW_ONLY
 from functools import partial
 from typing import Any, Literal, TypeAlias, TypeVar, cast, final
 
-import diffrax
+import diffrax as dfx
 import equinox as eqx
 from jaxtyping import ArrayLike, Shaped
 from plum import dispatch
@@ -31,8 +31,8 @@ Time: TypeAlias = gt.TimeSz0 | gt.RealSz0Like
 Times: TypeAlias = gt.QuSzTime | gt.SzTime
 
 
-default_solver = diffrax.Dopri8(scan_kind="bounded")
-default_stepsize_controller = diffrax.PIDController(rtol=1e-7, atol=1e-7)
+default_solver = dfx.Dopri8(scan_kind="bounded")
+default_stepsize_controller = dfx.PIDController(rtol=1e-7, atol=1e-7)
 
 
 @final
@@ -179,8 +179,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     dynamics_solver: DynamicsSolver = eqx.field(
         default=DynamicsSolver(
             DiffEqSolver(
-                solver=diffrax.Dopri8(scan_kind="bounded"),
-                stepsize_controller=diffrax.PIDController(rtol=1e-7, atol=1e-7),
+                solver=dfx.Dopri8(scan_kind="bounded"),
+                stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7),
             )
         ),
         converter=converter_dynamicsolver,
@@ -247,7 +247,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Either save at `saveat` or at the final time.
         time = units["time"]
         only_final = saveat is None or len(saveat) <= 1
-        save_at = diffrax.SaveAt(
+        save_at = dfx.SaveAt(
             t1=only_final,
             ts=None if only_final else cast(AbstractQuantity, saveat).ustrip(time),
             dense=interpolated,
@@ -260,7 +260,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # ---------------------------------------
         # Perform the integration
 
-        soln: diffrax.Solution = self.dynamics_solver.solve(
+        soln: dfx.Solution = self.dynamics_solver.solve(
             field, (q0, p0), t0, t1, saveat=save_at, **diffeq_kw
         )
 

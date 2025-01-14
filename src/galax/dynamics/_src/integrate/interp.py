@@ -2,7 +2,7 @@ __all__ = ["Interpolant"]
 
 from typing import Any, final
 
-import diffrax
+import diffrax as dfx
 import equinox as eqx
 import jax
 
@@ -52,7 +52,7 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
 
     """
 
-    interpolant: diffrax.DenseInterpolation
+    interpolant: dfx.DenseInterpolation
     """:class:`diffrax.DenseInterpolation` object.
 
     This object is the result of the integration and can be used to evaluate the

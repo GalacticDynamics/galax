@@ -9,7 +9,7 @@ __all__ = ["HamiltonianField"]
 from functools import partial
 from typing import Any, final
 
-import diffrax
+import diffrax as dfx
 import equinox as eqx
 import jax
 from plum import convert, dispatch
@@ -50,7 +50,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
 
     Examples
     --------
-    >>> import diffrax
+    >>> import diffrax as dfx
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
@@ -68,11 +68,11 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     dependent, e.g. returning a `ODETerm` for `diffrax.Dopri8` and
     `tuple[ODETerm, ODETerm]` for `diffrax.SemiImplicitEuler`.
 
-    >>> solver = diffrax.Dopri8()
+    >>> solver = dfx.Dopri8()
     >>> field.terms(solver)
     ODETerm(vector_field=<wrapped function __call__>)
 
-    >>> solver = diffrax.SemiImplicitEuler()
+    >>> solver = dfx.SemiImplicitEuler()
     >>> field.terms(solver)
     (ODETerm( ... ), ODETerm( ... ))
 
@@ -152,14 +152,14 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     @AbstractDynamicsField.terms.dispatch  # type: ignore[attr-defined, misc]
     def terms(
         self: "AbstractDynamicsField",
-        solver: diffrax.SemiImplicitEuler,  # noqa: ARG002
+        solver: dfx.SemiImplicitEuler,  # noqa: ARG002
         /,
-    ) -> tuple[diffrax.AbstractTerm, diffrax.AbstractTerm]:
+    ) -> tuple[dfx.AbstractTerm, dfx.AbstractTerm]:
         """Return the AbstractTerm terms for the SemiImplicitEuler solver.
 
         Examples
         --------
-        >>> import diffrax
+        >>> import diffrax as dfx
         >>> import unxt as u
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
@@ -168,7 +168,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
         >>> field = gd.fields.HamiltonianField(pot)
 
-        >>> solver = diffrax.SemiImplicitEuler()
+        >>> solver = dfx.SemiImplicitEuler()
 
         >>> field.terms(solver)
         (ODETerm( ... ), ODETerm( ... ))
@@ -193,7 +193,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
             frame=SimulationFrame())
 
         """
-        return (diffrax.ODETerm(self._call_q), diffrax.ODETerm(self._call_p))
+        return (dfx.ODETerm(self._call_q), dfx.ODETerm(self._call_p))
 
 
 # ---------------------------

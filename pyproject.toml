@@ -282,6 +282,9 @@
         "TID252", # Relative imports from parent modules are banned
       ]
 
+    [tool.ruff.lint.flake8-import-conventions.extend-aliases]
+      "diffrax" = "dfx"
+
     [tool.ruff.lint.flake8-type-checking]
       exempt-modules = []
 

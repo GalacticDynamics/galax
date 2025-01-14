@@ -9,7 +9,7 @@ __all__ = ["DynamicsSolver"]
 
 from typing import Any
 
-import diffrax
+import diffrax as dfx
 import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import PyTree
@@ -40,7 +40,6 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     problem setups. Check out the method's docstring for examples.
     Here we show a simple example.
 
-    >>> import diffrax
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
@@ -87,8 +86,8 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     #: Solver for the differential equation.
     diffeqsolver: DiffEqSolver = eqx.field(
         default=DiffEqSolver(
-            solver=diffrax.Dopri8(),
-            stepsize_controller=diffrax.PIDController(rtol=1e-8, atol=1e-8),
+            solver=dfx.Dopri8(),
+            stepsize_controller=dfx.PIDController(rtol=1e-8, atol=1e-8),
         ),
         converter=converter_diffeqsolver,
     )
@@ -126,7 +125,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         /,
         args: Any = (),
         **solver_kw: Any,  # TODO: TypedDict
-    ) -> diffrax.Solution:
+    ) -> dfx.Solution:
         """Call `diffrax.diffeqsolve`."""
         raise NotImplementedError  # pragma: no cover
 
@@ -134,7 +133,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 # ===============================================
 # Solve Dispatches
 
-default_saveat = diffrax.SaveAt(t1=True)
+default_saveat = dfx.SaveAt(t1=True)
 
 # --------------------------------
 # JAX & Unxt
@@ -151,7 +150,7 @@ def solve(
     args: Any = (),
     saveat: Any = default_saveat,
     **solver_kw: Any,
-) -> diffrax.Solution:
+) -> dfx.Solution:
     """Solve for position tuple, start, end time.
 
     Examples
@@ -230,7 +229,7 @@ def solve(
     /,
     args: Any = (),
     **solver_kw: Any,
-) -> diffrax.Solution:
+) -> dfx.Solution:
     """Solve for position vector tuple, start, end time.
 
     Examples
@@ -286,7 +285,7 @@ def solve(
     /,
     args: Any = (),
     **solver_kw: Any,
-) -> diffrax.Solution:
+) -> dfx.Solution:
     """Solve for 4-vector position tuple, end time.
 
     Examples
@@ -342,7 +341,7 @@ def solve(
     /,
     args: Any = (),
     **solver_kw: Any,
-) -> diffrax.Solution:
+) -> dfx.Solution:
     """Solve for Space[4vec, 3vel], end time.
 
     Examples
@@ -403,7 +402,7 @@ def solve(
     /,
     args: Any = (),
     **solver_kw: Any,
-) -> diffrax.Solution:
+) -> dfx.Solution:
     """Solve for Space[3vec, 3vel], start, end time.
 
     Examples
@@ -459,7 +458,7 @@ def solve(
     /,
     args: Any = (),
     **solver_kw: Any,
-) -> diffrax.Solution:
+) -> dfx.Solution:
     """Solve for `coordinax.frames.AbstractCoordinate`, start, end time.
 
     Examples
@@ -521,7 +520,7 @@ def solve(
     /,
     args: Any = (),
     **solver_kw: Any,
-) -> diffrax.Solution:
+) -> dfx.Solution:
     """Solve for PSP with time, end time.
 
     Examples
@@ -591,7 +590,7 @@ def solve(
     /,
     args: Any = (),
     **solver_kw: Any,
-) -> diffrax.Solution:
+) -> dfx.Solution:
     """Solve for PSP without time, start, end time.
 
     Examples
@@ -657,17 +656,17 @@ def solve(
 @AbstractDynamicsField.terms.dispatch  # type: ignore[misc,attr-defined]
 def terms(
     self: AbstractDynamicsField, wrapper: DynamicsSolver, /
-) -> PyTree[diffrax.AbstractTerm]:
+) -> PyTree[dfx.AbstractTerm]:
     """Return diffeq terms, redispatching to the solver.
 
     Examples
     --------
-    >>> import diffrax
+    >>> import diffrax as dfx
     >>> import unxt as u
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> solver = gd.integrate.DynamicsSolver(diffrax.Dopri8())
+    >>> solver = gd.integrate.DynamicsSolver(dfx.Dopri8())
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
@@ -682,14 +681,13 @@ def terms(
 @gc.AbstractOnePhaseSpacePosition.from_.dispatch  # type: ignore[misc,attr-defined]
 def from_(
     cls: type[gc.AbstractOnePhaseSpacePosition],
-    soln: diffrax.Solution,
+    soln: dfx.Solution,
     units: u.AbstractUnitSystem,
 ) -> gc.AbstractOnePhaseSpacePosition:
     """Convert a solution to a phase-space position.
 
     Examples
     --------
-    >>> import diffrax
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp

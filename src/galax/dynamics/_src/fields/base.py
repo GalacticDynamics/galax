@@ -9,7 +9,7 @@ __all__ = ["AbstractDynamicsField"]
 import abc
 from typing import Any
 
-import diffrax
+import diffrax as dfx
 import equinox as eqx
 import jax
 from jaxtyping import PyTree
@@ -39,14 +39,14 @@ class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-
     @dispatch
     def terms(
         self: "AbstractDynamicsField",
-        solver: diffrax.AbstractSolver,  # noqa: ARG002
+        solver: dfx.AbstractSolver,  # noqa: ARG002
         /,
-    ) -> PyTree[diffrax.AbstractTerm]:
+    ) -> PyTree[dfx.AbstractTerm]:
         """Return the AbstractTerm PyTree for integration with `diffrax`.
 
         Examples
         --------
-        >>> import diffrax
+        >>> import diffrax as dfx
         >>> import unxt as u
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
@@ -54,10 +54,10 @@ class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-
         >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
         >>> field = gd.fields.HamiltonianField(pot)
 
-        >>> solver = diffrax.Dopri8()
+        >>> solver = dfx.Dopri8()
 
         >>> field.terms(solver)
         ODETerm(vector_field=<wrapped function __call__>)
 
         """
-        return diffrax.ODETerm(jax.jit(self.__call__))
+        return dfx.ODETerm(jax.jit(self.__call__))

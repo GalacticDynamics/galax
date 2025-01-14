@@ -284,6 +284,7 @@
 
     [tool.ruff.lint.flake8-import-conventions.extend-aliases]
       "diffrax" = "dfx"
+      "equinox" = "eqx"
 
     [tool.ruff.lint.flake8-type-checking]
       exempt-modules = []

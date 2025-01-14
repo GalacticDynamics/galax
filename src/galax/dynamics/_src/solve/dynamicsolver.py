@@ -21,7 +21,7 @@ from unxt.quantity import UncheckedQuantity as FastQ
 import galax.coordinates as gc
 import galax.typing as gt
 from .diffeqsolver import DiffEqSolver
-from .utils import converter_diffeqsolver
+from .utils import converter_diffeqsolver, parse_saveat
 from galax.dynamics._src.fields import AbstractDynamicsField
 
 
@@ -113,6 +113,8 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 # ===============================================
 # Solve Dispatches
 
+default_saveat = diffrax.SaveAt(t1=True)
+
 # --------------------------------
 # JAX & Unxt
 
@@ -126,6 +128,7 @@ def solve(
     t1: gt.TimeScalar,
     /,
     args: Any = (),
+    saveat: Any = default_saveat,
     **solver_kw: Any,
 ) -> diffrax.Solution:
     """Solve for position tuple, start, end time.
@@ -181,6 +184,7 @@ def solve(
         y0=y0,
         args=args,
         max_steps=None,
+        saveat=parse_saveat(units, saveat),
         **solver_kw,
     )
 

@@ -20,7 +20,7 @@ from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.typing as gt
-from .diffeqsolver import DiffEqSolver
+from .diffeq import DiffEqSolver
 from .utils import converter_diffeqsolver, parse_saveat
 from galax.dynamics._src.fields import AbstractDynamicsField
 

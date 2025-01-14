@@ -14,7 +14,7 @@ from plum import dispatch
 import unxt as u
 from unxt.quantity import AbstractQuantity
 
-from .diffeqsolver import DiffEqSolver
+from .diffeq import DiffEqSolver
 
 
 def converter_diffeqsolver(obj: Any, /) -> DiffEqSolver:

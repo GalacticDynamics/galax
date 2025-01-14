@@ -20,7 +20,7 @@ from xmmutablemap import ImmutableMap
 import galax.coordinates as gc
 import galax.typing as gt
 from .interp import Interpolant
-from galax.dynamics._src.solve.diffeqsolver import DiffEqSolver
+from galax.dynamics._src.solve.diffeq import DiffEqSolver
 from galax.dynamics._src.solve.utils import converter_diffeqsolver
 from galax.dynamics.fields import AbstractDynamicsField
 

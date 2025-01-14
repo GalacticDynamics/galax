@@ -14,6 +14,6 @@ __all__ = [
     "parse_saveat",
 ]
 
-from .diffeqsolver import DiffEqSolver
+from .diffeq import DiffEqSolver
 from .dynamicsolver import AbstractSolver, DynamicsSolver
 from .utils import converter_diffeqsolver, parse_saveat

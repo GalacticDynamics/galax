@@ -6,6 +6,7 @@ This is private API.
 
 __all__ = ["converter_diffeqsolver", "parse_saveat"]
 
+from dataclasses import replace
 from typing import Any
 
 import diffrax
@@ -59,28 +60,30 @@ def converter_diffeqsolver(obj: Any, /) -> DiffEqSolver:
 
 
 @dispatch
-def parse_saveat(obj: diffrax.SaveAt, /) -> diffrax.SaveAt:
+def parse_saveat(obj: diffrax.SaveAt, /, *, dense: bool) -> diffrax.SaveAt:
     """Return the input object.
 
     Examples
     --------
     >>> import diffrax
-    >>> parse_saveat(diffrax.SaveAt(ts=[0, 1, 2, 3]))
+    >>> parse_saveat(diffrax.SaveAt(ts=[0, 1, 2, 3]), dense=True)
     SaveAt(
       subs=SubSaveAt( t0=False, t1=False, ts=i64[4],
                       steps=False, fn=<function save_y> ),
-      dense=False,
+      dense=True,
       solver_state=False,
       controller_state=False,
       made_jump=False
     )
 
     """
-    return obj
+    return replace(obj, dense=dense)
 
 
 @dispatch
-def parse_saveat(_: u.AbstractUnitSystem, obj: diffrax.SaveAt, /) -> diffrax.SaveAt:
+def parse_saveat(
+    _: u.AbstractUnitSystem, obj: diffrax.SaveAt, /, *, dense: bool
+) -> diffrax.SaveAt:
     """Return the input object.
 
     Examples
@@ -89,23 +92,23 @@ def parse_saveat(_: u.AbstractUnitSystem, obj: diffrax.SaveAt, /) -> diffrax.Sav
     >>> import unxt as u
 
     >>> units = u.unitsystem("galactic")
-    >>> parse_saveat(units, diffrax.SaveAt(ts=[0, 1, 2, 3]))
+    >>> parse_saveat(units, diffrax.SaveAt(ts=[0, 1, 2, 3]), dense=True)
     SaveAt(
       subs=SubSaveAt( t0=False, t1=False, ts=i64[4],
                       steps=False, fn=<function save_y> ),
-      dense=False,
+      dense=True,
       solver_state=False,
       controller_state=False,
       made_jump=False
     )
 
     """
-    return obj
+    return replace(obj, dense=dense)
 
 
 @dispatch
 def parse_saveat(
-    units: u.AbstractUnitSystem, ts: AbstractQuantity, /
+    units: u.AbstractUnitSystem, ts: AbstractQuantity, /, *, dense: bool
 ) -> diffrax.SaveAt:
     """Convert to a `SaveAt`.
 
@@ -115,15 +118,15 @@ def parse_saveat(
     >>> import unxt as u
 
     >>> units = u.unitsystem("galactic")
-    >>> parse_saveat(units, u.Quantity([0, 1, 2, 3], "Myr"))
+    >>> parse_saveat(units, u.Quantity([0, 1, 2, 3], "Myr"), dense=True)
     SaveAt(
       subs=SubSaveAt( t0=False, t1=False, ts=i64[4],
                       steps=False, fn=<function save_y> ),
-      dense=False,
+      dense=True,
       solver_state=False,
       controller_state=False,
       made_jump=False
     )
 
     """
-    return diffrax.SaveAt(ts=ts.ustrip(units["time"]))
+    return diffrax.SaveAt(ts=ts.ustrip(units["time"]), dense=dense)

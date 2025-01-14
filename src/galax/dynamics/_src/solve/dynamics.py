@@ -100,6 +100,8 @@ def solve(
     /,
     args: Any = (),
     saveat: Any = default_saveat,
+    *,
+    dense: bool = False,
     **solver_kw: Any,
 ) -> diffrax.Solution:
     """Solve for position tuple, start, end time.
@@ -141,21 +143,23 @@ def solve(
      Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
 
     """
+    # Units
     units = field.units
     time = units["time"]
 
+    # Initial conditions
     y0 = (qp[0].ustrip(units["length"]), qp[1].ustrip(units["speed"]))
     y0 = tuple(jnp.broadcast_arrays(*y0))
 
+    # Solve the differential equation
+    solver_kw.setdefault("dt0", None)
     soln = self.diffeqsolver(
         field.terms,
         t0=t0.ustrip(time),
         t1=t1.ustrip(time),
-        dt0=None,
         y0=y0,
         args=args,
-        max_steps=None,
-        saveat=parse_saveat(units, saveat),
+        saveat=parse_saveat(units, saveat, dense=dense),
         **solver_kw,
     )
 

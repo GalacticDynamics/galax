@@ -13,6 +13,7 @@ import diffrax
 import equinox as eqx
 import jax
 from jaxtyping import PyTree
+from plum import dispatch
 
 
 class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
@@ -31,7 +32,28 @@ class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-
     ) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
 
-    @property
-    def terms(self) -> PyTree[diffrax.AbstractTerm]:
-        """Return the AbstractTerm."""
+    @dispatch
+    def terms(
+        self: "AbstractDynamicsField",
+        solver: diffrax.AbstractSolver,  # noqa: ARG002
+        /,
+    ) -> PyTree[diffrax.AbstractTerm]:
+        """Return the AbstractTerm PyTree for integration with `diffrax`.
+
+        Examples
+        --------
+        >>> import diffrax
+        >>> import unxt as u
+        >>> import galax.potential as gp
+        >>> import galax.dynamics as gd
+
+        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+        >>> field = gd.fields.HamiltonianField(pot)
+
+        >>> solver = diffrax.Dopri8()
+
+        >>> field.terms(solver)
+        ODETerm(vector_field=<wrapped function __call__>)
+
+        """
         return diffrax.ODETerm(jax.jit(self.__call__))

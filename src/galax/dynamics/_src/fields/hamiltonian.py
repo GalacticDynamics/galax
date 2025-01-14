@@ -9,6 +9,7 @@ __all__ = ["HamiltonianField"]
 from functools import partial
 from typing import Any, final
 
+import diffrax
 import jax
 from plum import convert, dispatch
 
@@ -46,6 +47,62 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         `quax.quaxify` for `diffrax.diffeqsolve` then this will return
         `tuple[CartesianPos3D, CartesianVel3D]`.
 
+    Examples
+    --------
+    >>> import diffrax
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...    r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field
+    HamiltonianField( potential=HernquistPotential( ... ) )
+
+    The `.terms()` method returns a PyTree of `diffrax.AbstractTerm` objects
+    that can be used to integrate the equations of motion with a `diffrax`
+    solver (e.g. `diffrax.diffeqsolve`). The `.terms()` method is solver
+    dependent, e.g. returning a `ODETerm` for `diffrax.Dopri8` and
+    `tuple[ODETerm, ODETerm]` for `diffrax.SemiImplicitEuler`.
+
+    >>> solver = diffrax.Dopri8()
+    >>> field.terms(solver)
+    ODETerm(vector_field=<wrapped function __call__>)
+
+    >>> solver = diffrax.SemiImplicitEuler()
+    >>> field.terms(solver)
+    (ODETerm(vector_field=<wrapped function _call_q>),
+     ODETerm(vector_field=<wrapped function _call_p>))
+
+    Just to continue the example, we can use this field to integrate the
+    equations of motion:
+
+    >>> solver = gd.integrate.DynamicsSolver()  # defaults to Dopri8
+    >>> w0 = gc.PhaseSpacePosition(
+    ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Quantity([0, 220, 0], "km/s"),
+    ...     t=u.Quantity(0, "Gyr"))
+    >>> t1 = u.Quantity(1, "Gyr")
+    >>> soln = solver.solve(field, w0, t1)
+    >>> soln
+    Solution( t0=f64[], t1=f64[], ts=f64[1],
+              ys=(f64[1,2,3], f64[1,2,3]),
+              ... )
+
+    >>> w = gc.PhaseSpacePosition.from_(soln, pot.units)
+    >>> print(w)
+    PhaseSpacePosition(
+        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            [[[-5.151 -6.454 -5.795]]
+             [[ 4.277  4.633  1.426]]]>,
+        p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+            [[[ 0.225 -0.068  0.253]]
+             [[-0.439 -0.002 -0.146]]]>,
+        t=Quantity['time'](Array([1000.], dtype=float64), unit='Myr'),
+        frame=SimulationFrame())
+
     """
 
     #: Potential.
@@ -60,6 +117,84 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         self, t: Any, qp: tuple[Any, Any], args: tuple[Any, ...], /
     ) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
+
+    # ---------------------------
+    # Private API to support symplectic integrators. It would be good to figure
+    # out a way to make these methods part of `__call__`.
+
+    @jax.jit  # type: ignore[misc]
+    def _call_q(
+        self,
+        t: gt.BBtSz0,  # noqa: ARG002
+        p: gt.BBtParr,
+        args: Any,  # noqa: ARG002
+        /,
+    ) -> gt.BtParr:
+        """Call with time, position quantity arrays."""
+        return p
+
+    @jax.jit  # type: ignore[misc]
+    def _call_p(
+        self,
+        t: gt.BBtSz0,
+        q: gt.BBtQarr,
+        args: Any,  # noqa: ARG002
+        /,
+    ) -> gt.BtAarr:
+        """Call with time, velocity quantity arrays."""
+        units = self.units
+        a: gt.BtAarr = -self.potential._gradient(  # noqa: SLF001
+            FastQ(q, units["length"]),
+            FastQ(t, units["time"]),
+        ).ustrip(units["acceleration"])
+        return a
+
+    @AbstractDynamicsField.terms.dispatch  # type: ignore[attr-defined, misc]
+    def terms(
+        self: "AbstractDynamicsField",
+        solver: diffrax.SemiImplicitEuler,  # noqa: ARG002
+        /,
+    ) -> tuple[diffrax.AbstractTerm, diffrax.AbstractTerm]:
+        """Return the AbstractTerm terms for the SemiImplicitEuler solver.
+
+        Examples
+        --------
+        >>> import diffrax
+        >>> import unxt as u
+        >>> import galax.coordinates as gc
+        >>> import galax.potential as gp
+        >>> import galax.dynamics as gd
+
+        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+        >>> field = gd.fields.HamiltonianField(pot)
+
+        >>> solver = diffrax.SemiImplicitEuler()
+
+        >>> field.terms(solver)
+        (ODETerm(vector_field=<wrapped function _call_q>),
+         ODETerm(vector_field=<wrapped function _call_p>))
+
+        For completeness we'll integrate the EoM.
+
+        >>> dynamics_solver = gd.integrate.DynamicsSolver(solver)
+        >>> w0 = gc.PhaseSpacePosition(
+        ...     q=u.Quantity([8., 0, 0], "kpc"),
+        ...     p=u.Quantity([0, 220, 0], "km/s"),
+        ...     t=u.Quantity(0, "Gyr"))
+        >>> t1 = u.Quantity(200, "Myr")
+
+        >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.3)
+        >>> print(gc.PhaseSpacePosition.from_(soln, pot.units))
+        PhaseSpacePosition(
+            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+                [[9.447 7.06  0.   ]]>,
+            p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+                [[-0.538 -0.211  0.   ]]>,
+            t=Quantity['time'](Array([200.], dtype=float64), unit='Myr'),
+            frame=SimulationFrame())
+
+        """
+        return (diffrax.ODETerm(self._call_q), diffrax.ODETerm(self._call_p))
 
 
 # ---------------------------

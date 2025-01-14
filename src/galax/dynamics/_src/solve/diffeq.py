@@ -21,8 +21,10 @@ import equinox as eqx
 import numpy as np
 from jaxtyping import Array, ArrayLike, Bool, PyTree, Real
 
+from galax.dynamics._src.fields import AbstractDynamicsField
+
 RealSz0Like: TypeAlias = Real[int | float | Array | np.ndarray, ""]
-BoolScalarLike: TypeAlias = Bool[ArrayLike, ""]
+BoolSz0Like: TypeAlias = Bool[ArrayLike, ""]
 
 
 # Get the signature of `diffrax.diffeqsolve`, first unwrapping the
@@ -45,7 +47,7 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> from diffrax import Dopri5, PIDController, SaveAt, ODETerm
     >>> from galax.dynamics.integrate import DiffEqSolver
 
-    >>> solver = DiffEqSolver(solver=Dopri5(),
+    >>> solver = DiffEqSolver(Dopri5(),
     ...                       stepsize_controller=PIDController(rtol=1e-5, atol=1e-5))
     >>> saveat = SaveAt(ts=[0., 1., 2., 3.])
     >>> term = ODETerm(lambda t, y, args: -y)
@@ -59,11 +61,11 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     """
 
-    _: KW_ONLY
-
     #: The solver for the differential equation.
     #: See the diffrax guide on how to choose a solver.
     solver: diffrax.AbstractSolver
+
+    _: KW_ONLY
 
     #: How to change the step size as the integration progresses.
     #: See diffrax's list of stepsize controllers.
@@ -98,7 +100,7 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         progress_meter: diffrax.AbstractProgressMeter = default_progress_meter,
         solver_state: PyTree[ArrayLike] | None = None,
         controller_state: PyTree[ArrayLike] | None = None,
-        made_jump: BoolScalarLike | None = None,
+        made_jump: BoolSz0Like | None = None,
     ) -> diffrax.Solution:
         """Solve a differential equation.
 
@@ -145,3 +147,31 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     # TODO: a contextmanager for producing a temporary DiffEqSolver with
     # different field values.
+
+
+# ===========================
+
+
+@AbstractDynamicsField.terms.dispatch  # type: ignore[misc,attr-defined]
+def terms(
+    self: AbstractDynamicsField, wrapper: DiffEqSolver, /
+) -> PyTree[diffrax.AbstractTerm]:
+    """Return diffeq terms, redispatching to the solver.
+
+    Examples
+    --------
+    >>> import diffrax
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> solver = gd.integrate.DiffEqSolver(diffrax.Dopri8())
+
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+
+    >>> field.terms(solver)
+    ODETerm(vector_field=<wrapped function __call__>)
+
+    """
+    return self.terms(wrapper.solver)

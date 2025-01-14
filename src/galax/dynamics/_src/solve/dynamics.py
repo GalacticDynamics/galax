@@ -12,9 +12,11 @@ from typing import Any
 import diffrax
 import equinox as eqx
 import jax.numpy as jnp
+from jaxtyping import PyTree
 from plum import convert, dispatch
 
 import coordinax as cx
+import unxt as u
 from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
@@ -31,6 +33,54 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     The most useful method is `.solve`, which handles initialization and
     stepping to the final solution.
     Manual solves can be done with `.init()` and repeat `.step()`.
+
+    Examples
+    --------
+    The ``.solve()`` method uses multiple dispatch to handle many different
+    problem setups. Check out the method's docstring for examples.
+    Here we show a simple example.
+
+    >>> import diffrax
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> solver = gd.integrate.DynamicsSolver()  # defaults to Dopri8
+
+    The field.
+
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...    r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+
+    Initial conditions.
+
+    >>> w0 = gc.PhaseSpacePosition(
+    ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Quantity([0, 220, 0], "km/s"),
+    ...     t=u.Quantity(0, "Gyr"))
+    >>> t1 = u.Quantity(1, "Gyr")
+
+    Solve, stepping from `w0.t` to `t1`.
+
+    >>> soln = solver.solve(field, w0, t1)
+    >>> soln
+    Solution( t0=f64[], t1=f64[], ts=f64[1],
+              ys=(f64[1,2,3], f64[1,2,3]),
+              ... )
+
+    >>> w = gc.PhaseSpacePosition.from_(soln, pot.units)
+    >>> print(w)
+    PhaseSpacePosition(
+        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            [[[-5.151 -6.454 -5.795]]
+             [[ 4.277  4.633  1.426]]]>,
+        p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+            [[[ 0.225 -0.068  0.253]]
+             [[-0.439 -0.002 -0.146]]]>,
+        t=Quantity['time'](Array([1000.], dtype=float64), unit='Myr'),
+        frame=SimulationFrame())
 
     """
 
@@ -152,7 +202,7 @@ def solve(
     # Solve the differential equation
     solver_kw.setdefault("dt0", None)
     soln = self.diffeqsolver(
-        field.terms,
+        field.terms(self.diffeqsolver),
         t0=t0.ustrip(time),
         t1=t1.ustrip(time),
         y0=y0,
@@ -599,3 +649,81 @@ def solve(
     # Redispatch on y0
     y0 = w0._qp(units=field.units)  # noqa: SLF001
     return self.solve(field, y0, t0, t1, args=args, **solver_kw)
+
+
+# ===================================================================
+
+
+@AbstractDynamicsField.terms.dispatch  # type: ignore[misc,attr-defined]
+def terms(
+    self: AbstractDynamicsField, wrapper: DynamicsSolver, /
+) -> PyTree[diffrax.AbstractTerm]:
+    """Return diffeq terms, redispatching to the solver.
+
+    Examples
+    --------
+    >>> import diffrax
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> solver = gd.integrate.DynamicsSolver(diffrax.Dopri8())
+
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+
+    >>> field.terms(solver)
+    ODETerm(vector_field=<wrapped function __call__>)
+
+    """
+    return self.terms(wrapper.diffeqsolver)
+
+
+@gc.AbstractOnePhaseSpacePosition.from_.dispatch  # type: ignore[misc,attr-defined]
+def from_(
+    cls: type[gc.AbstractOnePhaseSpacePosition],
+    soln: diffrax.Solution,
+    units: u.AbstractUnitSystem,
+) -> gc.AbstractOnePhaseSpacePosition:
+    """Convert a solution to a phase-space position.
+
+    Examples
+    --------
+    >>> import diffrax
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...    r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+    >>> solver = gd.integrate.DynamicsSolver()  # defaults to Dopri8
+    >>> w0 = gc.PhaseSpacePosition(
+    ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Quantity([0, 220, 0], "km/s"),
+    ...     t=u.Quantity(0, "Gyr"))
+    >>> t1 = u.Quantity(1, "Gyr")
+    >>> soln = solver.solve(field, w0, t1)
+
+    >>> w = gc.PhaseSpacePosition.from_(soln, pot.units)
+    >>> print(w)
+    PhaseSpacePosition(
+        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            [[[-5.151 -6.454 -5.795]]
+             [[ 4.277  4.633  1.426]]]>,
+        p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+            [[[ 0.225 -0.068  0.253]]
+             [[-0.439 -0.002 -0.146]]]>,
+        t=Quantity['time'](Array([1000.], dtype=float64), unit='Myr'),
+        frame=SimulationFrame())
+
+    """
+    # Convert the solution to a phase-space position
+    q = jnp.moveaxis(soln.ys[0], 0, -2)
+    p = jnp.moveaxis(soln.ys[1], 0, -2)
+    return cls(
+        q=cx.CartesianPos3D.from_(q, units["length"]),
+        p=cx.CartesianVel3D.from_(p, units["speed"]),
+        t=FastQ(soln.ts, units["time"]),
+    )

@@ -15,6 +15,8 @@ import jax
 from jaxtyping import PyTree
 from plum import dispatch
 
+import unxt as u
+
 
 class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
     """ABC for dynamics fields.
@@ -25,6 +27,8 @@ class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-
     equation types.
 
     """
+
+    units: eqx.AbstractVar[u.AbstractUnitSystem]
 
     @abc.abstractmethod
     def __call__(

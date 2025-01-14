@@ -10,6 +10,7 @@ from functools import partial
 from typing import Any, final
 
 import diffrax
+import equinox as eqx
 import jax
 from plum import convert, dispatch
 
@@ -73,8 +74,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
 
     >>> solver = diffrax.SemiImplicitEuler()
     >>> field.terms(solver)
-    (ODETerm(vector_field=<wrapped function _call_q>),
-     ODETerm(vector_field=<wrapped function _call_p>))
+    (ODETerm( ... ), ODETerm( ... ))
 
     Just to continue the example, we can use this field to integrate the
     equations of motion:
@@ -122,7 +122,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     # Private API to support symplectic integrators. It would be good to figure
     # out a way to make these methods part of `__call__`.
 
-    @jax.jit  # type: ignore[misc]
+    @eqx.filter_jit  # type: ignore[misc]
     def _call_q(
         self,
         t: gt.BBtSz0,  # noqa: ARG002
@@ -133,7 +133,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         """Call with time, position quantity arrays."""
         return p
 
-    @jax.jit  # type: ignore[misc]
+    @eqx.filter_jit  # type: ignore[misc]
     def _call_p(
         self,
         t: gt.BBtSz0,
@@ -171,8 +171,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         >>> solver = diffrax.SemiImplicitEuler()
 
         >>> field.terms(solver)
-        (ODETerm(vector_field=<wrapped function _call_q>),
-         ODETerm(vector_field=<wrapped function _call_p>))
+        (ODETerm( ... ), ODETerm( ... ))
 
         For completeness we'll integrate the EoM.
 
@@ -183,13 +182,13 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         ...     t=u.Quantity(0, "Gyr"))
         >>> t1 = u.Quantity(200, "Myr")
 
-        >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.3)
+        >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
         >>> print(gc.PhaseSpacePosition.from_(soln, pot.units))
         PhaseSpacePosition(
             q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
-                [[9.447 7.06  0.   ]]>,
+                [[ 7.645 -0.701  0.   ]]>,
             p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
-                [[-0.538 -0.211  0.   ]]>,
+                [[0.228 0.215 0.   ]]>,
             t=Quantity['time'](Array([200.], dtype=float64), unit='Myr'),
             frame=SimulationFrame())
 

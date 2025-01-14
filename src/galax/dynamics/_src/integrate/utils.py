@@ -27,7 +27,7 @@ def converter_dynamicsolver(obj: Any, /) -> DynamicsSolver:
     >>> import diffrax
     >>> from galax.dynamics.integrate import DynamicsSolver, DiffEqSolver
 
-    >>> diffeqsolve = DynamicsSolver(DiffEqSolver(solver=diffrax.Dopri5()))
+    >>> diffeqsolve = DynamicsSolver(DiffEqSolver(diffrax.Dopri5()))
     >>> converter_dynamicsolver(diffeqsolve)
     DynamicsSolver(
       diffeqsolver=DiffEqSolver(
@@ -37,7 +37,7 @@ def converter_dynamicsolver(obj: Any, /) -> DynamicsSolver:
       )
     )
 
-    >>> diffeqsolve = DiffEqSolver(solver=diffrax.Dopri5())
+    >>> diffeqsolve = DiffEqSolver(diffrax.Dopri5())
     >>> converter_dynamicsolver(diffeqsolve)
     DynamicsSolver(
       diffeqsolver=DiffEqSolver(

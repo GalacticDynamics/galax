@@ -26,7 +26,7 @@ def converter_diffeqsolver(obj: Any, /) -> DiffEqSolver:
     >>> import diffrax
     >>> from galax.dynamics.integrate import DynamicsSolver, DiffEqSolver
 
-    >>> diffeqsolve = DiffEqSolver(solver=diffrax.Dopri5())
+    >>> diffeqsolve = DiffEqSolver(diffrax.Dopri5())
     >>> converter_diffeqsolver(diffeqsolve)
     DiffEqSolver(
       solver=Dopri5(scan_kind=None),
@@ -49,7 +49,7 @@ def converter_diffeqsolver(obj: Any, /) -> DiffEqSolver:
     if isinstance(obj, DiffEqSolver):
         out = obj
     elif isinstance(obj, diffrax.AbstractSolver):
-        out = DiffEqSolver(solver=obj)
+        out = DiffEqSolver(obj)
     else:
         msg = f"cannot convert {obj} to a `DiffEqSolver`."
         raise TypeError(msg)

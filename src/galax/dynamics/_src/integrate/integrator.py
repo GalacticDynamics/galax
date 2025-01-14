@@ -28,7 +28,7 @@ from galax.dynamics.fields import AbstractDynamicsField
 R = TypeVar("R")
 Interp = TypeVar("Interp")
 Time: TypeAlias = gt.TimeSz0 | gt.RealSz0Like
-Times: TypeAlias = gt.QSzTime | gt.SzTime
+Times: TypeAlias = gt.QuSzTime | gt.SzTime
 
 
 default_solver = diffrax.Dopri8(scan_kind="bounded")
@@ -206,7 +206,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         t1: gt.TimeSz0,
         /,
         *,
-        saveat: gt.QSzTime | None = None,  # not jitted here
+        saveat: gt.QuSzTime | None = None,  # not jitted here
         units: u.AbstractUnitSystem,
         interpolated: Literal[False, True] = False,
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:

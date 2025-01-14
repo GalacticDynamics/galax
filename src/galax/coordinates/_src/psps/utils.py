@@ -34,7 +34,7 @@ else:  # need runtime for jaxtyping
 # -----------------------------------------------------------------------------
 
 
-def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: gt.FloatQSzAny) -> Any:
+def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: gt.FloatQuSzAny) -> Any:
     """Get the time index from a slice."""
     if len(index) == 0:  # slice is an empty tuple
         return slice(None)
@@ -46,7 +46,7 @@ def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: gt.FloatQSzAny) -> 
     return index
 
 
-def _getitem_vec1time_index_shaped(index: HasShape, t: gt.FloatQSzAny) -> HasShape:
+def _getitem_vec1time_index_shaped(index: HasShape, t: gt.FloatQuSzAny) -> HasShape:
     """Get the time index from a shaped index array."""
     if t.ndim == 1:  # Sz1
         return cast(HasShape, jnp.asarray([True]))
@@ -56,14 +56,14 @@ def _getitem_vec1time_index_shaped(index: HasShape, t: gt.FloatQSzAny) -> HasSha
     return index
 
 
-def getitem_vec1time_index(index: Any, t: gt.FloatQSzAny) -> Any:
+def getitem_vec1time_index(index: Any, t: gt.FloatQuSzAny) -> Any:
     """Get the time index from an index.
 
     Parameters
     ----------
     index : Any
         The index to get the time index from.
-    t : FloatQSzAny
+    t : FloatQuSzAny
         The time array.
 
     Returns

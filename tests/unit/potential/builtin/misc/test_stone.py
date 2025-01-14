@@ -89,24 +89,24 @@ class TestStoneOstriker15Potential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: StoneOstriker15Potential, x: gt.QSz3) -> None:
+    def test_potential(self, pot: StoneOstriker15Potential, x: gt.QuSz3) -> None:
         expect = u.Quantity(-0.51579523, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: StoneOstriker15Potential, x: gt.QSz3) -> None:
+    def test_gradient(self, pot: StoneOstriker15Potential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.01379378, 0.02758755, 0.04138133], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: StoneOstriker15Potential, x: gt.QSz3) -> None:
+    def test_density(self, pot: StoneOstriker15Potential, x: gt.QuSz3) -> None:
         expect = u.Quantity(3.25886848e08, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: StoneOstriker15Potential, x: gt.QSz3) -> None:
+    def test_hessian(self, pot: StoneOstriker15Potential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.01215385, -0.00327986, -0.00491978],
@@ -122,7 +122,7 @@ class TestStoneOstriker15Potential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QSz3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

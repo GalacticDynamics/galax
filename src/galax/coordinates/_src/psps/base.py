@@ -78,7 +78,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
     p: eqx.AbstractVar[cx.vecs.AbstractVel3D]
     """Conjugate momenta at positions ``q``."""
 
-    t: eqx.AbstractVar[gt.BBtFloatQSz0]
+    t: eqx.AbstractVar[gt.BBtFloatQuSz0]
     """Time corresponding to the positions and momenta."""
 
     frame: eqx.AbstractVar[SimulationFrame]  # TODO: support frames
@@ -633,7 +633,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         return potential.potential(self.q, t=self.t)
 
     @partial(jax.jit, inline=True)
-    def total_energy(self, potential: "AbstractBasePotential") -> gt.BtFloatQSz0:
+    def total_energy(self, potential: "AbstractBasePotential") -> gt.BtFloatQuSz0:
         r"""Return the specific total energy.
 
         .. math::
@@ -680,7 +680,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         return self.kinetic_energy() + self.potential_energy(potential)
 
     @partial(jax.jit, inline=True)
-    def angular_momentum(self) -> gt.BtQSz3:
+    def angular_momentum(self) -> gt.BtQuSz3:
         r"""Compute the angular momentum.
 
         .. math::

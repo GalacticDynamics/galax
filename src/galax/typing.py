@@ -12,6 +12,9 @@ Notes
 - "Sz<X>" stands for the shape, which is the primary (not batch) shape.
   For example, "Sz3" is a 3-vector and "Sz33" is a 3x3 matrix.
 
+- "Qu" stands for `unxt.quantity.AbstractQuantity`.
+
+
 """
 
 __all__: list[str] = []
@@ -35,19 +38,19 @@ Unit: TypeAlias = apyu.Unit | apyu.UnitBase | apyu.CompositeUnit
 
 # An integer scalar.
 IntSz0: TypeAlias = Int[Array, ""]
-IntQSz0: TypeAlias = Int[AbstractQuantity, ""]
+IntQuSz0: TypeAlias = Int[AbstractQuantity, ""]
 IntLike: TypeAlias = IntSz0 | int
 
 # A float scalar.
 FloatSz0: TypeAlias = Float[Array, ""]
-FloatQSz0: TypeAlias = Float[AbstractQuantity, ""]
+FloatQuSz0: TypeAlias = Float[AbstractQuantity, ""]
 
 FloatLike: TypeAlias = FloatSz0 | float | int
 """A float(/int) or float scalar."""
 
 # A float or integer scalar.
 RealSz0: TypeAlias = FloatSz0 | IntSz0
-RealQSz0: TypeAlias = FloatQSz0 | IntQSz0
+RealQuSz0: TypeAlias = FloatQuSz0 | IntQuSz0
 
 # A float or integer or float(/int) scalar.
 RealSz0Like: TypeAlias = FloatLike | IntLike
@@ -61,11 +64,11 @@ RealSz0Like: TypeAlias = FloatLike | IntLike
 
 # 1-vector
 Sz1: TypeAlias = Float[Array, "1"]
-QSz1: TypeAlias = Float[AbstractQuantity, "1"]
+QuSz1: TypeAlias = Float[AbstractQuantity, "1"]
 
 # A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz).
 Sz3: TypeAlias = Float[Array, "3"]
-QSz3: TypeAlias = Float[AbstractQuantity, "3"]
+QuSz3: TypeAlias = Float[AbstractQuantity, "3"]
 
 Sz6: TypeAlias = Float[Array, "6"]
 """A 6-vector e.g. w=(x, y, z, vx, vy, vz)."""
@@ -81,7 +84,7 @@ SzN: TypeAlias = Float[Array, "N"]
 
 # Time vector
 SzTime: TypeAlias = Float[Array, "time"]
-QSzTime: TypeAlias = Float[AbstractQuantity, "time"]
+QuSzTime: TypeAlias = Float[AbstractQuantity, "time"]
 
 # -----------------------------------------------------------------------------
 # Vector Batches
@@ -95,20 +98,20 @@ BBtSz0: TypeAlias = Shaped[Scalar, "*#batch"]
 BtFloatSz0: TypeAlias = Shaped[FloatSz0, "*batch"]
 BBtFloatSz0: TypeAlias = Shaped[FloatSz0, "*#batch"]
 
-BBtFloatQSz0: TypeAlias = Shaped[FloatQSz0, "*#batch"]
+BBtFloatQuSz0: TypeAlias = Shaped[FloatQuSz0, "*#batch"]
 
-BtFloatQSz0: TypeAlias = Shaped[FloatQSz0, "*batch"]
+BtFloatQuSz0: TypeAlias = Shaped[FloatQuSz0, "*batch"]
 
-BtRealQSz0: TypeAlias = Shaped[RealQSz0, "*batch"]
 BBtRealSz0: TypeAlias = Shaped[RealSz0, "*#batch"]
-BBtRealQSz0: TypeAlias = Shaped[RealQSz0, "*#batch"]
+BtRealQuSz0: TypeAlias = Shaped[RealQuSz0, "*batch"]
+BBtRealQuSz0: TypeAlias = Shaped[RealQuSz0, "*#batch"]
 
 # -----------------
 # Batched
 
 # Zero or more batches of 3-vectors.
 BtSz3: TypeAlias = Shaped[Sz3, "*batch"]
-BtQSz3: TypeAlias = Shaped[QSz3, "*batch"]
+BtQuSz3: TypeAlias = Shaped[QuSz3, "*batch"]
 
 # Zero or more batches of 6-vectors
 BtSz6: TypeAlias = Shaped[Sz6, "*batch"]
@@ -122,14 +125,14 @@ BBtSz7: TypeAlias = Shaped[Sz7, "*#batch"]
 # Any Shape
 
 # A float array with any shape.
-FloatQSzAny: TypeAlias = Float[AbstractQuantity, "..."]
+FloatQuSzAny: TypeAlias = Float[AbstractQuantity, "..."]
 
 
 # =============================================================================
 # Matrices
 
-QSz33: TypeAlias = Float[AbstractQuantity, "3 3"]
-BtQSz33: TypeAlias = Shaped[QSz33, "*batch"]
+QuSz33: TypeAlias = Float[AbstractQuantity, "3 3"]
+BtQuSz33: TypeAlias = Shaped[QuSz33, "*batch"]
 
 
 # =============================================================================

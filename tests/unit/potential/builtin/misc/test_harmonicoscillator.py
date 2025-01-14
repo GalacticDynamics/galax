@@ -60,7 +60,7 @@ class TestHarmonicOscillatorPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: gp.HarmonicOscillatorPotential, x: gt.QSz3) -> None:
+    def test_potential(self, pot: gp.HarmonicOscillatorPotential, x: gt.QuSz3) -> None:
         got = pot.potential(x, t=0)
         expect = u.Quantity(6.97117482e27, pot.units["specific energy"])
         assert jnp.isclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
@@ -70,12 +70,12 @@ class TestHarmonicOscillatorPotential(
         expect = u.Quantity([9.95882118e26, 1.99176424e27, 2.98764635e27], "kpc / Myr2")
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.HarmonicOscillatorPotential, x: gt.QSz3) -> None:
+    def test_density(self, pot: gp.HarmonicOscillatorPotential, x: gt.QuSz3) -> None:
         got = pot.density(x, t=0)
         expect = u.Quantity(1.76169263e37, unit="solMass / kpc3")
         assert jnp.isclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_hessian(self, pot: gp.HarmonicOscillatorPotential, x: gt.QSz3) -> None:
+    def test_hessian(self, pot: gp.HarmonicOscillatorPotential, x: gt.QuSz3) -> None:
         got = pot.hessian(x, t=0)
         expect = u.Quantity(
             [
@@ -122,7 +122,7 @@ class TestHarmonicOscillatorPotential(
         pot: gp.HarmonicOscillatorPotential,
         method0: str,
         method1: str,
-        x: gt.QSz3,
+        x: gt.QuSz3,
         atol: float,
     ) -> None:
         """Test the equivalence of methods between gala and galax.

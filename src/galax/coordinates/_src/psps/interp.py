@@ -26,7 +26,7 @@ class PhaseSpacePositionInterpolant(Protocol):
     units: u.AbstractUnitSystem
     """The unit system for the interpolation."""
 
-    def __call__(self, t: gt.QSzTime) -> PhaseSpacePosition:
+    def __call__(self, t: gt.QuSzTime) -> PhaseSpacePosition:
         """Evaluate the interpolation.
 
         Parameters
@@ -58,7 +58,7 @@ class InterpolatedPhaseSpacePosition(AbstractOnePhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.BBtFloatQSz0 | gt.QSz1 = eqx.field(converter=u.Quantity["time"].from_)
+    t: gt.BBtFloatQuSz0 | gt.QuSz1 = eqx.field(converter=u.Quantity["time"].from_)
     """The time corresponding to the positions.
 
     This is a Quantity with the same batch shape as the positions and
@@ -74,7 +74,7 @@ class InterpolatedPhaseSpacePosition(AbstractOnePhaseSpacePosition):
     frame: SimulationFrame  # TODO: support frames
     """The reference frame of the phase-space position."""
 
-    def __call__(self, t: gt.BtFloatQSz0) -> PhaseSpacePosition:
+    def __call__(self, t: gt.BtFloatQuSz0) -> PhaseSpacePosition:
         """Call the interpolation."""
         return self.interpolant(t)
 

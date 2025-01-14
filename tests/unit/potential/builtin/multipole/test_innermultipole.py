@@ -65,26 +65,26 @@ class TestMultipoleInnerPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: gp.MultipoleInnerPotential, x: gt.QSz3) -> None:
+    def test_potential(self, pot: gp.MultipoleInnerPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(32.96969177, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: gp.MultipoleInnerPotential, x: gt.QSz3) -> None:
+    def test_gradient(self, pot: gp.MultipoleInnerPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [4.74751335e-16, 9.49502670e-16, 10.9898973], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.MultipoleInnerPotential, x: gt.QSz3) -> None:
+    def test_density(self, pot: gp.MultipoleInnerPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(2.89194575e-05, unit="solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.MultipoleInnerPotential, x: gt.QSz3) -> None:
+    def test_hessian(self, pot: gp.MultipoleInnerPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [3.81496608e-16, -1.86509453e-16, 7.62993217e-17],
@@ -100,7 +100,7 @@ class TestMultipoleInnerPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QSz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -134,7 +134,7 @@ class TestMultipoleInnerPotential(
         pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
-        x: gt.QSz3,
+        x: gt.QuSz3,
         atol: float,
     ) -> None:
         """Test the equivalence of methods between gala and galax.

@@ -57,7 +57,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     # ==========================================================================
 
     def _progenitor_trajectory(
-        self, w0: gc.PhaseSpacePosition, ts: gt.QSzTime
+        self, w0: gc.PhaseSpacePosition, ts: gt.QuSzTime
     ) -> Orbit:
         """Integrate the progenitor orbit."""
         return cast(
@@ -72,7 +72,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial(jax.jit)
     def _run_scan(  # TODO: output shape depends on the input shape
         self,
-        ts: gt.QSzTime,
+        ts: gt.QuSzTime,
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
     ) -> tuple[gt.BtSz6, gt.BtSz6]:
@@ -121,7 +121,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @partial(jax.jit)
     def _run_vmap(  # TODO: output shape depends on the input shape
         self,
-        ts: gt.QSzTime,
+        ts: gt.QuSzTime,
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
     ) -> tuple[gt.BtSz6, gt.BtSz6]:
@@ -154,9 +154,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     def run(
         self,
         rng: PRNGKeyArray,
-        ts: gt.QSzTime,
+        ts: gt.QuSzTime,
         prog_w0: gc.PhaseSpacePosition | gt.Sz6,
-        prog_mass: gt.FloatQSz0 | ProgenitorMassCallable,
+        prog_mass: gt.FloatQuSz0 | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
     ) -> tuple[MockStream, gc.PhaseSpacePosition]:

@@ -262,26 +262,26 @@ class TestMultipolePotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: gp.MultipolePotential, x: gt.QSz3) -> None:
+    def test_potential(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(33.59908611, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: gp.MultipolePotential, x: gt.QSz3) -> None:
+    def test_gradient(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [-0.13487022, -0.26974043, 10.79508472], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.MultipolePotential, x: gt.QSz3) -> None:
+    def test_density(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(4.73805126e-05, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.MultipolePotential, x: gt.QSz3) -> None:
+    def test_hessian(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
@@ -297,7 +297,7 @@ class TestMultipolePotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QSz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -316,7 +316,7 @@ class TestMultipolePotential(
 
     @pytest.mark.xfail
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractBasePotential, x: gt.QSz3
+        self, pot: gp.AbstractBasePotential, x: gt.QuSz3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 
@@ -327,7 +327,7 @@ class TestMultipolePotential(
         pot: gp.MultipolePotential,
         method0: str,
         method1: str,
-        x: gt.QSz3,
+        x: gt.QuSz3,
         atol: float,
     ) -> None:
         super().test_method_gala(pot, method0, method1, x, atol)

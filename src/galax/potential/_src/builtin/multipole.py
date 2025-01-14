@@ -70,7 +70,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
             raise ValueError(msg)
 
     @partial(jax.jit, inline=True)
-    def _potential(self, q: gt.BtQSz3, t: gt.BBtRealQSz0, /) -> gt.BtFloatQSz0:
+    def _potential(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
         # Compute the parameters
         m_tot, r_s = self.m_tot(t), self.r_s(t)
         Slm, Tlm = self.Slm(t).value, self.Tlm(t).value
@@ -127,7 +127,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
             raise ValueError(msg)
 
     @partial(jax.jit, inline=True)
-    def _potential(self, q: gt.BtQSz3, t: gt.BBtRealQSz0, /) -> gt.BtFloatQSz0:
+    def _potential(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
         # Compute the parameters
         m_tot, r_s = self.m_tot(t), self.r_s(t)
         Slm, Tlm = self.Slm(t).value, self.Tlm(t).value
@@ -194,7 +194,7 @@ class MultipolePotential(AbstractMultipolePotential):
             raise ValueError(msg)
 
     @partial(jax.jit, inline=True)
-    def _potential(self, q: gt.BtQSz3, t: gt.BBtRealQSz0, /) -> gt.BtFloatQSz0:
+    def _potential(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
         # Compute the parameters
         m_tot, r_s = self.m_tot(t), self.r_s(t)
         ISlm, ITlm = self.ISlm(t).value, self.ITlm(t).value
@@ -226,7 +226,7 @@ class MultipolePotential(AbstractMultipolePotential):
 
 
 def cartesian_to_normalized_spherical(
-    q: gt.BtQSz3, r_s: u.Quantity, /
+    q: gt.BtQuSz3, r_s: u.Quantity, /
 ) -> tuple[gt.BtFloatSz0, gt.BtFloatSz0, u.Quantity]:
     r"""Convert Cartesian coordinates to normalized spherical coordinates.
 

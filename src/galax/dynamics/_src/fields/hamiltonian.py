@@ -70,7 +70,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.RealQSz0,
+    t: gt.RealQuSz0,
     q: gt.BBtQ,
     p: gt.BBtP,
     args: tuple[Any, ...] | None,  # noqa: ARG001
@@ -105,7 +105,7 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.RealQSz0,
+    t: gt.RealQuSz0,
     qp: gt.BBtQP,
     args: tuple[Any, ...] | None,
     /,

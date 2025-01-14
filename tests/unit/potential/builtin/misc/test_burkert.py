@@ -107,7 +107,7 @@ class TestBurkertPotential(
         pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
-        x: gt.QSz3,
+        x: gt.QuSz3,
         atol: float,
     ) -> None:
         """Test the equivalence of methods between gala and galax.

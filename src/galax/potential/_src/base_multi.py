@@ -68,7 +68,7 @@ class AbstractCompositePotential(
 
     @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BtQSz3, t: gt.BBtRealQSz0, /
+        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
         return jnp.sum(
             jnp.asarray(

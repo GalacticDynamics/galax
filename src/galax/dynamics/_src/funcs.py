@@ -63,7 +63,7 @@ def specific_angular_momentum(
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
     x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /
-) -> gt.BtQSz3:
+) -> gt.BtQuSz3:
     """Compute the specific angular momentum.
 
     Examples
@@ -87,7 +87,7 @@ def specific_angular_momentum(
 
 @dispatch
 @partial(jax.jit, inline=True)
-def specific_angular_momentum(w: cx.Space) -> gt.BtQSz3:
+def specific_angular_momentum(w: cx.Space) -> gt.BtQuSz3:
     """Compute the specific angular momentum.
 
     Examples
@@ -107,7 +107,7 @@ def specific_angular_momentum(w: cx.Space) -> gt.BtQSz3:
 
 @dispatch
 @partial(jax.jit, inline=True)
-def specific_angular_momentum(w: gc.AbstractPhaseSpacePosition) -> gt.BtQSz3:
+def specific_angular_momentum(w: gc.AbstractPhaseSpacePosition) -> gt.BtQuSz3:
     r"""Compute the specific angular momentum.
 
     .. math::

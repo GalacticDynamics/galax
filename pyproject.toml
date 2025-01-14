@@ -282,6 +282,15 @@
         "TID252", # Relative imports from parent modules are banned
       ]
 
+    [tool.ruff.lint.flake8-import-conventions.extend-aliases]
+      "coordinax" = "cx"
+      "diffrax" = "dfx"
+      "equinox" = "eqx"
+      "unxt" = "u"
+      "galax.coordinates" = "gc"
+      "galax.potential" = "gp"
+      "galax.dynamics" = "gd"
+
     [tool.ruff.lint.flake8-type-checking]
       exempt-modules = []
 

@@ -15,7 +15,7 @@ from plum import convert, dispatch
 
 import unxt as u
 
-import galax.potential as gpx
+import galax.potential as gp
 import galax.potential.io as gdio
 
 ##############################################################################
@@ -24,10 +24,10 @@ import galax.potential.io as gdio
 
 @dispatch
 def convert_potential(
-    to_: gpx.AbstractBasePotential | type[gdio.GalaxLibrary],  # noqa: ARG001
+    to_: gp.AbstractBasePotential | type[gdio.GalaxLibrary],  # noqa: ARG001
     from_: gpy.Potential | list[gpy.Potential],
     /,
-) -> gpx.AbstractBasePotential:
+) -> gp.AbstractBasePotential:
     """Convert a :class:`~galpy.potential.Potential` to a :class:`~galax.potential.AbstractBasePotential`.
 
     Examples
@@ -54,7 +54,7 @@ def convert_potential(
 @dispatch
 def convert_potential(
     to_: gpy.Potential | list[gpy.Potential] | type[gdio.GalpyLibrary],  # noqa: ARG001
-    from_: gpx.AbstractBasePotential,
+    from_: gp.AbstractBasePotential,
     /,
 ) -> gpy.Potential | list[gpy.Potential]:
     """Convert a :class:`~galax.potential.AbstractBasePotential` to a :class:`~galpy.Potential`.
@@ -105,14 +105,14 @@ def convert_potential(
 
 
 def _error_if_not_all_constant_parameters(
-    pot: gpx.AbstractBasePotential,
-) -> gpx.AbstractBasePotential:
+    pot: gp.AbstractBasePotential,
+) -> gp.AbstractBasePotential:
     """Check if all parameters are constant."""
     is_time_dep = any(
-        not isinstance(getattr(pot, name), gpx.params.ConstantParameter)
+        not isinstance(getattr(pot, name), gp.params.ConstantParameter)
         for name in pot.parameters
     )
-    pot: gpx.AbstractBasePotential = eqx.error_if(
+    pot: gp.AbstractBasePotential = eqx.error_if(
         pot, is_time_dep, "Gala does not support time-dependent parameters."
     )
     return pot
@@ -132,7 +132,7 @@ def _galpy_mass(pot: gpy.Potential, /) -> u.Quantity:
 @dispatch.abstract
 def galpy_to_galax(
     _: Antd[gpy.Potential, Doc("The Galpy potential to convert to galax.")], /
-) -> Antd[gpx.AbstractBasePotential, Doc("The resulting Galax potential.")]:
+) -> Antd[gp.AbstractBasePotential, Doc("The resulting Galax potential.")]:
     """Convert a :mod:`galpy` potential to a :mod:`galax` potential.
 
     This dispatch is for all :mod:`galpy` potentials that do not have a
@@ -148,7 +148,7 @@ def galpy_to_galax(
 #       handle time-dependent Galax parameters.
 @dispatch.abstract
 def galax_to_galpy(
-    _: Antd[gpx.AbstractBasePotential, Doc("The galax potential to convert to Galpy")],
+    _: Antd[gp.AbstractBasePotential, Doc("The galax potential to convert to Galpy")],
     /,
 ) -> Antd[gpy.Potential, Doc("The resulting Galpy potential.")]:
     """Convert a Galax potential to a Gala potential.
@@ -165,7 +165,7 @@ def galax_to_galpy(
 
 
 @dispatch
-def galpy_to_galax(pot: list[gpy.Potential], /) -> gpx.CompositePotential:
+def galpy_to_galax(pot: list[gpy.Potential], /) -> gp.CompositePotential:
     """Convert a list of :mod:`galpy` potentials to a `galax.potential.CompositePotential`.
 
     Examples
@@ -184,13 +184,13 @@ def galpy_to_galax(pot: list[gpy.Potential], /) -> gpx.CompositePotential:
                         'pot_1': KeplerPotential( ... )})
 
     """  # noqa: E501
-    return gpx.CompositePotential(
+    return gp.CompositePotential(
         {f"pot_{i}": galpy_to_galax(p) for i, p in enumerate(pot)}
     )
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.CompositePotential, /) -> list[gpy.Potential]:
+def galax_to_galpy(pot: gp.CompositePotential, /) -> list[gpy.Potential]:
     """Convert a :class:`~galax.potential.CompositePotential` to a list of :class:`~galpy.potential.Potential`.
 
     Examples
@@ -217,7 +217,7 @@ def galax_to_galpy(pot: gpx.CompositePotential, /) -> list[gpy.Potential]:
 
 
 @dispatch
-def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gpx.BurkertPotential:
+def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gp.BurkertPotential:
     """Convert a :class:`~galpy.potential.BurkertPotential` to a :class:`~galax.potential.BurkertPotential`.
 
     Examples
@@ -244,7 +244,7 @@ def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gpx.BurkertPotential:
 
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?
-    return gpx.BurkertPotential.from_central_density(
+    return gp.BurkertPotential.from_central_density(
         rho_0=u.Quantity(
             pot._amp * conversion.dens_in_msolpc3(pot._vo, pot._ro),  # noqa: SLF001
             "Msun / pc3",
@@ -255,7 +255,7 @@ def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gpx.BurkertPotential:
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.BurkertPotential, /) -> gpy.BurkertPotential:
+def galax_to_galpy(pot: gp.BurkertPotential, /) -> gpy.BurkertPotential:
     """Convert a :class:`~galax.potential.BurkertPotential` to a :class:`~galpy.potential.BurkertPotential`.
 
     Examples
@@ -286,7 +286,7 @@ def galax_to_galpy(pot: gpx.BurkertPotential, /) -> gpy.BurkertPotential:
 
 
 @dispatch
-def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gpx.HernquistPotential:
+def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gp.HernquistPotential:
     """Convert a :class:`~galpy.potential.HernquistPotential` to a :class:`~galax.potential.HernquistPotential`.
 
     Examples
@@ -308,7 +308,7 @@ def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gpx.HernquistPotential:
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?
     # TODO: unit management
-    return gpx.HernquistPotential(
+    return gp.HernquistPotential(
         m_tot=u.Quantity.from_(pot.mass(np.inf), "Msun"),
         r_s=u.Quantity.from_(pot.a, "kpc"),
         units="galactic",
@@ -316,7 +316,7 @@ def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gpx.HernquistPotential:
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.HernquistPotential, /) -> gpy.HernquistPotential:
+def galax_to_galpy(pot: gp.HernquistPotential, /) -> gpy.HernquistPotential:
     """Convert a :class:`~galax.potential.HernquistPotential` to a :class:`~galpy.potential.HernquistPotential`.
 
     Examples
@@ -347,7 +347,7 @@ def galax_to_galpy(pot: gpx.HernquistPotential, /) -> gpy.HernquistPotential:
 
 
 @dispatch
-def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gpx.IsochronePotential:
+def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gp.IsochronePotential:
     """Convert a `galpy.potential.IsochronePotential` to a `galax.potential.IsochronePotential`.
 
     Examples
@@ -370,7 +370,7 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gpx.IsochronePotential:
     Quantity['mass'](Array(1.e+11, dtype=float64), unit='solMass')
 
     """  # noqa: E501
-    return gpx.IsochronePotential(
+    return gp.IsochronePotential(
         m_tot=_galpy_mass(pot),
         b=u.Quantity(pot.b * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
@@ -378,7 +378,7 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gpx.IsochronePotential:
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.IsochronePotential, /) -> gpy.IsochronePotential:
+def galax_to_galpy(pot: gp.IsochronePotential, /) -> gpy.IsochronePotential:
     """Convert a `galax.potential.IsochronePotential` to a `galpy.potential.IsochronePotential`.
 
     Examples
@@ -409,7 +409,7 @@ def galax_to_galpy(pot: gpx.IsochronePotential, /) -> gpy.IsochronePotential:
 
 
 @dispatch
-def galpy_to_galax(pot: gpy.JaffePotential, /) -> gpx.JaffePotential:
+def galpy_to_galax(pot: gpy.JaffePotential, /) -> gp.JaffePotential:
     """Convert a `galpy.potential.JaffePotential` to a `galax.potential.JaffePotential`.
 
     Examples
@@ -428,7 +428,7 @@ def galpy_to_galax(pot: gpy.JaffePotential, /) -> gpx.JaffePotential:
     )
 
     """
-    return gpx.JaffePotential(
+    return gp.JaffePotential(
         m=_galpy_mass(pot),
         r_s=u.Quantity(pot.a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
@@ -436,7 +436,7 @@ def galpy_to_galax(pot: gpy.JaffePotential, /) -> gpx.JaffePotential:
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.JaffePotential, /) -> gpy.JaffePotential:
+def galax_to_galpy(pot: gp.JaffePotential, /) -> gpy.JaffePotential:
     """Convert a `galax.potential.JaffePotential` to a `galpy.potential.JaffePotential`.
 
     Examples
@@ -467,7 +467,7 @@ def galax_to_galpy(pot: gpx.JaffePotential, /) -> gpy.JaffePotential:
 
 
 @dispatch
-def galpy_to_galax(pot: gpy.KeplerPotential, /) -> gpx.KeplerPotential:
+def galpy_to_galax(pot: gpy.KeplerPotential, /) -> gp.KeplerPotential:
     """Convert a :class:`~galpy.potential.KeplerPotential` to a :class:`~galax.potential.KeplerPotential`.
 
     Examples
@@ -490,11 +490,11 @@ def galpy_to_galax(pot: gpy.KeplerPotential, /) -> gpx.KeplerPotential:
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?
     # TODO: unit management
-    return gpx.KeplerPotential(m_tot=pot.mass(np.inf), units="galactic")
+    return gp.KeplerPotential(m_tot=pot.mass(np.inf), units="galactic")
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.KeplerPotential, /) -> gpy.KeplerPotential:
+def galax_to_galpy(pot: gp.KeplerPotential, /) -> gpy.KeplerPotential:
     """Convert a :class:`~galax.potential.KeplerPotential` to a :class:`~galpy.potential.KeplerPotential`.
 
     Examples
@@ -519,7 +519,7 @@ def galax_to_galpy(pot: gpx.KeplerPotential, /) -> gpy.KeplerPotential:
 
 
 @dispatch
-def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gpx.KuzminPotential:
+def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gp.KuzminPotential:
     """Convert a :class:`~galpy.potential.KuzminDiskPotential` to a :class:`~galax.potentia.KuzminPotential`.
 
     Examples
@@ -539,7 +539,7 @@ def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gpx.KuzminPotential:
     )
 
     """  # noqa: E501
-    return gpx.KuzminPotential(
+    return gp.KuzminPotential(
         m_tot=_galpy_mass(pot),
         a=u.Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
@@ -547,7 +547,7 @@ def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gpx.KuzminPotential:
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.KuzminPotential, /) -> gpy.KuzminDiskPotential:
+def galax_to_galpy(pot: gp.KuzminPotential, /) -> gpy.KuzminDiskPotential:
     """Convert a :class:`~galax.potentia.KuzminPotential` to a :class:`~galpy.potential.KuzminDiskPotential`.
 
     Examples
@@ -578,9 +578,7 @@ def galax_to_galpy(pot: gpx.KuzminPotential, /) -> gpy.KuzminDiskPotential:
 
 
 @dispatch
-def galpy_to_galax(
-    pot: gpy.SoftenedNeedleBarPotential, /
-) -> gpx.LongMuraliBarPotential:
+def galpy_to_galax(pot: gpy.SoftenedNeedleBarPotential, /) -> gp.LongMuraliBarPotential:
     """Convert a :class:`~galpy.potential.SoftenedNeedleBarPotential` to a :class:`~galax.potential.LongMuraliBarPotential`.
 
     Examples
@@ -603,7 +601,7 @@ def galpy_to_galax(
     )
 
     """  # noqa: E501
-    return gpx.LongMuraliBarPotential(
+    return gp.LongMuraliBarPotential(
         m_tot=_galpy_mass(pot),
         a=u.Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
         b=u.Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
@@ -614,9 +612,7 @@ def galpy_to_galax(
 
 
 @dispatch
-def galax_to_galpy(
-    pot: gpx.LongMuraliBarPotential, /
-) -> gpy.SoftenedNeedleBarPotential:
+def galax_to_galpy(pot: gp.LongMuraliBarPotential, /) -> gpy.SoftenedNeedleBarPotential:
     """Convert a :class:`~galax.potential.LongMuraliBarPotential` to a :class:`~galpy.potential.SoftenedNeedleBarPotential`.
 
     Examples
@@ -653,7 +649,7 @@ def galax_to_galpy(
 
 
 @dispatch
-def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gpx.MiyamotoNagaiPotential:
+def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotential:
     """Convert a :class:`~galpy.potential.MiyamotoNagaiPotential` to a :class:`~galax.potential.MiyamotoNagaiPotential`.
 
     Examples
@@ -674,7 +670,7 @@ def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gpx.MiyamotoNagaiPoten
     )
 
     """  # noqa: E501
-    return gpx.MiyamotoNagaiPotential(
+    return gp.MiyamotoNagaiPotential(
         m_tot=_galpy_mass(pot),
         a=u.Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
         b=u.Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
@@ -683,7 +679,7 @@ def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gpx.MiyamotoNagaiPoten
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.MiyamotoNagaiPotential, /) -> gpy.MiyamotoNagaiPotential:
+def galax_to_galpy(pot: gp.MiyamotoNagaiPotential, /) -> gpy.MiyamotoNagaiPotential:
     """Convert a :class:`~galax.potential.MiyamotoNagaiPotential` to a :class:`~galpy.potential.MiyamotoNagaiPotential`.
 
     Examples
@@ -716,7 +712,7 @@ def galax_to_galpy(pot: gpx.MiyamotoNagaiPotential, /) -> gpy.MiyamotoNagaiPoten
 
 
 @dispatch
-def galpy_to_galax(_: gpy.NullPotential, /) -> gpx.NullPotential:
+def galpy_to_galax(_: gpy.NullPotential, /) -> gp.NullPotential:
     """Convert a :class:`~galpy.potential.NullPotential` to a :class:`~galax.potential.NullPotential`.
 
     Examples
@@ -733,11 +729,11 @@ def galpy_to_galax(_: gpy.NullPotential, /) -> gpx.NullPotential:
     )
 
     """  # noqa: E501
-    return gpx.NullPotential()
+    return gp.NullPotential()
 
 
 @dispatch
-def galax_to_galpy(_: gpx.NullPotential, /) -> gpy.NullPotential:
+def galax_to_galpy(_: gp.NullPotential, /) -> gpy.NullPotential:
     """Convert a :class:`~galax.potential.NullPotential` to a :class:`~galpy.potential.NullPotential`.
 
     Examples
@@ -758,7 +754,7 @@ def galax_to_galpy(_: gpx.NullPotential, /) -> gpy.NullPotential:
 
 
 @dispatch
-def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gpx.PlummerPotential:
+def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gp.PlummerPotential:
     """Convert a :class:`~galpy.potential.PlummerPotential` to a :class:`~galax.potential.PlummerPotential`.
 
     Examples
@@ -778,7 +774,7 @@ def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gpx.PlummerPotential:
     )
 
     """  # noqa: E501
-    return gpx.PlummerPotential(
+    return gp.PlummerPotential(
         m_tot=_galpy_mass(pot),
         b=u.Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
@@ -786,7 +782,7 @@ def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gpx.PlummerPotential:
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.PlummerPotential, /) -> gpy.PlummerPotential:
+def galax_to_galpy(pot: gp.PlummerPotential, /) -> gpy.PlummerPotential:
     """Convert a :class:`~galax.potential.PlummerPotential` to a :class:`~galpy.potential.PlummerPotential`.
 
     Examples
@@ -819,7 +815,7 @@ def galax_to_galpy(pot: gpx.PlummerPotential, /) -> gpy.PlummerPotential:
 @dispatch
 def galpy_to_galax(
     pot: gpy.PowerSphericalPotentialwCutoff, /
-) -> gpx.PowerLawCutoffPotential:
+) -> gp.PowerLawCutoffPotential:
     """Convert a :class:`~galpy.potential.PowerSphericalPotentialwCutoff` to a :class:`~galax.potential.PowerLawCutoffPotential`.
 
     Examples
@@ -840,7 +836,7 @@ def galpy_to_galax(
     )
 
     """  # noqa: E501
-    return gpx.PowerLawCutoffPotential(
+    return gp.PowerLawCutoffPotential(
         m_tot=_galpy_mass(pot),
         alpha=u.Quantity(pot.alpha, ""),
         r_c=u.Quantity.from_(pot.rc * pot._ro, "kpc"),  # noqa: SLF001
@@ -850,7 +846,7 @@ def galpy_to_galax(
 
 @dispatch
 def galax_to_galpy(
-    pot: gpx.PowerLawCutoffPotential, /
+    pot: gp.PowerLawCutoffPotential, /
 ) -> gpy.PowerSphericalPotentialwCutoff:
     """Convert a :class:`~galax.potential.PowerLawCutoffPotential` to a :class:`~galpy.potentia.PowerSphericalPotentialwCutoff`.
 
@@ -888,7 +884,7 @@ def galax_to_galpy(
 
 
 @dispatch
-def galpy_to_galax(pot: gpy.NFWPotential, /) -> gpx.NFWPotential:
+def galpy_to_galax(pot: gpy.NFWPotential, /) -> gp.NFWPotential:
     """Convert a :class:`~galpy.potential.NFWPotential` to a :class:`~galax.potential.NFWPotential`.
 
     Examples
@@ -908,7 +904,7 @@ def galpy_to_galax(pot: gpy.NFWPotential, /) -> gpx.NFWPotential:
     )
 
     """  # noqa: E501
-    return gpx.NFWPotential(
+    return gp.NFWPotential(
         m=_galpy_mass(pot),
         r_s=u.Quantity.from_(pot.a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
@@ -916,7 +912,7 @@ def galpy_to_galax(pot: gpy.NFWPotential, /) -> gpx.NFWPotential:
 
 
 @dispatch
-def galax_to_galpy(pot: gpx.NFWPotential, /) -> gpy.NFWPotential:
+def galax_to_galpy(pot: gp.NFWPotential, /) -> gpy.NFWPotential:
     """Convert a :class:`~galax.potential.NFWPotential` to a :class:`~galpy.potential.NFWPotential`.
 
     Examples

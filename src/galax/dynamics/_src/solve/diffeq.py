@@ -16,7 +16,7 @@ from dataclasses import KW_ONLY
 from functools import partial
 from typing import Any, TypeAlias
 
-import diffrax
+import diffrax as dfx
 import equinox as eqx
 import numpy as np
 from jaxtyping import Array, ArrayLike, Bool, PyTree, Real
@@ -27,9 +27,9 @@ RealSz0Like: TypeAlias = Real[int | float | Array | np.ndarray, ""]
 BoolSz0Like: TypeAlias = Bool[ArrayLike, ""]
 
 
-# Get the signature of `diffrax.diffeqsolve`, first unwrapping the
+# Get the signature of `dfx.diffeqsolve`, first unwrapping the
 # `equinox.filter_jit`
-params = inspect.signature(diffrax.diffeqsolve.__wrapped__).parameters
+params = inspect.signature(dfx.diffeqsolve.__wrapped__).parameters
 default_stepsize_controller = params["stepsize_controller"].default
 default_saveat = params["saveat"].default
 default_progress_meter = params["progress_meter"].default
@@ -44,13 +44,12 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     Examples
     --------
-    >>> from diffrax import Dopri5, PIDController, SaveAt, ODETerm
     >>> from galax.dynamics.integrate import DiffEqSolver
 
-    >>> solver = DiffEqSolver(Dopri5(),
-    ...                       stepsize_controller=PIDController(rtol=1e-5, atol=1e-5))
-    >>> saveat = SaveAt(ts=[0., 1., 2., 3.])
-    >>> term = ODETerm(lambda t, y, args: -y)
+    >>> solver = DiffEqSolver(dfx.Dopri5(),
+    ...                       stepsize_controller=dfx.PIDController(rtol=1e-5, atol=1e-5))
+    >>> saveat = dfx.SaveAt(ts=[0., 1., 2., 3.])
+    >>> term = dfx.ODETerm(lambda t, y, args: -y)
     >>> sol = solver(term, t0=0, t1=3, dt0=0.1, y0=1, saveat=saveat)
 
     >>> print(sol.ts)
@@ -59,23 +58,23 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> print(sol.ys)
     [1. 0.36788338 0.13533922 0.04978961]
 
-    """
+    """  # noqa: E501
 
     #: The solver for the differential equation.
     #: See the diffrax guide on how to choose a solver.
-    solver: diffrax.AbstractSolver
+    solver: dfx.AbstractSolver
 
     _: KW_ONLY
 
     #: How to change the step size as the integration progresses.
     #: See diffrax's list of stepsize controllers.
-    stepsize_controller: diffrax.AbstractStepSizeController = eqx.field(
+    stepsize_controller: dfx.AbstractStepSizeController = eqx.field(
         default=default_stepsize_controller
     )
 
     #: How to differentiate `diffeqsolve`.
     #: See `diffrax` for options.
-    adjoint: diffrax.AbstractAdjoint = eqx.field(default=default_adjoint)
+    adjoint: dfx.AbstractAdjoint = eqx.field(default=default_adjoint)
 
     # TODO: should `max_steps` be a field? Given that `max_steps=None` can be
     # incompatible with some `SaveAt` options, it would still need to be
@@ -85,7 +84,7 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     # @partial(quax.quaxify)  # TODO: so don't need to strip units
     def __call__(
         self: "DiffEqSolver",
-        terms: PyTree[diffrax.AbstractTerm],
+        terms: PyTree[dfx.AbstractTerm],
         /,
         t0: RealSz0Like,
         t1: RealSz0Like,
@@ -93,15 +92,15 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         y0: PyTree[ArrayLike],
         args: PyTree[Any] = None,
         *,
-        saveat: diffrax.SaveAt = default_saveat,
-        event: diffrax.Event | None = default_event,
+        saveat: dfx.SaveAt = default_saveat,
+        event: dfx.Event | None = default_event,
         max_steps: int | None = default_max_steps,
         throw: bool = default_throw,
-        progress_meter: diffrax.AbstractProgressMeter = default_progress_meter,
+        progress_meter: dfx.AbstractProgressMeter = default_progress_meter,
         solver_state: PyTree[ArrayLike] | None = None,
         controller_state: PyTree[ArrayLike] | None = None,
         made_jump: BoolSz0Like | None = None,
-    ) -> diffrax.Solution:
+    ) -> dfx.Solution:
         """Solve a differential equation.
 
         For all arguments, see `diffrax.diffeqsolve`.
@@ -124,7 +123,7 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             made_jump: whether a jump has just been made at t0.
 
         """
-        soln: diffrax.Solution = diffrax.diffeqsolve(
+        soln: dfx.Solution = dfx.diffeqsolve(
             terms,
             self.solver,
             t0,
@@ -155,17 +154,17 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 @AbstractDynamicsField.terms.dispatch  # type: ignore[misc,attr-defined]
 def terms(
     self: AbstractDynamicsField, wrapper: DiffEqSolver, /
-) -> PyTree[diffrax.AbstractTerm]:
+) -> PyTree[dfx.AbstractTerm]:
     """Return diffeq terms, redispatching to the solver.
 
     Examples
     --------
-    >>> import diffrax
+    >>> import diffrax as dfx
     >>> import unxt as u
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> solver = gd.integrate.DiffEqSolver(diffrax.Dopri8())
+    >>> solver = gd.integrate.DiffEqSolver(dfx.Dopri8())
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)

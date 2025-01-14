@@ -1,6 +1,6 @@
 __all__ = ["Interpolant"]
 
-from typing import Any
+from typing import Any, final
 
 import diffrax
 import equinox as eqx
@@ -13,6 +13,7 @@ from unxt.quantity import UncheckedQuantity as FastQ
 import galax.coordinates as gc
 
 
+@final
 class Interpolant(eqx.Module):  # type: ignore[misc]#
     """Wrapper for `diffrax.DenseInterpolation`.
 

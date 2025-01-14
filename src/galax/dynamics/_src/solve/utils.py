@@ -24,7 +24,7 @@ def converter_diffeqsolver(obj: Any, /) -> DiffEqSolver:
     Examples
     --------
     >>> import diffrax
-    >>> from galax.dynamics._src.solve import DiffEqSolver
+    >>> from galax.dynamics.integrate import DynamicsSolver, DiffEqSolver
 
     >>> diffeqsolve = DiffEqSolver(solver=diffrax.Dopri5())
     >>> converter_diffeqsolver(diffeqsolve)
@@ -60,7 +60,7 @@ def converter_diffeqsolver(obj: Any, /) -> DiffEqSolver:
 
 
 @dispatch
-def parse_saveat(obj: diffrax.SaveAt, /, *, dense: bool) -> diffrax.SaveAt:
+def parse_saveat(obj: diffrax.SaveAt, /, *, dense: bool | None) -> diffrax.SaveAt:
     """Return the input object.
 
     Examples
@@ -77,12 +77,12 @@ def parse_saveat(obj: diffrax.SaveAt, /, *, dense: bool) -> diffrax.SaveAt:
     )
 
     """
-    return replace(obj, dense=dense)
+    return obj if dense is None else replace(obj, dense=dense)
 
 
 @dispatch
 def parse_saveat(
-    _: u.AbstractUnitSystem, obj: diffrax.SaveAt, /, *, dense: bool
+    _: u.AbstractUnitSystem, obj: diffrax.SaveAt, /, *, dense: bool | None
 ) -> diffrax.SaveAt:
     """Return the input object.
 
@@ -103,12 +103,12 @@ def parse_saveat(
     )
 
     """
-    return replace(obj, dense=dense)
+    return obj if dense is None else replace(obj, dense=dense)
 
 
 @dispatch
 def parse_saveat(
-    units: u.AbstractUnitSystem, ts: AbstractQuantity, /, *, dense: bool
+    units: u.AbstractUnitSystem, ts: AbstractQuantity, /, *, dense: bool | None
 ) -> diffrax.SaveAt:
     """Convert to a `SaveAt`.
 
@@ -129,4 +129,7 @@ def parse_saveat(
     )
 
     """
-    return diffrax.SaveAt(ts=ts.ustrip(units["time"]), dense=dense)
+    return diffrax.SaveAt(
+        ts=ts.ustrip(units["time"]),
+        dense=False if dense is None else dense,
+    )

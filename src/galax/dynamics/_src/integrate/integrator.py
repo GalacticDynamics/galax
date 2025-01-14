@@ -20,8 +20,9 @@ from xmmutablemap import ImmutableMap
 import galax.coordinates as gc
 import galax.typing as gt
 from .interp import Interpolant
+from .utils import converter_dynamicsolver
 from galax.dynamics._src.solve.diffeq import DiffEqSolver
-from galax.dynamics._src.solve.utils import converter_diffeqsolver
+from galax.dynamics._src.solve.dynamics import DynamicsSolver
 from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")
@@ -175,16 +176,18 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     )
     """
 
-    diffeqsolver: DiffEqSolver = eqx.field(
-        default=DiffEqSolver(
-            solver=diffrax.Dopri8(scan_kind="bounded"),
-            stepsize_controller=diffrax.PIDController(rtol=1e-7, atol=1e-7),
+    dynamics_solver: DynamicsSolver = eqx.field(
+        default=DynamicsSolver(
+            DiffEqSolver(
+                solver=diffrax.Dopri8(scan_kind="bounded"),
+                stepsize_controller=diffrax.PIDController(rtol=1e-7, atol=1e-7),
+            )
         ),
-        converter=converter_diffeqsolver,
+        converter=converter_dynamicsolver,
     )
     _: KW_ONLY
     diffeq_kw: Mapping[str, Any] = eqx.field(
-        default=(("max_steps", None), ("event", None)),
+        default=(("max_steps", None),),
         static=True,
         converter=ImmutableMap,
     )
@@ -245,7 +248,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         time = units["time"]
         only_final = saveat is None or len(saveat) <= 1
         save_at = diffrax.SaveAt(
-            t0=False,
             t1=only_final,
             ts=None if only_final else cast(AbstractQuantity, saveat).ustrip(time),
             dense=interpolated,
@@ -258,36 +260,32 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # ---------------------------------------
         # Perform the integration
 
-        # TODO: quaxify this so don't need to strip units
-        y0 = (q0.ustrip(units["length"]), p0.ustrip(units["speed"]))
-        t0 = t0.ustrip(time)
-        t1 = t1.ustrip(time)
-        soln: diffrax.Solution = self.diffeqsolver(
-            field.terms, t0, t1, y0=y0, dt0=None, args=(), saveat=save_at, **diffeq_kw
+        soln: diffrax.Solution = self.dynamics_solver.solve(
+            field, (q0, p0), t0, t1, saveat=save_at, **diffeq_kw
         )
 
         # Reshape (T, *batch) to (*batch, T)
-        # soln.ts is already in the correct shape
+        solt = soln.ts  # soln.ts is already in the correct shape
         solq = jnp.moveaxis(soln.ys[0], 0, -2)
         solp = jnp.moveaxis(soln.ys[1], 0, -2)
 
         # Parse the solution, (unbatching time when saveat is None)
-        t_dim_sel = -1 if saveat is None else slice(None)
-        solt = soln.ts[..., t_dim_sel]
-        solq = solq[..., t_dim_sel, :]
-        solp = solp[..., t_dim_sel, :]
+        if saveat is None:
+            solt = solt[..., -1]
+            solq = solq[..., -1, :]
+            solp = solp[..., -1, :]
 
         # ---------------------------------------
         # Return
 
+        # TODO: determine the frame
+        out_kw = {"frame": gc.frames.SimulationFrame()}
+
         if interpolated:
             out_cls = gc.InterpolatedPhaseSpacePosition
-            out_kw = {"interpolant": Interpolant(soln.interpolation, units=units)}
+            out_kw["interpolant"] = Interpolant(soln.interpolation, units=units)
         else:
             out_cls = gc.PhaseSpacePosition
-            out_kw = {}
-
-        out_kw["frame"] = gc.frames.SimulationFrame()  # TODO: determine the frame
 
         return out_cls(  # shape = (*batch, T)
             t=FastQ(solt, time),

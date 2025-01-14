@@ -70,12 +70,12 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.RealQScalar,
-    q: gt.BatchableQ,
-    p: gt.BatchableP,
+    t: gt.RealQuSz0,
+    q: gt.BBtQ,
+    p: gt.BBtP,
     args: tuple[Any, ...] | None,  # noqa: ARG001
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with time, position, velocity quantity arrays.
 
     Examples
@@ -105,11 +105,11 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.RealQScalar,
-    qp: gt.BatchableQP,
+    t: gt.RealQuSz0,
+    qp: gt.BBtQP,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with time, (position, velocity) quantity arrays.
 
     Examples
@@ -136,12 +136,12 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.BatchableScalar,
-    q: gt.BatchableQarr,
-    p: gt.BatchableParr,
+    t: gt.BBtSz0,
+    q: gt.BBtQarr,
+    p: gt.BBtParr,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with time, position, velocity arrays.
 
     The arrays are considered to be in the unit system of the field
@@ -179,11 +179,11 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.BatchableScalar,
-    qp: gt.BatchableQParr,
+    t: gt.BBtSz0,
+    qp: gt.BBtQParr,
     args: tuple[Any, ...] | None,  # noqa: ARG001
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with time, (position, velocity) arrays.
 
     The arrays are considered to be in the unit system of the field
@@ -220,11 +220,11 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.BatchableScalar,
-    qp: gt.BatchableVec6,
+    t: gt.BBtSz0,
+    qp: gt.BBtSz6,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with time, pos-vel 6 array.
 
     The arrays are considered to be in the unit system of the field
@@ -257,10 +257,10 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    qp: gt.BatchableVec7,
+    qp: gt.BBtSz7,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with time, pos-vel 6 array.
 
     The arrays are considered to be in the unit system of the field
@@ -293,12 +293,12 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.TimeBatchableScalar,
+    t: gt.TimeBBtSz0,
     q: cx.vecs.AbstractPos3D,
     p: cx.vecs.AbstractVel3D,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with time, `coordinax.vecs.AbstractPos3D`, `coordinax.vecs.AbstractVel3D`.
 
     Examples
@@ -331,7 +331,7 @@ def call(
     p: cx.vecs.AbstractVel3D,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`.
 
     Examples
@@ -362,7 +362,7 @@ def call(
     space: cx.vecs.Space,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`.
 
     Examples
@@ -395,7 +395,7 @@ def call(
     w: cx.frames.AbstractCoordinate,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with `coordinax.AbstractCoordinate`.
 
     Examples
@@ -430,7 +430,7 @@ def call(
     w: gc.PhaseSpacePosition,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BatchPAarr:
+) -> gt.BtPAarr:
     """Call with `galax.coordinates.PhaseSpacePosition`.
 
     Examples

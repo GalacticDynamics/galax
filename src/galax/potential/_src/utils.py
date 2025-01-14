@@ -69,7 +69,7 @@ def parse_to_quantity(
 
 
 @dispatch
-def parse_to_quantity(x: cx.vecs.AbstractPos3D, /, **_: Any) -> gt.LengthBatchVec3:
+def parse_to_quantity(x: cx.vecs.AbstractPos3D, /, **_: Any) -> gt.LengthBtSz3:
     cart = x.vconvert(cx.CartesianPos3D)
     qarr: u.Quantity = convert(cart, u.Quantity)
     return qarr

@@ -49,24 +49,24 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
 
     # ==========================================================================
 
-    def test_potential(self, pot: gp.BovyMWPotential2014, x: gt.QVec3) -> None:
+    def test_potential(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
         expect = u.Quantity(-0.09550731, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: gp.BovyMWPotential2014, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.00231875, 0.0046375, 0.01042675], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.BovyMWPotential2014, x: gt.QVec3) -> None:
+    def test_density(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
         expect = u.Quantity(24_911_277.33877818, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.BovyMWPotential2014, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.00208414, -0.00046922, -0.0009568],
@@ -82,7 +82,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -103,7 +103,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
         not OptDeps.GALA.installed or not GSL_ENABLED, reason="requires gala + GSL"
     )
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractBasePotential, x: gt.QVec3
+        self, pot: gp.AbstractBasePotential, x: gt.QuSz3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 
@@ -116,7 +116,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
         pot: gp.BovyMWPotential2014,
         method0: str,
         method1: str,
-        x: gt.QVec3,
+        x: gt.QuSz3,
         atol: float,
     ) -> None:
         super().test_method_gala(pot, method0, method1, x, atol)

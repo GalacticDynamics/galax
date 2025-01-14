@@ -34,11 +34,11 @@ else:  # need runtime for jaxtyping
 # -----------------------------------------------------------------------------
 
 
-def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: gt.FloatQAnyShape) -> Any:
+def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: gt.FloatQuSzAny) -> Any:
     """Get the time index from a slice."""
     if len(index) == 0:  # slice is an empty tuple
         return slice(None)
-    if t.ndim == 1:  # slicing a Vec1
+    if t.ndim == 1:  # slicing a Sz1
         return slice(None)
     if len(index) >= t.ndim:
         msg = f"Index {index} has too many dimensions for time array of shape {t.shape}"
@@ -46,9 +46,9 @@ def _getitem_vec1time_index_tuple(index: tuple[Any, ...], t: gt.FloatQAnyShape) 
     return index
 
 
-def _getitem_vec1time_index_shaped(index: HasShape, t: gt.FloatQAnyShape) -> HasShape:
+def _getitem_vec1time_index_shaped(index: HasShape, t: gt.FloatQuSzAny) -> HasShape:
     """Get the time index from a shaped index array."""
-    if t.ndim == 1:  # Vec1
+    if t.ndim == 1:  # Sz1
         return cast(HasShape, jnp.asarray([True]))
     if len(index.shape) >= t.ndim:
         msg = f"Index {index} has too many dimensions for time array of shape {t.shape}"
@@ -56,14 +56,14 @@ def _getitem_vec1time_index_shaped(index: HasShape, t: gt.FloatQAnyShape) -> Has
     return index
 
 
-def getitem_vec1time_index(index: Any, t: gt.FloatQAnyShape) -> Any:
+def getitem_vec1time_index(index: Any, t: gt.FloatQuSzAny) -> Any:
     """Get the time index from an index.
 
     Parameters
     ----------
     index : Any
         The index to get the time index from.
-    t : FloatQAnyShape
+    t : FloatQuSzAny
         The time array.
 
     Returns

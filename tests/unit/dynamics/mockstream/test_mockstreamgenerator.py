@@ -47,7 +47,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     # ----------------------------------------
 
     @pytest.fixture
-    def t_stripping(self) -> gt.QVecTime:
+    def t_stripping(self) -> gt.QuSzTime:
         """Time vector for stripping."""
         return u.Quantity(jnp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
 
@@ -61,7 +61,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         )
 
     @pytest.fixture
-    def prog_mass(self) -> gt.MassScalar:
+    def prog_mass(self) -> gt.MassSz0:
         """Progenitor mass."""
         return u.Quantity(1e4, "Msun")
 
@@ -80,9 +80,9 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     def test_run_scan(
         self,
         mockgen: MockStreamGenerator,
-        t_stripping: gt.QVecTime,
+        t_stripping: gt.QuSzTime,
         prog_w0: gc.PhaseSpacePosition,
-        prog_mass: gt.MassScalar,
+        prog_mass: gt.MassSz0,
         rng: PRNGKeyArray,
         vmapped: bool,
     ) -> None:

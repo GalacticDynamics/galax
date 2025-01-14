@@ -99,8 +99,8 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @abc.abstractmethod
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
+    ) -> gt.SpecificEnergyBtSz0:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.
@@ -162,7 +162,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->(3)")
-    def _gradient(self, q: gt.BatchQVec3, t: gt.RealQScalar, /) -> gt.BatchQVec3:
+    def _gradient(self, q: gt.BtQuSz3, t: gt.RealQuSz0, /) -> gt.BtQuSz3:
         """See ``gradient``."""
         grad_op = u.experimental.grad(
             self._potential, units=(self.units["length"], self.units["time"])
@@ -185,7 +185,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->()")
-    def _laplacian(self, q: gt.QVec3, /, t: gt.RealQScalar) -> gt.FloatQScalar:
+    def _laplacian(self, q: gt.QuSz3, /, t: gt.RealQuSz0) -> gt.FloatQuSz0:
         """See ``laplacian``."""
         jac_op = u.experimental.jacfwd(  # spatial jacobian
             self._gradient, argnums=0, units=(self.units["length"], self.units["time"])
@@ -208,8 +208,8 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+        self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
+    ) -> gt.BtFloatQuSz0:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
         return self._laplacian(q, t) / (4 * jnp.pi * self.constants["G"])
@@ -230,7 +230,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.QMatrix33:
+    def _hessian(self, q: gt.QuSz3, t: gt.RealQuSz0, /) -> gt.QuSz33:
         """See ``hessian``."""
         hess_op = u.experimental.hessian(
             self._potential, units=(self.units["length"], self.units["time"])
@@ -239,7 +239,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
     def hessian(
         self: "AbstractBasePotential", *args: Any, **kwargs: Any
-    ) -> gt.BatchQMatrix33:
+    ) -> gt.BtQuSz33:
         """Compute the hessian of the potential at the given position(s).
 
         See :func:`~galax.potential.hessian` for details.
@@ -262,7 +262,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 
         return acceleration(self, *args, **kwargs)
 
-    def tidal_tensor(self, *args: Any, **kwargs: Any) -> gt.BatchQMatrix33:
+    def tidal_tensor(self, *args: Any, **kwargs: Any) -> gt.BtQuSz33:
         """Compute the tidal tensor.
 
         See :func:`~galax.potential.tidal_tensor` for details.

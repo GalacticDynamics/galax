@@ -21,7 +21,7 @@ import equinox as eqx
 import numpy as np
 from jaxtyping import Array, ArrayLike, Bool, PyTree, Real
 
-RealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray, ""]
+RealSz0Like: TypeAlias = Real[int | float | Array | np.ndarray, ""]
 BoolScalarLike: TypeAlias = Bool[ArrayLike, ""]
 
 
@@ -85,9 +85,9 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         self: "DiffEqSolver",
         terms: PyTree[diffrax.AbstractTerm],
         /,
-        t0: RealScalarLike,
-        t1: RealScalarLike,
-        dt0: RealScalarLike | None,
+        t0: RealSz0Like,
+        t1: RealSz0Like,
+        dt0: RealSz0Like | None,
         y0: PyTree[ArrayLike],
         args: PyTree[Any] = None,
         *,

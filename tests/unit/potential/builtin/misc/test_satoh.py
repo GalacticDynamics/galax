@@ -43,24 +43,24 @@ class TestSatohPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: SatohPotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: SatohPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(-0.97415472, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: SatohPotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: SatohPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.0456823, 0.0913646, 0.18038493], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: SatohPotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: SatohPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(1.08825455e08, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: SatohPotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: SatohPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.03925558, -0.01285344, -0.02537707],
@@ -76,7 +76,7 @@ class TestSatohPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

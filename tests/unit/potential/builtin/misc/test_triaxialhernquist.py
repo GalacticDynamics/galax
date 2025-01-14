@@ -47,13 +47,13 @@ class TestTriaxialHernquistPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: TriaxialHernquistPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(-0.61215074, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: TriaxialHernquistPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [0.01312095, 0.02168751, 0.15745134], pot.units["acceleration"]
         )
@@ -61,10 +61,10 @@ class TestTriaxialHernquistPotential(
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     @pytest.mark.xfail(reason="WFF?")
-    def test_density(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: TriaxialHernquistPotential, x: gt.QuSz3) -> None:
         assert pot.density(x, t=0).decompose(pot.units).value >= 0
 
-    def test_hessian(self, pot: TriaxialHernquistPotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: TriaxialHernquistPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.01223294, -0.00146778, -0.0106561],
@@ -80,7 +80,7 @@ class TestTriaxialHernquistPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

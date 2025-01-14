@@ -92,24 +92,24 @@ class TestPowerLawCutoffPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: PowerLawCutoffPotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: PowerLawCutoffPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(6.26573365, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: PowerLawCutoffPotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: PowerLawCutoffPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.08587672, 0.17175344, 0.25763016], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: PowerLawCutoffPotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: PowerLawCutoffPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(41457.38551946, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: PowerLawCutoffPotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: PowerLawCutoffPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.06747473, -0.03680397, -0.05520596],
@@ -125,7 +125,7 @@ class TestPowerLawCutoffPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -146,7 +146,7 @@ class TestPowerLawCutoffPotential(
         not OptDeps.GALA.installed or not GSL_ENABLED, reason="requires gala + GSL"
     )
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractBasePotential, x: gt.QVec3
+        self, pot: gp.AbstractBasePotential, x: gt.QuSz3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 
@@ -159,7 +159,7 @@ class TestPowerLawCutoffPotential(
         pot: PowerLawCutoffPotential,
         method0: str,
         method1: str,
-        x: gt.QVec3,
+        x: gt.QuSz3,
         atol: float,
     ) -> None:
         super().test_method_gala(pot, method0, method1, x, atol)

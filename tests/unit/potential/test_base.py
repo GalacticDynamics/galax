@@ -54,31 +54,31 @@ class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
     # ---------------------------------
 
     @pytest.fixture(scope="class")
-    def x(self, units: u.AbstractUnitSystem) -> gt.QVec3:
+    def x(self, units: u.AbstractUnitSystem) -> gt.QuSz3:
         """Create a position vector for testing."""
         return u.Quantity(jnp.asarray([1, 2, 3], dtype=float), units["length"])
 
     @pytest.fixture(scope="class")
-    def v(sel, units: u.AbstractUnitSystem) -> gt.QVec3:
+    def v(sel, units: u.AbstractUnitSystem) -> gt.QuSz3:
         """Create a velocity vector for testing."""
         return u.Quantity(jnp.asarray([4, 5, 6], dtype=float), units["speed"])
 
     @pytest.fixture(scope="class")
-    def xv(self, x: gt.QVec3, v: gt.QVec3) -> gt.Vec6:
+    def xv(self, x: gt.QuSz3, v: gt.QuSz3) -> gt.Sz6:
         """Create a phase-space vector for testing."""
         return jnp.concat([x.value, v.value])
 
     # ---------------------------------
 
     @pytest.fixture(scope="class")
-    def batchx(self, units: u.AbstractUnitSystem) -> gt.BatchQVec3:
+    def batchx(self, units: u.AbstractUnitSystem) -> gt.BtQuSz3:
         """Create a batch of position vectors for testing."""
         return u.Quantity(
             jnp.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=float), units["length"]
         )
 
     @pytest.fixture(scope="class")
-    def batchv(self, units: u.AbstractUnitSystem) -> gt.BatchQVec3:
+    def batchv(self, units: u.AbstractUnitSystem) -> gt.BtQuSz3:
         """Create a batch of velocity vectors for testing."""
         return u.Quantity(
             jnp.asarray([[4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float),
@@ -86,7 +86,7 @@ class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
         )
 
     @pytest.fixture(scope="class")
-    def batchxv(self, batchx: gt.BatchQVec3, batchv: gt.BatchQVec3) -> gt.BatchVec3:
+    def batchxv(self, batchx: gt.BtQuSz3, batchv: gt.BtQuSz3) -> gt.BtSz3:
         """Create a batch of phase-space vectors for testing."""
         return jnp.concatenate([batchx.value, batchv.value], axis=-1)
 
@@ -113,12 +113,12 @@ class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
     # ---------------------------------
 
     @abstractmethod
-    def test_potential(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `potential` method."""
         ...
 
     def test_potential_batch(
-        self, pot: gp.AbstractBasePotential, batchx: gt.BatchQVec3
+        self, pot: gp.AbstractBasePotential, batchx: gt.BtQuSz3
     ) -> None:
         """Test the `AbstractBasePotential.potential` method."""
         # Test that the method works on batches.
@@ -132,26 +132,26 @@ class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
 
     # ---------------------------------
 
-    def test_call(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_call(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.__call__` method."""
         assert jnp.equal(pot(x, 0), pot.potential(x, 0))
 
     @abstractmethod
-    def test_gradient(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.gradient` method."""
         ...
 
     @abstractmethod
-    def test_density(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.density` method."""
         ...
 
     @abstractmethod
-    def test_hessian(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.hessian` method."""
         ...
 
-    def test_acceleration(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_acceleration(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.acceleration` method."""
         acc = convert(pot.acceleration(x, t=0), u.Quantity)
         grad = convert(pot.gradient(x, t=0), u.Quantity)
@@ -161,13 +161,13 @@ class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
     # Convenience methods
 
     @abstractmethod
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         ...
 
     # =========================================================================
 
-    def test_evaluate_orbit(self, pot: gp.AbstractBasePotential, xv: gt.Vec6) -> None:
+    def test_evaluate_orbit(self, pot: gp.AbstractBasePotential, xv: gt.Sz6) -> None:
         """Test the `AbstractBasePotential.evaluate_orbit` method."""
         ts = u.Quantity(jnp.linspace(0.0, 1.0, 100), "Myr")
 
@@ -177,7 +177,7 @@ class AbstractBasePotential_Test(GalaIOMixin, metaclass=ABCMeta):
         assert jnp.array_equal(orbit.t, ts)
 
     def test_evaluate_orbit_batch(
-        self, pot: gp.AbstractBasePotential, xv: gt.Vec6
+        self, pot: gp.AbstractBasePotential, xv: gt.Sz6
     ) -> None:
         """Test the `AbstractBasePotential.evaluate_orbit` method."""
         ts = u.Quantity(jnp.linspace(0.0, 1.0, 100), "Myr")
@@ -218,8 +218,8 @@ class TestAbstractBasePotential(AbstractBasePotential_Test):
 
             @partial(jax.jit, inline=True)
             def _potential(  # TODO: inputs w/ units
-                self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-            ) -> gt.SpecificEnergyBatchScalar:
+                self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
+            ) -> gt.SpecificEnergyBtSz0:
                 return (
                     self.constants["G"]
                     * self.m_tot(t)
@@ -244,7 +244,7 @@ class TestAbstractBasePotential(AbstractBasePotential_Test):
 
     # ---------------------------------
 
-    def test_potential(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.potential` method."""
         assert jnp.allclose(
             pot.potential(x, t=0),
@@ -254,7 +254,7 @@ class TestAbstractBasePotential(AbstractBasePotential_Test):
 
     # ---------------------------------
 
-    def test_gradient(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.gradient` method."""
         expect = u.Quantity(
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
@@ -262,7 +262,7 @@ class TestAbstractBasePotential(AbstractBasePotential_Test):
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.density` method."""
         # TODO: fix negative density!!!
         expect = u.Quantity(-2.647e-7, pot.units["mass density"])
@@ -270,7 +270,7 @@ class TestAbstractBasePotential(AbstractBasePotential_Test):
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.hessian` method."""
         expected = u.Quantity(
             jnp.asarray(
@@ -289,7 +289,7 @@ class TestAbstractBasePotential(AbstractBasePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

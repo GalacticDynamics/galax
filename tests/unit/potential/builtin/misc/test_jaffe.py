@@ -36,24 +36,24 @@ class TestJaffePotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: JaffePotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: JaffePotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(-1.06550653, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: JaffePotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: JaffePotential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.06776567, 0.13553134, 0.20329701], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: JaffePotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: JaffePotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(2.52814372e08, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: JaffePotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: JaffePotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.05426528, -0.02700078, -0.04050117],
@@ -69,7 +69,7 @@ class TestJaffePotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

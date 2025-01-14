@@ -16,12 +16,12 @@ import galax.typing as gt
 class ProgenitorMassCallable(Protocol):
     """Callable that returns the progenitor mass at the given times."""
 
-    def __call__(self, t: gt.TimeBatchScalar, /) -> gt.MassBatchScalar:
+    def __call__(self, t: gt.TimeBtSz0, /) -> gt.MassBtSz0:
         """Return the progenitor mass at the times.
 
         Parameters
         ----------
-        t : TimeBatchScalar
+        t : TimeBtSz0
             The times at which to evaluate the progenitor mass.
         """
         ...
@@ -36,15 +36,15 @@ class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
         The progenitor mass.
     """
 
-    m_tot: gt.MassScalar = eqx.field(converter=u.Quantity["mass"].from_)
+    m_tot: gt.MassSz0 = eqx.field(converter=u.Quantity["mass"].from_)
     """The progenitor mass."""
 
-    def __call__(self, t: gt.TimeBatchScalar, /) -> gt.MassBatchScalar:
+    def __call__(self, t: gt.TimeBtSz0, /) -> gt.MassBtSz0:
         """Return the constant mass at the times.
 
         Parameters
         ----------
-        t : TimeBatchScalar
+        t : TimeBtSz0
             The times at which to evaluate the progenitor mass.
         """
         return jnp.ones(t.shape) * self.m_tot

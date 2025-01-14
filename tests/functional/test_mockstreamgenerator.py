@@ -24,10 +24,10 @@ df = gd.FardalStreamDF()
 def compute_loss(
     params: dict[str, Any],
     rng: PRNGKeyArray,
-    ts: gt.QVecTime,
-    w0: gt.Vec6,
-    M_sat: gt.FloatQScalar,
-) -> gt.FloatScalar:
+    ts: gt.QuSzTime,
+    w0: gt.Sz6,
+    M_sat: gt.FloatQuSz0,
+) -> gt.FloatSz0:
     # Generate mock stream
     pot = gp.MilkyWayPotential(**params, units=usys)
     mockgen = gd.MockStreamGenerator(df, pot)
@@ -47,9 +47,9 @@ def compute_loss(
 def compute_derivative(
     params: dict[str, Any],
     rng: PRNGKeyArray,
-    ts: gt.QVecTime,
+    ts: gt.QuSzTime,
     w0: gc.PhaseSpacePosition,
-    M_sat: gt.FloatScalar,
+    M_sat: gt.FloatSz0,
 ) -> dict[str, Any]:
     return jax.jacfwd(compute_loss, argnums=0)(params, rng, ts, w0, M_sat)
 

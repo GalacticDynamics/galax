@@ -58,8 +58,8 @@ class NFWPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
+    ) -> gt.SpecificEnergyBtSz0:
         r"""Potential energy.
 
         .. math::
@@ -74,8 +74,8 @@ class NFWPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+        self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
+    ) -> gt.BtFloatQuSz0:
         r"""Density.
 
         .. math::
@@ -247,8 +247,8 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
+    ) -> gt.SpecificEnergyBtSz0:
         # https://github.com/adrn/gala/blob/2067009de41518a71c674d0252bc74a7b2d78a36/gala/potential/potential/builtin/builtin_potentials.c#L1472
         # Evaluate the parameters
         r_s = self.r_s(t)
@@ -280,7 +280,7 @@ class LeeSutoTriaxialNFWPotential(AbstractPotential):
         F3 = (u2 - 3 * u - 6) / (2 * u2 * (1 + u)) + 3 * um3 * log1pu
 
         # Select the output, r=0 is a special case.
-        out: gt.BatchFloatQScalar = phi0 * qlax.select(
+        out: gt.BtFloatQuSz0 = phi0 * qlax.select(
             u == 0,
             jnp.ones_like(u),
             (
@@ -371,7 +371,7 @@ class TriaxialNFWPotential(AbstractPotential):
     # ==========================================================================
 
     @partial(jax.jit, inline=True)
-    def rho0(self, t: gt.BatchableRealQScalar, /) -> gt.BatchFloatQScalar:
+    def rho0(self, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
         r"""Central density.
 
         .. math::
@@ -408,10 +408,10 @@ class TriaxialNFWPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self,
-        q: gt.BatchQVec3,
-        t: gt.BatchableRealQScalar,
+        q: gt.BtQuSz3,
+        t: gt.BBtRealQuSz0,
         /,
-    ) -> gt.SpecificEnergyBatchScalar:
+    ) -> gt.SpecificEnergyBtSz0:
         r"""Potential energy for the triaxial NFW.
 
         The NFW potential is spherically symmetric. For the triaxial (density)
@@ -502,8 +502,8 @@ class TriaxialNFWPotential(AbstractPotential):
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BatchQVec3, t: gt.BatchRealQScalar | gt.RealQScalar, /
-    ) -> gt.BatchFloatQScalar:
+        self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
+    ) -> gt.BtFloatQuSz0:
         r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
         s2 = jnp.asarray([1])
         xi = jnp.sqrt(self._ellipsoid_surface(q[None], q1, q2, s2)[0]) / r_s
@@ -547,17 +547,13 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
     )
 
     @partial(jax.jit, inline=True)
-    def _r_e(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar
-    ) -> gt.BatchFloatQScalar:
+    def _r_e(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0) -> gt.BtFloatQuSz0:
         q1sq = self.q1(t) ** 2
         q2sq = 3 - q1sq
         return jnp.sqrt(q[..., 0] ** 2 + q[..., 1] ** 2 / q1sq + q[..., 2] ** 2 / q2sq)
 
     @partial(jax.jit, inline=True)
-    def _r_tilde(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar
-    ) -> gt.BatchFloatQScalar:
+    def _r_tilde(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0) -> gt.BtFloatQuSz0:
         r_a = self.a_r(t) * self.r_s(t)
         r_e = self._r_e(q, t)
         r = jnp.linalg.vector_norm(q, axis=-1)
@@ -566,9 +562,9 @@ class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
     @partial(jax.jit)
     def _potential(
         self: "Vogelsberger08TriaxialNFWPotential",
-        q: gt.BatchQVec3,
-        t: gt.BatchableRealQScalar,
+        q: gt.BtQuSz3,
+        t: gt.BBtRealQuSz0,
         /,
-    ) -> gt.SpecificEnergyBatchScalar:
+    ) -> gt.SpecificEnergyBtSz0:
         r = self._r_tilde(q, t)
         return -self.constants["G"] * self.m(t) * jnp.log(1.0 + r / self.r_s(t)) / r

@@ -29,7 +29,7 @@ from galax.potential._src.funcs import d2potential_dr2
 @dispatch
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
-    x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
+    x: gt.LengthBtSz3, v: gt.SpeedBtSz3, /
 ) -> Shaped[u.Quantity["angular momentum"], "*batch 3"]:
     """Compute the specific angular momentum.
 
@@ -63,7 +63,7 @@ def specific_angular_momentum(
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
     x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /
-) -> gt.BatchQVec3:
+) -> gt.BtQuSz3:
     """Compute the specific angular momentum.
 
     Examples
@@ -87,7 +87,7 @@ def specific_angular_momentum(
 
 @dispatch
 @partial(jax.jit, inline=True)
-def specific_angular_momentum(w: cx.Space) -> gt.BatchQVec3:
+def specific_angular_momentum(w: cx.Space) -> gt.BtQuSz3:
     """Compute the specific angular momentum.
 
     Examples
@@ -107,7 +107,7 @@ def specific_angular_momentum(w: cx.Space) -> gt.BatchQVec3:
 
 @dispatch
 @partial(jax.jit, inline=True)
-def specific_angular_momentum(w: gc.AbstractPhaseSpacePosition) -> gt.BatchQVec3:
+def specific_angular_momentum(w: gc.AbstractPhaseSpacePosition) -> gt.BtQuSz3:
     r"""Compute the specific angular momentum.
 
     .. math::
@@ -145,7 +145,7 @@ def specific_angular_momentum(w: gc.AbstractPhaseSpacePosition) -> gt.BatchQVec3
 @dispatch
 @partial(jax.jit, inline=True)
 def _orbital_angular_frequency(
-    x: gt.LengthBatchVec3, v: gt.SpeedBatchVec3, /
+    x: gt.LengthBtSz3, v: gt.SpeedBtSz3, /
 ) -> Shaped[u.Quantity["frequency"], "*batch"]:
     """Compute the orbital angular frequency about the origin.
 
@@ -205,11 +205,11 @@ def _orbital_angular_frequency(
 @partial(jax.jit, inline=True)
 def tidal_radius(
     potential: gp.AbstractBasePotential,
-    x: gt.LengthBatchVec3,
-    v: gt.SpeedBatchVec3,
+    x: gt.LengthBtSz3,
+    v: gt.SpeedBtSz3,
     /,
-    prog_mass: gt.MassBatchableScalar,
-    t: gt.TimeBatchableScalar,
+    prog_mass: gt.MassBBtSz0,
+    t: gt.TimeBBtSz0,
 ) -> Float[u.Quantity["length"], "*batch"]:
     """Compute the tidal radius of a cluster in the potential.
 
@@ -256,11 +256,11 @@ def tidal_radius(
 @partial(jax.jit, inline=True)
 def lagrange_points(
     potential: gp.AbstractBasePotential,
-    x: gt.LengthVec3,
-    v: gt.SpeedVec3,
-    prog_mass: gt.MassScalar,
-    t: gt.TimeScalar,
-) -> tuple[gt.LengthVec3, gt.LengthVec3]:
+    x: gt.LengthSz3,
+    v: gt.SpeedSz3,
+    prog_mass: gt.MassSz0,
+    t: gt.TimeSz0,
+) -> tuple[gt.LengthSz3, gt.LengthSz3]:
     """Compute the lagrange points of a cluster in a host potential.
 
     Parameters

@@ -19,7 +19,7 @@ import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
 from .orbit_plot import PlotOrbitDescriptor, ProxyOrbit
-from galax.typing import BatchFloatQScalar, QVec1, QVecTime
+from galax.typing import BtFloatQuSz0, QuSz1, QuSzTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
@@ -89,7 +89,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized
-    t: QVecTime | QVec1 = eqx.field(converter=u.Quantity["time"].from_)
+    t: QuSzTime | QuSz1 = eqx.field(converter=u.Quantity["time"].from_)
     """Array of times corresponding to the positions."""
 
     _: KW_ONLY
@@ -119,7 +119,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     def _from_psp(
         cls,
         w: gc.AbstractOnePhaseSpacePosition,
-        t: QVecTime,
+        t: QuSzTime,
         potential: gp.AbstractBasePotential,
     ) -> "Orbit":
         """Create an orbit from a phase-space position."""
@@ -135,7 +135,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     # ==========================================================================
     # Interpolation
 
-    def __call__(self, t: BatchFloatQScalar) -> "Orbit":
+    def __call__(self, t: BtFloatQuSz0) -> "Orbit":
         """Call the interpolation."""
         interpolant = eqx.error_if(
             self.interpolant,
@@ -305,7 +305,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     @partial(jax.jit, inline=True)
     def potential_energy(
         self, potential: gp.AbstractBasePotential | None = None, /
-    ) -> BatchFloatQScalar:
+    ) -> BtFloatQuSz0:
         r"""Return the specific potential energy.
 
         .. math::
@@ -330,7 +330,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     @partial(jax.jit, inline=True)
     def total_energy(
         self, potential: "gp.AbstractBasePotential | None" = None, /
-    ) -> BatchFloatQScalar:
+    ) -> BtFloatQuSz0:
         r"""Return the specific total energy.
 
         .. math::

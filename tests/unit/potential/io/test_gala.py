@@ -35,7 +35,7 @@ class GalaIOMixin:
 
     @pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractBasePotential, x: gt.QVec3
+        self, pot: gp.AbstractBasePotential, x: gt.QuSz3
     ) -> None:
         """Test roundtripping ``gala_to_galax(galax_to_gala())``."""
         # First we need to check that the potential is gala-compatible
@@ -62,7 +62,7 @@ class GalaIOMixin:
         pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
-        x: gt.QVec3,
+        x: gt.QuSz3,
         atol: float,
     ) -> None:
         """Test the equivalence of methods between gala and galax.

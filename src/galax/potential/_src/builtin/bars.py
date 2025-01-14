@@ -50,7 +50,7 @@ class BarPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->()")
-    def _potential(self, q: gt.QVec3, t: gt.RealQScalar, /) -> gt.SpecificEnergyScalar:
+    def _potential(self, q: gt.QuSz3, t: gt.RealQuSz0, /) -> gt.SpecificEnergySz0:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
         rotation_matrix = jnp.asarray(
@@ -106,8 +106,8 @@ class LongMuraliBarPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
+    ) -> gt.SpecificEnergyBtSz0:
         m_tot = self.m_tot(t)
         a, b, c = self.a(t), self.b(t), self.c(t)
         alpha = self.alpha(t)

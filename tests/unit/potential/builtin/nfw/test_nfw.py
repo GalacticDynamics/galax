@@ -39,26 +39,26 @@ class TestNFWPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: gp.NFWPotential, x: gt.QVec3) -> None:
+    def test_potential(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(-1.87120528, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: gp.NFWPotential, x: gt.QVec3) -> None:
+    def test_gradient(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [0.06589185, 0.1317837, 0.19767556], pot.units["acceleration"]
         )
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.NFWPotential, x: gt.QVec3) -> None:
+    def test_density(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(9.45944763e08, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.NFWPotential, x: gt.QVec3) -> None:
+    def test_hessian(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.05559175, -0.02060021, -0.03090031],
@@ -122,7 +122,7 @@ class TestNFWPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QVec3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

@@ -32,9 +32,7 @@ class AbstractPotential(AbstractBasePotential, strict=True):
 
     # TODO: inputs w/ units
     @abc.abstractmethod
-    def _potential(
-        self, q: gt.BatchQVec3, t: gt.BatchableRealScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+    def _potential(self, q: gt.BtQuSz3, t: gt.BBtRealSz0, /) -> gt.SpecificEnergyBtSz0:
         raise NotImplementedError
 
     ###########################################################################

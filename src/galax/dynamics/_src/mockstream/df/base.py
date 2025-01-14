@@ -21,7 +21,7 @@ from .progenitor import ConstantMassProtenitor, ProgenitorMassCallable
 from galax.dynamics._src.mockstream.core import MockStreamArm
 from galax.dynamics._src.orbit import Orbit
 
-Carry: TypeAlias = tuple[gt.LengthVec3, gt.SpeedVec3, gt.LengthVec3, gt.SpeedVec3]
+Carry: TypeAlias = tuple[gt.LengthSz3, gt.SpeedSz3, gt.LengthSz3, gt.SpeedSz3]
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -36,7 +36,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         prog_orbit: Orbit,
         # />
         /,
-        prog_mass: gt.MassScalar | ProgenitorMassCallable,
+        prog_mass: gt.MassSz0 | ProgenitorMassCallable,
     ) -> gc.CompositePhaseSpacePosition:
         """Generate stream particle initial conditions.
 
@@ -136,13 +136,11 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         self,
         key: PRNGKeyArray,
         potential: gp.AbstractBasePotential,
-        x: gt.LengthBatchableVec3,
-        v: gt.SpeedBatchableVec3,
-        prog_mass: gt.BatchableFloatQScalar,
-        t: gt.BatchableFloatQScalar,
-    ) -> tuple[
-        gt.LengthBatchVec3, gt.SpeedBatchVec3, gt.LengthBatchVec3, gt.SpeedBatchVec3
-    ]:
+        x: gt.LengthBBtSz3,
+        v: gt.SpeedBBtSz3,
+        prog_mass: gt.BBtFloatQuSz0,
+        t: gt.BBtFloatQuSz0,
+    ) -> tuple[gt.LengthBtSz3, gt.SpeedBtSz3, gt.LengthBtSz3, gt.SpeedBtSz3]:
         """Generate stream particle initial conditions.
 
         Parameters

@@ -42,24 +42,24 @@ class TestBurkertPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: BurkertPotential, x: gt.Vec3) -> None:
+    def test_potential(self, pot: BurkertPotential, x: gt.Sz3) -> None:
         expect = u.Quantity(-15.76623941, "kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: BurkertPotential, x: gt.Vec3) -> None:
+    def test_gradient(self, pot: BurkertPotential, x: gt.Sz3) -> None:
         expect = u.Quantity([0.54053104, 1.08106208, 1.62159313], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: BurkertPotential, x: gt.Vec3) -> None:
+    def test_density(self, pot: BurkertPotential, x: gt.Sz3) -> None:
         expect = u.Quantity(8.79860325e09, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: BurkertPotential, x: gt.Vec3) -> None:
+    def test_hessian(self, pot: BurkertPotential, x: gt.Sz3) -> None:
         expect = u.Quantity(
             [
                 [0.46023037, -0.16060135, -0.24090202],
@@ -75,7 +75,7 @@ class TestBurkertPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.Vec3) -> None:
+    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.Sz3) -> None:
         """Test the `AbstractBasePotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -107,7 +107,7 @@ class TestBurkertPotential(
         pot: gp.AbstractBasePotential,
         method0: str,
         method1: str,
-        x: gt.QVec3,
+        x: gt.QuSz3,
         atol: float,
     ) -> None:
         """Test the equivalence of methods between gala and galax.

@@ -68,8 +68,8 @@ class AbstractCompositePotential(
 
     @partial(jax.jit, inline=True)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.SpecificEnergyBatchScalar:
+        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
+    ) -> gt.SpecificEnergyBtSz0:
         return jnp.sum(
             jnp.asarray(
                 [p._potential(q, t) for p in self.values()]  # noqa: SLF001

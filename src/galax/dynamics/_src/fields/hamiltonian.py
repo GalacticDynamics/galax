@@ -91,7 +91,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
               ys=(f64[1,2,3], f64[1,2,3]),
               ... )
 
-    >>> w = gc.PhaseSpacePosition.from_(soln, pot.units)
+    >>> w = gc.PhaseSpacePosition.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -183,7 +183,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         >>> t1 = u.Quantity(200, "Myr")
 
         >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
-        >>> print(gc.PhaseSpacePosition.from_(soln, pot.units))
+        >>> print(gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame))
         PhaseSpacePosition(
             q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
                 [[ 7.645 -0.701  0.   ]]>,

@@ -69,7 +69,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
               ys=(f64[1,2,3], f64[1,2,3]),
               ... )
 
-    >>> w = gc.PhaseSpacePosition.from_(soln, pot.units)
+    >>> w = gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -711,7 +711,7 @@ def from_(
     >>> t1 = u.Quantity(1, "Gyr")
     >>> soln = solver.solve(field, w0, t1)
 
-    >>> w = gc.PhaseSpacePosition.from_(soln, pot.units)
+    >>> w = gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])

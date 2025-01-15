@@ -69,7 +69,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
               ys=(f64[1,2,3], f64[1,2,3]),
               ... )
 
-    >>> w = gc.PhaseSpacePosition.from_(soln, pot.units)
+    >>> w = gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -200,13 +200,14 @@ def solve(
 
     # Solve the differential equation
     solver_kw.setdefault("dt0", None)
+    saveat = parse_saveat(units, saveat, dense=solver_kw.pop("dense", None))
     soln = self.diffeqsolver(
         field.terms(self.diffeqsolver),
         t0=t0.ustrip(time),
         t1=t1.ustrip(time),
         y0=y0,
         args=args,
-        saveat=parse_saveat(units, saveat, dense=solver_kw.pop("dense", None)),
+        saveat=saveat,
         **solver_kw,
     )
 
@@ -650,6 +651,9 @@ def solve(
     return self.solve(field, y0, t0, t1, args=args, **solver_kw)
 
 
+# TODO: dispatch for Composite PSP that produces a pytree of Solution objects.
+
+
 # ===================================================================
 
 
@@ -682,7 +686,10 @@ def terms(
 def from_(
     cls: type[gc.AbstractOnePhaseSpacePosition],
     soln: dfx.Solution,
-    units: u.AbstractUnitSystem,
+    *,
+    frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
+    units: u.AbstractUnitSystem,  # not dispatched on, but required
+    unbatch_time: bool = False,
 ) -> gc.AbstractOnePhaseSpacePosition:
     """Convert a solution to a phase-space position.
 
@@ -704,7 +711,7 @@ def from_(
     >>> t1 = u.Quantity(1, "Gyr")
     >>> soln = solver.solve(field, w0, t1)
 
-    >>> w = gc.PhaseSpacePosition.from_(soln, pot.units)
+    >>> w = gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -717,11 +724,21 @@ def from_(
         frame=SimulationFrame())
 
     """
-    # Convert the solution to a phase-space position
+    # Reshape (T, *batch) to (*batch, T)
+    t = soln.ts  # already in the correct shape
     q = jnp.moveaxis(soln.ys[0], 0, -2)
     p = jnp.moveaxis(soln.ys[1], 0, -2)
+
+    # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
+    if unbatch_time:
+        t = t[..., -1]
+        q = q[..., -1, :]
+        p = p[..., -1, :]
+
+    # Convert the solution to a phase-space position
     return cls(
         q=cx.CartesianPos3D.from_(q, units["length"]),
         p=cx.CartesianVel3D.from_(p, units["speed"]),
-        t=FastQ(soln.ts, units["time"]),
+        t=FastQ(t, units["time"]),
+        frame=frame,
     )

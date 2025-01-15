@@ -6,10 +6,9 @@ __all__ = [
     "integrate",
     "mockstream",
     "plot",
-    # orbit, et al.
-    "Orbit",
     # integrate
     "evaluate_orbit",
+    "Orbit",
     # mockstream
     "MockStreamArm",
     "MockStream",
@@ -36,10 +35,16 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
         specific_angular_momentum,
         tidal_radius,
     )
-    from ._src.integrate.funcs import evaluate_orbit
-    from ._src.mockstream import MockStream, MockStreamArm, MockStreamGenerator
-    from ._src.mockstream.df import AbstractStreamDF, ChenStreamDF, FardalStreamDF
     from ._src.orbit import Orbit
+    from .integrate import evaluate_orbit
+    from .mockstream import (
+        AbstractStreamDF,
+        ChenStreamDF,
+        FardalStreamDF,
+        MockStream,
+        MockStreamArm,
+        MockStreamGenerator,
+    )
 
 
 # Cleanup

@@ -1,10 +1,29 @@
 """:mod:`galax.dynamics.mockstream`."""
 
-from ._src import mockstream
-from ._src.mockstream import *  # noqa: F403
+__all__ = [
+    "MockStreamGenerator",
+    "MockStreamArm",
+    "MockStream",
+    "AbstractStreamDF",
+    "FardalStreamDF",
+    "ChenStreamDF",
+    "ProgenitorMassCallable",
+    "ConstantMassProtenitor",
+]
 
-__all__: list[str] = []
-__all__ += mockstream.__all__
+from jaxtyping import install_import_hook
+
+from galax.setup_package import RUNTIME_TYPECHECKER
+
+with install_import_hook("galax.dynamics.dynamics", RUNTIME_TYPECHECKER):
+    from ._src.mockstream import MockStream, MockStreamArm, MockStreamGenerator
+    from ._src.mockstream.df import (
+        AbstractStreamDF,
+        ChenStreamDF,
+        ConstantMassProtenitor,
+        FardalStreamDF,
+        ProgenitorMassCallable,
+    )
 
 # Cleanup
-del mockstream
+del install_import_hook, RUNTIME_TYPECHECKER

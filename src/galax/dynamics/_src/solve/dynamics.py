@@ -200,13 +200,14 @@ def solve(
 
     # Solve the differential equation
     solver_kw.setdefault("dt0", None)
+    saveat = parse_saveat(units, saveat, dense=solver_kw.pop("dense", None))
     soln = self.diffeqsolver(
         field.terms(self.diffeqsolver),
         t0=t0.ustrip(time),
         t1=t1.ustrip(time),
         y0=y0,
         args=args,
-        saveat=parse_saveat(units, saveat, dense=solver_kw.pop("dense", None)),
+        saveat=saveat,
         **solver_kw,
     )
 

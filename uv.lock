@@ -654,7 +654,7 @@ wheels = [
 
 [[package]]
 name = "galax"
-version = "0.0.3.dev190+g1689d605.d20250114"
+version = "0.0.3.dev187+gc1fbbb79.d20250115"
 source = { editable = "." }
 dependencies = [
     { name = "astropy" },

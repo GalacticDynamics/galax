@@ -15,7 +15,7 @@ from plum import dispatch
 import unxt as u
 from unxt.quantity import AbstractQuantity
 
-from .diffeq import DiffEqSolver
+from galax.dynamics._src.utils import DiffEqSolver
 
 
 def converter_diffeqsolver(obj: Any, /) -> DiffEqSolver:

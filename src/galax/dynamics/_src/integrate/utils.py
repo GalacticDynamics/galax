@@ -1,6 +1,6 @@
 """Utilities for dynamics."""
 
-__all__ = ["parse_time_specification", "converter_dynamicsolver"]
+__all__ = ["parse_time_specification"]
 
 
 from collections.abc import Sequence
@@ -8,70 +8,11 @@ from numbers import Number
 from typing import Annotated as Ann, Any
 from typing_extensions import Doc
 
-import diffrax as dfx
 from jaxtyping import Array, ArrayLike, Shaped
 from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
-
-from galax.dynamics._src.solve.diffeq import DiffEqSolver
-from galax.dynamics._src.solve.dynamics import DynamicsSolver
-
-
-def converter_dynamicsolver(obj: Any, /) -> DynamicsSolver:
-    """Convert to a `DynamicsSolver`.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> from galax.dynamics.integrate import DynamicsSolver, DiffEqSolver
-
-    >>> diffeqsolve = DynamicsSolver(DiffEqSolver(dfx.Dopri5()))
-    >>> converter_dynamicsolver(diffeqsolve)
-    DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri5(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
-      )
-    )
-
-    >>> diffeqsolve = DiffEqSolver(dfx.Dopri5())
-    >>> converter_dynamicsolver(diffeqsolve)
-    DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri5(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
-      )
-    )
-
-    >>> converter_dynamicsolver(dfx.Dopri5())
-    DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri5(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
-      )
-    )
-
-    >>> try: converter_dynamicsolver(object())
-    ... except TypeError as e: print(e)
-    cannot convert <object object at ...> to a `DynamicsSolver`.
-
-    """
-    if isinstance(obj, DynamicsSolver):
-        out = obj
-    elif isinstance(obj, DiffEqSolver | dfx.AbstractSolver):
-        out = DynamicsSolver(obj)
-    else:
-        msg = f"cannot convert {obj} to a `DynamicsSolver`."  # type: ignore[unreachable]
-        raise TypeError(msg)
-    return out
-
-
-##############################################################################
 
 
 def parse_time_specification(

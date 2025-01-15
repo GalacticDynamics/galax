@@ -20,7 +20,6 @@ from xmmutablemap import ImmutableMap
 import galax.coordinates as gc
 import galax.typing as gt
 from .interp import Interpolant
-from .utils import converter_dynamicsolver
 from galax.dynamics._src.solve.diffeq import DiffEqSolver
 from galax.dynamics._src.solve.dynamics import DynamicsSolver
 from galax.dynamics.fields import AbstractDynamicsField
@@ -33,6 +32,58 @@ Times: TypeAlias = gt.QuSzTime | gt.SzTime
 
 default_solver = dfx.Dopri8(scan_kind="bounded")
 default_stepsize_controller = dfx.PIDController(rtol=1e-7, atol=1e-7)
+
+
+def converter_dynamicsolver(obj: Any, /) -> DynamicsSolver:
+    """Convert to a `DynamicsSolver`.
+
+    Examples
+    --------
+    >>> import diffrax as dfx
+    >>> from galax.dynamics.integrate import DynamicsSolver, DiffEqSolver
+
+    >>> diffeqsolve = DynamicsSolver(DiffEqSolver(dfx.Dopri5()))
+    >>> converter_dynamicsolver(diffeqsolve)
+    DynamicsSolver(
+      diffeqsolver=DiffEqSolver(
+        solver=Dopri5(scan_kind=None),
+        stepsize_controller=ConstantStepSize(),
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+      )
+    )
+
+    >>> diffeqsolve = DiffEqSolver(dfx.Dopri5())
+    >>> converter_dynamicsolver(diffeqsolve)
+    DynamicsSolver(
+      diffeqsolver=DiffEqSolver(
+        solver=Dopri5(scan_kind=None),
+        stepsize_controller=ConstantStepSize(),
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+      )
+    )
+
+    >>> converter_dynamicsolver(dfx.Dopri5())
+    DynamicsSolver(
+      diffeqsolver=DiffEqSolver(
+        solver=Dopri5(scan_kind=None),
+        stepsize_controller=ConstantStepSize(),
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+      )
+    )
+
+    >>> try: converter_dynamicsolver(object())
+    ... except TypeError as e: print(e)
+    cannot convert <object object at ...> to a `DynamicsSolver`.
+
+    """
+    if isinstance(obj, DynamicsSolver):
+        out = obj
+    elif isinstance(obj, DiffEqSolver | dfx.AbstractSolver):
+        out = DynamicsSolver(obj)
+    else:
+        msg = f"cannot convert {obj} to a `DynamicsSolver`."  # type: ignore[unreachable]
+        raise TypeError(msg)
+    return out
 
 
 @final

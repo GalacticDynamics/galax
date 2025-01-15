@@ -140,6 +140,7 @@ default_saveat = dfx.SaveAt(t1=True)
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -221,6 +222,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -278,6 +280,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -334,6 +337,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -394,6 +398,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -450,6 +455,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -513,6 +519,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -582,6 +589,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,

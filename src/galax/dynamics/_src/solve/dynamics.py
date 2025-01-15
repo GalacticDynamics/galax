@@ -140,6 +140,7 @@ default_saveat = dfx.SaveAt(t1=True)
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -221,6 +222,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -278,6 +280,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -334,6 +337,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -394,6 +398,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -450,6 +455,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -513,6 +519,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -582,6 +589,7 @@ def solve(
 
 
 @DynamicsSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -730,7 +738,7 @@ def from_(
     p = jnp.moveaxis(soln.ys[1], 0, -2)
 
     # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
-    if unbatch_time:
+    if unbatch_time and t.shape[-1] == 1:
         t = t[..., -1]
         q = q[..., -1, :]
         p = p[..., -1, :]

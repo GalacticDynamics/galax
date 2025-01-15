@@ -26,8 +26,147 @@ DenseInfos: TypeAlias = dict[str, PyTree[Shaped[Array, "times-1 ..."]]]
 Shape: TypeAlias = tuple[int, ...]
 
 
+class AbstractVectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[misc]
+    """ABC for vectorized wrapper around a `diffrax.DenseInterpolation`."""
+
+    #: Dense interpolation with flattened batch dimensions.
+    scalar_interpolation: eqx.AbstractVar[dfx.DenseInterpolation]
+
+    #: The batch shape of the interpolation without vectorization over the
+    #: solver that produced this interpolation. E.g.
+    batch_shape: eqx.AbstractVar[Shape]
+
+    #: The shape of the solution.
+    y0_shape: eqx.AbstractVar[PyTree[Shape, "Y"]]
+
+    @property
+    def batch_ndim(self) -> int:
+        """The number of batch dimensions."""
+        return len(self.batch_shape)
+
+    @override
+    @eqx.filter_jit  # type: ignore[misc]
+    def evaluate(
+        self,
+        t0: Real[Array, "time"],
+        t1: Real[Array, "time"] | None = None,
+        left: bool = True,
+    ) -> PyTree[Shaped[Array, "?*shape"], "Y"]:
+        """Evaluate the interpolation at any point in the region of integration.
+
+        Args:
+            t0: The point to evaluate the solution at.
+            t1: If passed, then the increment from `t0` to `t1` is returned.
+                (``=evaluate(t1) - evaluate(t0)``)
+            left: When evaluating at a jump in the solution, whether to return
+                the left-limit or the right-limit at that point.
+
+        Return:
+            The solution at the given time.
+            Shape (*batch, [len(t0)], *y0.shape)
+
+        """
+        # If t1, then return the difference
+        if t1 is not None:
+            t0, t1 = jnp.broadcast_arrays(t0, t1)
+            return self.evaluate(t1, left=left) - self.evaluate(t0, left=left)
+
+        # Evaluate the scalar interpolation
+        # TODO: enable t0, t1 to be N-D arrays
+        t0ndim = jnp.ndim(t0)  # store shape for unpacking
+        t0 = jnp.atleast_1d(t0).astype(float)
+        ys = jax.vmap(  # vmap over the batch dimension of the interpolator
+            lambda interp: jax.vmap(partial(interp.evaluate, left=left))(t0)
+        )(self.scalar_interpolation)
+
+        # Reshape to remove the time batch dimension if the time was scalar.
+        # Since the interpolation is flattened, this is always the 1st index.
+        if t0ndim == 0:
+            ys = jax.tree.map(lambda x: x[:, 0], ys)
+
+        # Reshape the 0th dimension back to the original batch shape.
+        ys = jax.tree.map(lambda x: x.reshape(*self.batch_shape, *x.shape[1:]), ys)
+
+        return ys  # noqa: RET504
+
+    # =======================
+    # DenseInterpolation API
+    # modified to have batch dimensions.
+
+    @property
+    def t0(self) -> Real[Array, "{self.batch_shape}"]:
+        """The start time of the interpolation."""
+        flatt0 = jax.vmap(lambda x: x.t0)(self.scalar_interpolation)
+        return flatt0.reshape(*self.batch_shape)
+
+    @property
+    def t1(self) -> RealScalarLike:
+        """The end time of the interpolation."""
+        flatt1 = jax.vmap(lambda x: x.t1)(self.scalar_interpolation)
+        return flatt1.reshape(*self.batch_shape)
+
+    @property
+    def ts(self) -> Real[Array, "times"]:
+        """The times of the interpolation."""
+        return self.scalar_interpolation.ts
+
+    @property
+    def ts_size(self) -> IntScalarLike:
+        """The number of times in the interpolation."""
+        return self.scalar_interpolation.ts_size
+
+    @property
+    def infos(self) -> DenseInfos:
+        """The infos of the interpolation."""
+        return cast(DenseInfos, self.scalar_interpolation.infos)
+
+    @property
+    def interpolation_cls(self) -> Callable[..., dfx.AbstractLocalInterpolation]:
+        """The interpolation class of the interpolation."""
+        return cast(
+            Callable[..., dfx.AbstractLocalInterpolation],
+            self.scalar_interpolation.interpolation_cls,
+        )
+
+    @property
+    def direction(self) -> IntScalarLike:
+        """Direction vector."""
+        return self.scalar_interpolation.direction
+
+    @property
+    def t0_if_trivial(self) -> RealScalarLike:
+        """The start time of the interpolation if scalar input."""
+        return self.scalar_interpolation.t0_if_trivial
+
+    @property
+    def y0_if_trivial(self) -> PyTree[RealScalarLike, "Y"]:
+        """The start value of the interpolation if scalar input."""
+        return self.scalar_interpolation.y0_if_trivial
+
+    # =======================
+    # Convenience methods
+
+    @classmethod
+    def apply_to_solution(cls, soln: dfx.Solution, /) -> dfx.Solution:
+        """Make a `diffrax.Solution` interpolation vectorized.
+
+        This does an out-of-place transformation, wrapping the interpolation
+        in a `VectorizedDenseInterpolation`.
+
+        """
+        if soln.interpolation is None:
+            return soln
+
+        return eqx.tree_at(
+            lambda tree: tree.interpolation, soln, cls(soln.interpolation)
+        )
+
+
+# =============================================================================
+
+
 @final
-class VectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[misc]
+class VectorizedDenseInterpolation(AbstractVectorizedDenseInterpolation):
     """Vectorized wrapper around a `diffrax.DenseInterpolation`.
 
     This also works on non-batched interpolations.
@@ -167,126 +306,4 @@ class VectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[misc]
             lambda x: x.reshape(-1, *x.shape[self.batch_ndim :]),
             interp,
             is_leaf=eqx.is_array,
-        )
-
-    @property
-    def batch_ndim(self) -> int:
-        """The number of batch dimensions."""
-        return len(self.batch_shape)
-
-    @override
-    @eqx.filter_jit  # type: ignore[misc]
-    def evaluate(
-        self,
-        t0: Real[Array, "time"],
-        t1: Real[Array, "time"] | None = None,
-        left: bool = True,
-    ) -> PyTree[Shaped[Array, "?*shape"], "Y"]:
-        """Evaluate the interpolation at any point in the region of integration.
-
-        Args:
-            t0: The point to evaluate the solution at.
-            t1: If passed, then the increment from `t0` to `t1` is returned.
-                (``=evaluate(t1) - evaluate(t0)``)
-            left: When evaluating at a jump in the solution, whether to return
-                the left-limit or the right-limit at that point.
-
-        Return:
-            The solution at the given time.
-            Shape (*batch, [len(t0)], *y0.shape)
-
-        """
-        # If t1, then return the difference
-        if t1 is not None:
-            t0, t1 = jnp.broadcast_arrays(t0, t1)
-            return self.evaluate(t1, left=left) - self.evaluate(t0, left=left)
-
-        # Evaluate the scalar interpolation
-        # TODO: enable t0, t1 to be N-D arrays
-        t0ndim = jnp.ndim(t0)  # store shape for unpacking
-        t0 = jnp.atleast_1d(t0).astype(float)
-        ys = jax.vmap(  # vmap over the batch dimension of the interpolator
-            lambda interp: jax.vmap(partial(interp.evaluate, left=left))(t0)
-        )(self.scalar_interpolation)
-
-        # Reshape to remove the time batch dimension if the time was scalar.
-        # Since the interpolation is flattened, this is always the 1st index.
-        if t0ndim == 0:
-            ys = jax.tree.map(lambda x: x[:, 0], ys)
-
-        # Reshape the 0th dimension back to the original batch shape.
-        ys = jax.tree.map(lambda x: x.reshape(*self.batch_shape, *x.shape[1:]), ys)
-
-        return ys  # noqa: RET504
-
-    # =======================
-    # DenseInterpolation API
-    # modified to have batch dimensions.
-
-    @property
-    def t0(self) -> Real[Array, "{self.batch_shape}"]:
-        """The start time of the interpolation."""
-        flatt0 = jax.vmap(lambda x: x.t0)(self.scalar_interpolation)
-        return flatt0.reshape(*self.batch_shape)
-
-    @property
-    def t1(self) -> RealScalarLike:
-        """The end time of the interpolation."""
-        flatt1 = jax.vmap(lambda x: x.t1)(self.scalar_interpolation)
-        return flatt1.reshape(*self.batch_shape)
-
-    @property
-    def ts(self) -> Real[Array, "times"]:
-        """The times of the interpolation."""
-        return self.scalar_interpolation.ts
-
-    @property
-    def ts_size(self) -> IntScalarLike:
-        """The number of times in the interpolation."""
-        return self.scalar_interpolation.ts_size
-
-    @property
-    def infos(self) -> DenseInfos:
-        """The infos of the interpolation."""
-        return cast(DenseInfos, self.scalar_interpolation.infos)
-
-    @property
-    def interpolation_cls(self) -> Callable[..., dfx.AbstractLocalInterpolation]:
-        """The interpolation class of the interpolation."""
-        return cast(
-            Callable[..., dfx.AbstractLocalInterpolation],
-            self.scalar_interpolation.interpolation_cls,
-        )
-
-    @property
-    def direction(self) -> IntScalarLike:
-        """Direction vector."""
-        return self.scalar_interpolation.direction
-
-    @property
-    def t0_if_trivial(self) -> RealScalarLike:
-        """The start time of the interpolation if scalar input."""
-        return self.scalar_interpolation.t0_if_trivial
-
-    @property
-    def y0_if_trivial(self) -> PyTree[RealScalarLike, "Y"]:
-        """The start value of the interpolation if scalar input."""
-        return self.scalar_interpolation.y0_if_trivial
-
-    # =======================
-    # Convenience methods
-
-    @classmethod
-    def apply_to_solution(cls, soln: dfx.Solution, /) -> dfx.Solution:
-        """Make a `diffrax.Solution` interpolation vectorized.
-
-        This does an out-of-place transformation, wrapping the interpolation
-        in a `VectorizedDenseInterpolation`.
-
-        """
-        if soln.interpolation is None:
-            return soln
-
-        return eqx.tree_at(
-            lambda tree: tree.interpolation, soln, cls(soln.interpolation)
         )

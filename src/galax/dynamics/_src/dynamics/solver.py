@@ -868,8 +868,8 @@ def run(
 # JAX & Unxt
 
 
-@DynamicsSolver.solve.dispatch
-@eqx.filter_jit
+@DynamicsSolver.solve.dispatch  # type: ignore[misc]
+@partial(eqx.filter_jit)
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
@@ -905,6 +905,15 @@ def solve(
     return soln
 
 
+def _is_saveat_arr(saveat: Any, /) -> bool:
+    return (
+        isinstance(saveat, dfx.SaveAt)
+        and isinstance(saveat.subs, dfx.SubSaveAt)
+        and saveat.subs.ts is not None
+        and saveat.subs.ts.ndim in (0, 1)
+    )
+
+
 @DynamicsSolver.solve.dispatch(precedence=-1)
 @eqx.filter_jit
 def solve(
@@ -931,6 +940,15 @@ def solve(
 
     # Solve the batched problem
     soln = call(qp[0], qp[1], t0, t1)
+
+    # NOTE: this is a heuristic that can be improved!
+    # The saveat was not vmapped over, so it got erroneously broadcasted.
+    # Let's try to unbatch it if it looks like it was broadcasted.
+    if (
+        isinstance(saveat, u.AbstractQuantity) and saveat.ndim in (0, 1)
+    ) or _is_saveat_arr(saveat):
+        slc = (0,) * soln.t0.ndim
+        soln = eqx.tree_at(lambda tree: tree.ts, soln, soln.ts[slc])
 
     # Now possibly vectorize the interpolation
     if vectorize_interpolation:

@@ -9,6 +9,7 @@ __all__ = [
     "DiffEqSolver",
     "VectorizedDenseInterpolation",
     "Orbit",
+    "PhaseSpaceInterpolation",
 ]
 
 from jaxtyping import install_import_hook
@@ -20,7 +21,7 @@ with install_import_hook("galax.dynamics.solve", RUNTIME_TYPECHECKER):
 
     from ._src.dynamics import DynamicsSolver, parse_time_specification
     from ._src.integrate import evaluate_orbit
-    from ._src.orbit import Orbit
+    from ._src.orbit import Orbit, PhaseSpaceInterpolation
     from ._src.solver import AbstractSolver, SolveState
 
 # Cleanup

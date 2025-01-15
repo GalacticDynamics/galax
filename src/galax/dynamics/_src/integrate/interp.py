@@ -6,6 +6,7 @@ import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.numpy as jnp
+from jaxtyping import PyTree
 
 import coordinax as cx
 import quaxed.numpy as xp
@@ -13,10 +14,12 @@ import unxt as u
 from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
+import galax.typing as gt
+from galax.dynamics._src.utils.interp import AbstractVectorizedDenseInterpolation
 
 
 @final
-class Interpolant(eqx.Module):  # type: ignore[misc]#
+class Interpolant(AbstractVectorizedDenseInterpolation):
     """Wrapper for `diffrax.DenseInterpolation`.
 
     This satisfies the `galax.coordinates.PhaseSpacePositionInterpolant`
@@ -54,34 +57,53 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
 
     """
 
-    interpolant: dfx.DenseInterpolation
-    """:class:`diffrax.DenseInterpolation` object.
+    #: Dense interpolation with flattened batch dimensions.
+    scalar_interpolation: dfx.DenseInterpolation
 
-    This object is the result of the integration and can be used to evaluate the
-    interpolated solution at any time. However it does not understand units, so
-    the input is the time in ``units["time"]``. The output is a 6-vector of
-    (q, p) values in the units of the integrator.
-    """
+    #: The batch shape of the interpolation without vectorization over the
+    #: solver that produced this interpolation. E.g.
+    batch_shape: gt.Shape
 
+    #: The shape of the solution.
+    y0_shape: PyTree[gt.Shape, "Y"]
+
+    #: The unit system of the solution. This is used to convert the time input
+    #: to the interpolant and the phase-space position output.
     units: u.AbstractUnitSystem = eqx.field(static=True, converter=u.unitsystem)
-    """The :class:`unxt.AbstractUnitSystem`.
 
-    This is used to convert the time input to the interpolant and the phase-space
-    position output.
-    """
+    def __init__(
+        self, interp: dfx.DenseInterpolation, /, *, units: u.AbstractUnitSystem
+    ) -> None:
+        # Set the units
+        self.units = self.__dataclass_fields__["units"].metadata["converter"](units)
 
+        # # Store the batch shape
+        bshape = interp.t0_if_trivial.shape
+        bshape = eqx.error_if(
+            bshape,
+            bshape != interp.t0_if_trivial.shape,
+            "batch_shape must match the shape of the ts_size of the interpolation",
+        )
+        self.batch_shape = bshape
+        self.y0_shape = jax.tree.map(
+            lambda x: x.shape[self.batch_ndim :], interp.y0_if_trivial
+        )
+
+        # Flatten the batch shape of the interpolation
+        self.scalar_interpolation = jax.tree.map(
+            lambda x: x.reshape(-1, *x.shape[self.batch_ndim :]),
+            interp,
+            is_leaf=eqx.is_array,
+        )
+
+    # TODO: make this .evaluate, not __call__
     def __call__(self, t: u.Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
-        # Evaluate the interpolation
-        tshape = t.shape  # store shape for unpacking
-        ys = jax.vmap(self.interpolant.evaluate)(
-            xp.atleast_1d(t.ustrip(self.units["time"]))
-        )
+        ys = super().evaluate(t.ustrip(self.units["time"]))
+
         # Reshape (T, *batch) to (*batch, T)
-        ys = jax.tree.map(lambda x: xp.moveaxis(x, 0, -2), ys)
-        # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
-        if tshape == ():
-            ys = jax.tree.map(lambda x: x[..., -1, :], ys)
+        if t.ndim != 0:
+            ys = jax.tree.map(lambda x: xp.moveaxis(x, 0, -2), ys)
 
         # Construct and return the result
         return gc.PhaseSpacePosition(

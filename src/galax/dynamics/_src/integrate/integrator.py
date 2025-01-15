@@ -20,8 +20,8 @@ from xmmutablemap import ImmutableMap
 import galax.coordinates as gc
 import galax.typing as gt
 from .interp import Interpolant
-from galax.dynamics._src.solve.diffeq import DiffEqSolver
 from galax.dynamics._src.solve.dynamics import DynamicsSolver
+from galax.dynamics._src.utils import DiffEqSolver
 from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")

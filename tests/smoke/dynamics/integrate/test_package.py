@@ -13,4 +13,5 @@ def test_all() -> None:
         "DiffEqSolver",
         "AbstractSolver",
         "DynamicsSolver",
+        "VectorizedDenseInterpolation",
     }

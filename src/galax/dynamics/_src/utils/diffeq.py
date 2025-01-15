@@ -3,6 +3,7 @@
 This is private API.
 
 """
+# ruff:noqa: ERA001
 
 __all__ = [
     "DiffEqSolver",  # exported to Public API
@@ -20,8 +21,6 @@ import diffrax as dfx
 import equinox as eqx
 import numpy as np
 from jaxtyping import Array, ArrayLike, Bool, PyTree, Real
-
-from galax.dynamics._src.fields import AbstractDynamicsField
 
 RealSz0Like: TypeAlias = Real[int | float | Array | np.ndarray, ""]
 BoolSz0Like: TypeAlias = Bool[ArrayLike, ""]
@@ -41,6 +40,15 @@ default_adjoint = params["adjoint"].default
 
 class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     """Class-based interface for solving differential equations.
+
+    This is a convenience wrapper around `diffrax.diffeqsolve`, allowing for
+    pre-configuration of a `diffrax.AbstractSolver`,
+    `diffrax.AbstractStepSizeController`, and `diffrax.AbstractAdjoint`.
+    Pre-configuring these objects can be useful when you want to:
+
+    - repeatedly solve similar differential equations and can reuse the same
+       solver, step size controller, and adjoint.
+    - pass the differential equation solver as an argument to a function.
 
     Examples
     --------
@@ -146,31 +154,3 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     # TODO: a contextmanager for producing a temporary DiffEqSolver with
     # different field values.
-
-
-# ===========================
-
-
-@AbstractDynamicsField.terms.dispatch  # type: ignore[misc,attr-defined]
-def terms(
-    self: AbstractDynamicsField, wrapper: DiffEqSolver, /
-) -> PyTree[dfx.AbstractTerm]:
-    """Return diffeq terms, redispatching to the solver.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DiffEqSolver(dfx.Dopri8())
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> field.terms(solver)
-    ODETerm(vector_field=<wrapped function __call__>)
-
-    """
-    return self.terms(wrapper.solver)

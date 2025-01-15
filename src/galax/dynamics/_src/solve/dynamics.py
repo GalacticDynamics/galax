@@ -651,6 +651,9 @@ def solve(
     return self.solve(field, y0, t0, t1, args=args, **solver_kw)
 
 
+# TODO: dispatch for Composite PSP that produces a pytree of Solution objects.
+
+
 # ===================================================================
 
 
@@ -683,7 +686,10 @@ def terms(
 def from_(
     cls: type[gc.AbstractOnePhaseSpacePosition],
     soln: dfx.Solution,
-    units: u.AbstractUnitSystem,
+    *,
+    frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
+    units: u.AbstractUnitSystem,  # not dispatched on, but required
+    unbatch_time: bool = False,
 ) -> gc.AbstractOnePhaseSpacePosition:
     """Convert a solution to a phase-space position.
 
@@ -718,11 +724,21 @@ def from_(
         frame=SimulationFrame())
 
     """
-    # Convert the solution to a phase-space position
+    # Reshape (T, *batch) to (*batch, T)
+    t = soln.ts  # already in the correct shape
     q = jnp.moveaxis(soln.ys[0], 0, -2)
     p = jnp.moveaxis(soln.ys[1], 0, -2)
+
+    # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
+    if unbatch_time:
+        t = t[..., -1]
+        q = q[..., -1, :]
+        p = p[..., -1, :]
+
+    # Convert the solution to a phase-space position
     return cls(
         q=cx.CartesianPos3D.from_(q, units["length"]),
         p=cx.CartesianVel3D.from_(p, units["speed"]),
-        t=FastQ(soln.ts, units["time"]),
+        t=FastQ(t, units["time"]),
+        frame=frame,
     )

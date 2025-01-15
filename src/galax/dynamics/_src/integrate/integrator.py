@@ -138,13 +138,14 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> w = integrator(field, w0, t0, t1, units=galactic)
-    >>> w
+    >>> print(w)
     PhaseSpacePosition(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
+        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            [ 6.247 -5.121  0.   ]>,
+        p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+            [0.359 0.033 0.   ]>,
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
-        frame=SimulationFrame()
-    )
+        frame=SimulationFrame())
     >>> w.shape
     ()
 
@@ -315,35 +316,20 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             field, (q0, p0), t0, t1, saveat=save_at, **diffeq_kw
         )
 
-        # Reshape (T, *batch) to (*batch, T)
-        solt = soln.ts  # soln.ts is already in the correct shape
-        solq = jnp.moveaxis(soln.ys[0], 0, -2)
-        solp = jnp.moveaxis(soln.ys[1], 0, -2)
-
-        # Parse the solution, (unbatching time when saveat is None)
-        if saveat is None:
-            solt = solt[..., -1]
-            solq = solq[..., -1, :]
-            solp = solp[..., -1, :]
-
         # ---------------------------------------
         # Return
 
-        # TODO: determine the frame
-        out_kw = {"frame": gc.frames.SimulationFrame()}
-
+        out_kw = {
+            "frame": gc.frames.SimulationFrame(),  # TODO: determine the frame
+            "units": units,
+        }
         if interpolated:
             out_cls = gc.InterpolatedPhaseSpacePosition
             out_kw["interpolant"] = Interpolant(soln.interpolation, units=units)
         else:
             out_cls = gc.PhaseSpacePosition
 
-        return out_cls(  # shape = (*batch, T)
-            t=FastQ(solt, time),
-            q=FastQ(solq, units["length"]),
-            p=FastQ(solp, units["speed"]),
-            **out_kw,
-        )
+        return out_cls.from_(soln, **out_kw, unbatch_time=saveat is None)
 
     # -----------------------------------------------------
     # Call method

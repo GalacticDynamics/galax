@@ -5,7 +5,9 @@ from typing import Any, final
 import diffrax as dfx
 import equinox as eqx
 import jax
+import jax.numpy as jnp
 
+import coordinax as cx
 import quaxed.numpy as xp
 import unxt as u
 from unxt.quantity import UncheckedQuantity as FastQ
@@ -87,3 +89,36 @@ class Interpolant(eqx.Module):  # type: ignore[misc]#
             p=FastQ(ys[1], self.units["speed"]),
             t=t,
         )
+
+
+# TODO: support interpolation
+@gc.AbstractOnePhaseSpacePosition.from_.dispatch  # type: ignore[misc,attr-defined]
+def from_(
+    cls: type[gc.InterpolatedPhaseSpacePosition],
+    soln: dfx.Solution,
+    *,
+    frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
+    units: u.AbstractUnitSystem,  # not dispatched on, but required
+    interpolant: Interpolant,  # not dispatched on, but required
+    unbatch_time: bool = False,
+) -> gc.AbstractOnePhaseSpacePosition:
+    """Convert a solution to a phase-space position."""
+    # Reshape (T, *batch) to (*batch, T)
+    t = soln.ts  # already in the correct shape
+    q = jnp.moveaxis(soln.ys[0], 0, -2)
+    p = jnp.moveaxis(soln.ys[1], 0, -2)
+
+    # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
+    if unbatch_time:
+        t = t[..., -1]
+        q = q[..., -1, :]
+        p = p[..., -1, :]
+
+    # Convert the solution to a phase-space position
+    return cls(
+        q=cx.CartesianPos3D.from_(q, units["length"]),
+        p=cx.CartesianVel3D.from_(p, units["speed"]),
+        t=FastQ(soln.ts, units["time"]),
+        frame=frame,
+        interpolant=interpolant,
+    )

@@ -48,7 +48,7 @@ class Interpolant(AbstractVectorizedDenseInterpolation):
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(gd.fields.HamiltonianField(pot), w0, t0, t1, interpolated=True)
+    >>> w = integrator(gd.fields.HamiltonianField(pot), w0, t0, t1, dense=True)
     >>> type(w)
     <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
 

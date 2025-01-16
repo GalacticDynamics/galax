@@ -44,6 +44,19 @@ class AbstractVectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[mi
         """The number of batch dimensions."""
         return len(self.batch_shape)
 
+    @eqx.filter_jit  # type: ignore[misc]
+    def __call__(
+        self,
+        t0: Real[Array, "time"],
+        t1: Real[Array, "time"] | None = None,
+        left: bool = True,  # noqa: FBT001, FBT002
+    ) -> PyTree[Shaped[Array, "?*shape"], "Y"]:
+        return self.evaluate(t0, t1, left)
+
+    # =======================
+    # DenseInterpolation API
+    # modified to have batch dimensions.
+
     @override
     @eqx.filter_jit  # type: ignore[misc]
     def evaluate(
@@ -88,10 +101,6 @@ class AbstractVectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[mi
         ys = jax.tree.map(lambda x: x.reshape(*self.batch_shape, *x.shape[1:]), ys)
 
         return ys  # noqa: RET504
-
-    # =======================
-    # DenseInterpolation API
-    # modified to have batch dimensions.
 
     @property
     def t0(self) -> Real[Array, "{self.batch_shape}"]:

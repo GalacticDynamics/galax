@@ -1,6 +1,7 @@
 __all__ = ["Interpolant"]
 
-from typing import Any, final
+from typing import final
+from typing_extensions import override
 
 import diffrax as dfx
 import equinox as eqx
@@ -96,20 +97,29 @@ class Interpolant(AbstractVectorizedDenseInterpolation):
             is_leaf=eqx.is_array,
         )
 
-    # TODO: make this .evaluate, not __call__
-    def __call__(self, t: u.Quantity["time"], **_: Any) -> gc.PhaseSpacePosition:
+    @override
+    def evaluate(
+        self,
+        t0: u.Quantity["time"],
+        t1: u.Quantity["time"] | None = None,
+        left: bool = False,
+    ) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""
-        ys = super().evaluate(t.ustrip(self.units["time"]))
+        ys = super().evaluate(
+            t0.ustrip(self.units["time"]),
+            t1 if t1 is None else t1.ustrip(self.units["time"]),
+            left=left,
+        )
 
         # Reshape (T, *batch) to (*batch, T)
-        if t.ndim != 0:
+        if t0.ndim != 0:
             ys = jax.tree.map(lambda x: xp.moveaxis(x, 0, -2), ys)
 
         # Construct and return the result
         return gc.PhaseSpacePosition(
             q=FastQ(ys[0], self.units["length"]),
             p=FastQ(ys[1], self.units["speed"]),
-            t=t,
+            t=t0,
         )
 
 

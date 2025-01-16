@@ -209,7 +209,7 @@ def evaluate_orbit(
     # parse t -> potential units
     t = jnp.atleast_1d(FastQ.from_(t, units["time"]))
 
-    # Parse w0
+    # Parse t0 for the initial integration
     tw0 = w0.t if (isinstance(w0, gc.PhaseSpacePosition) and w0.t is not None) else t[0]
 
     # -------------

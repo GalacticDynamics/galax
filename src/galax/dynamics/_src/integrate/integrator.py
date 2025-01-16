@@ -105,8 +105,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     diffeq_kw : Mapping[str, Any], optional
         Keyword arguments to pass to :func:`diffrax.diffeqsolve`. Default is
         ``{"max_steps": None, "event": None}``. The ``"max_steps"`` key is
-        removed if ``interpolated=True`` in the :meth`Integrator.__call__`
-        method.
+        removed if ``dense=True`` in the :meth`Integrator.__call__` method.
 
     Examples
     --------
@@ -177,7 +176,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     A cool feature of the integrator is that it can return an interpolated
     solution.
 
-    >>> w = integrator(field, w0, t0, t1, saveat=ts, interpolated=True)
+    >>> w = integrator(field, w0, t0, t1, saveat=ts, dense=True)
     >>> type(w)
     <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
 
@@ -212,7 +211,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
     ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
-    >>> ws = integrator(field, w0, t0, t1, interpolated=True)
+    >>> ws = integrator(field, w0, t0, t1, dense=True)
     >>> ws.shape
     (2,)
     >>> w(t)
@@ -243,7 +242,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     # =====================================================
     # Call
 
-    # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
     @partial(eqx.filter_jit)
     def _call_(
         self: "Integrator",
@@ -333,7 +331,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
 
 @Integrator.__call__.dispatch(precedence=2)
-@eqx.filter_jit  # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
+@eqx.filter_jit
 def call(
     self: Integrator,
     field: AbstractDynamicsField,
@@ -343,7 +341,7 @@ def call(
     /,
     *,
     saveat: Times | None = None,
-    interpolated: bool = False,
+    dense: bool = False,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
     """Run the integrator.
 
@@ -427,7 +425,7 @@ def call(
         FastQ.from_(t0, units["time"]),
         FastQ.from_(t1, units["time"]),
         saveat=FastQ.from_(saveat, units["time"]) if saveat is not None else None,
-        dense=interpolated,
+        dense=dense,
     )
 
 
@@ -593,7 +591,6 @@ def call(
     # Vectorize the call
     # This depends on the shape of saveat
     units = field.units
-    kwargs["dense"] = kwargs.pop("interpolated", False)
     saveat = None if saveat is None else FastQ.from_(saveat, units["time"])
     vec_call = jnp.vectorize(
         lambda *args: self._call_(*args, saveat=saveat, **kwargs),
@@ -624,7 +621,7 @@ def call(
     /,
     *,
     saveat: Times | None = None,
-    interpolated: Literal[False, True] = False,
+    dense: Literal[False, True] = False,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
     """Run the integrator.
 
@@ -665,7 +662,7 @@ def call(
         t0,
         t1,
         saveat=saveat,
-        interpolated=interpolated,
+        dense=dense,
     )
 
 
@@ -679,7 +676,7 @@ def call(
     /,
     *,
     saveat: Times | None = None,
-    interpolated: Literal[False, True] = False,
+    dense: Literal[False, True] = False,
 ) -> gc.CompositePhaseSpacePosition:
     """Run the integrator on a composite phase-space position.
 
@@ -729,7 +726,7 @@ def call(
     # TODO: Interpolated form
     return gc.CompositePhaseSpacePosition(
         **{
-            k: self(field, psp0, t0, t1, saveat=saveat, interpolated=interpolated)
+            k: self(field, psp0, t0, t1, saveat=saveat, dense=dense)
             for k, psp0 in w0.items()
         }
     )

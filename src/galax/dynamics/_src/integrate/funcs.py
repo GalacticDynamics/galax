@@ -219,22 +219,24 @@ def evaluate_orbit(
     # Initial integration `w0.t` to `t[0]`.
     # TODO: get diffrax's `solver_state` to speed the second integration.
     # TODO: get diffrax's `controller_state` to speed the second integration.
+    # TODO: `max_steps` as kwarg.
     qp0 = integrator(
         field,
         w0,
-        tw0,  # t0
-        jnp.full_like(tw0, fill_value=t[0]),  # t1
-        interpolated=False,
+        tw0,
+        jnp.full_like(tw0, fill_value=t[0]),
+        dense=False,
     )
 
     # Orbit integration `t[0]` to `t[-1]`
+    # TODO: `max_steps` as kwarg.
     ws = integrator(
         field,
         qp0,
         t[0],
         t[-1],
         saveat=t,
-        interpolated=interpolated,
+        dense=interpolated,
     )
 
     # Return the orbit object

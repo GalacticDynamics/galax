@@ -49,7 +49,7 @@ class AbstractOnePhaseSpacePosition(AbstractPhaseSpacePosition):
 
 
 # =============================================================================
-# helper functions
+# Dispatches
 
 
 # -----------------------------------------------

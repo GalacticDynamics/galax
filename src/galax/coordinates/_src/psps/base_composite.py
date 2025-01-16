@@ -129,29 +129,7 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
     # Units API
 
     def to_units(self, units: Any) -> "AbstractCompositePhaseSpacePosition":
-        """Convert the components to the given units.
-
-        Examples
-        --------
-        For this example we will use
-        `galax.coordinates.CompositePhaseSpacePosition`.
-
-        >>> import unxt as u
-        >>> from unxt.unitsystems import solarsystem
-        >>> import galax.coordinates as gc
-
-        >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                              p=u.Quantity([4, 5, 6], "km/s"),
-        ...                              t=u.Quantity(7, "Myr"))
-
-        >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1)
-        >>> c_psp.to_units(solarsystem)
-        CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
-            q=CartesianPos3D(
-                x=Quantity[...](value=...f64[], unit=Unit("AU")),
-                ...
-        """
-        return type(self)(**{k: v.to_units(units) for k, v in self.items()})
+        raise NotImplementedError
 
     # ==========================================================================
     # Array API
@@ -271,7 +249,41 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
 
 
 # =============================================================================
-# helper functions
+# Dispatches
+
+# =================
+# `unxt.uconvert` dispatches
+
+
+@dispatch
+def uconvert(
+    usys: u.AbstractUnitSystem, cpsp: AbstractCompositePhaseSpacePosition
+) -> AbstractCompositePhaseSpacePosition:
+    """Convert the components to the given units.
+
+    Examples
+    --------
+    For this example we will use
+    `galax.coordinates.CompositePhaseSpacePosition`.
+
+    >>> import unxt as u
+    >>> from unxt.unitsystems import solarsystem
+    >>> import galax.coordinates as gc
+
+    >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                              p=u.Quantity([4, 5, 6], "km/s"),
+    ...                              t=u.Quantity(7, "Myr"))
+
+    >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1)
+    >>> c_psp.uconvert(solarsystem)
+    CompositePhaseSpacePosition({'psp1': PhaseSpacePosition(
+        q=CartesianPos3D(
+            x=Quantity[...](value=...f64[], unit=Unit("AU")),
+            ...
+
+    """
+    return type(cpsp)(**{k: v.to_units(usys) for k, v in cpsp.items()})
+
 
 # =================
 # `coordinax.vconvert` dispatches

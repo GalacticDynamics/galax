@@ -5,7 +5,7 @@ __all__ = ["Integrator"]
 from collections.abc import Mapping
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, Literal, TypeAlias, TypeVar, cast, final
+from typing import Any, Literal, TypeAlias, TypeVar, final
 
 import diffrax as dfx
 import equinox as eqx
@@ -286,40 +286,25 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             Whether to return an interpolated solution. Excluded from JIT.
 
         """
-        # ---------------------------------------
-        # Parse inputs
-
-        # Either save at `saveat` or at the final time.
-        units = field.units
-        time = units["time"]
-        only_final = saveat is None or len(saveat) <= 1
-        save_at = dfx.SaveAt(
-            t1=only_final,
-            ts=None if only_final else cast(AbstractQuantity, saveat).ustrip(time),
-            dense=dense,
-        )
-
+        # Ensure `dense=True` won't raise an error.
         diffeq_kw = dict(self.diffeq_kw)
         if dense and diffeq_kw.get("max_steps") is None:
             diffeq_kw.pop("max_steps")
 
-        # ---------------------------------------
         # Perform the integration
-
+        save_at = dfx.SaveAt(t1=True) if saveat is None else saveat
         soln: dfx.Solution = self.dynamics_solver.solve(
-            field, (q0, p0), t0, t1, saveat=save_at, **diffeq_kw
+            field, (q0, p0), t0, t1, saveat=save_at, dense=dense, **diffeq_kw
         )
 
-        # ---------------------------------------
         # Return
-
         out_kw = {
             "frame": gc.frames.SimulationFrame(),  # TODO: determine the frame
-            "units": units,
+            "units": field.units,
         }
         if dense:
             out_cls = gc.InterpolatedPhaseSpacePosition
-            out_kw["interpolant"] = Interpolant(soln.interpolation, units=units)
+            out_kw["interpolant"] = Interpolant(soln.interpolation, units=field.units)
         else:
             out_cls = gc.PhaseSpacePosition
 
@@ -352,7 +337,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 def call(
     self: Integrator,
     field: AbstractDynamicsField,
-    qp0: gt.BtQP | gt.BtQParr,
+    qp0: gt.BtQP | gt.BtQParr | gt.BtSz6,
     t0: Time,
     t1: Time,
     /,
@@ -367,6 +352,11 @@ def call(
     or `jax.numpy.vectorize`.
 
     I/O shapes:
+
+    - y0=((3,),(3,)), t0=(), t1=(), saveat=() -> ()
+    - y0=((3,),(3,)), t0=(), t1=(), saveat=(T,) -> (T,)
+    - y0=((*batch,3),(*batch,3)), t0=(), t1=(), saveat=() -> (*batch,)
+    - y0=((*batch,3),(*batch,3)), t0=(), t1=(), saveat=(T) -> (*batch,T)
 
     - y0=(6,), t0=(), t1=(), saveat=() -> ()
     - y0=(6,), t0=(), t1=(), saveat=(T,) -> (T,)
@@ -428,52 +418,16 @@ def call(
     (10,)
 
     """
+    y0 = qp0 if isinstance(qp0, tuple) else (qp0[..., 0:3], qp0[..., 3:6])
     units = field.units
     return self._call_(
         field,
-        FastQ.from_(qp0[0], units["length"]),
-        FastQ.from_(qp0[1], units["speed"]),
+        FastQ.from_(y0[0], units["length"]),
+        FastQ.from_(y0[1], units["speed"]),
         FastQ.from_(t0, units["time"]),
         FastQ.from_(t1, units["time"]),
         saveat=FastQ.from_(saveat, units["time"]) if saveat is not None else None,
         dense=interpolated,
-    )
-
-
-@Integrator.__call__.dispatch(precedence=2)
-@eqx.filter_jit  # @partial(jax.jit, static_argnums=(0, 1), static_argnames=("units", "interpolated"))  # noqa: E501
-def call(
-    self: Integrator,
-    field: AbstractDynamicsField,
-    y0: gt.BtSz6,
-    t0: Time,
-    t1: Time,
-    /,
-    *,
-    saveat: Times | None = None,
-    interpolated: bool = False,
-) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
-    """Run the integrator.
-
-    This is the base dispatch for the integrator and handles the shape cases
-    that `diffrax.diffeqsolve` can handle without application of `jax.vmap`
-    or `jax.numpy.vectorize`.
-
-    I/O shapes:
-
-    - y0=(6,), t0=(), t1=(), saveat=() -> ()
-    - y0=(6,), t0=(), t1=(), saveat=(T,) -> (T,)
-    - y0=(*batch,6), t0=(), t1=(), saveat=() -> (*batch,)
-    - y0=(*batch,6), t0=(), t1=(), saveat=(T) -> (*batch,T)
-
-    """
-    return self(  # redispatch to the q,p form
-        field,
-        (y0[..., 0:3], y0[..., 3:6]),
-        t0,
-        t1,
-        saveat=saveat,
-        interpolated=interpolated,
     )
 
 
@@ -578,7 +532,7 @@ def call(
 def call(
     self: Integrator,
     field: AbstractDynamicsField,
-    y0: gt.BBtQP | gt.BBtQParr,
+    y0: gt.BBtQP | gt.BBtQParr | gt.BBtSz6,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     /,
@@ -596,44 +550,6 @@ def call(
     - y0=((*#B,3),(*#B,3)), t0=(*#B,), t1=(), saveat=(T,) -> (*B,T)
     - y0=((*#B,3),(*#B,3)), t0=(), t1=(*#B,), saveat=(T,) -> (*B,T)
     - y0=((*#B,3),(*#B,3)), t0=(*#B), t1=(*#B,), saveat=(T,) -> (*B,T)
-
-    """
-    # Vectorize the call
-    # This depends on the shape of saveat
-    units = field.units
-    kwargs["dense"] = kwargs.pop("interpolated", False)
-    saveat = None if saveat is None else FastQ.from_(saveat, units["time"])
-    vec_call = jnp.vectorize(
-        lambda *args: self._call_(*args, saveat=saveat, **kwargs),
-        signature="(3),(3),(),()->" + ("()" if saveat is None else "(T)"),
-        excluded=(0,),
-    )
-
-    return vec_call(
-        field,
-        FastQ.from_(y0[0], units["length"]),
-        FastQ.from_(y0[1], units["speed"]),
-        FastQ.from_(t0, units["time"]),
-        FastQ.from_(t1, units["time"]),
-    )
-
-
-@Integrator.__call__.dispatch(precedence=1)
-@eqx.filter_jit
-def call(
-    self: Integrator,
-    field: AbstractDynamicsField,
-    y0: gt.BBtSz6,
-    t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
-    t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
-    /,
-    *,
-    saveat: Times | None = None,
-    **kwargs: Any,
-) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
-    """Run the integrator, vectorizing in the initial/final times.
-
-    I/O shapes:
 
     - y0=(*#batch,6), t0=(*#batch,), t1=(), saveat=() -> (*batch,)
     - y0=(*#batch,6), t0=(), t1=(*#batch,), saveat=() -> (*batch,)
@@ -672,8 +588,25 @@ def call(
     (2,)
 
     """
-    return self(  # redispatch to the q,p form
-        field, (y0[..., 0:3], y0[..., 3:6]), t0, t1, saveat=saveat, **kwargs
+    y0_ = y0 if isinstance(y0, tuple) else (y0[..., 0:3], y0[..., 3:6])
+
+    # Vectorize the call
+    # This depends on the shape of saveat
+    units = field.units
+    kwargs["dense"] = kwargs.pop("interpolated", False)
+    saveat = None if saveat is None else FastQ.from_(saveat, units["time"])
+    vec_call = jnp.vectorize(
+        lambda *args: self._call_(*args, saveat=saveat, **kwargs),
+        signature="(3),(3),(),()->" + ("()" if saveat is None else "(T)"),
+        excluded=(0,),
+    )
+
+    return vec_call(
+        field,
+        FastQ.from_(y0_[0], units["length"]),
+        FastQ.from_(y0_[1], units["speed"]),
+        FastQ.from_(t0, units["time"]),
+        FastQ.from_(t1, units["time"]),
     )
 
 

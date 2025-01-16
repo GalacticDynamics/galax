@@ -154,6 +154,12 @@ def solve(
 ) -> dfx.Solution:
     """Solve for position tuple, start, end time.
 
+    In ``solver_kw``, the following keys are recognized:
+
+    - All keys recognized by `diffrax.diffeqsolve`.
+      In particular if "dt0" is not specified it is assumed to be `None`.
+    - "dense" (bool): If `True`, `saveat` is modified to have ``dense=True``.
+
     Examples
     --------
     >>> import unxt as u

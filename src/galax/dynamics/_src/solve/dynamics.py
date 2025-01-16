@@ -82,6 +82,19 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         t=Quantity['time'](Array([1000.], dtype=float64), unit='Myr'),
         frame=SimulationFrame())
 
+    The solver can be customized:
+
+    >>> solver = gd.integrate.DynamicsSolver({
+    ...     "solver": dfx.Dopri8(), "stepsize_controller": dfx.ConstantStepSize()})
+    >>> solver
+    DynamicsSolver(
+      diffeqsolver=DiffEqSolver(
+        solver=Dopri8(scan_kind=None),
+        stepsize_controller=ConstantStepSize(),
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+      )
+    )
+
     """
 
     #: Solver for the differential equation.

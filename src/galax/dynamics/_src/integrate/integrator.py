@@ -260,7 +260,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         *,
         saveat: gt.QuSzTime | None = None,  # not jitted here
         units: u.AbstractUnitSystem,
-        interpolated: Literal[False, True] = False,
+        dense: Literal[False, True] = False,
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Run the integrator.
 
@@ -289,7 +289,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             returned only at the final time. Excluded from JIT.
         units : `unxt.AbstractUnitSystem`
             The unit system to use. Excluded from JIT.
-        interpolated : bool, optional
+        dense : bool, optional
             Whether to return an interpolated solution. Excluded from JIT.
 
         """
@@ -302,11 +302,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         save_at = dfx.SaveAt(
             t1=only_final,
             ts=None if only_final else cast(AbstractQuantity, saveat).ustrip(time),
-            dense=interpolated,
+            dense=dense,
         )
 
         diffeq_kw = dict(self.diffeq_kw)
-        if interpolated and diffeq_kw.get("max_steps") is None:
+        if dense and diffeq_kw.get("max_steps") is None:
             diffeq_kw.pop("max_steps")
 
         # ---------------------------------------
@@ -323,7 +323,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             "frame": gc.frames.SimulationFrame(),  # TODO: determine the frame
             "units": units,
         }
-        if interpolated:
+        if dense:
             out_cls = gc.InterpolatedPhaseSpacePosition
             out_kw["interpolant"] = Interpolant(soln.interpolation, units=units)
         else:
@@ -444,7 +444,7 @@ def call(
         FastQ.from_(t1, units["time"]),
         saveat=FastQ.from_(saveat, units["time"]) if saveat is not None else None,
         units=units,
-        interpolated=interpolated,
+        dense=interpolated,
     )
 
 
@@ -611,6 +611,7 @@ def call(
     """
     # Vectorize the call
     # This depends on the shape of saveat
+    kwargs["dense"] = kwargs.pop("interpolated", False)
     saveat = None if saveat is None else FastQ.from_(saveat, units["time"])
     vec_call = jnp.vectorize(
         lambda *args: self._call_(*args, units=units, saveat=saveat, **kwargs),

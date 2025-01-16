@@ -16,7 +16,7 @@ from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.typing as gt
-from galax.dynamics._src.utils.interp import AbstractVectorizedDenseInterpolation
+from galax.dynamics._src.diffeq.interp import AbstractVectorizedDenseInterpolation
 
 
 @final

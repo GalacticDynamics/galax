@@ -17,7 +17,7 @@ from plum import dispatch
 
 import unxt as u
 
-from galax.dynamics._src.utils import DiffEqSolver
+from galax.dynamics._src.diffeq import DiffEqSolver
 
 
 class AbstractDynamicsField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]

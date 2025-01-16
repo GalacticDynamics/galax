@@ -200,49 +200,6 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         )
 
     # ==========================================================================
-    # Units API
-
-    @abstractmethod
-    def to_units(self, units: Any) -> "Self":
-        """Return with the components transformed to the given unit system.
-
-        Parameters
-        ----------
-        units : `unxt.AbstractUnitSystem`
-            The unit system. :func:`~unxt.unitsystem` is used to
-            convert the input to a unit system.
-
-        Returns
-        -------
-        w : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`
-            The phase-space position with the components transformed.
-
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-
-        We can create a phase-space position and convert it to different units:
-
-        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                             p=u.Quantity([4, 5, 6], "km/s"),
-        ...                             t=u.Quantity(0, "Gyr"))
-        >>> psp.to_units("solarsystem")
-        PhaseSpacePosition(
-            q=CartesianPos3D(
-                x=Quantity[...](value=...f64[], unit=Unit("AU")),
-                ... ),
-            p=CartesianVel3D(
-                d_x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
-                ... ),
-            t=Quantity['time'](..., unit='yr'),
-            frame=SimulationFrame()
-        )
-
-        """
-        ...
-
-    # ==========================================================================
     # Array API
 
     @property
@@ -536,7 +493,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         """
         usys = u.unitsystem(units)
         batch, comps = self._shape_tuple
-        cart = self.vconvert(cx.CartesianPos3D).to_units(usys)
+        cart = self.vconvert(cx.CartesianPos3D).uconvert(usys)
         q = jnp.broadcast_to(convert(cart.q, FastQ), (*batch, comps.q))
         p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))
         t = jnp.broadcast_to(self.t.value[..., None], (*batch, comps.t))

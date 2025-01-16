@@ -126,12 +126,6 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
         """Times."""
 
     # ==========================================================================
-    # Units API
-
-    def to_units(self, units: Any) -> "AbstractCompositePhaseSpacePosition":
-        raise NotImplementedError
-
-    # ==========================================================================
     # Array API
 
     @property
@@ -255,9 +249,9 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
 # `unxt.uconvert` dispatches
 
 
-@dispatch
+@dispatch(precedence=1)  # type: ignore[call-overload,misc]  # TODO: make precedence=0
 def uconvert(
-    usys: u.AbstractUnitSystem, cpsp: AbstractCompositePhaseSpacePosition
+    usys: u.AbstractUnitSystem | str, cpsp: AbstractCompositePhaseSpacePosition
 ) -> AbstractCompositePhaseSpacePosition:
     """Convert the components to the given units.
 
@@ -282,7 +276,7 @@ def uconvert(
             ...
 
     """
-    return type(cpsp)(**{k: v.to_units(usys) for k, v in cpsp.items()})
+    return type(cpsp)(**{k: v.uconvert(usys) for k, v in cpsp.items()})
 
 
 # =================

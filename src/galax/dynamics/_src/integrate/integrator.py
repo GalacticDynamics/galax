@@ -29,6 +29,7 @@ Time: TypeAlias = gt.TimeSz0 | gt.RealSz0Like
 Times: TypeAlias = gt.QuSzTime | gt.SzTime
 
 
+save_t1_only = dfx.SaveAt(t1=True)
 default_solver = dfx.Dopri8(scan_kind="bounded")
 default_stepsize_controller = dfx.PIDController(rtol=1e-7, atol=1e-7)
 
@@ -290,7 +291,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             diffeq_kw.pop("max_steps")
 
         # Perform the integration
-        save_at = dfx.SaveAt(t1=True) if saveat is None else saveat
+        save_at = save_t1_only if saveat is None else saveat
         soln: dfx.Solution = self.dynamics_solver.solve(
             field, (q0, p0), t0, t1, saveat=save_at, dense=dense, **diffeq_kw
         )

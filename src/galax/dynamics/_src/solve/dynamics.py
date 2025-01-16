@@ -7,7 +7,7 @@ This is private API.
 __all__ = ["DynamicsSolver"]
 
 
-from typing import Any
+from typing import Any, final
 
 import diffrax as dfx
 import equinox as eqx
@@ -27,6 +27,7 @@ from galax.dynamics._src.diffeq import DiffEqSolver
 from galax.dynamics._src.fields import AbstractDynamicsField
 
 
+@final
 class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     """Dynamics solver.
 

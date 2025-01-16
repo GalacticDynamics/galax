@@ -18,11 +18,13 @@ from jaxtyping import Array, ArrayLike, Float, Int, PyTree, Real, Shaped
 
 import quaxed.numpy as jnp
 
-RealTimes = Real[Array, "#times"]
-IntScalarLike: TypeAlias = Int[ArrayLike, ""]
-FloatScalarLike: TypeAlias = Float[ArrayLike, ""]
-RealScalarLike: TypeAlias = FloatScalarLike | IntScalarLike
-DenseInfos: TypeAlias = dict[str, PyTree[Shaped[Array, "times-1 ..."]]]
+BatchedRealTimes: TypeAlias = Real[Array, "{self.batch_shape} times"]
+BatchedRealScalar: TypeAlias = Real[Array, "{self.batch_shape}"]
+BatchedIntScalar: TypeAlias = Int[Array, "{self.batch_shape}"]
+RealScalarLike: TypeAlias = Float[ArrayLike, ""] | Int[ArrayLike, ""]
+VecDenseInfos: TypeAlias = dict[
+    str, PyTree[Shaped[Array, "{self.batch_shape} times-1 ..."]]
+]
 Shape: TypeAlias = tuple[int, ...]
 
 
@@ -105,19 +107,19 @@ class AbstractVectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[mi
         return ys  # noqa: RET504
 
     @property
-    def t0(self) -> Real[Array, "{self.batch_shape}"]:
+    def t0(self) -> BatchedRealScalar:
         """The start time of the interpolation."""
         flatt0 = jax.vmap(lambda x: x.t0)(self.scalar_interpolation)
         return flatt0.reshape(*self.batch_shape)
 
     @property
-    def t1(self) -> Real[Array, "{self.batch_shape}"]:
+    def t1(self) -> BatchedRealScalar:
         """The end time of the interpolation."""
         flatt1 = jax.vmap(lambda x: x.t1)(self.scalar_interpolation)
         return flatt1.reshape(*self.batch_shape)
 
     @property
-    def ts(self) -> Real[Array, "{self.batch_shape} times"]:
+    def ts(self) -> BatchedRealTimes:
         """The times of the interpolation."""
         return self.scalar_interpolation.ts
 
@@ -127,11 +129,9 @@ class AbstractVectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[mi
         return self.scalar_interpolation.ts_size
 
     @property
-    def infos(
-        self,
-    ) -> dict[str, PyTree[Shaped[Array, "{self.batch_shape} times-1 ..."]]]:
+    def infos(self) -> VecDenseInfos:
         """The infos of the interpolation."""
-        return cast(DenseInfos, self.scalar_interpolation.infos)
+        return cast(VecDenseInfos, self.scalar_interpolation.infos)
 
     @property
     def interpolation_cls(self) -> Callable[..., dfx.AbstractLocalInterpolation]:
@@ -142,12 +142,12 @@ class AbstractVectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[mi
         )
 
     @property
-    def direction(self) -> Int[Array, "{self.batch_shape}"]:
+    def direction(self) -> BatchedIntScalar:
         """Direction vector."""
         return self.scalar_interpolation.direction
 
     @property
-    def t0_if_trivial(self) -> Real[Array, "{self.batch_shape}"]:
+    def t0_if_trivial(self) -> BatchedRealScalar:
         """The start time of the interpolation if scalar input."""
         return self.scalar_interpolation.t0_if_trivial
 

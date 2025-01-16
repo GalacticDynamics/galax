@@ -180,9 +180,9 @@ class AbstractOnePhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
             wt[..., 4:7], convert(w.p, u.Quantity).decompose(galactic).value
         )
 
-    def test_to_units(self, w: T) -> None:
-        """Test :meth:`~galax.coordinates.AbstractOnePhaseSpacePosition.to_units`."""
-        w2 = w.to_units("solarsystem")
+    def test_uconvert(self, w: T) -> None:
+        """Test :meth:`~galax.coordinates.AbstractOnePhaseSpacePosition.uconvert`."""
+        w2 = w.uconvert("solarsystem")
         # TODO: more detailed tests
         assert w2.q.x.unit == "AU"
         assert w2.p.d_x.unit == "AU/yr"

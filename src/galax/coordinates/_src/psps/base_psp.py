@@ -32,24 +32,52 @@ class AbstractOnePhaseSpacePosition(AbstractPhaseSpacePosition):
     t : :class:`~unxt.Quantity`
         Time corresponding to the positions and momenta.
 
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+
+    We can create a phase-space position and convert it to different units:
+
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
+    >>> psp.uconvert("solarsystem")
+    PhaseSpacePosition(
+        q=CartesianPos3D(
+            x=Quantity[...](value=...f64[], unit=Unit("AU")),
+            ... ),
+        p=CartesianVel3D(
+            d_x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
+            ... ),
+        t=Quantity['time'](..., unit='yr'),
+        frame=SimulationFrame()
+    )
+
     """
-
-    # ==========================================================================
-    # Convenience methods
-
-    def to_units(self, units: Any) -> "AbstractOnePhaseSpacePosition":
-        """Return a new object with the components converted to the given units."""
-        usys = u.unitsystem(units)
-        return replace(
-            self,
-            q=self.q.uconvert(usys),
-            p=self.p.uconvert(usys),
-            t=u.uconvert(usys["time"], self.t) if self.t is not None else None,
-        )
 
 
 # =============================================================================
-# helper functions
+# Dispatches
+
+
+# -----------------------------------------------
+# `unxt.uconvert` dispatches
+
+
+@dispatch(precedence=1)  # type: ignore[call-overload, misc]  # TODO: make precedence=0
+def uconvert(
+    units: u.AbstractUnitSystem | str, psp: AbstractOnePhaseSpacePosition
+) -> AbstractOnePhaseSpacePosition:
+    """Convert the components to the given units."""
+    usys = u.unitsystem(units)
+    return replace(
+        psp,
+        q=psp.q.uconvert(usys),
+        p=psp.p.uconvert(usys),
+        t=u.uconvert(usys["time"], psp.t) if psp.t is not None else None,
+    )
 
 
 # -----------------------------------------------

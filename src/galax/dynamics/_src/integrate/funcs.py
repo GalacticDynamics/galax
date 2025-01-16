@@ -224,7 +224,6 @@ def evaluate_orbit(
         w0,
         tw0,  # t0
         jnp.full_like(tw0, fill_value=t[0]),  # t1
-        units=units,
         interpolated=False,
     )
 
@@ -235,7 +234,6 @@ def evaluate_orbit(
         t[0],
         t[-1],
         saveat=t,
-        units=units,
         interpolated=interpolated,
     )
 

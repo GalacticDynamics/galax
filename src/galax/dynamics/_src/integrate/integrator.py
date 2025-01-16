@@ -13,7 +13,6 @@ from jaxtyping import ArrayLike, Shaped
 from plum import dispatch
 
 import quaxed.numpy as jnp
-import unxt as u
 from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
 from xmmutablemap import ImmutableMap
 
@@ -137,7 +136,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -153,8 +152,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     system at any times ``saveat``:
 
     >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
-    >>> ws = integrator(field, w0, t0, t1,
-    ...                 saveat=ts, units=galactic)
+    >>> ws = integrator(field, w0, t0, t1, saveat=ts)
     >>> ws
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -172,15 +170,14 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
     ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
-    >>> ws = integrator(field, w0, t0, t1, units=galactic)
+    >>> ws = integrator(field, w0, t0, t1)
     >>> ws.shape
     (2,)
 
     A cool feature of the integrator is that it can return an interpolated
     solution.
 
-    >>> w = integrator(field, w0, t0, t1, saveat=ts, units=galactic,
-    ...                interpolated=True)
+    >>> w = integrator(field, w0, t0, t1, saveat=ts, interpolated=True)
     >>> type(w)
     <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
 
@@ -215,8 +212,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
     ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
-    >>> ws = integrator(field, w0, t0, t1, units=galactic,
-    ...                 interpolated=True)
+    >>> ws = integrator(field, w0, t0, t1, interpolated=True)
     >>> ws.shape
     (2,)
     >>> w(t)
@@ -259,7 +255,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         /,
         *,
         saveat: gt.QuSzTime | None = None,  # not jitted here
-        units: u.AbstractUnitSystem,
         dense: Literal[False, True] = False,
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Run the integrator.
@@ -287,8 +282,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         saveat : Quantity[float, (T,), 'time'] | None, optional
             Times to return the computation.  If `None`, the computation is
             returned only at the final time. Excluded from JIT.
-        units : `unxt.AbstractUnitSystem`
-            The unit system to use. Excluded from JIT.
         dense : bool, optional
             Whether to return an interpolated solution. Excluded from JIT.
 
@@ -297,6 +290,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         # Parse inputs
 
         # Either save at `saveat` or at the final time.
+        units = field.units
         time = units["time"]
         only_final = saveat is None or len(saveat) <= 1
         save_at = dfx.SaveAt(
@@ -363,7 +357,6 @@ def call(
     t1: Time,
     /,
     *,
-    units: u.AbstractUnitSystem,
     saveat: Times | None = None,
     interpolated: bool = False,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -409,7 +402,7 @@ def call(
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1)
     >>> w
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -423,8 +416,7 @@ def call(
     We can also request the orbit at specific times:
 
     >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Myr")  # 10 steps
-    >>> ws = integrator(field, w0, t0, t1,
-    ...                 saveat=ts, units=galactic)
+    >>> ws = integrator(field, w0, t0, t1, saveat=ts)
     >>> ws
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -436,6 +428,7 @@ def call(
     (10,)
 
     """
+    units = field.units
     return self._call_(
         field,
         FastQ.from_(qp0[0], units["length"]),
@@ -443,7 +436,6 @@ def call(
         FastQ.from_(t0, units["time"]),
         FastQ.from_(t1, units["time"]),
         saveat=FastQ.from_(saveat, units["time"]) if saveat is not None else None,
-        units=units,
         dense=interpolated,
     )
 
@@ -458,7 +450,6 @@ def call(
     t1: Time,
     /,
     *,
-    units: u.AbstractUnitSystem,
     saveat: Times | None = None,
     interpolated: bool = False,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -482,7 +473,6 @@ def call(
         t0,
         t1,
         saveat=saveat,
-        units=units,
         interpolated=interpolated,
     )
 
@@ -530,7 +520,7 @@ def call(
 
     Different kwargs:
 
-    >>> w = integrator(field, w0, t0, t1=t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1=t1)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -540,7 +530,7 @@ def call(
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
 
-    >>> w = integrator(field, w0, t0=t0, t1=t1, units=galactic)
+    >>> w = integrator(field, w0, t0=t0, t1=t1)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -550,7 +540,7 @@ def call(
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
 
-    >>> w = integrator(field, y0=w0, t0=t0, t1=t1, units=galactic)
+    >>> w = integrator(field, y0=w0, t0=t0, t1=t1)
     >>> print(w)
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -593,7 +583,6 @@ def call(
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     /,
     *,
-    units: u.AbstractUnitSystem,
     saveat: Times | None = None,
     **kwargs: Any,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -611,10 +600,11 @@ def call(
     """
     # Vectorize the call
     # This depends on the shape of saveat
+    units = field.units
     kwargs["dense"] = kwargs.pop("interpolated", False)
     saveat = None if saveat is None else FastQ.from_(saveat, units["time"])
     vec_call = jnp.vectorize(
-        lambda *args: self._call_(*args, units=units, saveat=saveat, **kwargs),
+        lambda *args: self._call_(*args, saveat=saveat, **kwargs),
         signature="(3),(3),(),()->" + ("()" if saveat is None else "(T)"),
         excluded=(0,),
     )
@@ -638,7 +628,6 @@ def call(
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     /,
     *,
-    units: u.AbstractUnitSystem,
     saveat: Times | None = None,
     **kwargs: Any,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -678,19 +667,13 @@ def call(
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
-    >>> ws = integrator(field, w0, t0, t1, units=galactic)
+    >>> ws = integrator(field, w0, t0, t1)
     >>> ws.shape
     (2,)
 
     """
     return self(  # redispatch to the q,p form
-        field,
-        (y0[..., 0:3], y0[..., 3:6]),
-        t0,
-        t1,
-        units=units,
-        saveat=saveat,
-        **kwargs,
+        field, (y0[..., 0:3], y0[..., 3:6]), t0, t1, saveat=saveat, **kwargs
     )
 
 
@@ -707,7 +690,6 @@ def call(
     t1: Any,
     /,
     *,
-    units: u.AbstractUnitSystem,
     saveat: Times | None = None,
     interpolated: Literal[False, True] = False,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
@@ -734,7 +716,7 @@ def call(
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1)
     >>> w
     PhaseSpacePosition(
         q=CartesianPos3D( ... ),
@@ -746,11 +728,10 @@ def call(
     """
     return self(
         field,
-        w0._qp(units=units),  # noqa: SLF001
+        w0._qp(units=field.units),  # noqa: SLF001
         t0,
         t1,
         saveat=saveat,
-        units=units,
         interpolated=interpolated,
     )
 
@@ -764,7 +745,6 @@ def call(
     t1: Any,
     /,
     *,
-    units: u.AbstractUnitSystem,
     saveat: Times | None = None,
     interpolated: Literal[False, True] = False,
 ) -> gc.CompositePhaseSpacePosition:
@@ -794,7 +774,7 @@ def call(
 
     >>> integrator = gd.integrate.Integrator()
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> w = integrator(field, w0, t0, t1, units=galactic)
+    >>> w = integrator(field, w0, t0, t1)
     >>> print(w)
     CompositePhaseSpacePosition(
         w01=PhaseSpacePosition(
@@ -816,15 +796,7 @@ def call(
     # TODO: Interpolated form
     return gc.CompositePhaseSpacePosition(
         **{
-            k: self(
-                field,
-                psp0,
-                t0,
-                t1,
-                saveat=saveat,
-                units=units,
-                interpolated=interpolated,
-            )
+            k: self(field, psp0, t0, t1, saveat=saveat, interpolated=interpolated)
             for k, psp0 in w0.items()
         }
     )

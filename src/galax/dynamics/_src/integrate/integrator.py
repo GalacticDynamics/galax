@@ -236,7 +236,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     )
     _: KW_ONLY
     diffeq_kw: Mapping[str, Any] = eqx.field(
-        default=(("max_steps", None),),
+        default=(("max_steps", 100_000),),
         static=True,
         converter=ImmutableMap,
     )
@@ -256,6 +256,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         *,
         saveat: gt.QuSzTime | None = None,  # not jitted here
         dense: Literal[False, True] = False,
+        max_steps: int | None | Literal[True] = True,
     ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
         """Run the integrator.
 
@@ -288,8 +289,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         """
         # Ensure `dense=True` won't raise an error.
         diffeq_kw = dict(self.diffeq_kw)
-        if dense and diffeq_kw.get("max_steps") is None:
-            diffeq_kw.pop("max_steps")
+        if max_steps is not True:
+            diffeq_kw["max_steps"] = max_steps
 
         # Perform the integration
         save_at = save_t1_only if saveat is None else saveat
@@ -416,6 +417,12 @@ def call(
     )
     >>> ws.shape
     (10,)
+
+    If the integration fails, the `max_steps` parameter can be changed:
+
+    >>> w2 = integrator(field, w0, t0, t1, max_steps=10_000)
+    >>> w2 == w
+    Array(True, dtype=bool)
 
     """
     y0 = qp0 if isinstance(qp0, tuple) else (qp0[..., 0:3], qp0[..., 3:6])

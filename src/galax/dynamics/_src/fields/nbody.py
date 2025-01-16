@@ -102,15 +102,16 @@ def __call__(
 
     # Compute softened squared distances.
     eps = self.eps.ustrip(units["length"])
-    d2s = jnp.sum(diffs**2, axis=-1)[:, :, None] + eps**2  # (N, N, 1)
-    ds = jnp.sqrt(d2s)  # (N, N, 1)
+    soft_d2s = jnp.sum(diffs**2, axis=-1)[:, :, None] + eps**2  # (N, N, 1)
+    soft_d3s = soft_d2s * jnp.sqrt(soft_d2s)  # (N, N, 1)
 
     # Compute pairwise forces.
     ms = self.masses.ustrip(units["mass"])  # (N,)
     m2s = ms[:, None, None] * ms[None, :, None]  # (N, N, 1)
-    forces = self._G * m2s / d2s * diffs / ds  # (N, N, 3)
+    forces = self._G * m2s / soft_d3s * diffs  # (N, N, 3)
 
     # Remove self-interaction forces
+    # TODO: is this necessary since `diffs` has the 0s?
     mask = 1 - jnp.eye(len(x))[:, :, None]  # Shape (N, N, 1)
     forces = forces * mask
 

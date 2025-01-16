@@ -22,6 +22,8 @@ import equinox as eqx
 import numpy as np
 from jaxtyping import Array, ArrayLike, Bool, PyTree, Real
 
+from .interp import VectorizedDenseInterpolation
+
 RealSz0Like: TypeAlias = Real[int | float | Array | np.ndarray, ""]
 BoolSz0Like: TypeAlias = Bool[ArrayLike, ""]
 
@@ -100,6 +102,7 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         y0: PyTree[ArrayLike],
         args: PyTree[Any] = None,
         *,
+        # Diffrax options
         saveat: dfx.SaveAt = default_saveat,
         event: dfx.Event | None = default_event,
         max_steps: int | None = default_max_steps,
@@ -108,6 +111,8 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         solver_state: PyTree[ArrayLike] | None = None,
         controller_state: PyTree[ArrayLike] | None = None,
         made_jump: BoolSz0Like | None = None,
+        # Extra options
+        _vectorize_interpolation: bool = False,  # TODO: make public
     ) -> dfx.Solution:
         """Solve a differential equation.
 
@@ -150,6 +155,8 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             controller_state=controller_state,
             made_jump=made_jump,
         )
+        if _vectorize_interpolation and soln.interpolation is not None:
+            soln = VectorizedDenseInterpolation.apply_to_solution(soln)
         return soln
 
     # TODO: a contextmanager for producing a temporary DiffEqSolver with

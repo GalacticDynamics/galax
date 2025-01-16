@@ -333,7 +333,9 @@ def vconvert(
     }
 
     # TODO: use `dataclassish.replace`
-    return type(psps)(**{k: psp.vconvert(target, **kwargs) for k, psp in psps.items()})
+    return type(psps)(
+        **{k: cx.vconvert(target, psp, **kwargs) for k, psp in psps.items()}
+    )
 
 
 @dispatch

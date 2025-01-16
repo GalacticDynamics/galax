@@ -131,15 +131,9 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
     # ==========================================================================
     # Vector API
 
-    @dispatch(precedence=-1)
+    @cx.frames.AbstractCoordinate.vconvert.dispatch  # type: ignore[misc]
     def vconvert(
-        self, target: Any, *args: Any, **kwargs: Any
-    ) -> "AbstractPhaseSpacePosition":
-        return cx.vconvert(target, self, *args, **kwargs)
-
-    @dispatch
-    def vconvert(
-        self,
+        self: "AbstractPhaseSpacePosition",
         position_cls: type[cx.vecs.AbstractPos],
         velocity_cls: type[cx.vecs.AbstractVel] | None = None,
         /,

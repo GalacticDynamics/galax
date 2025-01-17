@@ -49,22 +49,23 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     >>> solver = gd.integrate.DynamicsSolver()  # defaults to Dopri8
 
-    The field.
+    Define the vector field. In this example it's to solve Hamilton's EoM in a
+    gravitational potential.
 
     >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
     ...    r_s=u.Quantity(5, "kpc"), units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
-    Initial conditions.
+    Define the initial conditions, here a phase-space position
 
     >>> w0 = gc.PhaseSpacePosition(
     ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
     ...     p=u.Quantity([0, 220, 0], "km/s"),
     ...     t=u.Quantity(0, "Gyr"))
-    >>> t1 = u.Quantity(1, "Gyr")
 
     Solve, stepping from `w0.t` to `t1`.
 
+    >>> t1 = u.Quantity(1, "Gyr")
     >>> soln = solver.solve(field, w0, t1)
     >>> soln
     Solution( t0=f64[], t1=f64[], ts=f64[1],
@@ -328,8 +329,8 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     q3p3: tuple[cx.vecs.AbstractPos3D, cx.vecs.AbstractVel3D],
-    t0: gt.BtRealQuSz0,
-    t1: gt.BtRealQuSz0,
+    t0: gt.BBtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -386,7 +387,7 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     q4p3: tuple[cx.vecs.FourVector, cx.vecs.AbstractVel3D],
-    t1: gt.BtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -443,7 +444,7 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     space: cx.Space,
-    t1: gt.BtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -504,8 +505,8 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     space: cx.Space,
-    t0: gt.BtRealQuSz0,
-    t1: gt.BtRealQuSz0,
+    t0: gt.BBtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -561,8 +562,8 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     w0: cx.frames.AbstractCoordinate,
-    t0: gt.BtRealQuSz0,
-    t1: gt.BtRealQuSz0,
+    t0: gt.BBtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -625,7 +626,7 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     w0: gc.AbstractPhaseSpacePosition,  # TODO: handle frames
-    t1: gt.BtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -695,8 +696,8 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     w0: gc.AbstractPhaseSpacePosition,  # TODO: handle frames
-    t0: gt.BtRealQuSz0,
-    t1: gt.BtRealQuSz0,
+    t0: gt.BBtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,

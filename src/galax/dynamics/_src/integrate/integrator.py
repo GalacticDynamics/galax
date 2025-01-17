@@ -581,6 +581,7 @@ def call(
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
+    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> integrator = gd.integrate.Integrator()
     >>> ws = integrator(field, w0, t0, t1)
     >>> ws.shape

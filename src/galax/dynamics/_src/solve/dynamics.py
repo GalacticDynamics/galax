@@ -761,7 +761,55 @@ def solve(
     return self.solve(field, y0, t0, t1, args=args, **solver_kw)
 
 
-# TODO: dispatch for Composite PSP that produces a pytree of Solution objects.
+@DynamicsSolver.solve.dispatch
+def solve(
+    self: DynamicsSolver,
+    field: AbstractDynamicsField,
+    w0s: gc.AbstractCompositePhaseSpacePosition,
+    t0: gt.BBtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
+    /,
+    args: Any = (),
+    **solver_kw: Any,
+) -> dict[str, dfx.Solution]:
+    """Solve for CompositePhaseSpacePosition, start, end time.
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> solver = gd.integrate.DynamicsSolver()
+
+    Initial conditions.
+
+    >>> w01 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
+    ...                             p=u.Quantity([0, 200, 0], "km/s"))
+    >>> w02 = gc.PhaseSpacePosition(q=u.Quantity([0, 10, 0], "kpc"),
+    ...                             p=u.Quantity([-200, 0, 0], "km/s"))
+    >>> w0s = gc.CompositePhaseSpacePosition(w01=w01, w02=w02)
+
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+
+    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+
+    >>> soln = solver.solve(field, w0s, t0, t1)
+    >>> soln
+    {'w01': Solution( t0=f64[], t1=f64[], ts=f64[1],
+                      ys=(f64[1,3], f64[1,3]), ... ),
+     'w02': Solution( t0=f64[], t1=f64[], ts=f64[1],
+                      ys=(f64[1,3], f64[1,3]), ... )}
+
+    """
+    return {
+        k: self.solve(field, w0, t0, t1, args=args, **solver_kw)
+        for k, w0 in w0s.items()
+    }
 
 
 # ===================================================================

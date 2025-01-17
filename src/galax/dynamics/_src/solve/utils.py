@@ -13,6 +13,7 @@ from typing import Any
 import diffrax as dfx
 from plum import dispatch
 
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AbstractQuantity
 
@@ -128,18 +129,25 @@ def parse_saveat(
     >>> import unxt as u
 
     >>> units = u.unitsystem("galactic")
+
+    >>> parse_saveat(units, u.Quantity(0.5, "Myr"), dense=True)
+    SaveAt(
+      subs=SubSaveAt( t0=False, t1=False, ts=weak_f64[1],
+                      steps=False, fn=<function save_y> ),
+      dense=True,
+      ...
+    )
+
     >>> parse_saveat(units, u.Quantity([0, 1, 2, 3], "Myr"), dense=True)
     SaveAt(
       subs=SubSaveAt( t0=False, t1=False, ts=i64[4],
                       steps=False, fn=<function save_y> ),
       dense=True,
-      solver_state=False,
-      controller_state=False,
-      made_jump=False
+      ...
     )
 
     """
     return dfx.SaveAt(
-        ts=ts.ustrip(units["time"]),
+        ts=jnp.atleast_1d(ts.ustrip(units["time"])),
         dense=False if dense is None else dense,
     )

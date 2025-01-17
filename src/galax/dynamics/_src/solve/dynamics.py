@@ -32,14 +32,14 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     """Dynamics solver.
 
     The most useful method is `.solve`, which handles initialization and
-    stepping to the final solution.
-    Manual solves can be done with `.init()` and repeat `.step()`.
+    stepping to the final solution. Manual solves can be done with `.init()` and
+    repeat `.step()`.
 
     Examples
     --------
     The ``.solve()`` method uses multiple dispatch to handle many different
-    problem setups. Check out the method's docstring for examples.
-    Here we show a simple example.
+    problem setups. Check out the method's docstring for examples. Here we show
+    a simple example.
 
     >>> import unxt as u
     >>> import galax.coordinates as gc
@@ -82,16 +82,34 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         t=Quantity['time'](Array([1000.], dtype=float64), unit='Myr'),
         frame=SimulationFrame())
 
-    The solver can be customized:
+    The solver can be customized. Here are a few examples:
+
+    1. From a `galax.dynamics.integrate.DiffEqSolver` instance. This allows for
+       setting the `diffrax.AbstractSolver`,
+       `diffrax.AbstractStepSizeController`, etc.
+
+    >>> diffeqsolver = gd.integrate.DiffEqSolver(dfx.Dopri8(),
+    ...     stepsize_controller=dfx.PIDController(rtol=1e-5, atol=1e-5))
+    >>> solver = gd.integrate.DynamicsSolver(diffeqsolver)
+    >>> solver
+    DynamicsSolver(
+      diffeqsolver=DiffEqSolver(
+        solver=Dopri8(scan_kind=None),
+        stepsize_controller=PIDController( rtol=1e-05, atol=1e-05, ... ),
+        ...
+      )
+    )
+
+    2. A `dict` of keyword arguments that are passed to
+       `galax.dynamics.integrate.DiffEqSolver`.
 
     >>> solver = gd.integrate.DynamicsSolver({
     ...     "solver": dfx.Dopri8(), "stepsize_controller": dfx.ConstantStepSize()})
     >>> solver
     DynamicsSolver(
       diffeqsolver=DiffEqSolver(
-        solver=Dopri8(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+        solver=Dopri8(scan_kind=None), stepsize_controller=ConstantStepSize(),
+        ...
       )
     )
 
@@ -105,6 +123,8 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         ),
         converter=converter_diffeqsolver,
     )
+
+    # -------------------------------------------
 
     @dispatch.abstract
     def init(
@@ -193,22 +213,28 @@ def solve(
     ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
-    Solve EoM.
+    Solve EoM from `t0` to `t1`, returning the solution at `t1`.
 
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> soln = solver.solve(field, w0, t0, t1)
     >>> soln
-    Solution(
-      t0=f64[], t1=f64[], ts=f64[1],
-      ys=(f64[1,3], f64[1,3]),
-      interpolation=None,
-      stats={ ... },
-      result=EnumerationItem( ... ),
-      ...
-    )
+    Solution( t0=f64[], t1=f64[], ts=f64[1],
+              ys=(f64[1,3], f64[1,3]), ... )
     >>> soln.ys
     (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
      Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
+
+    This can be solved for a specific time, not just `t1`.
+
+    >>> soln = solver.solve(field, w0, t0, t1, saveat=u.Quantity(0.5, "Gyr"))
+    >>> soln
+    Solution( t0=f64[], t1=f64[], ts=f64[1],
+              ys=(f64[1,3], f64[1,3]), ... )
+
+    >>> soln = solver.solve(field, w0, t0, t1, saveat=u.Quantity([0.25, 0.5], "Gyr"))
+    >>> soln
+    Solution( t0=f64[], t1=f64[], ts=f64[2],
+              ys=(f64[2,3], f64[2,3]), ... )
 
     """
     # Units

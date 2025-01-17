@@ -265,6 +265,59 @@ def solve(
     return soln  # noqa: RET504
 
 
+@DynamicsSolver.solve.dispatch(precedence=-1)
+@eqx.filter_jit
+def solve(
+    self: DynamicsSolver,
+    field: AbstractDynamicsField,
+    qp: tuple[gdt.BBtQ, gdt.BBtP],
+    t0: gt.BBtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
+    /,
+    args: Any = (),
+    saveat: Any = default_saveat,
+    **solver_kw: Any,
+) -> dfx.Solution:
+    """Solve for batch position tuple, batched start, end time.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> solver = gd.integrate.DynamicsSolver()
+
+    Initial conditions.
+
+    >>> w0 = (u.Quantity([8, 0, 0], "kpc"),
+    ...       u.Quantity([0, 220, 0], "km/s"))
+
+    Vector field.
+
+    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+
+    Solve EoM from `t0` to `t1`, returning the solution at `t1`.
+
+    >>> t0 = u.Quantity(0, "Gyr")
+    >>> t1 = u.Quantity([1, 1.1, 1.2], "Gyr")
+    >>> soln = solver.solve(field, w0, t0, t1)
+    >>> soln
+    Solution( t0=f64[3], t1=f64[3], ts=f64[3,1],
+              ys=(f64[3,1,3], f64[3,1,3]), ... )
+
+    """
+
+    def call(q: gdt.Q, p: gdt.P, t0: gt.RealQuSz0, t1: gt.RealQuSz0) -> dfx.Solution:
+        return self.solve(field, (q, p), t0, t1, args=args, saveat=saveat, **solver_kw)
+
+    vec_call = jnp.vectorize(call, signature="(3),(3),(),()->()")
+
+    return vec_call(qp[0], qp[1], t0, t1)
+
+
 # --------------------------------
 # Coordinax
 
@@ -275,8 +328,8 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     q3p3: tuple[cx.vecs.AbstractPos3D, cx.vecs.AbstractVel3D],
-    t0: gt.RealQuSz0,
-    t1: gt.RealQuSz0,
+    t0: gt.BtRealQuSz0,
+    t1: gt.BtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -333,7 +386,7 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     q4p3: tuple[cx.vecs.FourVector, cx.vecs.AbstractVel3D],
-    t1: gt.RealQuSz0,
+    t1: gt.BtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -390,7 +443,7 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     space: cx.Space,
-    t1: gt.RealQuSz0,
+    t1: gt.BtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -451,8 +504,8 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     space: cx.Space,
-    t0: gt.RealQuSz0,
-    t1: gt.RealQuSz0,
+    t0: gt.BtRealQuSz0,
+    t1: gt.BtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -508,8 +561,8 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     w0: cx.frames.AbstractCoordinate,
-    t0: gt.RealQuSz0,
-    t1: gt.RealQuSz0,
+    t0: gt.BtRealQuSz0,
+    t1: gt.BtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -572,7 +625,7 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     w0: gc.AbstractPhaseSpacePosition,  # TODO: handle frames
-    t1: gt.RealQuSz0,
+    t1: gt.BtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
@@ -642,8 +695,8 @@ def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     w0: gc.AbstractPhaseSpacePosition,  # TODO: handle frames
-    t0: gt.RealQuSz0,
-    t1: gt.RealQuSz0,
+    t0: gt.BtRealQuSz0,
+    t1: gt.BtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,

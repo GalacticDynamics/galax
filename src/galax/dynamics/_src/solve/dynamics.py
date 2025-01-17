@@ -224,6 +224,18 @@ def solve(
     (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
      Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
 
+    This can be solved for a specific time, not just `t1`.
+
+    >>> soln = solver.solve(field, w0, t0, t1, saveat=u.Quantity(0.5, "Gyr"))
+    >>> soln
+    Solution( t0=f64[], t1=f64[], ts=f64[1],
+              ys=(f64[1,3], f64[1,3]), ... )
+
+    >>> soln = solver.solve(field, w0, t0, t1, saveat=u.Quantity([0.25, 0.5], "Gyr"))
+    >>> soln
+    Solution( t0=f64[], t1=f64[], ts=f64[2],
+              ys=(f64[2,3], f64[2,3]), ... )
+
     """
     # Units
     units = field.units

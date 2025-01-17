@@ -6,6 +6,7 @@ This is private API.
 
 __all__ = ["converter_diffeqsolver", "parse_saveat"]
 
+from collections.abc import Mapping
 from dataclasses import replace
 from typing import Any
 
@@ -41,6 +42,14 @@ def converter_diffeqsolver(obj: Any, /) -> DiffEqSolver:
       adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
     )
 
+    >> converter_diffeqsolver({"solver": dfx.Dopri5(),
+    ...                        "stepsize_controller": dfx.PIDController()})
+    DiffEqSolver(
+        solver=Dopri5(scan_kind=None),
+        stepsize_controller=PIDController(rtol=1e-05, atol=1e-05),
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+    )
+
     >>> try: converter_diffeqsolver(object())
     ... except TypeError as e: print(e)
     cannot convert <object object at ...> to a `DiffEqSolver`.
@@ -50,6 +59,8 @@ def converter_diffeqsolver(obj: Any, /) -> DiffEqSolver:
         out = obj
     elif isinstance(obj, dfx.AbstractSolver):
         out = DiffEqSolver(obj)
+    elif isinstance(obj, Mapping):
+        out = DiffEqSolver(**obj)  # let DiffEqSolver error if not valid
     else:
         msg = f"cannot convert {obj} to a `DiffEqSolver`."
         raise TypeError(msg)

@@ -7,7 +7,7 @@ This is private API.
 __all__ = ["DynamicsSolver"]
 
 
-from typing import Any
+from typing import Any, final
 
 import diffrax as dfx
 import equinox as eqx
@@ -27,6 +27,7 @@ from galax.dynamics._src.diffeq import DiffEqSolver
 from galax.dynamics._src.fields import AbstractDynamicsField
 
 
+@final
 class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     """Dynamics solver.
 
@@ -80,6 +81,19 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
              [[-0.439 -0.002 -0.146]]]>,
         t=Quantity['time'](Array([1000.], dtype=float64), unit='Myr'),
         frame=SimulationFrame())
+
+    The solver can be customized:
+
+    >>> solver = gd.integrate.DynamicsSolver({
+    ...     "solver": dfx.Dopri8(), "stepsize_controller": dfx.ConstantStepSize()})
+    >>> solver
+    DynamicsSolver(
+      diffeqsolver=DiffEqSolver(
+        solver=Dopri8(scan_kind=None),
+        stepsize_controller=ConstantStepSize(),
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+      )
+    )
 
     """
 

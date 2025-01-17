@@ -63,8 +63,8 @@ class AbstractVectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[mi
     @eqx.filter_jit  # type: ignore[misc]
     def evaluate(
         self,
-        t0: Real[Array, "time"],
-        t1: Real[Array, "time"] | None = None,
+        t0: Real[Array, "*#time"],
+        t1: Real[Array, "*#time"] | None = None,
         left: bool = True,
     ) -> PyTree[Shaped[Array, "?*shape"], "Y"]:
         """Evaluate the interpolation at any point in the region of integration.
@@ -78,7 +78,7 @@ class AbstractVectorizedDenseInterpolation(dfx.AbstractPath):  # type: ignore[mi
 
         Return:
             The solution at the given time.
-            Shape (*batch, [len(t0)], *y0.shape)
+            Shape (*batch, *time, *y0.shape)
 
         """
         # If t1, then return the difference

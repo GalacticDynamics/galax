@@ -19,6 +19,7 @@ import unxt as u
 from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
+import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 import galax.typing as gt
 from .base import AbstractDynamicsField
@@ -125,25 +126,25 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     @eqx.filter_jit  # type: ignore[misc]
     def _call_q(
         self,
-        t: gt.BBtSz0,  # noqa: ARG002
-        p: gt.BBtParr,
+        t: gt.BBtScalarSz0,  # noqa: ARG002
+        p: gdt.BBtParr,
         args: Any,  # noqa: ARG002
         /,
-    ) -> gt.BtParr:
+    ) -> gdt.BtParr:
         """Call with time, position quantity arrays."""
         return p
 
     @eqx.filter_jit  # type: ignore[misc]
     def _call_p(
         self,
-        t: gt.BBtSz0,
-        q: gt.BBtQarr,
+        t: gt.BBtScalarSz0,
+        q: gdt.BBtQarr,
         args: Any,  # noqa: ARG002
         /,
-    ) -> gt.BtAarr:
+    ) -> gdt.BtAarr:
         """Call with time, velocity quantity arrays."""
         units = self.units
-        a: gt.BtAarr = -self.potential._gradient(  # noqa: SLF001
+        a: gdt.BtAarr = -self.potential._gradient(  # noqa: SLF001
             FastQ(q, units["length"]),
             FastQ(t, units["time"]),
         ).ustrip(units["acceleration"])
@@ -205,11 +206,11 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
 def call(
     self: HamiltonianField,
     t: gt.RealQuSz0,
-    q: gt.BBtQ,
-    p: gt.BBtP,
+    q: gdt.BBtQ,
+    p: gdt.BBtP,
     args: tuple[Any, ...] | None,  # noqa: ARG001
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with time, position, velocity quantity arrays.
 
     Examples
@@ -240,10 +241,10 @@ def call(
 def call(
     self: HamiltonianField,
     t: gt.RealQuSz0,
-    qp: gt.BBtQP,
+    qp: gdt.BBtQP,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with time, (position, velocity) quantity arrays.
 
     Examples
@@ -270,12 +271,12 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.BBtSz0,
-    q: gt.BBtQarr,
-    p: gt.BBtParr,
+    t: gt.BBtScalarSz0,
+    q: gdt.BBtQarr,
+    p: gdt.BBtParr,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with time, position, velocity arrays.
 
     The arrays are considered to be in the unit system of the field
@@ -313,11 +314,11 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.BBtSz0,
-    qp: gt.BBtQParr,
+    t: gt.BBtScalarSz0,
+    qp: gdt.BBtQParr,
     args: tuple[Any, ...] | None,  # noqa: ARG001
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with time, (position, velocity) arrays.
 
     The arrays are considered to be in the unit system of the field
@@ -354,11 +355,11 @@ def call(
 @partial(jax.jit, inline=True)
 def call(
     self: HamiltonianField,
-    t: gt.BBtSz0,
+    t: gt.BBtScalarSz0,
     qp: gt.BBtSz6,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with time, pos-vel 6 array.
 
     The arrays are considered to be in the unit system of the field
@@ -394,7 +395,7 @@ def call(
     qp: gt.BBtSz7,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with time, pos-vel 6 array.
 
     The arrays are considered to be in the unit system of the field
@@ -432,7 +433,7 @@ def call(
     p: cx.vecs.AbstractVel3D,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with time, `coordinax.vecs.AbstractPos3D`, `coordinax.vecs.AbstractVel3D`.
 
     Examples
@@ -465,7 +466,7 @@ def call(
     p: cx.vecs.AbstractVel3D,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`.
 
     Examples
@@ -496,7 +497,7 @@ def call(
     space: cx.vecs.Space,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`.
 
     Examples
@@ -529,7 +530,7 @@ def call(
     w: cx.frames.AbstractCoordinate,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with `coordinax.AbstractCoordinate`.
 
     Examples
@@ -564,7 +565,7 @@ def call(
     w: gc.PhaseSpacePosition,
     args: tuple[Any, ...] | None,
     /,
-) -> gt.BtPAarr:
+) -> gdt.BtPAarr:
     """Call with `galax.coordinates.PhaseSpacePosition`.
 
     Examples

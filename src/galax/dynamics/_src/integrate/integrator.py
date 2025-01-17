@@ -17,6 +17,7 @@ from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
+import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .interp import Interpolant
 from galax.dynamics._src.diffeq import DiffEqSolver
@@ -247,8 +248,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     def _call_(
         self: "Integrator",
         field: AbstractDynamicsField,
-        q0: gt.BtQ,
-        p0: gt.BtP,
+        q0: gdt.BtQ,
+        p0: gdt.BtP,
         t0: gt.TimeSz0,
         t1: gt.TimeSz0,
         /,
@@ -336,7 +337,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 def call(
     self: Integrator,
     field: AbstractDynamicsField,
-    qp0: gt.BtQP | gt.BtQParr | gt.BtSz6,
+    qp0: gdt.BtQP | gdt.BtQParr | gt.BtSz6,
     t0: Time,
     t1: Time,
     /,
@@ -531,7 +532,7 @@ def call(
 def call(
     self: Integrator,
     field: AbstractDynamicsField,
-    y0: gt.BBtQP | gt.BBtQParr | gt.BBtSz6,
+    y0: gdt.BBtQP | gdt.BBtQParr | gt.BBtSz6,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     /,

@@ -13,6 +13,7 @@ import quaxed.numpy as jnp
 from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
+import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 import galax.typing as gt
 from .integrator import Integrator
@@ -31,7 +32,7 @@ _select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
 @dispatch
 def evaluate_orbit(
     pot: gp.AbstractBasePotential,
-    w0: gc.PhaseSpacePosition | gt.BtQParr | gt.BtSz6,
+    w0: gc.PhaseSpacePosition | gdt.BtQParr | gt.BtSz6,
     t: Any,
     /,
     *,

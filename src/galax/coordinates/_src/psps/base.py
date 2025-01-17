@@ -10,7 +10,7 @@ from typing import Any, NamedTuple, Self, cast
 
 import equinox as eqx
 import jax
-from jaxtyping import Shaped
+from jaxtyping import Real, Shaped
 from plum import conversion_method, convert, dispatch
 
 import coordinax as cx
@@ -385,7 +385,9 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
     # ==========================================================================
     # Convenience methods
 
-    def _qp(self, *, units: u.AbstractUnitSystem) -> gt.BtQP:
+    def _qp(
+        self, *, units: u.AbstractUnitSystem
+    ) -> tuple[Real[AbstractQuantity, "*batch 3"], Real[AbstractQuantity, "*batch 3"]]:
         """Return q,p as broadcasted quantities in a unit system.
 
         Returns

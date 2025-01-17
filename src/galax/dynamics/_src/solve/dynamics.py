@@ -11,15 +11,16 @@ from typing import Any, final
 
 import diffrax as dfx
 import equinox as eqx
-import jax.numpy as jnp
 from jaxtyping import PyTree
 from plum import convert, dispatch
 
 import coordinax as cx
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
+import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .base import AbstractSolver
 from .utils import converter_diffeqsolver, parse_saveat
@@ -178,7 +179,7 @@ default_saveat = dfx.SaveAt(t1=True)
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    qp: tuple[gt.BBtQ, gt.BBtP],
+    qp: tuple[gdt.BBtQ, gdt.BBtP],
     t0: gt.RealQuSz0,
     t1: gt.RealQuSz0,
     /,
@@ -186,13 +187,16 @@ def solve(
     saveat: Any = default_saveat,
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for position tuple, start, end time.
+    """Solve for batch position tuple, scalar start, end time.
 
     In ``solver_kw``, the following keys are recognized:
 
-    - All keys recognized by `diffrax.diffeqsolve`.
-      In particular if "dt0" is not specified it is assumed to be `None`.
+    - All keys recognized by `diffrax.diffeqsolve`. In particular if "dt0" is
+      not specified it is assumed to be `None`.
     - "dense" (bool): If `True`, `saveat` is modified to have ``dense=True``.
+
+    The output shape aligns with `diffrax.diffeqsolve`: (*batch, [time],
+    *shape), where [time] is >= 1.
 
     Examples
     --------
@@ -257,8 +261,6 @@ def solve(
         saveat=saveat,
         **solver_kw,
     )
-
-    # TODO: if t1=True should this remove the scalar time dimension?
 
     return soln  # noqa: RET504
 

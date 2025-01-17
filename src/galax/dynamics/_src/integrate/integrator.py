@@ -622,9 +622,7 @@ def call(
     t0: Any,
     t1: Any,
     /,
-    *,
-    saveat: Times | None = None,
-    dense: Literal[False, True] = False,
+    **kwargs: Any,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
     """Run the integrator.
 
@@ -659,14 +657,7 @@ def call(
     )
 
     """
-    return self(
-        field,
-        w0._qp(units=field.units),  # noqa: SLF001
-        t0,
-        t1,
-        saveat=saveat,
-        dense=dense,
-    )
+    return self(field, w0._qp(units=field.units), t0, t1, **kwargs)  # noqa: SLF001
 
 
 @Integrator.__call__.dispatch
@@ -677,9 +668,7 @@ def call(
     t0: Any,
     t1: Any,
     /,
-    *,
-    saveat: Times | None = None,
-    dense: Literal[False, True] = False,
+    **kwargs: Any,
 ) -> gc.CompositePhaseSpacePosition:
     """Run the integrator on a composite phase-space position.
 
@@ -728,8 +717,5 @@ def call(
     """
     # TODO: Interpolated form
     return gc.CompositePhaseSpacePosition(
-        **{
-            k: self(field, psp0, t0, t1, saveat=saveat, dense=dense)
-            for k, psp0 in w0.items()
-        }
+        **{k: self(field, psp0, t0, t1, **kwargs) for k, psp0 in w0.items()}
     )

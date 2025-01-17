@@ -3,7 +3,6 @@
 __all__ = ["evaluate_orbit"]
 
 from collections.abc import Callable
-from dataclasses import replace
 from typing import Any, Literal
 
 import jax
@@ -197,24 +196,15 @@ def evaluate_orbit(
         :class:`~galax.dynamics.PhaseSpacePosition` with ``t=None``.
         `evaluate_orbit` will then assume ``w0`` is defined at `t`[0].
     """
-    # -------------
     # Setup
-
     units = pot.units
+    integrator = _default_integrator if integrator is None else integrator
+    t = jnp.atleast_1d(FastQ.from_(t, units["time"]))  # ensure t units
 
-    # Determine the integrator
-    # Reboot the integrator to avoid statefulness issues
-    integrator = replace(integrator) if integrator is not None else _default_integrator
-
-    # parse t -> potential units
-    t = jnp.atleast_1d(FastQ.from_(t, units["time"]))
+    field = HamiltonianField(pot)
 
     # Parse t0 for the initial integration
     tw0 = w0.t if (isinstance(w0, gc.PhaseSpacePosition) and w0.t is not None) else t[0]
-
-    # -------------
-
-    field = HamiltonianField(pot)
 
     # Initial integration `w0.t` to `t[0]`.
     # TODO: get diffrax's `solver_state` to speed the second integration.

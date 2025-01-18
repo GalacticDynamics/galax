@@ -9,6 +9,7 @@ from typing import Any, Literal, TypeAlias, TypeVar, final
 
 import diffrax as dfx
 import equinox as eqx
+import jax
 from jaxtyping import ArrayLike, Shaped
 from plum import dispatch
 
@@ -295,6 +296,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         save_at = save_t1_only if saveat is None else saveat
         soln: dfx.Solution = self.dynamics_solver.solve(
             field, (q0, p0), t0, t1, saveat=save_at, dense=dense, **diffeq_kw
+        )
+
+        # Reshape
+        soln = eqx.tree_at(
+            lambda tree: tree.ys,
+            soln,
+            jax.tree.map(lambda x: jnp.moveaxis(x, 0, -2), soln.ys),
         )
 
         # Return

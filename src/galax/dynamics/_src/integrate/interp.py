@@ -6,7 +6,6 @@ from typing_extensions import override
 import diffrax as dfx
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 from jaxtyping import PyTree
 
 import coordinax as cx
@@ -122,6 +121,9 @@ class Interpolant(AbstractVectorizedDenseInterpolation):
         )
 
 
+# ---------------------------
+
+
 # TODO: support interpolation
 @gc.AbstractOnePhaseSpacePosition.from_.dispatch  # type: ignore[misc,attr-defined]
 def from_(
@@ -134,12 +136,9 @@ def from_(
     unbatch_time: bool = False,
 ) -> gc.AbstractOnePhaseSpacePosition:
     """Convert a solution to a phase-space position."""
-    # Reshape (T, *batch) to (*batch, T)
-    t = soln.ts  # already in the correct shape
-    q = jnp.moveaxis(soln.ys[0], 0, -2)
-    p = jnp.moveaxis(soln.ys[1], 0, -2)
-
-    # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
+    # Reshape (*batch,T=1,*shape) to (*batch,*shape) if t is a scalar
+    t = soln.ts
+    q, p = soln.ys
     if unbatch_time and t.shape[-1] == 1:
         t = t[..., -1]
         q = q[..., -1, :]

@@ -882,12 +882,9 @@ def from_(
         frame=SimulationFrame())
 
     """
-    # Reshape (T, *batch) to (*batch, T)
-    t = soln.ts  # already in the correct shape
-    q = jnp.moveaxis(soln.ys[0], 0, -2)
-    p = jnp.moveaxis(soln.ys[1], 0, -2)
-
     # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
+    t = soln.ts
+    q, p = soln.ys
     if unbatch_time and t.shape[-1] == 1:
         t = t[..., -1]
         q = q[..., -1, :]

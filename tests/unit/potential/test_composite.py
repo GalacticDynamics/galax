@@ -10,7 +10,7 @@ from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import dimensionless, galactic, solarsystem
+from unxt.unitsystems import galactic, solarsystem
 from zeroth import zeroth
 
 import galax.potential as gp
@@ -247,17 +247,6 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         usys = u.unitsystem("km", "s", "Msun", "radian")
         pot_map_ = {k: replace(v, units=usys) for k, v in pot_map.items()}
         assert pot_cls(**pot_map_, units=usys).units == usys
-
-    @pytest.mark.xfail(reason="TODO: unitless potentials are not allowed.")
-    @override
-    def test_init_units_from_args(
-        self,
-        pot_cls: type[gp.CompositePotential],
-        pot_map: Mapping[str, gp.AbstractBasePotential],
-    ) -> None:
-        """Test unit system from None."""
-        pot = pot_cls(**pot_map, units=None)
-        assert pot.units == dimensionless
 
     @override
     def test_init_units_from_tuple(

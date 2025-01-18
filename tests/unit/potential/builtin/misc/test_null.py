@@ -25,18 +25,6 @@ class TestNullPotential(AbstractPotential_Test):
 
     # ==========================================================================
 
-    def test_init_units_from_args(
-        self, pot_cls: type[gp.AbstractBasePotential], fields_unitless: dict[str, Array]
-    ) -> None:
-        """Test unit system from None."""
-        # strip the units from the fields otherwise the test will fail
-        # because the units are not equal and we just want to check that
-        # when the units aren't specified, the default is dimensionless
-        # and a numeric value works.
-        fields_unitless.pop("units", None)
-        pot = pot_cls(**fields_unitless, units=None)
-        assert pot.units == usx.dimensionless
-
     @override
     def test_init_units_from_name(
         self, pot_cls: type[gp.AbstractBasePotential], fields_unitless: dict[str, Array]

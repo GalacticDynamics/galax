@@ -29,19 +29,6 @@ class FieldUnitSystemMixin:
         usys = u.unitsystem("km", "s", "Msun", "radian")
         assert replace(pot, units=usys).units == usys
 
-    # TODO: sort this out
-    # def test_init_units_from_args(
-    #     self, pot_cls: type[AbstractBasePotential], fields_unitless: dict[str, Array]
-    # ) -> None:
-    #     """Test unit system from None."""
-    #     # strip the units from the fields otherwise the test will fail
-    #     # because the units are not equal and we just want to check that
-    #     # when the units aren't specified, the default is dimensionless
-    #     # and a numeric value works.
-    #     fields_unitless.pop("units", None)
-    #     pot = pot_cls(**fields_unitless, units=None)
-    #     assert pot.units == dimensionless
-
     def test_init_units_from_tuple(self, pot: AbstractBasePotential) -> None:
         """Test unit system from tuple."""
         units = ("km", "s", "Msun", "radian")

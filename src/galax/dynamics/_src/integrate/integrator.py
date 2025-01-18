@@ -343,7 +343,7 @@ def call(
     /,
     *,
     saveat: Times | None = None,
-    dense: bool = False,
+    **kwargs: Any,
 ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
     """Run the integrator.
 
@@ -427,7 +427,7 @@ def call(
         FastQ.from_(t0, units["time"]),
         FastQ.from_(t1, units["time"]),
         saveat=FastQ.from_(saveat, units["time"]) if saveat is not None else None,
-        dense=dense,
+        **kwargs,
     )
 
 

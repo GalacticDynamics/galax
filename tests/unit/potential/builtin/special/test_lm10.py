@@ -1,14 +1,10 @@
 """Tests for the `galax.potential.LM10Potential` class."""
 
-from collections.abc import Mapping
-from typing_extensions import override
-
 import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import galactic
 
 import galax.potential as gp
 import galax.typing as gt
@@ -33,18 +29,6 @@ class TestLM10Potential(AbstractCompositePotential_Test):
             "bulge": pot_cls._default_bulge,
             "halo": pot_cls._default_halo,
         }
-
-    # ==========================================================================
-
-    @override
-    def test_init_units_from_args(
-        self,
-        pot_cls: type[gp.AbstractCompositePotential],
-        pot_map: Mapping[str, gp.AbstractBasePotential],
-    ) -> None:
-        """Test unit system from None."""
-        pot = pot_cls(**pot_map, units=None)
-        assert pot.units == galactic
 
     # ==========================================================================
 

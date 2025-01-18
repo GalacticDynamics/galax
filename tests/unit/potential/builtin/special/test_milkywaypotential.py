@@ -1,14 +1,12 @@
 """Test the `galax.potential.MilkyWayPotential` class."""
 
 from collections.abc import Mapping
-from typing_extensions import override
 
 import pytest
 from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import galactic
 
 import galax.potential as gp
 import galax.typing as gt
@@ -40,18 +38,6 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     def pot_map_unitless(self, pot_map) -> Mapping[str, gp.AbstractBasePotential]:
         """Composite potential."""
         return {k: {kk: vv.value for kk, vv in v.items()} for k, v in pot_map.items()}
-
-    # ==========================================================================
-
-    @override
-    def test_init_units_from_args(
-        self,
-        pot_cls: type[gp.MilkyWayPotential],
-        pot_map: Mapping[str, gp.AbstractBasePotential],
-    ) -> None:
-        """Test unit system from None."""
-        pot = pot_cls(**pot_map, units=None)
-        assert pot.units == galactic
 
     # ==========================================================================
 

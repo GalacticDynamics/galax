@@ -1,6 +1,7 @@
 __all__ = ["AbstractPotential"]
 
 import abc
+from collections.abc import Mapping
 from dataclasses import KW_ONLY, fields, replace
 from functools import partial
 from types import MappingProxyType
@@ -90,6 +91,17 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
                 {k: v.decompose(usys) for k, v in self.constants.items()}
             )
             object.__setattr__(self, "constants", constants)
+
+    ###########################################################################
+    # Constructors
+
+    @classmethod
+    @dispatch.abstract
+    def from_(
+        cls: "type[AbstractPotential]", *args: Any, **kwargs: Any
+    ) -> "AbstractPotential":
+        """Create a potential from a set of arguments."""
+        raise NotImplementedError  # pragma: no cover
 
     ###########################################################################
     # Core methods that use the potential energy
@@ -398,3 +410,54 @@ def convert_potential(
 ) -> AbstractPotential:
     """Convert the potential to an object of a different library."""
     return from_
+
+
+@AbstractPotential.from_.dispatch
+def from_(cls: type[AbstractPotential], obj: AbstractPotential, /) -> AbstractPotential:
+    """Potential from an instance of the same type.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e11, "Msun"), units="galactic")
+    >>> pot2 = gp.KeplerPotential.from_(pot)
+    >>> pot2 is pot
+    True
+
+    >>> try: gp.HernquistPotential.from_(pot)
+    ... except TypeError as e: print(e)
+    cannot create <class 'galax.potential...HernquistPotential'>
+    from <class 'galax.potential...KeplerPotential'>
+
+    """
+    if type(obj) is not cls:
+        msg = f"cannot create {cls} from {type(obj)}"
+        raise TypeError(msg)
+
+    return obj
+
+
+@AbstractPotential.from_.dispatch
+def from_(
+    cls: type[AbstractPotential],
+    obj: Mapping[str, Any],
+    /,
+) -> AbstractPotential:
+    """Convert the potential to an object of a different library.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+
+    >>> pot = gp.NFWPotential.from_(
+    ...     {"m": u.Quantity(1e12, "Msun"), "r_s": u.Quantity(3, "kpc"),
+    ...      "units": "galactic"})
+    >>> pot
+    NFWPotential( units=..., constants=ImmutableMap({'G': ...}),
+                  m=ConstantParameter( ... ), r_s=ConstantParameter( ... ) )
+
+    """
+    return cls(**obj)

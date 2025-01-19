@@ -12,7 +12,7 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
 from .test_abstractmultipole import ParameterSlmMixin, ParameterTlmMixin
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps
@@ -21,7 +21,7 @@ from galax._interop.optional_deps import GSL_ENABLED, OptDeps
 
 
 class TestMultipoleOuterPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterScaleRadiusMixin,
@@ -100,8 +100,8 @@ class TestMultipoleOuterPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
@@ -131,7 +131,7 @@ class TestMultipoleOuterPotential(
     )
     def test_method_gala(
         self,
-        pot: gp.AbstractBasePotential,
+        pot: gp.AbstractPotential,
         method0: str,
         method1: str,
         x: gt.QuSz3,

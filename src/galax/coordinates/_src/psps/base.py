@@ -540,7 +540,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         return 0.5 * self.p.norm(self.q) ** 2
 
     def potential_energy(
-        self, potential: "AbstractBasePotential"
+        self, potential: "AbstractPotential"
     ) -> u.Quantity["specific energy"]:
         r"""Return the specific potential energy.
 
@@ -550,7 +550,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
 
         Parameters
         ----------
-        potential : `galax.potential.AbstractBasePotential`
+        potential : `galax.potential.AbstractPotential`
             The potential object to compute the energy from.
 
         Returns
@@ -586,7 +586,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         return potential.potential(self.q, t=self.t)
 
     @partial(jax.jit, inline=True)
-    def total_energy(self, potential: "AbstractBasePotential") -> gt.BtFloatQuSz0:
+    def total_energy(self, potential: "AbstractPotential") -> gt.BtFloatQuSz0:
         r"""Return the specific total energy.
 
         .. math::
@@ -597,7 +597,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
 
         Parameters
         ----------
-        potential : `galax.potential.AbstractBasePotential`
+        potential : `galax.potential.AbstractPotential`
             The potential object to compute the energy from.
 
         Returns

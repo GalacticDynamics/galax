@@ -204,7 +204,7 @@ def _orbital_angular_frequency(
 
 @partial(jax.jit, inline=True)
 def tidal_radius(
-    potential: gp.AbstractBasePotential,
+    potential: gp.AbstractPotential,
     x: gt.LengthBtSz3,
     v: gt.SpeedBtSz3,
     /,
@@ -215,7 +215,7 @@ def tidal_radius(
 
     Parameters
     ----------
-    potential : `galax.potential.AbstractBasePotential`
+    potential : `galax.potential.AbstractPotential`
         The gravitational potential of the host.
     x: Quantity[float, (3,), "length"]
         3d position (x, y, z).
@@ -255,7 +255,7 @@ def tidal_radius(
 
 @partial(jax.jit, inline=True)
 def lagrange_points(
-    potential: gp.AbstractBasePotential,
+    potential: gp.AbstractPotential,
     x: gt.LengthSz3,
     v: gt.SpeedSz3,
     prog_mass: gt.MassSz0,
@@ -265,7 +265,7 @@ def lagrange_points(
 
     Parameters
     ----------
-    potential : `galax.potential.AbstractBasePotential`
+    potential : `galax.potential.AbstractPotential`
         The gravitational potential of the host.
     x: Quantity[float, (3,), "length"]
         Cartesian 3D position ($x$, $y$, $z$)

@@ -11,13 +11,13 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 from ...param.test_field import ParameterFieldMixin
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import (
     ParameterMMixin,
     ParameterScaleRadiusMixin,
     ParameterShapeQ1Mixin,
 )
-from galax.potential import AbstractBasePotential, Vogelsberger08TriaxialNFWPotential
+from galax.potential import AbstractPotential, Vogelsberger08TriaxialNFWPotential
 
 
 class ShapeTransitionRadiusParameterMixin(ParameterFieldMixin):
@@ -44,7 +44,7 @@ class ShapeTransitionRadiusParameterMixin(ParameterFieldMixin):
 
 
 class TestVogelsberger08TriaxialNFWPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMMixin,
     ParameterScaleRadiusMixin,
@@ -119,8 +119,8 @@ class TestVogelsberger08TriaxialNFWPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.04119557, -0.0274773, -0.0351074],

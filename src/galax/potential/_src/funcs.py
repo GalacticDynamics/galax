@@ -24,9 +24,9 @@ import unxt as u
 
 import galax.coordinates as gc
 import galax.typing as gt
-from .base import AbstractBasePotential
+from .base import AbstractPotential
 from .utils import parse_to_quantity
-from galax.potential._src.base import AbstractBasePotential
+from galax.potential._src.base import AbstractPotential
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
 # TODO: shape -> batch
@@ -38,7 +38,7 @@ HessianVec: TypeAlias = Shaped[u.Quantity["1/s^2"], "*#shape 3 3"]
 
 @dispatch
 def potential(
-    pot: AbstractBasePotential,
+    pot: AbstractPotential,
     pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> u.Quantity["specific energy"]:
@@ -46,7 +46,7 @@ def potential(
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
+    pot : :class:`~galax.potential.AbstractPotential`, positional-only
     pspt : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`, positional-only
         The phase-space + time position to compute the value of the
         potential.
@@ -100,13 +100,13 @@ def potential(
 
 @dispatch
 def potential(
-    pot: AbstractBasePotential, q: Any, t: Any, /
+    pot: AbstractPotential, q: Any, t: Any, /
 ) -> u.Quantity["specific energy"]:
     """Compute the potential energy at the given position(s).
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
+    pot : :class:`~galax.potential.AbstractPotential`, positional-only
         The potential to compute the value of.
     q : Any, positional-only
         The position to compute the value of the potential. See
@@ -213,7 +213,7 @@ def potential(
 
 @dispatch
 def potential(
-    pot: AbstractBasePotential, q: Any, /, *, t: Any
+    pot: AbstractPotential, q: Any, /, *, t: Any
 ) -> u.Quantity["specific energy"]:
     """Compute the potential energy when `t` is keyword-only.
 
@@ -263,7 +263,7 @@ def potential(
 
 @dispatch
 def gradient(
-    pot: AbstractBasePotential,
+    pot: AbstractPotential,
     pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> cx.vecs.CartesianAcc3D:
@@ -271,7 +271,7 @@ def gradient(
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
+    pot : :class:`~galax.potential.AbstractPotential`, positional-only
         The potential to compute the gradient of.
     pspt : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     positional-only
@@ -331,12 +331,12 @@ def gradient(
 
 
 @dispatch
-def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3D:
+def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3D:
     """Compute the gradient of the potential at the given position(s).
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
+    pot : :class:`~galax.potential.AbstractPotential`, positional-only
         The potential to compute the gradient of.
     q : Any, positional-only
         The position to compute the gradient of the potential. See
@@ -455,14 +455,12 @@ def gradient(pot: AbstractBasePotential, q: Any, t: Any, /) -> cx.vecs.Cartesian
 
 
 @dispatch
-def gradient(
-    pot: AbstractBasePotential, q: Any, /, *, t: Any
-) -> cx.vecs.CartesianAcc3D:
+def gradient(pot: AbstractPotential, q: Any, /, *, t: Any) -> cx.vecs.CartesianAcc3D:
     """Compute the gradient at the given position(s).
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
+    pot : :class:`~galax.potential.AbstractPotential`, positional-only
         The potential to compute the gradient of.
     q : Any, positional-only
         The position to compute the gradient of the potential.
@@ -524,7 +522,7 @@ def gradient(
 
 @dispatch
 def laplacian(
-    pot: AbstractBasePotential,
+    pot: AbstractPotential,
     pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> u.Quantity["1/s^2"]:
@@ -532,7 +530,7 @@ def laplacian(
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
+    pot : :class:`~galax.potential.AbstractPotential`, positional-only
         The potential to compute the laplacian of.
     pspt : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`,
     positional-only
@@ -586,12 +584,12 @@ def laplacian(
 
 
 @dispatch
-def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> u.Quantity["1/s^2"]:
+def laplacian(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["1/s^2"]:
     """Compute the laplacian of the potential at the given position(s).
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
+    pot : :class:`~galax.potential.AbstractPotential`, positional-only
         The potential to compute the laplacian of.
     q : Any, positional-only
         The position to compute the laplacian of the potential. See
@@ -697,12 +695,12 @@ def laplacian(pot: AbstractBasePotential, q: Any, t: Any, /) -> u.Quantity["1/s^
 
 
 @dispatch
-def laplacian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> u.Quantity["1/s^2"]:
+def laplacian(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["1/s^2"]:
     """Compute the laplacian at the given position(s).
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
+    pot : :class:`~galax.potential.AbstractPotential`, positional-only
         The potential to compute the laplacian of.
     q : Any, positional-only
         The position to compute the laplacian of the potential.
@@ -757,7 +755,7 @@ def laplacian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> u.Quantity["1
 
 @dispatch
 def density(
-    pot: AbstractBasePotential,
+    pot: AbstractPotential,
     pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> u.Quantity["mass density"]:
@@ -765,7 +763,7 @@ def density(
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`, positional-only
+    pot : :class:`~galax.potential.AbstractPotential`, positional-only
         The potential to compute the density of.
     pspt : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`
         The phase-space + time position to compute the density.
@@ -817,9 +815,7 @@ def density(
 
 
 @dispatch
-def density(
-    pot: AbstractBasePotential, q: Any, t: Any, /
-) -> u.Quantity["mass density"]:
+def density(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["mass density"]:
     """Compute the density at the given position(s).
 
     Parameters
@@ -872,7 +868,7 @@ def density(
 
     - - -
 
-    meth:`~galax.potential.AbstractBasePotential.density` also supports Astropy
+    meth:`~galax.potential.AbstractPotential.density` also supports Astropy
     objects, like :class:`astropy.coordinates.BaseRepresentation` and
     :class:`astropy.units.Quantity`, which are interpreted like their jax'ed
     counterparts :class:`~coordinax.AbstractPos3D` and
@@ -926,9 +922,7 @@ def density(
 
 
 @dispatch
-def density(
-    pot: AbstractBasePotential, q: Any, /, *, t: Any
-) -> u.Quantity["mass density"]:
+def density(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["mass density"]:
     """Compute the density when `t` is keyword-only.
 
     Examples
@@ -977,7 +971,7 @@ def density(
 
 @dispatch
 def hessian(
-    pot: AbstractBasePotential,
+    pot: AbstractPotential,
     pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
     /,
 ) -> gt.BtQuSz33:
@@ -1048,7 +1042,7 @@ def hessian(
 
 
 @dispatch
-def hessian(pot: AbstractBasePotential, q: Any, t: Any, /) -> HessianVec:
+def hessian(pot: AbstractPotential, q: Any, t: Any, /) -> HessianVec:
     """Compute the hessian of the potential at the given position(s).
 
     Parameters
@@ -1192,7 +1186,7 @@ def hessian(pot: AbstractBasePotential, q: Any, t: Any, /) -> HessianVec:
 
 
 @dispatch
-def hessian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> HessianVec:
+def hessian(pot: AbstractPotential, q: Any, /, *, t: Any) -> HessianVec:
     """Compute the hessian when `t` is keyword-only.
 
     Examples
@@ -1224,7 +1218,7 @@ def hessian(pot: AbstractBasePotential, q: Any, /, *, t: Any) -> HessianVec:
 
 @dispatch
 def acceleration(
-    pot: AbstractBasePotential,
+    pot: AbstractPotential,
     /,
     *args: Any,  # defer to `gradient`
     **kwargs: Any,  # defer to `gradient`
@@ -1233,7 +1227,7 @@ def acceleration(
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`
+    pot : :class:`~galax.potential.AbstractPotential`
         The potential to compute the acceleration of.
     *args : Any
         The phase-space + time position to compute the acceleration. See
@@ -1330,7 +1324,7 @@ def acceleration(
 
 
 @dispatch
-def tidal_tensor(pot: AbstractBasePotential, *args: Any, **kwargs: Any) -> gt.BtQuSz33:
+def tidal_tensor(pot: AbstractPotential, *args: Any, **kwargs: Any) -> gt.BtQuSz33:
     """Compute the tidal tensor.
 
     See https://en.wikipedia.org/wiki/Tidal_tensor
@@ -1342,7 +1336,7 @@ def tidal_tensor(pot: AbstractBasePotential, *args: Any, **kwargs: Any) -> gt.Bt
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`
+    pot : :class:`~galax.potential.AbstractPotential`
         The potential to compute the tidal tensor of.
     *args, **kwargs : Any
         The arguments to pass to :func:`~galax.potential.hessian`.
@@ -1538,7 +1532,7 @@ def tidal_tensor(pot: AbstractBasePotential, *args: Any, **kwargs: Any) -> gt.Bt
 # TODO: make public
 @partial(jax.jit, inline=True)
 def d2potential_dr2(
-    pot: AbstractBasePotential, x: gt.LengthBtSz3, t: gt.TimeBBtSz0, /
+    pot: AbstractPotential, x: gt.LengthBtSz3, t: gt.TimeBBtSz0, /
 ) -> Shaped[u.Quantity["1/s^2"], "*batch"]:
     """Compute the second derivative of the potential at the position.
 
@@ -1546,7 +1540,7 @@ def d2potential_dr2(
 
     Parameters
     ----------
-    pot : `galax.potential.AbstractBasePotential`
+    pot : `galax.potential.AbstractPotential`
         The gravitational potential.
     x: Quantity[Any, (*batch, 3,), 'length']
         3d position (x, y, z) in [kpc]
@@ -1583,13 +1577,13 @@ def d2potential_dr2(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, x: gt.LengthSz3, /, t: gt.TimeSz0
+    pot: AbstractPotential, x: gt.LengthSz3, /, t: gt.TimeSz0
 ) -> gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position.
 
     Parameters
     ----------
-    pot : AbstractBasePotential
+    pot : AbstractPotential
         The Potential.
     x : Quantity[float, (*batch, 3), "length"]
         Position(s) to estimate the circular velocity.
@@ -1622,7 +1616,7 @@ def circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, x: gt.LengthSz3, /, *, t: gt.TimeSz0
+    pot: AbstractPotential, x: gt.LengthSz3, /, *, t: gt.TimeSz0
 ) -> gt.BBtRealQuSz0:
     return circular_velocity(pot, x, t)
 
@@ -1630,7 +1624,7 @@ def circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, q: cx.vecs.AbstractPos3D, /, t: gt.TimeSz0
+    pot: AbstractPotential, q: cx.vecs.AbstractPos3D, /, t: gt.TimeSz0
 ) -> gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position.
 
@@ -1653,7 +1647,7 @@ def circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, q: cx.vecs.AbstractPos3D, /, *, t: gt.TimeSz0
+    pot: AbstractPotential, q: cx.vecs.AbstractPos3D, /, *, t: gt.TimeSz0
 ) -> gt.BBtRealQuSz0:
     return circular_velocity(pot, q, t)
 
@@ -1661,7 +1655,7 @@ def circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def circular_velocity(
-    pot: AbstractBasePotential, w: gc.AbstractOnePhaseSpacePosition, /
+    pot: AbstractPotential, w: gc.AbstractOnePhaseSpacePosition, /
 ) -> gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position.
 

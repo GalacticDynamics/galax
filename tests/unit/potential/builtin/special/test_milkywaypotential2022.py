@@ -14,7 +14,7 @@ from ...test_composite import AbstractCompositePotential_Test
 from galax.potential import MilkyWayPotential2022
 
 if TYPE_CHECKING:
-    from galax.potential import AbstractBasePotential
+    from galax.potential import AbstractPotential
 
 
 ##############################################################################
@@ -40,7 +40,7 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
         }
 
     @pytest.fixture(scope="class")
-    def pot_map_unitless(self, pot_map) -> Mapping[str, AbstractBasePotential]:
+    def pot_map_unitless(self, pot_map) -> Mapping[str, AbstractPotential]:
         """Composite potential."""
         return {k: {kk: vv.value for kk, vv in v.items()} for k, v in pot_map.items()}
 
@@ -86,8 +86,8 @@ class TestMilkyWayPotential2022(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.00148256, -0.00047082, -0.0008994],

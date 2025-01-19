@@ -8,13 +8,13 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMMixin, ParameterScaleRadiusMixin
-from galax.potential import AbstractBasePotential, JaffePotential
+from galax.potential import AbstractPotential, JaffePotential
 
 
 class TestJaffePotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMMixin,
     ParameterScaleRadiusMixin,
@@ -69,8 +69,8 @@ class TestJaffePotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.04950143, -0.02700078, -0.04050117],

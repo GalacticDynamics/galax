@@ -18,7 +18,7 @@ from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
 import galax.typing as gt
-from .base import AbstractBasePotential, default_constants
+from .base import AbstractPotential, default_constants
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -26,21 +26,20 @@ V = TypeVar("V")
 
 # Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePotential(
-    AbstractBasePotential,
-    ImmutableMap[str, AbstractBasePotential],  # type: ignore[misc]
+    AbstractPotential,
+    ImmutableMap[str, AbstractPotential],  # type: ignore[misc]
     strict=False,
 ):
     def __init__(
         self,
         potentials: (
-            dict[str, AbstractBasePotential]
-            | tuple[tuple[str, AbstractBasePotential], ...]
+            dict[str, AbstractPotential] | tuple[tuple[str, AbstractPotential], ...]
         ) = (),
         /,
         *,
         units: Any = None,
         constants: Any = default_constants,
-        **kwargs: AbstractBasePotential,
+        **kwargs: AbstractPotential,
     ) -> None:
         ImmutableMap.__init__(self, potentials, **kwargs)  # <- ImmutableMap.__init__
 
@@ -83,7 +82,7 @@ class AbstractCompositePotential(
     def __or__(self, other: Any) -> "CompositePotential":
         from .composite import CompositePotential
 
-        if not isinstance(other, AbstractBasePotential):
+        if not isinstance(other, AbstractPotential):
             return NotImplemented
 
         return CompositePotential(  # combine the two dictionaries
@@ -98,7 +97,7 @@ class AbstractCompositePotential(
     def __ror__(self, other: Any) -> "CompositePotential":
         from .composite import CompositePotential
 
-        if not isinstance(other, AbstractBasePotential):
+        if not isinstance(other, AbstractPotential):
             return NotImplemented
 
         return CompositePotential(  # combine the two dictionaries
@@ -110,7 +109,7 @@ class AbstractCompositePotential(
             | self._data
         )
 
-    def __add__(self, other: AbstractBasePotential) -> "CompositePotential":
+    def __add__(self, other: AbstractPotential) -> "CompositePotential":
         return self | other
 
 

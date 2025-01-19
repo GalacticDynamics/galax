@@ -63,7 +63,7 @@ class NBodyField(AbstractDynamicsField, strict=True):  # type: ignore[call-arg]
     eps: Shaped[u.Quantity["length"], ""]
 
     #: Potential.
-    external_potential: gp.AbstractBasePotential = eqx.field(
+    external_potential: gp.AbstractPotential = eqx.field(
         default=gp.NullPotential(units="galactic")
     )
 

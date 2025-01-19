@@ -12,7 +12,7 @@ from galax.potential.params import ConstantParameter
 class ParameterVCMixin(ParameterFieldMixin):
     """Test the circular velocity parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_v_c(self) -> u.Quantity["speed"]:
@@ -45,7 +45,7 @@ class ParameterVCMixin(ParameterFieldMixin):
 class ParameterRSMixin(ParameterFieldMixin):
     """Test the scale radius parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_r_s(self) -> u.Quantity["length"]:

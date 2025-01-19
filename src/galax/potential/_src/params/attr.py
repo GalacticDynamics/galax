@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, NoReturn, final
 from .field import ParameterField
 
 if TYPE_CHECKING:
-    from galax.potential import AbstractBasePotential
+    from galax.potential import AbstractPotential
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,7 +23,7 @@ class AbstractParametersAttribute:
     Examples
     --------
     The normal usage of this class is the ``parameters`` attribute of
-    :class:`~galax.potential.AbstractBasePotential`.
+    :class:`~galax.potential.AbstractPotential`.
 
     >>> import galax.potential as gp
     >>> gp.KeplerPotential.parameters
@@ -54,18 +54,18 @@ class AbstractParametersAttribute:
 class ParametersAttribute(AbstractParametersAttribute):
     """Mapping of the :class:`~galax.potential.ParameterField` values.
 
-    If accessed from the :class:`~galax.potential.AbstractBasePotential` class,
+    If accessed from the :class:`~galax.potential.AbstractPotential` class,
     this returns a mapping of the :class:`~galax.potential.AbstractParameter`
     objects themselves.  If accessed from an instance, this returns a mapping of
     the values of the Parameters.
 
     This class is used to implement
-    :obj:`galax.potential.AbstractBasePotential.parameters`.
+    :obj:`galax.potential.AbstractPotential.parameters`.
 
     Examples
     --------
     The normal usage of this class is the ``parameters`` attribute of
-    :class:`~galax.potential.AbstractBasePotential`.
+    :class:`~galax.potential.AbstractPotential`.
 
     >>> import unxt as u
     >>> import galax.potential as gp
@@ -81,8 +81,8 @@ class ParametersAttribute(AbstractParametersAttribute):
 
     def __get__(
         self,
-        instance: "AbstractBasePotential | None",
-        owner: "type[AbstractBasePotential] | None",
+        instance: "AbstractPotential | None",
+        owner: "type[AbstractPotential] | None",
     ) -> "MappingProxyType[str, ParameterField]":
         # Called from the class
         if instance is None:
@@ -107,7 +107,7 @@ class CompositeParametersAttribute(AbstractParametersAttribute):
     Examples
     --------
     The normal usage of this class is the ``parameters`` attribute of
-    :class:`~galax.potential.AbstractBasePotential`.
+    :class:`~galax.potential.AbstractPotential`.
 
     >>> import unxt as u
     >>> import galax.potential as gp

@@ -20,12 +20,12 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.typing as gt
-from galax.potential._src.base_single import AbstractPotential
+from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
 
-class AbstractMultipolePotential(AbstractPotential):
+class AbstractMultipolePotential(AbstractSinglePotential):
     """Abstract Multipole Potential."""
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]

@@ -12,9 +12,9 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 from ...param.test_field import ParameterFieldMixin
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from galax._interop.optional_deps import OptDeps
-from galax.potential._src.base import AbstractBasePotential
+from galax.potential._src.base import AbstractPotential
 
 
 class ParameterOmegaMixin(ParameterFieldMixin):
@@ -44,7 +44,7 @@ class ParameterOmegaMixin(ParameterFieldMixin):
 
 
 class TestHarmonicOscillatorPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterOmegaMixin,
 ):
@@ -90,8 +90,8 @@ class TestHarmonicOscillatorPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.Sz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.Sz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.0, 0.0, 0.0],
@@ -152,11 +152,9 @@ class TestHarmonicOscillatorPotential(
     # TODO: Implement these tests
 
     @pytest.mark.skip("TODO")
-    def test_evaluate_orbit(self, pot: gp.AbstractBasePotential, xv: gt.Sz6) -> None:
-        """Test the `AbstractBasePotential.evaluate_orbit` method."""
+    def test_evaluate_orbit(self, pot: gp.AbstractPotential, xv: gt.Sz6) -> None:
+        """Test the `AbstractPotential.evaluate_orbit` method."""
 
     @pytest.mark.skip("TODO")
-    def test_evaluate_orbit_batch(
-        self, pot: gp.AbstractBasePotential, xv: gt.Sz6
-    ) -> None:
-        """Test the `AbstractBasePotential.evaluate_orbit` method."""
+    def test_evaluate_orbit_batch(self, pot: gp.AbstractPotential, xv: gt.Sz6) -> None:
+        """Test the `AbstractPotential.evaluate_orbit` method."""

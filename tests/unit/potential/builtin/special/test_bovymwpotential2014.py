@@ -66,8 +66,8 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.00161473, -0.00046922, -0.0009568],
@@ -87,7 +87,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
         not OptDeps.GALA.installed or not GSL_ENABLED, reason="requires gala + GSL"
     )
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractBasePotential, x: gt.QuSz3
+        self, pot: gp.AbstractPotential, x: gt.QuSz3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 

@@ -18,7 +18,7 @@ from galax.dynamics import (
     FardalStreamDF,
     MockStreamGenerator,
 )
-from galax.potential import AbstractBasePotential, NFWPotential
+from galax.potential import AbstractPotential, NFWPotential
 
 
 class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
@@ -37,7 +37,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
 
     @pytest.fixture
     def mockgen(
-        self, df: AbstractStreamDF, pot: AbstractBasePotential
+        self, df: AbstractStreamDF, pot: AbstractPotential
     ) -> MockStreamGenerator:
         """Mock stream generator."""
         # TODO: test the progenitor integrator

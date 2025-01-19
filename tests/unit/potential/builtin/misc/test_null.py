@@ -11,10 +11,10 @@ import unxt.unitsystems as usx
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 
 
-class TestNullPotential(AbstractPotential_Test):
+class TestNullPotential(AbstractSinglePotential_Test):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.NullPotential]:
         return gp.NullPotential
@@ -27,7 +27,7 @@ class TestNullPotential(AbstractPotential_Test):
 
     @override
     def test_init_units_from_name(
-        self, pot_cls: type[gp.AbstractBasePotential], fields_unitless: dict[str, Array]
+        self, pot_cls: type[gp.AbstractPotential], fields_unitless: dict[str, Array]
     ) -> None:
         """Test unit system from named string."""
         fields_unitless.pop("units")
@@ -78,8 +78,8 @@ class TestNullPotential(AbstractPotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2"
         )

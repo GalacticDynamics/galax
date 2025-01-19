@@ -14,7 +14,7 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 from ...io.test_gala import parametrize_test_method_gala
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
 from .test_abstractmultipole import ParameterAngularCoefficientsMixin
 
@@ -24,7 +24,7 @@ from .test_abstractmultipole import ParameterAngularCoefficientsMixin
 class ParameterISlmMixin(ParameterAngularCoefficientsMixin):
     """Test the ISlm parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_ISlm(self, field_l_max) -> Shaped[Array, "3 3"]:
@@ -71,7 +71,7 @@ class ParameterISlmMixin(ParameterAngularCoefficientsMixin):
 class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
     """Test the ITlm parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_ITlm(self, field_l_max) -> Shaped[Array, "3 3"]:
@@ -117,7 +117,7 @@ class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
 class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
     """Test the OSlm parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_OSlm(self, field_l_max) -> Shaped[Array, "3 3"]:
@@ -164,7 +164,7 @@ class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
 class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
     """Test the OTlm parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_OTlm(self, field_l_max) -> Shaped[Array, "3 3"]:
@@ -211,7 +211,7 @@ class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
 
 
 class TestMultipolePotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterScaleRadiusMixin,
@@ -297,8 +297,8 @@ class TestMultipolePotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
@@ -316,7 +316,7 @@ class TestMultipolePotential(
 
     @pytest.mark.xfail
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractBasePotential, x: gt.QuSz3
+        self, pot: gp.AbstractPotential, x: gt.QuSz3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 

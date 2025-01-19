@@ -6,14 +6,14 @@ from plum import convert
 import quaxed.numpy as qnp
 import unxt as u
 
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import (
     ParameterMTotMixin,
     ParameterShapeHRMixin,
     ParameterShapeHZMixin,
 )
 from galax.potential import (
-    AbstractBasePotential,
+    AbstractPotential,
     MN3ExponentialPotential,
     MN3Sech2Potential,
 )
@@ -21,7 +21,7 @@ from galax.typing import Sz3
 
 
 class TestMN3ExponentialPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterShapeHRMixin,
@@ -86,8 +86,8 @@ class TestMN3ExponentialPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: Sz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: Sz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.04300673, -0.02435279, -0.03538017],
@@ -102,7 +102,7 @@ class TestMN3ExponentialPotential(
 
 
 class TestMN3Sech2Potential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterShapeHRMixin,
@@ -167,8 +167,8 @@ class TestMN3Sech2Potential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: Sz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: Sz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.04672939, -0.01735505, -0.03287182],

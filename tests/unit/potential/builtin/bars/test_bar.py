@@ -7,18 +7,18 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import (
     ParameterMTotMixin,
     ParameterShapeAMixin,
     ParameterShapeBMixin,
     ParameterShapeCMixin,
 )
-from galax.potential import AbstractBasePotential, BarPotential
+from galax.potential import AbstractPotential, BarPotential
 
 
 class TestBarPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterShapeAMixin,
@@ -93,8 +93,8 @@ class TestBarPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.03163021, -0.01038389, -0.02050134],

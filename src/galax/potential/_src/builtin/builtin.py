@@ -40,7 +40,7 @@ from xmmutablemap import ImmutableMap
 import galax.typing as gt
 from .const import _burkert_const
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractPotential
+from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
@@ -48,7 +48,7 @@ from galax.potential._src.params.field import ParameterField
 
 
 @final
-class BurkertPotential(AbstractPotential):
+class BurkertPotential(AbstractSinglePotential):
     """Burkert Potential.
 
     https://ui.adsabs.harvard.edu/abs/1995ApJ...447L..25B/abstract,
@@ -163,7 +163,7 @@ class BurkertPotential(AbstractPotential):
 
 
 @final
-class HarmonicOscillatorPotential(AbstractPotential):
+class HarmonicOscillatorPotential(AbstractSinglePotential):
     r"""Harmonic Oscillator Potential.
 
     Represents an N-dimensional harmonic oscillator.
@@ -230,7 +230,7 @@ class HarmonicOscillatorPotential(AbstractPotential):
 
 
 @final
-class HenonHeilesPotential(AbstractPotential):
+class HenonHeilesPotential(AbstractSinglePotential):
     r"""Henon-Heiles Potential.
 
     This is a modified version of the [classical Henon-Heiles
@@ -295,7 +295,7 @@ class HenonHeilesPotential(AbstractPotential):
 
 
 @final
-class HernquistPotential(AbstractPotential):
+class HernquistPotential(AbstractSinglePotential):
     """Hernquist Potential."""
 
     m_tot: Ann[AbstractParameter, Doc("Total mass of the potential.")] = ParameterField(  # type: ignore[assignment]
@@ -331,7 +331,7 @@ class HernquistPotential(AbstractPotential):
 
 
 @final
-class IsochronePotential(AbstractPotential):
+class IsochronePotential(AbstractSinglePotential):
     r"""Isochrone Potential.
 
     .. math::
@@ -369,7 +369,7 @@ class IsochronePotential(AbstractPotential):
 
 
 @final
-class JaffePotential(AbstractPotential):
+class JaffePotential(AbstractSinglePotential):
     """Jaffe Potential."""
 
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
@@ -388,7 +388,7 @@ class JaffePotential(AbstractPotential):
 
 
 @final
-class KeplerPotential(AbstractPotential):
+class KeplerPotential(AbstractSinglePotential):
     r"""The Kepler potential for a point mass.
 
     .. math::
@@ -435,7 +435,7 @@ class KeplerPotential(AbstractPotential):
 
 
 @final
-class KuzminPotential(AbstractPotential):
+class KuzminPotential(AbstractSinglePotential):
     r"""Kuzmin Potential.
 
     .. math::
@@ -475,7 +475,7 @@ class KuzminPotential(AbstractPotential):
 
 
 @final
-class LogarithmicPotential(AbstractPotential):
+class LogarithmicPotential(AbstractSinglePotential):
     """Logarithmic Potential."""
 
     v_c: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
@@ -503,7 +503,7 @@ class LogarithmicPotential(AbstractPotential):
 
 
 @final
-class MiyamotoNagaiPotential(AbstractPotential):
+class MiyamotoNagaiPotential(AbstractSinglePotential):
     """Miyamoto-Nagai Potential."""
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
@@ -558,7 +558,7 @@ _mn3_b_coeffs_exp: Final = jnp.array([-0.269, 1.08, 1.092])
 _mn3_b_coeffs_sech2: Final = jnp.array([-0.033, 0.262, 0.659])
 
 
-class AbstractMN3Potential(AbstractPotential):
+class AbstractMN3Potential(AbstractSinglePotential):
     """A base class for sums of three Miyamoto-Nagai disk potentials."""
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
@@ -702,7 +702,7 @@ class MN3Sech2Potential(AbstractMN3Potential):
 
 
 @final
-class NullPotential(AbstractPotential):
+class NullPotential(AbstractSinglePotential):
     """Null potential, i.e. no potential.
 
     Examples
@@ -775,7 +775,7 @@ class NullPotential(AbstractPotential):
 
 
 @final
-class PlummerPotential(AbstractPotential):
+class PlummerPotential(AbstractSinglePotential):
     """Plummer Potential."""
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
@@ -804,7 +804,7 @@ def _safe_gamma_inc(a: u.Quantity, x: u.Quantity) -> u.Quantity:  # TODO: types
 
 
 @final
-class PowerLawCutoffPotential(AbstractPotential):
+class PowerLawCutoffPotential(AbstractSinglePotential):
     r"""A spherical power-law density profile with an exponential cutoff.
 
     .. math::
@@ -854,7 +854,7 @@ class PowerLawCutoffPotential(AbstractPotential):
 
 
 @final
-class SatohPotential(AbstractPotential):
+class SatohPotential(AbstractSinglePotential):
     r"""SatohPotential(m, a, b, units=None, origin=None, R=None).
 
     Satoh potential for a flattened mass distribution.
@@ -889,7 +889,7 @@ class SatohPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
-class StoneOstriker15Potential(AbstractPotential):
+class StoneOstriker15Potential(AbstractSinglePotential):
     r"""StoneOstriker15Potential(m, r_c, r_h, units=None, origin=None, R=None).
 
     Stone potential from `Stone & Ostriker (2015)
@@ -936,7 +936,7 @@ class StoneOstriker15Potential(AbstractPotential):
 
 
 @final
-class TriaxialHernquistPotential(AbstractPotential):
+class TriaxialHernquistPotential(AbstractSinglePotential):
     """Triaxial Hernquist Potential.
 
     Parameters

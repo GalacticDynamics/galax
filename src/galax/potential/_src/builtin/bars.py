@@ -18,7 +18,7 @@ from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractPotential
+from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.utils._jax import vectorize_method
@@ -27,7 +27,7 @@ from galax.utils._jax import vectorize_method
 
 
 @final
-class BarPotential(AbstractPotential):
+class BarPotential(AbstractSinglePotential):
     """Rotating bar potentil, with hard-coded rotation.
 
     Eq 8a in https://articles.adsabs.harvard.edu/pdf/1992ApJ...397...44L
@@ -86,7 +86,7 @@ class BarPotential(AbstractPotential):
 
 
 @final
-class LongMuraliBarPotential(AbstractPotential):
+class LongMuraliBarPotential(AbstractSinglePotential):
     """Long & Murali Bar Potential.
 
     A simple, triaxial model for a galaxy bar. This is a softened “needle”

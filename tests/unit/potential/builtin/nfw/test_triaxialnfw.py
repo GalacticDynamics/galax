@@ -10,18 +10,18 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import (
     ParameterMMixin,
     ParameterScaleRadiusMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 )
-from galax.potential import AbstractBasePotential, TriaxialNFWPotential
+from galax.potential import AbstractPotential, TriaxialNFWPotential
 
 
 class TestTriaxialNFWPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMMixin,
     ParameterScaleRadiusMixin,
@@ -88,8 +88,8 @@ class TestTriaxialNFWPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.02336886, -0.00788965, -0.0165603],

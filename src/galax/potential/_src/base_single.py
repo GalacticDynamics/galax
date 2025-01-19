@@ -1,4 +1,4 @@
-__all__ = ["AbstractPotential"]
+__all__ = ["AbstractSinglePotential"]
 
 import abc
 import uuid
@@ -11,11 +11,11 @@ import unxt as u
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .base import AbstractBasePotential, default_constants
+from .base import AbstractPotential, default_constants
 from .composite import CompositePotential
 
 
-class AbstractPotential(AbstractBasePotential, strict=True):
+class AbstractSinglePotential(AbstractPotential, strict=True):
     """Abstract base class for all potential objects."""
 
     _: KW_ONLY
@@ -38,7 +38,7 @@ class AbstractPotential(AbstractBasePotential, strict=True):
     ###########################################################################
 
     def __add__(self, other: Any) -> CompositePotential:
-        if not isinstance(other, AbstractBasePotential):
+        if not isinstance(other, AbstractPotential):
             return NotImplemented
 
         if isinstance(other, CompositePotential):

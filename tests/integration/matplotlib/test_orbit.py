@@ -28,7 +28,7 @@ def w0() -> gc.PhaseSpacePosition:
 
 
 @pytest.fixture
-def orbit(potential: gp.AbstractBasePotential, w0: gc.PhaseSpacePosition) -> gd.Orbit:
+def orbit(potential: gp.AbstractPotential, w0: gc.PhaseSpacePosition) -> gd.Orbit:
     """Orbit fixture."""
     ts = u.Quantity(jnp.linspace(0.0, 70, 1000), "Myr")
     orb: gd.Orbit = gd.evaluate_orbit(potential, w0, ts)

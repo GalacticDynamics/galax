@@ -19,13 +19,13 @@ from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractPotential
+from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
 
 @final
-class LogarithmicPotential(AbstractPotential):
+class LogarithmicPotential(AbstractSinglePotential):
     """Logarithmic Potential."""
 
     v_c: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
@@ -47,7 +47,7 @@ class LogarithmicPotential(AbstractPotential):
 
 
 @final
-class LMJ09LogarithmicPotential(AbstractPotential):
+class LMJ09LogarithmicPotential(AbstractSinglePotential):
     """Logarithmic Potential from LMJ09.
 
     https://ui.adsabs.harvard.edu/abs/2009ApJ...703L..67L/abstract

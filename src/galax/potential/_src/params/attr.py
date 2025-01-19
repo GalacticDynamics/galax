@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, NoReturn, final
 from .field import ParameterField
 
 if TYPE_CHECKING:
-    from galax.potential import AbstractPotential
+    import galax.potential  # noqa: ICN001
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,8 +81,8 @@ class ParametersAttribute(AbstractParametersAttribute):
 
     def __get__(
         self,
-        instance: "AbstractPotential | None",
-        owner: "type[AbstractPotential] | None",
+        instance: "galax.potential.AbstractPotential | None",
+        owner: "type[galax.potential.AbstractPotential] | None",
     ) -> "MappingProxyType[str, ParameterField]":
         # Called from the class
         if instance is None:
@@ -126,8 +126,8 @@ class CompositeParametersAttribute(AbstractParametersAttribute):
 
     def __get__(
         self,
-        instance: "AbstractCompositePotential | None",
-        owner: "type[AbstractCompositePotential] | None",
+        instance: "galax.potential.AbstractCompositePotential | None",
+        owner: "type[galax.potential.AbstractCompositePotential] | None",
     ) -> "MappingProxyType[str, ParameterField]":
         # Called from the class
         if instance is None:

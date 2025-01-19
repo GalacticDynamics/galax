@@ -10,12 +10,10 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_composite import AbstractCompositePotential_Test
-
-##############################################################################
+from .test_composite import AbstractSpecialCompositePotential_Test
 
 
-class TestMilkyWayPotential(AbstractCompositePotential_Test):
+class TestMilkyWayPotential(AbstractSpecialCompositePotential_Test):
     """Test the `galax.potential.MilkyWayPotential` class."""
 
     @pytest.fixture(scope="class")
@@ -28,10 +26,10 @@ class TestMilkyWayPotential(AbstractCompositePotential_Test):
     ) -> dict[str, dict[str, u.Quantity]]:
         """Composite potential."""
         return {
-            "disk": pot_cls._default_disk,
-            "halo": pot_cls._default_halo,
-            "bulge": pot_cls._default_bulge,
-            "nucleus": pot_cls._default_nucleus,
+            "disk": pot_cls.disk,
+            "halo": pot_cls.halo,
+            "bulge": pot_cls.bulge,
+            "nucleus": pot_cls.nucleus,
         }
 
     @pytest.fixture(scope="class")

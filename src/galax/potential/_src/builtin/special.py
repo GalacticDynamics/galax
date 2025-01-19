@@ -8,16 +8,21 @@ __all__ = [
 ]
 
 
-from collections.abc import Mapping
-from dataclasses import KW_ONLY, replace
-from typing import Any, Final, TypeVar, final
+from collections.abc import Iterator, Mapping
+from dataclasses import KW_ONLY, MISSING, replace
+from functools import partial
+from typing import Any, cast, final
+from typing_extensions import override
 
 import equinox as eqx
+import jax
 
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.unitsystems import AbstractUnitSystem, galactic
 from xmmutablemap import ImmutableMap
 
+import galax.typing as gt
 from .builtin import (
     HernquistPotential,
     MiyamotoNagaiPotential,
@@ -30,30 +35,160 @@ from .nfw import NFWPotential
 from galax.potential._src.base import AbstractPotential, default_constants
 from galax.potential._src.base_multi import AbstractCompositePotential
 
-T = TypeVar("T", bound=AbstractPotential)
 
+class AbstractSpecialPotential(AbstractCompositePotential):  # TODO: make public
+    """Base class for special potentials."""
 
-def _parse_comp(
-    instance: T | Mapping[str, Any] | None,
-    default: T,
-    units: AbstractUnitSystem,
-) -> T:
-    # Return early it's just the default
-    if instance is None:
-        return replace(default, units=units)
+    _keys: tuple[str, ...] = eqx.field(init=False, repr=False, static=True)
 
-    # Return early if we already have an instance of the potential
-    if isinstance(instance, type(default)):
-        return replace(instance, units=units)
+    def __init__(
+        self,
+        mapping: Mapping[str, AbstractPotential] | None = None,
+        /,
+        *,
+        units: Any = MISSING,
+        constants: Any = default_constants,
+        **kwargs: Any,
+    ) -> None:
+        # Merge the mapping and kwargs
+        kwargs = dict(mapping or {}, **kwargs)
 
-    return replace(default, **dict(instance or {}), units=units)
+        # Get the fields, for conversion and validation
+        fields = self.__dataclass_fields__
+
+        # Units
+        self.units = fields["units"].metadata["converter"](
+            units if units is not MISSING else fields["units"].default
+        )
+
+        # Constants
+        # TODO: some similar check that the same constants are the same, e.g.
+        #       `G` is the same for all potentials. Or use `constants` to update
+        #       the `constants` of every potential (before `super().__init__`)
+        self.constants = fields["constants"].metadata["converter"](constants)
+
+        # Initialize the Parameter (potential) fields
+        # TODO: more robust detection using the annotations: AbstractParameter
+        # or Annotated[AbstractParameter, ...]
+        # 1. Check the kwargs vs the fields
+        self._keys = tuple(
+            k for k, f in fields.items() if isinstance(f.default, AbstractPotential)
+        )
+        extra_keys = set(kwargs) - set(self._keys)
+        if extra_keys:
+            msg = f"invalid keys {extra_keys}"
+            raise ValueError(msg)
+        # 2. Iterate over the fields and set the values
+        v: Any
+        for k, v in kwargs.items():
+            # Either update from the default or try more general conversion.
+            pot = (
+                replace(fields[k].default, **v)
+                if isinstance(v, dict | ImmutableMap)  # type: ignore[redundant-expr]
+                else fields[k].metadata["converter"](v)
+            )
+            setattr(self, k, pot)
+
+    @property
+    def _data(self) -> ImmutableMap[str, AbstractPotential]:
+        """Return the parameters as an ImmutableMap."""
+        return ImmutableMap({k: getattr(self, k) for k in self._keys})
+
+    # === Potential ===
+
+    @override
+    @partial(jax.jit, inline=True)
+    def _potential(
+        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
+    ) -> gt.SpecificEnergyBtSz0:
+        return jnp.sum(
+            jnp.array([getattr(self, k)._potential(q, t) for k in self._keys]),  # noqa: SLF001
+            axis=0,
+        )
+
+    # ===========================================
+    # Collection Protocol
+
+    @override
+    def __contains__(self, key: str) -> bool:
+        """Check if the key is in the composite potential.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.MilkyWayPotential()
+        >>> "disk" in pot
+        True
+
+        """
+        return key in self._keys
+
+    @override
+    def __iter__(self) -> Iterator[str]:
+        """Check if the key is in the composite potential.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.MilkyWayPotential()
+        >>> tuple(iter(pot))
+        ('disk', 'halo', 'bulge', 'nucleus')
+
+        """
+        return iter(self._keys)
+
+    @override
+    def __len__(self) -> int:
+        """Check if the key is in the composite potential.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.MilkyWayPotential()
+        >>> len(pot)
+        4
+
+        """
+        return len(self._keys)
+
+    # ===========================================
+    # Mapping Protocol
+
+    @override
+    def __getitem__(self, key: str, /) -> AbstractPotential:
+        """Check if the key is in the composite potential.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.MilkyWayPotential()
+        >>> pot["disk"]
+        MiyamotoNagaiPotential(
+            units=...,
+            constants=ImmutableMap({'G': ...}),
+            m_tot=ConstantParameter( ... ),
+            a=ConstantParameter( ... ),
+            b=ConstantParameter( ... )
+        )
+
+        """
+        key = eqx.error_if(key, key not in self._keys, f"key {key} not found")
+        return cast(AbstractPotential, getattr(self, key))
 
 
 # ===================================================================
 
 
 @final
-class BovyMWPotential2014(AbstractCompositePotential):
+class BovyMWPotential2014(AbstractSpecialPotential):
     """``MWPotential2014`` from Bovy (2015).
 
     An implementation of the ``MWPotential2014``
@@ -80,7 +215,32 @@ class BovyMWPotential2014(AbstractCompositePotential):
     components added at bottom of init.
     """
 
-    _data: dict[str, AbstractPotential] = eqx.field(init=False)
+    disk: MiyamotoNagaiPotential = eqx.field(
+        default=MiyamotoNagaiPotential(
+            m_tot=u.Quantity(68_193_902_782.346756, "Msun"),
+            a=u.Quantity(3.0, "kpc"),
+            b=u.Quantity(280, "pc"),
+            units=galactic,
+        ),
+        converter=MiyamotoNagaiPotential.from_,
+    )
+    bulge: PowerLawCutoffPotential = eqx.field(
+        default=PowerLawCutoffPotential(
+            m_tot=u.Quantity(4501365375.06545, "Msun"),
+            alpha=1.8,
+            r_c=u.Quantity(1.9, "kpc"),
+            units=galactic,
+        ),
+        converter=PowerLawCutoffPotential.from_,
+    )
+    halo: NFWPotential = eqx.field(
+        default=NFWPotential(
+            m=u.Quantity(4.3683325e11, "Msun"),
+            r_s=u.Quantity(16, "kpc"),
+            units=galactic,
+        ),
+        converter=NFWPotential.from_,
+    )
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
         default=galactic, static=True, converter=u.unitsystem
@@ -89,43 +249,9 @@ class BovyMWPotential2014(AbstractCompositePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    _default_disk: Final = MiyamotoNagaiPotential(
-        m_tot=u.Quantity(68_193_902_782.346756, "Msun"),
-        a=u.Quantity(3.0, "kpc"),
-        b=u.Quantity(280, "pc"),
-        units=galactic,
-    )
-    _default_bulge: Final = PowerLawCutoffPotential(
-        m_tot=u.Quantity(4501365375.06545, "Msun"),
-        alpha=1.8,
-        r_c=u.Quantity(1.9, "kpc"),
-        units=galactic,
-    )
-    _default_halo: Final = NFWPotential(
-        m=u.Quantity(4.3683325e11, "Msun"), r_s=u.Quantity(16, "kpc"), units=galactic
-    )
-
-    def __init__(
-        self,
-        *,
-        disk: MiyamotoNagaiPotential | Mapping[str, Any] | None = None,
-        bulge: PowerLawCutoffPotential | Mapping[str, Any] | None = None,
-        halo: NFWPotential | Mapping[str, Any] | None = None,
-        units: Any = galactic,
-        constants: Any = default_constants,
-    ) -> None:
-        units_ = u.unitsystem(units)
-        super().__init__(
-            disk=_parse_comp(disk, self._default_disk, units_),
-            bulge=_parse_comp(bulge, self._default_bulge, units_),
-            halo=_parse_comp(halo, self._default_halo, units_),
-            units=units_,
-            constants=constants,
-        )
-
 
 @final
-class LM10Potential(AbstractCompositePotential):
+class LM10Potential(AbstractSpecialPotential):
     """Law & Majewski (2010) Milky Way mass model.
 
     The Galactic potential used by Law and Majewski (2010) to represent the
@@ -158,7 +284,33 @@ class LM10Potential(AbstractCompositePotential):
     components added at bottom of init.
     """
 
-    _data: dict[str, AbstractPotential] = eqx.field(init=False)
+    disk: MiyamotoNagaiPotential = eqx.field(
+        default=MiyamotoNagaiPotential(
+            m_tot=u.Quantity(1e11, "Msun"),
+            a=u.Quantity(6.5, "kpc"),
+            b=u.Quantity(0.26, "kpc"),
+            units=galactic,
+        ),
+        converter=MiyamotoNagaiPotential.from_,
+    )
+    bulge: HernquistPotential = eqx.field(
+        default=HernquistPotential(
+            m_tot=u.Quantity(3.4e10, "Msun"), r_s=u.Quantity(0.7, "kpc"), units=galactic
+        ),
+        converter=HernquistPotential.from_,
+    )
+    halo: LMJ09LogarithmicPotential = eqx.field(
+        default=LMJ09LogarithmicPotential(
+            v_c=u.Quantity(_sqrt2 * 121.858, "km / s"),
+            r_s=u.Quantity(12.0, "kpc"),
+            q1=1.38,
+            q2=1.0,
+            q3=1.36,
+            phi=u.Quantity(97, "degree"),
+            units=galactic,
+        ),
+        converter=LMJ09LogarithmicPotential.from_,
+    )
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
         default=galactic, static=True, converter=u.unitsystem
@@ -167,46 +319,9 @@ class LM10Potential(AbstractCompositePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    _default_disk: Final = MiyamotoNagaiPotential(
-        m_tot=u.Quantity(1e11, "Msun"),
-        a=u.Quantity(6.5, "kpc"),
-        b=u.Quantity(0.26, "kpc"),
-        units=galactic,
-    )
-    _default_bulge: Final = HernquistPotential(
-        m_tot=u.Quantity(3.4e10, "Msun"), r_s=u.Quantity(0.7, "kpc"), units=galactic
-    )
-    _default_halo: Final = LMJ09LogarithmicPotential(
-        v_c=u.Quantity(_sqrt2 * 121.858, "km / s"),
-        r_s=u.Quantity(12.0, "kpc"),
-        q1=1.38,
-        q2=1.0,
-        q3=1.36,
-        phi=u.Quantity(97, "degree"),
-        units=galactic,
-    )
-
-    def __init__(
-        self,
-        *,
-        disk: MiyamotoNagaiPotential | Mapping[str, Any] | None = None,
-        bulge: HernquistPotential | Mapping[str, Any] | None = None,
-        halo: LMJ09LogarithmicPotential | Mapping[str, Any] | None = None,
-        units: Any = galactic,
-        constants: Any = default_constants,
-    ) -> None:
-        units_ = u.unitsystem(units)
-        super().__init__(
-            disk=_parse_comp(disk, self._default_disk, units_),
-            bulge=_parse_comp(bulge, self._default_bulge, units_),
-            halo=_parse_comp(halo, self._default_halo, units_),
-            units=units_,
-            constants=constants,
-        )
-
 
 @final
-class MilkyWayPotential(AbstractCompositePotential):
+class MilkyWayPotential(AbstractSpecialPotential):
     """Milky Way mass model.
 
     A simple mass-model for the Milky Way consisting of a spherical nucleus and
@@ -236,54 +351,44 @@ class MilkyWayPotential(AbstractCompositePotential):
     components added at bottom of init.
     """
 
-    _data: dict[str, AbstractPotential] = eqx.field(init=False)
+    disk: MiyamotoNagaiPotential = eqx.field(
+        default=MiyamotoNagaiPotential(
+            m_tot=u.Quantity(6.8e10, "Msun"),
+            a=u.Quantity(3.0, "kpc"),
+            b=u.Quantity(0.28, "kpc"),
+            units=galactic,
+        ),
+        converter=MiyamotoNagaiPotential.from_,
+    )
+    halo: NFWPotential = eqx.field(
+        default=NFWPotential(
+            m=u.Quantity(5.4e11, "Msun"), r_s=u.Quantity(15.62, "kpc"), units=galactic
+        ),
+        converter=NFWPotential.from_,
+    )
+    bulge: HernquistPotential = eqx.field(
+        default=HernquistPotential(
+            m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units=galactic
+        ),
+        converter=HernquistPotential.from_,
+    )
+    nucleus: HernquistPotential = eqx.field(
+        default=HernquistPotential(
+            m_tot=u.Quantity(1.71e9, "Msun"), r_s=u.Quantity(70, "pc"), units=galactic
+        ),
+        converter=HernquistPotential.from_,
+    )
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
-        init=True, static=True, converter=u.unitsystem
+        default=galactic, static=True, converter=u.unitsystem
     )
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
-    _default_disk: Final = MiyamotoNagaiPotential(
-        m_tot=u.Quantity(6.8e10, "Msun"),
-        a=u.Quantity(3.0, "kpc"),
-        b=u.Quantity(0.28, "kpc"),
-        units=galactic,
-    )
-    _default_halo: Final = NFWPotential(
-        m=u.Quantity(5.4e11, "Msun"), r_s=u.Quantity(15.62, "kpc"), units=galactic
-    )
-    _default_bulge: Final = HernquistPotential(
-        m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units=galactic
-    )
-    _default_nucleus: Final = HernquistPotential(
-        m_tot=u.Quantity(1.71e9, "Msun"), r_s=u.Quantity(70, "pc"), units=galactic
-    )
-
-    def __init__(
-        self,
-        *,
-        disk: MiyamotoNagaiPotential | Mapping[str, Any] | None = None,
-        halo: NFWPotential | Mapping[str, Any] | None = None,
-        bulge: HernquistPotential | Mapping[str, Any] | None = None,
-        nucleus: HernquistPotential | Mapping[str, Any] | None = None,
-        units: Any = galactic,
-        constants: Any = default_constants,
-    ) -> None:
-        units_ = u.unitsystem(units)
-        super().__init__(
-            disk=_parse_comp(disk, self._default_disk, units_),
-            halo=_parse_comp(halo, self._default_halo, units_),
-            bulge=_parse_comp(bulge, self._default_bulge, units_),
-            nucleus=_parse_comp(nucleus, self._default_nucleus, units_),
-            units=units_,
-            constants=constants,
-        )
-
 
 @final
-class MilkyWayPotential2022(AbstractCompositePotential):
+class MilkyWayPotential2022(AbstractSpecialPotential):
     """Milky Way mass model.
 
     A mass-model for the Milky Way consisting of a spherical nucleus and bulge, a
@@ -314,50 +419,42 @@ class MilkyWayPotential2022(AbstractCompositePotential):
     components added at bottom of init.
     """
 
-    _data: dict[str, AbstractPotential] = eqx.field(init=False)
+    disk: MN3Sech2Potential = eqx.field(
+        default=MN3Sech2Potential(
+            m_tot=u.Quantity(4.7717e10, "Msun"),
+            h_R=u.Quantity(2.6, "kpc"),
+            h_z=u.Quantity(0.3, "kpc"),
+            positive_density=True,
+            units=galactic,
+        ),
+        converter=MN3Sech2Potential.from_,
+    )
+    halo: NFWPotential = eqx.field(
+        default=NFWPotential(
+            m=u.Quantity(5.5427e11, "Msun"),
+            r_s=u.Quantity(15.626, "kpc"),
+            units=galactic,
+        ),
+        converter=NFWPotential.from_,
+    )
+    bulge: HernquistPotential = eqx.field(
+        default=HernquistPotential(
+            m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units=galactic
+        ),
+        converter=HernquistPotential.from_,
+    )
+    nucleus: HernquistPotential = eqx.field(
+        default=HernquistPotential(
+            m_tot=u.Quantity(1.8142e9, "Msun"),
+            r_s=u.Quantity(68.8867, "pc"),
+            units=galactic,
+        ),
+        converter=HernquistPotential.from_,
+    )
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
-        init=True, static=True, converter=u.unitsystem
+        default=galactic, static=True, converter=u.unitsystem
     )
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
-
-    _default_disk: Final = MN3Sech2Potential(
-        m_tot=u.Quantity(4.7717e10, "Msun"),
-        h_R=u.Quantity(2.6, "kpc"),
-        h_z=u.Quantity(0.3, "kpc"),
-        positive_density=True,
-        units=galactic,
-    )
-    _default_halo: Final = NFWPotential(
-        m=u.Quantity(5.5427e11, "Msun"), r_s=u.Quantity(15.626, "kpc"), units=galactic
-    )
-    _default_bulge: Final = HernquistPotential(
-        m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units=galactic
-    )
-    _default_nucleus: Final = HernquistPotential(
-        m_tot=u.Quantity(1.8142e9, "Msun"),
-        r_s=u.Quantity(68.8867, "pc"),
-        units=galactic,
-    )
-
-    def __init__(
-        self,
-        *,
-        disk: MN3Sech2Potential | Mapping[str, Any] | None = None,
-        halo: NFWPotential | Mapping[str, Any] | None = None,
-        bulge: HernquistPotential | Mapping[str, Any] | None = None,
-        nucleus: HernquistPotential | Mapping[str, Any] | None = None,
-        units: Any = galactic,
-        constants: Any = default_constants,
-    ) -> None:
-        units_ = u.unitsystem(units)
-        super().__init__(
-            disk=_parse_comp(disk, self._default_disk, units_),
-            halo=_parse_comp(halo, self._default_halo, units_),
-            bulge=_parse_comp(bulge, self._default_bulge, units_),
-            nucleus=_parse_comp(nucleus, self._default_nucleus, units_),
-            units=units_,
-            constants=constants,
-        )

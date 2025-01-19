@@ -3,7 +3,7 @@ __all__ = ["AbstractSinglePotential"]
 import abc
 import uuid
 from dataclasses import KW_ONLY
-from typing import Any, cast
+from typing import Any
 
 import equinox as eqx
 
@@ -42,6 +42,6 @@ class AbstractSinglePotential(AbstractPotential, strict=True):
             return NotImplemented
 
         if isinstance(other, CompositePotential):
-            return cast(CompositePotential, other.__ror__(self))
+            return other.__ror__(self)
 
         return CompositePotential({str(uuid.uuid4()): self, str(uuid.uuid4()): other})

@@ -50,28 +50,14 @@ input::
     >>> import galax.potential as gp
     >>> mw = gp.MilkyWayPotential()
     >>> mw
-    MilkyWayPotential({'disk': MiyamotoNagaiPotential(
-      units=LTMAUnitSystem( ... ),
-      constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( value=Quantity[...](value=...f64[], unit=Unit("solMass")) ),
-      a=ConstantParameter( value=Quantity[...](value=...f64[], unit=Unit("kpc")) ),
-      b=ConstantParameter( value=Quantity[...](value=...f64[], unit=Unit("kpc")) )
-    ), 'halo': NFWPotential(
-      units=LTMAUnitSystem( ... ),
-      constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( value=Quantity[...](value=...f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( value=Quantity[...](value=...f64[], unit=Unit("kpc")) )
-    ), 'bulge': HernquistPotential(
-      units=LTMAUnitSystem( ... ),
-      constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( value=Quantity[...](value=...f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( value=Quantity[...](value=...f64[], unit=Unit("kpc")) )
-    ), 'nucleus': HernquistPotential(
-      units=LTMAUnitSystem( ... ),
-      constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( value=Quantity[...](value=...f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( value=Quantity[...](value=...f64[], unit=Unit("kpc")) )
-    )})
+    MilkyWayPotential(
+      disk=MiyamotoNagaiPotential(...),
+      halo=NFWPotential(...),
+      bulge=HernquistPotential(...),
+      nucleus=HernquistPotential(...),
+      units=...,
+      constants=...
+    )
 
 This model, by default, contains four distinct potential components as listed in
 the output above: disk, bulge, nucleus, and halo components. You can configure
@@ -150,9 +136,16 @@ phase-space positions at times::
 
     >>> orbit
     Orbit(
-      q=CartesianPos3D(
-        x=Quantity[PhysicalType('length')](value=f64[2000], unit=Unit("kpc")),
-        ...
+        q=CartesianPos3D(
+          x=Quantity[PhysicalType('length')](value=f64[2000], unit=Unit("kpc")),
+          ...
+        ),
+        p=CartesianVel3D(...),
+        t=Quantity['time'](Array([...], dtype=float64), unit='Myr'),
+        frame=SimulationFrame(),
+        potential=MilkyWayPotential(...),
+        interpolant=None
+    )
 
 :class:`~galax.dynamics.Orbit` objects have many of their own useful methods for
 performing common tasks, like plotting an orbit::

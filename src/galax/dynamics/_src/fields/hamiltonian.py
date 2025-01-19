@@ -107,7 +107,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     """
 
     #: Potential.
-    potential: gp.AbstractBasePotential
+    potential: gp.AbstractPotential
 
     @property
     def units(self) -> u.AbstractUnitSystem:

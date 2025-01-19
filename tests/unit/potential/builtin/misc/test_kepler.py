@@ -9,7 +9,7 @@ import unxt as u
 import galax.potential as gp
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin
-from galax.potential import AbstractBasePotential, KeplerPotential
+from galax.potential import AbstractPotential, KeplerPotential
 from galax.typing import QuSz3
 
 
@@ -63,8 +63,8 @@ class TestKeplerPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.06747463, -0.03680435, -0.05520652],

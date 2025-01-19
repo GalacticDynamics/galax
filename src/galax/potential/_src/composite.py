@@ -12,7 +12,7 @@ import equinox as eqx
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-from .base import AbstractBasePotential, default_constants
+from .base import AbstractPotential, default_constants
 from .base_multi import AbstractCompositePotential
 from .params.attr import CompositeParametersAttribute
 
@@ -23,7 +23,7 @@ class CompositePotential(AbstractCompositePotential):
 
     parameters: ClassVar = CompositeParametersAttribute(MappingProxyType({}))
 
-    _data: dict[str, AbstractBasePotential]
+    _data: dict[str, AbstractPotential]
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(
         init=False, static=True, converter=u.unitsystem

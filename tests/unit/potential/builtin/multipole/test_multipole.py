@@ -297,8 +297,8 @@ class TestMultipolePotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
@@ -316,7 +316,7 @@ class TestMultipolePotential(
 
     @pytest.mark.xfail
     def test_galax_to_gala_to_galax_roundtrip(
-        self, pot: gp.AbstractBasePotential, x: gt.QuSz3
+        self, pot: gp.AbstractPotential, x: gt.QuSz3
     ) -> None:
         super().test_galax_to_gala_to_galax_roundtrip(pot, x)
 

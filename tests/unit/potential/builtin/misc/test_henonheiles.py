@@ -13,7 +13,7 @@ import galax.potential as gp
 import galax.typing as gt
 from ...param.test_field import ParameterFieldMixin
 from ...test_core import AbstractSinglePotential_Test
-from galax.potential import AbstractBasePotential, HenonHeilesPotential
+from galax.potential import AbstractPotential, HenonHeilesPotential
 
 
 class ParameterCoeffMixin(ParameterFieldMixin):
@@ -124,8 +124,8 @@ class TestHenonHeilesPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.Sz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.Sz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         got = pot.tidal_tensor(x, t=0)
         exp = u.Quantity(
             [[4.33333333, 2.0, 0.0], [2.0, -3.66666667, 0.0], [0.0, 0.0, -0.66666667]],

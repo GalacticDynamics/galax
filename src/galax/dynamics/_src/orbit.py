@@ -97,7 +97,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     frame: gc.frames.SimulationFrame  # TODO: support frames
     """The reference frame of the phase-space position."""
 
-    potential: gp.AbstractBasePotential
+    potential: gp.AbstractPotential
     """Potential in which the orbit was integrated."""
 
     interpolant: gc.PhaseSpacePositionInterpolant | None = None
@@ -120,7 +120,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
         cls,
         w: gc.AbstractOnePhaseSpacePosition,
         t: QuSzTime,
-        potential: gp.AbstractBasePotential,
+        potential: gp.AbstractPotential,
     ) -> "Orbit":
         """Create an orbit from a phase-space position."""
         return Orbit(
@@ -304,7 +304,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
 
     @partial(jax.jit, inline=True)
     def potential_energy(
-        self, potential: gp.AbstractBasePotential | None = None, /
+        self, potential: gp.AbstractPotential | None = None, /
     ) -> BtFloatQuSz0:
         r"""Return the specific potential energy.
 
@@ -314,7 +314,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
 
         Parameters
         ----------
-        potential : `galax.potential.AbstractBasePotential` | None
+        potential : `galax.potential.AbstractPotential` | None
             The potential object to compute the energy from. If `None`
             (default), use the potential attribute of the orbit.
 
@@ -329,7 +329,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
 
     @partial(jax.jit, inline=True)
     def total_energy(
-        self, potential: "gp.AbstractBasePotential | None" = None, /
+        self, potential: "gp.AbstractPotential | None" = None, /
     ) -> BtFloatQuSz0:
         r"""Return the specific total energy.
 
@@ -341,7 +341,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
 
         Parameters
         ----------
-        potential : `galax.potential.AbstractBasePotential` | None
+        potential : `galax.potential.AbstractPotential` | None
             The potential object to compute the energy from. If `None`
             (default), use the potential attribute of the orbit.
 

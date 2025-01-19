@@ -9,7 +9,7 @@ import unxt as u
 import galax.potential as gp
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterShapeAMixin, ParameterShapeBMixin
-from galax.potential import AbstractBasePotential, MiyamotoNagaiPotential
+from galax.potential import AbstractPotential, MiyamotoNagaiPotential
 from galax.typing import Sz3
 
 
@@ -73,8 +73,8 @@ class TestMiyamotoNagaiPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: Sz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: Sz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.03315736, -0.01146205, -0.02262999],

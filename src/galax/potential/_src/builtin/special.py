@@ -27,10 +27,10 @@ from .builtin import (
 from .const import _sqrt2
 from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
-from galax.potential._src.base import AbstractBasePotential, default_constants
+from galax.potential._src.base import AbstractPotential, default_constants
 from galax.potential._src.base_multi import AbstractCompositePotential
 
-T = TypeVar("T", bound=AbstractBasePotential)
+T = TypeVar("T", bound=AbstractPotential)
 
 
 def _parse_comp(
@@ -80,7 +80,7 @@ class BovyMWPotential2014(AbstractCompositePotential):
     components added at bottom of init.
     """
 
-    _data: dict[str, AbstractBasePotential] = eqx.field(init=False)
+    _data: dict[str, AbstractPotential] = eqx.field(init=False)
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
         default=galactic, static=True, converter=u.unitsystem
@@ -158,7 +158,7 @@ class LM10Potential(AbstractCompositePotential):
     components added at bottom of init.
     """
 
-    _data: dict[str, AbstractBasePotential] = eqx.field(init=False)
+    _data: dict[str, AbstractPotential] = eqx.field(init=False)
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
         default=galactic, static=True, converter=u.unitsystem
@@ -236,7 +236,7 @@ class MilkyWayPotential(AbstractCompositePotential):
     components added at bottom of init.
     """
 
-    _data: dict[str, AbstractBasePotential] = eqx.field(init=False)
+    _data: dict[str, AbstractPotential] = eqx.field(init=False)
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
         init=True, static=True, converter=u.unitsystem
@@ -314,7 +314,7 @@ class MilkyWayPotential2022(AbstractCompositePotential):
     components added at bottom of init.
     """
 
-    _data: dict[str, AbstractBasePotential] = eqx.field(init=False)
+    _data: dict[str, AbstractPotential] = eqx.field(init=False)
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(
         init=True, static=True, converter=u.unitsystem

@@ -121,7 +121,7 @@ when passing in Cartesian position and velocity values, we typically have to
 pass them in as :class:`~astropy.units.Quantity` objects (i.e., with units).
 This is required whenever the potential class you are using has a unit system,
 which you can check by calling the
-:obj:`~galax.potential.AbstractBasePotential.units` attribute of your potential
+:obj:`~galax.potential.AbstractPotential.units` attribute of your potential
 object::
 
     >>> mw.units

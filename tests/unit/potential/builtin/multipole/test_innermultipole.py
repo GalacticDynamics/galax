@@ -100,8 +100,8 @@ class TestMultipoleInnerPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [-1.63440876e-16, -1.86509453e-16, 7.62993217e-17],
@@ -131,7 +131,7 @@ class TestMultipoleInnerPotential(
     )
     def test_method_gala(
         self,
-        pot: gp.AbstractBasePotential,
+        pot: gp.AbstractPotential,
         method0: str,
         method1: str,
         x: gt.QuSz3,

@@ -1,4 +1,4 @@
-__all__ = ["AbstractBasePotential"]
+__all__ = ["AbstractPotential"]
 
 import abc
 from dataclasses import KW_ONLY, fields, replace
@@ -37,7 +37,7 @@ default_constants = ImmutableMap({"G": u.Quantity(_CONST_G.value, _CONST_G.unit)
 ##############################################################################
 
 
-class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
+class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
     """Abstract Potential Class."""
 
     parameters: ClassVar = ParametersAttribute(MappingProxyType({}))
@@ -106,7 +106,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         This method MUST be implemented by subclasses.
 
         It is recommended to both JIT and vectorize this function.
-        See ``AbstractBasePotential.potential`` for an example.
+        See ``AbstractPotential.potential`` for an example.
 
         Parameters
         ----------
@@ -125,7 +125,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         raise NotImplementedError
 
     def potential(
-        self: "AbstractBasePotential", *args: Any, **kwargs: Any
+        self: "AbstractPotential", *args: Any, **kwargs: Any
     ) -> u.Quantity["specific energy"]:  # TODO: shape hint
         """Compute the potential energy at the given position(s).
 
@@ -153,7 +153,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         See Also
         --------
         :func:`galax.potential.potential`
-        :meth:`galax.potential.AbstractBasePotential.potential`
+        :meth:`galax.potential.AbstractPotential.potential`
         """
         return self.potential(*args)
 
@@ -170,7 +170,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return grad_op(q.astype(float), t)
 
     def gradient(
-        self: "AbstractBasePotential", *args: Any, **kwargs: Any
+        self: "AbstractPotential", *args: Any, **kwargs: Any
     ) -> cx.vecs.CartesianAcc3D:  # TODO: shape hint
         """Compute the gradient of the potential at the given position(s).
 
@@ -193,7 +193,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return jnp.trace(jac_op(q, t))
 
     def laplacian(
-        self: "AbstractBasePotential", *args: Any, **kwargs: Any
+        self: "AbstractPotential", *args: Any, **kwargs: Any
     ) -> u.Quantity["1/s^2"]:  # TODO: shape hint
         """Compute the laplacian of the potential at the given position(s).
 
@@ -215,7 +215,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         return self._laplacian(q, t) / (4 * jnp.pi * self.constants["G"])
 
     def density(
-        self: "AbstractBasePotential", *args: Any, **kwargs: Any
+        self: "AbstractPotential", *args: Any, **kwargs: Any
     ) -> u.Quantity["mass density"]:  # TODO: shape hint
         """Compute the density at the given position(s).
 
@@ -237,9 +237,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
         )
         return hess_op(q, t)
 
-    def hessian(
-        self: "AbstractBasePotential", *args: Any, **kwargs: Any
-    ) -> gt.BtQuSz33:
+    def hessian(self: "AbstractPotential", *args: Any, **kwargs: Any) -> gt.BtQuSz33:
         """Compute the hessian of the potential at the given position(s).
 
         See :func:`~galax.potential.hessian` for details.
@@ -252,7 +250,7 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
     # Convenience methods
 
     def acceleration(
-        self: "AbstractBasePotential", *args: Any, **kwargs: Any
+        self: "AbstractPotential", *args: Any, **kwargs: Any
     ) -> cx.vecs.CartesianAcc3D:  # TODO: shape hint
         """Compute the acceleration due to the potential at the given position(s).
 
@@ -395,8 +393,8 @@ class AbstractBasePotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # t
 @dispatch
 def convert_potential(
     to_: type[GalaxLibrary],  # noqa: ARG001
-    from_: AbstractBasePotential,
+    from_: AbstractPotential,
     /,
-) -> AbstractBasePotential:
+) -> AbstractPotential:
     """Convert the potential to an object of a different library."""
     return from_

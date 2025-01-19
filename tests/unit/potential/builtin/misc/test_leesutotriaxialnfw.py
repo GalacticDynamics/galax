@@ -159,8 +159,8 @@ class TestLeeSutoTriaxialNFWPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.19553506, -0.10665549, -0.15998323],
@@ -188,7 +188,7 @@ class TestLeeSutoTriaxialNFWPotential(
     )
     def test_method_gala(
         self,
-        pot: gp.AbstractBasePotential,
+        pot: gp.AbstractPotential,
         method0: str,
         method1: str,
         x: gt.QuSz3,

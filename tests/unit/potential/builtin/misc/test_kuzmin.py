@@ -11,7 +11,7 @@ import galax.typing as gt
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterShapeAMixin
 from galax._interop.optional_deps import OptDeps
-from galax.potential import AbstractBasePotential, KuzminPotential
+from galax.potential import AbstractPotential, KuzminPotential
 
 
 class TestKuzminPotential(
@@ -70,8 +70,8 @@ class TestKuzminPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
                 [0.0400675, -0.01335583, -0.02671166],

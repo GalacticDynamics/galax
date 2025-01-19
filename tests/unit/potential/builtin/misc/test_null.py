@@ -27,7 +27,7 @@ class TestNullPotential(AbstractSinglePotential_Test):
 
     @override
     def test_init_units_from_name(
-        self, pot_cls: type[gp.AbstractBasePotential], fields_unitless: dict[str, Array]
+        self, pot_cls: type[gp.AbstractPotential], fields_unitless: dict[str, Array]
     ) -> None:
         """Test unit system from named string."""
         fields_unitless.pop("units")
@@ -78,8 +78,8 @@ class TestNullPotential(AbstractSinglePotential_Test):
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: gp.AbstractBasePotential, x: gt.QuSz3) -> None:
-        """Test the `AbstractBasePotential.tidal_tensor` method."""
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2"
         )

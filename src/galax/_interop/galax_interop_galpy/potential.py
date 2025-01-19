@@ -24,11 +24,11 @@ import galax.potential.io as gdio
 
 @dispatch
 def convert_potential(
-    to_: gp.AbstractBasePotential | type[gdio.GalaxLibrary],  # noqa: ARG001
+    to_: gp.AbstractPotential | type[gdio.GalaxLibrary],  # noqa: ARG001
     from_: gpy.Potential | list[gpy.Potential],
     /,
-) -> gp.AbstractBasePotential:
-    """Convert a :class:`~galpy.potential.Potential` to a :class:`~galax.potential.AbstractBasePotential`.
+) -> gp.AbstractPotential:
+    """Convert a :class:`~galpy.potential.Potential` to a :class:`~galax.potential.AbstractPotential`.
 
     Examples
     --------
@@ -54,10 +54,10 @@ def convert_potential(
 @dispatch
 def convert_potential(
     to_: gpy.Potential | list[gpy.Potential] | type[gdio.GalpyLibrary],  # noqa: ARG001
-    from_: gp.AbstractBasePotential,
+    from_: gp.AbstractPotential,
     /,
 ) -> gpy.Potential | list[gpy.Potential]:
-    """Convert a :class:`~galax.potential.AbstractBasePotential` to a :class:`~galpy.Potential`.
+    """Convert a :class:`~galax.potential.AbstractPotential` to a :class:`~galpy.Potential`.
 
     Examples
     --------
@@ -105,14 +105,14 @@ def convert_potential(
 
 
 def _error_if_not_all_constant_parameters(
-    pot: gp.AbstractBasePotential,
-) -> gp.AbstractBasePotential:
+    pot: gp.AbstractPotential,
+) -> gp.AbstractPotential:
     """Check if all parameters are constant."""
     is_time_dep = any(
         not isinstance(getattr(pot, name), gp.params.ConstantParameter)
         for name in pot.parameters
     )
-    pot: gp.AbstractBasePotential = eqx.error_if(
+    pot: gp.AbstractPotential = eqx.error_if(
         pot, is_time_dep, "Gala does not support time-dependent parameters."
     )
     return pot
@@ -132,12 +132,12 @@ def _galpy_mass(pot: gpy.Potential, /) -> u.Quantity:
 @dispatch.abstract
 def galpy_to_galax(
     _: Antd[gpy.Potential, Doc("The Galpy potential to convert to galax.")], /
-) -> Antd[gp.AbstractBasePotential, Doc("The resulting Galax potential.")]:
+) -> Antd[gp.AbstractPotential, Doc("The resulting Galax potential.")]:
     """Convert a :mod:`galpy` potential to a :mod:`galax` potential.
 
     This dispatch is for all :mod:`galpy` potentials that do not have a
     registered function to convert them to a
-    :class:`~galax.potential.AbstractBasePotential`.
+    :class:`~galax.potential.AbstractPotential`.
 
     """
     raise NotImplementedError  # pragma: no cover
@@ -148,7 +148,7 @@ def galpy_to_galax(
 #       handle time-dependent Galax parameters.
 @dispatch.abstract
 def galax_to_galpy(
-    _: Antd[gp.AbstractBasePotential, Doc("The galax potential to convert to Galpy")],
+    _: Antd[gp.AbstractPotential, Doc("The galax potential to convert to Galpy")],
     /,
 ) -> Antd[gpy.Potential, Doc("The resulting Galpy potential.")]:
     """Convert a Galax potential to a Gala potential.

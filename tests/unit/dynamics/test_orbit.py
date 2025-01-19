@@ -32,12 +32,12 @@ class TestOrbit(AbstractOnePhaseSpacePosition_Test[gd.Orbit]):
         return gd.Orbit
 
     @pytest.fixture(scope="class")
-    def potential(self) -> gp.AbstractBasePotential:
+    def potential(self) -> gp.AbstractPotential:
         """Return a potential."""
         return gp.MilkyWayPotential()
 
     def make_w(
-        self, w_cls: type[T], shape: gt.Shape, potential: gp.AbstractBasePotential
+        self, w_cls: type[T], shape: gt.Shape, potential: gp.AbstractPotential
     ) -> T:
         """Return a phase-space position."""
         _, subkeys = return_keys(3)
@@ -57,9 +57,7 @@ class TestOrbit(AbstractOnePhaseSpacePosition_Test[gd.Orbit]):
         )
 
     @pytest.fixture
-    def w(
-        self, w_cls: type[T], shape: gt.Shape, potential: gp.AbstractBasePotential
-    ) -> T:
+    def w(self, w_cls: type[T], shape: gt.Shape, potential: gp.AbstractPotential) -> T:
         """Return a phase-space position."""
         return self.make_w(w_cls, shape, potential=potential)
 

@@ -30,11 +30,11 @@ from galax._interop.optional_deps import OptDeps
 
 @dispatch
 def convert_potential(
-    to_: gp.AbstractBasePotential | type[gpio.GalaxLibrary],  # noqa: ARG001
+    to_: gp.AbstractPotential | type[gpio.GalaxLibrary],  # noqa: ARG001
     from_: galap.CPotentialBase | galap.PotentialBase,
     /,
-) -> gp.AbstractBasePotential:
-    """Convert a :class:`~gala.potential.PotentialBase` to a :class:`~galax.potential.AbstractBasePotential`.
+) -> gp.AbstractPotential:
+    """Convert a :class:`~gala.potential.PotentialBase` to a :class:`~galax.potential.AbstractPotential`.
 
     Examples
     --------
@@ -57,10 +57,10 @@ def convert_potential(
 @dispatch
 def convert_potential(
     to_: galap.CPotentialBase | galap.PotentialBase | type[gpio.GalaLibrary],  # noqa: ARG001
-    from_: gp.AbstractBasePotential,
+    from_: gp.AbstractPotential,
     /,
 ) -> galap.CPotentialBase | galap.PotentialBase:
-    """Convert a :class:`~galax.potential.AbstractBasePotential` to a :class:`~gala.potential.PotentialBase`.
+    """Convert a :class:`~galax.potential.AbstractPotential` to a :class:`~gala.potential.PotentialBase`.
 
     Examples
     --------
@@ -84,7 +84,7 @@ def convert_potential(
     from_: galap.CPotentialBase | galap.PotentialBase,
     /,
 ) -> galap.CPotentialBase | galap.PotentialBase:
-    """Convert a :class:`~galax.potential.AbstractBasePotential` to itself.
+    """Convert a :class:`~galax.potential.AbstractPotential` to itself.
 
     Examples
     --------
@@ -106,7 +106,7 @@ def convert_potential(
 # -----------------------
 # Helper functions
 
-PT = TypeVar("PT", bound=gp.AbstractBasePotential)
+PT = TypeVar("PT", bound=gp.AbstractPotential)
 
 
 def _get_frame(pot: galap.PotentialBase, /) -> cx.ops.AbstractOperator:
@@ -136,7 +136,7 @@ def _galax_to_gala_units(units: AbstractUnitSystem, /) -> GalaUnitSystem:
 
 
 def _error_if_not_all_constant_parameters(
-    pot: gp.AbstractBasePotential, *params: str
+    pot: gp.AbstractPotential, *params: str
 ) -> None:
     """Check if all parameters are constant."""
     is_time_dep = any(
@@ -164,7 +164,7 @@ def _check_gala_units(gala: GalaUnitSystem, /) -> GalaUnitSystem:
 
 
 @dispatch
-def gala_to_galax(pot: galap.PotentialBase, /) -> gp.AbstractBasePotential:
+def gala_to_galax(pot: galap.PotentialBase, /) -> gp.AbstractPotential:
     """Convert a :mod:`gala` potential to a :mod:`galax` potential.
 
     Parameters
@@ -174,13 +174,13 @@ def gala_to_galax(pot: galap.PotentialBase, /) -> gp.AbstractBasePotential:
 
     Returns
     -------
-    gala_pot : :class:`~galax.potential.AbstractBasePotential`
+    gala_pot : :class:`~galax.potential.AbstractPotential`
         :mod:`galax` potential.
 
     """
     msg = (
         "`gala_to_galax` does not have a registered function to convert "
-        f"{pot.__class__.__name__!r} to a `galax.AbstractBasePotential` instance."
+        f"{pot.__class__.__name__!r} to a `galax.AbstractPotential` instance."
     )
     raise NotImplementedError(msg)
 
@@ -189,12 +189,12 @@ def gala_to_galax(pot: galap.PotentialBase, /) -> gp.AbstractBasePotential:
 #       Gala potentials are not time-dependent, so we need to specify how to
 #       handle time-dependent Galax parameters.
 @dispatch
-def galax_to_gala(pot: gp.AbstractBasePotential, /) -> galap.PotentialBase:
+def galax_to_gala(pot: gp.AbstractPotential, /) -> galap.PotentialBase:
     """Convert a Galax potential to a Gala potential.
 
     Parameters
     ----------
-    pot : :class:`~galax.potential.AbstractBasePotential`
+    pot : :class:`~galax.potential.AbstractPotential`
         Galax potential.
 
     Returns

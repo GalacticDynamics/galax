@@ -12,7 +12,7 @@ from unxt.unitsystems import AbstractUnitSystem
 import galax.potential as gp
 import galax.typing as gt
 from ...param.test_field import ParameterFieldMixin
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from galax.potential import AbstractBasePotential, HenonHeilesPotential
 
 
@@ -72,7 +72,7 @@ class ParameterTimeScaleMixin(ParameterFieldMixin):
 
 
 class TestHenonHeilesPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterCoeffMixin,
     ParameterTimeScaleMixin,

@@ -9,7 +9,7 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 from ...param.test_field import ParameterFieldMixin
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import (
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
@@ -24,7 +24,7 @@ from galax.potential.params import ConstantParameter
 class ParameterPhiMixin(ParameterFieldMixin):
     """Test the phi parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_phi(self) -> u.Quantity["angle"]:
@@ -54,7 +54,7 @@ class ParameterPhiMixin(ParameterFieldMixin):
 
 
 class TestLMJ09LogarithmicPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterVCMixin,
     ParameterRSMixin,

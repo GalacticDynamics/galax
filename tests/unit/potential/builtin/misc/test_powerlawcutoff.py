@@ -10,7 +10,7 @@ import galax.potential as gp
 import galax.typing as gt
 from ...io.test_gala import parametrize_test_method_gala
 from ...param.test_field import ParameterFieldMixin
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps
 from galax.potential import AbstractBasePotential, PowerLawCutoffPotential
@@ -63,7 +63,7 @@ class RCParameterMixin(ParameterFieldMixin):
 
 
 class TestPowerLawCutoffPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     AlphaParameterMixin,

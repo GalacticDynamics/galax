@@ -26,7 +26,7 @@ from xmmutablemap import ImmutableMap
 import galax.typing as gt
 from .const import _log2
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractPotential
+from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
@@ -34,7 +34,7 @@ from galax.potential._src.params.field import ParameterField
 
 
 @final
-class NFWPotential(AbstractPotential):
+class NFWPotential(AbstractSinglePotential):
     r"""NFW Potential.
 
     .. math::
@@ -173,7 +173,7 @@ class NFWPotential(AbstractPotential):
 
 
 @final
-class LeeSutoTriaxialNFWPotential(AbstractPotential):
+class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     """Approximate triaxial (in the density) NFW potential.
 
     Approximation of a Triaxial NFW Potential with the flattening in the
@@ -316,7 +316,7 @@ class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
 
 
 @final
-class TriaxialNFWPotential(AbstractPotential):
+class TriaxialNFWPotential(AbstractSinglePotential):
     r"""Triaxial (density) NFW Potential.
 
     .. math::
@@ -513,7 +513,7 @@ class TriaxialNFWPotential(AbstractPotential):
 # -------------------------------------------------------------------
 
 
-class Vogelsberger08TriaxialNFWPotential(AbstractPotential):
+class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
     """Triaxial NFW Potential from DOI 10.1111/j.1365-2966.2007.12746.x."""
 
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]

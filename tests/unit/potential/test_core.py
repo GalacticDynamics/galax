@@ -19,7 +19,7 @@ from .test_utils import FieldUnitSystemMixin
 from galax.potential._src.base import default_constants
 
 
-class AbstractPotential_Test(AbstractBasePotential_Test, FieldUnitSystemMixin):
+class AbstractSinglePotential_Test(AbstractBasePotential_Test, FieldUnitSystemMixin):
     """Test the `galax.potential.AbstractBasePotential` class."""
 
     @pytest.fixture(scope="class")
@@ -34,7 +34,7 @@ class AbstractPotential_Test(AbstractBasePotential_Test, FieldUnitSystemMixin):
 ###############################################################################
 
 
-class TestAbstractPotential(AbstractPotential_Test):
+class TestAbstractSinglePotential(AbstractSinglePotential_Test):
     """Test the `galax.potential.AbstractBasePotential` class."""
 
     HAS_GALA_COUNTERPART: ClassVar[bool] = False

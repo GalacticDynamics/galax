@@ -7,14 +7,14 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterShapeAMixin, ParameterShapeBMixin
 from galax.potential import AbstractBasePotential, MiyamotoNagaiPotential
 from galax.typing import Sz3
 
 
 class TestMiyamotoNagaiPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterShapeAMixin,

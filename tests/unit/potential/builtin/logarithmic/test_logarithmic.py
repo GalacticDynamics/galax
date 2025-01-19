@@ -8,13 +8,13 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from .test_common import ParameterRSMixin, ParameterVCMixin
 from galax.potential import AbstractBasePotential, LogarithmicPotential
 
 
 class TestLogarithmicPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterVCMixin,
     ParameterRSMixin,

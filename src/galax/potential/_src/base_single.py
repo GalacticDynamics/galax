@@ -1,4 +1,4 @@
-__all__ = ["AbstractPotential"]
+__all__ = ["AbstractSinglePotential"]
 
 import abc
 import uuid
@@ -15,7 +15,7 @@ from .base import AbstractBasePotential, default_constants
 from .composite import CompositePotential
 
 
-class AbstractPotential(AbstractBasePotential, strict=True):
+class AbstractSinglePotential(AbstractBasePotential, strict=True):
     """Abstract base class for all potential objects."""
 
     _: KW_ONLY

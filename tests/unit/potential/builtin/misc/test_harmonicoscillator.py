@@ -12,7 +12,7 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 from ...param.test_field import ParameterFieldMixin
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from galax._interop.optional_deps import OptDeps
 from galax.potential._src.base import AbstractBasePotential
 
@@ -44,7 +44,7 @@ class ParameterOmegaMixin(ParameterFieldMixin):
 
 
 class TestHarmonicOscillatorPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterOmegaMixin,
 ):

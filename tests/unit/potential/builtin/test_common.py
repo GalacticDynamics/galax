@@ -18,7 +18,7 @@ from galax.potential.params import ConstantParameter
 class ParameterMTotMixin(ParameterFieldMixin):
     """Test the total mass parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_m_tot(self) -> u.Quantity["mass"]:
@@ -51,7 +51,7 @@ class ParameterMTotMixin(ParameterFieldMixin):
 class ParameterMMixin(ParameterFieldMixin):
     """Test the total mass parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_m(self) -> u.Quantity["mass"]:
@@ -88,7 +88,7 @@ class ParameterMMixin(ParameterFieldMixin):
 class ParameterScaleRadiusMixin(ParameterFieldMixin):
     """Test the mass parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_r_s(self) -> u.Quantity["length"]:
@@ -97,7 +97,7 @@ class ParameterScaleRadiusMixin(ParameterFieldMixin):
     # =====================================================
 
     def test_r_s_units(
-        self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]
+        self, pot_cls: type[gp.AbstractSinglePotential], fields: dict[str, Any]
     ) -> None:
         """Test the mass parameter."""
         fields["r_s"] = 1.0 * u.unit(10 * u.unit("kpc"))
@@ -109,7 +109,7 @@ class ParameterScaleRadiusMixin(ParameterFieldMixin):
         )
 
     def test_r_s_constant(
-        self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]
+        self, pot_cls: type[gp.AbstractSinglePotential], fields: dict[str, Any]
     ):
         """Test the mass parameter."""
         fields["r_s"] = u.Quantity(1.0, "kpc")
@@ -118,7 +118,7 @@ class ParameterScaleRadiusMixin(ParameterFieldMixin):
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_s_userfunc(
-        self, pot_cls: type[gp.AbstractPotential], fields: dict[str, Any]
+        self, pot_cls: type[gp.AbstractSinglePotential], fields: dict[str, Any]
     ):
         """Test the mass parameter."""
         fields["r_s"] = lambda t: t * 1.2

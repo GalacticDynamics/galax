@@ -10,14 +10,14 @@ from unxt.unitsystems import galactic
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMMixin, ParameterScaleRadiusMixin
 
 ###############################################################################
 
 
 class TestNFWPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMMixin,
     ParameterScaleRadiusMixin,

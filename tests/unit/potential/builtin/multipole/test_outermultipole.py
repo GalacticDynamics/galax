@@ -12,7 +12,7 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
 from .test_abstractmultipole import ParameterSlmMixin, ParameterTlmMixin
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps
@@ -21,7 +21,7 @@ from galax._interop.optional_deps import GSL_ENABLED, OptDeps
 
 
 class TestMultipoleOuterPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterScaleRadiusMixin,

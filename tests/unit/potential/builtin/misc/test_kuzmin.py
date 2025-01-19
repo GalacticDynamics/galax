@@ -8,14 +8,14 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterShapeAMixin
 from galax._interop.optional_deps import OptDeps
 from galax.potential import AbstractBasePotential, KuzminPotential
 
 
 class TestKuzminPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterShapeAMixin,

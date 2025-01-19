@@ -6,7 +6,7 @@ from plum import convert
 import quaxed.numpy as qnp
 import unxt as u
 
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import (
     ParameterMTotMixin,
     ParameterShapeHRMixin,
@@ -21,7 +21,7 @@ from galax.typing import Sz3
 
 
 class TestMN3ExponentialPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterShapeHRMixin,
@@ -102,7 +102,7 @@ class TestMN3ExponentialPotential(
 
 
 class TestMN3Sech2Potential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterShapeHRMixin,

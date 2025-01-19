@@ -7,13 +7,13 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
 from galax.potential import AbstractBasePotential, HernquistPotential
 
 
 class TestHernquistPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterScaleRadiusMixin,

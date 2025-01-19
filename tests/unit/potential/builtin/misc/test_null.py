@@ -11,10 +11,10 @@ import unxt.unitsystems as usx
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 
 
-class TestNullPotential(AbstractPotential_Test):
+class TestNullPotential(AbstractSinglePotential_Test):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.NullPotential]:
         return gp.NullPotential

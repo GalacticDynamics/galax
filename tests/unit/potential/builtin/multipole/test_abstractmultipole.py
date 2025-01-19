@@ -23,7 +23,7 @@ class ParameterAngularCoefficientsMixin(ParameterFieldMixin):
 class ParameterSlmMixin(ParameterAngularCoefficientsMixin):
     """Test the Slm parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_Slm(self, field_l_max) -> Shaped[Array, "3 3"]:
@@ -70,7 +70,7 @@ class ParameterSlmMixin(ParameterAngularCoefficientsMixin):
 class ParameterTlmMixin(ParameterAngularCoefficientsMixin):
     """Test the Tlm parameter."""
 
-    pot_cls: type[gp.AbstractPotential]
+    pot_cls: type[gp.AbstractSinglePotential]
 
     @pytest.fixture(scope="class")
     def field_Tlm(self, field_l_max) -> Shaped[Array, "3 3"]:

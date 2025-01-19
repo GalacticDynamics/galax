@@ -8,13 +8,13 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterShapeAMixin, ParameterShapeBMixin
 from galax.potential import AbstractBasePotential, SatohPotential
 
 
 class TestSatohPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterShapeAMixin,

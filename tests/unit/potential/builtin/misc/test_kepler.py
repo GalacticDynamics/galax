@@ -7,14 +7,14 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from ...test_core import AbstractPotential_Test
+from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin
 from galax.potential import AbstractBasePotential, KeplerPotential
 from galax.typing import QuSz3
 
 
 class TestKeplerPotential(
-    AbstractPotential_Test,
+    AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
 ):

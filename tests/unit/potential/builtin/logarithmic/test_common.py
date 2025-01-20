@@ -34,12 +34,15 @@ class ParameterVCMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.v_c(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "km/s")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_v_c_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
-        fields["v_c"] = lambda t: t + 2
+
+        def cos_v_c(t: u.Quantity["time"]) -> u.Quantity["speed"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "km/s")
+
+        fields["v_c"] = cos_v_c
         pot = pot_cls(**fields)
-        assert pot.v_c(t=u.Quantity(0, "Myr")) == 2
+        assert pot.v_c(t=u.Quantity(0, "Myr")) == u.Quantity(10, "km/s")
 
 
 class ParameterRSMixin(ParameterFieldMixin):
@@ -69,9 +72,12 @@ class ParameterRSMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.r_s(t=u.Quantity(0, "Myr")) == u.Quantity(11.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_s_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
-        fields["r_s"] = lambda t: t + 2
+
+        def cos_r_s(t: u.Quantity["time"]) -> u.Quantity["length"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+
+        fields["r_s"] = cos_r_s
         pot = pot_cls(**fields)
-        assert pot.r_s(t=u.Quantity(0, "Myr")) == 2
+        assert pot.r_s(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")

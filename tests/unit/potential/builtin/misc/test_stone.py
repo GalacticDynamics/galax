@@ -28,12 +28,15 @@ class ParameterRCMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.r_c(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_c_userfunc(self, pot_cls, fields):
         """Test the `r_c` parameter."""
-        fields["r_c"] = lambda t: t * 1.2
+
+        def cos_r_c(t: u.Quantity["time"]) -> u.Quantity["length"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+
+        fields["r_c"] = cos_r_c
         pot = pot_cls(**fields)
-        assert pot.a1(t=u.Quantity(0, "Myr")) == 2
+        assert pot.r_c(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")
 
 
 class ParameterRHMixin(ParameterFieldMixin):
@@ -51,12 +54,15 @@ class ParameterRHMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.r_h(t=u.Quantity(0, "Myr")) == u.Quantity(11.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_h_userfunc(self, pot_cls, fields):
         """Test the `r_h` parameter."""
-        fields["r_h"] = lambda t: t * 1.2
+
+        def cos_r_h(t: u.Quantity["time"]) -> u.Quantity["length"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+
+        fields["r_h"] = cos_r_h
         pot = pot_cls(**fields)
-        assert pot.a1(t=u.Quantity(0, "Myr")) == 2
+        assert pot.r_h(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")
 
 
 class TestStoneOstriker15Potential(

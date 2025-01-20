@@ -32,12 +32,15 @@ class ParameterOmegaMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.omega(t=0) == u.Quantity(1.0, "Hz")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_omega_userfunc(self, pot_cls, fields):
         """Test the `omega` parameter."""
-        fields["omega"] = lambda t: t * 1.2
+
+        def cos_omega(t: u.Quantity["time"]) -> u.Quantity["frequency"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "Hz")
+
+        fields["omega"] = cos_omega
         pot = pot_cls(**fields)
-        assert pot.omega(t=0) == 2
+        assert pot.omega(t=u.Quantity(0, "Myr")) == u.Quantity(10, "Hz")
 
 
 ################################################################################

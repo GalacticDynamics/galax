@@ -31,12 +31,15 @@ class ParameterCoeffMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.coeff(t=0) == 1 / u.Quantity(1.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_coeff_userfunc(self, pot_cls, fields):
         """Test the `coeff` parameter."""
-        fields["coeff"] = lambda t: t * 1.2
+
+        def cos_coeff(t: u.Quantity["time"]) -> u.Quantity["wavenumber"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "1/kpc")
+
+        fields["coeff"] = cos_coeff
         pot = pot_cls(**fields)
-        assert pot.a1(t=0) == 2
+        assert pot.coeff(t=u.Quantity(0, "Myr")) == u.Quantity(10, "1/kpc")
 
 
 # ===================================================================

@@ -40,12 +40,15 @@ class ParameterMTotMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.m_tot(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "Msun")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_m_tot_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
-        fields["m_tot"] = lambda t: t + 2
+
+        def cos_mass(t: u.Quantity["time"]) -> u.Quantity["mass"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "Msun")
+
+        fields["m_tot"] = cos_mass
         pot = pot_cls(**fields)
-        assert pot.m_tot(t=u.Quantity(0, "Myr")) == 2
+        assert pot.m_tot(t=u.Quantity(0, "Myr")) == u.Quantity(10, "Msun")
 
 
 class ParameterMMixin(ParameterFieldMixin):
@@ -73,12 +76,15 @@ class ParameterMMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.m(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "Msun")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_m_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
-        fields["m"] = lambda t: t + 2
+
+        def cos_mass(t: u.Quantity["time"]) -> u.Quantity["mass"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "Msun")
+
+        fields["m"] = cos_mass
         pot = pot_cls(**fields)
-        assert pot.m(t=u.Quantity(0, "Myr")) == 2
+        assert pot.m(t=u.Quantity(0, "Myr")) == u.Quantity(10, "Msun")
 
 
 # =============================================================================
@@ -116,14 +122,17 @@ class ParameterScaleRadiusMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.r_s(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_r_s_userfunc(
         self, pot_cls: type[gp.AbstractSinglePotential], fields: dict[str, Any]
     ):
-        """Test the mass parameter."""
-        fields["r_s"] = lambda t: t * 1.2
+        """Test the scale radius parameter."""
+
+        def cos_scalelength(t: u.Quantity["time"]) -> u.Quantity["length"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+
+        fields["r_s"] = cos_scalelength
         pot = pot_cls(**fields)
-        assert pot.r_s(t=u.Quantity(0, "Myr")) == 1.2
+        assert pot.r_s(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")
 
 
 # =============================================================================
@@ -145,12 +154,15 @@ class ParameterShapeQ1Mixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.q1(t=u.Quantity(0, "Myr")) == u.Quantity(1.1, "")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_q1_userfunc(self, pot_cls, fields):
-        """Test the mass parameter."""
-        fields["q1"] = lambda t: t * 1.2
+        """Test the q1 parameter."""
+
+        def cos_q1(t: u.Quantity["time"]) -> u.Quantity[""]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "")
+
+        fields["q1"] = cos_q1
         pot = pot_cls(**fields)
-        assert pot.q1(t=u.Quantity(0, "Myr")) == u.Quantity(1.2, "")
+        assert pot.q1(t=u.Quantity(0, "Myr")) == u.Quantity(10, "")
 
 
 class ParameterShapeQ2Mixin(ParameterFieldMixin):
@@ -168,12 +180,15 @@ class ParameterShapeQ2Mixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.q2(t=u.Quantity(0, "Myr")) == u.Quantity(0.6, "")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_q2_userfunc(self, pot_cls, fields):
-        """Test the mass parameter."""
-        fields["q2"] = lambda t: t * 1.2
+        """Test the q2 parameter."""
+
+        def cos_q2(t: u.Quantity["time"]) -> u.Quantity[""]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "")
+
+        fields["q2"] = cos_q2
         pot = pot_cls(**fields)
-        assert pot.q2(t=u.Quantity(0, "Myr")) == u.Quantity(1.2, "")
+        assert pot.q2(t=u.Quantity(0, "Myr")) == u.Quantity(10, "")
 
 
 class ParameterShapeQ3Mixin(ParameterFieldMixin):
@@ -191,12 +206,15 @@ class ParameterShapeQ3Mixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.q3(t=u.Quantity(0, "Myr")) == u.Quantity(0.6, "")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_q3_userfunc(self, pot_cls, fields):
-        """Test the mass parameter."""
-        fields["q3"] = lambda t: t * 1.2
+        """Test the q3 parameter."""
+
+        def cos_q3(t: u.Quantity["time"]) -> u.Quantity[""]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "")
+
+        fields["q3"] = cos_q3
         pot = pot_cls(**fields)
-        assert pot.q3(t=u.Quantity(0, "Myr")) == u.Quantity(1.2, "")
+        assert pot.q3(t=u.Quantity(0, "Myr")) == u.Quantity(10, "")
 
 
 # =============================================================================
@@ -217,12 +235,15 @@ class ParameterShapeAMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.a(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a_userfunc(self, pot_cls, fields):
         """Test the `a` parameter."""
-        fields["a"] = lambda t: t * 1.2
+
+        def cos_a(t: u.Quantity["time"]) -> u.Quantity["length"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+
+        fields["a"] = cos_a
         pot = pot_cls(**fields)
-        assert pot.a(t=u.Quantity(0, "Myr")) == 2
+        assert pot.a(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")
 
 
 class ParameterShapeBMixin(ParameterFieldMixin):
@@ -240,12 +261,15 @@ class ParameterShapeBMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.b(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_b_userfunc(self, pot_cls, fields):
         """Test the `b` parameter."""
-        fields["b"] = lambda t: t * 1.2
+
+        def cos_b(t: u.Quantity["time"]) -> u.Quantity["length"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+
+        fields["b"] = cos_b
         pot = pot_cls(**fields)
-        assert pot.b(t=u.Quantity(0, "Myr")) == 2
+        assert pot.b(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")
 
 
 class ParameterShapeCMixin(ParameterFieldMixin):
@@ -263,12 +287,15 @@ class ParameterShapeCMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.c(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_c_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
-        fields["c"] = lambda t: t * 1.2
+
+        def cos_c(t: u.Quantity["time"]) -> u.Quantity["length"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+
+        fields["c"] = cos_c
         pot = pot_cls(**fields)
-        assert pot.c(t=u.Quantity(0, "Myr")) == 2
+        assert pot.c(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")
 
 
 class ParameterShapeHRMixin(ParameterFieldMixin):
@@ -286,12 +313,15 @@ class ParameterShapeHRMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.h_R(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_h_R_userfunc(self, pot_cls, fields):
         """Test the `h_R` parameter."""
-        fields["h_R"] = lambda t: t * 1.2
+
+        def cos_h_R(t: u.Quantity["time"]) -> u.Quantity["length"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+
+        fields["h_R"] = cos_h_R
         pot = pot_cls(**fields)
-        assert pot.h_R(t=u.Quantity(0, "Myr")) == 2
+        assert pot.h_R(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")
 
 
 class ParameterShapeHZMixin(ParameterFieldMixin):
@@ -309,9 +339,12 @@ class ParameterShapeHZMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.h_z(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "kpc")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_h_z_userfunc(self, pot_cls, fields):
         """Test the `h_z` parameter."""
-        fields["h_z"] = lambda t: t * 1.2
+
+        def cos_h_z(t: u.Quantity["time"]) -> u.Quantity["length"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+
+        fields["h_z"] = cos_h_z
         pot = pot_cls(**fields)
-        assert pot.h_z(t=u.Quantity(0, "Myr")) == 2
+        assert pot.h_z(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")

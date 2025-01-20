@@ -20,7 +20,7 @@ class ShapeA1ParameterMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
-    def field_a1(self) -> u.Quantity["length"]:
+    def field_a1(self) -> u.Quantity[""]:
         return u.Quantity(1.0, "")
 
     # =====================================================
@@ -31,19 +31,24 @@ class ShapeA1ParameterMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.a1(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a1_userfunc(self, pot_cls, fields):
         """Test the `a1` parameter."""
-        fields["a1"] = lambda t: t * 1.2
+
+        def cos_a1(t: u.Quantity["time"]) -> u.Quantity[""]:
+            return u.Quantity(jnp.abs(jnp.cos(t.ustrip("Myr"))) + 1.2, "")
+
+        fields["a1"] = cos_a1
+        fields["a2"] = u.Quantity(1.1, "")
+        fields["a3"] = u.Quantity(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.a1(t=u.Quantity(0, "Myr")) == 2
+        assert pot.a1(t=u.Quantity(0, "Myr")) == u.Quantity(2.2, "")
 
 
 class ShapeA2ParameterMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
-    def field_a2(self) -> u.Quantity["length"]:
+    def field_a2(self) -> u.Quantity[""]:
         return u.Quantity(1.0, "")
 
     # =====================================================
@@ -54,19 +59,24 @@ class ShapeA2ParameterMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.a2(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a2_userfunc(self, pot_cls, fields):
         """Test the `a2` parameter."""
-        fields["a3"] = lambda t: t * 1.2
+
+        def cos_a2(t: u.Quantity["time"]) -> u.Quantity[""]:
+            return u.Quantity(jnp.abs(jnp.cos(t.ustrip("Myr"))) / 2 + 1.1, "")
+
+        fields["a1"] = u.Quantity(2, "")
+        fields["a2"] = cos_a2
+        fields["a3"] = u.Quantity(1, "")
         pot = pot_cls(**fields)
-        assert pot.a2(t=u.Quantity(0, "Myr")) == 2
+        assert pot.a2(t=u.Quantity(0, "Myr")) == u.Quantity(1.6, "")
 
 
 class ShapeA3ParameterMixin(ParameterFieldMixin):
     """Test the shape parameter."""
 
     @pytest.fixture(scope="class")
-    def field_a3(self) -> u.Quantity["length"]:
+    def field_a3(self) -> u.Quantity[""]:
         return u.Quantity(1.0, "")
 
     # =====================================================
@@ -77,12 +87,17 @@ class ShapeA3ParameterMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.a3(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_a3_userfunc(self, pot_cls, fields):
         """Test the `a3` parameter."""
-        fields["a3"] = lambda t: t * 1.2
+
+        def cos_a3(t: u.Quantity["time"]) -> u.Quantity[""]:
+            return u.Quantity(jnp.abs(jnp.cos(t.ustrip("Myr"))) + 0.1, "")
+
+        fields["a1"] = u.Quantity(1.3, "")
+        fields["a2"] = u.Quantity(1.2, "")
+        fields["a3"] = cos_a3
         pot = pot_cls(**fields)
-        assert pot.a3(t=u.Quantity(0, "Myr")) == 2
+        assert pot.a3(t=u.Quantity(0, "Myr")) == u.Quantity(1.1, "")
 
 
 ################################################################################

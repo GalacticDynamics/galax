@@ -34,12 +34,15 @@ class AlphaParameterMixin(ParameterFieldMixin):
         pot = pot_cls(**fields)
         assert pot.alpha(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "rad")
 
-    @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_alpha_userfunc(self, pot_cls, fields):
         """Test the `alpha` parameter."""
-        fields["alpha"] = lambda t: t * 1.2
+
+        def cos_alpha(t: u.Quantity["time"]) -> u.Quantity["angle"]:
+            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "deg")
+
+        fields["alpha"] = cos_alpha
         pot = pot_cls(**fields)
-        assert pot.alpha(t=u.Quantity(0, "Myr")) == 2
+        assert pot.alpha(t=u.Quantity(0, "Myr")) == u.Quantity(10, "deg")
 
 
 class TestLongMuraliBarPotential(

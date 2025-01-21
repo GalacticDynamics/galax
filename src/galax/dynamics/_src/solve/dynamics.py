@@ -840,6 +840,10 @@ def terms(
     return self.terms(wrapper.diffeqsolver)
 
 
+# ===============================================
+# TODO: MOVE TO A BETTER PLACE
+
+
 @gc.AbstractOnePhaseSpacePosition.from_.dispatch  # type: ignore[misc,attr-defined]
 def from_(
     cls: type[gc.AbstractOnePhaseSpacePosition],

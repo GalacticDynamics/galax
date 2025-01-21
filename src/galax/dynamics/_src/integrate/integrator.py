@@ -35,58 +35,6 @@ default_solver = dfx.Dopri8(scan_kind="bounded")
 default_stepsize_controller = dfx.PIDController(rtol=1e-7, atol=1e-7)
 
 
-def converter_dynamicsolver(obj: Any, /) -> DynamicsSolver:
-    """Convert to a `DynamicsSolver`.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> from galax.dynamics.integrate import DynamicsSolver, DiffEqSolver
-
-    >>> diffeqsolve = DynamicsSolver(DiffEqSolver(dfx.Dopri5()))
-    >>> converter_dynamicsolver(diffeqsolve)
-    DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri5(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
-      )
-    )
-
-    >>> diffeqsolve = DiffEqSolver(dfx.Dopri5())
-    >>> converter_dynamicsolver(diffeqsolve)
-    DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri5(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
-      )
-    )
-
-    >>> converter_dynamicsolver(dfx.Dopri5())
-    DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri5(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
-      )
-    )
-
-    >>> try: converter_dynamicsolver(object())
-    ... except TypeError as e: print(e)
-    cannot convert <object object at ...> to a `DynamicsSolver`.
-
-    """
-    if isinstance(obj, DynamicsSolver):
-        out = obj
-    elif isinstance(obj, DiffEqSolver | dfx.AbstractSolver):
-        out = DynamicsSolver(obj)
-    else:
-        msg = f"cannot convert {obj} to a `DynamicsSolver`."  # type: ignore[unreachable]
-        raise TypeError(msg)
-    return out
-
-
 @final
 class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     """Integrator using :func:`diffrax.diffeqsolve`.
@@ -232,7 +180,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
                 stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7),
             )
         ),
-        converter=converter_dynamicsolver,
+        converter=DynamicsSolver.from_,
     )
     _: KW_ONLY
     diffeq_kw: Mapping[str, Any] = eqx.field(

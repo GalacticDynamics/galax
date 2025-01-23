@@ -10,11 +10,10 @@ __all__ = [
     "DynamicsSolver",
     # utils
     "parse_time_specification",
-    "converter_diffeqsolver",
     "parse_saveat",
 ]
 
 from .base import AbstractSolver
 from .dynamics import DynamicsSolver
 from .parsetime import parse_time_specification
-from .utils import converter_diffeqsolver, parse_saveat
+from .utils import parse_saveat

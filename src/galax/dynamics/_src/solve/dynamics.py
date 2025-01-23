@@ -23,7 +23,7 @@ import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .base import AbstractSolver
-from .utils import converter_diffeqsolver, parse_saveat
+from .utils import parse_saveat
 from galax.dynamics._src.diffeq import DiffEqSolver
 from galax.dynamics._src.fields import AbstractDynamicsField
 
@@ -123,7 +123,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
             solver=dfx.Dopri8(),
             stepsize_controller=dfx.PIDController(rtol=1e-8, atol=1e-8),
         ),
-        converter=converter_diffeqsolver,
+        converter=DiffEqSolver.from_,
     )
 
     # -------------------------------------------

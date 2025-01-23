@@ -1,8 +1,4 @@
-"""Dynamics Solvers.
-
-This is private API.
-
-"""
+"""Hamiltonian field."""
 
 __all__ = ["HamiltonianField"]
 
@@ -22,7 +18,7 @@ import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 import galax.typing as gt
-from .base import AbstractDynamicsField
+from .field_base import AbstractDynamicsField
 
 
 @final
@@ -150,7 +146,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         ).ustrip(units["acceleration"])
         return a
 
-    @AbstractDynamicsField.terms.dispatch  # type: ignore[attr-defined, misc]
+    @AbstractDynamicsField.terms.dispatch  # type: ignore[misc]
     def terms(
         self: "AbstractDynamicsField",
         solver: dfx.SemiImplicitEuler,  # noqa: ARG002

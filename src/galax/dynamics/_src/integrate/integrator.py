@@ -21,7 +21,7 @@ import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .interp import Interpolant
 from galax.dynamics._src.diffeq import DiffEqSolver
-from galax.dynamics._src.solve.dynamics import DynamicsSolver
+from galax.dynamics._src.dynamics import DynamicsSolver
 from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")

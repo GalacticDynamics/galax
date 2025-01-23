@@ -15,7 +15,7 @@ from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.potential as gp
 import galax.typing as gt
-from .base import AbstractDynamicsField
+from .field_base import AbstractDynamicsField
 
 
 @final

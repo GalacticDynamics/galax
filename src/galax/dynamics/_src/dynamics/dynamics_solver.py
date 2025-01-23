@@ -22,10 +22,10 @@ from unxt.quantity import UncheckedQuantity as FastQ
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
-from .base import AbstractSolver
+from .field_base import AbstractDynamicsField
 from .utils import parse_saveat
 from galax.dynamics._src.diffeq import DiffEqSolver
-from galax.dynamics._src.fields import AbstractDynamicsField
+from galax.dynamics._src.solver import AbstractSolver
 
 
 @final
@@ -815,7 +815,7 @@ def solve(
 # ===================================================================
 
 
-@AbstractDynamicsField.terms.dispatch  # type: ignore[misc,attr-defined]
+@AbstractDynamicsField.terms.dispatch  # type: ignore[misc]
 def terms(
     self: AbstractDynamicsField, wrapper: DynamicsSolver, /
 ) -> PyTree[dfx.AbstractTerm]:

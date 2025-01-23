@@ -13,14 +13,16 @@ __all__ = [
 ]
 
 import inspect
+from collections.abc import Mapping
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, final
 
 import diffrax as dfx
 import equinox as eqx
 import numpy as np
 from jaxtyping import Array, ArrayLike, Bool, PyTree, Real
+from plum import dispatch
 
 from .interp import VectorizedDenseInterpolation
 
@@ -40,6 +42,7 @@ default_throw = params["throw"].default
 default_adjoint = params["adjoint"].default
 
 
+@final
 class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     """Class-based interface for solving differential equations.
 
@@ -194,3 +197,74 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     # TODO: a contextmanager for producing a temporary DiffEqSolver with
     # different field values.
+
+    @classmethod
+    @dispatch.abstract
+    def from_(cls: "type[DiffEqSolver]", *args: Any, **kwargs: Any) -> "DiffEqSolver":
+        """Construct a `DiffEqSolver` from arguments."""
+        raise NotImplementedError  # pragma: no cover
+
+
+# ==========================================================
+
+
+@DiffEqSolver.from_.dispatch
+def from_(_: type[DiffEqSolver], obj: DiffEqSolver, /) -> DiffEqSolver:
+    """Construct a `DiffEqSolver` from another `DiffEqSolver`.
+
+    Examples
+    --------
+    >>> import diffrax as dfx
+    >>> from galax.dynamics.integrate import DiffEqSolver
+
+    >>> solver = DiffEqSolver(dfx.Dopri5())
+    >>> DiffEqSolver.from_(solver) is solver
+    True
+
+    """
+    return obj
+
+
+@DiffEqSolver.from_.dispatch
+def from_(
+    cls: type[DiffEqSolver], scheme: dfx.AbstractSolver, /, **kwargs: Any
+) -> DiffEqSolver:
+    """Construct a `DiffEqSolver` from a `diffrax.AbstractSolver`.
+
+    Examples
+    --------
+    >>> import diffrax as dfx
+    >>> from galax.dynamics.integrate import DiffEqSolver
+
+    >>> solver = DiffEqSolver.from_(dfx.Dopri5())
+    >>> solver
+    DiffEqSolver(
+      solver=Dopri5(scan_kind=None),
+      stepsize_controller=ConstantStepSize(),
+      adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+    )
+
+    """
+    return cls(scheme, **kwargs)
+
+
+@DiffEqSolver.from_.dispatch
+def from_(cls: type[DiffEqSolver], obj: Mapping[str, Any], /) -> DiffEqSolver:
+    """Construct a `DiffEqSolver` from a mapping.
+
+    Examples
+    --------
+    >>> import diffrax as dfx
+    >>> from galax.dynamics.integrate import DiffEqSolver
+
+    >>> solver = DiffEqSolver.from_({"solver": dfx.Dopri5(),
+    ...       "stepsize_controller": dfx.PIDController(rtol=1e-5, atol=1e-5)})
+    >>> solver
+    DiffEqSolver(
+      solver=Dopri5(scan_kind=None),
+      stepsize_controller=PIDController( ... ),
+      adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+    )
+
+    """
+    return cls(**obj)

@@ -17,12 +17,9 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.dynamics.integrate", RUNTIME_TYPECHECKER):
     from ._src.diffeq import DiffEqSolver, VectorizedDenseInterpolation
+    from ._src.dynamics import DynamicsSolver, parse_time_specification
     from ._src.integrate import Integrator, Interpolant, evaluate_orbit
-    from ._src.solve import (
-        AbstractSolver,
-        DynamicsSolver,
-        parse_time_specification,
-    )
+    from ._src.solver import AbstractSolver
 
 # Cleanup
 del install_import_hook, RUNTIME_TYPECHECKER

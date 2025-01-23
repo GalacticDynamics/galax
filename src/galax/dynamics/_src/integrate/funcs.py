@@ -17,7 +17,7 @@ import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 import galax.typing as gt
 from .integrator import Integrator
-from galax.dynamics._src.fields import HamiltonianField
+from galax.dynamics._src.dynamics import HamiltonianField
 from galax.dynamics._src.orbit import Orbit
 
 # TODO: enable setting the default integrator

@@ -4,82 +4,86 @@ __all__ = ["AbstractCompositePotential"]
 
 
 import uuid
-from collections.abc import Hashable, Mapping
+from collections.abc import Hashable, ItemsView, Iterator, KeysView, Mapping, ValuesView
 from functools import partial
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import equinox as eqx
 import jax
 from plum import dispatch
 
 import quaxed.numpy as jnp
-import unxt as u
-from xmmutablemap import ImmutableMap
-from zeroth import zeroth
 
 import galax.typing as gt
-from .base import AbstractPotential, default_constants
+from .base import AbstractPotential
 
-K = TypeVar("K")
-V = TypeVar("V")
+if TYPE_CHECKING:
+    import galax.potential  # noqa: ICN001
 
 
 # Note: cannot have `strict=True` because of inheriting from ImmutableMap.
-class AbstractCompositePotential(
-    AbstractPotential,
-    ImmutableMap[str, AbstractPotential],  # type: ignore[misc]
-    strict=False,
-):
-    def __init__(
-        self,
-        potentials: (
-            dict[str, AbstractPotential] | tuple[tuple[str, AbstractPotential], ...]
-        ) = (),
-        /,
-        *,
-        units: Any = None,
-        constants: Any = default_constants,
-        **kwargs: AbstractPotential,
-    ) -> None:
-        ImmutableMap.__init__(self, potentials, **kwargs)  # <- ImmutableMap.__init__
+class AbstractCompositePotential(AbstractPotential):
+    """Base class for composite potentials."""
 
-        # __post_init__ stuff:
-        # Check that all potentials have the same unit system
-        units_ = units if units is not None else zeroth(self.values()).units
-        usys = u.unitsystem(units_)
-        if not all(p.units == usys for p in self.values()):
-            msg = "all potentials must have the same unit system"
-            raise ValueError(msg)
-        object.__setattr__(self, "units", usys)  # TODO: not call `object.__setattr__`
-
-        # TODO: some similar check that the same constants are the same, e.g.
-        #       `G` is the same for all potentials. Or use `constants` to update
-        #       the `constants` of every potential (before `super().__init__`)
-        object.__setattr__(self, "constants", constants)
-
-        # Apply the unit system to any parameters.
-        self._apply_unitsystem()
-
-    def __repr__(self) -> str:  # TODO: not need this hack
-        return cast(str, ImmutableMap.__repr__(self))
+    _data: eqx.AbstractVar[dict[str, AbstractPotential]]
 
     # === Potential ===
 
     @partial(jax.jit, inline=True)
-    def _potential(  # TODO: inputs w/ units
+    def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
         return jnp.sum(
-            jnp.asarray(
-                [p._potential(q, t) for p in self.values()]  # noqa: SLF001
-            ),
+            jnp.array([p._potential(q, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
 
-    ###########################################################################
-    # Composite potentials
+    # ===========================================
+    # Collection Protocol
 
-    def __or__(self, other: Any) -> "CompositePotential":
+    def __contains__(self, key: Any) -> bool:
+        """Check if the key is in the composite potential.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.CompositePotential(
+        ...     disk=gp.KeplerPotential(m_tot=u.Quantity(1e11, "Msun"), units="galactic")
+        ... )
+
+        >>> "disk" in pot
+        True
+
+        """  # noqa: E501
+        return key in self._data
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    # ===========================================
+    # Mapping Protocol
+
+    def __getitem__(self, key: str) -> AbstractPotential:
+        return cast(AbstractPotential, self._data[key])
+
+    def keys(self) -> KeysView[str]:
+        return cast(KeysView[str], self._data.keys())
+
+    def values(self) -> ValuesView[AbstractPotential]:
+        return cast(ValuesView[AbstractPotential], self._data.values())
+
+    def items(self) -> ItemsView[str, AbstractPotential]:
+        return cast(ItemsView[str, AbstractPotential], self._data.items())
+
+    # ===========================================
+    # Extending Mapping
+
+    def __or__(self, other: Any) -> "galax.potential.CompositePotential":
         from .composite import CompositePotential
 
         if not isinstance(other, AbstractPotential):
@@ -94,7 +98,7 @@ class AbstractCompositePotential(
             )
         )
 
-    def __ror__(self, other: Any) -> "CompositePotential":
+    def __ror__(self, other: Any) -> "galax.potential.CompositePotential":
         from .composite import CompositePotential
 
         if not isinstance(other, AbstractPotential):
@@ -109,7 +113,10 @@ class AbstractCompositePotential(
             | self._data
         )
 
-    def __add__(self, other: AbstractPotential) -> "CompositePotential":
+    # ===========================================
+    # Convenience
+
+    def __add__(self, other: AbstractPotential) -> "galax.potential.CompositePotential":
         return self | other
 
 

@@ -1576,9 +1576,12 @@ def gala_to_galax(pot: galap.BovyMWPotential2014, /) -> gp.BovyMWPotential2014:
 
     >>> pot = galap.BovyMWPotential2014()
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
-    BovyMWPotential2014({'disk': MiyamotoNagaiPotential( ... ),
-                        'bulge': PowerLawCutoffPotential( ... ),
-                        'halo': NFWPotential( ... )})
+    BovyMWPotential2014(
+      disk=MiyamotoNagaiPotential( ... ),
+      bulge=PowerLawCutoffPotential( ... ),
+      halo=NFWPotential( ... ),
+      units=..., constants=...
+    )
 
     .. skip: end
 
@@ -1645,9 +1648,12 @@ def gala_to_galax(pot: galap.LM10Potential, /) -> gp.LM10Potential:
 
     >>> pot = galap.LM10Potential()
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
-    LM10Potential({'disk': MiyamotoNagaiPotential( ... ),
-                   'bulge': HernquistPotential( ... ),
-                   'halo': LMJ09LogarithmicPotential( ... )})
+    LM10Potential(
+      disk=MiyamotoNagaiPotential( ... ),
+      bulge=HernquistPotential( ... ),
+      halo=LMJ09LogarithmicPotential( ... ),
+      units=..., constants=...
+    )
 
     """
     return gp.LM10Potential(
@@ -1711,10 +1717,13 @@ def gala_to_galax(pot: galap.MilkyWayPotential, /) -> gp.MilkyWayPotential:
 
     >>> pot = galap.MilkyWayPotential()
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
-    MilkyWayPotential({'disk': MiyamotoNagaiPotential( ... ),
-                       'halo': NFWPotential( ... ),
-                       'bulge': HernquistPotential( ... ),
-                       'nucleus': HernquistPotential( ... )})
+    MilkyWayPotential(
+      disk=MiyamotoNagaiPotential( ... ),
+      halo=NFWPotential( ... ),
+      bulge=HernquistPotential( ... ),
+      nucleus=HernquistPotential( ... ),
+      units=..., constants=...
+    )
 
     """  # noqa: E501
     return gp.MilkyWayPotential(
@@ -1778,10 +1787,13 @@ def gala_to_galax(pot: galap.MilkyWayPotential2022, /) -> gp.MilkyWayPotential20
 
     >>> pot = galap.MilkyWayPotential2022()
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
-    MilkyWayPotential2022({'disk': MN3Sech2Potential( ... ),
-                           'halo': NFWPotential( ... ),
-                           'bulge': HernquistPotential( ... ),
-                           'nucleus': HernquistPotential( ... )})
+    MilkyWayPotential2022(
+      disk=MN3Sech2Potential( ... ),
+      halo=NFWPotential( ... ),
+      bulge=HernquistPotential( ... ),
+      nucleus=HernquistPotential( ... ),
+      units=..., constants=...
+    )
 
     """  # noqa: E501
     return gp.MilkyWayPotential2022(

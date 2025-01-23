@@ -8,11 +8,11 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_composite import AbstractCompositePotential_Test
+from .test_composite import AbstractSpecialCompositePotential_Test
 from galax._interop.optional_deps import OptDeps
 
 
-class TestLM10Potential(AbstractCompositePotential_Test):
+class TestLM10Potential(AbstractSpecialCompositePotential_Test):
     """Test the `galax.potential.LM10Potential` class."""
 
     @pytest.fixture(scope="class")
@@ -22,13 +22,9 @@ class TestLM10Potential(AbstractCompositePotential_Test):
     @pytest.fixture(scope="class")
     def pot_map(
         self, pot_cls: type[gp.LM10Potential]
-    ) -> dict[str, dict[str, u.Quantity]]:
+    ) -> dict[str, dict[str, gp.AbstractPotential]]:
         """Composite potential."""
-        return {
-            "disk": pot_cls._default_disk,
-            "bulge": pot_cls._default_bulge,
-            "halo": pot_cls._default_halo,
-        }
+        return {"disk": pot_cls.disk, "bulge": pot_cls.bulge, "halo": pot_cls.halo}
 
     # ==========================================================================
 

@@ -9,11 +9,11 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 from ...io.test_gala import parametrize_test_method_gala
-from ...test_composite import AbstractCompositePotential_Test
+from .test_composite import AbstractSpecialCompositePotential_Test
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps
 
 
-class TestBovyMWPotential2014(AbstractCompositePotential_Test):
+class TestBovyMWPotential2014(AbstractSpecialCompositePotential_Test):
     """Test the `galax.potential.BovyMWPotential2014` class."""
 
     @pytest.fixture(scope="class")
@@ -25,11 +25,7 @@ class TestBovyMWPotential2014(AbstractCompositePotential_Test):
         self, pot_cls: type[gp.BovyMWPotential2014]
     ) -> dict[str, dict[str, u.Quantity]]:
         """Composite potential."""
-        return {
-            "disk": pot_cls._default_disk,
-            "bulge": pot_cls._default_bulge,
-            "halo": pot_cls._default_halo,
-        }
+        return {"disk": pot_cls.disk, "bulge": pot_cls.bulge, "halo": pot_cls.halo}
 
     # ==========================================================================
 

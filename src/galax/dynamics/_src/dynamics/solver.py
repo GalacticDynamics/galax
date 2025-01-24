@@ -23,9 +23,9 @@ import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .field_base import AbstractDynamicsField
-from .utils import parse_saveat
 from galax.dynamics._src.diffeq import DiffEqSolver
 from galax.dynamics._src.solver import AbstractSolver
+from galax.dynamics._src.utils import parse_saveat
 
 
 @final

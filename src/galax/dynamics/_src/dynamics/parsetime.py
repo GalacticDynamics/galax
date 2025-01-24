@@ -28,6 +28,8 @@ def parse_time_specification(
 ) -> Ann[u.Quantity["time"], Doc("An array of times.")]:
     """Construct and return an array of times.
 
+    This is useful for constructing the `ts` argument of `diffrax.SaveAt`.
+
     Options:
 
     - t

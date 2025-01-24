@@ -30,11 +30,8 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     from . import fields, integrate, mockstream, plot
-    from ._src.funcs import (
-        lagrange_points,
-        specific_angular_momentum,
-        tidal_radius,
-    )
+    from ._src.cluster.funcs import lagrange_points, tidal_radius
+    from ._src.funcs import specific_angular_momentum
     from ._src.orbit import Orbit
     from .integrate import evaluate_orbit
     from .mockstream import (

@@ -17,7 +17,8 @@ import quaxed.numpy as jnp
 import galax.potential as gp
 import galax.typing as gt
 from .base import AbstractStreamDF
-from galax.dynamics._src.funcs import specific_angular_momentum, tidal_radius
+from galax.dynamics._src.cluster.funcs import tidal_radius
+from galax.dynamics._src.funcs import specific_angular_momentum
 
 # ============================================================
 # Constants

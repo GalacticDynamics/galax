@@ -10,16 +10,11 @@ import equinox as eqx
 from jaxtyping import PyTree
 from plum import dispatch
 
-import unxt as u
-
 from galax.dynamics._src.diffeq import DiffEqSolver
 
 
 class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
     """Abstract base class for fields."""
-
-    #: unit system of the field.
-    units: eqx.AbstractVar[u.AbstractUnitSystem]
 
     @abstractmethod
     def __call__(self, t: Any, *args: Any, **kwargs: Any) -> Any:

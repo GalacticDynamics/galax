@@ -9,6 +9,7 @@ def test_all() -> None:
         # modules
         "fields",
         "integrate",
+        "cluster",
         "mockstream",
         "plot",
         # core

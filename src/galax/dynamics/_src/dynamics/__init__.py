@@ -15,9 +15,9 @@ __all__ = [
     "parse_saveat",
 ]
 
-from .dynamics_solver import DynamicsSolver
 from .field_base import AbstractDynamicsField
 from .field_hamiltonian import HamiltonianField
 from .field_nbody import NBodyField
 from .parsetime import parse_time_specification
+from .solver import DynamicsSolver
 from .utils import parse_saveat

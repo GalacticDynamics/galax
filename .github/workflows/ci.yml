@@ -17,23 +17,23 @@ env:
   FORCE_COLOR: 3
 
 jobs:
-  # pre-commit:
-  #   name: Format
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.x"
-  #     - uses: pre-commit/action@v3.0.1
-  #       with:
-  #         extra_args: --hook-stage manual --all-files
-  #     # - name: Run PyLint
-  #     #   run: |
-  #     #     echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
-  #     #     pipx run nox -s pylint
+  pre-commit:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files
 
   # Where there's smoke, there's fire!
   smoke:

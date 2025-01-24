@@ -130,7 +130,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     @dispatch.abstract
     def init(
-        self: "DynamicsSolver", term: Any, t0: Any, t1: Any, y0: Any, args: Any
+        self: "DynamicsSolver", terms: Any, t0: Any, t1: Any, y0: Any, args: Any
     ) -> Any:
         # See dispatches below
         raise NotImplementedError  # pragma: no cover
@@ -138,7 +138,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     @dispatch.abstract
     def step(
         self: "DynamicsSolver",
-        term: Any,
+        terms: Any,
         t0: Any,
         t1: Any,
         y0: Any,
@@ -149,7 +149,6 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         # See dispatches below
         raise NotImplementedError  # pragma: no cover
 
-    # TODO: decide on the output type
     # TODO: dispatch where the state from `init` is accepted
     @dispatch.abstract
     def solve(

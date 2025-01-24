@@ -268,3 +268,30 @@ def from_(cls: type[DiffEqSolver], obj: Mapping[str, Any], /) -> DiffEqSolver:
 
     """
     return cls(**obj)
+
+
+@DiffEqSolver.from_.dispatch
+def from_(cls: type[DiffEqSolver], obj: eqx.Partial, /) -> DiffEqSolver:
+    """Construct a `DiffEqSolver` from an `equinox.Partial`.
+
+    Examples
+    --------
+    >>> import equinox as eqx
+    >>> import diffrax as dfx
+    >>> from galax.dynamics.integrate import DiffEqSolver
+
+    >>> partial = eqx.Partial(dfx.diffeqsolve, solver=dfx.Dopri5())
+
+    >>> solver = DiffEqSolver.from_(partial)
+    >>> solver
+    DiffEqSolver(
+      solver=Dopri5(scan_kind=None),
+      stepsize_controller=ConstantStepSize(),
+      adjoint=RecursiveCheckpointAdjoint(checkpoints=None)
+    )
+
+    """
+    obj = eqx.error_if(
+        obj, obj.func is not dfx.diffeqsolve, "must be a partial of diffeqsolve"
+    )
+    return cls(**obj.keywords)  # TODO: what about obj.args?

@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from galax.dynamics import Orbit
     from galax.dynamics.integrate import Integrator
 
-default_constants = ImmutableMap({"G": u.Quantity(_CONST_G.value, _CONST_G.unit)})
+default_constants = ImmutableMap({"G": u.Quantity.from_(_CONST_G)})
 
 
 ##############################################################################

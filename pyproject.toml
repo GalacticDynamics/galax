@@ -37,6 +37,7 @@
     "jax>=0.4.35",
     "jaxlib>=0.4.35",
     "jaxtyping>=0.2.36",
+    "optimistix>=0.0.8",
     "optional-dependencies>=0.3",
     "packaging>=24.1",
     "plotting_backends >= 0.1",
@@ -286,10 +287,11 @@
       "coordinax" = "cx"
       "diffrax" = "dfx"
       "equinox" = "eqx"
-      "unxt" = "u"
       "galax.coordinates" = "gc"
       "galax.potential" = "gp"
       "galax.dynamics" = "gd"
+      "optimistix" = "optx"
+      "unxt" = "u"
 
     [tool.ruff.lint.flake8-type-checking]
       exempt-modules = []

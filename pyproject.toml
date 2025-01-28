@@ -290,6 +290,7 @@
       "galax.coordinates" = "gc"
       "galax.potential" = "gp"
       "galax.dynamics" = "gd"
+      "jax.extend" = "jex"
       "optimistix" = "optx"
       "unxt" = "u"
 

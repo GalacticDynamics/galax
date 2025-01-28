@@ -8,7 +8,7 @@ from typing import TypeAlias, cast, final
 
 import equinox as eqx
 import jax
-from jax.extend.backend import get_backend
+import jax.extend as jex
 from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp
@@ -204,7 +204,9 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             The final phase-space(+time) position of the progenitor.
         """
         # Parse vmapped
-        use_vmap = get_backend().platform == "gpu" if vmapped is None else vmapped
+        use_vmap = (
+            jex.backend.get_backend().platform == "gpu" if vmapped is None else vmapped
+        )
 
         # Ensure w0 is a PhaseSpacePosition
         w0: gc.PhaseSpacePosition

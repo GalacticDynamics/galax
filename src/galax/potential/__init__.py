@@ -76,8 +76,6 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._src.builtin.bars import BarPotential, LongMuraliBarPotential
     from ._src.builtin.builtin import (
         BurkertPotential,
-        HarmonicOscillatorPotential,
-        HenonHeilesPotential,
         HernquistPotential,
         IsochronePotential,
         JaffePotential,
@@ -93,6 +91,10 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         MiyamotoNagaiPotential,
         MN3ExponentialPotential,
         MN3Sech2Potential,
+    )
+    from ._src.builtin.example import (
+        HarmonicOscillatorPotential,
+        HenonHeilesPotential,
     )
     from ._src.builtin.logarithmic import (
         LMJ09LogarithmicPotential,

@@ -1,15 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = [
-    "potential",
-    "gradient",
-    "laplacian",
-    "density",
-    "hessian",
-    "acceleration",
-    "tidal_tensor",
-    "circular_velocity",
-]
+__all__: list[str] = []
 
 from functools import partial
 from typing import Any, TypeAlias
@@ -24,6 +15,7 @@ import unxt as u
 
 import galax.coordinates as gc
 import galax.typing as gt
+from . import api
 from .base import AbstractPotential
 from .utils import parse_to_quantity
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
@@ -244,7 +236,7 @@ def potential(
 
     .. skip: end
     """
-    return potential(pot, q, t)
+    return api.potential(pot, q, t)
 
 
 # =============================================================================
@@ -496,7 +488,7 @@ def gradient(pot: AbstractPotential, q: Any, /, *, t: Any) -> cx.vecs.CartesianA
          [0.027 0.033 0.04 ]]>
 
     """
-    return gradient(pot, q, t)
+    return api.gradient(pot, q, t)
 
 
 # =============================================================================
@@ -722,7 +714,7 @@ def laplacian(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["1/s^2
     >>> pot.laplacian(q, t)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
     """  # noqa: E501
-    return laplacian(pot, q, t)
+    return api.laplacian(pot, q, t)
 
 
 # =============================================================================
@@ -931,8 +923,9 @@ def density(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["mass de
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     .. skip: end
+
     """
-    return density(pot, q, t)
+    return api.density(pot, q, t)
 
 
 # =============================================================================
@@ -1174,8 +1167,9 @@ def hessian(pot: AbstractPotential, q: Any, /, *, t: Any) -> HessianVec:
                          [-0.03680435,  0.01226812, -0.11041304],
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
                     unit='1 / Myr2')
+
     """
-    return hessian(pot, q, t)
+    return api.hessian(pot, q, t)
 
 
 # =============================================================================
@@ -1276,8 +1270,9 @@ def acceleration(
     <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
         [[-0.086 -0.172 -0.258]
          [-0.027 -0.033 -0.04 ]]>
+
     """
-    return -gradient(pot, *args, **kwargs)
+    return -api.gradient(pot, *args, **kwargs)
 
 
 # =============================================================================
@@ -1478,10 +1473,14 @@ def tidal_tensor(pot: AbstractPotential, *args: Any, **kwargs: Any) -> gt.BtQuSz
     return J - traced
 
 
+# =============================================================================
+# Local Circular Velocity
+
+
 # TODO: should this be moved to `galax.dynamics`?
 @dispatch
 @partial(jax.jit, inline=True)
-def circular_velocity(
+def local_circular_velocity(
     pot: AbstractPotential, x: gt.LengthSz3, /, t: gt.TimeSz0
 ) -> gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position.
@@ -1503,7 +1502,7 @@ def circular_velocity(
     >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20.0, "kpc"),
     ...                       units="galactic")
     >>> x = u.Quantity([8.0, 0.0, 0.0], "kpc")
-    >>> gp.circular_velocity(pot, x, t=u.Quantity(0.0, "Gyr"))
+    >>> gp.local_circular_velocity(pot, x, t=u.Quantity(0.0, "Gyr"))
     Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
 
     """
@@ -1515,15 +1514,15 @@ def circular_velocity(
 
 @dispatch
 @partial(jax.jit, inline=True)
-def circular_velocity(
+def local_circular_velocity(
     pot: AbstractPotential, x: gt.LengthSz3, /, *, t: gt.TimeSz0
 ) -> gt.BBtRealQuSz0:
-    return circular_velocity(pot, x, t)
+    return api.local_circular_velocity(pot, x, t)
 
 
 @dispatch
 @partial(jax.jit, inline=True)
-def circular_velocity(
+def local_circular_velocity(
     pot: AbstractPotential, q: cx.vecs.AbstractPos3D, /, t: gt.TimeSz0
 ) -> gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position.
@@ -1537,24 +1536,24 @@ def circular_velocity(
     >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20.0, "kpc"),
     ...                       units="galactic")
     >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "kpc")
-    >>> gp.circular_velocity(pot, x, t=u.Quantity(0.0, "Gyr"))
+    >>> gp.local_circular_velocity(pot, x, t=u.Quantity(0.0, "Gyr"))
     Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
 
     """
-    return circular_velocity(pot, convert(q, u.Quantity), t)
+    return api.local_circular_velocity(pot, convert(q, u.Quantity), t)
 
 
 @dispatch
 @partial(jax.jit, inline=True)
-def circular_velocity(
+def local_circular_velocity(
     pot: AbstractPotential, q: cx.vecs.AbstractPos3D, /, *, t: gt.TimeSz0
 ) -> gt.BBtRealQuSz0:
-    return circular_velocity(pot, q, t)
+    return api.local_circular_velocity(pot, q, t)
 
 
 @dispatch
 @partial(jax.jit, inline=True)
-def circular_velocity(
+def local_circular_velocity(
     pot: AbstractPotential, w: gc.AbstractOnePhaseSpacePosition, /
 ) -> gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position.
@@ -1570,8 +1569,8 @@ def circular_velocity(
     >>> q = gc.PhaseSpacePosition(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
     ...                           p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
     ...                           t=u.Quantity(0.0, "Gyr"))
-    >>> gp.circular_velocity(pot, q)
+    >>> gp.local_circular_velocity(pot, q)
     Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
 
     """
-    return circular_velocity(pot, w.q, w.t)
+    return api.local_circular_velocity(pot, w.q, w.t)

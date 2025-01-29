@@ -55,7 +55,7 @@ __all__ = [
     "hessian",
     "acceleration",
     "tidal_tensor",
-    "circular_velocity",
+    "local_circular_velocity",
 ]
 
 from jaxtyping import install_import_hook
@@ -66,11 +66,11 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from . import io, params, plot
     from ._src.api import (
         acceleration,
-        circular_velocity,
         density,
         gradient,
         hessian,
         laplacian,
+        local_circular_velocity,
         potential,
         tidal_tensor,
     )

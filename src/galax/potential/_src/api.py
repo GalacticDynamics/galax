@@ -8,7 +8,7 @@ __all__ = [
     "hessian",
     "acceleration",
     "tidal_tensor",
-    "circular_velocity",
+    "local_circular_velocity",
 ]
 
 from typing import Any
@@ -64,6 +64,6 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
 
 @dispatch.abstract
-def circular_velocity(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
+def local_circular_velocity(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position."""
     raise NotImplementedError  # pragma: no cover

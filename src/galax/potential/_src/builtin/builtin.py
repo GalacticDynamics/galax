@@ -8,11 +8,7 @@ __all__ = [
     "IsochronePotential",
     "JaffePotential",
     "KeplerPotential",
-    "KuzminPotential",
     "LogarithmicPotential",
-    "MiyamotoNagaiPotential",
-    "MN3ExponentialPotential",
-    "MN3Sech2Potential",
     "NullPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
@@ -23,18 +19,17 @@ __all__ = [
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Annotated as Ann, Any, Final, final
+from typing import Annotated as Ann, Any, final
 from typing_extensions import Doc
 
 import equinox as eqx
 import jax
-from jaxtyping import Array
 
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import quaxed.scipy.special as qsp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem, dimensionless, galactic
+from unxt.unitsystems import AbstractUnitSystem, galactic
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -435,46 +430,6 @@ class KeplerPotential(AbstractSinglePotential):
 
 
 @final
-class KuzminPotential(AbstractSinglePotential):
-    r"""Kuzmin Potential.
-
-    .. math::
-
-        \Phi(x, t) = -\frac{G M(t)}{\sqrt{R^2 + (a(t) + |z|)^2}}
-
-    See https://galaxiesbook.org/chapters/II-01.-Flattened-Mass-Distributions.html#Razor-thin-disk:-The-Kuzmin-model
-
-    """
-
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the potential."""
-
-    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale length."""
-
-    _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    @partial(jax.jit, inline=True)
-    def _potential(
-        self: "KuzminPotential", q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        return (
-            -self.constants["G"]
-            * self.m_tot(t)
-            / jnp.sqrt(
-                q[..., 0] ** 2 + q[..., 1] ** 2 + (jnp.abs(q[..., 2]) + self.a(t)) ** 2
-            )
-        )
-
-
-# -------------------------------------------------------------------
-
-
-@final
 class LogarithmicPotential(AbstractSinglePotential):
     """Logarithmic Potential."""
 
@@ -497,205 +452,6 @@ class LogarithmicPotential(AbstractSinglePotential):
             * self.v_c(t) ** 2
             * jnp.log(ustrip(self.units["length"], self.r_h(t)) ** 2 + r2)
         )
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class MiyamotoNagaiPotential(AbstractSinglePotential):
-    """Miyamoto-Nagai Potential."""
-
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the potential."""
-
-    # TODO: rename
-    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale length in the major-axis (x-y) plane."""
-
-    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale length in the minor-axis (x-y) plane."""
-
-    _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    @partial(jax.jit, inline=True)
-    def _potential(
-        self: "MiyamotoNagaiPotential", q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        R2 = q[..., 0] ** 2 + q[..., 1] ** 2
-        zp2 = (jnp.sqrt(q[..., 2] ** 2 + self.b(t) ** 2) + self.a(t)) ** 2
-        return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(R2 + zp2)
-
-
-# -------------------------------------------------------------------
-
-
-_mn3_K_pos_dens: Final = jnp.array(  # noqa: N816
-    [
-        [0.0036, -0.0330, 0.1117, -0.1335, 0.1749],
-        [-0.0131, 0.1090, -0.3035, 0.2921, -5.7976],
-        [-0.0048, 0.0454, -0.1425, 0.1012, 6.7120],
-        [-0.0158, 0.0993, -0.2070, -0.7089, 0.6445],
-        [-0.0319, 0.1514, -0.1279, -0.9325, 2.6836],
-        [-0.0326, 0.1816, -0.2943, -0.6329, 2.3193],
-    ]
-)
-_mn3_K_neg_dens: Final = jnp.array(  # noqa: N816
-    [
-        [-0.0090, 0.0640, -0.1653, 0.1164, 1.9487],
-        [0.0173, -0.0903, 0.0877, 0.2029, -1.3077],
-        [-0.0051, 0.0287, -0.0361, -0.0544, 0.2242],
-        [-0.0358, 0.2610, -0.6987, -0.1193, 2.0074],
-        [-0.0830, 0.4992, -0.7967, -1.2966, 4.4441],
-        [-0.0247, 0.1718, -0.4124, -0.5944, 0.7333],
-    ]
-)
-_mn3_b_coeffs_exp: Final = jnp.array([-0.269, 1.08, 1.092])
-_mn3_b_coeffs_sech2: Final = jnp.array([-0.033, 0.262, 0.659])
-
-
-class AbstractMN3Potential(AbstractSinglePotential):
-    """A base class for sums of three Miyamoto-Nagai disk potentials."""
-
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the potential."""
-
-    h_R: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment] # noqa: N815
-    """Radial (exponential) scale length."""
-
-    h_z: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """
-    If ``sech2_z=True``, this is the scale height in a sech^2 vertical profile. If
-    ``sech2_z=False``, this is an exponential scale height.
-    """
-
-    positive_density: bool = eqx.field(default=False, static=True)
-    """
-    If ``True``, the density will be positive everywhere, but is only a good
-    approximation of the exponential density within about 5 disk scale lengths. If
-    ``False``, the density will be negative in some regions, but is a better
-    approximation out to about 7 or 8 disk scale lengths.
-    """
-
-    _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    def _get_mn_components(self, t: gt.BBtRealQuSz0, /) -> list[MiyamotoNagaiPotential]:
-        hR = self.h_R(t)
-        hzR = (self.h_z(t) / hR).decompose(dimensionless).value
-        K = _mn3_K_pos_dens if self.positive_density else _mn3_K_neg_dens
-
-        # get b / h_R with fitting functions:
-        b_hR = self._b_coeffs @ jnp.array([hzR**3, hzR**2, hzR])
-
-        x = jnp.vander(b_hR[None], N=5)[0]
-        param_vec = K @ x
-
-        # use fitting function to get the Miyamoto-Nagai component parameters
-        mn_ms = param_vec[:3] * self.m_tot(t)
-        mn_as = param_vec[3:] * hR
-        mn_b = b_hR * hR
-        return [
-            MiyamotoNagaiPotential(
-                m_tot=mn_ms[0], a=mn_as[0], b=mn_b, units=self.units
-            ),
-            MiyamotoNagaiPotential(
-                m_tot=mn_ms[1], a=mn_as[1], b=mn_b, units=self.units
-            ),
-            MiyamotoNagaiPotential(
-                m_tot=mn_ms[2], a=mn_as[2], b=mn_b, units=self.units
-            ),
-        ]
-
-    @partial(jax.jit)
-    def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        unit = self.units["specific energy"]
-        return u.Quantity(
-            jnp.sum(
-                jnp.asarray(
-                    [
-                        mn.potential(q, t).to_value(unit)
-                        for mn in self._get_mn_components(t)
-                    ]
-                ),
-                axis=0,
-            ),
-            unit,
-        )
-
-    @partial(jax.jit)
-    def _density(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
-        unit = self.units["mass density"]
-        return u.Quantity(
-            jnp.sum(
-                jnp.asarray(
-                    [
-                        mn.density(q, t).to_value(unit)
-                        for mn in self._get_mn_components(t)
-                    ]
-                ),
-                axis=0,
-            ),
-            unit,
-        )
-
-
-@final
-class MN3ExponentialPotential(AbstractMN3Potential):
-    """A sum of three Miyamoto-Nagai disk potentials.
-
-    A sum of three Miyamoto-Nagai disk potentials that approximate the potential
-    generated by an exponential (radial) disk with an exponential vertical profile (i.e.
-    a double exponential disk).
-
-    This model is taken from `Smith et al. (2015)
-    <https://ui.adsabs.harvard.edu/abs/2015MNRAS.448.2934S/abstract>`_ : if you use this
-    potential class, please also cite that work.
-
-    As described in the above reference, this approximation has two options: (1)
-    with the ``positive_density=True`` argument set, this density will be
-    positive everywhere, but is only a good approximation of the exponential
-    density within about 5 disk scale lengths, and (2) with
-    ``positive_density=False``, this density will be negative in some regions,
-    but is a better approximation out to about 7 or 8 disk scale lengths.
-    """
-
-    @property
-    def _b_coeffs(self) -> Array:
-        return _mn3_b_coeffs_exp
-
-
-@final
-class MN3Sech2Potential(AbstractMN3Potential):
-    """A sum of three Miyamoto-Nagai disk potentials.
-
-    A sum of three Miyamoto-Nagai disk potentials that approximate the potential
-    generated by an exponential (radial) disk with a sech^2 vertical profile.
-
-    This model is taken from `Smith et al. (2015)
-    <https://ui.adsabs.harvard.edu/abs/2015MNRAS.448.2934S/abstract>`_ : if you use this
-    potential class, please also cite that work.
-
-    As described in the above reference, this approximation has two options: (1)
-    with the ``positive_density=True`` argument set, this density will be
-    positive everywhere, but is only a good approximation of the exponential
-    density within about 5 disk scale lengths, and (2) with
-    ``positive_density=False``, this density will be negative in some regions,
-    but is a better approximation out to about 7 or 8 disk scale lengths.
-    """
-
-    @property
-    def _b_coeffs(self) -> Array:
-        return _mn3_b_coeffs_sech2
 
 
 # -------------------------------------------------------------------

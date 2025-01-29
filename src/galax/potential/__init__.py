@@ -82,16 +82,18 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         IsochronePotential,
         JaffePotential,
         KeplerPotential,
-        KuzminPotential,
-        MiyamotoNagaiPotential,
-        MN3ExponentialPotential,
-        MN3Sech2Potential,
         NullPotential,
         PlummerPotential,
         PowerLawCutoffPotential,
         SatohPotential,
         StoneOstriker15Potential,
         TriaxialHernquistPotential,
+    )
+    from ._src.builtin.disks import (
+        KuzminPotential,
+        MiyamotoNagaiPotential,
+        MN3ExponentialPotential,
+        MN3Sech2Potential,
     )
     from ._src.builtin.logarithmic import (
         LMJ09LogarithmicPotential,

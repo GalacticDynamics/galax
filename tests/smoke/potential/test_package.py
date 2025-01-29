@@ -1,12 +1,12 @@
 import galax.potential as gp
 from galax.potential._src import (
+    api,
     base,
     base_multi,
     base_single,
     builtin,
     composite,
     frame,
-    funcs,
     params,
 )
 
@@ -25,5 +25,5 @@ def test_all() -> None:
         *composite.__all__,
         *params.__all__,
         *frame.__all__,
-        *funcs.__all__,
+        *api.__all__,
     }

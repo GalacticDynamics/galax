@@ -21,6 +21,7 @@ from unxt.quantity import AbstractQuantity
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
+from . import api
 from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
 from .plot import PlotPotentialDescriptor
 from galax.potential._src.params.attr import ParametersAttribute
@@ -143,9 +144,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
         See :func:`~galax.potential.potential` for details.
         """
-        from .funcs import potential
-
-        return potential(self, *args, **kwargs)
+        return api.potential(self, *args, **kwargs)
 
     @partial(jax.jit, inline=True)
     def __call__(self, *args: Any) -> Float[u.Quantity["specific energy"], "*batch"]:
@@ -188,9 +187,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
         See :func:`~galax.potential.gradient` for details.
         """
-        from .funcs import gradient
-
-        return gradient(self, *args, **kwargs)
+        return api.gradient(self, *args, **kwargs)
 
     # ---------------------------------------
     # Laplacian
@@ -211,9 +208,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
         See :func:`~galax.potential.laplacian` for details.
         """
-        from .funcs import laplacian
-
-        return laplacian(self, *args, **kwargs)
+        return api.laplacian(self, *args, **kwargs)
 
     # ---------------------------------------
     # Density
@@ -233,9 +228,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
         See :func:`~galax.potential.density` for details.
         """
-        from .funcs import density
-
-        return density(self, *args, **kwargs)
+        return api.density(self, *args, **kwargs)
 
     # ---------------------------------------
     # Hessian
@@ -254,9 +247,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
         See :func:`~galax.potential.hessian` for details.
         """
-        from .funcs import hessian as hessian_func
-
-        return hessian_func(self, *args, **kwargs)
+        return api.hessian(self, *args, **kwargs)
 
     ###########################################################################
     # Convenience methods
@@ -268,18 +259,14 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
         See :func:`~galax.potential.acceleration` for details.
         """
-        from .funcs import acceleration
-
-        return acceleration(self, *args, **kwargs)
+        return api.acceleration(self, *args, **kwargs)
 
     def tidal_tensor(self, *args: Any, **kwargs: Any) -> gt.BtQuSz33:
         """Compute the tidal tensor.
 
         See :func:`~galax.potential.tidal_tensor` for details.
         """
-        from .funcs import tidal_tensor
-
-        return tidal_tensor(self, *args, **kwargs)
+        return api.tidal_tensor(self, *args, **kwargs)
 
     # =========================================================================
     # Integrating orbits

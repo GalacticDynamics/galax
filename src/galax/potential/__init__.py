@@ -12,45 +12,39 @@ __all__ = [
     # composite
     "AbstractCompositePotential",
     "CompositePotential",
-    # builtin
-    "BurkertPotential",
-    "HarmonicOscillatorPotential",
-    "HenonHeilesPotential",
-    "HernquistPotential",
-    "IsochronePotential",
-    "JaffePotential",
-    "KeplerPotential",
+    "BarPotential",
+    "LongMuraliBarPotential",
     "KuzminPotential",
     "MiyamotoNagaiPotential",
     "MN3ExponentialPotential",
     "MN3Sech2Potential",
-    "NullPotential",
-    "PlummerPotential",
-    "PowerLawCutoffPotential",
+    "HarmonicOscillatorPotential",
+    "HenonHeilesPotential",
     "SatohPotential",
-    "StoneOstriker15Potential",
-    "TriaxialHernquistPotential",
-    # bars
-    "BarPotential",
-    "LongMuraliBarPotential",
-    # logarithmic
-    "LogarithmicPotential",
     "LMJ09LogarithmicPotential",
-    # multipole
+    "LogarithmicPotential",
     "AbstractMultipolePotential",
     "MultipoleInnerPotential",
     "MultipoleOuterPotential",
     "MultipolePotential",
-    # nfw
-    "NFWPotential",
     "LeeSutoTriaxialNFWPotential",
+    "NFWPotential",
     "TriaxialNFWPotential",
     "Vogelsberger08TriaxialNFWPotential",
-    # special
+    "NullPotential",
     "BovyMWPotential2014",
     "LM10Potential",
     "MilkyWayPotential",
     "MilkyWayPotential2022",
+    "BurkertPotential",
+    "HernquistPotential",
+    "IsochronePotential",
+    "JaffePotential",
+    "KeplerPotential",
+    "PlummerPotential",
+    "PowerLawCutoffPotential",
+    "StoneOstriker15Potential",
+    "TriaxialHernquistPotential",
     # frame
     "PotentialFrame",
     # funcs
@@ -73,51 +67,40 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._src.base import AbstractPotential
     from ._src.base_multi import AbstractCompositePotential
     from ._src.base_single import AbstractSinglePotential
-    from ._src.builtin.bars import BarPotential, LongMuraliBarPotential
-    from ._src.builtin.disks import (
-        KuzminPotential,
-        MiyamotoNagaiPotential,
-        MN3ExponentialPotential,
-        MN3Sech2Potential,
-    )
-    from ._src.builtin.example import (
+    from ._src.builtin import (
+        AbstractMultipolePotential,
+        BarPotential,
+        BovyMWPotential2014,
+        BurkertPotential,
         HarmonicOscillatorPotential,
         HenonHeilesPotential,
-    )
-    from ._src.builtin.flattened import SatohPotential
-    from ._src.builtin.logarithmic import (
-        LMJ09LogarithmicPotential,
-        LogarithmicPotential,
-    )
-    from ._src.builtin.multipole import (
-        AbstractMultipolePotential,
-        MultipoleInnerPotential,
-        MultipoleOuterPotential,
-        MultipolePotential,
-    )
-    from ._src.builtin.nfw import (
-        LeeSutoTriaxialNFWPotential,
-        NFWPotential,
-        TriaxialNFWPotential,
-        Vogelsberger08TriaxialNFWPotential,
-    )
-    from ._src.builtin.null import NullPotential
-    from ._src.builtin.special import (
-        BovyMWPotential2014,
-        LM10Potential,
-        MilkyWayPotential,
-        MilkyWayPotential2022,
-    )
-    from ._src.builtin.spherical import (
-        BurkertPotential,
         HernquistPotential,
         IsochronePotential,
         JaffePotential,
         KeplerPotential,
+        KuzminPotential,
+        LeeSutoTriaxialNFWPotential,
+        LM10Potential,
+        LMJ09LogarithmicPotential,
+        LogarithmicPotential,
+        LongMuraliBarPotential,
+        MilkyWayPotential,
+        MilkyWayPotential2022,
+        MiyamotoNagaiPotential,
+        MN3ExponentialPotential,
+        MN3Sech2Potential,
+        MultipoleInnerPotential,
+        MultipoleOuterPotential,
+        MultipolePotential,
+        NFWPotential,
+        NullPotential,
         PlummerPotential,
         PowerLawCutoffPotential,
+        SatohPotential,
         StoneOstriker15Potential,
         TriaxialHernquistPotential,
+        TriaxialNFWPotential,
+        Vogelsberger08TriaxialNFWPotential,
     )
     from ._src.composite import CompositePotential
     from ._src.frame import PotentialFrame

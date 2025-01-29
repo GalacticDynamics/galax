@@ -9,7 +9,6 @@ __all__ = [
     "JaffePotential",
     "KeplerPotential",
     "LogarithmicPotential",
-    "NullPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
     "SatohPotential",
@@ -29,7 +28,7 @@ import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import quaxed.scipy.special as qsp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem, galactic
+from unxt.unitsystems import AbstractUnitSystem
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -451,79 +450,6 @@ class LogarithmicPotential(AbstractSinglePotential):
             0.5
             * self.v_c(t) ** 2
             * jnp.log(ustrip(self.units["length"], self.r_h(t)) ** 2 + r2)
-        )
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class NullPotential(AbstractSinglePotential):
-    """Null potential, i.e. no potential.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-
-    >>> pot = gp.NullPotential()
-    >>> pot
-    NullPotential( units=..., constants=ImmutableMap({'G': ...}) )
-
-    >>> q = u.Quantity([1, 0, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
-    >>> pot.potential(q, t)
-    Quantity[...](Array(0, dtype=int64), unit='kpc2 / Myr2')
-
-    """
-
-    _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(
-        default=galactic, converter=u.unitsystem, static=True
-    )
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    @partial(jax.jit, inline=True)
-    def _potential(
-        self,
-        q: gt.BtQuSz3,
-        t: gt.BBtRealQuSz0,  # noqa: ARG002
-        /,
-    ) -> gt.SpecificEnergyBtSz0:
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
-        )
-
-    @partial(jax.jit, inline=True)
-    def _gradient(self, q: gt.BtQuSz3, /, _: gt.RealQuSz0) -> gt.BtQuSz3:
-        """See ``gradient``."""
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1] + (3,), dtype=q.dtype), galactic["acceleration"]
-        )
-
-    @partial(jax.jit, inline=True)
-    def _laplacian(self, q: gt.QuSz3, /, _: gt.RealQuSz0) -> gt.FloatQuSz0:
-        """See ``laplacian``."""
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["frequency drift"]
-        )
-
-    @partial(jax.jit, inline=True)
-    def _density(
-        self, q: gt.BtQuSz3, _: gt.BtRealQuSz0 | gt.RealQuSz0, /
-    ) -> gt.BtFloatQuSz0:
-        """See ``density``."""
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["mass density"]
-        )
-
-    @partial(jax.jit, inline=True)
-    def _hessian(self, q: gt.QuSz3, _: gt.RealQuSz0, /) -> gt.QuSz33:
-        """See ``hessian``."""
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype), galactic["frequency drift"]
         )
 
 

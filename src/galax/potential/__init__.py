@@ -82,7 +82,6 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         IsochronePotential,
         JaffePotential,
         KeplerPotential,
-        NullPotential,
         PlummerPotential,
         PowerLawCutoffPotential,
         SatohPotential,
@@ -111,6 +110,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         TriaxialNFWPotential,
         Vogelsberger08TriaxialNFWPotential,
     )
+    from ._src.builtin.null import NullPotential
     from ._src.builtin.special import (
         BovyMWPotential2014,
         LM10Potential,

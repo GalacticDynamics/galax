@@ -6,12 +6,13 @@ from functools import partial
 from typing import Any, TypeAlias
 
 import jax
-from jaxtyping import Shaped
+from jaxtyping import Array, ArrayLike, Shaped
 from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import AbstractQuantity
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -395,3 +396,92 @@ def local_circular_velocity(
 ) -> gt.BBtRealQuSz0:
     """Compute the local circular velocity when `t` is keyword-only."""
     return api.local_circular_velocity(pot, x, t)
+
+
+# =============================================================================
+# Radial derivative
+
+
+@dispatch
+@partial(jax.jit)
+def dpotential_dr(
+    pot: AbstractPotential,
+    x: AbstractQuantity | ArrayLike,
+    t: AbstractQuantity | ArrayLike,
+) -> AbstractQuantity:
+    """Compute the radial derivative of the potential at the given position."""
+    x, t = jnp.asarray(x), jnp.asarray(t)
+    r_hat: Array = cx.vecs.normalize_vector(x)
+    grad = convert(api.gradient(pot, x, t), u.Quantity)
+    dphi_dr: AbstractQuantity = jnp.sum(grad * r_hat, axis=-1)
+    return dphi_dr
+
+
+@dispatch
+@partial(jax.jit)
+def dpotential_dr(
+    pot: AbstractPotential,
+    x: cx.vecs.AbstractPos3D,
+    t: AbstractQuantity | ArrayLike,
+) -> AbstractQuantity:
+    return api.dpotential_dr(pot, convert(x, u.Quantity), t)
+
+
+@dispatch
+@partial(jax.jit)
+def dpotential_dr(
+    pot: AbstractPotential,
+    w: cx.vecs.FourVector | gc.AbstractPhaseSpacePosition,
+) -> AbstractQuantity:
+    return api.dpotential_dr(pot, w.q, w.t)
+
+
+@dispatch
+def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> AbstractQuantity:
+    """Compute the radial derivative of the potential when `t` is keyword-only."""
+    return api.dpotential_dr(pot, x, t)
+
+
+# =============================================================================
+# 2nd Radial derivative
+
+
+@dispatch
+@partial(jax.jit)
+def d2potential_dr2(
+    pot: AbstractPotential, x: Any, t: Any, /
+) -> Shaped[u.Quantity["frequency drift"], "*batch"]:
+    """Compute the second derivative of the potential at the position.
+
+    Parameters
+    ----------
+    pot : `galax.potential.AbstractPotential`
+        The gravitational potential.
+    x: Quantity[Any, (*batch, 3,), 'length']
+        3d position (x, y, z) in [kpc]
+    t: Quantity[Any, (*#batch,), 'time']
+        Time in [Myr]
+
+    """
+    x = parse_to_quantity(x, unit=pot.units["length"])
+    rhat = cx.vecs.normalize_vector(x)
+    H = pot.hessian(x, t=t)
+    # vectorized dot product of rhat · H · rhat
+    return jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)
+
+
+@dispatch
+@partial(jax.jit)
+def d2potential_dr2(
+    pot: AbstractPotential, w: gc.AbstractPhaseSpacePosition | cx.vecs.FourVector, /
+) -> Shaped[u.Quantity["frequency drift"], "*batch"]:
+    return api.d2potential_dr2(pot, w.q, w.t)
+
+
+@dispatch
+@partial(jax.jit)
+def d2potential_dr2(
+    pot: AbstractPotential, w: Any, /, *, t: Any
+) -> Shaped[u.Quantity["frequency drift"], "*batch"]:
+    """Compute when `t` is keyword-only."""
+    return api.d2potential_dr2(pot, w, t)

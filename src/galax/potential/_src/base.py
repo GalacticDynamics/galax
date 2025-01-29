@@ -105,7 +105,6 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         raise NotImplementedError  # pragma: no cover
 
     ###########################################################################
-    # Core methods that use the potential energy
 
     # ---------------------------------------
     # Potential energy
@@ -249,8 +248,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         """
         return api.hessian(self, *args, **kwargs)
 
-    ###########################################################################
-    # Convenience methods
+    # ---------------------------------------
 
     def acceleration(
         self: "AbstractPotential", *args: Any, **kwargs: Any
@@ -261,12 +259,16 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         """
         return api.acceleration(self, *args, **kwargs)
 
+    # ---------------------------------------
+
     def tidal_tensor(self, *args: Any, **kwargs: Any) -> gt.BtQuSz33:
         """Compute the tidal tensor.
 
         See :func:`~galax.potential.tidal_tensor` for details.
         """
         return api.tidal_tensor(self, *args, **kwargs)
+
+    # ---------------------------------------
 
     def local_circular_velocity(self, *args: Any, **kwargs: Any) -> u.Quantity["speed"]:
         """Compute the local circular velocity.
@@ -288,6 +290,26 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
         """
         return api.local_circular_velocity(self, *args, **kwargs)
+
+    # ---------------------------------------
+
+    def dpotential_dr(self, *args: Any, **kwargs: Any) -> u.Quantity["acceleration"]:
+        """Compute the radial derivative of the potential.
+
+        See :func:`~galax.potential.dpotential_dr` for details.
+
+        """
+        return api.dpotential_dr(self, *args, **kwargs)
+
+    def d2potential_dr2(
+        self, *args: Any, **kwargs: Any
+    ) -> u.Quantity["frequency drift"]:
+        """Compute the second radial derivative of the potential.
+
+        See :func:`~galax.potential.d2potential_dr2` for details.
+
+        """
+        return api.d2potential_dr2(self, *args, **kwargs)
 
     # =========================================================================
     # Integrating orbits

@@ -18,48 +18,6 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 
-
-# TODO: make public
-@partial(jax.jit, inline=True)
-def d2potential_dr2(
-    pot: gp.AbstractPotential, x: gt.LengthBtSz3, t: gt.TimeBBtSz0, /
-) -> Shaped[u.Quantity["1/s^2"], "*batch"]:
-    """Compute the second derivative of the potential at the position.
-
-    At a position x (in the simulation frame).
-
-    Parameters
-    ----------
-    pot : `galax.potential.AbstractPotential`
-        The gravitational potential.
-    x: Quantity[Any, (*batch, 3,), 'length']
-        3d position (x, y, z) in [kpc]
-    t: Quantity[Any, (*#batch,), 'time']
-        Time in [Myr]
-
-    Returns
-    -------
-    Quantity[float, (*batch,), 'frequency^2']:
-        Second radial derivative of the potential.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-
-    >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20.0, "kpc"),
-    ...                       units="galactic")
-    >>> q = u.Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> d2potential_dr2(pot, q, u.Quantity(0.0, "Myr"))
-    Quantity[...](Array(-0.0001747, dtype=float64), unit='1 / Myr2')
-
-    """
-    rhat = cx.vecs.normalize_vector(x)
-    H = pot.hessian(x, t=t)
-    # vectorized dot product of rhat · H · rhat
-    return jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)
-
-
 # ===================================================================
 # Orbital angular frequency
 
@@ -168,7 +126,7 @@ def tidal_radius(
     Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
     """
     omega = _orbital_angular_frequency(x, v)
-    d2phi_dr2 = d2potential_dr2(potential, x, t)
+    d2phi_dr2 = potential.d2potential_dr2(x, t)
     return jnp.cbrt(potential.constants["G"] * prog_mass / (omega**2 - d2phi_dr2))
 
 

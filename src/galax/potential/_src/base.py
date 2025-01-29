@@ -268,6 +268,27 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         """
         return api.tidal_tensor(self, *args, **kwargs)
 
+    def local_circular_velocity(self, *args: Any, **kwargs: Any) -> u.Quantity["speed"]:
+        """Compute the local circular velocity.
+
+        See `~galax.potential.local_circular_velocity` for details.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.coordinates as gc
+        >>> import galax.potential as gp
+
+        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
+        ...                           p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
+        ...                           t=u.Quantity(0.0, "Gyr"))
+        >>> pot.local_circular_velocity(w)
+        Quantity['speed'](Array(0.74987517, dtype=float64), unit='kpc / Myr')
+
+        """
+        return api.local_circular_velocity(self, *args, **kwargs)
+
     # =========================================================================
     # Integrating orbits
 

@@ -24,4 +24,5 @@ def test_all() -> None:
         "specific_angular_momentum",
         "tidal_radius",
         "lagrange_points",
+        "omega",
     }

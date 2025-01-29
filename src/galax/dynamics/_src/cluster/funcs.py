@@ -8,8 +8,7 @@ __all__ = [
 from functools import partial
 
 import jax
-from jaxtyping import Float, Shaped
-from plum import convert, dispatch
+from jaxtyping import Float
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -17,74 +16,14 @@ import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
-
-# ===================================================================
-# Orbital angular frequency
-
-
-@dispatch
-@partial(jax.jit, inline=True)
-def _orbital_angular_frequency(
-    x: gt.LengthBtSz3, v: gt.SpeedBtSz3, /
-) -> Shaped[u.Quantity["frequency"], "*batch"]:
-    """Compute the orbital angular frequency about the origin.
-
-    Arguments:
-    ---------
-    x: Quantity[Any, (3,), "length"]
-        3d Cartesian position (x, y, z).
-    v: Quantity[Any, (3,), "speed"]
-        3d Cartesian velocity (v_x, v_y, v_z).
-
-    Returns
-    -------
-    Quantity[Any, (3,), "frequency"]
-        Angular velocity.
-
-    Examples
-    --------
-    >>> import unxt as u
-
-    >>> x = u.Quantity([8.0, 0.0, 0.0], "m")
-    >>> v = u.Quantity([0.0, 8.0, 0.0], "m/s")
-    >>> _orbital_angular_frequency(x, v)
-    Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
-    """
-    r = jnp.linalg.vector_norm(x, axis=-1, keepdims=True)
-    omega = jnp.linalg.cross(x, v) / r**2
-    return jnp.linalg.vector_norm(omega, axis=-1)
-
-
-@dispatch
-@partial(jax.jit, inline=True)
-def _orbital_angular_frequency(
-    x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /
-) -> Shaped[u.Quantity["frequency"], "*batch"]:
-    """Compute the orbital angular frequency about the origin.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-
-    >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "m")
-    >>> v = cx.CartesianVel3D.from_([0.0, 8.0, 0.0], "m/s")
-    >>> _orbital_angular_frequency(x, v)
-    Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
-
-    """
-    # TODO: more directly using the vectors
-    x = convert(x.vconvert(cx.CartesianPos3D), u.Quantity)
-    v = convert(v.vconvert(cx.CartesianVel3D, x), u.Quantity)
-    return _orbital_angular_frequency(x, v)
-
+from galax.dynamics._src.api import omega
 
 # ===================================================================
 
 
 @partial(jax.jit, inline=True)
 def tidal_radius(
-    potential: gp.AbstractPotential,
+    pot: gp.AbstractPotential,
     x: gt.LengthBtSz3,
     v: gt.SpeedBtSz3,
     /,
@@ -95,7 +34,7 @@ def tidal_radius(
 
     Parameters
     ----------
-    potential : `galax.potential.AbstractPotential`
+    pot : `galax.potential.AbstractPotential`
         The gravitational potential of the host.
     x: Quantity[float, (3,), "length"]
         3d position (x, y, z).
@@ -125,9 +64,8 @@ def tidal_radius(
     >>> tidal_radius(pot, x, v, prog_mass=prog_mass, t=u.Quantity(0, "Myr"))
     Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
     """
-    omega = _orbital_angular_frequency(x, v)
-    d2phi_dr2 = potential.d2potential_dr2(x, t)
-    return jnp.cbrt(potential.constants["G"] * prog_mass / (omega**2 - d2phi_dr2))
+    d2phi_dr2 = pot.d2potential_dr2(x, t)
+    return jnp.cbrt(pot.constants["G"] * prog_mass / (omega(x, v) ** 2 - d2phi_dr2))
 
 
 # ===================================================================

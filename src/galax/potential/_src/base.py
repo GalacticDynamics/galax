@@ -173,12 +173,12 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->(3)")
-    def _gradient(self, q: gt.BtQuSz3, t: gt.RealQuSz0, /) -> gt.BtQuSz3:
+    def _gradient(self, q: gt.BtFloatQuSz3, t: gt.RealQuSz0, /) -> gt.BtQuSz3:
         """See ``gradient``."""
         grad_op = u.experimental.grad(
             self._potential, units=(self.units["length"], self.units["time"])
         )
-        return grad_op(q.astype(float), t)
+        return grad_op(q, t)
 
     def gradient(
         self: "AbstractPotential", *args: Any, **kwargs: Any
@@ -194,7 +194,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->()")
-    def _laplacian(self, q: gt.QuSz3, /, t: gt.RealQuSz0) -> gt.FloatQuSz0:
+    def _laplacian(self, q: gt.BtFloatQuSz3, /, t: gt.RealQuSz0) -> gt.FloatQuSz0:
         """See ``laplacian``."""
         jac_op = u.experimental.jacfwd(  # spatial jacobian
             self._gradient, argnums=0, units=(self.units["length"], self.units["time"])
@@ -215,7 +215,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
+        self, q: gt.BtFloatQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
     ) -> gt.BtFloatQuSz0:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
@@ -235,7 +235,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: gt.QuSz3, t: gt.RealQuSz0, /) -> gt.QuSz33:
+    def _hessian(self, q: gt.BtFloatQuSz3, t: gt.RealQuSz0, /) -> gt.QuSz33:
         """See ``hessian``."""
         hess_op = u.experimental.hessian(
             self._potential, units=(self.units["length"], self.units["time"])

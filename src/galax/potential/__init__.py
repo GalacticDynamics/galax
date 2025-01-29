@@ -70,6 +70,16 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from . import io, params, plot
+    from ._src.api import (
+        acceleration,
+        circular_velocity,
+        density,
+        gradient,
+        hessian,
+        laplacian,
+        potential,
+        tidal_tensor,
+    )
     from ._src.base import AbstractPotential
     from ._src.base_multi import AbstractCompositePotential
     from ._src.base_single import AbstractSinglePotential
@@ -117,17 +127,11 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     )
     from ._src.composite import CompositePotential
     from ._src.frame import PotentialFrame
-    from ._src.funcs import (
-        acceleration,
-        circular_velocity,
-        density,
-        gradient,
-        hessian,
-        laplacian,
-        potential,
-        tidal_tensor,
-    )
+
+    # Register functions by module import
+    # isort: split
+    from ._src import register_funcs
 
 
 # Cleanup
-del install_import_hook, RUNTIME_TYPECHECKER
+del install_import_hook, RUNTIME_TYPECHECKER, register_funcs

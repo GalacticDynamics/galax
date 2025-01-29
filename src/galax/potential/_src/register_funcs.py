@@ -43,7 +43,7 @@ def potential(
         potential.
 
     """
-    q = parse_to_quantity(pspt.q, units=pot.units)
+    q = parse_to_quantity(pspt.q, dtype=None, units=pot.units)
     return pot._potential(q, pspt.t)  # noqa: SLF001
 
 
@@ -65,7 +65,7 @@ def potential(
         :meth:`unxt.Quantity.from_` for more details.
 
     """
-    q = parse_to_quantity(q, unit=pot.units["length"])
+    q = parse_to_quantity(q, dtype=None, unit=pot.units["length"])
     t = u.Quantity.from_(t, pot.units["time"])
     return pot._potential(q, t)  # noqa: SLF001
 
@@ -99,7 +99,7 @@ def gradient(
         The phase-space + time position to compute the gradient.
 
     """
-    q = parse_to_quantity(pspt.q, units=pot.units["length"]).astype(float)
+    q = parse_to_quantity(pspt.q, dtype=float, units=pot.units["length"])
     grad = pot._gradient(q, pspt.t)  # noqa: SLF001
     return cx.vecs.CartesianAcc3D.from_(grad)
 
@@ -120,7 +120,7 @@ def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3
         :meth:`unxt.Quantity.from_` for more details.
 
     """
-    q = parse_to_quantity(q, unit=pot.units["length"]).astype(float)
+    q = parse_to_quantity(q, dtype=float, unit=pot.units["length"])
     t = u.Quantity.from_(t, pot.units["time"])
     grad = pot._gradient(q, t)  # noqa: SLF001
     return cx.vecs.CartesianAcc3D.from_(grad)
@@ -164,7 +164,7 @@ def laplacian(
         The phase-space + time position to compute the laplacian.
 
     """
-    q = parse_to_quantity(pspt.q, units=pot.units).astype(float)
+    q = parse_to_quantity(pspt.q, dtype=float, units=pot.units)
     return pot._laplacian(q, pspt.t)  # noqa: SLF001
 
 
@@ -185,7 +185,7 @@ def laplacian(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["1/s^2"]:
         system of the potential.
 
     """
-    q = parse_to_quantity(q, unit=pot.units["length"]).astype(float)
+    q = parse_to_quantity(q, dtype=float, unit=pot.units["length"])
     t = u.Quantity.from_(t, pot.units["time"])
     return pot._laplacian(q, t)  # noqa: SLF001
 
@@ -254,7 +254,7 @@ def hessian(
     /,
 ) -> gt.BtQuSz33:
     """Compute the hessian of the potential at the given position(s)."""
-    q = parse_to_quantity(pspt.q, units=pot.units).astype(float)
+    q = parse_to_quantity(pspt.q, dtype=float, units=pot.units)
     return pot._hessian(q, pspt.t)  # noqa: SLF001
 
 
@@ -274,7 +274,7 @@ def hessian(pot: AbstractPotential, q: Any, t: Any, /) -> HessianVec:
         :meth:`~unxt.array.Quantity.from_` for more details.
 
     """
-    q = parse_to_quantity(q, unit=pot.units["length"]).astype(float)
+    q = parse_to_quantity(q, dtype=float, unit=pot.units["length"])
     t = u.Quantity.from_(t, pot.units["time"])
     return pot._hessian(q, t)  # noqa: SLF001
 

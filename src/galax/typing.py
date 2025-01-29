@@ -76,7 +76,15 @@ BtSz3: TypeAlias = Shaped[Sz3, "*batch"]
 
 QuSz3: TypeAlias = Float[AbstractQuantity, "3"]
 BtQuSz3: TypeAlias = Shaped[QuSz3, "*batch"]
+BBtQuSz3: TypeAlias = Shaped[QuSz3, "*#batch"]
+
+FloatQuSz3: TypeAlias = Float[AbstractQuantity, "3"]
 BtFloatQuSz3: TypeAlias = Float[QuSz3, "*batch"]
+BBtFloatQuSz3: TypeAlias = Float[QuSz3, "*#batch"]
+
+RealQuSz3: TypeAlias = Real[AbstractQuantity, "3"]
+BtRealQuSz3: TypeAlias = Shaped[RealQuSz3, "*batch"]
+BBtRealQuSz3: TypeAlias = Shaped[RealQuSz3, "*#batch"]
 
 # 6-vector
 Sz6: TypeAlias = Float[Array, "6"]

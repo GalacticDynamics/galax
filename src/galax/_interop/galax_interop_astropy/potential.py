@@ -9,19 +9,21 @@ from astropy.units import Quantity as APYQuantity
 from plum import convert, dispatch
 
 import coordinax as cx
-import unxt as u
-from unxt.quantity import AbstractQuantity
+from unxt.quantity import UncheckedQuantity as FastQ
+
+import galax.typing as gt
 
 # =============================================================================
 # parse_to_quantity
 
 
 @dispatch
-def parse_to_quantity(value: APYQuantity, /, **_: Any) -> AbstractQuantity:
-    return convert(value, u.Quantity)
+def parse_to_quantity(value: APYQuantity, /, **kw: Any) -> gt.BtRealQuSz3:
+    q = convert(value, FastQ)
+    return parse_to_quantity(q, **kw)
 
 
 @dispatch
-def parse_to_quantity(rep: BaseRepresentation, /, **_: Any) -> AbstractQuantity:
+def parse_to_quantity(rep: BaseRepresentation, /, **kw: Any) -> gt.BtRealQuSz3:
     cart = convert(rep, cx.CartesianPos3D)
-    return parse_to_quantity(cart)
+    return parse_to_quantity(cart, **kw)

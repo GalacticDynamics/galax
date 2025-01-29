@@ -23,15 +23,11 @@ from unxt.unitsystems import AbstractUnitSystem, galactic
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .builtin import (
-    HernquistPotential,
-    MiyamotoNagaiPotential,
-    MN3Sech2Potential,
-    PowerLawCutoffPotential,
-)
 from .const import _sqrt2
+from .disks import MiyamotoNagaiPotential, MN3Sech2Potential
 from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
+from .spherical import HernquistPotential, PowerLawCutoffPotential
 from galax.potential._src.base import AbstractPotential, default_constants
 from galax.potential._src.base_multi import AbstractCompositePotential
 

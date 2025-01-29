@@ -83,6 +83,7 @@
   dev = [
     "cz-conventional-gitmoji>=0.6.1",
     "ipykernel>=6.29.5",
+    "pre-commit>=4.0.1",
     { include-group = "docs" },
     { include-group = "test-all" },
   ]

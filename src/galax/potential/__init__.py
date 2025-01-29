@@ -74,18 +74,6 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._src.base_multi import AbstractCompositePotential
     from ._src.base_single import AbstractSinglePotential
     from ._src.builtin.bars import BarPotential, LongMuraliBarPotential
-    from ._src.builtin.builtin import (
-        BurkertPotential,
-        HernquistPotential,
-        IsochronePotential,
-        JaffePotential,
-        KeplerPotential,
-        PlummerPotential,
-        PowerLawCutoffPotential,
-        SatohPotential,
-        StoneOstriker15Potential,
-        TriaxialHernquistPotential,
-    )
     from ._src.builtin.disks import (
         KuzminPotential,
         MiyamotoNagaiPotential,
@@ -96,6 +84,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         HarmonicOscillatorPotential,
         HenonHeilesPotential,
     )
+    from ._src.builtin.flattened import SatohPotential
     from ._src.builtin.logarithmic import (
         LMJ09LogarithmicPotential,
         LogarithmicPotential,
@@ -118,6 +107,17 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         LM10Potential,
         MilkyWayPotential,
         MilkyWayPotential2022,
+    )
+    from ._src.builtin.spherical import (
+        BurkertPotential,
+        HernquistPotential,
+        IsochronePotential,
+        JaffePotential,
+        KeplerPotential,
+        PlummerPotential,
+        PowerLawCutoffPotential,
+        StoneOstriker15Potential,
+        TriaxialHernquistPotential,
     )
     from ._src.composite import CompositePotential
     from ._src.frame import PotentialFrame

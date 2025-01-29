@@ -2,15 +2,15 @@
 
 __all__: list[str] = []
 
-from typing import Any, TypeVar
+from typing import Any
 
-import jax.numpy as jnp
 import numpy as np
 from jax.dtypes import canonicalize_dtype
-from jaxtyping import Array, Shaped
+from jaxtyping import ArrayLike
 from plum import convert, dispatch
 
 import coordinax as cx
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AbstractQuantity
 from unxt.unitsystems import AbstractUnitSystem
@@ -18,9 +18,13 @@ from unxt.unitsystems import AbstractUnitSystem
 import galax.coordinates as gc
 import galax.typing as gt
 
-# --------------------------------------------------------------
 
-Value = TypeVar("Value", int, float, Array)
+def parse_dtypes(dtype2: np.dtype, dtype1: Any, /) -> np.dtype | None:
+    return (
+        dtype2
+        if dtype1 is None
+        else jnp.promote_types(dtype2, canonicalize_dtype(dtype1))
+    )
 
 
 @dispatch.abstract
@@ -47,29 +51,29 @@ def parse_to_quantity(value: Any, /, *, units: AbstractUnitSystem, **_: Any) -> 
 
 @dispatch
 def parse_to_quantity(
-    value: AbstractQuantity, /, **_: Any
-) -> Shaped[AbstractQuantity, "*#batch 3"]:
-    return value
+    q: AbstractQuantity, /, *, dtype: Any = None, **_: Any
+) -> gt.BtRealQuSz3:
+    return jnp.asarray(q, dtype=parse_dtypes(q.dtype, dtype))
 
 
 @dispatch
 def parse_to_quantity(
-    x: int | float | Array | np.ndarray, /, *, unit: gt.Unit, **_: Any
-) -> AbstractQuantity:
+    x: ArrayLike, /, *, dtype: Any = None, unit: gt.Unit, **_: Any
+) -> gt.BtRealQuSz3:
     arr = jnp.asarray(x, dtype=None)
-    dtype = jnp.promote_types(arr.dtype, canonicalize_dtype(float))
+    dtype = parse_dtypes(arr.dtype, dtype)
     return u.Quantity(jnp.asarray(arr, dtype=dtype), unit=unit)
 
 
 @dispatch
 def parse_to_quantity(
-    x: gc.AbstractOnePhaseSpacePosition, /, **_: Any
-) -> Shaped[AbstractQuantity, "*batch 3"]:
-    return parse_to_quantity(x.q)
+    x: gc.AbstractOnePhaseSpacePosition, /, **kw: Any
+) -> gt.BtRealQuSz3:
+    return parse_to_quantity(x.q, **kw)
 
 
 @dispatch
-def parse_to_quantity(x: cx.vecs.AbstractPos3D, /, **_: Any) -> gt.LengthBtSz3:
+def parse_to_quantity(x: cx.vecs.AbstractPos3D, /, **kw: Any) -> gt.BtRealQuSz3:
     cart = x.vconvert(cx.CartesianPos3D)
-    qarr: u.Quantity = convert(cart, u.Quantity)
-    return qarr
+    q = convert(cart, u.Quantity)
+    return parse_to_quantity(q, **kw)

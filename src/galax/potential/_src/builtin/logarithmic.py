@@ -41,8 +41,8 @@ class LogarithmicPotential(AbstractSinglePotential):
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
-        r_s = u.ustrip(self.units["length"], self.r_s(t))
-        r = u.ustrip(self.units["length"], jnp.linalg.vector_norm(q, axis=-1))
+        r_s = self.r_s(t).ustrip(self.units["length"])
+        r = jnp.linalg.vector_norm(q, axis=-1).ustrip(self.units["length"])
         return 0.5 * self.v_c(t) ** 2 * jnp.log(r_s**2 + r**2)
 
 

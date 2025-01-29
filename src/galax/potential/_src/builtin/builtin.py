@@ -8,7 +8,6 @@ __all__ = [
     "IsochronePotential",
     "JaffePotential",
     "KeplerPotential",
-    "LogarithmicPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
     "SatohPotential",
@@ -422,34 +421,6 @@ class KeplerPotential(AbstractSinglePotential):
                 jnp.full_like(r.value, fill_value=jnp.inf),
             ),
             self.units["mass density"],
-        )
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class LogarithmicPotential(AbstractSinglePotential):
-    """Logarithmic Potential."""
-
-    v_c: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
-    r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-
-    _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    @partial(jax.jit, inline=True)
-    def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        r2 = ustrip(self.units["length"], jnp.linalg.vector_norm(q, axis=-1)) ** 2
-        return (
-            0.5
-            * self.v_c(t) ** 2
-            * jnp.log(ustrip(self.units["length"], self.r_h(t)) ** 2 + r2)
         )
 
 

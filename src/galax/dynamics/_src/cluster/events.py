@@ -89,7 +89,7 @@ class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
         self: "MassBelowThreshold", t: Any, y: Any, /, *, args: Args, **kw: Any
     ) -> Any:
         """Evaluate the event condition."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 # ============================================================

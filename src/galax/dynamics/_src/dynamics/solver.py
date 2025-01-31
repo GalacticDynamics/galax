@@ -242,16 +242,17 @@ def solve(
 
     """
     # Units
-    units = field.units
-    time = units["time"]
+    usys = field.units
+    time = usys["time"]
 
     # Initial conditions
-    y0 = (qp[0].ustrip(units["length"]), qp[1].ustrip(units["speed"]))
-    y0 = tuple(jnp.broadcast_arrays(*y0))
+    y0 = tuple(
+        jnp.broadcast_arrays(qp[0].ustrip(usys["length"]), qp[1].ustrip(usys["speed"]))
+    )
 
     # Solve the differential equation
     solver_kw.setdefault("dt0", None)
-    saveat = parse_saveat(units, saveat, dense=solver_kw.pop("dense", None))
+    saveat = parse_saveat(usys, saveat, dense=solver_kw.pop("dense", None))
     soln = self.diffeqsolver(
         field.terms(self.diffeqsolver),
         t0=t0.ustrip(time),

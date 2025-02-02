@@ -3,7 +3,7 @@
 __all__ = ["HamiltonianField"]
 
 from functools import partial
-from typing import Any, final
+from typing import Any, TypeAlias, final
 
 import diffrax as dfx
 import equinox as eqx
@@ -11,6 +11,7 @@ import jax
 from plum import convert, dispatch
 
 import coordinax as cx
+import coordinax.vecs as cxv
 import unxt as u
 from unxt.quantity import UncheckedQuantity as FastQ
 
@@ -110,9 +111,111 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         return self.potential.units
 
     @dispatch.abstract
-    def __call__(
-        self, t: Any, qp: tuple[Any, Any], args: tuple[Any, ...], /
-    ) -> tuple[Any, Any]:
+    def __call__(self, *_: Any) -> tuple[Any, Any]:
+        """Evaluate the field at a position and time.
+
+        Examples
+        --------
+        >>> import quaxed.numpy as jnp
+        >>> import unxt as u
+        >>> import coordinax as cx
+        >>> import galax.coordinates as gc
+        >>> import galax.potential as gp
+        >>> import galax.dynamics as gd
+
+        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+        >>> field = gd.fields.HamiltonianField(pot)
+
+        HamiltonianField can be called using many different combinations of
+        arguments. For example, it can be called with a
+        `galax.coordinates.PhaseSpacePosition`:
+
+        >>> w = gc.PhaseSpacePosition(t=u.Quantity(0, "Gyr"),
+        ...                           q=u.Quantity([8., 0, 0], "kpc"),
+        ...                           p=u.Quantity([0, 220, 0], "km/s"))
+
+        >>> field(w)
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        Or with a `coordinax.frames.AbstractCoordinate`:
+
+        >>> from plum import convert
+        >>> coord = convert(w, cx.Coordinate)
+
+        >>> field(coord)
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        Of with a `coordinax.vecs.Space`, so long as it contains a
+        `coordinax.vecs.FourVector` for the position, since a time is
+        required:
+
+        >>> space = cx.Space(length=cxv.FourVector.from_([0, 8., 0, 0], "kpc"),
+        ...                  speed=cxv.CartesianVel3D.from_([0, 220, 0], "km/s"))
+
+        >>> field(space)
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        We can break apart the `coordinax.vecs.Space` into its components:
+
+        >>> tq, p = space["length"], space["speed"]
+
+        >>> field(tq, p)
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        If the position is not a `coordinax.vecs.FourVector` then a time must
+        be passed as a separate argument:
+
+        >>> t, q = tq.t, tq.q
+
+        >>> field(t, q, p)
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        The position and velocity can be passed as `unxt.Quantity` arrays,
+        in which case they are assumed to be in Cartesian coordinates.
+        The position and velocity may be grouped in a tuple:
+
+        >>> q = u.Quantity([8., 0, 0], "kpc")
+        >>> p = u.Quantity([0, 220, 0], "km/s")
+
+        >>> field(t, (q, p))
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        Or passed as separate arguments:
+
+        >>> field(t, q, p)
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        Finally, the data can be passed as jax arrays, in which case they are
+        considered to be Cartesian coordinates and in the unit system of the
+        field (``field.units``):
+
+        >>> t, q, p = t.ustrip(pot.units), q.ustrip(pot.units), p.ustrip(pot.units)
+        >>> field(t, q, p)
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        >>> field(t, (q, p))
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        >>> qp = jnp.concat([q, p])
+        >>> field(t, qp)
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        >>> tqp = jnp.concat([t[None], q, p])
+        >>> field(tqp)
+        (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+        """
         raise NotImplementedError  # pragma: no cover
 
     # ---------------------------
@@ -120,24 +223,12 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     # out a way to make these methods part of `__call__`.
 
     @eqx.filter_jit  # type: ignore[misc]
-    def _call_q(
-        self,
-        t: gt.BBtScalarSz0,  # noqa: ARG002
-        p: gdt.BBtParr,
-        args: Any,  # noqa: ARG002
-        /,
-    ) -> gdt.BtParr:
+    def _dqdt(self, t: Any, p: gdt.BBtParr, args: Any, /) -> gdt.BBtParr:  # noqa: ARG002
         """Call with time, position quantity arrays."""
         return p
 
     @eqx.filter_jit  # type: ignore[misc]
-    def _call_p(
-        self,
-        t: gt.BBtScalarSz0,
-        q: gdt.BBtQarr,
-        args: Any,  # noqa: ARG002
-        /,
-    ) -> gdt.BtAarr:
+    def _dpdt(self, t: gt.BBtScalarSz0, q: gdt.BBtQarr, args: Any, /) -> gdt.BtAarr:  # noqa: ARG002
         """Call with time, velocity quantity arrays."""
         units = self.units
         a: gdt.BtAarr = -self.potential._gradient(  # noqa: SLF001
@@ -146,86 +237,71 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         ).ustrip(units["acceleration"])
         return a
 
-    @AbstractDynamicsField.terms.dispatch  # type: ignore[misc]
-    def terms(
-        self: "AbstractDynamicsField",
-        solver: dfx.SemiImplicitEuler,  # noqa: ARG002
-        /,
-    ) -> tuple[dfx.AbstractTerm, dfx.AbstractTerm]:
-        """Return the AbstractTerm terms for the SemiImplicitEuler solver.
 
-        Examples
-        --------
-        >>> import diffrax as dfx
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-        >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
-
-        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-        >>> field = gd.fields.HamiltonianField(pot)
-
-        >>> solver = dfx.SemiImplicitEuler()
-
-        >>> field.terms(solver)
-        (ODETerm( ... ), ODETerm( ... ))
-
-        For completeness we'll integrate the EoM.
-
-        >>> dynamics_solver = gd.integrate.DynamicsSolver(solver)
-        >>> w0 = gc.PhaseSpacePosition(
-        ...     q=u.Quantity([8., 0, 0], "kpc"),
-        ...     p=u.Quantity([0, 220, 0], "km/s"),
-        ...     t=u.Quantity(0, "Gyr"))
-        >>> t1 = u.Quantity(200, "Myr")
-
-        >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
-        >>> print(gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame))
-        PhaseSpacePosition(
-            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
-                [[ 7.645 -0.701  0.   ]]>,
-            p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
-                [[0.228 0.215 0.   ]]>,
-            t=Quantity['time'](Array([200.], dtype=float64), unit='Myr'),
-            frame=SimulationFrame())
-
-        """
-        return (dfx.ODETerm(self._call_q), dfx.ODETerm(self._call_p))
+# ===============================================
+# Terms dispatches
 
 
-# ---------------------------
-# Call dispatches
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
-def call(
+@AbstractDynamicsField.terms.dispatch  # type: ignore[misc]
+def terms(
     self: HamiltonianField,
-    t: gt.RealQuSz0,
-    q: gdt.BBtQ,
-    p: gdt.BBtP,
-    args: tuple[Any, ...] | None,  # noqa: ARG001
+    _: dfx.SemiImplicitEuler,
     /,
-) -> gdt.BtPAarr:
-    """Call with time, position, velocity quantity arrays.
+) -> tuple[dfx.AbstractTerm, dfx.AbstractTerm]:
+    """Return the AbstractTerm terms for the SemiImplicitEuler solver.
 
     Examples
     --------
+    >>> import diffrax as dfx
     >>> import unxt as u
+    >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
-    >>> t = u.Quantity(0, "Myr")
-    >>> q = u.Quantity([8., 0, 0], "kpc")
-    >>> p = u.Quantity([0, 220, 0], "km/s")
-    >>> field(t, q, p, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    >>> solver = dfx.SemiImplicitEuler()
+
+    >>> field.terms(solver)
+    (ODETerm( ... ), ODETerm( ... ))
+
+    For completeness we'll integrate the EoM.
+
+    >>> dynamics_solver = gd.integrate.DynamicsSolver(solver)
+    >>> w0 = gc.PhaseSpacePosition(
+    ...     q=u.Quantity([8., 0, 0], "kpc"),
+    ...     p=u.Quantity([0, 220, 0], "km/s"),
+    ...     t=u.Quantity(0, "Gyr"))
+    >>> t1 = u.Quantity(200, "Myr")
+
+    >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
+    >>> print(gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame))
+    PhaseSpacePosition(
+        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            [[ 7.645 -0.701  0.   ]]>,
+        p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+            [[0.228 0.215 0.   ]]>,
+        t=Quantity['time'](Array([200.], dtype=float64), unit='Myr'),
+        frame=SimulationFrame())
 
     """
+    return (dfx.ODETerm(self._dqdt), dfx.ODETerm(self._dpdt))
+
+
+# ===============================================
+# Call dispatches
+
+
+Args: TypeAlias = tuple[Any, ...] | None
+
+
+@HamiltonianField.__call__.dispatch
+@partial(jax.jit)
+def call(
+    self: HamiltonianField, t: gt.RealQuSz0, q: gdt.BBtQ, p: gdt.BBtP, _: Args = None, /
+) -> gdt.BtPAarr:
+    """Call with time, position, velocity quantity arrays."""
     # TODO: not require unit munging
     units = self.units
     a = -self.potential._gradient(q, t).ustrip(units["acceleration"])  # noqa: SLF001
@@ -233,44 +309,22 @@ def call(
 
 
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def call(
-    self: HamiltonianField,
-    t: gt.RealQuSz0,
-    qp: gdt.BBtQP,
-    args: tuple[Any, ...] | None,
-    /,
+    self: HamiltonianField, t: gt.RealQuSz0, qp: gdt.BBtQP, args: Args = None, /
 ) -> gdt.BtPAarr:
-    """Call with time, (position, velocity) quantity arrays.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> t = u.Quantity(0, "Myr")
-    >>> q = u.Quantity([8., 0, 0], "kpc")
-    >>> p = u.Quantity([0, 220, 0], "km/s")
-    >>> field(t, (q, p), None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-    """
+    """Call with time, (position, velocity) quantity arrays."""
     return self(t, qp[0], qp[1], args)
 
 
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def call(
     self: HamiltonianField,
     t: gt.BBtScalarSz0,
     q: gdt.BBtQarr,
     p: gdt.BBtParr,
-    args: tuple[Any, ...] | None,
+    args: Args = None,
     /,
 ) -> gdt.BtPAarr:
     """Call with time, position, velocity arrays.
@@ -278,22 +332,6 @@ def call(
     The arrays are considered to be in the unit system of the field
     (`field.units`) Which can be checked with ``unitsystem["X"]`` for X in time,
     position, and speed.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> t = u.Quantity(0, "Myr").ustrip(pot.units)
-    >>> q = u.Quantity([8., 0, 0], "kpc").ustrip(pot.units)
-    >>> p = u.Quantity([0, 220, 0], "km/s").ustrip(pot.units)
-    >>> field(t, q, p, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
 
     """
     units = self.units
@@ -307,35 +345,15 @@ def call(
 
 # Note: this is the one called by DynamicsSolver, so it's special-cased
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def call(
-    self: HamiltonianField,
-    t: gt.BBtScalarSz0,
-    qp: gdt.BBtQParr,
-    args: tuple[Any, ...] | None,  # noqa: ARG001
-    /,
+    self: HamiltonianField, t: gt.BBtScalarSz0, qp: gdt.BBtQParr, _: Args = None, /
 ) -> gdt.BtPAarr:
     """Call with time, (position, velocity) arrays.
 
     The arrays are considered to be in the unit system of the field
     (`field.units`) Which can be checked with ``unitsystem["X"]`` for X in time,
     position, and speed.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> t = u.Quantity(0, "Myr").ustrip(pot.units)
-    >>> q = u.Quantity([8., 0, 0], "kpc").ustrip(pot.units)
-    >>> p = u.Quantity([0, 220, 0], "km/s").ustrip(pot.units)
-    >>> field(t, (q, p), None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
 
     """
     # TODO: not require unit munging
@@ -348,242 +366,85 @@ def call(
 
 
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def call(
-    self: HamiltonianField,
-    t: gt.BBtScalarSz0,
-    qp: gt.BBtSz6,
-    args: tuple[Any, ...] | None,
-    /,
+    self: HamiltonianField, t: gt.BBtScalarSz0, qp: gt.BBtSz6, args: Args = None, /
 ) -> gdt.BtPAarr:
     """Call with time, pos-vel 6 array.
 
     The arrays are considered to be in the unit system of the field
     (`field.units`) Which can be checked with ``unitsystem["X"]`` for X in time,
     position, and speed.
-
-    Examples
-    --------
-    >>> import jax.numpy as jnp
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> t = u.Quantity(0, "Myr").ustrip(pot.units)
-    >>> qp = jnp.concat([u.Quantity([8., 0, 0], "kpc").ustrip(pot.units),
-    ...                  u.Quantity([0, 220, 0], "km/s").ustrip(pot.units)])
-
-    >>> field(t, qp, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
 
     """
     return self(t, (qp[..., 0:3], qp[..., 3:6]), args)
 
 
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
-def call(
-    self: HamiltonianField,
-    qp: gt.BBtSz7,
-    args: tuple[Any, ...] | None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with time, pos-vel 6 array.
+@partial(jax.jit)
+def call(self: HamiltonianField, qp: gt.BBtSz7, args: Args = None, /) -> gdt.BtPAarr:
+    """Call with time, pos-vel 7 array.
 
     The arrays are considered to be in the unit system of the field
     (`field.units`) Which can be checked with ``unitsystem["X"]`` for X in time,
     position, and speed.
-
-    Examples
-    --------
-    >>> import jax.numpy as jnp
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> tqp = jnp.concat([u.Quantity([0], "Myr").ustrip(pot.units),
-    ...                   u.Quantity([8., 0, 0], "kpc").ustrip(pot.units),
-    ...                   u.Quantity([0, 220, 0], "km/s").ustrip(pot.units)])
-
-    >>> field(tqp, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
 
     """
     return self(qp[..., 0], (qp[..., 1:4], qp[..., 4:7]), args)
 
 
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def call(
     self: HamiltonianField,
     t: gt.TimeBBtSz0,
-    q: cx.vecs.AbstractPos3D,
-    p: cx.vecs.AbstractVel3D,
-    args: tuple[Any, ...] | None,
+    q: cxv.AbstractPos3D,
+    p: cxv.AbstractVel3D,
+    args: Args = None,
     /,
 ) -> gdt.BtPAarr:
-    """Call with time, `coordinax.vecs.AbstractPos3D`, `coordinax.vecs.AbstractVel3D`.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> t = u.Quantity(0, "Myr")
-    >>> q = cx.vecs.CartesianPos3D.from_([8., 0, 0], "kpc")
-    >>> p = cx.vecs.CartesianVel3D.from_([0, 220, 0], "km/s")
-
-    >>> field(t, q, p, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-    """
+    """Call with time and `coordinax` ``AbstractPos3D`` and ``AbstractVel3D``."""
     return self(t, (convert(q, FastQ), convert(p, FastQ)), args)
 
 
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def call(
     self: HamiltonianField,
-    tq: cx.vecs.FourVector,
-    p: cx.vecs.AbstractVel3D,
-    args: tuple[Any, ...] | None,
+    tq: cxv.FourVector,
+    p: cxv.AbstractVel3D,
+    args: Args = None,
     /,
 ) -> gdt.BtPAarr:
-    """Call with `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> q = cx.vecs.FourVector.from_([0, 8., 0, 0], "kpc")
-    >>> p = cx.vecs.CartesianVel3D.from_([0, 220, 0], "km/s")
-
-    >>> field(q, p, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-    """
+    """Call with `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`."""
     return self(tq.t, tq.q, p, args)
 
 
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
-def call(
-    self: HamiltonianField,
-    space: cx.vecs.Space,
-    args: tuple[Any, ...] | None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> space = cx.Space(length=cx.vecs.FourVector.from_([0, 8., 0, 0], "kpc"),
-    ...                  speed=cx.vecs.CartesianVel3D.from_([0, 220, 0], "km/s"))
-
-    >>> field(space, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-    """
+@partial(jax.jit)
+def call(self: HamiltonianField, space: cxv.Space, args: Args = None, /) -> gdt.BtPAarr:
+    """Call with `coordinax.vecs.Space`."""
     # TODO: better packing re 4Vec for "length"
-    assert isinstance(space["length"], cx.vecs.FourVector)  # noqa: S101
+    assert isinstance(space["length"], cxv.FourVector)  # noqa: S101
     return self(space["length"], space["speed"], args)
 
 
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def call(
-    self: HamiltonianField,
-    w: cx.frames.AbstractCoordinate,
-    args: tuple[Any, ...] | None,
-    /,
+    self: HamiltonianField, w: cx.frames.AbstractCoordinate, args: Args = None, /
 ) -> gdt.BtPAarr:
-    """Call with `coordinax.AbstractCoordinate`.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.coordinates as gc
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> w = cx.frames.Coordinate(
-    ...     {"length": cx.vecs.FourVector.from_([0, 8., 0, 0], "kpc"),
-    ...      "speed": cx.vecs.CartesianVel3D.from_([0, 220, 0], "km/s")},
-    ...     gc.frames.SimulationFrame())
-
-    >>> field(w, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-    """
+    """Call with `coordinax.AbstractCoordinate`."""
     w = w.to_frame(gc.frames.SimulationFrame())  # TODO: enable other frames
     return self(w.data, args)
 
 
 @HamiltonianField.__call__.dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def call(
-    self: HamiltonianField,
-    w: gc.PhaseSpacePosition,
-    args: tuple[Any, ...] | None,
-    /,
+    self: HamiltonianField, w: gc.PhaseSpacePosition, args: Args = None, /
 ) -> gdt.BtPAarr:
-    """Call with `galax.coordinates.PhaseSpacePosition`.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.coordinates as gc
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> w = gc.PhaseSpacePosition(t=u.Quantity(0, "Gyr"),
-    ...                           q=u.Quantity([8., 0, 0], "kpc"),
-    ...                           p=u.Quantity([0, 220, 0], "km/s"))
-
-    >>> field(w, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-    """
+    """Call with `galax.coordinates.PhaseSpacePosition`."""
     assert w.t is not None  # noqa: S101
     w = w.to_frame(gc.frames.SimulationFrame())  # TODO: enable other frames
     return self(w.t, w._qp(units=self.units), args)  # noqa: SLF001

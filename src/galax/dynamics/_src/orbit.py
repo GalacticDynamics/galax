@@ -59,7 +59,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
       interpolant=None
     )
 
-    >>> orbit = gd.evaluate_orbit(potential, w0, ts, interpolated=True)
+    >>> orbit = gd.evaluate_orbit(potential, w0, ts, dense=True)
     >>> orbit
     Orbit(
       q=CartesianPos3D( ... ),

@@ -25,8 +25,8 @@ def evaluate_orbit(
     t: APYQuantity,
     /,
     *,
-    integrator: gd.integrate.Integrator | None = None,
-    interpolated: Literal[True, False] = False,
+    solver: gd.integrate.DynamicsSolver | None = None,
+    dense: Literal[True, False] = False,
 ) -> gd.Orbit:
     """Compute an orbit in a potential.
 
@@ -109,10 +109,6 @@ def evaluate_orbit(
 
     """
     orbit: gd.Orbit = gd.evaluate_orbit(
-        pot,
-        w0,
-        convert(t, u.Quantity),
-        integrator=integrator,
-        interpolated=interpolated,
+        pot, w0, convert(t, u.Quantity), solver=solver, dense=dense
     )
     return orbit

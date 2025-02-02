@@ -37,7 +37,7 @@ def evaluate_orbit(
     /,
     *,
     integrator: Integrator | None = None,
-    interpolated: Literal[True, False] = False,
+    dense: Literal[True, False] = False,
 ) -> Orbit:
     """Compute an orbit in a potential.
 
@@ -87,9 +87,9 @@ def evaluate_orbit(
         twice: once to integrate from `w0.t` to `t[0]` and then from `t[0]` to
         `t[1]`.
 
-    interpolated: bool, optional keyword-only
-        If `True`, return an interpolated orbit.  If `False`, return the orbit
-        at the requested times.  Default is `False`.
+    dense: bool, optional keyword-only
+        If `True`, return a dense (interpolated) orbit.  If `False`, return the
+        orbit at the requested times.  Default is `False`.
 
     Returns
     -------
@@ -221,14 +221,7 @@ def evaluate_orbit(
 
     # Orbit integration `t[0]` to `t[-1]`
     # TODO: `max_steps` as kwarg.
-    ws = integrator(
-        field,
-        qp0,
-        t[0],
-        t[-1],
-        saveat=t,
-        dense=interpolated,
-    )
+    ws = integrator(field, qp0, t[0], t[-1], saveat=t, dense=dense)
 
     # Return the orbit object
     return Orbit._from_psp(ws, t, pot)  # noqa: SLF001

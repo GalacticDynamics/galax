@@ -11,7 +11,7 @@ import unxt.unitsystems as usx
 
 import galax.potential as gp
 import galax.typing as gt
-from ...test_core import AbstractSinglePotential_Test
+from ..test_core import AbstractSinglePotential_Test
 
 
 class TestNullPotential(AbstractSinglePotential_Test):

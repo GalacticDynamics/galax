@@ -18,7 +18,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
-from .orbit_plot import PlotOrbitDescriptor, ProxyOrbit
+from .plot_helper import PlotOrbitDescriptor, ProxyOrbit
 from galax.typing import BtFloatQuSz0, QuSz1, QuSzTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 

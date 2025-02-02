@@ -1,4 +1,4 @@
-"""Plotting on Potentials.
+"""Plotting on Orbits.
 
 This module uses code from the `bound-class` package, which is licensed under a
 BSD 3-Clause License. The original code can be found at

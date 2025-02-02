@@ -1,8 +1,4 @@
-"""Dynamics.
-
-This is private API.
-
-"""
+"""General Dynamics. Private module."""
 
 __all__ = [
     "DynamicsSolver",

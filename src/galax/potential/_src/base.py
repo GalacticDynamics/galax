@@ -320,7 +320,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         t: Any,
         *,
         integrator: "Integrator | None" = None,
-        interpolated: Literal[True, False] = False,
+        dense: Literal[True, False] = False,
     ) -> "Orbit":
         """Compute an orbit in a potential.
 
@@ -359,16 +359,15 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
                 This is NOT the timesteps to use for integration, which are
                 controlled by the `integrator`; the default integrator
-                :class:`~galax.integrator.Integrator` uses adaptive
-                timesteps.
+                :class:`~galax.integrator.Integrator` uses adaptive timesteps.
 
         integrator : :class:`~galax.integrate.Integrator`, keyword-only
             Integrator to use.  If `None`, the default integrator
             :class:`~galax.integrator.Integrator` is used.
 
-        interpolated: bool, optional keyword-only
-                If `True`, return an interpolated orbit.  If `False`, return the orbit
-                at the requested times.  Default is `False`.
+        dense: bool, optional keyword-only
+            If `True`, return a dense (interpolated) orbit.  If `False`, return
+            the orbit at the requested times.  Default is `False`.
 
 
         Returns
@@ -385,10 +384,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         from galax.dynamics import evaluate_orbit
 
         return cast(
-            "Orbit",
-            evaluate_orbit(
-                self, w0, t, integrator=integrator, interpolated=interpolated
-            ),
+            "Orbit", evaluate_orbit(self, w0, t, integrator=integrator, dense=dense)
         )
 
     # =========================================================================

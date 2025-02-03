@@ -47,7 +47,7 @@ print(orbit)
 #         [[ 8.     0.     0.   ]
 #          ...
 #          [ 7.804 -0.106  0.   ]]>,
-#     p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+#     p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
 #         [[ 0.     0.225  0.   ]
 #          ...
 #          [ 0.018  0.23   0.   ]]>,
@@ -62,7 +62,7 @@ print(orbit_sph)
 #         [[0.000e+00 3.858e-16 8.000e+00]
 #          ...
 #          [6.270e+00 3.858e-16 7.805e+00]]>,
-#     p=<LonLatSphericalVelocity (d_lon[rad / Myr], d_lat[deg / Myr], d_distance[kpc / Myr])
+#     p=<LonLatSphericalVelocity (lon[rad / Myr], lat[deg / Myr], distance[kpc / Myr])
 #         [[ 0.028  0.     0.   ]
 #          ...
 #          [ 0.03   0.     0.015]]>,

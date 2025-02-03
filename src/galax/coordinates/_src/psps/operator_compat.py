@@ -278,9 +278,9 @@ def call(
     >>> newpsp.q.x
     Quantity['length'](Array(0.70710678, dtype=float64), unit='m')
     >>> newpsp.q.norm()
-    Quantity['length'](Array(1., dtype=float64), unit='m')
+    UncheckedQuantity(Array(1., dtype=float64), unit='m')
 
-    >>> newpsp.p.d_x
+    >>> newpsp.p.x
     Quantity['speed'](Array(0.70710678, dtype=float64), unit='m / s')
     >>> newpsp.p.norm()
     Quantity['speed'](Array(1., dtype=float64), unit='m / s')

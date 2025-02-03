@@ -90,7 +90,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
             [ 6.247 -5.121  0.   ]>,
-        p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
             [0.359 0.033 0.   ]>,
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
@@ -427,7 +427,7 @@ def call(
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
             [ 6.247 -5.121  0.   ]>,
-        p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
             [0.359 0.033 0.   ]>,
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
@@ -437,7 +437,7 @@ def call(
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
             [ 6.247 -5.121  0.   ]>,
-        p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
             [0.359 0.033 0.   ]>,
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
@@ -447,7 +447,7 @@ def call(
     PhaseSpacePosition(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
             [ 6.247 -5.121  0.   ]>,
-        p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
             [0.359 0.033 0.   ]>,
         t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
@@ -650,14 +650,14 @@ def call(
         w01=PhaseSpacePosition(
             q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
                 [ 6.247 -5.121  0.   ]>,
-            p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+            p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
                 [0.359 0.033 0.   ]>,
             t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
             frame=SimulationFrame()),
         w02=PhaseSpacePosition(
             q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
                 [5.121 6.247 0.   ]>,
-            p=<CartesianVel3D (d_x[kpc / Myr], d_y[kpc / Myr], d_z[kpc / Myr])
+            p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
                 [-0.033  0.359  0.   ]>,
             t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
             frame=SimulationFrame()))

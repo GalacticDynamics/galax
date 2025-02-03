@@ -74,15 +74,10 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
     >>> c_psp["psp1"] is psp1
     True
 
-    >>> c_psp.q
-    CartesianPos3D(
-      x=Quantity[...](value=i64[2], unit=Unit("kpc")),
-      y=Quantity[...](value=i64[2], unit=Unit("kpc")),
-      z=Quantity[...](value=i64[2], unit=Unit("kpc"))
-    )
-
-    >>> c_psp.p.d_x
-    Quantity['speed'](Array([ 4, 40], dtype=int64), unit='km / s')
+    >>> print(c_psp.q)
+    <CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        [[ 1  2  3]
+         [10 20 30]]>
 
     Note that the length of the individual components are 0, but the length of
     the composite is the sum of the lengths of the components.
@@ -92,6 +87,7 @@ class AbstractCompositePhaseSpacePosition(  # type: ignore[misc,unused-ignore]
 
     >>> len(c_psp)
     2
+
     """
 
     _data: dict[str, AbstractPhaseSpacePosition]

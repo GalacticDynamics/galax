@@ -23,3 +23,10 @@ from .base_psp import AbstractOnePhaseSpacePosition
 from .core import PhaseSpacePosition
 from .core_composite import CompositePhaseSpacePosition
 from .interp import InterpolatedPhaseSpacePosition, PhaseSpacePositionInterpolant
+
+# Register by import
+# isort: split
+from . import (
+    register_primitives,  # noqa: F401
+    register_vectorapi,  # noqa: F401
+)

@@ -196,7 +196,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
             x=Quantity[...](value=f64[10], unit=Unit("kpc")),
             ... ),
           p=CartesianVel3D(
-            d_x=Quantity[...]( value=f64[10], unit=Unit("kpc / Myr") ),
+            x=Quantity[...]( value=f64[10], unit=Unit("kpc / Myr") ),
             ... ),
           t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
           frame=SimulationFrame(),
@@ -242,7 +242,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
             ...
           ),
           p=CartesianVel3D(
-            d_x=Quantity[...]( value=f64[2], unit=Unit("kpc / Myr") ),
+            x=Quantity[...]( value=f64[2], unit=Unit("kpc / Myr") ),
             ...
           ),
           t=Quantity['time'](Array([  0., 100.], dtype=float64), unit='Myr'),

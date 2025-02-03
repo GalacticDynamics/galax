@@ -3,10 +3,10 @@
 __all__ = ["AbstractPhaseSpacePosition", "ComponentShapeTuple"]
 
 from abc import abstractmethod
-from dataclasses import replace
 from functools import partial
 from textwrap import indent
 from typing import Any, NamedTuple, Self, cast
+from typing_extensions import override
 
 import equinox as eqx
 import jax
@@ -103,8 +103,9 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         """Return the dimensionality of the phase-space position."""
         return 7  # TODO: should it be 7? Also make it a Final
 
+    @override
     @property
-    def data(self) -> cx.Space:
+    def data(self) -> cx.Space:  # type: ignore[misc]
         """Return the data as a space.
 
         Examples
@@ -127,71 +128,6 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
             "time component is not a Quantity",
         )
         return cx.Space(length=cx.vecs.FourVector(t=t, q=self.q), speed=self.p)
-
-    # ==========================================================================
-    # Vector API
-
-    @cx.frames.AbstractCoordinate.vconvert.dispatch  # type: ignore[misc]
-    def vconvert(
-        self: "AbstractPhaseSpacePosition",
-        position_cls: type[cx.vecs.AbstractPos],
-        velocity_cls: type[cx.vecs.AbstractVel] | None = None,
-        /,
-        **kwargs: Any,
-    ) -> "AbstractPhaseSpacePosition":
-        """Return with the components transformed.
-
-        Parameters
-        ----------
-        position_cls : type[:class:`~vector.AbstractPos`]
-            The target position class.
-        velocity_cls : type[:class:`~vector.AbstractVel`], optional
-            The target differential class. If `None` (default), the differential
-            class of the target position class is used.
-        **kwargs
-            Additional keyword arguments are passed through to `coordinax.vconvert`.
-
-        Returns
-        -------
-        w : :class:`~galax.coordinates.AbstractOnePhaseSpacePosition`
-            The phase-space position with the components transformed.
-
-        Examples
-        --------
-        With the following imports:
-
-        >>> import unxt as u
-        >>> import coordinax as cx
-        >>> import galax.coordinates as gc
-
-        We can create a phase-space position and convert it to a 6-vector:
-
-        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                             p=u.Quantity([4, 5, 6], "km/s"),
-        ...                             t=u.Quantity(0, "Gyr"))
-        >>> psp.w(units="galactic")
-        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
-
-        We can also convert it to a different representation:
-
-        >>> psp.vconvert(cx.vecs.CylindricalPos)
-        PhaseSpacePosition( q=CylindricalPos(...),
-                            p=CylindricalVel(...),
-                            t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-                            frame=SimulationFrame() )
-
-        We can also convert it to a different representation with a different
-        differential class:
-
-        >>> psp.vconvert(cx.vecs.LonLatSphericalPos, cx.vecs.LonCosLatSphericalVel)
-        PhaseSpacePosition( q=LonLatSphericalPos(...),
-                            p=LonCosLatSphericalVel(...),
-                            t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-                            frame=SimulationFrame() )
-        """
-        return cast(
-            "Self", cx.vconvert({"q": position_cls, "p": velocity_cls}, self, **kwargs)
-        )
 
     # ==========================================================================
     # Array API
@@ -321,18 +257,6 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         new: "Self" = eqx.combine(indexed_arrays, non_arrays)
         return new
 
-    # ---------------------------------------------------------------
-
-    @dispatch.abstract
-    def __add__(
-        self: "AbstractPhaseSpacePosition", other: Any, /
-    ) -> "AbstractPhaseSpacePosition":
-        """Add to a phase-space positions."""
-        raise NotImplementedError  # pragma: no cover
-
-    def __neg__(self) -> "AbstractPhaseSpacePosition":
-        raise NotImplementedError  # TODO: implement
-
     # ==========================================================================
     # Python API
 
@@ -350,7 +274,7 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         PhaseSpacePosition(
             q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
                 [1 2 3]>,
-            p=<CartesianVel3D (d_x[km / s], d_y[km / s], d_z[km / s])
+            p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
                 [4 5 6]>,
             t=Quantity['time'](Array(-1, dtype=int64, ...), unit='Gyr'),
             frame=SimulationFrame())
@@ -525,9 +449,9 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         ...     y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=u.Quantity(2, "kpc"))
         >>> p = cx.CartesianVel3D(
-        ...     d_x=u.Quantity(0, "km/s"),
-        ...     d_y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
-        ...     d_z=u.Quantity(0, "km/s"))
+        ...     x=u.Quantity(0, "km/s"),
+        ...     y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     z=u.Quantity(0, "km/s"))
         >>> t = u.Quantity(0, "Gyr")
         >>> w = gc.PhaseSpacePosition(q, p, t=t)
 
@@ -572,9 +496,9 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         ...     y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=u.Quantity(2, "kpc"))
         >>> p = cx.CartesianVel3D(
-        ...     d_x=u.Quantity(0, "km/s"),
-        ...     d_y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
-        ...     d_z=u.Quantity(0, "km/s"))
+        ...     x=u.Quantity(0, "km/s"),
+        ...     y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     z=u.Quantity(0, "km/s"))
         >>> w = gc.PhaseSpacePosition(q, p, t=u.Quantity(0, "Myr"))
 
         We can compute the kinetic energy:
@@ -619,9 +543,9 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         ...     y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
         ...     z=u.Quantity(2, "kpc"))
         >>> p = cx.CartesianVel3D(
-        ...     d_x=u.Quantity(0, "km/s"),
-        ...     d_y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
-        ...     d_z=u.Quantity(0, "km/s"))
+        ...     x=u.Quantity(0, "km/s"),
+        ...     y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+        ...     z=u.Quantity(0, "km/s"))
         >>> w = gc.PhaseSpacePosition(q, p, t=u.Quantity(0, "Myr"))
 
         We can compute the kinetic energy:
@@ -765,60 +689,3 @@ def convert_psp_to_coordinax_coordinate(
 
     """
     return cx.Coordinate(data=obj.data, frame=obj.frame)
-
-
-# -----------------------------------------------
-# Addition
-
-
-@AbstractPhaseSpacePosition.__add__.dispatch  # type: ignore[misc]
-def add(
-    self: AbstractPhaseSpacePosition,
-    other: AbstractPhaseSpacePosition,
-    /,
-) -> AbstractPhaseSpacePosition:
-    """Add two phase-space positions.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.coordinates as gc
-
-    >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                            p=u.Quantity([4, 5, 6], "km/s"),
-    ...                            t=u.Quantity(0, "Gyr"))
-    >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([-1, -2, -3], "kpc"),
-    ...                            p=u.Quantity([-4, -5, -6], "km/s"),
-    ...                            t=u.Quantity(0, "Gyr"))
-    >>> w3 = w1 + w2
-    >>> w3
-    PhaseSpacePosition(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
-      frame=SimulationFrame()
-    )
-
-    >>> w3.q.x.value
-    Array(0, dtype=int64)
-
-    If the times are different, an error is raised:
-
-    >>> from dataclassish import replace
-    >>> w4 = replace(w2, t=u.Quantity(1, "Gyr"))
-    >>> try: w1 + w4
-    ... except ValueError as e: print(e)
-    Cannot add phase-space positions with different times
-
-    """
-    if not isinstance(other, type(self)):
-        msg = f"Cannot add {type(self)} and {type(other)}"
-        raise TypeError(msg)
-
-    # Check the times are the same
-    if not jnp.all(self.t == other.t):
-        msg = "Cannot add phase-space positions with different times"
-        raise ValueError(msg)
-
-    # Add the fields
-    return replace(self, q=self.q + other.q, p=self.p + other.p)

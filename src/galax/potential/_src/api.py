@@ -163,7 +163,7 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
     ...                           t=u.Quantity(0, "Gyr"))
 
     >>> print(pot.gradient(w))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [0.086 0.172 0.258]>
 
     We can also compute the potential energy at multiple positions and times:
@@ -172,7 +172,7 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
     ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
     ...                           t=u.Quantity([0, 1], "Gyr"))
     >>> print(pot.gradient(w))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
@@ -181,7 +181,7 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> print(pot.gradient(w))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [0.086 0.172 0.258]>
 
     This function is very flexible and can accept a broad variety of inputs. For
@@ -191,14 +191,14 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
     >>> t = u.Quantity(0, "Gyr")
     >>> print(pot.gradient(q, t=t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [0.086 0.172 0.258]>
 
     We can also compute the potential energy at multiple positions:
 
     >>> q = cx.CartesianPos3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
@@ -208,7 +208,7 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [0.086 0.172 0.258]>
 
     Again, this can be batched.  If the input position object has no units (i.e.
@@ -218,7 +218,7 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
     >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1., 2, 3], [4, 5, 6]])
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
@@ -244,14 +244,14 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
     >>> q = apyc.CartesianRepresentation([1, 2, 3], unit="kpc")
     >>> t = 0 *  apyu.Gyr
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [0.086 0.172 0.258]>
 
     We can also compute the potential energy at multiple positions:
 
     >>> q = apyc.CartesianRepresentation([[1, 4], [2, 5], [3, 6]], unit="kpc")
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
@@ -261,7 +261,7 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> q = [1., 2, 3] * apyu.kpc
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [0.086 0.172 0.258]>
 
     Again, this can be batched.  If the input position object has no units (i.e.
@@ -270,7 +270,7 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
@@ -719,7 +719,7 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
     ...                           t=u.Quantity(0, "Gyr"))
 
     >>> print(pot.acceleration(w))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [-0.086 -0.172 -0.258]>
 
     We can also compute the potential energy at multiple positions and times:
@@ -728,7 +728,7 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
     ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
     ...                           t=u.Quantity([0, 1], "Gyr"))
     >>> print(pot.acceleration(w))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[-0.086 -0.172 -0.258]
          [-0.027 -0.033 -0.04 ]]>
 
@@ -739,7 +739,7 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> print(pot.acceleration(w))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [-0.086 -0.172 -0.258]>
 
     Or using a `~coordinax.AbstractPos3D` and time `unxt.Quantity` (which can be
@@ -748,14 +748,14 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
     >>> t = u.Quantity(0, "Gyr")
     >>> print(pot.acceleration(q, t=t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [-0.086 -0.172 -0.258]>
 
     We can also compute the potential energy at multiple positions:
 
     >>> q = cx.CartesianPos3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> print(pot.acceleration(q, t=t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[-0.086 -0.172 -0.258]
          [-0.027 -0.033 -0.04 ]]>
 
@@ -765,7 +765,7 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.acceleration(q, t=t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [-0.086 -0.172 -0.258]>
 
     Again, this can be batched.  If the input position object has no units (i.e.
@@ -775,7 +775,7 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
     >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> print(pot.acceleration(q, t=t))
-    <CartesianAcc3D (d2_x[kpc / Myr2], d2_y[kpc / Myr2], d2_z[kpc / Myr2])
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[-0.086 -0.172 -0.258]
          [-0.027 -0.033 -0.04 ]]>
 

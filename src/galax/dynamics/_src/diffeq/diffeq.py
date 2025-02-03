@@ -104,6 +104,13 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     Array([[0.90483742, 0.81872516],
            [0.74080871, 0.67031456]], dtype=float64)
 
+    This can be more conveniently done using the `vectorize_interpolation` argument.
+    >>> soln = solver(term, t0=0, t1=3, dt0=0.1, y0=1, saveat=saveat,
+    ...               vectorize_interpolation=True)
+    >>> soln.evaluate(jnp.array([0.1, 0.2, 0.3, 0.4]).reshape(2, 2))
+    Array([[0.90483742, 0.81872516],
+           [0.74080871, 0.67031456]], dtype=float64)
+
     """
 
     #: The solver for the differential equation.
@@ -148,7 +155,7 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         controller_state: PyTree[ArrayLike] | None = None,
         made_jump: BoolSz0Like | None = None,
         # Extra options
-        _vectorize_interpolation: bool = False,  # TODO: make public
+        vectorize_interpolation: bool = False,
     ) -> dfx.Solution:
         """Solve a differential equation.
 
@@ -172,6 +179,8 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             made_jump: whether a jump has just been made at t0.
 
         """
+        # Solve with `diffrax.diffeqsolve`, using the `DiffEqSolver`'s `solver`,
+        # `stepsize_controller` and `adjoint`.
         soln: dfx.Solution = dfx.diffeqsolve(
             terms,
             self.solver,
@@ -191,8 +200,10 @@ class DiffEqSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             controller_state=controller_state,
             made_jump=made_jump,
         )
-        if _vectorize_interpolation and soln.interpolation is not None:
+        # Optionally vectorize the interpolation.
+        if vectorize_interpolation and soln.interpolation is not None:
             soln = VectorizedDenseInterpolation.apply_to_solution(soln)
+
         return soln
 
     # TODO: a contextmanager for producing a temporary DiffEqSolver with

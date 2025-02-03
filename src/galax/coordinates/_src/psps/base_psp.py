@@ -49,7 +49,7 @@ class AbstractOnePhaseSpacePosition(AbstractPhaseSpacePosition):
             x=Quantity[...](value=...f64[], unit=Unit("AU")),
             ... ),
         p=CartesianVel3D(
-            d_x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
+            x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
             ... ),
         t=Quantity['time'](..., unit='yr'),
         frame=SimulationFrame()

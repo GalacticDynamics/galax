@@ -185,7 +185,7 @@ class AbstractOnePhaseSpacePosition_Test(Generic[T], metaclass=ABCMeta):
         w2 = w.uconvert("solarsystem")
         # TODO: more detailed tests
         assert w2.q.x.unit == "AU"
-        assert w2.p.d_x.unit == "AU/yr"
+        assert w2.p.x.unit == "AU/yr"
         assert w2.t.unit == "yr"
 
     # ==========================================================================

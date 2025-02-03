@@ -106,7 +106,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     >>> cw.q.x
     Quantity['length'](Array([1.5, 1. ], dtype=float64), unit='m')
 
-    >>> cw.p.d_x
+    >>> cw.p.x
     Quantity['speed'](Array([4.5, 4. ], dtype=float64), unit='m / s')
 
     We can transform the composite phase-space position to a new position class.

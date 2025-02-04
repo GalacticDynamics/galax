@@ -20,6 +20,7 @@ import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .interp import Interpolant
+from .interp_psp import InterpolatedPhaseSpacePosition
 from galax.dynamics._src.diffeq import DiffEqSolver
 from galax.dynamics._src.dynamics import DynamicsSolver
 from galax.dynamics.fields import AbstractDynamicsField
@@ -128,7 +129,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> w = integrator(field, w0, t0, t1, saveat=ts, dense=True)
     >>> type(w)
-    <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
+    <class 'galax.dynamics...InterpolatedPhaseSpacePosition'>
 
     The interpolated solution can be evaluated at any time in the domain to get
     the phase-space position at that time:
@@ -204,7 +205,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         *,
         saveat: gt.QuSzTime | None = None,  # not jitted here
         dense: Literal[False, True] = False,
-    ) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
+    ) -> gc.PhaseSpacePosition | InterpolatedPhaseSpacePosition:
         """Run the integrator.
 
         This handles the shape cases that `diffrax.diffeqsolve` can handle
@@ -251,7 +252,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             "units": field.units,
         }
         if dense:
-            out_cls = gc.InterpolatedPhaseSpacePosition
+            out_cls = InterpolatedPhaseSpacePosition
             out_kw["interpolant"] = Interpolant(soln.interpolation, units=field.units)
         else:
             out_cls = gc.PhaseSpacePosition
@@ -292,7 +293,7 @@ def call(
     *,
     saveat: Times | None = None,
     **kwargs: Any,
-) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
+) -> gc.PhaseSpacePosition | InterpolatedPhaseSpacePosition:
     """Run the integrator.
 
     This is the base dispatch for the integrator and handles the shape cases
@@ -390,7 +391,7 @@ def call(
 )
 def call(
     self: Integrator, field: AbstractDynamicsField, *args: Any, **kwargs: Any
-) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
+) -> gc.PhaseSpacePosition | InterpolatedPhaseSpacePosition:
     """Support keyword arguments by re-dispatching.
 
     Examples
@@ -487,7 +488,7 @@ def call(
     *,
     saveat: Times | None = None,
     **kwargs: Any,
-) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
+) -> gc.PhaseSpacePosition | InterpolatedPhaseSpacePosition:
     """Run the integrator, vectorizing in the initial/final times.
 
     I/O shapes:
@@ -571,7 +572,7 @@ def call(
     t1: Any,
     /,
     **kwargs: Any,
-) -> gc.PhaseSpacePosition | gc.InterpolatedPhaseSpacePosition:
+) -> gc.PhaseSpacePosition | InterpolatedPhaseSpacePosition:
     """Run the integrator.
 
     Examples

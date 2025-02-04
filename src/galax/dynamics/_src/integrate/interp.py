@@ -16,6 +16,7 @@ from unxt.quantity import UncheckedQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.typing as gt
+from .interp_psp import InterpolatedPhaseSpacePosition
 from galax.dynamics._src.diffeq.interp import AbstractVectorizedDenseInterpolation
 
 
@@ -50,7 +51,7 @@ class Interpolant(AbstractVectorizedDenseInterpolation):
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> w = integrator(gd.fields.HamiltonianField(pot), w0, t0, t1, dense=True)
     >>> type(w)
-    <class 'galax.coordinates...InterpolatedPhaseSpacePosition'>
+    <class 'galax.dynamics...InterpolatedPhaseSpacePosition'>
 
     >>> isinstance(w.interpolant, gc.PhaseSpacePositionInterpolant)
     True
@@ -125,7 +126,7 @@ class Interpolant(AbstractVectorizedDenseInterpolation):
 # TODO: support interpolation
 @gc.AbstractOnePhaseSpacePosition.from_.dispatch  # type: ignore[misc,attr-defined]
 def from_(
-    cls: type[gc.InterpolatedPhaseSpacePosition],
+    cls: type[InterpolatedPhaseSpacePosition],
     soln: dfx.Solution,
     *,
     frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required

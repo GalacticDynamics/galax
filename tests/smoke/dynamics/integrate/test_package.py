@@ -14,4 +14,5 @@ def test_all() -> None:
         "AbstractSolver",
         "DynamicsSolver",
         "VectorizedDenseInterpolation",
+        "InterpolatedPhaseSpacePosition",
     }

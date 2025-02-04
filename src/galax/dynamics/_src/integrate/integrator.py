@@ -12,6 +12,7 @@ import equinox as eqx
 from jaxtyping import ArrayLike, Shaped
 from plum import dispatch
 
+import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
 from xmmutablemap import ImmutableMap
@@ -21,7 +22,6 @@ import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .interp import Interpolant
 from .interp_psp import InterpolatedPhaseSpacePosition
-from galax.dynamics._src.diffeq import DiffEqSolver
 from galax.dynamics._src.dynamics import DynamicsSolver
 from galax.dynamics.fields import AbstractDynamicsField
 
@@ -176,7 +176,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     dynamics_solver: DynamicsSolver = eqx.field(
         default=DynamicsSolver(
-            DiffEqSolver(
+            dfxtra.DiffEqSolver(
                 solver=dfx.Dopri8(scan_kind="bounded"),
                 stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7),
             )

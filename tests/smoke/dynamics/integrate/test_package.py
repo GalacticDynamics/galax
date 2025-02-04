@@ -10,9 +10,10 @@ def test_all() -> None:
         "Integrator",
         "Interpolant",
         "parse_time_specification",
-        "DiffEqSolver",
         "AbstractSolver",
         "DynamicsSolver",
+        # Diffraxtra external library
+        "DiffEqSolver",
         "VectorizedDenseInterpolation",
         "InterpolatedPhaseSpacePosition",
     }

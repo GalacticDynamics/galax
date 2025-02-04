@@ -10,12 +10,12 @@ import equinox as eqx
 import optimistix as optx
 from plum import dispatch
 
+import diffraxtra as dfxtra
 import unxt as u
 from unxt.quantity import AbstractQuantity
 
 from .events import MassBelowThreshold
 from .fields import AbstractMassField, MassVectorField, UserMassField
-from galax.dynamics._src.diffeq import DiffEqSolver
 from galax.dynamics._src.solver import AbstractSolver
 from galax.dynamics._src.utils import parse_saveat
 
@@ -43,12 +43,12 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     """
 
-    diffeqsolver: DiffEqSolver = eqx.field(
-        default=DiffEqSolver(
+    diffeqsolver: dfxtra.DiffEqSolver = eqx.field(
+        default=dfxtra.DiffEqSolver(
             solver=dfx.Dopri8(),
             stepsize_controller=dfx.PIDController(rtol=1e-8, atol=1e-8),
         ),
-        converter=DiffEqSolver.from_,
+        converter=dfxtra.DiffEqSolver.from_,
     )
     # TODO: should this be incorporated into in `DiffEqSolver`?
     event: dfx.Event = eqx.field(

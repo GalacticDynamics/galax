@@ -17,6 +17,7 @@ from jaxtyping import PyTree
 from plum import convert, dispatch
 
 import coordinax as cx
+import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 from unxt.quantity import UncheckedQuantity as FastQ
 
@@ -24,7 +25,6 @@ import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .field_base import AbstractDynamicsField
-from galax.dynamics._src.diffeq import DiffEqSolver, VectorizedDenseInterpolation
 from galax.dynamics._src.solver import AbstractSolver
 from galax.dynamics._src.utils import parse_saveat
 
@@ -120,12 +120,12 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     """
 
     #: Solver for the differential equation.
-    diffeqsolver: DiffEqSolver = eqx.field(
-        default=DiffEqSolver(
+    diffeqsolver: dfxtra.DiffEqSolver = eqx.field(
+        default=dfxtra.DiffEqSolver(
             solver=dfx.Dopri8(),
             stepsize_controller=dfx.PIDController(rtol=1e-8, atol=1e-8),
         ),
-        converter=DiffEqSolver.from_,
+        converter=dfxtra.DiffEqSolver.from_,
     )
 
     # -------------------------------------------
@@ -457,7 +457,7 @@ def solve(
 
     # Now possibly vectorize the interpolation
     if vectorize_interpolation:
-        soln = VectorizedDenseInterpolation.apply_to_solution(soln)
+        soln = dfxtra.VectorizedDenseInterpolation.apply_to_solution(soln)
 
     return soln
 

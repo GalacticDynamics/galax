@@ -1,7 +1,6 @@
 __all__ = ["Interpolant"]
 
 from typing import final
-from typing_extensions import override
 
 import diffrax as dfx
 import equinox as eqx
@@ -10,6 +9,7 @@ import jax.numpy as jnp
 from jaxtyping import PyTree
 
 import coordinax as cx
+import diffraxtra as dfxtra
 import quaxed.numpy as xp
 import unxt as u
 from unxt.quantity import UncheckedQuantity as FastQ
@@ -17,11 +17,10 @@ from unxt.quantity import UncheckedQuantity as FastQ
 import galax.coordinates as gc
 import galax.typing as gt
 from .interp_psp import InterpolatedPhaseSpacePosition
-from galax.dynamics._src.diffeq.interp import AbstractVectorizedDenseInterpolation
 
 
 @final
-class Interpolant(AbstractVectorizedDenseInterpolation):
+class Interpolant(dfxtra.AbstractVectorizedDenseInterpolation):  # type: ignore[misc]
     """Wrapper for `diffrax.DenseInterpolation`.
 
     This satisfies the `galax.coordinates.PhaseSpacePositionInterpolant`
@@ -97,11 +96,11 @@ class Interpolant(AbstractVectorizedDenseInterpolation):
             is_leaf=eqx.is_array,
         )
 
-    @override
     def evaluate(
         self,
         t0: u.Quantity["time"],
         t1: u.Quantity["time"] | None = None,
+        *,
         left: bool = False,
     ) -> gc.PhaseSpacePosition:
         """Evaluate the interpolation."""

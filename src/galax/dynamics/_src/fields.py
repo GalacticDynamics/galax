@@ -10,7 +10,7 @@ import equinox as eqx
 from jaxtyping import PyTree
 from plum import dispatch
 
-from galax.dynamics._src.diffeq import DiffEqSolver
+import diffraxtra as dfxtra
 
 
 class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
@@ -31,7 +31,9 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
 
 
 @AbstractField.terms.dispatch  # type: ignore[misc]
-def terms(self: AbstractField, wrapper: DiffEqSolver, /) -> PyTree[dfx.AbstractTerm]:
+def terms(
+    self: AbstractField, wrapper: dfxtra.DiffEqSolver, /
+) -> PyTree[dfx.AbstractTerm]:
     """Return diffeq terms, redispatching to the solver.
 
     Examples

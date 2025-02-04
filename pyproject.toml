@@ -32,6 +32,7 @@
     "coordinax>=0.19.0",
     "dataclassish>=0.7.1",
     "diffrax>=0.6",
+    "diffraxtra>=1.0.2",
     "equinox>=0.11.8",
     "is-annotated>=1.0",
     "jax>=0.4.35",
@@ -287,6 +288,7 @@
     [tool.ruff.lint.flake8-import-conventions.extend-aliases]
       "coordinax" = "cx"
       "diffrax" = "dfx"
+      "diffraxtra" = "dfxtra"
       "equinox" = "eqx"
       "galax.coordinates" = "gc"
       "galax.potential" = "gp"
@@ -304,6 +306,7 @@
       known-first-party = [
         "coordinax",
         "dataclassish",
+        "diffraxtra",
         "galactic_dynamics_interoperability",
         "is_annotated",
         "optional_dependencies",

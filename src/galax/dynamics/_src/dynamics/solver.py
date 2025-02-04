@@ -11,6 +11,7 @@ from typing import Any, final
 
 import diffrax as dfx
 import equinox as eqx
+import jax.tree as jtu
 from jaxtyping import PyTree
 from plum import convert, dispatch
 
@@ -158,9 +159,11 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         w0: Any,
         /,
         args: Any = (),
+        *,
+        unbatch_time: bool = False,
         **solver_kw: Any,  # TODO: TypedDict
     ) -> dfx.Solution:
-        """Call `diffrax.diffeqsolve`."""
+        """Solve the dynamics with `diffrax.diffeqsolve`."""
         raise NotImplementedError  # pragma: no cover
 
 
@@ -184,6 +187,8 @@ def solve(
     /,
     args: Any = (),
     saveat: Any = default_saveat,
+    *,
+    unbatch_time: bool = False,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for batch position tuple, scalar start, end time.
@@ -193,6 +198,8 @@ def solve(
     - All keys recognized by `diffrax.diffeqsolve`. In particular if "dt0" is
       not specified it is assumed to be `None`.
     - "dense" (bool): If `True`, `saveat` is modified to have ``dense=True``.
+    - "vectorize_interpolation" (bool): If `True`, the interpolation is
+      vectorized using `galax.dynamics.integrate.VectorizedDenseInterpolation`.
 
     The output shape aligns with `diffrax.diffeqsolve`: (*batch, [time],
     *shape), where [time] is >= 1.
@@ -262,7 +269,12 @@ def solve(
         **solver_kw,
     )
 
-    return soln  # noqa: RET504
+    # Check to see if we should try to unbatch in the time dimension.
+    if unbatch_time and soln.ts.shape[soln.t0.ndim] == 1:
+        soln = eqx.tree_at(lambda tree: tree.ts, soln, soln.ts[0])
+        soln = eqx.tree_at(lambda tree: tree.ys, soln, jtu.map(lambda y: y[0], soln.ys))
+
+    return soln
 
 
 @DynamicsSolver.solve.dispatch(precedence=-1)
@@ -745,8 +757,8 @@ def solve(
     # Check that the initial conditions are valid.
     w0 = eqx.error_if(
         w0,
-        w0.t is not None,
-        "If `t0` is specified, `w0.t` must be `None`.",
+        False if w0.t is None else jnp.logical_not(jnp.array_equal(w0.t, t0)),
+        "If `t0` is specified, `w0.t` must be `None` or `t0`.",
     )
 
     w0 = eqx.error_if(  # TODO: remove when frames are handled

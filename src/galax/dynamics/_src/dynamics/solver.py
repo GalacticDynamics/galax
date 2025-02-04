@@ -7,6 +7,7 @@ This is private API.
 __all__ = ["DynamicsSolver"]
 
 
+from functools import partial
 from typing import Any, final
 
 import diffrax as dfx
@@ -23,7 +24,7 @@ import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .field_base import AbstractDynamicsField
-from galax.dynamics._src.diffeq import DiffEqSolver
+from galax.dynamics._src.diffeq import DiffEqSolver, VectorizedDenseInterpolation
 from galax.dynamics._src.solver import AbstractSolver
 from galax.dynamics._src.utils import parse_saveat
 
@@ -239,7 +240,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
                   ys=(f64[3], f64[3]), ... )
 
         A set of initial conditions can be solved at once. The resulting
-        `diffrax.Solution` has a `ys` shape of ([time], *shape)
+        `diffrax.Solution` has a `ys` shape of ([time], *shape, 3),
 
         >>> w0s = (u.Quantity([[8, 0, 0], [9, 0, 0]], "kpc"),
         ...       u.Quantity([[0, 220, 0], [0, 230, 0]], "km/s"))
@@ -250,7 +251,9 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
                   ys=(f64[1,2,3], f64[1,2,3]), ... )
 
         This can be batched with a set of times. The resulting
-        `diffrax.Solution` has a `ys` shape of (*batch, [time], *shape)
+        `diffrax.Solution` has a `ys` shape of (*batch, [time], *shape, 3).
+
+
 
         >>> t1 = u.Quantity([1, 1.1, 1.2], "Gyr")
         >>> soln = solver.solve(field, w0, t0, t1)
@@ -258,13 +261,25 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         Solution( t0=f64[3], t1=f64[3], ts=f64[3,1],
                   ys=(f64[3,1,3], f64[3,1,3]), ... )
 
-        All these examples can be interpolated as dense solutions.
+        All these examples can be interpolated as dense solutions. If the time
+        or position are batched, then the `diffrax.DenseInterpolation` needs to
+        be vectorized into a
+        `galax.dynamics.integrate.VectorizedDenseInterpolation`. This can be
+        done by passing ``vectorize_interpolation=True``. To emphasize the
+        differences, let's batch across different start times.
 
+        >>> t0 = u.Quantity([-1, -0.5, 0], "Gyr")
         >>> t1 = u.Quantity(1, "Gyr")
-        >>> soln = solver.solve(field, w0, t0, t1, dense=True)
-        >>> soln.evaluate(0.5)  # Myr
-        (Array([7.99667254, 0.11248274, 0. ], dtype=float64),
-         Array([-0.01331047,  0.22490307,  0. ], dtype=float64))
+        >>> soln = solver.solve(field, w0, t0, t1, dense=True,
+        ...                     vectorize_interpolation=True)
+        >>> newq, newp = soln.evaluate(0.5)  # Myr
+        >>> print((newq.round(3), newp.round(3)))
+        (Array([[-7.034,  1.538,  0.   ],
+                [-0.729, -7.79 ,  0.   ],
+                [ 7.997,  0.112,  0.   ]], dtype=float64),
+         Array([[-0.232, -0.205,  0.   ],
+                [ 0.221, -0.106,  0.   ],
+                [-0.013,  0.225,  0.   ]], dtype=float64))
 
         Now let's explore some more options for the initial conditions.
 
@@ -273,7 +288,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> w0 = (cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
         ...       cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
 
-        >>> t1 = u.Quantity(1, "Gyr")
+        >>> t0, t1 = u.Quantity([0, 1], "Gyr")
         >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[],
@@ -427,13 +442,24 @@ def solve(
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for batch position tuple, batched start, end time."""
+    # Because of how JAX does its tree building over vmaps, vectorizing the
+    # interpolation within the loop does not work, it needs to be done after.
+    vectorize_interpolation = solver_kw.pop("vectorize_interpolation", False)
 
+    # Build the vectorized solver. To get the right broadcasting the Q, P need
+    # to be split up, then recombined.
+    @partial(jnp.vectorize, signature="(3),(3),(),()->()")
     def call(q: gdt.Q, p: gdt.P, t0: gt.RealQuSz0, t1: gt.RealQuSz0) -> dfx.Solution:
         return self.solve(field, (q, p), t0, t1, args=args, saveat=saveat, **solver_kw)
 
-    vec_call = jnp.vectorize(call, signature="(3),(3),(),()->()")
+    # Solve the batched problem
+    soln = call(qp[0], qp[1], t0, t1)
 
-    return vec_call(qp[0], qp[1], t0, t1)
+    # Now possibly vectorize the interpolation
+    if vectorize_interpolation:
+        soln = VectorizedDenseInterpolation.apply_to_solution(soln)
+
+    return soln
 
 
 # --------------------------------

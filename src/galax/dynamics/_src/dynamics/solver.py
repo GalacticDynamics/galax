@@ -27,6 +27,8 @@ from galax.dynamics._src.diffeq import DiffEqSolver
 from galax.dynamics._src.solver import AbstractSolver
 from galax.dynamics._src.utils import parse_saveat
 
+default_saveat = dfx.SaveAt(t1=True)
+
 
 @final
 class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
@@ -69,8 +71,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> soln = solver.solve(field, w0, t1)
     >>> soln
     Solution( t0=f64[], t1=f64[], ts=f64[1],
-              ys=(f64[1,2,3], f64[1,2,3]),
-              ... )
+              ys=(f64[1,2,3], f64[1,2,3]), ... )
 
     >>> w = gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
@@ -163,14 +164,204 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         unbatch_time: bool = False,
         **solver_kw: Any,  # TODO: TypedDict
     ) -> dfx.Solution:
-        """Solve the dynamics with `diffrax.diffeqsolve`."""
+        """Solve the dynamics with `diffrax.diffeqsolve`.
+
+        In ``solver_kw``, the following keys are recognized:
+
+        - All keys recognized by `diffrax.diffeqsolve`. In particular if "dt0"
+          is not specified it is assumed to be `None`.
+        - "dense" (bool): If `True`, `saveat` is modified to have
+          ``dense=True``.
+        - "vectorize_interpolation" (bool): If `True`, the interpolation is
+          vectorized using
+          `galax.dynamics.integrate.VectorizedDenseInterpolation`.
+
+        The output shape aligns with `diffrax.diffeqsolve`: (*batch, [time],
+        *shape), where [time] is >= 1. The `unbatch_time` keyword argument can
+        be used to squeeze scalar times.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+        >>> import galax.dynamics as gd
+
+        >>> solver = gd.integrate.DynamicsSolver()
+
+        Specify the vector field.
+
+        >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
+        ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+        >>> field = gd.fields.HamiltonianField(pot)
+
+        The solver is very flexible. Here we show a few examples of variety of
+        initial conditions.
+
+        - tuple of `unxt.Quantity`:
+
+        >>> w0 = (u.Quantity([8, 0, 0], "kpc"),
+        ...       u.Quantity([0, 220, 0], "km/s"))
+
+        Solve EoM from `t0` to `t1`, returning the solution at `t1`.
+
+        >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+        >>> soln = solver.solve(field, w0, t0, t1)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[1],
+                  ys=(f64[1,3], f64[1,3]), ... )
+        >>> soln.ys
+        (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
+         Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
+
+        This can be solved for a specific set of times, not just `t1`.
+
+        >>> soln = solver.solve(field, w0, t0, t1, saveat=u.Quantity(0.5, "Gyr"))
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[1],
+                  ys=(f64[1,3], f64[1,3]), ... )
+        >>> soln.ys
+        (Array([[-0.83933788, -7.73317472,  0. ]], dtype=float64),
+         Array([[ 0.21977442, -0.1196412 ,  0. ]], dtype=float64))
+
+        >>> soln = solver.solve(field, w0, t0, t1,
+        ...     saveat=u.Quantity([0.25, 0.5], "Gyr"))
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[2],
+                  ys=(f64[2,3], f64[2,3]), ... )
+
+        If ``unbatch_time=True``, the time dimension is squeezed if it is
+        scalar.
+
+        >>> soln = solver.solve(field, w0, t0, t1,
+        ...      saveat=u.Quantity(0.5, "Gyr"), unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ... )
+
+        A set of initial conditions can be solved at once. The resulting
+        `diffrax.Solution` has a `ys` shape of ([time], *shape)
+
+        >>> w0s = (u.Quantity([[8, 0, 0], [9, 0, 0]], "kpc"),
+        ...       u.Quantity([[0, 220, 0], [0, 230, 0]], "km/s"))
+
+        >>> soln = solver.solve(field, w0s, t0, t1)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[1],
+                  ys=(f64[1,2,3], f64[1,2,3]), ... )
+
+        This can be batched with a set of times. The resulting
+        `diffrax.Solution` has a `ys` shape of (*batch, [time], *shape)
+
+        >>> t1 = u.Quantity([1, 1.1, 1.2], "Gyr")
+        >>> soln = solver.solve(field, w0, t0, t1)
+        >>> soln
+        Solution( t0=f64[3], t1=f64[3], ts=f64[3,1],
+                  ys=(f64[3,1,3], f64[3,1,3]), ... )
+
+        All these examples can be interpolated as dense solutions.
+
+        >>> t1 = u.Quantity(1, "Gyr")
+        >>> soln = solver.solve(field, w0, t0, t1, dense=True)
+        >>> soln.evaluate(0.5)  # Myr
+        (Array([7.99667254, 0.11248274, 0. ], dtype=float64),
+         Array([-0.01331047,  0.22490307,  0. ], dtype=float64))
+
+        Now let's explore some more options for the initial conditions.
+
+        - `coordinax.vecs.AbstractPos3D`, `coordinax.vecs.AbstractVel3D`:
+
+        >>> w0 = (cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
+        ...       cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
+
+        >>> t1 = u.Quantity(1, "Gyr")
+        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`:
+
+        >>> w0 = (cx.vecs.FourVector.from_([0, 8, 0, 0], "kpc"),
+        ...       cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
+
+        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `coordinax.Space`:
+
+        >>> w0 = cx.Space(length=cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
+        ...               speed=cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
+
+        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        >>> w0 = cx.Space(length=cx.vecs.FourVector.from_([0, 8, 0, 0], "kpc"),
+        ...               speed=cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
+
+        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `coordinax.frames.AbstractCoordinate`:
+
+        >>> w0 = cx.Coordinate(
+        ...     {"length": cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
+        ...      "speed": cx.CartesianVel3D.from_([0, 220, 0], "km/s")},
+        ...     gc.frames.SimulationFrame()
+        ... )
+
+        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `galax.coordinates.PhaseSpacePosition` with time:
+
+        >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([8, 0, 0], "kpc"),
+        ...                            p=u.Quantity([0, 220, 0], "km/s"),
+        ...                            t=u.Quantity(0, "Gyr"))
+
+        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `galax.coordinates.PhaseSpacePosition` without time:
+
+        >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([8, 0, 0], "kpc"),
+        ...                            p=u.Quantity([0, 220, 0], "km/s"))
+
+        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `galax.coordinates.AbstractCompositePhaseSpacePosition`:
+
+        >>> w01 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
+        ...                             p=u.Quantity([0, 200, 0], "km/s"))
+        >>> w02 = gc.PhaseSpacePosition(q=u.Quantity([0, 10, 0], "kpc"),
+        ...                             p=u.Quantity([-200, 0, 0], "km/s"))
+        >>> w0s = gc.CompositePhaseSpacePosition(w01=w01, w02=w02)
+
+        >>> soln = solver.solve(field, w0s, t0, t1, unbatch_time=True)
+        >>> soln
+        {'w01': Solution( t0=f64[], t1=f64[], ts=f64[],
+                        ys=(f64[3], f64[3]), ... ),
+        'w02': Solution( t0=f64[], t1=f64[], ts=f64[],
+                        ys=(f64[3], f64[3]), ... )}
+
+        """
         raise NotImplementedError  # pragma: no cover
 
 
 # ===============================================
 # Solve Dispatches
-
-default_saveat = dfx.SaveAt(t1=True)
 
 # --------------------------------
 # JAX & Unxt
@@ -191,62 +382,7 @@ def solve(
     unbatch_time: bool = False,
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for batch position tuple, scalar start, end time.
-
-    In ``solver_kw``, the following keys are recognized:
-
-    - All keys recognized by `diffrax.diffeqsolve`. In particular if "dt0" is
-      not specified it is assumed to be `None`.
-    - "dense" (bool): If `True`, `saveat` is modified to have ``dense=True``.
-    - "vectorize_interpolation" (bool): If `True`, the interpolation is
-      vectorized using `galax.dynamics.integrate.VectorizedDenseInterpolation`.
-
-    The output shape aligns with `diffrax.diffeqsolve`: (*batch, [time],
-    *shape), where [time] is >= 1.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w0 = (u.Quantity([8, 0, 0], "kpc"),
-    ...       u.Quantity([0, 220, 0], "km/s"))
-
-    Vector field.
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    Solve EoM from `t0` to `t1`, returning the solution at `t1`.
-
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t0, t1)
-    >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[1],
-              ys=(f64[1,3], f64[1,3]), ... )
-    >>> soln.ys
-    (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
-     Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
-
-    This can be solved for a specific time, not just `t1`.
-
-    >>> soln = solver.solve(field, w0, t0, t1, saveat=u.Quantity(0.5, "Gyr"))
-    >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[1],
-              ys=(f64[1,3], f64[1,3]), ... )
-
-    >>> soln = solver.solve(field, w0, t0, t1, saveat=u.Quantity([0.25, 0.5], "Gyr"))
-    >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[2],
-              ys=(f64[2,3], f64[2,3]), ... )
-
-    """
+    """Solve for batch position tuple, scalar start, end time."""
     # Units
     usys = field.units
     time = usys["time"]
@@ -290,37 +426,7 @@ def solve(
     saveat: Any = default_saveat,
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for batch position tuple, batched start, end time.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w0 = (u.Quantity([8, 0, 0], "kpc"),
-    ...       u.Quantity([0, 220, 0], "km/s"))
-
-    Vector field.
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    Solve EoM from `t0` to `t1`, returning the solution at `t1`.
-
-    >>> t0 = u.Quantity(0, "Gyr")
-    >>> t1 = u.Quantity([1, 1.1, 1.2], "Gyr")
-    >>> soln = solver.solve(field, w0, t0, t1)
-    >>> soln
-    Solution( t0=f64[3], t1=f64[3], ts=f64[3,1],
-              ys=(f64[3,1,3], f64[3,1,3]), ... )
-
-    """
+    """Solve for batch position tuple, batched start, end time."""
 
     def call(q: gdt.Q, p: gdt.P, t0: gt.RealQuSz0, t1: gt.RealQuSz0) -> dfx.Solution:
         return self.solve(field, (q, p), t0, t1, args=args, saveat=saveat, **solver_kw)
@@ -346,47 +452,7 @@ def solve(
     args: Any = (),
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for position vector tuple, start, end time.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.coordinates as gc
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w0 = (cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
-    ...       cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
-
-    Vector field.
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    Solve EoM.
-
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t0, t1)
-    >>> soln
-    Solution(
-      t0=f64[], t1=f64[], ts=f64[1],
-      ys=(f64[1,3], f64[1,3]),
-      interpolation=None,
-      stats={ ... },
-      result=EnumerationItem( ... ),
-      ...
-    )
-    >>> soln.ys
-    (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
-     Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
-
-    """
+    """Solve for position vector tuple, start, end time."""
     y0 = (convert(q3p3[0], FastQ), convert(q3p3[1], FastQ))
     # Redispatch on y0
     return self.solve(field, y0, t0, t1, args=args, **solver_kw)
@@ -403,46 +469,7 @@ def solve(
     args: Any = (),
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for 4-vector position tuple, end time.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w0 = (cx.vecs.FourVector.from_([0, 8, 0, 0], "kpc"),
-    ...       cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
-
-    Vector field.
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    Solve EoM.
-
-    >>> t1 = u.Quantity(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t1)
-    >>> soln
-    Solution(
-      t0=f64[], t1=f64[], ts=f64[1],
-      ys=(f64[1,3], f64[1,3]),
-      interpolation=None,
-      stats={ ... },
-      result=EnumerationItem( ... ),
-      ...
-    )
-    >>> soln.ys
-    (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
-     Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
-
-    """
+    """Solve for 4-vector position tuple, end time."""
     q4, p = q4p3
     y0 = (convert(q4.q, FastQ), convert(p, FastQ))
     # Redispatch on y0
@@ -460,46 +487,7 @@ def solve(
     args: Any = (),
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for Space[4vec, 3vel], end time.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w0 = cx.Space(length=cx.vecs.FourVector.from_([0, 8, 0, 0], "kpc"),
-    ...               speed=cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
-
-    Vector field.
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    Solve EoM.
-
-    >>> t1 = u.Quantity(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t1)
-    >>> soln
-    Solution(
-      t0=f64[], t1=f64[], ts=f64[1],
-      ys=(f64[1,3], f64[1,3]),
-      interpolation=None,
-      stats={ ... },
-      result=EnumerationItem( ... ),
-      ...
-    )
-    >>> soln.ys
-    (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
-     Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
-
-    """
+    """Solve for Space[4vec, 3vel], end time."""
     q4, p = space["length"], space["speed"]
     q4 = eqx.error_if(
         q4,
@@ -522,46 +510,7 @@ def solve(
     args: Any = (),
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for Space[3vec, 3vel], start, end time.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w0 = cx.Space(length=cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
-    ...               speed=cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
-
-    Vector field.
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    Solve EoM.
-
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t0, t1)
-    >>> soln
-    Solution(
-      t0=f64[], t1=f64[], ts=f64[1],
-      ys=(f64[1,3], f64[1,3]),
-      interpolation=None,
-      stats={ ... },
-      result=EnumerationItem( ... ),
-      ...
-    )
-    >>> soln.ys
-    (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
-     Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
-
-    """
+    """Solve for Space[3vec, 3vel], start, end time."""
     # Redispatch on y0
     y0 = (space["length"], space["speed"])
     return self.solve(field, y0, t0, t1, args=args, **solver_kw)
@@ -579,50 +528,7 @@ def solve(
     args: Any = (),
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for `coordinax.frames.AbstractCoordinate`, start, end time.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import coordinax as cx
-    >>> import galax.coordinates as gc
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w0 = cx.Coordinate(
-    ...     {"length": cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
-    ...      "speed": cx.CartesianVel3D.from_([0, 220, 0], "km/s")},
-    ...     gc.frames.SimulationFrame()
-    ... )
-
-    Vector field.
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    Solve EoM.
-
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t0, t1)
-    >>> soln
-    Solution(
-      t0=f64[], t1=f64[], ts=f64[1],
-      ys=(f64[1,3], f64[1,3]),
-      interpolation=None,
-      stats={ ... },
-      result=EnumerationItem( ... ),
-      ...
-    )
-    >>> soln.ys
-    (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
-     Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
-
-    """
+    """Solve for `coordinax.frames.AbstractCoordinate`, start, end time."""
     # Redispatch on y0
     return self.solve(field, w0.data, t0, t1, args=args, **solver_kw)
 
@@ -642,47 +548,7 @@ def solve(
     args: Any = (),
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for PSP with time, end time.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.coordinates as gc
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([8, 0, 0], "kpc"),
-    ...                            p=u.Quantity([0, 220, 0], "km/s"),
-    ...                            t=u.Quantity(0, "Gyr"))
-
-    Vector field.
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    Solve EoM.
-
-    >>> t1 = u.Quantity(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t1)
-    >>> soln
-    Solution(
-      t0=f64[], t1=f64[], ts=f64[1],
-      ys=(f64[1,3], f64[1,3]),
-      interpolation=None,
-      stats={ ... },
-      result=EnumerationItem( ... ),
-      ...
-    )
-    >>> soln.ys
-    (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
-     Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
-
-    """
+    """Solve for PSP with time, end time."""
     # Check that the initial conditions are valid.
     w0 = eqx.error_if(
         w0,
@@ -713,47 +579,7 @@ def solve(
     args: Any = (),
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for PSP without time, start, end time.
-
-    Examples
-    --------
-    >>> import quaxed.numpy as jnp
-    >>> import unxt as u
-    >>> import galax.coordinates as gc
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([8, 0, 0], "kpc"),
-    ...                            p=u.Quantity([0, 220, 0], "km/s"))
-
-    Vector field.
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    Solve EoM.
-
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t0, t1)
-    >>> soln
-    Solution(
-      t0=f64[], t1=f64[], ts=f64[1],
-      ys=(f64[1,3], f64[1,3]),
-      interpolation=None,
-      stats={ ... },
-      result=EnumerationItem( ... ),
-      ...
-    )
-    >>> soln.ys
-    (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
-     Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
-
-    """
+    """Solve for PSP without time, start, end time."""
     # Check that the initial conditions are valid.
     w0 = eqx.error_if(
         w0,
@@ -783,40 +609,7 @@ def solve(
     args: Any = (),
     **solver_kw: Any,
 ) -> dict[str, dfx.Solution]:
-    """Solve for CompositePhaseSpacePosition, start, end time.
-
-    Examples
-    --------
-    >>> import quaxed.numpy as jnp
-    >>> import unxt as u
-    >>> import galax.coordinates as gc
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.integrate.DynamicsSolver()
-
-    Initial conditions.
-
-    >>> w01 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
-    ...                             p=u.Quantity([0, 200, 0], "km/s"))
-    >>> w02 = gc.PhaseSpacePosition(q=u.Quantity([0, 10, 0], "kpc"),
-    ...                             p=u.Quantity([-200, 0, 0], "km/s"))
-    >>> w0s = gc.CompositePhaseSpacePosition(w01=w01, w02=w02)
-
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-
-    >>> soln = solver.solve(field, w0s, t0, t1)
-    >>> soln
-    {'w01': Solution( t0=f64[], t1=f64[], ts=f64[1],
-                      ys=(f64[1,3], f64[1,3]), ... ),
-     'w02': Solution( t0=f64[], t1=f64[], ts=f64[1],
-                      ys=(f64[1,3], f64[1,3]), ... )}
-
-    """
+    """Solve for CompositePhaseSpacePosition, start, end time."""
     return {
         k: self.solve(field, w0, t0, t1, args=args, **solver_kw)
         for k, w0 in w0s.items()

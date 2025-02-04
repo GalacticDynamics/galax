@@ -15,7 +15,6 @@ with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
         AbstractPhaseSpacePosition,
         ComponentShapeTuple,
         CompositePhaseSpacePosition,
-        InterpolatedPhaseSpacePosition,
         PhaseSpacePosition,
         PhaseSpacePositionInterpolant,
     )
@@ -30,11 +29,10 @@ __all__ = [
     "PhaseSpacePosition",
     "AbstractCompositePhaseSpacePosition",
     "CompositePhaseSpacePosition",
-    # Interpolation
-    "InterpolatedPhaseSpacePosition",
-    "PhaseSpacePositionInterpolant",
     # Utils
     "ComponentShapeTuple",
+    # Protocols
+    "PhaseSpacePositionInterpolant",
 ]
 
 # Clean up the namespace

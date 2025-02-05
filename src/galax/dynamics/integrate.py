@@ -18,8 +18,8 @@ with install_import_hook("galax.dynamics.integrate", RUNTIME_TYPECHECKER):
         Integrator,
         Interpolant,
         InterpolatedPhaseSpacePosition,
-        evaluate_orbit,
     )
+    from ._src.orbit import evaluate_orbit
 
 # Cleanup
 del install_import_hook, RUNTIME_TYPECHECKER

@@ -462,6 +462,47 @@ def solve(
     return soln
 
 
+@DynamicsSolver.solve.dispatch
+@eqx.filter_jit
+def solve(
+    self: DynamicsSolver,
+    field: AbstractDynamicsField,
+    qp: gt.BBtSz6,
+    t0: gt.BBtRealQuSz0,
+    t1: gt.BBtRealQuSz0,
+    /,
+    args: Any = (),
+    saveat: Any = default_saveat,
+    **solver_kw: Any,
+) -> dfx.Solution:
+    """Solve for q,p array.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> solver = gd.DynamicsSolver()
+
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+
+    >>> qp = jnp.asarray([[8, 0, 0, 0, 0.22499668, 0]])
+    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+
+    >>> soln = solver.solve(field, qp, t0, t1)
+    >>> soln.ys
+    (Array([[[4.22038796, 1.72855685, 0. ]]], dtype=float64),
+     Array([[[-0.94723615,  0.03853245,  0. ]]], dtype=float64))
+
+    """
+    units = field.units
+    y0 = (FastQ(qp[..., :3], units["length"]), FastQ(qp[..., 3:], units["speed"]))
+    return self.solve(field, y0, t0, t1, args=args, saveat=saveat, **solver_kw)
+
+
 # --------------------------------
 # Coordinax
 

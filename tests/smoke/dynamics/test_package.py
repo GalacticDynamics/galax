@@ -8,13 +8,19 @@ def test_all() -> None:
     assert set(gd.__all__) == {
         # modules
         "fields",
+        "solve",
         "integrate",
         "cluster",
         "mockstream",
         "plot",
-        # core
+        # solve
+        "AbstractSolver",
+        "DynamicsSolver",
+        # orbit
         "Orbit",
+        # integrate
         "evaluate_orbit",
+        # mockstream
         "MockStreamArm",
         "MockStream",
         "MockStreamGenerator",

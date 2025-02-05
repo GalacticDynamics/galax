@@ -14,8 +14,9 @@ from .base import AbstractPhaseSpacePosition
 class PhaseSpacePositionInterpolant(Protocol):
     """Protocol for interpolating phase-space positions."""
 
-    units: u.AbstractUnitSystem
-    """The unit system for the interpolation."""
+    @property
+    def units(self) -> u.AbstractUnitSystem:
+        """The unit system for the interpolation."""
 
     def __call__(self, t: gt.QuSzTime) -> AbstractPhaseSpacePosition:
         """Evaluate the interpolation.

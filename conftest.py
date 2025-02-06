@@ -1,21 +1,37 @@
 """Doctest configuration."""
 
+from collections.abc import Callable, Iterable, Sequence
 from doctest import ELLIPSIS, NORMALIZE_WHITESPACE
 
-from sybil import Sybil
-from sybil.parsers.rest import DocTestParser, PythonCodeBlockParser, SkipParser
+from sybil import Document, Region, Sybil
+from sybil.parsers import myst, rest
+from sybil.sybil import SybilCollection
 
 from optional_dependencies import OptionalDependencyEnum, auto
 from optional_dependencies.utils import chain_checks, get_version, is_installed
 
-pytest_collect_file = Sybil(
+optionflags = ELLIPSIS | NORMALIZE_WHITESPACE
+
+parsers: Sequence[Callable[[Document], Iterable[Region]]] = [
+    myst.DocTestDirectiveParser(optionflags=optionflags),
+    myst.PythonCodeBlockParser(doctest_optionflags=optionflags),
+    myst.SkipParser(),
+]
+
+readme = Sybil(parsers=parsers, patterns=["*.md"])
+docs = Sybil(
     parsers=[
-        DocTestParser(optionflags=NORMALIZE_WHITESPACE | ELLIPSIS),
-        PythonCodeBlockParser(),
-        SkipParser(),
+        rest.DocTestParser(optionflags=NORMALIZE_WHITESPACE | ELLIPSIS),
+        rest.PythonCodeBlockParser(),
+        rest.SkipParser(),
     ],
-    patterns=["*.rst", "*.py"],
-).pytest()
+    patterns=["*.rst"],
+)
+python = Sybil(
+    parsers=[*parsers, rest.DocTestParser(optionflags=optionflags)], patterns=["*.py"]
+)
+
+pytest_collect_file = SybilCollection((readme, docs, python)).pytest()
 
 
 class OptDeps(OptionalDependencyEnum):

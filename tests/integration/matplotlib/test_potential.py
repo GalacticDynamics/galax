@@ -9,7 +9,7 @@ import unxt as u
 import galax.potential as gp
 
 
-@pytest.mark.mpl_image_compare(deterministic=True)
+@pytest.mark.mpl_image_compare
 def test_kepler_potential_contours() -> Figure:
     """Test plotting Kepler potential contours."""
     pot = gp.KeplerPotential(
@@ -24,7 +24,7 @@ def test_kepler_potential_contours() -> Figure:
     return fig
 
 
-@pytest.mark.mpl_image_compare(deterministic=True)
+@pytest.mark.mpl_image_compare
 def test_kernel_density_contours() -> Figure:
     """Test plotting kernel density contours."""
     pot = gp.KeplerPotential(

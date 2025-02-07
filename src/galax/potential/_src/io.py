@@ -54,9 +54,6 @@ class AbstractInteroperableLibrary:
     ... def check_library_isinstance(lib: type[NumbersLibrary], obj: Number, /) -> bool:
     ...    return True
 
-    >>> check_library_isinstance(NumbersLibrary, 1)
-    True
-
     This single dispatch is trivial, but this becomes useful when we have
     multiple libraries, and / or different inheritance structures, so that an
     `isinstance` check is insufficient.

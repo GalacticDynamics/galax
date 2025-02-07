@@ -3,19 +3,39 @@
 from doctest import ELLIPSIS, NORMALIZE_WHITESPACE
 
 from sybil import Sybil
-from sybil.parsers.rest import DocTestParser, PythonCodeBlockParser, SkipParser
+from sybil.parsers import myst, rest
+from sybil.sybil import SybilCollection
 
 from optional_dependencies import OptionalDependencyEnum, auto
 from optional_dependencies.utils import chain_checks, get_version, is_installed
 
-pytest_collect_file = Sybil(
+optionflags = ELLIPSIS | NORMALIZE_WHITESPACE
+
+parsers = [
+    myst.DocTestDirectiveParser(optionflags=optionflags),
+    myst.PythonCodeBlockParser(doctest_optionflags=optionflags),
+    myst.SkipParser(),
+]
+
+docs = Sybil(parsers=parsers, patterns=["*.md"])
+python = Sybil(  # TODO: get working with myst parsers
     parsers=[
-        DocTestParser(optionflags=NORMALIZE_WHITESPACE | ELLIPSIS),
-        PythonCodeBlockParser(),
-        SkipParser(),
+        rest.DocTestParser(optionflags=optionflags),
+        rest.PythonCodeBlockParser(),
+        rest.SkipParser(),
+    ],
+    patterns=["*.py"],
+)
+rst_docs = Sybil(  # TODO: deprecate
+    parsers=[
+        rest.DocTestParser(optionflags=optionflags),
+        rest.PythonCodeBlockParser(),
+        rest.SkipParser(),
     ],
     patterns=["*.rst", "*.py"],
-).pytest()
+)
+
+pytest_collect_file = SybilCollection((docs, python, rst_docs)).pytest()
 
 
 class OptDeps(OptionalDependencyEnum):

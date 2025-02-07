@@ -5,7 +5,7 @@ from collections.abc import Mapping
 import pytest
 from plum import convert
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 import unxt as u
 
 import galax.typing as gt
@@ -42,7 +42,7 @@ class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
     def test_potential(self, pot: MilkyWayPotential2022, x: gt.QuSz3) -> None:
         """Test the :meth:`MilkyWayPotential2022.potential` method."""
         expect = u.Quantity(-0.1906119, pot.units["specific energy"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -53,12 +53,12 @@ class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
             pot.units["acceleration"],
         )
         got = convert(pot.gradient(x, t=0), u.Quantity)
-        assert qnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MilkyWayPotential2022, x: gt.QuSz3) -> None:
         """Test the :meth:`MilkyWayPotential2022.density` method."""
         expect = u.Quantity(33_807_052.01837142, pot.units["mass density"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -72,7 +72,7 @@ class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -89,6 +89,6 @@ class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

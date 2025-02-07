@@ -1,6 +1,5 @@
 """Test AbstractMultipolePotential."""
 
-import jax.numpy as jnp
 import pytest
 from jaxtyping import Array, Shaped
 
@@ -62,7 +61,7 @@ class ParameterSlmMixin(ParameterAngularCoefficientsMixin):
         Slm = jnp.zeros((l_max + 1, l_max + 1))
         Slm = Slm.at[1, 0].set(5.0)
 
-        fields["Slm"] = lambda t: Slm * jnp.exp(-qnp.abs(t))
+        fields["Slm"] = lambda t: Slm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
         assert jnp.allclose(pot.Slm(t=u.Quantity(0, "Myr")), Slm)
 
@@ -108,6 +107,6 @@ class ParameterTlmMixin(ParameterAngularCoefficientsMixin):
         Tlm = jnp.zeros((l_max + 1, l_max + 1))
         Tlm = Tlm.at[1, :].set(5.0)
 
-        fields["Tlm"] = lambda t: Tlm * jnp.exp(-qnp.abs(t))
+        fields["Tlm"] = lambda t: Tlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
         assert jnp.allclose(pot.Tlm(t=u.Quantity(0, "Myr")), Tlm)

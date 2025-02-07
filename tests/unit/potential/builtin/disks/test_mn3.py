@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from plum import convert
 
-import quaxed.numpy as qnp
+import quaxed.numpy as jnp
 import unxt as u
 
 from ...test_core import AbstractSinglePotential_Test
@@ -52,7 +52,7 @@ class TestMN3ExponentialPotential(
 
     def test_potential(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(-1.15401718, pot.units["specific energy"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -62,11 +62,11 @@ class TestMN3ExponentialPotential(
             pot.units["acceleration"],
         )
         got = convert(pot.gradient(x, t=0), u.Quantity)
-        assert qnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(731_782_542.3781165, pot.units["mass density"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -79,7 +79,7 @@ class TestMN3ExponentialPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -96,7 +96,7 @@ class TestMN3ExponentialPotential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -133,7 +133,7 @@ class TestMN3Sech2Potential(
 
     def test_potential(self, pot: MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(-1.13545211, pot.units["specific energy"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -143,11 +143,11 @@ class TestMN3Sech2Potential(
             pot.units["acceleration"],
         )
         got = convert(pot.gradient(x, t=0), u.Quantity)
-        assert qnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(211_769_063.98948175, pot.units["mass density"])
-        assert qnp.isclose(
+        assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -160,7 +160,7 @@ class TestMN3Sech2Potential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
@@ -177,6 +177,6 @@ class TestMN3Sech2Potential(
             ],
             "1/Myr2",
         )
-        assert qnp.allclose(
+        assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

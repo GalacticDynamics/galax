@@ -98,14 +98,20 @@ def from_(cls: type[AbstractSolver], obj: Any) -> AbstractSolver:
       diffeqsolver=DiffEqSolver(
         solver=Dopri5(scan_kind=None),
         stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None) ) )
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
+        max_steps=4096
+      )
+    )
 
     >>> DynamicsSolver.from_(dfx.Dopri5())
     DynamicsSolver(
       diffeqsolver=DiffEqSolver(
         solver=Dopri5(scan_kind=None),
         stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None) ) )
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
+        max_steps=4096
+      )
+    )
 
     """
     return cls(obj)
@@ -124,15 +130,21 @@ def from_(cls: type[AbstractSolver], obj: Mapping[str, Any]) -> AbstractSolver:
     DynamicsSolver(
       diffeqsolver=DiffEqSolver(
         solver=Dopri8(scan_kind=None),
-        stepsize_controller=PIDController( ... ),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None) ) )
+        stepsize_controller=PIDController( ...),
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
+        max_steps=65536
+      )
+    )
 
     >>> gd.DynamicsSolver.from_({"diffeqsolver": dfx.Dopri5()})
     DynamicsSolver(
       diffeqsolver=DiffEqSolver(
         solver=Dopri5(scan_kind=None),
         stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None) ) )
+        adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
+        max_steps=4096
+      )
+    )
 
     """
     return cls(**obj)

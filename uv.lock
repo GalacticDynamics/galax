@@ -336,7 +336,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.19.0"
+version = "0.20.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -348,13 +348,14 @@ dependencies = [
     { name = "optional-dependencies" },
     { name = "plum-dispatch" },
     { name = "quax" },
+    { name = "quax-blocks" },
     { name = "quaxed" },
     { name = "unxt" },
     { name = "xmmutablemap" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/05/14/d1444ac52ccd17f912dadf29181f10b8f6606374e9f5189450a947d3111e/coordinax-0.19.0.tar.gz", hash = "sha256:47467062970f53543bc504f612cf1478b270ea2e332286d4cfc486a876c075a2", size = 180508 }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/16/aee9e6debf6ebd56e4629dfd7bc92fd85af28a123e1328d451d92bafe833/coordinax-0.20.1.tar.gz", hash = "sha256:3b1048cb89307cd14f99f81e071de374b84eab0d480eccbc828974c1be4230da", size = 181564 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/93/76b4f6c20c3b7eb36fe8b11f71e4b8be2579e43da021d4c99001b7841e34/coordinax-0.19.0-py3-none-any.whl", hash = "sha256:ccdadec4e0ce3fa99d5b8b7ca4f9cb72ce45636319a63212f981985cfa9fd45d", size = 179371 },
+    { url = "https://files.pythonhosted.org/packages/7a/f6/39b4a62c8f658af166991ba55032ed0f8fc6ecb6bdb0322f4a0b70fbffd3/coordinax-0.20.1-py3-none-any.whl", hash = "sha256:6d2116b52c094b2f0e54ca20eef7dd4f145d1c13e472be1208ba342de01c4926", size = 179141 },
 ]
 
 [[package]]
@@ -537,16 +538,16 @@ wheels = [
 
 [[package]]
 name = "diffraxtra"
-version = "1.0.2"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "diffrax" },
     { name = "plum-dispatch" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/20/e8931816281e6c10adac6341d5e373bb3db778b82c038da8227787f12cee/diffraxtra-1.0.2.tar.gz", hash = "sha256:0478fca1268109dcaf8c988f89945ed31fe2bdbe5accb3bbbef9e3f3e1f78f08", size = 71478 }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/61/3d7aa0ff9d4a35cdfb0c030418e2463b4e447f29a16049df0207a4d82c1e/diffraxtra-1.2.0.tar.gz", hash = "sha256:9e50d4099236e5b794f42b1469a79521de929aa9d7344f7ecca95e4f5041cf30", size = 72252 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/aa/93cec938d3a5a6315b88cf6791ea1655585c755dcb0742040362b3b55622/diffraxtra-1.0.2-py3-none-any.whl", hash = "sha256:f4966c25b960dc361ce5141fac489d2cb52fa618eb1e3e3cd85d68f472e3f7a4", size = 13455 },
+    { url = "https://files.pythonhosted.org/packages/db/65/3d8e734ce5be0d4451e7a4c1dae0d0d973f8197e59a327183ace3589d203/diffraxtra-1.2.0-py3-none-any.whl", hash = "sha256:e7af08480e1f7159bedbf15323fed6bcf892d415d5bdbbd215470a23cbfffaa4", size = 14206 },
 ]
 
 [[package]]
@@ -778,10 +779,10 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.19" },
-    { name = "coordinax", specifier = ">=0.19.0" },
+    { name = "coordinax", specifier = ">=0.20.1" },
     { name = "dataclassish", specifier = ">=0.7.1" },
     { name = "diffrax", specifier = ">=0.6" },
-    { name = "diffraxtra", specifier = ">=1.0.2" },
+    { name = "diffraxtra", specifier = ">=1.2.0" },
     { name = "equinox", specifier = ">=0.11.8" },
     { name = "gala", marker = "extra == 'all'", specifier = ">=1.9" },
     { name = "gala", marker = "extra == 'interop-all'", specifier = ">=1.9" },
@@ -802,9 +803,9 @@ requires-dist = [
     { name = "plotting-backends", specifier = ">=0.1" },
     { name = "plum-dispatch", specifier = ">=2.5.6" },
     { name = "quax", specifier = ">=0.0.5" },
-    { name = "quaxed", specifier = ">=0.6.7" },
+    { name = "quaxed", specifier = ">=0.9.0" },
     { name = "typing-extensions", specifier = ">=4.11" },
-    { name = "unxt", specifier = ">=1.0.3" },
+    { name = "unxt", specifier = ">=1.2.0" },
     { name = "xmmutablemap", specifier = ">=0.1" },
     { name = "zeroth", specifier = ">=1.0" },
 ]
@@ -1838,8 +1839,26 @@ wheels = [
 ]
 
 [[package]]
+name = "quax-blocks"
+version = "0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jax" },
+    { name = "jaxlib" },
+    { name = "jaxtyping" },
+    { name = "optype" },
+    { name = "plum-dispatch" },
+    { name = "quax" },
+    { name = "quaxed" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/10/f5/3e94efe20264a359a6b460cd00f3b8615910b9fdbe2d50752c1f325d2556/quax_blocks-0.2.tar.gz", hash = "sha256:ba5821ec15be84fa349abb8fd1fd303b963a7277c58d53c2c1bf7269f8fdd92e", size = 59025 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/52/a3/cd31be11e3742fe6de070e1418788c46eed8ba712aab45b113042ba92877/quax_blocks-0.2-py3-none-any.whl", hash = "sha256:090efe99ab999d645c02905ef90cc65067b8fded64ba25e641bf23ddc5142d3d", size = 16155 },
+]
+
+[[package]]
 name = "quaxed"
-version = "0.8.2"
+version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax" },
@@ -1849,9 +1868,9 @@ dependencies = [
     { name = "plum-dispatch" },
     { name = "quax" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/47/91/7057561d8239373b7b8038ef1fdda20aab98eea60d58874b558eeb722225/quaxed-0.8.2.tar.gz", hash = "sha256:6b92194ce6cc69ac1af113ec97eaf5986aed71ec33da7839a43035b289a14504", size = 131903 }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/9a/a2753026ebdb1b1a926a839b54873139ab686121fed8989b4d874b940a80/quaxed-0.9.0.tar.gz", hash = "sha256:df5931d1aee77b00f78bac412f304dc332c0162a990818b447e78dcca10a7b10", size = 123860 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/58/62/ebe025770b706ec662ac46d39ab0382fbc8b765ccfff2e77b6a2860d8ea8/quaxed-0.8.2-py3-none-any.whl", hash = "sha256:a5cb88689da44004e39b00529e729c9b4af935c8315f3cd90b37d7e3ae3a9325", size = 48575 },
+    { url = "https://files.pythonhosted.org/packages/91/cb/736e2443d3eca15ee58763eb0fdf37d39a970d9d23aff66165bd32a46fee/quaxed-0.9.0-py3-none-any.whl", hash = "sha256:bf32deb8403f5b60b4edd16c418872c3b875ea4ad20580289a7592b0d9e06f96", size = 37172 },
 ]
 
 [[package]]
@@ -2170,7 +2189,7 @@ wheels = [
 
 [[package]]
 name = "unxt"
-version = "1.0.4"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -2183,13 +2202,14 @@ dependencies = [
     { name = "optional-dependencies" },
     { name = "plum-dispatch" },
     { name = "quax" },
+    { name = "quax-blocks" },
     { name = "quaxed" },
     { name = "xmmutablemap" },
     { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/99/54/e17c561e931b9e34e78b074b0ce461f3de59d19b27c5c5ed20c3f0709227/unxt-1.0.4.tar.gz", hash = "sha256:5b694bc49ceaaf9b53a1882a8f630dc69842648fb9bc63262c58d61b7cc50e1c", size = 656277 }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/95/a5a0580d508a259f94cd9be10b6b462c5d5d97819875ac2689ba471742ff/unxt-1.2.0.tar.gz", hash = "sha256:8b0ec2f8b728562fe04fbee009a9f8745306d4d178ac9a2093b53456f876c203", size = 670783 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/89/8f/5ba24038f730686b85d097b93c0909464d6506563e58835cdce83b5ddc83/unxt-1.0.4-py3-none-any.whl", hash = "sha256:2a89d639d8700d854412baae991056db2117b52b0f1db596bddd3753be72aecf", size = 63678 },
+    { url = "https://files.pythonhosted.org/packages/38/65/bfbb291f820d4a72326bc701828c0122f151516861bf91eb53d99cbbef1b/unxt-1.2.0-py3-none-any.whl", hash = "sha256:1c98364c7d112a33c0eb331ac007a0d29183bd9e16b42274cd20e655d74880a0", size = 65504 },
 ]
 
 [[package]]

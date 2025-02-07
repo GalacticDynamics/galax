@@ -17,7 +17,7 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from dataclassish import field_items
-from unxt.quantity import AbstractQuantity, UncheckedQuantity as FastQ
+from unxt.quantity import AbstractQuantity, BareQuantity as FastQ
 
 import galax.typing as gt
 from galax.coordinates._src.frames import SimulationFrame
@@ -330,8 +330,8 @@ class AbstractPhaseSpacePosition(cx.frames.AbstractCoordinate):  # type: ignore[
         ...                             p=u.Quantity([4, 5, 6], "km/s"),
         ...                             t=u.Quantity(0, "Gyr"))
         >>> psp._qp(units=u.unitsystem("galactic"))
-        (UncheckedQuantity(Array([1, 2, 3], dtype=int64), unit='kpc'),
-         UncheckedQuantity(Array([0.00409085, 0.00511356, 0.00613627],
+        (BareQuantity(Array([1, 2, 3], dtype=int64), unit='kpc'),
+         BareQuantity(Array([0.00409085, 0.00511356, 0.00613627],
                                  dtype=float64, ...), unit='kpc / Myr'))
 
         """

@@ -176,10 +176,10 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
     @cxo.AbstractOperator.__call__.dispatch(precedence=1)
     def __call__(
         self: "ConstantRotationZOperator",
-        q: u.Quantity["length"],
-        t: u.Quantity["time"],
+        q: u.AbstractQuantity,
+        t: u.AbstractQuantity,
         /,
-    ) -> tuple[u.Quantity["length"], u.Quantity["time"]]:
+    ) -> tuple[u.AbstractQuantity, u.AbstractQuantity]:
         """Apply the translation to the Cartesian coordinates.
 
         Examples

@@ -9,7 +9,7 @@ from astropy.units import Quantity as APYQuantity
 from plum import convert, dispatch
 
 import coordinax as cx
-from unxt.quantity import UncheckedQuantity as FastQ
+from unxt.quantity import BareQuantity as FastQ
 
 import galax.typing as gt
 

@@ -13,6 +13,9 @@ nox.needs_version = ">=2024.3.2"
 nox.options.sessions = ["lint", "tests", "doctests"]
 nox.options.default_venv_backend = "uv|virtualenv"
 
+# ===================================================================
+# Linting
+
 
 @nox.session
 def lint(session: nox.Session) -> None:
@@ -36,36 +39,71 @@ def pylint(session: nox.Session) -> None:
     session.run("pylint", "galax", *session.posargs)
 
 
+# ===================================================================
+# Testing
+
+
 @nox.session
-def tests(session: nox.Session) -> None:
-    """Run the unit and regular tests."""
+def tests_standard(session: nox.Session) -> None:
+    """Run the regular tests: src, README, docs, tests/unit."""
     session.install("-e", ".[test]")
-    os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"  # TODO: set in a better way
-    session.run("pytest", *session.posargs)
+    os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"
+    session.run("pytest", "src", "README", "docs", "tests/unit", *session.posargs)
 
 
 @nox.session
 def tests_all(session: nox.Session) -> None:
-    """Run the unit and regular tests."""
+    """Run all the tests."""
     session.install("-e", ".[test-all]")
-    os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"  # TODO: set in a better way
+    os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"
     session.run("pytest", *session.posargs)
 
 
 @nox.session
 def doctests(session: nox.Session) -> None:
-    """Run the regular tests and doctests."""
-    session.install(".[test]")
+    """Run the doctests: README, docs, src -- including mpl tests."""
+    session.install(".[test,test-mpl]")
+    os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"
     session.run(
         "pytest",
-        "--doctest-modules",
-        '--doctest-glob="*.rst"',
-        '--doctest-glob="*.md"',
-        '--doctest-glob="*.py"',
-        "docs",
-        "src/galax",
+        *("README", "docs", "src/galax"),
+        "--mpl",
         *session.posargs,
     )
+
+
+@nox.session
+def generate_mpl_tests(session: nox.Session) -> None:
+    """Generate the mpl tests."""
+    session.install(".[test,test-mpl]")
+    os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"
+    session.run(
+        "pytest",
+        "tests",
+        "-m mpl_image_compare",  # only run the mpl tests
+        "--mpl-generate-hash-library=tests/mpl_figure/hashes.json",
+        "--mpl-generate-path=tests/mpl_figure/baseline",
+        "--mpl-generate-summary=html,json,basic-json",
+        *session.posargs,
+    )
+
+
+@nox.session
+def test_mpl(session: nox.Session) -> None:
+    """Test the figures."""
+    session.install(".[test,test-mpl]")
+    os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"
+    session.run(
+        "pytest",
+        "tests",
+        "--mpl",
+        "-m mpl_image_compare",  # only run the mpl tests
+        "--mpl-generate-summary=basic-html,json",
+        *session.posargs,
+    )
+
+
+# ===================================================================
 
 
 @nox.session(reuse_venv=True)

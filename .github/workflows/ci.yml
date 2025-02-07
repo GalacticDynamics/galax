@@ -65,12 +65,6 @@ jobs:
         python-version: ["3.11", "3.13"]
         runs-on: [ubuntu-latest, macos-latest, windows-latest]
 
-        # TODO: figure out OpenBLAS install
-        #   ``ERROR: Dependency "OpenBLAS" not found, tried pkgconfig and cmake``
-        # include:
-        #   - python-version: pypy-3.11
-        #     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -133,3 +127,31 @@ jobs:
         uses: codecov/codecov-action@v5.3.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  check_figures:
+    name: Check Figures
+    runs-on: ${{ matrix.runs-on }}
+    needs: [smoke]
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+        runs-on: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install the project
+        run: uv sync --extra all --group test-all
+
+      - name: Test package
+        run: uv run nox -s test_mpl

@@ -13,7 +13,7 @@ from plum import convert, dispatch
 import coordinax as cx
 import coordinax.vecs as cxv
 import unxt as u
-from unxt.quantity import UncheckedQuantity as FastQ
+from unxt.quantity import BareQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt

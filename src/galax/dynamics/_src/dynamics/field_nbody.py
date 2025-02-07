@@ -11,7 +11,7 @@ from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import UncheckedQuantity as FastQ
+from unxt.quantity import BareQuantity as FastQ
 
 import galax.potential as gp
 import galax.typing as gt

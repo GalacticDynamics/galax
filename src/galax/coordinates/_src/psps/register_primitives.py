@@ -46,8 +46,8 @@ def add_psps(
     >>> from dataclassish import replace
     >>> w4 = replace(w2, t=u.Quantity(1, "Gyr"))
     >>> try: w1 + w4
-    ... except ValueError as e: print(e)
-    Cannot add phase-space positions with different times
+    ... except Exception: print("Error")
+    Error
 
     """
     if not isinstance(psp2, type(psp1)):

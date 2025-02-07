@@ -325,7 +325,7 @@ def vconvert(
     q_cls = target["q"]
     target = {
         "q": q_cls,
-        "p": q_cls.differential_cls if (p_cls := target.get("p")) is None else p_cls,
+        "p": q_cls.time_derivative_cls if (p_cls := target.get("p")) is None else p_cls,
     }
 
     # TODO: use `dataclassish.replace`
@@ -375,7 +375,7 @@ def vconvert(
     )})
 
     """
-    target = {"q": target_position_cls, "p": target_position_cls.differential_cls}
+    target = {"q": target_position_cls, "p": target_position_cls.time_derivative_cls}
     return vconvert(target, psps, **kwargs)
 
 

@@ -13,7 +13,7 @@ from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import UncheckedQuantity as FastQ
+from unxt.quantity import BareQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.typing as gt

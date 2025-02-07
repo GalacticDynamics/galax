@@ -117,7 +117,7 @@ def vconvert(
 
     """
     q_cls = target["q"]
-    p_cls = q_cls.differential_cls if (mayp := target.get("p")) is None else mayp
+    p_cls = q_cls.time_derivative_cls if (mayp := target.get("p")) is None else mayp
     return replace(
         psp,
         q=psp.q.vconvert(q_cls, **kwargs),
@@ -166,5 +166,5 @@ def vconvert(
                         frame=SimulationFrame() )
 
     """
-    target = {"q": target_position_cls, "p": target_position_cls.differential_cls}
+    target = {"q": target_position_cls, "p": target_position_cls.time_derivative_cls}
     return vconvert(target, psp, **kwargs)

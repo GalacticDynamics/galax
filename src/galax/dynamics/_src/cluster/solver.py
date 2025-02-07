@@ -47,6 +47,7 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         default=dfxtra.DiffEqSolver(
             solver=dfx.Dopri8(),
             stepsize_controller=dfx.PIDController(rtol=1e-8, atol=1e-8),
+            max_steps=2**16,
         ),
         converter=dfxtra.DiffEqSolver.from_,
     )

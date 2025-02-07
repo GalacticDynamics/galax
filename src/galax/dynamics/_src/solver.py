@@ -13,12 +13,15 @@ from typing import Any, TypeAlias
 
 import diffrax as dfx
 import equinox as eqx
-from jaxtyping import Array, PyTree
+import numpy as np
+from jaxtyping import Array, PyTree, Real
 from plum import dispatch
 
 import unxt as u
 
 DenseInfo: TypeAlias = dict[str, PyTree[Array]]
+Terms: TypeAlias = PyTree
+DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], ""]
 
 
 class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
@@ -83,10 +86,29 @@ class AbstractSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     """
 
+    def _init_impl(
+        self,
+        terms: Terms,
+        t0: DfxRealScalarLike,
+        y0: PyTree,
+        args: Any,
+        units: u.AbstractUnitSystem,
+    ) -> SolveState:
+        """`init` helper."""
+        # Initializes the state from diffrax. Steps from t0 to t0!
+        solver_state = self.diffeqsolver.solver.init(terms, t0, t0, y0, args)
+        # Step from t0 to t0, which is a no-op but sets the state
+        step_output = self.diffeqsolver.solver.step(
+            terms, t0, t0, y0, args=args, solver_state=solver_state, made_jump=False
+        )
+        return SolveState.from_step_output(t0, step_output, units)
+
     @abc.abstractmethod
     def init(self, *args: Any, **kwargs: Any) -> SolveState:
         """Initialize the solver."""
         raise NotImplementedError
+
+    # -----------------------
 
     @abc.abstractmethod
     def step(
@@ -94,11 +116,42 @@ class AbstractSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         terms: Any,
         state: SolveState,
         t1: Any,
+        /,
         args: PyTree,
         **step_kwargs: Any,  # e.g. solver_state, made_jump
     ) -> SolveState:
         """Step the solver."""
         raise NotImplementedError
+
+    # ----------------
+
+    def _run_impl(
+        self,
+        terms: PyTree,
+        state: SolveState,
+        t1: DfxRealScalarLike,
+        /,
+        args: PyTree,
+        solver_kw: dict[str, Any],
+    ) -> dfx.Solution:
+        solver_kw.setdefault("dt0", None)
+        return self.diffeqsolver(
+            terms,
+            t0=state.t,
+            t1=t1,
+            y0=state.y,
+            args=args,
+            **solver_kw,
+        )
+
+    @abc.abstractmethod
+    def run(
+        self, terms: Any, state: SolveState, t1: Any, args: Any, **solver_kw: Any
+    ) -> SolveState:
+        """Run the solver."""
+        raise NotImplementedError  # pragma: no cover
+
+    # ----------------
 
     @abc.abstractmethod
     def solve(self, *args: Any, **kwargs: Any) -> Any:

@@ -8,6 +8,7 @@ from typing import Any
 import diffrax as dfx
 import equinox as eqx
 import optimistix as optx
+from jaxtyping import PyTree
 from plum import dispatch
 
 import diffraxtra as dfxtra
@@ -16,7 +17,7 @@ from unxt.quantity import AbstractQuantity
 
 from .events import MassBelowThreshold
 from .fields import AbstractMassField, MassVectorField, UserMassField
-from galax.dynamics._src.solver import AbstractSolver
+from galax.dynamics._src.solver import AbstractSolver, SolveState
 from galax.dynamics._src.utils import parse_saveat
 
 
@@ -66,9 +67,7 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     )
 
     @dispatch.abstract
-    def init(
-        self: "MassSolver", terms: Any, t0: Any, t1: Any, y0: Any, args: Any
-    ) -> Any:
+    def init(self: "MassSolver", *args: Any, **kwargs: Any) -> SolveState:
         # See dispatches below
         raise NotImplementedError  # pragma: no cover
 
@@ -76,14 +75,25 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     def step(
         self: "MassSolver",
         terms: Any,
-        t0: Any,
+        state: SolveState,
         t1: Any,
-        y0: Any,
-        args: Any,
+        args: PyTree,
         **step_kwargs: Any,  # e.g. solver_state, made_jump
-    ) -> Any:
+    ) -> SolveState:
         """Step the state."""
         # See dispatches below
+        raise NotImplementedError  # pragma: no cover
+
+    @dispatch.abstract
+    def run(
+        self: "MassSolver",
+        terms: Any,
+        state: SolveState,
+        t1: Any,
+        args: Any,
+        **solver_kw: Any,
+    ) -> SolveState:
+        """Run from the state."""
         raise NotImplementedError  # pragma: no cover
 
     # TODO: dispatch where the state from `init` is accepted

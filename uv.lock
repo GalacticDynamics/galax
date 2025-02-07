@@ -801,7 +801,7 @@ requires-dist = [
     { name = "optional-dependencies", specifier = ">=0.3" },
     { name = "packaging", specifier = ">=24.1" },
     { name = "plotting-backends", specifier = ">=0.1" },
-    { name = "plum-dispatch", specifier = ">=2.5.6" },
+    { name = "plum-dispatch", specifier = ">=2.5.7" },
     { name = "quax", specifier = ">=0.0.5" },
     { name = "quaxed", specifier = ">=0.9.0" },
     { name = "typing-extensions", specifier = ">=4.11" },
@@ -1529,16 +1529,16 @@ wheels = [
 
 [[package]]
 name = "plum-dispatch"
-version = "2.5.6"
+version = "2.5.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beartype" },
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/50/6f/940dcf576c7dff934613a08bf7eaaf54ba3ccdd744137defe784abcd9cbb/plum_dispatch-2.5.6.tar.gz", hash = "sha256:ab25c2b891a14e30e04013a9ca36a3ab3d3e1c02105dc00dab82c47372efea99", size = 35450 }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/46/ab3928e864b0a88a8ae6987b3da3b7ae32fe0a610264f33272139275dab5/plum_dispatch-2.5.7.tar.gz", hash = "sha256:a7908ad5563b93f387e3817eb0412ad40cfbad04bc61d869cf7a76cd58a3895d", size = 35452 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/10/71ef7f92d25521c2be9152e8d117f2ac9281715899f4fb6260bc023f65b2/plum_dispatch-2.5.6-py3-none-any.whl", hash = "sha256:07b6c8b1b453656fc650caf99c4e77f41ee37317062129e3bb558afeae10eeb6", size = 42609 },
+    { url = "https://files.pythonhosted.org/packages/2b/31/21609a9be48e877bc33b089a7f495c853215def5aeb9564a31c210d9d769/plum_dispatch-2.5.7-py3-none-any.whl", hash = "sha256:06471782eea0b3798c1e79dca2af2165bafcfa5eb595540b514ddd81053b1ede", size = 42612 },
 ]
 
 [[package]]

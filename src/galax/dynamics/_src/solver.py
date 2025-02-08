@@ -19,6 +19,8 @@ from plum import dispatch
 
 import unxt as u
 
+import galax.typing as gt
+
 DenseInfo: TypeAlias = dict[str, PyTree[Array]]
 Terms: TypeAlias = PyTree
 DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], ""]
@@ -109,6 +111,25 @@ class AbstractSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         raise NotImplementedError
 
     # -----------------------
+
+    def _step_impl(
+        self,
+        terms: Terms,
+        state: SolveState,
+        t1: gt.RealSz0,
+        args: Any,
+        step_kw: dict[str, Any],
+    ) -> SolveState:
+        step_output = self.diffeqsolver.solver.step(
+            terms,
+            state.t,
+            t1,
+            state.y,
+            args=args,
+            solver_state=state.solver_state,
+            **step_kw,
+        )
+        return SolveState.from_step_output(t1, step_output, state.units)
 
     @abc.abstractmethod
     def step(

@@ -25,13 +25,9 @@ from unxt.quantity import BareQuantity as FastQ
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
-from .compat import AllowValue
 from .field_base import AbstractDynamicsField
-from galax.dynamics._src.solver import (
-    AbstractSolver,
-    SolveState,
-    Terms,
-)
+from galax.dynamics._src.compat import AllowValue
+from galax.dynamics._src.solver import AbstractSolver, SolveState, Terms
 from galax.dynamics._src.utils import parse_saveat
 
 BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
@@ -263,25 +259,6 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     # -------------------------------------------
 
-    def _step_impl(
-        self,
-        terms: Terms,
-        state: SolveState,
-        t1: gt.RealSz0,
-        args: Any,
-        step_kw: dict[str, Any],
-    ) -> SolveState:
-        step_output = self.diffeqsolver.solver.step(
-            terms,
-            state.t,
-            t1,
-            state.y,
-            args=args,
-            solver_state=state.solver_state,
-            **step_kw,
-        )
-        return SolveState.from_step_output(t1, step_output, state.units)
-
     def step(
         self: "DynamicsSolver",
         field: AbstractDynamicsField | Terms,
@@ -499,8 +476,6 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         This can be batched with a set of times. The resulting
         `diffrax.Solution` has a `ys` shape of (*batch, [time], *shape, 3).
 
-
-
         >>> t1 = u.Quantity([1, 1.1, 1.2], "Gyr")
         >>> soln = solver.solve(field, w0, t0, t1)
         >>> soln
@@ -528,6 +503,14 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
                 [-0.013,  0.225,  0.   ]], dtype=float64))
 
         Now let's explore some more options for the initial conditions.
+
+        - `galax.dynamics.solve.SolveState` from ``.init()``:
+
+        >>> state = solver.init(field, w0, u.Quantity(0, "Gyr"), None)
+        >>> soln = solver.solve(field, state, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
 
         - `coordinax.vecs.AbstractPos3D`, `coordinax.vecs.AbstractVel3D`:
 
@@ -844,7 +827,7 @@ def run(
     t1_ = u.ustrip(AllowValue, state.units["time"], t1)  # Parse the time
     # Validate the solver keyword arguments
     solver_kw = eqx.error_if(
-        solver_kw, "saveat" in solver_kw, "cannot specify `saveat`"
+        solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
 
     # Run the solver
@@ -996,6 +979,31 @@ def solve(
     units = field.units
     y0 = (FastQ(qp[..., :3], units["length"]), FastQ(qp[..., 3:], units["speed"]))
     return self.solve(field, y0, t0, t1, args=args, saveat=saveat, **solver_kw)
+
+
+# --------------------------------
+# From State
+
+
+@DynamicsSolver.solve.dispatch
+def solve(
+    self: DynamicsSolver,
+    field: AbstractDynamicsField,
+    state: SolveState,
+    t1: gt.BBtRealQuSz0,
+    /,
+    args: Any = (),
+    **solver_kw: Any,
+) -> dfx.Solution:
+    """Solve for state, end time."""
+    solver_kw["solver_state"] = state.solver_state
+    # TODO: not munge like this
+    y0 = (
+        FastQ(state.y[0], field.units["length"]),
+        FastQ(state.y[1], field.units["speed"]),
+    )
+    t0 = FastQ(state.t, field.units["time"])
+    return self.solve(field, y0, t0, t1, args=args, **solver_kw)
 
 
 # --------------------------------

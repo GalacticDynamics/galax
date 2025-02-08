@@ -41,7 +41,7 @@ class InterpolatedPhaseSpacePosition(gc.AbstractOnePhaseSpacePosition):
     as `q` and `p`.
     """
 
-    interpolant: gc.PhaseSpacePositionInterpolant
+    interpolant: gc.PhaseSpaceObjectInterpolant
     """The interpolation function."""
 
     _: KW_ONLY

@@ -1,24 +1,24 @@
 """Protocol for PSP interpolation."""
 
-__all__ = ["PhaseSpacePositionInterpolant"]
+__all__ = ["PhaseSpaceObjectInterpolant"]
 
 from typing import Protocol, runtime_checkable
 
 import unxt as u
 
 import galax.typing as gt
-from .base import AbstractPhaseSpacePosition
+from .base import AbstractPhaseSpaceObject
 
 
 @runtime_checkable
-class PhaseSpacePositionInterpolant(Protocol):
+class PhaseSpaceObjectInterpolant(Protocol):
     """Protocol for interpolating phase-space positions."""
 
     @property
     def units(self) -> u.AbstractUnitSystem:
         """The unit system for the interpolation."""
 
-    def __call__(self, t: gt.QuSzTime) -> AbstractPhaseSpacePosition:
+    def __call__(self, t: gt.QuSzTime) -> AbstractPhaseSpaceObject:
         """Evaluate the interpolation.
 
         Parameters
@@ -26,9 +26,5 @@ class PhaseSpacePositionInterpolant(Protocol):
         t : Quantity[float, (time,), 'time']
             The times at which to evaluate the interpolation.
 
-        Returns
-        -------
-        :class:`galax.coordinates.PhaseSpacePosition`
-            The interpolated phase-space positions.
         """
         ...

@@ -18,7 +18,7 @@ __all__ = [
     # Utils
     "ComponentShapeTuple",
     # Protocols
-    "PhaseSpacePositionInterpolant",
+    "PhaseSpaceObjectInterpolant",
 ]
 
 from jaxtyping import install_import_hook
@@ -28,6 +28,7 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
     from . import frames, ops
     from ._src.base import AbstractPhaseSpaceObject
+    from ._src.interp import PhaseSpaceObjectInterpolant
     from ._src.psps import (
         AbstractCompositePhaseSpacePosition,
         AbstractOnePhaseSpacePosition,
@@ -35,7 +36,6 @@ with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
         ComponentShapeTuple,
         CompositePhaseSpacePosition,
         PhaseSpacePosition,
-        PhaseSpacePositionInterpolant,
     )
 
 # Clean up the namespace

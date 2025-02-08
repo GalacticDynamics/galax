@@ -4,6 +4,7 @@ __all__ = [
     "evaluate_orbit",
     "parse_time_specification",
     "AbstractSolver",
+    "SolveState",
     "DynamicsSolver",
     "DiffEqSolver",
     "VectorizedDenseInterpolation",
@@ -20,7 +21,7 @@ with install_import_hook("galax.dynamics.solve", RUNTIME_TYPECHECKER):
     from ._src.dynamics import DynamicsSolver, parse_time_specification
     from ._src.integrate import evaluate_orbit
     from ._src.orbit import Orbit
-    from ._src.solver import AbstractSolver
+    from ._src.solver import AbstractSolver, SolveState
 
 # Cleanup
 del install_import_hook, RUNTIME_TYPECHECKER

@@ -11,7 +11,7 @@ import coordinax as cx
 import unxt as u
 
 from .base import AbstractPhaseSpacePosition
-from .utils import PSPVConvertOptions
+from galax.coordinates._src.utils import PSPVConvertOptions
 
 
 class AbstractOnePhaseSpacePosition(AbstractPhaseSpacePosition):

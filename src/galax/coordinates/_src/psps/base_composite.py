@@ -20,7 +20,7 @@ from zeroth import zeroth
 
 import galax.typing as gt
 from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
-from .utils import PSPVConvertOptions
+from galax.coordinates._src.utils import PSPVConvertOptions
 
 
 # Note: cannot have `strict=True` because of inheriting from ImmutableMap.

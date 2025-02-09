@@ -2,7 +2,7 @@
 
 __all__: list[str] = []
 
-from typing import Literal
+from typing import Any
 
 from astropy.units import Quantity as APYQuantity
 from plum import convert, dispatch
@@ -21,12 +21,10 @@ import galax.typing as gt
 @dispatch
 def evaluate_orbit(
     pot: gp.AbstractPotential,
-    w0: gc.PhaseSpacePosition | gt.BtSz6,
+    w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition | gt.BtSz6,
     t: APYQuantity,
     /,
-    *,
-    solver: gd.DynamicsSolver | None = None,
-    dense: Literal[True, False] = False,
+    **kw: Any,
 ) -> gd.Orbit:
     """Compute an orbit in a potential.
 
@@ -50,9 +48,9 @@ def evaluate_orbit(
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
-    ...                            p=u.Quantity([0., 200, 0.], "km/s"),
-    ...                            t=u.Quantity(-100, "Myr"))
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([10., 0., 0.], "kpc"),
+    ...                              p=u.Quantity([0., 200, 0.], "km/s"),
+    ...                              t=u.Quantity(-100, "Myr"))
     >>> ts = u.Quantity(np.linspace(0., 1., 4), "Gyr")
 
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
@@ -78,9 +76,9 @@ def evaluate_orbit(
 
     We can also integrate a batch of orbits at once:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
-    ...                            p=u.Quantity([[0, 200, 0], [0, 220, 0]], "km/s"),
-    ...                            t=u.Quantity([-100, -150], "Myr"))
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([[10., 0, 0], [10., 0, 0]], "kpc"),
+    ...                              p=u.Quantity([[0, 200, 0], [0, 220, 0]], "km/s"),
+    ...                              t=u.Quantity([-100, -150], "Myr"))
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
@@ -95,20 +93,18 @@ def evaluate_orbit(
       interpolant=None
     )
 
-    :class:`~galax.dynamics.PhaseSpacePosition` has a ``t`` argument for the
+    :class:`~galax.dynamics.PhaseSpaceCoordinate` has a ``t`` argument for the
     time at which the position is given. As noted earlier, this can be used to
     integrate from a different time than the initial time of the position:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10., 0., 0.], "kpc"),
-    ...                            p=u.Quantity([0., 200, 0.], "km/s"),
-    ...                            t=u.Quantity(0, "Myr"))
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([10., 0., 0.], "kpc"),
+    ...                              p=u.Quantity([0., 200, 0.], "km/s"),
+    ...                              t=u.Quantity(0, "Myr"))
     >>> ts = u.Quantity(np.linspace(0.3, 1.0, 8), "Gyr")
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
     Array([ 9.779, -0.3102,  0.        ], dtype=float64)
 
     """
-    orbit: gd.Orbit = gd.evaluate_orbit(
-        pot, w0, convert(t, u.Quantity), solver=solver, dense=dense
-    )
+    orbit: gd.Orbit = gd.evaluate_orbit(pot, w0, convert(t, u.Quantity), **kw)
     return orbit

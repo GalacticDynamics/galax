@@ -183,11 +183,11 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
 
-        >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3]], "kpc"),
-        ...                           p=u.Quantity([[4, 5, 6]], "km/s"),
-        ...                           t=u.Quantity([0], "Gyr"))
+        >>> wt = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3]], "kpc"),
+        ...                              p=u.Quantity([[4, 5, 6]], "km/s"),
+        ...                              t=u.Quantity([0], "Gyr"))
 
-        >>> w[jnp.array(0)]
+        >>> wt[jnp.array(0)]
         PhaseSpaceCoordinate(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
@@ -195,11 +195,28 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
             frame=SimulationFrame()
         )
 
-        >>> w[jnp.array([0])]
+        >>> wt[jnp.array([0])]
         PhaseSpaceCoordinate(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
             t=Quantity['time'](Array([0], dtype=int64), unit='Gyr'),
+            frame=SimulationFrame()
+        )
+
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3]], "kpc"),
+        ...                           p=u.Quantity([[4, 5, 6]], "km/s"))
+
+        >>> w[jnp.array(0)]
+        PhaseSpacePosition(
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
+            frame=SimulationFrame()
+        )
+
+        >>> w[jnp.array([0])]
+        PhaseSpacePosition(
+            q=CartesianPos3D( ... ),
+            p=CartesianVel3D( ... ),
             frame=SimulationFrame()
         )
 
@@ -220,16 +237,26 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         --------
         >>> import unxt as u
         >>> import galax.coordinates as gc
-        >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                             p=u.Quantity([4, 5, 6], "km/s"),
-        ...                             t=u.Quantity(-1, "Gyr"))
-        >>> print(w)
+        >>> wt = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                              p=u.Quantity([4, 5, 6], "km/s"),
+        ...                              t=u.Quantity(-1, "Gyr"))
+        >>> print(wt)
         PhaseSpaceCoordinate(
             q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
                 [1 2 3]>,
             p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
                 [4 5 6]>,
             t=Quantity['time'](Array(-1, dtype=int64, ...), unit='Gyr'),
+            frame=SimulationFrame())
+
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                           p=u.Quantity([4, 5, 6], "km/s"))
+        >>> print(w)
+        PhaseSpacePosition(
+            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+                [1 2 3]>,
+            p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+                [4 5 6]>,
             frame=SimulationFrame())
 
         """
@@ -249,13 +276,16 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         >>> import unxt as u
         >>> import galax.coordinates as gc
 
-        We can create a phase-space position:
-
-        >>> pos = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3]], "kpc"),
-        ...                               p=u.Quantity([4, 5, 6], "km/s"),
-        ...                               t=u.Quantity(0, "Gyr"))
-        >>> pos.full_shape
+        >>> wt = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3]], "kpc"),
+        ...                              p=u.Quantity([4, 5, 6], "km/s"),
+        ...                              t=u.Quantity(0, "Gyr"))
+        >>> wt.full_shape
         (1, 7)
+
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3]], "kpc"),
+        ...                           p=u.Quantity([4, 5, 6], "km/s"))
+        >>> w.full_shape
+        (1, 6)
         """
         batch_shape, component_shapes = self._shape_tuple
         return (*batch_shape, sum(component_shapes))
@@ -280,10 +310,17 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
 
         We convert a phase-space position to a 2-elt 3-vector tuple:
 
-        >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                               p=u.Quantity([4, 5, 6], "km/s"),
-        ...                               t=u.Quantity(0, "Gyr"))
-        >>> psp._qp(units=u.unitsystem("galactic"))
+        >>> wt = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                              p=u.Quantity([4, 5, 6], "km/s"),
+        ...                              t=u.Quantity(0, "Gyr"))
+        >>> wt._qp(units=u.unitsystem("galactic"))
+        (BareQuantity(Array([1, 2, 3], dtype=int64), unit='kpc'),
+         BareQuantity(Array([0.00409085, 0.00511356, 0.00613627],
+                                 dtype=float64, ...), unit='kpc / Myr'))
+
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                           p=u.Quantity([4, 5, 6], "km/s"))
+        >>> w._qp(units=u.unitsystem("galactic"))
         (BareQuantity(Array([1, 2, 3], dtype=int64), unit='kpc'),
          BareQuantity(Array([0.00409085, 0.00511356, 0.00613627],
                                  dtype=float64, ...), unit='kpc / Myr'))
@@ -324,10 +361,15 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
 
         We can create a phase-space position and convert it to a 6-vector:
 
-        >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-        ...                               p=u.Quantity([4, 5, 6], "km/s"),
-        ...                               t=u.Quantity(0, "Gyr"))
-        >>> psp.w(units="galactic")
+        >>> wt = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                              p=u.Quantity([4, 5, 6], "km/s"),
+        ...                              t=u.Quantity(0, "Gyr"))
+        >>> wt.w(units="galactic")
+        Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
+
+        >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                           p=u.Quantity([4, 5, 6], "km/s"))
+        >>> w.w(units="galactic")
         Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
 
         """
@@ -358,7 +400,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
 
-        We can construct a phase-space position:
+        We can construct a phase-space coordinate:
 
         >>> q = cx.CartesianPos3D(
         ...     x=u.Quantity(1, "kpc"),
@@ -369,13 +411,21 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         ...     y=u.Quantity([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
         ...     z=u.Quantity(0, "km/s"))
         >>> t = u.Quantity(0, "Gyr")
-        >>> w = gc.PhaseSpaceCoordinate(q, p, t=t)
+        >>> wt = gc.PhaseSpaceCoordinate(q, p, t=t)
 
         We can compute the kinetic energy:
 
+        >>> wt.kinetic_energy()
+        Quantity[...](Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
+                            dtype=float64), unit='km2 / s2')
+
+        Also with a phase-space position (lacking time):
+
+        >>> w = gc.PhaseSpacePosition(q, p)
         >>> w.kinetic_energy()
         Quantity[...](Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
                             dtype=float64), unit='km2 / s2')
+
         """
         return 0.5 * self.p.norm(self.q) ** 2
 
@@ -407,9 +457,15 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         >>> q = u.Quantity([1., 0, 0], "au")
         >>> p = u.Quantity([0, 2., 0], "au/yr")
         >>> t = u.Quantity(0, "yr")
-        >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
+
+        >>> wt = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
+        >>> wt.angular_momentum()
+        Quantity[...](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
+
+        >>> w = gc.PhaseSpacePosition(q=q, p=p)
         >>> w.angular_momentum()
         Quantity[...](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
+
         """
         from galax.dynamics import specific_angular_momentum
 

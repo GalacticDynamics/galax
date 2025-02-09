@@ -37,7 +37,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         # />
         /,
         prog_mass: gt.MassSz0 | ProgenitorMassCallable,
-    ) -> gc.CompositePhaseSpacePosition:
+    ) -> gc.CompositePhaseSpaceCoordinate:
         """Generate stream particle initial conditions.
 
         Parameters
@@ -54,7 +54,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         Returns
         -------
-        `galax.coordinates.CompositePhaseSpacePosition`
+        `galax.coordinates.CompositePhaseSpaceCoordinate`
             Phase-space positions of the leading and trailing arms.
 
         Examples
@@ -66,14 +66,14 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         >>> df = gd.FardalStreamDF()
         >>> pot = gp.MilkyWayPotential()
-        >>> w = gc.PhaseSpacePosition(q=u.Quantity([8.3, 0, 0], "kpc"),
-        ...                           p=u.Quantity([0, 220, 0], "km/s"),
-        ...                           t=u.Quantity(0, "Gyr"))
+        >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8.3, 0, 0], "kpc"),
+        ...                             p=u.Quantity([0, 220, 0], "km/s"),
+        ...                             t=u.Quantity(0, "Gyr"))
         >>> prog_orbit = pot.evaluate_orbit(w, t=u.Quantity([0, 1, 2], "Gyr"))
         >>> stream_ic = df.sample(jr.key(0), pot, prog_orbit,
         ...                       prog_mass=u.Quantity(1e4, "Msun"))
         >>> stream_ic
-        CompositePhaseSpacePosition({'lead': MockStreamArm(
+        CompositePhaseSpaceCoordinate({'lead': MockStreamArm(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
             t=Quantity...,
@@ -124,7 +124,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             frame=prog_orbit.frame,
         )
 
-        return gc.CompositePhaseSpacePosition(
+        return gc.CompositePhaseSpaceCoordinate(
             lead=mock_lead,
             trail=mock_trail,
             frame=prog_orbit.frame,

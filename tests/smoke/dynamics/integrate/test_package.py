@@ -10,5 +10,5 @@ def test_all() -> None:
         "Integrator",
         "Interpolant",
         "parse_time_specification",
-        "InterpolatedPhaseSpacePosition",
+        "InterpolatedPhaseSpaceCoordinate",
     }

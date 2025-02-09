@@ -176,7 +176,7 @@ def replace(
     Quantity['mass'](Array(1.e+12, dtype=float64,...), unit='solMass')
 
     """  # noqa: E501
-    # AbstractCompositePhaseSpacePosition is both a Mapping and a dataclass
+    # AbstractCompositePhaseSpaceCoordinate is both a Mapping and a dataclass
     # so we need to disambiguate the method to call
     method = replace.invoke(Mapping[Hashable, Any], Mapping[str, Any])
     return method(obj, replacements)

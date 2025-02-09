@@ -282,9 +282,9 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         >>> import galax.potential as gp
 
         >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-        >>> w = gc.PhaseSpacePosition(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
-        ...                           p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
-        ...                           t=u.Quantity(0.0, "Gyr"))
+        >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
+        ...                             p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
+        ...                             t=u.Quantity(0.0, "Gyr"))
         >>> pot.local_circular_velocity(w)
         Quantity['speed'](Array(0.74987517, dtype=float64), unit='kpc / Myr')
 

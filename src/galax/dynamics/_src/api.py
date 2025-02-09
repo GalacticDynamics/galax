@@ -40,14 +40,24 @@ def specific_angular_momentum(
     >>> gd.specific_angular_momentum(x, v)
     Quantity[...](Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
 
-    >>> w = cx.Space(length=cx.CartesianPos3D.from_([[[7., 0, 0], [8, 0, 0]]], "m"),
-    ...              speed=cx.CartesianVel3D.from_([[[0., 5, 0], [0, 6, 0]]], "m/s"))
-    >>> gd.specific_angular_momentum(w)
+    >>> space = cx.Space(length=cx.CartesianPos3D.from_([[[7., 0, 0], [8, 0, 0]]], "m"),
+    ...                  speed=cx.CartesianVel3D.from_([[[0., 5, 0], [0, 6, 0]]], "m/s"))
+    >>> gd.specific_angular_momentum(space)
     Quantity[...](Array([[[ 0., 0., 35.], [ 0., 0., 48.]]], dtype=float64), unit='m2 / s')
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1., 0, 0], "au"),
-    ...                           p=u.Quantity([0, 2., 0], "au/yr"),
-    ...                           t=u.Quantity(0, "yr"))
+    >>> w = cx.frames.Coordinate(space, frame=gc.frames.SimulationFrame())
+    >>> w
+    Coordinate(
+        data=Space({
+            'length': CartesianPos3D( ... ),
+            'speed': CartesianVel3D( ... )
+        }),
+        frame=SimulationFrame()
+    )
+
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1., 0, 0], "au"),
+    ...                             p=u.Quantity([0, 2., 0], "au/yr"),
+    ...                             t=u.Quantity(0, "yr"))
     >>> gd.specific_angular_momentum(w)
     Quantity[...](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
 

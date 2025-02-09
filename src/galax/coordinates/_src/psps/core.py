@@ -1,57 +1,65 @@
-"""galax: Galactic Dynamics in Jax."""
+"""ABC for phase-space positions."""
 
-__all__ = ["PhaseSpacePosition"]
+__all__ = ["PhaseSpacePosition", "ComponentShapeTuple"]
 
+import warnings
 from dataclasses import KW_ONLY, replace
-from functools import partial
-from typing import Any, final
+from typing import Any, NamedTuple
 from typing_extensions import override
 
 import equinox as eqx
+from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from dataclassish.converters import Optional, Unless
-from unxt.quantity import AbstractQuantity
+from dataclassish.converters import Unless
 
 import galax.typing as gt
-from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
-from .base_composite import AbstractCompositePhaseSpacePosition
-from .base_psp import AbstractOnePhaseSpacePosition
+from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.frames import SimulationFrame
-from galax.utils._shape import batched_shape, vector_batched_shape
+from galax.coordinates._src.utils import PSPVConvertOptions
+from galax.utils._shape import vector_batched_shape
 
 
-@final
-class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
+class ComponentShapeTuple(NamedTuple):
+    """Component shape of the phase-space position."""
+
+    q: int
+    """Shape of the position component."""
+
+    p: int
+    """Shape of the momentum component."""
+
+
+# =============================================================================
+
+
+# TODO: make it strict=True
+class PhaseSpacePosition(AbstractPhaseSpaceObject):
     r"""Phase-Space Position with time.
 
-    The phase-space position is a point in the 7-dimensional phase space
-    :math:`\mathbb{R}^7` of a dynamical system. It is composed of the position
-    :math:`\boldsymbol{q}`, the time :math:`t`, and the conjugate momentum
-    :math:`\boldsymbol{p}`.
+    The phase-space position is a point in the 6-dimensional phase space
+    :math:`\mathbb{R}^6` of a dynamical system. It is composed of the position
+    :math:`\boldsymbol{q}`  and the conjugate momentum :math:`\boldsymbol{p}`.
 
     Parameters
     ----------
     q : :class:`~coordinax.AbstractPos3D`
         A 3-vector of the positions, allowing for batched inputs.  This
-        parameter accepts any 3-vector, e.g.
-        :class:`~coordinax.SphericalPos`, or any input that can be used to
-        make a :class:`~coordinax.CartesianPos3D` via
-        :meth:`coordinax.vector`.
+        parameter accepts any 3-vector, e.g. :class:`~coordinax.SphericalPos`,
+        or any input that can be used to make a
+        :class:`~coordinax.CartesianPos3D` via :meth:`coordinax.vector`.
     p : :class:`~coordinax.AbstractVel3D`
         A 3-vector of the conjugate specific momenta at positions ``q``,
         allowing for batched inputs.  This parameter accepts any 3-vector
         differential, e.g.  :class:`~coordinax.SphericalVelocity`, or any input
         that can be used to make a :class:`~coordinax.CartesianVel3D` via
         :meth:`coordinax.vector`.
-    t : Quantity[float, (*batch,), 'time'] | None
-        The time corresponding to the positions.
 
     Notes
     -----
-    The batch shape of `q`, `p`, and `t` are broadcast together.
+    The batch shape of `q` and `p` are broadcast together.
 
     Examples
     --------
@@ -61,18 +69,16 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
 
     Note that both `q` and `p` have convenience converters, allowing them to
     accept a variety of inputs when constructing a
-    :class:`~coordinax.CartesianPos3D` or
-    :class:`~coordinax.CartesianVel3D`, respectively.  For example,
+    :class:`~coordinax.CartesianPos3D` or :class:`~coordinax.CartesianVel3D`,
+    respectively.  For example,
 
     >>> t = u.Quantity(7, "s")
     >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
-    ...                           p=u.Quantity([4, 5, 6], "m/s"),
-    ...                           t=t)
+    ...                           p=u.Quantity([4, 5, 6], "m/s"))
     >>> w
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
       frame=SimulationFrame()
     )
 
@@ -81,7 +87,7 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "m")
     >>> p = cx.CartesianVel3D.from_([4, 5, 6], "m/s")
 
-    >>> w2 = gc.PhaseSpacePosition(q=q, p=p, t=t)
+    >>> w2 = gc.PhaseSpacePosition(q=q, p=p)
     >>> w2 == w
     Array(True, dtype=bool)
 
@@ -90,20 +96,18 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
 
     >>> q = cx.SphericalPos(r=u.Quantity(1, "m"), theta=u.Quantity(2, "deg"),
     ...                     phi=u.Quantity(3, "deg"))
-    >>> w3 = gc.PhaseSpacePosition(q=q, p=p, t=t)
+    >>> w3 = gc.PhaseSpacePosition(q=q, p=p)
     >>> isinstance(w3.q, cx.SphericalPos)
     True
 
-    Of course a similar effect can be achieved by using the
-    `coordinax.vconvert` function (or convenience method on the phase-space
-    position):
+    Of course a similar effect can be achieved by using the `coordinax.vconvert`
+    function (or convenience method on the phase-space position):
 
     >>> w4 = w3.vconvert(cx.SphericalPos, cx.CartesianVel3D)
     >>> w4
     PhaseSpacePosition(
       q=SphericalPos( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
       frame=SimulationFrame()
     )
 
@@ -121,17 +125,6 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.TimeBBtSz0 | gt.SzN | gt.TimeSz0 | None = eqx.field(
-        default=None,
-        converter=Optional(u.Quantity["time"].from_),
-    )
-    """The time corresponding to the positions.
-
-    This is a Quantity with the same batch shape as the positions and
-    velocities.  If `t` is a scalar it will be broadcast to the same batch shape
-    as `q` and `p`.
-    """
-
     _: KW_ONLY
 
     frame: SimulationFrame = eqx.field(
@@ -143,6 +136,34 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
     """The reference frame of the phase-space position."""
 
     # ==========================================================================
+    # Coordinate API
+
+    @classmethod
+    def _dimensionality(cls) -> int:
+        """Return the dimensionality of the phase-space position."""
+        return 6  # TODO: should it be 6? Also make it a Final
+
+    @override
+    @property
+    def data(self) -> cx.Space:  # type: ignore[misc]
+        """Return the data as a space.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.coordinates as gc
+
+        We can create a phase-space position:
+
+        >>> pos = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+        ...                             p=u.Quantity([4, 5, 6], "km/s"))
+        >>> pos.data
+        Space({ 'length': CartesianPos3D( ... ), 'speed': CartesianVel3D( ... ) })
+
+        """
+        return cx.Space(length=self.q, speed=self.p)
+
+    # ==========================================================================
     # Array properties
 
     @property
@@ -151,19 +172,13 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
-        tbatch: gt.Shape
-        if self.t is None:
-            tbatch, tshape = (), 0
-        else:
-            tbatch, _ = batched_shape(self.t, expect_ndim=0)
-            tshape = 1
-        batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
-        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=tshape)
+        batch_shape = jnp.broadcast_shapes(qbatch, pbatch)
+        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape)
 
     # ---------------------------------------------------------------
     # Getitem
 
-    @AbstractPhaseSpacePosition.__getitem__.dispatch
+    @AbstractPhaseSpaceObject.__getitem__.dispatch
     def __getitem__(
         self: "PhaseSpacePosition", index: tuple[Any, ...]
     ) -> "PhaseSpacePosition":
@@ -178,54 +193,30 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
         >>> q = u.Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
         >>> p = u.Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
+        >>> w = gc.PhaseSpacePosition(q=q, p=p)
         >>> w[()] is w
         True
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
+        >>> w = gc.PhaseSpacePosition(q=q, p=p)
         >>> w[0, 1].q.x
         Quantity['length'](Array(4, dtype=int64), unit='m')
-        >>> w[0, 1].t is None
-        True
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity(0, "Myr"))
+        >>> w = gc.PhaseSpacePosition(q=q, p=p)
         >>> w[0, 1].q.x
         Quantity['length'](Array(4, dtype=int64), unit='m')
-        >>> w[0, 1].t
-        Quantity['time'](Array(0, dtype=int64, ...), unit='Myr')
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity([0], "Myr"))
+        >>> w = gc.PhaseSpacePosition(q=q, p=p)
         >>> w[0, 1].q.x
         Quantity['length'](Array(4, dtype=int64), unit='m')
-        >>> w[0, 1].t
-        Quantity['time'](Array(0, dtype=int64), unit='Myr')
-
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity([[[0],[1]]], "Myr"))
-        >>> w[0, :].t
-        Quantity['time'](Array([[0], [1]], dtype=int64), unit='Myr')
 
         """
         # Empty selection w[()] should return the same object
         if len(index) == 0:
             return self
 
-        # If `t` is None, then we can't index it
-        if self.t is None:
-            return replace(self, q=self.q[index], p=self.p[index])
+        return replace(self, q=self.q[index], p=self.p[index])
 
-        # Handle the time index
-        #  - If `t` is a vector, then
-        match self.t.ndim:
-            case 0:  # `t` is a scalar, return as is
-                tindex = Ellipsis
-            case 1 if len(index) == self.ndim:  # apply last index
-                tindex = index[-1]
-            case _:  # apply indices as normal
-                tindex = index
-
-        return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
-
-    @AbstractPhaseSpacePosition.__getitem__.dispatch
+    @AbstractPhaseSpaceObject.__getitem__.dispatch
     def __getitem__(
         self: "PhaseSpacePosition", index: slice | int
     ) -> "PhaseSpacePosition":
@@ -240,102 +231,34 @@ class PhaseSpacePosition(AbstractOnePhaseSpacePosition):
         >>> q = u.Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
         >>> p = u.Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=None)
+        >>> w = gc.PhaseSpacePosition(q=q, p=p)
         >>> w[0].q.x
         Quantity['length'](Array([1, 4], dtype=int64), unit='m')
 
-        >>> w = gc.PhaseSpacePosition(q=q, p=p, t=u.Quantity(0, "Myr"))
+        >>> w = gc.PhaseSpacePosition(q=q, p=p)
         >>> w[0].shape
         (2,)
-        >>> w[0].t
-        Quantity['time'](Array(0, dtype=int64, ...), unit='Myr')
 
         >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3]], "m"),
-        ...                           p=u.Quantity([[4, 5, 6]], "m/s"),
-        ...                           t=u.Quantity([7], "s"))
+        ...                           p=u.Quantity([[4, 5, 6]], "m/s"))
         >>> w[0].q.shape
         ()
-        >>> w[0].t
-        Quantity['time'](Array(7, dtype=int64), unit='s')
 
         >>> w = gc.PhaseSpacePosition(q=u.Quantity([[[1, 2, 3], [1, 2, 3]]], "m"),
-        ...                           p=u.Quantity([[[4, 5, 6], [4, 5, 6]]], "m/s"),
-        ...                           t=u.Quantity([[7]], "s"))
+        ...                           p=u.Quantity([[[4, 5, 6], [4, 5, 6]]], "m/s"))
         >>> w[0].q.shape
         (2,)
-        >>> w[0].t
-        Quantity['time'](Array([7], dtype=int64), unit='s')
 
         """
-        # If `t` is None, then we can't index it
-        if self.t is None:
-            return replace(self, q=self.q[index], p=self.p[index])
-
-        # Handle the time index
-        match self.t.ndim:
-            case 0:  # `t` is a scalar, return as is
-                tindex = Ellipsis
-            case 1 if self.ndim > 1:  # t vec on batched q, p
-                tindex = Ellipsis
-            case _:  # apply index as normal
-                tindex = index
-
         # TODO: have to broadcast q, p
-        return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
-
-    # ==========================================================================
-    # Convenience methods
-
-    def wt(self, *, units: Any) -> gt.BtSz7:
-        """Return the phase-space-time position as a 7-vector.
-
-        Raises
-        ------
-        Exception
-            If the time is not defined.
-        """
-        _ = eqx.error_if(
-            self.t, self.t is None, "No time defined for phase-space position"
-        )
-        return super().wt(units=units)
+        return replace(self, q=self.q[index], p=self.p[index])
 
 
-# TODO: generalize
-@AbstractPhaseSpacePosition.from_.dispatch(precedence=1)
-@partial(eqx.filter_jit, inline=True)
-def from_(
-    cls: type[PhaseSpacePosition], obj: AbstractCompositePhaseSpacePosition, /
-) -> PhaseSpacePosition:
-    """Return a new PhaseSpacePosition from the given object.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.coordinates as gc
+# =============================================================================
+# Dispatches
 
 
-    >>> psp1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                              p=u.Quantity([4, 5, 6], "km/s"),
-    ...                              t=u.Quantity(7, "Myr"))
-    >>> psp2 = gc.PhaseSpacePosition(q=u.Quantity([10, 20, 30], "kpc"),
-    ...                              p=u.Quantity([40, 50, 60], "km/s"),
-    ...                              t=u.Quantity(7, "Myr"))
-
-    >>> c_psp = gc.CompositePhaseSpacePosition(psp1=psp1, psp2=psp2)
-
-    >>> gc.PhaseSpacePosition.from_(c_psp)
-    PhaseSpacePosition(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array([7, 7], dtype=int64, ...), unit='Myr'),
-      frame=SimulationFrame()
-    )
-
-    """
-    return cls(q=obj.q, p=obj.p, t=obj.t)
-
-
-@AbstractPhaseSpacePosition.from_.dispatch
+@AbstractPhaseSpaceObject.from_.dispatch  # type: ignore[attr-defined,misc]
 def from_(
     cls: type[PhaseSpacePosition],
     data: cx.Space,
@@ -358,17 +281,111 @@ def from_(
     PhaseSpacePosition(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=None,
       frame=SimulationFrame()
     )
 
     """
-    t: AbstractQuantity | None = None
-
-    # TODO: more thorough constructor
     q = data["length"]
     if isinstance(q, cx.vecs.FourVector):
-        t = q.t
+        warnings.warn("taking the 3-vector part of a 4-vector", stacklevel=2)
         q = q.q
 
-    return cls(q=q, p=data["speed"], t=t, frame=frame)
+    return cls(q=q, p=data["speed"], frame=frame)
+
+
+# -----------------------------------------------
+# `unxt.uconvert` dispatches
+
+
+@dispatch(precedence=1)  # type: ignore[call-overload, misc]  # TODO: make precedence=0
+def uconvert(
+    units: u.AbstractUnitSystem | str, psp: PhaseSpacePosition
+) -> PhaseSpacePosition:
+    """Convert the components to the given units."""
+    usys = u.unitsystem(units)
+    return replace(psp, q=psp.q.uconvert(usys), p=psp.p.uconvert(usys))
+
+
+# -----------------------------------------------
+# `coordinax.vconvert` dispatches
+
+
+@dispatch
+def vconvert(
+    target: PSPVConvertOptions,
+    psp: PhaseSpacePosition,
+    /,
+    **kwargs: Any,
+) -> PhaseSpacePosition:
+    """Convert the phase-space position to a different representation.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import coordinax.vecs as cxv
+    >>> import galax.coordinates as gc
+
+    We can create a phase-space position and convert it to a 6-vector:
+
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                            p=u.Quantity([4, 5, 6], "km/s"))
+    >>> w.w(units="galactic")
+    Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
+
+    Converting it to a different representation and differential class:
+
+    >>> cx.vconvert({"q": cxv.LonLatSphericalPos, "p": cxv.LonCosLatSphericalVel}, w)
+    PhaseSpacePosition( q=LonLatSphericalPos( ... ),
+                        p=LonCosLatSphericalVel( ... ),
+                        frame=SimulationFrame() )
+
+    """
+    q_cls = target["q"]
+    p_cls = q_cls.time_derivative_cls if (mayp := target.get("p")) is None else mayp
+    return replace(
+        psp,
+        q=psp.q.vconvert(q_cls, **kwargs),
+        p=psp.p.vconvert(p_cls, psp.q, **kwargs),
+    )
+
+
+@dispatch
+def vconvert(
+    target_position_cls: type[cx.vecs.AbstractPos],
+    psp: PhaseSpacePosition,
+    /,
+    **kwargs: Any,
+) -> PhaseSpacePosition:
+    """Convert the phase-space position to a different representation.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
+
+    We can create a phase-space position and convert it to a 6-vector:
+
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"))
+    >>> psp.w(units="galactic")
+    Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
+
+    Converting it to a different representation:
+
+    >>> cx.vconvert(cx.vecs.CylindricalPos, psp)
+    PhaseSpacePosition( q=CylindricalPos( ... ),
+                        p=CylindricalVel( ... ),
+                        frame=SimulationFrame() )
+
+    If the new representation requires keyword arguments, they can be passed
+    through:
+
+    >>> cx.vconvert(cx.vecs.ProlateSpheroidalPos, psp, Delta=u.Quantity(2.0, "kpc"))
+    PhaseSpacePosition( q=ProlateSpheroidalPos(...),
+                        p=ProlateSpheroidalVel(...),
+                        frame=SimulationFrame() )
+
+    """
+    target = {"q": target_position_cls, "p": target_position_cls.time_derivative_cls}
+    return vconvert(target, psp, **kwargs)

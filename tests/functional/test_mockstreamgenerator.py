@@ -72,9 +72,7 @@ def test_first_deriv() -> None:
 
     ts = u.Quantity(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
     w0 = gc.PhaseSpacePosition(
-        q=u.Quantity([30.0, 10, 20], "kpc"),
-        p=u.Quantity([10.0, -150, -20], "km / s"),
-        t=None,
+        q=u.Quantity([30.0, 10, 20], "kpc"), p=u.Quantity([10.0, -150, -20], "km / s")
     )
     M_sat = u.Quantity(1.0e4, "Msun")
 
@@ -104,9 +102,7 @@ def test_second_deriv() -> None:
 
     ts = u.Quantity(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
     w0 = gc.PhaseSpacePosition(
-        q=u.Quantity([30.0, 10, 20], "kpc"),
-        p=u.Quantity([10.0, -150, -20], "km / s"),
-        t=None,
+        q=u.Quantity([30.0, 10, 20], "kpc"), p=u.Quantity([10.0, -150, -20], "km / s")
     )
     M_sat = u.Quantity(1.0e4, "Msun")
 

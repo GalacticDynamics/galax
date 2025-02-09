@@ -16,14 +16,14 @@ from unxt.quantity import BareQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.typing as gt
-from .interp_psp import InterpolatedPhaseSpacePosition
+from .interp_psp import InterpolatedPhaseSpaceCoordinate
 
 
 @final
 class Interpolant(dfxtra.AbstractVectorizedDenseInterpolation):  # type: ignore[misc]
     """Wrapper for `diffrax.DenseInterpolation`.
 
-    This satisfies the `galax.coordinates.PhaseSpacePositionInterpolant`
+    This satisfies the `galax.coordinates.PhaseSpaceObjectInterpolant`
     Protocol.
 
     Examples
@@ -50,9 +50,9 @@ class Interpolant(dfxtra.AbstractVectorizedDenseInterpolation):  # type: ignore[
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
     >>> w = integrator(gd.fields.HamiltonianField(pot), w0, t0, t1, dense=True)
     >>> type(w)
-    <class 'galax.dynamics...InterpolatedPhaseSpacePosition'>
+    <class 'galax.dynamics...InterpolatedPhaseSpaceCoordinate'>
 
-    >>> isinstance(w.interpolant, gc.PhaseSpacePositionInterpolant)
+    >>> isinstance(w.interpolant, gc.PhaseSpaceObjectInterpolant)
     True
 
     """
@@ -102,7 +102,7 @@ class Interpolant(dfxtra.AbstractVectorizedDenseInterpolation):  # type: ignore[
         t1: u.Quantity["time"] | None = None,
         *,
         left: bool = False,
-    ) -> gc.PhaseSpacePosition:
+    ) -> gc.PhaseSpaceCoordinate:
         """Evaluate the interpolation."""
         ys = super().evaluate(
             t0.ustrip(self.units["time"]),
@@ -115,7 +115,7 @@ class Interpolant(dfxtra.AbstractVectorizedDenseInterpolation):  # type: ignore[
             ys = jax.tree.map(lambda x: xp.moveaxis(x, 0, -2), ys)
 
         # Construct and return the result
-        return gc.PhaseSpacePosition(
+        return gc.PhaseSpaceCoordinate(
             q=FastQ(ys[0], self.units["length"]),
             p=FastQ(ys[1], self.units["speed"]),
             t=t0,
@@ -123,16 +123,16 @@ class Interpolant(dfxtra.AbstractVectorizedDenseInterpolation):  # type: ignore[
 
 
 # TODO: support interpolation
-@gc.AbstractOnePhaseSpacePosition.from_.dispatch  # type: ignore[misc,attr-defined]
+@gc.PhaseSpaceCoordinate.from_.dispatch  # type: ignore[misc,attr-defined]
 def from_(
-    cls: type[InterpolatedPhaseSpacePosition],
+    cls: type[InterpolatedPhaseSpaceCoordinate],
     soln: dfx.Solution,
     *,
     frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
     units: u.AbstractUnitSystem,  # not dispatched on, but required
     interpolant: Interpolant,  # not dispatched on, but required
     unbatch_time: bool = False,
-) -> gc.AbstractOnePhaseSpacePosition:
+) -> InterpolatedPhaseSpaceCoordinate:
     """Convert a solution to a phase-space position."""
     # Reshape (T, *batch) to (*batch, T)
     t = soln.ts  # already in the correct shape

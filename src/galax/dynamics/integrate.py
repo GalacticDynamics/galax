@@ -5,7 +5,7 @@ __all__ = [
     "Integrator",
     "Interpolant",
     "parse_time_specification",
-    "InterpolatedPhaseSpacePosition",
+    "InterpolatedPhaseSpaceCoordinate",
 ]
 
 from jaxtyping import install_import_hook
@@ -17,7 +17,7 @@ with install_import_hook("galax.dynamics.integrate", RUNTIME_TYPECHECKER):
     from ._src.integrate import (
         Integrator,
         Interpolant,
-        InterpolatedPhaseSpacePosition,
+        InterpolatedPhaseSpaceCoordinate,
         evaluate_orbit,
     )
 

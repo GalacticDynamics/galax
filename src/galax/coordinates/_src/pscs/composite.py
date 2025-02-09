@@ -1,6 +1,6 @@
 """galax: Galactic Dynamics in Jax."""
 
-__all__ = ["CompositePhaseSpacePosition"]
+__all__ = ["CompositePhaseSpaceCoordinate"]
 
 from collections.abc import Iterable, Mapping
 from typing import Any, final
@@ -14,8 +14,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from zeroth import zeroth
 
-from .base_composite import AbstractCompositePhaseSpacePosition
-from .base_psp import AbstractOnePhaseSpacePosition
+from .base_composite import AbstractCompositePhaseSpaceCoordinate
+from .base_single import AbstractBasicPhaseSpaceCoordinate
 from galax.coordinates._src.frames import SimulationFrame
 
 
@@ -29,7 +29,7 @@ def _concat(values: Iterable[PyTree], time_sorter: Int[Array, "..."]) -> PyTree:
 
 
 @final
-class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
+class CompositePhaseSpaceCoordinate(AbstractCompositePhaseSpaceCoordinate):
     r"""Composite Phase-Space Position with time.
 
     The phase-space position is a point in the 7-dimensional phase space
@@ -43,7 +43,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     ----------
     psps: dict | tuple, optional positional-only
         initialize from a (key, value) mapping or tuple.
-    **kwargs : AbstractOnePhaseSpacePosition
+    **kwargs : AbstractBasicPhaseSpaceCoordinate
         The name=value pairs of the phase-space positions.
 
     Notes
@@ -62,26 +62,26 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
 
     We can create a phase-space position. Here we will use the convenience
     constructors for Cartesian positions and velocities. To see the full
-    constructor, see :class:`~galax.coordinates.PhaseSpacePosition`.
+    constructor, see :class:`~galax.coordinates.PhaseSpaceCoordinate`.
 
-    >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "m"),
+    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
     ...                            p=u.Quantity([4, 5, 6], "m/s"),
     ...                            t=u.Quantity(7, "s"))
-    >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
     ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
     ...                            t=u.Quantity(6, "s"))
 
     We can create a composite phase-space position from these two phase-space
     positions:
 
-    >>> cw = gc.CompositePhaseSpacePosition(w1=w1, w2=w2)
+    >>> cw = gc.CompositePhaseSpaceCoordinate(w1=w1, w2=w2)
     >>> cw
-    CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
+    CompositePhaseSpaceCoordinate({'w1': PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity...
       ),
-      'w2': PhaseSpacePosition(
+      'w2': PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
         t=Quantity...
@@ -90,7 +90,7 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     The individual phase-space positions can be accessed via the keys:
 
     >>> cw["w1"]
-    PhaseSpacePosition(
+    PhaseSpaceCoordinate(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
       t=Quantity...
@@ -112,12 +112,12 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     We can transform the composite phase-space position to a new position class.
 
     >>> cw.vconvert(cx.vecs.CylindricalPos)
-    CompositePhaseSpacePosition({'w1': PhaseSpacePosition(
+    CompositePhaseSpaceCoordinate({'w1': PhaseSpaceCoordinate(
         q=CylindricalPos( ... ),
         p=CylindricalVel( ... ),
         t=Quantity...
       ),
-      'w2': PhaseSpacePosition(
+      'w2': PhaseSpaceCoordinate(
         q=CylindricalPos( ... ),
         p=CylindricalVel( ... ),
         t=...
@@ -134,18 +134,17 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
     """
 
     _time_sorter: Shaped[Array, "alltimes"]
-    _time_are_none: bool
     _frame: SimulationFrame  # TODO: support frames
 
     def __init__(
         self,
-        psps: Mapping[str, AbstractOnePhaseSpacePosition]
-        | tuple[tuple[str, AbstractOnePhaseSpacePosition], ...] = (),
+        psps: Mapping[str, AbstractBasicPhaseSpaceCoordinate]
+        | tuple[tuple[str, AbstractBasicPhaseSpaceCoordinate], ...] = (),
         /,
         frame: Any = None,
-        **kwargs: AbstractOnePhaseSpacePosition,
+        **kwargs: AbstractBasicPhaseSpaceCoordinate,
     ) -> None:
-        # Aggregate all the PhaseSpacePositions
+        # Aggregate all the PhaseSpaceCoordinates
         allpsps = dict(psps, **kwargs)
 
         # Everything must be transformed to be in the same frame.
@@ -157,31 +156,21 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
             else cxf.TransformedReferenceFrame.from_(maybeframe)
         )
         self._frame = frame
-        # Transform all the PhaseSpacePositions to that frame. If the frames are
+        # Transform all the PhaseSpaceCoordinates to that frame. If the frames are
         # already `NoFrame`, we can skip this step, since no transformation is
         # possible in `NoFrame`.
         allpsps = {k: psp.to_frame(frame) for k, psp in allpsps.items()}
 
-        # Now we can set all the PhaseSpacePositions
+        # Now we can set all the PhaseSpaceCoordinates
         super().__init__(allpsps)
 
         # TODO: check up on the shapes
 
-        # Construct time sorter
-        # Either all the times are `None` or real times
-        tisnone = [psp.t is None for psp in self.values()]
-        if not any(tisnone):
-            ts = jnp.concat([jnp.atleast_1d(w.t) for w in self.values()], axis=0)
-            self._time_are_none = False
-        elif all(tisnone):
-            # Makes a `arange` counting up the length of each psp. For sorting,
-            # 0-length psps become length 1.
-            ts = jnp.cumsum(jnp.concat([jnp.ones(len(w) or 1) for w in self.values()]))
-            self._time_are_none = True
-        else:
-            msg = "All times must be None or real times."
-            raise ValueError(msg)
-
+        # Construct time sorter TODO: fix unxt primitive for jnp.concat to do
+        # type coercion after ustrip, which can change types.
+        ts = jnp.concat(
+            [jnp.atleast_1d(w.t).astype(float) for w in self.values()], axis=0
+        )
         self._time_sorter = jnp.argsort(ts)
 
     @property
@@ -197,12 +186,10 @@ class CompositePhaseSpacePosition(AbstractCompositePhaseSpacePosition):
         return _concat((x.p for x in self.values()), self._time_sorter)
 
     @property
-    def t(self) -> Shaped[u.Quantity["time"], "..."] | list[None]:
+    def t(self) -> Shaped[u.Quantity["time"], "..."]:
         """Times."""
-        if self._time_are_none:
-            return [None] * len(self._time_sorter)
-
-        return jnp.concat([jnp.atleast_1d(psp.t) for psp in self.values()], axis=0)[
+        # TODO: sort during, not after
+        return jnp.concat([jnp.atleast_1d(wt.t) for wt in self.values()], axis=0)[
             self._time_sorter
         ]
 

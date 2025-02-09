@@ -32,7 +32,7 @@ import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
 
-w = gc.PhaseSpacePosition(
+w = gc.PhaseSpaceCoordinate(
     q=u.Quantity([8, 0, 0], "kpc"),
     p=u.Quantity([0, 220, 0], "km/s"),
     t=u.Quantity(0, "Myr"),

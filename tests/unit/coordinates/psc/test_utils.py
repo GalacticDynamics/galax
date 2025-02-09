@@ -9,7 +9,7 @@ from jaxtyping import Array, Float
 import quaxed.numpy as jnp
 import unxt as u
 
-from galax.coordinates._src.psps.utils import HasShape, getitem_vec1time_index
+from galax.coordinates._src.pscs.utils import HasShape, getitem_vec1time_index
 from galax.typing import QuSz3
 
 Sz3 = Float[Array, "3"]

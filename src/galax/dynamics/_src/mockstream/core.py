@@ -16,12 +16,12 @@ from zeroth import zeroth
 
 import galax.coordinates as gc
 import galax.typing as gt
-from galax.coordinates._src.psps.utils import getitem_vec1time_index
+from galax.coordinates._src.pscs.utils import getitem_vec1time_index
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
 @final
-class MockStreamArm(gc.AbstractOnePhaseSpacePosition):
+class MockStreamArm(gc.AbstractBasicPhaseSpaceCoordinate):
     """Component of a mock stream object.
 
     Parameters
@@ -87,7 +87,7 @@ class MockStreamArm(gc.AbstractOnePhaseSpacePosition):
 
 
 @final
-class MockStream(gc.AbstractCompositePhaseSpacePosition):
+class MockStream(gc.AbstractCompositePhaseSpaceCoordinate):
     _time_sorter: Shaped[Array, "alltimes"]
     _frame: gc.frames.SimulationFrame  # TODO: support frames
 
@@ -103,9 +103,9 @@ class MockStream(gc.AbstractCompositePhaseSpacePosition):
         # Everything must be transformed to be in the same frame.
         # Compute and store the frame
         self._frame = theframe = zeroth(allpsps.values()).frame
-        # Transform all the PhaseSpacePositions to that frame. If the frames are
-        # already `NoFrame`, we can skip this step, since no transformation is
-        # possible in `NoFrame`.
+        # Transform all the PhaseSpaceCoordinates to that frame. If the frames
+        # are already `NoFrame`, we can skip this step, since no transformation
+        # is possible in `NoFrame`.
         allpsps = {k: psp.to_frame(theframe) for k, psp in allpsps.items()}
 
         super().__init__(psps, **kwargs)

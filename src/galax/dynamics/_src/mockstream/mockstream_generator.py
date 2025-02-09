@@ -2,7 +2,7 @@
 
 __all__ = ["MockStreamGenerator"]
 
-from dataclasses import KW_ONLY, replace
+from dataclasses import KW_ONLY
 from functools import partial
 from typing import TypeAlias, cast, final
 
@@ -58,7 +58,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     # ==========================================================================
 
     def _progenitor_trajectory(
-        self, w0: gc.PhaseSpacePosition, ts: gt.QuSzTime
+        self, w0: gc.AbstractPhaseSpaceObject, ts: gt.QuSzTime
     ) -> Orbit:
         """Integrate the progenitor orbit."""
         return cast(
@@ -156,11 +156,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         self,
         rng: PRNGKeyArray,
         ts: gt.QuSzTime,
-        prog_w0: gc.PhaseSpacePosition | gt.Sz6,
+        prog_w0: gc.AbstractPhaseSpaceObject | gt.Sz6,
         prog_mass: gt.FloatQuSz0 | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
-    ) -> tuple[MockStream, gc.PhaseSpacePosition]:
+    ) -> tuple[MockStream, gc.PhaseSpaceCoordinate]:
         """Generate mock stellar stream.
 
         Parameters
@@ -169,12 +169,12 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             Random number generator.
         ts : Quantity[float, (time,), "time"]
             Stripping times.
-        prog_w0 : PhaseSpacePosition[float, ()]
+        prog_w0 : PhaseSpaceCoordinate[float, ()]
             Initial conditions of the progenitor.
 
             The recommended way to pass in the progenitor's initial conditions
-            is as a :class:`~galax.coordinates.PhaseSpacePosition` object with a
-            set time. This is the most explicit and is guaranteed to have the
+            is as a :class:`~galax.coordinates.PhaseSpaceCoordinate` object with
+            a set time. This is the most explicit and is guaranteed to have the
             correct units and no surprises about the progenitor.
 
             .. note::
@@ -201,7 +201,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         -------
         mockstream : :class:`galax.dynamcis.MockStreamArm`
             Leading and/or trailing arms of the mock stream.
-        prog_o : :class:`galax.coordinates.PhaseSpacePosition`
+        prog_o : :class:`galax.coordinates.PhaseSpaceCoordinate`
             The final phase-space(+time) position of the progenitor.
         """
         # Parse vmapped
@@ -210,14 +210,16 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         )
 
         # Ensure w0 is a PhaseSpacePosition
-        w0: gc.PhaseSpacePosition
-        if isinstance(prog_w0, gc.PhaseSpacePosition):
-            w0 = prog_w0 if prog_w0.t is not None else replace(prog_w0, t=ts[0])
+        w0: gc.PhaseSpaceCoordinate
+        if isinstance(prog_w0, gc.PhaseSpaceCoordinate):
+            w0 = prog_w0
+        elif isinstance(prog_w0, gc.PhaseSpacePosition):
+            w0 = gc.PhaseSpaceCoordinate(q=prog_w0.q, p=prog_w0.p, t=ts[0])
         else:
-            w0 = gc.PhaseSpacePosition(
+            w0 = gc.PhaseSpaceCoordinate(
                 q=u.Quantity(prog_w0[0:3], self.units["length"]),
                 p=u.Quantity(prog_w0[3:6], self.units["speed"]),
-                t=uconvert(self.potential.units["time"], ts[0]),
+                t=u.uconvert(self.potential.units["time"], ts[0]),
             )
         w0 = eqx.error_if(w0, w0.ndim > 0, "prog_w0 must be scalar")
         # TODO: allow for multiple progenitors
@@ -244,7 +246,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         frame = (
             prog_w0.frame
-            if isinstance(prog_w0, gc.PhaseSpacePosition)
+            if isinstance(prog_w0, gc.AbstractPhaseSpaceObject)
             else gc.frames.SimulationFrame()
         )
 

@@ -14,7 +14,7 @@ import coordinax.ops as cxo
 import quaxed.numpy as jnp
 import unxt as u
 
-from galax.coordinates._src.psps.base_psp import AbstractOnePhaseSpacePosition
+from galax.coordinates._src.pscs.single import PhaseSpaceCoordinate
 
 vec_matmul = jnp.vectorize(jnp.matmul, signature="(3,3),(3)->(3)")
 
@@ -77,9 +77,9 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
     We can apply the rotation to a position.
 
-    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 0, 0], "kpc"),
-    ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                             t=u.Quantity(1, "Gyr"))
+    >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 0, 0], "kpc"),
+    ...                               p=u.Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                               t=u.Quantity(1, "Gyr"))
 
     >>> newpsp = op(psp)
 
@@ -95,11 +95,11 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
     Array([-1.,  0.,  0.], dtype=float64)
 
     We can also apply the rotation to a
-    :class:`~galax.corodinates.PhaseSpacePosition`.
+    :class:`~galax.corodinates.PhaseSpaceCoordinate`.
 
-    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 0, 0], "kpc"),
-    ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                             t=u.Quantity(1, "Gyr"))
+    >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 0, 0], "kpc"),
+    ...                               p=u.Quantity([0, 0, 0], "kpc/Gyr"),
+    ...                               t=u.Quantity(1, "Gyr"))
 
 
     >>> newpsp = op(psp)
@@ -248,8 +248,8 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
     @cxo.AbstractOperator.__call__.dispatch
     def __call__(
-        self: "ConstantRotationZOperator", psp: AbstractOnePhaseSpacePosition, /
-    ) -> AbstractOnePhaseSpacePosition:
+        self: "ConstantRotationZOperator", psp: PhaseSpaceCoordinate, /
+    ) -> PhaseSpaceCoordinate:
         """Apply the translation to the coordinates.
 
         Examples
@@ -261,9 +261,9 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
         >>> op = gc.ops.ConstantRotationZOperator.from_(90, "deg / Gyr")
 
-        >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 0, 0], "kpc"),
-        ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"),
-        ...                             t=u.Quantity(1, "Gyr"))
+        >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 0, 0], "kpc"),
+        ...                               p=u.Quantity([0, 0, 0], "kpc/Gyr"),
+        ...                               t=u.Quantity(1, "Gyr"))
 
         >>> newpsp = op(psp)
         >>> convert(newpsp.q, u.Quantity).value.round(2)

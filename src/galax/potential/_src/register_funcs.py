@@ -31,21 +31,12 @@ HessianVec: TypeAlias = Shaped[u.Quantity["1/s^2"], "*#shape 3 3"]
 @dispatch
 def potential(
     pot: AbstractPotential,
-    pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
+    wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
     /,
 ) -> u.Quantity["specific energy"]:
-    """Compute from a PSP or 4vec.
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-    pspt : `~galax.coordinates.AbstractOnePhaseSpacePosition`
-        The phase-space + time position to compute the value of the
-        potential.
-
-    """
-    q = parse_to_quantity(pspt.q, dtype=None, units=pot.units)
-    return pot._potential(q, pspt.t)  # noqa: SLF001
+    """Compute from a q + t object."""
+    q = parse_to_quantity(wt, dtype=None, units=pot.units)
+    return pot._potential(q, wt.t)  # noqa: SLF001
 
 
 @dispatch
@@ -86,22 +77,12 @@ def potential(
 @dispatch
 def gradient(
     pot: AbstractPotential,
-    pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
+    wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
     /,
 ) -> cx.vecs.CartesianAcc3D:
-    """Compute the gradient of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the gradient of.
-    pspt : `~galax.coordinates.AbstractOnePhaseSpacePosition`,
-    positional-only
-        The phase-space + time position to compute the gradient.
-
-    """
-    q = parse_to_quantity(pspt.q, dtype=float, units=pot.units["length"])
-    grad = pot._gradient(q, pspt.t)  # noqa: SLF001
+    """Compute the gradient of the potential at the given coordinate(s)."""
+    q = parse_to_quantity(wt, dtype=float, units=pot.units["length"])
+    grad = pot._gradient(q, wt.t)  # noqa: SLF001
     return cx.vecs.CartesianAcc3D.from_(grad)
 
 
@@ -151,22 +132,12 @@ def gradient(pot: AbstractPotential, q: Any, /, *, t: Any) -> cx.vecs.CartesianA
 @dispatch
 def laplacian(
     pot: AbstractPotential,
-    pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
+    wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
     /,
 ) -> u.Quantity["1/s^2"]:
-    """Compute the laplacian of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the laplacian of.
-    pspt : `~galax.coordinates.AbstractOnePhaseSpacePosition`,
-    positional-only
-        The phase-space + time position to compute the laplacian.
-
-    """
-    q = parse_to_quantity(pspt.q, dtype=float, units=pot.units)
-    return pot._laplacian(q, pspt.t)  # noqa: SLF001
+    """Compute the laplacian of the potential at the given coordinate(s)."""
+    q = parse_to_quantity(wt, dtype=float, units=pot.units)
+    return pot._laplacian(q, wt.t)  # noqa: SLF001
 
 
 @dispatch
@@ -203,20 +174,11 @@ def laplacian(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["1/s^2
 
 @dispatch
 def density(
-    pot: AbstractPotential, pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector, /
+    pot: AbstractPotential, wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector, /
 ) -> u.Quantity["mass density"]:
-    """Compute the density at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the density of.
-    pspt : `~galax.coordinates.AbstractOnePhaseSpacePosition`
-        The phase-space + time position to compute the density.
-
-    """
-    q = parse_to_quantity(pspt.q, units=pot.units)
-    return pot._density(q, pspt.t)  # noqa: SLF001
+    """Compute the density at the given coordinate(s)."""
+    q = parse_to_quantity(wt.q, units=pot.units)
+    return pot._density(q, wt.t)  # noqa: SLF001
 
 
 @dispatch
@@ -251,11 +213,11 @@ def density(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["mass de
 @dispatch
 def hessian(
     pot: AbstractPotential,
-    pspt: gc.AbstractOnePhaseSpacePosition | cx.FourVector,
+    pspt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
     /,
 ) -> gt.BtQuSz33:
     """Compute the hessian of the potential at the given position(s)."""
-    q = parse_to_quantity(pspt.q, dtype=float, units=pot.units)
+    q = parse_to_quantity(pspt, dtype=float, units=pot.units)
     return pot._hessian(q, pspt.t)  # noqa: SLF001
 
 
@@ -383,7 +345,7 @@ def local_circular_velocity(
 @dispatch
 @partial(jax.jit, inline=True)
 def local_circular_velocity(
-    pot: AbstractPotential, w: gc.AbstractOnePhaseSpacePosition, /
+    pot: AbstractPotential, w: gc.AbstractPhaseSpaceCoordinate, /
 ) -> gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position."""
     return api.local_circular_velocity(pot, w.q, w.t)
@@ -431,7 +393,7 @@ def dpotential_dr(
 @partial(jax.jit)
 def dpotential_dr(
     pot: AbstractPotential,
-    w: cx.vecs.FourVector | gc.AbstractPhaseSpacePosition,
+    w: cx.vecs.FourVector | gc.AbstractPhaseSpaceCoordinate,
 ) -> AbstractQuantity:
     return api.dpotential_dr(pot, w.q, w.t)
 
@@ -473,7 +435,7 @@ def d2potential_dr2(
 @dispatch
 @partial(jax.jit)
 def d2potential_dr2(
-    pot: AbstractPotential, w: gc.AbstractPhaseSpacePosition | cx.vecs.FourVector, /
+    pot: AbstractPotential, w: gc.AbstractPhaseSpaceCoordinate | cx.vecs.FourVector, /
 ) -> Shaped[u.Quantity["frequency drift"], "*batch"]:
     return api.d2potential_dr2(pot, w.q, w.t)
 

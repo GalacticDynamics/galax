@@ -36,22 +36,22 @@ def potential(*args: Any, **kwargs: Any) -> u.Quantity["specific energy"]:
     >>> import galax.coordinates as gc
 
     We can construct a potential and compute the potential energy at a given
-    position:
+    coordinate:
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"),
-    ...                           t=u.Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> pot.potential(w)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=u.Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                             t=u.Quantity([0, 1], "Gyr"))
     >>> pot.potential(w)
     Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
@@ -158,9 +158,9 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"),
-    ...                           t=u.Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> print(pot.gradient(w))
     <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
@@ -168,15 +168,15 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=u.Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                             t=u.Quantity([0, 1], "Gyr"))
     >>> print(pot.gradient(w))
     <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
-    Instead of passing a `~galax.coordinates.AbstractOnePhaseSpacePosition`, we
+    Instead of passing a `~galax.coordinates.PhaseSpaceCoordinate`, we
     can instead pass a `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -295,24 +295,24 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"]:
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"),
-    ...                           t=u.Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> pot.laplacian(w)
     Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=u.Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                             t=u.Quantity([0, 1], "Gyr"))
     >>> pot.laplacian(w)
     Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
-    `~galax.coordinates.AbstractOnePhaseSpacePosition`, we can instead pass a
+    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -420,24 +420,24 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"]:
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"),
-    ...                           t=u.Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> pot.density(w)
     Quantity['mass density'](Array(0., dtype=float64), unit='solMass / kpc3')
 
     We can also compute the density at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=u.Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                             t=u.Quantity([0, 1], "Gyr"))
     >>> pot.density(w)
     Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
-    `~galax.coordinates.AbstractOnePhaseSpacePosition`, we can instead pass a
+    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -543,9 +543,9 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"),
-    ...                           t=u.Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> pot.hessian(w)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -555,9 +555,9 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=u.Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                             t=u.Quantity([0, 1], "Gyr"))
     >>> pot.hessian(w)
     Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                           [-0.03680435,  0.01226812, -0.11041304],
@@ -569,7 +569,7 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
-    `~galax.coordinates.AbstractOnePhaseSpacePosition`, we can instead pass a
+    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -714,9 +714,9 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"),
-    ...                           t=u.Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> print(pot.acceleration(w))
     <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
@@ -724,9 +724,9 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=u.Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                             t=u.Quantity([0, 1], "Gyr"))
     >>> print(pot.acceleration(w))
     <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[-0.086 -0.172 -0.258]
@@ -734,7 +734,7 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
-    `~galax.coordinates.AbstractOnePhaseSpacePosition`, we can instead pass a
+    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -798,9 +798,9 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"),
-    ...                           t=u.Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> pot.tidal_tensor(w)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
@@ -810,9 +810,9 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=u.Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                             t=u.Quantity([0, 1], "Gyr"))
     >>> pot.tidal_tensor(w)
     Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
                           [-0.03680435,  0.01226812, -0.11041304],
@@ -824,7 +824,7 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
-    `~galax.coordinates.AbstractOnePhaseSpacePosition`, we can instead pass a
+    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -967,9 +967,9 @@ def local_circular_velocity(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
     >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20.0, "kpc"),
     ...                       units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
-    ...                           p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
-    ...                           t=u.Quantity(0.0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
+    ...                             p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
+    ...                             t=u.Quantity(0.0, "Gyr"))
     >>> gp.local_circular_velocity(pot, w)
     Quantity['speed'](Array(0.16894332, dtype=float64), unit='kpc / Myr')
 
@@ -997,9 +997,9 @@ def dpotential_dr(*args: Any, **kwargs: Any) -> Shaped[AbstractQuantity, "*batch
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"),
-    ...                           t=u.Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> pot.dpotential_dr(w)
     Quantity['acceleration'](Array(0.32132158, dtype=float64), unit='kpc / Myr2')
@@ -1007,17 +1007,16 @@ def dpotential_dr(*args: Any, **kwargs: Any) -> Shaped[AbstractQuantity, "*batch
     We can also compute the radial derivative of the potential at multiple
     positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=u.Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                             t=u.Quantity([0, 1], "Gyr"))
 
     >>> pot.dpotential_dr(w)
     Quantity[...](Array([0.32132158, 0.05842211], dtype=float64), unit='kpc / Myr2')
 
     This function is very flexible and can accept a broad variety of inputs. For
-    example, instead of passing a
-    `~galax.coordinates.AbstractOnePhaseSpacePosition`, we can instead pass a
-    `~vector.FourVector`:
+    example, instead of passing a `~galax.coordinates.PhaseSpaceCoordinate`, we
+    can instead pass a `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> pot.dpotential_dr(w)
@@ -1046,9 +1045,9 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> Shaped[AbstractQuantity, "*bat
 
     >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"),
-    ...                           t=u.Quantity(0, "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                             p=u.Quantity([4, 5, 6], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
 
     >>> pot.d2potential_dr2(w)
     Quantity[...](Array(-0.17175361, dtype=float64), unit='1 / Myr2')
@@ -1056,17 +1055,16 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> Shaped[AbstractQuantity, "*bat
     We can also compute the second radial derivative of the potential at
     multiple positions and times:
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                           p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                           t=u.Quantity([0, 1], "Gyr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                             t=u.Quantity([0, 1], "Gyr"))
 
     >>> pot.d2potential_dr2(w)
     Quantity[...](Array([-0.17175361, -0.01331563], dtype=float64), unit='1 / Myr2')
 
     This function is very flexible and can accept a broad variety of inputs. For
-    example, instead of passing a
-    `~galax.coordinates.AbstractOnePhaseSpacePosition`, we can instead pass a
-    `~vector.FourVector`:
+    example, instead of passing a `~galax.coordinates.PhaseSpaceCoordinate`, we
+    can instead pass a `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> pot.d2potential_dr2(w)

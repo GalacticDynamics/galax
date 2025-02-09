@@ -23,7 +23,7 @@ from galax.typing import BtFloatQuSz0, QuSz1, QuSzTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
-class Orbit(gc.AbstractOnePhaseSpacePosition):
+class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
     """Represents an orbit.
 
     An orbit is a set of positions and velocities (conjugate momenta) as a
@@ -42,7 +42,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     >>> import galax.potential as gp
 
     >>> potential = gp.KeplerPotential(m_tot=1e12, units="galactic")
-    >>> w0 = gc.PhaseSpacePosition(
+    >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0., 0.], "kpc"),
     ...     p=u.Quantity([0., 230, 0.], "km/s"),
     ...     t=u.Quantity(0, "Myr"))
@@ -100,7 +100,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     potential: gp.AbstractPotential
     """Potential in which the orbit was integrated."""
 
-    interpolant: gc.PhaseSpacePositionInterpolant | None = None
+    interpolant: gc.PhaseSpaceObjectInterpolant | None = None
     """The interpolation function."""
 
     def __post_init__(self) -> None:
@@ -118,7 +118,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     @classmethod
     def _from_psp(
         cls,
-        w: gc.AbstractOnePhaseSpacePosition,
+        w: gc.PhaseSpaceCoordinate,
         t: QuSzTime,
         potential: gp.AbstractPotential,
     ) -> "Orbit":
@@ -167,7 +167,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
     # -------------------------------------------------------------------------
     # Getitem
 
-    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpaceObject.__getitem__.dispatch
     def __getitem__(self: "Orbit", index: tuple[Any, ...]) -> "Orbit":
         """Get a multi-index selection of the orbit.
 
@@ -180,7 +180,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
         >>> import galax.dynamics as gd
 
         >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-        >>> w0 = gc.PhaseSpacePosition(
+        >>> w0 = gc.PhaseSpaceCoordinate(
         ...     q=u.Quantity([8., 0., 0.], "kpc"),
         ...     p=u.Quantity([0., 230, 0.], "km/s"),
         ...     t=u.Quantity(0, "Myr"))
@@ -215,7 +215,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
 
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
-    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpaceObject.__getitem__.dispatch
     def __getitem__(self: "Orbit", index: slice) -> "Orbit":
         """Slice the orbit.
 
@@ -228,7 +228,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
         >>> import galax.dynamics as gd
 
         >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-        >>> w0 = gc.PhaseSpacePosition(
+        >>> w0 = gc.PhaseSpaceCoordinate(
         ...     q=u.Quantity([8., 0., 0.], "kpc"),
         ...     p=u.Quantity([0., 230, 0.], "km/s"),
         ...     t=u.Quantity(0, "Myr"))
@@ -259,8 +259,8 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
 
         return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
 
-    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
-    def __getitem__(self: "Orbit", index: int) -> gc.PhaseSpacePosition:
+    @gc.AbstractPhaseSpaceObject.__getitem__.dispatch
+    def __getitem__(self: "Orbit", index: int) -> gc.PhaseSpaceCoordinate:
         """Get the orbit at a specific time.
 
         Examples
@@ -271,7 +271,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
         >>> import galax.dynamics as gd
 
         >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-        >>> w0 = gc.PhaseSpacePosition(
+        >>> w0 = gc.PhaseSpaceCoordinate(
         ...     q=u.Quantity([8., 0., 0.], "kpc"),
         ...     p=u.Quantity([0., 230, 0.], "km/s"),
         ...     t=u.Quantity(0, "Myr"))
@@ -279,7 +279,7 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
         >>> orbit = gd.evaluate_orbit(pot, w0, ts)
 
         >>> orbit[0]
-        PhaseSpacePosition(
+        PhaseSpaceCoordinate(
           q=CartesianPos3D( ... ),
           p=CartesianVel3D( ... ),
           t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
@@ -289,9 +289,11 @@ class Orbit(gc.AbstractOnePhaseSpacePosition):
         Quantity['time'](Array(0., dtype=float64), unit='Myr')
 
         """
-        return gc.PhaseSpacePosition(q=self.q[index], p=self.p[index], t=self.t[index])
+        return gc.PhaseSpaceCoordinate(
+            q=self.q[index], p=self.p[index], t=self.t[index]
+        )
 
-    @gc.AbstractPhaseSpacePosition.__getitem__.dispatch
+    @gc.AbstractPhaseSpaceObject.__getitem__.dispatch
     def __getitem__(
         self: "Orbit", index: Int[Array, "..."] | Bool[Array, "..."] | ndarray
     ) -> "Orbit":

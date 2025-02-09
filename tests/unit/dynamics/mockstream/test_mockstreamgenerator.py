@@ -52,9 +52,9 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         return u.Quantity(jnp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
 
     @pytest.fixture
-    def prog_w0(self) -> gc.PhaseSpacePosition:
+    def prog_w0(self) -> gc.PhaseSpaceCoordinate:
         """Progenitor initial conditions."""
-        return gc.PhaseSpacePosition(
+        return gc.PhaseSpaceCoordinate(
             q=u.Quantity([30, 10, 20], "kpc"),
             p=u.Quantity([10, -150, -20], "km/s"),
             t=u.Quantity(0.0, "Myr"),
@@ -81,7 +81,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         self,
         mockgen: MockStreamGenerator,
         t_stripping: gt.QuSzTime,
-        prog_w0: gc.PhaseSpacePosition,
+        prog_w0: gc.PhaseSpaceCoordinate,
         prog_mass: gt.MassSz0,
         rng: PRNGKeyArray,
         vmapped: bool,

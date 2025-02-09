@@ -69,7 +69,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     Define the initial conditions, here a phase-space position
 
-    >>> w0 = gc.PhaseSpacePosition(
+    >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
     ...     p=u.Quantity([0, 220, 0], "km/s"),
     ...     t=u.Quantity(0, "Gyr"))
@@ -82,9 +82,9 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     Solution( t0=f64[], t1=f64[], ts=f64[1],
               ys=(f64[1,2,3], f64[1,2,3]), ... )
 
-    >>> w = gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame)
+    >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
-    PhaseSpacePosition(
+    PhaseSpaceCoordinate(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
             [[[-5.151 -6.454 -5.795]]
              [[ 4.277  4.633  1.426]]]>,
@@ -177,7 +177,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
         Define the initial conditions, here a phase-space position
 
-        >>> w0 = gc.PhaseSpacePosition(
+        >>> w0 = gc.PhaseSpaceCoordinate(
         ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
         ...     p=u.Quantity([0, 220, 0], "km/s"),
         ...     t=u.Quantity(0, "Gyr"))
@@ -192,9 +192,9 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
         The state can be initialed many different ways:
 
-        - rrom a `galax.coordinates.PhaseSpacePosition` without a time:
+        - from a `galax.coordinates.PhaseSpacePosition` (without a time):
 
-        >>> w0 = replace(w0, t=None)  # without a time
+        >>> w0 = gc.PhaseSpacePosition(q=w0.q, p=w0.p)  # no time
         >>> t0 = u.Quantity(0, "Gyr")
         >>> solver.init(field, w0, t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
@@ -239,15 +239,15 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> solver.init(field, y0, t0, None, units=pot.units)
         SolveState( t=weak_f64[], y=(f64[3], f64[3]), ... )
 
-        - From a `galax.coordinates.CompositePhaseSpacePosition`:
+        - From a `galax.coordinates.CompositePhaseSpaceCoordinate`:
 
-        >>> w01 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
-        ...                             p=u.Quantity([0, 200, 0], "km/s"),
-        ...                             t=u.Quantity(0, "Gyr"))
-        >>> w02 = gc.PhaseSpacePosition(q=u.Quantity([0, 10, 0], "kpc"),
-        ...                             p=u.Quantity([-200, 0, 0], "km/s"),
-        ...                             t=u.Quantity(0, "Gyr"))
-        >>> w0s = gc.CompositePhaseSpacePosition(w01=w01, w02=w02)
+        >>> w01 = gc.PhaseSpaceCoordinate(q=u.Quantity([10, 0, 0], "kpc"),
+        ...                               p=u.Quantity([0, 200, 0], "km/s"),
+        ...                               t=u.Quantity(0, "Gyr"))
+        >>> w02 = gc.PhaseSpaceCoordinate(q=u.Quantity([0, 10, 0], "kpc"),
+        ...                               p=u.Quantity([-200, 0, 0], "km/s"),
+        ...                               t=u.Quantity(0, "Gyr"))
+        >>> w0s = gc.CompositePhaseSpaceCoordinate(w01=w01, w02=w02)
 
         >>> solver.init(field, w0s, None)
         {'w01': SolveState( t=weak_f64[], y=(f64[3], f64[3]), ... ),
@@ -291,7 +291,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
         Define the initial conditions:
 
-        >>> w0 = gc.PhaseSpacePosition(
+        >>> w0 = gc.PhaseSpaceCoordinate(
         ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
         ...     p=u.Quantity([0, 220, 0], "km/s"),
         ...     t=u.Quantity(0, "Gyr"))
@@ -346,7 +346,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
         Define the initial conditions:
 
-        >>> w0 = gc.PhaseSpacePosition(
+        >>> w0 = gc.PhaseSpaceCoordinate(
         ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
         ...     p=u.Quantity([0, 220, 0], "km/s"),
         ...     t=u.Quantity(0, "Gyr"))
@@ -564,9 +564,9 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         Solution( t0=f64[], t1=f64[], ts=f64[],
                   ys=(f64[3], f64[3]), ...)
 
-        - `galax.coordinates.PhaseSpacePosition` with time:
+        - `galax.coordinates.PhaseSpaceCoordinate`:
 
-        >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([8, 0, 0], "kpc"),
+        >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([8, 0, 0], "kpc"),
         ...                            p=u.Quantity([0, 220, 0], "km/s"),
         ...                            t=u.Quantity(0, "Gyr"))
 
@@ -575,25 +575,26 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         Solution( t0=f64[], t1=f64[], ts=f64[],
                   ys=(f64[3], f64[3]), ...)
 
-        - `galax.coordinates.PhaseSpacePosition` without time:
+        - `galax.coordinates.PhaseSpacePosition` (without time):
 
-        >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([8, 0, 0], "kpc"),
-        ...                            p=u.Quantity([0, 220, 0], "km/s"))
+        >>> w0 = gc.PhaseSpacePosition(q=w0.q, p=w0.p)
 
         >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[],
                   ys=(f64[3], f64[3]), ...)
 
-        - `galax.coordinates.AbstractCompositePhaseSpacePosition`:
+        - `galax.coordinates.AbstractCompositePhaseSpaceCoordinate`:
 
-        >>> w01 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
-        ...                             p=u.Quantity([0, 200, 0], "km/s"))
-        >>> w02 = gc.PhaseSpacePosition(q=u.Quantity([0, 10, 0], "kpc"),
-        ...                             p=u.Quantity([-200, 0, 0], "km/s"))
-        >>> w0s = gc.CompositePhaseSpacePosition(w01=w01, w02=w02)
+        >>> w01 = gc.PhaseSpaceCoordinate(q=u.Quantity([10, 0, 0], "kpc"),
+        ...                               p=u.Quantity([0, 200, 0], "km/s"),
+        ...                               t=u.Quantity(0, "Gyr"))
+        >>> w02 = gc.PhaseSpaceCoordinate(q=u.Quantity([0, 10, 0], "kpc"),
+        ...                               p=u.Quantity([-200, 0, 0], "km/s"),
+        ...                               t=u.Quantity(10, "Myr"))
+        >>> w0s = gc.CompositePhaseSpaceCoordinate(w01=w01, w02=w02)
 
-        >>> soln = solver.solve(field, w0s, t0, t1, unbatch_time=True)
+        >>> soln = solver.solve(field, w0s, t1, unbatch_time=True)
         >>> soln
         {'w01': Solution( t0=f64[], t1=f64[], ts=f64[],
                         ys=(f64[3], f64[3]), ... ),
@@ -754,14 +755,11 @@ def init(
 def init(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    w0: gc.AbstractOnePhaseSpacePosition,
+    w0: gc.PhaseSpaceCoordinate,
     args: PyTree,
     /,
 ) -> SolveState:
     # Check that the initial conditions are valid.
-    w0 = eqx.error_if(
-        w0, w0.t is None, "If `t0` is not specified, `w0.t` must supply it."
-    )
     w0 = eqx.error_if(  # TODO: remove when frames are handled
         w0,
         not isinstance(w0.frame, gc.frames.SimulationFrame),
@@ -776,15 +774,16 @@ def init(
 def init(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    w0: gc.AbstractOnePhaseSpacePosition,
+    w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition,
     t0: gt.BBtRealQuSz0,
     /,
     args: PyTree,
 ) -> SolveState:
     w0 = eqx.error_if(
         w0,
-        False if w0.t is None else jnp.logical_not(jnp.array_equal(w0.t, t0)),
-        "If `t0` is specified, `w0.t` must be `None` or `t0`.",
+        isinstance(w0, gc.PhaseSpaceCoordinate)
+        and jnp.logical_not(jnp.array_equal(w0.t, t0)),
+        "If `t0` is specified, `w0.t` == `t0`.",
     )
     w0 = eqx.error_if(  # TODO: remove when frames are handled
         w0,
@@ -802,7 +801,7 @@ def init(
 def init(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    w0s: gc.AbstractCompositePhaseSpacePosition,
+    w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     args: PyTree,
     /,
 ) -> dict[str, SolveState]:
@@ -1112,20 +1111,13 @@ def solve(
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    w0: gc.AbstractPhaseSpacePosition,  # TODO: handle frames
+    w0: gc.PhaseSpaceCoordinate,  # TODO: handle frames
     t1: gt.BBtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for PSP with time, end time."""
-    # Check that the initial conditions are valid.
-    w0 = eqx.error_if(
-        w0,
-        w0.t is None,
-        "If `t0` is not specified, `w0.t` must supply it.",
-    )
-
     w0 = eqx.error_if(  # TODO: remove when frames are handled
         w0,
         not isinstance(w0.frame, gc.frames.SimulationFrame),
@@ -1142,7 +1134,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    w0: gc.AbstractPhaseSpacePosition,  # TODO: handle frames
+    w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition,  # TODO: handle frames
     t0: gt.BBtRealQuSz0,
     t1: gt.BBtRealQuSz0,
     /,
@@ -1153,8 +1145,9 @@ def solve(
     # Check that the initial conditions are valid.
     w0 = eqx.error_if(
         w0,
-        False if w0.t is None else jnp.logical_not(jnp.array_equal(w0.t, t0)),
-        "If `t0` is specified, `w0.t` must be `None` or `t0`.",
+        isinstance(w0, gc.PhaseSpaceCoordinate)
+        and jnp.logical_not(jnp.array_equal(w0.t, t0)),
+        "If `t0` is specified, `w0.t` == `t0`.",
     )
     w0 = eqx.error_if(  # TODO: remove when frames are handled
         w0,
@@ -1171,17 +1164,15 @@ def solve(
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    w0s: gc.AbstractCompositePhaseSpacePosition,
-    t0: gt.BBtRealQuSz0,
+    w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     t1: gt.BBtRealQuSz0,
     /,
     args: Any = (),
     **solver_kw: Any,
 ) -> dict[str, dfx.Solution]:
-    """Solve for CompositePhaseSpacePosition, start, end time."""
+    """Solve for AbstractCompositePhaseSpaceCoordinate, start, end time."""
     return {
-        k: self.solve(field, w0, t0, t1, args=args, **solver_kw)
-        for k, w0 in w0s.items()
+        k: self.solve(field, w0, t1, args=args, **solver_kw) for k, w0 in w0s.items()
     }
 
 

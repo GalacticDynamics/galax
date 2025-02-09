@@ -67,7 +67,7 @@ def parse_to_quantity(
 
 @dispatch
 def parse_to_quantity(
-    x: gc.AbstractOnePhaseSpacePosition, /, **kw: Any
+    x: gc.AbstractPhaseSpaceObject | cx.vecs.FourVector, /, **kw: Any
 ) -> gt.BtRealQuSz3:
     return parse_to_quantity(x.q, **kw)
 

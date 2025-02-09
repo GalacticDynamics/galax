@@ -4,24 +4,9 @@ This is private API.
 
 """
 
-__all__ = [
-    "AbstractPhaseSpacePosition",
-    "AbstractOnePhaseSpacePosition",
-    "PhaseSpacePosition",
-    "AbstractCompositePhaseSpacePosition",
-    "CompositePhaseSpacePosition",
-    # Utils
-    "ComponentShapeTuple",
-    # Protocols
-    "PhaseSpacePositionInterpolant",
-]
+__all__ = ["PhaseSpacePosition", "ComponentShapeTuple"]
 
-from .base import AbstractPhaseSpacePosition, ComponentShapeTuple
-from .base_composite import AbstractCompositePhaseSpacePosition
-from .base_psp import AbstractOnePhaseSpacePosition
-from .core import PhaseSpacePosition
-from .core_composite import CompositePhaseSpacePosition
-from .interp import PhaseSpacePositionInterpolant
+from .core import ComponentShapeTuple, PhaseSpacePosition
 
 # Register by import
 # isort: split

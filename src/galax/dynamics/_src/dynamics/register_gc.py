@@ -17,15 +17,15 @@ from unxt.quantity import BareQuantity as FastQ
 import galax.coordinates as gc
 
 
-@gc.AbstractOnePhaseSpacePosition.from_.dispatch  # type: ignore[misc,attr-defined]
+@gc.PhaseSpaceCoordinate.from_.dispatch  # type: ignore[misc,attr-defined]
 def from_(
-    cls: type[gc.AbstractOnePhaseSpacePosition],
+    cls: type[gc.PhaseSpaceCoordinate],
     soln: dfx.Solution,
     *,
     frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
     units: u.AbstractUnitSystem,  # not dispatched on, but required
     unbatch_time: bool = False,
-) -> gc.AbstractOnePhaseSpacePosition:
+) -> gc.PhaseSpaceCoordinate:
     """Convert a solution to a phase-space position.
 
     Examples
@@ -39,16 +39,16 @@ def from_(
     ...    r_s=u.Quantity(5, "kpc"), units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
     >>> solver = gd.DynamicsSolver()  # defaults to Dopri8
-    >>> w0 = gc.PhaseSpacePosition(
+    >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
     ...     p=u.Quantity([0, 220, 0], "km/s"),
     ...     t=u.Quantity(0, "Gyr"))
     >>> t1 = u.Quantity(1, "Gyr")
     >>> soln = solver.solve(field, w0, t1)
 
-    >>> w = gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame)
+    >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
-    PhaseSpacePosition(
+    PhaseSpaceCoordinate(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
             [[[-5.151 -6.454 -5.795]]
              [[ 4.277  4.633  1.426]]]>,

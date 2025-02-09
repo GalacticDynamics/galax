@@ -56,8 +56,8 @@ def specific_angular_momentum(
 
 
 @dispatch
-@partial(jax.jit, inline=True)
-def specific_angular_momentum(w: cx.Space) -> gt.BtQuSz3:
+@partial(jax.jit)
+def specific_angular_momentum(w: cx.Space, /) -> gt.BtQuSz3:
     """Compute the specific angular momentum."""
     # TODO: keep as a vector.
     #       https://github.com/GalacticDynamics/vector/issues/27
@@ -65,15 +65,18 @@ def specific_angular_momentum(w: cx.Space) -> gt.BtQuSz3:
 
 
 @dispatch
+@partial(jax.jit)
+def specific_angular_momentum(w: cx.frames.AbstractCoordinate, /) -> gt.BtQuSz3:
+    """Compute the specific angular momentum."""
+    # TODO: keep as a vector.
+    #       https://github.com/GalacticDynamics/vector/issues/27
+    return api.specific_angular_momentum(w.data)
+
+
+@dispatch
 @partial(jax.jit, inline=True)
-def specific_angular_momentum(w: gc.AbstractPhaseSpacePosition) -> gt.BtQuSz3:
-    r"""Compute the specific angular momentum.
-
-    .. math::
-
-        \boldsymbol{{L}} = \boldsymbol{{q}} \times \boldsymbol{{p}}
-
-    """
+def specific_angular_momentum(w: gc.AbstractPhaseSpaceObject) -> gt.BtQuSz3:
+    r"""Compute the specific angular momentum."""
     return api.specific_angular_momentum(w.q, w.p)
 
 

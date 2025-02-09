@@ -78,7 +78,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     equations of motion:
 
     >>> solver = gd.DynamicsSolver()  # defaults to Dopri8
-    >>> w0 = gc.PhaseSpacePosition(
+    >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
     ...     p=u.Quantity([0, 220, 0], "km/s"),
     ...     t=u.Quantity(0, "Gyr"))
@@ -89,9 +89,9 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
               ys=(f64[1,2,3], f64[1,2,3]),
               ... )
 
-    >>> w = gc.PhaseSpacePosition.from_(soln, frame=w0.frame, units=pot.units)
+    >>> w = gc.PhaseSpaceCoordinate.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(w)
-    PhaseSpacePosition(
+    PhaseSpaceCoordinate(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
             [[[-5.151 -6.454 -5.795]]
              [[ 4.277  4.633  1.426]]]>,
@@ -128,11 +128,11 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
 
         HamiltonianField can be called using many different combinations of
         arguments. For example, it can be called with a
-        `galax.coordinates.PhaseSpacePosition`:
+        `galax.coordinates.PhaseSpaceCoordinate`:
 
-        >>> w = gc.PhaseSpacePosition(t=u.Quantity(0, "Gyr"),
-        ...                           q=u.Quantity([8., 0, 0], "kpc"),
-        ...                           p=u.Quantity([0, 220, 0], "km/s"))
+        >>> w = gc.PhaseSpaceCoordinate(t=u.Quantity(0, "Gyr"),
+        ...                             q=u.Quantity([8., 0, 0], "kpc"),
+        ...                             p=u.Quantity([0, 220, 0], "km/s"))
 
         >>> field(w)
         (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
@@ -269,15 +269,15 @@ def terms(
     For completeness we'll integrate the EoM.
 
     >>> dynamics_solver = gd.DynamicsSolver(solver)
-    >>> w0 = gc.PhaseSpacePosition(
+    >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0, 0], "kpc"),
     ...     p=u.Quantity([0, 220, 0], "km/s"),
     ...     t=u.Quantity(0, "Gyr"))
     >>> t1 = u.Quantity(200, "Myr")
 
     >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
-    >>> print(gc.PhaseSpacePosition.from_(soln, units=pot.units, frame=w0.frame))
-    PhaseSpacePosition(
+    >>> print(gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame))
+    PhaseSpaceCoordinate(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
             [[ 7.645 -0.701  0.   ]]>,
         p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])

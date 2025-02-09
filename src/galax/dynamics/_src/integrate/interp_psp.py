@@ -1,6 +1,6 @@
 """galax: Galactic Dynamics in Jax."""
 
-__all__ = ["InterpolatedPhaseSpacePosition"]
+__all__ = ["InterpolatedPhaseSpaceCoordinate"]
 
 from dataclasses import KW_ONLY
 from typing import final
@@ -14,11 +14,12 @@ import unxt as u
 import galax.coordinates as gc
 import galax.typing as gt
 from galax.coordinates._src.frames import SimulationFrame
+from galax.coordinates._src.pscs.base import ComponentShapeTuple
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
 @final
-class InterpolatedPhaseSpacePosition(gc.AbstractOnePhaseSpacePosition):
+class InterpolatedPhaseSpaceCoordinate(gc.AbstractBasicPhaseSpaceCoordinate):
     """Interpolated phase-space position."""
 
     q: cx.vecs.AbstractPos3D = eqx.field(converter=cx.vector)
@@ -41,7 +42,7 @@ class InterpolatedPhaseSpacePosition(gc.AbstractOnePhaseSpacePosition):
     as `q` and `p`.
     """
 
-    interpolant: gc.PhaseSpacePositionInterpolant
+    interpolant: gc.PhaseSpaceObjectInterpolant
     """The interpolation function."""
 
     _: KW_ONLY
@@ -49,7 +50,7 @@ class InterpolatedPhaseSpacePosition(gc.AbstractOnePhaseSpacePosition):
     frame: SimulationFrame  # TODO: support frames
     """The reference frame of the phase-space position."""
 
-    def __call__(self, t: gt.BtFloatQuSz0) -> gc.PhaseSpacePosition:
+    def __call__(self, t: gt.BtFloatQuSz0) -> gc.PhaseSpaceCoordinate:
         """Call the interpolation."""
         return self.interpolant(t)
 
@@ -57,10 +58,10 @@ class InterpolatedPhaseSpacePosition(gc.AbstractOnePhaseSpacePosition):
     # Array properties
 
     @property
-    def _shape_tuple(self) -> tuple[gt.Shape, gc.ComponentShapeTuple]:
+    def _shape_tuple(self) -> tuple[gt.Shape, ComponentShapeTuple]:
         """Batch, component shape."""
         qbatch, qshape = vector_batched_shape(self.q)
         pbatch, pshape = vector_batched_shape(self.p)
         tbatch, _ = batched_shape(self.t, expect_ndim=0)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
-        return batch_shape, gc.ComponentShapeTuple(q=qshape, p=pshape, t=1)
+        return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)

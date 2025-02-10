@@ -1,8 +1,12 @@
-"""Cluster functions."""
+"""Functions related to computing cluster radii.
+
+This is public API.
+
+"""
 
 __all__ = [
     "tidal_radius",
-    "AbstractRadiusMethod",
+    "AbstractTidalRadiusMethod",
     # specific methods
     "Hoerner1957",
     "tidal_radius_hoerner1957",
@@ -27,99 +31,31 @@ import galax.potential as gp
 import galax.typing as gt
 from galax.dynamics._src.api import omega
 
-#####################################################################
-# tidal radius
 
-
-@dispatch.abstract
-def tidal_radius(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
-    """Compute the tidal radius of a cluster in the potential.
-
-    Examples
-    --------
-    >>> import quaxed.numpy as jnp
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.NFWPotential(m=1e12, r_s=20.0, units="galactic")
-
-    >>> x = u.Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc")
-    >>> v = u.Quantity(jnp.asarray([8.0, 0.0, 0.0]), "kpc/Myr")
-    >>> t = u.Quantity(0, "Myr")
-    >>> mass = u.Quantity(1e4, "Msun")
-
-    >>> gd.cluster.tidal_radius(pot, x, v, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
-
-    >>> q = cx.CartesianPos3D.from_(x)
-    >>> p = cx.CartesianVel3D.from_(v)
-    >>> gd.cluster.tidal_radius(pot, q, p, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
-
-    >>> space = cx.Space(length=q, speed=p)
-    >>> gd.cluster.tidal_radius(pot, space, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
-
-    >>> coord = cx.Coordinate(space, frame=gc.frames.SimulationFrame())
-    >>> gd.cluster.tidal_radius(pot, coord, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
-
-    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
-    >>> gd.cluster.tidal_radius(pot, w, mass=mass)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
-
-    Now with different methods:
-
-    >>> import galax.dynamics.cluster as gdc
-
-    The default is King (1962):
-
-    >>> gd.cluster.tidal_radius(gdc.radius.King1962, pot, x, v, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
-
-    Also available is von Hoerner (1957):
-
-    >>> gd.cluster.tidal_radius(gdc.radius.Hoerner1957, pot, x, mass=mass, t=t)
-    Quantity[...](Array([136.40324281], dtype=float64), unit='')
-
-    And King (1962) with a point mass:
-
-    >>> rperi = jnp.linalg.vector_norm(x, axis=-1)
-    >>> gd.cluster.tidal_radius(gdc.radius.King1962PointMass, pot,
-    ...                         rperi=rperi, mass=mass, t=t, e=0.5)
-    Quantity[...](Array([113.19103012], dtype=float64), unit='')
-
-    >>> gd.cluster.tidal_radius(gdc.radius.King1962PointMass, pot,
-    ...                         rperi=q, mass=mass, t=t, e=0.5)
-    Quantity[...](Array([113.19103012], dtype=float64), unit='')
-
-    """
-    raise NotImplementedError  # pragma: no cover
-
-
-class AbstractRadiusMethod:
+class AbstractTidalRadiusMethod:
     """Abstract base class for tidal radius flags.
 
     Examples
     --------
     >>> import galax.dynamics.cluster as gdc
 
-    >>> try: gdc.radius.AbstractRadiusMethod()
+    >>> try: gdc.radius.AbstractTidalRadiusMethod()
     ... except TypeError as e: print(e)
-    Cannot instantiate AbstractRadiusMethod
+    Cannot instantiate AbstractTidalRadiusMethod
 
     """
 
     def __new__(cls) -> NoReturn:
-        msg = "Cannot instantiate AbstractRadiusMethod"
+        msg = "Cannot instantiate AbstractTidalRadiusMethod"
         raise TypeError(msg)
 
 
 @dispatch
-def tidal_radius(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
+def tidal_radius(
+    pot: gp.AbstractPotential, *args: Any, **kwargs: Any
+) -> gt.BBtRealQuSz0:
     """Compute radius, defaulting to King (1962) tidal radius."""
-    return tidal_radius(King1962, *args, **kwargs)
+    return tidal_radius_king1962(pot, *args, **kwargs)
 
 
 #####################################################################
@@ -127,14 +63,16 @@ def tidal_radius(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
 
 
 @final
-class Hoerner1957(AbstractRadiusMethod):
+class Hoerner1957(AbstractTidalRadiusMethod):
     pass
 
 
 @dispatch
-def tidal_radius(_: type[Hoerner1957], /, *args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
+def tidal_radius(
+    _: type[Hoerner1957], pot: gp.AbstractPotential, *args: Any, **kw: Any
+) -> gt.BBtRealQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
-    return tidal_radius_hoerner1957(*args, **kwargs)
+    return tidal_radius_hoerner1957(pot, *args, **kw)
 
 
 # ---------------------------
@@ -180,16 +118,20 @@ def tidal_radius_hoerner1957(
 
 
 @final
-class King1962PointMass(AbstractRadiusMethod):
-    pass
+class King1962PointMass(AbstractTidalRadiusMethod):
+    r"""Tidal radius from King (1962) with a point mass.
+
+    $$ r_t = R \\left(\frac{M_c}{(3+e)M_g}\right)^{1/3} $$
+
+    """
 
 
 @dispatch
 def tidal_radius(
-    _: type[King1962PointMass], /, *args: Any, **kwargs: Any
+    _: type[King1962PointMass], pot: gp.AbstractPotential, **kw: Any
 ) -> gt.BBtRealQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
-    return tidal_radius_king1962_pointmass(*args, **kwargs)
+    return tidal_radius_king1962_pointmass(pot, **kw)
 
 
 # ---------------------------
@@ -233,7 +175,7 @@ def tidal_radius_king1962_pointmass(
 
 
 @final
-class King1962(AbstractRadiusMethod):
+class King1962(AbstractTidalRadiusMethod):
     r"""Calculate the tidal radius of a star cluster based on King (1962).
 
     $$ r_t^3 = \frac{G M_c}{\Omega^2 - \frac{d^2\Phi}{dr^2}}
@@ -242,9 +184,11 @@ class King1962(AbstractRadiusMethod):
 
 
 @dispatch
-def tidal_radius(_: type[King1962], /, *args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
+def tidal_radius(
+    _: type[King1962], pot: gp.AbstractPotential, *args: Any, **kw: Any
+) -> gt.BBtRealQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
-    return tidal_radius_king1962(*args, **kwargs)
+    return tidal_radius_king1962(pot, *args, **kw)
 
 
 # ---------------------------

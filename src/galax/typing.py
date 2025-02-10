@@ -22,7 +22,7 @@ __all__: list[str] = []
 from typing import TypeAlias
 
 import astropy.units as apyu
-from jaxtyping import Array, Float, Int, Real, Scalar, Shaped
+from jaxtyping import Array, ArrayLike, Float, Int, Real, Scalar, Shaped
 
 import unxt as u
 from unxt.quantity import AbstractQuantity
@@ -32,6 +32,13 @@ from unxt.quantity import AbstractQuantity
 Shape: TypeAlias = tuple[int, ...]
 Dimension: TypeAlias = apyu.PhysicalType
 Unit: TypeAlias = apyu.Unit | apyu.UnitBase | apyu.CompositeUnit
+
+
+# =============================================================================
+# TODO: sort
+
+RealScalarLike: TypeAlias = Real[ArrayLike, ""]
+
 
 # =============================================================================
 # Vectors

@@ -187,6 +187,6 @@ class AbstractPhaseSpaceObject_Test(Generic[CT], metaclass=ABCMeta):
 
     def test_angular_momentum(self, w: CT) -> None:
         """Test method ``angular_momentum``."""
-        am = w.angular_momentum()
-        assert am.shape == (*w.q.shape, len(w.q.components))
-        # TODO: more tests
+        h = w.angular_momentum()
+        assert h.shape == w.q.shape
+        assert isinstance(h, cx.vecs.CartesianGeneric3D)

@@ -15,6 +15,7 @@ from plum import convert, dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import BareQuantity
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -27,18 +28,9 @@ from . import api
 @dispatch
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
-    x: gt.LengthBtSz3, v: gt.SpeedBtSz3, /
-) -> Shaped[u.Quantity["angular momentum"], "*batch 3"]:
-    """Compute the specific angular momentum.
-
-    Arguments:
-    ---------
-    x: Quantity[Any, (3,), "length"]
-        3d Cartesian position (x, y, z).
-    v: Quantity[Any, (3,), "speed"]
-        3d Cartesian velocity (v_x, v_y, v_z).
-
-    """
+    x: gt.BBtRealQuSz3, v: gt.BBtRealQuSz3, /
+) -> gt.BBtRealQuSz3:
+    """Compute from `unxt.Quantity`s as Cartesian coordinates."""
     return jnp.linalg.cross(x, v)
 
 
@@ -46,37 +38,36 @@ def specific_angular_momentum(
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
     x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /
-) -> gt.BtQuSz3:
-    """Compute the specific angular momentum."""
-    # TODO: keep as a vector.
-    #       https://github.com/GalacticDynamics/vector/issues/27
-    x = convert(x.vconvert(cx.CartesianPos3D), u.Quantity)
-    v = convert(v.vconvert(cx.CartesianVel3D, x), u.Quantity)
-    return api.specific_angular_momentum(x, v)
+) -> cx.vecs.CartesianGeneric3D:
+    """Compute from `coordinax.vecs.AbstractVector`s."""
+    v = convert(cx.vconvert(cx.CartesianVel3D, v, x), BareQuantity)
+    x = convert(cx.vconvert(cx.CartesianPos3D, x), BareQuantity)
+    h = api.specific_angular_momentum(x, v)
+    return cx.vecs.CartesianGeneric3D(x=h[..., 0], y=h[..., 1], z=h[..., 2])
 
 
 @dispatch
 @partial(jax.jit)
-def specific_angular_momentum(w: cx.Space, /) -> gt.BtQuSz3:
-    """Compute the specific angular momentum."""
-    # TODO: keep as a vector.
-    #       https://github.com/GalacticDynamics/vector/issues/27
+def specific_angular_momentum(w: cx.Space, /) -> cx.vecs.CartesianGeneric3D:
+    """Compute from `coordinax.Space`."""
     return api.specific_angular_momentum(w["length"], w["speed"])
 
 
 @dispatch
 @partial(jax.jit)
-def specific_angular_momentum(w: cx.frames.AbstractCoordinate, /) -> gt.BtQuSz3:
-    """Compute the specific angular momentum."""
-    # TODO: keep as a vector.
-    #       https://github.com/GalacticDynamics/vector/issues/27
+def specific_angular_momentum(
+    w: cx.frames.AbstractCoordinate, /
+) -> cx.vecs.CartesianGeneric3D:
+    """Compute from `coordinax.frames.AbstractCoordinate`."""
     return api.specific_angular_momentum(w.data)
 
 
 @dispatch
 @partial(jax.jit, inline=True)
-def specific_angular_momentum(w: gc.AbstractPhaseSpaceObject) -> gt.BtQuSz3:
-    r"""Compute the specific angular momentum."""
+def specific_angular_momentum(
+    w: gc.AbstractPhaseSpaceObject, /
+) -> cx.vecs.CartesianGeneric3D:
+    """Compute from `galax.coordinates.AbstractPhaseSpaceObject`."""
     return api.specific_angular_momentum(w.q, w.p)
 
 

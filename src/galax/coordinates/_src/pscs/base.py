@@ -266,7 +266,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         return self.kinetic_energy() + self.potential_energy(potential)
 
     @partial(jax.jit, inline=True)
-    def angular_momentum(self) -> gt.BtQuSz3:
+    def angular_momentum(self) -> cx.vecs.CartesianGeneric3D:
         r"""Compute the angular momentum.
 
         .. math::
@@ -294,8 +294,11 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         >>> p = u.Quantity([0, 2., 0], "au/yr")
         >>> t = u.Quantity(0, "yr")
         >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
-        >>> w.angular_momentum()
-        Quantity[...](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
+        >>> h = w.angular_momentum()
+        >>> print(h)
+        <CartesianGeneric3D (x[AU2 / yr], y[AU2 / yr], z[AU2 / yr])
+            [0. 0. 2.]>
+
         """
         from galax.dynamics import specific_angular_momentum
 

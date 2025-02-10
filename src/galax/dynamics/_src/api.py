@@ -18,10 +18,18 @@ import galax.typing as gt
 
 
 @dispatch.abstract
-def specific_angular_momentum(
-    *args: Any, **kwargs: Any
-) -> Shaped[u.Quantity["angular momentum"], "*batch 3"]:
-    """Compute the specific angular momentum.
+def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
+    r"""Compute the specific angular momentum.
+
+    The specific angular momentum $\mathbf{j}$ is given by:
+
+    ..math::
+
+        \mathbf{h} = \mathbf{r} \times \mathbf{v}
+
+
+    where $\mathbf{r}$ is the position vector and $\mathbf{v}$ is the velocity
+    vector.
 
     Examples
     --------
@@ -37,29 +45,33 @@ def specific_angular_momentum(
 
     >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "m")
     >>> v = cx.CartesianVel3D.from_([0.0, 8.0, 0.0], "m/s")
-    >>> gd.specific_angular_momentum(x, v)
-    Quantity[...](Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
+    >>> h = gd.specific_angular_momentum(x, v)
+    >>> print(h)
+    <CartesianGeneric3D (x[m2 / s], y[m2 / s], z[m2 / s])
+        [ 0.  0. 64.]>
 
     >>> space = cx.Space(length=cx.CartesianPos3D.from_([[[7., 0, 0], [8, 0, 0]]], "m"),
     ...                  speed=cx.CartesianVel3D.from_([[[0., 5, 0], [0, 6, 0]]], "m/s"))
-    >>> gd.specific_angular_momentum(space)
-    Quantity[...](Array([[[ 0., 0., 35.], [ 0., 0., 48.]]], dtype=float64), unit='m2 / s')
+    >>> h = gd.specific_angular_momentum(space)
+    >>> print(h)
+    <CartesianGeneric3D (x[m2 / s], y[m2 / s], z[m2 / s])
+        [[[ 0.  0. 35.]
+          [ 0.  0. 48.]]]>
 
     >>> w = cx.frames.Coordinate(space, frame=gc.frames.SimulationFrame())
-    >>> w
-    Coordinate(
-        data=Space({
-            'length': CartesianPos3D( ... ),
-            'speed': CartesianVel3D( ... )
-        }),
-        frame=SimulationFrame()
-    )
+    >>> h = gd.specific_angular_momentum(w)
+    >>> print(h)
+    <CartesianGeneric3D (x[m2 / s], y[m2 / s], z[m2 / s])
+        [[[ 0.  0. 35.]
+          [ 0.  0. 48.]]]>
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1., 0, 0], "au"),
     ...                             p=u.Quantity([0, 2., 0], "au/yr"),
     ...                             t=u.Quantity(0, "yr"))
-    >>> gd.specific_angular_momentum(w)
-    Quantity[...](Array([0., 0., 2.], dtype=float64), unit='AU2 / yr')
+    >>> h = gd.specific_angular_momentum(w)
+    >>> print(h)
+    <CartesianGeneric3D (x[AU2 / yr], y[AU2 / yr], z[AU2 / yr])
+        [0. 0. 2.]>
 
     """  # noqa: E501
     raise NotImplementedError  # pragma: no cover
@@ -69,8 +81,8 @@ def specific_angular_momentum(
 # Omega
 
 
-@dispatch
-@partial(jax.jit, inline=True)
+@dispatch.abstract
+@partial(jax.jit)
 def omega(
     x: gt.LengthBtSz3, v: gt.SpeedBtSz3, /
 ) -> Shaped[u.Quantity["frequency"], "*batch"]:

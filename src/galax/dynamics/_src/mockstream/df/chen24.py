@@ -82,7 +82,7 @@ class ChenStreamDF(AbstractStreamDF):
         phi_vec = v - jnp.sum(v * x_new_hat, axis=-1, keepdims=True) * x_new_hat
         y_new_hat = cx.vecs.normalize_vector(phi_vec)
 
-        r_tidal = tidal_radius(potential, x, v, prog_mass, t)
+        r_tidal = tidal_radius(potential, x, v, mass=prog_mass, t=t)
 
         # Bill Chen: method="cholesky" doesn't work here!
         posvel = jr.multivariate_normal(

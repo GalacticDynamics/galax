@@ -5,14 +5,9 @@ __all__ = [
     "omega",
 ]
 
-from functools import partial
 from typing import Any
 
-import jax
-from jaxtyping import Shaped
 from plum import dispatch
-
-import unxt as u
 
 import galax.typing as gt
 
@@ -82,10 +77,7 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
 
 
 @dispatch.abstract
-@partial(jax.jit)
-def omega(
-    x: gt.LengthBtSz3, v: gt.SpeedBtSz3, /
-) -> Shaped[u.Quantity["frequency"], "*batch"]:
+def omega(x: Any, v: Any, /) -> gt.BBtRealQuSz0:
     """Compute the orbital angular frequency about the origin.
 
     Examples
@@ -101,7 +93,19 @@ def omega(
     >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "m")
     >>> v = cx.CartesianVel3D.from_([0.0, 8.0, 0.0], "m/s")
     >>> omega(x, v)
-    Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
+    BareQuantity(Array(1., dtype=float64), unit='1 / s')
+
+    >>> space = cx.Space(length=x, speed=v)
+    >>> omega(space)
+    BareQuantity(Array(1., dtype=float64), unit='1 / s')
+
+    >>> w = cx.frames.Coordinate(space, frame=gc.frames.SimulationFrame())
+    >>> omega(w)
+    BareQuantity(Array(1., dtype=float64), unit='1 / s')
+
+    >>> w = gc.PhaseSpaceCoordinate(q=x, p=v, t=u.Quantity(0, "yr"))
+    >>> omega(w)
+    BareQuantity(Array(1., dtype=float64), unit='1 / s')
 
     """
     raise NotImplementedError  # pragma: no cover

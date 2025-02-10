@@ -64,7 +64,7 @@ class FardalStreamDF(AbstractStreamDF):
         # r-hat
         r_hat = cx.vecs.normalize_vector(x)
 
-        r_tidal = tidal_radius(potential, x, v, prog_mass, t)[..., None]
+        r_tidal = tidal_radius(potential, x, v, mass=prog_mass, t=t)[..., None]
         v_circ = om * r_tidal  # relative velocity
 
         # z-hat

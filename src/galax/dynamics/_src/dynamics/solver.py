@@ -1183,28 +1183,3 @@ def solve(
 
 
 # ===================================================================
-
-
-@AbstractDynamicsField.terms.dispatch  # type: ignore[misc]
-def terms(
-    self: AbstractDynamicsField, wrapper: DynamicsSolver, /
-) -> PyTree[dfx.AbstractTerm]:
-    """Return diffeq terms, redispatching to the solver.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.DynamicsSolver(dfx.Dopri8())
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> field.terms(solver)
-    ODETerm(vector_field=<wrapped function __call__>)
-
-    """
-    return self.terms(wrapper.diffeqsolver)

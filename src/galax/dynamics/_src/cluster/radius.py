@@ -180,7 +180,11 @@ def tidal_radius_king1962_pointmass(
 class King1962(AbstractTidalRadiusMethod):
     r"""Calculate the tidal radius of a star cluster based on King (1962).
 
-    $$ r_t^3 = \frac{G M_c}{\Omega^2 - \frac{d^2\Phi}{dr^2}}
+    $$ r_t^3 = \frac{G M_c}{\Omega^2 - \frac{d^2\Phi}{dr^2}} $$
+
+    where $G$ is the gravitational constant, $M_c$ is the cluster mass, $\Omega$
+    is the cluster's angular velocity, and $\frac{d^2\Phi}{dr^2}$ is the second
+    derivative of the potential at the cluster's position.
 
     """
 

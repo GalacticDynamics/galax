@@ -3,16 +3,14 @@
 __all__ = ["MassBelowThreshold"]
 
 from functools import partial
-from typing import Any, TypeAlias
+from typing import Any
 
 import equinox as eqx
 from jaxtyping import Array
-from plum import dispatch
 
 import unxt as u
-from unxt.quantity import AbstractQuantity
 
-Args: TypeAlias = dict[str, Any]
+from galax.dynamics._src.compat import AllowValue
 
 
 class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
@@ -40,17 +38,24 @@ class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
     >>> cond_fn(0.0, u.Quantity(0.0, "Msun"), args)
     Array(0., dtype=float64, weak_type=True)
 
-    TODO: example using it as a with `diffrax.Event`.
-
     """
 
     #: Threshold mass at which to stop integration.
-    threshold: AbstractQuantity
+    threshold: u.AbstractQuantity
+
+    def __check_init__(self) -> None:
+        if u.dimension_of(self.threshold.unit) != u.dimension("mass"):
+            msg = f"Threshold must have mass units, not {self.threshold.unit}"
+            raise ValueError(msg)
 
     @partial(eqx.filter_jit)
     def __call__(
-        self: "MassBelowThreshold", t: Any, y: Any, args: Args, **kw: Any
-    ) -> Any:
+        self: "MassBelowThreshold",
+        t: Any,  # noqa: ARG002
+        y: Array | u.AbstractQuantity,
+        args: dict[str, Any],
+        **__: Any,
+    ) -> Array:
         """Evaluate the event condition.
 
         Parameters
@@ -82,28 +87,5 @@ class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
         Array([1000000. , 56101.91157639, inf, inf, ...], dtype=float64)
 
         """
-        return self.evaluate(t, y, args=args, **kw)
-
-    @dispatch.abstract
-    def evaluate(
-        self: "MassBelowThreshold", t: Any, y: Any, /, *, args: Args, **kw: Any
-    ) -> Any:
-        """Evaluate the event condition."""
-        raise NotImplementedError  # pragma: no cover
-
-
-# ============================================================
-
-
-@MassBelowThreshold.evaluate.dispatch
-def evaluate(
-    self: MassBelowThreshold, _: Any, y: Array, /, *, args: Args, **__: Any
-) -> Array:
-    return y - self.threshold.ustrip(args["units"])
-
-
-@MassBelowThreshold.evaluate.dispatch
-def evaluate(
-    self: MassBelowThreshold, _: Any, y: AbstractQuantity, /, *, args: Args, **__: Any
-) -> Array:
-    return u.ustrip(args["units"], y - self.threshold)
+        mu = args["units"]["mass"]
+        return u.ustrip(AllowValue, mu, y) - self.threshold.ustrip(mu)

@@ -64,7 +64,7 @@ class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
         # Evaluate the interpolation
         ys = self.interp.evaluate(tval)
         # Reshape (T, *batch) to (*batch, T)
-        if ts.ndim != 0:
+        if jnp.ndim(ts) != 0:
             ys = jax.tree.map(lambda x: jnp.moveaxis(x, 0, -2), ys)
 
         q = FastQ(ys[0], usys["length"])

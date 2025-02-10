@@ -51,13 +51,13 @@ class AbstractRelaxationTimeMethod:
 def relaxation_time(
     M: u.AbstractQuantity,
     r_hm: u.AbstractQuantity,
-    nstars: gt.RealScalarLike,
+    m_avg: u.AbstractQuantity,
     /,
     *,
     G: u.AbstractQuantity,
 ) -> u.AbstractQuantity:
     """Compute relaxation time, defaulting to Baumgardt (1998) formula."""
-    return relaxation_time_baumgardt1998(M, r_hm, nstars, G=G)
+    return relaxation_time_baumgardt1998(M, r_hm, m_avg, G=G)
 
 
 ######################################################################
@@ -79,13 +79,13 @@ def relaxation_time(
     _: type[Baumgardt1998],
     M: u.AbstractQuantity,
     r_hm: u.AbstractQuantity,
-    nstars: gt.RealScalarLike,
+    m_avg: u.AbstractQuantity,
     /,
     *,
     G: u.AbstractQuantity,
 ) -> u.AbstractQuantity:
     """Compute relaxation time using Baumgardt (1998) formula."""
-    return relaxation_time_baumgardt1998(M, r_hm, nstars, G=G)
+    return relaxation_time_baumgardt1998(M, r_hm, m_avg, G=G)
 
 
 # ---------------------------
@@ -95,7 +95,7 @@ def relaxation_time(
 def relaxation_time_baumgardt1998(
     M: Antd[u.AbstractQuantity, Doc("mass of the cluster")],
     r_hm: Antd[u.AbstractQuantity, Doc("half-mass radius of the cluster")],
-    nstars: Antd[gt.RealScalarLike, Doc("number of cluster stars")],
+    m_avg: Antd[u.AbstractQuantity, Doc("average stellar mass")],
     /,
     G: Antd[u.AbstractQuantity, Doc("gravitational constant")],
 ) -> u.AbstractQuantity:
@@ -103,13 +103,17 @@ def relaxation_time_baumgardt1998(
 
     Baumgardt 1998 Equation 1.
 
-    .. math::
-
+    $$
         t_r = \frac{0.138 \sqrt{M_c} r_{hm}^{3/2}}{\sqrt{G} m_{avg} \ln(0.4 N)}
+    $$
+
+    where $N$ is the number of stars in the cluster, $M_c$ is the mass of the
+    cluster, $r_{hm}$ is the half-mass radius of the cluster, $m_{avg}$ is the
+    average stellar mass, and $G$ is the gravitational constant.
 
     """
-    m_avg = M / nstars
-    return 0.138 * jnp.sqrt(M * r_hm**3 / G / m_avg**2) / jnp.log(0.4 * nstars)
+    N = M / m_avg
+    return 0.138 * jnp.sqrt(M * r_hm**3 / G / m_avg**2) / jnp.log(0.4 * N)
 
 
 ######################################################################
@@ -139,16 +143,14 @@ def relaxation_time(
     _: type[Spitzer1987HalfMass],
     M: u.AbstractQuantity,
     r_hm: u.AbstractQuantity,
-    nstars: gt.RealScalarLike,
+    m_avg: u.AbstractQuantity,
     /,
     *,
     G: u.AbstractQuantity,
     lnLambda: gt.RealScalarLike,
 ) -> u.AbstractQuantity:
     """Compute relaxation time using Spitzer (1987) formula."""
-    return half_mass_relaxation_time_spitzer1987(
-        M, r_hm, nstars, G=G, lnLambda=lnLambda
-    )
+    return half_mass_relaxation_time_spitzer1987(M, r_hm, m_avg, G=G, lnLambda=lnLambda)
 
 
 @dispatch
@@ -156,7 +158,7 @@ def relaxation_time(
     _: type[Spitzer1987Core],
     M_core: u.AbstractQuantity,
     r_core: u.AbstractQuantity,
-    nstars: gt.RealScalarLike,
+    m_avg: u.AbstractQuantity,
     /,
     *,
     G: u.AbstractQuantity,
@@ -164,7 +166,7 @@ def relaxation_time(
 ) -> u.AbstractQuantity:
     """Compute relaxation time using Spitzer (1987) formula."""
     return core_relaxation_time_spitzer1987(
-        M_core, r_core, nstars, G=G, lnLambda=lnLambda
+        M_core, r_core, m_avg, G=G, lnLambda=lnLambda
     )
 
 
@@ -174,19 +176,20 @@ def relaxation_time(
 def _relaxation_time_spitzer1987(
     M: u.AbstractQuantity,
     r: u.AbstractQuantity,
-    nstars: gt.RealScalarLike,
+    m_avg: u.AbstractQuantity,
     prefactor: float,
     lnLambda: gt.RealScalarLike,
     G: u.AbstractQuantity,
 ) -> u.AbstractQuantity:
-    return jnp.sqrt(r**3 / G / M) * prefactor * nstars / lnLambda
+    N = M / m_avg
+    return jnp.sqrt(r**3 / G / M) * prefactor * N / lnLambda
 
 
 @partial(jax.jit)
 def half_mass_relaxation_time_spitzer1987(
     M: Antd[u.AbstractQuantity, Doc("mass of the cluster")],
     r_hm: Antd[u.AbstractQuantity, Doc("half-mass radius of the cluster")],
-    nstars: Antd[gt.RealScalarLike, Doc("number of cluster stars")],
+    m_avg: Antd[u.AbstractQuantity, Doc("average stellar mass")],
     /,
     G: Antd[u.AbstractQuantity, Doc("gravitational constant")],
     lnLambda: Antd[gt.RealScalarLike, Doc("Coulomb logarithm")],
@@ -201,7 +204,7 @@ def half_mass_relaxation_time_spitzer1987(
 
     """
     return _relaxation_time_spitzer1987(
-        M, r_hm, nstars, prefactor=0.17, lnLambda=lnLambda, G=G
+        M, r_hm, m_avg, prefactor=0.17, lnLambda=lnLambda, G=G
     )
 
 
@@ -209,7 +212,7 @@ def half_mass_relaxation_time_spitzer1987(
 def core_relaxation_time_spitzer1987(
     Mc: Antd[u.AbstractQuantity, Doc("mass of the cluster")],
     r_c: Antd[u.AbstractQuantity, Doc("core radius of the cluster")],
-    nstars: Antd[gt.RealScalarLike, Doc("number of cluster stars")],
+    m_avg: Antd[u.AbstractQuantity, Doc("average stellar mass")],
     /,
     G: Antd[u.AbstractQuantity, Doc("gravitational constant")],
     lnLambda: Antd[gt.RealScalarLike, Doc("Coulomb logarithm")],
@@ -224,5 +227,5 @@ def core_relaxation_time_spitzer1987(
 
     """
     return _relaxation_time_spitzer1987(
-        Mc, r_c, nstars, prefactor=0.34, lnLambda=lnLambda, G=G
+        Mc, r_c, m_avg, prefactor=0.34, lnLambda=lnLambda, G=G
     )

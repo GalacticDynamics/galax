@@ -8,6 +8,8 @@ import jax
 from plum import dispatch
 
 import coordinax as cx
+import quaxed.numpy as jnp
+import unxt as u
 
 import galax.potential as gp
 import galax.typing as gt
@@ -65,3 +67,22 @@ def lagrange_points(
     l1 = x - r_hat * r_t  # close
     l2 = x + r_hat * r_t  # far
     return L1L2LagrangePoints(l1=l1, l2=l2)
+
+
+@dispatch
+@partial(jax.jit)
+def relaxation_time(
+    Mc: u.AbstractQuantity,
+    r_hm: u.AbstractQuantity,
+    m_avg: u.AbstractQuantity,
+    /,
+    *,
+    G: u.AbstractQuantity,
+) -> u.AbstractQuantity:
+    """Compute the cluster's relaxation time.
+
+    Baumgardt 1998 Equation 1.
+
+    """
+    N = Mc / m_avg
+    return 0.138 * jnp.sqrt(Mc * r_hm**3 / G / m_avg**2) / jnp.log(0.4 * N)

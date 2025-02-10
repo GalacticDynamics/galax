@@ -9,7 +9,7 @@ __all__ = [
     "MassVectorField",
     "AbstractMassField",
     "UserMassField",
-    "ConstantMassField",
+    "ConstantMass",
     # Events
     "MassBelowThreshold",
     # Functions
@@ -22,7 +22,7 @@ from .api import lagrange_points
 from .events import MassBelowThreshold
 from .fields import (
     AbstractMassField,
-    ConstantMassField,
+    ConstantMass,
     MassVectorField,
     UserMassField,
 )

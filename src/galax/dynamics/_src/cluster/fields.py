@@ -4,7 +4,7 @@ __all__ = [
     "MassVectorField",
     "AbstractMassField",
     "UserMassField",
-    "ConstantMassField",
+    "ConstantMass",
 ]
 
 from abc import abstractmethod
@@ -76,10 +76,10 @@ class AbstractMassField(AbstractField):
         >>> import diffrax as dfx
         >>> import galax.dynamics as gd
 
-        >>> field = gd.cluster.ConstantMassField()
+        >>> field = gd.cluster.ConstantMass()
         >>> field.terms(dfx.Dopri8())
         ODETerm(
-            vector_field=_JitWrapper( fn='ConstantMassField.__call__', ... ) )
+            vector_field=_JitWrapper( fn='ConstantMass.__call__', ... ) )
 
         """
         return dfx.ODETerm(eqx.filter_jit(self.__call__))
@@ -109,7 +109,7 @@ class UserMassField(AbstractMassField):
 #####################################################
 
 
-class ConstantMassField(AbstractMassField):
+class ConstantMass(AbstractMassField):
     """Constant mass field.
 
     This is a constant mass field.

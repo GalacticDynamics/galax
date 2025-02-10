@@ -5,12 +5,11 @@ from typing import final
 import diffrax as dfx
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 from jaxtyping import PyTree
 
 import coordinax as cx
 import diffraxtra as dfxtra
-import quaxed.numpy as xp
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity as FastQ
 
@@ -112,7 +111,7 @@ class Interpolant(dfxtra.AbstractVectorizedDenseInterpolation):  # type: ignore[
 
         # Reshape (T, *batch) to (*batch, T)
         if t0.ndim != 0:
-            ys = jax.tree.map(lambda x: xp.moveaxis(x, 0, -2), ys)
+            ys = jax.tree.map(lambda x: jnp.moveaxis(x, 0, -2), ys)
 
         # Construct and return the result
         return gc.PhaseSpaceCoordinate(
@@ -131,15 +130,16 @@ def from_(
     frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
     units: u.AbstractUnitSystem,  # not dispatched on, but required
     interpolant: Interpolant,  # not dispatched on, but required
-    unbatch_time: bool = True,
+    unbatch_time: bool = False,
 ) -> InterpolatedPhaseSpaceCoordinate:
     """Convert a solution to a phase-space position."""
-    # Reshape (T, *batch) to (*batch, T)
-    t = soln.ts  # already in the correct shape
-    q = jnp.moveaxis(soln.ys[0], 0, -2)
-    p = jnp.moveaxis(soln.ys[1], 0, -2)
+    # Reshape (*tbatch, T, *ybatch) to (*tbatch, *ybatch, T)
+    t = soln.ts  # already in the shape (*tbatch, T)
+    n_tbatch = soln.t0.ndim
+    q = jnp.moveaxis(soln.ys[0], n_tbatch, -2)
+    p = jnp.moveaxis(soln.ys[1], n_tbatch, -2)
 
-    # Reshape (*batch,T=1,6) to (*batch,6) if t is a scalar
+    # Reshape (*tbatch, *ybatch, T) to (*tbatch, *ybatch) if T == 1
     if unbatch_time and t.shape[-1] == 1:
         t = t[..., -1]
         q = q[..., -1, :]

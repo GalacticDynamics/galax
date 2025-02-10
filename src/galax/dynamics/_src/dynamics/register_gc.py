@@ -24,9 +24,9 @@ def from_(
     *,
     frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
     units: u.AbstractUnitSystem,  # not dispatched on, but required
-    unbatch_time: bool = False,
+    unbatch_time: bool = True,
 ) -> gc.PhaseSpaceCoordinate:
-    """Convert a solution to a phase-space position.
+    r"""Convert a solution to a phase-space position.
 
     Examples
     --------
@@ -45,18 +45,26 @@ def from_(
     ...     t=u.Quantity(0, "Gyr"))
     >>> t1 = u.Quantity(1, "Gyr")
     >>> soln = solver.solve(field, w0, t1)
+    >>> soln.ts.shape, soln.ys[0].shape
+    ((1,), (1, 2, 3))
 
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
-    >>> print(w)
+    >>> print(w, w.shape, sep='\n')
     PhaseSpaceCoordinate(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
-            [[[-5.151 -6.454 -5.795]]
-             [[ 4.277  4.633  1.426]]]>,
+            [[-5.151 -6.454 -5.795]
+             [ 4.277  4.633  1.426]]>,
         p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
-            [[[ 0.225 -0.068  0.253]]
-             [[-0.439 -0.002 -0.146]]]>,
-        t=Quantity['time'](Array([1000.], dtype=float64), unit='Myr'),
+            [[ 0.225 -0.068  0.253]
+             [-0.439 -0.002 -0.146]]>,
+        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
+    (2,)
+
+    >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame,
+    ...                                   unbatch_time=False)
+    >>> print(w.shape)  # (*batch, [time])
+    (2, 1)
 
     """
     # Reshape (T, *batch) to (*batch, T)

@@ -131,7 +131,7 @@ def from_(
     frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
     units: u.AbstractUnitSystem,  # not dispatched on, but required
     interpolant: Interpolant,  # not dispatched on, but required
-    unbatch_time: bool = False,
+    unbatch_time: bool = True,
 ) -> InterpolatedPhaseSpaceCoordinate:
     """Convert a solution to a phase-space position."""
     # Reshape (T, *batch) to (*batch, T)

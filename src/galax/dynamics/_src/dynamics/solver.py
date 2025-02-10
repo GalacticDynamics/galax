@@ -86,12 +86,12 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> print(w)
     PhaseSpaceCoordinate(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
-            [[[-5.151 -6.454 -5.795]]
-             [[ 4.277  4.633  1.426]]]>,
+            [[-5.151 -6.454 -5.795]
+             [ 4.277  4.633  1.426]]>,
         p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
-            [[[ 0.225 -0.068  0.253]]
-             [[-0.439 -0.002 -0.146]]]>,
-        t=Quantity['time'](Array([1000.], dtype=float64), unit='Myr'),
+            [[ 0.225 -0.068  0.253]
+             [-0.439 -0.002 -0.146]]>,
+        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
 
     The solver can be customized. Here are a few examples:

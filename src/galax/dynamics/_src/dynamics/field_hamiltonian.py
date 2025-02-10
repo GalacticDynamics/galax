@@ -90,16 +90,17 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
               ... )
 
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, frame=w0.frame, units=pot.units)
-    >>> print(w)
+    >>> print(w, w.shape, sep='\n')
     PhaseSpaceCoordinate(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
-            [[[-5.151 -6.454 -5.795]]
-             [[ 4.277  4.633  1.426]]]>,
+            [[-5.151 -6.454 -5.795]
+             [ 4.277  4.633  1.426]]>,
         p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
-            [[[ 0.225 -0.068  0.253]]
-             [[-0.439 -0.002 -0.146]]]>,
-        t=Quantity['time'](Array([1000.], dtype=float64), unit='Myr'),
+            [[ 0.225 -0.068  0.253]
+             [-0.439 -0.002 -0.146]]>,
+        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
+    (2,)
 
     """
 
@@ -248,7 +249,7 @@ def terms(
     _: dfx.SemiImplicitEuler,
     /,
 ) -> tuple[dfx.AbstractTerm, dfx.AbstractTerm]:
-    """Return the AbstractTerm terms for the SemiImplicitEuler solver.
+    r"""Return the AbstractTerm terms for the SemiImplicitEuler solver.
 
     Examples
     --------
@@ -276,13 +277,14 @@ def terms(
     >>> t1 = u.Quantity(200, "Myr")
 
     >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
-    >>> print(gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame))
+    >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
+    >>> print(w)
     PhaseSpaceCoordinate(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
-            [[ 7.645 -0.701  0.   ]]>,
+            [ 7.645 -0.701  0.   ]>,
         p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
-            [[0.228 0.215 0.   ]]>,
-        t=Quantity['time'](Array([200.], dtype=float64), unit='Myr'),
+            [0.228 0.215 0.   ]>,
+        t=Quantity['time'](Array(200., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
 
     """

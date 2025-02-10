@@ -447,3 +447,35 @@ def d2potential_dr2(
 ) -> Shaped[u.Quantity["frequency drift"], "*batch"]:
     """Compute when `t` is keyword-only."""
     return api.d2potential_dr2(pot, w, t)
+
+
+# =============================================================================
+# Enclosed mass
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, q: gt.BBtQuSz3, t: gt.RealQuSz0, /
+) -> gt.BBtRealQuSz0:
+    r"""Estimate the mass enclosed within the given positio.
+
+    This assumes the potential is spherical, which is often NOT correct.
+
+    $$ M(r) = \frac{r^2}{G} \left| \frac{d\Phi}{dr} \right| $$
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+
+    >>> pot = gp.MilkyWayPotential()
+    >>> q = u.Quantity([8.0, 0.0, 0.0], "kpc")
+    >>> t = u.Quantity(0.0, "Gyr")
+
+    >>> gp.spherical_mass_enclosed(pot, q, t).uconvert("Msun")
+    Quantity['mass'](Array([9.99105233e+10], dtype=float64), unit='solMass')
+
+    """
+    r2 = jnp.sum(jnp.square(q), axis=-1, keepdims=True)
+    dPhi_dr = api.dpotential_dr(pot, q, t=t)
+    return r2 * jnp.abs(dPhi_dr) / pot.constants["G"]

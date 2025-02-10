@@ -9,16 +9,15 @@ __all__ = [
     "acceleration",
     "tidal_tensor",
     "local_circular_velocity",
+    "spherical_mass_enclosed",
 ]
 
 from typing import Any
 
-from jaxtyping import Shaped
 from plum import dispatch
 
 import coordinax as cx
 import unxt as u
-from unxt.quantity import AbstractQuantity
 
 import galax.typing as gt
 
@@ -986,7 +985,7 @@ def local_circular_velocity(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
 
 
 @dispatch.abstract
-def dpotential_dr(*args: Any, **kwargs: Any) -> Shaped[AbstractQuantity, "*batch"]:
+def dpotential_dr(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
     """Compute the radial derivative of the potential at the given position(s).
 
     Examples
@@ -1035,7 +1034,7 @@ def dpotential_dr(*args: Any, **kwargs: Any) -> Shaped[AbstractQuantity, "*batch
 
 
 @dispatch.abstract
-def d2potential_dr2(*args: Any, **kwargs: Any) -> Shaped[AbstractQuantity, "*batch"]:
+def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
     """Compute the second radial derivative of the potential.
 
     Examples
@@ -1085,4 +1084,11 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> Shaped[AbstractQuantity, "*bat
     Quantity[...](Array(-0.17175361, dtype=float64), unit='1 / Myr2')
 
     """
+    raise NotImplementedError  # pragma: no cover
+
+
+# TODO: change the name
+@dispatch.abstract
+def spherical_mass_enclosed(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
+    """Compute the mass enclosed within a spherical shell, assuming spherical symmetry."""  # noqa: E501
     raise NotImplementedError  # pragma: no cover

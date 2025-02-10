@@ -17,7 +17,7 @@ import galax.potential as gp
 import galax.typing as gt
 from .base import AbstractStreamDF
 from galax.dynamics._src.api import omega
-from galax.dynamics._src.cluster.funcs import tidal_radius
+from galax.dynamics._src.cluster.radius import tidal_radius
 
 # ============================================================
 # Constants

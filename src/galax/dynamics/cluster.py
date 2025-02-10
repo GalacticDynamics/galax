@@ -1,6 +1,9 @@
 """:mod:`galax.dynamics.cluster`."""
 
 __all__ = [
+    # Modules
+    "radius",
+    # Solvers
     "MassSolver",
     # Fields
     "MassVectorField",
@@ -27,6 +30,7 @@ with install_import_hook("galax.dynamics.fields", RUNTIME_TYPECHECKER):
         MassVectorField,
         UserMassField,
         lagrange_points,
+        radius,
         tidal_radius,
     )
 

@@ -12,7 +12,7 @@ from plum import convert, dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AbstractQuantity
+from unxt.quantity import BareQuantity
 
 import galax.coordinates as gc
 import galax.typing as gt
@@ -368,14 +368,14 @@ def local_circular_velocity(
 @partial(jax.jit)
 def dpotential_dr(
     pot: AbstractPotential,
-    x: AbstractQuantity | ArrayLike,
-    t: AbstractQuantity | ArrayLike,
-) -> AbstractQuantity:
+    x: u.AbstractQuantity | ArrayLike,
+    t: u.AbstractQuantity | ArrayLike,
+) -> u.AbstractQuantity:
     """Compute the radial derivative of the potential at the given position."""
     x, t = jnp.asarray(x), jnp.asarray(t)
     r_hat: Array = cx.vecs.normalize_vector(x)
     grad = convert(api.gradient(pot, x, t), u.Quantity)
-    dphi_dr: AbstractQuantity = jnp.sum(grad * r_hat, axis=-1)
+    dphi_dr: u.AbstractQuantity = jnp.sum(grad * r_hat, axis=-1)
     return dphi_dr
 
 
@@ -384,8 +384,8 @@ def dpotential_dr(
 def dpotential_dr(
     pot: AbstractPotential,
     x: cx.vecs.AbstractPos3D,
-    t: AbstractQuantity | ArrayLike,
-) -> AbstractQuantity:
+    t: u.AbstractQuantity | ArrayLike,
+) -> u.AbstractQuantity:
     return api.dpotential_dr(pot, convert(x, u.Quantity), t)
 
 
@@ -394,12 +394,12 @@ def dpotential_dr(
 def dpotential_dr(
     pot: AbstractPotential,
     w: cx.vecs.FourVector | gc.AbstractPhaseSpaceCoordinate,
-) -> AbstractQuantity:
+) -> u.AbstractQuantity:
     return api.dpotential_dr(pot, w.q, w.t)
 
 
 @dispatch
-def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> AbstractQuantity:
+def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> u.AbstractQuantity:
     """Compute the radial derivative of the potential when `t` is keyword-only."""
     return api.dpotential_dr(pot, x, t)
 
@@ -455,7 +455,7 @@ def d2potential_dr2(
 
 @dispatch
 def spherical_mass_enclosed(
-    pot: AbstractPotential, q: gt.BBtQuSz3, t: gt.RealQuSz0, /
+    pot: AbstractPotential, x: gt.BBtQuSz3, t: gt.RealQuSz0, /
 ) -> gt.BBtRealQuSz0:
     r"""Estimate the mass enclosed within the given positio.
 
@@ -476,6 +476,13 @@ def spherical_mass_enclosed(
     Quantity['mass'](Array([9.99105233e+10], dtype=float64), unit='solMass')
 
     """
-    r2 = jnp.sum(jnp.square(q), axis=-1, keepdims=True)
-    dPhi_dr = api.dpotential_dr(pot, q, t=t)
+    r2 = jnp.sum(jnp.square(x), axis=-1, keepdims=True)
+    dPhi_dr = api.dpotential_dr(pot, x, t=t)
     return r2 * jnp.abs(dPhi_dr) / pot.constants["G"]
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, x: cx.vecs.AbstractPos3D, t: gt.RealQuSz0, /
+) -> gt.BBtRealQuSz0:
+    return api.spherical_mass_enclosed(pot, convert(x, BareQuantity), t)

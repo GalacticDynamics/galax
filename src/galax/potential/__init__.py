@@ -56,6 +56,7 @@ __all__ = [
     "acceleration",
     "tidal_tensor",
     "local_circular_velocity",
+    "spherical_mass_enclosed",
 ]
 
 from jaxtyping import install_import_hook
@@ -72,6 +73,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         laplacian,
         local_circular_velocity,
         potential,
+        spherical_mass_enclosed,
         tidal_tensor,
     )
     from ._src.base import AbstractPotential

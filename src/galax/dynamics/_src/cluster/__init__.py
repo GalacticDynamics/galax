@@ -3,6 +3,7 @@
 __all__ = [
     # Modules
     "radius",
+    "relax_time",
     # Solvers
     "MassSolver",
     # Fields
@@ -15,10 +16,11 @@ __all__ = [
     # Functions
     "lagrange_points",
     "tidal_radius",
+    "relaxation_time",
 ]
 
-from . import radius
-from .api import lagrange_points
+from . import radius, relax_time
+from .api import lagrange_points, relaxation_time, tidal_radius
 from .events import MassBelowThreshold
 from .fields import (
     AbstractMassField,
@@ -26,7 +28,6 @@ from .fields import (
     MassVectorField,
     UserMassField,
 )
-from .radius import tidal_radius
 from .solver import MassSolver
 
 # Register by import

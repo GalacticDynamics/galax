@@ -12,7 +12,7 @@ import coordinax as cx
 import galax.potential as gp
 import galax.typing as gt
 from .api import L1L2LagrangePoints
-from .radius import tidal_radius
+from .radius import tidal_radius_king1962
 
 
 # TODO: vec, space, coordinate, PSP I/O
@@ -60,7 +60,7 @@ def lagrange_points(
     Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc')
 
     """
-    r_t = tidal_radius(potential, x, v, mass=mass, t=t)
+    r_t = tidal_radius_king1962(potential, x, v, mass=mass, t=t)
     r_hat = cx.vecs.normalize_vector(x)
     l1 = x - r_hat * r_t  # close
     l2 = x + r_hat * r_t  # far

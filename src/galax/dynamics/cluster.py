@@ -3,6 +3,7 @@
 __all__ = [
     # Modules
     "radius",
+    "relax_time",
     # Solvers
     "MassSolver",
     # Fields
@@ -15,6 +16,7 @@ __all__ = [
     # Functions
     "lagrange_points",
     "tidal_radius",
+    "relaxation_time",
 ]
 
 from jaxtyping import install_import_hook
@@ -31,6 +33,8 @@ with install_import_hook("galax.dynamics.fields", RUNTIME_TYPECHECKER):
         UserMassField,
         lagrange_points,
         radius,
+        relax_time,
+        relaxation_time,
         tidal_radius,
     )
 

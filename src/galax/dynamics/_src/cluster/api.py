@@ -168,19 +168,19 @@ def tidal_radius(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
 
     - von Hoerner (1957):
 
-    >>> gdc.tidal_radius(gdc.radius.Hoerner1957, pot, x, mass=mass, t=t)
-    Quantity[...](Array([136.40324281], dtype=float64), unit='')
+    >>> gdc.tidal_radius(gdc.radius.Hoerner1957, pot, x, mass=mass, t=t).uconvert("pc")
+    Quantity['length'](Array(36.94695299, dtype=float64), unit='pc')
 
     - King (1962) with a point mass:
 
     >>> rperi = jnp.linalg.vector_norm(x, axis=-1)
     >>> gdc.tidal_radius(gdc.radius.King1962PointMass, pot,
-    ...                         rperi=rperi, mass=mass, t=t, e=0.5)
-    Quantity[...](Array([113.19103012], dtype=float64), unit='')
+    ...                  rperi=rperi, mass=mass, t=t, e=0.5).uconvert("pc")
+    Quantity['length'](Array(30.65956192, dtype=float64), unit='pc')
 
     >>> gdc.tidal_radius(gdc.radius.King1962PointMass, pot,
-    ...                         rperi=q, mass=mass, t=t, e=0.5)
-    Quantity[...](Array([113.19103012], dtype=float64), unit='')
+    ...                  rperi=q, mass=mass, t=t, e=0.5).uconvert("pc")
+    Quantity['length'](Array(30.65956192, dtype=float64), unit='pc')
 
     """
     raise NotImplementedError  # pragma: no cover

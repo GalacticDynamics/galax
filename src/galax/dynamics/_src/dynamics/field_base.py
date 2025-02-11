@@ -6,7 +6,7 @@ This is private API.
 
 __all__ = ["AbstractDynamicsField"]
 
-import abc
+from abc import abstractmethod
 from typing import Any
 from typing_extensions import override
 
@@ -34,32 +34,33 @@ class AbstractDynamicsField(AbstractField, strict=True):  # type: ignore[call-ar
     units: eqx.AbstractVar[u.AbstractUnitSystem]
 
     @override  # specify the signature of the `__call__` method.
-    @abc.abstractmethod
+    @abstractmethod
     def __call__(
         self, t: Any, qp: tuple[Any, Any], args: tuple[Any, ...], /
     ) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
 
-    @AbstractField.terms.dispatch  # type: ignore[misc]
-    def terms(
-        self: "AbstractDynamicsField", _: dfx.AbstractSolver, /
-    ) -> PyTree[dfx.AbstractTerm]:
-        """Return the `diffrax.AbstractTerm` `jaxtyping.PyTree` for integration.
 
-        Examples
-        --------
-        >>> import diffrax as dfx
-        >>> import unxt as u
-        >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
+@AbstractField.terms.dispatch  # type: ignore[misc]
+def terms(
+    self: "AbstractDynamicsField", _: dfx.AbstractSolver, /
+) -> PyTree[dfx.AbstractTerm]:
+    """Return the `diffrax.AbstractTerm` `jaxtyping.PyTree` for integration.
 
-        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-        >>> field = gd.fields.HamiltonianField(pot)
+    Examples
+    --------
+    >>> import diffrax as dfx
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
 
-        >>> solver = dfx.Dopri8()
+    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
 
-        >>> field.terms(solver)
-        ODETerm(vector_field=<wrapped function __call__>)
+    >>> solver = dfx.Dopri8()
 
-        """
-        return dfx.ODETerm(jax.jit(self.__call__))
+    >>> field.terms(solver)
+    ODETerm(vector_field=<wrapped function __call__>)
+
+    """
+    return dfx.ODETerm(jax.jit(self.__call__))

@@ -34,7 +34,7 @@ class InterpolatedPhaseSpaceCoordinate(gc.AbstractBasicPhaseSpaceCoordinate):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.BBtFloatQuSz0 | gt.QuSz1 = eqx.field(converter=u.Quantity["time"].from_)
+    t: gt.BBtQuSz0 | gt.QuSz1 = eqx.field(converter=u.Quantity["time"].from_)
     """The time corresponding to the positions.
 
     This is a Quantity with the same batch shape as the positions and

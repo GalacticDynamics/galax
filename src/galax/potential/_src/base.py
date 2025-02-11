@@ -234,7 +234,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->(3,3)")
-    def _hessian(self, q: gt.BtFloatQuSz3, t: gt.RealQuSz0, /) -> gt.QuSz33:
+    def _hessian(self, q: gt.FloatQuSz3, t: gt.RealQuSz0, /) -> gt.FloatQuSz33:
         """See ``hessian``."""
         hess_op = u.experimental.hessian(
             self._potential, units=(self.units["length"], self.units["time"])

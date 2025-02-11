@@ -13,7 +13,6 @@ import unxt as u
 
 import galax.coordinates as gc
 import galax.typing as gt
-from galax.coordinates._src.pscs.base import _psc_getitem_time_index
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 

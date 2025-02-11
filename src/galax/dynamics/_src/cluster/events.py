@@ -84,7 +84,7 @@ class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
         >>> saveat = jnp.linspace(t0, t1, 10)
         >>> mass_soln = mass_solver.solve(mass_field, Mc0, t0, t1, saveat=saveat)
         >>> mass_soln.ys
-        Array([1000000. , 56101.91157639, inf, inf, ...], dtype=float64)
+        Array([1000000. , 56101.9173497, inf, inf, ...], dtype=float64)
 
         """
         mu = args["units"]["mass"]

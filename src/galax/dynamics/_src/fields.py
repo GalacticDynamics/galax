@@ -12,8 +12,6 @@ from plum import dispatch
 
 import diffraxtra as dfxtra
 
-from .solver import AbstractSolver
-
 
 class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
     """Abstract base class for fields.
@@ -69,9 +67,9 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
 # ==================================================================
 
 
-@AbstractField.terms.dispatch
+@AbstractField.terms.dispatch  # type: ignore[misc]
 def terms(
-    self: AbstractField, wrapper: dfxtra.DiffEqSolver, /
+    self: AbstractField, wrapper: dfxtra.AbstractDiffEqSolver, /
 ) -> PyTree[dfx.AbstractTerm]:
     """Return diffeq terms, redispatching to the solver.
 
@@ -92,26 +90,3 @@ def terms(
 
     """
     return self.terms(wrapper.solver)
-
-
-@AbstractField.terms.dispatch
-def terms(self: AbstractField, wrapper: AbstractSolver, /) -> PyTree[dfx.AbstractTerm]:
-    """Return diffeq terms, redispatching to the solver.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> solver = gd.DynamicsSolver(dfx.Dopri8())
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> field.terms(solver)
-    ODETerm(vector_field=<wrapped function __call__>)
-
-    """
-    return self.terms(wrapper.diffeqsolver)

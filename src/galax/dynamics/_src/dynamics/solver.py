@@ -7,6 +7,7 @@ This is private API.
 __all__ = ["DynamicsSolver"]
 
 
+from dataclasses import KW_ONLY
 from functools import partial
 from typing import Any, TypeAlias, final
 
@@ -96,46 +97,53 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     The solver can be customized. Here are a few examples:
 
-    1. From a `galax.dynamics.integrate.DiffEqSolver` instance. This allows for
-       setting the `diffrax.AbstractSolver`,
-       `diffrax.AbstractStepSizeController`, etc.
+    1. From a `galax.dynamics.integrate.DiffEqSolver` instance.
 
     >>> diffeqsolver = gd.solve.DiffEqSolver(dfx.Dopri8(),
     ...     stepsize_controller=dfx.PIDController(rtol=1e-5, atol=1e-5))
-    >>> solver = gd.DynamicsSolver(diffeqsolver)
+    >>> solver = gd.DynamicsSolver.from_(diffeqsolver)
     >>> solver
     DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
         solver=Dopri8(scan_kind=None),
         stepsize_controller=PIDController( rtol=1e-05, atol=1e-05, ... ),
         ...
-      )
     )
 
-    2. A `dict` of keyword arguments that are passed to
-       `galax.dynamics.integrate.DiffEqSolver`.
+    2. A `dict` of keyword arguments:
 
-    >>> solver = gd.DynamicsSolver({
+    >>> solver = gd.DynamicsSolver.from_({
     ...     "solver": dfx.Dopri8(), "stepsize_controller": dfx.ConstantStepSize()})
     >>> solver
     DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
         solver=Dopri8(scan_kind=None), stepsize_controller=ConstantStepSize(),
         ...
-      )
     )
 
     """
 
-    #: Solver for the differential equation.
-    diffeqsolver: dfxtra.DiffEqSolver = eqx.field(
-        default=dfxtra.DiffEqSolver(
-            solver=dfx.Dopri8(),
-            stepsize_controller=dfx.PIDController(rtol=1e-8, atol=1e-8),
-            max_steps=2**16,
-        ),
-        converter=dfxtra.DiffEqSolver.from_,
+    #: The solver for the differential equation.
+    #: See the diffrax guide on how to choose a solver.
+    solver: dfx.AbstractSolver[Any] = dfx.Dopri8()
+
+    _: KW_ONLY
+
+    #: How to change the step size as the integration progresses.
+    #: See diffrax's list of stepsize controllers.
+    stepsize_controller: dfx.AbstractStepSizeController[Any, Any] = dfx.PIDController(
+        rtol=1e-8, atol=1e-8
     )
+
+    #: How to differentiate in `diffeqsolve`.
+    #: See `diffrax` for options.
+    adjoint: dfx.AbstractAdjoint = dfx.RecursiveCheckpointAdjoint(checkpoints=None)
+
+    #: Event. Can override the `event` argument when calling `DiffEqSolver`
+    event: dfx.Event | None = None
+
+    #: The maximum number of steps to take before quitting.
+    #: Some `diffrax.SaveAt` options can be incompatible with `max_steps=None`,
+    #: so you can override the `max_steps` argument when calling `DiffEqSolver`
+    max_steps: int | None = eqx.field(default=2**16, static=True)
 
     # -------------------------------------------
 
@@ -643,7 +651,7 @@ def init(
 ) -> SolveState:
     """Initialize from terms, unit/array tuple, and time."""
     if isinstance(field, AbstractDynamicsField):
-        terms = field.terms(self.diffeqsolver)
+        terms = field.terms(self)
         units = units if units is not None else field.units
         units = eqx.error_if(units, units != field.units, "units must match field")
     else:
@@ -873,7 +881,7 @@ def solve(
 ) -> dfx.Solution:
     """Solve for batch position tuple, scalar start, end time."""
     # Parse inputs
-    terms = field.terms(self.diffeqsolver)
+    terms = field.terms(self)
     usys = field.units
 
     # Initialize the state
@@ -1180,6 +1188,3 @@ def solve(
     return {
         k: self.solve(field, w0, t1, args=args, **solver_kw) for k, w0 in w0s.items()
     }
-
-
-# ===================================================================

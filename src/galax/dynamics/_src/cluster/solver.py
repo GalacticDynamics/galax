@@ -11,7 +11,6 @@ import optimistix as optx
 from jaxtyping import PyTree
 from plum import dispatch
 
-import diffraxtra as dfxtra
 import unxt as u
 
 import galax.typing as gt
@@ -41,27 +40,36 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> saveat = jnp.linspace(t0, t1, 10)
     >>> mass_soln = mass_solver.solve(mass_field, Mc0, t0, t1, saveat=saveat)
     >>> mass_soln.ys
-    Array([1000000. , 56101.91157639, inf, inf, ...], dtype=float64)
+    Array([1000000. , 56101.9173497, inf, inf, ...], dtype=float64)
 
     """
 
-    diffeqsolver: dfxtra.DiffEqSolver = eqx.field(
-        default=dfxtra.DiffEqSolver(
-            solver=dfx.Dopri8(),
-            stepsize_controller=dfx.PIDController(rtol=1e-8, atol=1e-8),
-            max_steps=2**16,
-        ),
-        converter=dfxtra.DiffEqSolver.from_,
-    )
-    # TODO: should events be incorporated into `DiffEqSolver`?
-    event: dfx.Event | None = eqx.field(
-        default=dfx.Event(
-            cond_fn=MassBelowThreshold(u.Quantity(0.0, "Msun")),
-            root_finder=optx.Newton(1e-5, 1e-5, optx.rms_norm),
-        )
-    )
+    #: The solver for the differential equation.
+    #: See the diffrax guide on how to choose a solver.
+    solver: dfx.AbstractSolver[Any] = dfx.Dopri8()
 
     _: KW_ONLY
+
+    #: How to change the step size as the integration progresses.
+    #: See diffrax's list of stepsize controllers.
+    stepsize_controller: dfx.AbstractStepSizeController[Any, Any] = dfx.PIDController(
+        rtol=1e-6, atol=1e-6
+    )
+
+    #: How to differentiate in `diffeqsolve`.
+    #: See `diffrax` for options.
+    adjoint: dfx.AbstractAdjoint = dfx.RecursiveCheckpointAdjoint(checkpoints=None)
+
+    #: Event. Can override the `event` argument when calling `DiffEqSolver`
+    event: dfx.Event | None = dfx.Event(
+        cond_fn=MassBelowThreshold(u.Quantity(0.0, "Msun")),
+        root_finder=optx.Newton(1e-5, 1e-5, optx.rms_norm),
+    )
+
+    #: The maximum number of steps to take before quitting.
+    #: Some `diffrax.SaveAt` options can be incompatible with `max_steps=None`,
+    #: so you can override the `max_steps` argument when calling `DiffEqSolver`
+    max_steps: int | None = eqx.field(default=2**16, static=True)
 
     units: u.AbstractUnitSystem = eqx.field(
         default=u.unitsystems.galactic, converter=u.unitsystem, static=True
@@ -84,7 +92,7 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         **step_kwargs: Any,  # e.g. solver_state, made_jump
     ) -> SolveState:
         """Step the state."""
-        terms = field.terms(self.diffeqsolver)
+        terms = field.terms(self)
         t1_ = u.ustrip(AllowValue, self.units["time"], t1)
         step_kwargs.setdefault("made_jump", False)
         return self._step_impl(terms, state, t1_, args, step_kwargs)
@@ -125,7 +133,7 @@ def init(
     args: PyTree,
     /,
 ) -> SolveState:
-    terms = field.terms(self.diffeqsolver)
+    terms = field.terms(self)
     Mc0_ = u.ustrip(AllowValue, self.units["mass"], Mc0)
     t0_ = u.ustrip(AllowValue, self.units["time"], t0)
     return self._init_impl(terms, t0_, Mc0_, args, self.units)
@@ -145,7 +153,7 @@ def run(
     /,
     **solver_kw: Any,
 ) -> SolveState:
-    terms = field.terms(self.diffeqsolver)
+    terms = field.terms(self)
     t1_ = u.ustrip(AllowValue, self.units["time"], t1)
     solver_kw = eqx.error_if(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
@@ -188,8 +196,8 @@ def solve(
     saveat = parse_saveat(units, saveat, dense=solver_kw.pop("dense", None))
     args = solver_kw.pop("args", {})
     args.setdefault("units", units)  # TODO: should this error if not right?
-    soln = self.diffeqsolver(
-        field_.terms(self.diffeqsolver),
+    soln = self(
+        field_.terms(self),
         t0=u.ustrip(AllowValue, units["time"], t0),
         t1=u.ustrip(AllowValue, units["time"], t1),
         y0=u.ustrip(AllowValue, units["mass"], M0),

@@ -50,7 +50,7 @@ class BarPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->()")
-    def _potential(self, q: gt.QuSz3, t: gt.RealQuSz0, /) -> gt.SpecificEnergySz0:
+    def _potential(self, q: gt.QuSz3, t: gt.RealQuSz0, /) -> gt.SpecificEnergyBtSz0:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t
         rotation_matrix = jnp.asarray(

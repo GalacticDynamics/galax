@@ -14,7 +14,7 @@ from jaxtyping import Array, Bool, Int, PyTree, Real
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 import unxt as u
-from diffraxtra.interp import (
+from diffraxtra._src.interp import (  # TODO: make this public API in diffraxtra
     BatchedIntScalar,
     BatchedRealScalar,
     BatchedRealTimes,

@@ -19,7 +19,7 @@ def _get_component(orbit: gd.Orbit, coord: str) -> AbstractQuantity:
     elif hasattr(orbit.p, coord):
         out = getattr(orbit.p, coord)
     elif coord.startswith("d_"):
-        out = getattr(orbit.q, coord[2:])
+        out = getattr(orbit.p, coord[2:])
     else:
         msg = f"Orbit does not have attribute {coord}"
         raise AttributeError(msg) from None

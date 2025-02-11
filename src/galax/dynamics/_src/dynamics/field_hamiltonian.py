@@ -269,7 +269,8 @@ def terms(
 
     For completeness we'll integrate the EoM.
 
-    >>> dynamics_solver = gd.DynamicsSolver(solver)
+    >>> dynamics_solver = gd.DynamicsSolver(solver,
+    ...                                     stepsize_controller=dfx.ConstantStepSize())
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0, 0], "kpc"),
     ...     p=u.Quantity([0, 220, 0], "km/s"),

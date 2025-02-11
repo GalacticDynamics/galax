@@ -12,7 +12,6 @@ import equinox as eqx
 from jaxtyping import ArrayLike, Shaped
 from plum import dispatch
 
-import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 from unxt.quantity import AbstractQuantity, BareQuantity as FastQ
 from xmmutablemap import ImmutableMap
@@ -177,11 +176,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     dynamics_solver: DynamicsSolver = eqx.field(
         default=DynamicsSolver(
-            dfxtra.DiffEqSolver(
-                solver=dfx.Dopri8(scan_kind="bounded"),
-                stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7),
-                max_steps=2**16,
-            )
+            solver=dfx.Dopri8(scan_kind="bounded"),
+            stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7),
+            max_steps=2**16,
         ),
         converter=DynamicsSolver.from_,
     )

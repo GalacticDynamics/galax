@@ -8,15 +8,15 @@ __all__ = ["AbstractSolver", "SolveState"]
 
 
 import abc
-from collections.abc import Mapping
+from dataclasses import fields
 from typing import Any, TypeAlias
 
 import diffrax as dfx
 import equinox as eqx
 import numpy as np
 from jaxtyping import Array, PyTree, Real
-from plum import dispatch
 
+import diffraxtra as dfxtra
 import unxt as u
 
 import galax.typing as gt
@@ -78,7 +78,7 @@ class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
         )
 
 
-class AbstractSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
+class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[call-arg,misc]
     """ABC for solvers.
 
     Notes
@@ -98,9 +98,9 @@ class AbstractSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     ) -> SolveState:
         """`init` helper."""
         # Initializes the state from diffrax. Steps from t0 to t0!
-        solver_state = self.diffeqsolver.solver.init(terms, t0, t0, y0, args)
+        solver_state = self.solver.init(terms, t0, t0, y0, args)
         # Step from t0 to t0, which is a no-op but sets the state
-        step_output = self.diffeqsolver.solver.step(
+        step_output = self.solver.step(
             terms, t0, t0, y0, args=args, solver_state=solver_state, made_jump=False
         )
         return SolveState.from_step_output(t0, step_output, units)
@@ -120,7 +120,7 @@ class AbstractSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         args: Any,
         step_kw: dict[str, Any],
     ) -> SolveState:
-        step_output = self.diffeqsolver.solver.step(
+        step_output = self.solver.step(
             terms,
             state.t,
             t1,
@@ -156,7 +156,7 @@ class AbstractSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         solver_kw: dict[str, Any],
     ) -> dfx.Solution:
         solver_kw.setdefault("dt0", None)
-        return self.diffeqsolver(
+        return self(
             terms,
             t0=state.t,
             t1=t1,
@@ -179,111 +179,32 @@ class AbstractSolver(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         """Solve, initializing and stepping to the solution."""
         raise NotImplementedError
 
-    # ==================================================================
-    # Convenience methods
-
-    @classmethod
-    @dispatch.abstract
-    def from_(
-        cls: "type[AbstractSolver]", *args: Any, **kwargs: Any
-    ) -> "AbstractSolver":
-        """Create a new solver from the argument."""
-        raise NotImplementedError  # pragma: no cover
-
 
 # =========================================================
 # Constructors
 
 
-@AbstractSolver.from_.dispatch
-def from_(cls: type[AbstractSolver], solver: AbstractSolver) -> AbstractSolver:
-    """Create a new solver from the argument.
+@AbstractSolver.from_.dispatch  # type: ignore[misc]
+def from_(cls: type[AbstractSolver], solver: dfxtra.DiffEqSolver) -> AbstractSolver:
+    """Create a new solver from a `diffraxtra.DiffeqSolver`.
 
     Examples
     --------
+    >>> import diffrax as dfx
+    >>> import diffraxtra as dfxtra
     >>> import galax.dynamics as gd
-    >>> solver = gd.DynamicsSolver()
+
+    >>> solver = dfxtra.DiffEqSolver(dfx.Dopri5())
+
     >>> new_solver = gd.DynamicsSolver.from_(solver)
-    >>> new_solver is solver
-    True
-
-    >>> class MySolver(AbstractSolver):
-    ...     def init(self, *args, **kwargs): pass
-    ...     def step(self, *args, **kwargs): pass
-    ...     def solve(self, *args, **kwargs): pass
-    >>> try: new_solver = MySolver.from_(solver)
-    ... except TypeError as e: print(e)
-    Cannot convert <class 'galax.dynamics...DynamicsSolver'> to <class '...MySolver'>
-
-    """
-    if not isinstance(solver, cls):
-        msg = f"Cannot convert {type(solver)} to {cls}"
-        raise TypeError(msg)
-
-    return solver
-
-
-@AbstractSolver.from_.dispatch(precedence=-1)
-def from_(cls: type[AbstractSolver], obj: Any) -> AbstractSolver:
-    """Pass argument to solver's init.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> from galax.dynamics.solve import DynamicsSolver, DiffEqSolver
-
-    >>> DynamicsSolver.from_( DiffEqSolver(dfx.Dopri5()))
+    >>> new_solver
     DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri5(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
-        max_steps=4096
-      )
-    )
-
-    >>> DynamicsSolver.from_(dfx.Dopri5())
-    DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri5(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
-        max_steps=4096
-      )
+      solver=Dopri5(scan_kind=None),
+      stepsize_controller=ConstantStepSize(),
+      adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
+      event=None,
+      max_steps=4096
     )
 
     """
-    return cls(obj)
-
-
-@AbstractSolver.from_.dispatch
-def from_(cls: type[AbstractSolver], obj: Mapping[str, Any]) -> AbstractSolver:
-    """Create a new solver from the argument.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> import galax.dynamics as gd
-
-    >>> gd.DynamicsSolver.from_({})
-    DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri8(scan_kind=None),
-        stepsize_controller=PIDController( ...),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
-        max_steps=65536
-      )
-    )
-
-    >>> gd.DynamicsSolver.from_({"diffeqsolver": dfx.Dopri5()})
-    DynamicsSolver(
-      diffeqsolver=DiffEqSolver(
-        solver=Dopri5(scan_kind=None),
-        stepsize_controller=ConstantStepSize(),
-        adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
-        max_steps=4096
-      )
-    )
-
-    """
-    return cls(**obj)
+    return cls(**{f.name: getattr(solver, f.name) for f in fields(cls)})

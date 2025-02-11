@@ -5,16 +5,20 @@ __all__ = ["InterpolatedPhaseSpaceCoordinate"]
 from dataclasses import KW_ONLY
 from typing import final
 
+import diffrax as dfx
 import equinox as eqx
 import jax.numpy as jnp
 
 import coordinax as cx
+import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import BareQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.typing as gt
 from galax.coordinates._src.frames import SimulationFrame
 from galax.coordinates._src.pscs.base import ComponentShapeTuple
+from galax.dynamics._src.orbit import PhaseSpaceInterpolation
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
@@ -65,3 +69,37 @@ class InterpolatedPhaseSpaceCoordinate(gc.AbstractBasicPhaseSpaceCoordinate):
         tbatch, _ = batched_shape(self.t, expect_ndim=0)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         return batch_shape, ComponentShapeTuple(q=qshape, p=pshape, t=1)
+
+
+# TODO: support interpolation
+@gc.PhaseSpaceCoordinate.from_.dispatch  # type: ignore[misc,attr-defined]
+def from_(
+    cls: type[InterpolatedPhaseSpaceCoordinate],
+    soln: dfx.Solution,
+    *,
+    frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
+    units: u.AbstractUnitSystem,  # not dispatched on, but required
+    interpolant: PhaseSpaceInterpolation,  # not dispatched on, but required
+    unbatch_time: bool = False,
+) -> InterpolatedPhaseSpaceCoordinate:
+    """Convert a solution to a phase-space position."""
+    # Reshape (*tbatch, T, *ybatch) to (*tbatch, *ybatch, T)
+    t = soln.ts  # already in the shape (*tbatch, T)
+    n_tbatch = soln.t0.ndim
+    q = jnp.moveaxis(soln.ys[0], n_tbatch, -2)
+    p = jnp.moveaxis(soln.ys[1], n_tbatch, -2)
+
+    # Reshape (*tbatch, *ybatch, T) to (*tbatch, *ybatch) if T == 1
+    if unbatch_time and t.shape[-1] == 1:
+        t = t[..., -1]
+        q = q[..., -1, :]
+        p = p[..., -1, :]
+
+    # Convert the solution to a phase-space position
+    return cls(
+        q=cx.CartesianPos3D.from_(q, units["length"]),
+        p=cx.CartesianVel3D.from_(p, units["speed"]),
+        t=FastQ(soln.ts, units["time"]),
+        frame=frame,
+        interpolant=interpolant,
+    )

@@ -20,9 +20,9 @@ from xmmutablemap import ImmutableMap
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
-from .interp import Interpolant
 from .interp_psp import InterpolatedPhaseSpaceCoordinate
 from galax.dynamics._src.dynamics import DynamicsSolver
+from galax.dynamics._src.orbit import PhaseSpaceInterpolation
 from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")
@@ -132,16 +132,16 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     The interpolated solution can be evaluated at any time in the domain to get
     the phase-space position at that time:
 
-    >>> t = u.Quantity(jnp.e, "Gyr")
-    >>> w(t)
+    >>> print(w(u.Quantity(100 * jnp.e, "Myr")))
     PhaseSpaceCoordinate(
-      q=CartesianPos3D(
-        x=Quantity[...](value=...f64[2], unit=Unit("kpc")),
-        ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(2.71828183, dtype=float64, ...), unit='Gyr'),
-      frame=SimulationFrame()
-    )
+        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            [[ 2.666 -6.846  0.   ]
+             [-0.873 -9.098  0.   ]]>,
+        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+            [[ 0.149  0.386  0.   ]
+             [ 0.235 -0.255  0.   ]]>,
+        t=Quantity['time'](Array(271.82818285, dtype=float64, ...), unit='Myr'),
+        frame=SimulationFrame())
 
     The interpolant is vectorized:
 
@@ -152,7 +152,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         x=Quantity[...](value=f64[2,100], unit=Unit("kpc")),
         ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(..., dtype=float64), unit='Gyr'),
+      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame()
     )
 
@@ -163,13 +163,16 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> ws = integrator(field, w0, t0, t1, dense=True)
     >>> ws.shape
     (2,)
-    >>> w(t)
+    >>> ws(t)
     PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
+        q=CartesianPos3D(
+            x=Quantity[...](value=f64[2,100], unit=Unit("kpc")),
+            ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(..., dtype=float64), unit='Gyr'),
+        t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
         frame=SimulationFrame()
     )
+
     """
 
     dynamics_solver: DynamicsSolver = eqx.field(
@@ -252,7 +255,9 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         }
         if dense:
             out_cls = InterpolatedPhaseSpaceCoordinate
-            out_kw["interpolant"] = Interpolant(soln.interpolation, units=field.units)
+            out_kw["interpolant"] = PhaseSpaceInterpolation(
+                soln.interpolation, units=field.units
+            )
         else:
             out_cls = gc.PhaseSpaceCoordinate
 

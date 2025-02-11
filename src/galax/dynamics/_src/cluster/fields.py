@@ -62,7 +62,7 @@ class AbstractMassField(AbstractField):
     """
 
     @abstractmethod
-    def __call__(self, t: Time, Mc: ClusterMass, args: Args, /, **kwargs: Any) -> Array:  # type: ignore[override]
+    def __call__(self, t: Time, Mc: ClusterMass, args: Args, /, **kwargs: Any) -> Array:
         raise NotImplementedError  # pragma: no cover
 
     @AbstractField.terms.dispatch  # type: ignore[misc]
@@ -102,7 +102,7 @@ class UserMassField(AbstractMassField):
 
     _: KW_ONLY
 
-    def __call__(self, t: Time, Mc: ClusterMass, args: Args, /, **kwargs: Any) -> Array:  # type: ignore[override]
+    def __call__(self, t: Time, Mc: ClusterMass, args: Args, /, **kwargs: Any) -> Array:
         return self.mass_deriv(t, Mc, args, **kwargs)
 
 
@@ -116,5 +116,5 @@ class ConstantMass(AbstractMassField):
 
     """
 
-    def __call__(self, t: Time, Mc: ClusterMass, args: Args, /, **kwargs: Any) -> Array:  # type: ignore[override]  # noqa: ARG002
+    def __call__(self, t: Time, Mc: ClusterMass, args: Args, /, **kwargs: Any) -> Array:  # noqa: ARG002
         return jnp.zeros_like(Mc)

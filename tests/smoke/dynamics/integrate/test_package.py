@@ -8,7 +8,7 @@ def test_all() -> None:
     assert set(integrate.__all__) == {
         "evaluate_orbit",
         "Integrator",
-        "Interpolant",
+        "PhaseSpaceInterpolation",
         "parse_time_specification",
         "InterpolatedPhaseSpaceCoordinate",
     }

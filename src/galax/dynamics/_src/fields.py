@@ -2,7 +2,7 @@
 
 __all__ = ["AbstractField"]
 
-from abc import abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 import diffrax as dfx
@@ -56,10 +56,7 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
 
     """  # noqa: E501
 
-    @abstractmethod
-    def __call__(self, t: Any, *args: Any, **kwargs: Any) -> Any:
-        """Evaluate the field at time `t`."""
-        raise NotImplementedError  # pragma: no cover
+    __call__: eqx.AbstractClassVar[Callable[..., Any]]
 
     @dispatch.abstract
     def terms(self, solver: Any, /) -> PyTree[dfx.AbstractTerm]:

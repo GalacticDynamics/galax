@@ -143,5 +143,7 @@ def from_(
         t=w.t,
         frame=w.frame,
         potential=potential,
-        interpolant=PhaseSpaceInterpolation(soln.interpolation, units=potential.units),
+        interpolant=None
+        if soln.interpolation is None
+        else PhaseSpaceInterpolation(soln.interpolation, units=potential.units),
     )

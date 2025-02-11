@@ -9,8 +9,9 @@ __all__ = [
     # Fields
     "MassVectorField",
     "AbstractMassField",
-    "UserMassField",
+    "CustomMassField",
     "ConstantMass",
+    "Baumgardt1998MassLoss",
     # Events
     "MassBelowThreshold",
     # Functions
@@ -26,11 +27,12 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 with install_import_hook("galax.dynamics.fields", RUNTIME_TYPECHECKER):
     from ._src.cluster import (
         AbstractMassField,
+        Baumgardt1998MassLoss,
         ConstantMass,
+        CustomMassField,
         MassBelowThreshold,
         MassSolver,
         MassVectorField,
-        UserMassField,
         lagrange_points,
         radius,
         relax_time,

@@ -9,8 +9,9 @@ __all__ = [
     # Fields
     "MassVectorField",
     "AbstractMassField",
-    "UserMassField",
+    "CustomMassField",
     "ConstantMass",
+    "Baumgardt1998MassLoss",
     # Events
     "MassBelowThreshold",
     # Functions
@@ -24,9 +25,10 @@ from .api import lagrange_points, relaxation_time, tidal_radius
 from .events import MassBelowThreshold
 from .fields import (
     AbstractMassField,
+    Baumgardt1998MassLoss,
     ConstantMass,
+    CustomMassField,
     MassVectorField,
-    UserMassField,
 )
 from .solver import MassSolver
 

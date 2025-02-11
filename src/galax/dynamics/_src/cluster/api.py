@@ -77,8 +77,6 @@ def lagrange_points(
 def relaxation_time(*args: Any, **kwargs: Any) -> u.AbstractQuantity:
     """Compute the cluster's relaxation time.
 
-    Baumgardt 1998 Equation 1.
-
     Examples
     --------
     >>> import unxt as u
@@ -86,30 +84,30 @@ def relaxation_time(*args: Any, **kwargs: Any) -> u.AbstractQuantity:
 
     >>> M = u.Quantity(1e4, "Msun")
     >>> r_hm = u.Quantity(2, "pc")
-    >>> nstars = 2e4
+    >>> m_avg = u.Quantity(0.5, "Msun")
     >>> G = u.Quantity(4.30091e-3, "pc km2 / (s2 Msun)")
 
-    >>> gdc.relaxation_time(M, r_hm, nstars, G=G).uconvert("Myr")
-    Quantity['time'](Array(129.50788873, dtype=float64, ...), unit='Myr')
+    >>> gdc.relaxation_time(M, r_hm, m_avg, G=G).uconvert("Myr")
+    Quantity['time'](Array(129.50788873, dtype=float64, weak_type=True), unit='Myr')
 
     Now with different methods:
 
     - Baumgardt (1998) (the default):
 
-    >>> gdc.relaxation_time(gdc.relax_time.Baumgardt1998, M, r_hm, nstars, G=G).uconvert("Myr")
+    >>> gdc.relaxation_time(gdc.relax_time.Baumgardt1998, M, r_hm, m_avg, G=G).uconvert("Myr")
     Quantity['time'](Array(129.50788873, dtype=float64, ...), unit='Myr')
 
     - Spitzer (1987) half-mass:
 
     >>> lnLambda = 10  # very approximate
-    >>> gdc.relaxation_time(gdc.relax_time.Spitzer1987HalfMass, M, r_hm, nstars, lnLambda=lnLambda, G=G).uconvert("Myr")
+    >>> gdc.relaxation_time(gdc.relax_time.Spitzer1987HalfMass, M, r_hm, m_avg, lnLambda=lnLambda, G=G).uconvert("Myr")
     Quantity['time'](Array(143.38057289, dtype=float64, weak_type=True), unit='Myr')
 
     - Spitzer (1987) core:
 
     >>> Mcore, r_c = M / 5, r_hm / 5  # very approximate
-    >>> gdc.relaxation_time(gdc.relax_time.Spitzer1987Core, Mcore, r_c, nstars, lnLambda=lnLambda, G=G).uconvert("Myr")
-    Quantity['time'](Array(57.35222916, dtype=float64, weak_type=True), unit='Myr')
+    >>> gdc.relaxation_time(gdc.relax_time.Spitzer1987Core, Mcore, r_c, m_avg, lnLambda=lnLambda, G=G).uconvert("Myr")
+    Quantity['time'](Array(11.47044583, dtype=float64, weak_type=True), unit='Myr')
 
     """  # noqa: E501
     raise NotImplementedError  # pragma: no cover

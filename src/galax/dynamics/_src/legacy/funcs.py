@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["evaluate_orbit"]
+__all__ = ["evaluate_orbit", "default_integrator"]
 
 from collections.abc import Callable
 from typing import Any, Literal
@@ -21,7 +21,7 @@ from galax.dynamics._src.dynamics import HamiltonianField
 from galax.dynamics._src.orbit import Orbit
 
 # TODO: enable setting the default integrator
-_default_integrator: Integrator = Integrator()
+default_integrator: Integrator = Integrator()
 
 
 _select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
@@ -204,7 +204,7 @@ def evaluate_orbit(
     """
     # Setup
     units = pot.units
-    integrator = _default_integrator if integrator is None else integrator
+    integrator = default_integrator if integrator is None else integrator
     t = jnp.atleast_1d(FastQ.from_(t, units["time"]))  # ensure t units
 
     field = HamiltonianField(pot)

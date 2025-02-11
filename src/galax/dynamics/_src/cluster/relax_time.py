@@ -69,7 +69,7 @@ def relaxation_time(
 class Baumgardt1998(AbstractRelaxationTimeMethod):
     r"""Relaxation time from Baumgardt (1998).
 
-    $$ t_r = \frac{0.138 \\sqrt{M_c} r_{hm}^{3/2}}{\\sqrt{G} m_{avg} \\ln(0.4 N)} $$
+    $$ t_r = \frac{0.138 \sqrt{M_c} r_{hm}^{3/2}}{\sqrt{G} m_{avg} \\ln(0.4 N)} $$
 
     """
 

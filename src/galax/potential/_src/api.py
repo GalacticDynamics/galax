@@ -1090,5 +1090,40 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
 # TODO: change the name
 @dispatch.abstract
 def spherical_mass_enclosed(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
-    """Compute the mass enclosed within a spherical shell, assuming spherical symmetry."""  # noqa: E501
+    r"""Compute the mass enclosed within a spherical shell, assuming spherical symmetry.
+
+    This assumes the potential is spherical, which is often NOT correct.
+
+    $$ M(r) = \frac{r^2}{G} \left| \frac{d\Phi}{dr} \right| $$
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+
+    >>> pot = gp.MilkyWayPotential()
+
+    Let's build up the type ladder:
+
+    - `unxt.AbstractQuantity`:
+
+    >>> x = u.Quantity([8, 0, 0], "kpc")
+    >>> t = u.Quantity(0, "Gyr")
+
+    >>> gp.spherical_mass_enclosed(pot, x, t).uconvert("Msun")
+    Quantity['mass'](Array(9.99105233e+10, dtype=float64), unit='solMass')
+
+    >>> xs = u.Quantity([[8, 0, 0], [10, 0, 0]], "kpc")
+    >>> ts = u.Quantity([0, 1], "Gyr")
+    >>> gp.spherical_mass_enclosed(pot, xs, ts).uconvert("Msun")
+    Quantity['mass'](Array([9.99105233e+10, 1.20586103e+11], dtype=float64), unit='solMass')
+
+    - `coordinax.AbstractPos3D`:
+
+    >>> q = cx.CartesianPos3D.from_([[8, 0, 0], [9, 0, 0]], "kpc")
+    >>> t = u.Quantity(0, "Gyr")
+    >>> gp.spherical_mass_enclosed(pot, q, t).uconvert("Msun")
+    Quantity['mass'](Array([9.99105233e+10, 1.10435505e+11], dtype=float64), unit='solMass')
+
+    """  # noqa: E501
     raise NotImplementedError  # pragma: no cover

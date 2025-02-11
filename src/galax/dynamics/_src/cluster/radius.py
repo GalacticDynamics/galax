@@ -111,7 +111,8 @@ def tidal_radius_hoerner1957(
 
     """
     # TODO: a way to select different mass calculator
-    return jnp.cbrt(gp.spherical_mass_enclosed(pot, x, t) / (2 * mass))
+    r = jnp.linalg.vector_norm(x, axis=-1)
+    return jnp.cbrt(mass / (2 * gp.spherical_mass_enclosed(pot, x, t))) * r
 
 
 #####################################################################
@@ -143,7 +144,7 @@ def tidal_radius_king1962_pointmass(
     *,
     rperi: gt.BBtRealQuSz0 | cx.vecs.AbstractPos3D,
     mass: gt.MassBBtSz0,
-    t: gt.TimeBBtSz0,
+    t: gt.BBtRealQuSz0 | float,
     e: float = 0.0,
 ) -> gt.BBtRealQuSz0:
     r"""Calculate the tidal radius of a star cluster based on King (1962).
@@ -167,8 +168,9 @@ def tidal_radius_king1962_pointmass(
         x = BareQuantity(jnp.zeros((*rperi.shape, 3)), rperi.unit)
         x = x.at[..., 0].set(rperi)
 
-    # TODO: a way to select different mass calculator
-    return jnp.cbrt(gp.spherical_mass_enclosed(pot, x, t) / ((3 + e) * mass))
+    r = jnp.linalg.vector_norm(x, axis=-1)
+    m_encl = gp.spherical_mass_enclosed(pot, x, t)  # TODO: flag to sel mass calculator
+    return jnp.cbrt(mass / ((3 + e) * m_encl)) * r
 
 
 #####################################################################
@@ -239,7 +241,11 @@ def tidal_radius_king1962(
 
 @dispatch
 def tidal_radius_king1962(
-    pot: gp.AbstractPotential, w: gc.PhaseSpaceCoordinate, /, *, mass: gt.MassBBtSz0
+    pot: gp.AbstractPotential,
+    w: gc.AbstractPhaseSpaceCoordinate,
+    /,
+    *,
+    mass: gt.MassBBtSz0,
 ) -> gt.BBtRealQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
-    return tidal_radius_king1962(pot, w.q, w.p, mass=mass, t=w.t)
+    return tidal_radius_king1962(pot, w.q, w.p, mass=mass, t=w.t.squeeze())

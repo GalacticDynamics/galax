@@ -455,34 +455,17 @@ def d2potential_dr2(
 
 @dispatch
 def spherical_mass_enclosed(
-    pot: AbstractPotential, x: gt.BBtQuSz3, t: gt.RealQuSz0, /
+    pot: AbstractPotential, x: gt.BBtQuSz3, t: gt.BBtRealQuSz0, /
 ) -> gt.BBtRealQuSz0:
-    r"""Estimate the mass enclosed within the given positio.
-
-    This assumes the potential is spherical, which is often NOT correct.
-
-    $$ M(r) = \frac{r^2}{G} \left| \frac{d\Phi}{dr} \right| $$
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-
-    >>> pot = gp.MilkyWayPotential()
-    >>> q = u.Quantity([8.0, 0.0, 0.0], "kpc")
-    >>> t = u.Quantity(0.0, "Gyr")
-
-    >>> gp.spherical_mass_enclosed(pot, q, t).uconvert("Msun")
-    Quantity['mass'](Array([9.99105233e+10], dtype=float64), unit='solMass')
-
-    """
-    r2 = jnp.sum(jnp.square(x), axis=-1, keepdims=True)
+    """Compute from `unxt.Quantity`."""
+    r2 = jnp.sum(jnp.square(x), axis=-1)
     dPhi_dr = api.dpotential_dr(pot, x, t=t)
     return r2 * jnp.abs(dPhi_dr) / pot.constants["G"]
 
 
 @dispatch
 def spherical_mass_enclosed(
-    pot: AbstractPotential, x: cx.vecs.AbstractPos3D, t: gt.RealQuSz0, /
+    pot: AbstractPotential, x: cx.vecs.AbstractPos3D, t: gt.BBtRealQuSz0, /
 ) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
     return api.spherical_mass_enclosed(pot, convert(x, BareQuantity), t)

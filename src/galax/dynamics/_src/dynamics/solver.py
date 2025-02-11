@@ -139,18 +139,6 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     # -------------------------------------------
 
-    # def _init_impl(
-    #     self,
-    #     terms: Terms,
-    #     t0: gt.RealSz0,
-    #     y0: BBtQParr,
-    #     args: PyTree,
-    #     units: u.AbstractUnitSystem,
-    # ) -> SolveState:
-    #     if t0.ndim == 0:  # Scalar
-    #         return super()._init_impl(terms, t0, y0, args, units)  # noqa: ERA001
-    #     raise NotImplementedError("TODO")  # noqa: ERA001
-
     @dispatch.abstract
     def init(
         self: "DynamicsSolver", field: Any, t0: Any, t1: Any, y0: Any, args: Any

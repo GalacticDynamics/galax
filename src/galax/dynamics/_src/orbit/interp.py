@@ -3,13 +3,16 @@
 __all__ = ["PhaseSpaceInterpolation"]
 
 from collections.abc import Callable
+from functools import partial
 from typing import Any, cast
 
 import diffrax as dfx
 import equinox as eqx
-from jaxtyping import Array, Int, PyTree
+import jax
+from jaxtyping import Array, Bool, Int, PyTree, Real
 
 import diffraxtra as dfxtra
+import quaxed.numpy as jnp
 import unxt as u
 from diffraxtra.interp import (
     BatchedIntScalar,
@@ -24,6 +27,16 @@ import galax.coordinates as gc
 import galax.typing as gt
 
 
+@partial(jax.jit)
+def within_bounds(
+    t: Real[Array, "N"], t_lower: Real[Array, ""], t_upper: Real[Array, ""]
+) -> Bool[Array, "N"]:
+    return jnp.logical_and(jnp.greater_equal(t, t_lower), jnp.less_equal(t, t_upper))
+
+
+# TODO: move this to galax.coordinates?
+# TODO: address mypy complaints about subclassing
+# AbstractVectorizedDenseInterpolation
 class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
     """Evaluate phase-space interpolations."""
 
@@ -39,8 +52,21 @@ class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
     def evaluate(self, ts: Any) -> gc.PhaseSpaceCoordinate:
         usys = self.units
         t = FastQ.from_(ts, usys["time"])
+
+        # TODO: is there a way to push this into the interpolant?
+        tval = u.ustrip(usys["time"], t)
+        tval = eqx.error_if(
+            tval,
+            jnp.logical_not(jnp.all(within_bounds(tval, self.t0, self.t1))),
+            "Time out of bounds.",
+        )
+
         # Evaluate the interpolation
-        ys = self.interp.evaluate(u.ustrip(usys["time"], t))
+        ys = self.interp.evaluate(tval)
+        # Reshape (T, *batch) to (*batch, T)
+        if ts.ndim != 0:
+            ys = jax.tree.map(lambda x: jnp.moveaxis(x, 0, -2), ys)
+
         q = FastQ(ys[0], usys["length"])
         p = FastQ(ys[1], usys["speed"])
 

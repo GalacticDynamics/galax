@@ -19,7 +19,6 @@ import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
 from .plot_helper import PlotOrbitDescriptor, ProxyOrbit
-from galax.typing import BtFloatQuSz0, QuSz1, QuSzTime
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
@@ -67,14 +66,14 @@ class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
       potential=KeplerPotential( ... ),
-      interpolant=Interpolant( ... )
+      interpolant=PhaseSpaceInterpolation( ... )
     )
 
     >>> orbit(u.Quantity(0.5, "Gyr"))
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array([0.5], dtype=float64, ...), unit='Gyr'),
+      t=Quantity['time'](Array(500., dtype=float64, ...), unit='Myr'),
       frame=SimulationFrame(),
       potential=KeplerPotential( ... ),
       interpolant=None
@@ -89,7 +88,7 @@ class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
     r"""Conjugate momenta ($v_x$, $v_y$, $v_z$)."""
 
     # TODO: consider how this should be vectorized
-    t: QuSzTime | QuSz1 = eqx.field(converter=u.Quantity["time"].from_)
+    t: gt.QuSzTime | gt.QuSz1 = eqx.field(converter=u.Quantity["time"].from_)
     """Array of times corresponding to the positions."""
 
     _: KW_ONLY
@@ -103,12 +102,6 @@ class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
     interpolant: gc.PhaseSpaceObjectInterpolant | None = None
     """The interpolation function."""
 
-    def __post_init__(self) -> None:
-        """Post-initialization."""
-        # Need to ensure t shape is correct. Can be initialized as Vec0.
-        if self.t.ndim == 0:
-            object.__setattr__(self, "t", jnp.atleast_1d(self.t))
-
     # -------------------------------------------------------------------------
 
     plot: ClassVar = PlotOrbitDescriptor()
@@ -119,7 +112,7 @@ class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
     def _from_psp(
         cls,
         w: gc.PhaseSpaceCoordinate,
-        t: QuSzTime,
+        t: gt.QuSzTime,
         potential: gp.AbstractPotential,
     ) -> "Orbit":
         """Create an orbit from a phase-space position."""
@@ -135,7 +128,7 @@ class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
     # ==========================================================================
     # Interpolation
 
-    def __call__(self, t: BtFloatQuSz0) -> "Orbit":
+    def __call__(self, t: gt.BtFloatQuSz0) -> "Orbit":
         """Call the interpolation."""
         interpolant = eqx.error_if(
             self.interpolant,
@@ -307,7 +300,7 @@ class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
     @partial(jax.jit, inline=True)
     def potential_energy(
         self, potential: gp.AbstractPotential | None = None, /
-    ) -> BtFloatQuSz0:
+    ) -> gt.BtFloatQuSz0:
         r"""Return the specific potential energy.
 
         .. math::
@@ -332,7 +325,7 @@ class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
     @partial(jax.jit, inline=True)
     def total_energy(
         self, potential: "gp.AbstractPotential | None" = None, /
-    ) -> BtFloatQuSz0:
+    ) -> gt.BtFloatQuSz0:
         r"""Return the specific total energy.
 
         .. math::

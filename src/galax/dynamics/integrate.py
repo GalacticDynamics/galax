@@ -3,7 +3,7 @@
 __all__ = [
     "evaluate_orbit",
     "Integrator",
-    "Interpolant",
+    "PhaseSpaceInterpolation",
     "parse_time_specification",
     "InterpolatedPhaseSpaceCoordinate",
 ]
@@ -16,10 +16,10 @@ with install_import_hook("galax.dynamics.integrate", RUNTIME_TYPECHECKER):
     from ._src.dynamics import parse_time_specification
     from ._src.integrate import (
         Integrator,
-        Interpolant,
         InterpolatedPhaseSpaceCoordinate,
         evaluate_orbit,
     )
+    from ._src.orbit import PhaseSpaceInterpolation
 
 # Cleanup
 del install_import_hook, RUNTIME_TYPECHECKER

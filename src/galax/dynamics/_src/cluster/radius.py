@@ -122,7 +122,7 @@ def tidal_radius_hoerner1957(
 class King1962PointMass(AbstractTidalRadiusMethod):
     r"""Tidal radius from King (1962) with a point mass.
 
-    $$ r_t = R \\left(\frac{M_c}{(3+e)M_g}\right)^{1/3} $$
+    $$ r_t = R \left(\frac{M_c}{(3+e)M_g}\right)^{1/3} $$
 
     """
 
@@ -149,7 +149,7 @@ def tidal_radius_king1962_pointmass(
 ) -> gt.BBtRealQuSz0:
     r"""Calculate the tidal radius of a star cluster based on King (1962).
 
-    $$ r_t = R \left(\frac{M_c}{(3+e)M_g}\right)^{1/3} $$
+    $$ r_t = R_{peri} \left(\frac{M_c}{(3+e)M_g}\right)^{1/3} $$
 
     where $R$ is the cluster's galactocentric distance, $M_c$ is the cluster's
     mass, $M_g$ is the mass of the host galaxy enclosed at the distance $R$,

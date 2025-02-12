@@ -9,7 +9,7 @@ __all__ = [
     "plot",
     "cluster",
     # solve
-    "evaluate_orbit",
+    "evaluate_orbit",  # TODO: deprecate
     "Orbit",
     "AbstractSolver",
     "DynamicsSolver",
@@ -38,6 +38,7 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     from ._src.api import omega, specific_angular_momentum
     from ._src.cluster import lagrange_points, tidal_radius
     from ._src.orbit import Orbit
+    from .integrate import evaluate_orbit
     from .mockstream import (
         AbstractStreamDF,
         ChenStreamDF,
@@ -46,7 +47,7 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
         MockStreamArm,
         MockStreamGenerator,
     )
-    from .solve import AbstractSolver, DynamicsSolver, evaluate_orbit
+    from .solve import AbstractSolver, DynamicsSolver
 
     #
     # isort: split

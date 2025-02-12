@@ -11,19 +11,19 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
 from .api import L1L2LagrangePoints
 from .radius import tidal_radius_king1962
 
 
-# TODO: vec, space, coordinate, PSP I/O
 @dispatch
 @partial(jax.jit)
 def lagrange_points(
     potential: gp.AbstractPotential,
-    x: gt.LengthSz3,
-    v: gt.SpeedSz3,
+    x: gt.LengthSz3 | cx.vecs.AbstractPos3D,
+    v: gt.SpeedSz3 | cx.vecs.AbstractVel3D,
     /,
     *,
     mass: gt.MassSz0,
@@ -61,12 +61,61 @@ def lagrange_points(
     >>> lpts.l2
     Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc')
 
+    This also works with `coordinax` vectors:
+
+    >>> import coordinax as cx
+    >>> lpts2 = lagrange_points(
+    ...     pot, cx.CartesianPos3D.from_(x), cx.CartesianVel3D.from_(v), mass=mass, t=t
+    ... )
+    >>> lpts2.l1
+    Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc')
+    >>> lpts2.l2
+    Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc')
+
     """
     r_t = tidal_radius_king1962(potential, x, v, mass=mass, t=t)
     r_hat = cx.vecs.normalize_vector(x)
     l1 = x - r_hat * r_t  # close
     l2 = x + r_hat * r_t  # far
     return L1L2LagrangePoints(l1=l1, l2=l2)
+
+
+@dispatch
+def lagrange_points(
+    pot: gp.AbstractPotential,
+    space: cx.Space,
+    /,
+    *,
+    mass: gt.MassSz0,
+    t: gt.TimeSz0,
+) -> L1L2LagrangePoints:
+    """Compute the lagrange points of a cluster in a host potential."""
+    return lagrange_points(pot, space["length"], space["speed"], mass=mass, t=t)
+
+
+@dispatch
+def lagrange_points(
+    pot: gp.AbstractPotential,
+    coord: cx.frames.AbstractCoordinate,
+    /,
+    *,
+    mass: gt.MassSz0,
+    t: gt.TimeSz0,
+) -> L1L2LagrangePoints:
+    """Compute the lagrange points of a cluster in a host potential."""
+    return lagrange_points(pot, coord.data, mass=mass, t=t)
+
+
+@dispatch
+def lagrange_points(
+    pot: gp.AbstractPotential,
+    w: gc.AbstractPhaseSpaceCoordinate,
+    /,
+    *,
+    mass: gt.MassSz0,
+) -> L1L2LagrangePoints:
+    """Compute the lagrange points of a cluster in a host potential."""
+    return lagrange_points(pot, w.q, w.p, mass=mass, t=w.t.squeeze())
 
 
 @dispatch

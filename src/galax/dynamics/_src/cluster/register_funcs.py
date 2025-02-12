@@ -5,7 +5,7 @@ __all__: list[str] = []
 from functools import partial
 
 import jax
-from plum import dispatch
+from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -73,6 +73,8 @@ def lagrange_points(
     Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc')
 
     """
+    x = convert(x, u.Quantity)
+    v = convert(v, u.Quantity)
     r_t = tidal_radius_king1962(potential, x, v, mass=mass, t=t)
     r_hat = cx.vecs.normalize_vector(x)
     l1 = x - r_hat * r_t  # close

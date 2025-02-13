@@ -2,7 +2,7 @@
 
 __all__ = ["MockStreamArm"]
 
-from typing import Any, Protocol, cast, final, runtime_checkable
+from typing import Any, ClassVar, Protocol, cast, final, runtime_checkable
 
 import equinox as eqx
 from plum import dispatch
@@ -49,6 +49,9 @@ class MockStreamArm(gc.AbstractBasicPhaseSpaceCoordinate):
     frame: gc.frames.SimulationFrame  # TODO: support frames
     """The reference frame of the phase-space position."""
 
+    _GETITEM_DYNAMIC_FILTER_SPEC: ClassVar = (True, True, True, True, False)
+    _GETITEM_TIME_FILTER_SPEC: ClassVar = (False, False, True, True, False)
+
     # ==========================================================================
     # Array properties
 
@@ -93,8 +96,3 @@ def _psc_getitem_time_index(wt: MockStreamArm, index: Any) -> Any:
             msg = f"Index {index} has too many dimensions for time array of shape {wt.t.shape}"  # noqa: E501
             raise IndexError(msg)
     return index
-
-
-@dispatch
-def _psc_getitem_times_filter_spec(obj: MockStreamArm, /) -> Any:
-    return lambda x: (x is obj.t) or (x is obj.release_time)

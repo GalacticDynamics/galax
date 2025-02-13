@@ -5,7 +5,7 @@ __all__ = ["AbstractPhaseSpaceObject"]
 from abc import abstractmethod
 from functools import partial
 from textwrap import indent
-from typing import Any, Self, cast
+from typing import TYPE_CHECKING, Any, Self, cast
 
 import equinox as eqx
 import equinox.internal as eqxi
@@ -20,8 +20,13 @@ from dataclassish import field_items, replace
 from unxt.quantity import AbstractQuantity, BareQuantity as FastQ
 
 import galax.typing as gt
-from .utils import PSPVConvertOptions
+from .utils import SLICE_ALL, PSPVConvertOptions
 from galax.coordinates._src.frames import SimulationFrame
+
+if TYPE_CHECKING:
+    from typing import ClassVar as AbstractClassVar
+else:
+    from equinox import AbstractClassVar
 
 
 # TODO: make it strict=True
@@ -171,6 +176,8 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         # scalars shape 0, instead of raising an error
         return self.shape[0] if self.shape else 0
 
+    _GETITEM_DYNAMIC_FILTER_SPEC: AbstractClassVar[tuple[bool, ...]]
+
     @dispatch
     def __getitem__(
         self: "AbstractPhaseSpaceObject", index: Any
@@ -264,12 +271,30 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
             frame=SimulationFrame())
 
         """
-        # Empty selection w[()] should return the same object
+        # Fast path [()]
         if isinstance(index, tuple) and len(index) == 0:
             return self
+        # Fast path [slice(None)]
+        if isinstance(index, slice) and index == SLICE_ALL:
+            return self
+
+        # Flatten by one level and partition into dynamic and static
+        # where dynamic is q, p, ... and static is frame, ...
+        leaves, treedef = eqx.tree_flatten_one_level(self)
+        leaf_types = tuple(type(x) for x in leaves if x is not None)
+        is_leaf = lambda x: isinstance(x, leaf_types)  # noqa: E731
+        dynamic, static = eqx.partition(
+            leaves, list(self._GETITEM_DYNAMIC_FILTER_SPEC), is_leaf=is_leaf
+        )
+        # Apply the index to the dynamic part
+        dynamic = eqxi.ω(dynamic)[index].ω
+        # Re-combine the dynamic and static parts
+        leaves = eqx.combine(dynamic, static, is_leaf=is_leaf)
+        # Rebuild the object
+        w = jax.tree.unflatten(treedef, leaves)
 
         # The base assumption is to try to apply the index to all array fields
-        return cast("Self", eqxi.ω(self)[index].ω)
+        return cast("Self", w)
 
     # ==========================================================================
     # Python API

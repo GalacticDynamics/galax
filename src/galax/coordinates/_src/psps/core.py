@@ -4,7 +4,7 @@ __all__ = ["PhaseSpacePosition", "ComponentShapeTuple"]
 
 import warnings
 from dataclasses import KW_ONLY, replace
-from typing import Any, NamedTuple
+from typing import Any, ClassVar, NamedTuple
 from typing_extensions import override
 
 import equinox as eqx
@@ -134,6 +134,8 @@ class PhaseSpacePosition(AbstractPhaseSpaceObject):
         ),
     )
     """The reference frame of the phase-space position."""
+
+    _GETITEM_DYNAMIC_FILTER_SPEC: ClassVar = (True, True, False)  # q, p, frame
 
     # ==========================================================================
     # Coordinate API

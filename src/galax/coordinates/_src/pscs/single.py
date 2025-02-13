@@ -4,7 +4,7 @@ __all__ = ["PhaseSpaceCoordinate"]
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, final
+from typing import Any, ClassVar, final
 from typing_extensions import override
 
 import equinox as eqx
@@ -141,6 +141,9 @@ class PhaseSpaceCoordinate(AbstractBasicPhaseSpaceCoordinate):
         ),
     )
     """The reference frame of the phase-space position."""
+
+    _GETITEM_DYNAMIC_FILTER_SPEC: ClassVar = (True, True, True, False)
+    _GETITEM_TIME_FILTER_SPEC: ClassVar = (False, False, True, False)
 
     # ==========================================================================
     # Array properties

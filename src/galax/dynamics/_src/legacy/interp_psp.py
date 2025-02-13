@@ -3,7 +3,7 @@
 __all__ = ["InterpolatedPhaseSpaceCoordinate"]
 
 from dataclasses import KW_ONLY
-from typing import final
+from typing import ClassVar, final
 
 import diffrax as dfx
 import equinox as eqx
@@ -53,6 +53,9 @@ class InterpolatedPhaseSpaceCoordinate(gc.AbstractBasicPhaseSpaceCoordinate):
 
     frame: SimulationFrame  # TODO: support frames
     """The reference frame of the phase-space position."""
+
+    _GETITEM_DYNAMIC_FILTER_SPEC: ClassVar = (True, True, True, False, False)
+    _GETITEM_TIME_FILTER_SPEC: ClassVar = (False, False, True, False, False)
 
     def __call__(self, t: gt.BtFloatQuSz0) -> gc.PhaseSpaceCoordinate:
         """Call the interpolation."""

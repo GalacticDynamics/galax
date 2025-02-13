@@ -5,7 +5,7 @@ __all__ = ["AbstractCompositePhaseSpaceCoordinate"]
 from abc import abstractmethod
 from collections.abc import Hashable, Mapping
 from types import MappingProxyType
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import equinox as eqx
 from jaxtyping import Shaped
@@ -92,6 +92,9 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     """
 
     _data: dict[str, AbstractPhaseSpaceCoordinate]
+
+    _GETITEM_DYNAMIC_FILTER_SPEC: ClassVar = None  # TODO: use this in getitem
+    _GETITEM_TIME_FILTER_SPEC: ClassVar = None
 
     def __init__(
         self,

@@ -4,7 +4,7 @@ __all__ = ["AbstractPhaseSpaceCoordinate", "ComponentShapeTuple"]
 
 from abc import abstractmethod
 from functools import partial
-from typing import Any, NamedTuple, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 from typing_extensions import override
 
 import equinox as eqx
@@ -20,6 +20,12 @@ from unxt.quantity import BareQuantity as FastQ
 import galax.typing as gt
 from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.frames import SimulationFrame
+from galax.coordinates._src.utils import SLICE_ALL
+
+if TYPE_CHECKING:
+    from typing import ClassVar as AbstractClassVar
+else:
+    from equinox import AbstractClassVar
 
 
 class ComponentShapeTuple(NamedTuple):
@@ -82,6 +88,8 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
 
     frame: eqx.AbstractVar[SimulationFrame]  # TODO: support frames
     """The reference frame of the phase-space position."""
+
+    _GETITEM_TIME_FILTER_SPEC: AbstractClassVar[tuple[bool, ...]]
 
     # ==========================================================================
     # Coordinate API
@@ -319,14 +327,9 @@ def _psc_getitem_time_index(_: AbstractPhaseSpaceCoordinate, index: Any, /) -> A
     return index
 
 
-@dispatch
-def _psc_getitem_times_filter_spec(obj: AbstractPhaseSpaceCoordinate, /) -> Any:
-    return lambda x: x is obj.t
-
-
 @AbstractPhaseSpaceObject.__getitem__.dispatch  # type: ignore[attr-defined,misc]
 def getitem(
-    wt: AbstractPhaseSpaceCoordinate, index: Any, /
+    self: AbstractPhaseSpaceCoordinate, index: Any, /
 ) -> AbstractPhaseSpaceCoordinate:
     """Slice a PhaseSpaceCoordinate.
 
@@ -401,21 +404,33 @@ def getitem(
     """
     # Fast path [()]
     if isinstance(index, tuple) and len(index) == 0:
-        return wt
+        return self
+    # Fast path [slice(None)]
+    if isinstance(index, slice) and index == SLICE_ALL:
+        return self
 
-    # Partition time from the rest
-    ts, qp = eqx.partition(
-        wt, _psc_getitem_times_filter_spec(wt), is_leaf=u.quantity.is_any_quantity
+    # Flatten by one level and partition into dynamic and static
+    # where dynamic is q, p, ... and static is frame, ...
+    leaves, treedef = eqx.tree_flatten_one_level(self)
+    leaf_types = tuple(type(x) for x in leaves if x is not None)
+    is_leaf = lambda x: isinstance(x, leaf_types)  # noqa: E731
+    dynamic, static = eqx.partition(
+        leaves, list(self._GETITEM_DYNAMIC_FILTER_SPEC), is_leaf=is_leaf
     )
-    # Slice the position array fields (not the time)
+    # Split dynamic into time and qp
+    time, qp = eqx.partition(
+        dynamic, list(self._GETITEM_TIME_FILTER_SPEC), is_leaf=is_leaf
+    )
+    # Apply the index to the position fields (not the time)
     # TODO: restructure the index so that broadcasting of components is
     # unnecessary. E.g. (q (2), p () )[0] doesn't error.
+    # Apply the index to the dynamic part
     qp = eqxi.ω(qp)[index].ω
-    # Slice the time
-    tindex = _psc_getitem_time_index(wt, index)
-    ts = eqxi.ω(ts)[tindex].ω
-    # Recombine
-    return cast(
-        AbstractPhaseSpaceCoordinate,
-        eqx.combine(ts, qp, is_leaf=u.quantity.is_any_quantity),
-    )
+    # Make and apply the time index
+    tindex = _psc_getitem_time_index(self, index)
+    time = eqxi.ω(time)[tindex].ω
+    # Re-combine the leaves
+    leaves = eqx.combine(time, qp, static, is_leaf=is_leaf)
+    # Rebuild the object
+    w = jax.tree.unflatten(treedef, leaves)
+    return cast("AbstractPhaseSpaceCoordinate", w)

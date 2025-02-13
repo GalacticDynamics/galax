@@ -1,8 +1,8 @@
 """Utilities for phase-space coordinates. Private module."""
 
-__all__ = ["PSPVConvertOptions"]
+__all__ = ["PSPVConvertOptions", "SLICE_ALL"]
 
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, Final, TypeAlias
 
 import coordinax as cx
 
@@ -17,3 +17,6 @@ else:  # need runtime for jaxtyping
     PSPVConvertOptions: TypeAlias = dict[
         str, type[cx.vecs.AbstractPos] | type[cx.vecs.AbstractVel] | None
     ]
+
+
+SLICE_ALL: Final = slice(None)

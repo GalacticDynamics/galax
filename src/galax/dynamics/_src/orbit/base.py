@@ -4,7 +4,7 @@ __all__ = ["AbstractOrbit"]
 
 from dataclasses import KW_ONLY, replace
 from functools import partial
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 import equinox as eqx
 import jax
@@ -44,6 +44,9 @@ class AbstractOrbit(gc.AbstractBasicPhaseSpaceCoordinate):
 
     #: The interpolant of the orbit.
     interpolant: eqx.AbstractVar[gc.PhaseSpaceObjectInterpolant | None]
+
+    _GETITEM_DYNAMIC_FILTER_SPEC: ClassVar = (True, True, True, False, False, False)
+    _GETITEM_TIME_FILTER_SPEC: ClassVar = (False, False, True, False, False, False)
 
     # -------------------------------------------------------------------------
 
@@ -281,44 +284,7 @@ def _psc_getitem_time_index(
     return Ellipsis if index.ndim < orbit.ndim else index
 
 
-is_none = lambda x: x is None  # noqa: E731
-
-
-# TODO: merge with getitem in gc._src.pscs.base.
-@gc.AbstractPhaseSpaceObject.__getitem__.dispatch
-def getitem(orbit: AbstractOrbit, index: Any, /) -> AbstractOrbit:
-    # Fast path [()]
-    if isinstance(index, tuple) and len(index) == 0:
-        return orbit
-
-    # TODO: figure out how to partition out frame, potential, interpolation
-    # instead of laborious tree_at
-    frame, pot, interp = orbit.frame, orbit.potential, orbit.interpolant
-    wt = eqx.tree_at(lambda x: x.frame, orbit, None)
-    wt = eqx.tree_at(lambda x: x.potential, wt, None)
-    wt = eqx.tree_at(
-        lambda x: x.interpolant,
-        wt,
-        None,
-        is_leaf=lambda x: isinstance(x, type(wt.interpolant)),
-    )
-
-    # Get base `__getitem__` method
-    func = gc.AbstractPhaseSpaceObject.__getitem__.invoke(
-        gc.AbstractPhaseSpaceCoordinate, Any
-    )
-    wt = func(wt, index)
-
-    # Re-add frame, potential, interpolant.
-    # TODO: use combine
-    orbit = eqx.tree_at(lambda x: x.frame, wt, frame, is_leaf=is_none)
-    orbit = eqx.tree_at(lambda x: x.potential, orbit, pot, is_leaf=is_none)
-    orbit = eqx.tree_at(lambda x: x.interpolant, orbit, interp, is_leaf=is_none)
-
-    return cast(AbstractOrbit, orbit)
-
-
-@gc.AbstractPhaseSpaceObject.__getitem__.dispatch
+@gc.AbstractPhaseSpaceObject.__getitem__.dispatch  # type: ignore[attr-defined,misc]
 def getitem(self: AbstractOrbit, index: int) -> gc.PhaseSpaceCoordinate:
     """Get the orbit at a specific time.
 

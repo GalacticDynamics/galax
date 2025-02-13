@@ -109,21 +109,26 @@ def convert_potential(
 PT = TypeVar("PT", bound=gp.AbstractPotential)
 
 
-def _get_frame(pot: galap.PotentialBase, /) -> cx.ops.AbstractOperator:
-    """Convert a Gala frame to a Galax frame."""
-    frame = cx.ops.GalileanSpatialTranslation(
+def _get_xop(pot: galap.PotentialBase, /) -> cx.ops.AbstractOperator:
+    """Convert a Gala transformation to a Galax transformation."""
+    xop = cx.ops.GalileanSpatialTranslation(
         u.Quantity(pot.origin, unit=pot.units["length"])
     )
     if pot.R is not None:
-        frame = cx.ops.GalileanRotation(pot.R) | frame
-    return cx.ops.simplify_op(frame)
+        xop = cx.ops.GalileanRotation(pot.R) | xop
+    return cx.ops.simplify_op(xop)
 
 
-def _apply_frame(frame: cx.ops.AbstractOperator, pot: PT, /) -> PT | gp.PotentialFrame:
-    """Apply a Galax frame to a potential."""
-    # A framed Galax potential never simplifies to a frameless potential. This
-    # function applies a frame if it is not the identity operator.
-    return pot if isinstance(frame, cx.ops.Identity) else gp.PotentialFrame(pot, frame)
+def _apply_xop(
+    xop: cx.ops.AbstractOperator, pot: PT, /
+) -> PT | gp.TransformedPotential:
+    """Apply a Galax transformation to a potential."""
+    # A transformed Galax potential never simplifies to an untransformed
+    # potential. This function applies a transformation if it is not the
+    # identity operator.
+    return (
+        pot if isinstance(xop, cx.ops.Identity) else gp.TransformedPotential(pot, xop)
+    )
 
 
 def _galax_to_gala_units(units: AbstractUnitSystem, /) -> GalaUnitSystem:
@@ -269,7 +274,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
     @dispatch
     def gala_to_galax(
         gala: galap.BurkertPotential, /
-    ) -> gp.BurkertPotential | gp.PotentialFrame:
+    ) -> gp.BurkertPotential | gp.TransformedPotential:
         """Convert a `gala.potential.BurkertPotential` to a galax.potential.BurkertPotential.
 
         Examples
@@ -302,7 +307,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         pot = gp.BurkertPotential.from_central_density(
             rho_0=params["rho"], r_s=params["r0"], units=gala.units
         )
-        return _apply_frame(_get_frame(gala), pot)
+        return _apply_xop(_get_xop(gala), pot)
 
     @dispatch
     def galax_to_gala(pot: gp.BurkertPotential, /) -> galap.BurkertPotential:
@@ -343,7 +348,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 @dispatch
 def gala_to_galax(
     gala: galap.HarmonicOscillatorPotential, /
-) -> gp.HarmonicOscillatorPotential | gp.PotentialFrame:
+) -> gp.HarmonicOscillatorPotential | gp.TransformedPotential:
     r"""Convert a `gala.potential.HarmonicOscillatorPotential` to a `galax.potential.HarmonicOscillatorPotential`.
 
     Examples
@@ -365,7 +370,7 @@ def gala_to_galax(
     pot = gp.HarmonicOscillatorPotential(
         omega=params["omega"], units=_check_gala_units(gala.units)
     )
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -399,7 +404,7 @@ def galax_to_gala(
 @dispatch
 def gala_to_galax(
     gala: galap.HernquistPotential, /
-) -> gp.HernquistPotential | gp.PotentialFrame:
+) -> gp.HernquistPotential | gp.TransformedPotential:
     r"""Convert a `gala.potential.HernquistPotential` to a `galax.potential.HernquistPotential`.
 
     Examples
@@ -421,7 +426,7 @@ def gala_to_galax(
     pot = gp.HernquistPotential(
         m_tot=params["m"], r_s=params["c"], units=_check_gala_units(gala.units)
     )
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -454,7 +459,7 @@ def galax_to_gala(pot: gp.HernquistPotential, /) -> galap.HernquistPotential:
 @dispatch
 def gala_to_galax(
     gala: galap.IsochronePotential, /
-) -> gp.IsochronePotential | gp.PotentialFrame:
+) -> gp.IsochronePotential | gp.TransformedPotential:
     """Convert a `gala.potential.IsochronePotential` to a `galax.potential.IsochronePotential`.
 
     Examples
@@ -476,7 +481,7 @@ def gala_to_galax(
     params["m_tot"] = params.pop("m")
 
     pot = gp.IsochronePotential(**params, units=_check_gala_units(gala.units))
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -512,7 +517,7 @@ def galax_to_gala(pot: gp.IsochronePotential, /) -> galap.IsochronePotential:
 @dispatch
 def gala_to_galax(
     gala: galap.JaffePotential, /
-) -> gp.JaffePotential | gp.PotentialFrame:
+) -> gp.JaffePotential | gp.TransformedPotential:
     """Convert a Gala JaffePotential to a Galax potential.
 
     Examples
@@ -534,7 +539,7 @@ def gala_to_galax(
     pot = gp.JaffePotential(
         m=params["m"], r_s=params["c"], units=_check_gala_units(gala.units)
     )
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -567,7 +572,7 @@ def galax_to_gala(pot: gp.JaffePotential, /) -> galap.JaffePotential:
 @dispatch
 def gala_to_galax(
     gala: galap.KeplerPotential, /
-) -> gp.KeplerPotential | gp.PotentialFrame:
+) -> gp.KeplerPotential | gp.TransformedPotential:
     """Convert a `gala.potential.KeplerPotential` to a `galax.potential.KeplerPotential`.
 
     Examples
@@ -587,7 +592,7 @@ def gala_to_galax(
     params["m_tot"] = params.pop("m")
 
     pot = gp.KeplerPotential(**params, units=_check_gala_units(gala.units))
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -623,7 +628,7 @@ def galax_to_gala(pot: gp.KeplerPotential, /) -> galap.KeplerPotential:
 @dispatch
 def gala_to_galax(
     gala: galap.KuzminPotential, /
-) -> gp.KuzminPotential | gp.PotentialFrame:
+) -> gp.KuzminPotential | gp.TransformedPotential:
     """Convert a `gala.potential.KuzminPotential` to a `galax.potential.KuzminPotential`.
 
     Examples
@@ -646,7 +651,7 @@ def gala_to_galax(
     params["m_tot"] = params.pop("m")
 
     pot = gp.KuzminPotential(**params, units=_check_gala_units(gala.units))
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -682,7 +687,7 @@ def galax_to_gala(pot: gp.KuzminPotential, /) -> galap.KuzminPotential:
 @dispatch
 def gala_to_galax(
     gala: galap.LongMuraliBarPotential, /
-) -> gp.LongMuraliBarPotential | gp.PotentialFrame:
+) -> gp.LongMuraliBarPotential | gp.TransformedPotential:
     """Convert a Gala LongMuraliBarPotential to a Galax potential.
 
     Examples
@@ -712,7 +717,7 @@ def gala_to_galax(
         alpha=params["alpha"],
         units=gala.units,
     )
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -755,7 +760,7 @@ def galax_to_gala(pot: gp.LongMuraliBarPotential, /) -> galap.LongMuraliBarPoten
 @dispatch
 def gala_to_galax(
     gala: galap.MiyamotoNagaiPotential, /
-) -> gp.MiyamotoNagaiPotential | gp.PotentialFrame:
+) -> gp.MiyamotoNagaiPotential | gp.TransformedPotential:
     """Convert a `gala.potential.MiyamotoNagaiPotential` to a `galax.potential.MiyamotoNagaiPotential`.
 
     Examples
@@ -779,7 +784,7 @@ def gala_to_galax(
     params["m_tot"] = params.pop("m")
 
     pot = gp.MiyamotoNagaiPotential(**params, units=_check_gala_units(gala.units))
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -815,7 +820,7 @@ def galax_to_gala(pot: gp.MiyamotoNagaiPotential, /) -> galap.MiyamotoNagaiPoten
 @dispatch
 def gala_to_galax(
     gala: galap.MN3ExponentialDiskPotential, /
-) -> gp.MN3ExponentialPotential | gp.MN3Sech2Potential | gp.PotentialFrame:
+) -> gp.MN3ExponentialPotential | gp.MN3Sech2Potential | gp.TransformedPotential:
     """Convert a `gala.potential.MN3ExponentialDiskPotential` to a `galax.potential.MN3ExponentialPotential` or `galax.potential.MN3Sech2Potential`.
 
     Examples
@@ -843,7 +848,7 @@ def gala_to_galax(
     cls = gp.MN3Sech2Potential if gala.sech2_z else gp.MN3ExponentialPotential
 
     pot = cls(**params, units=_check_gala_units(gala.units))
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -929,7 +934,7 @@ def galax_to_gala(pot: gp.NullPotential, /) -> galap.NullPotential:
 @dispatch
 def gala_to_galax(
     gala: galap.PlummerPotential, /
-) -> gp.PlummerPotential | gp.PotentialFrame:
+) -> gp.PlummerPotential | gp.TransformedPotential:
     """Convert a `gala.potential.PlummerPotential` to a `galax.potential.PlummerPotential`.
 
     Examples
@@ -952,7 +957,7 @@ def gala_to_galax(
     params["m_tot"] = params.pop("m")
 
     pot = gp.PlummerPotential(**params, units=_check_gala_units(gala.units))
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -987,7 +992,7 @@ def galax_to_gala(pot: gp.PlummerPotential, /) -> galap.PlummerPotential:
 @dispatch
 def gala_to_galax(
     gala: galap.PowerLawCutoffPotential, /
-) -> gp.PowerLawCutoffPotential | gp.PotentialFrame:
+) -> gp.PowerLawCutoffPotential | gp.TransformedPotential:
     """Convert a `gala.potential.PowerLawCutoffPotential` to a `galax.potential.PowerLawCutoffPotential`.
 
     Examples
@@ -1019,7 +1024,7 @@ def gala_to_galax(
     params["m_tot"] = params.pop("m")
 
     pot = gp.PowerLawCutoffPotential(**params, units=_check_gala_units(gala.units))
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -1064,7 +1069,7 @@ def galax_to_gala(pot: gp.PowerLawCutoffPotential, /) -> galap.PowerLawCutoffPot
 @dispatch
 def gala_to_galax(
     gala: galap.SatohPotential, /
-) -> gp.SatohPotential | gp.PotentialFrame:
+) -> gp.SatohPotential | gp.TransformedPotential:
     """Convert a Gala SatohPotential to a Galax potential.
 
     Examples
@@ -1087,7 +1092,7 @@ def gala_to_galax(
     pot = gp.SatohPotential(
         m_tot=params["m"], a=params["a"], b=params["b"], units=gala.units
     )
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -1121,7 +1126,7 @@ def galax_to_gala(pot: gp.SatohPotential, /) -> galap.SatohPotential:
 @dispatch
 def gala_to_galax(
     gala: galap.StonePotential, /
-) -> gp.StoneOstriker15Potential | gp.PotentialFrame:
+) -> gp.StoneOstriker15Potential | gp.TransformedPotential:
     """Convert a `gala.potential.StonePotential` to a `galax.potential.StoneOstriker15Potential`.
 
     Examples
@@ -1144,7 +1149,7 @@ def gala_to_galax(
     pot = gp.StoneOstriker15Potential(
         m_tot=params["m"], r_c=params["r_c"], r_h=params["r_h"], units=gala.units
     )
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -1178,14 +1183,14 @@ def galax_to_gala(pot: gp.StoneOstriker15Potential, /) -> galap.StonePotential:
 @dispatch
 def gala_to_galax(
     gala: galap.LogarithmicPotential, /
-) -> gp.LogarithmicPotential | gp.LMJ09LogarithmicPotential | gp.PotentialFrame:
+) -> gp.LogarithmicPotential | gp.LMJ09LogarithmicPotential | gp.TransformedPotential:
     """Convert a Gala LogarithmicPotential to a Galax potential.
 
     If the flattening or rotation 'phi' is non-zero, the potential is a
     :class:`galax.potential.LMJ09LogarithmicPotential` (or
-    :class:`galax.potential.PotentialFrame` wrapper thereof). Otherwise, it is a
+    :class:`galax.potential.TransformedPotential` wrapper thereof). Otherwise, it is a
     :class:`galax.potential.LogarithmicPotential` (or
-    :class:`galax.potential.PotentialFrame` wrapper thereof).
+    :class:`galax.potential.TransformedPotential` wrapper thereof).
 
     Examples
     --------
@@ -1224,7 +1229,7 @@ def gala_to_galax(
             v_c=params["v_c"], r_s=params["r_h"], units=gala.units
         )
 
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -1290,7 +1295,7 @@ def galax_to_gala(pot: gp.LMJ09LogarithmicPotential, /) -> galap.LogarithmicPote
 @dispatch
 def gala_to_galax(
     gala: galap.MultipolePotential, /
-) -> gp.MultipoleInnerPotential | gp.MultipoleOuterPotential | gp.PotentialFrame:
+) -> gp.MultipoleInnerPotential | gp.MultipoleOuterPotential | gp.TransformedPotential:
     params = gala.parameters
     cls = (
         gp.MultipoleInnerPotential
@@ -1319,7 +1324,7 @@ def gala_to_galax(
         Tlm=Tlm,
         units=gala.units,
     )
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch.multi((gp.MultipoleInnerPotential,), (gp.MultipoleOuterPotential,))
@@ -1352,7 +1357,9 @@ def galax_to_gala(
 
 
 @dispatch
-def gala_to_galax(gala: galap.NFWPotential, /) -> gp.NFWPotential | gp.PotentialFrame:
+def gala_to_galax(
+    gala: galap.NFWPotential, /
+) -> gp.NFWPotential | gp.TransformedPotential:
     """Convert a Gala NFWPotential to a Galax potential.
 
     Examples
@@ -1373,7 +1380,7 @@ def gala_to_galax(gala: galap.NFWPotential, /) -> gp.NFWPotential | gp.Potential
     """
     params = gala.parameters
     pot = gp.NFWPotential(m=params["m"], r_s=params["r_s"], units=gala.units)
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch
@@ -1422,7 +1429,9 @@ def gala_to_galax(
 
 
 @dispatch
-def gala_to_galax(gala: galap.NFWPotential, /) -> gp.NFWPotential | gp.PotentialFrame:
+def gala_to_galax(
+    gala: galap.NFWPotential, /
+) -> gp.NFWPotential | gp.TransformedPotential:
     """Convert a Gala NFWPotential to a Galax potential.
 
     Examples
@@ -1445,7 +1454,7 @@ def gala_to_galax(gala: galap.NFWPotential, /) -> gp.NFWPotential | gp.Potential
     pot = gp.NFWPotential(
         m=params["m"], r_s=params["r_s"], units=_check_gala_units(gala.units)
     )
-    return _apply_frame(_get_frame(gala), pot)
+    return _apply_xop(_get_xop(gala), pot)
 
 
 @dispatch

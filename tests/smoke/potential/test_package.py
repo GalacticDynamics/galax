@@ -6,8 +6,8 @@ from galax.potential._src import (
     base_single,
     builtin,
     composite,
-    frame,
     params,
+    xfm,
 )
 
 
@@ -24,6 +24,6 @@ def test_all() -> None:
         *builtin.__all__,
         *composite.__all__,
         *params.__all__,
-        *frame.__all__,
+        *xfm.__all__,
         *api.__all__,
     }

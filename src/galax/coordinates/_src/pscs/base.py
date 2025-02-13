@@ -4,12 +4,13 @@ __all__ = ["AbstractPhaseSpaceCoordinate", "ComponentShapeTuple"]
 
 from abc import abstractmethod
 from functools import partial
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 from typing_extensions import override
 
 import equinox as eqx
+import equinox.internal as eqxi
 import jax
-from plum import convert
+from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -303,3 +304,118 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         from galax.dynamics import specific_angular_momentum
 
         return specific_angular_momentum(self)
+
+
+#####################################################################
+# Dispatches
+
+# ===============================================================
+# `__getitem__`
+
+
+@dispatch
+def _psc_getitem_time_index(_: AbstractPhaseSpaceCoordinate, index: Any, /) -> Any:
+    """Return the time index slicer. Default is to return as-is."""
+    return index
+
+
+@dispatch
+def _psc_getitem_times_filter_spec(obj: AbstractPhaseSpaceCoordinate, /) -> Any:
+    return lambda x: x is obj.t
+
+
+@AbstractPhaseSpaceObject.__getitem__.dispatch  # type: ignore[attr-defined,misc]
+def getitem(
+    wt: AbstractPhaseSpaceCoordinate, index: Any, /
+) -> AbstractPhaseSpaceCoordinate:
+    """Slice a PhaseSpaceCoordinate.
+
+    The coordinate is partitioned into ``t``, ``qp`` -- separating the time from
+    the rest. The index is applied to ``qp``. A separate time index is made
+    given the coordinate and original index, then applied to ``t``. The whole
+    thing is re-combined.
+
+    Examples
+    --------
+    >>> from dataclasses import replace
+    >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
+
+    >>> q = u.Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
+    >>> p = u.Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
+    >>> t = u.Quantity(0, "Gyr")
+
+    ## PhaseSpaceCoordinate
+
+    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
+
+    - `tuple`:
+
+    >>> w[()] is w
+    True
+
+    >>> w[0, 1].q.x, w[0, 1].t
+    (Quantity['length'](Array(4, dtype=int64), unit='m'),
+     Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'))
+
+    >>> w[0, 1].q.x, w[0, 1].t
+    (Quantity['length'](Array(4, dtype=int64), unit='m'),
+     Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'))
+
+    >>> w = replace(w, t=u.Quantity([0], "Myr"))
+    >>> w[0, 1].q.x, w[0, 1].t
+    (Quantity['length'](Array(4, dtype=int64), unit='m'),
+     Quantity['time'](Array(0, dtype=int64), unit='Myr'))
+
+    >>> w = replace(w, t=u.Quantity([[[0],[1]]], "Myr"))
+    >>> w[0, :].t
+    Quantity['time'](Array([[0], [1]], dtype=int64), unit='Myr')
+
+    - `slice` | `int`:
+
+    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
+    >>> w[0].shape
+    (2,)
+    >>> w[0].t
+    Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr')
+
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3]], "m"),
+    ...                             p=u.Quantity([[4, 5, 6]], "m/s"),
+    ...                             t=u.Quantity([7], "s"))
+    >>> w[0].q.shape
+    ()
+    >>> w[0].t
+    Quantity['time'](Array(7, dtype=int64), unit='s')
+
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[[1, 2, 3], [1, 2, 3]]], "m"),
+    ...                             p=u.Quantity([[[4, 5, 6], [4, 5, 6]]], "m/s"),
+    ...                             t=u.Quantity([[7]], "s"))
+    >>> w[0].q.shape
+    (2,)
+    >>> w[0].t
+    Quantity['time'](Array([7], dtype=int64), unit='s')
+
+    ## Orbit:
+
+    """
+    # Fast path [()]
+    if isinstance(index, tuple) and len(index) == 0:
+        return wt
+
+    # Partition time from the rest
+    ts, qp = eqx.partition(
+        wt, _psc_getitem_times_filter_spec(wt), is_leaf=u.quantity.is_any_quantity
+    )
+    # Slice the position array fields (not the time)
+    # TODO: restructure the index so that broadcasting of components is
+    # unnecessary. E.g. (q (2), p () )[0] doesn't error.
+    qp = eqxi.ω(qp)[index].ω
+    # Slice the time
+    tindex = _psc_getitem_time_index(wt, index)
+    ts = eqxi.ω(ts)[tindex].ω
+    # Recombine
+    return cast(
+        AbstractPhaseSpaceCoordinate,
+        eqx.combine(ts, qp, is_leaf=u.quantity.is_any_quantity),
+    )

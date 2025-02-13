@@ -6,5 +6,6 @@ This is private API.
 
 __all__ = ["MockStreamGenerator", "MockStreamArm", "MockStream"]
 
-from .core import MockStream, MockStreamArm
+from .arm import MockStreamArm
+from .core import MockStream
 from .mockstream_generator import MockStreamGenerator

@@ -3,13 +3,12 @@
 __all__: list[str] = []
 
 from functools import partial
-from typing import TypeVar, cast
+from typing import Any, TypeVar, cast
 
 import jax
+import optype as op
 from jaxtyping import Array, Bool
 from quax import quaxify
-
-from galax.utils._types import SupportsGetItem
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
@@ -20,7 +19,7 @@ def _identity(x: T) -> T:
 
 
 @partial(quaxify)  # TODO: move this `quaxify` up the function call stack
-def _reverse(x: SupportsGetItem[T]) -> T:
+def _reverse(x: op.CanGetitem[Any, T]) -> T:
     return x[::-1]
 
 

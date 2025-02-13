@@ -18,7 +18,7 @@ import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
 from .progenitor import ConstantMassProtenitor, ProgenitorMassCallable
-from galax.dynamics._src.mockstream.core import MockStreamArm
+from galax.dynamics._src.mockstream.arm import MockStreamArm
 from galax.dynamics._src.orbit import Orbit
 
 Carry: TypeAlias = tuple[gt.LengthSz3, gt.SpeedSz3, gt.LengthSz3, gt.SpeedSz3]

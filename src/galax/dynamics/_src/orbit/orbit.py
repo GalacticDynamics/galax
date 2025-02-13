@@ -2,14 +2,15 @@
 
 __all__ = ["Orbit"]
 
-from dataclasses import KW_ONLY, replace
+from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import equinox as eqx
 import jax
 from jaxtyping import Array, Bool, Int
 from numpy import ndarray
+from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -157,143 +158,6 @@ class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         return batch_shape, gc.ComponentShapeTuple(q=qshape, p=pshape, t=1)
 
-    # -------------------------------------------------------------------------
-    # Getitem
-
-    @gc.AbstractPhaseSpaceObject.__getitem__.dispatch
-    def __getitem__(self: "Orbit", index: tuple[Any, ...]) -> "Orbit":
-        """Get a multi-index selection of the orbit.
-
-        Examples
-        --------
-        >>> import quaxed.numpy as jnp
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-        >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
-
-        >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-        >>> w0 = gc.PhaseSpaceCoordinate(
-        ...     q=u.Quantity([8., 0., 0.], "kpc"),
-        ...     p=u.Quantity([0., 230, 0.], "km/s"),
-        ...     t=u.Quantity(0, "Myr"))
-        >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")
-        >>> orbit = gd.evaluate_orbit(pot, w0, ts)
-
-        >>> orbit[()] is orbit
-        True
-
-        >>> orbit[(slice(None),)]
-        Orbit(
-          q=CartesianPos3D(
-            x=Quantity[...](value=f64[10], unit=Unit("kpc")),
-            ... ),
-          p=CartesianVel3D(
-            x=Quantity[...]( value=f64[10], unit=Unit("kpc / Myr") ),
-            ... ),
-          t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
-          frame=SimulationFrame(),
-          potential=KeplerPotential( ... ),
-          interpolant=None
-        )
-
-        """
-        # Empty selection w[()] should return the same object
-        if len(index) == 0:
-            return self
-
-        # Handle the time index, subselecting the time component of the index
-        # if the time component is a vector.
-        tindex = index[-1] if (self.t.ndim == 1 and len(index) == self.ndim) else index
-
-        return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
-
-    @gc.AbstractPhaseSpaceObject.__getitem__.dispatch
-    def __getitem__(self: "Orbit", index: slice) -> "Orbit":
-        """Slice the orbit.
-
-        Examples
-        --------
-        >>> import quaxed.numpy as jnp
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-        >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
-
-        >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-        >>> w0 = gc.PhaseSpaceCoordinate(
-        ...     q=u.Quantity([8., 0., 0.], "kpc"),
-        ...     p=u.Quantity([0., 230, 0.], "km/s"),
-        ...     t=u.Quantity(0, "Myr"))
-        >>> ts = u.Quantity(jnp.linspace(0, 1, 11), "Gyr")
-        >>> orbit = gd.evaluate_orbit(pot, w0, ts)
-
-        >>> orbit[0:2]
-        Orbit(
-          q=CartesianPos3D(
-            x=Quantity[...](value=f64[2], unit=Unit("kpc")),
-            ...
-          ),
-          p=CartesianVel3D(
-            x=Quantity[...]( value=f64[2], unit=Unit("kpc / Myr") ),
-            ...
-          ),
-          t=Quantity['time'](Array([  0., 100.], dtype=float64), unit='Myr'),
-          frame=SimulationFrame(),
-          potential=KeplerPotential( ... ),
-          interpolant=None
-        )
-
-        """
-        # The index only applies to the time component if the slice reaches
-        # the last axis, which is the time axis. Otherwise, the slice applies
-        # to all components.
-        tindex = index if self.ndim == 1 else Ellipsis
-
-        return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
-
-    @gc.AbstractPhaseSpaceObject.__getitem__.dispatch
-    def __getitem__(self: "Orbit", index: int) -> gc.PhaseSpaceCoordinate:
-        """Get the orbit at a specific time.
-
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-        >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
-
-        >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-        >>> w0 = gc.PhaseSpaceCoordinate(
-        ...     q=u.Quantity([8., 0., 0.], "kpc"),
-        ...     p=u.Quantity([0., 230, 0.], "km/s"),
-        ...     t=u.Quantity(0, "Myr"))
-        >>> ts = u.Quantity([0., 1.], "Gyr")
-        >>> orbit = gd.evaluate_orbit(pot, w0, ts)
-
-        >>> orbit[0]
-        PhaseSpaceCoordinate(
-          q=CartesianPos3D( ... ),
-          p=CartesianVel3D( ... ),
-          t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
-          frame=SimulationFrame()
-        )
-        >>> orbit[0].t
-        Quantity['time'](Array(0., dtype=float64), unit='Myr')
-
-        """
-        return gc.PhaseSpaceCoordinate(
-            q=self.q[index], p=self.p[index], t=self.t[index]
-        )
-
-    @gc.AbstractPhaseSpaceObject.__getitem__.dispatch
-    def __getitem__(
-        self: "Orbit", index: Int[Array, "..."] | Bool[Array, "..."] | ndarray
-    ) -> "Orbit":
-        """Get the orbit at specific indices."""
-        tindex = Ellipsis if index.ndim < self.ndim else index
-        return replace(self, q=self.q[index], p=self.p[index], t=self.t[tindex])
-
     # ==========================================================================
     # Dynamical quantities
 
@@ -349,3 +213,214 @@ class Orbit(gc.AbstractBasicPhaseSpaceCoordinate):
 
 
 ProxyOrbit.deliver(Orbit)
+
+
+#####################################################################
+
+# =========================================================
+# `__getitem__`
+
+
+@dispatch
+def _psc_getitem_time_index(orbit: Orbit, index: tuple[Any, ...], /) -> Any:
+    """Return the time index slicer. Default is to return as-is.
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> w0 = gc.PhaseSpaceCoordinate(
+    ...     q=u.Quantity([8., 0., 0.], "kpc"),
+    ...     p=u.Quantity([0., 230, 0.], "km/s"),
+    ...     t=u.Quantity(0, "Myr"))
+    >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")
+    >>> orbit = gd.evaluate_orbit(pot, w0, ts)
+
+    >>> orbit[()] is orbit
+    True
+
+    >>> orbit[(slice(None),)]
+    Orbit(
+        q=CartesianPos3D(
+        x=Quantity[...](value=f64[10], unit=Unit("kpc")),
+        ... ),
+        p=CartesianVel3D(
+        x=Quantity[...]( value=f64[10], unit=Unit("kpc / Myr") ),
+        ... ),
+        t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+        frame=SimulationFrame(),
+        potential=KeplerPotential( ... ),
+        interpolant=None
+    )
+
+    """
+    # Handle the time index, subselecting the time component of the index
+    # if the time component is a vector.
+    return index[-1] if (orbit.t.ndim == 1 and len(index) == orbit.ndim) else index
+
+
+@dispatch
+def _psc_getitem_time_index(orbit: Orbit, index: slice, /) -> Any:
+    """Slice the orbit.
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> w0 = gc.PhaseSpaceCoordinate(
+    ...     q=u.Quantity([8., 0., 0.], "kpc"),
+    ...     p=u.Quantity([0., 230, 0.], "km/s"),
+    ...     t=u.Quantity(0, "Myr"))
+    >>> ts = u.Quantity(jnp.linspace(0, 1, 11), "Gyr")
+    >>> orbit = gd.evaluate_orbit(pot, w0, ts)
+
+    >>> orbit[0:2]
+    Orbit(
+        q=CartesianPos3D(
+        x=Quantity[...](value=f64[2], unit=Unit("kpc")),
+        ...
+        ),
+        p=CartesianVel3D(
+        x=Quantity[...]( value=f64[2], unit=Unit("kpc / Myr") ),
+        ...
+        ),
+        t=Quantity['time'](Array([  0., 100.], dtype=float64), unit='Myr'),
+        frame=SimulationFrame(),
+        potential=KeplerPotential( ... ),
+        interpolant=None
+    )
+
+    """
+    # The index only applies to the time component if the slice reaches
+    # the last axis, which is the time axis. Otherwise, the slice applies
+    # to all components.
+    return index if orbit.ndim == 1 else Ellipsis
+
+
+@dispatch
+def _psc_getitem_time_index(
+    orbit: Orbit, index: Int[Array, "..."] | Bool[Array, "..."] | ndarray, /
+) -> Any:
+    """Get the orbit at specific indices.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot=gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> orbit = gd.Orbit(
+    ...     q=u.Quantity([[0, 1, 2]], "kpc"), p=u.Quantity([[4, 5, 6]], "km/s"),
+    ...     t=u.Quantity(0, "Gyr"), potential=pot,
+    ...     frame=gc.frames.SimulationFrame())
+    >>> print(orbit)
+    Orbit(
+        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            [[0 1 2]]>,
+        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+            [[4 5 6]]>,
+        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+        ...)
+    >>> orbit.ndim
+    1
+
+    When index.ndim < orbit.ndim:
+
+    >>> print(orbit[jnp.array(0)])
+    Orbit(
+        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            [0 1 2]>,
+        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+            [4 5 6]>,
+        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+        ...)
+
+    Otherwise:
+
+    TODO: something broken when index.ndim >= orbit.ndim.
+
+    """
+    return Ellipsis if index.ndim < orbit.ndim else index
+
+
+is_none = lambda x: x is None  # noqa: E731
+
+
+# TODO: merge with getitem in gc._src.pscs.base.
+@gc.AbstractPhaseSpaceObject.__getitem__.dispatch
+def getitem(orbit: Orbit, index: Any, /) -> Orbit:
+    # Fast path [()]
+    if isinstance(index, tuple) and len(index) == 0:
+        return orbit
+
+    # TODO: figure out how to partition out frame, potential, interpolation
+    # instead of laborious tree_at
+    frame, pot, interp = orbit.frame, orbit.potential, orbit.interpolant
+    wt = eqx.tree_at(lambda x: x.frame, orbit, None)
+    wt = eqx.tree_at(lambda x: x.potential, wt, None)
+    wt = eqx.tree_at(
+        lambda x: x.interpolant,
+        wt,
+        None,
+        is_leaf=lambda x: isinstance(x, type(wt.interpolant)),
+    )
+
+    # Get base `__getitem__` method
+    func = gc.AbstractPhaseSpaceObject.__getitem__.invoke(
+        gc.AbstractPhaseSpaceCoordinate, Any
+    )
+    wt = func(wt, index)
+
+    # Re-add frame, potential, interpolant.
+    # TODO: use combine
+    orbit = eqx.tree_at(lambda x: x.frame, wt, frame, is_leaf=is_none)
+    orbit = eqx.tree_at(lambda x: x.potential, orbit, pot, is_leaf=is_none)
+    orbit = eqx.tree_at(lambda x: x.interpolant, orbit, interp, is_leaf=is_none)
+
+    return cast(Orbit, orbit)
+
+
+@gc.AbstractPhaseSpaceObject.__getitem__.dispatch
+def getitem(self: Orbit, index: int) -> gc.PhaseSpaceCoordinate:
+    """Get the orbit at a specific time.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> w0 = gc.PhaseSpaceCoordinate(
+    ...     q=u.Quantity([8., 0., 0.], "kpc"),
+    ...     p=u.Quantity([0., 230, 0.], "km/s"),
+    ...     t=u.Quantity(0, "Myr"))
+    >>> ts = u.Quantity([0., 1.], "Gyr")
+    >>> orbit = gd.evaluate_orbit(pot, w0, ts)
+
+    >>> orbit[0]
+    PhaseSpaceCoordinate(
+        q=CartesianPos3D( ... ),
+        p=CartesianVel3D( ... ),
+        t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
+        frame=SimulationFrame()
+    )
+    >>> orbit[0].t
+    Quantity['time'](Array(0., dtype=float64), unit='Myr')
+
+    """
+    return gc.PhaseSpaceCoordinate(q=self.q[index], p=self.p[index], t=self.t[index])

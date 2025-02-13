@@ -160,70 +160,6 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
         # For length-0 components, we assume a length of 1.
         return sum([len(w) or 1 for w in self.values()])
 
-    # ---------------------------------------------------------------
-    # Getitem
-
-    @AbstractPhaseSpaceObject.__getitem__.dispatch
-    def __getitem__(
-        self: "AbstractCompositePhaseSpaceCoordinate", key: Any
-    ) -> "AbstractCompositePhaseSpaceCoordinate":
-        """Get item from the key.
-
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-
-        >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-        ...                            p=u.Quantity([4, 5, 6], "m/s"),
-        ...                            t=u.Quantity(7, "s"))
-        >>> w2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-        ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-        ...                            t=u.Quantity(6, "s"))
-        >>> cw = gc.CompositePhaseSpaceCoordinate(w1=w1, w2=w2)
-
-        >>> cw[...]
-        CompositePhaseSpaceCoordinate({'w1': PhaseSpaceCoordinate(
-            q=CartesianPos3D( ... ),
-            p=CartesianVel3D( ... ),
-            t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
-            frame=SimulationFrame()
-          ), 'w2': PhaseSpaceCoordinate(
-            q=CartesianPos3D( ... ),
-            p=CartesianVel3D( ... ),
-            t=Quantity['time'](Array(6, dtype=int64, ...), unit='s'),
-            frame=SimulationFrame()
-        )})
-
-        """
-        # Get from each value, e.g. a slice
-        return type(self)(**{k: v[key] for k, v in self.items()})
-
-    @AbstractPhaseSpaceObject.__getitem__.dispatch
-    def __getitem__(
-        self: "AbstractCompositePhaseSpaceCoordinate", key: str
-    ) -> AbstractPhaseSpaceCoordinate:
-        """Get item from the key.
-
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-
-        >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-        ...                            p=u.Quantity([4, 5, 6], "m/s"),
-        ...                            t=u.Quantity(7.0, "s"))
-        >>> w2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-        ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-        ...                            t=u.Quantity(6.0, "s"))
-        >>> cw = gc.CompositePhaseSpaceCoordinate(w1=w1, w2=w2)
-
-        >>> cw["w1"] is w1
-        True
-
-        """
-        return self._data[key]
-
     # ===============================================================
     # Python API
 
@@ -239,11 +175,85 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
         return MappingProxyType({k: v.shape for k, v in field_items(self)})
 
 
-# =============================================================================
+#####################################################################
 # Dispatches
 
-# =================
-# `unxt.uconvert` dispatches
+# ===============================================================
+# `__getitem__`
+
+
+@AbstractPhaseSpaceObject.__getitem__.dispatch
+def getitem(
+    self: AbstractCompositePhaseSpaceCoordinate, key: Any
+) -> AbstractCompositePhaseSpaceCoordinate:
+    """Get item from the key.
+
+    This is the default dispatch for composite PSC objects, passing the key to
+    each component.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+
+    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
+    ...                              p=u.Quantity([4, 5, 6], "m/s"),
+    ...                              t=u.Quantity(7, "s"))
+    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=u.Quantity(6, "s"))
+    >>> cw = gc.CompositePhaseSpaceCoordinate(w1=w1, w2=w2)
+
+    >>> print(cw[...])
+    CompositePhaseSpaceCoordinate(
+        w1=PhaseSpaceCoordinate(
+            q=<CartesianPos3D (x[m], y[m], z[m])
+                [1 2 3]>,
+            p=<CartesianVel3D (x[m / s], y[m / s], z[m / s])
+                [4 5 6]>,
+            t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
+            frame=SimulationFrame()),
+        w2=PhaseSpaceCoordinate(
+            q=<CartesianPos3D (x[m], y[m], z[m])
+                [1.5 2.5 3.5]>,
+            p=<CartesianVel3D (x[m / s], y[m / s], z[m / s])
+                [4.5 5.5 6.5]>,
+            t=Quantity['time'](Array(6, dtype=int64, ...), unit='s'),
+            frame=SimulationFrame()))
+
+    """
+    # Get from each value, e.g. a slice
+    return type(self)(**{k: v[key] for k, v in self.items()})
+
+
+@AbstractPhaseSpaceObject.__getitem__.dispatch
+def getitem(
+    self: AbstractCompositePhaseSpaceCoordinate, key: str
+) -> AbstractPhaseSpaceCoordinate:
+    """Get item from the key.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+
+    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
+    ...                              p=u.Quantity([4, 5, 6], "m/s"),
+    ...                              t=u.Quantity(7.0, "s"))
+    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
+    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=u.Quantity(6.0, "s"))
+    >>> cw = gc.CompositePhaseSpaceCoordinate(w1=w1, w2=w2)
+
+    >>> cw["w1"] is w1
+    True
+
+    """
+    return self._data[key]
+
+
+# ===============================================================
+# `unxt.uconvert`
 
 
 @dispatch(precedence=1)  # type: ignore[call-overload,misc]  # TODO: make precedence=0
@@ -276,8 +286,8 @@ def uconvert(
     return type(cwt)(**{k: v.uconvert(usys) for k, v in cwt.items()})
 
 
-# =================
-# `coordinax.vconvert` dispatches
+# ===============================================================
+# `coordinax.vconvert`
 
 
 @dispatch
@@ -378,7 +388,8 @@ def vconvert(
     return vconvert(target, cwt, **kwargs)
 
 
-# =================
+# ===============================================================
+# `dataclassish.replace`
 
 
 @dispatch(precedence=1)

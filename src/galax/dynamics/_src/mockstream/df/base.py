@@ -69,7 +69,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8.3, 0, 0], "kpc"),
         ...                             p=u.Quantity([0, 220, 0], "km/s"),
         ...                             t=u.Quantity(0, "Gyr"))
-        >>> prog_orbit = pot.evaluate_orbit(w, t=u.Quantity([0, 1, 2], "Gyr"))
+        >>> prog_orbit = pot.compute_orbit(w, t=u.Quantity([0, 1, 2], "Gyr"))
         >>> stream_ic = df.sample(jr.key(0), pot, prog_orbit,
         ...                       prog_mass=u.Quantity(1e4, "Msun"))
         >>> stream_ic
@@ -86,6 +86,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
             release_time=Quantity...,
             frame=SimulationFrame()
         )})
+
         """
         # Progenitor positions and times. The orbit times are used as the
         # release times for the mock stream.

@@ -9,7 +9,6 @@ def test_all() -> None:
         # modules
         "fields",
         "solve",
-        "integrate",
         "cluster",
         "mockstream",
         "plot",
@@ -18,8 +17,7 @@ def test_all() -> None:
         "DynamicsSolver",
         # orbit
         "Orbit",
-        # integrate
-        "evaluate_orbit",
+        "compute_orbit",
         # mockstream
         "MockStreamArm",
         "MockStream",
@@ -32,4 +30,7 @@ def test_all() -> None:
         "tidal_radius",
         "lagrange_points",
         "omega",
+        # legacy
+        "integrate",
+        "evaluate_orbit",
     }

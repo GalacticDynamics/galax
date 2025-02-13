@@ -95,11 +95,6 @@ def evaluate_orbit(
         If `True`, return a dense (interpolated) orbit.  If `False`, return the
         orbit at the requested times.  Default is `False`.
 
-    Returns
-    -------
-    orbit : :class:`~galax.dynamics.Orbit`
-        The integrated orbit evaluated at the given times.
-
     Examples
     --------
     We start by integrating a single orbit in the potential of a point mass.  A

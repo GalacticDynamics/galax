@@ -9,6 +9,7 @@ __all__ = [
     "plot",
     "cluster",
     # solve
+    "compute_orbit",
     "evaluate_orbit",  # TODO: deprecate
     "Orbit",
     "AbstractSolver",
@@ -37,7 +38,7 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     from . import cluster, fields, integrate, mockstream, plot
     from ._src.api import omega, specific_angular_momentum
     from ._src.cluster import lagrange_points, tidal_radius
-    from ._src.orbit import Orbit
+    from ._src.orbit import Orbit, compute_orbit
     from .integrate import evaluate_orbit
     from .mockstream import (
         AbstractStreamDF,

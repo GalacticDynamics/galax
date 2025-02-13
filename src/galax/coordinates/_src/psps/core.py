@@ -175,87 +175,12 @@ class PhaseSpacePosition(AbstractPhaseSpaceObject):
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch)
         return batch_shape, ComponentShapeTuple(q=qshape, p=pshape)
 
-    # ---------------------------------------------------------------
-    # Getitem
 
-    @AbstractPhaseSpaceObject.__getitem__.dispatch
-    def __getitem__(
-        self: "PhaseSpacePosition", index: tuple[Any, ...]
-    ) -> "PhaseSpacePosition":
-        """Return a new object with the given tuple selection applied.
-
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import coordinax as cx
-        >>> import galax.coordinates as gc
-
-        >>> q = u.Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
-        >>> p = u.Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
-
-        >>> w = gc.PhaseSpacePosition(q=q, p=p)
-        >>> w[()] is w
-        True
-
-        >>> w = gc.PhaseSpacePosition(q=q, p=p)
-        >>> w[0, 1].q.x
-        Quantity['length'](Array(4, dtype=int64), unit='m')
-
-        >>> w = gc.PhaseSpacePosition(q=q, p=p)
-        >>> w[0, 1].q.x
-        Quantity['length'](Array(4, dtype=int64), unit='m')
-
-        >>> w = gc.PhaseSpacePosition(q=q, p=p)
-        >>> w[0, 1].q.x
-        Quantity['length'](Array(4, dtype=int64), unit='m')
-
-        """
-        # Empty selection w[()] should return the same object
-        if len(index) == 0:
-            return self
-
-        return replace(self, q=self.q[index], p=self.p[index])
-
-    @AbstractPhaseSpaceObject.__getitem__.dispatch
-    def __getitem__(
-        self: "PhaseSpacePosition", index: slice | int
-    ) -> "PhaseSpacePosition":
-        """Return a new object with the given slice selection applied.
-
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import coordinax as cx
-        >>> import galax.coordinates as gc
-
-        >>> q = u.Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
-        >>> p = u.Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
-
-        >>> w = gc.PhaseSpacePosition(q=q, p=p)
-        >>> w[0].q.x
-        Quantity['length'](Array([1, 4], dtype=int64), unit='m')
-
-        >>> w = gc.PhaseSpacePosition(q=q, p=p)
-        >>> w[0].shape
-        (2,)
-
-        >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3]], "m"),
-        ...                           p=u.Quantity([[4, 5, 6]], "m/s"))
-        >>> w[0].q.shape
-        ()
-
-        >>> w = gc.PhaseSpacePosition(q=u.Quantity([[[1, 2, 3], [1, 2, 3]]], "m"),
-        ...                           p=u.Quantity([[[4, 5, 6], [4, 5, 6]]], "m/s"))
-        >>> w[0].q.shape
-        (2,)
-
-        """
-        # TODO: have to broadcast q, p
-        return replace(self, q=self.q[index], p=self.p[index])
-
-
-# =============================================================================
+#####################################################################
 # Dispatches
+
+# ===============================================================
+# Constructor
 
 
 @AbstractPhaseSpaceObject.from_.dispatch  # type: ignore[attr-defined,misc]
@@ -293,20 +218,7 @@ def from_(
     return cls(q=q, p=data["speed"], frame=frame)
 
 
-# -----------------------------------------------
-# `unxt.uconvert` dispatches
-
-
-@dispatch(precedence=1)  # type: ignore[call-overload, misc]  # TODO: make precedence=0
-def uconvert(
-    units: u.AbstractUnitSystem | str, psp: PhaseSpacePosition
-) -> PhaseSpacePosition:
-    """Convert the components to the given units."""
-    usys = u.unitsystem(units)
-    return replace(psp, q=psp.q.uconvert(usys), p=psp.p.uconvert(usys))
-
-
-# -----------------------------------------------
+# ===============================================================
 # `coordinax.vconvert` dispatches
 
 
@@ -389,3 +301,16 @@ def vconvert(
     """
     target = {"q": target_position_cls, "p": target_position_cls.time_derivative_cls}
     return vconvert(target, psp, **kwargs)
+
+
+# ===============================================================
+# `unxt.uconvert` dispatches
+
+
+@dispatch(precedence=1)  # type: ignore[call-overload, misc]  # TODO: make precedence=0
+def uconvert(
+    units: u.AbstractUnitSystem | str, psp: PhaseSpacePosition
+) -> PhaseSpacePosition:
+    """Convert the components to the given units."""
+    usys = u.unitsystem(units)
+    return replace(psp, q=psp.q.uconvert(usys), p=psp.p.uconvert(usys))

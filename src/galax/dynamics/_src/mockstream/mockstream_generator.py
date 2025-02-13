@@ -17,7 +17,8 @@ from unxt.quantity import BareQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.typing as gt
-from .core import MockStream, MockStreamArm
+from .arm import MockStreamArm
+from .core import MockStream
 from .df import AbstractStreamDF, ProgenitorMassCallable
 from .utils import cond_reverse
 from galax.dynamics._src.legacy.funcs import default_integrator, evaluate_orbit

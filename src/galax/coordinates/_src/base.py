@@ -8,6 +8,7 @@ from textwrap import indent
 from typing import Any, Self, cast
 
 import equinox as eqx
+import equinox.internal as eqxi
 import jax
 from jaxtyping import Real, Shaped
 from plum import conversion_method, convert, dispatch
@@ -174,7 +175,10 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
     def __getitem__(
         self: "AbstractPhaseSpaceObject", index: Any
     ) -> "AbstractPhaseSpaceObject":
-        """Return a new object with the given slice applied.
+        r"""Return a new object with the given slice applied.
+
+        This is the base dispatch, to directly apply the index to all array
+        fields using `jax.tree.map` and filtering on `equinox.is_array`.
 
         Examples
         --------
@@ -182,6 +186,8 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         >>> import unxt as u
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
+
+        - `galax.coordinates.PhaseSpaceCoordinate`:
 
         >>> wt = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3]], "kpc"),
         ...                              p=u.Quantity([[4, 5, 6]], "km/s"),
@@ -203,29 +209,67 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
             frame=SimulationFrame()
         )
 
+        - `galax.coordinates.PhaseSpacePosition`:
+
         >>> w = gc.PhaseSpacePosition(q=u.Quantity([[1, 2, 3]], "kpc"),
         ...                           p=u.Quantity([[4, 5, 6]], "km/s"))
 
-        >>> w[jnp.array(0)]
-        PhaseSpacePosition(
-            q=CartesianPos3D( ... ),
-            p=CartesianVel3D( ... ),
-            frame=SimulationFrame()
-        )
+        >>> w[()] is w
+        True
 
-        >>> w[jnp.array([0])]
+        >>> print(w[jnp.array(0)])
         PhaseSpacePosition(
-            q=CartesianPos3D( ... ),
-            p=CartesianVel3D( ... ),
-            frame=SimulationFrame()
-        )
+            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+                [1 2 3]>,
+            p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+                [4 5 6]>,
+            frame=SimulationFrame())
+
+        >>> print(w[jnp.array([0])])
+        PhaseSpacePosition(
+            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+                [[1 2 3]]>,
+            p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+                [[4 5 6]]>,
+            frame=SimulationFrame())
+
+        Slicing with int:
+
+        >>> q = u.Quantity([[[1, 2, 3], [4, 5, 6]]], "m")
+        >>> p = u.Quantity([[[7, 8, 9], [10, 11, 12]]], "m/s")
+        >>> w = gc.PhaseSpacePosition(q=q, p=p)
+        >>> w.shape
+        (1, 2)
+
+        >>> w[()] is w
+        True
+
+        >>> print(w[0], w[0].shape, sep='\n')
+        PhaseSpacePosition(
+            q=<CartesianPos3D (x[m], y[m], z[m])
+                [[1 2 3]
+                [4 5 6]]>,
+            p=<CartesianVel3D (x[m / s], y[m / s], z[m / s])
+                [[ 7  8  9]
+                [10 11 12]]>,
+            frame=SimulationFrame())
+        (2,)
+
+        >>> print(w[0, 1])
+        PhaseSpacePosition(
+            q=<CartesianPos3D (x[m], y[m], z[m])
+                [4 5 6]>,
+            p=<CartesianVel3D (x[m / s], y[m / s], z[m / s])
+                [10 11 12]>,
+            frame=SimulationFrame())
 
         """
-        # The base assumption is to apply the index to all array fields
-        arrays, non_arrays = eqx.partition(self, eqx.is_array)
-        indexed_arrays = jax.tree.map(lambda x: x[index], arrays)
-        new: "Self" = eqx.combine(indexed_arrays, non_arrays)
-        return new
+        # Empty selection w[()] should return the same object
+        if isinstance(index, tuple) and len(index) == 0:
+            return self
+
+        # The base assumption is to try to apply the index to all array fields
+        return cast("Self", eqxi.ω(self)[index].ω)
 
     # ==========================================================================
     # Python API
@@ -476,10 +520,10 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         return specific_angular_momentum(self)
 
 
-# =============================================================================
+#####################################################################
 
-# -----------------------------------------------
-# Register additional constructors
+# =========================================================
+# Constructors
 
 
 @AbstractPhaseSpaceObject.from_.dispatch  # type: ignore[attr-defined,misc]
@@ -544,8 +588,8 @@ def from_(
     return cls(**dict(field_items(obj)))
 
 
-# -----------------------------------------------
-# Vector Converter
+# =========================================================
+# `coordinax.vconvert`
 
 
 @dispatch
@@ -623,8 +667,8 @@ def vconvert(
     return vconvert(target, wt, **kw)
 
 
-# -----------------------------------------------
-# Converters
+# =========================================================
+# `plum.convert`
 
 
 @conversion_method(type_from=AbstractPhaseSpaceObject, type_to=cx.Coordinate)  # type: ignore[arg-type,type-abstract]

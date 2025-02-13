@@ -143,7 +143,7 @@ def compute_orbit(
 
 
 @dispatch
-# @eqx.filter_jit
+@eqx.filter_jit
 def compute_orbit(
     field: HamiltonianField | gp.AbstractPotential,
     w0: gc.PhaseSpaceCoordinate,

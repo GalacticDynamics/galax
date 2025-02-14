@@ -96,13 +96,13 @@ class ParametersAttribute(AbstractParametersAttribute):
 class CompositeParametersAttribute(AbstractParametersAttribute):
     """Mapping of the :class:`~galax.potential.ParameterField` values.
 
+    This class is used to implement
+    :obj:`galax.potential.CompositePotential.parameters`.
+
     If accessed from the :class:`~galax.potential.CompositePotential` class,
     this returns a mapping of the :class:`~galax.potential.AbstractParameter`
     objects themselves.  If accessed from an instance, this returns a mapping of
     the values of the Parameters.
-
-    This class is used to implement
-    :obj:`galax.potential.CompositePotential.parameters`.
 
     Examples
     --------

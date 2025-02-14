@@ -42,8 +42,8 @@ class KuzminPotential(AbstractSinglePotential):
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     """Total mass of the potential."""
 
-    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale length."""
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """Scale length of the 'disk'."""
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -55,13 +55,10 @@ class KuzminPotential(AbstractSinglePotential):
     def _potential(
         self: "KuzminPotential", q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
-        return (
-            -self.constants["G"]
-            * self.m_tot(t)
-            / jnp.sqrt(
-                q[..., 0] ** 2 + q[..., 1] ** 2 + (jnp.abs(q[..., 2]) + self.a(t)) ** 2
-            )
-        )
+        m, r_s = self.m_tot(t), self.r_s(t)
+        R2 = q[..., 0] ** 2 + q[..., 1] ** 2
+        z = q[..., 2]
+        return -self.constants["G"] * m / jnp.sqrt(R2 + (jnp.abs(z) + r_s) ** 2)
 
 
 # -------------------------------------------------------------------

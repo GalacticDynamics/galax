@@ -9,7 +9,7 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 from ...test_core import AbstractSinglePotential_Test
-from ..test_common import ParameterMTotMixin, ParameterShapeBMixin
+from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
 from galax.potential import AbstractPotential, PlummerPotential
 
 
@@ -17,7 +17,7 @@ class TestPlummerPotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ParameterShapeBMixin,
+    ParameterScaleRadiusMixin,
 ):
     """Test the `galax.potential.PlummerPotential` class."""
 
@@ -29,10 +29,10 @@ class TestPlummerPotential(
     def fields_(
         self,
         field_m_tot: u.Quantity,
-        field_b: u.Quantity,
+        field_r_s: u.Quantity,
         field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
-        return {"m_tot": field_m_tot, "b": field_b, "units": field_units}
+        return {"m_tot": field_m_tot, "r_s": field_r_s, "units": field_units}
 
     # ==========================================================================
 

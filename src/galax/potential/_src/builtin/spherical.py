@@ -63,7 +63,7 @@ class BurkertPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
@@ -200,7 +200,7 @@ class IsochronePotential(AbstractSinglePotential):
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     """Total mass of the potential."""
 
-    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     r"""Scale radius of the potential.
 
     The value of :math:`r_s` defines the transition between the inner, more
@@ -218,9 +218,9 @@ class IsochronePotential(AbstractSinglePotential):
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
+        m, r_s = self.m_tot(t), self.r_s(t)
         r = jnp.linalg.vector_norm(q, axis=-1)
-        b = self.b(t)
-        return -self.constants["G"] * self.m_tot(t) / (b + jnp.sqrt(r**2 + b**2))
+        return -self.constants["G"] * m / (r_s + jnp.sqrt(r**2 + r_s**2))
 
 
 # -------------------------------------------------------------------
@@ -237,8 +237,8 @@ class JaffePotential(AbstractSinglePotential):
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
-        r = jnp.linalg.vector_norm(q, axis=-1)
         r_s = self.r_s(t)
+        r = jnp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m(t) / r_s * jnp.log(1 + r_s / r)
 
 
@@ -297,7 +297,7 @@ class PlummerPotential(AbstractSinglePotential):
     """Plummer Potential."""
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -310,7 +310,7 @@ class PlummerPotential(AbstractSinglePotential):
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
         r2 = jnp.linalg.vector_norm(q, axis=-1) ** 2
-        return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(r2 + self.b(t) ** 2)
+        return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(r2 + self.r_s(t) ** 2)
 
 
 # -------------------------------------------------------------------

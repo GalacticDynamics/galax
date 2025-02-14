@@ -9,7 +9,7 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 from ...test_core import AbstractSinglePotential_Test
-from ..test_common import ParameterMTotMixin, ParameterShapeAMixin
+from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
 from galax._interop.optional_deps import OptDeps
 from galax.potential import AbstractPotential, KuzminPotential
 
@@ -18,7 +18,7 @@ class TestKuzminPotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ParameterShapeAMixin,
+    ParameterScaleRadiusMixin,
 ):
     """Test the `galax.potential.KuzminPotential` class."""
 
@@ -30,10 +30,10 @@ class TestKuzminPotential(
     def fields_(
         self,
         field_m_tot: u.Quantity,
-        field_a: u.Quantity,
+        field_r_s: u.Quantity,
         field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
-        return {"m_tot": field_m_tot, "a": field_a, "units": field_units}
+        return {"m_tot": field_m_tot, "r_s": field_r_s, "units": field_units}
 
     # ==========================================================================
 

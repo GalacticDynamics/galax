@@ -9,7 +9,7 @@ import unxt as u
 import galax.potential as gp
 import galax.typing as gt
 from ...test_core import AbstractSinglePotential_Test
-from ..test_common import ParameterMTotMixin, ParameterShapeBMixin
+from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
 from galax.potential import AbstractPotential, IsochronePotential
 
 
@@ -17,15 +17,15 @@ class TestIsochronePotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ParameterShapeBMixin,
+    ParameterScaleRadiusMixin,
 ):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.IsochronePotential]:
         return gp.IsochronePotential
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_m_tot, field_b, field_units) -> dict[str, Any]:
-        return {"m_tot": field_m_tot, "b": field_b, "units": field_units}
+    def fields_(self, field_m_tot, field_r_s, field_units) -> dict[str, Any]:
+        return {"m_tot": field_m_tot, "r_s": field_r_s, "units": field_units}
 
     # ==========================================================================
 

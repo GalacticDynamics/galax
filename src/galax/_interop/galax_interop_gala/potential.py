@@ -474,11 +474,12 @@ def gala_to_galax(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
-      b=ConstantParameter( ... )
+      r_s=ConstantParameter( ... )
 
     """  # noqa: E501
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
+    params["r_s"] = params.pop("b")
 
     pot = gp.IsochronePotential(**params, units=_check_gala_units(gala.units))
     return _apply_xop(_get_xop(gala), pot)
@@ -493,7 +494,7 @@ def galax_to_gala(pot: gp.IsochronePotential, /) -> galap.IsochronePotential:
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.IsochronePotential(m_tot=u.Quantity(1e11, "Msun"), b=u.Quantity(10, "kpc"), units="galactic")
+    >>> pot = gp.IsochronePotential(m_tot=u.Quantity(1e11, "Msun"), r_s=u.Quantity(10, "kpc"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <IsochronePotential: m=1.00e+11, b=10.00 (kpc,Myr,solMass,rad)>
 
@@ -506,6 +507,8 @@ def galax_to_gala(pot: gp.IsochronePotential, /) -> galap.IsochronePotential:
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
+    if "r_s" in params:
+        params["b"] = params.pop("r_s")
 
     return galap.IsochronePotential(**params, units=_galax_to_gala_units(pot.units))
 
@@ -643,12 +646,13 @@ def gala_to_galax(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=...,
-      a=...
+      r_s=...
     )
 
     """  # noqa: E501
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
+    params["r_s"] = params.pop("a")
 
     pot = gp.KuzminPotential(**params, units=_check_gala_units(gala.units))
     return _apply_xop(_get_xop(gala), pot)
@@ -663,7 +667,7 @@ def galax_to_gala(pot: gp.KuzminPotential, /) -> galap.KuzminPotential:
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.KuzminPotential(m_tot=u.Quantity(1e11, "Msun"), a=u.Quantity(20, "kpc"), units="galactic")
+    >>> pot = gp.KuzminPotential(m_tot=1e11, r_s=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <KuzminPotential: m=1.00e+11, a=20.00 (kpc,Myr,solMass,rad)>
 
@@ -676,6 +680,8 @@ def galax_to_gala(pot: gp.KuzminPotential, /) -> galap.KuzminPotential:
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
+    if "r_s" in params:
+        params["a"] = params.pop("r_s")
 
     return galap.KuzminPotential(**params, units=_galax_to_gala_units(pot.units))
 
@@ -949,12 +955,13 @@ def gala_to_galax(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
-      b=ConstantParameter( ... )
+      r_s=ConstantParameter( ... )
     )
 
     """  # noqa: E501
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
+    params["r_s"] = params.pop("b")
 
     pot = gp.PlummerPotential(**params, units=_check_gala_units(gala.units))
     return _apply_xop(_get_xop(gala), pot)
@@ -969,7 +976,7 @@ def galax_to_gala(pot: gp.PlummerPotential, /) -> galap.PlummerPotential:
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.PlummerPotential(m_tot=u.Quantity(1e11, "Msun"), b=u.Quantity(10, "kpc"), units="galactic")
+    >>> pot = gp.PlummerPotential(m_tot=1e11, r_s=10, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <PlummerPotential: m=1.00e+11, b=10.00 (kpc,Myr,solMass,rad)>
     """  # noqa: E501
@@ -981,6 +988,8 @@ def galax_to_gala(pot: gp.PlummerPotential, /) -> galap.PlummerPotential:
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
+    if "r_s" in params:
+        params["b"] = params.pop("r_s")
 
     return galap.PlummerPotential(**params, units=_galax_to_gala_units(pot.units))
 

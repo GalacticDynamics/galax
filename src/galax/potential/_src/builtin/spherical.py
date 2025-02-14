@@ -28,7 +28,7 @@ from unxt.unitsystems import AbstractUnitSystem
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .const import _burkert_const
+from .const import BURKERT_CONST
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
@@ -70,7 +70,7 @@ class BurkertPotential(AbstractSinglePotential):
         m, r_s = self.m(t), self.r_s(t)
         x = jnp.linalg.vector_norm(q, axis=-1) / r_s
         xinv = 1 / x
-        return -(self.constants["G"] * m / (r_s * _burkert_const)) * (
+        return -(self.constants["G"] * m / (r_s * BURKERT_CONST)) * (
             jnp.pi
             - 2 * (1 + xinv) * jnp.atan(x).value
             + 2 * (1 + xinv) * jnp.log(1 + x)
@@ -83,7 +83,7 @@ class BurkertPotential(AbstractSinglePotential):
     ) -> gt.BtFloatQuSz0:
         m, r_s = self.m(t), self.r_s(t)
         r = jnp.linalg.vector_norm(q, axis=-1)
-        return m / (jnp.pi * _burkert_const) / ((r + r_s) * (r**2 + r_s**2))
+        return m / (jnp.pi * BURKERT_CONST) / ((r + r_s) * (r**2 + r_s**2))
 
     @partial(jax.jit)
     def _mass(
@@ -92,7 +92,7 @@ class BurkertPotential(AbstractSinglePotential):
         x = jnp.linalg.vector_norm(q, axis=-1) / self.r_s(t)
         return (
             self.m(t)
-            / _burkert_const
+            / BURKERT_CONST
             * (-2 * jnp.atan(x) + 2 * jnp.log(1 + x) + jnp.log(1 + x**2))
         )
 
@@ -105,7 +105,7 @@ class BurkertPotential(AbstractSinglePotential):
 
             m0 = \pi \rho_0 r_s^3 (3 \log(2) - \pi / 2)
         """
-        return self.m(t) / (jnp.pi * self.r_s(t) ** 3 * _burkert_const)
+        return self.m(t) / (jnp.pi * self.r_s(t) ** 3 * BURKERT_CONST)
 
     # -------------------------------------------------------------------
     # Constructors
@@ -145,7 +145,7 @@ class BurkertPotential(AbstractSinglePotential):
         )
 
         """
-        m = jnp.pi * rho_0 * r_s**3 * _burkert_const
+        m = jnp.pi * rho_0 * r_s**3 * BURKERT_CONST
         return cls(m=m, r_s=r_s, **kwargs)
 
 

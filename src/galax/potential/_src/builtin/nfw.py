@@ -24,7 +24,7 @@ from unxt.unitsystems import AbstractUnitSystem, dimensionless
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .const import _log2
+from .const import LOG2
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
@@ -260,7 +260,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
         e_c2 = 1 - jnp.square(a3 / a1)
 
         # The potential at the origin
-        phi0 = v_c2 / (_log2 - 0.5 + (_log2 - 0.75) * (e_b2 + e_c2))
+        phi0 = v_c2 / (LOG2 - 0.5 + (LOG2 - 0.75) * (e_b2 + e_c2))
 
         # The potential at the given position
         r = jnp.linalg.vector_norm(q, axis=-1)

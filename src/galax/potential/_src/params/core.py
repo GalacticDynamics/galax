@@ -19,8 +19,7 @@ import unxt as u
 from dataclassish.converters import Unless
 from unxt.quantity import AbstractQuantity
 
-from galax.typing import BBtRealQuSz0, FloatQuSzAny
-from galax.utils._shape import expand_batch_dims
+import galax.typing as gt
 
 t0 = u.Quantity(0, "Myr")
 
@@ -29,7 +28,7 @@ t0 = u.Quantity(0, "Myr")
 class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
-    def __call__(self, t: BBtRealQuSz0, **kwargs: Any) -> FloatQuSzAny:
+    def __call__(self, t: gt.BBtRealQuSz0, **kwargs: Any) -> gt.FloatQuSzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
@@ -60,7 +59,7 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     """
 
     @abc.abstractmethod
-    def __call__(self, t: BBtRealQuSz0, **kwargs: Any) -> FloatQuSzAny:
+    def __call__(self, t: gt.BBtRealQuSz0, **kwargs: Any) -> gt.FloatQuSzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
@@ -132,13 +131,13 @@ class ConstantParameter(AbstractParameter):
     """
 
     # TODO: link this shape to the return shape from __call__
-    value: FloatQuSzAny = eqx.field(
+    value: gt.FloatQuSzAny = eqx.field(
         converter=Unless(AbstractQuantity, u.Quantity.from_)
     )
     """The time-independent value of the parameter."""
 
     @partial(jax.jit, inline=True)
-    def __call__(self, t: BBtRealQuSz0 = t0, **_: Any) -> FloatQuSzAny:
+    def __call__(self, t: gt.BBtRealQuSz0 = t0, **__: Any) -> gt.FloatQuSzAny:  # noqa: ARG002
         """Return the constant parameter value.
 
         Parameters
@@ -149,12 +148,8 @@ class ConstantParameter(AbstractParameter):
         **kwargs : Any
             This is ignored.
 
-        Returns
-        -------
-        Array[float, "*shape"]
-            The constant parameter value.
         """
-        return expand_batch_dims(self.value, t.ndim)
+        return self.value
 
     # -------------------------------------------
     # String representation
@@ -227,16 +222,16 @@ class LinearParameter(AbstractParameter):
 
     """
 
-    slope: FloatQuSzAny = eqx.field(converter=u.Quantity.from_)
-    point_time: BBtRealQuSz0 = eqx.field(converter=u.Quantity["time"].from_)
-    point_value: FloatQuSzAny = eqx.field(converter=u.Quantity.from_)
+    slope: gt.FloatQuSzAny = eqx.field(converter=u.Quantity.from_)
+    point_time: gt.BBtRealQuSz0 = eqx.field(converter=u.Quantity["time"].from_)
+    point_value: gt.FloatQuSzAny = eqx.field(converter=u.Quantity.from_)
 
     def __check_init__(self) -> None:
         """Check the initialization of the class."""
         # TODO: check point_value and slope * point_time have the same dimensions
 
     @partial(jax.jit, inline=True)
-    def __call__(self, t: BBtRealQuSz0, **_: Any) -> FloatQuSzAny:
+    def __call__(self, t: gt.BBtRealQuSz0, **_: Any) -> gt.FloatQuSzAny:
         """Return the parameter value.
 
         .. math::
@@ -303,5 +298,5 @@ class UserParameter(AbstractParameter):
     func: ParameterCallable = eqx.field(static=True)
 
     @partial(jax.jit, inline=True)
-    def __call__(self, t: BBtRealQuSz0, **kwargs: Any) -> FloatQuSzAny:
+    def __call__(self, t: gt.BBtRealQuSz0, **kwargs: Any) -> gt.FloatQuSzAny:
         return self.func(t, **kwargs)

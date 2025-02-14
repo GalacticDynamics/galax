@@ -363,7 +363,7 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gp.IsochronePotential:
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
-      b=ConstantParameter( ... )
+      r_s=ConstantParameter( ... )
     )
 
     >>> pot.m_tot(0)
@@ -372,7 +372,7 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gp.IsochronePotential:
     """  # noqa: E501
     return gp.IsochronePotential(
         m_tot=_galpy_mass(pot),
-        b=u.Quantity(pot.b * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=u.Quantity(pot.b * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -387,11 +387,7 @@ def galax_to_galpy(pot: gp.IsochronePotential, /) -> gpy.IsochronePotential:
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.IsochronePotential(
-    ...     m_tot=u.Quantity(1e11, "Msun"),
-    ...     b=u.Quantity(1.0, "kpc"),
-    ...     units="galactic"
-    ... )
+    >>> pot = gp.IsochronePotential(m_tot=1e11, r_s=1.0, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalpyLibrary, pot)
     <galpy.potential...IsochronePotential object at ...>
 
@@ -400,7 +396,7 @@ def galax_to_galpy(pot: gp.IsochronePotential, /) -> gpy.IsochronePotential:
 
     return gpy.IsochronePotential(
         amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
-        b=convert(pot.b(0), AstropyQuantity),
+        b=convert(pot.r_s(0), AstropyQuantity),
     )
 
 
@@ -535,13 +531,13 @@ def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gp.KuzminPotential:
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... )
+      r_s=ConstantParameter( ... )
     )
 
     """  # noqa: E501
     return gp.KuzminPotential(
         m_tot=_galpy_mass(pot),
-        a=u.Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=u.Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -556,11 +552,7 @@ def galax_to_galpy(pot: gp.KuzminPotential, /) -> gpy.KuzminDiskPotential:
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.KuzminPotential(
-    ...     m_tot=u.Quantity(1e11, "Msun"),
-    ...     a=u.Quantity(1.0, "kpc"),
-    ...     units="galactic"
-    ... )
+    >>> pot = gp.KuzminPotential(m_tot=1e11, r_s=1.0, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalpyLibrary, pot)
     <galpy.potential...KuzminDiskPotential object at ...>
 
@@ -569,7 +561,7 @@ def galax_to_galpy(pot: gp.KuzminPotential, /) -> gpy.KuzminDiskPotential:
 
     return gpy.KuzminDiskPotential(
         amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
-        a=convert(pot.a(0), AstropyQuantity),
+        a=convert(pot.r_s(0), AstropyQuantity),
     )
 
 
@@ -770,13 +762,13 @@ def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gp.PlummerPotential:
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
-      b=ConstantParameter( ... )
+      r_s=ConstantParameter( ... )
     )
 
     """  # noqa: E501
     return gp.PlummerPotential(
         m_tot=_galpy_mass(pot),
-        b=u.Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=u.Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -791,11 +783,7 @@ def galax_to_galpy(pot: gp.PlummerPotential, /) -> gpy.PlummerPotential:
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.PlummerPotential(
-    ...     m_tot=u.Quantity(1e11, "Msun"),
-    ...     b=u.Quantity(1.0, "kpc"),
-    ...     units="galactic"
-    ... )
+    >>> pot = gp.PlummerPotential(m_tot=1e11, r_s=1.0, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalpyLibrary, pot)
     <galpy.potential...PlummerPotential object at ...>
 
@@ -804,7 +792,7 @@ def galax_to_galpy(pot: gp.PlummerPotential, /) -> gpy.PlummerPotential:
 
     return gpy.PlummerPotential(
         amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
-        b=convert(pot.b(0), AstropyQuantity),
+        b=convert(pot.r_s(0), AstropyQuantity),
     )
 
 

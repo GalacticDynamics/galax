@@ -63,7 +63,7 @@ class BurkertPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
@@ -77,7 +77,7 @@ class BurkertPotential(AbstractSinglePotential):
             - (1 - xinv) * jnp.log(1 + x**2)
         )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _density(
         self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
     ) -> gt.BtFloatQuSz0:
@@ -85,7 +85,7 @@ class BurkertPotential(AbstractSinglePotential):
         r = jnp.linalg.vector_norm(q, axis=-1)
         return m / (jnp.pi * _burkert_const) / ((r + r_s) * (r**2 + r_s**2))
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _mass(
         self, q: gt.BtQuSz3, /, t: gt.BtRealQuSz0 | gt.RealQuSz0
     ) -> gt.BtFloatQuSz0:
@@ -170,14 +170,14 @@ class HernquistPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
         r = jnp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / (r + self.r_s(t))
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _density(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
         r_s = self.r_s(t)
         x = jnp.linalg.vector_norm(q, axis=-1) / r_s
@@ -200,7 +200,7 @@ class IsochronePotential(AbstractSinglePotential):
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     """Total mass of the potential."""
 
-    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
     r"""Scale radius of the potential.
 
     The value of :math:`r_s` defines the transition between the inner, more
@@ -214,13 +214,13 @@ class IsochronePotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
+        m, r_s = self.m_tot(t), self.r_s(t)
         r = jnp.linalg.vector_norm(q, axis=-1)
-        b = self.b(t)
-        return -self.constants["G"] * self.m_tot(t) / (b + jnp.sqrt(r**2 + b**2))
+        return -self.constants["G"] * m / (r_s + jnp.sqrt(r**2 + r_s**2))
 
 
 # -------------------------------------------------------------------
@@ -233,12 +233,12 @@ class JaffePotential(AbstractSinglePotential):
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
-        r = jnp.linalg.vector_norm(q, axis=-1)
         r_s = self.r_s(t)
+        r = jnp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m(t) / r_s * jnp.log(1 + r_s / r)
 
 
@@ -263,14 +263,14 @@ class KeplerPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
         r = jnp.linalg.vector_norm(q, axis=-1)
         return -self.constants["G"] * self.m_tot(t) / r
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _density(
         self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
     ) -> gt.BtFloatQuSz0:
@@ -297,7 +297,7 @@ class PlummerPotential(AbstractSinglePotential):
     """Plummer Potential."""
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     _: KW_ONLY
     units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -305,18 +305,18 @@ class PlummerPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
         r2 = jnp.linalg.vector_norm(q, axis=-1) ** 2
-        return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(r2 + self.b(t) ** 2)
+        return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(r2 + self.r_s(t) ** 2)
 
 
 # -------------------------------------------------------------------
 
 
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def _safe_gamma_inc(a: u.Quantity, x: u.Quantity) -> u.Quantity:  # TODO: types
     return qsp.gammainc(a, x) * qsp.gamma(a)
 
@@ -354,7 +354,7 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
@@ -399,7 +399,7 @@ class StoneOstriker15Potential(AbstractSinglePotential):
     # def __check_init__(self) -> None:
     #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
@@ -487,7 +487,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
         converter=ImmutableMap, default=default_constants
     )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:

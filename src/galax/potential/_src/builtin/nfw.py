@@ -95,10 +95,12 @@ class NFWPotential(AbstractSinglePotential):
         v_c: u.Quantity["velocity"],
         r_s: u.Quantity["length"],
         r_ref: u.Quantity["length"],
+        *,
+        G: u.AbstractQuantity,
     ) -> u.Quantity["mass"]:
         uu = r_ref / r_s
         vs2 = v_c**2 / uu / (jnp.log(1 + uu) / uu**2 - 1 / (uu * (1 + uu)))
-        return r_s * vs2 / default_constants["G"]
+        return r_s * vs2 / G
 
     @classmethod
     def from_circular_velocity(
@@ -106,7 +108,9 @@ class NFWPotential(AbstractSinglePotential):
         v_c: u.Quantity["velocity"],
         r_s: u.Quantity["length"],
         r_ref: u.Quantity["length"] | None = None,
-        units: AbstractUnitSystem | None = None,
+        *,
+        units: AbstractUnitSystem | str = "galactic",
+        constants: ImmutableMap[str, u.Quantity] = default_constants,
     ) -> "NFWPotential":
         r"""Create an NFW potential from the circular velocity at a given radius.
 
@@ -126,18 +130,18 @@ class NFWPotential(AbstractSinglePotential):
             NFW potential instance with the given circular velocity and scale radius.
         """
         r_ref = r_s if r_ref is None else r_ref
-        units = units or dimensionless
-
-        m = NFWPotential._vc_rs_rref_to_m(v_c, r_s, r_ref).to(units["mass"])
-        return NFWPotential(m=m, r_s=r_s, units=units)
+        usys = u.unitsystem(units)
+        m = NFWPotential._vc_rs_rref_to_m(v_c, r_s, r_ref, G=constants["G"])
+        return NFWPotential(m=m, r_s=r_s, units=usys)
 
     @classmethod
     def from_M200_c(
         cls,
         M200: u.Quantity["mass"],
         c: u.Quantity["dimensionless"],
-        units: AbstractUnitSystem,
         rho_c: u.Quantity["mass density"] | None = None,
+        *,
+        units: AbstractUnitSystem | str,
     ) -> "NFWPotential":
         """Create an NFW potential from a virial mass and concentration.
 
@@ -151,22 +155,23 @@ class NFWPotential(AbstractSinglePotential):
             Critical density at z=0. If not specified, uses the default astropy
             cosmology to obtain this, `~astropy.cosmology.default_cosmology`.
         """
+        usys = u.unitsystem(units)
         if rho_c is None:
             from astropy.cosmology import default_cosmology
 
             cosmo = default_cosmology.get()
             rho_c = (3 * cosmo.H(0.0) ** 2 / (8 * np.pi * default_constants["G"])).to(
-                units["mass density"]
+                usys["mass density"]
             )
-            rho_c = u.Quantity(rho_c.value, units["mass density"])
+            rho_c = u.Quantity(rho_c.value, usys["mass density"])
 
-        Rvir = jnp.cbrt(M200 / (200 * rho_c) / (4.0 / 3 * jnp.pi)).to(units["length"])
-        r_s = Rvir / c
+        r_vir = jnp.cbrt(M200 / (200 * rho_c) / (4.0 / 3 * jnp.pi))
+        r_s = r_vir / c
 
         A_NFW = jnp.log(1 + c) - c / (1 + c)
         m = M200 / A_NFW
 
-        return NFWPotential(m=m, r_s=r_s, units=units)
+        return NFWPotential(m=m, r_s=r_s, units=usys)
 
 
 # -------------------------------------------------------------------

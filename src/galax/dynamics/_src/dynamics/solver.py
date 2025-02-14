@@ -27,9 +27,9 @@ import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.typing as gt
 from .field_base import AbstractDynamicsField
-from galax.dynamics._src.compat import AllowValue
 from galax.dynamics._src.solver import AbstractSolver, SolveState, Terms
 from galax.dynamics._src.utils import parse_saveat
+from galax.utils._unxt import AllowValue
 
 BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
 

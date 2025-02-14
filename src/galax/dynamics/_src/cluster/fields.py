@@ -24,9 +24,9 @@ from unxt.quantity import BareQuantity as FastQ
 from .api import relaxation_time, tidal_radius
 from .radius import AbstractTidalRadiusMethod, King1962
 from .relax_time import AbstractRelaxationTimeMethod, Baumgardt1998
-from galax.dynamics._src.compat import AllowValue
 from galax.dynamics._src.fields import AbstractField
 from galax.dynamics._src.orbit.orbit import Orbit
+from galax.utils._unxt import AllowValue
 
 Time: TypeAlias = Any
 ClusterMass: TypeAlias = Any

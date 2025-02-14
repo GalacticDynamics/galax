@@ -10,7 +10,7 @@ from jaxtyping import Array
 
 import unxt as u
 
-from galax.dynamics._src.compat import AllowValue
+from galax.utils._unxt import AllowValue
 
 
 class MassBelowThreshold(eqx.Module):  # type: ignore[misc]

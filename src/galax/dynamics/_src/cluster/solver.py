@@ -15,7 +15,12 @@ import unxt as u
 
 import galax.typing as gt
 from .events import MassBelowThreshold
-from .fields import AbstractMassField, CustomMassField, FieldArgs, MassVectorField
+from .fields import (
+    AbstractMassRateField,
+    CustomMassRateField,
+    FieldArgs,
+    MassVectorField,
+)
 from galax.dynamics._src.compat import AllowValue
 from galax.dynamics._src.solver import AbstractSolver, SolveState
 from galax.dynamics._src.utils import parse_saveat
@@ -27,12 +32,10 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     Examples
     --------
     >>> import quaxed.numpy as jnp
-    >>> import diffrax as dfx
     >>> import unxt as u
     >>> import galax.dynamics as gd
 
-    >>> event = dfx.Event(gd.cluster.MassBelowThreshold(u.Quantity(0.0, "Msun")))
-    >>> mass_solver = gd.cluster.MassSolver(event=event)
+    >>> mass_solver = gd.cluster.MassSolver()
 
     >>> mass_field = lambda t, Mc, args: -2e5 / (t + 1)
     >>> Mc0 = u.Quantity(1e6, "Msun")
@@ -84,7 +87,7 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     def step(
         self,
-        field: AbstractMassField,
+        field: AbstractMassRateField,
         state: SolveState,
         t1: Any,
         /,
@@ -127,7 +130,7 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 @MassSolver.init.dispatch  # type: ignore[misc]
 def init(
     self: MassSolver,
-    field: AbstractMassField,
+    field: AbstractMassRateField,
     Mc0: gt.RealQuSz0,
     t0: gt.RealQuSz0,
     args: PyTree,
@@ -146,7 +149,7 @@ def init(
 @MassSolver.run.dispatch  # type: ignore[misc]
 def run(
     self: MassSolver,
-    field: AbstractMassField,
+    field: AbstractMassRateField,
     state: SolveState,
     t1: Any,
     args: PyTree,
@@ -179,7 +182,7 @@ default_saveat = dfx.SaveAt(t1=True)
 @eqx.filter_jit  # type: ignore[misc]
 def solve(
     self: MassSolver,
-    field: AbstractMassField | MassVectorField,
+    field: AbstractMassRateField | MassVectorField,
     M0: Any,
     t0: Any,
     t1: Any,
@@ -189,7 +192,11 @@ def solve(
 ) -> dfx.Solution:
     # Setup
     units = self.units
-    field_ = field if isinstance(field, AbstractMassField) else CustomMassField(field)
+    field_ = (
+        field
+        if isinstance(field, AbstractMassRateField)
+        else CustomMassRateField(field)
+    )
 
     # Solve the differential equation
     solver_kw.setdefault("dt0", None)

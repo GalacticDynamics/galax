@@ -2,20 +2,21 @@
 
 __all__ = [
     "MassVectorField",
-    "AbstractMassField",
-    "CustomMassField",
-    "ConstantMass",
-    "Baumgardt1998MassLoss",
+    "AbstractMassRateField",
+    "CustomMassRateField",
+    "ZeroMassRate",
+    "ConstantMassRate",
+    "Baumgardt1998MassLossRate",
 ]
 
 from abc import abstractmethod
 from dataclasses import KW_ONLY
-from typing import Any, Protocol, TypeAlias, TypedDict, cast, runtime_checkable
+from typing import Any, Protocol, TypeAlias, TypedDict, cast, final, runtime_checkable
 
 import diffrax as dfx
 import equinox as eqx
 import jax.numpy as jnp
-from jaxtyping import Array, PyTree
+from jaxtyping import Array, PyTree, Real, Shaped
 
 import unxt as u
 from unxt.quantity import BareQuantity as FastQ
@@ -23,6 +24,7 @@ from unxt.quantity import BareQuantity as FastQ
 from .api import relaxation_time, tidal_radius
 from .radius import AbstractTidalRadiusMethod, King1962
 from .relax_time import AbstractRelaxationTimeMethod, Baumgardt1998
+from galax.dynamics._src.compat import AllowValue
 from galax.dynamics._src.fields import AbstractField
 from galax.dynamics._src.orbit.orbit import Orbit
 
@@ -58,7 +60,7 @@ class MassVectorField(Protocol):
     ) -> Array: ...
 
 
-class AbstractMassField(AbstractField):
+class AbstractMassRateField(AbstractField):
     """ABC for mass fields.
 
     Methods
@@ -77,7 +79,7 @@ class AbstractMassField(AbstractField):
 
     @AbstractField.terms.dispatch  # type: ignore[misc]
     def terms(
-        self: "AbstractMassField", _: dfx.AbstractSolver, /
+        self: "AbstractMassRateField", _: dfx.AbstractSolver, /
     ) -> PyTree[dfx.AbstractTerm]:
         """Return diffeq terms for integration.
 
@@ -86,10 +88,10 @@ class AbstractMassField(AbstractField):
         >>> import diffrax as dfx
         >>> import galax.dynamics as gd
 
-        >>> field = gd.cluster.ConstantMass()
+        >>> field = gd.cluster.ZeroMassRate()
         >>> field.terms(dfx.Dopri8())
         ODETerm(
-            vector_field=_JitWrapper( fn='ConstantMass.__call__', ... ) )
+            vector_field=_JitWrapper( fn='ZeroMassRate.__call__', ... ) )
 
         """
         return dfx.ODETerm(eqx.filter_jit(self.__call__))
@@ -98,7 +100,7 @@ class AbstractMassField(AbstractField):
 #####################################################
 
 
-class CustomMassField(AbstractMassField):
+class CustomMassRateField(AbstractMassRateField):
     """User-defined mass field.
 
     This takes a user-defined function of type
@@ -121,28 +123,111 @@ class CustomMassField(AbstractMassField):
 #####################################################
 
 
-class ConstantMass(AbstractMassField):
-    """Constant mass field.
+@final
+class ZeroMassRate(AbstractMassRateField):
+    r"""Constant mass (zero mass loss) field.
 
-    This is a constant mass field.
+    $$
+        \frac{dM(t)}{dt} = 0
+    $$
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.dynamics.cluster as gdc
+
+    >>> dmdt_fn = gdc.ZeroMassRate()
+
+    Evaluating the vector field:
+
+    >>> t = u.Quantity(0, "Gyr")
+    >>> M = u.Quantity(1e4, "Msun")
+    >>> dmdt = dmdt_fn(t, M, {})
+    >>> dmdt
+    Array(0., dtype=float64)
+
+    Showing it in the mass solver:
+
+    >>> mass_solver = gdc.MassSolver()
+    >>> t0, t1 = u.Quantity([0, 1], "Gyr")
+    >>> saveat = jnp.linspace(t0, t1, 5)
+    >>> mass_history = mass_solver.solve(dmdt_fn, M, t0, t1, saveat=saveat)
+    >>> mass_history.ys
+    Array([10000., 10000., 10000., 10000., 10000.], dtype=float64)
 
     """
 
     def __call__(
         self,
         t: Time,  # noqa: ARG002
-        Mc: ClusterMass,
+        M: ClusterMass,
         args: FieldArgs,  # noqa: ARG002
         /,
         **kwargs: Any,  # noqa: ARG002
-    ) -> Array:
-        return jnp.zeros_like(Mc)
+    ) -> Shaped[Array, "{M}"]:
+        return jnp.zeros_like(M)
 
 
 ######################################################
 
 
-class Baumgardt1998MassLoss(AbstractMassField):
+@final
+class ConstantMassRate(AbstractMassRateField):
+    r"""Constant mass rate, ie linear mass change.
+
+    $$
+        \frac{dM(t)}{dt} = x
+    $$
+
+    Where $x$ is a constant. It should be negative for mass loss, 0 for constant
+    mass, and positive for mass gain.
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.dynamics.cluster as gdc
+
+    >>> dmdt_fn = gdc.ConstantMassRate(-1, unit=u.unit("Msun/Myr"))
+
+    Evaluating the vector field:
+
+    >>> t = u.Quantity(0, "Gyr")
+    >>> M = u.Quantity(1e4, "Msun")
+    >>> dmdt = dmdt_fn(t, M, {})
+    >>> dmdt
+    Array(-1., dtype=float64)
+
+    Showing it in the mass solver:
+
+    >>> mass_solver = gdc.MassSolver()
+    >>> t0, t1 = u.Quantity([0, 1], "Gyr")
+    >>> saveat = jnp.linspace(t0, t1, 5)
+    >>> mass_history = mass_solver.solve(dmdt_fn, M, t0, t1, saveat=saveat)
+    >>> mass_history.ys
+    Array([10000.,  9750.,  9500.,  9250.,  9000.], dtype=float64)
+
+    """
+
+    dm_dt: Real[Array | u.AbstractQuantity, ""] = eqx.field(converter=jnp.asarray)
+    unit: Any = eqx.field(converter=u.unit)
+
+    def __call__(
+        self,
+        t: Time,  # noqa: ARG002
+        M: ClusterMass,
+        args: FieldArgs,  # noqa: ARG002
+        /,
+        **kwargs: Any,  # noqa: ARG002
+    ) -> Shaped[Array, "{M}"]:
+        return u.ustrip(AllowValue, self.unit, self.dm_dt) * jnp.ones_like(M)
+
+
+######################################################
+
+
+class Baumgardt1998MassLossRate(AbstractMassRateField):
     r"""Mass loss field from Baumgardt (1998).
 
     This is the mass loss field from Baumgardt (1998) for modeling the mass loss
@@ -161,10 +246,10 @@ class Baumgardt1998MassLoss(AbstractMassField):
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> mass_loss = gdc.Baumgardt1998MassLoss()
-    >>> mass_loss.tidal_radius_flag
+    >>> dMdt_fn = gdc.Baumgardt1998MassLossRate()
+    >>> dMdt_fn.tidal_radius_flag
     <class 'galax.dynamics...King1962'>
-    >>> mass_loss.relaxation_time_flag
+    >>> dMdt_fn.relaxation_time_flag
     <class 'galax.dynamics...Baumgardt1998'>
 
     In order to evaluate the mass loss we need a `galax.dynamics.Orbit` object.
@@ -181,7 +266,7 @@ class Baumgardt1998MassLoss(AbstractMassField):
     >>> kwargs = {"orbit": orbit, "m_avg": u.Quantity(3, "Msun"),
     ...           "xi0": 0.001, "alpha": 14.9, "r_hm": u.Quantity(1, "pc")}
 
-    >>> mass_loss(0, u.Quantity(1e4, "Msun"), kwargs)  # [Msun/Myr]
+    >>> dMdt_fn(0, u.Quantity(1e4, "Msun"), kwargs)  # [Msun/Myr]
     Array(-1.10392877, dtype=float64)
 
     """  # noqa: E501

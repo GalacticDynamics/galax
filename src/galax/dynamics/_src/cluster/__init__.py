@@ -8,10 +8,11 @@ __all__ = [
     "MassSolver",
     # Fields
     "MassVectorField",
-    "AbstractMassField",
-    "CustomMassField",
-    "ConstantMass",
-    "Baumgardt1998MassLoss",
+    "AbstractMassRateField",
+    "CustomMassRateField",
+    "ZeroMassRate",
+    "ConstantMassRate",
+    "Baumgardt1998MassLossRate",
     # Events
     "MassBelowThreshold",
     # Functions
@@ -24,11 +25,12 @@ from . import radius, relax_time
 from .api import lagrange_points, relaxation_time, tidal_radius
 from .events import MassBelowThreshold
 from .fields import (
-    AbstractMassField,
-    Baumgardt1998MassLoss,
-    ConstantMass,
-    CustomMassField,
+    AbstractMassRateField,
+    Baumgardt1998MassLossRate,
+    ConstantMassRate,
+    CustomMassRateField,
     MassVectorField,
+    ZeroMassRate,
 )
 from .solver import MassSolver
 

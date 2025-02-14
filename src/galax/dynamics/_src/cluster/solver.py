@@ -21,9 +21,9 @@ from .fields import (
     FieldArgs,
     MassVectorField,
 )
-from galax.dynamics._src.compat import AllowValue
 from galax.dynamics._src.solver import AbstractSolver, SolveState
 from galax.dynamics._src.utils import parse_saveat
+from galax.utils._unxt import AllowValue
 
 
 class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]

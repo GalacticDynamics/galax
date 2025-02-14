@@ -46,7 +46,9 @@ RealScalarLike: TypeAlias = Real[ArrayLike, ""]
 # ---------------------------
 # 0-scalar
 # Any
-BBtScalarSz0: TypeAlias = Shaped[Scalar, "*#batch"]
+Sz0: TypeAlias = Scalar
+BtSz0: TypeAlias = Shaped[Sz0, "*batch"]
+BBtSz0: TypeAlias = Shaped[Sz0, "*#batch"]
 BBtQuSz0: TypeAlias = Shaped[AbstractQuantity, "*#batch"]
 
 # Integer

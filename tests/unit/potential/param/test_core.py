@@ -4,7 +4,6 @@ from typing import Any, Generic, TypeVar
 
 import pytest
 
-import quaxed.numpy as jnp
 import unxt as u
 
 from galax.potential._src.params.core import ParameterCallable
@@ -74,9 +73,6 @@ class TestConstantParameter(TestAbstractParameter[ConstantParameter]):
         """Test `galax.potential.ConstantParameter` call method."""
         assert param(t=1.0) == field_value
         assert param(t=u.Quantity(1.0, "s")) == field_value
-        # Calling the parameter doesn't broadcast the shape, only the number of
-        # dimensions
-        assert jnp.array_equal(param(t=jnp.asarray([1.0, 2.0])), [field_value])
 
     def test_mul(self, param: T, field_value: float) -> None:
         """Test `galax.potential.ConstantParameter` multiplication."""

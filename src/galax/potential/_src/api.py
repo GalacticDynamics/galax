@@ -37,7 +37,7 @@ def potential(*args: Any, **kwargs: Any) -> u.Quantity["specific energy"]:
     We can construct a potential and compute the potential energy at a given
     coordinate:
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
@@ -54,14 +54,15 @@ def potential(*args: Any, **kwargs: Any) -> u.Quantity["specific energy"]:
     >>> pot.potential(w)
     Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
-    This function is very flexible and can accept a broad variety of inputs. For
-    example, can pass a `~coordinax.FourVector`:
+    This function is very flexible and can accept a broad variety of inputs:
+
+    - `~coordinax.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> pot.potential(w)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
-    Or a `coordinax.vecs.AbstractPos3D`:
+    - `coordinax.vecs.AbstractPos3D`:
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
     >>> t = u.Quantity(0, "Gyr")
@@ -75,8 +76,8 @@ def potential(*args: Any, **kwargs: Any) -> u.Quantity["specific energy"]:
     >>> pot.potential(q, t=t)
     Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
-    Or a `unxt.Quantity`, which is interpreted as a
-    `coordinax.vecs.CartesianPos3D` position:
+    - A `unxt.Quantity`, which is interpreted as a
+      `coordinax.vecs.CartesianPos3D` position:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> pot.potential(q, t=t)

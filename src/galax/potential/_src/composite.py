@@ -42,9 +42,9 @@ class CompositePotential(
     >>> import galax.potential as gp
 
     >>> pot = gp.CompositePotential(
-    ...     bulge=gp.HernquistPotential(m_tot=u.Quantity(1e11, "Msun"), r_s=u.Quantity(2, "kpc"), units="galactic"),
-    ...     disk=gp.KuzminPotential(m_tot=u.Quantity(1e12, "Msun"), a=u.Quantity(10, "kpc"), units="galactic"),
-    ...     halo=gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(10, "kpc"), units="galactic"),
+    ...     bulge=gp.HernquistPotential(m_tot=1e11, r_s=2, units="galactic"),
+    ...     disk=gp.KuzminPotential(m_tot=1e12, r_s=10, units="galactic"),
+    ...     halo=gp.NFWPotential(m=1e12, r_s=10, units="galactic"),
     ... )
 
     >>> pot.keys()
@@ -60,10 +60,10 @@ class CompositePotential(
     KuzminPotential(
       units=..., constants=ImmutableMap({'G': ...}),
       m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... )
+      r_s=ConstantParameter( ... )
     )
 
-    """  # noqa: E501
+    """
 
     parameters: ClassVar = CompositeParametersAttribute(MappingProxyType({}))
 

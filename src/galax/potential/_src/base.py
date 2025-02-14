@@ -169,8 +169,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # ---------------------------------------
     # Gradient
 
-    @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3)")
+    @partial(jax.jit)
     def _gradient(self, q: gt.BtFloatQuSz3, t: gt.RealQuSz0, /) -> gt.BtQuSz3:
         """See ``gradient``."""
         grad_op = u.experimental.grad(
@@ -190,8 +190,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # ---------------------------------------
     # Laplacian
 
-    @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
+    @partial(jax.jit)
     def _laplacian(self, q: gt.BtFloatQuSz3, /, t: gt.RealQuSz0) -> gt.FloatQuSz0:
         """See ``laplacian``."""
         jac_op = u.experimental.jacfwd(  # spatial jacobian
@@ -231,8 +231,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # ---------------------------------------
     # Hessian
 
-    @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3,3)")
+    @partial(jax.jit)
     def _hessian(self, q: gt.FloatQuSz3, t: gt.RealQuSz0, /) -> gt.FloatQuSz33:
         """See ``hessian``."""
         hess_op = u.experimental.hessian(

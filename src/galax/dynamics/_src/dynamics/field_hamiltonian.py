@@ -229,7 +229,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         return p
 
     @eqx.filter_jit  # type: ignore[misc]
-    def _dpdt(self, t: gt.BBtScalarSz0, q: gdt.BBtQarr, args: Any, /) -> gdt.BtAarr:  # noqa: ARG002
+    def _dpdt(self, t: gt.BBtSz0, q: gdt.BBtQarr, args: Any, /) -> gdt.BtAarr:  # noqa: ARG002
         """Call with time, velocity quantity arrays."""
         units = self.units
         a: gdt.BtAarr = -self.potential._gradient(  # noqa: SLF001
@@ -324,7 +324,7 @@ def call(
 @partial(jax.jit)
 def call(
     self: HamiltonianField,
-    t: gt.BBtScalarSz0,
+    t: gt.BBtSz0,
     q: gdt.BBtQarr,
     p: gdt.BBtParr,
     args: Args = None,
@@ -350,7 +350,7 @@ def call(
 @HamiltonianField.__call__.dispatch
 @partial(jax.jit)
 def call(
-    self: HamiltonianField, t: gt.BBtScalarSz0, qp: gdt.BBtQParr, _: Args = None, /
+    self: HamiltonianField, t: gt.BBtSz0, qp: gdt.BBtQParr, _: Args = None, /
 ) -> gdt.BtPAarr:
     """Call with time, (position, velocity) arrays.
 
@@ -371,7 +371,7 @@ def call(
 @HamiltonianField.__call__.dispatch
 @partial(jax.jit)
 def call(
-    self: HamiltonianField, t: gt.BBtScalarSz0, qp: gt.BBtSz6, args: Args = None, /
+    self: HamiltonianField, t: gt.BBtSz0, qp: gt.BBtSz6, args: Args = None, /
 ) -> gdt.BtPAarr:
     """Call with time, pos-vel 6 array.
 

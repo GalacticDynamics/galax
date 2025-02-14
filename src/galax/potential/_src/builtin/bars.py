@@ -48,8 +48,8 @@ class BarPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
     @vectorize_method(signature="(3),()->()")
+    @partial(jax.jit)
     def _potential(self, q: gt.QuSz3, t: gt.RealQuSz0, /) -> gt.SpecificEnergyBtSz0:
         ## First take the simulation frame coordinates and rotate them by Omega*t
         ang = -self.Omega(t) * t

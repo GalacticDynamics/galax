@@ -45,8 +45,10 @@ __all__ = [
     "PowerLawCutoffPotential",
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
-    # frame
-    "PotentialFrame",
+    # xfm
+    "AbstractTransformedPotential",
+    "TransformedPotential",
+    "TriaxialInThePotential",
     # funcs
     "potential",
     "gradient",
@@ -115,7 +117,11 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         Vogelsberger08TriaxialNFWPotential,
     )
     from ._src.composite import CompositePotential
-    from ._src.frame import PotentialFrame
+    from ._src.xfm import (
+        AbstractTransformedPotential,
+        TransformedPotential,
+        TriaxialInThePotential,
+    )
 
     # Register functions by module import
     # isort: split

@@ -144,7 +144,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         """
         return api.potential(self, *args, **kwargs)
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def __call__(self, *args: Any) -> Float[u.Quantity["specific energy"], "*batch"]:
         """Compute the potential energy at the given position(s).
 
@@ -169,7 +169,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # ---------------------------------------
     # Gradient
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3)")
     def _gradient(self, q: gt.BtFloatQuSz3, t: gt.RealQuSz0, /) -> gt.BtQuSz3:
         """See ``gradient``."""
@@ -190,7 +190,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # ---------------------------------------
     # Laplacian
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
     def _laplacian(self, q: gt.BtFloatQuSz3, /, t: gt.RealQuSz0) -> gt.FloatQuSz0:
         """See ``laplacian``."""
@@ -211,7 +211,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # ---------------------------------------
     # Density
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _density(
         self, q: gt.BtFloatQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
     ) -> gt.BtFloatQuSz0:
@@ -231,7 +231,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # ---------------------------------------
     # Hessian
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     @vectorize_method(signature="(3),()->(3,3)")
     def _hessian(self, q: gt.FloatQuSz3, t: gt.RealQuSz0, /) -> gt.FloatQuSz33:
         """See ``hessian``."""
@@ -503,9 +503,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
 @dispatch
 def convert_potential(
-    to_: type[GalaxLibrary],  # noqa: ARG001
-    from_: AbstractPotential,
-    /,
+    _: type[GalaxLibrary], from_: AbstractPotential, /
 ) -> AbstractPotential:
     """Convert the potential to an object of a different library."""
     return from_

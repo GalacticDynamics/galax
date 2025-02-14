@@ -30,7 +30,7 @@ def test_bar_means_of_rotation() -> None:
 
     # Operator means of rotation
     op = gc.ops.ConstantRotationZOperator(Omega_z=Omega_z_angv)
-    framedpot = gp.PotentialFrame(base_pot, op)
+    xpot = gp.TransformedPotential(base_pot, op)
 
     # quick test of the op
     q = u.Quantity([5.0, 0.0, 0.0], "kpc")
@@ -41,36 +41,36 @@ def test_bar_means_of_rotation() -> None:
     assert isinstance(newt, u.Quantity)
 
     # They should be equivalent at t=0
-    assert framedpot.potential(q, t) == hardpot.potential(q, t)
+    assert xpot.potential(q, t) == hardpot.potential(q, t)
     assert jnp.array_equal(
-        convert(framedpot.acceleration(q, t), u.Quantity),
+        convert(xpot.acceleration(q, t), u.Quantity),
         convert(hardpot.acceleration(q, t), u.Quantity),
     )
 
     # They should be equivalent at t=110 Myr (1/2 period)
     t = u.Quantity(110, "Myr")
-    assert framedpot.potential(q, t) == hardpot.potential(q, t)
+    assert xpot.potential(q, t) == hardpot.potential(q, t)
     assert jnp.array_equal(
-        convert(framedpot.acceleration(q, t), u.Quantity),
+        convert(xpot.acceleration(q, t), u.Quantity),
         convert(hardpot.acceleration(q, t), u.Quantity),
     )
 
     # They should be equivalent at t=220 Myr (1 period)
     t = u.Quantity(220, "Myr")
-    assert framedpot.potential(q, t) == hardpot.potential(q, t)
+    assert xpot.potential(q, t) == hardpot.potential(q, t)
     assert jnp.array_equal(
-        convert(framedpot.acceleration(q, t), u.Quantity),
+        convert(xpot.acceleration(q, t), u.Quantity),
         convert(hardpot.acceleration(q, t), u.Quantity),
     )
 
     # They should be equivalent at t=55 Myr (1/4 period)
     t = u.Quantity(55, "Myr")
-    assert framedpot.potential(q, t) == hardpot.potential(q, t)
+    assert xpot.potential(q, t) == hardpot.potential(q, t)
     assert jnp.array_equal(
-        convert(framedpot.acceleration(q, t), u.Quantity),
+        convert(xpot.acceleration(q, t), u.Quantity),
         convert(hardpot.acceleration(q, t), u.Quantity),
     )
 
     # TODO: move this test to a more appropriate location
     # Test that the frame's constants are the same as the base potential's
-    assert framedpot.constants is base_pot.constants
+    assert xpot.constants is base_pot.constants

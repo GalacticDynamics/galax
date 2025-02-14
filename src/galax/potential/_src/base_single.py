@@ -41,6 +41,7 @@ class AbstractSinglePotential(AbstractPotential, strict=True):
         if not isinstance(other, AbstractPotential):
             return NotImplemented
 
+        # CompositePotential has better methods for combining potentials
         if isinstance(other, CompositePotential):
             return other.__ror__(self)
 

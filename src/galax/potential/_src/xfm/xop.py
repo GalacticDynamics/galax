@@ -1,32 +1,29 @@
 """Wrapper to add frame operations to a potential."""
 
-__all__ = ["PotentialFrame"]
+__all__ = ["TransformedPotential"]
 
 
 from dataclasses import replace
-from typing import cast, final
+from typing import final
 
 import equinox as eqx
 from plum import dispatch
 
 import coordinax.ops as cxo
-import unxt as u
-from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .base import AbstractPotential
+from .base import AbstractTransformedPotential
+from galax.potential._src.base import AbstractPotential
 
 
 @final
-class PotentialFrame(AbstractPotential):
-    """Reference frame of the potential.
+class TransformedPotential(AbstractTransformedPotential):
+    """Transformation of the potential.
 
     Examples
     --------
     In this example, we create a triaxial Hernquist potential and apply a few
     coordinate transformations.
-
-    First some imports:
 
     >>> import unxt as u
     >>> import coordinax as cx
@@ -65,11 +62,11 @@ class PotentialFrame(AbstractPotential):
     >>> op1
     GalileanSpatialTranslation(CartesianPos3D( ... ))
 
-    >>> framedpot1 = gp.PotentialFrame(original_potential=pot, operator=op1)
-    >>> framedpot1
-    PotentialFrame(
+    >>> xpot1 = gp.TransformedPotential(original_potential=pot, xop=op1)
+    >>> xpot1
+    TransformedPotential(
       original_potential=TriaxialHernquistPotential( ... ),
-      operator=GalileanSpatialTranslation(
+      xop=GalileanSpatialTranslation(
         translation=CartesianPos3D( ... )
       )
     )
@@ -77,7 +74,7 @@ class PotentialFrame(AbstractPotential):
     Now the potential energy is different because the potential has been
     translated by 3 kpc in the x-direction:
 
-    >>> framedpot1.potential(w1)
+    >>> xpot1.potential(w1)
     Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     This is the same as evaluating the untranslated potential at [-2, 0, 0] kpc:
@@ -92,12 +89,12 @@ class PotentialFrame(AbstractPotential):
     >>> op2.translation.t.uconvert("Myr")  # doctest: +SKIP
     Quantity['time'](Array(3.26156378, dtype=float64), unit='Myr')
 
-    >>> framedpot2 = gp.PotentialFrame(original_potential=pot, operator=op2)
+    >>> xpot2 = gp.TransformedPotential(original_potential=pot, xop=op2)
 
     We can see that the potential energy is the same as before, since we have
     been evaluating the potential at ``w1.t=t=0``:
 
-    >>> framedpot2.potential(w1)
+    >>> xpot2.potential(w1)
     Quantity[...](Array(-2.24851747, dtype=float64), unit='kpc2 / Myr2')
 
     But if we evaluate the potential at a different time, the potential energy
@@ -105,7 +102,7 @@ class PotentialFrame(AbstractPotential):
 
     >>> from dataclasses import replace
     >>> w2 = replace(w1, t=u.Quantity(10, "Myr"))
-    >>> framedpot2.potential(w2)
+    >>> xpot2.potential(w2)
     Quantity[...](Array(-2.25076672, dtype=float64), unit='kpc2 / Myr2')
 
     Now let's boost the potential by 200 km/s in the y-direction:
@@ -114,8 +111,8 @@ class PotentialFrame(AbstractPotential):
     >>> op3
     GalileanBoost(CartesianVel3D( ... ))
 
-    >>> framedpot3 = gp.PotentialFrame(original_potential=pot, operator=op3)
-    >>> framedpot3.potential(w2)
+    >>> xpot3 = gp.TransformedPotential(original_potential=pot, xop=op3)
+    >>> xpot3.potential(w2)
     Quantity[...](Array(-1.37421204, dtype=float64), unit='kpc2 / Myr2')
 
     Alternatively we can rotate the potential by 90 degrees about the y-axis:
@@ -125,12 +122,12 @@ class PotentialFrame(AbstractPotential):
     >>> op4
     GalileanRotation(rotation=f64[3,3])
 
-    >>> framedpot4 = gp.PotentialFrame(original_potential=pot, operator=op4)
-    >>> framedpot4.potential(w1)
+    >>> xpot4 = gp.TransformedPotential(original_potential=pot, xop=op4)
+    >>> xpot4.potential(w1)
     Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = u.Quantity([0, 0, 1], "kpc")
-    >>> framedpot4.potential(q, t)
+    >>> xpot4.potential(q, t)
     Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
     If you look all the way back to the first examples, you will see that the
@@ -149,16 +146,16 @@ class PotentialFrame(AbstractPotential):
       velocity=GalileanBoost( ... )
     )
 
-    >>> framedpot5 = gp.PotentialFrame(original_potential=pot, operator=op5)
-    >>> framedpot5.potential(w2)
+    >>> xpot5 = gp.TransformedPotential(original_potential=pot, xop=op5)
+    >>> xpot5.potential(w2)
     Quantity[...](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
     The second way is to create a custom sequence of operators. In this case we
     will make a sequence that mimics the previous example:
 
     >>> op6 = op4 | op2 | op3
-    >>> framedpot6 = gp.PotentialFrame(original_potential=pot, operator=op6)
-    >>> framedpot6.potential(w2)
+    >>> xpot6 = gp.TransformedPotential(original_potential=pot, xop=op6)
+    >>> xpot6.potential(w2)
     Quantity[...](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
     We've seen that the potential can be time-dependent, but so far the
@@ -171,42 +168,32 @@ class PotentialFrame(AbstractPotential):
     ...     r_s=u.Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
 
     >>> op7 = gc.ops.ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg/Gyr"))
-    >>> framedpot7 = gp.PotentialFrame(original_potential=pot2, operator=op7)
+    >>> xpot7 = gp.TransformedPotential(original_potential=pot2, xop=op7)
 
     The potential energy at a given position will change with time:
 
-    >>> framedpot7.potential(w1).value  # t=0 Gyr
+    >>> xpot7.potential(w1).value  # t=0 Gyr
     Array(-2.24925108, dtype=float64)
-    >>> framedpot7.potential(w2).value  # t=1 Gyr
+    >>> xpot7.potential(w2).value  # t=1 Gyr
     Array(-2.23568166, dtype=float64)
     """  # noqa: E501
 
     original_potential: AbstractPotential
 
-    operator: cxo.AbstractOperator = eqx.field(default_factory=lambda: cxo.Identity())
+    xop: cxo.AbstractOperator = eqx.field(default=cxo.Identity())
     """Transformation to reference frame of the potential.
 
     The default is no transformation, ie the coordinates are specified in the
     'simulation' frame.
     """
 
-    @property
-    def units(self) -> u.AbstractUnitSystem:
-        """The unit system of the potential."""
-        return cast(u.AbstractUnitSystem, self.original_potential.units)
-
-    @property
-    def constants(self) -> ImmutableMap[str, u.Quantity]:
-        """The constants of the potential."""
-        return cast(ImmutableMap[str, u.Quantity], self.original_potential.constants)
-
     def _potential(
         self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
     ) -> gt.SpecificEnergyBtSz0:
         """Compute the potential energy at the given position(s).
 
-        This method applies the frame operators to the coordinates and then
-        evaluates the potential energy at the transformed coordinates.
+        This method applies the operators to the coordinates and then evaluates
+        the potential energy at the transformed coordinates.
 
         Parameters
         ----------
@@ -221,7 +208,7 @@ class PotentialFrame(AbstractPotential):
             The potential energy at the given position(s).
         """
         # Make inverse operator  # TODO: pre-compute and cache
-        inv = self.operator.inverse
+        inv = self.xop.inverse
         # Transform the position, time.
         qp, tp = inv(q, t)
         # Evaluate the potential energy at the transformed position, time.
@@ -232,6 +219,30 @@ class PotentialFrame(AbstractPotential):
 
 
 @dispatch
-def simplify_op(frame: PotentialFrame, /) -> PotentialFrame:
-    """Simplify the operators in an PotentialFrame."""
-    return replace(frame, operator=cxo.simplify_op(frame.operator))
+def simplify_op(pot: TransformedPotential, /) -> TransformedPotential:
+    """Simplify the operators in a TransformedPotential.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+
+    >>> pot = gp.KeplerPotential(1e12, units="galactic")
+    >>> op = cx.ops.GalileanRotation.from_euler("z", u.Quantity(0, "deg"))
+    >>> xpot = gp.TransformedPotential(pot, op)
+    >>> xpot
+    TransformedPotential(
+      original_potential=KeplerPotential( ... ),
+      xop=GalileanRotation(rotation=f64[3,3])
+    )
+
+    >>> cx.ops.simplify_op(xpot)
+    TransformedPotential(
+      original_potential=KeplerPotential( ... ),
+      xop=Identity()
+    )
+
+    """
+    return replace(pot, xop=cxo.simplify_op(pot.xop))

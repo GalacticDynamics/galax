@@ -294,7 +294,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
 @cxo.simplify_op.register  # type: ignore[misc]
 def _simplify_op_rotz(op: ConstantRotationZOperator, /) -> cxo.AbstractOperator:
-    """Simplify the operators in an PotentialFrame.
+    """Simplify the operators in an TransformedPotential.
 
     Examples
     --------

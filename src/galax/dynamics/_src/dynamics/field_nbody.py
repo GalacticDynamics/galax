@@ -11,7 +11,6 @@ from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity as FastQ
 
 import galax.potential as gp
 import galax.typing as gt
@@ -119,9 +118,7 @@ def __call__(
     a_self = jnp.sum(forces, axis=0) / ms[:, None]  # (N, 3)
 
     # Compute acceleration due to external potential.
-    a_external = self.external_potential._gradient(  # noqa: SLF001
-        FastQ(x, units["length"]), FastQ(t, units["time"])
-    ).ustrip(units["acceleration"])
+    a_external = self.external_potential._gradient(x, t)  # noqa: SLF001
 
     # Total acceleration.
     a_tot = a_self - a_external

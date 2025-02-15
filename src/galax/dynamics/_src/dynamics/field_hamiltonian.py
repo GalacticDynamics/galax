@@ -229,14 +229,9 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         return p
 
     @eqx.filter_jit  # type: ignore[misc]
-    def _dpdt(self, t: gt.BBtSz0, q: gdt.BBtQarr, args: Any, /) -> gdt.BtAarr:  # noqa: ARG002
+    def _dpdt(self, t: gt.BBtSz0, q: gdt.BBtQarr, _: Any, /) -> gdt.BtAarr:
         """Call with time, velocity quantity arrays."""
-        units = self.units
-        a: gdt.BtAarr = -self.potential._gradient(  # noqa: SLF001
-            FastQ(q, units["length"]),
-            FastQ(t, units["time"]),
-        ).ustrip(units["acceleration"])
-        return a
+        return -self.potential._gradient(q, t)  # noqa: SLF001
 
 
 # ===============================================
@@ -306,9 +301,8 @@ def call(
 ) -> gdt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     # TODO: not require unit munging
-    units = self.units
-    a = -self.potential._gradient(q, t).ustrip(units["acceleration"])  # noqa: SLF001
-    return p.ustrip(units["speed"]), a
+    a = -self.potential._gradient(q, t)  # noqa: SLF001
+    return p.ustrip(self.units["speed"]), a
 
 
 @HamiltonianField.__call__.dispatch
@@ -359,12 +353,7 @@ def call(
     position, and speed.
 
     """
-    # TODO: not require unit munging
-    units = self.units
-    a = -self.potential._gradient(  # noqa: SLF001
-        FastQ(qp[0], units["length"]),
-        FastQ(t, units["time"]),
-    ).ustrip(units["acceleration"])
+    a = -self.potential._gradient(qp[0], t)  # noqa: SLF001
     return qp[1], a
 
 

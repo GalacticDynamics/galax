@@ -86,7 +86,7 @@ def gradient(
     """Compute the gradient of the potential at the given coordinate(s)."""
     q = parse_to_quantity(wt, dtype=float, units=pot.units["length"])
     grad = pot._gradient(q, wt.t)  # noqa: SLF001
-    return cx.vecs.CartesianAcc3D.from_(grad)
+    return cx.vecs.CartesianAcc3D.from_(grad, pot.units["acceleration"])
 
 
 @dispatch
@@ -105,10 +105,10 @@ def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3
         :meth:`unxt.Quantity.from_` for more details.
 
     """
-    q = parse_to_quantity(q, dtype=float, unit=pot.units["length"])
-    t = u.Quantity.from_(t, pot.units["time"])
+    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
     grad = pot._gradient(q, t)  # noqa: SLF001
-    return cx.vecs.CartesianAcc3D.from_(grad)
+    return cx.vecs.CartesianAcc3D.from_(grad, pot.units["acceleration"])
 
 
 @dispatch

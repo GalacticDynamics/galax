@@ -17,7 +17,7 @@ from plum import dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AbstractQuantity
+from unxt.quantity import BareQuantity
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -34,6 +34,8 @@ if TYPE_CHECKING:
     import galax.dynamics  # noqa: ICN001
 
 default_constants = ImmutableMap({"G": u.Quantity.from_(_CONST_G)})
+DimL = u.dimension("length")
+DimT = u.dimension("time")
 
 
 ##############################################################################
@@ -49,7 +51,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     units: eqx.AbstractVar[u.AbstractUnitSystem]
     """The unit system of the potential."""
 
-    constants: eqx.AbstractVar[ImmutableMap[str, AbstractQuantity]]
+    constants: eqx.AbstractVar[ImmutableMap[str, u.AbstractQuantity]]
     """The constants used by the potential."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -82,7 +84,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
             elif "dimensions" in f.metadata:
                 value = getattr(self, f.name)
                 # Only need to set again if a conversion is needed
-                if isinstance(value, AbstractQuantity | APYQuantity):
+                if isinstance(value, u.AbstractQuantity | APYQuantity):
                     value = u.uconvert(usys[f.metadata.get("dimensions")], value)
                     object.__setattr__(self, f.name, value)
 
@@ -170,13 +172,12 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @vectorize_method(signature="(3),()->(3)")
     @partial(jax.jit)
-    def _gradient(self, xyz: gt.BtFloatQuSz3, t: gt.RealQuSz0, /) -> gt.BtQuSz3:
+    def _gradient(self, xyz: gt.BtFloatQuSz3, t: gt.RealQuSz0, /) -> gt.BtSz3:
         """See ``gradient``."""
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.ustrip(AllowValue, self.units["time"], t)
+        xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
+        t = u.ustrip(AllowValue, self.units[DimT], t)
         grad_op = jax.grad(self._potential)
-        grad = grad_op(xyz, t)
-        return u.Quantity(grad, self.units["length"] / self.units["time"] ** 2)
+        return grad_op(xyz, t)
 
     def gradient(
         self: "AbstractPotential", *args: Any, **kwargs: Any
@@ -192,12 +193,12 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @vectorize_method(signature="(3),()->()")
     @partial(jax.jit)
-    def _laplacian(self, q: gt.BtFloatQuSz3, /, t: gt.RealQuSz0) -> gt.FloatQuSz0:
+    def _laplacian(self, xyz: gt.BtFloatQuSz3, /, t: gt.RealQuSz0) -> gt.FloatQuSz0:
         """See ``laplacian``."""
-        jac_op = u.experimental.jacfwd(  # spatial jacobian
-            self._gradient, argnums=0, units=(self.units["length"], self.units["time"])
-        )
-        return jnp.trace(jac_op(q, t))
+        xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
+        t = u.ustrip(AllowValue, self.units[DimT], t)
+        jac_op = jax.jacfwd(self._gradient, argnums=0)
+        return BareQuantity(jnp.trace(jac_op(xyz, t)), self.units["frequency drift"])
 
     def laplacian(
         self: "AbstractPotential", *args: Any, **kwargs: Any
@@ -237,8 +238,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.RealQuSz0 | gt.RealSz0, /
     ) -> gt.FloatQuSz33:
         """See ``hessian``."""
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.ustrip(AllowValue, self.units["time"], t)
+        xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
+        t = u.ustrip(AllowValue, self.units[DimT], t)
         hess_op = jax.hessian(self._potential)
         return u.Quantity(hess_op(xyz, t), self.units["frequency"] ** 2)
 

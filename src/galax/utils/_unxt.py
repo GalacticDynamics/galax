@@ -44,7 +44,12 @@ class AllowValue:
 
 
 @dispatch
-def ustrip(flag: type[AllowValue], unit: Any, x: Array, /) -> Array:  # noqa: ARG001
+def ustrip(
+    flag: type[AllowValue],  # noqa: ARG001
+    unit: Any,  # noqa: ARG001
+    x: Array | float | int,
+    /,
+) -> Array | float | int:
     """Strip the units from a value. This is a no-op.
 
     Examples

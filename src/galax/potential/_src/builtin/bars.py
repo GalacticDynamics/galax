@@ -7,7 +7,7 @@ __all__ = [
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import final
+from typing import Any, final
 
 import equinox as eqx
 import jax
@@ -22,8 +22,19 @@ from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.utils._jax import vectorize_method
+from galax.utils._unxt import AllowValue
 
 # -------------------------------------------------------------------
+
+
+def _make_rotation_matrix(angle: Any, /) -> Any:
+    return jnp.asarray(
+        [
+            [jnp.cos(angle), -jnp.sin(angle), 0],
+            [jnp.sin(angle), jnp.cos(angle), 0.0],
+            [0.0, 0.0, 1.0],
+        ],
+    )
 
 
 @final
@@ -50,36 +61,27 @@ class BarPotential(AbstractSinglePotential):
 
     @vectorize_method(signature="(3),()->()")
     @partial(jax.jit)
-    def _potential(self, q: gt.QuSz3, t: gt.RealQuSz0, /) -> gt.SpecificEnergyBtSz0:
-        ## First take the simulation frame coordinates and rotate them by Omega*t
-        ang = -self.Omega(t) * t
-        rotation_matrix = jnp.asarray(
-            [
-                [jnp.cos(ang), -jnp.sin(ang), 0],
-                [jnp.sin(ang), jnp.cos(ang), 0.0],
-                [0.0, 0.0, 1.0],
-            ],
-        )
-        q_corot = jnp.matmul(rotation_matrix, q)
+    def _potential(self, xyz: gt.QuSz3, t: gt.RealQuSz0, /) -> gt.BtSz0:
+        # Parse input and params
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.ustrip(AllowValue, self.units["time"], t)
 
-        a = self.a(t)
-        b = self.b(t)
-        c = self.c(t)
-        T_plus = jnp.sqrt(
-            (a + q_corot[0]) ** 2
-            + q_corot[1] ** 2
-            + (b + jnp.sqrt(c**2 + q_corot[2] ** 2)) ** 2
-        )
-        T_minus = jnp.sqrt(
-            (a - q_corot[0]) ** 2
-            + q_corot[1] ** 2
-            + (b + jnp.sqrt(c**2 + q_corot[2] ** 2)) ** 2
-        )
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        omega = self.Omega(t, ustrip=self.units["frequency"])
+        a = self.a(t, ustrip=self.units["length"])
+        b = self.b(t, ustrip=self.units["length"])
+        c = self.c(t, ustrip=self.units["length"])
+
+        # First take the simulation frame coordinates and rotate them by Omega*t
+        R = _make_rotation_matrix(-omega * t)
+        xr, yr, zr = jnp.matmul(R, xyz)
+
+        T_plus = jnp.sqrt((a + xr) ** 2 + yr**2 + (b + jnp.sqrt(c**2 + zr**2)) ** 2)
+        T_minus = jnp.sqrt((a - xr) ** 2 + yr**2 + (b + jnp.sqrt(c**2 + zr**2)) ** 2)
 
         # potential in a corotating frame
-        return (self.constants["G"] * self.m_tot(t) / (2.0 * a)) * jnp.log(
-            (q_corot[0] - a + T_minus) / (q_corot[0] + a + T_plus),
-        )
+        GM_R = self.constants["G"].value * m_tot / (2.0 * a)
+        return GM_R * jnp.log((xr - a + T_minus) / (xr + a + T_plus))
 
 
 # -------------------------------------------------------------------
@@ -106,20 +108,29 @@ class LongMuraliBarPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        m_tot = self.m_tot(t)
-        a, b, c = self.a(t), self.b(t), self.c(t)
-        alpha = self.alpha(t)
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        # Parse inputs and params
+        u_length = self.units["length"]
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        a = self.a(t, ustrip=u_length)
+        b = self.b(t, ustrip=u_length)
+        c = self.c(t, ustrip=u_length)
+        alpha = self.alpha(t, ustrip=self.units["angle"])
 
-        x = q[..., 0] * jnp.cos(alpha) + q[..., 1] * jnp.sin(alpha)
-        y = -q[..., 0] * jnp.sin(alpha) + q[..., 1] * jnp.cos(alpha)
-        z = q[..., 2]
+        xyz = u.ustrip(AllowValue, u_length, xyz)
+        x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
 
-        _temp = y**2 + (b + jnp.sqrt(c**2 + z**2)) ** 2
-        Tm = jnp.sqrt((a - x) ** 2 + _temp)
-        Tp = jnp.sqrt((a + x) ** 2 + _temp)
+        xp = x * jnp.cos(alpha) + y * jnp.sin(alpha)
+        yp = -x * jnp.sin(alpha) + y * jnp.cos(alpha)
+
+        temp = yp**2 + (b + jnp.sqrt(c**2 + z**2)) ** 2
+        Tm = jnp.sqrt((a - xp) ** 2 + temp)
+        Tp = jnp.sqrt((a + xp) ** 2 + temp)
 
         return (
-            self.constants["G"] * m_tot / (2 * a) * jnp.log((x - a + Tm) / (x + a + Tp))
+            self.constants["G"].value
+            * m_tot
+            / (2 * a)
+            * jnp.log((xp - a + Tm) / (xp + a + Tp))
         )

@@ -23,6 +23,7 @@ import galax.typing as gt
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.utils._unxt import AllowValue
 
 
 class AbstractMultipolePotential(AbstractSinglePotential):
@@ -69,15 +70,20 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
             )
             raise ValueError(msg)
 
-    @partial(jax.jit, inline=True)
-    def _potential(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
-        # Compute the parameters
-        m_tot, r_s = self.m_tot(t), self.r_s(t)
-        Slm, Tlm = self.Slm(t).value, self.Tlm(t).value
+    @partial(jax.jit)
+    def _potential(
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtFloatSz0:
+        # Compute the params
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        Slm = self.Slm(t, ustrip=self.units["dimensionless"])
+        Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # spherical coordinates
-        is_scalar = q.ndim == 1
-        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(q), r_s)
+        is_scalar = xyz.ndim == 1
+        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(xyz), r_s)
 
         # Compute the summation over l and m
         l_max = self.l_max
@@ -92,7 +98,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
         if is_scalar:
             summation = summation[0]
 
-        return self.constants["G"] * m_tot / r_s * summation
+        return self.constants["G"].value * m_tot / r_s * summation
 
 
 @final
@@ -126,15 +132,20 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
             )
             raise ValueError(msg)
 
-    @partial(jax.jit, inline=True)
-    def _potential(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
+    @partial(jax.jit)
+    def _potential(
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtFloatSz0:
         # Compute the parameters
-        m_tot, r_s = self.m_tot(t), self.r_s(t)
-        Slm, Tlm = self.Slm(t).value, self.Tlm(t).value
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        Slm = self.Slm(t, ustrip=self.units["dimensionless"])
+        Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # spherical coordinates
-        is_scalar = q.ndim == 1
-        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(q), r_s)
+        is_scalar = xyz.ndim == 1
+        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(xyz), r_s)
 
         # Compute the summation over l and m
         l_max = self.l_max
@@ -149,7 +160,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
         if is_scalar:
             summation = summation[0]
 
-        return self.constants["G"] * m_tot / r_s * summation
+        return self.constants["G"].value * m_tot / r_s * summation
 
 
 @final
@@ -193,16 +204,22 @@ class MultipolePotential(AbstractMultipolePotential):
             msg = "I/OSlm and I/OTlm must have the shape (l_max + 1, l_max + 1)."
             raise ValueError(msg)
 
-    @partial(jax.jit, inline=True)
-    def _potential(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
+    @partial(jax.jit)
+    def _potential(
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtFloatSz0:
         # Compute the parameters
-        m_tot, r_s = self.m_tot(t), self.r_s(t)
-        ISlm, ITlm = self.ISlm(t).value, self.ITlm(t).value
-        OSlm, OTlm = self.OSlm(t).value, self.OTlm(t).value
+        u1 = self.units["dimensionless"]
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        ISlm, ITlm = self.ISlm(t, ustrip=u1), self.ITlm(t, ustrip=u1)
+        OSlm, OTlm = self.OSlm(t, ustrip=u1), self.OTlm(t, ustrip=u1)
+
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # spherical coordinates
-        is_scalar = q.ndim == 1
-        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(q), r_s)
+        is_scalar = xyz.ndim == 1
+        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(xyz), r_s)
 
         # Compute the summation over l and m
         l_max = self.l_max
@@ -219,15 +236,15 @@ class MultipolePotential(AbstractMultipolePotential):
         if is_scalar:
             summation = summation[0]
 
-        return self.constants["G"] * m_tot / r_s * summation
+        return self.constants["G"].value * m_tot / r_s * summation
 
 
 # ===== Helper functions =====
 
 
 def cartesian_to_normalized_spherical(
-    q: gt.BtQuSz3, r_s: u.Quantity, /
-) -> tuple[gt.BtFloatSz0, gt.BtFloatSz0, u.Quantity]:
+    q: gt.BtSz3, r_s: gt.Sz0, /
+) -> tuple[gt.BtFloatSz0, gt.BtFloatSz0, gt.BtFloatSz0]:
     r"""Convert Cartesian coordinates to normalized spherical coordinates.
 
     .. math::
@@ -236,27 +253,12 @@ def cartesian_to_normalized_spherical(
         X = \cos(\theta) = z / r
         \phi = \tan^{-1}\left(\frac{y}{x}\right)
 
-    Parameters
-    ----------
-    q : Array[float, (*batch, 3), "length"]
-        Cartesian coordinates.
-
-    Returns
-    -------
-    s : Array[float, (*batch,)]
-        Normalized radius.
-    theta : Array[float, (*batch,)]
-        theta angle.
-    phi : Quantity[float, (*batch,), "angle"]
-        phi angle.
     """
     r = jnp.linalg.vector_norm(q, axis=-1)
     s = r / r_s
-    theta = u.ustrip("rad", jnp.acos(q[..., 2] / r))  # theta
-    phi = u.ustrip("rad", jnp.atan2(q[..., 1], q[..., 0]))  # atan(y/x)
-
-    # Return, converting Quantity["dimensionless"] -> Array
-    return s.value, theta, phi
+    theta = jnp.acos(q[..., 2] / r)  # theta
+    phi = jnp.atan2(q[..., 1], q[..., 0])  # atan(y/x)
+    return s, theta, phi
 
 
 # TODO: vectorize such that it's signature="(l),(l),(N),(N)->(l, N)":

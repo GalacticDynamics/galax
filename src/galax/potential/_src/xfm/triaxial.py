@@ -13,6 +13,7 @@ from .base import AbstractTransformedPotential
 from galax.potential._src.base import AbstractPotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.utils._unxt import AllowValue
 
 
 class TriaxialInThePotential(AbstractTransformedPotential):
@@ -80,11 +81,12 @@ class TriaxialInThePotential(AbstractTransformedPotential):
 
     @partial(jax.jit)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz.astype(float))
         # Transform the position
-        q = q.astype(float).at[..., 1].set(q[..., 1] / self.y_over_x(t))
-        q = q.astype(float).at[..., 2].set(q[..., 2] / self.z_over_x(t))
+        xyz = xyz.at[..., 1].divide(self.y_over_x(t).value)
+        xyz = xyz.at[..., 2].divide(self.z_over_x(t).value)
 
         # Evaluate the potential energy at the transformed position, time.
-        return self.original_potential._potential(q, t)  # noqa: SLF001
+        return self.original_potential._potential(xyz, t)  # noqa: SLF001

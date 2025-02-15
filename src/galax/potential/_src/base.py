@@ -27,6 +27,7 @@ from .plot import PlotPotentialDescriptor
 from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.utils._jax import vectorize_method
+from galax.utils._unxt import AllowValue
 from galax.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
@@ -135,9 +136,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         """
         raise NotImplementedError
 
-    def potential(
-        self: "AbstractPotential", *args: Any, **kwargs: Any
-    ) -> u.Quantity["specific energy"]:  # TODO: shape hint
+    def potential(self, *args: Any, **kwargs: Any) -> u.Quantity["specific energy"]:
         """Compute the potential energy at the given position(s).
 
         See :func:`~galax.potential.potential` for details.
@@ -171,12 +170,13 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @vectorize_method(signature="(3),()->(3)")
     @partial(jax.jit)
-    def _gradient(self, q: gt.BtFloatQuSz3, t: gt.RealQuSz0, /) -> gt.BtQuSz3:
+    def _gradient(self, xyz: gt.BtFloatQuSz3, t: gt.RealQuSz0, /) -> gt.BtQuSz3:
         """See ``gradient``."""
-        grad_op = u.experimental.grad(
-            self._potential, units=(self.units["length"], self.units["time"])
-        )
-        return grad_op(q, t)
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.ustrip(AllowValue, self.units["time"], t)
+        grad_op = jax.grad(self._potential)
+        grad = grad_op(xyz, t)
+        return u.Quantity(grad, self.units["length"] / self.units["time"] ** 2)
 
     def gradient(
         self: "AbstractPotential", *args: Any, **kwargs: Any
@@ -233,12 +233,14 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @vectorize_method(signature="(3),()->(3,3)")
     @partial(jax.jit)
-    def _hessian(self, q: gt.FloatQuSz3, t: gt.RealQuSz0, /) -> gt.FloatQuSz33:
+    def _hessian(
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.RealQuSz0 | gt.RealSz0, /
+    ) -> gt.FloatQuSz33:
         """See ``hessian``."""
-        hess_op = u.experimental.hessian(
-            self._potential, units=(self.units["length"], self.units["time"])
-        )
-        return hess_op(q, t)
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.ustrip(AllowValue, self.units["time"], t)
+        hess_op = jax.hessian(self._potential)
+        return u.Quantity(hess_op(xyz, t), self.units["frequency"] ** 2)
 
     def hessian(self: "AbstractPotential", *args: Any, **kwargs: Any) -> gt.BtQuSz33:
         """Compute the hessian of the potential at the given position(s).

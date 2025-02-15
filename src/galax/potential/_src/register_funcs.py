@@ -18,8 +18,9 @@ import galax.coordinates as gc
 import galax.typing as gt
 from . import api
 from .base import AbstractPotential
-from .utils import parse_to_quantity
+from .utils import parse_to_quantity, parse_to_quantity_or_array
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
+from galax.utils._unxt import AllowValue
 
 # TODO: shape -> batch
 HessianVec: TypeAlias = Shaped[u.Quantity["1/s^2"], "*#shape 3 3"]
@@ -35,8 +36,9 @@ def potential(
     /,
 ) -> u.Quantity["specific energy"]:
     """Compute from a q + t object."""
-    q = parse_to_quantity(wt, dtype=None, units=pot.units)
-    return pot._potential(q, wt.t)  # noqa: SLF001
+    q = parse_to_quantity_or_array(wt, dtype=None, units=pot.units)
+    phi = pot._potential(q, wt.t.ustrip(pot.units["time"]))  # noqa: SLF001
+    return u.Quantity(phi, pot.units["specific energy"])
 
 
 @dispatch
@@ -57,9 +59,10 @@ def potential(
         :meth:`unxt.Quantity.from_` for more details.
 
     """
-    q = parse_to_quantity(q, dtype=None, unit=pot.units["length"])
-    t = u.Quantity.from_(t, pot.units["time"])
-    return pot._potential(q, t)  # noqa: SLF001
+    q = parse_to_quantity_or_array(q, dtype=None, unit=pot.units["length"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+    phi = pot._potential(q, t)  # noqa: SLF001
+    return u.Quantity(phi, pot.units["specific energy"])
 
 
 @dispatch

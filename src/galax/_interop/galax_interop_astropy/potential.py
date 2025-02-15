@@ -18,6 +18,18 @@ import galax.typing as gt
 
 
 @dispatch
+def parse_to_quantity_or_array(value: APYQuantity, /, **kw: Any) -> gt.BtRealQuSz3:
+    q = convert(value, FastQ)
+    return parse_to_quantity_or_array(q, **kw)
+
+
+@dispatch
+def parse_to_quantity_or_array(rep: BaseRepresentation, /, **kw: Any) -> gt.BtRealQuSz3:
+    cart = convert(rep, cx.CartesianPos3D)
+    return parse_to_quantity_or_array(cart, **kw)
+
+
+@dispatch
 def parse_to_quantity(value: APYQuantity, /, **kw: Any) -> gt.BtRealQuSz3:
     q = convert(value, FastQ)
     return parse_to_quantity(q, **kw)

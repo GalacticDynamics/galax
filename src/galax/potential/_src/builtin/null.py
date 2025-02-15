@@ -4,7 +4,7 @@ __all__ = ["NullPotential"]
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import final
+from typing import Any, final
 
 import equinox as eqx
 import jax
@@ -47,16 +47,9 @@ class NullPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
-    def _potential(
-        self,
-        q: gt.BtQuSz3,
-        t: gt.BBtRealQuSz0,  # noqa: ARG002
-        /,
-    ) -> gt.SpecificEnergyBtSz0:
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["specific energy"]
-        )
+    @partial(jax.jit)
+    def _potential(self, q: gt.BtQuSz3 | gt.BtSz3, _: Any, /) -> gt.BtSz0:
+        return jnp.zeros(q.shape[:-1], dtype=q.dtype)
 
     @partial(jax.jit, inline=True)
     def _gradient(self, q: gt.BtQuSz3, /, _: gt.RealQuSz0) -> gt.BtQuSz3:

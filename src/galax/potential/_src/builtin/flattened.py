@@ -8,11 +8,13 @@ from typing import final
 import jax
 
 import quaxed.numpy as jnp
+import unxt as u
 
 import galax.typing as gt
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.utils._unxt import AllowValue
 
 
 @final
@@ -37,12 +39,17 @@ class SatohPotential(AbstractSinglePotential):
     #: Scale height
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        a, b = self.a(t), self.b(t)
-        R2 = q[..., 0] ** 2 + q[..., 1] ** 2
-        z = q[..., 2]
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        ul = self.units["length"]
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        a = self.a(t, ustrip=ul)
+        b = self.b(t, ustrip=ul)
+        xyz = u.ustrip(AllowValue, ul, xyz)
+
+        R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
+        z = xyz[..., 2]
         term = R2 + z**2 + a * (a + 2 * jnp.sqrt(z**2 + b**2))
-        return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(term)
+        return -self.constants["G"].value * m_tot / jnp.sqrt(term)

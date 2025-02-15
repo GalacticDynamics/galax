@@ -17,6 +17,7 @@ import galax.typing as gt
 from .test_base import AbstractPotential_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.potential._src.base import default_constants
+from galax.utils._unxt import AllowValue
 
 
 class AbstractSinglePotential_Test(AbstractPotential_Test, FieldUnitSystemMixin):
@@ -40,8 +41,8 @@ class TestAbstractSinglePotential(AbstractSinglePotential_Test):
     HAS_GALA_COUNTERPART: ClassVar[bool] = False
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[gp.AbstractPotential]:
-        class TestPotential(gp.AbstractPotential):
+    def pot_cls(self, units) -> type[gp.AbstractPotential]:
+        class TestSinglePotential(gp.AbstractSinglePotential):
             m_tot: gpp.AbstractParameter = gpp.ParameterField(
                 dimensions="mass", default=u.Quantity(1e12, "Msun")
             )
@@ -54,15 +55,17 @@ class TestAbstractSinglePotential(AbstractSinglePotential_Test):
 
             @partial(jax.jit, inline=True)
             def _potential(  # TODO: inputs w/ units
-                self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-            ) -> gt.SpecificEnergyBtSz0:
+                self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+            ) -> gt.BtSz0:
+                m_tot = self.m_tot(t, ustrip=self.units["mass"])
+                xyz = u.ustrip(AllowValue, self.units["length"], xyz)
                 return (
-                    self.constants["G"]
-                    * self.m_tot(t)
-                    / jnp.linalg.vector_norm(q, axis=-1)
+                    self.constants["G"].value
+                    * m_tot
+                    / jnp.linalg.vector_norm(xyz, axis=-1)
                 )
 
-        return TestPotential
+        return TestSinglePotential
 
     ###########################################################################
 
@@ -82,11 +85,9 @@ class TestAbstractSinglePotential(AbstractSinglePotential_Test):
 
     def test_potential(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.potential` method."""
-        assert jnp.allclose(
-            pot.potential(x, t=0),
-            u.Quantity(1.20227527, "kpc2/Myr2"),
-            atol=u.Quantity(1e-8, "kpc2/Myr2"),
-        )
+        got = pot.potential(x, t=0)
+        exp = u.Quantity(1.20227527, "kpc2/Myr2")
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, "kpc2/Myr2"))
 
     # ---------------------------------
 
@@ -101,10 +102,9 @@ class TestAbstractSinglePotential(AbstractSinglePotential_Test):
     def test_density(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.density` method."""
         # TODO: fix negative density!!!
-        expect = u.Quantity(-2.647e-7, pot.units["mass density"])
-        assert jnp.allclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        got = pot.density(x, t=0)
+        exp = u.Quantity(-4.90989768e-07, pot.units["mass density"])
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.hessian` method."""

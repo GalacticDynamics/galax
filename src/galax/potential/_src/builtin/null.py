@@ -52,11 +52,11 @@ class NullPotential(AbstractSinglePotential):
         return jnp.zeros(q.shape[:-1], dtype=q.dtype)
 
     @partial(jax.jit, inline=True)
-    def _gradient(self, q: gt.BtQuSz3, /, _: gt.RealQuSz0) -> gt.BtQuSz3:
+    def _gradient(
+        self, q: gt.BtQuSz3 | gt.BtSz3, /, _: gt.RealQuSz0 | gt.RealSz0
+    ) -> gt.BtSz3:
         """See ``gradient``."""
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1] + (3,), dtype=q.dtype), galactic["acceleration"]
-        )
+        return jnp.zeros(q.shape[:-1] + (3,), dtype=q.dtype)
 
     @partial(jax.jit, inline=True)
     def _laplacian(self, q: gt.QuSz3, /, _: gt.RealQuSz0) -> gt.FloatQuSz0:

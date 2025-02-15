@@ -11,7 +11,6 @@ import equinox as eqx
 import jax
 from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
-from jaxtyping import Float
 from plum import dispatch
 
 import coordinax as cx
@@ -138,7 +137,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         """
         raise NotImplementedError
 
-    def potential(self, *args: Any, **kwargs: Any) -> u.Quantity["specific energy"]:
+    def potential(self, *args: Any, **kwargs: Any) -> Any:
         """Compute the potential energy at the given position(s).
 
         See :func:`~galax.potential.potential` for details.
@@ -146,7 +145,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         return api.potential(self, *args, **kwargs)
 
     @partial(jax.jit)
-    def __call__(self, *args: Any) -> Float[u.Quantity["specific energy"], "*batch"]:
+    def __call__(self, *args: Any) -> Any:
         """Compute the potential energy at the given position(s).
 
         Parameters

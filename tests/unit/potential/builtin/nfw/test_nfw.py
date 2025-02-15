@@ -76,12 +76,9 @@ class TestNFWPotential(
         pot = gp.NFWPotential.from_circular_velocity(
             v_c=u.Quantity(220.0, "km/s"), r_s=u.Quantity(15.0, "kpc"), units=galactic
         )
-        expect = u.Quantity(-0.23399598, "kpc2 / Myr2")
-        assert jnp.allclose(
-            pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0),
-            expect,
-            atol=u.Quantity(1e-8, expect.unit),
-        )
+        got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
+        exp = -0.23399598
+        assert jnp.allclose(got, exp, atol=1e-8)
 
         pot = gp.NFWPotential.from_circular_velocity(
             v_c=u.Quantity(220.0, "km/s"),
@@ -89,22 +86,16 @@ class TestNFWPotential(
             r_ref=u.Quantity(20.0, "kpc"),
             units=galactic,
         )
-        expect = u.Quantity(-0.21843999, "kpc2 / Myr2")
-        assert jnp.allclose(
-            pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0),
-            expect,
-            atol=u.Quantity(1e-8, expect.unit),
-        )
+        got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
+        exp = -0.21843999
+        assert jnp.allclose(got, exp, atol=1e-8)
 
         pot = gp.NFWPotential.from_M200_c(
             M200=u.Quantity(1e12, "Msun"), c=15.0, units=galactic
         )
-        expect = u.Quantity(-0.15451932, "kpc2 / Myr2")
-        assert jnp.allclose(
-            pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0),
-            expect,
-            atol=u.Quantity(1e-8, expect.unit),
-        )
+        got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
+        exp = -0.15451932
+        assert jnp.allclose(got, exp, atol=1e-8)
 
         pot = gp.NFWPotential.from_M200_c(
             M200=u.Quantity(1e12, "Msun"),
@@ -112,12 +103,9 @@ class TestNFWPotential(
             rho_c=u.Quantity(1, "g / m3"),
             units=galactic,
         )
-        expect = u.Quantity(-10.73095438, "kpc2 / Myr2")
-        assert jnp.allclose(
-            pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0),
-            expect,
-            atol=u.Quantity(1e-8, expect.unit),
-        )
+        got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
+        exp = -10.73095438
+        assert jnp.allclose(got, exp, atol=1e-8)
 
     # ---------------------------------
     # Convenience methods

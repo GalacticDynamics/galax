@@ -249,7 +249,7 @@ def laplacian(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["1/s^2"]:
 
     """
     q = parse_to_quantity(q, dtype=float, unit=pot.units["length"])
-    t = u.Quantity.from_(t, pot.units["time"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
     return u.Quantity(pot._laplacian(q, t), pot.units["frequency drift"])  # noqa: SLF001
 
 
@@ -280,6 +280,14 @@ def laplacian(
 
 @dispatch
 def density(
+    pot: AbstractPotential, q: Any, /, *, t: Any
+) -> u.Quantity["mass density"] | Array:
+    """Compute the density when `t` is keyword-only."""
+    return density(pot, q, t)
+
+
+@dispatch
+def density(
     pot: AbstractPotential, wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector, /
 ) -> u.Quantity["mass density"]:
     """Compute the density at the given coordinate(s)."""
@@ -289,7 +297,7 @@ def density(
 
 @dispatch
 def density(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["mass density"]:
-    """Compute the density at the given position(s).
+    """Compute the mass density at the given position(s).
 
     Parameters
     ----------
@@ -302,14 +310,27 @@ def density(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["mass densi
 
     """
     q = parse_to_quantity(q, unit=pot.units["length"])
-    t = u.Quantity.from_(t, pot.units["time"])
-    return pot._density(q, t)  # noqa: SLF001
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+    return u.Quantity(pot._density(q, t), pot.units["mass density"])  # noqa: SLF001
 
 
 @dispatch
-def density(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["mass density"]:
-    """Compute the density when `t` is keyword-only."""
-    return density(pot, q, t)
+def density(
+    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /
+) -> gt.BtRealSz0:
+    """Compute the mass density at the given position(s).
+
+    Parameters
+    ----------
+    q : Array[real, (*batch, 3)]
+        The position to compute the density of the potential.
+        Assumed to be in the units of the potential.
+    t : Array[real, (*batch,)]
+        The time at which to compute the density of the potential.
+        Assumed to be in the units of the potential.
+
+    """
+    return pot._density(q, t)  # noqa: SLF001
 
 
 # =============================================================================

@@ -23,7 +23,7 @@ from unxt.unitsystems import AbstractUnitSystem, galactic
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
-from .const import _sqrt2
+from .const import SQRT2
 from .disks import MiyamotoNagaiPotential, MN3Sech2Potential
 from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
@@ -297,7 +297,7 @@ class LM10Potential(AbstractSpecialPotential):
     )
     halo: LMJ09LogarithmicPotential = eqx.field(
         default=LMJ09LogarithmicPotential(
-            v_c=u.Quantity(_sqrt2 * 121.858, "km / s"),
+            v_c=u.Quantity(SQRT2 * 121.858, "km / s"),
             r_s=u.Quantity(12.0, "kpc"),
             q1=1.38,
             q2=1.0,

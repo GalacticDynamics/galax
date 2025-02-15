@@ -23,7 +23,7 @@ import galax.typing as gt
 
 
 @dispatch.abstract
-def potential(*args: Any, **kwargs: Any) -> u.Quantity["specific energy"]:
+def potential(*args: Any, **kwargs: Any) -> Any:
     """Compute the potential energy at the given position(s).
 
     Examples
@@ -89,6 +89,14 @@ def potential(*args: Any, **kwargs: Any) -> u.Quantity["specific energy"]:
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> pot.potential(q, t=t)
     Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
+
+    - `jax.Array`s, which are dangerously assumed to be in the same unit system
+      as the potential. For performance reasons the output is a `jax.Array`. Be
+      careful!
+
+    >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+    >>> pot.potential(q, t=0)
+    Array([-1.20227527, -0.5126519 ], dtype=float64)
 
     - - -
 

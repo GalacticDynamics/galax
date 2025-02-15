@@ -6,7 +6,7 @@ from functools import partial
 from typing import Any, TypeAlias
 
 import jax
-from jaxtyping import Array, ArrayLike, Shaped
+from jaxtyping import Array, ArrayLike, ScalarLike, Shaped
 from plum import convert, dispatch
 
 import coordinax as cx
@@ -27,6 +27,12 @@ HessianVec: TypeAlias = Shaped[u.Quantity["1/s^2"], "*#shape 3 3"]
 
 # =============================================================================
 # Potential Energy
+
+
+@dispatch
+def potential(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
+    """Compute the potential energy when `t` is keyword-only."""
+    return api.potential(pot, q, t)
 
 
 @dispatch
@@ -67,10 +73,23 @@ def potential(
 
 @dispatch
 def potential(
-    pot: AbstractPotential, q: Any, /, *, t: Any
-) -> u.Quantity["specific energy"]:
-    """Compute the potential energy when `t` is keyword-only."""
-    return api.potential(pot, q, t)
+    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0 | ScalarLike | int, /
+) -> gt.BBtRealSz0:
+    """Compute the potential energy at the given position(s).
+
+    Parameters
+    ----------
+    pot : `~galax.potential.AbstractPotential`
+        The potential to compute the value of.
+    q : Array[real, (*batch, 3)]
+        The position to compute the value of the potential.
+        Assumed to be in the unit system of the potential.
+    t : Array[real, (*batch,)]
+        The time at which to compute the value of the potential.
+        Assumed to be in the unit system of the potential.
+
+    """
+    return pot._potential(q, t)  # noqa: SLF001
 
 
 # =============================================================================

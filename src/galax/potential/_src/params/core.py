@@ -17,9 +17,11 @@ import jax
 
 import unxt as u
 from dataclassish.converters import Unless
+from unxt._src.units.api import AstropyUnits
 from unxt.quantity import AbstractQuantity
 
 import galax.typing as gt
+from galax.utils._unxt import AllowValue
 
 t0 = u.Quantity(0, "Myr")
 
@@ -28,13 +30,18 @@ t0 = u.Quantity(0, "Myr")
 class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
-    def __call__(self, t: gt.BBtRealQuSz0, **kwargs: Any) -> gt.FloatQuSzAny:
+    def __call__(
+        self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+    ) -> gt.FloatQuSzAny | gt.FloatSzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
         t : `~galax.typing.BBtRealQuSz0`
             Time(s) at which to compute the parameter value.
+        ustrip : Unit | None
+            Unit to strip from the parameter value.
+            If None, the parameter value is returned with its original unit.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
 
@@ -59,13 +66,18 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     """
 
     @abc.abstractmethod
-    def __call__(self, t: gt.BBtRealQuSz0, **kwargs: Any) -> gt.FloatQuSzAny:
+    def __call__(
+        self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+    ) -> gt.FloatQuSzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
         t : `~galax.typing.BBtRealQuSz0`
             The time(s) at which to compute the parameter value.
+        ustrip : Unit | None
+            The unit to strip from the parameter value. If None, the
+            parameter value is returned with its original unit.
         **kwargs : Any
             Additional parameters to pass to the parameter function.
 
@@ -136,8 +148,14 @@ class ConstantParameter(AbstractParameter):
     )
     """The time-independent value of the parameter."""
 
-    @partial(jax.jit, inline=True)
-    def __call__(self, t: gt.BBtRealQuSz0 = t0, **__: Any) -> gt.FloatQuSzAny:  # noqa: ARG002
+    @partial(jax.jit, static_argnames=("ustrip",))
+    def __call__(
+        self,
+        t: gt.BBtRealQuSz0 = t0,  # noqa: ARG002
+        *,
+        ustrip: AstropyUnits | None = None,
+        **__: Any,
+    ) -> gt.FloatQuSzAny:
         """Return the constant parameter value.
 
         Parameters
@@ -145,11 +163,16 @@ class ConstantParameter(AbstractParameter):
         t : `~galax.typing.BBtRealQuSz0`, optional
             This is ignored and is thus optional. Note that for most
             :class:`~galax.potential.AbstractParameter` the time is required.
+        ustrip : Unit | None
+            The unit to strip from the parameter value. If None, the
+            parameter value is returned with its original unit.
         **kwargs : Any
             This is ignored.
 
         """
-        return self.value
+        return (
+            self.value if ustrip is None else u.ustrip(AllowValue, ustrip, self.value)
+        )
 
     # -------------------------------------------
     # String representation
@@ -230,17 +253,15 @@ class LinearParameter(AbstractParameter):
         """Check the initialization of the class."""
         # TODO: check point_value and slope * point_time have the same dimensions
 
-    @partial(jax.jit, inline=True)
-    def __call__(self, t: gt.BBtRealQuSz0, **_: Any) -> gt.FloatQuSzAny:
+    @partial(jax.jit, static_argnames=("ustrip",))
+    def __call__(
+        self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **_: Any
+    ) -> gt.FloatQuSzAny | gt.FloatSzAny:
         """Return the parameter value.
 
         .. math::
 
             p(t) = m * (t - ti) + p(ti)
-
-        Parameters
-        ----------
-        t : Quantity[float | int, (*batch,), "time"], optional
 
         Returns
         -------
@@ -264,7 +285,8 @@ class LinearParameter(AbstractParameter):
         Quantity['mass'](Array(0., dtype=float64), unit='Gyr solMass / yr')
 
         """
-        return self.slope * (t - self.point_time) + self.point_value
+        out = self.slope * (t - self.point_time) + self.point_value
+        return out if ustrip is None else u.ustrip(AllowValue, ustrip, out)
 
 
 #####################################################################
@@ -297,6 +319,9 @@ class UserParameter(AbstractParameter):
 
     func: ParameterCallable = eqx.field(static=True)
 
-    @partial(jax.jit, inline=True)
-    def __call__(self, t: gt.BBtRealQuSz0, **kwargs: Any) -> gt.FloatQuSzAny:
-        return self.func(t, **kwargs)
+    @partial(jax.jit, static_argnames=("ustrip",))
+    def __call__(
+        self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+    ) -> gt.FloatQuSzAny | gt.FloatSzAny:
+        out = self.func(t, **kwargs)
+        return out if ustrip is None else u.ustrip(AllowValue, ustrip, out)

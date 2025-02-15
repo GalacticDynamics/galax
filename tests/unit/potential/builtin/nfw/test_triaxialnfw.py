@@ -57,9 +57,8 @@ class TestTriaxialNFWPotential(
 
     def test_potential(self, pot: TriaxialNFWPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(-1.06475915, unit="kpc2 / Myr2")
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        got = pot.potential(x, t=0)
+        assert jnp.isclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_gradient(self, pot: TriaxialNFWPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.03189139, 0.0604938, 0.13157674], "kpc / Myr2")

@@ -22,6 +22,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.utils._unxt import AllowValue
 
 
 @final
@@ -72,11 +73,12 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
         # \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
-        omega = jnp.atleast_1d(self.omega(t))
-        return 0.5 * jnp.sum(jnp.square(omega * q), axis=-1)
+        omega = self.omega(t, ustrip=self.units["frequency"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        return 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(omega) * xyz), axis=-1)
 
     @partial(jax.jit, inline=True)
     def _density(
@@ -145,9 +147,12 @@ class HenonHeilesPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, q: gt.BtQuSz3, /, t: gt.BBtRealQuSz0
-    ) -> gt.SpecificEnergyBtSz0:
-        ts2, coeff = self.timescale(t) ** 2, self.coeff(t)
-        x2, y = q[..., 0] ** 2, q[..., 1]
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, /, t: gt.BBtRealQuSz0 | gt.BBtRealSz0
+    ) -> gt.BtSz0:
+        ts2 = self.timescale(t, ustrip=self.units["time"]) ** 2
+        coeff = self.coeff(t, ustrip=self.units["wavenumber"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
+        x2, y = xyz[..., 0] ** 2, xyz[..., 1]
         R2 = x2 + y**2
         return (R2 / 2 + coeff * (x2 * y - y**3 / 3.0)) / ts2

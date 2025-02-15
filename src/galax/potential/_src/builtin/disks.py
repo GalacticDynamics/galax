@@ -25,6 +25,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.utils._unxt import AllowValue
 
 
 @final
@@ -53,12 +54,17 @@ class KuzminPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self: "KuzminPotential", q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        m, r_s = self.m_tot(t), self.r_s(t)
-        R2 = q[..., 0] ** 2 + q[..., 1] ** 2
-        z = q[..., 2]
-        return -self.constants["G"] * m / jnp.sqrt(R2 + (jnp.abs(z) + r_s) ** 2)
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
+        R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
+        z = xyz[..., 2]
+        return (
+            -self.constants["G"].value * m_tot / jnp.sqrt(R2 + (jnp.abs(z) + r_s) ** 2)
+        )
 
 
 # -------------------------------------------------------------------
@@ -86,11 +92,17 @@ class MiyamotoNagaiPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self: "MiyamotoNagaiPotential", q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        R2 = q[..., 0] ** 2 + q[..., 1] ** 2
-        zp2 = (jnp.sqrt(q[..., 2] ** 2 + self.b(t) ** 2) + self.a(t)) ** 2
-        return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(R2 + zp2)
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        ul = self.units["length"]
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        a, b = self.a(t, ustrip=ul), self.b(t, ustrip=ul)
+
+        xyz = u.ustrip(AllowValue, ul, xyz)
+
+        R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
+        zp2 = (jnp.sqrt(xyz[..., 2] ** 2 + b**2) + a) ** 2
+        return -self.constants["G"].value * m_tot / jnp.sqrt(R2 + zp2)
 
 
 # -------------------------------------------------------------------
@@ -178,20 +190,11 @@ class AbstractMN3Potential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        unit = self.units["specific energy"]
-        return u.Quantity(
-            jnp.sum(
-                jnp.asarray(
-                    [
-                        mn.potential(q, t).to_value(unit)
-                        for mn in self._get_mn_components(t)
-                    ]
-                ),
-                axis=0,
-            ),
-            unit,
+        self, q: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        return jnp.sum(
+            jnp.asarray([mn._potential(q, t) for mn in self._get_mn_components(t)]),  # noqa: SLF001
+            axis=0,
         )
 
     @partial(jax.jit)

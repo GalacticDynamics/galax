@@ -27,6 +27,54 @@ def parse_dtypes(dtype2: np.dtype, dtype1: Any, /) -> np.dtype | None:
     )
 
 
+# ==============================================================================
+
+
+@dispatch.abstract
+def parse_to_quantity_or_array(
+    value: Any, /, *, units: AbstractUnitSystem, **_: Any
+) -> Any:
+    """Parse input arguments."""
+    msg = f"cannot convert {value} using units {units}"  # pragma: no cover
+    raise NotImplementedError(msg)  # pragma: no cover
+
+
+@dispatch
+def parse_to_quantity_or_array(
+    q: AbstractQuantity, /, *, dtype: Any = None, **_: Any
+) -> gt.BtRealQuSz3:
+    return jnp.asarray(q, dtype=parse_dtypes(q.dtype, dtype))
+
+
+@dispatch
+def parse_to_quantity_or_array(
+    x: ArrayLike, /, *, dtype: Any = None, **_: Any
+) -> gt.BtRealSz3:
+    arr = jnp.asarray(x, dtype=None)
+    dtype = parse_dtypes(arr.dtype, dtype)
+    return jnp.asarray(arr, dtype=dtype)
+
+
+@dispatch
+def parse_to_quantity_or_array(
+    x: gc.AbstractPhaseSpaceObject | cx.vecs.FourVector, /, **kw: Any
+) -> gt.BtRealQuSz3:
+    return parse_to_quantity_or_array(x.q, **kw)
+
+
+@dispatch
+def parse_to_quantity_or_array(
+    x: cx.vecs.AbstractPos3D, /, **kw: Any
+) -> gt.BtRealQuSz3:
+    cart = x.vconvert(cx.CartesianPos3D)
+    q = convert(cart, u.Quantity)
+    return parse_to_quantity_or_array(q, **kw)
+
+
+# ==============================================================================
+
+
+# TODO: defer most to parse_to_quantity_or_array
 @dispatch.abstract
 def parse_to_quantity(value: Any, /, *, units: AbstractUnitSystem, **_: Any) -> Any:
     """Parse input arguments.
@@ -53,7 +101,7 @@ def parse_to_quantity(value: Any, /, *, units: AbstractUnitSystem, **_: Any) -> 
 def parse_to_quantity(
     q: AbstractQuantity, /, *, dtype: Any = None, **_: Any
 ) -> gt.BtRealQuSz3:
-    return jnp.asarray(q, dtype=parse_dtypes(q.dtype, dtype))
+    return parse_to_quantity_or_array(q, dtype=dtype)
 
 
 @dispatch

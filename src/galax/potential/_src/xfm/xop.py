@@ -10,6 +10,7 @@ import equinox as eqx
 from plum import dispatch
 
 import coordinax.ops as cxo
+import unxt as u
 
 import galax.typing as gt
 from .base import AbstractTransformedPotential
@@ -29,10 +30,11 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
+    >>> from galax.utils._unxt import AllowValue
 
     Now we define a triaxial Hernquist potential with a time-dependent mass:
 
-    >>> mfunc = gp.params.UserParameter(lambda t: u.Quantity(1e12 * (1 + u.ustrip("Gyr", t) / 10), "Msun"))
+    >>> mfunc = gp.params.UserParameter(lambda t: u.Quantity(1e12 * (1 + u.ustrip(AllowValue, "Gyr", t) / 10), "Msun"))
     >>> pot = gp.TriaxialHernquistPotential(m_tot=mfunc, r_s=u.Quantity(1, "kpc"),
     ...                                     q1=1, q2=0.5, units="galactic")
 
@@ -188,8 +190,8 @@ class TransformedPotential(AbstractTransformedPotential):
     """
 
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
         """Compute the potential energy at the given position(s).
 
         This method applies the operators to the coordinates and then evaluates
@@ -210,7 +212,9 @@ class TransformedPotential(AbstractTransformedPotential):
         # Make inverse operator  # TODO: pre-compute and cache
         inv = self.xop.inverse
         # Transform the position, time.
-        qp, tp = inv(q, t)
+        xyz = u.Quantity.from_(xyz, self.units["length"])  # TODO: no munge
+        t = u.Quantity.from_(t, self.units["time"])  # TODO: no munge
+        qp, tp = inv(xyz, t)
         # Evaluate the potential energy at the transformed position, time.
         return self.original_potential._potential(qp, tp)  # noqa: SLF001
 

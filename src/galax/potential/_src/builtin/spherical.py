@@ -33,6 +33,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.utils._unxt import AllowValue
 
 # -------------------------------------------------------------------
 
@@ -65,14 +66,19 @@ class BurkertPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        m, r_s = self.m(t), self.r_s(t)
-        x = jnp.linalg.vector_norm(q, axis=-1) / r_s
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        # Parse inputs
+        m = self.m(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        # Compute potential
+        x = jnp.linalg.vector_norm(xyz, axis=-1) / r_s
         xinv = 1 / x
-        return -(self.constants["G"] * m / (r_s * BURKERT_CONST)) * (
+        prefactor = self.constants["G"].value * m / (r_s * BURKERT_CONST)
+        return -prefactor * (
             jnp.pi
-            - 2 * (1 + xinv) * jnp.atan(x).value
+            - 2 * (1 + xinv) * jnp.atan(x)
             + 2 * (1 + xinv) * jnp.log(1 + x)
             - (1 - xinv) * jnp.log(1 + x**2)
         )
@@ -172,10 +178,13 @@ class HernquistPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        r = jnp.linalg.vector_norm(q, axis=-1)
-        return -self.constants["G"] * self.m_tot(t) / (r + self.r_s(t))
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = jnp.linalg.vector_norm(xyz, axis=-1)
+        return -self.constants["G"].value * m_tot / (r + r_s)
 
     @partial(jax.jit)
     def _density(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
@@ -216,11 +225,13 @@ class IsochronePotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        m, r_s = self.m_tot(t), self.r_s(t)
-        r = jnp.linalg.vector_norm(q, axis=-1)
-        return -self.constants["G"] * m / (r_s + jnp.sqrt(r**2 + r_s**2))
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = jnp.linalg.vector_norm(xyz, axis=-1)
+        return -self.constants["G"].value * m_tot / (r_s + jnp.sqrt(r**2 + r_s**2))
 
 
 # -------------------------------------------------------------------
@@ -235,11 +246,13 @@ class JaffePotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        r_s = self.r_s(t)
-        r = jnp.linalg.vector_norm(q, axis=-1)
-        return -self.constants["G"] * self.m(t) / r_s * jnp.log(1 + r_s / r)
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        m = self.m(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = jnp.linalg.vector_norm(xyz, axis=-1)
+        return -self.constants["G"].value * m / r_s * jnp.log(1 + r_s / r)
 
 
 # -------------------------------------------------------------------
@@ -265,10 +278,12 @@ class KeplerPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        r = jnp.linalg.vector_norm(q, axis=-1)
-        return -self.constants["G"] * self.m_tot(t) / r
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = jnp.linalg.vector_norm(xyz, axis=-1)
+        return -self.constants["G"].value * m_tot / r
 
     @partial(jax.jit)
     def _density(
@@ -307,10 +322,13 @@ class PlummerPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        r2 = jnp.linalg.vector_norm(q, axis=-1) ** 2
-        return -self.constants["G"] * self.m_tot(t) / jnp.sqrt(r2 + self.r_s(t) ** 2)
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r2 = jnp.linalg.vector_norm(xyz, axis=-1) ** 2
+        return -self.constants["G"].value * m_tot / jnp.sqrt(r2 + r_s**2)
 
 
 # -------------------------------------------------------------------
@@ -355,16 +373,20 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
     )
 
     @partial(jax.jit)
-    def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        m, a, r_c = self.m_tot(t), 0.5 * self.alpha(t), self.r_c(t)
-        r = jnp.linalg.vector_norm(q, axis=-1)
-        rp2 = (r / r_c) ** 2
+    def _potential(self, xyz: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtSz0:
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        alpha = self.alpha(t, ustrip=self.units["dimensionless"])
+        r_c = self.r_c(t, ustrip=self.units["length"])
 
-        return (self.constants["G"] * m) * (
-            (a - 1.5) * _safe_gamma_inc(1.5 - a, rp2) / (r * qsp.gamma(2.5 - a))
-            + _safe_gamma_inc(1 - a, rp2) / (r_c * qsp.gamma(1.5 - a))
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
+        a = alpha / 2
+        r = jnp.linalg.vector_norm(xyz, axis=-1)
+        s2 = (r / r_c) ** 2
+
+        return (self.constants["G"].value * m_tot) * (
+            (a - 1.5) * _safe_gamma_inc(1.5 - a, s2) / (r * qsp.gamma(2.5 - a))
+            + _safe_gamma_inc(1 - a, s2) / (r_c * qsp.gamma(1.5 - a))
         )
 
 
@@ -400,16 +422,17 @@ class StoneOstriker15Potential(AbstractSinglePotential):
     #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
 
     @partial(jax.jit)
-    def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        r_h = self.r_h(t)
-        r_c = self.r_c(t)
-        r = jnp.linalg.vector_norm(q, axis=-1)
-        A = -2 * self.constants["G"] * self.m_tot(t) / (jnp.pi * (r_h - r_c))
+    def _potential(self, xyz: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtSz0:
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_h = self.r_h(t, ustrip=self.units["length"])
+        r_c = self.r_c(t, ustrip=self.units["length"])
+
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = jnp.linalg.vector_norm(xyz, axis=-1)
+        A = -2 * self.constants["G"].value * m_tot / (jnp.pi * (r_h - r_c))
         return A * (
-            (r_h / r) * u.ustrip("rad", jnp.atan2(r, r_h))
-            - (r_c / r) * u.ustrip("rad", jnp.atan2(r, r_c))
+            (r_h / r) * jnp.atan2(r, r_h)
+            - (r_c / r) * jnp.atan2(r, r_c)
             + 0.5 * jnp.log((r**2 + r_h**2) / (r**2 + r_c**2))
         )
 
@@ -489,12 +512,17 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
-        r_s, q1, q2 = self.r_s(t), self.q1(t), self.q2(t)
-        r_s = eqx.error_if(r_s, r_s.value <= 0, "r_s must be positive")
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        u1 = self.units["dimensionless"]
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        q1, q2 = self.q1(t, ustrip=u1), self.q2(t, ustrip=u1)
 
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
+        r_s = eqx.error_if(r_s, r_s <= 0, "r_s must be positive")
         rprime = jnp.sqrt(
-            q[..., 0] ** 2 + (q[..., 1] / q1) ** 2 + (q[..., 2] / q2) ** 2
+            xyz[..., 0] ** 2 + (xyz[..., 1] / q1) ** 2 + (xyz[..., 2] / q2) ** 2
         )
-        return -self.constants["G"] * self.m_tot(t) / (rprime + r_s)
+        return -self.constants["G"].value * m_tot / (rprime + r_s)

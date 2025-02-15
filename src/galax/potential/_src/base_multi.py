@@ -29,10 +29,10 @@ class AbstractCompositePotential(AbstractPotential):
 
     # === Potential ===
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
+        self, q: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
         return jnp.sum(
             jnp.array([p._potential(q, t) for p in self.values()]),  # noqa: SLF001
             axis=0,

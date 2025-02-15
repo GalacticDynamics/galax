@@ -11,11 +11,11 @@ import equinox as eqx
 import jax
 from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
+from jaxtyping import Array
 from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity
 from xmmutablemap import ImmutableMap
 
 import galax.typing as gt
@@ -189,16 +189,16 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @vectorize_method(signature="(3),()->()")
     @partial(jax.jit)
-    def _laplacian(self, xyz: gt.BtFloatQuSz3, /, t: gt.RealQuSz0) -> gt.FloatQuSz0:
+    def _laplacian(
+        self, xyz: gt.BtFloatQuSz3 | gt.BtFloatSz3, /, t: gt.RealQuSz0 | gt.RealSz0
+    ) -> gt.FloatSz0:
         """See ``laplacian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
         jac_op = jax.jacfwd(self._gradient, argnums=0)
-        return BareQuantity(jnp.trace(jac_op(xyz, t)), self.units["frequency drift"])
+        return jnp.trace(jac_op(xyz, t))
 
-    def laplacian(
-        self: "AbstractPotential", *args: Any, **kwargs: Any
-    ) -> u.Quantity["1/s^2"]:  # TODO: shape hint
+    def laplacian(self, *args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
         """Compute the laplacian of the potential at the given position(s).
 
         See :func:`~galax.potential.laplacian` for details.
@@ -214,10 +214,11 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     ) -> gt.BtFloatQuSz0:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
-        return self._laplacian(q, t) / (4 * jnp.pi * self.constants["G"])
+        laplacian = u.Quantity(self._laplacian(q, t), self.units["frequency drift"])
+        return laplacian / (4 * jnp.pi * self.constants["G"])
 
     def density(
-        self: "AbstractPotential", *args: Any, **kwargs: Any
+        self, *args: Any, **kwargs: Any
     ) -> u.Quantity["mass density"]:  # TODO: shape hint
         """Compute the density at the given position(s).
 

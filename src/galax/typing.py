@@ -69,6 +69,7 @@ FloatLike: TypeAlias = FloatSz0 | float | int
 
 # Real
 RealSz0: TypeAlias = Real[Array, ""]
+BtRealSz0: TypeAlias = Shaped[RealSz0, "*batch"]
 BBtRealSz0: TypeAlias = Shaped[RealSz0, "*#batch"]
 
 RealQuSz0: TypeAlias = Real[AbstractQuantity, ""]
@@ -92,6 +93,7 @@ BtQuSz3: TypeAlias = Shaped[QuSz3, "*batch"]
 BBtQuSz3: TypeAlias = Shaped[QuSz3, "*#batch"]
 
 FloatSz3: TypeAlias = Float[Array, "3"]
+BtFloatSz3: TypeAlias = Float[FloatSz3, "*batch"]
 FloatQuSz3: TypeAlias = Float[AbstractQuantity, "3"]
 BtFloatQuSz3: TypeAlias = Float[QuSz3, "*batch"]
 BBtFloatQuSz3: TypeAlias = Float[QuSz3, "*#batch"]

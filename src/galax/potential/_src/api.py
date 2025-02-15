@@ -14,6 +14,7 @@ __all__ = [
 
 from typing import Any
 
+from jaxtyping import Array
 from plum import dispatch
 
 import unxt as u
@@ -287,7 +288,7 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
 
 
 @dispatch.abstract
-def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"]:
+def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     """Compute the laplacian of the potential at the given position(s).
 
     Examples

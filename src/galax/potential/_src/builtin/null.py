@@ -59,11 +59,11 @@ class NullPotential(AbstractSinglePotential):
         return jnp.zeros(q.shape[:-1] + (3,), dtype=q.dtype)
 
     @partial(jax.jit, inline=True)
-    def _laplacian(self, q: gt.QuSz3, /, _: gt.RealQuSz0) -> gt.FloatQuSz0:
+    def _laplacian(
+        self, q: gt.QuSz3 | gt.Sz3, /, _: gt.RealQuSz0 | gt.RealSz0
+    ) -> gt.FloatSz0:
         """See ``laplacian``."""
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["frequency drift"]
-        )
+        return jnp.zeros(q.shape[:-1], dtype=q.dtype)
 
     @partial(jax.jit, inline=True)
     def _density(

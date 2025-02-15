@@ -215,6 +215,12 @@ def gradient(
 
 
 @dispatch
+def laplacian(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
+    """Compute the laplacian at the given position(s) when `t` is keyword-only."""
+    return laplacian(pot, q, t)
+
+
+@dispatch
 def laplacian(
     pot: AbstractPotential,
     wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
@@ -222,7 +228,7 @@ def laplacian(
 ) -> u.Quantity["1/s^2"]:
     """Compute the laplacian of the potential at the given coordinate(s)."""
     q = parse_to_quantity(wt, dtype=float, units=pot.units)
-    return pot._laplacian(q, wt.t)  # noqa: SLF001
+    return u.Quantity(pot._laplacian(q, wt.t), pot.units["frequency drift"])  # noqa: SLF001
 
 
 @dispatch
@@ -244,13 +250,28 @@ def laplacian(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["1/s^2"]:
     """
     q = parse_to_quantity(q, dtype=float, unit=pot.units["length"])
     t = u.Quantity.from_(t, pot.units["time"])
-    return pot._laplacian(q, t)  # noqa: SLF001
+    return u.Quantity(pot._laplacian(q, t), pot.units["frequency drift"])  # noqa: SLF001
 
 
 @dispatch
-def laplacian(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["1/s^2"]:
-    """Compute the laplacian at the given position(s) when `t` is keyword-only."""
-    return laplacian(pot, q, t)
+def laplacian(
+    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /
+) -> gt.BtRealSz0:
+    """Compute the laplacian of the potential at the given position(s).
+
+    Parameters
+    ----------
+    pot : `~galax.potential.AbstractPotential`
+        The potential to compute the laplacian of.
+    q : Any
+        The position to compute the laplacian of the potential.
+        Assumed to be in the units of the potential.
+    t : Any
+        The time at which to compute the laplacian of the potential.
+        Assumed to be in the units of the potential.
+
+    """
+    return pot._laplacian(q, t)  # noqa: SLF001
 
 
 # =============================================================================

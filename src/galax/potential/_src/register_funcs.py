@@ -97,6 +97,23 @@ def potential(
 
 
 @dispatch
+def gradient(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
+    """Compute the gradient at the given position(s).
+
+    Parameters
+    ----------
+    pot : `~galax.potential.AbstractPotential`
+        The potential to compute the gradient of.
+    q : Any
+        The position to compute the gradient of the potential.
+    t : Any, keyword-only
+        The time at which to compute the gradient of the potential.
+
+    """
+    return api.gradient(pot, q, t)
+
+
+@dispatch
 def gradient(
     pot: AbstractPotential,
     wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
@@ -131,20 +148,66 @@ def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3
 
 
 @dispatch
-def gradient(pot: AbstractPotential, q: Any, /, *, t: Any) -> cx.vecs.CartesianAcc3D:
-    """Compute the gradient at the given position(s).
+def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3D:
+    """Compute the gradient of the potential at the given position(s).
 
     Parameters
     ----------
     pot : `~galax.potential.AbstractPotential`
         The potential to compute the gradient of.
     q : Any
-        The position to compute the gradient of the potential.
-    t : Any, keyword-only
-        The time at which to compute the gradient of the potential.
+        The position to compute the gradient of the potential. See
+        `parse_to_quantity` for more details.
+    t : Any
+        The time at which to compute the gradient of the potential. See
+        :meth:`unxt.Quantity.from_` for more details.
 
     """
-    return api.gradient(pot, q, t)
+    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+    grad = pot._gradient(q, t)  # noqa: SLF001
+    return cx.vecs.CartesianAcc3D.from_(grad, pot.units["acceleration"])
+
+
+@dispatch
+def gradient(pot: AbstractPotential, q: gt.BBtQuSz0, t: Any, /) -> gt.BBtQuSz0:
+    """Compute the gradient of the potential at the given position(s).
+
+    Parameters
+    ----------
+    pot : `~galax.potential.AbstractPotential`
+        The potential to compute the gradient of.
+    q : Quantity[float, (*batch, 3), "length"]
+        The position to compute the gradient of the potential.
+    t : Any
+        The time at which to compute the gradient of the potential. See
+        :meth:`unxt.Quantity.from_` for more details.
+
+    """
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+    grad = pot._gradient(q, t)  # noqa: SLF001
+    return BareQuantity(grad, pot.units["acceleration"])
+
+
+@dispatch
+def gradient(
+    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /
+) -> gt.BBtRealSz3:
+    """Compute the gradient of the potential at the given position(s).
+
+    Parameters
+    ----------
+    pot : `~galax.potential.AbstractPotential`
+        The potential to compute the gradient of.
+    q : Array[real, (*batch, 3)]
+        The position to compute the gradient of the potential.
+        Assumed to be in the unit system of the potential.
+    t : Array[real, (*batch,)]
+        The time at which to compute the gradient of the potential.
+        Assumed to be in the unit system of the potential.
+
+    """
+    return pot._gradient(q, t)  # noqa: SLF001
 
 
 # =============================================================================
@@ -280,7 +343,7 @@ def acceleration(
     /,
     *args: Any,  # defer to `gradient`
     **kwargs: Any,  # defer to `gradient`
-) -> cx.vecs.CartesianAcc3D:
+) -> Any:
     """Compute the acceleration due to the potential at the given position(s).
 
     Parameters

@@ -13,7 +13,6 @@ from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
 from plum import dispatch
 
-import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity
@@ -178,9 +177,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         grad_op = jax.grad(self._potential)
         return grad_op(xyz, t)
 
-    def gradient(
-        self: "AbstractPotential", *args: Any, **kwargs: Any
-    ) -> cx.vecs.CartesianAcc3D:  # TODO: shape hint
+    def gradient(self, *args: Any, **kwargs: Any) -> Any:
         """Compute the gradient of the potential at the given position(s).
 
         See :func:`~galax.potential.gradient` for details.
@@ -242,7 +239,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         hess_op = jax.hessian(self._potential)
         return u.Quantity(hess_op(xyz, t), self.units["frequency"] ** 2)
 
-    def hessian(self: "AbstractPotential", *args: Any, **kwargs: Any) -> gt.BtQuSz33:
+    def hessian(self, *args: Any, **kwargs: Any) -> gt.BtQuSz33:
         """Compute the hessian of the potential at the given position(s).
 
         See :func:`~galax.potential.hessian` for details.
@@ -251,9 +248,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     # ---------------------------------------
 
-    def acceleration(
-        self: "AbstractPotential", *args: Any, **kwargs: Any
-    ) -> cx.vecs.CartesianAcc3D:  # TODO: shape hint
+    def acceleration(self, *args: Any, **kwargs: Any) -> Any:
         """Compute the acceleration due to the potential at the given position(s).
 
         See :func:`~galax.potential.acceleration` for details.

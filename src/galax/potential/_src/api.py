@@ -14,9 +14,9 @@ __all__ = [
 
 from typing import Any
 
+from jaxtyping import Array
 from plum import dispatch
 
-import coordinax as cx
 import unxt as u
 
 import galax.typing as gt
@@ -152,7 +152,7 @@ def potential(*args: Any, **kwargs: Any) -> Any:
 
 
 @dispatch.abstract
-def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
+def gradient(*args: Any, **kwargs: Any) -> Any:
     """Compute the gradient of the potential at the given position(s).
 
     Examples
@@ -216,8 +216,7 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [0.086 0.172 0.258]>
+    BareQuantity(Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is an `~jax.Array`), it is assumed to be in the same unit system as the
@@ -284,12 +283,12 @@ def gradient(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     .. skip: end
 
-    """
+    """  # noqa: E501
     raise NotImplementedError  # pragma: no cover
 
 
 @dispatch.abstract
-def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"]:
+def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     """Compute the laplacian of the potential at the given position(s).
 
     Examples
@@ -708,7 +707,7 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
 
 @dispatch.abstract
-def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
+def acceleration(*args: Any, **kwargs: Any) -> Any:
     """Compute the acceleration due to the potential at the given position(s).
 
     Examples
@@ -773,8 +772,7 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.acceleration(q, t=t))
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [-0.086 -0.172 -0.258]>
+    BareQuantity(Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64), unit='kpc / Myr2')
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is an `~jax.Array`), it is assumed to be in the same unit system as the
@@ -787,7 +785,7 @@ def acceleration(*args: Any, **kwargs: Any) -> cx.vecs.CartesianAcc3D:
         [[-0.086 -0.172 -0.258]
          [-0.027 -0.033 -0.04 ]]>
 
-    """
+    """  # noqa: E501
     raise NotImplementedError  # pragma: no cover
 
 

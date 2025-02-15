@@ -204,7 +204,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
             jnp.sum(
                 jnp.asarray(
                     [
-                        mn.density(q, t).to_value(unit)
+                        mn._density(q, t).ustrip(unit)  # noqa: SLF001
                         for mn in self._get_mn_components(t)
                     ]
                 ),

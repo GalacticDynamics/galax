@@ -10,19 +10,15 @@ __all__ = [
 
 from collections.abc import Iterator, Mapping
 from dataclasses import KW_ONLY, MISSING, replace
-from functools import partial
 from typing import Any, cast, final
 from typing_extensions import override
 
 import equinox as eqx
-import jax
 
-import quaxed.numpy as jnp
 import unxt as u
 from unxt.unitsystems import AbstractUnitSystem, galactic
 from xmmutablemap import ImmutableMap
 
-import galax.typing as gt
 from .const import SQRT2
 from .disks import MiyamotoNagaiPotential, MN3Sech2Potential
 from .logarithmic import LMJ09LogarithmicPotential
@@ -90,17 +86,9 @@ class AbstractSpecialPotential(AbstractCompositePotential):  # TODO: make public
         """Return the parameters as an ImmutableMap."""
         return ImmutableMap({k: getattr(self, k) for k in self._keys})
 
-    # === Potential ===
-
     @override
-    @partial(jax.jit)
-    def _potential(
-        self, q: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtSz0:
-        return jnp.sum(
-            jnp.array([getattr(self, k)._potential(q, t) for k in self._keys]),  # noqa: SLF001
-            axis=0,
-        )
+    def values(self) -> tuple[AbstractPotential, ...]:  # type: ignore[override]
+        return tuple(getattr(self, k) for k in self._keys)
 
     # ===========================================
     # Collection Protocol

@@ -72,6 +72,7 @@ class BurkertPotential(AbstractSinglePotential):
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
         # Compute potential
         x = jnp.linalg.vector_norm(xyz, axis=-1) / r_s
         xinv = 1 / x
@@ -85,10 +86,13 @@ class BurkertPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
-    ) -> gt.BtFloatQuSz0:
-        m, r_s = self.m(t), self.r_s(t)
-        r = jnp.linalg.vector_norm(q, axis=-1)
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtFloatSz0:
+        m = self.m(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
+        r = jnp.linalg.vector_norm(xyz, axis=-1)
         return m / (jnp.pi * BURKERT_CONST) / ((r + r_s) * (r**2 + r_s**2))
 
     @partial(jax.jit)
@@ -183,15 +187,21 @@ class HernquistPotential(AbstractSinglePotential):
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
         r = jnp.linalg.vector_norm(xyz, axis=-1)
         return -self.constants["G"].value * m_tot / (r + r_s)
 
     @partial(jax.jit)
-    def _density(self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtFloatQuSz0:
-        r_s = self.r_s(t)
-        x = jnp.linalg.vector_norm(q, axis=-1) / r_s
-        rho0 = self.m_tot(t) / (2 * jnp.pi * r_s**3)
-        return rho0 / (x * (1 + x) ** 3)
+    def _density(
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtFloatSz0:
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
+        s = jnp.linalg.vector_norm(xyz, axis=-1) / r_s
+        rho0 = m_tot / (2 * jnp.pi * r_s**3)
+        return rho0 / (s * (1 + s) ** 3)
 
 
 # -------------------------------------------------------------------
@@ -230,6 +240,7 @@ class IsochronePotential(AbstractSinglePotential):
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
         r = jnp.linalg.vector_norm(xyz, axis=-1)
         return -self.constants["G"].value * m_tot / (r_s + jnp.sqrt(r**2 + r_s**2))
 
@@ -287,20 +298,17 @@ class KeplerPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
-    ) -> gt.BtFloatQuSz0:
-        r = jnp.linalg.vector_norm(q, axis=-1)
-        m = self.m_tot(t)
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtFloatSz0:
+        m = self.m_tot(t, ustrip=self.units["mass"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
+        r = jnp.linalg.vector_norm(xyz, axis=-1)
         pred = jnp.logical_or(  # are we at the origin with non-zero mass?
             jnp.greater(r, jnp.zeros_like(r)), jnp.equal(m, jnp.zeros_like(m))
         )
-        return u.Quantity(
-            qlax.select(
-                pred,
-                jnp.zeros_like(r.value),
-                jnp.full_like(r.value, fill_value=jnp.inf),
-            ),
-            self.units["mass density"],
+        return qlax.select(
+            pred, jnp.zeros_like(r), jnp.full_like(r, fill_value=jnp.inf)
         )
 
 
@@ -374,11 +382,12 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtSz0:
+        ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         alpha = self.alpha(t, ustrip=self.units["dimensionless"])
-        r_c = self.r_c(t, ustrip=self.units["length"])
+        r_c = self.r_c(t, ustrip=ul)
 
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        xyz = u.ustrip(AllowValue, ul, xyz)
 
         a = alpha / 2
         r = jnp.linalg.vector_norm(xyz, axis=-1)

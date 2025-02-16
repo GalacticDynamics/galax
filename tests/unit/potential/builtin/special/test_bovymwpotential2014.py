@@ -41,13 +41,13 @@ class TestBovyMWPotential2014(AbstractSpecialCompositePotential_Test):
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
-        expect = u.Quantity(24_911_277.33877818, "solMass / kpc3")
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        got = pot.density(x, t=0)
+        exp = u.Quantity(0.024911277, "Msun / pc3")
+        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
+        got = pot.hessian(x, t=0)
+        exp = u.Quantity(
             [
                 [0.00208414, -0.00046922, -0.0009568],
                 [-0.00046922, 0.00138031, -0.00191361],
@@ -55,9 +55,7 @@ class TestBovyMWPotential2014(AbstractSpecialCompositePotential_Test):
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     # ---------------------------------
     # Convenience methods

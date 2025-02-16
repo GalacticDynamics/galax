@@ -3,7 +3,7 @@
 __all__: list[str] = []
 
 from functools import partial
-from typing import Any, TypeAlias
+from typing import Any
 
 import jax
 from jaxtyping import Array, ArrayLike, ScalarLike, Shaped
@@ -18,12 +18,9 @@ import galax.coordinates as gc
 import galax.typing as gt
 from . import api
 from .base import AbstractPotential
-from .utils import parse_to_quantity, parse_to_quantity_or_array
+from .utils import parse_to_quantity_or_array
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils._unxt import AllowValue
-
-# TODO: shape -> batch
-HessianVec: TypeAlias = Shaped[u.Quantity["1/s^2"], "*#shape 3 3"]
 
 # =============================================================================
 # Potential Energy
@@ -120,30 +117,8 @@ def gradient(
     /,
 ) -> cx.vecs.CartesianAcc3D:
     """Compute the gradient of the potential at the given coordinate(s)."""
-    q = parse_to_quantity(wt, dtype=float, units=pot.units["length"])
+    q = parse_to_quantity_or_array(wt, dtype=float, units=pot.units["length"])
     grad = pot._gradient(q, wt.t)  # noqa: SLF001
-    return cx.vecs.CartesianAcc3D.from_(grad, pot.units["acceleration"])
-
-
-@dispatch
-def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3D:
-    """Compute the gradient of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the gradient of.
-    q : Any
-        The position to compute the gradient of the potential. See
-        `parse_to_quantity` for more details.
-    t : Any
-        The time at which to compute the gradient of the potential. See
-        :meth:`unxt.Quantity.from_` for more details.
-
-    """
-    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
-    t = u.ustrip(AllowValue, pot.units["time"], t)
-    grad = pot._gradient(q, t)  # noqa: SLF001
     return cx.vecs.CartesianAcc3D.from_(grad, pot.units["acceleration"])
 
 
@@ -227,7 +202,7 @@ def laplacian(
     /,
 ) -> u.Quantity["1/s^2"]:
     """Compute the laplacian of the potential at the given coordinate(s)."""
-    q = parse_to_quantity(wt, dtype=float, units=pot.units)
+    q = parse_to_quantity_or_array(wt, dtype=float, units=pot.units)
     return u.Quantity(pot._laplacian(q, wt.t), pot.units["frequency drift"])  # noqa: SLF001
 
 
@@ -248,8 +223,8 @@ def laplacian(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["1/s^2"]:
         system of the potential.
 
     """
-    q = parse_to_quantity(q, dtype=float, unit=pot.units["length"])
-    t = u.Quantity.from_(t, pot.units["time"])
+    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
     return u.Quantity(pot._laplacian(q, t), pot.units["frequency drift"])  # noqa: SLF001
 
 
@@ -280,16 +255,25 @@ def laplacian(
 
 @dispatch
 def density(
+    pot: AbstractPotential, q: Any, /, *, t: Any
+) -> u.Quantity["mass density"] | Array:
+    """Compute the density when `t` is keyword-only."""
+    return density(pot, q, t)
+
+
+@dispatch
+def density(
     pot: AbstractPotential, wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector, /
 ) -> u.Quantity["mass density"]:
     """Compute the density at the given coordinate(s)."""
-    q = parse_to_quantity(wt.q, units=pot.units)
-    return pot._density(q, wt.t)  # noqa: SLF001
+    q = parse_to_quantity_or_array(wt.q, units=pot.units)
+    rho = pot._density(q, wt.t)  # noqa: SLF001
+    return u.Quantity(rho, pot.units["mass density"])
 
 
 @dispatch
 def density(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["mass density"]:
-    """Compute the density at the given position(s).
+    """Compute the mass density at the given position(s).
 
     Parameters
     ----------
@@ -301,15 +285,27 @@ def density(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["mass densi
         See :meth:`unxt.Quantity.from_` for more details.
 
     """
-    q = parse_to_quantity(q, unit=pot.units["length"])
-    t = u.Quantity.from_(t, pot.units["time"])
-    return pot._density(q, t)  # noqa: SLF001
+    q = parse_to_quantity_or_array(q, unit=pot.units["length"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+    rho = pot._density(q, t)  # noqa: SLF001
+    return u.Quantity(rho, pot.units["mass density"])
 
 
 @dispatch
-def density(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["mass density"]:
-    """Compute the density when `t` is keyword-only."""
-    return density(pot, q, t)
+def density(pot: AbstractPotential, q: gt.BBtSz3, t: gt.BBtSz0, /) -> gt.BtRealSz0:
+    """Compute the mass density at the given position(s).
+
+    Parameters
+    ----------
+    q : Array[real, (*batch, 3)]
+        The position to compute the density of the potential.
+        Assumed to be in the units of the potential.
+    t : Array[real, (*batch,)]
+        The time at which to compute the density of the potential.
+        Assumed to be in the units of the potential.
+
+    """
+    return pot._density(q, t)  # noqa: SLF001
 
 
 # =============================================================================
@@ -317,18 +313,25 @@ def density(pot: AbstractPotential, q: Any, /, *, t: Any) -> u.Quantity["mass de
 
 
 @dispatch
-def hessian(
-    pot: AbstractPotential,
-    pspt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
-    /,
-) -> gt.BtQuSz33:
-    """Compute the hessian of the potential at the given position(s)."""
-    q = parse_to_quantity(pspt, dtype=float, units=pot.units)
-    return pot._hessian(q, pspt.t)  # noqa: SLF001
+def hessian(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
+    """Compute the hessian when `t` is keyword-only."""
+    return api.hessian(pot, q, t)
 
 
 @dispatch
-def hessian(pot: AbstractPotential, q: Any, t: Any, /) -> HessianVec:
+def hessian(
+    pot: AbstractPotential,
+    wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
+    /,
+) -> gt.BtQuSz33:
+    """Compute the hessian of the potential at the given position(s)."""
+    q = parse_to_quantity_or_array(wt, dtype=float, units=pot.units)
+    hess = pot._hessian(q, wt.t)  # noqa: SLF001
+    return u.Quantity(hess, pot.units["frequency drift"])
+
+
+@dispatch
+def hessian(pot: AbstractPotential, q: Any, t: Any, /) -> gt.BtQuSz33:
     """Compute the hessian of the potential at the given position(s).
 
     Parameters
@@ -343,15 +346,32 @@ def hessian(pot: AbstractPotential, q: Any, t: Any, /) -> HessianVec:
         :meth:`~unxt.array.Quantity.from_` for more details.
 
     """
-    q = parse_to_quantity(q, dtype=float, unit=pot.units["length"])
-    t = u.Quantity.from_(t, pot.units["time"])
-    return pot._hessian(q, t)  # noqa: SLF001
+    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+    hess = pot._hessian(q, t)  # noqa: SLF001
+    return u.Quantity(hess, pot.units["frequency drift"])
 
 
 @dispatch
-def hessian(pot: AbstractPotential, q: Any, /, *, t: Any) -> HessianVec:
-    """Compute the hessian when `t` is keyword-only."""
-    return api.hessian(pot, q, t)
+def hessian(pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /) -> gt.BtSz33:
+    """Compute the hessian of the potential at the given position(s).
+
+    Parameters
+    ----------
+    pot : `~galax.potential.AbstractPotential`
+        The potential to compute the hessian of.
+    q : Any
+        The position to compute the hessian of the potential. See
+        `parse_to_quantity` for more details.
+    t : Any
+        The time at which to compute the hessian of the potential. See
+        :meth:`~unxt.array.Quantity.from_` for more details.
+
+    """
+    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+    hess = pot._hessian(q, t)  # noqa: SLF001
+    return u.Quantity(hess, pot.units["frequency drift"])
 
 
 # =============================================================================
@@ -518,7 +538,7 @@ def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> u.AbstractQua
 @partial(jax.jit)
 def d2potential_dr2(
     pot: AbstractPotential, x: Any, t: Any, /
-) -> Shaped[u.Quantity["frequency drift"], "*batch"]:
+) -> Shaped[u.Quantity["frequency drift"] | Array, "*batch"]:
     """Compute the second derivative of the potential at the position.
 
     Parameters
@@ -531,7 +551,7 @@ def d2potential_dr2(
         Time in [Myr]
 
     """
-    x = parse_to_quantity(x, unit=pot.units["length"])
+    x = parse_to_quantity_or_array(x, unit=pot.units["length"])
     rhat = cx.vecs.normalize_vector(x)
     H = pot.hessian(x, t=t)
     # vectorized dot product of rhat · H · rhat
@@ -542,7 +562,7 @@ def d2potential_dr2(
 @partial(jax.jit)
 def d2potential_dr2(
     pot: AbstractPotential, w: gc.AbstractPhaseSpaceCoordinate | cx.vecs.FourVector, /
-) -> Shaped[u.Quantity["frequency drift"], "*batch"]:
+) -> Shaped[u.Quantity["frequency drift"] | Array, "*batch"]:
     return api.d2potential_dr2(pot, w.q, w.t)
 
 
@@ -550,7 +570,7 @@ def d2potential_dr2(
 @partial(jax.jit)
 def d2potential_dr2(
     pot: AbstractPotential, w: Any, /, *, t: Any
-) -> Shaped[u.Quantity["frequency drift"], "*batch"]:
+) -> Shaped[u.Quantity["frequency drift"] | Array, "*batch"]:
     """Compute when `t` is keyword-only."""
     return api.d2potential_dr2(pot, w, t)
 

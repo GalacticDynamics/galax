@@ -412,7 +412,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
 
 @dispatch.abstract
-def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"]:
+def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
     """Compute the density at the given position(s).
 
     Examples

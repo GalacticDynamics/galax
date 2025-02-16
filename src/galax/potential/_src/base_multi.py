@@ -13,9 +13,11 @@ import jax
 from plum import dispatch
 
 import quaxed.numpy as jnp
+import unxt as u
 
 import galax.typing as gt
 from .base import AbstractPotential
+from galax.utils._unxt import AllowValue
 
 if TYPE_CHECKING:
     import galax.potential  # noqa: ICN001
@@ -31,10 +33,56 @@ class AbstractCompositePotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential(
-        self, q: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
     ) -> gt.BtSz0:
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.ustrip(AllowValue, self.units["time"], t)
         return jnp.sum(
-            jnp.array([p._potential(q, t) for p in self.values()]),  # noqa: SLF001
+            jnp.array([p._potential(xyz, t) for p in self.values()]),  # noqa: SLF001
+            axis=0,
+        )
+
+    @partial(jax.jit)
+    def _gradient(
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz3:
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.ustrip(AllowValue, self.units["time"], t)
+        return jnp.sum(
+            jnp.array([p._gradient(xyz, t) for p in self.values()]),  # noqa: SLF001
+            axis=0,
+        )
+
+    @partial(jax.jit)
+    def _laplacian(
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.ustrip(AllowValue, self.units["time"], t)
+        return jnp.sum(
+            jnp.array([p._laplacian(xyz, t) for p in self.values()]),  # noqa: SLF001
+            axis=0,
+        )
+
+    @partial(jax.jit)
+    def _density(
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz0:
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.ustrip(AllowValue, self.units["time"], t)
+        return jnp.sum(
+            jnp.array([p._density(xyz, t) for p in self.values()]),  # noqa: SLF001
+            axis=0,
+        )
+
+    @partial(jax.jit)
+    def _hessian(
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz33:
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.ustrip(AllowValue, self.units["time"], t)
+        return jnp.sum(
+            jnp.array([p._hessian(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
 

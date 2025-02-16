@@ -87,6 +87,8 @@ QuSz1: TypeAlias = Shaped[AbstractQuantity, "1"]
 # A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz).
 Sz3: TypeAlias = Shaped[Array, "3"]
 BtSz3: TypeAlias = Shaped[Sz3, "*batch"]
+BBtSz3: TypeAlias = Shaped[Sz3, "*#batch"]
+
 
 QuSz3: TypeAlias = Shaped[AbstractQuantity, "3"]
 BtQuSz3: TypeAlias = Shaped[QuSz3, "*batch"]
@@ -120,6 +122,12 @@ BBtSz7: TypeAlias = Shaped[Sz7, "*#batch"]
 
 # ---------------------------
 # 3x3 matrix
+
+Sz33: TypeAlias = Shaped[Array, "3 3"]
+BtSz33: TypeAlias = Shaped[Sz33, "*batch"]
+BBtSz33: TypeAlias = Shaped[Sz33, "*#batch"]
+FloatSz33: TypeAlias = Float[Array, "3 3"]
+
 QuSz33: TypeAlias = Shaped[AbstractQuantity, "3 3"]
 BtQuSz33: TypeAlias = Shaped[QuSz33, "*batch"]
 FloatQuSz33: TypeAlias = Float[AbstractQuantity, "3 3"]

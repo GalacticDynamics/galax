@@ -82,11 +82,11 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, _: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
-    ) -> gt.BtFloatQuSz0:
+        self, _: gt.BtQuSz3 | gt.BtSz3, t: gt.BtRealQuSz0 | gt.BtRealSz0, /
+    ) -> gt.BtFloatSz0:
         # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i \omega_i^2
-        omega = jnp.atleast_1d(self.omega(t))
-        denom = 4 * jnp.pi * self.constants["G"]
+        omega = jnp.atleast_1d(self.omega(t, ustrip=self.units["frequency"]))
+        denom = 4 * jnp.pi * self.constants["G"].value
         return jnp.sum(omega**2, axis=-1) / denom
 
 

@@ -60,23 +60,21 @@ class NullPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _laplacian(
-        self, q: gt.QuSz3 | gt.Sz3, /, _: gt.RealQuSz0 | gt.RealSz0
-    ) -> gt.FloatSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, /, _: gt.BBtRealQuSz0 | gt.BBtRealSz0
+    ) -> gt.BtFloatSz0:
         """See ``laplacian``."""
-        return jnp.zeros(q.shape[:-1], dtype=q.dtype)
+        return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)
 
     @partial(jax.jit, inline=True)
     def _density(
-        self, q: gt.BtQuSz3, _: gt.BtRealQuSz0 | gt.RealQuSz0, /
-    ) -> gt.BtFloatQuSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, _: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtFloatSz0:
         """See ``density``."""
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1], dtype=q.dtype), galactic["mass density"]
-        )
+        return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)
 
     @partial(jax.jit, inline=True)
-    def _hessian(self, q: gt.QuSz3, _: gt.RealQuSz0, /) -> gt.QuSz33:
+    def _hessian(
+        self, q: gt.BBtQuSz3 | gt.BBtSz3, _: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtSz33:
         """See ``hessian``."""
-        return u.Quantity(  # TODO: better unit handling
-            jnp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype), galactic["frequency drift"]
-        )
+        return jnp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype)

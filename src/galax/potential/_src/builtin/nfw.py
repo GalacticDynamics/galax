@@ -78,8 +78,8 @@ class NFWPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
-    ) -> gt.BtFloatQuSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BtFloatSz0:
         r"""Density.
 
         .. math::
@@ -87,12 +87,16 @@ class NFWPotential(AbstractSinglePotential):
             v_{h2} = -\frac{G M}{r_s}
             \rho_0 = \frac{v_{h2}}{4 \pi G r_s^2}
             \rho(r) = \frac{\rho_0}{u (1 + u)^2}
+
         """
-        r = jnp.linalg.vector_norm(q, axis=-1)
-        r_s = self.r_s(t)
-        rho0 = self.m(t) / (4 * jnp.pi * r_s**3)
-        u = r / r_s
-        return rho0 / u / (1 + u) ** 2
+        m = self.m(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
+        r = jnp.linalg.vector_norm(xyz, axis=-1)
+        rho0 = m / (4 * jnp.pi * r_s**3)
+        s = r / r_s
+        return rho0 / s / (1 + s) ** 2
 
     @staticmethod
     def _vc_rs_rref_to_m(
@@ -517,14 +521,23 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
     # ==========================================================================
 
+    # TODO: make this work w/out units
     @partial(jax.jit)
     def _density(
-        self, q: gt.BtQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
-    ) -> gt.BtFloatQuSz0:
-        r_s, q1sq, q2sq = self.r_s(t), self.q1(t) ** 2, self.q2(t) ** 2
+        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BtRealQuSz0 | gt.BtRealSz0, /
+    ) -> gt.BtFloatSz0:
+        xyz = u.Quantity.from_(xyz, self.units["length"])
+        t = u.Quantity.from_(t, self.units["time"])
+
+        rho0 = self.rho0(t)
+        r_s = self.r_s(t)
+        q1sq, q2sq = self.q1(t) ** 2, self.q2(t) ** 2
+
         s2 = jnp.asarray([1])
-        xi = jnp.sqrt(self._ellipsoid_surface(q[None], q1sq, q2sq, s2)[0]) / r_s
-        return self.rho0(t) / xi / (1.0 + xi) ** 2
+        xi = jnp.sqrt(self._ellipsoid_surface(xyz[None], q1sq, q2sq, s2)[0]) / r_s
+
+        dens = rho0 / xi / (1.0 + xi) ** 2
+        return dens.ustrip(self.units["mass density"])
 
 
 # -------------------------------------------------------------------

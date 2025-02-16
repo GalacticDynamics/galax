@@ -231,14 +231,14 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @partial(jax.jit)
     def _hessian(
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.RealQuSz0 | gt.RealSz0, /
-    ) -> gt.FloatQuSz33:
+    ) -> gt.FloatSz33:
         """See ``hessian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
         hess_op = jax.hessian(self._potential)
-        return u.Quantity(hess_op(xyz, t), self.units["frequency"] ** 2)
+        return hess_op(xyz, t)
 
-    def hessian(self, *args: Any, **kwargs: Any) -> gt.BtQuSz33:
+    def hessian(self, *args: Any, **kwargs: Any) -> gt.BtSz33:
         """Compute the hessian of the potential at the given position(s).
 
         See :func:`~galax.potential.hessian` for details.

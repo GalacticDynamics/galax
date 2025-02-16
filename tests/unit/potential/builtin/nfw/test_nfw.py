@@ -53,10 +53,9 @@ class TestNFWPotential(
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(9.45944763e08, pot.units["mass density"])
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        got = pot.density(x, t=0)
+        exp = u.Quantity(9.45944763e08, pot.units["mass density"])
+        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(

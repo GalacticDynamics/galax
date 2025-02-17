@@ -72,7 +72,7 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     #: The maximum number of steps to take before quitting.
     #: Some `diffrax.SaveAt` options can be incompatible with `max_steps=None`,
     #: so you can override the `max_steps` argument when calling `DiffEqSolver`
-    max_steps: int | None = eqx.field(default=2**16, static=True)
+    max_steps: int | None = eqx.field(default=2**12, static=True)
 
     units: u.AbstractUnitSystem = eqx.field(
         default=u.unitsystems.galactic, converter=u.unitsystem, static=True
@@ -81,13 +81,13 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     # -----------------------
 
     @dispatch.abstract
-    def init(self: "MassSolver", field: Any, y0: Any, t0: Any, args: Any) -> Any:
+    def init(self: "MassSolver", dm_dt: Any, y0: Any, t0: Any, args: Any, /) -> Any:
         # See dispatches below
         raise NotImplementedError  # pragma: no cover
 
     def step(
         self,
-        field: AbstractMassRateField,
+        dm_dt: AbstractMassRateField,
         state: SolveState,
         t1: Any,
         /,
@@ -95,14 +95,14 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         **step_kwargs: Any,  # e.g. solver_state, made_jump
     ) -> SolveState:
         """Step the state."""
-        terms = field.terms(self)
+        terms = dm_dt.terms(self)
         t1_ = u.ustrip(AllowValue, self.units["time"], t1)
         step_kwargs.setdefault("made_jump", False)
         return self._step_impl(terms, state, t1_, args, step_kwargs)
 
     @dispatch.abstract
     def run(
-        self, field: Any, state: SolveState, t1: Any, args: PyTree, **solver_kw: Any
+        self, dm_dt: Any, state: SolveState, t1: Any, args: PyTree, /, **solver_kw: Any
     ) -> SolveState:
         """Run from the state."""
         raise NotImplementedError  # pragma: no cover

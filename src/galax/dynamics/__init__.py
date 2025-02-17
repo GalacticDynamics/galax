@@ -15,9 +15,10 @@ __all__ = [
     "AbstractSolver",
     "DynamicsSolver",
     # mockstream
+    "StreamSimulator",
     "MockStreamArm",
     "MockStream",
-    "MockStreamGenerator",
+    "MockStreamGenerator",  # TODO: deprecate
     # mockstream.df
     "AbstractStreamDF",
     "FardalStreamDF",
@@ -47,6 +48,7 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
         MockStream,
         MockStreamArm,
         MockStreamGenerator,
+        StreamSimulator,
     )
     from .solve import AbstractSolver, DynamicsSolver
 

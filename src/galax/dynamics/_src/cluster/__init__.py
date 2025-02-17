@@ -15,6 +15,8 @@ __all__ = [
     "Baumgardt1998MassLossRate",
     # Events
     "MassBelowThreshold",
+    # Sample
+    "ReleaseTimeSampler",
     # Functions
     "lagrange_points",
     "tidal_radius",
@@ -32,6 +34,7 @@ from .fields import (
     MassVectorField,
     ZeroMassRate,
 )
+from .sample import ReleaseTimeSampler
 from .solver import MassSolver
 
 # Register by import

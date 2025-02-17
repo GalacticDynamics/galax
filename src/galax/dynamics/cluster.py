@@ -15,6 +15,8 @@ __all__ = [
     "Baumgardt1998MassLossRate",
     # Events
     "MassBelowThreshold",
+    # Sample
+    "ReleaseTimeSampler",
     # Functions
     "lagrange_points",
     "tidal_radius",
@@ -34,6 +36,7 @@ with install_import_hook("galax.dynamics.fields", RUNTIME_TYPECHECKER):
         MassBelowThreshold,
         MassSolver,
         MassVectorField,
+        ReleaseTimeSampler,
         ZeroMassRate,
         lagrange_points,
         radius,

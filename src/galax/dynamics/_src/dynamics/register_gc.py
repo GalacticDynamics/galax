@@ -21,6 +21,7 @@ import galax.coordinates as gc
 def from_(
     cls: type[gc.PhaseSpaceCoordinate],
     soln: dfx.Solution,
+    /,
     *,
     frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
     units: u.AbstractUnitSystem,  # not dispatched on, but required

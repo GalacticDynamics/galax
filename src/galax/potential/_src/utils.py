@@ -41,13 +41,6 @@ def parse_to_quantity_or_array(
 
 @dispatch
 def parse_to_quantity_or_array(
-    q: AbstractQuantity, /, *, dtype: Any = None, **_: Any
-) -> gt.BtRealQuSz3:
-    return jnp.asarray(q, dtype=parse_dtypes(q.dtype, dtype))
-
-
-@dispatch
-def parse_to_quantity_or_array(
     x: ArrayLike, /, *, dtype: Any = None, **_: Any
 ) -> gt.BtRealSz3:
     arr = jnp.asarray(x, dtype=None)
@@ -57,9 +50,9 @@ def parse_to_quantity_or_array(
 
 @dispatch
 def parse_to_quantity_or_array(
-    x: gc.AbstractPhaseSpaceObject | cx.vecs.FourVector, /, **kw: Any
+    q: AbstractQuantity, /, *, dtype: Any = None, **_: Any
 ) -> gt.BtRealQuSz3:
-    return parse_to_quantity_or_array(x.q, **kw)
+    return jnp.asarray(q, dtype=parse_dtypes(q.dtype, dtype))
 
 
 @dispatch
@@ -69,6 +62,34 @@ def parse_to_quantity_or_array(
     cart = x.vconvert(cx.CartesianPos3D)
     q = convert(cart, u.Quantity)
     return parse_to_quantity_or_array(q, **kw)
+
+
+@dispatch
+def parse_to_quantity_or_array(
+    coord: cx.vecs.FourVector, /, **kw: Any
+) -> gt.BtRealQuSz3:
+    return parse_to_quantity_or_array(coord.q, **kw)
+
+
+@dispatch
+def parse_to_quantity_or_array(space: cx.vecs.Space, /, **kw: Any) -> gt.BtRealQuSz3:
+    return parse_to_quantity_or_array(space["length"], **kw)
+
+
+@dispatch
+def parse_to_quantity_or_array(
+    coord: cx.frames.AbstractCoordinate, /, **kw: Any
+) -> gt.BtRealQuSz3:
+    coord = coord.to_frame(gc.frames.SimulationFrame())  # TODO: frame
+    return parse_to_quantity_or_array(coord.data, **kw)
+
+
+@dispatch
+def parse_to_quantity_or_array(
+    coord: gc.AbstractPhaseSpaceObject, /, **kw: Any
+) -> gt.BtRealQuSz3:
+    coord = coord.to_frame(gc.frames.SimulationFrame())  # TODO: frame
+    return parse_to_quantity_or_array(coord.q, **kw)
 
 
 # ==============================================================================

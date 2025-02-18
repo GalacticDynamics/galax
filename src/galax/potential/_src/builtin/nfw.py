@@ -524,8 +524,8 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     # TODO: make this work w/out units
     @partial(jax.jit)
     def _density(
-        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BtRealQuSz0 | gt.BtRealSz0, /
-    ) -> gt.BtFloatSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BBtFloatSz0:
         xyz = u.Quantity.from_(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
 

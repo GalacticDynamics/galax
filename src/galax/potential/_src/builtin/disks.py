@@ -203,8 +203,8 @@ class AbstractMN3Potential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _density(
-        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtFloatSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BBtFloatSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         densities = jnp.asarray(
             [mn._density(xyz, t) for mn in self._get_mn_components(t)]  # noqa: SLF001

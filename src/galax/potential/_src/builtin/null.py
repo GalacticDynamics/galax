@@ -47,34 +47,34 @@ class NullPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
-    def _potential(self, q: gt.BtQuSz3 | gt.BtSz3, _: Any, /) -> gt.BtSz0:
+    @partial(jax.jit, inline=True)
+    def _potential(self, q: gt.BBtQuSz3 | gt.BBtSz3, _: Any, /) -> gt.BBtSz0:
         return jnp.zeros(q.shape[:-1], dtype=q.dtype)
 
     @partial(jax.jit, inline=True)
     def _gradient(
-        self, q: gt.BtQuSz3 | gt.BtSz3, /, _: gt.RealQuSz0 | gt.RealSz0
-    ) -> gt.BtSz3:
+        self, q: gt.BBtQuSz3 | gt.BBtSz3, /, _: gt.BBtRealQuSz0 | gt.BBtRealSz0
+    ) -> gt.BBtSz3:
         """See ``gradient``."""
         return jnp.zeros(q.shape[:-1] + (3,), dtype=q.dtype)
 
     @partial(jax.jit, inline=True)
     def _laplacian(
         self, xyz: gt.BBtQuSz3 | gt.BBtSz3, /, _: gt.BBtRealQuSz0 | gt.BBtRealSz0
-    ) -> gt.BtFloatSz0:
+    ) -> gt.BBtFloatSz0:
         """See ``laplacian``."""
         return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)
 
     @partial(jax.jit, inline=True)
     def _density(
         self, xyz: gt.BBtQuSz3 | gt.BBtSz3, _: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtFloatSz0:
+    ) -> gt.BBtFloatSz0:
         """See ``density``."""
         return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)
 
     @partial(jax.jit, inline=True)
     def _hessian(
         self, q: gt.BBtQuSz3 | gt.BBtSz3, _: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtSz33:
+    ) -> gt.BBtSz33:
         """See ``hessian``."""
         return jnp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype)

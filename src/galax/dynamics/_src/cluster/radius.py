@@ -24,12 +24,14 @@ from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
+import unxt as u
 from unxt.quantity import BareQuantity
 
 import galax.coordinates as gc
 import galax.potential as gp
 import galax.typing as gt
 from galax.dynamics._src.api import omega
+from galax.utils._unxt import AllowValue
 
 
 class AbstractTidalRadiusMethod:
@@ -80,7 +82,7 @@ def tidal_radius(
 
 def tidal_radius_hoerner1957(
     pot: gp.AbstractPotential,
-    x: gt.BBtRealQuSz3,
+    xyz: gt.BBtRealQuSz3,
     /,
     *,
     mass: gt.MassBBtSz0,
@@ -111,8 +113,8 @@ def tidal_radius_hoerner1957(
 
     """
     # TODO: a way to select different mass calculator
-    r = jnp.linalg.vector_norm(x, axis=-1)
-    return jnp.cbrt(mass / (2 * gp.spherical_mass_enclosed(pot, x, t))) * r
+    r = jnp.linalg.vector_norm(xyz, axis=-1)
+    return jnp.cbrt(mass / (2 * gp.spherical_mass_enclosed(pot, xyz, t))) * r
 
 
 #####################################################################
@@ -198,6 +200,26 @@ def tidal_radius(
 
 
 # ---------------------------
+
+
+@dispatch
+@partial(jax.jit)
+def tidal_radius_king1962(
+    pot: gp.AbstractPotential,
+    xyz: gt.BBtRealSz3,
+    v: gt.BBtRealSz3,
+    /,
+    *,
+    mass: gt.BBtSz0 | gt.BBtQuSz0,  # cluster mass
+    t: gt.BBtSz0 | gt.BBtQuSz0,
+) -> gt.BBtRealSz0:
+    """Compute from `jax.Array`."""
+    mass = u.ustrip(AllowValue, pot.units["mass"], mass)
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+
+    d2phi_dr2 = pot.d2potential_dr2(xyz, t)
+    GM = pot.constants["G"].value * mass
+    return jnp.cbrt(GM / (omega(xyz, v) ** 2 - d2phi_dr2))
 
 
 @dispatch

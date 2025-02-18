@@ -111,8 +111,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @abc.abstractmethod
     def _potential(
-        self, q: gt.BtQuSz3, t: gt.BBtRealQuSz0, /
-    ) -> gt.SpecificEnergyBtSz0:
+        self, q: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BBtRealQuSz0 | gt.BBtSz0:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.
@@ -238,7 +238,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         hess_op = jax.hessian(self._potential)
         return hess_op(xyz, t)
 
-    def hessian(self, *args: Any, **kwargs: Any) -> gt.BtSz33:
+    def hessian(self, *args: Any, **kwargs: Any) -> gt.BtQuSz33 | gt.BtSz33:
         """Compute the hessian of the potential at the given position(s).
 
         See :func:`~galax.potential.hessian` for details.
@@ -288,7 +288,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     # ---------------------------------------
 
-    def dpotential_dr(self, *args: Any, **kwargs: Any) -> u.Quantity["acceleration"]:
+    def dpotential_dr(self, *args: Any, **kwargs: Any) -> gt.BtRealQuSz0 | gt.BtRealSz0:
         """Compute the radial derivative of the potential.
 
         See :func:`~galax.potential.dpotential_dr` for details.
@@ -298,7 +298,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     def d2potential_dr2(
         self, *args: Any, **kwargs: Any
-    ) -> u.Quantity["frequency drift"]:
+    ) -> gt.BtRealQuSz0 | gt.BtRealSz0:
         """Compute the second radial derivative of the potential.
 
         See :func:`~galax.potential.d2potential_dr2` for details.

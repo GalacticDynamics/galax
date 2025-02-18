@@ -165,6 +165,3 @@ LengthBBtSz3: TypeAlias = Shaped[LengthSz3, "*#batch"]
 SpeedSz3: TypeAlias = Shaped[u.Quantity["speed"], "3"]
 SpeedBtSz3: TypeAlias = Shaped[SpeedSz3, "*batch"]
 SpeedBBtSz3: TypeAlias = Shaped[SpeedSz3, "*#batch"]
-
-SpecificEnergySz0: TypeAlias = Shaped[u.Quantity["specific_energy"], ""]
-SpecificEnergyBtSz0: TypeAlias = Shaped[SpecificEnergySz0, "*batch"]

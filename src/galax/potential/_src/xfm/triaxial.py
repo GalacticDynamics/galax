@@ -81,8 +81,8 @@ class TriaxialInThePotential(AbstractTransformedPotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz.astype(float))
         # Transform the position
         xyz = xyz.at[..., 1].divide(self.y_over_x(t).value)

@@ -190,8 +190,8 @@ class TransformedPotential(AbstractTransformedPotential):
     """
 
     def _potential(
-        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BBtSz0:
         """Compute the potential energy at the given position(s).
 
         This method applies the operators to the coordinates and then evaluates

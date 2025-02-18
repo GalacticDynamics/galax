@@ -23,12 +23,15 @@ from . import api
 # Specific angular momentum
 
 
-@dispatch
+@dispatch.multi(
+    (gt.BBtRealSz3, gt.BBtRealSz3),
+    (gt.BBtRealQuSz3, gt.BBtRealQuSz3),
+)
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
-    x: gt.BBtRealQuSz3, v: gt.BBtRealQuSz3, /
-) -> gt.BBtRealQuSz3:
-    """Compute from `unxt.Quantity`s as Cartesian coordinates."""
+    x: gt.BBtRealSz3 | gt.BBtRealQuSz3, v: gt.BBtRealSz3 | gt.BBtRealQuSz3, /
+) -> gt.BBtRealSz3 | gt.BBtRealQuSz3:
+    """Compute from `jax.Array` or `unxt.Quantity`s as Cartesian coordinates."""
     return jnp.linalg.cross(x, v)
 
 
@@ -73,9 +76,14 @@ def specific_angular_momentum(
 # omega
 
 
-@dispatch
+@dispatch.multi(
+    (gt.BBtRealSz3, gt.BBtRealSz3),
+    (gt.BBtRealQuSz3, gt.BBtRealQuSz3),
+)
 @partial(jax.jit)
-def omega(x: gt.BBtRealQuSz3, v: gt.BBtRealQuSz3, /) -> gt.BBtRealQuSz0:
+def omega(
+    x: gt.BBtRealSz3 | gt.BBtRealQuSz3, v: gt.BBtRealSz3 | gt.BBtRealQuSz3, /
+) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
     """Compute from `unxt.Quantity`s as Cartesian coordinates."""
     r = jnp.linalg.vector_norm(x, axis=-1, keepdims=True)
     om = jnp.linalg.cross(x, v) / r**2

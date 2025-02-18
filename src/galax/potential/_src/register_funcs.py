@@ -5,6 +5,7 @@ __all__: list[str] = []
 from functools import partial
 from typing import Any
 
+import equinox as eqx
 import jax
 from jaxtyping import Array, ArrayLike, ScalarLike, Shaped
 from plum import convert, dispatch
@@ -112,6 +113,32 @@ def gradient(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
 
 @dispatch
 def gradient(
+    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /
+) -> gt.BBtRealSz3:
+    """Compute the gradient of the potential at the given position(s).
+
+    The Cartesian position and time are assumed to be in the unit system of the
+    potential.
+
+    """
+    return pot._gradient(q.astype(float), t)  # noqa: SLF001
+
+
+@dispatch
+def gradient(pot: AbstractPotential, q: gt.BBtRealQuSz0, t: Any, /) -> gt.BBtQuSz0:
+    """Compute the gradient of the potential at the given position(s).
+
+    The position is assumed to be Cartesian.
+
+    """
+    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+    grad = pot._gradient(q, t)  # noqa: SLF001
+    return u.Quantity(grad, pot.units["acceleration"])
+
+
+@dispatch
+def gradient(
     pot: AbstractPotential,
     wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
     /,
@@ -142,47 +169,6 @@ def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3
     t = u.ustrip(AllowValue, pot.units["time"], t)
     grad = pot._gradient(q, t)  # noqa: SLF001
     return cx.vecs.CartesianAcc3D.from_(grad, pot.units["acceleration"])
-
-
-@dispatch
-def gradient(pot: AbstractPotential, q: gt.BBtQuSz0, t: Any, /) -> gt.BBtQuSz0:
-    """Compute the gradient of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the gradient of.
-    q : Quantity[float, (*batch, 3), "length"]
-        The position to compute the gradient of the potential.
-    t : Any
-        The time at which to compute the gradient of the potential. See
-        :meth:`unxt.Quantity.from_` for more details.
-
-    """
-    t = u.ustrip(AllowValue, pot.units["time"], t)
-    grad = pot._gradient(q, t)  # noqa: SLF001
-    return BareQuantity(grad, pot.units["acceleration"])
-
-
-@dispatch
-def gradient(
-    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /
-) -> gt.BBtRealSz3:
-    """Compute the gradient of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the gradient of.
-    q : Array[real, (*batch, 3)]
-        The position to compute the gradient of the potential.
-        Assumed to be in the unit system of the potential.
-    t : Array[real, (*batch,)]
-        The time at which to compute the gradient of the potential.
-        Assumed to be in the unit system of the potential.
-
-    """
-    return pot._gradient(q, t)  # noqa: SLF001
 
 
 # =============================================================================
@@ -319,14 +305,28 @@ def hessian(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
 
 
 @dispatch
+def hessian(pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /) -> gt.BtSz33:
+    """Compute the hessian of the potential at the given position(s).
+
+    The position is in Cartesian coordinates and it and the time are assumed to
+    be in the unit system of the potential.
+
+    """
+    return pot._hessian(q.astype(float), t)  # noqa: SLF001
+
+
+@dispatch
 def hessian(
-    pot: AbstractPotential,
-    wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
-    /,
+    pot: AbstractPotential, q: gt.BBtRealQuSz3, t: gt.BBtRealQuSz0, /
 ) -> gt.BtQuSz33:
-    """Compute the hessian of the potential at the given position(s)."""
-    q = parse_to_quantity_or_array(wt, dtype=float, units=pot.units)
-    hess = pot._hessian(q, wt.t)  # noqa: SLF001
+    """Compute the hessian of the potential at the given position(s).
+
+    The position is in Cartesian coordinates.
+
+    """
+    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
+    t = u.ustrip(AllowValue, pot.units["time"], t)
+    hess = pot._hessian(q, t)  # noqa: SLF001
     return u.Quantity(hess, pot.units["frequency drift"])
 
 
@@ -353,24 +353,14 @@ def hessian(pot: AbstractPotential, q: Any, t: Any, /) -> gt.BtQuSz33:
 
 
 @dispatch
-def hessian(pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /) -> gt.BtSz33:
-    """Compute the hessian of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the hessian of.
-    q : Any
-        The position to compute the hessian of the potential. See
-        `parse_to_quantity` for more details.
-    t : Any
-        The time at which to compute the hessian of the potential. See
-        :meth:`~unxt.array.Quantity.from_` for more details.
-
-    """
-    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
-    t = u.ustrip(AllowValue, pot.units["time"], t)
-    hess = pot._hessian(q, t)  # noqa: SLF001
+def hessian(
+    pot: AbstractPotential,
+    wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
+    /,
+) -> gt.BtQuSz33:
+    """Compute the hessian of the potential at the given position(s)."""
+    q = parse_to_quantity_or_array(wt, dtype=float, units=pot.units)
+    hess = pot._hessian(q, wt.t)  # noqa: SLF001
     return u.Quantity(hess, pot.units["frequency drift"])
 
 
@@ -493,10 +483,19 @@ def local_circular_velocity(
 @dispatch
 @partial(jax.jit)
 def dpotential_dr(
-    pot: AbstractPotential,
-    x: u.AbstractQuantity | ArrayLike,
-    t: u.AbstractQuantity | ArrayLike,
-) -> u.AbstractQuantity:
+    pot: AbstractPotential, xyz: gt.BBtRealSz3, t: gt.BBtRealSz0, /
+) -> gt.BtRealSz0:
+    """Compute the radial derivative of the potential at the given position."""
+    r_hat: Array = cx.vecs.normalize_vector(xyz)
+    grad = api.gradient(pot, xyz, t)
+    return jnp.sum(grad * r_hat, axis=-1)
+
+
+@dispatch
+@partial(jax.jit)
+def dpotential_dr(
+    pot: AbstractPotential, x: gt.BBtRealQuSz3, t: gt.BBtRealQuSz0, /
+) -> gt.BtRealQuSz0:
     """Compute the radial derivative of the potential at the given position."""
     x, t = jnp.asarray(x), jnp.asarray(t)
     r_hat: Array = cx.vecs.normalize_vector(x)
@@ -581,17 +580,115 @@ def d2potential_dr2(
 
 @dispatch
 def spherical_mass_enclosed(
+    pot: AbstractPotential, x: gt.BBtRealSz3, t: gt.BBtRealSz0, /
+) -> gt.BBtRealSz0:
+    """Compute from `jax.Array`."""
+    r2 = jnp.sum(jnp.square(x), axis=-1)
+    dPhi_dr = api.dpotential_dr(pot, x, t)
+    return r2 * jnp.abs(dPhi_dr) / pot.constants["G"].value
+
+
+@dispatch
+def spherical_mass_enclosed(
     pot: AbstractPotential, x: gt.BBtQuSz3, t: gt.BBtRealQuSz0, /
 ) -> gt.BBtRealQuSz0:
     """Compute from `unxt.Quantity`."""
     r2 = jnp.sum(jnp.square(x), axis=-1)
-    dPhi_dr = api.dpotential_dr(pot, x, t=t)
+    dPhi_dr = api.dpotential_dr(pot, x, t)
     return r2 * jnp.abs(dPhi_dr) / pot.constants["G"]
 
 
 @dispatch
 def spherical_mass_enclosed(
-    pot: AbstractPotential, x: cx.vecs.AbstractPos3D, t: gt.BBtRealQuSz0, /
+    pot: AbstractPotential, q: cx.vecs.AbstractPos3D, t: gt.BBtRealQuSz0, /
 ) -> gt.BBtRealQuSz0:
     """Compute from `coordinax.vecs.AbstractPos3D`."""
-    return api.spherical_mass_enclosed(pot, convert(x, BareQuantity), t)
+    return api.spherical_mass_enclosed(pot, convert(q, BareQuantity), t)
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, qt: cx.vecs.FourVector, /
+) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
+    return api.spherical_mass_enclosed(pot, qt.q, qt.t)
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, qt: cx.vecs.FourVector, t: gt.BBtRealQuSz0, /
+) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
+    t = eqx.error_if(
+        qt.t,
+        jnp.logical_not(jnp.array_equal(qt.t, t)),
+        msg="`qt.t` and `t` are not equal.",
+    )
+    return api.spherical_mass_enclosed(pot, qt.q, t)
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, space: cx.vecs.Space, /
+) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
+    q = space["length"]
+    q = eqx.error_if(
+        q,
+        not isinstance(q, cx.vecs.FourVector),
+        msg="`space['length']` is not a FourVector.",
+    )
+    return api.spherical_mass_enclosed(pot, q)
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, space: cx.vecs.Space, t: gt.BBtRealQuSz0, /
+) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
+    return api.spherical_mass_enclosed(pot, space["length"], t)
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, space: cx.frames.AbstractCoordinate, /
+) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
+    return api.spherical_mass_enclosed(pot, space.data)
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, space: cx.frames.AbstractCoordinate, t: gt.BBtFloatQuSz0, /
+) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
+    return api.spherical_mass_enclosed(pot, space.data, t)
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, coord: gc.PhaseSpacePosition, t: gt.BBtRealQuSz0, /
+) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
+    return api.spherical_mass_enclosed(pot, coord.q, t)
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, wt: gc.AbstractPhaseSpaceCoordinate, /
+) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
+    return api.spherical_mass_enclosed(pot, wt.q, wt.t)
+
+
+@dispatch
+def spherical_mass_enclosed(
+    pot: AbstractPotential, wt: gc.AbstractPhaseSpaceCoordinate, t: gt.BBtFloatQuSz0, /
+) -> gt.BBtRealQuSz0:
+    """Compute from `coordinax.vecs.AbstractPos3D`."""
+    t = eqx.error_if(
+        wt.t,
+        jnp.logical_not(jnp.array_equal(wt.t, t)),
+        msg="`wt.t` and `t` are not equal.",
+    )
+    return api.spherical_mass_enclosed(pot, wt.q, t)

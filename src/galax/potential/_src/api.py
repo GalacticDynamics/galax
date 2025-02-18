@@ -100,7 +100,7 @@ def potential(*args: Any, **kwargs: Any) -> Any:
 
     - - -
 
-    `~galax.potential.potential` also supports Astropy objects, like
+    `galax.potential.potential` also supports Astropy objects, like
     `astropy.coordinates.BaseRepresentation` and `astropy.units.Quantity`, which
     are interpreted like their jax'ed counterparts `~coordinax.AbstractPos3D`
     and `~unxt.Quantity`.
@@ -184,8 +184,41 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
-    Instead of passing a `~galax.coordinates.PhaseSpaceCoordinate`, we
-    can instead pass a `~vector.FourVector`:
+    The function is very flexible and can accept a broad variety of inputs.
+    Let's work down the type ladder:
+
+    - `galax.coordinates.PhaseSpaceCoordinate`:
+
+    >>> print(pot.gradient(w))  # re-using the previous example
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
+        [[0.086 0.172 0.258]
+         [0.027 0.033 0.04 ]]>
+
+    - `galax.coordinates.PhaseSpacePosition`:
+
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                           p=u.Quantity([4, 5, 6], "km/s"))
+    >>> t = u.Quantity(0, "Gyr")
+    >>> print(pot.gradient(w, t))
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
+        [0.086 0.172 0.258]>
+
+    - `coordinax.frames.Coordinate`:
+
+    >>> w = cx.frames.Coordinate({"length": u.Quantity([1, 2, 3], "kpc")},
+    ...                          frame=gc.frames.SimulationFrame())
+    >>> print(pot.gradient(w, t))
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
+        [0.086 0.172 0.258]>
+
+    - `coordinax.vecs.Space`:
+
+    >>> w = cx.vecs.Space({"length": u.Quantity([1, 2, 3], "kpc")})
+    >>> print(pot.gradient(w, t))
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
+        [0.086 0.172 0.258]>
+
+    - `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> print(pot.gradient(w))
@@ -216,7 +249,7 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.gradient(q, t))
-    BareQuantity(Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
+    Quantity[...](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is an `~jax.Array`), it is assumed to be in the same unit system as the
@@ -231,7 +264,7 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
 
     - - -
 
-    `~galax.potential.gradient` also supports Astropy objects, like
+    `galax.potential.gradient` also supports Astropy objects, like
     `astropy.coordinates.BaseRepresentation` and `astropy.units.Quantity`, which
     are interpreted like their jax'ed counterparts `~coordinax.AbstractPos3D`
     and `~unxt.Quantity`.
@@ -319,7 +352,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
-    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
+    `galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -359,7 +392,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     - - -
 
-    :func:`~galax.potential.laplacian` also supports Astropy objects, like
+    :func:`galax.potential.laplacian` also supports Astropy objects, like
     `astropy.coordinates.BaseRepresentation` and
     `astropy.units.Quantity`, which are interpreted like their jax'ed
     counterparts `~coordinax.AbstractPos3D` and
@@ -444,7 +477,7 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
-    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
+    `galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -483,7 +516,7 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
 
     - - -
 
-    meth:`~galax.potential.AbstractPotential.density` also supports Astropy
+    meth:`galax.potential.AbstractPotential.density` also supports Astropy
     objects, like `astropy.coordinates.BaseRepresentation` and
     `astropy.units.Quantity`, which are interpreted like their jax'ed
     counterparts `~coordinax.AbstractPos3D` and
@@ -536,7 +569,7 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
 
 
 @dispatch.abstract
-def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
+def hessian(*args: Any, **kwargs: Any) -> Any:
     """Compute the hessian of the potential at the given position(s).
 
     Examples
@@ -548,7 +581,7 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
     We can construct a potential and compute the hessian:
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
@@ -574,10 +607,9 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
                   unit='1 / Myr2')
 
-    This function is very flexible and can accept a broad variety of inputs. For
-    example, instead of passing a
-    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
-    `~vector.FourVector`:
+    This function is very flexible and can accept a broad variety of inputs:
+
+    - `coordinax.vecs.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> pot.hessian(w)
@@ -586,8 +618,8 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
                   unit='1 / Myr2')
 
-    Or using a `~coordinax.AbstractPos3D` and time `unxt.Quantity` (which can be
-    positional or a keyword argument):
+    - `coordinax.vecs.AbstractPos3D` and time `unxt.Quantity` (which can be
+      positional or a keyword argument):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
     >>> t = u.Quantity(0, "Gyr")
@@ -595,7 +627,7 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
-                    unit='1 / Myr2')
+                  unit='1 / Myr2')
 
     We can also compute the hessian at multiple positions:
 
@@ -609,16 +641,14 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
                     unit='1 / Myr2')
 
-    Instead of passing a `~coordinax.AbstractPos3D` (in this case a
-    `~coordinax.CartesianPos3D`), we can instead pass a
-    `unxt.Quantity`, which is interpreted as a Cartesian position:
+    - A `unxt.Quantity`, which is interpreted as a Cartesian position:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> pot.hessian(q, t=t)
     Quantity[...](Array([[ 0.06747463, -0.03680435, -0.05520652],
                          [-0.03680435,  0.01226812, -0.11041304],
                          [-0.05520652, -0.11041304, -0.07974275]], dtype=float64),
-                    unit='1 / Myr2')
+                  unit='1 / Myr2')
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is an `~jax.Array`), it is assumed to be in the same unit system as the
@@ -635,9 +665,22 @@ def hessian(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
                           [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
                     unit='1 / Myr2')
 
+    - `jax.Array`, which are Cartesian positions, assumed to be in the same
+      units as the potential:
+
+    >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+    >>> t = jnp.asarray(0)
+    >>> pot.hessian(q, t=t)
+    Array([[[ 0.06747463, -0.03680435, -0.05520652],
+            [-0.03680435,  0.01226812, -0.11041304],
+            [-0.05520652, -0.11041304, -0.07974275]],
+           [[ 0.00250749, -0.00518791, -0.00622549],
+            [-0.00518791,  0.00017293, -0.00778186],
+            [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64)
+
     - - -
 
-    `~galax.potential.hessian` also supports Astropy objects, like
+    `galax.potential.hessian` also supports Astropy objects, like
     `astropy.coordinates.BaseRepresentation` and `astropy.units.Quantity`, which
     are interpreted like their jax'ed counterparts `~coordinax.AbstractPos3D`
     and `~unxt.Quantity`.
@@ -741,7 +784,7 @@ def acceleration(*args: Any, **kwargs: Any) -> Any:
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
-    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
+    `galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -772,7 +815,7 @@ def acceleration(*args: Any, **kwargs: Any) -> Any:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.acceleration(q, t=t))
-    BareQuantity(Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64), unit='kpc / Myr2')
+    Quantity[...](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64), unit='kpc / Myr2')
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is an `~jax.Array`), it is assumed to be in the same unit system as the
@@ -830,7 +873,7 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
-    `~galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
+    `galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -904,7 +947,7 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
 
     - - -
 
-    `~galax.potential.tidal_tensor` also supports Astropy objects, like
+    `galax.potential.tidal_tensor` also supports Astropy objects, like
     `astropy.coordinates.BaseRepresentation` and `astropy.units.Quantity`, which
     are interpreted like their jax'ed counterparts `~coordinax.AbstractPos3D`
     and `~unxt.Quantity`.
@@ -1021,7 +1064,7 @@ def dpotential_dr(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
     Quantity[...](Array([0.32132158, 0.05842211], dtype=float64), unit='kpc / Myr2')
 
     This function is very flexible and can accept a broad variety of inputs. For
-    example, instead of passing a `~galax.coordinates.PhaseSpaceCoordinate`, we
+    example, instead of passing a `galax.coordinates.PhaseSpaceCoordinate`, we
     can instead pass a `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
@@ -1046,6 +1089,7 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
 
     Examples
     --------
+    >>> import jax.numpy as jnp
     >>> import unxt as u
     >>> import galax.potential as gp
 
@@ -1068,27 +1112,56 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
     >>> pot.d2potential_dr2(w)
     Quantity[...](Array([-0.17175361, -0.01331563], dtype=float64), unit='1 / Myr2')
 
-    This function is very flexible and can accept a broad variety of inputs. For
-    example, instead of passing a `~galax.coordinates.PhaseSpaceCoordinate`, we
-    can instead pass a `~vector.FourVector`:
+    This function is very flexible and can accept a broad variety of inputs.
+    Let's work down the type ladder:
 
-    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
+    - `galax.coordinates.PhaseSpacePosition`:
+
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
+    ...                           p=u.Quantity([4, 5, 6], "km/s"))
+    >>> t = u.Quantity(0, "Gyr")
+    >>> pot.d2potential_dr2(w, t)
+    Quantity[...](Array(-0.17175361, dtype=float64), unit='1 / Myr2')
+
+    - `coordinax.Coordinate`:
+
+    >>> coord = cx.Coordinate({"length": cx.vecs.FourVector.from_([0, 1, 2, 3], "kpc")},
+    ...                       frame=gc.frames.SimulationFrame())
+    >>> pot.d2potential_dr2(coord, t)
+    Quantity[...](Array(-0.17175361, dtype=float64), unit='1 / Myr2')
+
+    - `coordinax.Space`:
+
+    >>> space = cx.Space({"length": cx.vecs.FourVector.from_([0, 1, 2, 3], "kpc")})
+    >>> pot.d2potential_dr2(space, t)
+    Quantity[...](Array(-0.17175361, dtype=float64), unit='1 / Myr2')
+
+    - `coordinax.vecs.FourVector`:
+
+    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=t)
     >>> pot.d2potential_dr2(w)
     Quantity[...](Array(-0.17175361, dtype=float64), unit='1 / Myr2')
 
-    Or using a `~coordinax.AbstractPos3D` and time `unxt.Quantity` (which can be
-    positional or a keyword argument):
+    - `coordinax.vecs.AbstractPos3D` and time `unxt.Quantity` (which can be
+      positional or a keyword argument):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
-    >>> pot.d2potential_dr2(q, t=t)
+    >>> pot.d2potential_dr2(q, t)
     Quantity[...](Array(-0.17175361, dtype=float64), unit='1 / Myr2')
 
-    Or using a `unxt.Quantity`, which is interpreted as a Cartesian position:
+    - `unxt.Quantity` which is interpreted as a Cartesian position:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
-    >>> pot.d2potential_dr2(q, t=t)
+    >>> pot.d2potential_dr2(q, t)
     Quantity[...](Array(-0.17175361, dtype=float64), unit='1 / Myr2')
+
+    - `jax.Array` which is a Cartesian position assumed to be in the same unit
+      system as the potential:
+
+    >>> x = jnp.asarray([1, 2, 3])
+    >>> t = jnp.array(0)
+    >>> pot.d2potential_dr2(x, t)
+    Array(-0.17175361, dtype=float64)
 
     """
     raise NotImplementedError  # pragma: no cover
@@ -1105,18 +1178,52 @@ def spherical_mass_enclosed(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
 
     Examples
     --------
+    >>> import jax.numpy as jnp
     >>> import unxt as u
     >>> import galax.potential as gp
 
     >>> pot = gp.MilkyWayPotential()
 
-    Let's build up the type ladder:
+    Let's work down the type ladder:
+
+    - `galax.coordinates.PhaseSpaceCoordinate`:
+
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8, 0, 0], "kpc"),
+    ...                             p=u.Quantity([0, 0, 0], "km/s"),
+    ...                             t=u.Quantity(0, "Gyr"))
+    >>> gp.spherical_mass_enclosed(pot, w).uconvert("Msun")
+    Quantity['mass'](Array(9.99105233e+10, dtype=float64), unit='solMass')
+
+    - `galax.coordinates.PhaseSpacePosition`:
+
+    >>> w = gc.PhaseSpacePosition(q=u.Quantity([8, 0, 0], "kpc"),
+    ...                           p=u.Quantity([0, 0, 0], "km/s"))
+    >>> t = u.Quantity(0, "Gyr")
+    >>> gp.spherical_mass_enclosed(pot, w, t).uconvert("Msun")
+    Quantity['mass'](Array(9.99105233e+10, dtype=float64), unit='solMass')
+
+    - `coordinax.Coordinate`:
+
+    >>> coord = cx.Coordinate({"length": cx.vecs.FourVector.from_([0, 8, 0, 0], "kpc")},
+    ...                       frame=gc.frames.SimulationFrame())
+    >>> gp.spherical_mass_enclosed(pot, coord).uconvert("Msun")
+    Quantity['mass'](Array(9.99105233e+10, dtype=float64), unit='solMass')
+
+    - `coordinax.vecs.FourVector`:
+
+    >>> vec4 = cx.vecs.FourVector(q=u.Quantity([8, 0, 0], "kpc"), t=t)
+    >>> gp.spherical_mass_enclosed(pot, vec4).uconvert("Msun")
+    Quantity['mass'](Array(9.99105233e+10, dtype=float64), unit='solMass')
+
+    - `coordinax.AbstractPos3D`:
+
+    >>> q = cx.CartesianPos3D.from_([[8, 0, 0], [9, 0, 0]], "kpc")
+    >>> gp.spherical_mass_enclosed(pot, q, t).uconvert("Msun")
+    Quantity['mass'](Array([9.99105233e+10, 1.10435505e+11], dtype=float64), unit='solMass')
 
     - `unxt.AbstractQuantity`:
 
     >>> x = u.Quantity([8, 0, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
-
     >>> gp.spherical_mass_enclosed(pot, x, t).uconvert("Msun")
     Quantity['mass'](Array(9.99105233e+10, dtype=float64), unit='solMass')
 
@@ -1125,12 +1232,12 @@ def spherical_mass_enclosed(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
     >>> gp.spherical_mass_enclosed(pot, xs, ts).uconvert("Msun")
     Quantity['mass'](Array([9.99105233e+10, 1.20586103e+11], dtype=float64), unit='solMass')
 
-    - `coordinax.AbstractPos3D`:
+    - `jax.Array`:
 
-    >>> q = cx.CartesianPos3D.from_([[8, 0, 0], [9, 0, 0]], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
-    >>> gp.spherical_mass_enclosed(pot, q, t).uconvert("Msun")
-    Quantity['mass'](Array([9.99105233e+10, 1.10435505e+11], dtype=float64), unit='solMass')
+    >>> x = jnp.asarray([8, 0, 0])
+    >>> t = jnp.asarray(0)
+    >>> gp.spherical_mass_enclosed(pot, x, t)
+    Array(6.73400512e+09, dtype=float64)
 
     """  # noqa: E501
     raise NotImplementedError  # pragma: no cover

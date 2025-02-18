@@ -18,7 +18,7 @@ __all__ = [
     "tidal_radius",
 ]
 
-from typing import Any, NamedTuple
+from typing import Any, Generic, NamedTuple, TypeVar
 
 from plum import dispatch
 
@@ -30,42 +30,96 @@ import galax.typing as gt
 #########################################################################
 # Lagrange points
 
+T = TypeVar("T")
 
-class L1L2LagrangePoints(NamedTuple):
-    l1: gt.BBtRealQuSz3
-    l2: gt.BBtRealQuSz3
+
+class L1L2LagrangePoints(NamedTuple, Generic[T]):
+    l1: T
+    l2: T
 
 
 @dispatch.abstract
 def lagrange_points(
-    potential: gp.AbstractPotential,
-    x: gt.LengthSz3,
-    v: gt.SpeedSz3,
-    /,
-    mass: gt.MassSz0,
-    t: gt.TimeSz0,
-) -> L1L2LagrangePoints:
+    potential: gp.AbstractPotential, x: Any, v: Any, /, mass: Any, t: Any
+) -> L1L2LagrangePoints[Any]:
     """Compute the lagrange points of a cluster in a host potential.
 
     Examples
     --------
+    >>> import jax.numpy as jnp
     >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
     >>> pot = gp.MilkyWayPotential()
+
+    - With `jax.Array`:
+
+    >>> x, v = jnp.asarray([8.0, 0.0, 0.0]), jnp.asarray([0.0, 220.0, 0.0])
+    >>> mass, t = jnp.asarray(1e4), jnp.asarray(0.0)
+
+    >>> lpts = gd.cluster.lagrange_points(pot, x, v, mass=mass, t=t)
+    >>> lpts
+    L1L2LagrangePoints(l1=Array([7.99904079, 0. , 0. ], dtype=float64),
+                       l2=Array([8.00095921, 0. , 0. ], dtype=float64))
+
+    - With `unxt.Quantity`:
+
     >>> x = u.Quantity([8.0, 0.0, 0.0], "kpc")
     >>> v = u.Quantity([0.0, 220.0, 0.0], "km/s")
     >>> mass = u.Quantity(1e4, "Msun")
     >>> t = u.Quantity(0.0, "Gyr")
 
     >>> lpts = gd.cluster.lagrange_points(pot, x, v, mass=mass, t=t)
-    >>> lpts.l1
-    Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc')
-    >>> lpts.l2
-    Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc')
+    >>> lpts
+    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
 
-    """
+    - With `coordinax.vecs.AbstractVector`:
+
+    >>> q = cx.CartesianPos3D.from_(x)
+    >>> p = cx.CartesianVel3D.from_(v)
+
+    >>> lpts = gd.cluster.lagrange_points(pot, q, p, mass=mass, t=t)
+    >>> lpts
+    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+
+    - With `coordinax.Space`:
+
+    >>> space = cx.Space(length=q, speed=p)
+    >>> lpts = gd.cluster.lagrange_points(pot, space, mass=mass, t=t)
+    >>> lpts
+    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+
+    - With `coordinax.Coordinate`:
+
+    >>> coord = cx.Coordinate(space, frame=gc.frames.SimulationFrame())
+    >>> lpts = gd.cluster.lagrange_points(pot, coord, mass=mass, t=t)
+    >>> lpts
+    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+
+    - With `coordinax.PhaseSpacePosition`:
+
+    >>> w = gc.PhaseSpacePosition(q=q, p=p)
+    >>> lpts = gd.cluster.lagrange_points(pot, w, mass=mass, t=t)
+    >>> lpts
+    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+
+    - With `coordinax.PhaseSpaceCoordinate`:
+
+    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
+    >>> lpts = gd.cluster.lagrange_points(pot, w, mass=mass)
+    >>> lpts
+    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+
+    """  # noqa: E501
     raise NotImplementedError  # pragma: no cover
 
 
@@ -90,7 +144,9 @@ def relaxation_time(*args: Any, **kwargs: Any) -> u.AbstractQuantity:
     >>> gdc.relaxation_time(M, r_hm, m_avg, G=G).uconvert("Myr")
     Quantity['time'](Array(129.50788873, dtype=float64, weak_type=True), unit='Myr')
 
-    Now with different methods:
+    There are many different definitions of the relaxation time.
+    By passing a flag object you can choose the one you want.
+    Let's work through the built-in options:
 
     - Baumgardt (1998) (the default):
 
@@ -108,6 +164,9 @@ def relaxation_time(*args: Any, **kwargs: Any) -> u.AbstractQuantity:
     >>> Mcore, r_c = M / 5, r_hm / 5  # very approximate
     >>> gdc.relaxation_time(gdc.relax_time.Spitzer1987Core, Mcore, r_c, m_avg, lnLambda=lnLambda, G=G).uconvert("Myr")
     Quantity['time'](Array(11.47044583, dtype=float64, weak_type=True), unit='Myr')
+
+    Using multiple-dispatch, you can register your own relaxation time
+    definition.
 
     """  # noqa: E501
     raise NotImplementedError  # pragma: no cover

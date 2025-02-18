@@ -7,7 +7,7 @@ from typing import Any
 
 import equinox as eqx
 import jax
-from jaxtyping import Array, ArrayLike, ScalarLike, Shaped
+from jaxtyping import Array, ArrayLike, ScalarLike
 from plum import convert, dispatch
 
 import coordinax as cx
@@ -23,17 +23,21 @@ from .utils import parse_to_quantity_or_array
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils._unxt import AllowValue
 
+frame = gc.frames.SimulationFrame()
+
 # =============================================================================
 # Potential Energy
 
 
 @dispatch
+@partial(jax.jit, inline=True)
 def potential(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
     """Compute the potential energy when `t` is keyword-only."""
     return api.potential(pot, q, t)
 
 
 @dispatch
+@partial(jax.jit, inline=True)
 def potential(
     pot: AbstractPotential,
     wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
@@ -70,6 +74,7 @@ def potential(
 
 
 @dispatch
+@partial(jax.jit, inline=True)
 def potential(
     pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0 | ScalarLike | int, /
 ) -> gt.BBtRealSz0:
@@ -95,6 +100,7 @@ def potential(
 
 
 @dispatch
+@partial(jax.jit, inline=True)
 def gradient(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
     """Compute the gradient at the given position(s).
 
@@ -125,7 +131,7 @@ def gradient(
 
 
 @dispatch
-def gradient(pot: AbstractPotential, q: gt.BBtRealQuSz0, t: Any, /) -> gt.BBtQuSz0:
+def gradient(pot: AbstractPotential, q: gt.BBtRealQuSz3, t: Any, /) -> gt.BBtRealQuSz3:
     """Compute the gradient of the potential at the given position(s).
 
     The position is assumed to be Cartesian.
@@ -305,7 +311,9 @@ def hessian(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
 
 
 @dispatch
-def hessian(pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /) -> gt.BtSz33:
+def hessian(
+    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /
+) -> gt.BBtSz33:
     """Compute the hessian of the potential at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
@@ -484,7 +492,7 @@ def local_circular_velocity(
 @partial(jax.jit)
 def dpotential_dr(
     pot: AbstractPotential, xyz: gt.BBtRealSz3, t: gt.BBtRealSz0, /
-) -> gt.BtRealSz0:
+) -> gt.BBtRealSz0:
     """Compute the radial derivative of the potential at the given position."""
     r_hat: Array = cx.vecs.normalize_vector(xyz)
     grad = api.gradient(pot, xyz, t)
@@ -495,13 +503,12 @@ def dpotential_dr(
 @partial(jax.jit)
 def dpotential_dr(
     pot: AbstractPotential, x: gt.BBtRealQuSz3, t: gt.BBtRealQuSz0, /
-) -> gt.BtRealQuSz0:
+) -> gt.BBtRealQuSz0:
     """Compute the radial derivative of the potential at the given position."""
     x, t = jnp.asarray(x), jnp.asarray(t)
-    r_hat: Array = cx.vecs.normalize_vector(x)
-    grad = convert(api.gradient(pot, x, t), u.Quantity)
-    dphi_dr: u.AbstractQuantity = jnp.sum(grad * r_hat, axis=-1)
-    return dphi_dr
+    r_hat = cx.vecs.normalize_vector(x)
+    grad = api.gradient(pot, x, t)
+    return jnp.sum(grad * r_hat, axis=-1)
 
 
 @dispatch
@@ -510,7 +517,8 @@ def dpotential_dr(
     pot: AbstractPotential,
     x: cx.vecs.AbstractPos3D,
     t: u.AbstractQuantity | ArrayLike,
-) -> u.AbstractQuantity:
+    /,
+) -> gt.BBtRealQuSz0:
     return api.dpotential_dr(pot, convert(x, u.Quantity), t)
 
 
@@ -519,12 +527,12 @@ def dpotential_dr(
 def dpotential_dr(
     pot: AbstractPotential,
     w: cx.vecs.FourVector | gc.AbstractPhaseSpaceCoordinate,
-) -> u.AbstractQuantity:
+) -> gt.BBtRealQuSz0:
     return api.dpotential_dr(pot, w.q, w.t)
 
 
 @dispatch
-def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> u.AbstractQuantity:
+def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> gt.BBtRealQuSz0:
     """Compute the radial derivative of the potential when `t` is keyword-only."""
     return api.dpotential_dr(pot, x, t)
 
@@ -537,7 +545,7 @@ def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> u.AbstractQua
 @partial(jax.jit)
 def d2potential_dr2(
     pot: AbstractPotential, w: Any, /, *, t: Any
-) -> Shaped[u.Quantity["frequency drift"] | Array, "*#batch"]:
+) -> gt.BBtRealQuSz0 | gt.BBtRealSz0:
     """Compute when `t` is keyword-only."""
     return api.d2potential_dr2(pot, w, t)
 
@@ -567,10 +575,57 @@ def d2potential_dr2(
 
 
 @dispatch
-@partial(jax.jit)
+@partial(jax.jit, inline=True)
+def d2potential_dr2(pot: AbstractPotential, w: cx.Space, t: Any, /) -> gt.BBtRealQuSz0:
+    """Compute the second derivative of the potential at the position."""
+    q3 = w["length"]
+    q3 = eqx.error_if(
+        q3,
+        isinstance(q3, cx.vecs.FourVector)
+        and jnp.logical_not(jnp.array_equal(q3.t, t)),
+        "Got a FourVector, but t is not the same as the FourVector time",
+    )
+    return api.d2potential_dr2(pot, q3, t)
+
+
+@dispatch
+@partial(jax.jit, inline=True)
+def d2potential_dr2(pot: AbstractPotential, w: cx.Space, /) -> gt.BBtRealQuSz0:
+    """Compute the second derivative of the potential at the position."""
+    q4 = w["length"]
+    q4 = eqx.error_if(
+        q4, not isinstance(q4, cx.vecs.FourVector), "Expected a FourVector"
+    )
+    return api.d2potential_dr2(pot, q4.q, q4.t)
+
+
+@dispatch
+@partial(jax.jit, inline=True)
+def d2potential_dr2(
+    pot: AbstractPotential, w: cx.frames.AbstractCoordinate, /
+) -> gt.BBtRealQuSz0:
+    # TODO: deal with frames
+    return api.d2potential_dr2(pot, w.data)
+
+
+@dispatch
+@partial(jax.jit, inline=True)
+def d2potential_dr2(
+    pot: AbstractPotential, w: gc.PhaseSpacePosition, t: Any, /
+) -> gt.BBtRealQuSz0:
+    # TODO: deal with frames
+    return api.d2potential_dr2(pot, w.q, t)
+
+
+@dispatch.multi(
+    (AbstractPotential, gc.AbstractPhaseSpaceCoordinate),
+    (AbstractPotential, cx.vecs.FourVector),
+)
+@partial(jax.jit, inline=True)
 def d2potential_dr2(
     pot: AbstractPotential, w: gc.AbstractPhaseSpaceCoordinate | cx.vecs.FourVector, /
-) -> Shaped[u.Quantity["frequency drift"] | Array, "*#batch"]:
+) -> gt.BBtRealQuSz0:
+    # TODO: deal with frames
     return api.d2potential_dr2(pot, w.q, w.t)
 
 

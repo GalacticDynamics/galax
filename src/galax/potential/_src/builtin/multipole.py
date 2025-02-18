@@ -72,8 +72,8 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtFloatSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BBtFloatSz0:
         # Compute the params
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -134,8 +134,8 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtFloatSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BBtFloatSz0:
         # Compute the parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -206,8 +206,8 @@ class MultipolePotential(AbstractMultipolePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtFloatSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BBtFloatSz0:
         # Compute the parameters
         u1 = self.units["dimensionless"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])

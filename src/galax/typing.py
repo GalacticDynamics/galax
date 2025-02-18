@@ -130,6 +130,7 @@ FloatSz33: TypeAlias = Float[Array, "3 3"]
 
 QuSz33: TypeAlias = Shaped[AbstractQuantity, "3 3"]
 BtQuSz33: TypeAlias = Shaped[QuSz33, "*batch"]
+BBtQuSz33: TypeAlias = Shaped[QuSz33, "*#batch"]
 FloatQuSz33: TypeAlias = Float[AbstractQuantity, "3 3"]
 
 # ================================

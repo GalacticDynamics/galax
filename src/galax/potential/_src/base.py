@@ -111,7 +111,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @abc.abstractmethod
     def _potential(
-        self, q: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, q: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
     ) -> gt.BBtRealQuSz0 | gt.BBtSz0:
         """Compute the potential energy at the given position(s).
 
@@ -238,7 +238,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         hess_op = jax.hessian(self._potential)
         return hess_op(xyz, t)
 
-    def hessian(self, *args: Any, **kwargs: Any) -> gt.BtQuSz33 | gt.BtSz33:
+    def hessian(self, *args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
         """Compute the hessian of the potential at the given position(s).
 
         See :func:`~galax.potential.hessian` for details.

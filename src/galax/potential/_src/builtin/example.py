@@ -71,7 +71,7 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
         self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
     ) -> gt.BBtSz0:
@@ -80,10 +80,10 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         return 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(omega) * xyz), axis=-1)
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _density(
-        self, _: gt.BtQuSz3 | gt.BtSz3, t: gt.BtRealQuSz0 | gt.BtRealSz0, /
-    ) -> gt.BtFloatSz0:
+        self, _: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BtRealQuSz0 | gt.BtRealSz0, /
+    ) -> gt.BBtFloatSz0:
         # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i \omega_i^2
         omega = jnp.atleast_1d(self.omega(t, ustrip=self.units["frequency"]))
         denom = 4 * jnp.pi * self.constants["G"].value
@@ -145,10 +145,13 @@ class HenonHeilesPotential(AbstractSinglePotential):
 
     """
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BtQuSz3 | gt.BtSz3, /, t: gt.BBtRealQuSz0 | gt.BBtRealSz0
-    ) -> gt.BtSz0:
+        self,
+        xyz: gt.BBtRealQuSz3 | gt.BBtRealSz3,
+        t: gt.BBtRealQuSz0 | gt.BBtRealSz0,
+        /,
+    ) -> gt.BBtSz0:
         ts2 = self.timescale(t, ustrip=self.units["time"]) ** 2
         coeff = self.coeff(t, ustrip=self.units["wavenumber"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)

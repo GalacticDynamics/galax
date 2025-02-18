@@ -23,7 +23,7 @@ and give an overview of the package functionality. For the examples
 below, we will assume that the following imports have already been executed
 because these packages will be generally required::
 
-    >>> import astropy.units as u
+    >>> import unxt as u
     >>> import jax.numpy as jnp
 
 
@@ -71,11 +71,11 @@ that enable fast calculations of computed or derived quantities. For example,
 we could compute the potential energy or the acceleration at a Cartesian
 position near the Sun::
 
-    >>> xyz = [-8., 0, 0] * u.kpc
+    >>> xyz = u.Quantity([-8., 0, 0], "kpc")
     >>> mw.potential(xyz, t=0).uconvert("kpc2 / Myr2")
     Quantity[...](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0)
-    CartesianAcc3D...
+    Quantity[...](Array([ 0.00702262, -0.        , -0.        ], dtype=float64), unit='kpc / Myr2')
 
 The values that are returned by most methods in :mod:`galax` are provided as
 Astropy :class:`~astropy.units.Quantity` objects, which represent numerical data
@@ -86,7 +86,7 @@ energy or acceleration in other units::
     >>> mw.potential(xyz, t=0).uconvert("kpc2/Myr2")
     Quantity[...](Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0)
-    CartesianAcc3D...
+    Quantity[...](Array([ 0.00702262, -0.        , -0.        ], dtype=float64), unit='kpc / Myr2')
 
 Now that we have a potential model, if we want to compute an orbit, we need to
 specify a set of initial conditions to initialize the numerical orbit
@@ -98,8 +98,8 @@ velocity vectors. As an example orbit, we will use a position and velocity that
 is close to the Sun's Galactocentric position and velocity::
 
     >>> import galax.coordinates as gc
-    >>> psp = gc.PhaseSpacePosition(q=[-8.1, 0, 0.02] * u.kpc,
-    ...                             p=[13, 245, 8.] * u.km/u.s)
+    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([-8.1, 0, 0.02], "kpc"),
+    ...                             p=u.Quantity([13, 245, 8.], "km/s"))
 
 By convention, I typically use the variable ``w`` to represent phase-space
 positions, so here ``psp`` is meant to imply "initial conditions." Note that,
@@ -157,17 +157,18 @@ performing common tasks, like plotting an orbit::
     :context: close-figs
     :width: 60%
 
-    import astropy.units as u
     import matplotlib.pyplot as plt
-    import numpy as np
+    import jax.numpy as jnp
+    import unxt as u
     import galax.coordinates as gc
     import galax.dynamics as gd
     import galax.potential as gp
 
     mw = gp.MilkyWayPotential()
-    psp = gc.PhaseSpacePosition(pos=[-8.1, 0, 0.02] * u.kpc,
-                                vel=[13, 245, 8.] * u.km/u.s)
-    orbit = gd.evaluate_orbit(psp.w(units=mw.units), dt=1*u.Myr, t1=0, t2=2*u.Gyr)
+    psp = gc.PhaseSpacePosition(q=u.Quantity([-8.1, 0, 0.02], "kpc"),
+                                p=u.Quantity([13, 245, 8.], "km/s"))
+    ts = u.Quantity(jnp.arange(0, 2_000, step=1), "Myr")
+    orbit = gd.evaluate_orbit(psp, ts)
 
     orbit.plot(['x', 'y'])
 

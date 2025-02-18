@@ -108,8 +108,8 @@ class LongMuraliBarPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, xyz: gt.BtQuSz3 | gt.BtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BtSz0:
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+    ) -> gt.BBtSz0:
         # Parse inputs and params
         u_length = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])

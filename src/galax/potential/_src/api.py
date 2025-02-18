@@ -1084,7 +1084,7 @@ def dpotential_dr(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
 
 
 @dispatch.abstract
-def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
+def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0 | gt.BBtRealSz0:
     """Compute the second radial derivative of the potential.
 
     Examples

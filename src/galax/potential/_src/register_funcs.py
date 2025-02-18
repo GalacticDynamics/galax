@@ -536,8 +536,17 @@ def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> u.AbstractQua
 @dispatch
 @partial(jax.jit)
 def d2potential_dr2(
-    pot: AbstractPotential, x: Any, t: Any, /
-) -> Shaped[u.Quantity["frequency drift"] | Array, "*batch"]:
+    pot: AbstractPotential, w: Any, /, *, t: Any
+) -> Shaped[u.Quantity["frequency drift"] | Array, "*#batch"]:
+    """Compute when `t` is keyword-only."""
+    return api.d2potential_dr2(pot, w, t)
+
+
+@dispatch
+@partial(jax.jit)
+def d2potential_dr2(
+    pot: AbstractPotential, q: Any, t: Any, /
+) -> gt.BBtRealQuSz0 | gt.BBtRealSz0:
     """Compute the second derivative of the potential at the position.
 
     Parameters
@@ -550,9 +559,9 @@ def d2potential_dr2(
         Time in [Myr]
 
     """
-    x = parse_to_quantity_or_array(x, unit=pot.units["length"])
-    rhat = cx.vecs.normalize_vector(x)
-    H = pot.hessian(x, t=t)
+    xyz = parse_to_quantity_or_array(q, unit=pot.units["length"])
+    rhat = cx.vecs.normalize_vector(xyz)
+    H = pot.hessian(xyz, t)
     # vectorized dot product of rhat · H · rhat
     return jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)
 
@@ -561,17 +570,8 @@ def d2potential_dr2(
 @partial(jax.jit)
 def d2potential_dr2(
     pot: AbstractPotential, w: gc.AbstractPhaseSpaceCoordinate | cx.vecs.FourVector, /
-) -> Shaped[u.Quantity["frequency drift"] | Array, "*batch"]:
+) -> Shaped[u.Quantity["frequency drift"] | Array, "*#batch"]:
     return api.d2potential_dr2(pot, w.q, w.t)
-
-
-@dispatch
-@partial(jax.jit)
-def d2potential_dr2(
-    pot: AbstractPotential, w: Any, /, *, t: Any
-) -> Shaped[u.Quantity["frequency drift"] | Array, "*batch"]:
-    """Compute when `t` is keyword-only."""
-    return api.d2potential_dr2(pot, w, t)
 
 
 # =============================================================================

@@ -1,6 +1,5 @@
 __all__ = ["AbstractSinglePotential"]
 
-import abc
 import uuid
 from dataclasses import KW_ONLY
 from typing import Any
@@ -10,7 +9,6 @@ import equinox as eqx
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax.typing as gt
 from .base import AbstractPotential, default_constants
 from .composite import CompositePotential
 
@@ -26,14 +24,6 @@ class AbstractSinglePotential(AbstractPotential, strict=True):
 
     def __post_init__(self) -> None:
         self._apply_unitsystem()
-
-    ###########################################################################
-    # Abstract methods that must be implemented by subclasses
-
-    # TODO: inputs w/ units
-    @abc.abstractmethod
-    def _potential(self, q: gt.BtQuSz3, t: gt.BBtRealSz0, /) -> gt.SpecificEnergyBtSz0:
-        raise NotImplementedError
 
     ###########################################################################
 

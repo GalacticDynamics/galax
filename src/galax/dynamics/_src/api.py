@@ -28,10 +28,16 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
 
     Examples
     --------
+    >>> import jax.numpy as jnp
     >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
+
+    >>> x = jnp.asarray([8.0, 0.0, 0.0])
+    >>> v = jnp.asarray([0.0, 8.0, 0.0])
+    >>> gd.specific_angular_momentum(x, v)
+    Array([ 0.,  0., 64.], dtype=float64)
 
     >>> x = u.Quantity([8.0, 0.0, 0.0], "m")
     >>> v = u.Quantity([0.0, 8.0, 0.0], "m/s")
@@ -84,6 +90,11 @@ def omega(x: Any, v: Any, /) -> gt.BBtRealQuSz0:
     --------
     >>> import unxt as u
     >>> import coordinax as cx
+
+    >>> x = jnp.asarray([8.0, 0.0, 0.0])
+    >>> v = jnp.asarray([0.0, 8.0, 0.0])
+    >>> omega(x, v)
+    Array(1., dtype=float64)
 
     >>> x = u.Quantity([8.0, 0.0, 0.0], "m")
     >>> v = u.Quantity([0.0, 8.0, 0.0], "m/s")

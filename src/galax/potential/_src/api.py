@@ -10,6 +10,8 @@ __all__ = [
     "tidal_tensor",
     "local_circular_velocity",
     "spherical_mass_enclosed",
+    "dpotential_dr",
+    "d2potential_dr2",
 ]
 
 from typing import Any

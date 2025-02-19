@@ -198,7 +198,7 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
 
     We can construct a potential and compute the potential energy:
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
@@ -369,7 +369,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     We can construct a potential and compute the potential energy:
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
@@ -494,7 +494,7 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
 
     We can construct a potential and compute the density:
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
@@ -798,7 +798,7 @@ def acceleration(*args: Any, **kwargs: Any) -> Any:
 
     We can construct a potential and compute the potential energy:
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
@@ -870,7 +870,7 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
 
     Then we can construct a potential and compute the tidal tensor:
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
@@ -959,7 +959,7 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
     :mod:`plum` dispatches on positional arguments only, so it necessary to
     redispatch when `t` is a keyword argument.
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> q = cx.CartesianPos3D.from_(u.Quantity([1, 2, 3], "kpc"))
     >>> t = u.Quantity(0, "Gyr")
@@ -1037,8 +1037,7 @@ def local_circular_velocity(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=u.Quantity(20.0, "kpc"),
-    ...                       units="galactic")
+    >>> pot = gp.NFWPotential(m=1e12, r_s=20.0, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
     ...                             p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
@@ -1068,7 +1067,7 @@ def dpotential_dr(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),
@@ -1117,7 +1116,7 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0 | gt.BBtRealSz
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                             p=u.Quantity([4, 5, 6], "km/s"),

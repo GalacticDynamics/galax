@@ -276,7 +276,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
 
-        >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+        >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
         >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
         ...                             p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
         ...                             t=u.Quantity(0.0, "Gyr"))
@@ -514,7 +514,7 @@ def from_(cls: type[AbstractPotential], obj: AbstractPotential, /) -> AbstractPo
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e11, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> pot2 = gp.KeplerPotential.from_(pot)
     >>> pot2 is pot
     True
@@ -545,9 +545,7 @@ def from_(
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.NFWPotential.from_(
-    ...     {"m": u.Quantity(1e12, "Msun"), "r_s": u.Quantity(3, "kpc"),
-    ...      "units": "galactic"})
+    >>> pot = gp.NFWPotential.from_({"m": 1e12, "r_s": 3, "units": "galactic"})
     >>> pot
     NFWPotential( units=..., constants=ImmutableMap({'G': ...}),
                   m=ConstantParameter( ... ), r_s=ConstantParameter( ... ) )

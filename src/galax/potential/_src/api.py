@@ -54,51 +54,82 @@ def potential(*args: Any, **kwargs: Any) -> Any:
     >>> pot.potential(w)
     Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
-    This function is very flexible and can accept a broad variety of inputs:
+    This function is very flexible and can accept a broad variety of inputs.
+    Let's work up the type ladder:
 
-    - `~coordinax.FourVector`:
+    - `jax.Array`s: which is interpreted as a `coordinax.vecs.CartesianPos3D`
+      position in the same unit system as the potential. For performance reasons
+      the output is a `jax.Array`. Be careful!
 
-    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
-    >>> pot.potential(w)
-    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+    >>> xyz = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+    >>> t = 0
+    >>> pot.potential(xyz, t)
+    Array([-1.20227527, -0.5126519 ], dtype=float64)
 
-    - `coordinax.vecs.AbstractPos3D`:
-
-    >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
-    >>> pot.potential(q, t)
-    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
-
-    >>> pot.potential(q, t=t)  # time can be a keyword argument
-    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
-
-    >>> q = cx.CartesianPos3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
-    >>> pot.potential(q, t=t)
-    Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
+    >>> pot.potential(xyz, t=t)
+    Array([-1.20227527, -0.5126519 ], dtype=float64)
 
     - A `unxt.Quantity`, which is interpreted as a
       `coordinax.vecs.CartesianPos3D` position:
 
-    >>> q = u.Quantity([1., 2, 3], "kpc")
+    >>> xyz = u.Quantity([1., 2, 3], "kpc")
+    >>> t = u.Quantity(0, "Gyr")
+    >>> pot.potential(xyz, t)
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+
+    >>> pot.potential(xyz, t=t)
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+
+    - `coordinax.vecs.AbstractPos3D`:
+
+    >>> q = cx.CartesianPos3D.from_(xyz)
+    >>> pot.potential(q, t)
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+
     >>> pot.potential(q, t=t)
     Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
-    If the input position object has no units (i.e. is an `~jax.Array`), it is
-    assumed to be in the same unit system as the potential.
-
-    >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-    >>> pot.potential(q, t=t)
+    >>> qs = cx.CartesianPos3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
+    >>> pot.potential(qs, t)
     Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
 
-    - `jax.Array`s, which are dangerously assumed to be in the same unit system
-      as the potential. For performance reasons the output is a `jax.Array`. Be
-      careful!
+    - `coordinax.vecs.FourVector`:
 
-    >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-    >>> pot.potential(q, t=0)
-    Array([-1.20227527, -0.5126519 ], dtype=float64)
+    >>> tq = cx.FourVector(q=q, t=t)
+    >>> pot.potential(tq)
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
-    - - -
+    - `coordinax.vecs.Space`:
+
+    >>> space = cx.vecs.Space(length=q)
+    >>> pot.potential(space, t)
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+
+    >>> space = cx.vecs.Space(length=tq)
+    >>> pot.potential(space)
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+
+    - `coordinax.frames.Coordinate`:
+
+    >>> coord = cx.frames.Coordinate({"length": q}, frame=gc.frames.simulation_frame)
+    >>> pot.potential(coord, t)
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+
+    - `galax.coordinates.PhaseSpacePosition`:
+
+    >>> p = u.Quantity([4, 5, 6], "km/s")
+    >>> w = gc.PhaseSpacePosition(q=q, p=p)
+    >>> pot.potential(w, t)
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+
+    - `galax.coordinates.PhaseSpaceCoordinate`:
+
+    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
+    >>> pot.potential(w)
+    Quantity[...](Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
+
+
+    ## Astropy Support
 
     `galax.potential.potential` also supports Astropy objects, like
     `astropy.coordinates.BaseRepresentation` and `astropy.units.Quantity`, which
@@ -143,7 +174,7 @@ def potential(*args: Any, **kwargs: Any) -> Any:
 
     >>> q = np.array([[1, 2, 3], [4, 5, 6]])
     >>> pot.potential(q, t)
-    Quantity[...](Array([-1.20227527, -0.5126519 ], dtype=float64), unit='kpc2 / Myr2')
+    Array([-1.20227527, -0.5126519 ], dtype=float64)
 
     .. skip: end
 
@@ -157,6 +188,7 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
 
     Examples
     --------
+    >>> import quaxed.numpy as jnp
     >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp

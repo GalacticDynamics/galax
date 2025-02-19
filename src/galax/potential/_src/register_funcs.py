@@ -7,7 +7,7 @@ from typing import Any
 
 import equinox as eqx
 import jax
-from jaxtyping import Array, ArrayLike, ScalarLike
+from jaxtyping import Array, ArrayLike, Real
 from plum import convert, dispatch
 
 import coordinax as cx
@@ -20,7 +20,7 @@ import galax.coordinates as gc
 import galax.typing as gt
 from . import api
 from .base import AbstractPotential
-from .utils import parse_to_quantity_or_array
+from .utils import parse_to_quantity_or_array, parse_to_xyz_t
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils._unxt import AllowValue
 
@@ -28,70 +28,56 @@ from galax.utils._unxt import AllowValue
 # Potential Energy
 
 
-@dispatch
-@partial(jax.jit, inline=True)
-def potential(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
-    """Compute the potential energy when `t` is keyword-only."""
-    return api.potential(pot, q, t)
+# ---------------------------
+# Arrays
 
 
-@dispatch
+# TODO: consider "*#batch 1" for t
+@dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def potential(
-    pot: AbstractPotential,
-    wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
-    /,
-) -> u.Quantity["specific energy"]:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
+) -> gt.BBtRealSz0:
+    """Compute the potential energy at the given position(s).
+
+    The position is in Cartesian coordinates and it and the time are assumed to
+    be in the unit system of the potential.
+
+    """
+    xyz, t = parse_to_xyz_t(None, xyz, t)  # TODO: frame
+    return pot._potential(xyz, t)  # noqa: SLF001
+
+
+# TODO: consider "*#batch 1" for t
+@dispatch  # special-case Array input to not return Quantity
+@partial(jax.jit, inline=True)
+def potential(
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
+) -> gt.BBtRealSz0:
+    return api.potential(pot, xyz, t)
+
+
+# ---------------------------
+
+
+@dispatch
+def potential(
+    pot: AbstractPotential, tq: Any, /, *, t: Any = None
+) -> Real[u.Quantity["specific energy"], "*#batch"]:
     """Compute from a q + t object."""
-    q = parse_to_quantity_or_array(wt, dtype=None, units=pot.units)
-    phi = pot._potential(q, wt.t.ustrip(pot.units["time"]))  # noqa: SLF001
+    xyz, t = parse_to_xyz_t(None, tq, t, ustrip=pot.units)  # TODO: frame
+    phi = pot._potential(xyz, t)  # noqa: SLF001
     return u.Quantity(phi, pot.units["specific energy"])
 
 
 @dispatch
 def potential(
     pot: AbstractPotential, q: Any, t: Any, /
-) -> u.Quantity["specific energy"]:
-    """Compute the potential energy at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the value of.
-    q : Any
-        The position to compute the value of the potential. See
-        `parse_to_quantity` for more details.
-    t : Any
-        The time at which to compute the value of the potential. See
-        :meth:`unxt.Quantity.from_` for more details.
-
-    """
-    q = parse_to_quantity_or_array(q, dtype=None, unit=pot.units["length"])
-    t = u.ustrip(AllowValue, pot.units["time"], t)
-    phi = pot._potential(q, t)  # noqa: SLF001
+) -> Real[u.Quantity["specific energy"], "*#batch"]:
+    """Compute the potential energy at the given position(s)."""
+    xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units)  # TODO: frame
+    phi = pot._potential(xyz, t)  # noqa: SLF001
     return u.Quantity(phi, pot.units["specific energy"])
-
-
-@dispatch
-@partial(jax.jit, inline=True)
-def potential(
-    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0 | ScalarLike | int, /
-) -> gt.BBtRealSz0:
-    """Compute the potential energy at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the value of.
-    q : Array[real, (*batch, 3)]
-        The position to compute the value of the potential.
-        Assumed to be in the unit system of the potential.
-    t : Array[real, (*batch,)]
-        The time at which to compute the value of the potential.
-        Assumed to be in the unit system of the potential.
-
-    """
-    return pot._potential(q, t)  # noqa: SLF001
 
 
 # =============================================================================

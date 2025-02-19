@@ -5,22 +5,18 @@ __all__: list[str] = []
 from functools import partial
 from typing import Any
 
-import equinox as eqx
 import jax
-from jaxtyping import Array, ArrayLike, Real
-from plum import convert, dispatch
+from jaxtyping import Real
+from plum import dispatch
 
 import coordinax as cx
-import coordinax.frames as cxf
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity
 
-import galax.coordinates as gc
 import galax.typing as gt
 from . import api
 from .base import AbstractPotential
-from .utils import parse_to_quantity_or_array, parse_to_xyz_t
+from .utils import parse_to_xyz_t
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
 # =============================================================================
@@ -417,50 +413,26 @@ def local_circular_velocity(
 @dispatch
 @partial(jax.jit)
 def dpotential_dr(
-    pot: AbstractPotential, xyz: gt.BBtRealSz3, t: gt.BBtRealSz0, /
-) -> gt.BBtRealSz0:
-    """Compute the radial derivative of the potential at the given position."""
-    r_hat: Array = cx.vecs.normalize_vector(xyz)
+    pot: AbstractPotential, q: Any, t: Any, /
+) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+    xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
+    r_hat = cx.vecs.normalize_vector(xyz)
     grad = api.gradient(pot, xyz, t)
-    return jnp.sum(grad * r_hat, axis=-1)
+    dphi_dr = jnp.sum(grad * r_hat, axis=-1)
+    return (
+        u.Quantity.from_(dphi_dr, pot.units["acceleration"])
+        if u.quantity.is_any_quantity(xyz)
+        else dphi_dr
+    )
 
 
 @dispatch
 @partial(jax.jit)
 def dpotential_dr(
-    pot: AbstractPotential, x: gt.BBtRealQuSz3, t: gt.BBtRealQuSz0, /
-) -> gt.BBtRealQuSz0:
-    """Compute the radial derivative of the potential at the given position."""
-    x, t = jnp.asarray(x), jnp.asarray(t)
-    r_hat = cx.vecs.normalize_vector(x)
-    grad = api.gradient(pot, x, t)
-    return jnp.sum(grad * r_hat, axis=-1)
-
-
-@dispatch
-@partial(jax.jit)
-def dpotential_dr(
-    pot: AbstractPotential,
-    x: cx.vecs.AbstractPos3D,
-    t: u.AbstractQuantity | ArrayLike,
-    /,
-) -> gt.BBtRealQuSz0:
-    return api.dpotential_dr(pot, convert(x, u.Quantity), t)
-
-
-@dispatch
-@partial(jax.jit)
-def dpotential_dr(
-    pot: AbstractPotential,
-    w: cx.vecs.FourVector | gc.AbstractPhaseSpaceCoordinate,
-) -> gt.BBtRealQuSz0:
-    return api.dpotential_dr(pot, w.q, w.t)
-
-
-@dispatch
-def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> gt.BBtRealQuSz0:
-    """Compute the radial derivative of the potential when `t` is keyword-only."""
-    return api.dpotential_dr(pot, x, t)
+    pot: AbstractPotential, q: Any, /, *, t: Any = None
+) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+    """Estimate the circular velocity at the given position."""
+    return api.dpotential_dr(pot, q, t)
 
 
 # =============================================================================
@@ -470,89 +442,26 @@ def dpotential_dr(pot: AbstractPotential, x: Any, /, *, t: Any) -> gt.BBtRealQuS
 @dispatch
 @partial(jax.jit)
 def d2potential_dr2(
-    pot: AbstractPotential, w: Any, /, *, t: Any
-) -> gt.BBtRealQuSz0 | gt.BBtRealSz0:
-    """Compute when `t` is keyword-only."""
-    return api.d2potential_dr2(pot, w, t)
+    pot: AbstractPotential, q: Any, t: Any, /
+) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+    xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
+    rhat = cx.vecs.normalize_vector(xyz)
+    H = pot.hessian(xyz, t)
+    d2phi_dr2 = jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)  # rhat · H · rhat
+    return (
+        u.Quantity.from_(d2phi_dr2, pot.units["frequency drift"])
+        if u.quantity.is_any_quantity(xyz)
+        else d2phi_dr2
+    )
 
 
 @dispatch
 @partial(jax.jit)
 def d2potential_dr2(
-    pot: AbstractPotential, q: Any, t: Any, /
-) -> gt.BBtRealQuSz0 | gt.BBtRealSz0:
-    """Compute the second derivative of the potential at the position.
-
-    Parameters
-    ----------
-    pot : `galax.potential.AbstractPotential`
-        The gravitational potential.
-    x: Quantity[Any, (*batch, 3,), 'length']
-        3d position (x, y, z) in [kpc]
-    t: Quantity[Any, (*#batch,), 'time']
-        Time in [Myr]
-
-    """
-    xyz = parse_to_quantity_or_array(q, unit=pot.units["length"])
-    rhat = cx.vecs.normalize_vector(xyz)
-    H = pot.hessian(xyz, t)
-    # vectorized dot product of rhat · H · rhat
-    return jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)
-
-
-@dispatch
-@partial(jax.jit, inline=True)
-def d2potential_dr2(pot: AbstractPotential, w: cx.Space, t: Any, /) -> gt.BBtRealQuSz0:
-    """Compute the second derivative of the potential at the position."""
-    q3 = w["length"]
-    q3 = eqx.error_if(
-        q3,
-        isinstance(q3, cx.vecs.FourVector)
-        and jnp.logical_not(jnp.array_equal(q3.t, t)),
-        "Got a FourVector, but t is not the same as the FourVector time",
-    )
-    return api.d2potential_dr2(pot, q3, t)
-
-
-@dispatch
-@partial(jax.jit, inline=True)
-def d2potential_dr2(pot: AbstractPotential, w: cx.Space, /) -> gt.BBtRealQuSz0:
-    """Compute the second derivative of the potential at the position."""
-    q4 = w["length"]
-    q4 = eqx.error_if(
-        q4, not isinstance(q4, cx.vecs.FourVector), "Expected a FourVector"
-    )
-    return api.d2potential_dr2(pot, q4.q, q4.t)
-
-
-@dispatch
-@partial(jax.jit, inline=True)
-def d2potential_dr2(
-    pot: AbstractPotential, w: cxf.AbstractCoordinate, /
-) -> gt.BBtRealQuSz0:
-    # TODO: deal with frames
-    return api.d2potential_dr2(pot, w.data)
-
-
-@dispatch
-@partial(jax.jit, inline=True)
-def d2potential_dr2(
-    pot: AbstractPotential, w: gc.PhaseSpacePosition, t: Any, /
-) -> gt.BBtRealQuSz0:
-    # TODO: deal with frames
-    return api.d2potential_dr2(pot, w.q, t)
-
-
-@dispatch.multi(
-    (AbstractPotential, gc.AbstractPhaseSpaceCoordinate),
-    (AbstractPotential, cx.vecs.FourVector),
-)
-@partial(jax.jit, inline=True)
-def d2potential_dr2(
-    pot: AbstractPotential, w: gc.AbstractPhaseSpaceCoordinate | cx.vecs.FourVector, /
-) -> gt.BBtRealQuSz0:
-    # TODO: deal with frames
-    return api.d2potential_dr2(pot, w.q, w.t)
+    pot: AbstractPotential, q: Any, /, *, t: Any = None
+) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+    """Estimate the circular velocity at the given position."""
+    return api.d2potential_dr2(pot, q, t)
 
 
 # =============================================================================
@@ -561,115 +470,26 @@ def d2potential_dr2(
 
 @dispatch
 def spherical_mass_enclosed(
-    pot: AbstractPotential, x: gt.BBtRealSz3, t: gt.BBtRealSz0, /
-) -> gt.BBtRealSz0:
+    pot: AbstractPotential, q: Any, t: Any, /
+) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
     """Compute from `jax.Array`."""
-    r2 = jnp.sum(jnp.square(x), axis=-1)
-    dPhi_dr = api.dpotential_dr(pot, x, t)
-    return r2 * jnp.abs(dPhi_dr) / pot.constants["G"].value
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, x: gt.BBtQuSz3, t: gt.BBtRealQuSz0, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `unxt.Quantity`."""
-    r2 = jnp.sum(jnp.square(x), axis=-1)
-    dPhi_dr = api.dpotential_dr(pot, x, t)
-    return r2 * jnp.abs(dPhi_dr) / pot.constants["G"]
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, q: cx.vecs.AbstractPos3D, t: gt.BBtRealQuSz0, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    return api.spherical_mass_enclosed(pot, convert(q, BareQuantity), t)
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, qt: cx.vecs.FourVector, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    return api.spherical_mass_enclosed(pot, qt.q, qt.t)
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, qt: cx.vecs.FourVector, t: gt.BBtRealQuSz0, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    t = eqx.error_if(
-        qt.t,
-        jnp.logical_not(jnp.array_equal(qt.t, t)),
-        msg="`qt.t` and `t` are not equal.",
+    # Parse inputs
+    q, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
+    xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units)
+    # Compute mass
+    r2 = jnp.sum(jnp.square(xyz), axis=-1)
+    dPhi_dr = api.dpotential_dr(pot, xyz, t)
+    m_encl = r2 * jnp.abs(dPhi_dr) / pot.constants["G"].value
+    return (
+        u.Quantity.from_(m_encl, pot.units["mass"])
+        if u.quantity.is_any_quantity(q)
+        else m_encl
     )
-    return api.spherical_mass_enclosed(pot, qt.q, t)
 
 
 @dispatch
 def spherical_mass_enclosed(
-    pot: AbstractPotential, space: cx.vecs.Space, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    q = space["length"]
-    q = eqx.error_if(
-        q,
-        not isinstance(q, cx.vecs.FourVector),
-        msg="`space['length']` is not a FourVector.",
-    )
-    return api.spherical_mass_enclosed(pot, q)
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, space: cx.vecs.Space, t: gt.BBtRealQuSz0, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    return api.spherical_mass_enclosed(pot, space["length"], t)
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, space: cxf.AbstractCoordinate, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    return api.spherical_mass_enclosed(pot, space.data)
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, space: cxf.AbstractCoordinate, t: gt.BBtFloatQuSz0, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    return api.spherical_mass_enclosed(pot, space.data, t)
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, coord: gc.PhaseSpacePosition, t: gt.BBtRealQuSz0, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    return api.spherical_mass_enclosed(pot, coord.q, t)
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, wt: gc.AbstractPhaseSpaceCoordinate, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    return api.spherical_mass_enclosed(pot, wt.q, wt.t)
-
-
-@dispatch
-def spherical_mass_enclosed(
-    pot: AbstractPotential, wt: gc.AbstractPhaseSpaceCoordinate, t: gt.BBtFloatQuSz0, /
-) -> gt.BBtRealQuSz0:
-    """Compute from `coordinax.vecs.AbstractPos3D`."""
-    t = eqx.error_if(
-        wt.t,
-        jnp.logical_not(jnp.array_equal(wt.t, t)),
-        msg="`wt.t` and `t` are not equal.",
-    )
-    return api.spherical_mass_enclosed(pot, wt.q, t)
+    pot: AbstractPotential, q: Any, /, *, t: Any = None
+) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+    """Compute from `jax.Array`."""
+    return api.spherical_mass_enclosed(pot, q, t)

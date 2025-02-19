@@ -8,17 +8,16 @@ __all__ = [
     "potential",
     "dynamics",
     "utils",
-    "typing",
+    "_custom_types",
 ]
 
-from . import setup_package as setup_package
+from . import _custom_types, setup_package as setup_package
 
 # isort: split
 from . import (
     coordinates,
     dynamics,
     potential,
-    typing,
     utils,
 )
 from ._version import version as __version__, version_tuple as __version_tuple__

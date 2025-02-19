@@ -9,8 +9,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.unitsystems import AbstractUnitSystem
 
+import galax._custom_types as gt
 import galax.potential as gp
-import galax.typing as gt
 from ...param.test_field import ParameterFieldMixin
 from ...test_core import AbstractSinglePotential_Test
 from galax.potential import AbstractPotential, HenonHeilesPotential

@@ -1,4 +1,4 @@
-"""Type hints for galax.
+"""Type hints for galax. Private API.
 
 As indicated by `__all__`, this module does not export any names. The type hints
 defined here may be changed or removed without notice. They are intended for use

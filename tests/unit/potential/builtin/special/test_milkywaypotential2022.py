@@ -8,7 +8,7 @@ from plum import convert
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .test_composite import AbstractSpecialCompositePotential_Test
 from galax.potential import MilkyWayPotential2022
 

@@ -16,7 +16,7 @@ from zeroth import zeroth
 import galax.potential as gp
 from .test_base import AbstractPotential_Test
 from .test_utils import FieldUnitSystemMixin
-from galax.typing import Sz3
+from galax._custom_types import Sz3
 
 
 # TODO: write the base-class test

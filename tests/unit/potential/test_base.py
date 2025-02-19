@@ -13,10 +13,10 @@ import unxt as u
 from unxt.unitsystems import galactic
 from xmmutablemap import ImmutableMap
 
+import galax._custom_types as gt
 import galax.dynamics as gd
 import galax.potential as gp
 import galax.potential.params as gpp
-import galax.typing as gt
 from .io.test_gala import GalaIOMixin
 from galax.potential._src.base import default_constants
 from galax.utils._unxt import AllowValue

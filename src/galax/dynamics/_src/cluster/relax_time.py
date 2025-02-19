@@ -27,7 +27,7 @@ from plum import dispatch
 import quaxed.numpy as jnp
 from unxt.quantity import is_any_quantity
 
-import galax.typing as gt
+import galax._custom_types as gt
 
 BBtAorQSz0: TypeAlias = gt.BBtSz0 | gt.BBtQuSz0
 T = TypeVar("T", bound=gt.BBtSz0 | gt.BBtQuSz0)

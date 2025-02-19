@@ -15,7 +15,7 @@ from plum import dispatch
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .base import AbstractPotential
 from galax.utils._unxt import AllowValue
 

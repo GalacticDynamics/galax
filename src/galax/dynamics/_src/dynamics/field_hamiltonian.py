@@ -16,10 +16,10 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity as FastQ
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
-import galax.typing as gt
 from .field_base import AbstractDynamicsField
 from galax.potential._src.utils import parse_to_xyz_t
 from galax.utils._unxt import AllowValue

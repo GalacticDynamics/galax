@@ -6,8 +6,8 @@ from plum import convert
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax._custom_types as gt
 import galax.potential as gp
-import galax.typing as gt
 from ...io.test_gala import parametrize_test_method_gala
 from ...param.test_field import ParameterFieldMixin
 from ...test_core import AbstractSinglePotential_Test

@@ -12,8 +12,8 @@ from plum import convert, dispatch
 import coordinax as cx
 from unxt.quantity import BareQuantity as FastQ
 
+import galax._custom_types as gt
 import galax.potential as gp
-import galax.typing as gt
 from galax.potential._src.utils import coord_dispatcher
 
 # =============================================================================

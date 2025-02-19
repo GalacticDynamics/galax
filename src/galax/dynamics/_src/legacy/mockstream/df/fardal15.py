@@ -13,8 +13,8 @@ from jaxtyping import PRNGKeyArray
 import coordinax as cx
 import quaxed.numpy as jnp
 
+import galax._custom_types as gt
 import galax.potential as gp
-import galax.typing as gt
 from .base import AbstractStreamDF
 from galax.dynamics._src.api import omega
 from galax.dynamics._src.cluster.radius import tidal_radius

@@ -12,10 +12,10 @@ from plum import dispatch
 import quaxed.numpy as jnp
 from unxt.quantity import BareQuantity as FastQ
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
-import galax.typing as gt
 from .integrator import Integrator
 from galax.dynamics._src.dynamics import HamiltonianField
 from galax.dynamics._src.orbit import Orbit

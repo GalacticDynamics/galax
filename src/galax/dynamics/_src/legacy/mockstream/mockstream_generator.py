@@ -15,8 +15,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity as FastQ
 
+import galax._custom_types as gt
 import galax.coordinates as gc
-import galax.typing as gt
 from .df import AbstractStreamDF, ProgenitorMassCallable
 from .utils import cond_reverse
 from galax.dynamics._src.legacy.funcs import default_integrator, evaluate_orbit

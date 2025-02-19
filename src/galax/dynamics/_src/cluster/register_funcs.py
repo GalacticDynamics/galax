@@ -12,9 +12,9 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.potential as gp
-import galax.typing as gt
 from .api import L1L2LagrangePoints
 from .radius import tidal_radius_king1962
 

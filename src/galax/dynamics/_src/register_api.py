@@ -15,8 +15,8 @@ import coordinax as cx
 import quaxed.numpy as jnp
 from unxt.quantity import BareQuantity
 
+import galax._custom_types as gt
 import galax.coordinates as gc
-import galax.typing as gt
 from . import api
 
 # ===================================================================

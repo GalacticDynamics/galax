@@ -10,8 +10,8 @@ from jaxtyping import PRNGKeyArray
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax._custom_types as gt
 import galax.coordinates as gc
-import galax.typing as gt
 from galax.dynamics import (
     AbstractStreamDF,
     ChenStreamDF,

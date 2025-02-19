@@ -9,10 +9,10 @@ from plum import convert, dispatch
 
 import unxt as u
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-import galax.typing as gt
 
 # =============================================================================
 # evaluate_orbit

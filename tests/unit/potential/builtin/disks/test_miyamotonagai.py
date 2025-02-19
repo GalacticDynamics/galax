@@ -9,8 +9,8 @@ import unxt as u
 import galax.potential as gp
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterShapeAMixin, ParameterShapeBMixin
+from galax._custom_types import Sz3
 from galax.potential import AbstractPotential, MiyamotoNagaiPotential
-from galax.typing import Sz3
 
 
 class TestMiyamotoNagaiPotential(

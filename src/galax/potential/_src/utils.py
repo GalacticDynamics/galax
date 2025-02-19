@@ -15,8 +15,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity
 
+import galax._custom_types as gt
 import galax.coordinates as gc
-import galax.typing as gt
 from galax.utils._unxt import AllowValue
 
 speed_of_light = u.quantity.BareQuantity(299_792_458, "m/s")

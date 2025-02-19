@@ -10,8 +10,8 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax._custom_types as gt
 import galax.coordinates as gc
-import galax.typing as gt
 from ..test_base import AbstractPhaseSpaceObject_Test, getkeys
 
 

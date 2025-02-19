@@ -10,7 +10,7 @@ from jaxtyping import Array, Shaped
 import coordinax as cx
 import quaxed.numpy as jnp
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.utils._jax import quaxify
 
 AnyScalar: TypeAlias = Shaped[Array, ""]

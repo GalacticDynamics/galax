@@ -6,7 +6,7 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
 

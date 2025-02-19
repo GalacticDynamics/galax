@@ -11,9 +11,9 @@ import unxt as u
 from unxt.unitsystems import AbstractUnitSystem, galactic
 from xmmutablemap import ImmutableMap
 
+import galax._custom_types as gt
 import galax.potential as gp
 import galax.potential.params as gpp
-import galax.typing as gt
 from .test_base import AbstractPotential_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.potential._src.base import default_constants

@@ -27,9 +27,9 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.potential as gp
-import galax.typing as gt
 from galax.dynamics._src.api import omega
 from galax.utils._unxt import AllowValue
 

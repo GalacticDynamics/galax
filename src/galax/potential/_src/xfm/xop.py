@@ -12,7 +12,7 @@ from plum import dispatch
 import coordinax.ops as cxo
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .base import AbstractTransformedPotential
 from galax.potential._src.base import AbstractPotential
 

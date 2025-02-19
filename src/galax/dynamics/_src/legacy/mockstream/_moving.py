@@ -14,7 +14,7 @@ import equinox as eqx
 
 from coordinax.ops import AbstractOperator
 
-from galax.typing import FloatSz0, RealSz0, Sz3
+from galax._custom_types import FloatSz0, RealSz0, Sz3
 
 
 @final

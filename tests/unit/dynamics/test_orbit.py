@@ -10,10 +10,10 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.unitsystems import galactic
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-import galax.typing as gt
 from ..coordinates.psc.test_base_single import AbstractBasicPhaseSpaceCoordinate_Test
 from ..coordinates.test_base import getkeys
 

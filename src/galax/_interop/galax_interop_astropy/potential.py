@@ -109,31 +109,3 @@ def hessian(
 
     """
     return gp.hessian(pot, convert(xyz, FastQ), convert(t, FastQ))
-
-
-# =============================================================================
-# parse_to_quantity
-
-
-@dispatch
-def parse_to_quantity_or_array(value: APYQuantity, /, **kw: Any) -> gt.BtRealQuSz3:
-    q = convert(value, FastQ)
-    return parse_to_quantity_or_array(q, **kw)
-
-
-@dispatch
-def parse_to_quantity_or_array(rep: BaseRepresentation, /, **kw: Any) -> gt.BtRealQuSz3:
-    cart = convert(rep, cx.CartesianPos3D)
-    return parse_to_quantity_or_array(cart, **kw)
-
-
-@dispatch
-def parse_to_quantity(value: APYQuantity, /, **kw: Any) -> gt.BtRealQuSz3:
-    q = convert(value, FastQ)
-    return parse_to_quantity(q, **kw)
-
-
-@dispatch
-def parse_to_quantity(rep: BaseRepresentation, /, **kw: Any) -> gt.BtRealQuSz3:
-    cart = convert(rep, cx.CartesianPos3D)
-    return parse_to_quantity(cart, **kw)

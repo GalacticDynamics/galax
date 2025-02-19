@@ -213,7 +213,7 @@ def parse_to_xyz_t(
 @coord_dispatcher
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
-    txyz: gt.BBtRealLikeSz4,  # Cartesian, in the reference frame
+    txyz: gt.BBtLikeSz4,  # Cartesian, in the reference frame
     /,
     *,
     dtype: Any = None,
@@ -229,7 +229,7 @@ def parse_to_xyz_t(
 @coord_dispatcher
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
-    txyz: gt.BBtRealLikeSz4,  # Cartesian, in the reference frame
+    txyz: gt.BBtLikeSz4,  # Cartesian, in the reference frame
     t_ref: gt.BBtRealLikeSz0 | None,
     /,
     *,
@@ -280,7 +280,7 @@ def parse_to_xyz_t(
 @coord_dispatcher
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
-    txyz: gt.BBtRealQuSz4,
+    txyz: gt.BBtQuSz4,
     /,
     *,
     dtype: Any = None,
@@ -295,7 +295,7 @@ def parse_to_xyz_t(
 @coord_dispatcher
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
-    txyz: gt.BBtRealQuSz4,
+    txyz: gt.BBtQuSz4,
     tref: gt.BBtRealQuSz0 | None,
     /,
     *,

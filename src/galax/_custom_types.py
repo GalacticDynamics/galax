@@ -156,8 +156,8 @@ SzN: TypeAlias = Shaped[Array, "N"]
 """An (N,)-vector."""
 
 # Time vector
-SzTime: TypeAlias = Shaped[Array, "time"]
-QuSzTime: TypeAlias = Shaped[AbstractQuantity, "time"]
+SzTime: TypeAlias = Real[Array, "time"]
+QuSzTime: TypeAlias = Real[AbstractQuantity, "time"]
 
 # A real array with any shape.
 SzAny: TypeAlias = Real[Array, "..."]

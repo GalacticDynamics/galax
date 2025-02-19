@@ -111,14 +111,14 @@ class LongMuraliBarPotential(AbstractSinglePotential):
         self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
     ) -> gt.BBtSz0:
         # Parse inputs and params
-        u_length = self.units["length"]
+        ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        a = self.a(t, ustrip=u_length)
-        b = self.b(t, ustrip=u_length)
-        c = self.c(t, ustrip=u_length)
+        a = self.a(t, ustrip=ul)
+        b = self.b(t, ustrip=ul)
+        c = self.c(t, ustrip=ul)
         alpha = self.alpha(t, ustrip=self.units["angle"])
 
-        xyz = u.ustrip(AllowValue, u_length, xyz)
+        xyz = u.ustrip(AllowValue, ul, xyz)
         x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
 
         xp = x * jnp.cos(alpha) + y * jnp.sin(alpha)

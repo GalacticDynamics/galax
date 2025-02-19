@@ -57,7 +57,10 @@ class AbstractSpecialPotential(AbstractCompositePotential):  # TODO: make public
         # TODO: some similar check that the same constants are the same, e.g.
         #       `G` is the same for all potentials. Or use `constants` to update
         #       the `constants` of every potential (before `super().__init__`)
-        self.constants = fields["constants"].metadata["converter"](constants)
+        constants = fields["constants"].metadata["converter"](constants)
+        self.constants = ImmutableMap(
+            {k: v.decompose(self.units) for k, v in constants.items()}
+        )
 
         # Initialize the Parameter (potential) fields
         # TODO: more robust detection using the annotations: AbstractParameter

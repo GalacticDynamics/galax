@@ -163,65 +163,56 @@ def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3
 # =============================================================================
 # Laplacian
 
+# ---------------------------
+# Arrays
 
-@dispatch
-def laplacian(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
-    """Compute the laplacian at the given position(s) when `t` is keyword-only."""
-    return laplacian(pot, q, t)
+
+# TODO: consider "*#batch 1" for t
+@dispatch  # special-case Array input to not return Quantity
+@partial(jax.jit, inline=True)
+def laplacian(
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
+) -> gt.BBtRealSz0:
+    """Compute the laplacian at the given position(s).
+
+    The position is in Cartesian coordinates and it and the time are assumed to
+    be in the unit system of the potential.
+
+    """
+    xyz, t = parse_to_xyz_t(None, xyz, t, dtype=float)  # TODO: frame
+    return pot._laplacian(xyz, t)  # noqa: SLF001
+
+
+# TODO: consider "*#batch 1" for t
+@dispatch  # special-case Array input to not return Quantity
+@partial(jax.jit, inline=True)
+def laplacian(
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
+) -> gt.BBtRealSz0:
+    return api.laplacian(pot, xyz, t)
+
+
+# ---------------------------
 
 
 @dispatch
 def laplacian(
-    pot: AbstractPotential,
-    wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
-    /,
-) -> u.Quantity["1/s^2"]:
-    """Compute the laplacian of the potential at the given coordinate(s)."""
-    q = parse_to_quantity_or_array(wt, dtype=float, units=pot.units)
-    return u.Quantity(pot._laplacian(q, wt.t), pot.units["frequency drift"])  # noqa: SLF001
-
-
-@dispatch
-def laplacian(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["1/s^2"]:
-    """Compute the laplacian of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the laplacian of.
-    q : Any
-        The position to compute the laplacian of the potential. See
-        `parse_to_quantity` for more details.
-    t : Any
-        The time at which to compute the laplacian of the potential.  If
-        unitless (i.e. is an `~jax.Array`), it is assumed to be in the unit
-        system of the potential.
-
-    """
-    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
-    t = u.ustrip(AllowValue, pot.units["time"], t)
-    return u.Quantity(pot._laplacian(q, t), pot.units["frequency drift"])  # noqa: SLF001
+    pot: AbstractPotential, tq: Any, /, *, t: Any = None
+) -> Real[u.Quantity["frequency drift"], "*#batch"]:
+    """Compute from a q + t object."""
+    xyz, t = parse_to_xyz_t(None, tq, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    lapl = pot._laplacian(xyz, t)  # noqa: SLF001
+    return u.Quantity(lapl, pot.units["frequency drift"])
 
 
 @dispatch
 def laplacian(
-    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /
-) -> gt.BtRealSz0:
-    """Compute the laplacian of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the laplacian of.
-    q : Any
-        The position to compute the laplacian of the potential.
-        Assumed to be in the units of the potential.
-    t : Any
-        The time at which to compute the laplacian of the potential.
-        Assumed to be in the units of the potential.
-
-    """
-    return pot._laplacian(q, t)  # noqa: SLF001
+    pot: AbstractPotential, q: Any, t: Any, /
+) -> Real[u.Quantity["frequency drift"], "*#batch"]:
+    """Compute the laplacian energy at the given position(s)."""
+    xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    lapl = pot._laplacian(xyz, t)  # noqa: SLF001
+    return u.Quantity(lapl, pot.units["frequency drift"])
 
 
 # =============================================================================

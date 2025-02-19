@@ -359,6 +359,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     Examples
     --------
+    >>> import jax.numpy as jnp
     >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
@@ -418,10 +419,10 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     is an `~jax.Array`), it is assumed to be in the same unit system as the
     potential.
 
-    >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+    >>> t = 0
     >>> pot.laplacian(q, t)
-    Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
+    Array([2.77555756e-17, 0.00000000e+00], dtype=float64)
 
     - - -
 
@@ -460,7 +461,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     >>> q = [1., 2, 3] * apyu.kpc
     >>> pot.laplacian(q, t)
-    Quantity[...](Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
+    Array(2.77555756e-17, dtype=float64)
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is a `~numpy.ndarray`), it is assumed to be in the same unit system
@@ -469,7 +470,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     >>> import numpy as np
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> pot.laplacian(q, t)
-    Quantity[...](Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
+    Array([2.77555756e-17, 0.00000000e+00], dtype=float64)
 
     .. skip: end
 

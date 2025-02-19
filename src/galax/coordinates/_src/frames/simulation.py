@@ -4,18 +4,20 @@ Building off of `coordinax.frames`.
 
 """
 
-__all__ = ["SimulationFrame"]
+__all__ = ["SimulationFrame", "simulation_frame"]
 
-from typing import final
+from typing import Any, cast, final
 
 from plum import dispatch
 
 import coordinax as cx
 
+_singleton_insts: dict[type, object] = {}
+
 
 @final
 class SimulationFrame(cx.frames.AbstractReferenceFrame):  # type: ignore[misc]
-    """A null reference frame.
+    """The simulation reference frame.
 
     This is a reference frame that cannot be transformed to or from.
 
@@ -25,8 +27,11 @@ class SimulationFrame(cx.frames.AbstractReferenceFrame):  # type: ignore[misc]
     >>> import galax.coordinates as gc
 
     >>> sim = gc.frames.SimulationFrame()
-    >>> icrs = cxf.ICRS()
 
+    >>> cxf.frame_transform_op(sim, sim)
+    Identity()
+
+    >>> icrs = cxf.ICRS()
     >>> try:
     ...     cxf.frame_transform_op(sim, icrs)
     ... except Exception as e:
@@ -34,6 +39,18 @@ class SimulationFrame(cx.frames.AbstractReferenceFrame):  # type: ignore[misc]
     `frame_transform_op(SimulationFrame(), ICRS())` could not be resolved...
 
     """
+
+    def __new__(cls, /, *_: Any, **__: Any) -> "SimulationFrame":
+        # Check if instance already exists
+        if cls in _singleton_insts:
+            return cast("SimulationFrame", _singleton_insts[cls])
+        # Create new instance and cache it
+        self = object.__new__(cls)
+        _singleton_insts[cls] = self
+        return self
+
+
+simulation_frame = SimulationFrame()
 
 
 @dispatch

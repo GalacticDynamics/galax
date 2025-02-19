@@ -3,6 +3,6 @@
 E.g. a translation.
 """
 
-__all__ = ["SimulationFrame"]
+__all__ = ["SimulationFrame", "simulation_frame"]
 
-from ._src.frames.simulation import SimulationFrame
+from ._src.frames import SimulationFrame, simulation_frame

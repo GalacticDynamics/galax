@@ -80,7 +80,7 @@ def parse_to_quantity_or_array(space: cx.vecs.Space, /, **kw: Any) -> gt.BtRealQ
 def parse_to_quantity_or_array(
     coord: cx.frames.AbstractCoordinate, /, **kw: Any
 ) -> gt.BtRealQuSz3:
-    coord = coord.to_frame(gc.frames.SimulationFrame())  # TODO: frame
+    coord = coord.to_frame(gc.frames.simulation_frame)  # TODO: frame
     return parse_to_quantity_or_array(coord.data, **kw)
 
 
@@ -88,7 +88,7 @@ def parse_to_quantity_or_array(
 def parse_to_quantity_or_array(
     coord: gc.AbstractPhaseSpaceObject, /, **kw: Any
 ) -> gt.BtRealQuSz3:
-    coord = coord.to_frame(gc.frames.SimulationFrame())  # TODO: frame
+    coord = coord.to_frame(gc.frames.simulation_frame)  # TODO: frame
     return parse_to_quantity_or_array(coord.q, **kw)
 
 

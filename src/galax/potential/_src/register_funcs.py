@@ -11,6 +11,7 @@ from jaxtyping import Array, ArrayLike, ScalarLike
 from plum import convert, dispatch
 
 import coordinax as cx
+import coordinax.frames as cxf
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity
@@ -22,8 +23,6 @@ from .base import AbstractPotential
 from .utils import parse_to_quantity_or_array
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 from galax.utils._unxt import AllowValue
-
-frame = gc.frames.SimulationFrame()
 
 # =============================================================================
 # Potential Energy
@@ -602,7 +601,7 @@ def d2potential_dr2(pot: AbstractPotential, w: cx.Space, /) -> gt.BBtRealQuSz0:
 @dispatch
 @partial(jax.jit, inline=True)
 def d2potential_dr2(
-    pot: AbstractPotential, w: cx.frames.AbstractCoordinate, /
+    pot: AbstractPotential, w: cxf.AbstractCoordinate, /
 ) -> gt.BBtRealQuSz0:
     # TODO: deal with frames
     return api.d2potential_dr2(pot, w.data)
@@ -706,7 +705,7 @@ def spherical_mass_enclosed(
 
 @dispatch
 def spherical_mass_enclosed(
-    pot: AbstractPotential, space: cx.frames.AbstractCoordinate, /
+    pot: AbstractPotential, space: cxf.AbstractCoordinate, /
 ) -> gt.BBtRealQuSz0:
     """Compute from `coordinax.vecs.AbstractPos3D`."""
     return api.spherical_mass_enclosed(pot, space.data)
@@ -714,7 +713,7 @@ def spherical_mass_enclosed(
 
 @dispatch
 def spherical_mass_enclosed(
-    pot: AbstractPotential, space: cx.frames.AbstractCoordinate, t: gt.BBtFloatQuSz0, /
+    pot: AbstractPotential, space: cxf.AbstractCoordinate, t: gt.BBtFloatQuSz0, /
 ) -> gt.BBtRealQuSz0:
     """Compute from `coordinax.vecs.AbstractPos3D`."""
     return api.spherical_mass_enclosed(pot, space.data, t)

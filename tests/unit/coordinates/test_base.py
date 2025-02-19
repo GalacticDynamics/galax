@@ -36,7 +36,7 @@ class AbstractPhaseSpaceObject_Test(Generic[CT], metaclass=ABCMeta):
 
     @pytest.fixture(
         scope="class",
-        params=[gc.frames.SimulationFrame()],
+        params=[gc.frames.simulation_frame],
         ids=lambda param: str(param),
     )
     def frame(self, request: pytest.FixtureRequest) -> cx.frames.AbstractReferenceFrame:

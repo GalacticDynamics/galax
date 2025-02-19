@@ -20,7 +20,7 @@ from .base import AbstractPhaseSpaceCoordinate, ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpaceCoordinate
 from .base_single import AbstractBasicPhaseSpaceCoordinate
 from galax.coordinates._src.base import AbstractPhaseSpaceObject
-from galax.coordinates._src.frames import SimulationFrame
+from galax.coordinates._src.frames import SimulationFrame, simulation_frame
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
@@ -135,7 +135,7 @@ class PhaseSpaceCoordinate(AbstractBasicPhaseSpaceCoordinate):
     _: KW_ONLY
 
     frame: SimulationFrame = eqx.field(
-        default=SimulationFrame(),
+        default=simulation_frame,
         converter=Unless(
             cx.frames.AbstractReferenceFrame, cx.frames.TransformedReferenceFrame.from_
         ),
@@ -218,9 +218,8 @@ def from_(
 
     >>> data = cx.Space(length=cx.FourVector.from_([0, 1, 2, 3], "kpc"),
     ...                 speed=cx.CartesianVel3D.from_([4, 5, 6], "km/s"))
-    >>> frame = gc.frames.SimulationFrame()
 
-    >>> gc.PhaseSpaceCoordinate.from_(data, frame)
+    >>> gc.PhaseSpaceCoordinate.from_(data, gc.frames.simulation_frame)
     PhaseSpaceCoordinate(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),

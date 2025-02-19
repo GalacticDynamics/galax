@@ -31,7 +31,7 @@ class Test_PhaseSpacePosition(AbstractPhaseSpaceObject_Test[gc.PhaseSpacePositio
 
         q = u.Quantity(jr.normal(next(keys), (*shape, 3)), "kpc")
         p = u.Quantity(jr.normal(next(keys), (*shape, 3)), "km/s")
-        return w_cls(q=q, p=p, frame=gc.frames.SimulationFrame())
+        return w_cls(q=q, p=p, frame=gc.frames.simulation_frame)
 
     # ===============================================================
     # Array properties

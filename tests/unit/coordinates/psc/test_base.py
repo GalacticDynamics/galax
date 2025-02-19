@@ -40,7 +40,7 @@ class AbstractPhaseSpaceCoordinate_Test(
         q = u.Quantity(jr.normal(next(keys), (*shape, 3)), "kpc")
         p = u.Quantity(jr.normal(next(keys), (*shape, 3)), "km/s")
         t = u.Quantity(jr.normal(next(keys), shape), "Myr")
-        return w_cls(q=q, p=p, t=t, frame=gc.frames.SimulationFrame())
+        return w_cls(q=q, p=p, t=t, frame=gc.frames.simulation_frame)
 
     #################################################################
 

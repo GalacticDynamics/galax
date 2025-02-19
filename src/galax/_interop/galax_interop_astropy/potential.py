@@ -95,6 +95,22 @@ def density(
     return gp.density(pot, convert(xyz, FastQ), convert(t, FastQ))
 
 
+@dispatch(precedence=1)  # type: ignore[call-overload,misc]
+def hessian(
+    pot: gp.AbstractPotential,
+    xyz: Real[APYQuantity, "*#batch 3"],
+    t: Real[APYQuantity, "*#batch"],
+    /,
+) -> gt.BBtRealQuSz33:
+    """Compute the density at the given position(s).
+
+    The position is in Cartesian coordinates and it and the time are assumed to
+    be in the unit system of the potential.
+
+    """
+    return gp.hessian(pot, convert(xyz, FastQ), convert(t, FastQ))
+
+
 # =============================================================================
 # parse_to_quantity
 

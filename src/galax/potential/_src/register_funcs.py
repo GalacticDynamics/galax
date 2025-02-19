@@ -22,7 +22,6 @@ from . import api
 from .base import AbstractPotential
 from .utils import parse_to_quantity_or_array, parse_to_xyz_t
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
-from galax.utils._unxt import AllowValue
 
 # =============================================================================
 # Potential Energy
@@ -273,73 +272,56 @@ def density(
 # =============================================================================
 # Hessian
 
-
-@dispatch
-def hessian(pot: AbstractPotential, q: Any, /, *, t: Any) -> Any:
-    """Compute the hessian when `t` is keyword-only."""
-    return api.hessian(pot, q, t)
+# ---------------------------
+# Arrays
 
 
-@dispatch
+# TODO: consider "*#batch 1" for t
+@dispatch  # special-case Array input to not return Quantity
+@partial(jax.jit, inline=True)
 def hessian(
-    pot: AbstractPotential, q: gt.BBtRealSz3, t: gt.BBtRealSz0, /
-) -> gt.BBtSz33:
-    """Compute the hessian of the potential at the given position(s).
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
+) -> gt.BBtRealSz33:
+    """Compute the hessian at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
     be in the unit system of the potential.
 
     """
-    return pot._hessian(q.astype(float), t)  # noqa: SLF001
+    xyz, t = parse_to_xyz_t(None, xyz, t, dtype=float)  # TODO: frame
+    return pot._hessian(xyz, t)  # noqa: SLF001
+
+
+# TODO: consider "*#batch 1" for t
+@dispatch  # special-case Array input to not return Quantity
+@partial(jax.jit, inline=True)
+def hessian(
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
+) -> gt.BBtRealSz33:
+    return api.hessian(pot, xyz, t)
+
+
+# ---------------------------
 
 
 @dispatch
 def hessian(
-    pot: AbstractPotential, q: gt.BBtRealQuSz3, t: gt.BBtRealQuSz0, /
-) -> gt.BtQuSz33:
-    """Compute the hessian of the potential at the given position(s).
-
-    The position is in Cartesian coordinates.
-
-    """
-    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
-    t = u.ustrip(AllowValue, pot.units["time"], t)
-    hess = pot._hessian(q, t)  # noqa: SLF001
-    return u.Quantity(hess, pot.units["frequency drift"])
-
-
-@dispatch
-def hessian(pot: AbstractPotential, q: Any, t: Any, /) -> gt.BtQuSz33:
-    """Compute the hessian of the potential at the given position(s).
-
-    Parameters
-    ----------
-    pot : `~galax.potential.AbstractPotential`
-        The potential to compute the hessian of.
-    q : Any
-        The position to compute the hessian of the potential. See
-        `parse_to_quantity` for more details.
-    t : Any
-        The time at which to compute the hessian of the potential. See
-        :meth:`~unxt.array.Quantity.from_` for more details.
-
-    """
-    q = parse_to_quantity_or_array(q, dtype=float, unit=pot.units["length"])
-    t = u.ustrip(AllowValue, pot.units["time"], t)
-    hess = pot._hessian(q, t)  # noqa: SLF001
-    return u.Quantity(hess, pot.units["frequency drift"])
+    pot: AbstractPotential, tq: Any, /, *, t: Any = None
+) -> Real[u.Quantity["frequency drift"], "*#batch 3 3"]:
+    """Compute from a q + t object."""
+    xyz, t = parse_to_xyz_t(None, tq, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    phi = pot._hessian(xyz, t)  # noqa: SLF001
+    return u.Quantity(phi, pot.units["frequency drift"])
 
 
 @dispatch
 def hessian(
-    pot: AbstractPotential,
-    wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector,
-    /,
-) -> gt.BtQuSz33:
-    """Compute the hessian of the potential at the given position(s)."""
-    q = parse_to_quantity_or_array(wt, dtype=float, units=pot.units)
-    hess = pot._hessian(q, wt.t)  # noqa: SLF001
-    return u.Quantity(hess, pot.units["frequency drift"])
+    pot: AbstractPotential, q: Any, t: Any, /
+) -> Real[u.Quantity["frequency drift"], "*#batch 3 3"]:
+    """Compute the potential energy at the given position(s)."""
+    xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    phi = pot._hessian(xyz, t)  # noqa: SLF001
+    return u.Quantity(phi, pot.units["frequency drift"])
 
 
 # =============================================================================

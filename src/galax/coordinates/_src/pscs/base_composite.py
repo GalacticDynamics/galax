@@ -173,7 +173,7 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     # Collection methods
 
     @property
-    def shapes(self) -> Mapping[str, tuple[int, ...]]:
+    def shapes(self) -> Mapping[str, gt.Shape]:
         """Get the shapes of the components."""
         return MappingProxyType({k: v.shape for k, v in field_items(self)})
 

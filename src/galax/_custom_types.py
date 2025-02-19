@@ -37,7 +37,7 @@ Unit: TypeAlias = apyu.Unit | apyu.UnitBase | apyu.CompositeUnit
 # =============================================================================
 # TODO: sort
 
-RealScalarLike: TypeAlias = Real[ArrayLike, ""]
+RealScalarLike: TypeAlias = Real[ScalarLike, ""]
 
 
 # =============================================================================
@@ -180,7 +180,6 @@ LengthBBtSz3: TypeAlias = Shaped[LengthSz3, "*#batch"]
 
 SpeedSz3: TypeAlias = Shaped[u.Quantity["speed"], "3"]
 SpeedBtSz3: TypeAlias = Shaped[SpeedSz3, "*batch"]
-SpeedBBtSz3: TypeAlias = Shaped[SpeedSz3, "*#batch"]
 
 
 # ===============================

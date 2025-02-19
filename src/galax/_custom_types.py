@@ -125,9 +125,9 @@ BBtRealQuSz4: TypeAlias = Real[u.AbstractQuantity, "*#batch 4"]
 # ---------------------------
 # 6-vector
 
-Sz6: TypeAlias = Shaped[Array, "6"]
-BtSz6: TypeAlias = Shaped[Sz6, "*batch"]
-BBtSz6: TypeAlias = Shaped[Sz6, "*#batch"]
+Sz6: TypeAlias = Real[Array, "6"]
+BtSz6: TypeAlias = Real[Sz6, "*batch"]
+BBtSz6: TypeAlias = Real[Sz6, "*#batch"]
 
 # ---------------------------
 # 7-vector

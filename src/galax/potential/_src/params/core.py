@@ -32,7 +32,7 @@ class ParameterCallable(Protocol):
 
     def __call__(
         self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
-    ) -> gt.FloatQuSzAny | gt.FloatSzAny:
+    ) -> gt.QuSzAny | gt.SzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
@@ -68,7 +68,7 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
     @abc.abstractmethod
     def __call__(
         self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
-    ) -> gt.FloatQuSzAny:
+    ) -> gt.QuSzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
@@ -143,9 +143,7 @@ class ConstantParameter(AbstractParameter):
     """
 
     # TODO: link this shape to the return shape from __call__
-    value: gt.FloatQuSzAny = eqx.field(
-        converter=Unless(AbstractQuantity, u.Quantity.from_)
-    )
+    value: gt.QuSzAny = eqx.field(converter=Unless(AbstractQuantity, u.Quantity.from_))
     """The time-independent value of the parameter."""
 
     @partial(jax.jit, static_argnames=("ustrip",))
@@ -155,7 +153,7 @@ class ConstantParameter(AbstractParameter):
         *,
         ustrip: AstropyUnits | None = None,
         **__: Any,
-    ) -> gt.FloatQuSzAny:
+    ) -> gt.QuSzAny:
         """Return the constant parameter value.
 
         Parameters
@@ -245,9 +243,9 @@ class LinearParameter(AbstractParameter):
 
     """
 
-    slope: gt.FloatQuSzAny = eqx.field(converter=u.Quantity.from_)
+    slope: gt.QuSzAny = eqx.field(converter=u.Quantity.from_)
     point_time: gt.BBtRealQuSz0 = eqx.field(converter=u.Quantity["time"].from_)
-    point_value: gt.FloatQuSzAny = eqx.field(converter=u.Quantity.from_)
+    point_value: gt.QuSzAny = eqx.field(converter=u.Quantity.from_)
 
     def __check_init__(self) -> None:
         """Check the initialization of the class."""
@@ -256,7 +254,7 @@ class LinearParameter(AbstractParameter):
     @partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
         self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **_: Any
-    ) -> gt.FloatQuSzAny | gt.FloatSzAny:
+    ) -> gt.QuSzAny | gt.SzAny:
         """Return the parameter value.
 
         .. math::
@@ -322,6 +320,6 @@ class UserParameter(AbstractParameter):
     @partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
         self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
-    ) -> gt.FloatQuSzAny | gt.FloatSzAny:
+    ) -> gt.QuSzAny | gt.SzAny:
         out = self.func(t, **kwargs)
         return out if ustrip is None else u.ustrip(AllowValue, ustrip, out)

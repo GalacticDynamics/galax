@@ -159,9 +159,9 @@ SzN: TypeAlias = Shaped[Array, "N"]
 SzTime: TypeAlias = Shaped[Array, "time"]
 QuSzTime: TypeAlias = Shaped[AbstractQuantity, "time"]
 
-# A float array with any shape.
-FloatSzAny: TypeAlias = Float[Array, "..."]
-FloatQuSzAny: TypeAlias = Float[AbstractQuantity, "..."]
+# A real array with any shape.
+SzAny: TypeAlias = Real[Array, "..."]
+QuSzAny: TypeAlias = Real[AbstractQuantity, "..."]
 
 # ===============================
 # TODO: sort

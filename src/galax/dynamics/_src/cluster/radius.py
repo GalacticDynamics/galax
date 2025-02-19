@@ -85,7 +85,7 @@ def tidal_radius_hoerner1957(
     xyz: gt.BBtRealQuSz3,
     /,
     *,
-    mass: gt.MassBBtSz0,
+    mass: gt.BBtQuSz0,
     t: gt.BBtQuSz0,
 ) -> gt.BBtRealQuSz0:
     r"""Calculate the tidal radius of a star cluster based on von Hoerner (1957).
@@ -145,7 +145,7 @@ def tidal_radius_king1962_pointmass(
     /,
     *,
     rperi: gt.BBtRealQuSz0 | cx.vecs.AbstractPos3D,
-    mass: gt.MassBBtSz0,
+    mass: gt.BBtQuSz0,
     t: gt.BBtRealQuSz0 | float,
     e: float = 0.0,
 ) -> gt.BBtRealQuSz0:
@@ -230,7 +230,7 @@ def tidal_radius_king1962(
     v: gt.BBtRealQuSz3 | cx.vecs.AbstractVel3D,
     /,
     *,
-    mass: gt.MassBBtSz0,
+    mass: gt.BBtQuSz0,
     t: gt.BBtQuSz0,
 ) -> gt.BBtRealQuSz0:
     """Compute from `unxt.Quantity` or `coordinax.vecs.AbstractVector`s."""
@@ -244,7 +244,7 @@ def tidal_radius_king1962(
     space: cx.Space,
     /,
     *,
-    mass: gt.MassBBtSz0,
+    mass: gt.BBtQuSz0,
     t: gt.BBtQuSz0,
 ) -> gt.BBtRealQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
@@ -258,7 +258,7 @@ def tidal_radius_king1962(
     coord: cx.frames.AbstractCoordinate,
     /,
     *,
-    mass: gt.MassBBtSz0,
+    mass: gt.BBtQuSz0,
     t: gt.BBtQuSz0,
 ) -> gt.BBtRealQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
@@ -271,7 +271,7 @@ def tidal_radius_king1962(
     w: gc.AbstractPhaseSpaceCoordinate,
     /,
     *,
-    mass: gt.MassBBtSz0,
+    mass: gt.BBtQuSz0,
 ) -> gt.BBtRealQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
     return tidal_radius_king1962(pot, w.q, w.p, mass=mass, t=w.t.squeeze())

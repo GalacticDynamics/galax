@@ -36,7 +36,7 @@ class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
         The progenitor mass.
     """
 
-    m_tot: gt.MassSz0 = eqx.field(converter=u.Quantity["mass"].from_)
+    m_tot: gt.QuSz0 = eqx.field(converter=u.Quantity["mass"].from_)
     """The progenitor mass."""
 
     def __call__(self, t: gt.BtQuSz0, /) -> gt.BtQuSz0:

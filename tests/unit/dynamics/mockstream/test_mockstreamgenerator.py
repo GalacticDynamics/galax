@@ -61,7 +61,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         )
 
     @pytest.fixture
-    def prog_mass(self) -> gt.MassSz0:
+    def prog_mass(self) -> gt.QuSz0:
         """Progenitor mass."""
         return u.Quantity(1e4, "Msun")
 
@@ -82,7 +82,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         mockgen: MockStreamGenerator,
         t_stripping: gt.QuSzTime,
         prog_w0: gc.PhaseSpaceCoordinate,
-        prog_mass: gt.MassSz0,
+        prog_mass: gt.QuSz0,
         rng: PRNGKeyArray,
         vmapped: bool,
     ) -> None:

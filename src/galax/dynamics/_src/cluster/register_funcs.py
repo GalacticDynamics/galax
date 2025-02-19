@@ -40,7 +40,7 @@ def lagrange_points(
     v: gt.QuSz3 | cx.vecs.AbstractVel3D,
     /,
     *,
-    mass: gt.MassSz0,
+    mass: gt.QuSz0,
     t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
@@ -59,7 +59,7 @@ def lagrange_points(
     space: cx.Space,
     /,
     *,
-    mass: gt.MassSz0,
+    mass: gt.QuSz0,
     t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
@@ -72,7 +72,7 @@ def lagrange_points(
     coord: cx.frames.AbstractCoordinate,
     /,
     *,
-    mass: gt.MassSz0,
+    mass: gt.QuSz0,
     t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
@@ -85,7 +85,7 @@ def lagrange_points(
     wt: gc.AbstractPhaseSpaceCoordinate,
     /,
     *,
-    mass: gt.MassSz0,
+    mass: gt.QuSz0,
     t: gt.QuSz0 | None = None,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
@@ -103,7 +103,7 @@ def lagrange_points(
     w: gc.PhaseSpacePosition,
     /,
     *,
-    mass: gt.MassSz0,
+    mass: gt.QuSz0,
     t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""

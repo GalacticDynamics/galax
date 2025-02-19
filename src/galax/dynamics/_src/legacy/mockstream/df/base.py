@@ -36,7 +36,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         prog_orbit: Orbit,
         # />
         /,
-        prog_mass: gt.MassSz0 | ProgenitorMassCallable,
+        prog_mass: gt.QuSz0 | ProgenitorMassCallable,
     ) -> gc.CompositePhaseSpaceCoordinate:
         """Generate stream particle initial conditions.
 

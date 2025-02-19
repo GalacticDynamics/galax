@@ -163,13 +163,6 @@ QuSzTime: TypeAlias = Shaped[AbstractQuantity, "time"]
 FloatSzAny: TypeAlias = Float[Array, "..."]
 FloatQuSzAny: TypeAlias = Float[AbstractQuantity, "..."]
 
-# ================================
-# Specific Quantity types
-
-MassSz0: TypeAlias = Shaped[u.Quantity["mass"], ""]
-MassBtSz0: TypeAlias = Shaped[u.Quantity["mass"], "*batch"]
-MassBBtSz0: TypeAlias = Shaped[u.Quantity["mass"], "*#batch"]
-
 # ===============================
 # TODO: sort
 

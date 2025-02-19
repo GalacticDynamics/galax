@@ -178,6 +178,7 @@ class TransformedPotential(AbstractTransformedPotential):
     Array(-2.24925108, dtype=float64)
     >>> xpot7.potential(w2).value  # t=1 Gyr
     Array(-2.23568166, dtype=float64)
+
     """  # noqa: E501
 
     original_potential: AbstractPotential
@@ -187,6 +188,7 @@ class TransformedPotential(AbstractTransformedPotential):
 
     The default is no transformation, ie the coordinates are specified in the
     'simulation' frame.
+
     """
 
     def _potential(
@@ -208,6 +210,7 @@ class TransformedPotential(AbstractTransformedPotential):
         -------
         Array[float, (...)]
             The potential energy at the given position(s).
+
         """
         # Make inverse operator  # TODO: pre-compute and cache
         inv = self.xop.inverse

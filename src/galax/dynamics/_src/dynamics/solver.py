@@ -198,7 +198,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         - from a `coordinax.frames.AbstractCoordinate`:
 
         >>> coord = cx.Coordinate({"length": w0.q, "speed": w0.p},
-        ...                       frame=gc.frames.SimulationFrame())
+        ...                       frame=gc.frames.simulation_frame)
         >>> solver.init(field, coord, t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
@@ -552,7 +552,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> w0 = cx.Coordinate(
         ...     {"length": cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
         ...      "speed": cx.CartesianVel3D.from_([0, 220, 0], "km/s")},
-        ...     gc.frames.SimulationFrame()
+        ...     gc.frames.simulation_frame
         ... )
 
         >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)

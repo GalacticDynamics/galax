@@ -48,7 +48,7 @@ class TestOrbit(AbstractBasicPhaseSpaceCoordinate_Test[gd.Orbit]):
             t=t,
             potential=potential,
             interpolant=None,
-            frame=gc.frames.SimulationFrame(),
+            frame=gc.frames.simulation_frame,
         )
 
     @pytest.fixture

@@ -206,7 +206,7 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
     - `coordinax.frames.Coordinate`:
 
     >>> w = cx.frames.Coordinate({"length": u.Quantity([1, 2, 3], "kpc")},
-    ...                          frame=gc.frames.SimulationFrame())
+    ...                          frame=gc.frames.simulation_frame)
     >>> print(pot.gradient(w, t))
     <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [0.086 0.172 0.258]>
@@ -1126,7 +1126,7 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0 | gt.BBtRealSz
     - `coordinax.Coordinate`:
 
     >>> coord = cx.Coordinate({"length": cx.vecs.FourVector.from_([0, 1, 2, 3], "kpc")},
-    ...                       frame=gc.frames.SimulationFrame())
+    ...                       frame=gc.frames.simulation_frame)
     >>> pot.d2potential_dr2(coord, t)
     Quantity[...](Array(-0.17175361, dtype=float64), unit='1 / Myr2')
 
@@ -1205,7 +1205,7 @@ def spherical_mass_enclosed(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
     - `coordinax.Coordinate`:
 
     >>> coord = cx.Coordinate({"length": cx.vecs.FourVector.from_([0, 8, 0, 0], "kpc")},
-    ...                       frame=gc.frames.SimulationFrame())
+    ...                       frame=gc.frames.simulation_frame)
     >>> gp.spherical_mass_enclosed(pot, coord).uconvert("Msun")
     Quantity['mass'](Array(9.99105233e+10, dtype=float64), unit='solMass')
 

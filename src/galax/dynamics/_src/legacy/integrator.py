@@ -247,7 +247,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         # Return
         out_kw = {
-            "frame": gc.frames.SimulationFrame(),  # TODO: determine the frame
+            "frame": gc.frames.simulation_frame,  # TODO: determine the frame
             "units": field.units,
         }
         if dense:

@@ -97,7 +97,7 @@ def lagrange_points(
 
     - With `coordinax.Coordinate`:
 
-    >>> coord = cx.Coordinate(space, frame=gc.frames.SimulationFrame())
+    >>> coord = cx.Coordinate(space, frame=gc.frames.simulation_frame)
     >>> lpts = gd.cluster.lagrange_points(pot, coord, mass=mass, t=t)
     >>> lpts
     L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
@@ -208,7 +208,7 @@ def tidal_radius(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
     >>> gdc.tidal_radius(pot, space, mass=mass, t=t)
     Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
 
-    >>> coord = cx.Coordinate(space, frame=gc.frames.SimulationFrame())
+    >>> coord = cx.Coordinate(space, frame=gc.frames.simulation_frame)
     >>> gdc.tidal_radius(pot, coord, mass=mass, t=t)
     Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
 

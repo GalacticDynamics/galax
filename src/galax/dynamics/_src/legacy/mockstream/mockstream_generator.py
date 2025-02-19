@@ -248,7 +248,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         frame = (
             prog_w0.frame
             if isinstance(prog_w0, gc.AbstractPhaseSpaceObject)
-            else gc.frames.SimulationFrame()
+            else gc.frames.simulation_frame
         )
 
         comps = {}

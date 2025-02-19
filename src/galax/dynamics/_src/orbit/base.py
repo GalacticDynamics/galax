@@ -253,7 +253,7 @@ def _psc_getitem_time_index(
     >>> orbit = gd.Orbit(
     ...     q=u.Quantity([[0, 1, 2]], "kpc"), p=u.Quantity([[4, 5, 6]], "km/s"),
     ...     t=u.Quantity(0, "Gyr"), potential=pot,
-    ...     frame=gc.frames.SimulationFrame())
+    ...     frame=gc.frames.simulation_frame)
     >>> print(orbit)
     Orbit(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])

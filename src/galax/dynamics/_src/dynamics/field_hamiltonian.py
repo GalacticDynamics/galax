@@ -427,7 +427,7 @@ def call(
     self: HamiltonianField, w: cx.frames.AbstractCoordinate, args: Args = None, /
 ) -> gdt.BtPAarr:
     """Call with `coordinax.AbstractCoordinate`."""
-    w = w.to_frame(gc.frames.SimulationFrame())  # TODO: enable other frames
+    w = w.to_frame(gc.frames.simulation_frame)  # TODO: enable other frames
     return self(w.data, args)
 
 
@@ -438,5 +438,5 @@ def call(
 ) -> gdt.BtPAarr:
     """Call with `galax.coordinates.PhaseSpacePosition`."""
     assert w.t is not None  # noqa: S101
-    w = w.to_frame(gc.frames.SimulationFrame())  # TODO: enable other frames
+    w = w.to_frame(gc.frames.simulation_frame)  # TODO: enable other frames
     return self(w.t, w._qp(units=self.units), args)  # noqa: SLF001

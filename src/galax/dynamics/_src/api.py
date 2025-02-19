@@ -59,7 +59,7 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
         [[[ 0.  0. 35.]
           [ 0.  0. 48.]]]>
 
-    >>> w = cx.frames.Coordinate(space, frame=gc.frames.SimulationFrame())
+    >>> w = cx.frames.Coordinate(space, frame=gc.frames.simulation_frame)
     >>> h = gd.specific_angular_momentum(w)
     >>> print(h)
     <CartesianGeneric3D (x[m2 / s], y[m2 / s], z[m2 / s])
@@ -110,7 +110,7 @@ def omega(x: Any, v: Any, /) -> gt.BBtRealQuSz0:
     >>> omega(space)
     BareQuantity(Array(1., dtype=float64), unit='1 / s')
 
-    >>> w = cx.frames.Coordinate(space, frame=gc.frames.SimulationFrame())
+    >>> w = cx.frames.Coordinate(space, frame=gc.frames.simulation_frame)
     >>> omega(w)
     BareQuantity(Array(1., dtype=float64), unit='1 / s')
 

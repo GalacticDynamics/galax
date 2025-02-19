@@ -34,14 +34,31 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
 
     Define a Hamiltonian field:
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     Evaluate the field at a given coordinate:
 
-    >>> field(u.Quantity(0, "Gyr"), u.Quantity([8., 0, 0], "kpc"), u.Quantity([0, 22, 0], "km/s"))
+    >>> t = u.Quantity(0, "Gyr")
+    >>> x = u.Quantity([8., 0, 0], "kpc")
+    >>> v = u.Quantity([0, 22, 0], "km/s")
+
+    >>> field(t, x, v)
     (Array([0.        , 0.02249967, 0.        ], dtype=float64, ...),
      Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    This can also be done with `jax.Array` directly, but care must be taken to
+    ensure the units are correct. In this case ``x`` is in the right units, but
+    ``t``, ``v`` are not. We use `unxt.ustrip` to correctly convert and remove
+    the units:
+
+    >>> field(t.ustrip("Myr"), x.value, v.ustrip("kpc/Myr"))
+    (Array([0.        , 0.02249967, 0.        ], dtype=float64, ...),
+     Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    Field evaluation is very flexible and can work with a large variety of
+    inputs. For more information, see the
+    `galax.dynamics.fields.HamiltonianField` class.
 
     For integration with `diffrax.diffeqsolve` the ``terms`` method returns the
     correctly-structured `diffrax.AbstractTerm` `jaxtyping.PyTree`. The term is
@@ -54,7 +71,7 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
     >>> field.terms(dfx.SemiImplicitEuler())
     (ODETerm( ... ), ODETerm( ... ))
 
-    """  # noqa: E501
+    """
 
     __call__: eqx.AbstractClassVar[Callable[..., Any]]
 

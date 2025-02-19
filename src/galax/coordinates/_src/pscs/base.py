@@ -140,7 +140,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
     # ==========================================================================
     # Convenience methods
 
-    def wt(self, *, units: Any) -> gt.BtSz7:
+    def wt(self, *, units: Any) -> gt.BBtSz7:
         """Phase-space position as an Array[float, (*batch, 1+Q+P)].
 
         This is the full phase-space position, including the time.

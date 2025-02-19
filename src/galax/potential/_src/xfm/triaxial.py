@@ -85,8 +85,9 @@ class TriaxialInThePotential(AbstractTransformedPotential):
     ) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz.astype(float))
         # Transform the position
-        xyz = xyz.at[..., 1].divide(self.y_over_x(t).value)
-        xyz = xyz.at[..., 2].divide(self.z_over_x(t).value)
+        u1 = self.units["dimensionless"]
+        xyz = xyz.at[..., 1].divide(self.y_over_x(t, ustrip=u1))
+        xyz = xyz.at[..., 2].divide(self.z_over_x(t, ustrip=u1))
 
         # Evaluate the potential energy at the transformed position, time.
         return self.original_potential._potential(xyz, t)  # noqa: SLF001

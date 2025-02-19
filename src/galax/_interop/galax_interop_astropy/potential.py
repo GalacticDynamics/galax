@@ -26,7 +26,7 @@ def parse_to_xyz_t(
     t: Real[APYQuantity, "*#batch"],
     /,
     **kw: Any,
-) -> tuple[gt.BBtQuSz3, gt.BBtRealQuSz0]:
+) -> tuple[gt.BBtQuSz3, gt.BBtQuSz0]:
     """Parse input arguments to position & time."""
     return parse_to_xyz_t(to_frame, convert(xyz, FastQ), convert(t, FastQ), **kw)
 
@@ -38,7 +38,7 @@ def parse_to_xyz_t(
     t: Any,
     /,
     **kw: Any,
-) -> tuple[gt.BBtQuSz3, gt.BBtRealQuSz0]:
+) -> tuple[gt.BBtQuSz3, gt.BBtQuSz0]:
     """Parse input arguments to position & time."""
     cart = convert(q, cx.CartesianPos3D)
     return parse_to_xyz_t(to_frame, cart, convert(t, FastQ), **kw)
@@ -53,7 +53,7 @@ def potential(
     xyz: Real[APYQuantity, "*#batch 3"],
     t: Real[APYQuantity, "*#batch"],
     /,
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     """Compute the potential energy at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
@@ -85,7 +85,7 @@ def density(
     xyz: Real[APYQuantity, "*#batch 3"],
     t: Real[APYQuantity, "*#batch"],
     /,
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     """Compute the density at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to

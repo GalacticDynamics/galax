@@ -116,7 +116,7 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[
         self,
         terms: Terms,
         state: SolveState,
-        t1: gt.RealSz0,
+        t1: gt.Sz0,
         args: Any,
         step_kw: dict[str, Any],
     ) -> SolveState:

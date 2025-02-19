@@ -83,7 +83,7 @@ def specific_angular_momentum(
 @partial(jax.jit)
 def omega(
     x: gt.BBtSz3 | gt.BBtQuSz3, v: gt.BBtSz3 | gt.BBtQuSz3, /
-) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Compute from `unxt.Quantity`s as Cartesian coordinates."""
     r = jnp.linalg.vector_norm(x, axis=-1, keepdims=True)
     om = jnp.linalg.cross(x, v) / r**2
@@ -92,7 +92,7 @@ def omega(
 
 @dispatch
 @partial(jax.jit)
-def omega(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtRealQuSz0:
+def omega(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtQuSz0:
     """Compute from `coordinax.vecs.AbstractVector`s."""
     # TODO: more directly using the vectors
     v = convert(cx.vconvert(cx.CartesianVel3D, v, x), BareQuantity)
@@ -102,20 +102,20 @@ def omega(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtRealQu
 
 @dispatch
 @partial(jax.jit)
-def omega(w: cx.Space, /) -> gt.BBtRealQuSz0:
+def omega(w: cx.Space, /) -> gt.BBtQuSz0:
     """Compute from a `coordinax.Space`."""
     return omega(w["length"], w["speed"])
 
 
 @dispatch
 @partial(jax.jit)
-def omega(w: cx.frames.AbstractCoordinate, /) -> gt.BBtRealQuSz0:
+def omega(w: cx.frames.AbstractCoordinate, /) -> gt.BBtQuSz0:
     """Compute from a `coordinax.frames.AbstractCoordinate`."""
     return omega(w.data)
 
 
 @dispatch
 @partial(jax.jit)
-def omega(w: gc.AbstractPhaseSpaceObject, /) -> gt.BBtRealQuSz0:
+def omega(w: gc.AbstractPhaseSpaceObject, /) -> gt.BBtQuSz0:
     """Compute from a `galax.coordinates.AbstractPhaseSpaceObject`."""
     return omega(w.q, w.p)

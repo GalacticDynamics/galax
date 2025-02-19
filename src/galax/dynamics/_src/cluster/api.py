@@ -177,7 +177,7 @@ def relaxation_time(*args: Any, **kwargs: Any) -> u.AbstractQuantity:
 
 
 @dispatch.abstract
-def tidal_radius(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
+def tidal_radius(*args: Any, **kwargs: Any) -> gt.BBtQuSz0:
     """Compute the tidal radius of a cluster in the potential.
 
     Examples

@@ -111,8 +111,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @abc.abstractmethod
     def _potential(
-        self, q: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
-    ) -> gt.BBtRealQuSz0 | gt.BBtSz0:
+        self, q: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
+    ) -> gt.BBtQuSz0 | gt.BBtSz0:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.
@@ -171,7 +171,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @vectorize_method(signature="(3),()->(3)")
     @partial(jax.jit)
     def _gradient(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.RealQuSz0, /
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0, /
     ) -> gt.FloatSz3:
         """See ``gradient``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
@@ -192,7 +192,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @vectorize_method(signature="(3),()->()")
     @partial(jax.jit)
     def _laplacian(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, /, t: gt.RealQuSz0 | gt.RealSz0
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, /, t: gt.QuSz0 | gt.Sz0
     ) -> gt.FloatSz0:
         """See ``laplacian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
@@ -211,9 +211,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # Density
 
     @partial(jax.jit)
-    def _density(
-        self, q: gt.BBtQuSz3, t: gt.BBtRealQuSz0 | gt.RealQuSz0, /
-    ) -> gt.BBtFloatSz0:
+    def _density(self, q: gt.BBtQuSz3, t: gt.BBtQuSz0 | gt.QuSz0, /) -> gt.BBtFloatSz0:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
         laplacian = self._laplacian(q, t)
@@ -232,7 +230,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @vectorize_method(signature="(3),()->(3,3)")
     @partial(jax.jit)
     def _hessian(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.RealQuSz0 | gt.RealSz0, /
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
     ) -> gt.Sz33:
         """See ``hessian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
@@ -290,7 +288,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     # ---------------------------------------
 
-    def dpotential_dr(self, *args: Any, **kwargs: Any) -> gt.BtRealQuSz0 | gt.BtRealSz0:
+    def dpotential_dr(self, *args: Any, **kwargs: Any) -> gt.BtQuSz0 | gt.BtSz0:
         """Compute the radial derivative of the potential.
 
         See :func:`~galax.potential.dpotential_dr` for details.
@@ -298,9 +296,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         """
         return api.dpotential_dr(self, *args, **kwargs)
 
-    def d2potential_dr2(
-        self, *args: Any, **kwargs: Any
-    ) -> gt.BtRealQuSz0 | gt.BtRealSz0:
+    def d2potential_dr2(self, *args: Any, **kwargs: Any) -> gt.BtQuSz0 | gt.BtSz0:
         """Compute the second radial derivative of the potential.
 
         See :func:`~galax.potential.d2potential_dr2` for details.

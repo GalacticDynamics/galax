@@ -26,7 +26,11 @@ from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")
 Interp = TypeVar("Interp")
-Time: TypeAlias = gt.QuSz0 | gt.RealSz0Like
+
+IntLike: TypeAlias = gt.IntSz0 | int
+FloatLike: TypeAlias = gt.FloatSz0 | float | int
+RealSz0Like: TypeAlias = FloatLike | IntLike
+Time: TypeAlias = gt.QuSz0 | RealSz0Like
 Times: TypeAlias = gt.QuSzTime | gt.SzTime
 
 

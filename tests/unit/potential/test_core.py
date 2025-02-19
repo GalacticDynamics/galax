@@ -55,10 +55,7 @@ class TestAbstractSinglePotential(AbstractSinglePotential_Test):
 
             @partial(jax.jit, inline=True)
             def _potential(  # TODO: inputs w/ units
-                self,
-                xyz: gt.BBtQuSz3 | gt.BBtSz3,
-                t: gt.BBtRealQuSz0 | gt.BBtRealSz0,
-                /,
+                self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
             ) -> gt.BBtSz0:
                 m_tot = self.m_tot(t, ustrip=self.units["mass"])
                 xyz = u.ustrip(AllowValue, self.units["length"], xyz)

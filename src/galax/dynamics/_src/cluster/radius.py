@@ -53,9 +53,7 @@ class AbstractTidalRadiusMethod:
 
 
 @dispatch
-def tidal_radius(
-    pot: gp.AbstractPotential, *args: Any, **kwargs: Any
-) -> gt.BBtRealQuSz0:
+def tidal_radius(pot: gp.AbstractPotential, *args: Any, **kwargs: Any) -> gt.BBtQuSz0:
     """Compute radius, defaulting to King (1962) tidal radius."""
     return tidal_radius_king1962(pot, *args, **kwargs)
 
@@ -72,7 +70,7 @@ class Hoerner1957(AbstractTidalRadiusMethod):
 @dispatch
 def tidal_radius(
     _: type[Hoerner1957], pot: gp.AbstractPotential, *args: Any, **kw: Any
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
     return tidal_radius_hoerner1957(pot, *args, **kw)
 
@@ -82,7 +80,7 @@ def tidal_radius(
 
 def tidal_radius_hoerner1957(
     pot: gp.AbstractPotential, xyz: gt.BBtQuSz3, /, *, mass: gt.BBtQuSz0, t: gt.BBtQuSz0
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     r"""Calculate the tidal radius of a star cluster based on von Hoerner (1957).
 
     Von Hoerner (1957) derived a theoretical tidal radius for a star cluster in
@@ -127,7 +125,7 @@ class King1962PointMass(AbstractTidalRadiusMethod):
 @dispatch
 def tidal_radius(
     _: type[King1962PointMass], pot: gp.AbstractPotential, **kw: Any
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
     return tidal_radius_king1962_pointmass(pot, **kw)
 
@@ -139,11 +137,11 @@ def tidal_radius_king1962_pointmass(
     pot: gp.AbstractPotential,
     /,
     *,
-    rperi: gt.BBtRealQuSz0 | cx.vecs.AbstractPos3D,
+    rperi: gt.BBtQuSz0 | cx.vecs.AbstractPos3D,
     mass: gt.BBtQuSz0,
-    t: gt.BBtRealQuSz0 | float,
+    t: gt.BBtQuSz0 | float,
     e: float = 0.0,
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     r"""Calculate the tidal radius of a star cluster based on King (1962).
 
     $$ r_t = R_{peri} \left(\frac{M_c}{(3+e)M_g}\right)^{1/3} $$
@@ -189,7 +187,7 @@ class King1962(AbstractTidalRadiusMethod):
 @dispatch
 def tidal_radius(
     _: type[King1962], pot: gp.AbstractPotential, *args: Any, **kw: Any
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
     return tidal_radius_king1962(pot, *args, **kw)
 
@@ -207,7 +205,7 @@ def tidal_radius_king1962(
     *,
     mass: gt.BBtSz0 | gt.BBtQuSz0,  # cluster mass
     t: gt.BBtSz0 | gt.BBtQuSz0,
-) -> gt.BBtRealSz0:
+) -> gt.BBtSz0:
     """Compute from `jax.Array`."""
     mass = u.ustrip(AllowValue, pot.units["mass"], mass)
     t = u.ustrip(AllowValue, pot.units["time"], t)
@@ -227,7 +225,7 @@ def tidal_radius_king1962(
     *,
     mass: gt.BBtQuSz0,
     t: gt.BBtQuSz0,
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     """Compute from `unxt.Quantity` or `coordinax.vecs.AbstractVector`s."""
     d2phi_dr2 = pot.d2potential_dr2(x, t)
     return jnp.cbrt(pot.constants["G"] * mass / (omega(x, v) ** 2 - d2phi_dr2))
@@ -241,7 +239,7 @@ def tidal_radius_king1962(
     *,
     mass: gt.BBtQuSz0,
     t: gt.BBtQuSz0,
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
     q, p = space["length"], space["speed"]
     return tidal_radius_king1962(pot, q, p, mass=mass, t=t)
@@ -255,7 +253,7 @@ def tidal_radius_king1962(
     *,
     mass: gt.BBtQuSz0,
     t: gt.BBtQuSz0,
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
     return tidal_radius_king1962(pot, coord.data, mass=mass, t=t)
 
@@ -267,6 +265,6 @@ def tidal_radius_king1962(
     /,
     *,
     mass: gt.BBtQuSz0,
-) -> gt.BBtRealQuSz0:
+) -> gt.BBtQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
     return tidal_radius_king1962(pot, w.q, w.p, mass=mass, t=w.t.squeeze())

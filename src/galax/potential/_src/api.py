@@ -1029,7 +1029,7 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
 
 
 @dispatch.abstract
-def local_circular_velocity(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
+def local_circular_velocity(*args: Any, **kwargs: Any) -> gt.BBtQuSz0:
     """Estimate the circular velocity at the given position.
 
     Examples
@@ -1058,7 +1058,7 @@ def local_circular_velocity(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0:
 
 
 @dispatch.abstract
-def dpotential_dr(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
+def dpotential_dr(*args: Any, **kwargs: Any) -> gt.BtQuSz0:
     """Compute the radial derivative of the potential at the given position(s).
 
     Examples
@@ -1107,7 +1107,7 @@ def dpotential_dr(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
 
 
 @dispatch.abstract
-def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0 | gt.BBtRealSz0:
+def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BBtQuSz0 | gt.BBtSz0:
     """Compute the second radial derivative of the potential.
 
     Examples
@@ -1192,7 +1192,7 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BBtRealQuSz0 | gt.BBtRealSz
 
 # TODO: change the name
 @dispatch.abstract
-def spherical_mass_enclosed(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
+def spherical_mass_enclosed(*args: Any, **kwargs: Any) -> gt.BtQuSz0:
     r"""Compute the mass enclosed within a spherical shell, assuming spherical symmetry.
 
     This assumes the potential is spherical, which is often NOT correct.

@@ -35,9 +35,7 @@ class AbstractDynamicsField(AbstractField, strict=True):  # type: ignore[call-ar
 
     @override  # specify the signature of the `__call__` method.
     @abstractmethod
-    def __call__(
-        self, t: Any, qp: tuple[Any, Any], args: tuple[Any, ...], /
-    ) -> tuple[Any, Any]:
+    def __call__(self, *_: Any, **kw: Any) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
 
 

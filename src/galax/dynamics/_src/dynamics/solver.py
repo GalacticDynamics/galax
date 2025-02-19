@@ -606,9 +606,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
 
 @dispatch
-def parse_to_y0(
-    qp: tuple[gdt.BBtQ, gdt.BBtP] | BBtQParr, units: u.AbstractUnitSystem, /
-) -> BBtQParr:
+def parse_to_y0(qp: gdt.BBtQP | BBtQParr, units: u.AbstractUnitSystem, /) -> BBtQParr:
     return tuple(
         jnp.broadcast_arrays(
             u.ustrip(AllowValue, units["length"], qp[0]).astype(float),

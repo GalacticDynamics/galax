@@ -36,7 +36,7 @@ def lagrange_points(
 @partial(jax.jit)
 def lagrange_points(
     potential: gp.AbstractPotential,
-    x: gt.LengthSz3 | cx.vecs.AbstractPos3D,
+    x: gt.QuSz3 | cx.vecs.AbstractPos3D,
     v: gt.QuSz3 | cx.vecs.AbstractVel3D,
     /,
     *,

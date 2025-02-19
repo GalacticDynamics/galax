@@ -486,6 +486,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
             Astrophysical Journal, 460, 136.
 
         """
+        # TODO: work w/out units
         # Compute the parameters.
         r_s = self.r_s(t)
         rho0 = self.rho0(t)
@@ -526,6 +527,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     def _density(
         self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
     ) -> gt.BBtFloatSz0:
+        # TODO: work w/out units
         xyz = u.Quantity.from_(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
 

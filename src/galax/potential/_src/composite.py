@@ -99,10 +99,12 @@ class CompositePotential(
             raise ValueError(msg)
         object.__setattr__(self, "units", usys)  # TODO: not call `object.__setattr__`
 
-        # TODO: some similar check that the same constants are the same, e.g.
-        #       `G` is the same for all potentials. Or use `constants` to update
-        #       the `constants` of every potential (before `super().__init__`)
-        object.__setattr__(self, "constants", ImmutableMap(constants))
+        # Constants
+        object.__setattr__(
+            self,
+            "constants",
+            ImmutableMap({k: v.decompose(usys) for k, v in constants.items()}),
+        )
 
         # Apply the unit system to any parameters.
         self._apply_unitsystem()

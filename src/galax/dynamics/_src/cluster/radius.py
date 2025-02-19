@@ -218,7 +218,7 @@ def tidal_radius_king1962(
     t = u.ustrip(AllowValue, pot.units["time"], t)
 
     d2phi_dr2 = pot.d2potential_dr2(xyz, t)
-    GM = pot.constants["G"].value * mass
+    GM = pot.constants["G"].value * mass  # TODO: G unit handling
     return jnp.cbrt(GM / (omega(xyz, v) ** 2 - d2phi_dr2))
 
 

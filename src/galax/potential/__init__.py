@@ -59,6 +59,8 @@ __all__ = [
     "tidal_tensor",
     "local_circular_velocity",
     "spherical_mass_enclosed",
+    "dpotential_dr",
+    "d2potential_dr2",
 ]
 
 from jaxtyping import install_import_hook
@@ -69,7 +71,9 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from . import io, params, plot
     from ._src.api import (
         acceleration,
+        d2potential_dr2,
         density,
+        dpotential_dr,
         gradient,
         hessian,
         laplacian,

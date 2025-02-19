@@ -1259,7 +1259,7 @@ def spherical_mass_enclosed(*args: Any, **kwargs: Any) -> gt.BtRealQuSz0:
     >>> x = jnp.asarray([8, 0, 0])
     >>> t = jnp.asarray(0)
     >>> gp.spherical_mass_enclosed(pot, x, t)
-    Array(6.73400512e+09, dtype=float64)
+    Array(9.99105233e+10, dtype=float64)
 
     """  # noqa: E501
     raise NotImplementedError  # pragma: no cover

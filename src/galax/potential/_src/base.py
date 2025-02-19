@@ -231,7 +231,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @partial(jax.jit)
     def _hessian(
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.RealQuSz0 | gt.RealSz0, /
-    ) -> gt.FloatSz33:
+    ) -> gtSz33:
         """See ``hessian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)

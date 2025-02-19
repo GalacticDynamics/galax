@@ -277,7 +277,7 @@ def density(
 @partial(jax.jit, inline=True)
 def hessian(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
-) -> gt.BBtRealSz33:
+) -> gt.BBtSz33:
     """Compute the hessian at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
@@ -293,7 +293,7 @@ def hessian(
 @partial(jax.jit, inline=True)
 def hessian(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
-) -> gt.BBtRealSz33:
+) -> gt.BBtSz33:
     return api.hessian(pot, xyz, t)
 
 

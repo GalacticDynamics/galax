@@ -101,7 +101,7 @@ def hessian(
     xyz: Real[APYQuantity, "*#batch 3"],
     t: Real[APYQuantity, "*#batch"],
     /,
-) -> gt.BBtRealQuSz33:
+) -> gt.BBtQuSz33:
     """Compute the density at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to

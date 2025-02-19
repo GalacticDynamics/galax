@@ -208,93 +208,96 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
 
     We can also compute the potential energy at multiple positions and times:
 
-    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
-    ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
-    ...                             t=u.Quantity([0, 1], "Gyr"))
-    >>> print(pot.gradient(w))
+    >>> wt = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
+    ...                              p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
+    ...                              t=u.Quantity([0, 1], "Gyr"))
+    >>> print(pot.gradient(wt))
     <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
     The function is very flexible and can accept a broad variety of inputs.
-    Let's work down the type ladder:
+    Let's work up the type ladder:
 
-    - `galax.coordinates.PhaseSpaceCoordinate`:
+    - `jax.Array`s: which is interpreted as a `coordinax.vecs.CartesianPos3D`
+      position in the same unit system as the potential. For performance reasons
+      the output is a `jax.Array`. Be careful!
 
-    >>> print(pot.gradient(w))  # re-using the previous example
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [[0.086 0.172 0.258]
-         [0.027 0.033 0.04 ]]>
+    >>> xyz = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+    >>> t = 0
+    >>> pot.gradient(q, t)
+    Array([[0.08587681, 0.17175361, 0.25763042],
+           [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64)
 
-    - `galax.coordinates.PhaseSpacePosition`:
+    >>> pot.gradient(q, t=t)
+    Array([[0.08587681, 0.17175361, 0.25763042],
+           [0.02663127, 0.03328908, 0.0399469 ]], dtype=float64)
 
-    >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                           p=u.Quantity([4, 5, 6], "km/s"))
+    - A `unxt.Quantity`, which is interpreted as a
+      `coordinax.vecs.CartesianPos3D` position:
+
+    >>> xyz = u.Quantity([1., 2, 3], "kpc")
     >>> t = u.Quantity(0, "Gyr")
-    >>> print(pot.gradient(w, t))
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [0.086 0.172 0.258]>
+    >>> pot.gradient(xyz, t)
+    Quantity[...](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
 
-    - `coordinax.frames.Coordinate`:
+    >>> pot.gradient(xyz, t=t)
+    Quantity[...](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
 
-    >>> w = cx.frames.Coordinate({"length": u.Quantity([1, 2, 3], "kpc")},
-    ...                          frame=gc.frames.simulation_frame)
-    >>> print(pot.gradient(w, t))
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [0.086 0.172 0.258]>
+    - `coordinax.vecs.AbstractPos3D`:
 
-    - `coordinax.vecs.Space`:
-
-    >>> w = cx.vecs.Space({"length": u.Quantity([1, 2, 3], "kpc")})
-    >>> print(pot.gradient(w, t))
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [0.086 0.172 0.258]>
-
-    - `~vector.FourVector`:
-
-    >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
-    >>> print(pot.gradient(w))
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [0.086 0.172 0.258]>
-
-    This function is very flexible and can accept a broad variety of inputs. For
-    example, can pass a `~coordinates.AbstractPos3D` and time `unxt.Quantity`
-    (which can be a keyword argument):
-
-    >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = cx.CartesianPos3D.from_(xyz)
     >>> print(pot.gradient(q, t=t))
     <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [0.086 0.172 0.258]>
 
     We can also compute the potential energy at multiple positions:
 
-    >>> q = cx.CartesianPos3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
-    >>> print(pot.gradient(q, t))
+    >>> qs = cx.CartesianPos3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
+    >>> print(pot.gradient(qs, t=t))
     <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
-    Instead of passing a `~coordinax.AbstractPos3D` (in this case a
-    `~coordinax.CartesianPos3D`), we can instead pass a `unxt.Quantity`, which
-    is interpreted as a Cartesian position:
+    - `coordinax.vecs.FourVector`:
 
-    >>> q = u.Quantity([1., 2, 3], "kpc")
-    >>> print(pot.gradient(q, t))
-    Quantity[...](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
+    >>> w = cx.FourVector(q=q, t=t)
+    >>> print(pot.gradient(w))
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
+        [0.086 0.172 0.258]>
 
-    Again, this can be batched.  If the input position object has no units (i.e.
-    is an `~jax.Array`), it is assumed to be in the same unit system as the
-    potential.
+    - `coordinax.vecs.Space`:
 
-    >>> import jax.numpy as jnp
-    >>> q = jnp.asarray([[1., 2, 3], [4, 5, 6]])
-    >>> print(pot.gradient(q, t))
+    >>> w = cx.vecs.Space(length=q)
+    >>> print(pot.gradient(w, t))
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
+        [0.086 0.172 0.258]>
+
+    - `coordinax.frames.Coordinate`:
+
+    >>> w = cx.frames.Coordinate({"length": q},
+    ...                          frame=gc.frames.simulation_frame)
+    >>> print(pot.gradient(w, t))
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
+        [0.086 0.172 0.258]>
+
+    - `galax.coordinates.PhaseSpacePosition`:
+
+    >>> p = u.Quantity([4, 5, 6], "km/s")
+    >>> w = gc.PhaseSpacePosition(q=q, p=p)
+    >>> print(pot.gradient(w, t))
+    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
+        [0.086 0.172 0.258]>
+
+    - `galax.coordinates.PhaseSpaceCoordinate`:
+
+    >>> print(pot.gradient(wt))  # re-using the previous example
     <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
         [[0.086 0.172 0.258]
          [0.027 0.033 0.04 ]]>
 
-    - - -
+
+    ## Astropy Support
 
     `galax.potential.gradient` also supports Astropy objects, like
     `astropy.coordinates.BaseRepresentation` and `astropy.units.Quantity`, which
@@ -333,8 +336,7 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
 
     >>> q = [1., 2, 3] * apyu.kpc
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [0.086 0.172 0.258]>
+    Quantity[...](Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is an `~numpy.ndarray`), it is assumed to be in the same unit system as the
@@ -342,9 +344,8 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
 
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> print(pot.gradient(q, t))
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [[0.086 0.172 0.258]
-         [0.027 0.033 0.04 ]]>
+    [[0.08587681 0.17175361 0.25763042]
+     [0.02663127 0.03328908 0.0399469 ]]
 
     .. skip: end
 
@@ -815,9 +816,8 @@ def acceleration(*args: Any, **kwargs: Any) -> Any:
          [-0.027 -0.033 -0.04 ]]>
 
     This function is very flexible and can accept a broad variety of inputs. For
-    example, instead of passing a
-    `galax.coordinates.PhaseSpaceCoordinate`, we can instead pass a
-    `~vector.FourVector`:
+    example, instead of passing a `galax.coordinates.PhaseSpaceCoordinate`, we
+    can instead pass a `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
     >>> print(pot.acceleration(w))
@@ -848,17 +848,6 @@ def acceleration(*args: Any, **kwargs: Any) -> Any:
     >>> q = u.Quantity([1., 2, 3], "kpc")
     >>> print(pot.acceleration(q, t=t))
     Quantity[...](Array([-0.08587681, -0.17175361, -0.25763042], dtype=float64), unit='kpc / Myr2')
-
-    Again, this can be batched.  If the input position object has no units (i.e.
-    is an `~jax.Array`), it is assumed to be in the same unit system as the
-    potential.
-
-    >>> import jax.numpy as jnp
-    >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-    >>> print(pot.acceleration(q, t=t))
-    <CartesianAcc3D (x[kpc / Myr2], y[kpc / Myr2], z[kpc / Myr2])
-        [[-0.086 -0.172 -0.258]
-         [-0.027 -0.033 -0.04 ]]>
 
     """  # noqa: E501
     raise NotImplementedError  # pragma: no cover

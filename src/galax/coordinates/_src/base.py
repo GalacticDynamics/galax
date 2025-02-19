@@ -19,7 +19,7 @@ import unxt as u
 from dataclassish import field_items, replace
 from unxt.quantity import AbstractQuantity, BareQuantity as FastQ
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .utils import SLICE_ALL, PSPVConvertOptions
 from galax.coordinates._src.frames import SimulationFrame
 

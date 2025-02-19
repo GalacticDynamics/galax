@@ -17,7 +17,7 @@ import unxt as u
 from unxt.unitsystems import AbstractUnitSystem
 from xmmutablemap import ImmutableMap
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
@@ -73,7 +73,7 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         # \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
         omega = self.omega(t, ustrip=self.units["frequency"])
@@ -82,7 +82,7 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _density(
-        self, _: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BtRealQuSz0 | gt.BtRealSz0, /
+        self, _: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BtQuSz0 | gt.BtSz0, /
     ) -> gt.BBtFloatSz0:
         # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i \omega_i^2
         omega = jnp.atleast_1d(self.omega(t, ustrip=self.units["frequency"]))
@@ -148,8 +148,8 @@ class HenonHeilesPotential(AbstractSinglePotential):
     @partial(jax.jit)
     def _potential(
         self,
-        xyz: gt.BBtRealQuSz3 | gt.BBtRealSz3,
-        t: gt.BBtRealQuSz0 | gt.BBtRealSz0,
+        xyz: gt.BBtQuSz3 | gt.BBtSz3,
+        t: gt.BBtQuSz0 | gt.BBtSz0,
         /,
     ) -> gt.BBtSz0:
         ts2 = self.timescale(t, ustrip=self.units["time"]) ** 2

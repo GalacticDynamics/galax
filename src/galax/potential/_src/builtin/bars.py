@@ -16,7 +16,7 @@ import quaxed.numpy as jnp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
@@ -61,7 +61,7 @@ class BarPotential(AbstractSinglePotential):
 
     @vectorize_method(signature="(3),()->()")
     @partial(jax.jit)
-    def _potential(self, xyz: gt.QuSz3, t: gt.RealQuSz0, /) -> gt.BtSz0:
+    def _potential(self, xyz: gt.QuSz3, t: gt.QuSz0, /) -> gt.BtSz0:
         # Parse input and params
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -108,7 +108,7 @@ class LongMuraliBarPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         # Parse inputs and params
         ul = self.units["length"]

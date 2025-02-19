@@ -11,10 +11,10 @@ from jaxtyping import PRNGKeyArray
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-import galax.typing as gt
 
 usys = u.unitsystem("kpc", "Myr", "Msun", "radian")
 df = gd.FardalStreamDF()

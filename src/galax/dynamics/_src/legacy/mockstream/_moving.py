@@ -14,17 +14,17 @@ import equinox as eqx
 
 from coordinax.ops import AbstractOperator
 
-from galax.typing import FloatSz0, RealSz0, Sz3
+import galax._custom_types as gt
 
 
 @final
 class TimeDependentSpatialTranslationOperator(AbstractOperator):  # type: ignore[misc]
     r"""Operator for time-dependent translation."""
 
-    translation: Callable[[FloatSz0], Sz3] = eqx.field()
+    translation: Callable[[gt.Sz0], gt.Sz3] = eqx.field()
     """The spatial translation."""
 
-    def __call__(self, q: Sz3, t: RealSz0) -> tuple[Sz3, RealSz0]:
+    def __call__(self, q: gt.Sz3, t: gt.Sz0) -> tuple[gt.Sz3, gt.Sz0]:
         """Do."""
         return (q + self.translation(t), t)
 

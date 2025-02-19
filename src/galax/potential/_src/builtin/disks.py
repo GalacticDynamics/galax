@@ -20,7 +20,7 @@ import unxt as u
 from unxt.unitsystems import AbstractUnitSystem, dimensionless
 from xmmutablemap import ImmutableMap
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
@@ -54,7 +54,7 @@ class KuzminPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -92,7 +92,7 @@ class MiyamotoNagaiPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
@@ -162,7 +162,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
     )
 
     def _get_mn_components(
-        self, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> tuple[MiyamotoNagaiPotential, MiyamotoNagaiPotential, MiyamotoNagaiPotential]:
         hR = self.h_R(t)
         hzR = (self.h_z(t) / hR).ustrip(dimensionless)
@@ -192,7 +192,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -203,7 +203,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtFloatSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         densities = jnp.asarray(

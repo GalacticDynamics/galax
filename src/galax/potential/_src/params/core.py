@@ -20,7 +20,7 @@ from dataclassish.converters import Unless
 from unxt._src.units.api import AstropyUnits
 from unxt.quantity import AbstractQuantity
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.utils._unxt import AllowValue
 
 t0 = u.Quantity(0, "Myr")
@@ -31,13 +31,13 @@ class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
     def __call__(
-        self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
-    ) -> gt.FloatQuSzAny | gt.FloatSzAny:
+        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+    ) -> gt.QuSzAny | gt.SzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : `~galax.typing.BBtRealQuSz0`
+        t : `~galax.typing.BBtQuSz0`
             Time(s) at which to compute the parameter value.
         ustrip : Unit | None
             Unit to strip from the parameter value.
@@ -67,13 +67,13 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
 
     @abc.abstractmethod
     def __call__(
-        self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
-    ) -> gt.FloatQuSzAny:
+        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+    ) -> gt.QuSzAny:
         """Compute the parameter value at the given time(s).
 
         Parameters
         ----------
-        t : `~galax.typing.BBtRealQuSz0`
+        t : `~galax.typing.BBtQuSz0`
             The time(s) at which to compute the parameter value.
         ustrip : Unit | None
             The unit to strip from the parameter value. If None, the
@@ -143,24 +143,22 @@ class ConstantParameter(AbstractParameter):
     """
 
     # TODO: link this shape to the return shape from __call__
-    value: gt.FloatQuSzAny = eqx.field(
-        converter=Unless(AbstractQuantity, u.Quantity.from_)
-    )
+    value: gt.QuSzAny = eqx.field(converter=Unless(AbstractQuantity, u.Quantity.from_))
     """The time-independent value of the parameter."""
 
     @partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
         self,
-        t: gt.BBtRealQuSz0 = t0,  # noqa: ARG002
+        t: gt.BBtQuSz0 = t0,  # noqa: ARG002
         *,
         ustrip: AstropyUnits | None = None,
         **__: Any,
-    ) -> gt.FloatQuSzAny:
+    ) -> gt.QuSzAny:
         """Return the constant parameter value.
 
         Parameters
         ----------
-        t : `~galax.typing.BBtRealQuSz0`, optional
+        t : `~galax.typing.BBtQuSz0`, optional
             This is ignored and is thus optional. Note that for most
             :class:`~galax.potential.AbstractParameter` the time is required.
         ustrip : Unit | None
@@ -245,9 +243,9 @@ class LinearParameter(AbstractParameter):
 
     """
 
-    slope: gt.FloatQuSzAny = eqx.field(converter=u.Quantity.from_)
-    point_time: gt.BBtRealQuSz0 = eqx.field(converter=u.Quantity["time"].from_)
-    point_value: gt.FloatQuSzAny = eqx.field(converter=u.Quantity.from_)
+    slope: gt.QuSzAny = eqx.field(converter=u.Quantity.from_)
+    point_time: gt.BBtQuSz0 = eqx.field(converter=u.Quantity["time"].from_)
+    point_value: gt.QuSzAny = eqx.field(converter=u.Quantity.from_)
 
     def __check_init__(self) -> None:
         """Check the initialization of the class."""
@@ -255,8 +253,8 @@ class LinearParameter(AbstractParameter):
 
     @partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
-        self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **_: Any
-    ) -> gt.FloatQuSzAny | gt.FloatSzAny:
+        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **_: Any
+    ) -> gt.QuSzAny | gt.SzAny:
         """Return the parameter value.
 
         .. math::
@@ -321,7 +319,7 @@ class UserParameter(AbstractParameter):
 
     @partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
-        self, t: gt.BBtRealQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
-    ) -> gt.FloatQuSzAny | gt.FloatSzAny:
+        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+    ) -> gt.QuSzAny | gt.SzAny:
         out = self.func(t, **kwargs)
         return out if ustrip is None else u.ustrip(AllowValue, ustrip, out)

@@ -18,7 +18,7 @@ from dataclassish import field_items
 from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .base import AbstractPhaseSpaceCoordinate, ComponentShapeTuple
 from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.utils import PSPVConvertOptions
@@ -173,7 +173,7 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     # Collection methods
 
     @property
-    def shapes(self) -> Mapping[str, tuple[int, ...]]:
+    def shapes(self) -> Mapping[str, gt.Shape]:
         """Get the shapes of the components."""
         return MappingProxyType({k: v.shape for k, v in field_items(self)})
 

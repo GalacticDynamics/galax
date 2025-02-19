@@ -8,8 +8,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.unitsystems import galactic
 
+import galax._custom_types as gt
 import galax.potential as gp
-import galax.typing as gt
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMMixin, ParameterScaleRadiusMixin
 

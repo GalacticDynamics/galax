@@ -14,9 +14,9 @@ import unxt as u
 from dataclassish import replace
 from unxt.unitsystems import galactic
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.potential as gp
-import galax.typing as gt
 from ..test_base import AbstractPhaseSpaceObject_Test, getkeys
 
 WT = TypeVar("WT", bound=gc.AbstractPhaseSpaceCoordinate)

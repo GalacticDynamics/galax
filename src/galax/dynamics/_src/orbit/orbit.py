@@ -9,9 +9,9 @@ import equinox as eqx
 import coordinax as cx
 import unxt as u
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.potential as gp
-import galax.typing as gt
 from .base import AbstractOrbit
 
 

@@ -17,7 +17,7 @@ import unxt as u
 from unxt.unitsystems import AbstractUnitSystem
 from xmmutablemap import ImmutableMap
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
@@ -40,7 +40,7 @@ class LogarithmicPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         # Compute parameters
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -75,7 +75,7 @@ class LMJ09LogarithmicPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         # Load parameters
         u1 = self.units["dimensionless"]

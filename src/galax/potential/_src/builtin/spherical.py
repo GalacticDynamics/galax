@@ -27,7 +27,7 @@ import unxt as u
 from unxt.unitsystems import AbstractUnitSystem
 from xmmutablemap import ImmutableMap
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .const import BURKERT_CONST
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
@@ -66,7 +66,7 @@ class BurkertPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         # Parse inputs
         m = self.m(t, ustrip=self.units["mass"])
@@ -86,7 +86,7 @@ class BurkertPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BtFloatSz0:
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -96,9 +96,7 @@ class BurkertPotential(AbstractSinglePotential):
         return m / (jnp.pi * BURKERT_CONST) / ((r + r_s) * (r**2 + r_s**2))
 
     @partial(jax.jit)
-    def _mass(
-        self, q: gt.BtQuSz3, /, t: gt.BtRealQuSz0 | gt.RealQuSz0
-    ) -> gt.BtFloatQuSz0:
+    def _mass(self, q: gt.BBtQuSz3, /, t: gt.BtQuSz0 | gt.QuSz0) -> gt.BtFloatQuSz0:
         x = jnp.linalg.vector_norm(q, axis=-1) / self.r_s(t)
         return (
             self.m(t)
@@ -108,7 +106,7 @@ class BurkertPotential(AbstractSinglePotential):
 
     # -------------------------------------------------------------------
 
-    def rho0(self, t: gt.BtRealQuSz0 | gt.RealQuSz0) -> gt.BtFloatQuSz0:
+    def rho0(self, t: gt.BtQuSz0 | gt.QuSz0) -> gt.BtFloatQuSz0:
         r"""Central density of the potential.
 
         .. math::
@@ -182,7 +180,7 @@ class HernquistPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -193,7 +191,7 @@ class HernquistPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BtFloatSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -235,7 +233,7 @@ class IsochronePotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -257,7 +255,7 @@ class JaffePotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -289,7 +287,7 @@ class KeplerPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -298,7 +296,7 @@ class KeplerPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BtFloatSz0:
         m = self.m_tot(t, ustrip=self.units["mass"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -330,7 +328,7 @@ class PlummerPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -381,7 +379,7 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
     )
 
     @partial(jax.jit)
-    def _potential(self, xyz: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtSz0:
+    def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
         ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         alpha = self.alpha(t, ustrip=self.units["dimensionless"])
@@ -431,7 +429,7 @@ class StoneOstriker15Potential(AbstractSinglePotential):
     #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
 
     @partial(jax.jit)
-    def _potential(self, xyz: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtSz0:
+    def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_h = self.r_h(t, ustrip=self.units["length"])
         r_c = self.r_c(t, ustrip=self.units["length"])
@@ -520,7 +518,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         u1 = self.units["dimensionless"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])

@@ -15,7 +15,7 @@ import quaxed.numpy as jnp
 import unxt as u
 from dataclassish.converters import Unless
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.frames import SimulationFrame, simulation_frame
 from galax.coordinates._src.utils import PSPVConvertOptions

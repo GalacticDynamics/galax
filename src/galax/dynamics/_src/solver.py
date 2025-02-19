@@ -19,7 +19,7 @@ from jaxtyping import Array, PyTree, Real
 import diffraxtra as dfxtra
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 
 DenseInfo: TypeAlias = dict[str, PyTree[Array]]
 Terms: TypeAlias = PyTree
@@ -116,7 +116,7 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[
         self,
         terms: Terms,
         state: SolveState,
-        t1: gt.RealSz0,
+        t1: gt.Sz0,
         args: Any,
         step_kw: dict[str, Any],
     ) -> SolveState:

@@ -16,10 +16,10 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity as FastQ
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
-import galax.typing as gt
 from .field_base import AbstractDynamicsField
 from galax.potential._src.utils import parse_to_xyz_t
 from galax.utils._unxt import AllowValue
@@ -335,7 +335,7 @@ Args: TypeAlias = tuple[Any, ...] | None
 @partial(jax.jit)
 def call(
     self: HamiltonianField,
-    t: gt.RealQuSz0 | gt.BBtSz0 | gt.RealScalarLike,
+    t: gt.QuSz0 | gt.BBtSz0 | gt.RealScalarLike,
     q: gdt.BBtQ | gdt.BBtQarr,
     p: gdt.BBtP | gdt.BBtParr,
     _: Args = None,
@@ -352,7 +352,7 @@ def call(
 @partial(jax.jit)
 def call(
     self: HamiltonianField,
-    t: gt.RealQuSz0 | gt.BBtSz0 | gt.RealScalarLike,
+    t: gt.QuSz0 | gt.BBtSz0 | gt.RealScalarLike,
     qp: gdt.BBtQP | gdt.BBtQParr | tuple[cxv.AbstractPos3D, cxv.AbstractVel3D],
     args: Args = None,
     /,
@@ -399,7 +399,7 @@ def call(
 @partial(jax.jit)
 def call(
     self: HamiltonianField,
-    t: gt.RealQuSz0 | gt.BBtSz0 | gt.RealScalarLike,
+    t: gt.QuSz0 | gt.BBtSz0 | gt.RealScalarLike,
     qp: gt.BBtSz6,
     args: Args = None,
     /,
@@ -441,7 +441,7 @@ def call(
 @partial(jax.jit)
 def call(
     self: HamiltonianField,
-    t: gt.RealQuSz0 | gt.BBtSz0 | gt.RealScalarLike,
+    t: gt.QuSz0 | gt.BBtSz0 | gt.RealScalarLike,
     q: cxv.AbstractPos3D,
     p: cxv.AbstractVel3D,
     args: Args = None,

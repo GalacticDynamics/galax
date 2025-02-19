@@ -12,12 +12,12 @@ from ..test_common import (
     ParameterShapeHRMixin,
     ParameterShapeHZMixin,
 )
+from galax._custom_types import Sz3
 from galax.potential import (
     AbstractPotential,
     MN3ExponentialPotential,
     MN3Sech2Potential,
 )
-from galax.typing import Sz3
 
 
 class TestMN3ExponentialPotential(

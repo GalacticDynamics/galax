@@ -10,7 +10,7 @@ import jax
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -41,7 +41,7 @@ class SatohPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])

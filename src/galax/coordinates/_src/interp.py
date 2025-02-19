@@ -6,7 +6,7 @@ from typing import Protocol, runtime_checkable
 
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .base import AbstractPhaseSpaceObject
 
 

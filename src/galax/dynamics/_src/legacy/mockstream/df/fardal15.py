@@ -13,8 +13,8 @@ from jaxtyping import PRNGKeyArray
 import coordinax as cx
 import quaxed.numpy as jnp
 
+import galax._custom_types as gt
 import galax.potential as gp
-import galax.typing as gt
 from .base import AbstractStreamDF
 from galax.dynamics._src.api import omega
 from galax.dynamics._src.cluster.radius import tidal_radius
@@ -50,11 +50,11 @@ class FardalStreamDF(AbstractStreamDF):
         self,
         key: PRNGKeyArray,
         potential: gp.AbstractPotential,
-        x: gt.LengthBBtSz3,
-        v: gt.SpeedBBtSz3,
+        x: gt.BBtQuSz3,
+        v: gt.BBtQuSz3,
         prog_mass: gt.BBtFloatQuSz0,
         t: gt.BBtFloatQuSz0,
-    ) -> tuple[gt.LengthBtSz3, gt.SpeedBtSz3, gt.LengthBtSz3, gt.SpeedBtSz3]:
+    ) -> tuple[gt.BBtQuSz3, gt.BBtQuSz3, gt.BBtQuSz3, gt.BBtQuSz3]:
         """Generate stream particle initial conditions."""
         # Random number generation
         key1, key2, key3, key4 = jr.split(key, 4)

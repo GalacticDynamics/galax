@@ -9,14 +9,14 @@ import equinox as eqx
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 
 
 @runtime_checkable
 class ProgenitorMassCallable(Protocol):
     """Callable that returns the progenitor mass at the given times."""
 
-    def __call__(self, t: gt.TimeBtSz0, /) -> gt.MassBtSz0:
+    def __call__(self, t: gt.BtQuSz0, /) -> gt.BtQuSz0:
         """Return the progenitor mass at the times.
 
         Parameters
@@ -36,10 +36,10 @@ class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
         The progenitor mass.
     """
 
-    m_tot: gt.MassSz0 = eqx.field(converter=u.Quantity["mass"].from_)
+    m_tot: gt.QuSz0 = eqx.field(converter=u.Quantity["mass"].from_)
     """The progenitor mass."""
 
-    def __call__(self, t: gt.TimeBtSz0, /) -> gt.MassBtSz0:
+    def __call__(self, t: gt.BtQuSz0, /) -> gt.BtQuSz0:
         """Return the constant mass at the times.
 
         Parameters

@@ -10,8 +10,8 @@ from plum import convert
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax._custom_types as gt
 import galax.potential as gp
-import galax.typing as gt
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
 from .test_abstractmultipole import ParameterSlmMixin, ParameterTlmMixin

@@ -15,7 +15,7 @@ import quaxed.numpy as jnp
 import unxt as u
 from dataclassish.converters import Unless
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .base import AbstractPhaseSpaceCoordinate, ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpaceCoordinate
 from .base_single import AbstractBasicPhaseSpaceCoordinate
@@ -122,9 +122,7 @@ class PhaseSpaceCoordinate(AbstractBasicPhaseSpaceCoordinate):
     This is a 3-vector with a batch shape allowing for vector inputs.
     """
 
-    t: gt.TimeBBtSz0 | gt.SzN | gt.TimeSz0 = eqx.field(
-        converter=u.Quantity["time"].from_
-    )
+    t: gt.BBtQuSz0 | gt.SzN | gt.QuSz0 = eqx.field(converter=u.Quantity["time"].from_)
     """The time corresponding to the positions.
 
     This is a Quantity with the same batch shape as the positions and

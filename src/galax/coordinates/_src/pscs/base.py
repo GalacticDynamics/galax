@@ -17,7 +17,7 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity as FastQ
 
-import galax.typing as gt
+import galax._custom_types as gt
 from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.frames import SimulationFrame
 from galax.coordinates._src.utils import SLICE_ALL
@@ -140,7 +140,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
     # ==========================================================================
     # Convenience methods
 
-    def wt(self, *, units: Any) -> gt.BtSz7:
+    def wt(self, *, units: Any) -> gt.BBtSz7:
         """Phase-space position as an Array[float, (*batch, 1+Q+P)].
 
         This is the full phase-space position, including the time.

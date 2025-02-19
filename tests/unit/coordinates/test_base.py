@@ -13,8 +13,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.unitsystems import galactic
 
+import galax._custom_types as gt
 import galax.coordinates as gc
-import galax.typing as gt
 
 CT = TypeVar("CT", bound=gc.AbstractPhaseSpaceObject)
 

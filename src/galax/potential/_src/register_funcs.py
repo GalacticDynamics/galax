@@ -13,7 +13,7 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from . import api
 from .base import AbstractPotential
 from .utils import parse_to_xyz_t
@@ -31,8 +31,8 @@ from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def potential(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
-) -> gt.BBtRealSz0:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+) -> gt.BBtSz0:
     """Compute the potential energy at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
@@ -47,8 +47,8 @@ def potential(
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def potential(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
-) -> gt.BBtRealSz0:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+) -> gt.BBtSz0:
     return api.potential(pot, xyz, t)
 
 
@@ -86,8 +86,8 @@ def potential(
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def gradient(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
-) -> gt.BBtRealSz3:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+) -> gt.BBtSz3:
     """Compute the gradient at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
@@ -102,8 +102,8 @@ def gradient(
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def gradient(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
-) -> gt.BBtRealSz3:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+) -> gt.BBtSz3:
     return api.gradient(pot, xyz, t)
 
 
@@ -166,8 +166,8 @@ def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def laplacian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
-) -> gt.BBtRealSz0:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+) -> gt.BBtSz0:
     """Compute the laplacian at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
@@ -182,8 +182,8 @@ def laplacian(
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def laplacian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
-) -> gt.BBtRealSz0:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+) -> gt.BBtSz0:
     return api.laplacian(pot, xyz, t)
 
 
@@ -221,8 +221,8 @@ def laplacian(
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def density(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
-) -> gt.BBtRealSz0:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+) -> gt.BBtSz0:
     """Compute the density at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
@@ -237,8 +237,8 @@ def density(
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def density(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
-) -> gt.BBtRealSz0:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+) -> gt.BBtSz0:
     return api.density(pot, xyz, t)
 
 
@@ -276,8 +276,8 @@ def density(
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def hessian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
-) -> gt.BBtRealSz33:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+) -> gt.BBtSz33:
     """Compute the hessian at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
@@ -292,8 +292,8 @@ def hessian(
 @dispatch  # special-case Array input to not return Quantity
 @partial(jax.jit, inline=True)
 def hessian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
-) -> gt.BBtRealSz33:
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+) -> gt.BBtSz33:
     return api.hessian(pot, xyz, t)
 
 
@@ -383,7 +383,7 @@ def tidal_tensor(
 @partial(jax.jit)
 def local_circular_velocity(
     pot: AbstractPotential, q: Any, t: Any, /
-) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Estimate the circular velocity at the given position."""
     xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
     r = jnp.linalg.vector_norm(xyz, axis=-1)
@@ -401,7 +401,7 @@ def local_circular_velocity(
 @partial(jax.jit)
 def local_circular_velocity(
     pot: AbstractPotential, q: Any, /, *, t: Any = None
-) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Estimate the circular velocity at the given position."""
     return api.local_circular_velocity(pot, q, t)
 
@@ -412,9 +412,7 @@ def local_circular_velocity(
 
 @dispatch
 @partial(jax.jit)
-def dpotential_dr(
-    pot: AbstractPotential, q: Any, t: Any, /
-) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+def dpotential_dr(pot: AbstractPotential, q: Any, t: Any, /) -> gt.BBtSz0 | gt.BBtQuSz0:
     xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
     r_hat = cx.vecs.normalize_vector(xyz)
     grad = api.gradient(pot, xyz, t)
@@ -430,7 +428,7 @@ def dpotential_dr(
 @partial(jax.jit)
 def dpotential_dr(
     pot: AbstractPotential, q: Any, /, *, t: Any = None
-) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Estimate the circular velocity at the given position."""
     return api.dpotential_dr(pot, q, t)
 
@@ -443,7 +441,7 @@ def dpotential_dr(
 @partial(jax.jit)
 def d2potential_dr2(
     pot: AbstractPotential, q: Any, t: Any, /
-) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+) -> gt.BBtSz0 | gt.BBtQuSz0:
     xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
     rhat = cx.vecs.normalize_vector(xyz)
     H = pot.hessian(xyz, t)
@@ -459,7 +457,7 @@ def d2potential_dr2(
 @partial(jax.jit)
 def d2potential_dr2(
     pot: AbstractPotential, q: Any, /, *, t: Any = None
-) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Estimate the circular velocity at the given position."""
     return api.d2potential_dr2(pot, q, t)
 
@@ -471,7 +469,7 @@ def d2potential_dr2(
 @dispatch
 def spherical_mass_enclosed(
     pot: AbstractPotential, q: Any, t: Any, /
-) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Compute from `jax.Array`."""
     # Parse inputs
     q, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
@@ -490,6 +488,6 @@ def spherical_mass_enclosed(
 @dispatch
 def spherical_mass_enclosed(
     pot: AbstractPotential, q: Any, /, *, t: Any = None
-) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
+) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Compute from `jax.Array`."""
     return api.spherical_mass_enclosed(pot, q, t)

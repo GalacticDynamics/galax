@@ -12,8 +12,8 @@ from plum import dispatch
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax._custom_types as gt
 import galax.potential as gp
-import galax.typing as gt
 from .field_base import AbstractDynamicsField
 
 
@@ -71,7 +71,7 @@ class NBodyField(AbstractDynamicsField, strict=True):  # type: ignore[call-arg]
         return self.external_potential.units
 
     @property
-    def _G(self) -> gt.RealSz0:
+    def _G(self) -> gt.Sz0:
         us = self.units
         unit = us["length"] ** 3 / (us["mass"] * us["time"] ** 2)
         return self.external_potential.constants["G"].ustrip(unit)
@@ -87,7 +87,7 @@ class NBodyField(AbstractDynamicsField, strict=True):  # type: ignore[call-arg]
 @jax.jit  # type: ignore[misc]
 def __call__(
     self: "NBodyField",
-    t: gt.Scalar,
+    t: gt.Sz0,
     xv: tuple[Shaped[Array, "N 3"], Shaped[Array, "N 3"]],
     args: Any,  # noqa: ARG001
     /,

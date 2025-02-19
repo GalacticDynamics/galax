@@ -6,9 +6,9 @@ import pytest
 
 import unxt as u
 
+from galax._custom_types import Unit
 from galax.potential._src.params.core import ParameterCallable
 from galax.potential.params import AbstractParameter, ConstantParameter, UserParameter
-from galax.typing import Unit
 
 T = TypeVar("T", bound=AbstractParameter)
 

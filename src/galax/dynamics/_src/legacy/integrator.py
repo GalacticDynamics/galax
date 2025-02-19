@@ -16,9 +16,9 @@ import quaxed.numpy as jnp
 from unxt.quantity import AbstractQuantity, BareQuantity as FastQ
 from xmmutablemap import ImmutableMap
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
-import galax.typing as gt
 from .interp_psp import InterpolatedPhaseSpaceCoordinate
 from galax.dynamics._src.dynamics import DynamicsSolver
 from galax.dynamics._src.orbit import PhaseSpaceInterpolation
@@ -26,7 +26,11 @@ from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")
 Interp = TypeVar("Interp")
-Time: TypeAlias = gt.TimeSz0 | gt.RealSz0Like
+
+IntLike: TypeAlias = gt.IntSz0 | int
+FloatLike: TypeAlias = gt.FloatSz0 | float | int
+RealSz0Like: TypeAlias = FloatLike | IntLike
+Time: TypeAlias = gt.QuSz0 | RealSz0Like
 Times: TypeAlias = gt.QuSzTime | gt.SzTime
 
 
@@ -197,8 +201,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         field: AbstractDynamicsField,
         q0: gdt.BtQ,
         p0: gdt.BtP,
-        t0: gt.TimeSz0,
-        t1: gt.TimeSz0,
+        t0: gt.QuSz0,
+        t1: gt.QuSz0,
         /,
         *,
         saveat: gt.QuSzTime | None = None,  # not jitted here

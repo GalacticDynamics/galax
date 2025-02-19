@@ -13,7 +13,7 @@ from plum import dispatch
 
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .events import MassBelowThreshold
 from .fields import (
     AbstractMassRateField,
@@ -131,8 +131,8 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 def init(
     self: MassSolver,
     field: AbstractMassRateField,
-    Mc0: gt.RealQuSz0,
-    t0: gt.RealQuSz0,
+    Mc0: gt.QuSz0,
+    t0: gt.QuSz0,
     args: PyTree,
     /,
 ) -> SolveState:

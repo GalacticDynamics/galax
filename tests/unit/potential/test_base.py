@@ -13,10 +13,10 @@ import unxt as u
 from unxt.unitsystems import galactic
 from xmmutablemap import ImmutableMap
 
+import galax._custom_types as gt
 import galax.dynamics as gd
 import galax.potential as gp
 import galax.potential.params as gpp
-import galax.typing as gt
 from .io.test_gala import GalaIOMixin
 from galax.potential._src.base import default_constants
 from galax.utils._unxt import AllowValue
@@ -72,14 +72,14 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
     # ---------------------------------
 
     @pytest.fixture(scope="class")
-    def batchx(self, units: u.AbstractUnitSystem) -> gt.BtQuSz3:
+    def batchx(self, units: u.AbstractUnitSystem) -> gt.BBtQuSz3:
         """Create a batch of position vectors for testing."""
         return u.Quantity(
             jnp.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=float), units["length"]
         )
 
     @pytest.fixture(scope="class")
-    def batchv(self, units: u.AbstractUnitSystem) -> gt.BtQuSz3:
+    def batchv(self, units: u.AbstractUnitSystem) -> gt.BBtQuSz3:
         """Create a batch of velocity vectors for testing."""
         return u.Quantity(
             jnp.asarray([[4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float),
@@ -87,7 +87,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         )
 
     @pytest.fixture(scope="class")
-    def batchxv(self, batchx: gt.BtQuSz3, batchv: gt.BtQuSz3) -> gt.BtSz3:
+    def batchxv(self, batchx: gt.BBtQuSz3, batchv: gt.BBtQuSz3) -> gt.BtSz3:
         """Create a batch of phase-space vectors for testing."""
         return jnp.concatenate([batchx.value, batchv.value], axis=-1)
 
@@ -119,7 +119,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         ...
 
     def test_potential_batch(
-        self, pot: gp.AbstractPotential, batchx: gt.BtQuSz3
+        self, pot: gp.AbstractPotential, batchx: gt.BBtQuSz3
     ) -> None:
         """Test the `AbstractPotential.potential` method."""
         # Test that the method works on batches.
@@ -221,10 +221,7 @@ class TestAbstractPotential(AbstractPotential_Test):
 
             @partial(jax.jit)
             def _potential(  # TODO: inputs w/ units
-                self,
-                xyz: gt.BBtQuSz3 | gt.BBtSz3,
-                t: gt.BBtRealQuSz0 | gt.BBtRealSz0,
-                /,
+                self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
             ) -> gt.BBtSz0:
                 m_tot = self.m_tot(t, ustrip=self.units["mass"])
                 xyz = u.ustrip(AllowValue, self.units["length"], xyz)

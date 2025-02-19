@@ -8,7 +8,7 @@ import jax
 
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .base import AbstractTransformedPotential
 from galax.potential._src.base import AbstractPotential
 from galax.potential._src.params.core import AbstractParameter
@@ -81,7 +81,7 @@ class TriaxialInThePotential(AbstractTransformedPotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz.astype(float))
         # Transform the position

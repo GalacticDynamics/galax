@@ -15,7 +15,7 @@ from plum import dispatch
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .base import AbstractPotential
 from galax.utils._unxt import AllowValue
 
@@ -33,7 +33,7 @@ class AbstractCompositePotential(AbstractPotential):
 
     @partial(jax.jit)
     def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -44,7 +44,7 @@ class AbstractCompositePotential(AbstractPotential):
 
     @partial(jax.jit)
     def _gradient(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz3:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -55,7 +55,7 @@ class AbstractCompositePotential(AbstractPotential):
 
     @partial(jax.jit)
     def _laplacian(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -66,7 +66,7 @@ class AbstractCompositePotential(AbstractPotential):
 
     @partial(jax.jit)
     def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -77,7 +77,7 @@ class AbstractCompositePotential(AbstractPotential):
 
     @partial(jax.jit)
     def _hessian(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtRealQuSz0 | gt.BBtRealSz0, /
+        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
     ) -> gt.BBtSz33:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -202,9 +202,7 @@ def replace(
 
 @dispatch(precedence=1)
 def replace(
-    obj: AbstractCompositePotential,
-    replacements: Mapping[str, Mapping[str, Any]],
-    /,
+    obj: AbstractCompositePotential, replacements: Mapping[str, Mapping[str, Any]], /
 ) -> AbstractCompositePotential:
     """Replace the parameters of a composite potential.
 

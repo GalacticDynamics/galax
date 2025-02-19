@@ -9,12 +9,13 @@ import jax
 from plum import convert, dispatch
 
 import coordinax as cx
+import coordinax.frames as cxf
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.potential as gp
-import galax.typing as gt
 from .api import L1L2LagrangePoints
 from .radius import tidal_radius_king1962
 
@@ -36,12 +37,12 @@ def lagrange_points(
 @partial(jax.jit)
 def lagrange_points(
     potential: gp.AbstractPotential,
-    x: gt.LengthSz3 | cx.vecs.AbstractPos3D,
-    v: gt.SpeedSz3 | cx.vecs.AbstractVel3D,
+    x: gt.QuSz3 | cx.vecs.AbstractPos3D,
+    v: gt.QuSz3 | cx.vecs.AbstractVel3D,
     /,
     *,
-    mass: gt.MassSz0,
-    t: gt.TimeSz0,
+    mass: gt.QuSz0,
+    t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     x = convert(x, u.Quantity)
@@ -55,12 +56,7 @@ def lagrange_points(
 
 @dispatch
 def lagrange_points(
-    pot: gp.AbstractPotential,
-    space: cx.Space,
-    /,
-    *,
-    mass: gt.MassSz0,
-    t: gt.TimeSz0,
+    pot: gp.AbstractPotential, space: cx.Space, /, *, mass: gt.QuSz0, t: gt.QuSz0
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, space["length"], space["speed"], mass=mass, t=t)
@@ -69,11 +65,11 @@ def lagrange_points(
 @dispatch
 def lagrange_points(
     pot: gp.AbstractPotential,
-    coord: cx.frames.AbstractCoordinate,
+    coord: cxf.AbstractCoordinate,
     /,
     *,
-    mass: gt.MassSz0,
-    t: gt.TimeSz0,
+    mass: gt.QuSz0,
+    t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, coord.data, mass=mass, t=t)
@@ -85,8 +81,8 @@ def lagrange_points(
     wt: gc.AbstractPhaseSpaceCoordinate,
     /,
     *,
-    mass: gt.MassSz0,
-    t: gt.TimeSz0 | None = None,
+    mass: gt.QuSz0,
+    t: gt.QuSz0 | None = None,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     t = eqx.error_if(
@@ -103,8 +99,8 @@ def lagrange_points(
     w: gc.PhaseSpacePosition,
     /,
     *,
-    mass: gt.MassSz0,
-    t: gt.TimeSz0,
+    mass: gt.QuSz0,
+    t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, w.q, w.p, mass=mass, t=t)

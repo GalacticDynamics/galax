@@ -9,7 +9,7 @@ from typing import Any
 
 from plum import dispatch
 
-import galax.typing as gt
+import galax._custom_types as gt
 
 
 @dispatch.abstract
@@ -83,7 +83,7 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
 
 
 @dispatch.abstract
-def omega(x: Any, v: Any, /) -> gt.BBtRealQuSz0:
+def omega(x: Any, v: Any, /) -> gt.BBtQuSz0:
     """Compute the orbital angular frequency about the origin.
 
     Examples

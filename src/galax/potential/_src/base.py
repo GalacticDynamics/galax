@@ -256,7 +256,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     # ---------------------------------------
 
-    def tidal_tensor(self, *args: Any, **kwargs: Any) -> gt.BtQuSz33:
+    def tidal_tensor(self, *args: Any, **kwargs: Any) -> Any:
         """Compute the tidal tensor.
 
         See :func:`~galax.potential.tidal_tensor` for details.

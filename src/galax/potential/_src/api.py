@@ -855,11 +855,12 @@ def acceleration(*args: Any, **kwargs: Any) -> Any:
 
 
 @dispatch.abstract
-def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
+def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
     """Compute the tidal tensor.
 
     Examples
     --------
+    >>> import jax.numpy as jnp
     >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.potential as gp
@@ -943,16 +944,15 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BtQuSz33:
     is an `~jax.Array`), it is assumed to be in the same unit system as the
     potential.
 
-    >>> import jax.numpy as jnp
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+    >>> t = 0
     >>> pot.tidal_tensor(q, t=t)
-    Quantity[...](Array([[[ 0.06747463, -0.03680435, -0.05520652],
-                          [-0.03680435,  0.01226812, -0.11041304],
-                          [-0.05520652, -0.11041304, -0.07974275]],
-                          [[ 0.00250749, -0.00518791, -0.00622549],
-                          [-0.00518791,  0.00017293, -0.00778186],
-                          [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64),
-                    unit='1 / Myr2')
+    Array([[[ 0.06747463, -0.03680435, -0.05520652],
+            [-0.03680435,  0.01226812, -0.11041304],
+            [-0.05520652, -0.11041304, -0.07974275]],
+           [[ 0.00250749, -0.00518791, -0.00622549],
+            [-0.00518791,  0.00017293, -0.00778186],
+            [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64)
 
     :mod:`plum` dispatches on positional arguments only, so it necessary to
     redispatch when `t` is a keyword argument.

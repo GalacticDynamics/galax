@@ -349,7 +349,9 @@ def acceleration(pot: AbstractPotential, /, *args: Any, **kwargs: Any) -> Any:
 
 
 @dispatch
-def tidal_tensor(pot: AbstractPotential, *args: Any, **kwargs: Any) -> gt.BtQuSz33:
+def tidal_tensor(
+    pot: AbstractPotential, *args: Any, **kwargs: Any
+) -> gt.BBtSz33 | gt.BBtQuSz33:
     """Compute the tidal tensor.
 
     See https://en.wikipedia.org/wiki/Tidal_tensor
@@ -364,10 +366,10 @@ def tidal_tensor(pot: AbstractPotential, *args: Any, **kwargs: Any) -> gt.BtQuSz
     pot : `~galax.potential.AbstractPotential`
         The potential to compute the tidal tensor of.
     *args, **kwargs : Any
-        The arguments to pass to `~galax.potential.hessian`.
+        The arguments to pass to `galax.potential.hessian`.
 
     """
-    J = hessian(pot, *args, **kwargs)  # (*batch, 3, 3)
+    J = api.hessian(pot, *args, **kwargs)  # (*batch, 3, 3)
     batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)
     traced = (
         expand_batch_dims(jnp.eye(3), ndim=len(batch_shape))

@@ -178,9 +178,6 @@ LengthSz3: TypeAlias = Shaped[u.Quantity["length"], "3"]
 LengthBtSz3: TypeAlias = Shaped[LengthSz3, "*batch"]
 LengthBBtSz3: TypeAlias = Shaped[LengthSz3, "*#batch"]
 
-SpeedSz3: TypeAlias = Shaped[u.Quantity["speed"], "3"]
-SpeedBtSz3: TypeAlias = Shaped[SpeedSz3, "*batch"]
-
 
 # ===============================
 # TODO: sort

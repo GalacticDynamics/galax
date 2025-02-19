@@ -37,7 +37,7 @@ def lagrange_points(
 def lagrange_points(
     potential: gp.AbstractPotential,
     x: gt.LengthSz3 | cx.vecs.AbstractPos3D,
-    v: gt.SpeedSz3 | cx.vecs.AbstractVel3D,
+    v: gt.QuSz3 | cx.vecs.AbstractVel3D,
     /,
     *,
     mass: gt.MassSz0,

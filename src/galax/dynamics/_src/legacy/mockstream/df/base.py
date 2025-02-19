@@ -21,7 +21,7 @@ from .progenitor import ConstantMassProtenitor, ProgenitorMassCallable
 from galax.dynamics._src.mockstream.arm import MockStreamArm
 from galax.dynamics._src.orbit import Orbit
 
-Carry: TypeAlias = tuple[gt.LengthSz3, gt.SpeedSz3, gt.LengthSz3, gt.SpeedSz3]
+Carry: TypeAlias = tuple[gt.LengthSz3, gt.QuSz3, gt.LengthSz3, gt.QuSz3]
 
 
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
@@ -138,10 +138,10 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         key: PRNGKeyArray,
         potential: gp.AbstractPotential,
         x: gt.LengthBBtSz3,
-        v: gt.SpeedBBtSz3,
+        v: gt.BBtQuSz3,
         prog_mass: gt.BBtFloatQuSz0,
         t: gt.BBtFloatQuSz0,
-    ) -> tuple[gt.LengthBtSz3, gt.SpeedBtSz3, gt.LengthBtSz3, gt.SpeedBtSz3]:
+    ) -> tuple[gt.LengthBtSz3, gt.BtQuSz3, gt.LengthBtSz3, gt.BtQuSz3]:
         """Generate stream particle initial conditions.
 
         Parameters

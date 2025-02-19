@@ -102,9 +102,7 @@ class AbstractSpecialPotential(AbstractCompositePotential):  # TODO: make public
 
         Examples
         --------
-        >>> import unxt as u
         >>> import galax.potential as gp
-
         >>> pot = gp.MilkyWayPotential()
         >>> "disk" in pot
         True
@@ -118,7 +116,6 @@ class AbstractSpecialPotential(AbstractCompositePotential):  # TODO: make public
 
         Examples
         --------
-        >>> import unxt as u
         >>> import galax.potential as gp
 
         >>> pot = gp.MilkyWayPotential()

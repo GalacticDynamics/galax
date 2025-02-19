@@ -486,8 +486,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.TriaxialHernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                                     r_s=u.Quantity(8, "kpc"), q1=1, q2=0.5,
+    >>> pot = gp.TriaxialHernquistPotential(m_tot=1e12, r_s=8, q1=1, q2=0.5,
     ...                                     units="galactic")
 
     >>> q = u.Quantity([1, 0, 0], "kpc")

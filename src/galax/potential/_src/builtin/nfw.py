@@ -202,8 +202,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     >>> import galax.potential as gp
 
     >>> pot = gp.LeeSutoTriaxialNFWPotential(
-    ...    m=u.Quantity(1e11, "Msun"), r_s=u.Quantity(15, "kpc"),
-    ...    a1=1, a2=0.9, a3=0.8, units="galactic")
+    ...     m=1e11, r_s=15, a1=1, a2=0.9, a3=0.8, units="galactic")
 
     >>> q = u.Quantity([1, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")

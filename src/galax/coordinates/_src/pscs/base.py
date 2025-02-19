@@ -224,6 +224,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         >>> pot = gp.MilkyWayPotential()
         >>> w.potential_energy(pot)
         Quantity[...](Array(..., dtype=float64), unit='kpc2 / Myr2')
+
         """
         return potential.potential(self.q, t=self.t)
 
@@ -271,6 +272,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         >>> pot = gp.MilkyWayPotential()
         >>> w.total_energy(pot)
         Quantity[...](Array(..., dtype=float64), unit='km2 / s2')
+
         """
         return self.kinetic_energy() + self.potential_energy(potential)
 

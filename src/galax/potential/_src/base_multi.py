@@ -98,13 +98,13 @@ class AbstractCompositePotential(AbstractPotential):
         >>> import galax.potential as gp
 
         >>> pot = gp.CompositePotential(
-        ...     disk=gp.KeplerPotential(m_tot=u.Quantity(1e11, "Msun"), units="galactic")
+        ...     disk=gp.KeplerPotential(m_tot=1e11, units="galactic")
         ... )
 
         >>> "disk" in pot
         True
 
-        """  # noqa: E501
+        """
         return key in self._data
 
     def __iter__(self) -> Iterator[str]:
@@ -184,8 +184,8 @@ def replace(
     >>> import galax.potential as gp
 
     >>> pot = gp.CompositePotential(
-    ...     disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e11, "Msun"), a=6.5, b=0.26, units="galactic"),
-    ...     halo=gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=20, units="galactic"),
+    ...     disk=gp.MiyamotoNagaiPotential(m_tot=1e11, a=6.5, b=0.26, units="galactic"),
+    ...     halo=gp.NFWPotential(m=1e12, r_s=20, units="galactic"),
     ... )
 
     >>> new_pot = replace(pot, disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e12, "Msun"), a=6.5, b=0.26, units="galactic"))
@@ -215,15 +215,15 @@ def replace(
     >>> import galax.potential as gp
 
     >>> pot = gp.CompositePotential(
-    ...     disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e11, "Msun"), a=6.5, b=0.26, units="galactic"),
-    ...     halo=gp.NFWPotential(m=u.Quantity(1e12, "Msun"), r_s=20, units="galactic"),
+    ...     disk=gp.MiyamotoNagaiPotential(m_tot=1e11, a=6.5, b=0.26, units="galactic"),
+    ...     halo=gp.NFWPotential(m=1e12, r_s=20, units="galactic"),
     ... )
 
     >>> new_pot = replace(pot, {"disk": {"m_tot": u.Quantity(1e12, "Msun")}})
     >>> new_pot["disk"].m_tot.value
     Quantity['mass'](Array(1.e+12, dtype=float64,...), unit='solMass')
 
-    """  # noqa: E501
+    """
     # AbstractCompositePhaseSpaceCoordinate is both a Mapping and a dataclass
     # so we need to disambiguate the method to call
     method = replace.invoke(Mapping[Hashable, Any], Mapping[str, Any])

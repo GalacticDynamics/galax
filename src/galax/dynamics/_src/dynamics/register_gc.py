@@ -41,8 +41,7 @@ def from_(
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...    r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
     >>> solver = gd.DynamicsSolver()  # defaults to Dopri8
     >>> w0 = gc.PhaseSpaceCoordinate(

@@ -93,13 +93,12 @@ def terms(
     Examples
     --------
     >>> import diffrax as dfx
-    >>> import unxt as u
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
     >>> solver = gd.solve.DiffEqSolver(dfx.Dopri8())
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> field.terms(solver)

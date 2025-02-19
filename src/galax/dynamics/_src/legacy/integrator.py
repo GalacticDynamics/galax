@@ -77,8 +77,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     position.  The integrator accepts any function for the equations of motion.
     Here we will reproduce what happens with orbit integrations.
 
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
@@ -336,8 +335,7 @@ def call(
     final position.  The integrator accepts any function for the equations
     of motion.  Here we will reproduce what happens with orbit integrations.
 
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
@@ -415,8 +413,7 @@ def call(
     final position.  The integrator accepts any function for the equations
     of motion.  Here we will reproduce what happens with orbit integrations.
 
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
@@ -528,8 +525,7 @@ def call(
     final position.  The integrator accepts any function for the equations
     of motion.  Here we will reproduce what happens with orbit integrations.
 
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
@@ -589,8 +585,7 @@ def call(
     >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
     ...                            p=u.Quantity([0, 200, 0], "km/s"))
 
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     We can integrate the phase-space position:
@@ -640,8 +635,7 @@ def call(
     ...                               t=u.Quantity(0, "Gyr"))
     >>> w0 = gc.CompositePhaseSpaceCoordinate(w01=w01, w02=w02)
 
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     We can integrate the composite phase-space position:

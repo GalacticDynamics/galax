@@ -64,8 +64,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     Define the vector field. In this example it's to solve Hamilton's EoM in a
     gravitational potential.
 
-    >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...    r_s=u.Quantity(5, "kpc"), units="galactic")
+    >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     Define the initial conditions, here a phase-space position
@@ -167,8 +166,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         Define the vector field. In this example it's to solve Hamilton's EoM in
         a gravitational potential.
 
-        >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-        ...    r_s=u.Quantity(5, "kpc"), units="galactic")
+        >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
         >>> field = gd.fields.HamiltonianField(pot)
 
         Define the initial conditions, here a phase-space position
@@ -281,8 +279,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         Define the vector field. In this example it's to solve Hamilton's EoM in
         a gravitational potential.
 
-        >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-        ...    r_s=u.Quantity(5, "kpc"), units="galactic")
+        >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
         >>> field = gd.fields.HamiltonianField(pot)
 
         Define the initial conditions:
@@ -336,8 +333,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         Define the vector field. In this example it's to solve Hamilton's EoM in
         a gravitational potential.
 
-        >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-        ...    r_s=u.Quantity(5, "kpc"), units="galactic")
+        >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
         >>> field = gd.fields.HamiltonianField(pot)
 
         Define the initial conditions:
@@ -410,8 +406,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
         Specify the vector field.
 
-        >>> pot = gp.HernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-        ...                             r_s=u.Quantity(5, "kpc"), units="galactic")
+        >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
         >>> field = gd.fields.HamiltonianField(pot)
 
         The solver is very flexible. Here we show a few examples of variety of
@@ -975,7 +970,7 @@ def solve(
 
     >>> solver = gd.DynamicsSolver()
 
-    >>> pot = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> qp = jnp.asarray([[8, 0, 0, 0, 0.22499668, 0]])

@@ -384,53 +384,30 @@ def tidal_tensor(
 
 
 @dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def local_circular_velocity(
-    pot: AbstractPotential, x: gt.LengthSz3, /, t: gt.TimeSz0
-) -> gt.BBtRealQuSz0:
-    """Estimate the circular velocity at the given position.
-
-    Parameters
-    ----------
-    pot : AbstractPotential
-        The Potential.
-    x : Quantity[float, (*batch, 3), "length"]
-        Position(s) to estimate the circular velocity.
-    t : Quantity[float, (), "time"]
-        Time at which to compute the circular velocity.
-
-    """
-    r = jnp.linalg.vector_norm(x, axis=-1)
-    dPhi_dxyz = convert(pot.gradient(x, t=t), u.Quantity)
-    dPhi_dr = jnp.sum(dPhi_dxyz * x / r[..., None], axis=-1)
-    return jnp.sqrt(r * jnp.abs(dPhi_dr))
-
-
-@dispatch
-@partial(jax.jit, inline=True)
-def local_circular_velocity(
-    pot: AbstractPotential, q: cx.vecs.AbstractPos3D, t: gt.TimeSz0, /
-) -> gt.BBtRealQuSz0:
+    pot: AbstractPotential, q: Any, t: Any, /
+) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position."""
-    return api.local_circular_velocity(pot, convert(q, u.Quantity), t)
+    xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
+    r = jnp.linalg.vector_norm(xyz, axis=-1)
+    dPhi_dxyz = pot.gradient(xyz, t)
+    dPhi_dr = jnp.sum(dPhi_dxyz * xyz / r[..., None], axis=-1)
+    vcirc = jnp.sqrt(r * jnp.abs(dPhi_dr))
+    return (
+        u.Quantity.from_(vcirc, pot.units["velocity"])
+        if u.quantity.is_any_quantity(xyz)
+        else vcirc
+    )
 
 
 @dispatch
-@partial(jax.jit, inline=True)
+@partial(jax.jit)
 def local_circular_velocity(
-    pot: AbstractPotential, w: gc.AbstractPhaseSpaceCoordinate, /
-) -> gt.BBtRealQuSz0:
+    pot: AbstractPotential, q: Any, /, *, t: Any = None
+) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
     """Estimate the circular velocity at the given position."""
-    return api.local_circular_velocity(pot, w.q, w.t)
-
-
-@dispatch
-@partial(jax.jit, inline=True)
-def local_circular_velocity(
-    pot: AbstractPotential, x: Any, /, *, t: Any
-) -> gt.BBtRealQuSz0:
-    """Compute the local circular velocity when `t` is keyword-only."""
-    return api.local_circular_velocity(pot, x, t)
+    return api.local_circular_velocity(pot, q, t)
 
 
 # =============================================================================

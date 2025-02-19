@@ -87,8 +87,8 @@ RealSz0Like: TypeAlias = FloatLike | IntLike  # A float or int or float(/int) sc
 
 # ---------------------------
 # 1-vector
-Sz1: TypeAlias = Shaped[Array, "1"]
-QuSz1: TypeAlias = Shaped[AbstractQuantity, "1"]
+
+QuSz1: TypeAlias = Real[AbstractQuantity, "1"]
 
 # ---------------------------
 # A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz).

@@ -62,8 +62,8 @@ def lagrange_points(
 
     >>> lpts = gd.cluster.lagrange_points(pot, x, v, mass=mass, t=t)
     >>> lpts
-    L1L2LagrangePoints(l1=Array([7.99904079, 0. , 0. ], dtype=float64),
-                       l2=Array([8.00095921, 0. , 0. ], dtype=float64))
+    L1L2LagrangePoints(l1=Array([7.99960964, 0. , 0. ], dtype=float64),
+                       l2=Array([8.00039036, 0. , 0. ], dtype=float64))
 
     - With `unxt.Quantity`:
 

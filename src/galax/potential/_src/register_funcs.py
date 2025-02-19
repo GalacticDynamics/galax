@@ -218,60 +218,56 @@ def laplacian(
 # =============================================================================
 # Density
 
+# ---------------------------
+# Arrays
+
+
+# TODO: consider "*#batch 1" for t
+@dispatch  # special-case Array input to not return Quantity
+@partial(jax.jit, inline=True)
+def density(
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
+) -> gt.BBtRealSz0:
+    """Compute the density at the given position(s).
+
+    The position is in Cartesian coordinates and it and the time are assumed to
+    be in the unit system of the potential.
+
+    """
+    xyz, t = parse_to_xyz_t(None, xyz, t, dtype=float)  # TODO: frame
+    return pot._density(xyz, t)  # noqa: SLF001
+
+
+# TODO: consider "*#batch 1" for t
+@dispatch  # special-case Array input to not return Quantity
+@partial(jax.jit, inline=True)
+def density(
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
+) -> gt.BBtRealSz0:
+    return api.density(pot, xyz, t)
+
+
+# ---------------------------
+
 
 @dispatch
 def density(
-    pot: AbstractPotential, q: Any, /, *, t: Any
-) -> u.Quantity["mass density"] | Array:
-    """Compute the density when `t` is keyword-only."""
-    return density(pot, q, t)
-
-
-@dispatch
-def density(
-    pot: AbstractPotential, wt: gc.AbstractPhaseSpaceCoordinate | cx.FourVector, /
-) -> u.Quantity["mass density"]:
-    """Compute the density at the given coordinate(s)."""
-    q = parse_to_quantity_or_array(wt.q, units=pot.units)
-    rho = pot._density(q, wt.t)  # noqa: SLF001
+    pot: AbstractPotential, tq: Any, /, *, t: Any = None
+) -> Real[u.Quantity["mass density"], "*#batch"]:
+    """Compute from a q + t object."""
+    xyz, t = parse_to_xyz_t(None, tq, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    rho = pot._density(xyz, t)  # noqa: SLF001
     return u.Quantity(rho, pot.units["mass density"])
 
 
 @dispatch
-def density(pot: AbstractPotential, q: Any, t: Any, /) -> u.Quantity["mass density"]:
-    """Compute the mass density at the given position(s).
-
-    Parameters
-    ----------
-    q : Any
-        The position to compute the density of the potential.
-        See `parse_to_quantity` for more details.
-    t : Any
-        The time at which to compute the density of the potential.
-        See :meth:`unxt.Quantity.from_` for more details.
-
-    """
-    q = parse_to_quantity_or_array(q, unit=pot.units["length"])
-    t = u.ustrip(AllowValue, pot.units["time"], t)
-    rho = pot._density(q, t)  # noqa: SLF001
+def density(
+    pot: AbstractPotential, q: Any, t: Any, /
+) -> Real[u.Quantity["mass density"], "*#batch"]:
+    """Compute the density at the given position(s)."""
+    xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    rho = pot._density(xyz, t)  # noqa: SLF001
     return u.Quantity(rho, pot.units["mass density"])
-
-
-@dispatch
-def density(pot: AbstractPotential, q: gt.BBtSz3, t: gt.BBtSz0, /) -> gt.BtRealSz0:
-    """Compute the mass density at the given position(s).
-
-    Parameters
-    ----------
-    q : Array[real, (*batch, 3)]
-        The position to compute the density of the potential.
-        Assumed to be in the units of the potential.
-    t : Array[real, (*batch,)]
-        The time at which to compute the density of the potential.
-        Assumed to be in the units of the potential.
-
-    """
-    return pot._density(q, t)  # noqa: SLF001
 
 
 # =============================================================================

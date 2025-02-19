@@ -545,8 +545,9 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
     potential.
 
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
+    >>> t = 0
     >>> pot.density(q, t)
-    Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
+    Array([0., 0.], dtype=float64)
 
     - - -
 
@@ -594,7 +595,7 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
 
     >>> q = np.array([[1, 2, 3], [4, 5, 6]])
     >>> pot.density(q, t)
-    Quantity['mass density'](Array([0., 0.], dtype=float64), unit='solMass / kpc3')
+    Array([0., 0.], dtype=float64)
 
     .. skip: end
 

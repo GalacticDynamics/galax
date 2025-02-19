@@ -857,7 +857,10 @@ def galax_to_galpy(
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.PowerSphericalPotentialwCutoff(
-        amp=convert(pot.density(u.Quantity([0.0, 0, 0], "kpc"), 0.0), AstropyQuantity),
+        amp=convert(
+            pot.density(u.Quantity([0, 0, 0], "kpc"), u.Quantity(0, "Myr")),
+            AstropyQuantity,
+        ),
         alpha=convert(pot.alpha(0), AstropyQuantity),
         rc=convert(pot.r_c(0), AstropyQuantity),
     )

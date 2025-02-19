@@ -211,13 +211,13 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @partial(jax.jit)
     def _density(
         self, q: gt.BtFloatQuSz3, t: gt.BtRealQuSz0 | gt.RealQuSz0, /
-    ) -> gt.BtFloatSz0:
+    ) -> gt.BBtFloatSz0:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
         laplacian = self._laplacian(q, t)
         return laplacian / (4 * jnp.pi * self.constants["G"].value)
 
-    def density(self, *args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
+    def density(self, *args: Any, **kwargs: Any) -> gt.BBtFloatSz0 | gt.BBtFloatQuSz0:
         """Compute the density at the given position(s).
 
         See :func:`~galax.potential.density` for details.

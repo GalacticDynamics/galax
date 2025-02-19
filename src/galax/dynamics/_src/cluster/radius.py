@@ -86,7 +86,7 @@ def tidal_radius_hoerner1957(
     /,
     *,
     mass: gt.MassBBtSz0,
-    t: gt.TimeBBtSz0,
+    t: gt.BBtQuSz0,
 ) -> gt.BBtRealQuSz0:
     r"""Calculate the tidal radius of a star cluster based on von Hoerner (1957).
 
@@ -231,7 +231,7 @@ def tidal_radius_king1962(
     /,
     *,
     mass: gt.MassBBtSz0,
-    t: gt.TimeBBtSz0,
+    t: gt.BBtQuSz0,
 ) -> gt.BBtRealQuSz0:
     """Compute from `unxt.Quantity` or `coordinax.vecs.AbstractVector`s."""
     d2phi_dr2 = pot.d2potential_dr2(x, t)
@@ -245,7 +245,7 @@ def tidal_radius_king1962(
     /,
     *,
     mass: gt.MassBBtSz0,
-    t: gt.TimeBBtSz0,
+    t: gt.BBtQuSz0,
 ) -> gt.BBtRealQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
     q, p = space["length"], space["speed"]
@@ -259,7 +259,7 @@ def tidal_radius_king1962(
     /,
     *,
     mass: gt.MassBBtSz0,
-    t: gt.TimeBBtSz0,
+    t: gt.BBtQuSz0,
 ) -> gt.BBtRealQuSz0:
     """Compute the tidal radius of a cluster in the potential."""
     return tidal_radius_king1962(pot, coord.data, mass=mass, t=t)

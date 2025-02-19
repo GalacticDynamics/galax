@@ -26,7 +26,7 @@ from galax.dynamics.fields import AbstractDynamicsField
 
 R = TypeVar("R")
 Interp = TypeVar("Interp")
-Time: TypeAlias = gt.TimeSz0 | gt.RealSz0Like
+Time: TypeAlias = gt.QuSz0 | gt.RealSz0Like
 Times: TypeAlias = gt.QuSzTime | gt.SzTime
 
 
@@ -197,8 +197,8 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         field: AbstractDynamicsField,
         q0: gdt.BtQ,
         p0: gdt.BtP,
-        t0: gt.TimeSz0,
-        t1: gt.TimeSz0,
+        t0: gt.QuSz0,
+        t1: gt.QuSz0,
         /,
         *,
         saveat: gt.QuSzTime | None = None,  # not jitted here

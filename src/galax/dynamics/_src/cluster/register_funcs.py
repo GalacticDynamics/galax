@@ -41,7 +41,7 @@ def lagrange_points(
     /,
     *,
     mass: gt.MassSz0,
-    t: gt.TimeSz0,
+    t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     x = convert(x, u.Quantity)
@@ -60,7 +60,7 @@ def lagrange_points(
     /,
     *,
     mass: gt.MassSz0,
-    t: gt.TimeSz0,
+    t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, space["length"], space["speed"], mass=mass, t=t)
@@ -73,7 +73,7 @@ def lagrange_points(
     /,
     *,
     mass: gt.MassSz0,
-    t: gt.TimeSz0,
+    t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, coord.data, mass=mass, t=t)
@@ -86,7 +86,7 @@ def lagrange_points(
     /,
     *,
     mass: gt.MassSz0,
-    t: gt.TimeSz0 | None = None,
+    t: gt.QuSz0 | None = None,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     t = eqx.error_if(
@@ -104,7 +104,7 @@ def lagrange_points(
     /,
     *,
     mass: gt.MassSz0,
-    t: gt.TimeSz0,
+    t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, w.q, w.p, mass=mass, t=t)

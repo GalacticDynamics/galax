@@ -72,14 +72,14 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
     # ---------------------------------
 
     @pytest.fixture(scope="class")
-    def batchx(self, units: u.AbstractUnitSystem) -> gt.BtQuSz3:
+    def batchx(self, units: u.AbstractUnitSystem) -> gt.BBtQuSz3:
         """Create a batch of position vectors for testing."""
         return u.Quantity(
             jnp.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=float), units["length"]
         )
 
     @pytest.fixture(scope="class")
-    def batchv(self, units: u.AbstractUnitSystem) -> gt.BtQuSz3:
+    def batchv(self, units: u.AbstractUnitSystem) -> gt.BBtQuSz3:
         """Create a batch of velocity vectors for testing."""
         return u.Quantity(
             jnp.asarray([[4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float),
@@ -87,7 +87,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         )
 
     @pytest.fixture(scope="class")
-    def batchxv(self, batchx: gt.BtQuSz3, batchv: gt.BtQuSz3) -> gt.BtSz3:
+    def batchxv(self, batchx: gt.BBtQuSz3, batchv: gt.BBtQuSz3) -> gt.BtSz3:
         """Create a batch of phase-space vectors for testing."""
         return jnp.concatenate([batchx.value, batchv.value], axis=-1)
 
@@ -119,7 +119,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         ...
 
     def test_potential_batch(
-        self, pot: gp.AbstractPotential, batchx: gt.BtQuSz3
+        self, pot: gp.AbstractPotential, batchx: gt.BBtQuSz3
     ) -> None:
         """Test the `AbstractPotential.potential` method."""
         # Test that the method works on batches.

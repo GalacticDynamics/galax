@@ -54,7 +54,7 @@ class FardalStreamDF(AbstractStreamDF):
         v: gt.BBtQuSz3,
         prog_mass: gt.BBtFloatQuSz0,
         t: gt.BBtFloatQuSz0,
-    ) -> tuple[gt.BtQuSz3, gt.BtQuSz3, gt.BtQuSz3, gt.BtQuSz3]:
+    ) -> tuple[gt.BBtQuSz3, gt.BBtQuSz3, gt.BBtQuSz3, gt.BBtQuSz3]:
         """Generate stream particle initial conditions."""
         # Random number generation
         key1, key2, key3, key4 = jr.split(key, 4)

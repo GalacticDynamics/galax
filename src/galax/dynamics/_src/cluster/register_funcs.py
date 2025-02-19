@@ -9,6 +9,7 @@ import jax
 from plum import convert, dispatch
 
 import coordinax as cx
+import coordinax.frames as cxf
 import quaxed.numpy as jnp
 import unxt as u
 
@@ -55,12 +56,7 @@ def lagrange_points(
 
 @dispatch
 def lagrange_points(
-    pot: gp.AbstractPotential,
-    space: cx.Space,
-    /,
-    *,
-    mass: gt.QuSz0,
-    t: gt.QuSz0,
+    pot: gp.AbstractPotential, space: cx.Space, /, *, mass: gt.QuSz0, t: gt.QuSz0
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, space["length"], space["speed"], mass=mass, t=t)
@@ -69,7 +65,7 @@ def lagrange_points(
 @dispatch
 def lagrange_points(
     pot: gp.AbstractPotential,
-    coord: cx.frames.AbstractCoordinate,
+    coord: cxf.AbstractCoordinate,
     /,
     *,
     mass: gt.QuSz0,

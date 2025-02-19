@@ -97,7 +97,7 @@ class BurkertPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _mass(
-        self, q: gt.BtQuSz3, /, t: gt.BtRealQuSz0 | gt.RealQuSz0
+        self, q: gt.BBtQuSz3, /, t: gt.BtRealQuSz0 | gt.RealQuSz0
     ) -> gt.BtFloatQuSz0:
         x = jnp.linalg.vector_norm(q, axis=-1) / self.r_s(t)
         return (
@@ -381,7 +381,7 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
     )
 
     @partial(jax.jit)
-    def _potential(self, xyz: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtSz0:
+    def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtSz0:
         ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         alpha = self.alpha(t, ustrip=self.units["dimensionless"])
@@ -431,7 +431,7 @@ class StoneOstriker15Potential(AbstractSinglePotential):
     #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
 
     @partial(jax.jit)
-    def _potential(self, xyz: gt.BtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtSz0:
+    def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtRealQuSz0, /) -> gt.BtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_h = self.r_h(t, ustrip=self.units["length"])
         r_c = self.r_c(t, ustrip=self.units["length"])

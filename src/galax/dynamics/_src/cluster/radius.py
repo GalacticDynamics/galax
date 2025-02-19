@@ -81,12 +81,7 @@ def tidal_radius(
 
 
 def tidal_radius_hoerner1957(
-    pot: gp.AbstractPotential,
-    xyz: gt.BBtRealQuSz3,
-    /,
-    *,
-    mass: gt.BBtQuSz0,
-    t: gt.BBtQuSz0,
+    pot: gp.AbstractPotential, xyz: gt.BBtQuSz3, /, *, mass: gt.BBtQuSz0, t: gt.BBtQuSz0
 ) -> gt.BBtRealQuSz0:
     r"""Calculate the tidal radius of a star cluster based on von Hoerner (1957).
 
@@ -206,8 +201,8 @@ def tidal_radius(
 @partial(jax.jit)
 def tidal_radius_king1962(
     pot: gp.AbstractPotential,
-    xyz: gt.BBtRealSz3,
-    v: gt.BBtRealSz3,
+    xyz: gt.BBtSz3,
+    v: gt.BBtSz3,
     /,
     *,
     mass: gt.BBtSz0 | gt.BBtQuSz0,  # cluster mass
@@ -226,8 +221,8 @@ def tidal_radius_king1962(
 @partial(jax.jit)
 def tidal_radius_king1962(
     pot: gp.AbstractPotential,
-    x: gt.BBtRealQuSz3 | cx.vecs.AbstractPos3D,
-    v: gt.BBtRealQuSz3 | cx.vecs.AbstractVel3D,
+    x: gt.BBtQuSz3 | cx.vecs.AbstractPos3D,
+    v: gt.BBtQuSz3 | cx.vecs.AbstractVel3D,
     /,
     *,
     mass: gt.BBtQuSz0,

@@ -24,13 +24,13 @@ from . import api
 
 
 @dispatch.multi(
-    (gt.BBtRealSz3, gt.BBtRealSz3),
-    (gt.BBtRealQuSz3, gt.BBtRealQuSz3),
+    (gt.BBtSz3, gt.BBtSz3),
+    (gt.BBtQuSz3, gt.BBtQuSz3),
 )
 @partial(jax.jit, inline=True)
 def specific_angular_momentum(
-    x: gt.BBtRealSz3 | gt.BBtRealQuSz3, v: gt.BBtRealSz3 | gt.BBtRealQuSz3, /
-) -> gt.BBtRealSz3 | gt.BBtRealQuSz3:
+    x: gt.BBtSz3 | gt.BBtQuSz3, v: gt.BBtSz3 | gt.BBtQuSz3, /
+) -> gt.BBtSz3 | gt.BBtQuSz3:
     """Compute from `jax.Array` or `unxt.Quantity`s as Cartesian coordinates."""
     return jnp.linalg.cross(x, v)
 
@@ -77,12 +77,12 @@ def specific_angular_momentum(
 
 
 @dispatch.multi(
-    (gt.BBtRealSz3, gt.BBtRealSz3),
-    (gt.BBtRealQuSz3, gt.BBtRealQuSz3),
+    (gt.BBtSz3, gt.BBtSz3),
+    (gt.BBtQuSz3, gt.BBtQuSz3),
 )
 @partial(jax.jit)
 def omega(
-    x: gt.BBtRealSz3 | gt.BBtRealQuSz3, v: gt.BBtRealSz3 | gt.BBtRealQuSz3, /
+    x: gt.BBtSz3 | gt.BBtQuSz3, v: gt.BBtSz3 | gt.BBtQuSz3, /
 ) -> gt.BBtRealSz0 | gt.BBtRealQuSz0:
     """Compute from `unxt.Quantity`s as Cartesian coordinates."""
     r = jnp.linalg.vector_norm(x, axis=-1, keepdims=True)

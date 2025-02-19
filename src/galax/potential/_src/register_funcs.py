@@ -87,7 +87,7 @@ def potential(
 @partial(jax.jit, inline=True)
 def gradient(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtRealLikeSz0, /
-) -> gt.BBtRealSz3:
+) -> gt.BBtSz3:
     """Compute the gradient at the given position(s).
 
     The position is in Cartesian coordinates and it and the time are assumed to
@@ -103,7 +103,7 @@ def gradient(
 @partial(jax.jit, inline=True)
 def gradient(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtRealLikeSz0
-) -> gt.BBtRealSz3:
+) -> gt.BBtSz3:
     return api.gradient(pot, xyz, t)
 
 

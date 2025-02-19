@@ -46,9 +46,12 @@ RealScalarLike: TypeAlias = Real[ScalarLike, ""]
 # ---------------------------
 # 0-scalar
 # Any
+
 Sz0: TypeAlias = Scalar
 BtSz0: TypeAlias = Shaped[Sz0, "*batch"]
 BBtSz0: TypeAlias = Shaped[Sz0, "*#batch"]
+QuSz0: TypeAlias = Shaped[AbstractQuantity, ""]
+BtQuSz0: TypeAlias = Shaped[QuSz0, "*batch"]
 BBtQuSz0: TypeAlias = Shaped[AbstractQuantity, "*#batch"]
 
 # Integer
@@ -89,31 +92,17 @@ QuSz1: TypeAlias = Shaped[AbstractQuantity, "1"]
 
 # ---------------------------
 # A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz).
-Sz3: TypeAlias = Shaped[Array, "3"]
-BtSz3: TypeAlias = Shaped[Sz3, "*batch"]
-BBtSz3: TypeAlias = Shaped[Sz3, "*#batch"]
-
-QuSz3: TypeAlias = Shaped[AbstractQuantity, "3"]
-BtQuSz3: TypeAlias = Shaped[QuSz3, "*batch"]
-BBtQuSz3: TypeAlias = Shaped[QuSz3, "*#batch"]
 
 FloatSz3: TypeAlias = Float[Array, "3"]
-BtFloatSz3: TypeAlias = Float[FloatSz3, "*batch"]
 FloatQuSz3: TypeAlias = Float[AbstractQuantity, "3"]
-BtFloatQuSz3: TypeAlias = Float[QuSz3, "*batch"]
-BBtFloatQuSz3: TypeAlias = Float[QuSz3, "*#batch"]
 
-RealSz3: TypeAlias = Real[Array, "3"]
-BtRealSz3: TypeAlias = Real[RealSz3, "*batch"]
-BBtRealSz3: TypeAlias = Real[RealSz3, "*#batch"]
+Sz3: TypeAlias = Real[Array, "3"]
+BtSz3: TypeAlias = Real[Sz3, "*batch"]
+BBtSz3: TypeAlias = Real[Sz3, "*#batch"]
 
-RealLikeSz3: TypeAlias = Real[ArrayLike, "3"]
-BtRealLikeSz3: TypeAlias = Real[RealLikeSz3, "*batch"]
-BBtRealLikeSz3: TypeAlias = Real[RealLikeSz3, "*#batch"]
-
-RealQuSz3: TypeAlias = Real[AbstractQuantity, "3"]
-BtRealQuSz3: TypeAlias = Shaped[RealQuSz3, "*batch"]
-BBtRealQuSz3: TypeAlias = Shaped[RealQuSz3, "*#batch"]
+QuSz3: TypeAlias = Real[AbstractQuantity, "3"]
+BtQuSz3: TypeAlias = Real[QuSz3, "*batch"]
+BBtQuSz3: TypeAlias = Real[QuSz3, "*#batch"]
 
 # ---------------------------
 # 4-vector
@@ -163,5 +152,7 @@ QuSzAny: TypeAlias = Real[AbstractQuantity, "..."]
 
 
 XYZArrayLike: TypeAlias = (
-    BBtRealLikeSz3 | list[ScalarLike] | tuple[ScalarLike, ScalarLike, ScalarLike]
+    Real[ArrayLike, "*#batch 3"]
+    | list[ScalarLike]
+    | tuple[ScalarLike, ScalarLike, ScalarLike]
 )

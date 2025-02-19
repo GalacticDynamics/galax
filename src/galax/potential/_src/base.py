@@ -170,7 +170,9 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @vectorize_method(signature="(3),()->(3)")
     @partial(jax.jit)
-    def _gradient(self, xyz: gt.FloatQuSz3, t: gt.RealQuSz0, /) -> gt.FloatSz3:
+    def _gradient(
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.RealQuSz0, /
+    ) -> gt.FloatSz3:
         """See ``gradient``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
@@ -210,7 +212,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     @partial(jax.jit)
     def _density(
-        self, q: gt.BBtFloatQuSz3, t: gt.BBtRealQuSz0 | gt.RealQuSz0, /
+        self, q: gt.BBtQuSz3, t: gt.BBtRealQuSz0 | gt.RealQuSz0, /
     ) -> gt.BBtFloatSz0:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
@@ -231,7 +233,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @partial(jax.jit)
     def _hessian(
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.RealQuSz0 | gt.RealSz0, /
-    ) -> gtSz33:
+    ) -> gt.Sz33:
         """See ``hessian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)

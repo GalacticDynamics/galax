@@ -202,9 +202,7 @@ def replace(
 
 @dispatch(precedence=1)
 def replace(
-    obj: AbstractCompositePotential,
-    replacements: Mapping[str, Mapping[str, Any]],
-    /,
+    obj: AbstractCompositePotential, replacements: Mapping[str, Mapping[str, Any]], /
 ) -> AbstractCompositePotential:
     """Replace the parameters of a composite potential.
 

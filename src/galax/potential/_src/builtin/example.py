@@ -148,7 +148,7 @@ class HenonHeilesPotential(AbstractSinglePotential):
     @partial(jax.jit)
     def _potential(
         self,
-        xyz: gt.BBtRealQuSz3 | gt.BBtRealSz3,
+        xyz: gt.BBtQuSz3 | gt.BBtSz3,
         t: gt.BBtRealQuSz0 | gt.BBtRealSz0,
         /,
     ) -> gt.BBtSz0:

@@ -141,7 +141,7 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
         v: gt.BBtQuSz3,
         prog_mass: gt.BBtFloatQuSz0,
         t: gt.BBtFloatQuSz0,
-    ) -> tuple[gt.BtQuSz3, gt.BtQuSz3, gt.BtQuSz3, gt.BtQuSz3]:
+    ) -> tuple[gt.BBtQuSz3, gt.BBtQuSz3, gt.BBtQuSz3, gt.BBtQuSz3]:
         """Generate stream particle initial conditions.
 
         Parameters

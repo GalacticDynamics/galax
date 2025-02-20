@@ -25,6 +25,9 @@ DenseInfo: TypeAlias = dict[str, PyTree[Array]]
 Terms: TypeAlias = PyTree
 DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], ""]
 
+# =========================================================
+# SolveState
+
 
 class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
     """State of the solver.
@@ -37,13 +40,16 @@ class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
     """
 
     #: Current time.
-    t: Any
+    t: gt.Sz0
+
     # ---- diffrax step outputs ----
     #: Current solution at `t`.
     y: PyTree
+
     # TODO: figure out how to extract this from `diffrax.Solution`
     # #: A local error estimate made during the step
     # err: PyTree | None  # noqa: ERA001
+
     # TODO: figure out how to extract this from `diffrax.Solution`
     # #: Save information. This is a dictionary of information that is passed to
     # # the solver's interpolation routine to calculate dense output. (Used with
@@ -51,6 +57,7 @@ class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
     # save_info: DenseInfo  # noqa: ERA001
     #: The value of the solver state at t1.
     solver_state: Any
+
     #: Step success. An integer (corresponding to diffrax.RESULTS) indicating
     # whether the step happened successfully, or if (unusually) it failed for
     # some reason.
@@ -76,6 +83,10 @@ class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
             success=obj[4],
             units=units,
         )
+
+
+# =========================================================
+# Abstract Solver
 
 
 class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[call-arg,misc]

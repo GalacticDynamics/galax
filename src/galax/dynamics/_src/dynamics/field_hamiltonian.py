@@ -8,20 +8,14 @@ from typing import Any, TypeAlias, final
 import diffrax as dfx
 import equinox as eqx
 import jax
-from plum import convert, dispatch
 
-import coordinax as cx
-import coordinax.vecs as cxv
-import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AllowValue, BareQuantity as FastQ
 
 import galax._custom_types as gt
-import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 from .field_base import AbstractDynamicsField
-from galax.potential._src.utils import parse_to_xyz_t
+from galax.dynamics._src.utils import parse_to_t_y
 
 
 @final
@@ -53,6 +47,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     >>> import quaxed.numpy as jnp
     >>> import diffrax as dfx
     >>> import unxt as u
+    >>> import coordinax as cx
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
@@ -105,7 +100,130 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     (2,)
 
     The ``__call__`` is very flexible and can be called with many different
-    combinations of arguments. See the ``__call__`` method for more information.
+    combinations of arguments. Let's work up the type ladder:
+
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+
+    `galax.dynamics.fields.HamiltonianField` can be called using many
+    different combinations of arguments. Let's work up the type ladder:
+
+    - `jax.Array` (assumed to be Cartesian coordinates and in the unit
+        system of the field):
+
+    >>> t = 0  # [Myr]
+    >>> x = jnp.array([8., 0, 0])  # [kpc]
+    >>> v = jnp.array([0, 0.22499668, 0])  # [kpc/Myr] (~220 km/s)
+
+    >>> field(t, x, v, None)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> field(t, (x, v))
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> xv = jnp.concat([x, v])
+    >>> field(t, xv)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> txv = jnp.concat([jnp.array([t]), x, v])
+    >>> field(txv)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    - `unxt.Quantity` (assumed to be in Cartesian coordinates).
+
+    >>> t = u.Quantity(0, "Gyr")
+    >>> q = u.Quantity([8., 0, 0], "kpc")
+    >>> p = u.Quantity([0, 220, 0], "km/s")
+
+    >>> field(t, (q, p))
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> field(t, q, p)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    - `coordinax.vecs.AbstractVector`:
+
+    >>> q = cx.CartesianPos3D.from_(q)
+    >>> p = cx.CartesianVel3D.from_(p)
+
+    >>> field(t, q, p)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> field(t, (q, p))
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    - `coordinax.vecs.FourVector`:
+
+    >>> tq = cx.vecs.FourVector(q=q, t=t)
+
+    >>> field(tq, p)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> field(tq, p)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    - `coordinax.vecs.Space`:
+
+    >>> space = cx.Space(length=tq, speed=p)
+    >>> field(space)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> space = cx.Space(length=q, speed=p)
+    >>> field(t, space)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    - `coordinax.frames.AbstractCoordinate`:
+
+    >>> coord = cx.Coordinate(space, frame=gc.frames.SimulationFrame())
+    >>> field(t, coord)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
+    ...                       frame=gc.frames.SimulationFrame())
+    >>> field(coord)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> field(t, coord)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
+    ...                       frame=gc.frames.SimulationFrame())
+    >>> field(coord)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    - `galax.coordinates.PhaseSpacePosition`:
+
+    >>> w = gc.PhaseSpacePosition(q=q, p=p)
+    >>> field(t, w)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    - `galax.coordinates.PhaseSpaceCoordinate`:
+
+    >>> wt = gc.PhaseSpaceCoordinate(t=t, q=q, p=p)
+    >>> field(wt)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+
+    >>> field(t, wt)
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
+        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
 
     """
 
@@ -115,145 +233,6 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     @property
     def units(self) -> u.AbstractUnitSystem:
         return self.potential.units
-
-    @dispatch.abstract
-    def __call__(self, *_: Any, **__: Any) -> tuple[Any, Any]:
-        """Evaluate the field at a position and time.
-
-        Examples
-        --------
-        >>> import quaxed.numpy as jnp
-        >>> import unxt as u
-        >>> import coordinax as cx
-        >>> import galax.coordinates as gc
-        >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
-
-        >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-        >>> field = gd.fields.HamiltonianField(pot)
-
-        HamiltonianField can be called using many different combinations of
-        arguments. Let's work up the type ladder:
-
-        - `jax.Array` (assumed to be Cartesian coordinates and in the unit
-          system of the field):
-
-        >>> t = 0  # [Myr]
-        >>> x = jnp.array([8., 0, 0])  # [kpc]
-        >>> v = jnp.array([0, 0.22499668, 0])  # [kpc/Myr] (~220 km/s)
-
-        >>> field(t, x, v)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> field(t, (x, v))
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> xv = jnp.concat([x, v])
-        >>> field(t, xv)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> txv = jnp.concat([jnp.array([t]), x, v])
-        >>> field(txv)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        - `unxt.Quantity` (assumed to be in Cartesian coordinates).
-
-        >>> t = u.Quantity(0, "Gyr")
-        >>> q = u.Quantity([8., 0, 0], "kpc")
-        >>> p = u.Quantity([0, 220, 0], "km/s")
-
-        >>> field(t, (q, p))
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> field(t, q, p)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        - `coordinax.vecs.AbstractVector`:
-
-        >>> q = cx.CartesianPos3D.from_(q)
-        >>> p = cx.CartesianVel3D.from_(p)
-
-        >>> field(t, q, p)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> field(t, (q, p))
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        - `coordinax.vecs.FourVector`:
-
-        >>> tq = cxv.FourVector(q=q, t=t)
-
-        >>> field(tq, p)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> field(tq, p)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        - `coordinax.vecs.Space`:
-
-        >>> space = cx.Space(length=tq, speed=p)
-        >>> field(space)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> space = cx.Space(length=q, speed=p)
-        >>> field(t, space)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        - `coordinax.frames.AbstractCoordinate`:
-
-        >>> coord = cx.Coordinate(space, frame=gc.frames.SimulationFrame())
-        >>> field(t, coord)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
-        ...                       frame=gc.frames.SimulationFrame())
-        >>> field(coord)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> field(t, coord)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
-        ...                       frame=gc.frames.SimulationFrame())
-        >>> field(coord)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        - `galax.coordinates.PhaseSpacePosition`:
-
-        >>> w = gc.PhaseSpacePosition(q=q, p=p)
-        >>> field(t, w)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        - `galax.coordinates.PhaseSpaceCoordinate`:
-
-        >>> wt = gc.PhaseSpaceCoordinate(t=t, q=q, p=p)
-        >>> field(wt)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        >>> field(t, wt)
-        (Array([0.        , 0.22499668, 0.        ], dtype=float64, ...),
-         Array([-0.0702891, -0.       , -0.       ], dtype=float64))
-
-        """
-        raise NotImplementedError  # pragma: no cover
 
     # ---------------------------
     # Private API to support symplectic integrators. It would be good to figure
@@ -327,240 +306,33 @@ def terms(
 # Call dispatches
 
 
-Args: TypeAlias = tuple[Any, ...] | None
+OptArgs: TypeAlias = dict[str, Any] | None
 
 
-@HamiltonianField.__call__.dispatch
+@AbstractDynamicsField.__call__.dispatch
+@partial(jax.jit)
+def call(self: HamiltonianField, tqp: Any, _: OptArgs = None, /) -> gdt.BtPAarr:
+    """Call with time, position, velocity quantity arrays."""
+    t, (xyz, v_xyz) = parse_to_t_y(None, tqp, ustrip=self.units)
+    a = -self.potential._gradient(xyz, t)  # noqa: SLF001
+    return v_xyz, a
+
+
+@AbstractDynamicsField.__call__.dispatch
+@partial(jax.jit)
+def call(self: HamiltonianField, tq: Any, qp: Any, _: OptArgs = None, /) -> gdt.BtPAarr:
+    """Call with time, position, velocity quantity arrays."""
+    t, (xyz, v_xyz) = parse_to_t_y(None, tq, qp, ustrip=self.units)
+    a = -self.potential._gradient(xyz, t)  # noqa: SLF001
+    return v_xyz, a
+
+
+@AbstractDynamicsField.__call__.dispatch
 @partial(jax.jit)
 def call(
-    self: HamiltonianField,
-    t: gt.QuSz0 | gt.BBtSz0 | gt.RealScalarLike,
-    q: gdt.BBtQ | gdt.BBtQarr,
-    p: gdt.BBtP | gdt.BBtParr,
-    _: Args = None,
-    /,
+    self: HamiltonianField, t: Any, q: Any, p: Any, _: OptArgs = None, /
 ) -> gdt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
-    xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=self.units)
-    p = u.ustrip(AllowValue, self.units["speed"], p)
+    t, (xyz, v_xyz) = parse_to_t_y(None, t, q, p, ustrip=self.units)
     a = -self.potential._gradient(xyz, t)  # noqa: SLF001
-    return p, a
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField,
-    t: gt.QuSz0 | gt.BBtSz0 | gt.RealScalarLike,
-    qp: gdt.BBtQP | gdt.BBtQParr | tuple[cxv.AbstractPos3D, cxv.AbstractVel3D],
-    args: Args = None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with time, (position, velocity) quantity arrays."""
-    return self(t, qp[0], qp[1], args)
-
-
-# ---------------------------
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField, tq: gt.BBtSz4, p: gt.BBtSz3, args: Args = None, /
-) -> gdt.BtPAarr:
-    """Call with time-pos 4 array, vel 3 array."""
-    t, q = tq[..., 0], tq[..., 1:4]
-    return self(t, q, p, args)
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField,
-    t: gt.BBtSz0 | gt.RealScalarLike,
-    tq: gt.BBtSz4,
-    p: gt.BBtSz3,
-    args: Args = None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with time-pos 4 array, vel 3 array."""
-    t = eqx.error_if(
-        t, jnp.logical_not(jnp.array_equal(t, tq[..., 0])), "t != tq[...,0]"
-    )
-    q = tq[..., 1:4]
-    return self(t, q, p, args)
-
-
-# ---------------------------
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField,
-    t: gt.QuSz0 | gt.BBtSz0 | gt.RealScalarLike,
-    qp: gt.BBtSz6,
-    args: Args = None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with time, pos-vel 6 array."""
-    return self(t, (qp[..., 0:3], qp[..., 3:6]), args)
-
-
-# ---------------------------
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(self: HamiltonianField, qp: gt.BBtSz7, args: Args = None, /) -> gdt.BtPAarr:
-    """Call with time, pos-vel 7 array."""
-    return self(qp[..., 0], (qp[..., 1:4], qp[..., 4:7]), args)
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField,
-    t: gt.BBtSz0 | gt.RealScalarLike,
-    qp: gt.BBtSz7,
-    args: Args = None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with time, pos-vel 7 array."""
-    t = eqx.error_if(
-        t, jnp.logical_not(jnp.array_equal(t, qp[..., 0])), "t != qp[...,0]"
-    )
-    return self(t, qp[..., 1:4], qp[..., 4:7], args)
-
-
-# ---------------------------
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField,
-    t: gt.QuSz0 | gt.BBtSz0 | gt.RealScalarLike,
-    q: cxv.AbstractPos3D,
-    p: cxv.AbstractVel3D,
-    args: Args = None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with time and `coordinax` ``AbstractPos3D`` and ``AbstractVel3D``."""
-    return self(t, (convert(q, FastQ), convert(p, FastQ)), args)
-
-
-# ---------------------------
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField,
-    tq: cxv.FourVector,
-    p: cxv.AbstractVel3D,
-    args: Args = None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`."""
-    return self(tq.t, tq.q, p, args)
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField,
-    t: Any,
-    tq: cxv.FourVector,
-    p: cxv.AbstractVel3D,
-    args: Args = None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`."""
-    t = eqx.error_if(t, jnp.logical_not(jnp.array_equal(t, tq.t)), "t != tq.t")
-    return self(t, tq.q, p, args)
-
-
-# ---------------------------
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField, t: Any, space: cxv.Space, args: Args = None, /
-) -> gdt.BtPAarr:
-    """Call with `coordinax.vecs.Space`."""
-    return self(t, space["length"], space["speed"], args)
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(self: HamiltonianField, space: cxv.Space, args: Args = None, /) -> gdt.BtPAarr:
-    """Call with `coordinax.vecs.Space`."""
-    q = space["length"]
-    q = eqx.error_if(
-        q, not isinstance(q, cxv.FourVector), "space['length'] is not a FourVector"
-    )
-    return self(q, space["speed"], args)
-
-
-# ---------------------------
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField, w: cx.frames.AbstractCoordinate, args: Args = None, /
-) -> gdt.BtPAarr:
-    """Call with `coordinax.AbstractCoordinate`."""
-    w = w.to_frame(gc.frames.simulation_frame)  # TODO: enable other frames
-    return self(w.data, args)
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField,
-    t: Any,
-    w: cx.frames.AbstractCoordinate,
-    args: Args = None,
-    /,
-) -> gdt.BtPAarr:
-    """Call with `coordinax.AbstractCoordinate`."""
-    w = w.to_frame(gc.frames.simulation_frame)  # TODO: enable other frames
-    return self(t, w.data, args)
-
-
-# ---------------------------
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField, t: Any, w: gc.PhaseSpacePosition, args: Args = None, /
-) -> gdt.BtPAarr:
-    """Call with `galax.coordinates.PhaseSpacePosition`."""
-    w = w.to_frame(gc.frames.simulation_frame)  # TODO: enable other frames
-    return self(t, w.q, w.p, args)
-
-
-# ---------------------------
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField, w: gc.PhaseSpaceCoordinate, args: Args = None, /
-) -> gdt.BtPAarr:
-    """Call with `galax.coordinates.PhaseSpaceCoordinate`."""
-    return self(w.t, w.q, w.p, args)
-
-
-@HamiltonianField.__call__.dispatch
-@partial(jax.jit)
-def call(
-    self: HamiltonianField, t: Any, w: gc.PhaseSpaceCoordinate, args: Args = None, /
-) -> gdt.BtPAarr:
-    """Call with `galax.coordinates.PhaseSpaceCoordinate`."""
-    t = eqx.error_if(t, jnp.logical_not(jnp.array_equal(t, w.t)), "t != w.t")
-    return self(t, w.q, w.p, args)
+    return v_xyz, a

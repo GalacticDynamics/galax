@@ -6,7 +6,6 @@ from functools import partial
 from typing import Any, TypeAlias, final
 
 import diffrax as dfx
-import equinox as eqx
 import jax
 
 import unxt as u
@@ -69,7 +68,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
 
     >>> solver = dfx.SemiImplicitEuler()
     >>> field.terms(solver)
-    (ODETerm( ... ), ODETerm( ... ))
+    (ODETerm(...), ODETerm(...))
 
     Just to continue the example, we can use this field to integrate the
     equations of motion:
@@ -235,18 +234,18 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
         return self.potential.units
 
     # ---------------------------
-    # Private API to support symplectic integrators. It would be good to figure
-    # out a way to make these methods part of `__call__`.
+    # Symplectic integration terms
+    # TODO: enable full gamut of inputs
 
-    @eqx.filter_jit  # type: ignore[misc]
-    def _dqdt(self, t: Any, p: gdt.BBtParr, args: Any, /) -> gdt.BBtParr:  # noqa: ARG002
+    @jax.jit  # type: ignore[misc]
+    def dx_dt(self, t: Any, v_xyz: gdt.BBtParr, args: Any, /) -> gdt.BBtParr:  # noqa: ARG002
         """Call with time, position quantity arrays."""
-        return p
+        return v_xyz
 
-    @eqx.filter_jit  # type: ignore[misc]
-    def _dpdt(self, t: gt.BBtSz0, q: gdt.BBtQarr, _: Any, /) -> gdt.BtAarr:
+    @jax.jit  # type: ignore[misc]
+    def dv_dt(self, t: gt.BBtSz0, xyz: gdt.BBtQarr, _: Any, /) -> gdt.BtAarr:
         """Call with time, velocity quantity arrays."""
-        return -self.potential._gradient(q, t)  # noqa: SLF001
+        return -self.potential._gradient(xyz, t)  # noqa: SLF001
 
 
 # ===============================================
@@ -275,7 +274,7 @@ def terms(
     >>> solver = dfx.SemiImplicitEuler()
 
     >>> field.terms(solver)
-    (ODETerm( ... ), ODETerm( ... ))
+    (ODETerm(...), ODETerm(...))
 
     For completeness we'll integrate the EoM.
 
@@ -299,7 +298,7 @@ def terms(
         frame=SimulationFrame())
 
     """
-    return (dfx.ODETerm(self._dqdt), dfx.ODETerm(self._dpdt))
+    return (dfx.ODETerm(self.dx_dt), dfx.ODETerm(self.dv_dt))
 
 
 # ===============================================
@@ -311,28 +310,27 @@ OptArgs: TypeAlias = dict[str, Any] | None
 
 @AbstractDynamicsField.__call__.dispatch
 @partial(jax.jit)
-def call(self: HamiltonianField, tqp: Any, _: OptArgs = None, /) -> gdt.BtPAarr:
+def call(self: HamiltonianField, tqp: Any, args: OptArgs = None, /) -> gdt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     t, (xyz, v_xyz) = parse_to_t_y(None, tqp, ustrip=self.units)
-    a = -self.potential._gradient(xyz, t)  # noqa: SLF001
-    return v_xyz, a
-
-
-@AbstractDynamicsField.__call__.dispatch
-@partial(jax.jit)
-def call(self: HamiltonianField, tq: Any, qp: Any, _: OptArgs = None, /) -> gdt.BtPAarr:
-    """Call with time, position, velocity quantity arrays."""
-    t, (xyz, v_xyz) = parse_to_t_y(None, tq, qp, ustrip=self.units)
-    a = -self.potential._gradient(xyz, t)  # noqa: SLF001
-    return v_xyz, a
+    return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)
 
 
 @AbstractDynamicsField.__call__.dispatch
 @partial(jax.jit)
 def call(
-    self: HamiltonianField, t: Any, q: Any, p: Any, _: OptArgs = None, /
+    self: HamiltonianField, tq: Any, qp: Any, args: OptArgs = None, /
+) -> gdt.BtPAarr:
+    """Call with time, position, velocity quantity arrays."""
+    t, (xyz, v_xyz) = parse_to_t_y(None, tq, qp, ustrip=self.units)
+    return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)
+
+
+@AbstractDynamicsField.__call__.dispatch
+@partial(jax.jit)
+def call(
+    self: HamiltonianField, t: Any, q: Any, p: Any, args: OptArgs = None, /
 ) -> gdt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     t, (xyz, v_xyz) = parse_to_t_y(None, t, q, p, ustrip=self.units)
-    a = -self.potential._gradient(xyz, t)  # noqa: SLF001
-    return v_xyz, a
+    return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)

@@ -11,7 +11,6 @@ from jaxtyping import PRNGKeyArray
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import galactic
 
 import galax._custom_types as gt
 import galax.coordinates as gc
@@ -173,7 +172,7 @@ class AbstractPhaseSpaceObject_Test(Generic[CT], metaclass=ABCMeta):
         assert hasattr(w, "w")
 
         # units are not None
-        assert w.w(units=galactic).shape[:-1] == w.full_shape[:-1]
+        assert w.w(units="galactic").shape[:-1] == w.full_shape[:-1]
 
     # =========================================================
     # Dynamical properties

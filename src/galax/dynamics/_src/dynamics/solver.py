@@ -21,7 +21,7 @@ import coordinax as cx
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity as FastQ
+from unxt.quantity import AllowValue, BareQuantity as FastQ
 
 import galax._custom_types as gt
 import galax.coordinates as gc
@@ -29,7 +29,6 @@ import galax.dynamics._src.custom_types as gdt
 from .field_base import AbstractDynamicsField
 from galax.dynamics._src.solver import AbstractSolver, SolveState, Terms
 from galax.dynamics._src.utils import parse_saveat
-from galax.utils._unxt import AllowValue
 
 BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
 

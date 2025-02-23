@@ -7,7 +7,6 @@ import pytest
 from jax import Array
 
 import unxt as u
-from unxt.unitsystems import galactic, solarsystem
 
 from galax.potential import AbstractPotential
 
@@ -45,10 +44,10 @@ class FieldUnitSystemMixin:
         # # assert pot.units == dimensionless
 
         pot = pot_cls(**fields_unitless, units="solarsystem")
-        assert pot.units == solarsystem
+        assert pot.units == u.unitsystems.solarsystem
 
         pot = pot_cls(**fields_unitless, units="galactic")
-        assert pot.units == galactic
+        assert pot.units == u.unitsystems.galactic
 
         with pytest.raises(KeyError, match="invalid_value"):
             pot_cls(**fields_unitless, units="invalid_value")

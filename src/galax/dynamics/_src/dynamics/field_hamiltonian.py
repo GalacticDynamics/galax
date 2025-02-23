@@ -14,7 +14,7 @@ import coordinax as cx
 import coordinax.vecs as cxv
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity as FastQ
+from unxt.quantity import AllowValue, BareQuantity as FastQ
 
 import galax._custom_types as gt
 import galax.coordinates as gc
@@ -22,7 +22,6 @@ import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 from .field_base import AbstractDynamicsField
 from galax.potential._src.utils import parse_to_xyz_t
-from galax.utils._unxt import AllowValue
 
 
 @final

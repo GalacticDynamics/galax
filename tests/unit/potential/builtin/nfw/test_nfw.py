@@ -6,7 +6,6 @@ from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import galactic
 
 import galax._custom_types as gt
 import galax.potential as gp
@@ -73,7 +72,7 @@ class TestNFWPotential(
     def test_special_inits(self) -> None:
         """Test specialized initializers of the NFW potential."""
         pot = gp.NFWPotential.from_circular_velocity(
-            v_c=u.Quantity(220.0, "km/s"), r_s=u.Quantity(15.0, "kpc"), units=galactic
+            v_c=u.Quantity(220.0, "km/s"), r_s=u.Quantity(15.0, "kpc"), units="galactic"
         )
         got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
         exp = -0.23399598
@@ -83,14 +82,14 @@ class TestNFWPotential(
             v_c=u.Quantity(220.0, "km/s"),
             r_s=u.Quantity(15.0, "kpc"),
             r_ref=u.Quantity(20.0, "kpc"),
-            units=galactic,
+            units="galactic",
         )
         got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
         exp = -0.21843999
         assert jnp.allclose(got, exp, atol=1e-8)
 
         pot = gp.NFWPotential.from_M200_c(
-            M200=u.Quantity(1e12, "Msun"), c=15.0, units=galactic
+            M200=u.Quantity(1e12, "Msun"), c=15.0, units="galactic"
         )
         got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
         exp = -0.15451932
@@ -100,7 +99,7 @@ class TestNFWPotential(
             M200=u.Quantity(1e12, "Msun"),
             c=15.0,
             rho_c=u.Quantity(1, "g / m3"),
-            units=galactic,
+            units="galactic",
         )
         got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
         exp = -10.73095438

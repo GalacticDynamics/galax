@@ -16,6 +16,7 @@ from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -25,7 +26,6 @@ from .plot import PlotPotentialDescriptor
 from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.utils._jax import vectorize_method
-from galax.utils._unxt import AllowValue
 from galax.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:

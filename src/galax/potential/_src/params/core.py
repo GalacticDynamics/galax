@@ -18,10 +18,9 @@ import jax
 import unxt as u
 from dataclassish.converters import Unless
 from unxt._src.units.api import AstropyUnits
-from unxt.quantity import AbstractQuantity
+from unxt.quantity import AbstractQuantity, AllowValue
 
 import galax._custom_types as gt
-from galax.utils._unxt import AllowValue
 
 t0 = u.Quantity(0, "Myr")
 

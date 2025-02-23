@@ -8,8 +8,7 @@ import astropy.units as apyu
 from plum import dispatch
 
 import unxt as u
-
-from galax.utils._unxt import AllowValue
+from unxt.quantity import AllowValue
 
 
 @dispatch  # TODO: type annotate by value

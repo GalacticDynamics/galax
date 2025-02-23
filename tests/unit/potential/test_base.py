@@ -10,7 +10,7 @@ from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import galactic
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -19,7 +19,6 @@ import galax.potential as gp
 import galax.potential.params as gpp
 from .io.test_gala import GalaIOMixin
 from galax.potential._src.base import default_constants
-from galax.utils._unxt import AllowValue
 
 
 class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
@@ -31,7 +30,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
 
     @pytest.fixture(scope="class")
     def units(self) -> u.AbstractUnitSystem:
-        return galactic
+        return u.unitsystems.galactic
 
     @pytest.fixture(scope="class")
     def field_units(self, units: u.AbstractUnitSystem) -> u.AbstractUnitSystem:
@@ -213,7 +212,9 @@ class TestAbstractPotential(AbstractPotential_Test):
             m_tot: gpp.AbstractParameter = gpp.ParameterField(
                 dimensions="mass", default=u.Quantity(1e12, "Msun")
             )
-            units: u.AbstractUnitSystem = eqx.field(default=galactic, static=True)
+            units: u.AbstractUnitSystem = eqx.field(
+                default=u.unitsystems.galactic, static=True
+            )
             constants: ImmutableMap[str, u.Quantity] = eqx.field(
                 default=ImmutableMap(constants_in_usys),
                 converter=ImmutableMap,

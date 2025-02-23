@@ -14,10 +14,10 @@ from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
 from .base import AbstractPotential
-from galax.utils._unxt import AllowValue
 
 if TYPE_CHECKING:
     import galax.potential  # noqa: ICN001

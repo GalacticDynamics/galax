@@ -271,7 +271,6 @@ def uconvert(
     `galax.coordinates.CompositePhaseSpaceCoordinate`.
 
     >>> import unxt as u
-    >>> from unxt.unitsystems import solarsystem
     >>> import galax.coordinates as gc
 
     >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
@@ -279,7 +278,7 @@ def uconvert(
     ...                              t=u.Quantity(7, "Myr"))
 
     >>> cwt = gc.CompositePhaseSpaceCoordinate(wt1=wt1)
-    >>> cwt.uconvert(solarsystem)
+    >>> cwt.uconvert(u.unitsystems.solarsystem)
     CompositePhaseSpaceCoordinate({'wt1': PhaseSpaceCoordinate(
         q=CartesianPos3D(
             x=Quantity[...](value=...f64[], unit=Unit("AU")),

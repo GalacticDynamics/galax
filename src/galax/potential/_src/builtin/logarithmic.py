@@ -14,7 +14,7 @@ import jax
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -22,7 +22,6 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-from galax.utils._unxt import AllowValue
 
 
 @final
@@ -33,7 +32,7 @@ class LogarithmicPotential(AbstractSinglePotential):
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -68,7 +67,7 @@ class LMJ09LogarithmicPotential(AbstractSinglePotential):
     phi: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )

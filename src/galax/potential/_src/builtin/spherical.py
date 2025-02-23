@@ -24,7 +24,7 @@ import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import quaxed.scipy.special as qsp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -33,7 +33,6 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-from galax.utils._unxt import AllowValue
 
 # -------------------------------------------------------------------
 
@@ -59,7 +58,7 @@ class BurkertPotential(AbstractSinglePotential):
     """Scale radius"""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -173,7 +172,7 @@ class HernquistPotential(AbstractSinglePotential):
     )  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -226,7 +225,7 @@ class IsochronePotential(AbstractSinglePotential):
     """
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -280,7 +279,7 @@ class KeplerPotential(AbstractSinglePotential):
     """Total mass of the potential."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -321,7 +320,7 @@ class PlummerPotential(AbstractSinglePotential):
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -373,7 +372,7 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
     """Cutoff radius."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -511,7 +510,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     """Scale length in the z direction divided by ``c``."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         converter=ImmutableMap, default=default_constants
     )

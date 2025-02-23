@@ -9,8 +9,7 @@ import equinox as eqx
 from jaxtyping import Array
 
 import unxt as u
-
-from galax.utils._unxt import AllowValue
+from unxt.quantity import AllowValue
 
 
 class MassBelowThreshold(eqx.Module):  # type: ignore[misc]

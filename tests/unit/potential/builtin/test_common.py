@@ -4,7 +4,6 @@ import pytest
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import galactic
 
 import galax.potential as gp
 import galax.potential.params as gpp
@@ -29,7 +28,7 @@ class ParameterMTotMixin(ParameterFieldMixin):
     def test_m_tot_units(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["m_tot"] = u.Quantity(1.0, u.unit(10 * u.unit("Msun")))
-        fields["units"] = galactic
+        fields["units"] = u.unitsystems.galactic
         pot = pot_cls(**fields)
         assert isinstance(pot.m_tot, ConstantParameter)
         assert pot.m_tot.value == u.Quantity(10, "Msun")
@@ -65,7 +64,7 @@ class ParameterMMixin(ParameterFieldMixin):
     def test_m_units(self, pot_cls, fields):
         """Test the mass parameter."""
         fields["m"] = u.Quantity(1.0, u.unit(10 * u.unit("Msun")))
-        fields["units"] = galactic
+        fields["units"] = u.unitsystems.galactic
         pot = pot_cls(**fields)
         assert isinstance(pot.m, ConstantParameter)
         assert pot.m.value == u.Quantity(10, "Msun")
@@ -107,7 +106,7 @@ class ParameterScaleRadiusMixin(ParameterFieldMixin):
     ) -> None:
         """Test the mass parameter."""
         fields["r_s"] = 1.0 * u.unit(10 * u.unit("kpc"))
-        fields["units"] = galactic
+        fields["units"] = u.unitsystems.galactic
         pot = pot_cls(**fields)
         assert isinstance(pot.r_s, gpp.ConstantParameter)
         assert jnp.isclose(

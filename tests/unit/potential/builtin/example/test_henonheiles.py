@@ -7,7 +7,6 @@ from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem
 
 import galax._custom_types as gt
 import galax.potential as gp
@@ -94,7 +93,7 @@ class TestHenonHeilesPotential(
         self,
         field_coeff: u.Quantity,
         field_timescale: u.Quantity,
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "coeff": field_coeff,

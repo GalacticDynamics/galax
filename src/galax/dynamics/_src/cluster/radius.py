@@ -25,13 +25,12 @@ from plum import dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity
+from unxt.quantity import AllowValue, BareQuantity
 
 import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.potential as gp
 from galax.dynamics._src.api import omega
-from galax.utils._unxt import AllowValue
 
 
 class AbstractTidalRadiusMethod:

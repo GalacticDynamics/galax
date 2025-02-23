@@ -16,7 +16,6 @@ from typing_extensions import override
 import equinox as eqx
 
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem, galactic
 from xmmutablemap import ImmutableMap
 
 from .const import SQRT2
@@ -204,7 +203,7 @@ class BovyMWPotential2014(AbstractSpecialPotential):
             m_tot=u.Quantity(68_193_902_782.346756, "Msun"),
             a=u.Quantity(3.0, "kpc"),
             b=u.Quantity(280, "pc"),
-            units=galactic,
+            units="galactic",
         ),
         converter=MiyamotoNagaiPotential.from_,
     )
@@ -213,7 +212,7 @@ class BovyMWPotential2014(AbstractSpecialPotential):
             m_tot=u.Quantity(4501365375.06545, "Msun"),
             alpha=1.8,
             r_c=u.Quantity(1.9, "kpc"),
-            units=galactic,
+            units="galactic",
         ),
         converter=PowerLawCutoffPotential.from_,
     )
@@ -221,13 +220,13 @@ class BovyMWPotential2014(AbstractSpecialPotential):
         default=NFWPotential(
             m=u.Quantity(4.3683325e11, "Msun"),
             r_s=u.Quantity(16, "kpc"),
-            units=galactic,
+            units="galactic",
         ),
         converter=NFWPotential.from_,
     )
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(
-        default=galactic, static=True, converter=u.unitsystem
+    units: u.AbstractUnitSystem = eqx.field(
+        default=u.unitsystems.galactic, static=True, converter=u.unitsystem
     )
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
@@ -273,13 +272,15 @@ class LM10Potential(AbstractSpecialPotential):
             m_tot=u.Quantity(1e11, "Msun"),
             a=u.Quantity(6.5, "kpc"),
             b=u.Quantity(0.26, "kpc"),
-            units=galactic,
+            units="galactic",
         ),
         converter=MiyamotoNagaiPotential.from_,
     )
     bulge: HernquistPotential = eqx.field(
         default=HernquistPotential(
-            m_tot=u.Quantity(3.4e10, "Msun"), r_s=u.Quantity(0.7, "kpc"), units=galactic
+            m_tot=u.Quantity(3.4e10, "Msun"),
+            r_s=u.Quantity(0.7, "kpc"),
+            units="galactic",
         ),
         converter=HernquistPotential.from_,
     )
@@ -291,13 +292,13 @@ class LM10Potential(AbstractSpecialPotential):
             q2=1.0,
             q3=1.36,
             phi=u.Quantity(97, "degree"),
-            units=galactic,
+            units="galactic",
         ),
         converter=LMJ09LogarithmicPotential.from_,
     )
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(
-        default=galactic, static=True, converter=u.unitsystem
+    units: u.AbstractUnitSystem = eqx.field(
+        default=u.unitsystems.galactic, static=True, converter=u.unitsystem
     )
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
@@ -340,31 +341,31 @@ class MilkyWayPotential(AbstractSpecialPotential):
             m_tot=u.Quantity(6.8e10, "Msun"),
             a=u.Quantity(3.0, "kpc"),
             b=u.Quantity(0.28, "kpc"),
-            units=galactic,
+            units="galactic",
         ),
         converter=MiyamotoNagaiPotential.from_,
     )
     halo: NFWPotential = eqx.field(
         default=NFWPotential(
-            m=u.Quantity(5.4e11, "Msun"), r_s=u.Quantity(15.62, "kpc"), units=galactic
+            m=u.Quantity(5.4e11, "Msun"), r_s=u.Quantity(15.62, "kpc"), units="galactic"
         ),
         converter=NFWPotential.from_,
     )
     bulge: HernquistPotential = eqx.field(
         default=HernquistPotential(
-            m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units=galactic
+            m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units="galactic"
         ),
         converter=HernquistPotential.from_,
     )
     nucleus: HernquistPotential = eqx.field(
         default=HernquistPotential(
-            m_tot=u.Quantity(1.71e9, "Msun"), r_s=u.Quantity(70, "pc"), units=galactic
+            m_tot=u.Quantity(1.71e9, "Msun"), r_s=u.Quantity(70, "pc"), units="galactic"
         ),
         converter=HernquistPotential.from_,
     )
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(
-        default=galactic, static=True, converter=u.unitsystem
+    units: u.AbstractUnitSystem = eqx.field(
+        default=u.unitsystems.galactic, static=True, converter=u.unitsystem
     )
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
@@ -409,7 +410,7 @@ class MilkyWayPotential2022(AbstractSpecialPotential):
             h_R=u.Quantity(2.6, "kpc"),
             h_z=u.Quantity(0.3, "kpc"),
             positive_density=True,
-            units=galactic,
+            units="galactic",
         ),
         converter=MN3Sech2Potential.from_,
     )
@@ -417,13 +418,13 @@ class MilkyWayPotential2022(AbstractSpecialPotential):
         default=NFWPotential(
             m=u.Quantity(5.5427e11, "Msun"),
             r_s=u.Quantity(15.626, "kpc"),
-            units=galactic,
+            units="galactic",
         ),
         converter=NFWPotential.from_,
     )
     bulge: HernquistPotential = eqx.field(
         default=HernquistPotential(
-            m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units=galactic
+            m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units="galactic"
         ),
         converter=HernquistPotential.from_,
     )
@@ -431,13 +432,13 @@ class MilkyWayPotential2022(AbstractSpecialPotential):
         default=HernquistPotential(
             m_tot=u.Quantity(1.8142e9, "Msun"),
             r_s=u.Quantity(68.8867, "pc"),
-            units=galactic,
+            units="galactic",
         ),
         converter=HernquistPotential.from_,
     )
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(
-        default=galactic, static=True, converter=u.unitsystem
+    units: u.AbstractUnitSystem = eqx.field(
+        default=u.unitsystems.galactic, static=True, converter=u.unitsystem
     )
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap

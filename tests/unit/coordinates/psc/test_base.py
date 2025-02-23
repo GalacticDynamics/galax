@@ -12,7 +12,6 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from dataclassish import replace
-from unxt.unitsystems import galactic
 
 import galax._custom_types as gt
 import galax.coordinates as gc
@@ -23,7 +22,7 @@ WT = TypeVar("WT", bound=gc.AbstractPhaseSpaceCoordinate)
 
 
 potentials = [
-    gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units=galactic),
+    gp.KeplerPotential(m_tot=1e12, units="galactic"),
     gp.MilkyWayPotential(),
 ]
 
@@ -100,14 +99,15 @@ class AbstractPhaseSpaceCoordinate_Test(
 
     def test_wt(self, w: gc.AbstractPhaseSpaceCoordinate) -> None:
         """Test :meth:`~galax.coordinates.AbstractPhaseSpaceCoordinate.wt`."""
-        wt = w.wt(units=galactic)
+        usys = u.unitsystems.galactic
+        wt = w.wt(units=usys)
         assert wt.shape == w.full_shape
-        assert jnp.array_equal(wt[..., 0], w.t.decompose(galactic).value)
+        assert jnp.array_equal(wt[..., 0], w.t.decompose(usys).value)
         assert jnp.array_equal(
-            wt[..., 1:4], convert(w.q, u.Quantity).decompose(galactic).value
+            wt[..., 1:4], convert(w.q, u.Quantity).decompose(usys).value
         )
         assert jnp.array_equal(
-            wt[..., 4:7], convert(w.p, u.Quantity).decompose(galactic).value
+            wt[..., 4:7], convert(w.p, u.Quantity).decompose(usys).value
         )
 
     # -----------------------------

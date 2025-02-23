@@ -2,7 +2,7 @@
 
 __all__: list[str] = []
 
-from typing import Any
+from typing import Any, TypeAlias
 
 import equinox as eqx
 import numpy as np
@@ -17,6 +17,8 @@ from unxt.quantity import AllowValue, BareQuantity
 
 import galax._custom_types as gt
 import galax.coordinates as gc
+
+OptUnitSystem: TypeAlias = u.AbstractUnitSystem | None
 
 speed_of_light = u.quantity.BareQuantity(299_792_458, "m/s")
 
@@ -193,7 +195,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: None = None,  # noqa: ARG001
+    ustrip: OptUnitSystem = None,  # noqa: ARG001
 ) -> tuple[gt.BBtSz3, gt.BBtSz0]:
     """Parse input arguments to position & time."""
     # Process the input arguments into arrays
@@ -216,7 +218,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtSz3, gt.BBtSz0]:
     """Parse input argument to position & time."""
     txyz = jnp.asarray(txyz, dtype=dtype)
@@ -233,7 +235,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtSz3, gt.BBtSz0]:
     """Parse input argument to position & time."""
     txyz = jnp.asarray(txyz, dtype=dtype)
@@ -257,7 +259,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3 | gt.BBtSz3, gt.BBtQuSz0 | gt.BBtSz0]:
     """Parse input arguments to position & time."""
     xyz = jnp.asarray(xyz, dtype=dtype)
@@ -283,7 +285,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3 | gt.BBtSz3, gt.BBtQuSz0 | gt.BBtSz0]:
     """Parse input arguments to position & time."""
     ct, xyz = txyz[..., 0], txyz[..., 1:4]
@@ -299,7 +301,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3 | gt.BBtSz3, gt.BBtQuSz0 | gt.BBtSz0]:
     """Parse input arguments to position & time."""
     ct, xyz = txyz[..., 0], txyz[..., 1:4]
@@ -320,7 +322,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3 | gt.BBtSz3, gt.BBtQuSz0 | gt.BBtSz0]:
     """Parse input arguments to position & time."""
     xyz = convert(q.vconvert(cx.CartesianPos3D), BareQuantity)
@@ -334,7 +336,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3, gt.BBtQuSz0]:
     """Parse input arguments to position & time."""
     return parse_to_xyz_t(to_frame, q4.q, q4.t, dtype=dtype, ustrip=ustrip)
@@ -348,7 +350,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3, gt.BBtQuSz0]:
     """Parse input arguments to position & time."""
     t = q4.t
@@ -367,7 +369,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3 | gt.BBtSz3, gt.BBtQuSz0 | gt.BBtSz0]:
     """Parse input arguments to position & time."""
     q = space["length"]
@@ -383,7 +385,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3 | gt.BBtSz3, gt.BBtQuSz0 | gt.BBtSz0]:
     """Parse input arguments to position & time."""
     q = space["length"]
@@ -408,7 +410,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3 | gt.BBtSz3, gt.BBtQuSz0 | gt.BBtSz0]:
     """Parse input arguments to position & time."""
     # Transform to the frame
@@ -427,7 +429,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3 | gt.BBtSz3, gt.BBtQuSz0 | gt.BBtSz0]:
     """Parse input arguments to position & time."""
     # Transform to the frame
@@ -446,7 +448,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3, gt.BBtQuSz0]:
     """Parse input arguments to position & time."""
     # Transform to the frame
@@ -465,7 +467,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3, gt.BBtQuSz0]:
     """Parse input arguments to position & time."""
     # Transform to the frame
@@ -488,7 +490,7 @@ def parse_to_xyz_t(
     /,
     *,
     dtype: Any = None,
-    ustrip: u.AbstractUnitSystem | None = None,
+    ustrip: OptUnitSystem = None,
 ) -> tuple[gt.BBtQuSz3, gt.BBtQuSz0]:
     """Parse input arguments to position & time."""
     # Transform to the frame

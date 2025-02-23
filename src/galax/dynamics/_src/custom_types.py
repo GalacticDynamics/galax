@@ -4,28 +4,38 @@ __all__: list[str] = []
 
 from typing import TypeAlias
 
-from jaxtyping import Array, Shaped
+import galax._custom_types as gt
 
-from unxt.quantity import AbstractQuantity
+# ---------------------------
+# Q
 
-Qarr: TypeAlias = Shaped[Array, "3"]
-BtQarr: TypeAlias = Shaped[Qarr, "*batch"]
-BBtQarr: TypeAlias = Shaped[Qarr, "*#batch"]
+Qarr: TypeAlias = gt.Sz3
+BtQarr: TypeAlias = gt.BtSz3
+BBtQarr: TypeAlias = gt.BBtSz3
 
-Q: TypeAlias = Shaped[AbstractQuantity, "3"]
-BtQ: TypeAlias = Shaped[Q, "*batch"]
-BBtQ: TypeAlias = Shaped[Q, "*#batch"]
+Q: TypeAlias = gt.QuSz3
+BtQ: TypeAlias = gt.BtQuSz3
+BBtQ: TypeAlias = gt.BBtQuSz3
 
-Parr: TypeAlias = Shaped[Array, "3"]
-BtParr: TypeAlias = Shaped[Parr, "*batch"]
-BBtParr: TypeAlias = Shaped[Parr, "*#batch"]
+# ---------------------------
+# P
 
-P: TypeAlias = Shaped[AbstractQuantity, "3"]
-BtP: TypeAlias = Shaped[P, "*batch"]
-BBtP: TypeAlias = Shaped[P, "*#batch"]
+Parr: TypeAlias = gt.Sz3
+BtParr: TypeAlias = gt.BtSz3
+BBtParr: TypeAlias = gt.BBtSz3
 
-Aarr: TypeAlias = Shaped[Array, "3"]
-BtAarr: TypeAlias = Shaped[Aarr, "*batch"]
+P: TypeAlias = gt.QuSz3
+BtP: TypeAlias = gt.BtQuSz3
+BBtP: TypeAlias = gt.BBtQuSz3
+
+# ---------------------------
+# A
+
+Aarr: TypeAlias = gt.Sz3
+BtAarr: TypeAlias = gt.BtSz3
+
+# ---------------------------
+# QP
 
 QParr: TypeAlias = tuple[Qarr, Parr]
 BtQParr: TypeAlias = tuple[BtQarr, BtParr]
@@ -34,6 +44,9 @@ BBtQParr: TypeAlias = tuple[BBtQarr, BBtParr]
 QP: TypeAlias = tuple[Q, P]
 BtQP: TypeAlias = tuple[BtQ, BtP]
 BBtQP: TypeAlias = tuple[BBtQ, BBtP]
+
+# ---------------------------
+# PA
 
 PAarr: TypeAlias = tuple[Parr, Aarr]
 BtPAarr: TypeAlias = tuple[BtParr, BtAarr]

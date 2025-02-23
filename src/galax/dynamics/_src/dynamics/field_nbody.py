@@ -6,11 +6,12 @@ from typing import Any, final
 
 import equinox as eqx
 import jax
-from jaxtyping import Array, Shaped
+from jaxtyping import Array, Float, Real
 from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
 import galax.potential as gp
@@ -56,10 +57,10 @@ class NBodyField(AbstractDynamicsField, strict=True):  # type: ignore[call-arg]
     """
 
     #: masses of each particle.
-    masses: Shaped[u.Quantity["mass"], "N"]
+    masses: Real[u.Quantity["mass"], "N"] | Real[Array, "N"]
 
     #: softening length.
-    eps: Shaped[u.Quantity["length"], ""]
+    eps: Float[u.Quantity["length"], ""] | gt.FloatSz0
 
     #: Potential.
     external_potential: gp.AbstractPotential = eqx.field(
@@ -88,13 +89,16 @@ class NBodyField(AbstractDynamicsField, strict=True):  # type: ignore[call-arg]
 def __call__(
     self: "NBodyField",
     t: gt.Sz0,
-    xv: tuple[Shaped[Array, "N 3"], Shaped[Array, "N 3"]],
+    xv: tuple[Real[Array, "N 3"], Real[Array, "N 3"]]
+    | tuple[Real[u.AbstractQuantity, "N 3"], Real[u.AbstractQuantity, "N 3"]],
     args: Any,  # noqa: ARG001
     /,
-) -> tuple[Shaped[Array, "N 3"], Shaped[Array, "N 3"]]:
+) -> tuple[Real[Array, "N 3"], Real[Array, "N 3"]]:
     # Break apart the input.
     units = self.units
     x, v = xv
+    x = u.ustrip(AllowValue, units["length"], x)
+    v = u.ustrip(AllowValue, units["speed"], v)
 
     # Compute the difference vectors ri - rj between all pairs of points
     diffs = x[:, None, :] - x[None, :, :]  # (N, N, 3)

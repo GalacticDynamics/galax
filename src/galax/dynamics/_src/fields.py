@@ -69,7 +69,7 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
     ODETerm(vector_field=<wrapped function __call__>)
 
     >>> field.terms(dfx.SemiImplicitEuler())
-    (ODETerm( ... ), ODETerm( ... ))
+    (ODETerm(...), ODETerm(...))
 
     """
 

@@ -2,7 +2,6 @@ import pytest
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import galactic
 
 import galax.potential as gp
 from ...param.test_field import ParameterFieldMixin
@@ -23,7 +22,7 @@ class ParameterVCMixin(ParameterFieldMixin):
     def test_v_c_units(self, pot_cls, fields):
         """Test the speed parameter."""
         fields["v_c"] = u.Quantity(1.0, u.unit(220 * u.unit("km / s")))
-        fields["units"] = galactic
+        fields["units"] = u.unitsystems.galactic
         pot = pot_cls(**fields)
         assert isinstance(pot.v_c, ConstantParameter)
         assert pot.v_c.value == u.Quantity(220, "km/s")
@@ -59,7 +58,7 @@ class ParameterRSMixin(ParameterFieldMixin):
     def test_r_s_units(self, pot_cls, fields):
         """Test the speed parameter."""
         fields["r_s"] = u.Quantity(1, u.unit(10 * u.unit("kpc")))
-        fields["units"] = galactic
+        fields["units"] = u.unitsystems.galactic
         pot = pot_cls(**fields)
         assert isinstance(pot.r_s, ConstantParameter)
         assert jnp.isclose(

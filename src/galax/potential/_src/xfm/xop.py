@@ -30,7 +30,7 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> from galax.utils._unxt import AllowValue
+    >>> from unxt.quantity import AllowValue
 
     Now we define a triaxial Hernquist potential with a time-dependent mass:
 

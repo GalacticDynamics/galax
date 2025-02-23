@@ -18,7 +18,6 @@ from plum import convert, dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem, DimensionlessUnitSystem
 
 import galax.potential as gp
 import galax.potential.io as gpio
@@ -131,11 +130,11 @@ def _apply_xop(
     )
 
 
-def _galax_to_gala_units(units: AbstractUnitSystem, /) -> GalaUnitSystem:
+def _galax_to_gala_units(units: u.AbstractUnitSystem, /) -> GalaUnitSystem:
     """Convert a Galax unit system to a Gala unit system."""
     # Galax potentials naturally convert Gala unit systems, but Gala potentials
     # do not convert Galax unit systems. This function is used for that purpose.
-    if isinstance(units, DimensionlessUnitSystem):
+    if isinstance(units, u.unitsystems.DimensionlessUnitSystem):
         return gala_dimensionless
     return GalaUnitSystem(units)
 

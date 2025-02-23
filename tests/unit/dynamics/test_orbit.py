@@ -8,7 +8,6 @@ from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import galactic
 
 import galax._custom_types as gt
 import galax.coordinates as gc
@@ -99,14 +98,15 @@ class TestOrbit(AbstractBasicPhaseSpaceCoordinate_Test[gd.Orbit]):
 
     def test_wt(self, w: gd.Orbit) -> None:
         """Test :meth:`~galax.coordinates.PhaseSpaceCoordinate.wt`."""
-        wt = w.wt(units=galactic)
+        usys = u.unitsystems.galactic
+        wt = w.wt(units=usys)
         assert wt.shape == w.full_shape
         assert jnp.array_equal(
-            wt[(*(0,) * (w.ndim - 1), slice(None), 0)], w.t.decompose(galactic).value
+            wt[(*(0,) * (w.ndim - 1), slice(None), 0)], w.t.decompose(usys).value
         )
         assert jnp.array_equal(
-            wt[..., 1:4], convert(w.q, u.Quantity).decompose(galactic).value
+            wt[..., 1:4], convert(w.q, u.Quantity).decompose(usys).value
         )
         assert jnp.array_equal(
-            wt[..., 4:7], convert(w.p, u.Quantity).decompose(galactic).value
+            wt[..., 4:7], convert(w.p, u.Quantity).decompose(usys).value
         )

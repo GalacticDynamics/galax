@@ -47,7 +47,7 @@
     "quax>=0.0.5",
     "quaxed>=0.9.0",
     "typing-extensions>=4.11",
-    "unxt>=1.2.0",
+    "unxt>=1.3.0",
     "xmmutablemap>=0.1",
     "zeroth>=1.0",
 ]

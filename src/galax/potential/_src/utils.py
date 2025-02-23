@@ -13,11 +13,10 @@ import coordinax as cx
 import coordinax.frames as cxf
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity
+from unxt.quantity import AllowValue, BareQuantity
 
 import galax._custom_types as gt
 import galax.coordinates as gc
-from galax.utils._unxt import AllowValue
 
 speed_of_light = u.quantity.BareQuantity(299_792_458, "m/s")
 

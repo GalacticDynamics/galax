@@ -6,7 +6,6 @@ from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem
 
 import galax._custom_types as gt
 import galax.potential as gp
@@ -126,7 +125,7 @@ class TestLeeSutoTriaxialNFWPotential(
         field_a1: u.Quantity,
         field_a2: u.Quantity,
         field_a3: u.Quantity,
-        field_units: AbstractUnitSystem,
+        field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
             "m": field_m,

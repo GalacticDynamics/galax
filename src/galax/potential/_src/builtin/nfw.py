@@ -10,7 +10,7 @@ __all__ = [
 from collections.abc import Callable
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import final
+from typing import TYPE_CHECKING, final
 
 import equinox as eqx
 import jax
@@ -20,7 +20,7 @@ from jaxtyping import Array, Float, Shaped
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem, dimensionless
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -29,7 +29,9 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-from galax.utils._unxt import AllowValue
+
+if TYPE_CHECKING:
+    from unxt.unitsystems import dimensionless
 
 # -------------------------------------------------------------------
 
@@ -52,7 +54,7 @@ class NFWPotential(AbstractSinglePotential):
     """Scale radius of the potential."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -117,7 +119,7 @@ class NFWPotential(AbstractSinglePotential):
         r_s: u.Quantity["length"],
         r_ref: u.Quantity["length"] | None = None,
         *,
-        units: AbstractUnitSystem | str = "galactic",
+        units: u.AbstractUnitSystem | str = "galactic",
         constants: ImmutableMap[str, u.Quantity] = default_constants,
     ) -> "NFWPotential":
         r"""Create an NFW potential from the circular velocity at a given radius.
@@ -149,7 +151,7 @@ class NFWPotential(AbstractSinglePotential):
         c: u.Quantity["dimensionless"],
         rho_c: u.Quantity["mass density"] | None = None,
         *,
-        units: AbstractUnitSystem | str,
+        units: u.AbstractUnitSystem | str,
     ) -> "NFWPotential":
         """Create an NFW potential from a virial mass and concentration.
 
@@ -244,7 +246,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     """Minor axis."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -364,7 +366,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     """Scale length in the z/x direction."""
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
@@ -572,7 +574,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
     """
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )

@@ -10,7 +10,6 @@ from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import galactic, solarsystem
 from zeroth import zeroth
 
 import galax.potential as gp
@@ -81,10 +80,10 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
         # assert pot.units == dimensionless
 
         pot = pot_cls(**pot_map, units="solarsystem")
-        assert pot.units == solarsystem
+        assert pot.units == u.unitsystems.solarsystem
 
         pot = pot_cls(**pot_map, units="galactic")
-        assert pot.units == galactic
+        assert pot.units == u.unitsystems.galactic
 
         with pytest.raises(KeyError, match="invalid_value"):
             pot_cls(**pot_map, units="invalid_value")
@@ -102,7 +101,7 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
     def test_or_pot(self, pot: gp.AbstractCompositePotential) -> None:
         """Test the `__or__` method with a single potential."""
         single_pot = gp.KeplerPotential(
-            m_tot=u.Quantity(1e12, "solMass"), units=galactic
+            m_tot=u.Quantity(1e12, "solMass"), units="galactic"
         )
         newpot = pot | single_pot
 
@@ -115,8 +114,8 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
     def test_or_compot(self, pot: gp.AbstractCompositePotential) -> None:
         """Test the `__or__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
-            kep1=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
-            kep2=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
+            kep1=gp.KeplerPotential(m_tot=1e12, units="galactic"),
+            kep2=gp.KeplerPotential(m_tot=1e12, units="galactic"),
         )
         newpot = pot | comp_pot
 
@@ -140,9 +139,7 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
 
     def test_ror_pot(self, pot: gp.CompositePotential) -> None:
         """Test the `__ror__` method with a single potential."""
-        single_pot = gp.KeplerPotential(
-            m_tot=u.Quantity(1e12, "solMass"), units=galactic
-        )
+        single_pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
         newpot = single_pot | pot
 
         assert isinstance(newpot, gp.CompositePotential)
@@ -154,8 +151,8 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
     def test_ror_compot(self, pot: gp.CompositePotential) -> None:
         """Test the `__ror__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
-            kep1=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
-            kep2=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
+            kep1=gp.KeplerPotential(m_tot=1e12, units="galactic"),
+            kep2=gp.KeplerPotential(m_tot=1e12, units="galactic"),
         )
         newpot = comp_pot | pot
 
@@ -180,9 +177,7 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
 
     def test_add_pot(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with a single potential."""
-        single_pot = gp.KeplerPotential(
-            m_tot=u.Quantity(1e12, "solMass"), units=galactic
-        )
+        single_pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
         newpot = pot + single_pot
 
         assert isinstance(newpot, gp.CompositePotential)
@@ -194,8 +189,8 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
     def test_add_compot(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with a composite potential."""
         comp_pot = gp.CompositePotential(
-            kep1=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
-            kep2=gp.KeplerPotential(m_tot=u.Quantity(1e12, "solMass"), units=galactic),
+            kep1=gp.KeplerPotential(m_tot=1e12, units="galactic"),
+            kep2=gp.KeplerPotential(m_tot=1e12, units="galactic"),
         )
         newpot = pot + comp_pot
 
@@ -226,10 +221,12 @@ class TestCompositePotential(AbstractCompositePotential_Test):
                 m_tot=u.Quantity(1e10, "solMass"),
                 a=u.Quantity(6.5, "kpc"),
                 b=u.Quantity(4.5, "kpc"),
-                units=galactic,
+                units="galactic",
             ),
             "halo": gp.NFWPotential(
-                m=u.Quantity(1e12, "solMass"), r_s=u.Quantity(5, "kpc"), units=galactic
+                m=u.Quantity(1e12, "solMass"),
+                r_s=u.Quantity(5, "kpc"),
+                units="galactic",
             ),
         }
 
@@ -278,12 +275,12 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         units = "solarsystem"
         potmap = {k: replace(v, units=units) for k, v in pot_map.items()}
         pot = pot_cls(**potmap, units=units)
-        assert pot.units == solarsystem
+        assert pot.units == u.unitsystems.solarsystem
 
         units = "galactic"
         potmap = {k: replace(v, units=units) for k, v in pot_map.items()}
         pot = pot_cls(**potmap, units=units)
-        assert pot.units == galactic
+        assert pot.units == u.unitsystems.galactic
 
         with pytest.raises(KeyError, match="invalid_value"):
             pot_cls(**pot_map, units="invalid_value")

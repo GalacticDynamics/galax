@@ -14,6 +14,7 @@ import jax
 
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -22,7 +23,6 @@ from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.utils._jax import vectorize_method
-from galax.utils._unxt import AllowValue
 
 # -------------------------------------------------------------------
 

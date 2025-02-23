@@ -11,7 +11,6 @@ import jax
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem, galactic
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -40,8 +39,8 @@ class NullPotential(AbstractSinglePotential):
     """
 
     _: KW_ONLY
-    units: AbstractUnitSystem = eqx.field(
-        default=galactic, converter=u.unitsystem, static=True
+    units: u.AbstractUnitSystem = eqx.field(
+        default=u.unitsystems.galactic, converter=u.unitsystem, static=True
     )
     constants: ImmutableMap[str, u.Quantity] = eqx.field(
         default=default_constants, converter=ImmutableMap

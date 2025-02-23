@@ -7,13 +7,13 @@ from functools import partial
 import jax
 
 import unxt as u
+from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
 from .base import AbstractTransformedPotential
 from galax.potential._src.base import AbstractPotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-from galax.utils._unxt import AllowValue
 
 
 class TriaxialInThePotential(AbstractTransformedPotential):

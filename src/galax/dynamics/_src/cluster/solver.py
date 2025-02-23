@@ -12,6 +12,7 @@ from jaxtyping import PyTree
 from plum import dispatch
 
 import unxt as u
+from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
 from .events import MassBelowThreshold
@@ -23,7 +24,6 @@ from .fields import (
 )
 from galax.dynamics._src.solver import AbstractSolver, SolveState
 from galax.dynamics._src.utils import parse_saveat
-from galax.utils._unxt import AllowValue
 
 
 class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]

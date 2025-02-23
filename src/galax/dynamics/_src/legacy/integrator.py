@@ -67,7 +67,6 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
-    >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
     >>> import galax.potential as gp
@@ -320,7 +319,6 @@ def call(
     --------
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
-    >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
     >>> import galax.potential as gp
@@ -401,7 +399,6 @@ def call(
     --------
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
-    >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
     >>> import galax.potential as gp
@@ -513,7 +510,6 @@ def call(
     --------
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
-    >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
     >>> import galax.potential as gp
@@ -579,7 +575,6 @@ def call(
     Examples
     --------
     >>> import unxt as u
-    >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
     >>> import galax.potential as gp
@@ -624,7 +619,6 @@ def call(
     Examples
     --------
     >>> import unxt as u
-    >>> from unxt.unitsystems import galactic
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
     >>> import galax.potential as gp

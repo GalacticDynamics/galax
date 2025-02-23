@@ -8,7 +8,7 @@ from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.unitsystems import AbstractUnitSystem, galactic
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -17,18 +17,17 @@ import galax.potential.params as gpp
 from .test_base import AbstractPotential_Test
 from .test_utils import FieldUnitSystemMixin
 from galax.potential._src.base import default_constants
-from galax.utils._unxt import AllowValue
 
 
 class AbstractSinglePotential_Test(AbstractPotential_Test, FieldUnitSystemMixin):
     """Test the `galax.potential.AbstractPotential` class."""
 
     @pytest.fixture(scope="class")
-    def units(self) -> AbstractUnitSystem:
-        return galactic
+    def units(self) -> u.AbstractUnitSystem:
+        return u.unitsystems.galactic
 
     @pytest.fixture(scope="class")
-    def fields_(self, field_units: AbstractUnitSystem) -> dict[str, Any]:
+    def fields_(self, field_units: u.AbstractUnitSystem) -> dict[str, Any]:
         return {"units": field_units}
 
 
@@ -46,8 +45,8 @@ class TestAbstractSinglePotential(AbstractSinglePotential_Test):
             m_tot: gpp.AbstractParameter = gpp.ParameterField(
                 dimensions="mass", default=u.Quantity(1e12, "Msun")
             )
-            units: AbstractUnitSystem = eqx.field(
-                default=galactic, converter=u.unitsystem, static=True
+            units: u.AbstractUnitSystem = eqx.field(
+                default=u.unitsystems.galactic, converter=u.unitsystem, static=True
             )
             constants: ImmutableMap[str, u.Quantity] = eqx.field(
                 default=default_constants, converter=ImmutableMap

@@ -6,7 +6,6 @@ This is private API.
 
 __all__ = ["AbstractDynamicsField"]
 
-from abc import abstractmethod
 from typing import Any
 from typing_extensions import override
 
@@ -14,6 +13,7 @@ import diffrax as dfx
 import equinox as eqx
 import jax
 from jaxtyping import PyTree
+from plum import dispatch
 
 import unxt as u
 
@@ -34,7 +34,7 @@ class AbstractDynamicsField(AbstractField, strict=True):  # type: ignore[call-ar
     units: eqx.AbstractVar[u.AbstractUnitSystem]
 
     @override  # specify the signature of the `__call__` method.
-    @abstractmethod
+    @dispatch.abstract
     def __call__(self, *_: Any, **kw: Any) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
 

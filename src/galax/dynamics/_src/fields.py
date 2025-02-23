@@ -41,10 +41,10 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
 
     >>> t = u.Quantity(0, "Gyr")
     >>> x = u.Quantity([8., 0, 0], "kpc")
-    >>> v = u.Quantity([0, 22, 0], "km/s")
+    >>> v = u.Quantity([0, 220, 0], "km/s")
 
     >>> field(t, x, v)
-    (Array([0.        , 0.02249967, 0.        ], dtype=float64, ...),
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
      Array([-0.0702891, -0.       , -0.       ], dtype=float64))
 
     This can also be done with `jax.Array` directly, but care must be taken to
@@ -53,7 +53,7 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
     the units:
 
     >>> field(t.ustrip("Myr"), x.value, v.ustrip("kpc/Myr"))
-    (Array([0.        , 0.02249967, 0.        ], dtype=float64, ...),
+    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
      Array([-0.0702891, -0.       , -0.       ], dtype=float64))
 
     Field evaluation is very flexible and can work with a large variety of

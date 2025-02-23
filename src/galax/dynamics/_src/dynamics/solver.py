@@ -28,7 +28,7 @@ import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 from .field_base import AbstractDynamicsField
 from galax.dynamics._src.solver import AbstractSolver, SolveState, Terms
-from galax.dynamics._src.utils import parse_saveat
+from galax.dynamics._src.utils import parse_saveat, parse_to_t_y
 
 BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
 
@@ -183,13 +183,45 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
             solver_state=(False, (f64[2,3], f64[2,3])),
             success=..., units=... )
 
-        The state can be initialed many different ways:
+        The state can be initialed many different ways. Let's work up the type
+        ladder:
 
-        - from a `galax.coordinates.PhaseSpacePosition` (without a time):
+        - From a tuple of `jax.Array`: The (q,p) tuple is the natural PyTree
+          structure of the dynamics solver.
 
-        >>> w0 = gc.PhaseSpacePosition(q=w0.q, p=w0.p)  # no time
+        >>> y0 = (jnp.array([8,0,0]), jnp.array([0,0.22499669,0]))  # ([kpc], [kpc/Myr])
+        >>> t0 = 0
+        >>> solver.init(field, y0, t0, None, units=pot.units)
+        SolveState( t=weak_i64[], y=(f64[3], f64[3]), ... )
+
+        - From an (N, 6) `jax.Array`:
+
+        >>> y0 = jnp.concatenate(y0)
+        >>> solver.init(field, y0, t0, None, units=pot.units)
+        SolveState( t=weak_i64[], y=(f64[3], f64[3]), ... )
+
+        - From a tuple of `unxt.Quantity`:
+
+        >>> y0 = (u.Quantity([8, 0, 0], "kpc"), u.Quantity([0, 220, 0], "km/s"))
         >>> t0 = u.Quantity(0, "Gyr")
-        >>> solver.init(field, w0, t0, None)
+        >>> solver.init(field, y0, t0, None, units=pot.units)
+        SolveState( t=weak_f64[], y=(f64[3], f64[3]), ... )
+
+        - From a tuple of `coordinax.vecs.AbstractVector`:
+
+        >>> q0 = cx.vecs.CartesianPos3D.from_([[8, 0, 0], [9, 0, 0]], "kpc")
+        >>> p0 = cx.vecs.CartesianVel3D.from_([0, 220, 0], "km/s")
+        >>> solver.init(field, (q0, p0), t0, None, units=pot.units)
+        SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
+
+        - From a `coordinax.vecs.Space`:
+
+        >>> space = cx.Space(length=q0, speed=p0)
+        >>> solver.init(field, space, t0, None)
+        SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
+
+        >>> space = cx.Space(length=cx.vecs.FourVector(t0, q0), speed=p0)
+        >>> solver.init(field, space, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
         - from a `coordinax.frames.AbstractCoordinate`:
@@ -199,38 +231,21 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> solver.init(field, coord, t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
-        - From a `coordinax.vecs.Space`:
+        - from a `galax.coordinates.PhaseSpacePosition` (no time):
 
-        >>> space = coord.data
-        >>> solver.init(field, space, t0, None)
+        >>> w0 = gc.PhaseSpacePosition(q=w0.q, p=w0.p)  # no time
+        >>> t0 = u.Quantity(0, "Gyr")
+        >>> solver.init(field, w0, t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
-        >>> space = cx.Space({"length": cx.vecs.FourVector(t0, w0.q), "speed": w0.p})
-        >>> solver.init(field, space, None)
+        - From a `galax.coordinates.PhaseSpaceCoordinate`:
+
+        >>> w0 = gc.PhaseSpaceCoordinate(
+        ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
+        ...     p=u.Quantity([0, 220, 0], "km/s"),
+        ...     t=u.Quantity(0, "Gyr"))
+        >>> solver.init(field, w0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
-
-        - From a tuple of `coordinax.vecs.AbstractVector`:
-
-        >>> solver.init(field, (w0.q, w0.p), t0, None, units=pot.units)
-        SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
-
-        - From a tuple of `unxt.Quantity`:
-
-        >>> y0 = (u.Quantity([8, 0, 0], "kpc"), u.Quantity([0, 220, 0], "km/s"))
-        >>> solver.init(field, y0, t0, None, units=pot.units)
-        SolveState( t=weak_f64[], y=(f64[3], f64[3]), ... )
-
-        - From a tuple of jax arrays.
-
-        >>> y0 = (y0[0].ustrip("kpc"), y0[1].ustrip("kpc/Myr"))
-        >>> solver.init(field, y0, t0, None, units=pot.units)
-        SolveState( t=weak_f64[], y=(f64[3], f64[3]), ... )
-
-        - From an (N, 6) array:
-
-        >>> y0 = jnp.concatenate(y0)
-        >>> solver.init(field, y0, t0, None, units=pot.units)
-        SolveState( t=weak_f64[], y=(f64[3], f64[3]), ... )
 
         - From a `galax.coordinates.CompositePhaseSpaceCoordinate`:
 
@@ -374,7 +389,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         t0: Any,
         t1: Any,
         /,
-        args: Any = (),
+        args: Any = None,
         *,
         unbatch_time: bool = False,
         **solver_kw: Any,  # TODO: TypedDict
@@ -596,195 +611,59 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
 
 # ===============================================
-# Helper
-
-
-@dispatch
-def parse_to_y0(qp: gdt.BBtQP | BBtQParr, units: u.AbstractUnitSystem, /) -> BBtQParr:
-    return tuple(
-        jnp.broadcast_arrays(
-            u.ustrip(AllowValue, units["length"], qp[0]).astype(float),
-            u.ustrip(AllowValue, units["speed"], qp[1]).astype(float),
-        )
-    )
-
-
-@dispatch
-def parse_to_y0(qp: gt.BBtSz6, _: u.AbstractUnitSystem, /) -> BBtQParr:
-    return jnp.broadcast_arrays(qp[..., :3].astype(float), qp[..., 3:].astype(float))
-
-
-@dispatch
-def parse_to_y0(
-    q3p3: tuple[cx.vecs.AbstractPos3D, cx.vecs.AbstractVel3D],
-    units: u.AbstractUnitSystem,
-    /,
-) -> BBtQParr:
-    return parse_to_y0((convert(q3p3[0], FastQ), convert(q3p3[1], FastQ)), units)
-
-
-# ===============================================
 # Init Dispatches
 
 
-@DynamicsSolver.init.dispatch
-def init(
-    self: DynamicsSolver,
+def parse_field(
     field: AbstractDynamicsField | Terms,
-    qp: tuple[gdt.BBtQ, gdt.BBtP]
-    | BBtQParr
-    | gt.BBtSz6
-    | tuple[cx.vecs.AbstractPos3D, cx.vecs.AbstractVel3D],
-    t0: gt.QuSz0 | gt.Sz0,
-    args: PyTree,
+    context: DynamicsSolver,
+    units: u.AbstractUnitSystem | None,
     /,
-    *,
-    units: u.AbstractUnitSystem | None = None,
-) -> SolveState:
-    """Initialize from terms, unit/array tuple, and time."""
+) -> tuple[Terms, u.AbstractUnitSystem]:
     if isinstance(field, AbstractDynamicsField):
-        terms = field.terms(self)
+        terms = field.terms(context)
         units = units if units is not None else field.units
         units = eqx.error_if(units, units != field.units, "units must match field")
     else:
         terms = field
         units = eqx.error_if(units, units is None, "units must be specified")
 
-    y0 = parse_to_y0(qp, units)
-    t0_ = u.ustrip(AllowValue, units["time"], t0)
-    return self._init_impl(terms, t0_, y0, args, units)
-
-
-# --------------------------------
-# Tuple of Vector
+    return terms, units
 
 
 @DynamicsSolver.init.dispatch
 def init(
     self: DynamicsSolver,
     field: AbstractDynamicsField | Terms,
-    q4p3: tuple[cx.vecs.FourVector, cx.vecs.AbstractVel3D],
+    qp: Any,
+    t0: gt.QuSz0 | gt.LikeSz0,
     args: PyTree,
     /,
     *,
     units: u.AbstractUnitSystem | None = None,
 ) -> SolveState:
-    return self.init(field, (q4p3[0].q, q4p3[1]), q4p3[0].t, args, units=units)
+    """Initialize from terms, unit/array tuple, and time."""
+    terms, units = parse_field(field, self, units)
+    t0, y0 = parse_to_t_y(None, t0, qp, ustrip=units)  # TODO: frame
+    return self._init_impl(terms, t0, y0, args, units)
 
 
-# --------------------------------
-# Vector Space
-
-
-# TODO: consolidate into main method
 @DynamicsSolver.init.dispatch
 def init(
     self: DynamicsSolver,
     field: AbstractDynamicsField | Terms,
-    space: cx.Space,
-    t0: gt.BBtQuSz0,
+    tqp: Any,
     args: PyTree,
     /,
     *,
     units: u.AbstractUnitSystem | None = None,
 ) -> SolveState:
-    q, p = space["length"], space["speed"]
-    q = eqx.error_if(
-        q,
-        isinstance(q, cx.vecs.FourVector),
-        "space['length'] must not be a 4-vector if `t0` is given.",
-    )
-    return self.init(field, (q, p), t0, args, units=units)
+    terms, units = parse_field(field, self, units)
+    t0, y0 = parse_to_t_y(None, tqp, ustrip=units)  # TODO: frame
+    return self.init(terms, y0, t0, args, units=units)
 
 
-# TODO: consolidate into main method
-@DynamicsSolver.init.dispatch
-def init(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField | Terms,
-    space: cx.Space,
-    args: PyTree,
-    /,
-    *,
-    units: u.AbstractUnitSystem | None = None,
-) -> SolveState:
-    q, p = space["length"], space["speed"]
-    q = eqx.error_if(
-        q,
-        not isinstance(q, cx.vecs.FourVector),
-        "space['length'] must be a 4-vector if `t0` is not given.",
-    )
-    return self.init(field, (q, p), args, units=units)
-
-
-# --------------------------------
-# Coordinate
-
-
-# TODO: consolidate into main method
-@DynamicsSolver.init.dispatch
-def init(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    coord: cx.frames.AbstractCoordinate,
-    t0: gt.BBtQuSz0,
-    args: PyTree,
-    /,
-) -> SolveState:
-    return self.init(field, coord.data, t0, args)
-
-
-# --------------------------------
-# PSPs
-
-
-# TODO: consolidate into main method
-@DynamicsSolver.init.dispatch
-def init(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    w0: gc.PhaseSpaceCoordinate,
-    args: PyTree,
-    /,
-) -> SolveState:
-    # Check that the initial conditions are valid.
-    w0 = eqx.error_if(  # TODO: remove when frames are handled
-        w0,
-        not isinstance(w0.frame, gc.frames.SimulationFrame),
-        "Only SimulationFrame is currently supported.",
-    )
-
-    return self.init(field, (w0.q, w0.p), w0.t, args)
-
-
-# TODO: consolidate into main method
-@DynamicsSolver.init.dispatch
-def init(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition,
-    t0: gt.BBtQuSz0,
-    /,
-    args: PyTree,
-) -> SolveState:
-    w0 = eqx.error_if(
-        w0,
-        isinstance(w0, gc.PhaseSpaceCoordinate)
-        and jnp.logical_not(jnp.array_equal(w0.t, t0)),
-        "If `t0` is specified, `w0.t` == `t0`.",
-    )
-    w0 = eqx.error_if(  # TODO: remove when frames are handled
-        w0,
-        not isinstance(w0.frame, gc.frames.SimulationFrame),
-        "Only SimulationFrame is currently supported.",
-    )
-    return self.init(field, (w0.q, w0.p), t0, args)
-
-
-# --------------------------------
 # Composite PSPs
-
-
 @DynamicsSolver.init.dispatch
 def init(
     self: DynamicsSolver,
@@ -792,8 +671,11 @@ def init(
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     args: PyTree,
     /,
+    *,
+    units: u.AbstractUnitSystem | None = None,
 ) -> dict[str, SolveState]:
-    return {k: self.init(field, w0, args) for k, w0 in w0s.items()}
+    terms, units = parse_field(field, self, units)
+    return {k: self.init(terms, w0, args, units=units) for k, w0 in w0s.items()}
 
 
 # ===============================================
@@ -865,7 +747,7 @@ def solve(
     t0: gt.QuSz0,
     t1: gt.QuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     saveat: Any = default_saveat,
     *,
     unbatch_time: bool = False,
@@ -911,7 +793,7 @@ def solve(
     t0: gt.BBtQuSz0,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     saveat: Any = default_saveat,
     **solver_kw: Any,
 ) -> dfx.Solution:
@@ -954,7 +836,7 @@ def solve(
     t0: gt.BBtQuSz0,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     saveat: Any = default_saveat,
     **solver_kw: Any,
 ) -> dfx.Solution:
@@ -997,7 +879,7 @@ def solve(
     state: SolveState,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for state, end time."""
@@ -1024,7 +906,7 @@ def solve(
     t0: gt.BBtQuSz0,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for position vector tuple, start, end time."""
@@ -1041,7 +923,7 @@ def solve(
     q4p3: tuple[cx.vecs.FourVector, cx.vecs.AbstractVel3D],
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for 4-vector position tuple, end time."""
@@ -1059,7 +941,7 @@ def solve(
     space: cx.Space,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for Space[4vec, 3vel], end time."""
@@ -1082,7 +964,7 @@ def solve(
     t0: gt.BBtQuSz0,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for Space[3vec, 3vel], start, end time."""
@@ -1100,7 +982,7 @@ def solve(
     t0: gt.BBtQuSz0,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for `coordinax.frames.AbstractCoordinate`, start, end time."""
@@ -1120,7 +1002,7 @@ def solve(
     w0: gc.PhaseSpaceCoordinate,  # TODO: handle frames
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for PSP with time, end time."""
@@ -1144,7 +1026,7 @@ def solve(
     t0: gt.BBtQuSz0,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for PSP without time, start, end time."""
@@ -1173,7 +1055,7 @@ def solve(
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = (),
+    args: Any = None,
     **solver_kw: Any,
 ) -> dict[str, dfx.Solution]:
     """Solve for AbstractCompositePhaseSpaceCoordinate, start, end time."""

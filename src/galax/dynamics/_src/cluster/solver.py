@@ -98,7 +98,7 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         terms = dm_dt.terms(self)
         t1_ = u.ustrip(AllowValue, self.units["time"], t1)
         step_kwargs.setdefault("made_jump", False)
-        return self._step_impl(terms, state, t1_, args, step_kwargs)
+        return self._step_impl_scalar(terms, state, t1_, args, step_kwargs)
 
     @dispatch.abstract
     def run(
@@ -139,7 +139,8 @@ def init(
     terms = field.terms(self)
     Mc0_ = u.ustrip(AllowValue, self.units["mass"], Mc0)
     t0_ = u.ustrip(AllowValue, self.units["time"], t0)
-    return self._init_impl(terms, t0_, Mc0_, args, self.units)
+    state: SolveState = self._init_impl(terms, t0_, Mc0_, args, self.units)
+    return state
 
 
 # ===================================================================
@@ -161,7 +162,9 @@ def run(
     solver_kw = eqx.error_if(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
-    soln = self._run_impl(terms, state, t1_, args, solver_kw)
+    solver_kw.setdefault("dt0", None)
+    soln = self(terms, t0=state.t, t1=t1_, y0=state.y, args=args, **solver_kw)
+
     return SolveState(
         t=t1_,
         y=soln.ys,

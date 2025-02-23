@@ -13,15 +13,15 @@ from typing import Any, TypeAlias, final
 
 import diffrax as dfx
 import equinox as eqx
+import jax
 import jax.tree as jtu
 from jaxtyping import PyTree
-from plum import convert, dispatch
+from plum import dispatch
 
-import coordinax as cx
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AllowValue, BareQuantity as FastQ
+from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
 import galax.coordinates as gc
@@ -156,6 +156,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> from dataclassish import replace
         >>> import quaxed.numpy as jnp
         >>> import unxt as u
+        >>> import coordinax as cx
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
@@ -325,7 +326,11 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         terms = _parse_field(field, self)
         t1_ = u.ustrip(AllowValue, state.units["time"], t1)
         step_kwargs.setdefault("made_jump", False)
-        return self._step_impl(terms, state, t1_, args, step_kwargs)
+        # TODO: figure out stepping over batched `state`
+        outstate: SolveState = self._step_impl_scalar(
+            terms, state, t1_, args, step_kwargs
+        )
+        return outstate
 
     # -------------------------------------------
 
@@ -423,17 +428,51 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
         >>> field = gd.fields.HamiltonianField(pot)
 
-        The solver is very flexible. Here we show a few examples of variety of
-        initial conditions.
+        Solve for a single set of initial conditions.
+
+        >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([8, 0, 0], "kpc"),
+        ...                            p=u.Quantity([0, 220, 0], "km/s"),
+        ...                            t=u.Quantity(0, "Myr"))
+        >>> t1 = u.Quantity(1, "Gyr")
+
+        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+        >>> soln.ys
+        (Array([-6.91453518,  1.64014782,  0.        ], dtype=float64),
+         Array([-0.24701038, -0.20172576,  0.        ], dtype=float64))
+
+        ## Input Types
+
+        The solver is very flexible. Let's work up the type ladder:
+
+        - From a tuple of `jax.Array`: The (q,p) tuple is the natural PyTree
+          structure of the dynamics solver.
+
+        >>> xyz0 = jnp.array([8,0,0])  # [kpc]
+        >>> v_xyz = jnp.array([0,0.22499669,0])  # [kpc/Myr]
+        >>> t0, t1 = 0, 1000  # [Myr]
+        >>> soln = solver.solve(field, (xyz0, v_xyz), t0, t1)
+        >>> soln.ys
+        (Array([[-6.91453209,  1.64014633,  0.        ]], dtype=float64),
+         Array([[-0.24701075, -0.20172583,  0.        ]], dtype=float64))
+
+        - From an (N, 6) `jax.Array`:
+
+        >>> w0 = jnp.concatenate((xyz0, v_xyz))
+        >>> soln = solver.solve(field, w0, t0, t1)
+        >>> soln.ys
+        (Array([[-6.91453209,  1.64014633,  0.        ]], dtype=float64),
+         Array([[-0.24701075, -0.20172583,  0.        ]], dtype=float64))
 
         - tuple of `unxt.Quantity`:
 
-        >>> w0 = (u.Quantity([8, 0, 0], "kpc"),
-        ...       u.Quantity([0, 220, 0], "km/s"))
+        >>> xyz0 = u.Quantity([8, 0, 0], "kpc")
+        >>> v_xyz = u.Quantity([0, 220, 0], "km/s")
+        >>> w0 = (xyz0, v_xyz)
 
-        Solve EoM from `t0` to `t1`, returning the solution at `t1`.
-
-        >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+        >>> t0, t1 = u.Quantity([0, 1], "Gyr")
         >>> soln = solver.solve(field, w0, t0, t1)
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[1],
@@ -441,6 +480,96 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> soln.ys
         (Array([[-6.91453518,  1.64014782,  0. ]], dtype=float64),
          Array([[-0.24701038, -0.20172576,  0. ]], dtype=float64))
+
+        - `coordinax.vecs.AbstractPos3D`, `coordinax.vecs.AbstractVel3D`:
+
+        >>> q0 = cx.CartesianPos3D.from_(xyz0)
+        >>> p0 = cx.CartesianVel3D.from_(v_xyz)
+        >>> w0 = (q0, p0)
+
+        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`:
+
+        >>> w0 = (cx.vecs.FourVector(q=q0, t=t0), p0)
+
+        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `coordinax.Space`:
+
+        >>> w0 = cx.Space(length=q0, speed=p0)
+
+        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        >>> w0 = cx.Space(length=cx.vecs.FourVector(q=q0, t=t0), speed=p0)
+
+        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `coordinax.frames.AbstractCoordinate`:
+
+        >>> w0 = cx.Coordinate({"length": q0, "speed": p0}, gc.frames.simulation_frame)
+
+        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `galax.coordinates.PhaseSpacePosition` (without time):
+
+        >>> w0 = gc.PhaseSpacePosition(q=q0, p=p0)
+
+        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `galax.coordinates.PhaseSpaceCoordinate`: we've seen this before!
+
+        >>> w0 = gc.PhaseSpaceCoordinate(q=q0, p=p0, t=t0)
+
+        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        - `galax.coordinates.AbstractCompositePhaseSpaceCoordinate`:
+
+        >>> w01 = gc.PhaseSpaceCoordinate(q=u.Quantity([10, 0, 0], "kpc"),
+        ...                               p=u.Quantity([0, 200, 0], "km/s"),
+        ...                               t=u.Quantity(0, "Gyr"))
+        >>> w02 = gc.PhaseSpaceCoordinate(q=u.Quantity([0, 10, 0], "kpc"),
+        ...                               p=u.Quantity([-200, 0, 0], "km/s"),
+        ...                               t=u.Quantity(10, "Myr"))
+        >>> w0s = gc.CompositePhaseSpaceCoordinate(w01=w01, w02=w02)
+
+        >>> soln = solver.solve(field, w0s, t1, unbatch_time=True)
+        >>> soln
+        {'w01': Solution( t0=f64[], t1=f64[], ts=f64[],
+                        ys=(f64[3], f64[3]), ... ),
+        'w02': Solution( t0=f64[], t1=f64[], ts=f64[],
+                        ys=(f64[3], f64[3]), ... )}
+
+        - `galax.dynamics.solve.SolveState` from ``.init()``:
+
+        >>> state = solver.init(field, w0, u.Quantity(0, "Gyr"), None)
+        >>> soln = solver.solve(field, state, t1, unbatch_time=True)
+        >>> soln
+        Solution( t0=f64[], t1=f64[], ts=f64[],
+                  ys=(f64[3], f64[3]), ...)
+
+        ## Solving at times
 
         This can be solved for a specific set of times, not just `t1`.
 
@@ -467,144 +596,54 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         Solution( t0=f64[], t1=f64[], ts=f64[],
                   ys=(f64[3], f64[3]), ... )
 
+        ## Batched solutions
+
         A set of initial conditions can be solved at once. The resulting
         `diffrax.Solution` has a `ys` shape of ([time], *shape, 3),
 
         >>> w0s = (u.Quantity([[8, 0, 0], [9, 0, 0]], "kpc"),
-        ...       u.Quantity([[0, 220, 0], [0, 230, 0]], "km/s"))
+        ...        u.Quantity([[0, 220, 0], [0, 230, 0]], "km/s"))
 
         >>> soln = solver.solve(field, w0s, t0, t1)
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[1],
                   ys=(f64[1,2,3], f64[1,2,3]), ... )
+        >>> soln.ys
+        (Array([[[-6.91453717,  1.64014587,  0.        ],
+                 [-0.09424643, -8.71835893,  0.        ]]], dtype=float64),
+         Array([[[-0.24701013, -0.20172583,  0.        ],
+                 [ 0.24385017,  0.09506092,  0.        ]]], dtype=float64))
 
-        This can be batched with a set of times. The resulting
-        `diffrax.Solution` has a `ys` shape of (*batch, [time], *shape, 3).
+        This can be batched with a set of times that can be broadcasted to the
+        shape of ``w0s``.
 
-        >>> t1 = u.Quantity([1, 1.1, 1.2], "Gyr")
+        >>> t1 = u.Quantity([1, 1.1], "Gyr")
         >>> soln = solver.solve(field, w0, t0, t1)
         >>> soln
-        Solution( t0=f64[3], t1=f64[3], ts=f64[3,1],
-                  ys=(f64[3,1,3], f64[3,1,3]), ... )
+        Solution( t0=f64[2], t1=f64[2], ts=f64[2,1],
+                  ys=(f64[2,1,3], f64[2,1,3]), ... )
+        >>> soln.ys
+        (Array([[[-6.91453518,  1.64014782,  0.        ]],
+           [[ 2.47763667, -6.45713646,  0.        ]]], dtype=float64),
+         Array([[[-0.24701038, -0.20172576,  0.        ]],
+           [[ 0.31968144, -0.10665539,  0.        ]]], dtype=float64))
 
         All these examples can be interpolated as dense solutions. If the time
         or position are batched, then the `diffrax.DenseInterpolation` needs to
         be vectorized into a
         `galax.dynamics.integrate.VectorizedDenseInterpolation`. This can be
         done by passing ``vectorize_interpolation=True``. To emphasize the
-        differences, let's batch across different start times.
+        differences, let's do this on a batched solve.
 
-        >>> t0 = u.Quantity([-1, -0.5, 0], "Gyr")
-        >>> t1 = u.Quantity(1, "Gyr")
-        >>> soln = solver.solve(field, w0, t0, t1, dense=True,
+        >>> t0 = u.Quantity([-1, -0.5], "Gyr")
+        >>> soln = solver.solve(field, w0s, t0, t1, dense=True,
         ...                     vectorize_interpolation=True)
         >>> newq, newp = soln.evaluate(0.5)  # Myr
         >>> print((newq.round(3), newp.round(3)))
         (Array([[-7.034,  1.538,  0.   ],
-                [-0.729, -7.79 ,  0.   ],
-                [ 7.997,  0.112,  0.   ]], dtype=float64),
+                [ 3.428, -0.286,  0.   ]], dtype=float64),
          Array([[-0.232, -0.205,  0.   ],
-                [ 0.221, -0.106,  0.   ],
-                [-0.013,  0.225,  0.   ]], dtype=float64))
-
-        Now let's explore some more options for the initial conditions.
-
-        - `galax.dynamics.solve.SolveState` from ``.init()``:
-
-        >>> state = solver.init(field, w0, u.Quantity(0, "Gyr"), None)
-        >>> soln = solver.solve(field, state, t1, unbatch_time=True)
-        >>> soln
-        Solution( t0=f64[], t1=f64[], ts=f64[],
-                  ys=(f64[3], f64[3]), ...)
-
-        - `coordinax.vecs.AbstractPos3D`, `coordinax.vecs.AbstractVel3D`:
-
-        >>> w0 = (cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
-        ...       cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
-
-        >>> t0, t1 = u.Quantity([0, 1], "Gyr")
-        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
-        >>> soln
-        Solution( t0=f64[], t1=f64[], ts=f64[],
-                  ys=(f64[3], f64[3]), ...)
-
-        - `coordinax.vecs.FourVector`, `coordinax.vecs.AbstractVel3D`:
-
-        >>> w0 = (cx.vecs.FourVector.from_([0, 8, 0, 0], "kpc"),
-        ...       cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
-
-        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
-        >>> soln
-        Solution( t0=f64[], t1=f64[], ts=f64[],
-                  ys=(f64[3], f64[3]), ...)
-
-        - `coordinax.Space`:
-
-        >>> w0 = cx.Space(length=cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
-        ...               speed=cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
-
-        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
-        >>> soln
-        Solution( t0=f64[], t1=f64[], ts=f64[],
-                  ys=(f64[3], f64[3]), ...)
-
-        >>> w0 = cx.Space(length=cx.vecs.FourVector.from_([0, 8, 0, 0], "kpc"),
-        ...               speed=cx.CartesianVel3D.from_([0, 220, 0], "km/s"))
-
-        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
-        >>> soln
-        Solution( t0=f64[], t1=f64[], ts=f64[],
-                  ys=(f64[3], f64[3]), ...)
-
-        - `coordinax.frames.AbstractCoordinate`:
-
-        >>> w0 = cx.Coordinate(
-        ...     {"length": cx.CartesianPos3D.from_([8, 0, 0], "kpc"),
-        ...      "speed": cx.CartesianVel3D.from_([0, 220, 0], "km/s")},
-        ...     gc.frames.simulation_frame
-        ... )
-
-        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
-        >>> soln
-        Solution( t0=f64[], t1=f64[], ts=f64[],
-                  ys=(f64[3], f64[3]), ...)
-
-        - `galax.coordinates.PhaseSpaceCoordinate`:
-
-        >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([8, 0, 0], "kpc"),
-        ...                            p=u.Quantity([0, 220, 0], "km/s"),
-        ...                            t=u.Quantity(0, "Gyr"))
-
-        >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
-        >>> soln
-        Solution( t0=f64[], t1=f64[], ts=f64[],
-                  ys=(f64[3], f64[3]), ...)
-
-        - `galax.coordinates.PhaseSpacePosition` (without time):
-
-        >>> w0 = gc.PhaseSpacePosition(q=w0.q, p=w0.p)
-
-        >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
-        >>> soln
-        Solution( t0=f64[], t1=f64[], ts=f64[],
-                  ys=(f64[3], f64[3]), ...)
-
-        - `galax.coordinates.AbstractCompositePhaseSpaceCoordinate`:
-
-        >>> w01 = gc.PhaseSpaceCoordinate(q=u.Quantity([10, 0, 0], "kpc"),
-        ...                               p=u.Quantity([0, 200, 0], "km/s"),
-        ...                               t=u.Quantity(0, "Gyr"))
-        >>> w02 = gc.PhaseSpaceCoordinate(q=u.Quantity([0, 10, 0], "kpc"),
-        ...                               p=u.Quantity([-200, 0, 0], "km/s"),
-        ...                               t=u.Quantity(10, "Myr"))
-        >>> w0s = gc.CompositePhaseSpaceCoordinate(w01=w01, w02=w02)
-
-        >>> soln = solver.solve(field, w0s, t1, unbatch_time=True)
-        >>> soln
-        {'w01': Solution( t0=f64[], t1=f64[], ts=f64[],
-                        ys=(f64[3], f64[3]), ... ),
-        'w02': Solution( t0=f64[], t1=f64[], ts=f64[],
-                        ys=(f64[3], f64[3]), ... )}
+                [ 0.366,  0.587,  0.   ]], dtype=float64))
 
         """
         raise NotImplementedError  # pragma: no cover
@@ -613,11 +652,14 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 # ===============================================
 # Init Dispatches
 
+OptArgs: TypeAlias = dict[str, Any] | None
+OptUnitSystem: TypeAlias = u.AbstractUnitSystem | None
+
 
 def parse_field(
     field: AbstractDynamicsField | Terms,
     context: DynamicsSolver,
-    units: u.AbstractUnitSystem | None,
+    units: OptUnitSystem,
     /,
 ) -> tuple[Terms, u.AbstractUnitSystem]:
     if isinstance(field, AbstractDynamicsField):
@@ -636,11 +678,11 @@ def init(
     self: DynamicsSolver,
     field: AbstractDynamicsField | Terms,
     qp: Any,
-    t0: gt.QuSz0 | gt.LikeSz0,
-    args: PyTree,
+    t0: gt.BBtQuSz0 | gt.BBtLikeSz0,
+    args: OptArgs = None,
     /,
     *,
-    units: u.AbstractUnitSystem | None = None,
+    units: OptUnitSystem = None,
 ) -> SolveState:
     """Initialize from terms, unit/array tuple, and time."""
     terms, units = parse_field(field, self, units)
@@ -653,10 +695,10 @@ def init(
     self: DynamicsSolver,
     field: AbstractDynamicsField | Terms,
     tqp: Any,
-    args: PyTree,
+    args: OptArgs = None,
     /,
     *,
-    units: u.AbstractUnitSystem | None = None,
+    units: OptUnitSystem = None,
 ) -> SolveState:
     terms, units = parse_field(field, self, units)
     t0, y0 = parse_to_t_y(None, tqp, ustrip=units)  # TODO: frame
@@ -669,10 +711,10 @@ def init(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
-    args: PyTree,
+    args: OptArgs = None,
     /,
     *,
-    units: u.AbstractUnitSystem | None = None,
+    units: OptUnitSystem = None,
 ) -> dict[str, SolveState]:
     terms, units = parse_field(field, self, units)
     return {k: self.init(terms, w0, args, units=units) for k, w0 in w0s.items()}
@@ -680,6 +722,18 @@ def init(
 
 # ===============================================
 # Run Dispatches
+
+
+# def _run_impl(
+#     solver: DynamicsSolver,
+#     terms: Terms,
+#     state: SolveState,
+#     t1: gt.BBtSz0,
+#     args: PyTree,
+#     solver_kw: dict[str, Any],
+#     *,
+#     unbatch_time: bool,
+# ) -> dfx.Solution:
 
 
 @DynamicsSolver.run.dispatch
@@ -693,23 +747,45 @@ def run(
     **solver_kw: Any,
 ) -> SolveState:
     terms = _parse_field(field, self)  # Parse the terms
-    t1_ = u.ustrip(AllowValue, state.units["time"], t1)  # Parse the time
+    t1 = u.ustrip(AllowValue, state.units["time"], t1)  # Parse the time
     # Validate the solver keyword arguments
     solver_kw = eqx.error_if(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
+    solver_kw.setdefault("dt0", None)
 
     # Run the solver
-    soln = self._run_impl(terms, state, t1_, args, solver_kw)
+    # Broadcast state.t, t1, and the PyTree state.y to have the same batch
+    # dimensions, where t, t1 are scalars and state.y can have additional
+    # shape dimensions.
+    t0_bbt, t1_bbt = jnp.broadcast_arrays(state.t, t1)
+    ndim0, batch = state.t.ndim, t0_bbt.shape
+    y0 = jtu.map(lambda x: jnp.broadcast_to(x, batch + x.shape[ndim0:]), state.y)
+    t0_f, t1_f = t0_bbt.reshape(-1), t1_bbt.reshape(-1)
+    y0_f = jtu.map(lambda x: x.reshape(-1, *x.shape[ndim0:]), y0)
 
-    # Unbatch the time and state if possible
+    # vmap over the solver
+    @partial(jax.vmap, in_axes=(0, 0, jtu.map(lambda _: 0, y0)))
+    def runner(t0: gt.Sz0, t1: gt.Sz0, y0: PyTree, /) -> dfx.Solution:
+        return self(terms, t0=t0, t1=t1, y0=y0, args=args, **solver_kw)
+
+    soln = runner(t0_f, t1_f, y0_f)
+
+    # Unbatch the time batch shape
     if soln.ts.shape[soln.t0.ndim] == 1:
-        soln = eqx.tree_at(lambda tree: tree.ts, soln, soln.ts[0])
-        soln = eqx.tree_at(lambda tree: tree.ys, soln, jtu.map(lambda y: y[0], soln.ys))
+        slc = (slice(None),) * soln.t0.ndim + (0,)
+        soln = eqx.tree_at(lambda tree: tree.ts, soln, soln.ts[slc])
+        soln = eqx.tree_at(
+            lambda tree: tree.ys, soln, jtu.map(lambda y: y[slc], soln.ys)
+        )
+        # TODO: unbatch the solver_state
 
-    # Unpack the Solution
+    # Reshape the solution (possibly unbatching)
+    soln = jtu.map(lambda x: x.reshape(batch + x.shape[1:]), soln)
+
+    # Unpack into Solution into a SolveState
     return SolveState(
-        t=t1_,
+        t=soln.ts,
         y=soln.ys,
         solver_state=soln.solver_state,
         success=soln.result,
@@ -731,21 +807,20 @@ def run(
 
 # ===============================================
 # Solve Dispatches
-# TODO: refactor these so there's less code duplication
-# by leveraging more the `.init` and `._run_impl` dispatches.
 
 # --------------------------------
-# JAX & Unxt
+# Special-case jax arrays
+# TODO: check if this is any faster than the `init-run` pattern.
 
 
-@DynamicsSolver.solve.dispatch  # type: ignore[misc]
+@DynamicsSolver.solve.dispatch(precedence=1)  # type: ignore[misc]
 @partial(eqx.filter_jit)
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    qp: tuple[gdt.BBtQ, gdt.BBtP],
-    t0: gt.QuSz0,
-    t1: gt.QuSz0,
+    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
+    t0: gt.Sz0 | gt.LikeSz0,
+    t1: gt.Sz0 | gt.LikeSz0,
     /,
     args: Any = None,
     saveat: Any = default_saveat,
@@ -758,13 +833,20 @@ def solve(
     terms = field.terms(self)
     usys = field.units
 
+    # TODO: not use `init` here
     # Initialize the state
     state = self.init(terms, qp, t0, args, units=usys)
     # Run the solver
     saveat = parse_saveat(usys, saveat, dense=solver_kw.pop("dense", None))
     solver_kw["saveat"] = saveat
-    soln = self._run_impl(
-        terms, state, t1.ustrip(usys["time"]), args=args, solver_kw=solver_kw
+    solver_kw.setdefault("dt0", None)
+    soln = self(
+        terms,
+        t0=state.t,
+        t1=t1,
+        y0=state.y,
+        args=args,
+        **solver_kw,
     )
 
     # Check to see if we should try to unbatch in the time dimension.
@@ -776,12 +858,14 @@ def solve(
 
 
 def _is_saveat_arr(saveat: Any, /) -> bool:
-    return (
+    dfx_check = (
         isinstance(saveat, dfx.SaveAt)
         and isinstance(saveat.subs, dfx.SubSaveAt)
         and saveat.subs.ts is not None
         and saveat.subs.ts.ndim in (0, 1)
     )
+    arr_check = hasattr(saveat, "ndim") and saveat.ndim in (0, 1)
+    return dfx_check or arr_check
 
 
 @DynamicsSolver.solve.dispatch(precedence=-1)
@@ -789,12 +873,14 @@ def _is_saveat_arr(saveat: Any, /) -> bool:
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    qp: tuple[gdt.BBtQ, gdt.BBtP],
-    t0: gt.BBtQuSz0,
-    t1: gt.BBtQuSz0,
+    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
+    t0: gt.BBtSz0,
+    t1: gt.BBtSz0,
     /,
     args: Any = None,
     saveat: Any = default_saveat,
+    *,
+    unbatch_time: bool = False,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for batch position tuple, batched start, end time."""
@@ -802,11 +888,16 @@ def solve(
     # interpolation within the loop does not work, it needs to be done after.
     vectorize_interpolation = solver_kw.pop("vectorize_interpolation", False)
 
+    # Set default values
+    solver_kw.setdefault("dt0", None)
+
     # Build the vectorized solver. To get the right broadcasting the Q, P need
     # to be split up, then recombined.
     @partial(jnp.vectorize, signature="(3),(3),(),()->()")
-    def call(q: gdt.Q, p: gdt.P, t0: gt.QuSz0, t1: gt.QuSz0) -> dfx.Solution:
-        return self.solve(field, (q, p), t0, t1, args=args, saveat=saveat, **solver_kw)
+    def call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
+        return self.solve(
+            field, (q, p), t0, t1, args, saveat, unbatch_time=unbatch_time, **solver_kw
+        )
 
     # Solve the batched problem
     soln = call(qp[0], qp[1], t0, t1)
@@ -814,9 +905,7 @@ def solve(
     # NOTE: this is a heuristic that can be improved!
     # The saveat was not vmapped over, so it got erroneously broadcasted.
     # Let's try to unbatch it if it looks like it was broadcasted.
-    if (
-        isinstance(saveat, u.AbstractQuantity) and saveat.ndim in (0, 1)
-    ) or _is_saveat_arr(saveat):
+    if _is_saveat_arr(saveat):
         slc = (0,) * soln.t0.ndim
         soln = eqx.tree_at(lambda tree: tree.ts, soln, soln.ts[slc])
 
@@ -827,51 +916,69 @@ def solve(
     return soln
 
 
+# --------------------------------
+
+
 @DynamicsSolver.solve.dispatch
-@eqx.filter_jit
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    qp: gt.BBtSz6,
-    t0: gt.BBtQuSz0,
-    t1: gt.BBtQuSz0,
-    /,
+    tqp0: Any,
+    t1: gt.BBtQuSz0 | gt.BBtSz0 | gt.BBtLikeSz0,
+    *,
     args: Any = None,
     saveat: Any = default_saveat,
+    unbatch_time: bool = False,
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for q,p array.
+    # Parse the inputs
+    t0, qp0 = parse_to_t_y(None, tqp0, ustrip=field.units)  # TODO: frame
+    t1 = u.ustrip(AllowValue, field.units["time"], t1)
+    return self.solve(
+        field,
+        qp0,
+        t0,
+        t1,
+        args=args,
+        saveat=saveat,
+        unbatch_time=unbatch_time,
+        **solver_kw,
+    )
 
-    Examples
-    --------
-    >>> import jax.numpy as jnp
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
 
-    >>> solver = gd.DynamicsSolver()
-
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> qp = jnp.asarray([[8, 0, 0, 0, 0.22499668, 0]])
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
-
-    >>> soln = solver.solve(field, qp, t0, t1)
-    >>> soln.ys
-    (Array([[[4.22038796, 1.72855685, 0. ]]], dtype=float64),
-     Array([[[-0.94723615,  0.03853245,  0. ]]], dtype=float64))
-
-    """
-    units = field.units
-    y0 = (FastQ(qp[..., :3], units["length"]), FastQ(qp[..., 3:], units["speed"]))
-    return self.solve(field, y0, t0, t1, args=args, saveat=saveat, **solver_kw)
+@DynamicsSolver.solve.dispatch
+def solve(
+    self: DynamicsSolver,
+    field: AbstractDynamicsField,
+    tqp0: Any,
+    t0: gt.BBtQuSz0 | gt.BBtSz0 | gt.BBtLikeSz0,
+    t1: gt.BBtQuSz0 | gt.BBtSz0 | gt.BBtLikeSz0,
+    *,
+    args: Any = None,
+    saveat: Any = default_saveat,
+    unbatch_time: bool = False,
+    **solver_kw: Any,
+) -> dfx.Solution:
+    # Parse the inputs  # TODO: frame
+    t0, qp0 = parse_to_t_y(None, t0, tqp0, ustrip=field.units)
+    t1 = u.ustrip(AllowValue, field.units["time"], t1)
+    return self.solve(
+        field,
+        qp0,
+        t0,
+        t1,
+        args=args,
+        saveat=saveat,
+        unbatch_time=unbatch_time,
+        **solver_kw,
+    )
 
 
 # --------------------------------
 # From State
 
 
+# TODO: speed up with call to `_run_impl`
 @DynamicsSolver.solve.dispatch
 def solve(
     self: DynamicsSolver,
@@ -884,168 +991,10 @@ def solve(
 ) -> dfx.Solution:
     """Solve for state, end time."""
     solver_kw["solver_state"] = state.solver_state
-    # TODO: not munge like this
-    y0 = (
-        FastQ(state.y[0], field.units["length"]),
-        FastQ(state.y[1], field.units["speed"]),
-    )
-    t0 = FastQ(state.t, field.units["time"])
-    return self.solve(field, y0, t0, t1, args=args, **solver_kw)
+    return self.solve(field, state.y, state.t, t1, args=args, **solver_kw)
 
 
 # --------------------------------
-# Coordinax
-
-
-@DynamicsSolver.solve.dispatch
-@eqx.filter_jit
-def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    q3p3: tuple[cx.vecs.AbstractPos3D, cx.vecs.AbstractVel3D],
-    t0: gt.BBtQuSz0,
-    t1: gt.BBtQuSz0,
-    /,
-    args: Any = None,
-    **solver_kw: Any,
-) -> dfx.Solution:
-    """Solve for position vector tuple, start, end time."""
-    y0 = (convert(q3p3[0], FastQ), convert(q3p3[1], FastQ))
-    # Redispatch on y0
-    return self.solve(field, y0, t0, t1, args=args, **solver_kw)
-
-
-@DynamicsSolver.solve.dispatch
-@eqx.filter_jit
-def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    q4p3: tuple[cx.vecs.FourVector, cx.vecs.AbstractVel3D],
-    t1: gt.BBtQuSz0,
-    /,
-    args: Any = None,
-    **solver_kw: Any,
-) -> dfx.Solution:
-    """Solve for 4-vector position tuple, end time."""
-    q4, p = q4p3
-    y0 = (convert(q4.q, FastQ), convert(p, FastQ))
-    # Redispatch on y0
-    return self.solve(field, y0, q4.t, t1, args=args, **solver_kw)
-
-
-@DynamicsSolver.solve.dispatch
-@eqx.filter_jit
-def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    space: cx.Space,
-    t1: gt.BBtQuSz0,
-    /,
-    args: Any = None,
-    **solver_kw: Any,
-) -> dfx.Solution:
-    """Solve for Space[4vec, 3vel], end time."""
-    q4, p = space["length"], space["speed"]
-    q4 = eqx.error_if(
-        q4,
-        not isinstance(q4, cx.vecs.FourVector),
-        "space['length'] must be a 4-vector if `t0` is not given.",
-    )
-    # Redispatch on y0
-    return self.solve(field, (q4.q, p), q4.t, t1, args=args, **solver_kw)
-
-
-@DynamicsSolver.solve.dispatch
-@eqx.filter_jit
-def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    space: cx.Space,
-    t0: gt.BBtQuSz0,
-    t1: gt.BBtQuSz0,
-    /,
-    args: Any = None,
-    **solver_kw: Any,
-) -> dfx.Solution:
-    """Solve for Space[3vec, 3vel], start, end time."""
-    # Redispatch on y0
-    y0 = (space["length"], space["speed"])
-    return self.solve(field, y0, t0, t1, args=args, **solver_kw)
-
-
-@DynamicsSolver.solve.dispatch
-@eqx.filter_jit
-def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    w0: cx.frames.AbstractCoordinate,
-    t0: gt.BBtQuSz0,
-    t1: gt.BBtQuSz0,
-    /,
-    args: Any = None,
-    **solver_kw: Any,
-) -> dfx.Solution:
-    """Solve for `coordinax.frames.AbstractCoordinate`, start, end time."""
-    # Redispatch on y0
-    return self.solve(field, w0.data, t0, t1, args=args, **solver_kw)
-
-
-# --------------------------------
-# PSPs
-
-
-@DynamicsSolver.solve.dispatch
-@eqx.filter_jit
-def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    w0: gc.PhaseSpaceCoordinate,  # TODO: handle frames
-    t1: gt.BBtQuSz0,
-    /,
-    args: Any = None,
-    **solver_kw: Any,
-) -> dfx.Solution:
-    """Solve for PSP with time, end time."""
-    w0 = eqx.error_if(  # TODO: remove when frames are handled
-        w0,
-        not isinstance(w0.frame, gc.frames.SimulationFrame),
-        "Only SimulationFrame is currently supported.",
-    )
-
-    # Redispatch on y0
-    y0 = w0._qp(units=field.units)  # noqa: SLF001
-    return self.solve(field, y0, w0.t, t1, args=args, **solver_kw)
-
-
-@DynamicsSolver.solve.dispatch
-@eqx.filter_jit
-def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition,  # TODO: handle frames
-    t0: gt.BBtQuSz0,
-    t1: gt.BBtQuSz0,
-    /,
-    args: Any = None,
-    **solver_kw: Any,
-) -> dfx.Solution:
-    """Solve for PSP without time, start, end time."""
-    # Check that the initial conditions are valid.
-    w0 = eqx.error_if(
-        w0,
-        isinstance(w0, gc.PhaseSpaceCoordinate)
-        and jnp.logical_not(jnp.array_equal(w0.t, t0)),
-        "If `t0` is specified, `w0.t` == `t0`.",
-    )
-    w0 = eqx.error_if(  # TODO: remove when frames are handled
-        w0,
-        not isinstance(w0.frame, gc.frames.SimulationFrame),
-        "Only SimulationFrame is currently supported.",
-    )
-
-    # Redispatch on y0
-    y0 = w0._qp(units=field.units)  # noqa: SLF001
-    return self.solve(field, y0, t0, t1, args=args, **solver_kw)
 
 
 @DynamicsSolver.solve.dispatch

@@ -97,25 +97,25 @@ def omega(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtQuSz0:
     # TODO: more directly using the vectors
     v = convert(cx.vconvert(cx.CartesianVel3D, v, x), BareQuantity)
     x = convert(cx.vconvert(cx.CartesianPos3D, x), BareQuantity)
-    return omega(x, v)
+    return api.omega(x, v)
 
 
 @dispatch
 @partial(jax.jit)
 def omega(w: cx.Space, /) -> gt.BBtQuSz0:
     """Compute from a `coordinax.Space`."""
-    return omega(w["length"], w["speed"])
+    return api.omega(w["length"], w["speed"])
 
 
 @dispatch
 @partial(jax.jit)
 def omega(w: cx.frames.AbstractCoordinate, /) -> gt.BBtQuSz0:
     """Compute from a `coordinax.frames.AbstractCoordinate`."""
-    return omega(w.data)
+    return api.omega(w.data)
 
 
 @dispatch
 @partial(jax.jit)
 def omega(w: gc.AbstractPhaseSpaceObject, /) -> gt.BBtQuSz0:
     """Compute from a `galax.coordinates.AbstractPhaseSpaceObject`."""
-    return omega(w.q, w.p)
+    return api.omega(w.q, w.p)

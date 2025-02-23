@@ -9,6 +9,7 @@ __all__ = ["AbstractSolver", "SolveState"]
 
 import abc
 from dataclasses import fields
+from functools import partial
 from typing import Any, TypeAlias
 
 import diffrax as dfx
@@ -17,10 +18,12 @@ import numpy as np
 from jaxtyping import Array, PyTree, Real
 
 import diffraxtra as dfxtra
+import quaxed.numpy as jnp
 import unxt as u
 
 import galax._custom_types as gt
 
+USys: TypeAlias = u.AbstractUnitSystem
 DenseInfo: TypeAlias = dict[str, PyTree[Array]]
 Terms: TypeAlias = PyTree
 DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], ""]
@@ -64,14 +67,14 @@ class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
     success: dfx.RESULTS
 
     # --- reconstruction info ---
-    units: u.AbstractUnitSystem
+    units: USys = eqx.field(static=True)
 
     @classmethod
     def from_step_output(
         cls,
         t: Any,
         obj: tuple[PyTree, PyTree | None, DenseInfo, Any, dfx.RESULTS],
-        units: u.AbstractUnitSystem,
+        units: USys,
         /,
     ) -> "SolveState":
         return cls(
@@ -99,13 +102,10 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[
 
     """
 
+    @partial(jnp.vectorize, excluded=(0, 1, 3, 4, 5))
+    @partial(eqx.filter_jit)
     def _init_impl(
-        self,
-        terms: Terms,
-        t0: DfxRealScalarLike,
-        y0: PyTree,
-        args: Any,
-        units: u.AbstractUnitSystem,
+        self, terms: Terms, t0: gt.SzAny, y0: PyTree, args: Any, units: USys, /
     ) -> SolveState:
         """`init` helper."""
         # Initializes the state from diffrax. Steps from t0 to t0!
@@ -123,7 +123,7 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[
 
     # -----------------------
 
-    def _step_impl(
+    def _step_impl_scalar(
         self,
         terms: Terms,
         state: SolveState,
@@ -131,9 +131,11 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[
         args: Any,
         step_kw: dict[str, Any],
     ) -> SolveState:
+        t0 = state.t
+        t0 = eqx.error_if(t0, t0.ndim != 0, "t0 must be a scalar")
         step_output = self.solver.step(
             terms,
-            state.t,
+            t0,
             t1,
             state.y,
             args=args,
@@ -156,25 +158,6 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[
         raise NotImplementedError
 
     # ----------------
-
-    def _run_impl(
-        self,
-        terms: PyTree,
-        state: SolveState,
-        t1: DfxRealScalarLike,
-        /,
-        args: PyTree,
-        solver_kw: dict[str, Any],
-    ) -> dfx.Solution:
-        solver_kw.setdefault("dt0", None)
-        return self(
-            terms,
-            t0=state.t,
-            t1=t1,
-            y0=state.y,
-            args=args,
-            **solver_kw,
-        )
 
     @abc.abstractmethod
     def run(

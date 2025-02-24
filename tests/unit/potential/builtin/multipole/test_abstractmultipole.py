@@ -1,11 +1,13 @@
 """Test AbstractMultipolePotential."""
 
+import jax
 import pytest
 from jaxtyping import Array, Shaped
 
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax._custom_types as gt
 import galax.potential as gp
 from ...param.test_field import ParameterFieldMixin
 
@@ -110,3 +112,17 @@ class ParameterTlmMixin(ParameterAngularCoefficientsMixin):
         fields["Tlm"] = lambda t: Tlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
         assert jnp.allclose(pot.Tlm(t=u.Quantity(0, "Myr")), Tlm)
+
+
+class MultipoleTestMixin:
+    def test_jit_init(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Test that potentials can be created within a JITted function."""
+
+        @jax.jit
+        def init_potential_evaluate() -> None:
+            inner_pot = pot.__class__(
+                **pot.parameters, units=pot.units, l_max=pot.l_max
+            )
+            inner_pot.potential(x, t=0)
+
+        init_potential_evaluate()

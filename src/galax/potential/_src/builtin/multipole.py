@@ -11,6 +11,7 @@ from dataclasses import KW_ONLY
 from functools import partial
 from typing import final
 
+import equinox as eqx
 import jax
 from equinox import field
 from jax.scipy.special import sph_harm
@@ -63,12 +64,11 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
         t = u.Quantity(0.0, "Gyr")
         s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
         # TODO: check shape across time.
-        if s_shape != shape or t_shape != shape:
-            msg = (
-                "Slm and Tlm must have the shape (l_max + 1, l_max + 1)."
-                f"Slm shape: {s_shape}, Tlm shape: {t_shape}"
-            )
-            raise ValueError(msg)
+        msg = (
+            "Slm and Tlm must have the shape (l_max + 1, l_max + 1). "
+            f"Slm shape: {s_shape}, Tlm shape: {t_shape}"
+        )
+        _ = eqx.error_if(t, jnp.logical_or(s_shape != shape, t_shape != shape), msg)
 
     @partial(jax.jit)
     def _potential(
@@ -125,12 +125,11 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
         t = u.Quantity(0.0, "Gyr")
         s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
         # TODO: check shape across time.
-        if s_shape != shape or t_shape != shape:
-            msg = (
-                "Slm and Tlm must have the shape (l_max + 1, l_max + 1)."
-                f"Slm shape: {s_shape}, Tlm shape: {t_shape}"
-            )
-            raise ValueError(msg)
+        msg = (
+            "Slm and Tlm must have the shape (l_max + 1, l_max + 1). "
+            f"Slm shape: {s_shape}, Tlm shape: {t_shape}"
+        )
+        _ = eqx.error_if(t, jnp.logical_or(s_shape != shape, t_shape != shape), msg)
 
     @partial(jax.jit)
     def _potential(
@@ -195,14 +194,11 @@ class MultipolePotential(AbstractMultipolePotential):
         is_shape, it_shape = self.ISlm(t).shape, self.ITlm(t).shape
         os_shape, ot_shape = self.OSlm(t).shape, self.OTlm(t).shape
         # TODO: check shape across time.
-        if (
-            is_shape != shape
-            or it_shape != shape
-            or os_shape != shape
-            or ot_shape != shape
-        ):
-            msg = "I/OSlm and I/OTlm must have the shape (l_max + 1, l_max + 1)."
-            raise ValueError(msg)
+        msg = "I/OSlm and I/OTlm must have the shape (l_max + 1, l_max + 1)."
+        pred = jnp.any(
+            jnp.array([x != shape for x in (is_shape, it_shape, os_shape, ot_shape)])
+        )
+        _ = eqx.error_if(t, pred, msg)
 
     @partial(jax.jit)
     def _potential(

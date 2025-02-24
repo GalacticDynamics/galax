@@ -3,6 +3,7 @@
 from typing import Any
 from typing_extensions import override
 
+import equinox as eqx
 import pytest
 from jaxtyping import Array, Shaped
 from plum import convert
@@ -14,13 +15,18 @@ import galax._custom_types as gt
 import galax.potential as gp
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
-from .test_abstractmultipole import ParameterSlmMixin, ParameterTlmMixin
+from .test_abstractmultipole import (
+    MultipoleTestMixin,
+    ParameterSlmMixin,
+    ParameterTlmMixin,
+)
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps
 
 ###############################################################################
 
 
 class TestMultipoleOuterPotential(
+    MultipoleTestMixin,
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
@@ -60,7 +66,8 @@ class TestMultipoleOuterPotential(
     ) -> None:
         """Test the `MultipoleInnerPotential.__check_init__` method."""
         fields_["Slm"] = fields_["Slm"][::2]  # make it the wrong shape
-        with pytest.raises(ValueError, match="Slm and Tlm must have the shape"):
+        match = "Slm and Tlm must have the shape"
+        with pytest.raises(eqx.EquinoxRuntimeError, match=match):
             pot_cls(**fields_)
 
     # ==========================================================================

@@ -4,6 +4,7 @@ import re
 from typing import Any
 from typing_extensions import override
 
+import equinox as eqx
 import pytest
 from jaxtyping import Array, Shaped
 from plum import convert
@@ -16,7 +17,10 @@ import galax.potential as gp
 from ...io.test_gala import parametrize_test_method_gala
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
-from .test_abstractmultipole import ParameterAngularCoefficientsMixin
+from .test_abstractmultipole import (
+    MultipoleTestMixin,
+    ParameterAngularCoefficientsMixin,
+)
 
 ###############################################################################
 
@@ -211,6 +215,7 @@ class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
 
 
 class TestMultipolePotential(
+    MultipoleTestMixin,
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
@@ -257,7 +262,7 @@ class TestMultipolePotential(
         """Test the `MultipoleInnerPotential.__check_init__` method."""
         fields_["ISlm"] = fields_["ISlm"][::2]  # make it the wrong shape
         match = re.escape("I/OSlm and I/OTlm must have the shape")
-        with pytest.raises(ValueError, match=match):
+        with pytest.raises(eqx.EquinoxRuntimeError, match=match):
             pot_cls(**fields_)
 
     # ==========================================================================

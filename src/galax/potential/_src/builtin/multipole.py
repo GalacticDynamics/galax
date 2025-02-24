@@ -195,18 +195,10 @@ class MultipolePotential(AbstractMultipolePotential):
         os_shape, ot_shape = self.OSlm(t).shape, self.OTlm(t).shape
         # TODO: check shape across time.
         msg = "I/OSlm and I/OTlm must have the shape (l_max + 1, l_max + 1)."
-        _ = eqx.error_if(
-            t,
-            jnp.array(
-                [
-                    is_shape != shape,
-                    it_shape != shape,
-                    os_shape != shape,
-                    ot_shape != shape,
-                ]
-            ).any(),
-            msg,
+        pred = jnp.any(
+            jnp.array([x != shape for x in (is_shape, it_shape, os_shape, ot_shape)])
         )
+        _ = eqx.error_if(t, pred, msg)
 
     @partial(jax.jit)
     def _potential(

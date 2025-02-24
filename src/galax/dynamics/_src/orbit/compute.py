@@ -13,7 +13,8 @@ import equinox as eqx
 from plum import dispatch
 
 import quaxed.numpy as jnp
-from unxt.quantity import BareQuantity as FastQ
+import unxt as u
+from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
 import galax.potential as gp
@@ -74,16 +75,15 @@ def compute_orbit(
 
     Or evaluating at a single time:
 
-    # TODO: fix this.
-    # >>> orbit = gd.compute_orbit(potential, w0, u.Quantity(0.5, "Gyr"))
-    # >>> orbit
-    # Orbit(
-    #     q=CartesianPos3D(...), p=CartesianVel3D(...),
-    #     t=Quantity['time'](Array([500.], dtype=float64, ...), unit='Myr'),
-    #     frame=SimulationFrame(),
-    #     potential=KeplerPotential(...),
-    #     interpolant=None
-    # )
+    >>> orbit = gd.compute_orbit(potential, w0, u.Quantity(0.5, "Gyr"))
+    >>> orbit
+    Orbit(
+        q=CartesianPos3D(...), p=CartesianVel3D(...),
+        t=Quantity['time'](Array(500., dtype=float64), unit='Myr'),
+        frame=SimulationFrame(),
+        potential=KeplerPotential(...),
+        interpolant=None
+    )
 
     We can also integrate a batch of orbits at once:
 
@@ -146,7 +146,7 @@ def compute_orbit(
 @eqx.filter_jit
 def compute_orbit(
     field: HamiltonianField | gp.AbstractPotential,
-    w0: gc.PhaseSpaceCoordinate,
+    w0: gc.AbstractPhaseSpaceCoordinate,
     ts: Any,
     /,
     *,
@@ -157,25 +157,26 @@ def compute_orbit(
     thefield = field if isinstance(field, HamiltonianField) else HamiltonianField(field)
     solver = DynamicsSolver() if solver is None else solver
     units = thefield.units
-    ts = jnp.atleast_1d(FastQ.from_(ts, units["time"]))  # ensure t units
+    ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))  # ensure t units
 
     # Initial integration from `w0.t` to `ts[0]`
     # TODO: use `.init()`, `.run()` instead then can directly pass the state
     soln0 = solver.solve(thefield, w0, ts[0], dense=False, unbatch_time=True)
 
     # Integrate from `ts[0]` to `ts[-1]`
-    # TODO: a dispatch for y0 w/out units
-    y0 = (FastQ(soln0.ys[0], units["length"]), FastQ(soln0.ys[1], units["speed"]))
-    soln = solver.solve(
-        thefield,
-        y0,
-        ts[0],
-        ts[-1],
-        saveat=ts,
-        dense=dense,
-        unbatch_time=True,
-        vectorize_interpolation=True,
-    )
+    if ts.shape == (1,):
+        soln = soln0
+    else:
+        soln = solver.solve(
+            thefield,
+            soln0.ys,
+            ts[0],
+            ts[-1],
+            saveat=ts,
+            dense=dense,
+            unbatch_time=True,
+            vectorize_interpolation=True,
+        )
 
     # Return the orbit
     return Orbit.from_(soln, frame=w0.frame, potential=thefield.potential)
@@ -196,7 +197,7 @@ def compute_orbit(
     thefield = field if isinstance(field, HamiltonianField) else HamiltonianField(field)
     solver = DynamicsSolver() if solver is None else solver
     units = thefield.units
-    ts = jnp.atleast_1d(FastQ.from_(ts, units["time"]))  # ensure t units
+    ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))  # ensure t units
 
     # Integrate from `ts[0]` to `ts[-1]`
     soln = solver.solve(

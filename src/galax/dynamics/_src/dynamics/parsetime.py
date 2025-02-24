@@ -13,6 +13,7 @@ from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
+from unxt._src.units.api import AstropyUnits as Unit
 
 
 def parse_time_specification(
@@ -20,12 +21,12 @@ def parse_time_specification(
         u.AbstractUnitSystem | None, Doc("The unit system in which to express times.")
     ] = None,
     *,
-    t: Ann[u.Quantity["time"] | None, Doc("full time array.")] = None,
-    t0: Ann[u.Quantity["time"] | None, Doc("The starting time.")] = None,
-    dt: Ann[u.Quantity["time"] | None, Doc("The time step(s).")] = None,
+    t: Ann[u.AbstractQuantity | None, Doc("full time array.")] = None,
+    t0: Ann[u.AbstractQuantity | None, Doc("The starting time.")] = None,
+    dt: Ann[u.AbstractQuantity | None, Doc("The time step(s).")] = None,
     n_steps: Ann[int | None, Doc("The number of steps.")] = None,
-    t1: Ann[u.Quantity["time"] | None, Doc("The final time (inclusive).")] = None,
-) -> Ann[u.Quantity["time"], Doc("An array of times.")]:
+    t1: Ann[u.AbstractQuantity | None, Doc("The final time (inclusive).")] = None,
+) -> Ann[u.AbstractQuantity, Doc("An array of times.")]:
     """Construct and return an array of times.
 
     This is useful for constructing the `ts` argument of `diffrax.SaveAt`.
@@ -165,18 +166,22 @@ def parse_time_specification(
 # -----------------------------------------------
 
 
+def _parse_to_time_unit(obj: Any, /) -> Unit | None:
+    return u.unitsystem(obj)["time"] if obj is not None else None
+
+
 @dispatch
 def parse_time_spec(
     units: Any,
-    t: u.Quantity["time"] | ArrayLike | list[int] | tuple[int, ...],
+    t: u.AbstractQuantity | ArrayLike | list[int] | tuple[int, ...],
     t0: None,  # noqa: ARG001
     dt: None,  # noqa: ARG001
     n_steps: None,  # noqa: ARG001
     t1: None,  # noqa: ARG001
     /,
-) -> u.Quantity["time"]:
+) -> u.AbstractQuantity:
     """Return the given array of times as a :class:`unxt.Quantity`."""
-    unit = u.unitsystem(units)["time"] if units is not None else None
+    unit = _parse_to_time_unit(units)
     return u.Quantity.from_(t, unit)
 
 
@@ -189,9 +194,9 @@ def parse_time_spec(
     n_steps: int,
     t1: Any,
     /,
-) -> Shaped[u.Quantity["time"], "{n_steps}"]:
+) -> Shaped[u.AbstractQuantity, "{n_steps}"]:
     """Return a time array from the initial and final times and number of steps."""
-    unit = u.unitsystem(units)["time"] if units is not None else None
+    unit = _parse_to_time_unit(units)
     return u.Quantity.from_(jnp.linspace(t0, t1, n_steps), unit)
 
 
@@ -204,7 +209,7 @@ def parse_time_spec(
     n_steps: int,
     t1: None,  # noqa: ARG001
     /,
-) -> Shaped[u.Quantity["time"], "{n_steps}"]:
+) -> Shaped[u.AbstractQuantity, "{n_steps}"]:
     """Return a time array from the initial time, timestep, and number of steps."""
     return parse_time_spec(units, t, t0, None, n_steps, t0 + dt * n_steps)
 
@@ -218,9 +223,9 @@ def parse_time_spec(
     n_steps: None,  # noqa: ARG001
     t1: Any,
     /,
-) -> u.Quantity["time"]:
+) -> u.AbstractQuantity:
     """Return a time array from the initial and final times and the time step."""
-    unit = u.unitsystem(units)["time"] if units is not None else None
+    unit = _parse_to_time_unit(units)
     return u.Quantity.from_(jnp.arange(t0, t1, dt), unit)
 
 
@@ -228,14 +233,14 @@ def parse_time_spec(
 def parse_time_spec(
     units: Any,
     t: None,  # noqa: ARG001
-    t0: Shaped[u.Quantity["time"], ""] | Shaped[Array, ""] | Number | float | int,
-    dt: Shaped[u.Quantity["time"], "N"] | Shaped[Array, "N"],
+    t0: Shaped[u.AbstractQuantity, ""] | Shaped[Array, ""] | Number | float | int,
+    dt: Shaped[u.AbstractQuantity, "N"] | Shaped[Array, "N"],
     n_steps: None,  # noqa: ARG001
     t1: None,  # noqa: ARG001
     /,
-) -> Shaped[u.Quantity["time"], "N+1"]:
+) -> Shaped[u.AbstractQuantity, "N+1"]:
     """Return a time array from the initial time and an array of time steps."""
-    unit = u.unitsystem(units)["time"] if units is not None else None
+    unit = _parse_to_time_unit(units)
     t0 = u.Quantity.from_(t0, unit)
     dt = u.Quantity.from_(dt, unit)
     return jnp.concat((t0[None], jnp.cumsum(t0 + dt)))
@@ -243,13 +248,7 @@ def parse_time_spec(
 
 @dispatch
 def parse_time_spec(
-    units: Any,
-    t: None,
-    t0: Any,
-    dt: Sequence[Any],
-    n_steps: None,
-    t1: None,
-    /,
-) -> u.Quantity["time"]:
+    units: Any, t: None, t0: Any, dt: Sequence[Any], n_steps: None, t1: None, /
+) -> u.AbstractQuantity:
     """Return a time array from the initial time and a Sequence of time steps."""
     return parse_time_spec(units, t, t0, jnp.asarray(dt), n_steps, t1)

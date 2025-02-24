@@ -1,5 +1,5 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["dataclasses"]
+__all__ = ["dataclasses", "loop_strategies"]
 
-from . import dataclasses
+from . import dataclasses, loop_strategies

@@ -29,6 +29,20 @@ _select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
 )
 
 
+def orbit_from_psp(
+    w: gc.PhaseSpaceCoordinate, t: gt.QuSzTime, potential: gp.AbstractPotential
+) -> Orbit:
+    """Create an orbit object from the phase-space position."""
+    return Orbit(
+        q=w.q,
+        p=w.p,
+        t=t,
+        frame=w.frame,
+        potential=potential,
+        interpolant=getattr(w, "interpolant", None),
+    )
+
+
 @dispatch
 def evaluate_orbit(
     pot: gp.AbstractPotential,
@@ -224,7 +238,7 @@ def evaluate_orbit(
     ws = integrator(field, qp0, t[0], t[-1], saveat=t, dense=dense)
 
     # Return the orbit object
-    return Orbit._from_psp(ws, t, pot)  # noqa: SLF001
+    return orbit_from_psp(ws, t, pot)
 
 
 @dispatch

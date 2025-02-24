@@ -94,21 +94,3 @@ class Orbit(AbstractOrbit):
 
     interpolant: gc.PhaseSpaceObjectInterpolant | None = None
     """The interpolation function."""
-
-    # TODO: figure out public API. This is used by `evaluate_orbit`
-    @classmethod
-    def _from_psp(
-        cls,
-        w: gc.PhaseSpaceCoordinate,
-        t: gt.QuSzTime,
-        potential: gp.AbstractPotential,
-    ) -> "Orbit":
-        """Create an orbit from a phase-space position."""
-        return Orbit(
-            q=w.q,
-            p=w.p,
-            t=t,
-            frame=w.frame,
-            potential=potential,
-            interpolant=getattr(w, "interpolant", None),
-        )

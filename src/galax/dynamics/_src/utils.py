@@ -11,6 +11,7 @@ from typing import Any, TypeAlias
 
 import diffrax as dfx
 import equinox as eqx
+from jaxtyping import ArrayLike
 from plum import convert, dispatch
 
 import coordinax.frames as cxf
@@ -51,7 +52,7 @@ def parse_saveat(obj: dfx.SaveAt, /, *, dense: bool | None) -> dfx.SaveAt:
 
 @dispatch
 def parse_saveat(
-    _: u.AbstractUnitSystem, obj: dfx.SaveAt, /, *, dense: bool | None
+    _: u.AbstractUnitSystem | None, obj: dfx.SaveAt, /, *, dense: bool | None
 ) -> dfx.SaveAt:
     """Return the input object.
 
@@ -73,6 +74,41 @@ def parse_saveat(
 
     """
     return obj if dense is None else replace(obj, dense=dense)
+
+
+@dispatch
+def parse_saveat(
+    _: u.AbstractUnitSystem | None,
+    ts: ArrayLike | list[ArrayLike],
+    /,
+    *,
+    dense: bool | None,
+) -> dfx.SaveAt:
+    """Convert to a `SaveAt`.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+
+    >>> parse_saveat(None, 0.5, dense=True)
+    SaveAt(
+      subs=SubSaveAt( t0=False, t1=False, ts=weak_f64[1],
+                      steps=False, fn=<function save_y> ),
+      dense=True,
+      ...
+    )
+
+    >>> parse_saveat(units, [0, 1, 2, 3], dense=True)
+    SaveAt(
+      subs=SubSaveAt( t0=False, t1=False, ts=i64[4],
+                      steps=False, fn=<function save_y> ),
+      dense=True,
+      ...
+    )
+
+    """
+    ts = jnp.atleast_1d(jnp.asarray(ts))
+    return dfx.SaveAt(ts=ts, dense=False if dense is None else dense)
 
 
 @dispatch
@@ -104,10 +140,7 @@ def parse_saveat(
     )
 
     """
-    return dfx.SaveAt(
-        ts=jnp.atleast_1d(ts.ustrip(units["time"])),
-        dense=False if dense is None else dense,
-    )
+    return parse_saveat(units, ts.ustrip(units["time"]), dense=dense)
 
 
 #####################################################################

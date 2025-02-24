@@ -72,14 +72,16 @@ def from_(
     (2, 1)
 
     """
-    # Reshape (*tbatch, T, *ybatch) to (*tbatch, *ybatch, T)
+    # Reshape (*tbatch, T, *ybatch, *shape) to (*tbatch, *ybatch, T, *shape)
     t = soln.ts  # already in the shape (*tbatch, T)
     n_tbatch = soln.t0.ndim
-    q = jnp.moveaxis(soln.ys[0], n_tbatch, -2)
-    p = jnp.moveaxis(soln.ys[1], n_tbatch, -2)
+    q, p = soln.ys
+    if n_tbatch < q.ndim - 1:
+        q = jnp.moveaxis(q, n_tbatch, -2)
+        p = jnp.moveaxis(p, n_tbatch, -2)
 
     # Reshape (*tbatch, *ybatch, T) to (*tbatch, *ybatch) if T == 1
-    if unbatch_time and t.shape[-1] == 1:
+    if unbatch_time and t.ndim > 0 and t.shape[-1] == 1:
         t = t[..., -1]
         q = q[..., -1, :]
         p = p[..., -1, :]

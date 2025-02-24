@@ -808,53 +808,73 @@ def run(
 # ===============================================
 # Solve Dispatches
 
-# --------------------------------
-# Special-case jax arrays
+# -------------------------------------
+# Scalar solve - JAX arrays
 # TODO: check if this is any faster than the `init-run` pattern.
 
 
-@DynamicsSolver.solve.dispatch(precedence=1)  # type: ignore[misc]
+@DynamicsSolver.solve.dispatch(precedence=1)
 @partial(eqx.filter_jit)
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
-    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
-    t0: gt.Sz0 | gt.LikeSz0,
-    t1: gt.Sz0 | gt.LikeSz0,
-    /,
+    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
+    t0: gt.LikeSz0,
+    t1: gt.LikeSz0,
+    *,
     args: Any = None,
     saveat: Any = default_saveat,
-    *,
     unbatch_time: bool = False,
     **solver_kw: Any,
 ) -> dfx.Solution:
     """Solve for batch position tuple, scalar start, end time."""
     # Parse inputs
-    terms = field.terms(self)
     usys = field.units
+    terms = field.terms(self)
 
-    # TODO: not use `init` here
-    # Initialize the state
-    state = self.init(terms, qp, t0, args, units=usys)
     # Run the solver
-    saveat = parse_saveat(usys, saveat, dense=solver_kw.pop("dense", None))
-    solver_kw["saveat"] = saveat
+    solver_kw["saveat"] = parse_saveat(usys, saveat, dense=solver_kw.pop("dense", None))
     solver_kw.setdefault("dt0", None)
-    soln = self(
-        terms,
-        t0=state.t,
-        t1=t1,
-        y0=state.y,
-        args=args,
-        **solver_kw,
-    )
+    soln = self(terms, t0=t0, t1=t1, y0=qp0, args=args, **solver_kw)
 
-    # Check to see if we should try to unbatch in the time dimension.
+    # Possibly unbatch in the time dimension.
     if unbatch_time and soln.ts.shape[soln.t0.ndim] == 1:
         soln = eqx.tree_at(lambda tree: tree.ts, soln, soln.ts[0])
         soln = eqx.tree_at(lambda tree: tree.ys, soln, jtu.map(lambda y: y[0], soln.ys))
 
     return soln
+
+
+# -------------------------------------
+# Batched solve - JAX arrays
+
+
+@DynamicsSolver.solve.dispatch
+@partial(eqx.filter_jit)
+def solve(
+    self: DynamicsSolver,
+    field: AbstractDynamicsField,
+    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
+    t0: gt.BBtLikeSz0,
+    t1: gt.BBtLikeSz0,
+    *,
+    args: Any = None,
+    saveat: Any = default_saveat,
+    unbatch_time: bool = False,
+    **solver_kw: Any,
+) -> dfx.Solution:
+    """Solve for batch position tuple, batched start, end time."""
+    return solve_vmapped(
+        self,
+        field,
+        qp,
+        t0,
+        t1,
+        args=args,
+        saveat=saveat,
+        unbatch_time=unbatch_time,
+        **solver_kw,
+    )
 
 
 def _is_saveat_arr(saveat: Any, /) -> bool:
@@ -868,39 +888,34 @@ def _is_saveat_arr(saveat: Any, /) -> bool:
     return dfx_check or arr_check
 
 
-@DynamicsSolver.solve.dispatch(precedence=-1)
-@eqx.filter_jit
-def solve(
+@partial(eqx.filter_jit)
+def solve_vmapped(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
-    t0: gt.BBtSz0,
-    t1: gt.BBtSz0,
-    /,
+    t0: gt.BBtLikeSz0,
+    t1: gt.BBtLikeSz0,
+    *,
     args: Any = None,
     saveat: Any = default_saveat,
-    *,
     unbatch_time: bool = False,
     **solver_kw: Any,
 ) -> dfx.Solution:
-    """Solve for batch position tuple, batched start, end time."""
     # Because of how JAX does its tree building over vmaps, vectorizing the
     # interpolation within the loop does not work, it needs to be done after.
     vectorize_interpolation = solver_kw.pop("vectorize_interpolation", False)
 
-    # Set default values
-    solver_kw.setdefault("dt0", None)
+    # non-batched kwargs
+    kw = {"saveat": saveat, "unbatch_time": unbatch_time, "dt0": None} | solver_kw
 
     # Build the vectorized solver. To get the right broadcasting the Q, P need
     # to be split up, then recombined.
     @partial(jnp.vectorize, signature="(3),(3),(),()->()")
-    def call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
-        return self.solve(
-            field, (q, p), t0, t1, args, saveat, unbatch_time=unbatch_time, **solver_kw
-        )
+    def batched_call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
+        return self.solve(field, (q, p), t0, t1, args=args, **kw)
 
     # Solve the batched problem
-    soln = call(qp[0], qp[1], t0, t1)
+    soln = batched_call(qp[0], qp[1], t0, t1)
 
     # NOTE: this is a heuristic that can be improved!
     # The saveat was not vmapped over, so it got erroneously broadcasted.
@@ -916,65 +931,7 @@ def solve(
     return soln
 
 
-# --------------------------------
-
-
-@DynamicsSolver.solve.dispatch
-def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    tqp0: Any,
-    t1: gt.BBtQuSz0 | gt.BBtSz0 | gt.BBtLikeSz0,
-    *,
-    args: Any = None,
-    saveat: Any = default_saveat,
-    unbatch_time: bool = False,
-    **solver_kw: Any,
-) -> dfx.Solution:
-    # Parse the inputs
-    t0, qp0 = parse_to_t_y(None, tqp0, ustrip=field.units)  # TODO: frame
-    t1 = u.ustrip(AllowValue, field.units["time"], t1)
-    return self.solve(
-        field,
-        qp0,
-        t0,
-        t1,
-        args=args,
-        saveat=saveat,
-        unbatch_time=unbatch_time,
-        **solver_kw,
-    )
-
-
-@DynamicsSolver.solve.dispatch
-def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    tqp0: Any,
-    t0: gt.BBtQuSz0 | gt.BBtSz0 | gt.BBtLikeSz0,
-    t1: gt.BBtQuSz0 | gt.BBtSz0 | gt.BBtLikeSz0,
-    *,
-    args: Any = None,
-    saveat: Any = default_saveat,
-    unbatch_time: bool = False,
-    **solver_kw: Any,
-) -> dfx.Solution:
-    # Parse the inputs  # TODO: frame
-    t0, qp0 = parse_to_t_y(None, t0, tqp0, ustrip=field.units)
-    t1 = u.ustrip(AllowValue, field.units["time"], t1)
-    return self.solve(
-        field,
-        qp0,
-        t0,
-        t1,
-        args=args,
-        saveat=saveat,
-        unbatch_time=unbatch_time,
-        **solver_kw,
-    )
-
-
-# --------------------------------
+# -------------------------------------
 # From State
 
 
@@ -994,7 +951,39 @@ def solve(
     return self.solve(field, state.y, state.t, t1, args=args, **solver_kw)
 
 
-# --------------------------------
+# -------------------------------------
+
+
+@DynamicsSolver.solve.dispatch
+def solve(
+    self: DynamicsSolver,
+    field: AbstractDynamicsField,
+    tqp0: Any,
+    t1: gt.BBtQuSz0 | gt.BBtLikeSz0,
+    **kw: Any,
+) -> dfx.Solution:
+    # Parse the inputs
+    t0, qp0 = parse_to_t_y(None, tqp0, ustrip=field.units)  # TODO: frame
+    t1 = u.ustrip(AllowValue, field.units["time"], t1)
+    return self.solve(field, qp0, t0, t1, **kw)
+
+
+@DynamicsSolver.solve.dispatch
+def solve(
+    self: DynamicsSolver,
+    field: AbstractDynamicsField,
+    tqp0: Any,
+    t0: gt.BBtQuSz0 | gt.BBtLikeSz0,
+    t1: gt.BBtQuSz0 | gt.BBtLikeSz0,
+    **kw: Any,
+) -> dfx.Solution:
+    # Parse the inputs  # TODO: frame
+    t0, qp0 = parse_to_t_y(None, t0, tqp0, ustrip=field.units)
+    t1 = u.ustrip(AllowValue, field.units["time"], t1)
+    return self.solve(field, qp0, t0, t1, **kw)
+
+
+# -------------------------------------
 
 
 @DynamicsSolver.solve.dispatch

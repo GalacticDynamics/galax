@@ -14,6 +14,7 @@ from typing import Any, TypeAlias, final
 import diffrax as dfx
 import equinox as eqx
 import jax
+import jax.extend as jex
 import jax.tree as jtu
 from jaxtyping import PyTree
 from plum import dispatch
@@ -29,6 +30,7 @@ import galax.dynamics._src.custom_types as gdt
 from .field_base import AbstractDynamicsField
 from galax.dynamics._src.solver import AbstractSolver, SolveState, Terms
 from galax.dynamics._src.utils import parse_saveat, parse_to_t_y
+from galax.utils import loop_strategies as lstrat
 
 BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
 
@@ -724,18 +726,6 @@ def init(
 # Run Dispatches
 
 
-# def _run_impl(
-#     solver: DynamicsSolver,
-#     terms: Terms,
-#     state: SolveState,
-#     t1: gt.BBtSz0,
-#     args: PyTree,
-#     solver_kw: dict[str, Any],
-#     *,
-#     unbatch_time: bool,
-# ) -> dfx.Solution:
-
-
 @DynamicsSolver.run.dispatch
 def run(
     self: DynamicsSolver,
@@ -813,7 +803,7 @@ def run(
 # TODO: check if this is any faster than the `init-run` pattern.
 
 
-@DynamicsSolver.solve.dispatch(precedence=1)
+@DynamicsSolver.solve.dispatch(precedence=1)  # type: ignore[misc]
 @partial(eqx.filter_jit)
 def solve(
     self: DynamicsSolver,
@@ -821,6 +811,7 @@ def solve(
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.LikeSz0,
     t1: gt.LikeSz0,
+    /,
     *,
     args: Any = None,
     saveat: Any = default_saveat,
@@ -845,74 +836,111 @@ def solve(
     return soln
 
 
+scalar_solver = DynamicsSolver.solve.invoke(
+    DynamicsSolver,
+    AbstractDynamicsField,
+    tuple[gdt.BBtQarr, gdt.BBtParr],
+    gt.LikeSz0,
+    gt.LikeSz0,
+)
+
+# ---------------------------
+
+
+# NOTE: The scalar solve doesn't depend on the loop strategy.
+@DynamicsSolver.solve.dispatch(precedence=1)
+def solve(
+    self: DynamicsSolver,
+    loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
+    field: AbstractDynamicsField,
+    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
+    t0: gt.LikeSz0,
+    t1: gt.LikeSz0,
+    /,
+    **kw: Any,
+) -> dfx.Solution:
+    """Solve for batch position tuple, scalar start, end time."""
+    return scalar_solver(self, field, qp0, t0, t1, **kw)
+
+
 # -------------------------------------
 # Batched solve - JAX arrays
 
 
 @DynamicsSolver.solve.dispatch
-@partial(eqx.filter_jit)
 def solve(
     self: DynamicsSolver,
     field: AbstractDynamicsField,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
-    *,
-    args: Any = None,
-    saveat: Any = default_saveat,
-    unbatch_time: bool = False,
-    **solver_kw: Any,
+    /,
+    **kw: Any,
 ) -> dfx.Solution:
     """Solve for batch position tuple, batched start, end time."""
-    return solve_vmapped(
-        self,
-        field,
-        qp,
-        t0,
-        t1,
-        args=args,
-        saveat=saveat,
-        unbatch_time=unbatch_time,
-        **solver_kw,
-    )
+    return self.solve(lstrat.Determine, field, qp, t0, t1, **kw)
+
+
+# ---------------------------
+
+
+@DynamicsSolver.solve.dispatch
+def solve(
+    self: DynamicsSolver,
+    loop_strategy: type[lstrat.Determine],  # noqa: ARG001
+    field: AbstractDynamicsField | Terms,
+    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
+    t0: gt.BBtLikeSz0,
+    t1: gt.BBtLikeSz0,
+    /,
+    **kw: Any,
+) -> dfx.Solution:
+    """Solve for batch position tuple, batched start, end time."""
+    # Determine the loop strategy
+    platform = jex.backend.get_backend().platform
+    loop_strat = lstrat.Scan if platform == "cpu" else lstrat.Vectorize
+
+    # Call solver with appropriate loop strategy
+    return self.solve(loop_strat, field, qp, t0, t1, **kw)
+
+
+# ---------------------------
 
 
 def _is_saveat_arr(saveat: Any, /) -> bool:
     dfx_check = (
         isinstance(saveat, dfx.SaveAt)
         and isinstance(saveat.subs, dfx.SubSaveAt)
-        and saveat.subs.ts is not None
-        and saveat.subs.ts.ndim in (0, 1)
+        and (saveat.subs.ts is not None and saveat.subs.ts.ndim in (0, 1))
     )
     arr_check = hasattr(saveat, "ndim") and saveat.ndim in (0, 1)
     return dfx_check or arr_check
 
 
+@DynamicsSolver.solve.dispatch
 @partial(eqx.filter_jit)
-def solve_vmapped(
+def solve(
     self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    loop_strategy: type[lstrat.Vectorize],  # noqa: ARG001
+    field: AbstractDynamicsField | Terms,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
-    *,
-    args: Any = None,
+    /,
     saveat: Any = default_saveat,
-    unbatch_time: bool = False,
-    **solver_kw: Any,
+    **kw: Any,
 ) -> dfx.Solution:
+    # Parse kwargs
     # Because of how JAX does its tree building over vmaps, vectorizing the
     # interpolation within the loop does not work, it needs to be done after.
-    vectorize_interpolation = solver_kw.pop("vectorize_interpolation", False)
-
-    # non-batched kwargs
-    kw = {"saveat": saveat, "unbatch_time": unbatch_time, "dt0": None} | solver_kw
+    vectorize_interpolation = kw.pop("vectorize_interpolation", False)
+    kw.setdefault("dt0", None)
 
     # Build the vectorized solver. To get the right broadcasting the Q, P need
     # to be split up, then recombined.
     @partial(jnp.vectorize, signature="(3),(3),(),()->()")
     def batched_call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
-        return self.solve(field, (q, p), t0, t1, args=args, **kw)
+        return scalar_solver(self, field, (q, p), t0, t1, saveat=saveat, **kw)
 
     # Solve the batched problem
     soln = batched_call(qp[0], qp[1], t0, t1)
@@ -931,24 +959,148 @@ def solve_vmapped(
     return soln
 
 
+# ---------------------------
+
+
+@DynamicsSolver.solve.dispatch
+@partial(eqx.filter_jit)
+def solve(
+    self: DynamicsSolver,
+    loop_strategy: type[lstrat.VMap],  # noqa: ARG001
+    field: AbstractDynamicsField | Terms,
+    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
+    t0: gt.BBtLikeSz0,
+    t1: gt.BBtLikeSz0,
+    /,
+    saveat: Any = default_saveat,
+    **kw: Any,
+) -> dfx.Solution:
+    # Parse kwargs
+    # Because of how JAX does its tree building over vmaps, vectorizing the
+    # interpolation within the loop does not work, it needs to be done after.
+    vectorize_interpolation = kw.pop("vectorize_interpolation", False)
+    kw.setdefault("dt0", None)
+
+    # Broadcast t0, t1, qp
+    q0, p0 = qp0
+    batch = jnp.broadcast_shapes(t0.shape, t1.shape, q0.shape[:-1], p0.shape[:-1])
+    t0_b, t1_b = jnp.broadcast_to(t0, batch), jnp.broadcast_to(t1, batch)
+    q0_b, p0_b = (jnp.broadcast_to(q0, (*batch, 3)), jnp.broadcast_to(p0, (*batch, 3)))
+
+    # flatten the batch dimensions
+    t0_f, t1_f = t0_b.reshape(-1), t1_b.reshape(-1)
+    q0_f, p0_f = q0_b.reshape(-1, 3), p0_b.reshape(-1, 3)
+
+    # Build the vectorized solver.
+    @partial(jax.vmap, in_axes=(0, 0, 0, 0))
+    def batched_call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
+        return scalar_solver(self, field, (q, p), t0, t1, saveat=saveat, **kw)
+
+    # Solve the batched problem
+    soln = batched_call(q0_f, p0_f, t0_f, t1_f)
+
+    # Unflatten the batch dimensions
+    soln = jtu.map(lambda x: x.reshape(batch + x.shape[1:]), soln)
+
+    # Possibly unbatch the time dimension
+    if _is_saveat_arr(saveat):
+        slc = (0,) * soln.t0.ndim
+        soln = eqx.tree_at(lambda tree: tree.ts, soln, soln.ts[slc])
+
+    # Now possibly vectorize the interpolation
+    if vectorize_interpolation:
+        soln = dfxtra.VectorizedDenseInterpolation.apply_to_solution(soln)
+
+    return soln
+
+
+# ---------------------------
+
+
+@DynamicsSolver.solve.dispatch
+@partial(eqx.filter_jit)
+def solve(
+    self: DynamicsSolver,
+    loop_strategy: type[lstrat.Scan],  # noqa: ARG001
+    field: AbstractDynamicsField | Terms,
+    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
+    t0: gt.BBtLikeSz0,
+    t1: gt.BBtLikeSz0,
+    /,
+    saveat: Any = default_saveat,
+    **kw: Any,
+) -> dfx.Solution:
+    # Parse kwargs
+    # Because of how JAX does its tree building over vmaps, vectorizing the
+    # interpolation within the loop does not work, it needs to be done after.
+    vectorize_interpolation = kw.pop("vectorize_interpolation", False)
+    kw.setdefault("dt0", None)
+
+    # Broadcast t0, t1, qp
+    q0, p0 = qp0
+    batch = jnp.broadcast_shapes(t0.shape, t1.shape, q0.shape[:-1], p0.shape[:-1])
+    t0_b, t1_b = jnp.broadcast_to(t0, batch), jnp.broadcast_to(t1, batch)
+    q0_b, p0_b = (jnp.broadcast_to(q0, (*batch, 3)), jnp.broadcast_to(p0, (*batch, 3)))
+
+    # flatten the batch dimensions
+    t0_f, t1_f = t0_b.reshape(-1), t1_b.reshape(-1)
+    q0_f, p0_f = q0_b.reshape(-1, 3), p0_b.reshape(-1, 3)
+
+    # Build the body.
+    @jax.jit
+    def body(carry: tuple[int], _: int) -> tuple[tuple[int], dfx.Solution]:
+        i = carry[0]
+        w0_i = (q0_f[i], p0_f[i])
+        soln = scalar_solver(self, field, w0_i, t0_f[i], t1_f[i], saveat=saveat, **kw)
+        return [i + 1], soln
+
+    # Solve the batched problem
+    _, soln = jax.lax.scan(body, [0], jnp.arange(len(t0_f)))
+
+    # Unflatten the batch dimensions
+    soln = jtu.map(lambda x: x.reshape(batch + x.shape[1:]), soln)
+
+    # Possibly unbatch the time dimension
+    if _is_saveat_arr(saveat):
+        slc = (0,) * soln.t0.ndim
+        soln = eqx.tree_at(lambda tree: tree.ts, soln, soln.ts[slc])
+
+    # Now possibly vectorize the interpolation
+    if vectorize_interpolation:
+        soln = dfxtra.VectorizedDenseInterpolation.apply_to_solution(soln)
+
+    return soln
+
+
+# -------------------------------------
+# Generic pass through on missing loop strategy
+
+
+@DynamicsSolver.solve.dispatch(precedence=-1)
+def solve(
+    self: DynamicsSolver, field: AbstractDynamicsField | Terms, *args: Any, **kw: Any
+) -> Any:
+    """Solve generically, determining loop strategy."""
+    return self.solve(lstrat.Determine, field, *args, **kw)
+
+
 # -------------------------------------
 # From State
 
 
-# TODO: speed up with call to `_run_impl`
 @DynamicsSolver.solve.dispatch
 def solve(
     self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    loop_strategy: type[lstrat.AbstractLoopStrategy],
+    field: AbstractDynamicsField | Terms,
     state: SolveState,
     t1: gt.BBtQuSz0,
     /,
-    args: Any = None,
-    **solver_kw: Any,
+    **kw: Any,
 ) -> dfx.Solution:
     """Solve for state, end time."""
-    solver_kw["solver_state"] = state.solver_state
-    return self.solve(field, state.y, state.t, t1, args=args, **solver_kw)
+    kw["solver_state"] = state.solver_state
+    return self.solve(loop_strategy, field, state.y, state.t, t1, **kw)
 
 
 # -------------------------------------
@@ -957,7 +1109,8 @@ def solve(
 @DynamicsSolver.solve.dispatch
 def solve(
     self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    loop_strategy: type[lstrat.AbstractLoopStrategy],
+    field: AbstractDynamicsField | Terms,
     tqp0: Any,
     t1: gt.BBtQuSz0 | gt.BBtLikeSz0,
     **kw: Any,
@@ -965,22 +1118,27 @@ def solve(
     # Parse the inputs
     t0, qp0 = parse_to_t_y(None, tqp0, ustrip=field.units)  # TODO: frame
     t1 = u.ustrip(AllowValue, field.units["time"], t1)
-    return self.solve(field, qp0, t0, t1, **kw)
+    return self.solve(loop_strategy, field, qp0, t0, t1, **kw)
 
 
 @DynamicsSolver.solve.dispatch
 def solve(
     self: DynamicsSolver,
-    field: AbstractDynamicsField,
-    tqp0: Any,
+    loop_strategy: type[lstrat.AbstractLoopStrategy],
+    field: AbstractDynamicsField | Terms,
+    qp0: Any,
     t0: gt.BBtQuSz0 | gt.BBtLikeSz0,
     t1: gt.BBtQuSz0 | gt.BBtLikeSz0,
     **kw: Any,
 ) -> dfx.Solution:
-    # Parse the inputs  # TODO: frame
-    t0, qp0 = parse_to_t_y(None, t0, tqp0, ustrip=field.units)
-    t1 = u.ustrip(AllowValue, field.units["time"], t1)
-    return self.solve(field, qp0, t0, t1, **kw)
+    # Parse the inputs
+    usys = getattr(field, "units", None)
+    t0, qp0 = parse_to_t_y(None, t0, qp0, ustrip=usys)  # TODO: frame
+    if u.quantity.is_any_quantity(t1):
+        t1 = u.ustrip(AllowValue, usys["time"], t1)
+    else:
+        t1 = jnp.asarray(t1)
+    return self.solve(loop_strategy, field, qp0, t0, t1, **kw)
 
 
 # -------------------------------------
@@ -989,7 +1147,8 @@ def solve(
 @DynamicsSolver.solve.dispatch
 def solve(
     self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    loop_strategy: type[lstrat.AbstractLoopStrategy],
+    field: AbstractDynamicsField | Terms,
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     t1: gt.BBtQuSz0,
     /,
@@ -998,5 +1157,6 @@ def solve(
 ) -> dict[str, dfx.Solution]:
     """Solve for AbstractCompositePhaseSpaceCoordinate, start, end time."""
     return {
-        k: self.solve(field, w0, t1, args=args, **solver_kw) for k, w0 in w0s.items()
+        k: self.solve(loop_strategy, field, w0, t1, args=args, **solver_kw)
+        for k, w0 in w0s.items()
     }

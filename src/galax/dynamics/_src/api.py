@@ -91,22 +91,22 @@ def omega(x: Any, v: Any, /) -> gt.BBtQuSz0:
     >>> import unxt as u
     >>> import coordinax as cx
 
-    >>> x = jnp.asarray([8.0, 0.0, 0.0])
-    >>> v = jnp.asarray([0.0, 8.0, 0.0])
+    >>> x = jnp.array([8.0, 0.0, 0.0])  # [m]
+    >>> v = jnp.array([0.0, 8.0, 0.0])  # [m/s]
     >>> omega(x, v)
     Array(1., dtype=float64)
 
-    >>> x = u.Quantity([8.0, 0.0, 0.0], "m")
-    >>> v = u.Quantity([0.0, 8.0, 0.0], "m/s")
+    >>> x = u.Quantity(x, "m")
+    >>> v = u.Quantity(v, "m/s")
     >>> omega(x, v)
     Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
 
-    >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "m")
-    >>> v = cx.CartesianVel3D.from_([0.0, 8.0, 0.0], "m/s")
-    >>> omega(x, v)
+    >>> q = cx.CartesianPos3D.from_(x)
+    >>> p = cx.CartesianVel3D.from_(v)
+    >>> omega(q, p)
     BareQuantity(Array(1., dtype=float64), unit='1 / s')
 
-    >>> space = cx.Space(length=x, speed=v)
+    >>> space = cx.Space(length=q, speed=p)
     >>> omega(space)
     BareQuantity(Array(1., dtype=float64), unit='1 / s')
 
@@ -114,7 +114,7 @@ def omega(x: Any, v: Any, /) -> gt.BBtQuSz0:
     >>> omega(w)
     BareQuantity(Array(1., dtype=float64), unit='1 / s')
 
-    >>> w = gc.PhaseSpaceCoordinate(q=x, p=v, t=u.Quantity(0, "yr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Quantity(0, "yr"))
     >>> omega(w)
     BareQuantity(Array(1., dtype=float64), unit='1 / s')
 

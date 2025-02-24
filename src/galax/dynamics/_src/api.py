@@ -34,19 +34,19 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
     >>> import galax.coordinates as gc
     >>> import galax.dynamics as gd
 
-    >>> x = jnp.asarray([8.0, 0.0, 0.0])
-    >>> v = jnp.asarray([0.0, 8.0, 0.0])
+    >>> x = jnp.array([8.0, 0.0, 0.0])  # [m]
+    >>> v = jnp.array([0.0, 8.0, 0.0])  # [m/s]
     >>> gd.specific_angular_momentum(x, v)
     Array([ 0.,  0., 64.], dtype=float64)
 
-    >>> x = u.Quantity([8.0, 0.0, 0.0], "m")
-    >>> v = u.Quantity([0.0, 8.0, 0.0], "m/s")
+    >>> x = u.Quantity(x, "m")
+    >>> v = u.Quantity(v, "m/s")
     >>> gd.specific_angular_momentum(x, v)
     Quantity[...](Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
 
-    >>> x = cx.CartesianPos3D.from_([8.0, 0.0, 0.0], "m")
-    >>> v = cx.CartesianVel3D.from_([0.0, 8.0, 0.0], "m/s")
-    >>> h = gd.specific_angular_momentum(x, v)
+    >>> q = cx.CartesianPos3D.from_(x)
+    >>> p = cx.CartesianVel3D.from_(v)
+    >>> h = gd.specific_angular_momentum(q, p)
     >>> print(h)
     <CartesianGeneric3D (x[m2 / s], y[m2 / s], z[m2 / s])
         [ 0.  0. 64.]>

@@ -255,7 +255,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
         t = u.Quantity(0.0, "Myr")
         _ = eqx.error_if(
             t,
-            (self.a1(t) < self.a2(t)) or (self.a2(t) < self.a3(t)),
+            jnp.logical_or(self.a1(t) < self.a2(t), self.a2(t) < self.a3(t)),
             f"a1 {self.a1(t)} >= a2 {self.a2(t)} >= a3 {self.a3(t)} is required",
         )
 

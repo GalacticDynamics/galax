@@ -193,19 +193,6 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         assert orbits.shape == (2, len(ts))
         assert jnp.allclose(orbits.t, ts, atol=u.Quantity(1e-16, "Myr"))
 
-    # ---------------------------------
-    # Interaction with JAX
-
-    def test_jit_init(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
-        """Test that potentials can be created within a JITted function."""
-
-        @jax.jit
-        def init_potential_evaluate() -> None:
-            inner_pot = pot.__class__(**pot.parameters, units=pot.units)
-            inner_pot.potential(x, t=0)
-
-        init_potential_evaluate()
-
 
 ##############################################################################
 

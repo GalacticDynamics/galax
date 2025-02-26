@@ -655,14 +655,11 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 # Init Dispatches
 
 OptArgs: TypeAlias = dict[str, Any] | None
-OptUnitSystem: TypeAlias = u.AbstractUnitSystem | None
+OptUSys: TypeAlias = u.AbstractUnitSystem | None
 
 
 def parse_field(
-    field: AbstractDynamicsField | Terms,
-    context: DynamicsSolver,
-    units: OptUnitSystem,
-    /,
+    field: AbstractDynamicsField | Terms, context: DynamicsSolver, units: OptUSys, /
 ) -> tuple[Terms, u.AbstractUnitSystem]:
     if isinstance(field, AbstractDynamicsField):
         terms = field.terms(context)
@@ -684,7 +681,7 @@ def init(
     args: OptArgs = None,
     /,
     *,
-    units: OptUnitSystem = None,
+    units: OptUSys = None,
 ) -> SolveState:
     """Initialize from terms, unit/array tuple, and time."""
     terms, units = parse_field(field, self, units)
@@ -700,7 +697,7 @@ def init(
     args: OptArgs = None,
     /,
     *,
-    units: OptUnitSystem = None,
+    units: OptUSys = None,
 ) -> SolveState:
     terms, units = parse_field(field, self, units)
     t0, y0 = parse_to_t_y(None, tqp, ustrip=units)  # TODO: frame
@@ -716,7 +713,7 @@ def init(
     args: OptArgs = None,
     /,
     *,
-    units: OptUnitSystem = None,
+    units: OptUSys = None,
 ) -> dict[str, SolveState]:
     terms, units = parse_field(field, self, units)
     return {k: self.init(terms, w0, args, units=units) for k, w0 in w0s.items()}

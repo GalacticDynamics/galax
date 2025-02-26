@@ -107,9 +107,7 @@ class LongMuraliBarPotential(AbstractSinglePotential):
     """Position angle of the bar in the x-y plane."""
 
     @partial(jax.jit, inline=True)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs and params
         ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])

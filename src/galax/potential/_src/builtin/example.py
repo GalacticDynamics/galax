@@ -71,18 +71,14 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     )
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
         omega = self.omega(t, ustrip=self.units["frequency"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         return 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(omega) * xyz), axis=-1)
 
     @partial(jax.jit)
-    def _density(
-        self, _: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BtQuSz0 | gt.BtSz0, /
-    ) -> gt.BBtFloatSz0:
+    def _density(self, _: gt.BBtQorVSz3, t: gt.BtQuSz0 | gt.BtSz0, /) -> gt.BBtFloatSz0:
         # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i \omega_i^2
         omega = jnp.atleast_1d(self.omega(t, ustrip=self.units["frequency"]))
         denom = 4 * jnp.pi * self.constants["G"].value
@@ -147,8 +143,8 @@ class HenonHeilesPotential(AbstractSinglePotential):
     @partial(jax.jit)
     def _potential(
         self,
-        xyz: gt.BBtQuSz3 | gt.BBtSz3,
-        t: gt.BBtQuSz0 | gt.BBtSz0,
+        xyz: gt.BBtQorVSz3,
+        t: gt.BBtQorVSz0,
         /,
     ) -> gt.BBtSz0:
         ts2 = self.timescale(t, ustrip=self.units["time"]) ** 2

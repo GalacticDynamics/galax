@@ -60,9 +60,7 @@ def potential(
     pot: AbstractPotential, tq: Any, /, *, t: Any = None
 ) -> Real[u.Quantity["specific energy"], "*#batch"]:
     """Compute from a q + t object."""
-    xyz, t = parse_to_xyz_t(None, tq, t, ustrip=pot.units)  # TODO: frame
-    phi = pot._potential(xyz, t)  # noqa: SLF001
-    return u.Quantity(phi, pot.units["specific energy"])
+    return api.potential(pot, tq, t)
 
 
 @dispatch

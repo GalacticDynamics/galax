@@ -64,9 +64,7 @@ class BurkertPotential(AbstractSinglePotential):
     )
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -84,9 +82,7 @@ class BurkertPotential(AbstractSinglePotential):
         )
 
     @partial(jax.jit)
-    def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BtFloatSz0:
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -178,9 +174,7 @@ class HernquistPotential(AbstractSinglePotential):
     )
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -189,9 +183,7 @@ class HernquistPotential(AbstractSinglePotential):
         return -self.constants["G"].value * m_tot / (r + r_s)
 
     @partial(jax.jit)
-    def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BtFloatSz0:
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -232,7 +224,7 @@ class IsochronePotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
+        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -253,9 +245,7 @@ class JaffePotential(AbstractSinglePotential):
     r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -286,7 +276,7 @@ class KeplerPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
+        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -294,9 +284,7 @@ class KeplerPotential(AbstractSinglePotential):
         return -self.constants["G"].value * m_tot / r
 
     @partial(jax.jit)
-    def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BtFloatSz0:
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         m = self.m_tot(t, ustrip=self.units["mass"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
@@ -326,9 +314,7 @@ class PlummerPotential(AbstractSinglePotential):
     )
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -517,7 +503,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
+        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
         u1 = self.units["dimensionless"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])

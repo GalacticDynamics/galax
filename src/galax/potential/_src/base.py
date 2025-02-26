@@ -110,9 +110,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # Potential energy
 
     @abc.abstractmethod
-    def _potential(
-        self, q: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtQuSz0 | gt.BBtSz0:
+    def _potential(self, q: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtQorVSz0:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.

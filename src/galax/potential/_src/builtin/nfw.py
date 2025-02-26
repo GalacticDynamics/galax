@@ -61,7 +61,7 @@ class NFWPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
+        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
         r"""Potential energy.
 
@@ -79,9 +79,7 @@ class NFWPotential(AbstractSinglePotential):
         return -v_h2 * jnp.log(1.0 + s) / s
 
     @partial(jax.jit)
-    def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BtFloatSz0:
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r"""Density.
 
         .. math::
@@ -261,7 +259,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
+        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
         # https://github.com/adrn/gala/blob/2067009de41518a71c674d0252bc74a7b2d78a36/gala/potential/potential/builtin/builtin_potentials.c#L1472
         # Evaluate the parameters
@@ -429,9 +427,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
     # TODO: fix this to enable non-Quantity mode.
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         r"""Potential energy for the triaxial NFW.
 
         The NFW potential is spherically symmetric. For the triaxial (density)
@@ -525,9 +521,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
     # TODO: make this work w/out units
     @partial(jax.jit)
-    def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtFloatSz0:
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # TODO: work w/out units
         xyz = u.Quantity.from_(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
@@ -595,9 +589,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         return (r_a + r) * r_e / (r_a + r_e)
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)

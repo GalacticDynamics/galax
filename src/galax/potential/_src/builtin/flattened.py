@@ -40,9 +40,7 @@ class SatohPotential(AbstractSinglePotential):
     b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         a = self.a(t, ustrip=ul)

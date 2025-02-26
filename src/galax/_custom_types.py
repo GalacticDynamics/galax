@@ -48,6 +48,8 @@ QuSz0: TypeAlias = Real[AbstractQuantity, ""]
 BtQuSz0: TypeAlias = Real[QuSz0, "*batch"]
 BBtQuSz0: TypeAlias = Real[QuSz0, "*#batch"]
 
+BBtQorVSz0: TypeAlias = BBtQuSz0 | BBtSz0
+
 # Integer
 IntSz0: TypeAlias = Int[Array, ""]
 
@@ -84,6 +86,8 @@ BBtSz3: TypeAlias = Real[Sz3, "*#batch"]
 QuSz3: TypeAlias = Real[AbstractQuantity, "3"]
 BtQuSz3: TypeAlias = Real[QuSz3, "*batch"]
 BBtQuSz3: TypeAlias = Real[QuSz3, "*#batch"]
+
+BBtQorVSz3: TypeAlias = BBtQuSz3 | BBtSz3
 
 # ---------------------------
 # 4-vector

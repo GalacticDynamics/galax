@@ -71,9 +71,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
         _ = eqx.error_if(t, jnp.logical_or(s_shape != shape, t_shape != shape), msg)
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtFloatSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Compute the params
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -132,9 +130,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
         _ = eqx.error_if(t, jnp.logical_or(s_shape != shape, t_shape != shape), msg)
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtFloatSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Compute the parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
@@ -201,9 +197,7 @@ class MultipolePotential(AbstractMultipolePotential):
         _ = eqx.error_if(t, pred, msg)
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtFloatSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Compute the parameters
         u1 = self.units["dimensionless"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])

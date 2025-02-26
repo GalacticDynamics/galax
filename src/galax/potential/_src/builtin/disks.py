@@ -53,9 +53,7 @@ class KuzminPotential(AbstractSinglePotential):
     )
 
     @partial(jax.jit, inline=True)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -91,9 +89,7 @@ class MiyamotoNagaiPotential(AbstractSinglePotential):
     )
 
     @partial(jax.jit, inline=True)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         a, b = self.a(t, ustrip=ul), self.b(t, ustrip=ul)
@@ -162,7 +158,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
     )
 
     def _get_mn_components(
-        self, t: gt.BBtQuSz0 | gt.BBtSz0, /
+        self, t: gt.BBtQorVSz0, /
     ) -> tuple[MiyamotoNagaiPotential, MiyamotoNagaiPotential, MiyamotoNagaiPotential]:
         hR = self.h_R(t)
         hzR = (self.h_z(t) / hR).ustrip(dimensionless)
@@ -191,9 +187,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
         )
 
     @partial(jax.jit)
-    def _potential(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtSz0:
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
         return jnp.sum(
@@ -202,9 +196,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
         )
 
     @partial(jax.jit)
-    def _density(
-        self, xyz: gt.BBtQuSz3 | gt.BBtSz3, t: gt.BBtQuSz0 | gt.BBtSz0, /
-    ) -> gt.BBtFloatSz0:
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         densities = jnp.asarray(
             [mn._density(xyz, t) for mn in self._get_mn_components(t)]  # noqa: SLF001

@@ -12,7 +12,6 @@ import galax._custom_types as gt
 import galax.potential as gp
 from ...param.test_field import ParameterFieldMixin
 from ...test_core import AbstractSinglePotential_Test
-from galax.potential import AbstractPotential, HenonHeilesPotential
 
 
 class ParameterCoeffMixin(ParameterFieldMixin):
@@ -103,22 +102,22 @@ class TestHenonHeilesPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: HenonHeilesPotential, x: gt.Sz3) -> None:
+    def test_potential(self, pot: gp.HenonHeilesPotential, x: gt.Sz3) -> None:
         got = pot.potential(x, t=0)
         exp = u.Quantity(1.83333333, unit="kpc2 / Myr2")
         assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
-    def test_gradient(self, pot: HenonHeilesPotential, x: gt.Sz3) -> None:
+    def test_gradient(self, pot: gp.HenonHeilesPotential, x: gt.Sz3) -> None:
         got = convert(pot.gradient(x, t=0), u.Quantity)
         exp = u.Quantity([5.0, -1, 0], "kpc / Myr2")
         assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
-    def test_density(self, pot: HenonHeilesPotential, x: gt.Sz3) -> None:
+    def test_density(self, pot: gp.HenonHeilesPotential, x: gt.Sz3) -> None:
         got = pot.density(x, t=0)
         exp = u.Quantity(3.53795414e10, "solMass / kpc3")
         assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
-    def test_hessian(self, pot: HenonHeilesPotential, x: gt.Sz3) -> None:
+    def test_hessian(self, pot: gp.HenonHeilesPotential, x: gt.Sz3) -> None:
         got = pot.hessian(x, t=0)
         exp = u.Quantity([[5.0, 2.0, 0.0], [2.0, -3.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
         assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
@@ -126,7 +125,7 @@ class TestHenonHeilesPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.Sz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         got = pot.tidal_tensor(x, t=0)
         exp = u.Quantity(

@@ -17,8 +17,6 @@ from ..test_common import (
 )
 from .test_common import ParameterRSMixin, ParameterVCMixin
 from galax._interop.optional_deps import OptDeps
-from galax.potential import AbstractPotential, LMJ09LogarithmicPotential
-from galax.potential.params import ConstantParameter
 
 
 class ParameterPhiMixin(ParameterFieldMixin):
@@ -36,7 +34,7 @@ class ParameterPhiMixin(ParameterFieldMixin):
         """Test the speed parameter."""
         fields["phi"] = u.Quantity(1.0, u.unit(220 * u.unit("deg")))
         pot = pot_cls(**fields)
-        assert isinstance(pot.phi, ConstantParameter)
+        assert isinstance(pot.phi, gp.params.ConstantParameter)
         assert pot.phi.value == u.Quantity(220, "deg")
 
     def test_phi_constant(self, pot_cls, fields):
@@ -95,24 +93,24 @@ class TestLMJ09LogarithmicPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
+    def test_potential(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(0.11819267, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
+    def test_gradient(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity([-0.00046885, 0.00181093, 0.00569646], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
+    def test_density(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(48995543.34035844, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
+    def test_hessian(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.00100608, -0.00070826, 0.00010551],
@@ -128,7 +126,7 @@ class TestLMJ09LogarithmicPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

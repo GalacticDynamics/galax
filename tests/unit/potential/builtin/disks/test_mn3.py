@@ -6,6 +6,7 @@ from plum import convert
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax.potential as gp
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import (
     ParameterMTotMixin,
@@ -13,11 +14,6 @@ from ..test_common import (
     ParameterShapeHZMixin,
 )
 from galax._custom_types import Sz3
-from galax.potential import (
-    AbstractPotential,
-    MN3ExponentialPotential,
-    MN3Sech2Potential,
-)
 
 
 class TestMN3ExponentialPotential(
@@ -30,8 +26,8 @@ class TestMN3ExponentialPotential(
     """Test the `galax.potential.MN3ExponentialPotential` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[MN3ExponentialPotential]:
-        return MN3ExponentialPotential
+    def pot_cls(self) -> type[gp.MN3ExponentialPotential]:
+        return gp.MN3ExponentialPotential
 
     @pytest.fixture(scope="class")
     def fields_(
@@ -50,13 +46,13 @@ class TestMN3ExponentialPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
+    def test_potential(self, pot: gp.MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(-1.15401718, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
+    def test_gradient(self, pot: gp.MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(
             [0.0689723071793, 0.1379446143587, 0.2013372530559],
             pot.units["acceleration"],
@@ -64,13 +60,13 @@ class TestMN3ExponentialPotential(
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
+    def test_density(self, pot: gp.MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(731_782_542.3781165, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: MN3ExponentialPotential, x: Sz3) -> None:
+    def test_hessian(self, pot: gp.MN3ExponentialPotential, x: Sz3) -> None:
         expect = u.Quantity(
             [
                 [0.05679591, -0.02435279, -0.03538017],
@@ -86,7 +82,7 @@ class TestMN3ExponentialPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotential, x: Sz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -111,8 +107,8 @@ class TestMN3Sech2Potential(
     """Test the `galax.potential.MN3Sech2Potential` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[MN3Sech2Potential]:
-        return MN3Sech2Potential
+    def pot_cls(self) -> type[gp.MN3Sech2Potential]:
+        return gp.MN3Sech2Potential
 
     @pytest.fixture(scope="class")
     def fields_(
@@ -131,13 +127,13 @@ class TestMN3Sech2Potential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: MN3Sech2Potential, x: Sz3) -> None:
+    def test_potential(self, pot: gp.MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(-1.13545211, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: MN3Sech2Potential, x: Sz3) -> None:
+    def test_gradient(self, pot: gp.MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(
             [0.059397338333485615, 0.11879467666697123, 0.21959289808834268],
             pot.units["acceleration"],
@@ -145,13 +141,13 @@ class TestMN3Sech2Potential(
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: MN3Sech2Potential, x: Sz3) -> None:
+    def test_density(self, pot: gp.MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(211_769_063.98948175, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: MN3Sech2Potential, x: Sz3) -> None:
+    def test_hessian(self, pot: gp.MN3Sech2Potential, x: Sz3) -> None:
         expect = u.Quantity(
             [
                 [0.05071981, -0.01735505, -0.03287182],
@@ -167,7 +163,7 @@ class TestMN3Sech2Potential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotential, x: Sz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

@@ -8,7 +8,7 @@ from jax import Array
 
 import unxt as u
 
-from galax.potential import AbstractPotential
+import galax.potential as gp
 
 
 class FieldUnitSystemMixin:
@@ -23,18 +23,18 @@ class FieldUnitSystemMixin:
 
     # ===========================================
 
-    def test_init_units_from_usys(self, pot: AbstractPotential) -> None:
+    def test_init_units_from_usys(self, pot: gp.AbstractPotential) -> None:
         """Test unit system from UnitSystem."""
         usys = u.unitsystem("km", "s", "Msun", "radian")
         assert replace(pot, units=usys).units == usys
 
-    def test_init_units_from_tuple(self, pot: AbstractPotential) -> None:
+    def test_init_units_from_tuple(self, pot: gp.AbstractPotential) -> None:
         """Test unit system from tuple."""
         units = ("km", "s", "Msun", "radian")
         assert replace(pot, units=units).units == u.unitsystem(*units)
 
     def test_init_units_from_name(
-        self, pot_cls: type[AbstractPotential], fields_unitless: dict[str, Array]
+        self, pot_cls: type[gp.AbstractPotential], fields_unitless: dict[str, Array]
     ) -> None:
         """Test unit system from named string."""
         fields_unitless.pop("units")

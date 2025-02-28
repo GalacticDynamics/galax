@@ -17,7 +17,6 @@ from ..test_common import (
     ParameterScaleRadiusMixin,
     ParameterShapeQ1Mixin,
 )
-from galax.potential import AbstractPotential, Vogelsberger08TriaxialNFWPotential
 
 
 class ShapeTransitionRadiusParameterMixin(ParameterFieldMixin):
@@ -82,7 +81,7 @@ class TestVogelsberger08TriaxialNFWPotential(
     # ==========================================================================
 
     def test_potential(
-        self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QuSz3
+        self, pot: gp.Vogelsberger08TriaxialNFWPotential, x: gt.QuSz3
     ) -> None:
         expect = u.Quantity(-1.91410199, unit="kpc2 / Myr2")
         assert jnp.isclose(
@@ -90,14 +89,14 @@ class TestVogelsberger08TriaxialNFWPotential(
         )
 
     def test_gradient(
-        self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QuSz3
+        self, pot: gp.Vogelsberger08TriaxialNFWPotential, x: gt.QuSz3
     ) -> None:
         expect = u.Quantity([0.07701115, 0.14549116, 0.19849185], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(
-        self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QuSz3
+        self, pot: gp.Vogelsberger08TriaxialNFWPotential, x: gt.QuSz3
     ) -> None:
         expect = u.Quantity(1.10157433e09, "solMass / kpc3")
         assert jnp.isclose(
@@ -105,7 +104,7 @@ class TestVogelsberger08TriaxialNFWPotential(
         )
 
     def test_hessian(
-        self, pot: Vogelsberger08TriaxialNFWPotential, x: gt.QuSz3
+        self, pot: gp.Vogelsberger08TriaxialNFWPotential, x: gt.QuSz3
     ) -> None:
         expect = u.Quantity(
             [
@@ -122,7 +121,7 @@ class TestVogelsberger08TriaxialNFWPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

@@ -10,7 +10,6 @@ import galax._custom_types as gt
 import galax.potential as gp
 from ...test_core import AbstractSinglePotential_Test
 from .test_common import ParameterRSMixin, ParameterVCMixin
-from galax.potential import AbstractPotential, LogarithmicPotential
 
 
 class TestLogarithmicPotential(
@@ -36,24 +35,24 @@ class TestLogarithmicPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: LogarithmicPotential, x: gt.QuSz3) -> None:
+    def test_potential(self, pot: gp.LogarithmicPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(0.11027593, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: LogarithmicPotential, x: gt.QuSz3) -> None:
+    def test_gradient(self, pot: gp.LogarithmicPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.00064902, 0.00129804, 0.00194706], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: LogarithmicPotential, x: gt.QuSz3) -> None:
+    def test_density(self, pot: gp.LogarithmicPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(30321621.61178864, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: LogarithmicPotential, x: gt.QuSz3) -> None:
+    def test_hessian(self, pot: gp.LogarithmicPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [6.32377766e-04, -3.32830403e-05, -4.99245605e-05],
@@ -69,7 +68,7 @@ class TestLogarithmicPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

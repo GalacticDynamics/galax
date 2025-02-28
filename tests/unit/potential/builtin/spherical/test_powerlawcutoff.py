@@ -13,7 +13,6 @@ from ...param.test_field import ParameterFieldMixin
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMTotMixin
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps
-from galax.potential import AbstractPotential, PowerLawCutoffPotential
 
 
 class AlphaParameterMixin(ParameterFieldMixin):
@@ -98,24 +97,24 @@ class TestPowerLawCutoffPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: PowerLawCutoffPotential, x: gt.QuSz3) -> None:
+    def test_potential(self, pot: gp.PowerLawCutoffPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(6.26573365, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: PowerLawCutoffPotential, x: gt.QuSz3) -> None:
+    def test_gradient(self, pot: gp.PowerLawCutoffPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.08587672, 0.17175344, 0.25763016], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: PowerLawCutoffPotential, x: gt.QuSz3) -> None:
+    def test_density(self, pot: gp.PowerLawCutoffPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(41457.38551946, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: PowerLawCutoffPotential, x: gt.QuSz3) -> None:
+    def test_hessian(self, pot: gp.PowerLawCutoffPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.06747473, -0.03680397, -0.05520596],
@@ -131,7 +130,7 @@ class TestPowerLawCutoffPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
@@ -162,7 +161,7 @@ class TestPowerLawCutoffPotential(
     @parametrize_test_method_gala
     def test_method_gala(
         self,
-        pot: PowerLawCutoffPotential,
+        pot: gp.PowerLawCutoffPotential,
         method0: str,
         method1: str,
         x: gt.QuSz3,

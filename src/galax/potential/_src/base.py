@@ -195,8 +195,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         """See ``laplacian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
-        jac_op = jax.jacfwd(self._gradient, argnums=0)
-        return jnp.trace(jac_op(xyz, t))
+        hess_op = jax.hessian(self._potential, argnums=0)
+        return jnp.trace(hess_op(xyz, t))
 
     def laplacian(self, *args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
         """Compute the laplacian of the potential at the given position(s).

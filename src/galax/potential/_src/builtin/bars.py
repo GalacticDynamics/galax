@@ -26,6 +26,7 @@ class LongMuraliBarPotential(AbstractSinglePotential):
     A simple, triaxial model for a galaxy bar. This is a softened “needle”
     density distribution with an analytic potential form. See Long & Murali
     (1992) for details.
+
     """
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
@@ -38,7 +39,7 @@ class LongMuraliBarPotential(AbstractSinglePotential):
     alpha: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
     """Position angle of the bar in the x-y plane."""
 
-    @partial(jax.jit, inline=True)
+    @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -47,18 +48,15 @@ class LongMuraliBarPotential(AbstractSinglePotential):
         # Compute parameters
         ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        a = self.a(t, ustrip=ul)
-        b = self.b(t, ustrip=ul)
-        c = self.c(t, ustrip=ul)
+        a, b, c = self.a(t, ustrip=ul), self.b(t, ustrip=ul), self.c(t, ustrip=ul)
         alpha = self.alpha(t, ustrip=self.units["angle"])
 
         x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
         xp = x * jnp.cos(alpha) + y * jnp.sin(alpha)
         yp = -x * jnp.sin(alpha) + y * jnp.cos(alpha)
 
-        Tm = jnp.sqrt((a - xp) ** 2 + yp**2 + (b + jnp.hypot(c, z)) ** 2)
-        Tp = jnp.sqrt((a + xp) ** 2 + yp**2 + (b + jnp.hypot(c, z)) ** 2)
+        T_plus = jnp.sqrt((a + xp) ** 2 + yp**2 + (b + jnp.sqrt(c**2 + z**2)) ** 2)
+        T_minus = jnp.sqrt((a - xp) ** 2 + yp**2 + (b + jnp.sqrt(c**2 + z**2)) ** 2)
 
         GM_R = self.constants["G"].value * m_tot / (2.0 * a)
-
-        return GM_R * jnp.log((xp - a + Tm) / (xp + a + Tp))
+        return GM_R * jnp.log((xp - a + T_minus) / (xp + a + T_plus))

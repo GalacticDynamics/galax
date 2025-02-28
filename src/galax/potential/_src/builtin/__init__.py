@@ -56,6 +56,12 @@ from .logarithmic import (
     LMJ09LogarithmicPotential,
     LogarithmicPotential,
 )
+from .milkyway import (
+    BovyMWPotential2014,
+    LM10Potential,
+    MilkyWayPotential,
+    MilkyWayPotential2022,
+)
 from .multipole import (
     AbstractMultipolePotential,
     MultipoleInnerPotential,
@@ -69,12 +75,6 @@ from .nfw import (
     Vogelsberger08TriaxialNFWPotential,
 )
 from .null import NullPotential
-from .special import (
-    BovyMWPotential2014,
-    LM10Potential,
-    MilkyWayPotential,
-    MilkyWayPotential2022,
-)
 from .spherical import (
     BurkertPotential,
     HernquistPotential,

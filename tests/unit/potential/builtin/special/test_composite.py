@@ -8,7 +8,7 @@ import unxt as u
 
 import galax.potential as gp
 from ...test_composite import AbstractCompositePotential_Test
-from galax.potential._src.builtin.special import AbstractSpecialPotential
+from galax.potential._src.builtin.milkyway import AbstractPreCompositedPotential
 
 
 class AbstractSpecialCompositePotential_Test(AbstractCompositePotential_Test):
@@ -16,7 +16,7 @@ class AbstractSpecialCompositePotential_Test(AbstractCompositePotential_Test):
 
     def test_init_too_many_args(
         self,
-        pot_cls: type[AbstractSpecialPotential],
+        pot_cls: type[AbstractPreCompositedPotential],
         pot_map: dict[str, Any],
     ) -> None:
         """Test that the potential raises an error when given too many arguments."""

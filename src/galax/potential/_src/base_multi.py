@@ -1,12 +1,14 @@
 """Base class for composite potentials."""
 
-__all__ = ["AbstractCompositePotential"]
+__all__ = ["AbstractCompositePotential", "AbstractPreCompositedPotential"]
 
 
 import uuid
 from collections.abc import Hashable, ItemsView, Iterator, KeysView, Mapping, ValuesView
+from dataclasses import MISSING, replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, cast
+from typing_extensions import override
 
 import equinox as eqx
 import jax
@@ -15,9 +17,10 @@ from plum import dispatch
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
+from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
-from .base import AbstractPotential
+from .base import AbstractPotential, default_constants
 
 if TYPE_CHECKING:
     import galax.potential  # noqa: ICN001
@@ -216,3 +219,155 @@ def replace(
     # so we need to disambiguate the method to call
     method = replace.invoke(Mapping[Hashable, Any], Mapping[str, Any])
     return method(obj, replacements)
+
+
+##############################################################################
+
+
+class AbstractPreCompositedPotential(AbstractCompositePotential):  # TODO: make public
+    """Base class for pre-defined composite potentials.
+
+    For examples, see:
+
+    - `galax.potential.BovyMWPotential2014`
+    - `galax.potential.LM10Potential`
+    - `galax.potential.MilkyWayPotential`
+    - `galax.potential.MilkyWayPotential2022`
+
+    """
+
+    _keys: tuple[str, ...] = eqx.field(init=False, repr=False, static=True)
+
+    def __init__(
+        self,
+        mapping: Mapping[str, AbstractPotential] | None = None,
+        /,
+        *,
+        units: Any = MISSING,
+        constants: Any = default_constants,
+        **kwargs: Any,
+    ) -> None:
+        # Merge the mapping and kwargs
+        kwargs = dict(mapping or {}, **kwargs)
+
+        # Get the fields, for conversion and validation
+        fields = self.__dataclass_fields__
+
+        # Units
+        self.units = fields["units"].metadata["converter"](
+            units if units is not MISSING else fields["units"].default
+        )
+
+        # Constants
+        # TODO: some similar check that the same constants are the same, e.g.
+        #       `G` is the same for all potentials. Or use `constants` to update
+        #       the `constants` of every potential (before `super().__init__`)
+        constants = fields["constants"].metadata["converter"](constants)
+        self.constants = ImmutableMap(
+            {k: v.decompose(self.units) for k, v in constants.items()}
+        )
+
+        # Initialize the Parameter (potential) fields
+        # TODO: more robust detection using the annotations: AbstractParameter
+        # or Annotated[AbstractParameter, ...]
+        # 1. Check the kwargs vs the fields
+        self._keys = tuple(
+            k for k, f in fields.items() if isinstance(f.default, AbstractPotential)
+        )
+        extra_keys = set(kwargs) - set(self._keys)
+        if extra_keys:
+            msg = f"invalid keys {extra_keys}"
+            raise ValueError(msg)
+        # 2. Iterate over the fields and set the values
+        v: Any
+        for k, v in kwargs.items():
+            # Either update from the default or try more general conversion.
+            pot = (
+                replace(fields[k].default, **v)
+                if isinstance(v, dict | ImmutableMap)  # type: ignore[redundant-expr]
+                else fields[k].metadata["converter"](v)
+            )
+            setattr(self, k, pot)
+
+    @property
+    def _data(self) -> ImmutableMap[str, AbstractPotential]:
+        """Return the parameters as an ImmutableMap."""
+        return ImmutableMap({k: getattr(self, k) for k in self._keys})
+
+    @override
+    def values(self) -> tuple[AbstractPotential, ...]:  # type: ignore[override]
+        return tuple(getattr(self, k) for k in self._keys)
+
+    # ===========================================
+    # Collection Protocol
+
+    @override
+    def __contains__(self, key: str) -> bool:
+        """Check if the key is in the composite potential.
+
+        Examples
+        --------
+        >>> import galax.potential as gp
+        >>> pot = gp.MilkyWayPotential()
+        >>> "disk" in pot
+        True
+
+        """
+        return key in self._keys
+
+    @override
+    def __iter__(self) -> Iterator[str]:
+        """Check if the key is in the composite potential.
+
+        Examples
+        --------
+        >>> import galax.potential as gp
+
+        >>> pot = gp.MilkyWayPotential()
+        >>> tuple(iter(pot))
+        ('disk', 'halo', 'bulge', 'nucleus')
+
+        """
+        return iter(self._keys)
+
+    @override
+    def __len__(self) -> int:
+        """Check if the key is in the composite potential.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.MilkyWayPotential()
+        >>> len(pot)
+        4
+
+        """
+        return len(self._keys)
+
+    # ===========================================
+    # Mapping Protocol
+
+    @override
+    def __getitem__(self, key: str, /) -> AbstractPotential:
+        """Check if the key is in the composite potential.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.MilkyWayPotential()
+        >>> pot["disk"]
+        MiyamotoNagaiPotential(
+            units=...,
+            constants=ImmutableMap({'G': ...}),
+            m_tot=ConstantParameter( ... ),
+            a=ConstantParameter( ... ),
+            b=ConstantParameter( ... )
+        )
+
+        """
+        key = eqx.error_if(key, key not in self._keys, f"key {key} not found")
+        return cast(AbstractPotential, getattr(self, key))

@@ -13,24 +13,21 @@ import galax.potential as gp
 
 def test_bar_means_of_rotation() -> None:
     """Test the equivalence of hard-coded vs operator means of rotation."""
-    base_pot = gp.BarPotential(
-        m_tot=u.Quantity(1e9, "Msun"),
-        a=u.Quantity(5.0, "kpc"),
-        b=u.Quantity(0.1, "kpc"),
-        c=u.Quantity(0.1, "kpc"),
-        Omega=u.Quantity(0.0, "Hz"),
-        units="galactic",
+    basepot = gp.LongMuraliBarPotential(
+        m_tot=1e9, a=5.0, b=0.1, c=0.1, alpha=0, units="galactic"
     )
 
-    Omega_z_freq = u.Quantity(220.0, "1/Myr")
-    Omega_z_angv = jnp.multiply(Omega_z_freq, u.Quantity(1.0, "rad"))
+    Omega_z_angv = u.Quantity(220.0, "deg/Myr")
+
+    def alpha_func(t: u.Quantity) -> u.Quantity["deg"]:
+        return Omega_z_angv * t
 
     # Hard-coded means of rotation
-    hardpot = replace(base_pot, Omega=Omega_z_freq)
+    hardpot = replace(basepot, alpha=alpha_func)
 
     # Operator means of rotation
     op = gc.ops.ConstantRotationZOperator(Omega_z=Omega_z_angv)
-    xpot = gp.TransformedPotential(base_pot, op)
+    xpot = gp.TransformedPotential(basepot, op)
 
     # quick test of the op
     q = u.Quantity([5.0, 0.0, 0.0], "kpc")
@@ -73,4 +70,4 @@ def test_bar_means_of_rotation() -> None:
 
     # TODO: move this test to a more appropriate location
     # Test that the frame's constants are the same as the base potential's
-    assert xpot.constants is base_pot.constants
+    assert xpot.constants is basepot.constants

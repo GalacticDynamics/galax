@@ -12,7 +12,6 @@ __all__ = [
     # composite
     "AbstractCompositePotential",
     "CompositePotential",
-    "BarPotential",
     "LongMuraliBarPotential",
     "KuzminPotential",
     "MiyamotoNagaiPotential",
@@ -87,7 +86,6 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._src.base_single import AbstractSinglePotential
     from ._src.builtin import (
         AbstractMultipolePotential,
-        BarPotential,
         BovyMWPotential2014,
         BurkertPotential,
         HarmonicOscillatorPotential,

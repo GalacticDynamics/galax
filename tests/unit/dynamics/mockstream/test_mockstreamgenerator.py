@@ -12,13 +12,8 @@ import unxt as u
 
 import galax._custom_types as gt
 import galax.coordinates as gc
-from galax.dynamics import (
-    AbstractStreamDF,
-    ChenStreamDF,
-    FardalStreamDF,
-    MockStreamGenerator,
-)
-from galax.potential import AbstractPotential, NFWPotential
+import galax.dynamics as gd
+import galax.potential as gp
 
 
 class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
@@ -26,23 +21,23 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
 
     @pytest.fixture
     @abstractmethod
-    def df(self) -> AbstractStreamDF: ...
+    def df(self) -> gd.AbstractStreamDF: ...
 
     @pytest.fixture
-    def pot(self) -> NFWPotential:
+    def pot(self) -> gp.NFWPotential:
         """Mock stream DF."""
-        return NFWPotential(
+        return gp.NFWPotential(
             m=u.Quantity(1.0e12, "Msun"), r_s=u.Quantity(15.0, "kpc"), units="galactic"
         )
 
     @pytest.fixture
     def mockgen(
-        self, df: AbstractStreamDF, pot: AbstractPotential
-    ) -> MockStreamGenerator:
+        self, df: gd.AbstractStreamDF, pot: gp.AbstractPotential
+    ) -> gd.MockStreamGenerator:
         """Mock stream generator."""
         # TODO: test the progenitor integrator
         # TODO: test the stream integrator
-        return MockStreamGenerator(df, pot)
+        return gd.MockStreamGenerator(df, pot)
 
     # ----------------------------------------
 
@@ -79,7 +74,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
 
     def test_run_scan(
         self,
-        mockgen: MockStreamGenerator,
+        mockgen: gd.MockStreamGenerator,
         t_stripping: gt.QuSzTime,
         prog_w0: gc.PhaseSpaceCoordinate,
         prog_mass: gt.QuSz0,
@@ -108,16 +103,16 @@ class TestFardalMockStreamGenerator(MockStreamGeneratorBase_Test):
     """Test the MockStreamGenerator class with FardalStreamDF."""
 
     @pytest.fixture
-    def df(self) -> AbstractStreamDF:
+    def df(self) -> gd.AbstractStreamDF:
         """Mock stream DF."""
-        return FardalStreamDF()
+        return gd.FardalStreamDF()
 
 
 class TestChenMockStreamGenerator(MockStreamGeneratorBase_Test):
     """Test the MockStreamGenerator class with ChenStreamDF."""
 
     @pytest.fixture
-    def df(self) -> AbstractStreamDF:
+    def df(self) -> gd.AbstractStreamDF:
         """Mock stream DF."""
         with pytest.warns(RuntimeWarning):
-            return ChenStreamDF()
+            return gd.ChenStreamDF()

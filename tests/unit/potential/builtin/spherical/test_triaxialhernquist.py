@@ -9,6 +9,7 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax._custom_types as gt
+import galax.potential as gp
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import (
     ParameterMTotMixin,
@@ -16,7 +17,6 @@ from ..test_common import (
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 )
-from galax.potential import AbstractPotential, TriaxialHernquistPotential
 
 
 class TestTriaxialHernquistPotential(
@@ -30,8 +30,8 @@ class TestTriaxialHernquistPotential(
     HAS_GALA_COUNTERPART: ClassVar[bool] = False
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[TriaxialHernquistPotential]:
-        return TriaxialHernquistPotential
+    def pot_cls(self) -> type[gp.TriaxialHernquistPotential]:
+        return gp.TriaxialHernquistPotential
 
     @pytest.fixture(scope="class")
     def fields_(
@@ -47,13 +47,13 @@ class TestTriaxialHernquistPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: TriaxialHernquistPotential, x: gt.QuSz3) -> None:
+    def test_potential(self, pot: gp.TriaxialHernquistPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(-0.61215074, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: TriaxialHernquistPotential, x: gt.QuSz3) -> None:
+    def test_gradient(self, pot: gp.TriaxialHernquistPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [0.01312095, 0.02168751, 0.15745134], pot.units["acceleration"]
         )
@@ -61,10 +61,10 @@ class TestTriaxialHernquistPotential(
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     @pytest.mark.xfail(reason="WFF?")
-    def test_density(self, pot: TriaxialHernquistPotential, x: gt.QuSz3) -> None:
+    def test_density(self, pot: gp.TriaxialHernquistPotential, x: gt.QuSz3) -> None:
         assert pot.density(x, t=0).decompose(pot.units).value >= 0
 
-    def test_hessian(self, pot: TriaxialHernquistPotential, x: gt.QuSz3) -> None:
+    def test_hessian(self, pot: gp.TriaxialHernquistPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.01223294, -0.00146778, -0.0106561],
@@ -80,7 +80,7 @@ class TestTriaxialHernquistPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.QuSz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

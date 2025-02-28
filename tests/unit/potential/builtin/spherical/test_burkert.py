@@ -12,7 +12,6 @@ import galax.potential as gp
 from ...test_core import AbstractSinglePotential_Test
 from ..test_common import ParameterMMixin, ParameterScaleRadiusMixin
 from galax._interop.optional_deps import OptDeps
-from galax.potential import AbstractPotential, BurkertPotential
 
 
 class TestBurkertPotential(
@@ -42,24 +41,24 @@ class TestBurkertPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: BurkertPotential, x: gt.Sz3) -> None:
+    def test_potential(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:
         expect = u.Quantity(-15.76623941, "kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: BurkertPotential, x: gt.Sz3) -> None:
+    def test_gradient(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:
         expect = u.Quantity([0.54053104, 1.08106208, 1.62159313], "kpc / Myr2")
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: BurkertPotential, x: gt.Sz3) -> None:
+    def test_density(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:
         expect = u.Quantity(8.79860325e09, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: BurkertPotential, x: gt.Sz3) -> None:
+    def test_hessian(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:
         expect = u.Quantity(
             [
                 [0.46023037, -0.16060135, -0.24090202],
@@ -75,7 +74,7 @@ class TestBurkertPotential(
     # ---------------------------------
     # Convenience methods
 
-    def test_tidal_tensor(self, pot: AbstractPotential, x: gt.Sz3) -> None:
+    def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [

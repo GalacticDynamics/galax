@@ -6,7 +6,6 @@ See the public API in `galax.potential`.
 """
 
 __all__ = [
-    "BarPotential",
     "LongMuraliBarPotential",
     "KuzminPotential",
     "MiyamotoNagaiPotential",
@@ -41,7 +40,7 @@ __all__ = [
     "TriaxialHernquistPotential",
 ]
 
-from .bars import BarPotential, LongMuraliBarPotential
+from .bars import LongMuraliBarPotential
 from .disks import (
     KuzminPotential,
     MiyamotoNagaiPotential,
@@ -57,6 +56,12 @@ from .logarithmic import (
     LMJ09LogarithmicPotential,
     LogarithmicPotential,
 )
+from .milkyway import (
+    BovyMWPotential2014,
+    LM10Potential,
+    MilkyWayPotential,
+    MilkyWayPotential2022,
+)
 from .multipole import (
     AbstractMultipolePotential,
     MultipoleInnerPotential,
@@ -70,12 +75,6 @@ from .nfw import (
     Vogelsberger08TriaxialNFWPotential,
 )
 from .null import NullPotential
-from .special import (
-    BovyMWPotential2014,
-    LM10Potential,
-    MilkyWayPotential,
-    MilkyWayPotential2022,
-)
 from .spherical import (
     BurkertPotential,
     HernquistPotential,

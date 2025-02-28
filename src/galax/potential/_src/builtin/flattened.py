@@ -41,11 +41,14 @@ class SatohPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        ul = self.units["length"]
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        a = self.a(t, ustrip=ul)
-        b = self.b(t, ustrip=ul)
-        xyz = u.ustrip(AllowValue, ul, xyz)
+        a = self.a(t, ustrip=self.units["length"])
+        b = self.b(t, ustrip=self.units["length"])
 
         R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
         z = xyz[..., 2]

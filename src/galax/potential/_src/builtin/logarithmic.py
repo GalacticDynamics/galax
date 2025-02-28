@@ -39,11 +39,14 @@ class LogarithmicPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
         # Compute parameters
         r_s = self.r_s(t, ustrip=self.units["length"])
         v_c = self.v_c(t, ustrip=self.units["speed"])
 
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         r = jnp.linalg.vector_norm(xyz, axis=-1)
         return 0.5 * v_c**2 * jnp.log(r_s**2 + r**2)
 
@@ -72,14 +75,16 @@ class LMJ09LogarithmicPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        # Load parameters
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         u1 = self.units["dimensionless"]
         r_s = self.r_s(t, ustrip=self.units["length"])
         q1, q2, q3 = self.q1(t, ustrip=u1), self.q2(t, ustrip=u1), self.q3(t, ustrip=u1)
         phi = self.phi(t, ustrip=self.units["angle"])
         v_c = self.v_c(t, ustrip=self.units["speed"])
-
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # Rotated and scaled coordinates
         sphi, cphi = jnp.sin(phi), jnp.cos(phi)

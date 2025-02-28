@@ -11,8 +11,9 @@ __all__ = [
     "AbstractSinglePotential",
     # composite
     "AbstractCompositePotential",
+    "AbstractPreCompositedPotential",
     "CompositePotential",
-    "BarPotential",
+    # builtin
     "LongMuraliBarPotential",
     "KuzminPotential",
     "MiyamotoNagaiPotential",
@@ -83,11 +84,13 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         tidal_tensor,
     )
     from ._src.base import AbstractPotential
-    from ._src.base_multi import AbstractCompositePotential
+    from ._src.base_multi import (
+        AbstractCompositePotential,
+        AbstractPreCompositedPotential,
+    )
     from ._src.base_single import AbstractSinglePotential
     from ._src.builtin import (
         AbstractMultipolePotential,
-        BarPotential,
         BovyMWPotential2014,
         BurkertPotential,
         HarmonicOscillatorPotential,

@@ -9,20 +9,20 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax._custom_types as gt
+import galax.potential as gp
 from .test_composite import AbstractSpecialCompositePotential_Test
-from galax.potential import MilkyWayPotential2022
 
 
 class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
     """Test the `galax.potential.MilkyWayPotential2022` class."""
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[MilkyWayPotential2022]:
-        return MilkyWayPotential2022
+    def pot_cls(self) -> type[gp.MilkyWayPotential2022]:
+        return gp.MilkyWayPotential2022
 
     @pytest.fixture(scope="class")
     def pot_map(
-        self, pot_cls: type[MilkyWayPotential2022]
+        self, pot_cls: type[gp.MilkyWayPotential2022]
     ) -> dict[str, dict[str, u.Quantity]]:
         """Composite potential."""
         return {
@@ -33,21 +33,21 @@ class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
         }
 
     @pytest.fixture(scope="class")
-    def pot_map_unitless(self, pot_map) -> Mapping[str, AbstractPotential]:
+    def pot_map_unitless(self, pot_map) -> Mapping[str, gp.AbstractPotential]:
         """Composite potential."""
         return {k: {kk: vv.value for kk, vv in v.items()} for k, v in pot_map.items()}
 
     # ==========================================================================
 
-    def test_potential(self, pot: MilkyWayPotential2022, x: gt.QuSz3) -> None:
-        """Test the :meth:`MilkyWayPotential2022.potential` method."""
+    def test_potential(self, pot: gp.MilkyWayPotential2022, x: gt.QuSz3) -> None:
+        """Test the `MilkyWayPotential2022.potential` method."""
         expect = u.Quantity(-0.1906119, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: MilkyWayPotential2022, x: gt.QuSz3) -> None:
-        """Test the :meth:`MilkyWayPotential2022.gradient` method."""
+    def test_gradient(self, pot: gp.MilkyWayPotential2022, x: gt.QuSz3) -> None:
+        """Test the `MilkyWayPotential2022.gradient` method."""
         expect = u.Quantity(
             [0.00235500422114, 0.00471000844229, 0.0101667940117],
             pot.units["acceleration"],
@@ -55,15 +55,15 @@ class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
         got = convert(pot.gradient(x, t=0), u.Quantity)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: MilkyWayPotential2022, x: gt.QuSz3) -> None:
-        """Test the :meth:`MilkyWayPotential2022.density` method."""
+    def test_density(self, pot: gp.MilkyWayPotential2022, x: gt.QuSz3) -> None:
+        """Test the `MilkyWayPotential2022.density` method."""
         expect = u.Quantity(33_807_052.01837142, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: MilkyWayPotential2022, x: gt.QuSz3) -> None:
-        """Test the :meth:`MilkyWayPotential2022.hessian` method."""
+    def test_hessian(self, pot: gp.MilkyWayPotential2022, x: gt.QuSz3) -> None:
+        """Test the `MilkyWayPotential2022.hessian` method."""
         expect = u.Quantity(
             [
                 [0.0021196, -0.00047082, -0.0008994],

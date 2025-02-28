@@ -262,12 +262,6 @@ def galax_to_gala(pot: gp.CompositePotential, /) -> galap.CompositePotential:
 # Builtin potentials
 
 
-@dispatch
-def galax_to_gala(_: gp.BarPotential, /) -> galap.PotentialBase:
-    """Convert a Galax BarPotential to a Gala potential."""
-    raise NotImplementedError  # TODO: implement
-
-
 if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 
     @dispatch

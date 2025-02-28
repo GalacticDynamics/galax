@@ -54,9 +54,13 @@ class KuzminPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
         z = xyz[..., 2]
@@ -90,11 +94,14 @@ class MiyamotoNagaiPotential(AbstractSinglePotential):
 
     @partial(jax.jit, inline=True)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         ul = self.units["length"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         a, b = self.a(t, ustrip=ul), self.b(t, ustrip=ul)
-
-        xyz = u.ustrip(AllowValue, ul, xyz)
 
         R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
         zp2 = (jnp.sqrt(xyz[..., 2] ** 2 + b**2) + a) ** 2

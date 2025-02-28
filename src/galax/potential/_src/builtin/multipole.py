@@ -72,12 +72,15 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # Compute the params
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         Slm = self.Slm(t, ustrip=self.units["dimensionless"])
         Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # spherical coordinates
         is_scalar = xyz.ndim == 1
@@ -131,12 +134,15 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # Compute the parameters
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         Slm = self.Slm(t, ustrip=self.units["dimensionless"])
         Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # spherical coordinates
         is_scalar = xyz.ndim == 1
@@ -198,14 +204,16 @@ class MultipolePotential(AbstractMultipolePotential):
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # Compute the parameters
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         u1 = self.units["dimensionless"]
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
         ISlm, ITlm = self.ISlm(t, ustrip=u1), self.ITlm(t, ustrip=u1)
         OSlm, OTlm = self.OSlm(t, ustrip=u1), self.OTlm(t, ustrip=u1)
-
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # spherical coordinates
         is_scalar = xyz.ndim == 1

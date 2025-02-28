@@ -69,9 +69,13 @@ class NFWPotential(AbstractSinglePotential):
 
             \Phi(r) = -\frac{G M}{r_s} \frac{r_s}{r} \log(1 + \frac{r}{r_s})
         """
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         r_s = self.r_s(t, ustrip=self.units["length"])
         m = self.m(t, ustrip=self.units["mass"])
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         r = jnp.linalg.vector_norm(xyz, axis=-1)
         s = r / r_s
@@ -89,9 +93,13 @@ class NFWPotential(AbstractSinglePotential):
             \rho(r) = \frac{\rho_0}{u (1 + u)^2}
 
         """
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         r = jnp.linalg.vector_norm(xyz, axis=-1)
         rho0 = m / (4 * jnp.pi * r_s**3)
@@ -261,6 +269,11 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         # https://github.com/adrn/gala/blob/2067009de41518a71c674d0252bc74a7b2d78a36/gala/potential/potential/builtin/builtin_potentials.c#L1472
         # Evaluate the parameters
         u1 = self.units["dimensionless"]
@@ -269,8 +282,6 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
         a1, a2, a3 = self.a1(t, ustrip=u1), self.a2(t, ustrip=u1), self.a3(t, ustrip=u1)
 
         v_c2 = self.constants["G"].value * m / r_s
-
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # 1- eccentricities
         e_b2 = 1 - jnp.square(a2 / a1)
@@ -483,14 +494,14 @@ class TriaxialNFWPotential(AbstractSinglePotential):
             Astrophysical Journal, 460, 136.
 
         """
-        # TODO: work w/out units
-        # Compute the parameters.
+        # Parse inputs
+        xyz = u.Quantity.from_(xyz, self.units["length"])
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         r_s = self.r_s(t)
         rho0 = self.rho0(t)
         q1, q2 = self.q1(t), self.q2(t)
-
-        xyz = u.Quantity.from_(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
 
         # A batch dimension is added here and below for the integration.
         xyz = xyz[None]
@@ -522,10 +533,11 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     # TODO: make this work w/out units
     @partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # TODO: work w/out units
+        # Parse inputs  # TODO: work w/out units
         xyz = u.Quantity.from_(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
 
+        # Compute parameters
         rho0 = self.rho0(t)
         r_s = self.r_s(t)
         q1sq, q2sq = self.q1(t) ** 2, self.q2(t) ** 2
@@ -590,9 +602,13 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Quantity.from_(t, self.units["time"])
+
+        # Compute parameters
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.ustrip(AllowValue, self.units["time"], t)
+
         r = self._r_tilde(xyz, t)
         return -self.constants["G"].value * m * jnp.log(1.0 + r / r_s) / r

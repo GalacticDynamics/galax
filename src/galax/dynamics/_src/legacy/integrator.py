@@ -20,8 +20,7 @@ import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 from .interp_psp import InterpolatedPhaseSpaceCoordinate
-from galax.dynamics._src.dynamics import OrbitSolver
-from galax.dynamics._src.orbit import PhaseSpaceInterpolation
+from galax.dynamics._src.orbit import OrbitSolver, PhaseSpaceInterpolation
 from galax.dynamics.fields import AbstractOrbitField
 
 R = TypeVar("R")

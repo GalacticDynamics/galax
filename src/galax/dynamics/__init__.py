@@ -53,7 +53,7 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     #
     # isort: split
     from ._src import register_api
-    from ._src.dynamics import register_gc
+    from ._src.orbit import register_gc
 
 
 # Cleanup

@@ -1,7 +1,6 @@
 from typing import Any
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -57,7 +56,7 @@ class TestMN3ExponentialPotential(
             [0.0689723071793, 0.1379446143587, 0.2013372530559],
             pot.units["acceleration"],
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MN3ExponentialPotential, x: Sz3) -> None:
@@ -138,7 +137,7 @@ class TestMN3Sech2Potential(
             [0.059397338333485615, 0.11879467666697123, 0.21959289808834268],
             pot.units["acceleration"],
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MN3Sech2Potential, x: Sz3) -> None:

@@ -69,7 +69,7 @@ class TestHarmonicOscillatorPotential(
         assert jnp.isclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.HarmonicOscillatorPotential, x: gt.Sz3) -> None:
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         expect = u.Quantity([9.95882118e26, 1.99176424e27, 2.98764635e27], "kpc / Myr2")
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
@@ -142,7 +142,7 @@ class TestHarmonicOscillatorPotential(
 
         # Evaluate the gala method. This works in 1D on Astropy quantities.
         galap = gp.io.convert_potential(gp.io.GalaLibrary, pot)
-        r = convert(jnp.linalg.vector_norm(x, axis=-1), u.Quantity)
+        r = jnp.linalg.vector_norm(x, axis=-1)
         gala = getattr(galap, method1)(r, t=0)
 
         assert jnp.allclose(

@@ -4,7 +4,6 @@ from typing import Any, ClassVar
 import equinox as eqx
 import jax
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -108,7 +107,7 @@ class TestAbstractSinglePotential(AbstractSinglePotential_Test):
         expect = u.Quantity(
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:

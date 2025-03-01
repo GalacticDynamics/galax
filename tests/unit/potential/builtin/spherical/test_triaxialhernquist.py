@@ -3,7 +3,6 @@
 from typing import Any, ClassVar
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -57,7 +56,7 @@ class TestTriaxialHernquistPotential(
         expect = u.Quantity(
             [0.01312095, 0.02168751, 0.15745134], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     @pytest.mark.xfail(reason="WFF?")

@@ -15,6 +15,7 @@ __all__ = [
     "CompositePotential",
     # builtin
     "LongMuraliBarPotential",
+    "MonariEtAl2016BarPotential",
     "KuzminPotential",
     "MiyamotoNagaiPotential",
     "MN3ExponentialPotential",
@@ -110,6 +111,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         MiyamotoNagaiPotential,
         MN3ExponentialPotential,
         MN3Sech2Potential,
+        MonariEtAl2016BarPotential,
         MultipoleInnerPotential,
         MultipoleOuterPotential,
         MultipolePotential,

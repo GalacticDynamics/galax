@@ -3,7 +3,6 @@
 from typing import Any, ClassVar
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -108,7 +107,7 @@ class TestHenonHeilesPotential(
         assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_gradient(self, pot: gp.HenonHeilesPotential, x: gt.Sz3) -> None:
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         exp = u.Quantity([5.0, -1, 0], "kpc / Myr2")
         assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 

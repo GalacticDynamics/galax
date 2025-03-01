@@ -1,7 +1,6 @@
 """Tests for the `galax.potential.LM10Potential` class."""
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -36,7 +35,7 @@ class TestLM10Potential(AbstractSpecialCompositePotential_Test):
 
     def test_gradient(self, pot: gp.LM10Potential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.00278038, 0.00533753, 0.0111171], "kpc / Myr2")
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.LM10Potential, x: gt.QuSz3) -> None:

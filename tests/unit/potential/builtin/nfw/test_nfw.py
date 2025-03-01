@@ -2,7 +2,6 @@ from typing import Any
 from typing_extensions import override
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -48,7 +47,7 @@ class TestNFWPotential(
         expect = u.Quantity(
             [0.06589185, 0.1317837, 0.19767556], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:

@@ -8,7 +8,7 @@ import unxt as u
 
 from galax._custom_types import Unit
 from galax.potential._src.params.core import ParameterCallable
-from galax.potential.params import AbstractParameter, ConstantParameter, UserParameter
+from galax.potential.params import AbstractParameter, ConstantParameter, CustomParameter
 
 T = TypeVar("T", bound=AbstractParameter)
 
@@ -90,7 +90,7 @@ class TestParameterCallable:
     def test_issubclass(self) -> None:
         assert issubclass(AbstractParameter, ParameterCallable)
         assert issubclass(ConstantParameter, ParameterCallable)
-        assert issubclass(UserParameter, AbstractParameter)
+        assert issubclass(CustomParameter, AbstractParameter)
 
     def test_issubclass_false(self) -> None:
         assert not issubclass(object, ParameterCallable)
@@ -98,16 +98,16 @@ class TestParameterCallable:
     def test_isinstance(self) -> None:
         assert isinstance(ConstantParameter(u.Quantity(1.0, "km")), ParameterCallable)
         assert isinstance(
-            UserParameter(lambda t: u.Quantity.from_(t, "km")), ParameterCallable
+            CustomParameter(lambda t: u.Quantity.from_(t, "km")), ParameterCallable
         )
 
 
-class TestUserParameter(TestAbstractParameter[UserParameter]):
-    """Test the `galax.potential.UserParameter` class."""
+class TestCustomParameter(TestAbstractParameter[CustomParameter]):
+    """Test the `galax.potential.CustomParameter` class."""
 
     @pytest.fixture(scope="class")
     def param_cls(self) -> type[T]:
-        return UserParameter
+        return CustomParameter
 
     @pytest.fixture(scope="class")
     def field_func(self) -> ParameterCallable:
@@ -125,7 +125,7 @@ class TestUserParameter(TestAbstractParameter[UserParameter]):
     # ===============================================================
 
     def test_call(self, param: T) -> None:
-        """Test :class:`galax.potential.UserParameter` call method."""
+        """Test :class:`galax.potential.CustomParameter` call method."""
         assert param(t=u.Quantity(1.0, "Gyr")) == u.Quantity(1.0, "kpc")
 
         # TODO: sort out what this tests

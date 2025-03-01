@@ -2,7 +2,7 @@
 
 __all__ = [
     "LinearParameter",
-    "UserParameter",
+    "CustomParameter",
 ]
 
 from functools import partial
@@ -108,7 +108,7 @@ class LinearParameter(AbstractParameter):
 
 
 @final
-class UserParameter(AbstractParameter):
+class CustomParameter(AbstractParameter):
     """User-defined Parameter.
 
     Parameters
@@ -118,13 +118,13 @@ class UserParameter(AbstractParameter):
 
     Examples
     --------
-    >>> from galax.potential.params import UserParameter
+    >>> from galax.potential.params import CustomParameter
     >>> import unxt as u
 
     >>> def func(t: u.Quantity["time"]) -> u.Quantity["mass"]:
     ...     return u.Quantity(1e9, "Msun/Gyr") * t
 
-    >>> up = UserParameter(func=func)
+    >>> up = CustomParameter(func=func)
     >>> up(u.Quantity(1e3, "Myr"))
     Quantity['mass'](Array(1.e+12, dtype=float64, ...), unit='Myr solMass / Gyr')
 

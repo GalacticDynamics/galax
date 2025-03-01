@@ -27,7 +27,7 @@ import galax._custom_types as gt
 from .const import LOG2
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
-from galax.potential._src.params.core import AbstractParameter
+from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
 if TYPE_CHECKING:

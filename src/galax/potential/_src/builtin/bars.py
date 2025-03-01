@@ -2,8 +2,10 @@
 
 __all__ = [
     "LongMuraliBarPotential",
+    "MonariEtAl2016BarPotential",
 ]
 
+from dataclasses import KW_ONLY
 from functools import partial
 from typing import final
 
@@ -17,6 +19,7 @@ import galax._custom_types as gt
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.core import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.utils._jax import vectorize_method
 
 
 @final
@@ -60,3 +63,85 @@ class LongMuraliBarPotential(AbstractSinglePotential):
 
         GM_R = self.constants["G"].value * m_tot / (2.0 * a)
         return GM_R * jnp.log((xp - a + T_minus) / (xp + a + T_plus))
+
+
+@final
+class MonariEtAl2016BarPotential(AbstractSinglePotential):
+    """Monari et al. (2016) Bar Potential.
+
+    This is an generalization to 3D of the Dehnen 2000 bar potential.
+    We take the defaults from Monari et al. (2016) paper.
+
+    https://ui.adsabs.harvard.edu/abs/2016MNRAS.461.3835M/abstract
+
+    """
+
+    _: KW_ONLY
+
+    alpha: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        default=u.Quantity(0.01, ""), dimensions="dimensionless"
+    )
+    """The amplitude.
+
+    the ratio between the bar's and axisymmetric contribution to the radial
+    force, along the bar's long axis at (R,z) = (R0,0).
+    """
+
+    R0: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    """The Galactocentric radius of the Sun."""
+
+    v0: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
+    """The circular velocity at R0"""
+
+    Rb: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        default=u.Quantity(3.5, "kpc"), dimensions="length"
+    )
+    """The length of the bar."""
+
+    phi_b: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        default=u.Quantity(25, "deg"), dimensions="angle"
+    )
+    """Bar angle."""
+
+    Omega: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        default=u.Quantity(52.2, "km/(s kpc)"), dimensions="frequency"
+    )
+    """Bar pattern speed."""
+
+    @partial(jax.jit)
+    @vectorize_method(signature="(3),()->()")
+    def _potential(self, xyz: gt.QuSz3 | gt.Sz3, t: gt.QuSz0 | gt.Sz0) -> gt.Sz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        tq = u.Quantity.from_(t, self.units["time"])
+        t = u.ustrip(AllowValue, self.units["time"], t)
+
+        # Compute parameters
+        ul = self.units["length"]
+        alpha = self.alpha(t, ustrip=self.units["dimensionless"])
+        v0 = self.v0(tq, ustrip=self.units["speed"])
+        R0 = self.R0(tq, ustrip=ul)
+        Rb = self.Rb(tq, ustrip=ul)
+        phi_b = self.phi_b(tq, ustrip=self.units["angle"])
+        Omega = self.Omega(tq, ustrip=self.units["frequency"])
+
+        def U_of_r(s: gt.Sz0) -> gt.Sz0:
+            # M+2016 eq.3, modified to work on s=r/Rb
+            def gtr_func(s: gt.Sz0) -> gt.Sz0:
+                return -(s**-3)
+
+            def less_func(s: gt.Sz0) -> gt.Sz0:
+                return s**3 - 2.0
+
+            pred = s >= 1
+            return jax.lax.cond(pred, gtr_func, less_func, s)
+
+        R2 = xyz[0] ** 2 + xyz[1] ** 2
+        r2 = R2 + xyz[2] ** 2
+        phi = jnp.arctan2(xyz[1], xyz[0])
+
+        prefactor = alpha * (v0**2 / 3) * (R0 / Rb) ** 3
+        u_of_r = U_of_r(jnp.sqrt(r2) / Rb)
+        gamma_b = 2 * (phi - phi_b - Omega * t)  # M+2016 eq.2
+
+        return prefactor * u_of_r * (R2 / r2) * jnp.cos(gamma_b)  # M+2016 eq.1

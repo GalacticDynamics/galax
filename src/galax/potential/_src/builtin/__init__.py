@@ -7,6 +7,7 @@ See the public API in `galax.potential`.
 
 __all__ = [
     "LongMuraliBarPotential",
+    "MonariEtAl2016BarPotential",
     "KuzminPotential",
     "MiyamotoNagaiPotential",
     "MN3ExponentialPotential",
@@ -40,7 +41,7 @@ __all__ = [
     "TriaxialHernquistPotential",
 ]
 
-from .bars import LongMuraliBarPotential
+from .bars import LongMuraliBarPotential, MonariEtAl2016BarPotential
 from .disks import (
     KuzminPotential,
     MiyamotoNagaiPotential,

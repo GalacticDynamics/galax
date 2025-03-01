@@ -40,7 +40,7 @@ class NBodyField(AbstractOrbitField, strict=True):  # type: ignore[call-arg]
     >>> q = u.Quantity([[-1, 0, 0], [1, 0, 0]], "AU") / 2
     >>> p = u.Quantity([[0, -1, 0], [0, 1, 0]], "km/s") * 25
 
-    >>> solver = gd.DynamicsSolver()
+    >>> solver = gd.OrbitSolver()
 
     >>> field = gd.fields.NBodyField(
     ...     masses=u.Quantity([1, 1], "Msun"),

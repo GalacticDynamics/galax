@@ -40,7 +40,7 @@ def from_(
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
-    >>> solver = gd.DynamicsSolver()
+    >>> solver = gd.OrbitSolver()
     >>> t1 = u.Quantity(1, "Gyr")
     >>> saveat=u.Quantity(jnp.linspace(0.2, 1, 71), "Gyr")
 

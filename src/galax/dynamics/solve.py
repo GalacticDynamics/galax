@@ -5,7 +5,7 @@ __all__ = [
     "parse_time_specification",
     "AbstractSolver",
     "SolveState",
-    "DynamicsSolver",
+    "OrbitSolver",
     "DiffEqSolver",
     "VectorizedDenseInterpolation",
     "Orbit",
@@ -19,7 +19,7 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 with install_import_hook("galax.dynamics.solve", RUNTIME_TYPECHECKER):
     from diffraxtra import DiffEqSolver, VectorizedDenseInterpolation
 
-    from ._src.dynamics import DynamicsSolver
+    from ._src.dynamics import OrbitSolver
     from ._src.orbit import Orbit, PhaseSpaceInterpolation, compute_orbit
     from ._src.parsetime import parse_time_specification
     from ._src.solver import AbstractSolver, SolveState

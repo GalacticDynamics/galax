@@ -20,7 +20,7 @@ import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 from .interp_psp import InterpolatedPhaseSpaceCoordinate
-from galax.dynamics._src.dynamics import DynamicsSolver
+from galax.dynamics._src.dynamics import OrbitSolver
 from galax.dynamics._src.orbit import PhaseSpaceInterpolation
 from galax.dynamics.fields import AbstractOrbitField
 
@@ -176,13 +176,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     """
 
-    dynamics_solver: DynamicsSolver = eqx.field(
-        default=DynamicsSolver(
+    dynamics_solver: OrbitSolver = eqx.field(
+        default=OrbitSolver(
             solver=dfx.Dopri8(scan_kind="bounded"),
             stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7),
             max_steps=2**16,
         ),
-        converter=DynamicsSolver.from_,
+        converter=OrbitSolver.from_,
     )
     _: KW_ONLY
     diffeq_kw: Mapping[str, Any] = eqx.field(

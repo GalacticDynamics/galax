@@ -14,7 +14,7 @@ def test_all() -> None:
         "plot",
         # solve
         "AbstractSolver",
-        "DynamicsSolver",
+        "OrbitSolver",
         # orbit
         "Orbit",
         "compute_orbit",

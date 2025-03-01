@@ -73,7 +73,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     Just to continue the example, we can use this field to integrate the
     equations of motion:
 
-    >>> solver = gd.DynamicsSolver()  # defaults to Dopri8
+    >>> solver = gd.OrbitSolver()  # defaults to Dopri8
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
     ...     p=u.Quantity([0, 220, 0], "km/s"),
@@ -278,7 +278,7 @@ def terms(
 
     For completeness we'll integrate the EoM.
 
-    >>> dynamics_solver = gd.DynamicsSolver(solver,
+    >>> dynamics_solver = gd.OrbitSolver(solver,
     ...                                     stepsize_controller=dfx.ConstantStepSize())
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0, 0], "kpc"),

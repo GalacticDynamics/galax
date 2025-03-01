@@ -190,9 +190,9 @@ def from_(cls: type[AbstractSolver], solver: dfxtra.DiffEqSolver) -> AbstractSol
 
     >>> solver = dfxtra.DiffEqSolver(dfx.Dopri5())
 
-    >>> new_solver = gd.DynamicsSolver.from_(solver)
+    >>> new_solver = gd.OrbitSolver.from_(solver)
     >>> new_solver
-    DynamicsSolver(
+    OrbitSolver(
       solver=Dopri5(scan_kind=None),
       stepsize_controller=ConstantStepSize(),
       adjoint=RecursiveCheckpointAdjoint(checkpoints=None),

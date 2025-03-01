@@ -1,7 +1,7 @@
 """General Dynamics. Private module."""
 
 __all__ = [
-    "DynamicsSolver",
+    "OrbitSolver",
     # Fields
     "AbstractOrbitField",
     "HamiltonianField",
@@ -11,4 +11,4 @@ __all__ = [
 from .field_base import AbstractOrbitField
 from .field_hamiltonian import HamiltonianField
 from .field_nbody import NBodyField
-from .solver import DynamicsSolver
+from .solver import OrbitSolver

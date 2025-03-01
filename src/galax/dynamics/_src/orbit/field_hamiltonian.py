@@ -13,12 +13,12 @@ import unxt as u
 import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
-from .field_base import AbstractDynamicsField
+from .field_base import AbstractOrbitField
 from galax.dynamics._src.utils import parse_to_t_y
 
 
 @final
-class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call-arg]
+class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-arg]
     r"""Dynamics field for Hamiltonian EoM.
 
     This is for Hamilton's equations for motion for a particle in a potential.
@@ -73,7 +73,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
     Just to continue the example, we can use this field to integrate the
     equations of motion:
 
-    >>> solver = gd.DynamicsSolver()  # defaults to Dopri8
+    >>> solver = gd.OrbitSolver()  # defaults to Dopri8
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
     ...     p=u.Quantity([0, 220, 0], "km/s"),
@@ -252,7 +252,7 @@ class HamiltonianField(AbstractDynamicsField, strict=True):  # type: ignore[call
 # Terms dispatches
 
 
-@AbstractDynamicsField.terms.dispatch  # type: ignore[misc]
+@AbstractOrbitField.terms.dispatch  # type: ignore[misc]
 def terms(
     self: HamiltonianField,
     _: dfx.SemiImplicitEuler,
@@ -278,7 +278,7 @@ def terms(
 
     For completeness we'll integrate the EoM.
 
-    >>> dynamics_solver = gd.DynamicsSolver(solver,
+    >>> dynamics_solver = gd.OrbitSolver(solver,
     ...                                     stepsize_controller=dfx.ConstantStepSize())
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0, 0], "kpc"),
@@ -308,7 +308,7 @@ def terms(
 OptArgs: TypeAlias = dict[str, Any] | None
 
 
-@AbstractDynamicsField.__call__.dispatch
+@AbstractOrbitField.__call__.dispatch
 @partial(jax.jit)
 def call(self: HamiltonianField, tqp: Any, args: OptArgs = None, /) -> gdt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
@@ -316,7 +316,7 @@ def call(self: HamiltonianField, tqp: Any, args: OptArgs = None, /) -> gdt.BtPAa
     return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)
 
 
-@AbstractDynamicsField.__call__.dispatch
+@AbstractOrbitField.__call__.dispatch
 @partial(jax.jit)
 def call(
     self: HamiltonianField, tq: Any, qp: Any, args: OptArgs = None, /
@@ -326,7 +326,7 @@ def call(
     return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)
 
 
-@AbstractDynamicsField.__call__.dispatch
+@AbstractOrbitField.__call__.dispatch
 @partial(jax.jit)
 def call(
     self: HamiltonianField, t: Any, q: Any, p: Any, args: OptArgs = None, /

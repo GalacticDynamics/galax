@@ -19,14 +19,14 @@ from unxt.quantity import AllowValue
 import galax.coordinates as gc
 import galax.potential as gp
 from .orbit import Orbit
-from galax.dynamics._src.dynamics.field_base import AbstractDynamicsField
-from galax.dynamics._src.dynamics.field_hamiltonian import HamiltonianField
-from galax.dynamics._src.dynamics.solver import DynamicsSolver
+from galax.dynamics._src.orbit.field_base import AbstractOrbitField
+from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
+from galax.dynamics._src.orbit.solver import OrbitSolver
 
 
 @dispatch.abstract
 def compute_orbit(
-    field: AbstractDynamicsField | gp.AbstractPotential, /, *args: Any, **kwargs: Any
+    field: AbstractOrbitField | gp.AbstractPotential, /, *args: Any, **kwargs: Any
 ) -> Orbit:
     """Compute an orbit.
 
@@ -150,12 +150,12 @@ def compute_orbit(
     ts: Any,
     /,
     *,
-    solver: DynamicsSolver | None = None,
+    solver: OrbitSolver | None = None,
     dense: bool = False,
 ) -> Orbit:
     # Parse inputs
     thefield = field if isinstance(field, HamiltonianField) else HamiltonianField(field)
-    solver = DynamicsSolver() if solver is None else solver
+    solver = OrbitSolver() if solver is None else solver
     units = thefield.units
     ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))  # ensure t units
 
@@ -190,12 +190,12 @@ def compute_orbit(
     ts: Any,
     /,
     *,
-    solver: DynamicsSolver | None = None,
+    solver: OrbitSolver | None = None,
     dense: bool = False,
 ) -> Orbit:
     # Parse inputs
     thefield = field if isinstance(field, HamiltonianField) else HamiltonianField(field)
-    solver = DynamicsSolver() if solver is None else solver
+    solver = OrbitSolver() if solver is None else solver
     units = thefield.units
     ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))  # ensure t units
 

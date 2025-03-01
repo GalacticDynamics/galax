@@ -13,7 +13,7 @@ __all__ = [
     "evaluate_orbit",  # TODO: deprecate
     "Orbit",
     "AbstractSolver",
-    "DynamicsSolver",
+    "OrbitSolver",
     # mockstream
     "MockStreamArm",
     "MockStream",
@@ -48,12 +48,12 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
         MockStreamArm,
         MockStreamGenerator,
     )
-    from .solve import AbstractSolver, DynamicsSolver
+    from .solve import AbstractSolver, OrbitSolver
 
     #
     # isort: split
     from ._src import register_api
-    from ._src.dynamics import register_gc
+    from ._src.orbit import register_gc
 
 
 # Cleanup

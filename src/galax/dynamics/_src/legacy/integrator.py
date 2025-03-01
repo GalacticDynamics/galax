@@ -20,9 +20,8 @@ import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 from .interp_psp import InterpolatedPhaseSpaceCoordinate
-from galax.dynamics._src.dynamics import DynamicsSolver
-from galax.dynamics._src.orbit import PhaseSpaceInterpolation
-from galax.dynamics.fields import AbstractDynamicsField
+from galax.dynamics._src.orbit import OrbitSolver, PhaseSpaceInterpolation
+from galax.dynamics.fields import AbstractOrbitField
 
 R = TypeVar("R")
 Interp = TypeVar("Interp")
@@ -176,13 +175,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     """
 
-    dynamics_solver: DynamicsSolver = eqx.field(
-        default=DynamicsSolver(
+    dynamics_solver: OrbitSolver = eqx.field(
+        default=OrbitSolver(
             solver=dfx.Dopri8(scan_kind="bounded"),
             stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7),
             max_steps=2**16,
         ),
-        converter=DynamicsSolver.from_,
+        converter=OrbitSolver.from_,
     )
     _: KW_ONLY
     diffeq_kw: Mapping[str, Any] = eqx.field(
@@ -197,7 +196,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     @partial(eqx.filter_jit)
     def _call_(
         self: "Integrator",
-        field: AbstractDynamicsField,
+        field: AbstractOrbitField,
         q0: gdt.BtQ,
         p0: gdt.BtP,
         t0: gt.QuSz0,
@@ -221,7 +220,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
         Parameters
         ----------
-        field : `galax.dynamics.fields.AbstractDynamicsField`
+        field : `galax.dynamics.fields.AbstractOrbitField`
             The field to integrate. Excluded from JIT.
         q0, p0 : Quantity[number, (*batch, 3), 'position' | 'speed']
             Initial conditions. Can have any (or no) batch dimensions. Included
@@ -267,7 +266,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     @dispatch.abstract
     def __call__(
-        self, field: AbstractDynamicsField, /, y0: Any, t0: Any, t1: Any, **kwargs: Any
+        self, field: AbstractOrbitField, /, y0: Any, t0: Any, t1: Any, **kwargs: Any
     ) -> Any:
         """Integrate the equations of motion.
 
@@ -288,7 +287,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 @eqx.filter_jit
 def call(
     self: Integrator,
-    field: AbstractDynamicsField,
+    field: AbstractOrbitField,
     qp0: gdt.BtQP | gdt.BtQParr | gt.BtSz6,
     t0: Time,
     t1: Time,
@@ -386,12 +385,12 @@ def call(
 
 
 @Integrator.__call__.dispatch_multi(
-    (Integrator, AbstractDynamicsField),  # (F,)
-    (Integrator, AbstractDynamicsField, Any),  # (F, y0)
-    (Integrator, AbstractDynamicsField, Any, Any),  # (F, y0, t0)
+    (Integrator, AbstractOrbitField),  # (F,)
+    (Integrator, AbstractOrbitField, Any),  # (F, y0)
+    (Integrator, AbstractOrbitField, Any, Any),  # (F, y0, t0)
 )
 def call(
-    self: Integrator, field: AbstractDynamicsField, *args: Any, **kwargs: Any
+    self: Integrator, field: AbstractOrbitField, *args: Any, **kwargs: Any
 ) -> gc.PhaseSpaceCoordinate | InterpolatedPhaseSpaceCoordinate:
     """Support keyword arguments by re-dispatching.
 
@@ -479,7 +478,7 @@ def call(
 @eqx.filter_jit
 def call(
     self: Integrator,
-    field: AbstractDynamicsField,
+    field: AbstractOrbitField,
     y0: gdt.BBtQP | gdt.BBtQParr | gt.BBtSz6,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
@@ -563,7 +562,7 @@ def call(
 @Integrator.__call__.dispatch
 def call(
     self: Integrator,
-    field: AbstractDynamicsField,
+    field: AbstractOrbitField,
     w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition,
     t0: Any,
     t1: Any,
@@ -607,7 +606,7 @@ def call(
 @Integrator.__call__.dispatch
 def call(
     self: Integrator,
-    field: AbstractDynamicsField,
+    field: AbstractOrbitField,
     w0: gc.AbstractCompositePhaseSpaceCoordinate,
     t0: Any,
     t1: Any,

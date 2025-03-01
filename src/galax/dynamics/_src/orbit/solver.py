@@ -4,7 +4,7 @@ This is private API.
 
 """
 
-__all__ = ["DynamicsSolver"]
+__all__ = ["OrbitSolver"]
 
 
 from dataclasses import KW_ONLY
@@ -27,7 +27,7 @@ from unxt.quantity import AllowValue
 import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
-from .field_base import AbstractDynamicsField
+from .field_base import AbstractOrbitField
 from galax.dynamics._src.solver import AbstractSolver, SolveState, Terms
 from galax.dynamics._src.utils import parse_saveat, parse_to_t_y
 from galax.utils import loop_strategies as lstrat
@@ -37,12 +37,12 @@ BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
 default_saveat = dfx.SaveAt(t1=True)
 
 
-def _parse_field(field: AbstractDynamicsField | Terms, solver: AbstractSolver) -> Terms:
-    return field.terms(solver) if isinstance(field, AbstractDynamicsField) else field
+def _parse_field(field: AbstractOrbitField | Terms, solver: AbstractSolver) -> Terms:
+    return field.terms(solver) if isinstance(field, AbstractOrbitField) else field
 
 
 @final
-class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
+class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     """Dynamics solver.
 
     The most useful method is `.solve()`, which handles initialization and
@@ -60,7 +60,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> solver = gd.DynamicsSolver()  # defaults to Dopri8
+    >>> solver = gd.OrbitSolver()  # defaults to Dopri8
 
     Define the vector field. In this example it's to solve Hamilton's EoM in a
     gravitational potential.
@@ -101,9 +101,9 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     >>> diffeqsolver = gd.solve.DiffEqSolver(dfx.Dopri8(),
     ...     stepsize_controller=dfx.PIDController(rtol=1e-5, atol=1e-5))
-    >>> solver = gd.DynamicsSolver.from_(diffeqsolver)
+    >>> solver = gd.OrbitSolver.from_(diffeqsolver)
     >>> solver
-    DynamicsSolver(
+    OrbitSolver(
         solver=Dopri8(scan_kind=None),
         stepsize_controller=PIDController( rtol=1e-05, atol=1e-05, ... ),
         ...
@@ -111,10 +111,10 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     2. A `dict` of keyword arguments:
 
-    >>> solver = gd.DynamicsSolver.from_({
+    >>> solver = gd.OrbitSolver.from_({
     ...     "solver": dfx.Dopri8(), "stepsize_controller": dfx.ConstantStepSize()})
     >>> solver
-    DynamicsSolver(
+    OrbitSolver(
         solver=Dopri8(scan_kind=None), stepsize_controller=ConstantStepSize(),
         ...
     )
@@ -149,7 +149,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     @dispatch.abstract
     def init(
-        self: "DynamicsSolver", field: Any, t0: Any, t1: Any, y0: Any, args: Any
+        self: "OrbitSolver", field: Any, t0: Any, t1: Any, y0: Any, args: Any
     ) -> Any:
         """Initialize the `galax.dynamics.solve.SolveState`.
 
@@ -163,7 +163,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
 
-        >>> solver = gd.DynamicsSolver()
+        >>> solver = gd.OrbitSolver()
 
         Define the vector field. In this example it's to solve Hamilton's EoM in
         a gravitational potential.
@@ -271,8 +271,8 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     # -------------------------------------------
 
     def step(
-        self: "DynamicsSolver",
-        field: AbstractDynamicsField | Terms,
+        self: "OrbitSolver",
+        field: AbstractOrbitField | Terms,
         state: SolveState,
         t1: Any,
         /,
@@ -291,7 +291,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
 
-        >>> solver = gd.DynamicsSolver()
+        >>> solver = gd.OrbitSolver()
 
         Define the vector field. In this example it's to solve Hamilton's EoM in
         a gravitational potential.
@@ -349,7 +349,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
 
-        >>> solver = gd.DynamicsSolver()
+        >>> solver = gd.OrbitSolver()
 
         Define the vector field. In this example it's to solve Hamilton's EoM in
         a gravitational potential.
@@ -390,7 +390,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     # TODO: dispatch where the state from `init` is accepted
     @dispatch.abstract
     def solve(
-        self: "DynamicsSolver",
+        self: "OrbitSolver",
         field: Any,
         w0: Any,
         t0: Any,
@@ -423,7 +423,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
 
-        >>> solver = gd.DynamicsSolver()
+        >>> solver = gd.OrbitSolver()
 
         Specify the vector field.
 
@@ -659,9 +659,9 @@ OptUSys: TypeAlias = u.AbstractUnitSystem | None
 
 
 def parse_field(
-    field: AbstractDynamicsField | Terms, context: DynamicsSolver, units: OptUSys, /
+    field: AbstractOrbitField | Terms, context: OrbitSolver, units: OptUSys, /
 ) -> tuple[Terms, u.AbstractUnitSystem]:
-    if isinstance(field, AbstractDynamicsField):
+    if isinstance(field, AbstractOrbitField):
         terms = field.terms(context)
         units = units if units is not None else field.units
         units = eqx.error_if(units, units != field.units, "units must match field")
@@ -672,10 +672,10 @@ def parse_field(
     return terms, units
 
 
-@DynamicsSolver.init.dispatch
+@OrbitSolver.init.dispatch
 def init(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField | Terms,
+    self: OrbitSolver,
+    field: AbstractOrbitField | Terms,
     qp: Any,
     t0: gt.BBtQuSz0 | gt.BBtLikeSz0,
     args: OptArgs = None,
@@ -689,10 +689,10 @@ def init(
     return self._init_impl(terms, t0, y0, args, units)
 
 
-@DynamicsSolver.init.dispatch
+@OrbitSolver.init.dispatch
 def init(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField | Terms,
+    self: OrbitSolver,
+    field: AbstractOrbitField | Terms,
     tqp: Any,
     args: OptArgs = None,
     /,
@@ -705,10 +705,10 @@ def init(
 
 
 # Composite PSPs
-@DynamicsSolver.init.dispatch
+@OrbitSolver.init.dispatch
 def init(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    self: OrbitSolver,
+    field: AbstractOrbitField,
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     args: OptArgs = None,
     /,
@@ -723,10 +723,10 @@ def init(
 # Run Dispatches
 
 
-@DynamicsSolver.run.dispatch
+@OrbitSolver.run.dispatch
 def run(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField | Terms,
+    self: OrbitSolver,
+    field: AbstractOrbitField | Terms,
     state: SolveState,
     t1: Any,
     args: PyTree,
@@ -780,10 +780,10 @@ def run(
     )
 
 
-@DynamicsSolver.run.dispatch
+@OrbitSolver.run.dispatch
 def run(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField | Terms,
+    self: OrbitSolver,
+    field: AbstractOrbitField | Terms,
     state: dict[str, SolveState],
     t1: Any,
     args: PyTree,
@@ -800,11 +800,11 @@ def run(
 # TODO: check if this is any faster than the `init-run` pattern.
 
 
-@DynamicsSolver.solve.dispatch(precedence=1)  # type: ignore[misc]
+@OrbitSolver.solve.dispatch(precedence=1)  # type: ignore[misc]
 @partial(eqx.filter_jit)
 def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    self: OrbitSolver,
+    field: AbstractOrbitField,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.LikeSz0,
     t1: gt.LikeSz0,
@@ -833,9 +833,9 @@ def solve(
     return soln
 
 
-scalar_solver = DynamicsSolver.solve.invoke(
-    DynamicsSolver,
-    AbstractDynamicsField,
+scalar_solver = OrbitSolver.solve.invoke(
+    OrbitSolver,
+    AbstractOrbitField,
     tuple[gdt.BBtQarr, gdt.BBtParr],
     gt.LikeSz0,
     gt.LikeSz0,
@@ -845,11 +845,11 @@ scalar_solver = DynamicsSolver.solve.invoke(
 
 
 # NOTE: The scalar solve doesn't depend on the loop strategy.
-@DynamicsSolver.solve.dispatch(precedence=1)
+@OrbitSolver.solve.dispatch(precedence=1)
 def solve(
-    self: DynamicsSolver,
+    self: OrbitSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
-    field: AbstractDynamicsField,
+    field: AbstractOrbitField,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.LikeSz0,
     t1: gt.LikeSz0,
@@ -864,10 +864,10 @@ def solve(
 # Batched solve - JAX arrays
 
 
-@DynamicsSolver.solve.dispatch
+@OrbitSolver.solve.dispatch
 def solve(
-    self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    self: OrbitSolver,
+    field: AbstractOrbitField,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -881,11 +881,11 @@ def solve(
 # ---------------------------
 
 
-@DynamicsSolver.solve.dispatch
+@OrbitSolver.solve.dispatch
 def solve(
-    self: DynamicsSolver,
+    self: OrbitSolver,
     loop_strategy: type[lstrat.Determine],  # noqa: ARG001
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -914,12 +914,12 @@ def _is_saveat_arr(saveat: Any, /) -> bool:
     return dfx_check or arr_check
 
 
-@DynamicsSolver.solve.dispatch
+@OrbitSolver.solve.dispatch
 @partial(eqx.filter_jit)
 def solve(
-    self: DynamicsSolver,
+    self: OrbitSolver,
     loop_strategy: type[lstrat.Vectorize],  # noqa: ARG001
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -959,12 +959,12 @@ def solve(
 # ---------------------------
 
 
-@DynamicsSolver.solve.dispatch
+@OrbitSolver.solve.dispatch
 @partial(eqx.filter_jit)
 def solve(
-    self: DynamicsSolver,
+    self: OrbitSolver,
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -1014,12 +1014,12 @@ def solve(
 # ---------------------------
 
 
-@DynamicsSolver.solve.dispatch
+@OrbitSolver.solve.dispatch
 @partial(eqx.filter_jit)
 def solve(
-    self: DynamicsSolver,
+    self: OrbitSolver,
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -1073,9 +1073,9 @@ def solve(
 # Generic pass through on missing loop strategy
 
 
-@DynamicsSolver.solve.dispatch(precedence=-1)
+@OrbitSolver.solve.dispatch(precedence=-1)
 def solve(
-    self: DynamicsSolver, field: AbstractDynamicsField | Terms, *args: Any, **kw: Any
+    self: OrbitSolver, field: AbstractOrbitField | Terms, *args: Any, **kw: Any
 ) -> Any:
     """Solve generically, determining loop strategy."""
     return self.solve(lstrat.Determine, field, *args, **kw)
@@ -1085,11 +1085,11 @@ def solve(
 # From State
 
 
-@DynamicsSolver.solve.dispatch
+@OrbitSolver.solve.dispatch
 def solve(
-    self: DynamicsSolver,
+    self: OrbitSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     state: SolveState,
     t1: gt.BBtQuSz0,
     /,
@@ -1103,11 +1103,11 @@ def solve(
 # -------------------------------------
 
 
-@DynamicsSolver.solve.dispatch
+@OrbitSolver.solve.dispatch
 def solve(
-    self: DynamicsSolver,
+    self: OrbitSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     tqp0: Any,
     t1: gt.BBtQuSz0 | gt.BBtLikeSz0,
     **kw: Any,
@@ -1118,11 +1118,11 @@ def solve(
     return self.solve(loop_strategy, field, qp0, t0, t1, **kw)
 
 
-@DynamicsSolver.solve.dispatch
+@OrbitSolver.solve.dispatch
 def solve(
-    self: DynamicsSolver,
+    self: OrbitSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp0: Any,
     t0: gt.BBtQuSz0 | gt.BBtLikeSz0,
     t1: gt.BBtQuSz0 | gt.BBtLikeSz0,
@@ -1141,11 +1141,11 @@ def solve(
 # -------------------------------------
 
 
-@DynamicsSolver.solve.dispatch
+@OrbitSolver.solve.dispatch
 def solve(
-    self: DynamicsSolver,
+    self: OrbitSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     t1: gt.BBtQuSz0,
     /,

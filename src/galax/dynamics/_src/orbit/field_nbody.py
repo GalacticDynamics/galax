@@ -15,11 +15,11 @@ from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
 import galax.potential as gp
-from .field_base import AbstractDynamicsField
+from .field_base import AbstractOrbitField
 
 
 @final
-class NBodyField(AbstractDynamicsField, strict=True):  # type: ignore[call-arg]
+class NBodyField(AbstractOrbitField, strict=True):  # type: ignore[call-arg]
     r"""Dynamics field for N-Body EoM.
 
     .. warning::
@@ -40,7 +40,7 @@ class NBodyField(AbstractDynamicsField, strict=True):  # type: ignore[call-arg]
     >>> q = u.Quantity([[-1, 0, 0], [1, 0, 0]], "AU") / 2
     >>> p = u.Quantity([[0, -1, 0], [0, 1, 0]], "km/s") * 25
 
-    >>> solver = gd.DynamicsSolver()
+    >>> solver = gd.OrbitSolver()
 
     >>> field = gd.fields.NBodyField(
     ...     masses=u.Quantity([1, 1], "Msun"),

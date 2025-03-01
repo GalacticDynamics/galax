@@ -310,7 +310,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         w0: Any,
         t: Any,
         *,
-        solver: "galax.dynamics.DynamicsSolver | None" = None,
+        solver: "galax.dynamics.OrbitSolver | None" = None,
         dense: Literal[True, False] = False,
     ) -> "galax.dynamics.Orbit":
         """Compute an orbit in a potential.
@@ -355,9 +355,9 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
                 controlled by the `integrator`; the default integrator
                 :class:`~galax.integrator.Integrator` uses adaptive timesteps.
 
-        solver : :class:`~galax.dynamics.DynamicsSolver`, keyword-only
+        solver : :class:`~galax.dynamics.OrbitSolver`, keyword-only
             The solver to use.  If `None`, the default solver
-            :class:`~galax.dynamics.DynamicsSolver` is used.
+            :class:`~galax.dynamics.OrbitSolver` is used.
 
         dense: bool, optional keyword-only
             If `True`, return a dense (interpolated) orbit.  If `False`, return

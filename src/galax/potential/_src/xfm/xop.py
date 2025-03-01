@@ -34,7 +34,7 @@ class TransformedPotential(AbstractTransformedPotential):
 
     Now we define a triaxial Hernquist potential with a time-dependent mass:
 
-    >>> mfunc = gp.params.UserParameter(lambda t: u.Quantity(1e12 * (1 + u.ustrip(AllowValue, "Gyr", t) / 10), "Msun"))
+    >>> mfunc = gp.params.CustomParameter(lambda t: u.Quantity(1e12 * (1 + u.ustrip(AllowValue, "Gyr", t) / 10), "Msun"))
     >>> pot = gp.TriaxialHernquistPotential(m_tot=mfunc, r_s=1,
     ...                                     q1=1, q2=0.5, units="galactic")
 

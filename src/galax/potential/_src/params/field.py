@@ -28,7 +28,7 @@ from unxt.quantity import AbstractQuantity
 
 from .base import AbstractParameter, ParameterCallable
 from .constant import ConstantParameter
-from .core import UserParameter
+from .core import CustomParameter
 from galax.utils.dataclasses import Sentinel, sentineled
 
 if TYPE_CHECKING:
@@ -44,7 +44,7 @@ def converter_parameter(value: Any) -> AbstractParameter:
         The value to convert to a Parameter.  If the value is a
         :class:`galax.potential.AbstractParameter`, it is returned as is.  If
         the value is a callable, it is converted to a
-        :class:`galax.potential.UserParameter`. If the value is a
+        :class:`galax.potential.CustomParameter`. If the value is a
         :class:`unxt.Quantity` (or :class`astropy.units.Quantity`), it
         is converted to a :class:`galax.potential.ConstantParameter`.
         If the value is none of the above, a :class:`TypeError`
@@ -65,7 +65,7 @@ def converter_parameter(value: Any) -> AbstractParameter:
 
     elif callable(value):
         # TODO: check dimensions ``_get_dimensions_from_return_annotation``
-        out = UserParameter(func=value)
+        out = CustomParameter(func=value)
 
     else:
         # `Quantity.from_`` handles errors if the value cannot be
@@ -214,7 +214,7 @@ class ParameterField:
         elif callable(value):
             dims = _get_dimensions_from_return_annotation(value)
             self._check_dimensions(potential, dims)  # Check the unit is compatible
-            v = UserParameter(func=value)
+            v = CustomParameter(func=value)
         else:
             unit = potential.units[self.dimensions]
             v = ConstantParameter(u.Quantity.from_(value, unit))

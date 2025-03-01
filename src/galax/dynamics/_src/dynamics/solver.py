@@ -27,7 +27,7 @@ from unxt.quantity import AllowValue
 import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
-from .field_base import AbstractDynamicsField
+from .field_base import AbstractOrbitField
 from galax.dynamics._src.solver import AbstractSolver, SolveState, Terms
 from galax.dynamics._src.utils import parse_saveat, parse_to_t_y
 from galax.utils import loop_strategies as lstrat
@@ -37,8 +37,8 @@ BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
 default_saveat = dfx.SaveAt(t1=True)
 
 
-def _parse_field(field: AbstractDynamicsField | Terms, solver: AbstractSolver) -> Terms:
-    return field.terms(solver) if isinstance(field, AbstractDynamicsField) else field
+def _parse_field(field: AbstractOrbitField | Terms, solver: AbstractSolver) -> Terms:
+    return field.terms(solver) if isinstance(field, AbstractOrbitField) else field
 
 
 @final
@@ -272,7 +272,7 @@ class DynamicsSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     def step(
         self: "DynamicsSolver",
-        field: AbstractDynamicsField | Terms,
+        field: AbstractOrbitField | Terms,
         state: SolveState,
         t1: Any,
         /,
@@ -659,9 +659,9 @@ OptUSys: TypeAlias = u.AbstractUnitSystem | None
 
 
 def parse_field(
-    field: AbstractDynamicsField | Terms, context: DynamicsSolver, units: OptUSys, /
+    field: AbstractOrbitField | Terms, context: DynamicsSolver, units: OptUSys, /
 ) -> tuple[Terms, u.AbstractUnitSystem]:
-    if isinstance(field, AbstractDynamicsField):
+    if isinstance(field, AbstractOrbitField):
         terms = field.terms(context)
         units = units if units is not None else field.units
         units = eqx.error_if(units, units != field.units, "units must match field")
@@ -675,7 +675,7 @@ def parse_field(
 @DynamicsSolver.init.dispatch
 def init(
     self: DynamicsSolver,
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp: Any,
     t0: gt.BBtQuSz0 | gt.BBtLikeSz0,
     args: OptArgs = None,
@@ -692,7 +692,7 @@ def init(
 @DynamicsSolver.init.dispatch
 def init(
     self: DynamicsSolver,
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     tqp: Any,
     args: OptArgs = None,
     /,
@@ -708,7 +708,7 @@ def init(
 @DynamicsSolver.init.dispatch
 def init(
     self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    field: AbstractOrbitField,
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     args: OptArgs = None,
     /,
@@ -726,7 +726,7 @@ def init(
 @DynamicsSolver.run.dispatch
 def run(
     self: DynamicsSolver,
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     state: SolveState,
     t1: Any,
     args: PyTree,
@@ -783,7 +783,7 @@ def run(
 @DynamicsSolver.run.dispatch
 def run(
     self: DynamicsSolver,
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     state: dict[str, SolveState],
     t1: Any,
     args: PyTree,
@@ -804,7 +804,7 @@ def run(
 @partial(eqx.filter_jit)
 def solve(
     self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    field: AbstractOrbitField,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.LikeSz0,
     t1: gt.LikeSz0,
@@ -835,7 +835,7 @@ def solve(
 
 scalar_solver = DynamicsSolver.solve.invoke(
     DynamicsSolver,
-    AbstractDynamicsField,
+    AbstractOrbitField,
     tuple[gdt.BBtQarr, gdt.BBtParr],
     gt.LikeSz0,
     gt.LikeSz0,
@@ -849,7 +849,7 @@ scalar_solver = DynamicsSolver.solve.invoke(
 def solve(
     self: DynamicsSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
-    field: AbstractDynamicsField,
+    field: AbstractOrbitField,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.LikeSz0,
     t1: gt.LikeSz0,
@@ -867,7 +867,7 @@ def solve(
 @DynamicsSolver.solve.dispatch
 def solve(
     self: DynamicsSolver,
-    field: AbstractDynamicsField,
+    field: AbstractOrbitField,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -885,7 +885,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     loop_strategy: type[lstrat.Determine],  # noqa: ARG001
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -919,7 +919,7 @@ def _is_saveat_arr(saveat: Any, /) -> bool:
 def solve(
     self: DynamicsSolver,
     loop_strategy: type[lstrat.Vectorize],  # noqa: ARG001
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -964,7 +964,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -1019,7 +1019,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -1075,7 +1075,7 @@ def solve(
 
 @DynamicsSolver.solve.dispatch(precedence=-1)
 def solve(
-    self: DynamicsSolver, field: AbstractDynamicsField | Terms, *args: Any, **kw: Any
+    self: DynamicsSolver, field: AbstractOrbitField | Terms, *args: Any, **kw: Any
 ) -> Any:
     """Solve generically, determining loop strategy."""
     return self.solve(lstrat.Determine, field, *args, **kw)
@@ -1089,7 +1089,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     state: SolveState,
     t1: gt.BBtQuSz0,
     /,
@@ -1107,7 +1107,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     tqp0: Any,
     t1: gt.BBtQuSz0 | gt.BBtLikeSz0,
     **kw: Any,
@@ -1122,7 +1122,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     qp0: Any,
     t0: gt.BBtQuSz0 | gt.BBtLikeSz0,
     t1: gt.BBtQuSz0 | gt.BBtLikeSz0,
@@ -1145,7 +1145,7 @@ def solve(
 def solve(
     self: DynamicsSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],
-    field: AbstractDynamicsField | Terms,
+    field: AbstractOrbitField | Terms,
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     t1: gt.BBtQuSz0,
     /,

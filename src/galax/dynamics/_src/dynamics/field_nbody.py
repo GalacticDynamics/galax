@@ -15,11 +15,11 @@ from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
 import galax.potential as gp
-from .field_base import AbstractDynamicsField
+from .field_base import AbstractOrbitField
 
 
 @final
-class NBodyField(AbstractDynamicsField, strict=True):  # type: ignore[call-arg]
+class NBodyField(AbstractOrbitField, strict=True):  # type: ignore[call-arg]
     r"""Dynamics field for N-Body EoM.
 
     .. warning::

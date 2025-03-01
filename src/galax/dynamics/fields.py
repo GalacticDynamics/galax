@@ -2,7 +2,7 @@
 
 __all__ = [
     "AbstractField",
-    "AbstractDynamicsField",
+    "AbstractOrbitField",
     "HamiltonianField",
     "NBodyField",
 ]
@@ -13,7 +13,7 @@ from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.dynamics.fields", RUNTIME_TYPECHECKER):
     from ._src.dynamics import (
-        AbstractDynamicsField,
+        AbstractOrbitField,
         HamiltonianField,
         NBodyField,
     )

@@ -4,7 +4,7 @@ This is private API.
 
 """
 
-__all__ = ["AbstractDynamicsField"]
+__all__ = ["AbstractOrbitField"]
 
 from typing import Any
 from typing_extensions import override
@@ -20,8 +20,8 @@ import unxt as u
 from galax.dynamics._src.fields import AbstractField
 
 
-class AbstractDynamicsField(AbstractField, strict=True):  # type: ignore[call-arg]
-    """ABC for dynamics fields.
+class AbstractOrbitField(AbstractField, strict=True):  # type: ignore[call-arg]
+    """ABC for fields for computing orbits.
 
     Note that this provides a default implementation for the `terms` property,
     which is a jitted `diffrax.ODETerm` object. This is a convenience for the
@@ -41,7 +41,7 @@ class AbstractDynamicsField(AbstractField, strict=True):  # type: ignore[call-ar
 
 @AbstractField.terms.dispatch  # type: ignore[misc]
 def terms(
-    self: "AbstractDynamicsField", _: dfx.AbstractSolver, /
+    self: "AbstractOrbitField", _: dfx.AbstractSolver, /
 ) -> PyTree[dfx.AbstractTerm]:
     """Return the `diffrax.AbstractTerm` `jaxtyping.PyTree` for integration.
 

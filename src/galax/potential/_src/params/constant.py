@@ -20,7 +20,7 @@ from unxt._src.units.api import AstropyUnits
 from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
-from .core import AbstractParameter
+from .base import AbstractParameter
 
 t0 = u.Quantity(0, "Myr")
 

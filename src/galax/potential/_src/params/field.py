@@ -26,8 +26,9 @@ from dataclassish.converters import Optional
 from is_annotated import isannotated
 from unxt.quantity import AbstractQuantity
 
+from .base import AbstractParameter, ParameterCallable
 from .constant import ConstantParameter
-from .core import AbstractParameter, ParameterCallable, UserParameter
+from .core import UserParameter
 from galax.utils.dataclasses import Sentinel, sentineled
 
 if TYPE_CHECKING:

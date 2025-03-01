@@ -10,12 +10,9 @@ from typing import Any
 from typing_extensions import override
 
 import diffrax as dfx
-import equinox as eqx
 import jax
 from jaxtyping import PyTree
 from plum import dispatch
-
-import unxt as u
 
 from galax.dynamics._src.fields import AbstractField
 
@@ -29,9 +26,6 @@ class AbstractOrbitField(AbstractField, strict=True):  # type: ignore[call-arg]
     equation types.
 
     """
-
-    #: unit system of the field.
-    units: eqx.AbstractVar[u.AbstractUnitSystem]
 
     @override  # specify the signature of the `__call__` method.
     @dispatch.abstract

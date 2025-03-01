@@ -87,7 +87,7 @@ class AbstractMassRateField(AbstractField):
         >>> import diffrax as dfx
         >>> import galax.dynamics as gd
 
-        >>> field = gd.cluster.ZeroMassRate()
+        >>> field = gd.cluster.ZeroMassRate(units="galactic")
         >>> field.terms(dfx.Dopri8())
         ODETerm(
             vector_field=_JitWrapper( fn='ZeroMassRate.__call__', ... ) )
@@ -112,6 +112,9 @@ class CustomMassRateField(AbstractMassRateField):
     mass_deriv: MassVectorField
 
     _: KW_ONLY
+    units: u.AbstractUnitSystem = eqx.field(
+        converter=u.unitsystem, default="galactic", static=True
+    )
 
     def __call__(
         self, t: Time, Mc: ClusterMass, args: FieldArgs, /, **kwargs: Any
@@ -136,7 +139,7 @@ class ZeroMassRate(AbstractMassRateField):
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> dmdt_fn = gdc.ZeroMassRate()
+    >>> dmdt_fn = gdc.ZeroMassRate(units="galactic")
 
     Evaluating the vector field:
 
@@ -156,6 +159,11 @@ class ZeroMassRate(AbstractMassRateField):
     Array([10000., 10000., 10000., 10000., 10000.], dtype=float64)
 
     """
+
+    _: KW_ONLY
+    units: u.AbstractUnitSystem = eqx.field(
+        converter=u.unitsystem, default="galactic", static=True
+    )
 
     def __call__(
         self,
@@ -188,7 +196,7 @@ class ConstantMassRate(AbstractMassRateField):
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> dmdt_fn = gdc.ConstantMassRate(-1, unit=u.unit("Msun/Myr"))
+    >>> dmdt_fn = gdc.ConstantMassRate(-1, units="galactic")
 
     Evaluating the vector field:
 
@@ -210,7 +218,10 @@ class ConstantMassRate(AbstractMassRateField):
     """
 
     dm_dt: Real[Array | u.AbstractQuantity, ""] = eqx.field(converter=jnp.asarray)
-    unit: Any = eqx.field(converter=u.unit)
+    _: KW_ONLY
+    units: u.AbstractUnitSystem = eqx.field(
+        converter=u.unitsystem, default="galactic", static=True
+    )
 
     def __call__(
         self,
@@ -220,7 +231,8 @@ class ConstantMassRate(AbstractMassRateField):
         /,
         **kwargs: Any,  # noqa: ARG002
     ) -> Shaped[Array, "{M}"]:
-        return u.ustrip(AllowValue, self.unit, self.dm_dt) * jnp.ones_like(M)
+        unit = self.units["mass"] / self.units["time"]
+        return u.ustrip(AllowValue, unit, self.dm_dt) * jnp.ones_like(M)
 
 
 ######################################################
@@ -245,7 +257,7 @@ class Baumgardt1998MassLossRate(AbstractMassRateField):
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> dMdt_fn = gdc.Baumgardt1998MassLossRate()
+    >>> dMdt_fn = gdc.Baumgardt1998MassLossRate(units="galactic")
     >>> dMdt_fn.tidal_radius_flag
     <class 'galax.dynamics...King1962'>
     >>> dMdt_fn.relaxation_time_flag
@@ -281,6 +293,11 @@ class Baumgardt1998MassLossRate(AbstractMassRateField):
     #: \frac{0.138 \sqrt{M_c} r_{hm}^{3/2}}{\sqrt{G} m_{avg} \ln(0.4 N)} $$.
     relaxation_time_flag: AbstractRelaxationTimeMethod = eqx.field(
         default=Baumgardt1998, static=True
+    )
+
+    _: KW_ONLY
+    units: u.AbstractUnitSystem = eqx.field(
+        converter=u.unitsystem, default="galactic", static=True
     )
 
     def __call__(self, t: Time, M: ClusterMass, args: Any, /, **kw: Any) -> Array:  # noqa: ARG002

@@ -3,6 +3,7 @@
 __all__ = ["AbstractField"]
 
 from collections.abc import Callable
+from dataclasses import KW_ONLY
 from typing import Any
 
 import diffrax as dfx
@@ -11,6 +12,7 @@ from jaxtyping import PyTree
 from plum import dispatch
 
 import diffraxtra as dfxtra
+import unxt as u
 
 
 class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
@@ -74,6 +76,10 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
     """
 
     __call__: eqx.AbstractClassVar[Callable[..., Any]]
+
+    _: KW_ONLY
+    #: unit system of the field.
+    units: eqx.AbstractVar[u.AbstractUnitSystem]
 
     @dispatch.abstract
     def terms(self, solver: Any, /) -> PyTree[dfx.AbstractTerm]:

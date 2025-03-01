@@ -198,7 +198,7 @@ def solve(
     field_ = (
         field
         if isinstance(field, AbstractMassRateField)
-        else CustomMassRateField(field)
+        else CustomMassRateField(field, units=units)
     )
 
     # Solve the differential equation

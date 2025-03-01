@@ -78,7 +78,7 @@ class ReleaseTimeSampler(eqx.Module):  # type: ignore[misc]
     m_of_t: dfx.Solution
 
     #: The unit system
-    units: u.AbstractUnitSystem = eqx.field(static=True)
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
 
     def __check_init__(self) -> None:
         # TODO: enable discrete times sampler

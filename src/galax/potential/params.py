@@ -9,6 +9,7 @@ __all__ = [
     "ConstantParameter",
     "LinearParameter",
     "CustomParameter",
+    "TimeDependentTranslationParameter",
     # Attributes
     "AbstractParametersAttribute",
     "ParametersAttribute",
@@ -26,3 +27,4 @@ from ._src.params import (
     ParameterField,
     ParametersAttribute,
 )
+from ._src.xfm.translate import TimeDependentTranslationParameter

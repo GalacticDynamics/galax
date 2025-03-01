@@ -51,6 +51,7 @@ __all__ = [
     "AbstractTransformedPotential",
     "TransformedPotential",
     "TriaxialInThePotential",
+    "TranslatedPotential",
     # funcs
     "potential",
     "gradient",
@@ -129,6 +130,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._src.xfm import (
         AbstractTransformedPotential,
         TransformedPotential,
+        TranslatedPotential,
         TriaxialInThePotential,
     )
 

@@ -110,10 +110,3 @@ def plot_density_contours(
 
     """
     raise NotImplementedError  # pragma: no cover
-
-
-# NOTE: this avoids a circular import
-# isort: split
-from .base import AbstractPotential  # noqa: E402
-
-ProxyAbstractPotential.deliver(AbstractPotential)

@@ -53,6 +53,7 @@ expected_all = [
     "AbstractTransformedPotential",
     "TransformedPotential",
     "TriaxialInThePotential",
+    "TranslatedPotential",
     # funcs
     "potential",
     "gradient",

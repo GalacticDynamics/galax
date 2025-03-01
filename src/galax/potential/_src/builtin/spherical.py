@@ -43,14 +43,13 @@ class BurkertPotential(AbstractSinglePotential):
 
     https://ui.adsabs.harvard.edu/abs/1995ApJ...447L..25B/abstract,
     https://iopscience.iop.org/article/10.1086/309140/fulltext/50172.text.html.
+
     """
 
     m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
     r"""Characteristic mass of the potential.
 
-    .. math::
-
-        m0 = \pi \rho_0 r_s^3 (3 \log(2) - \pi / 2)
+    $$ m0 = \pi \rho_0 r_s^3 (3 \log(2) - \pi / 2) $$
 
     """
 

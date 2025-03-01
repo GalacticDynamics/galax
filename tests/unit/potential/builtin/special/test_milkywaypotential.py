@@ -3,7 +3,6 @@
 from collections.abc import Mapping
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -51,7 +50,7 @@ class TestMilkyWayPotential(AbstractSpecialCompositePotential_Test):
         expect = u.Quantity(
             [0.00256407, 0.00512815, 0.01115285], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MilkyWayPotential, x: gt.QuSz3) -> None:

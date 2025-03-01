@@ -3,7 +3,6 @@
 from typing import Any, ClassVar
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -92,7 +91,7 @@ class TestVogelsberger08TriaxialNFWPotential(
         self, pot: gp.Vogelsberger08TriaxialNFWPotential, x: gt.QuSz3
     ) -> None:
         expect = u.Quantity([0.07701115, 0.14549116, 0.19849185], "kpc / Myr2")
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(

@@ -6,7 +6,6 @@ from typing import Any
 from typing_extensions import override
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -297,7 +296,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         expect = u.Quantity(
             [0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.CompositePotential, x: Sz3) -> None:

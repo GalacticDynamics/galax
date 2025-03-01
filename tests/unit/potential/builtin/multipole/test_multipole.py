@@ -7,7 +7,6 @@ from typing_extensions import override
 import equinox as eqx
 import pytest
 from jaxtyping import Array, Shaped
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -277,7 +276,7 @@ class TestMultipolePotential(
         expect = u.Quantity(
             [-0.13487022, -0.26974043, 10.79508472], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:

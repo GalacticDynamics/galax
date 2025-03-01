@@ -6,7 +6,6 @@ from typing import Any, ClassVar, final
 import equinox as eqx
 import jax
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -153,8 +152,8 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
 
     def test_acceleration(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.acceleration` method."""
-        acc = convert(pot.acceleration(x, t=0), u.Quantity)
-        grad = convert(pot.gradient(x, t=0), u.Quantity)
+        acc = pot.acceleration(x, t=0)
+        grad = pot.gradient(x, t=0)
         assert jnp.array_equal(acc, -grad)
 
     # ---------------------------------
@@ -263,7 +262,7 @@ class TestAbstractPotential(AbstractPotential_Test):
         expect = u.Quantity(
             [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:

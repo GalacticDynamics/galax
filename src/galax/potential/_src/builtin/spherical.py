@@ -418,8 +418,9 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
         a = alpha / 2
         r = jnp.linalg.vector_norm(xyz, axis=-1)
         s2 = (r / r_c) ** 2
+        GM = self.constants["G"].value * m_tot
 
-        return (self.constants["G"].value * m_tot) * (
+        return GM * (
             (a - 1.5) * _safe_gamma_inc(1.5 - a, s2) / (r * qsp.gamma(2.5 - a))
             + _safe_gamma_inc(1 - a, s2) / (r_c * qsp.gamma(1.5 - a))
         )

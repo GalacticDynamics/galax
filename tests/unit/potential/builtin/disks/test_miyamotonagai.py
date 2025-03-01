@@ -1,7 +1,6 @@
 from typing import Any
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -47,7 +46,7 @@ class TestMiyamotoNagaiPotential(
         expect = u.Quantity(
             [0.04264751, 0.08529503, 0.16840152], pot.units["acceleration"]
         )
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MiyamotoNagaiPotential, x: Sz3) -> None:

@@ -1,7 +1,6 @@
 from typing import Any
 
 import pytest
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -50,7 +49,7 @@ class TestSatohPotential(
 
     def test_gradient(self, pot: gp.SatohPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.0456823, 0.0913646, 0.18038493], "kpc / Myr2")
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.SatohPotential, x: gt.QuSz3) -> None:

@@ -2,7 +2,6 @@ from typing import Any, ClassVar
 
 import pytest
 from packaging.version import Version
-from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -49,7 +48,7 @@ class TestBurkertPotential(
 
     def test_gradient(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:
         expect = u.Quantity([0.54053104, 1.08106208, 1.62159313], "kpc / Myr2")
-        got = convert(pot.gradient(x, t=0), u.Quantity)
+        got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:

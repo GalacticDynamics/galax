@@ -11,10 +11,11 @@ from typing_extensions import override
 
 import diffrax as dfx
 import jax
-from jaxtyping import PyTree
+from jaxtyping import Array, PyTree
 from plum import dispatch
 
 from galax.dynamics._src.fields import AbstractField
+from galax.dynamics._src.utils import parse_to_t_y
 
 
 class AbstractOrbitField(AbstractField, strict=True):  # type: ignore[call-arg]
@@ -31,6 +32,19 @@ class AbstractOrbitField(AbstractField, strict=True):  # type: ignore[call-arg]
     @dispatch.abstract
     def __call__(self, *_: Any, **kw: Any) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
+
+    @AbstractField.parse_inputs.dispatch  # type: ignore[misc]
+    def parse_inputs(
+        self, *args: Any, ustrip: bool = True, **kwargs: Any
+    ) -> tuple[Array, PyTree[Array]]:
+        """Parse inputs for the field.
+
+        TODO: consolidate with ``parse_to_t_y``.
+
+        """
+        del ustrip
+        t0, y0 = parse_to_t_y(None, *args, ustrip=self.units, **kwargs)
+        return t0, y0
 
 
 @AbstractField.terms.dispatch  # type: ignore[misc]

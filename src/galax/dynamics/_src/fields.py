@@ -105,7 +105,27 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
 # ==================================================================
 
 
-@AbstractField.terms.dispatch  # type: ignore[misc]
+@AbstractField.terms.dispatch
+def terms(self: AbstractField, _: dfx.AbstractRungeKutta, /) -> dfx.AbstractTerm:
+    """Return diffeq terms, redispatching to the solver.
+
+    Examples
+    --------
+    >>> import diffrax as dfx
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+
+    >>> field.terms(dfx.Dopri8())
+    ODETerm(vector_field=<wrapped function __call__>)
+
+    """
+    return dfx.ODETerm(eqx.filter_jit(self.__call__))
+
+
+@AbstractField.terms.dispatch
 def terms(
     self: AbstractField, wrapper: dfxtra.AbstractDiffEqSolver, /
 ) -> PyTree[dfx.AbstractTerm]:

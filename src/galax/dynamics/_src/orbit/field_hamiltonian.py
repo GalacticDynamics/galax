@@ -64,7 +64,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
 
     >>> solver = dfx.Dopri8()
     >>> field.terms(solver)
-    ODETerm(vector_field=<wrapped function __call__>)
+    ODETerm(...)
 
     >>> solver = dfx.SemiImplicitEuler()
     >>> field.terms(solver)

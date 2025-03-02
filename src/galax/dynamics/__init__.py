@@ -2,17 +2,25 @@
 
 __all__ = [
     # Modules
-    "fields",
-    "solve",
-    "integrate",  # TODO: deprecate
-    "mockstream",
-    "plot",
     "cluster",
-    # solve
+    "fields",
+    "mockstream",
+    "orbit",
+    "plot",
+    "integrate",  # TODO: deprecate
+    # fields
+    "AbstractField",
+    "AbstractOrbitField",
+    "HamiltonianField",
+    "NBodyField",
+    # solver
+    "AbstractSolver",
+    "SolveState",
+    "integrate_field",
+    # orbit
     "compute_orbit",
     "evaluate_orbit",  # TODO: deprecate
     "Orbit",
-    "AbstractSolver",
     "OrbitSolver",
     # mockstream
     "MockStreamArm",
@@ -27,6 +35,10 @@ __all__ = [
     "lagrange_points",
     "tidal_radius",
     "omega",
+    "parse_time_specification",
+    # ========================
+    # Diffraxtra compat
+    "DiffEqSolver",
 ]
 
 
@@ -35,10 +47,14 @@ from jaxtyping import install_import_hook
 from galax.setup_package import RUNTIME_TYPECHECKER
 
 with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
+    from diffraxtra import DiffEqSolver
+
     from . import cluster, fields, integrate, mockstream, plot
     from ._src.api import omega, specific_angular_momentum
     from ._src.cluster import lagrange_points, tidal_radius
-    from ._src.orbit import Orbit, compute_orbit
+    from ._src.parsetime import parse_time_specification
+    from ._src.solver import AbstractSolver, SolveState, integrate_field
+    from .fields import AbstractField, AbstractOrbitField, HamiltonianField, NBodyField
     from .integrate import evaluate_orbit
     from .mockstream import (
         AbstractStreamDF,
@@ -48,9 +64,8 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
         MockStreamArm,
         MockStreamGenerator,
     )
-    from .solve import AbstractSolver, OrbitSolver
+    from .orbit import AbstractSolver, Orbit, OrbitSolver, compute_orbit
 
-    #
     # isort: split
     from ._src import register_api
     from ._src.orbit import register_gc

@@ -88,7 +88,7 @@ class NBodyField(AbstractOrbitField, strict=True):  # type: ignore[call-arg]
 @jax.jit  # type: ignore[misc]
 def __call__(
     self: "NBodyField",
-    t: gt.Sz0,
+    t: gt.LikeSz0,
     xv: tuple[Real[Array, "N 3"], Real[Array, "N 3"]]
     | tuple[Real[u.AbstractQuantity, "N 3"], Real[u.AbstractQuantity, "N 3"]],
     args: Any,  # noqa: ARG001

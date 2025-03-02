@@ -68,7 +68,7 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
     performance.
 
     >>> field.terms(dfx.Dopri8())
-    ODETerm(vector_field=<wrapped function __call__>)
+    ODETerm(...)
 
     >>> field.terms(dfx.SemiImplicitEuler())
     (ODETerm(...), ODETerm(...))
@@ -86,11 +86,56 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
         """Return the `diffrax.AbstractTerm` `jaxtyping.PyTree` for integration."""
         raise NotImplementedError  # pragma: no cover
 
+    # TODO: consider the frame information, like in `parse_to_t_y`
+    @dispatch.abstract
+    def parse_inputs(self, *args: Any, **kwargs: Any) -> Any:
+        """Parse inputs for the field.
+
+        Dispatches to this method should at least support the following:
+
+        - `parse_inputs(self, t: Array, y0: PyTree[Array], /, *, ustrip: bool) -> tuple[Array, PyTree[Array]]`
+        - `parse_inputs(self, t: Quantity, y0: PyTree[Quantity], /, *, ustrip: bool) -> tuple[Array, PyTree[Array]]`
+
+        Where the output types are suitable for use with `diffrax`.
+
+        """  # noqa: E501
+        raise NotImplementedError
+
 
 # ==================================================================
+# Terms
 
 
-@AbstractField.terms.dispatch  # type: ignore[misc]
+@AbstractField.terms.dispatch
+def terms(self: AbstractField, _: dfx.AbstractSolver, /) -> dfx.AbstractTerm:
+    """Return diffeq terms, redispatching to the solver.
+
+    This is the default implementation, which wraps the field's ``__call__``
+    method in a `equinox.filter_jit`-ed function and returns an
+    `diffrax.ODETerm`.
+
+    Examples
+    --------
+    >>> import diffrax as dfx
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+
+    >>> field.terms(dfx.Dopri8())
+    ODETerm(...)
+
+    >>> field = gd.cluster.ZeroMassRate(units="galactic")
+    >>> field.terms(dfx.Dopri8())
+    ODETerm(...)
+
+    """
+    return dfx.ODETerm(eqx.filter_jit(self.__call__))
+
+
+@AbstractField.terms.dispatch
 def terms(
     self: AbstractField, wrapper: dfxtra.AbstractDiffEqSolver, /
 ) -> PyTree[dfx.AbstractTerm]:
@@ -102,13 +147,13 @@ def terms(
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> solver = gd.solve.DiffEqSolver(dfx.Dopri8())
+    >>> solver = gd.DiffEqSolver(dfx.Dopri8())
 
     >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> field.terms(solver)
-    ODETerm(vector_field=<wrapped function __call__>)
+    ODETerm(...)
 
     """
     return self.terms(wrapper.solver)

@@ -99,7 +99,7 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     1. From a `galax.dynamics.integrate.DiffEqSolver` instance.
 
-    >>> diffeqsolver = gd.solve.DiffEqSolver(dfx.Dopri8(),
+    >>> diffeqsolver = gd.DiffEqSolver(dfx.Dopri8(),
     ...     stepsize_controller=dfx.PIDController(rtol=1e-5, atol=1e-5))
     >>> solver = gd.OrbitSolver.from_(diffeqsolver)
     >>> solver

@@ -9,8 +9,6 @@ __all__ = ["AbstractOrbitField"]
 from typing import Any
 from typing_extensions import override
 
-import diffrax as dfx
-import jax
 from jaxtyping import Array, PyTree
 from plum import dispatch
 
@@ -45,28 +43,3 @@ class AbstractOrbitField(AbstractField, strict=True):  # type: ignore[call-arg]
         del ustrip
         t0, y0 = parse_to_t_y(None, *args, ustrip=self.units, **kwargs)
         return t0, y0
-
-
-@AbstractField.terms.dispatch  # type: ignore[misc]
-def terms(
-    self: "AbstractOrbitField", _: dfx.AbstractSolver, /
-) -> PyTree[dfx.AbstractTerm]:
-    """Return the `diffrax.AbstractTerm` `jaxtyping.PyTree` for integration.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
-
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-
-    >>> solver = dfx.Dopri8()
-
-    >>> field.terms(solver)
-    ODETerm(vector_field=<wrapped function __call__>)
-
-    """
-    return dfx.ODETerm(jax.jit(self.__call__))

@@ -6,31 +6,42 @@ import galax.dynamics as gd
 def test_all() -> None:
     """Test the `galax.potential` API."""
     assert set(gd.__all__) == {
-        # modules
-        "fields",
-        "solve",
+        # Modules
         "cluster",
+        "fields",
         "mockstream",
+        "orbit",
         "plot",
-        # solve
+        # fields
+        "AbstractField",
+        "AbstractOrbitField",
+        "HamiltonianField",
+        "NBodyField",
+        # solver
         "AbstractSolver",
-        "OrbitSolver",
+        "SolveState",
+        "integrate_field",
         # orbit
-        "Orbit",
         "compute_orbit",
+        "Orbit",
+        "OrbitSolver",
         # mockstream
         "MockStreamArm",
         "MockStream",
         "MockStreamGenerator",
+        # mockstream.df
         "AbstractStreamDF",
-        "ChenStreamDF",
         "FardalStreamDF",
+        "ChenStreamDF",
         # functions
         "specific_angular_momentum",
-        "tidal_radius",
         "lagrange_points",
+        "tidal_radius",
         "omega",
-        # legacy
+        "parse_time_specification",
+        # Diffraxtra compat
+        "DiffEqSolver",
+        # Legacy
         "integrate",
         "evaluate_orbit",
     }

@@ -2,12 +2,12 @@
 
 __all__ = [
     # Modules
-    "fields",
-    "orbit",
-    "integrate",  # TODO: deprecate
-    "mockstream",
-    "plot",
     "cluster",
+    "fields",
+    "mockstream",
+    "orbit",
+    "plot",
+    "integrate",  # TODO: deprecate
     # fields
     "AbstractField",
     "AbstractOrbitField",

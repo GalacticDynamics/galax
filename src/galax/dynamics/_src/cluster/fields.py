@@ -13,10 +13,9 @@ from abc import abstractmethod
 from dataclasses import KW_ONLY
 from typing import Any, Protocol, TypeAlias, TypedDict, cast, final, runtime_checkable
 
-import diffrax as dfx
 import equinox as eqx
 import jax.numpy as jnp
-from jaxtyping import Array, PyTree, Real, Shaped
+from jaxtyping import Array, Real, Shaped
 
 import unxt as u
 from unxt.quantity import AllowValue, BareQuantity as FastQ
@@ -75,25 +74,6 @@ class AbstractMassRateField(AbstractField):
         self, t: Time, Mc: ClusterMass, args: FieldArgs, /, **kwargs: Any
     ) -> Array:
         raise NotImplementedError  # pragma: no cover
-
-    @AbstractField.terms.dispatch  # type: ignore[misc]
-    def terms(
-        self: "AbstractMassRateField", _: dfx.AbstractSolver, /
-    ) -> PyTree[dfx.AbstractTerm]:
-        """Return diffeq terms for integration.
-
-        Examples
-        --------
-        >>> import diffrax as dfx
-        >>> import galax.dynamics as gd
-
-        >>> field = gd.cluster.ZeroMassRate(units="galactic")
-        >>> field.terms(dfx.Dopri8())
-        ODETerm(
-            vector_field=_JitWrapper( fn='ZeroMassRate.__call__', ... ) )
-
-        """
-        return dfx.ODETerm(eqx.filter_jit(self.__call__))
 
 
 #####################################################

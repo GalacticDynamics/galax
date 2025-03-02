@@ -68,7 +68,7 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
     performance.
 
     >>> field.terms(dfx.Dopri8())
-    ODETerm(vector_field=<wrapped function __call__>)
+    ODETerm(...)
 
     >>> field.terms(dfx.SemiImplicitEuler())
     (ODETerm(...), ODETerm(...))
@@ -103,15 +103,21 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
 
 
 # ==================================================================
+# Terms
 
 
 @AbstractField.terms.dispatch
-def terms(self: AbstractField, _: dfx.AbstractRungeKutta, /) -> dfx.AbstractTerm:
+def terms(self: AbstractField, _: dfx.AbstractSolver, /) -> dfx.AbstractTerm:
     """Return diffeq terms, redispatching to the solver.
+
+    This is the default implementation, which wraps the field's ``__call__``
+    method in a `equinox.filter_jit`-ed function and returns an
+    `diffrax.ODETerm`.
 
     Examples
     --------
     >>> import diffrax as dfx
+    >>> import unxt as u
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
@@ -119,7 +125,11 @@ def terms(self: AbstractField, _: dfx.AbstractRungeKutta, /) -> dfx.AbstractTerm
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> field.terms(dfx.Dopri8())
-    ODETerm(vector_field=<wrapped function __call__>)
+    ODETerm(...)
+
+    >>> field = gd.cluster.ZeroMassRate(units="galactic")
+    >>> field.terms(dfx.Dopri8())
+    ODETerm(...)
 
     """
     return dfx.ODETerm(eqx.filter_jit(self.__call__))
@@ -143,7 +153,7 @@ def terms(
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> field.terms(solver)
-    ODETerm(vector_field=<wrapped function __call__>)
+    ODETerm(...)
 
     """
     return self.terms(wrapper.solver)

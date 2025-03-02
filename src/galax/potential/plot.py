@@ -1,4 +1,4 @@
-""":mod:`galax.potential.params`."""
+"""`galax.potential.params`."""
 
 __all__ = [
     "plot_density_contours",

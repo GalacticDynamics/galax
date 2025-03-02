@@ -224,8 +224,10 @@ def replace(
 ##############################################################################
 
 
-class AbstractPreCompositedPotential(AbstractCompositePotential):  # TODO: make public
+class AbstractPreCompositedPotential(AbstractCompositePotential):
     """Base class for pre-defined composite potentials.
+
+    Here the component potentials are defined as fields of the class.
 
     For examples, see:
 

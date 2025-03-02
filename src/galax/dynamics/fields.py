@@ -1,10 +1,12 @@
 """:mod:`galax.dynamics.fields`."""
 
 __all__ = [
+    # Fields
     "AbstractField",
     "AbstractOrbitField",
     "HamiltonianField",
     "NBodyField",
+    # funcs
     "integrate_field",
 ]
 

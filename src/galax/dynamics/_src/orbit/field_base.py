@@ -35,7 +35,7 @@ class AbstractOrbitField(AbstractField, strict=True):  # type: ignore[call-arg]
 
     @AbstractField.parse_inputs.dispatch  # type: ignore[misc]
     def parse_inputs(
-        self, *args: Any, ustrip: bool = True, **kwargs: Any
+        self: "AbstractOrbitField", *args: Any, ustrip: bool = True, **kwargs: Any
     ) -> tuple[Array, PyTree[Array]]:
         """Parse inputs for the field.
 

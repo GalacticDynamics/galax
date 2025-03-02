@@ -32,15 +32,21 @@ class LongMuraliBarPotential(AbstractSinglePotential):
 
     """
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """The total mass."""
+    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="The total mass.")  # type: ignore[assignment]
 
-    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Half-length defining the semi-major axis"
+    )
+    b: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Thickness softening length"
+    )
+    c: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Vertical softening length"
+    )
 
-    alpha: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
-    """Position angle of the bar in the x-y plane."""
+    alpha: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="angle", doc="Position angle of the bar in the x-y plane."
+    )
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
@@ -79,34 +85,38 @@ class MonariEtAl2016BarPotential(AbstractSinglePotential):
     _: KW_ONLY
 
     alpha: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(0.01, ""), dimensions="dimensionless"
-    )
-    """The amplitude.
+        default=u.Quantity(0.01, ""),
+        dimensions="dimensionless",
+        doc="""The amplitude.
 
     the ratio between the bar's and axisymmetric contribution to the radial
     force, along the bar's long axis at (R,z) = (R0,0).
-    """
+    """,
+    )
 
-    R0: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """The Galactocentric radius of the Sun."""
+    R0: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="The Galactocentric radius of the Sun."
+    )
 
-    v0: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
-    """The circular velocity at R0"""
+    v0: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="speed", doc="The circular velocity at R0"
+    )
 
     Rb: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(3.5, "kpc"), dimensions="length"
+        default=u.Quantity(3.5, "kpc"),
+        dimensions="length",
+        doc="The length of the bar.",
     )
-    """The length of the bar."""
 
     phi_b: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(25, "deg"), dimensions="angle"
+        default=u.Quantity(25, "deg"), dimensions="angle", doc="Bar angle."
     )
-    """Bar angle."""
 
     Omega: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(52.2, "km/(s kpc)"), dimensions="frequency"
+        default=u.Quantity(52.2, "km/(s kpc)"),
+        dimensions="frequency",
+        doc="Bar pattern speed.",
     )
-    """Bar pattern speed."""
 
     @partial(jax.jit)
     @vectorize_method(signature="(3),()->()")

@@ -28,8 +28,10 @@ from galax.potential._src.params.field import ParameterField
 class LogarithmicPotential(AbstractSinglePotential):
     """Logarithmic Potential."""
 
-    v_c: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    v_c: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="speed", doc="Circular velocity."
+    )
+    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale length.")  # type: ignore[assignment]
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -58,14 +60,24 @@ class LMJ09LogarithmicPotential(AbstractSinglePotential):
     https://ui.adsabs.harvard.edu/abs/2009ApJ...703L..67L/abstract
     """
 
-    v_c: AbstractParameter = ParameterField(dimensions="speed")  # type: ignore[assignment]
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    v_c: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="speed", doc="Circular velocity."
+    )
+    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale length.")  # type: ignore[assignment]
 
-    q1: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    q2: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    q3: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
+    q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless", doc="X flattening."
+    )
+    q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless", doc="Y flattening."
+    )
+    q3: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless", doc="Z flattening"
+    )
 
-    phi: AbstractParameter = ParameterField(dimensions="angle")  # type: ignore[assignment]
+    phi: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="angle", doc="Rotation in X-Y plane."
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)

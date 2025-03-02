@@ -47,11 +47,13 @@ class NFWPotential(AbstractSinglePotential):
 
     """
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Mass parameter. This is NOT the total mass."""
+    m: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Mass parameter. This is NOT the total mass."
+    )
 
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale radius of the potential."""
+    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Scale radius of the potential."
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -226,30 +228,30 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     Quantity[...](Array(-0.14570309, dtype=float64), unit='kpc2 / Myr2')
     """
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    r"""Scall mass.
+    m: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass",
+        doc=r"""Scale mass.
 
     This is the mass corresponding to the circular velocity at the scale radius.
     :math:`v_c = \sqrt{G M / r_s}`
-    """
+    """,
+    )
 
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale radius."""
+    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
 
     a1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=u.Quantity(1.0, "")
+        dimensions="dimensionless", default=u.Quantity(1.0, ""), doc="Major axis."
     )
-    """Major axis."""
 
     a2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=u.Quantity(1.0, "")
+        dimensions="dimensionless",
+        default=u.Quantity(1.0, ""),
+        doc="Intermediate axis.",
     )
-    """Intermediate axis."""
 
     a3: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=u.Quantity(1.0, "")
+        dimensions="dimensionless", default=u.Quantity(1.0, ""), doc="Minor axis."
     )
-    """Minor axis."""
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -358,21 +360,25 @@ class TriaxialNFWPotential(AbstractSinglePotential):
         \xi^2 = x^2 + \frac{y^2}{q_1^2} + \frac{z^2}{q_2^2}
     """
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """mass scale of the potential."""
+    m: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="mass scale of the potential."
+    )
 
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale radius of the potential."""
+    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Scale radius of the potential."
+    )
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""), dimensions="dimensionless"
+        default=u.Quantity(1.0, ""),
+        dimensions="dimensionless",
+        doc="Scale length in the y/x direction.",
     )
-    """Scale length in the y/x direction."""
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""), dimensions="dimensionless"
+        default=u.Quantity(1.0, ""),
+        dimensions="dimensionless",
+        doc="Scale length in the z/x direction.",
     )
-    """Scale length in the z/x direction."""
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -555,29 +561,29 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
     """Triaxial NFW Potential from DOI 10.1111/j.1365-2966.2007.12746.x."""
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    r"""Scale mass."""
+    m: AbstractParameter = ParameterField(dimensions="mass", doc="Scale mass.")  # type: ignore[assignment]
     # TODO: note the different definitions of m.
 
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale radius."""
+    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=u.Quantity(1.0, "")
-    )
-    """y/x axis ratio.
+        dimensions="dimensionless",
+        default=u.Quantity(1.0, ""),
+        doc="""y/x axis ratio.
 
     The z/x axis ratio is defined as :math:`q_2^2 = 3 - q_1^2`
-    """
+    """,
+    )
 
     a_r: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=u.Quantity(1.0, "")
-    )
-    """Transition radius relative to :math:`r_s`.
+        dimensions="dimensionless",
+        default=u.Quantity(1.0, ""),
+        doc="""Transition radius relative to :math:`r_s`.
 
     :math:`r_a = a_r r_s  is a transition scale where the potential shape
     changes from ellipsoidal to near spherical.
-    """
+    """,
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)

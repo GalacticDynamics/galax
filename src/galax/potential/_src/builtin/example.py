@@ -61,8 +61,9 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     """
 
     # TODO: enable omega to be a 3D vector
-    omega: AbstractParameter = ParameterField(dimensions="frequency")  # type: ignore[assignment]
-    """The frequency."""
+    omega: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="frequency", doc="The frequency."
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -135,20 +136,22 @@ class HenonHeilesPotential(AbstractSinglePotential):
 
     """
 
-    coeff: AbstractParameter = ParameterField(dimensions="wavenumber")  # type: ignore[assignment]
-    """Coefficient for the cubic terms."""
+    coeff: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="wavenumber", doc="Coefficient for the cubic terms."
+    )
 
-    timescale: AbstractParameter = ParameterField(dimensions="time")  # type: ignore[assignment]
-    """Timescale of the potential.
+    timescale: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="time",
+        doc="""Timescale of the potential.
 
     The [classical Henon-Heiles
     potential](https://en.wikipedia.org/wiki/Hénon-Heiles_system) has a
-    potential with units of area.
-    `galax` requires the potential to have units of specific energy, so we
-    introduce a timescale parameter to convert the potential to specific
-    energy.
+    potential with units of area. `galax` requires the potential to have units
+    of specific energy, so we introduce a timescale parameter to convert the
+    potential to specific energy.
 
-    """
+    """,
+    )
 
     @partial(jax.jit)
     def _potential(

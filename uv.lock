@@ -678,6 +678,7 @@ dependencies = [
     { name = "diffrax" },
     { name = "diffraxtra" },
     { name = "equinox" },
+    { name = "interpax" },
     { name = "is-annotated" },
     { name = "jax" },
     { name = "jaxlib" },
@@ -791,6 +792,7 @@ requires-dist = [
     { name = "galpy", marker = "extra == 'all'", specifier = ">=1.8" },
     { name = "galpy", marker = "extra == 'interop-all'", specifier = ">=1.8" },
     { name = "galpy", marker = "extra == 'interop-galpy'", specifier = ">=1.8" },
+    { name = "interpax", specifier = ">=0.3.6" },
     { name = "is-annotated", specifier = ">=1.0" },
     { name = "jax", specifier = ">=0.4.35" },
     { name = "jaxlib", specifier = ">=0.4.35" },
@@ -912,6 +914,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d7/4b/cbd8e699e64a6f16ca3a8220661b5f83792b3017d0f79807cb8708d33913/iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3", size = 4646 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ef/a6/62565a6e1cf69e10f5727360368e451d4b7f58beeac6173dc9db836a5b46/iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374", size = 5892 },
+]
+
+[[package]]
+name = "interpax"
+version = "0.3.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "equinox" },
+    { name = "jax" },
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/02/5e/1058a359b6d826d18fa242a6c7e5d3ccf60511263a58e4b0978548bf83cf/interpax-0.3.6.tar.gz", hash = "sha256:db8d12b9d13d9c2f0788375bc035e4f6f3c0b2b5e70d0e699a272b4c0b0757e8", size = 55651 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/fd/7febe0df137c7bbcd2aee30447ea8c666400c736ca0dca3e353b5380ee33/interpax-0.3.6-py3-none-any.whl", hash = "sha256:14466166c77d4db289c84ebcfaa4e84e3668857b013ed34829be445967db3d55", size = 25961 },
 ]
 
 [[package]]

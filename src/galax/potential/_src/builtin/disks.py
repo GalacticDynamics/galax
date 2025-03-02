@@ -40,11 +40,13 @@ class KuzminPotential(AbstractSinglePotential):
 
     """
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the potential."""
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Total mass of the potential."
+    )
 
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale length of the 'disk'."""
+    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Scale length of the 'disk'."
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -76,15 +78,18 @@ class KuzminPotential(AbstractSinglePotential):
 class MiyamotoNagaiPotential(AbstractSinglePotential):
     """Miyamoto-Nagai Potential."""
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the potential."""
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Total mass of the potential."
+    )
 
     # TODO: rename
-    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale length in the major-axis (x-y) plane."""
+    a: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Scale length in the major-axis (x-y) plane."
+    )
 
-    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale length in the minor-axis (x-y) plane."""
+    b: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Scale length in the minor-axis (x-y) plane."
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -138,17 +143,21 @@ _mn3_b_coeffs_sech2: Final = jnp.array([-0.033, 0.262, 0.659])
 class AbstractMN3Potential(AbstractSinglePotential):
     """A base class for sums of three Miyamoto-Nagai disk potentials."""
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the potential."""
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Total mass of the potential."
+    )
 
-    h_R: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment] # noqa: N815
-    """Radial (exponential) scale length."""
+    h_R: AbstractParameter = ParameterField(  # type: ignore[assignment] # noqa: N815
+        dimensions="length", doc="Radial (exponential) scale length."
+    )
 
-    h_z: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """
-    If ``sech2_z=True``, this is the scale height in a sech^2 vertical profile. If
-    ``sech2_z=False``, this is an exponential scale height.
-    """
+    h_z: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length",
+        doc="""
+    If ``sech2_z=True``, this is the scale height in a sech^2 vertical profile.
+    If ``sech2_z=False``, this is an exponential scale height.
+    """,
+    )
 
     positive_density: bool = eqx.field(default=False, static=True)
     """

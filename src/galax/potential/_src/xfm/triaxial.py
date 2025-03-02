@@ -69,14 +69,16 @@ class TriaxialInThePotential(AbstractTransformedPotential):
     #: the original potential
     original_potential: AbstractPotential
 
-    #: ratio of the y-axis to the x-axis
     y_over_x: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1, ""), dimensions="dimensionless"
+        default=u.Quantity(1, ""),
+        dimensions="dimensionless",
+        doc="ratio of the y-axis to the x-axis",
     )
 
-    #: ratio of the z-axis to the x-axis
     z_over_x: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1, ""), dimensions="dimensionless"
+        default=u.Quantity(1, ""),
+        dimensions="dimensionless",
+        doc="ratio of the z-axis to the x-axis",
     )
 
     @partial(jax.jit)

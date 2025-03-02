@@ -30,14 +30,11 @@ class SatohPotential(AbstractSinglePotential):
 
     """
 
-    #: Characteristic mass
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
 
-    #: Scale length
-    a: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    a: AbstractParameter = ParameterField(dimensions="length", doc="Scale length")  # type: ignore[assignment]
 
-    #: Scale height
-    b: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    b: AbstractParameter = ParameterField(dimensions="length", doc="Scale height.")  # type: ignore[assignment]
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

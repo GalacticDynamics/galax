@@ -6,6 +6,7 @@ __all__ = ["ParameterField"]
 
 from dataclasses import KW_ONLY, is_dataclass
 from inspect import isclass, isfunction
+from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -75,6 +76,11 @@ def converter_parameter(value: Any) -> AbstractParameter:
     return out
 
 
+def converter_doc(obj: Any, /) -> str:
+    """Convert a to a string and dedent."""
+    return dedent(str(obj))
+
+
 @final
 @dataclass_with_converter(frozen=True, slots=True)
 class ParameterField:
@@ -127,7 +133,9 @@ class ParameterField:
     dimensions: Dimension = field(converter=u.dimension)
     """The dimensions (unit-wise) of the parameter."""
 
-    doc: str | None = field(default=None, compare=False, converter=Optional(str))
+    doc: str | None = field(
+        default=None, compare=False, converter=Optional(converter_doc)
+    )
 
     # ===========================================
     # Descriptor
@@ -147,7 +155,7 @@ class ParameterField:
     @override
     def __doc__(self) -> str | None:  # type: ignore[override]
         """The docstring of the parameter."""
-        return self.__doc__ if self.doc is None else self.doc
+        return self.doc
 
     # -----------------------------
     # Getting

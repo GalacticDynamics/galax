@@ -30,11 +30,11 @@ from galax.potential._src.params.field import ParameterField
 class AbstractMultipolePotential(AbstractSinglePotential):
     """Abstract Multipole Potential."""
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the multipole potential."""
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Total mass."
+    )
 
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale radius."""
+    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
 
     _: KW_ONLY
     l_max: int = field(static=True)
@@ -53,11 +53,15 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
 
     """
 
-    Slm: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    r"""Spherical harmonic coefficients for the $\cos(m \phi)$ terms."""
+    Slm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Spherical harmonic coefficients for the $\cos(m \phi)$ terms.",
+    )
 
-    Tlm: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    r"""Spherical harmonic coefficients for the $\sin(m \phi)$ terms."""
+    Tlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Spherical harmonic coefficients for the $\sin(m \phi)$ terms.",
+    )
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
@@ -115,11 +119,15 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
 
     """
 
-    Slm: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    r"""Spherical harmonic coefficients for the $\cos(m \phi)$ terms."""
+    Slm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Spherical harmonic coefficients for the $\cos(m \phi)$ terms.",
+    )
 
-    Tlm: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    r"""Spherical harmonic coefficients for the $\sin(m \phi)$ terms."""
+    Tlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Spherical harmonic coefficients for the $\sin(m \phi)$ terms.",
+    )
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
@@ -178,17 +186,25 @@ class MultipolePotential(AbstractMultipolePotential):
 
     """
 
-    ISlm: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    r"""Inner spherical harmonic coefficients for the $\cos(m \phi)$ terms."""
+    ISlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Inner spherical harmonic coefficients for the $\cos(m \phi)$ terms.",
+    )
 
-    ITlm: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    r"""Inner Spherical harmonic coefficients for the $\sin(m \phi)$ terms."""
+    ITlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Inner Spherical harmonic coefficients for the $\sin(m \phi)$ terms.",
+    )
 
-    OSlm: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    r"""Outer spherical harmonic coefficients for the $\cos(m \phi)$ terms."""
+    OSlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Outer spherical harmonic coefficients for the $\cos(m \phi)$ terms.",
+    )
 
-    OTlm: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    r"""Outer Spherical harmonic coefficients for the $\sin(m \phi)$ terms."""
+    OTlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Outer Spherical harmonic coefficients for the $\sin(m \phi)$ terms.",
+    )
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)

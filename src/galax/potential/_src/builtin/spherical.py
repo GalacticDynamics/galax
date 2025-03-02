@@ -14,8 +14,7 @@ __all__ = [
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Annotated as Ann, Any, final
-from typing_extensions import Doc
+from typing import Any, final
 
 import equinox as eqx
 import jax
@@ -46,15 +45,16 @@ class BurkertPotential(AbstractSinglePotential):
 
     """
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    r"""Characteristic mass of the potential.
+    m: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass",
+        doc=r"""Characteristic mass of the potential.
 
     $$ m0 = \pi \rho_0 r_s^3 (3 \log(2) - \pi / 2) $$
 
-    """
+    """,
+    )
 
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale radius"""
+    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius")  # type: ignore[assignment]
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -166,13 +166,13 @@ class BurkertPotential(AbstractSinglePotential):
 class HernquistPotential(AbstractSinglePotential):
     """Hernquist Potential."""
 
-    m_tot: Ann[AbstractParameter, Doc("Total mass of the potential.")] = ParameterField(  # type: ignore[assignment]
-        dimensions="mass"
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Total mass of the potential."
     )
 
-    r_s: Ann[AbstractParameter, Doc("Scale radius")] = ParameterField(
-        dimensions="length"
-    )  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Scale radius."
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -220,16 +220,19 @@ class IsochronePotential(AbstractSinglePotential):
         \Phi = -\frac{G M(t)}{r_s + \sqrt{r^2 + r_s^2}}
     """
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the potential."""
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Total mass of the potential."
+    )
 
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    r"""Scale radius of the potential.
+    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length",
+        doc=r"""Scale radius of the potential.
 
     The value of :math:`r_s` defines the transition between the inner, more
     harmonic oscillator-like behavior of the potential, and the outer, :math:`1
     / r` Keplerian falloff.
-    """
+    """,
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -260,8 +263,8 @@ class IsochronePotential(AbstractSinglePotential):
 class JaffePotential(AbstractSinglePotential):
     """Jaffe Potential."""
 
-    m: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    m: AbstractParameter = ParameterField(dimensions="mass", doc="Characteristic mass.")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale length.")  # type: ignore[assignment]
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
@@ -289,8 +292,9 @@ class KeplerPotential(AbstractSinglePotential):
         \Phi = -\frac{G M(t)}{r}
     """
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Total mass of the potential."""
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Total mass of the potential."
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -337,8 +341,8 @@ class KeplerPotential(AbstractSinglePotential):
 class PlummerPotential(AbstractSinglePotential):
     """Plummer Potential."""
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
+    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale length.")  # type: ignore[assignment]
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -387,14 +391,15 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
         Cutoff radius.
     """  # noqa: E501
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
     """Total mass of the potential."""
 
-    alpha: AbstractParameter = ParameterField(dimensions="dimensionless")  # type: ignore[assignment]
-    """Power law index. Must satisfy: ``0 <= alpha < 3``"""
+    alpha: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc="Power law index. Must satisfy: ``0 <= alpha < 3``",
+    )
 
-    r_c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Cutoff radius."""
+    r_c: AbstractParameter = ParameterField(dimensions="length", doc="Cutoff radius.")  # type: ignore[assignment]
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -444,14 +449,11 @@ class StoneOstriker15Potential(AbstractSinglePotential):
 
     """
 
-    #: Total mass.
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass")  # type: ignore[assignment]
 
-    #: Core radius.
-    r_c: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_c: AbstractParameter = ParameterField(dimensions="length", doc="Core radius.")  # type: ignore[assignment]
 
-    #: Halo radius.
-    r_h: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
+    r_h: AbstractParameter = ParameterField(dimensions="length", doc="Halo radius.")  # type: ignore[assignment]
 
     # def __check_init__(self) -> None:
     #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
@@ -526,22 +528,25 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     Quantity[...](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
     """
 
-    m_tot: AbstractParameter = ParameterField(dimensions="mass")  # type: ignore[assignment]
-    """Mass of the potential."""
+    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
 
-    r_s: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
-    """Scale a scale length that determines the concentration of the system."""
+    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length",
+        doc="Scale a scale length that determines the concentration of the system.",
+    )
 
     # TODO: move to a triaxial wrapper
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""), dimensions="dimensionless"
+        default=u.Quantity(1.0, ""),
+        dimensions="dimensionless",
+        doc="Scale length in the y direction divided by ``c``.",
     )
-    """Scale length in the y direction divided by ``c``."""
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""), dimensions="dimensionless"
+        default=u.Quantity(1.0, ""),
+        dimensions="dimensionless",
+        doc="Scale length in the z direction divided by ``c``.",
     )
-    """Scale length in the z direction divided by ``c``."""
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)

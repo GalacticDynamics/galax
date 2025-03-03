@@ -12,6 +12,7 @@ def test_all() -> None:
         "mockstream",
         "orbit",
         "plot",
+        "examples",
         # fields
         "AbstractField",
         "AbstractOrbitField",

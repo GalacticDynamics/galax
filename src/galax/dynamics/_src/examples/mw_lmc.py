@@ -1,6 +1,10 @@
 """MW + LMC field."""
 
-__all__ = ["RigidMWandLMCField", "make_mw_lmc_potential"]
+__all__ = [
+    "RigidMWandLMCField",
+    "make_mw_lmc_potential",
+    "radial_velocity_dispersion_helper",
+]
 
 
 from collections.abc import Callable
@@ -10,9 +14,11 @@ from typing import Any, TypeAlias, final
 from typing_extensions import override
 
 import equinox as eqx
+import jax
 import jax.tree as jtu
 from jax import lax
-from jaxtyping import Array
+from jax.scipy.integrate import trapezoid
+from jaxtyping import Array, Real
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -27,6 +33,61 @@ from galax.dynamics._src.fields import AbstractField
 
 QPQParr: TypeAlias = tuple[gdt.QParr, gdt.QParr]
 QPQP: TypeAlias = tuple[gdt.QP, gdt.QP]
+
+
+@partial(jax.jit, static_argnames=("log10r_max", "log10r_num"))
+def radial_velocity_dispersion_helper(  # TODO: better name
+    pot: gp.AbstractPotential,
+    /,
+    r: Real[Array, "R"],
+    beta: gt.LikeSz0,
+    *,
+    log10r_max: float = 4.0,  # [kpc]
+    log10r_num: int = 2_000,  # [kpc]
+) -> Real[Array, "R"]:
+    r"""Compute the radial velocity dispersion from spherical Jean's.
+
+    Assuming constant anisotropy $\beta$ and spherical symmetry, the radial
+    velocity dispersion is given by
+
+    $$
+
+        \sigma_r^2 = \frac{r^{-2\beta}}{\rho(r)} \int\limits_{r}^{\infty}
+                     dr^\prime r^{\prime{2\beta} } \rho(r^\prime) \frac{d\Phi}{dr}
+
+    $$
+
+    Examples
+    --------
+    This helper function is mostly for use in constructing a spline for the
+    velocity dispersion function. For example
+
+    >>> import jax
+    >>> import jax.numpy as jnp
+    >>> import interpax
+    >>> import galax.potential as gp
+    >>> mw_pot = gp.MilkyWayPotential(units="galactic")
+
+    >>> r_interp = jnp.logspace(-1, 3., 1000)  # [kpc]
+    >>> beta = .6
+    >>> sigma_r_interp = jax.vmap(radial_velocity_dispersion_helper,in_axes=(None,0,None))(mw_pot, r_interp,beta)
+    >>> sigma_r_func = interpax.Interpolator1D(x=r_interp, f=sigma_r_interp, method='cubic2')
+
+    """  # noqa: E501
+    r_grid = jnp.logspace(jnp.log10(r), log10r_max, num=log10r_num)
+    r_eval = jnp.stack(
+        [r_grid, jnp.zeros_like(r_grid), jnp.zeros_like(r_grid)], axis=-1
+    )
+
+    density = jax.vmap(pot.density, in_axes=(0, None))(r_eval, 0.0)
+    innermost_density = density[0]
+    dphi_dr = jax.vmap(pot.dpotential_dr, in_axes=(0, None))(r_eval, 0.0)
+
+    integrand = jnp.power(r_grid, 2 * beta) * (density * dphi_dr)
+    integral = trapezoid(integrand, x=r_grid)
+
+    sigma2 = jnp.power(r, -2 * beta) / innermost_density * integral
+    return jnp.sqrt(sigma2)
 
 
 @final
@@ -66,7 +127,7 @@ class RigidMWandLMCField(AbstractField):
 
     >>> b_coulomb_min=u.Quantity(1, "kpc")
 
-    >>> field = gd.fields.RigidMWandLMCField(mw_pot=mw_pot, lmc_pot=lmc_pot,
+    >>> field = gd.examples.RigidMWandLMCField(mw_pot=mw_pot, lmc_pot=lmc_pot,
     ...     sigma_func=sigma_fn, b_coulomb_min=b_coulomb_min)
 
     >>> y0 = ((u.Quantity([0, 0, 0], "kpc"), u.Quantity([0, 0, 0], "kpc/Myr")),
@@ -235,6 +296,7 @@ def make_mw_lmc_potential(
     sigma_func: Callable[[gt.Sz3], gt.Sz0] = _sigma_fn,
     b_coulomb_min: u.Quantity["length"] = b_coulomb_min_default,
     t_interp: u.Quantity["time"] = t_interp,
+    solver_kwargs: dict[str, Any] | None = None,
 ) -> gp.CompositePotential:
     """Build a MW + LMC potential.
 
@@ -301,7 +363,7 @@ def make_mw_lmc_potential(
     )
     y0 = (mw_w0, lmc_w0)
 
-    soln = integrate_field(mw_lmc_field, y0, t_interp)
+    soln = integrate_field(mw_lmc_field, y0, t_interp, **(solver_kwargs or {}))
 
     mw_moving = gp.TranslatedPotential(
         mw_pot,

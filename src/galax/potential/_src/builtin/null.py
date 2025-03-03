@@ -42,7 +42,7 @@ class NullPotential(AbstractSinglePotential):
     units: u.AbstractUnitSystem = eqx.field(
         default=u.unitsystems.galactic, converter=u.unitsystem, static=True
     )
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 

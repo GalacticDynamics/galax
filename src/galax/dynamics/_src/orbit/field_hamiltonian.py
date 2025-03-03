@@ -257,7 +257,7 @@ def terms(
     self: HamiltonianField,
     _: dfx.SemiImplicitEuler,
     /,
-) -> tuple[dfx.AbstractTerm, dfx.AbstractTerm]:
+) -> tuple[dfx.ODETerm, dfx.ODETerm]:
     r"""Return the AbstractTerm terms for the SemiImplicitEuler solver.
 
     Examples

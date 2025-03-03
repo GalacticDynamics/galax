@@ -50,7 +50,7 @@ class KuzminPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -93,7 +93,7 @@ class MiyamotoNagaiPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -169,7 +169,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 

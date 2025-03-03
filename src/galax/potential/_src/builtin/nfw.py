@@ -57,7 +57,7 @@ class NFWPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -128,7 +128,7 @@ class NFWPotential(AbstractSinglePotential):
         r_ref: u.Quantity["length"] | None = None,
         *,
         units: u.AbstractUnitSystem | str = "galactic",
-        constants: ImmutableMap[str, u.Quantity] = default_constants,
+        constants: ImmutableMap[str, u.AbstractQuantity] = default_constants,
     ) -> "NFWPotential":
         r"""Create an NFW potential from the circular velocity at a given radius.
 
@@ -255,7 +255,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -382,7 +382,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -587,7 +587,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 

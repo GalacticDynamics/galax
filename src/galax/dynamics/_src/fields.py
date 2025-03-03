@@ -108,7 +108,7 @@ class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
 
 
 @AbstractField.terms.dispatch
-def terms(self: AbstractField, _: dfx.AbstractSolver, /) -> dfx.AbstractTerm:
+def terms(self: AbstractField, _: dfx.AbstractSolver, /) -> dfx.ODETerm:
     """Return diffeq terms, redispatching to the solver.
 
     This is the default implementation, which wraps the field's ``__call__``

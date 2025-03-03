@@ -214,7 +214,7 @@ class TestAbstractPotential(AbstractPotential_Test):
             units: u.AbstractUnitSystem = eqx.field(
                 default=u.unitsystems.galactic, static=True
             )
-            constants: ImmutableMap[str, u.Quantity] = eqx.field(
+            constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
                 default=ImmutableMap(constants_in_usys),
                 converter=ImmutableMap,
             )

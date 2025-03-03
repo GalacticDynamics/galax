@@ -72,7 +72,7 @@ class CompositePotential(
     units: u.AbstractUnitSystem = eqx.field(
         init=False, static=True, converter=u.unitsystem
     )
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 

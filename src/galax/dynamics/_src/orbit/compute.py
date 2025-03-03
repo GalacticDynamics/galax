@@ -52,7 +52,6 @@ def compute_orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential(...),
       interpolant=None
     )
 
@@ -69,7 +68,6 @@ def compute_orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential(...),
       interpolant=None
     )
 
@@ -81,7 +79,6 @@ def compute_orbit(
         q=CartesianPos3D(...), p=CartesianVel3D(...),
         t=Quantity['time'](Array(500., dtype=float64), unit='Myr'),
         frame=SimulationFrame(),
-        potential=KeplerPotential(...),
         interpolant=None
     )
 
@@ -100,7 +97,6 @@ def compute_orbit(
       p=CartesianVel3D(...),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential(...),
       interpolant=None
     )
 
@@ -134,7 +130,6 @@ def compute_orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential(...),
       interpolant=None
     )
 
@@ -179,7 +174,7 @@ def compute_orbit(
         )
 
     # Return the orbit
-    return Orbit.from_(soln, frame=w0.frame, potential=thefield.potential)
+    return Orbit.from_(soln, frame=w0.frame, units=units)
 
 
 @dispatch
@@ -212,4 +207,4 @@ def compute_orbit(
     )
 
     # Return the orbit
-    return Orbit.from_(soln, frame=w0.frame, potential=thefield.potential)
+    return Orbit.from_(soln, frame=w0.frame, units=thefield.units)

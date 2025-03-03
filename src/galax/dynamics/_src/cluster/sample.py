@@ -40,7 +40,7 @@ class ReleaseTimeSampler(eqx.Module):  # type: ignore[misc]
     ...     p=u.Quantity([0, 100, 0], "km/s"), t=u.Quantity(0, "Gyr"))
     >>> orbit = gd.compute_orbit(pot, w0, u.Quantity([0, 2], "Gyr"), dense=True)
 
-    >>> params = {"orbit": orbit, "m_avg": u.Quantity(3, "Msun"),
+    >>> params = {"orbit": orbit, "potential": pot, "m_avg": u.Quantity(3, "Msun"),
     ...           "xi0": 0.001, "alpha": 14.9, "r_hm": u.Quantity(1, "pc")}
 
     >>> M0 = u.Quantity(1e4, "Msun")

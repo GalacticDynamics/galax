@@ -51,8 +51,7 @@ print(orbit)
 #         [[ 0.     0.225  0.   ]
 #          ...
 #          [ 0.018  0.23   0.   ]]>,
-#     t=Quantity['time'](Array([0., ..., 1000.], dtype=float64), unit='Myr'),
-#     potential=MilkyWayPotential(...)
+#     t=Quantity['time'](Array([0., ..., 1000.], dtype=float64), unit='Myr')
 # )
 
 orbit_sph = orbit.vconvert(cx.vecs.LonLatSphericalPos)
@@ -66,8 +65,7 @@ print(orbit_sph)
 #         [[ 0.028  0.     0.   ]
 #          ...
 #          [ 0.03   0.     0.015]]>,
-#     t=Quantity['time'](Array([0., ..., 1000.], dtype=float64), unit='Myr'),
-#     potential=MilkyWayPotential(...})
+#     t=Quantity['time'](Array([0., ..., 1000.], dtype=float64), unit='Myr')
 # )
 ```
 

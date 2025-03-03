@@ -10,9 +10,9 @@ __all__: list[str] = []
 import diffrax as dfx
 
 import coordinax as cx
+import unxt as u
 
 import galax.coordinates as gc
-import galax.potential as gp
 from .interp import PhaseSpaceInterpolation
 from .orbit import Orbit
 
@@ -22,8 +22,8 @@ def from_(
     cls: type[Orbit],
     soln: dfx.Solution,
     *,
+    units: u.AbstractUnitSystem,  # not dispatched on, but
     frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
-    potential: gp.AbstractPotential,  # not dispatched on, but required
     unbatch_time: bool = True,
 ) -> Orbit:
     r"""Create a `galax.dynamics.Orbit` from a `diffrax.Solution`.
@@ -53,7 +53,7 @@ def from_(
     >>> (soln.ts.shape, jax.tree.map(lambda x: x.shape, soln.ys))
     ((71,), ((71, 3), (71, 3)))
 
-    >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, potential=pot)
+    >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(orbit[..., :3])
     Orbit(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -66,7 +66,6 @@ def from_(
              [ 0.102  0.644  0.   ]]>,
         t=Quantity['time'](Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
         frame=SimulationFrame(),
-        potential=HernquistPotential( ... ),
         interpolant=PhaseSpaceInterpolation( ... ))
 
     Solving batched initial conditions:
@@ -78,7 +77,7 @@ def from_(
     >>> (soln.ts.shape, jax.tree.map(lambda x: x.shape, soln.ys))
     ((71,), ((71, 2, 3), (71, 2, 3)))
 
-    >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, potential=pot)
+    >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(orbit[..., :3])
     Orbit(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -97,7 +96,6 @@ def from_(
               [ 0.043 -0.549  0.014]]]>,
         t=Quantity['time'](Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
         frame=SimulationFrame(),
-        potential=HernquistPotential( ... ),
         interpolant=PhaseSpaceInterpolation( ... ))
 
     Solving batched times and initial conditions:
@@ -109,7 +107,7 @@ def from_(
     >>> (soln.ts.shape, jax.tree.map(lambda x: x.shape, soln.ys))
     ((71,), ((2, 71, 3), (2, 71, 3)))
 
-    >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, potential=pot)
+    >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(orbit[..., :3])
     Orbit(
         q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
@@ -128,21 +126,19 @@ def from_(
               [-0.143 -0.167 -0.048]]]>,
         t=Quantity['time'](Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
         frame=SimulationFrame(),
-        potential=HernquistPotential( ... ),
         interpolant=PhaseSpaceInterpolation( ... ))
 
     """  # noqa: E501
     # TODO: don't double construct?
     w = gc.PhaseSpaceCoordinate.from_(
-        soln, frame=frame, units=potential.units, unbatch_time=unbatch_time
+        soln, frame=frame, units=units, unbatch_time=unbatch_time
     )
     return cls(
         q=w.q,
         p=w.p,
         t=w.t,
         frame=w.frame,
-        potential=potential,
         interpolant=None
         if soln.interpolation is None
-        else PhaseSpaceInterpolation(soln.interpolation, units=potential.units),
+        else PhaseSpaceInterpolation(soln.interpolation, units=units),
     )

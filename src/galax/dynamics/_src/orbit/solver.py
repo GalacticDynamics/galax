@@ -30,15 +30,12 @@ import galax.dynamics._src.custom_types as gdt
 from .field_base import AbstractOrbitField
 from galax.dynamics._src.solver import AbstractSolver, SolveState, Terms
 from galax.dynamics._src.utils import parse_saveat, parse_to_t_y
+from galax.dynamics.fields import AbstractField
 from galax.utils import loop_strategies as lstrat
 
 BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
 
 default_saveat = dfx.SaveAt(t1=True)
-
-
-def _parse_field(field: AbstractOrbitField | Terms, solver: AbstractSolver) -> Terms:
-    return field.terms(solver) if isinstance(field, AbstractOrbitField) else field
 
 
 @final
@@ -194,27 +191,27 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
         >>> y0 = (jnp.array([8,0,0]), jnp.array([0,0.22499669,0]))  # ([kpc], [kpc/Myr])
         >>> t0 = 0
-        >>> solver.init(field, y0, t0, None, units=pot.units)
+        >>> solver.init(field, y0, t0, None)
         SolveState( t=weak_i64[], y=(f64[3], f64[3]), ... )
 
         - From an (N, 6) `jax.Array`:
 
         >>> y0 = jnp.concatenate(y0)
-        >>> solver.init(field, y0, t0, None, units=pot.units)
+        >>> solver.init(field, y0, t0, None)
         SolveState( t=weak_i64[], y=(f64[3], f64[3]), ... )
 
         - From a tuple of `unxt.Quantity`:
 
         >>> y0 = (u.Quantity([8, 0, 0], "kpc"), u.Quantity([0, 220, 0], "km/s"))
         >>> t0 = u.Quantity(0, "Gyr")
-        >>> solver.init(field, y0, t0, None, units=pot.units)
+        >>> solver.init(field, y0, t0, None)
         SolveState( t=weak_f64[], y=(f64[3], f64[3]), ... )
 
         - From a tuple of `coordinax.vecs.AbstractVector`:
 
         >>> q0 = cx.vecs.CartesianPos3D.from_([[8, 0, 0], [9, 0, 0]], "kpc")
         >>> p0 = cx.vecs.CartesianVel3D.from_([0, 220, 0], "km/s")
-        >>> solver.init(field, (q0, p0), t0, None, units=pot.units)
+        >>> solver.init(field, (q0, p0), t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
         - From a `coordinax.vecs.Space`:
@@ -325,12 +322,11 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
                 [-0.20914465,  0.19739402, -0.06971488]], dtype=float64))
 
         """
-        terms = _parse_field(field, self)
         t1_ = u.ustrip(AllowValue, state.units["time"], t1)
         step_kwargs.setdefault("made_jump", False)
         # TODO: figure out stepping over batched `state`
         outstate: SolveState = self._step_impl_scalar(
-            terms, state, t1_, args, step_kwargs
+            field, state, t1_, args, step_kwargs
         )
         return outstate
 
@@ -391,7 +387,7 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     @dispatch.abstract
     def solve(
         self: "OrbitSolver",
-        field: Any,
+        field: AbstractField,
         w0: Any,
         t0: Any,
         t1: Any,
@@ -654,53 +650,31 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 # ===============================================
 # Init Dispatches
 
-OptUSys: TypeAlias = u.AbstractUnitSystem | None
-
-
-def parse_field(
-    field: AbstractOrbitField | Terms, context: OrbitSolver, units: OptUSys, /
-) -> tuple[Terms, u.AbstractUnitSystem]:
-    if isinstance(field, AbstractOrbitField):
-        terms = field.terms(context)
-        units = units if units is not None else field.units
-        units = eqx.error_if(units, units != field.units, "units must match field")
-    else:
-        terms = field
-        units = eqx.error_if(units, units is None, "units must be specified")
-
-    return terms, units
-
 
 @OrbitSolver.init.dispatch
 def init(
     self: OrbitSolver,
-    field: AbstractOrbitField | Terms,
+    field: AbstractOrbitField,
     qp: Any,
     t0: gt.BBtQuSz0 | gt.BBtLikeSz0,
     args: gt.OptArgs = None,
     /,
-    *,
-    units: OptUSys = None,
 ) -> SolveState:
     """Initialize from terms, unit/array tuple, and time."""
-    terms, units = parse_field(field, self, units)
-    t0, y0 = parse_to_t_y(None, t0, qp, ustrip=units)  # TODO: frame
-    return self._init_impl(terms, t0, y0, args, units)
+    t0, y0 = parse_to_t_y(None, t0, qp, ustrip=field.units)  # TODO: frame
+    return self._init_impl(field, t0, y0, args, field.units)
 
 
 @OrbitSolver.init.dispatch
 def init(
     self: OrbitSolver,
-    field: AbstractOrbitField | Terms,
+    field: AbstractOrbitField,
     tqp: Any,
     args: gt.OptArgs = None,
     /,
-    *,
-    units: OptUSys = None,
 ) -> SolveState:
-    terms, units = parse_field(field, self, units)
-    t0, y0 = parse_to_t_y(None, tqp, ustrip=units)  # TODO: frame
-    return self.init(terms, y0, t0, args, units=units)
+    t0, y0 = parse_to_t_y(None, tqp, ustrip=field.units)  # TODO: frame
+    return self.init(field, y0, t0, args)
 
 
 # Composite PSPs
@@ -711,11 +685,8 @@ def init(
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
     args: gt.OptArgs = None,
     /,
-    *,
-    units: OptUSys = None,
 ) -> dict[str, SolveState]:
-    terms, units = parse_field(field, self, units)
-    return {k: self.init(terms, w0, args, units=units) for k, w0 in w0s.items()}
+    return {k: self.init(field, w0, args) for k, w0 in w0s.items()}
 
 
 # ===============================================
@@ -725,14 +696,13 @@ def init(
 @OrbitSolver.run.dispatch
 def run(
     self: OrbitSolver,
-    field: AbstractOrbitField | Terms,
+    field: AbstractOrbitField,
     state: SolveState,
     t1: Any,
     args: PyTree,
     /,
     **solver_kw: Any,
 ) -> SolveState:
-    terms = _parse_field(field, self)  # Parse the terms
     t1 = u.ustrip(AllowValue, state.units["time"], t1)  # Parse the time
     # Validate the solver keyword arguments
     solver_kw = eqx.error_if(
@@ -753,7 +723,7 @@ def run(
     # vmap over the solver
     @partial(jax.vmap, in_axes=(0, 0, jtu.map(lambda _: 0, y0)))
     def runner(t0: gt.Sz0, t1: gt.Sz0, y0: PyTree, /) -> dfx.Solution:
-        return self(terms, t0=t0, t1=t1, y0=y0, args=args, **solver_kw)
+        return self(field, t0=t0, t1=t1, y0=y0, args=args, **solver_kw)
 
     soln = runner(t0_f, t1_f, y0_f)
 
@@ -782,7 +752,7 @@ def run(
 @OrbitSolver.run.dispatch
 def run(
     self: OrbitSolver,
-    field: AbstractOrbitField | Terms,
+    field: AbstractOrbitField,
     state: dict[str, SolveState],
     t1: Any,
     args: PyTree,
@@ -817,12 +787,11 @@ def solve(
     """Solve for batch position tuple, scalar start, end time."""
     # Parse inputs
     usys = field.units
-    terms = field.terms(self)
 
     # Run the solver
     solver_kw["saveat"] = parse_saveat(usys, saveat, dense=solver_kw.pop("dense", None))
     solver_kw.setdefault("dt0", None)
-    soln = self(terms, t0=t0, t1=t1, y0=qp0, args=args, **solver_kw)
+    soln = self(field, t0=t0, t1=t1, y0=qp0, args=args, **solver_kw)
 
     # Possibly unbatch in the time dimension.
     if unbatch_time and soln.ts.shape[soln.t0.ndim] == 1:
@@ -884,7 +853,7 @@ def solve(
 def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Determine],  # noqa: ARG001
-    field: AbstractOrbitField | Terms,
+    field: AbstractOrbitField,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -918,7 +887,7 @@ def _is_saveat_arr(saveat: Any, /) -> bool:
 def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Vectorize],  # noqa: ARG001
-    field: AbstractOrbitField | Terms,
+    field: AbstractOrbitField,
     qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -963,7 +932,7 @@ def solve(
 def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
-    field: AbstractOrbitField | Terms,
+    field: AbstractOrbitField,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
@@ -1018,7 +987,7 @@ def solve(
 def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
-    field: AbstractOrbitField | Terms,
+    field: AbstractOrbitField,
     qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,

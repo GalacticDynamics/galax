@@ -109,9 +109,16 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[
     @partial(jnp.vectorize, excluded=(0, 1, 3, 4, 5))
     @partial(eqx.filter_jit)
     def _init_impl(
-        self, terms: Terms, t0: gt.SzAny, y0: PyTree, args: Any, units: USys, /
+        self,
+        field: AbstractField,
+        t0: gt.SzAny,
+        y0: PyTree,
+        args: Any,
+        units: USys,
+        /,
     ) -> SolveState:
         """`init` helper."""
+        terms = field.terms(self)
         # Initializes the state from diffrax. Steps from t0 to t0!
         solver_state = self.solver.init(terms, t0, t0, y0, args)
         # Step from t0 to t0, which is a no-op but sets the state
@@ -129,12 +136,13 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[
 
     def _step_impl_scalar(
         self,
-        terms: Terms,
+        field: AbstractField | Terms,
         state: SolveState,
         t1: gt.Sz0,
         args: Any,
         step_kw: dict[str, Any],
     ) -> SolveState:
+        terms = _parse_field(field, self)
         t0 = state.t
         t0 = eqx.error_if(t0, t0.ndim != 0, "t0 must be a scalar")
         step_output = self.solver.step(
@@ -206,6 +214,10 @@ def from_(cls: type[AbstractSolver], solver: dfxtra.DiffEqSolver) -> AbstractSol
 
     """
     return cls(**{f.name: getattr(solver, f.name) for f in fields(cls)})
+
+
+def _parse_field(field: AbstractField | Terms, solver: AbstractSolver) -> Terms:
+    return field.terms(solver) if isinstance(field, AbstractField) else field
 
 
 # ==================================================================
@@ -414,8 +426,6 @@ def integrate_field(
         if not isinstance(solver, dfxtra.AbstractDiffEqSolver)
         else solver
     )
-    # Solve for the terms given the solver
-    terms_ = field.terms(solver)
     # Parse t0, y0. Important for Quantities
     _, y0 = field.parse_inputs(ts[0], y0, ustrip=True)  # Parse inputs
 
@@ -433,5 +443,5 @@ def integrate_field(
 
     # Call solver
     return solver_(
-        terms_, t0=t0, t1=t1, dt0=None, y0=y0, args=args, saveat=saveat, **solver_kwargs
+        field, t0=t0, t1=t1, dt0=None, y0=y0, args=args, saveat=saveat, **solver_kwargs
     )

@@ -27,6 +27,6 @@ from .solver import OrbitSolver
 
 # Register by import
 # isort: split
-from . import compute, register_dfx, register_gc  # noqa: F401
+from . import compute, register_dfx  # noqa: F401
 
 ProxyAbstractOrbit.deliver(AbstractOrbit)

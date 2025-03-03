@@ -4,11 +4,12 @@ __all__ = ["AbstractField"]
 
 from collections.abc import Callable
 from dataclasses import KW_ONLY
+from functools import partial
 from typing import Any
 
 import diffrax as dfx
 import equinox as eqx
-from jaxtyping import PyTree
+from jaxtyping import ArrayLike, PyTree
 from plum import dispatch
 
 import diffraxtra as dfxtra
@@ -157,3 +158,30 @@ def terms(
 
     """
     return self.terms(wrapper.solver)
+
+
+# ==================================================================
+# Compatibility with `diffraxtra.AbstractDiffEqSolver`
+
+
+@dfxtra.AbstractDiffEqSolver.__call__.dispatch(precedence=1)  # type: ignore[misc]
+@partial(eqx.filter_jit)
+def call(
+    self: dfxtra.AbstractDiffEqSolver,
+    field: AbstractField,
+    /,
+    t0: Any,
+    t1: Any,
+    dt0: Any | None,
+    y0: PyTree[ArrayLike],
+    args: PyTree[Any] = None,
+    **kwargs: Any,
+) -> dfx.Solution:
+    """`diffraxtra.AbstractDiffEqSolver` supports `galax.dynamics.AbstractField`.
+
+    Re-dispatches to `diffraxtra.AbstractDiffEqSolver` after determining the
+    terms structure.
+
+    """
+    terms = field.terms(self.solver)
+    return self(terms, t0, t1, dt0, y0, args, **kwargs)

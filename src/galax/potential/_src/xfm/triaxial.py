@@ -67,7 +67,7 @@ class TriaxialInThePotential(AbstractTransformedPotential):
     """
 
     #: the original potential
-    original_potential: AbstractPotential
+    base_potential: AbstractPotential
 
     y_over_x: AbstractParameter = ParameterField(  # type: ignore[assignment]
         default=u.Quantity(1, ""),
@@ -90,4 +90,4 @@ class TriaxialInThePotential(AbstractTransformedPotential):
         xyz = xyz.at[..., 2].divide(self.z_over_x(t, ustrip=u1))
 
         # Evaluate the potential energy at the transformed position, time.
-        return self.original_potential._potential(xyz, t)  # noqa: SLF001
+        return self.base_potential._potential(xyz, t)  # noqa: SLF001

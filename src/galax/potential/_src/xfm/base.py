@@ -14,16 +14,17 @@ from galax.potential._src.base import AbstractPotential
 class AbstractTransformedPotential(AbstractPotential):
     """ABC for transformations of a potential."""
 
-    original_potential: AbstractPotential
+    base_potential: AbstractPotential
+    """The base potential."""
 
     @property
     def units(self) -> u.AbstractUnitSystem:
         """The unit system of the potential."""
-        return cast(u.AbstractUnitSystem, self.original_potential.units)
+        return cast(u.AbstractUnitSystem, self.base_potential.units)
 
     @property
     def constants(self) -> ImmutableMap[str, u.AbstractQuantity]:
         """The constants of the potential."""
         return cast(
-            ImmutableMap[str, u.AbstractQuantity], self.original_potential.constants
+            ImmutableMap[str, u.AbstractQuantity], self.base_potential.constants
         )

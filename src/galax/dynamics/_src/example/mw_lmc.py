@@ -271,12 +271,12 @@ def make_mw_lmc_potential(
     ...      t_interp=u.Quantity(jnp.linspace(-0, -14, 1_000), "Gyr"))
     >>> mw_lmc_pot
     CompositePotential({'mw': TranslatedPotential(
-      original_potential=MilkyWayPotential( ... ),
+      base_potential=MilkyWayPotential( ... ),
       translation=TimeDependentTranslationParameter(
         translation=CubicSpline( ... ), units=...
       )
     ), 'lmc': TranslatedPotential(
-      original_potential=NFWPotential( ... ),
+      base_potential=NFWPotential( ... ),
       translation=TimeDependentTranslationParameter(
         translation=CubicSpline( ... ),
         units=...

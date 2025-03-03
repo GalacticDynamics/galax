@@ -85,7 +85,7 @@ class BovyMWPotential2014(AbstractPreCompositedPotential):
     units: u.AbstractUnitSystem = eqx.field(
         default=u.unitsystems.galactic, static=True, converter=u.unitsystem
     )
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -157,7 +157,7 @@ class LM10Potential(AbstractPreCompositedPotential):
     units: u.AbstractUnitSystem = eqx.field(
         default=u.unitsystems.galactic, static=True, converter=u.unitsystem
     )
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -224,7 +224,7 @@ class MilkyWayPotential(AbstractPreCompositedPotential):
     units: u.AbstractUnitSystem = eqx.field(
         default=u.unitsystems.galactic, static=True, converter=u.unitsystem
     )
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -301,6 +301,6 @@ class MilkyWayPotential2022(AbstractPreCompositedPotential):
     units: u.AbstractUnitSystem = eqx.field(
         default=u.unitsystems.galactic, static=True, converter=u.unitsystem
     )
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )

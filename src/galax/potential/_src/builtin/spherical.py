@@ -58,7 +58,7 @@ class BurkertPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -176,7 +176,7 @@ class HernquistPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -236,7 +236,7 @@ class IsochronePotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -298,7 +298,7 @@ class KeplerPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -346,7 +346,7 @@ class PlummerPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -403,7 +403,7 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
 
@@ -550,7 +550,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.Quantity] = eqx.field(
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         converter=ImmutableMap, default=default_constants
     )
 

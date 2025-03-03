@@ -19,6 +19,7 @@ from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
 from .base import AbstractTransformedPotential
+from galax.dynamics._src.utils import cond_reverse
 from galax.potential._src.base import AbstractPotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -191,7 +192,12 @@ class TimeDependentTranslationParameter(AbstractParameter):
         *,
         units: u.AbstractUnitSystem,
     ) -> "TimeDependentTranslationParameter":
-        spl = interpax.CubicSpline(t, xyz)
+        # Parse inputs
+        pred = t[1] < t[0]
+        t, xyz = cond_reverse(pred, t), cond_reverse(pred, xyz)
+        # Interpolate the translation
+        spl = interpax.CubicSpline(t, xyz, extrapolate=False)
+        # Return the translation parameter
         return cls(translation=spl, units=units)
 
     @classmethod

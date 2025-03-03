@@ -1,6 +1,6 @@
 """MW + LMC field."""
 
-__all__ = ["MWandLMCField"]
+__all__ = ["RigidMWandLMCField", "make_mw_lmc_potential"]
 
 
 from collections.abc import Callable
@@ -30,7 +30,7 @@ QPQP: TypeAlias = tuple[gdt.QP, gdt.QP]
 
 
 @final
-class MWandLMCField(AbstractField):
+class RigidMWandLMCField(AbstractField):
     """Dually evolving MW and LMC potentials.
 
     This field evolves the MW and LMC potentials simultaneously, treating the MW
@@ -47,8 +47,8 @@ class MWandLMCField(AbstractField):
     lmc_pot
         LMC Potential.
     sigma_func
-        Velocity dispersion function of the MW at the LMC position.
-        Maps (Array[float, (3)]) -> Array[float, ()].
+        Velocity dispersion function of the MW at the LMC position. Maps
+        (Array[float, (3)]) -> Array[float, ()].
     b_coulomb_min
         Minimum impact parameter for Coulomb logarithm.
 
@@ -66,7 +66,7 @@ class MWandLMCField(AbstractField):
 
     >>> b_coulomb_min=u.Quantity(1, "kpc")
 
-    >>> field = gd.fields.MWandLMCField(mw_pot=mw_pot, lmc_pot=lmc_pot,
+    >>> field = gd.fields.RigidMWandLMCField(mw_pot=mw_pot, lmc_pot=lmc_pot,
     ...     sigma_func=sigma_fn, b_coulomb_min=b_coulomb_min)
 
     >>> y0 = ((u.Quantity([0, 0, 0], "kpc"), u.Quantity([0, 0, 0], "kpc/Myr")),
@@ -128,7 +128,7 @@ class MWandLMCField(AbstractField):
 
     @AbstractField.parse_inputs.dispatch  # type: ignore[misc]
     def parse_inputs(
-        self: "MWandLMCField",
+        self: "RigidMWandLMCField",
         t0: gt.LikeSz0 | gt.QuSz0,
         y0: QPQParr | QPQP,
         /,
@@ -159,10 +159,10 @@ def _parse_y0(y0: QPQParr | QPQP, /, units: u.AbstractUnitSystem) -> QPQParr:
 # Call
 
 
-@MWandLMCField.__call__.dispatch
+@RigidMWandLMCField.__call__.dispatch
 @partial(eqx.filter_jit)
 def __call__(
-    self: MWandLMCField, t: gt.LikeSz0, coords: QPQParr, _: gt.OptArgs = None, /
+    self: RigidMWandLMCField, t: gt.LikeSz0, coords: QPQParr, _: gt.OptArgs = None, /
 ) -> QPQParr:
     mw_x0, mw_v0 = coords[0]  # MW position and velocity
     lmc_x1, lmc_v1 = coords[1]  # LMC position and velocity
@@ -197,10 +197,10 @@ def __call__(
     return ((mw_v0, mw_a), (lmc_v1, lmc_a))
 
 
-@MWandLMCField.__call__.dispatch
+@RigidMWandLMCField.__call__.dispatch
 @partial(eqx.filter_jit)
 def __call__(
-    self: MWandLMCField, t: gt.QuSz0, coords: QPQP, args: gt.OptArgs = None, /
+    self: RigidMWandLMCField, t: gt.QuSz0, coords: QPQP, args: gt.OptArgs = None, /
 ) -> QPQParr:
     t = u.ustrip(AllowValue, self.units["time"], t)
     coords = jtu.map(
@@ -209,3 +209,111 @@ def __call__(
         is_leaf=u.quantity.is_any_quantity,
     )
     return self(t, coords, args)
+
+
+# ============================================================================
+
+
+def _sigma_fn(_: gt.Sz3, /) -> gt.Sz0:
+    """Velocity dispersion function of the MW at the LMC position.
+
+    Maps (Array[float, (3)]) -> Array[float, ()].
+
+    """
+    return u.Quantity(130, "km/s").ustrip("kpc/Myr")
+
+
+t_interp = u.Quantity(jnp.linspace(0, -14, 10_000), "Gyr")
+b_coulomb_min_default = u.Quantity(1, "kpc")
+
+
+def make_mw_lmc_potential(
+    mw_pot: gp.AbstractPotential,
+    lmc_pot: gp.AbstractPotential,  # LMC potential
+    mw_w0: gdt.QP | gdt.QParr,  # MW present-day phase-space position
+    lmc_w0: gdt.QP | gdt.QParr,  # LMC present-day phase-space position
+    sigma_func: Callable[[gt.Sz3], gt.Sz0] = _sigma_fn,
+    b_coulomb_min: u.Quantity["length"] = b_coulomb_min_default,
+    t_interp: u.Quantity["time"] = t_interp,
+) -> gp.CompositePotential:
+    """Build a MW + LMC potential.
+
+    Parameters
+    ----------
+    mw_pot
+        Milky Way Potential.
+    lmc_pot
+        LMC Potential.
+    mw_w0
+        MW present-day phase-space position.
+    lmc_w0
+        LMC present-day phase-space position.
+    sigma_func
+        Velocity dispersion function of the MW at the LMC position.
+        Maps (Array[float, (3)]) -> Array[float, ()].
+    b_coulomb_min
+        Minimum impact parameter for Coulomb logarithm.
+
+    Examples
+    --------
+    >>> def sigma_fn(xyz):
+    ...     return u.Quantity(130, "km/s").ustrip("kpc/Myr")
+
+    >>> mw_pot = gp.MilkyWayPotential(units="galactic")
+    >>> lmc_pot = gp.NFWPotential(m=1e11, r_s=5, units="galactic")
+
+    >>> mw_w0 = (u.Quantity([0, 0, 0], "kpc"), u.Quantity([0, 0, 0], "kpc/Myr"))
+    >>> lmc_w0 = (u.Quantity([-0.8, -41.5, -26.8], "kpc"),
+    ...           u.Quantity([-56, -219, 186], "km/s"))
+
+    >>> mw_lmc_pot = make_mw_lmc_potential(mw_pot, lmc_pot, mw_w0, lmc_w0,
+    ...      sigma_func=sigma_fn, b_coulomb_min=u.Quantity(1, "kpc"),
+    ...      t_interp=u.Quantity(jnp.linspace(-0, -14, 1_000), "Gyr"))
+    >>> mw_lmc_pot
+    CompositePotential({'mw': TranslatedPotential(
+      original_potential=MilkyWayPotential( ... ),
+      translation=TimeDependentTranslationParameter(
+        translation=CubicSpline( ... ), units=...
+      )
+    ), 'lmc': TranslatedPotential(
+      original_potential=NFWPotential( ... ),
+      translation=TimeDependentTranslationParameter(
+        translation=CubicSpline( ... ),
+        units=...
+      )
+    )})
+
+    """
+    from galax.dynamics import integrate_field
+
+    # Check that the units of the potentials match
+    units = eqx.error_if(
+        mw_pot.units,
+        mw_pot.units != lmc_pot.units,
+        "Units of MW and LMC potentials must match.",
+    )
+
+    mw_lmc_field = RigidMWandLMCField(
+        mw_pot=mw_pot,
+        lmc_pot=lmc_pot,
+        sigma_func=sigma_func,
+        b_coulomb_min=b_coulomb_min,
+    )
+    y0 = (mw_w0, lmc_w0)
+
+    soln = integrate_field(mw_lmc_field, y0, t_interp)
+
+    mw_moving = gp.TranslatedPotential(
+        mw_pot,
+        gp.params.TimeDependentTranslationParameter.from_(
+            soln.ts, soln.ys[0][0], units=units
+        ),
+    )
+    lmc_moving = gp.TranslatedPotential(
+        lmc_pot,
+        gp.params.TimeDependentTranslationParameter.from_(
+            soln.ts, soln.ys[1][0], units=units
+        ),
+    )
+
+    return gp.CompositePotential(mw=mw_moving, lmc=lmc_moving)

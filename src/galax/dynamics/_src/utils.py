@@ -4,14 +4,20 @@ This is private API.
 
 """
 
-__all__ = ["parse_saveat", "parse_to_t_y"]
+__all__ = [
+    "parse_saveat",
+    "parse_to_t_y",
+    "cond_reverse",
+]
 
 from dataclasses import replace
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, TypeVar, cast
 
 import diffrax as dfx
 import equinox as eqx
-from jaxtyping import ArrayLike
+import jax
+import optype as op
+from jaxtyping import Array, ArrayLike, Bool
 from plum import convert, dispatch
 
 import coordinax.frames as cxf
@@ -560,3 +566,23 @@ def parse_to_t_y(
     to_frame: OptRefFrame, wt: gc.PhaseSpaceCoordinate, /, *, ustrip: UnitSystem
 ) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
     return parse_to_t_y(to_frame, wt.t, (wt.q, wt.p), ustrip=ustrip)
+
+
+#####################################################################
+
+
+T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
+
+
+def _identity(x: T) -> T:
+    return x
+
+
+def _reverse(x: op.CanGetitem[Any, T]) -> T:
+    return x[::-1]
+
+
+def cond_reverse(pred: Bool[Array, ""], x: T) -> T:
+    """Reverse `x` if `pred` is True."""
+    return cast(T, jax.lax.cond(pred, _reverse, _identity, x))

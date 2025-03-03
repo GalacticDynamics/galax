@@ -52,6 +52,9 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     from . import cluster, fields, integrate, mockstream, plot
     from ._src.api import omega, specific_angular_momentum
     from ._src.cluster import lagrange_points, tidal_radius
+    from ._src.example.mw_lmc import (  # TODO: make public
+        make_mw_lmc_potential,  # noqa: F401
+    )
     from ._src.parsetime import parse_time_specification
     from ._src.solver import AbstractSolver, SolveState, integrate_field
     from .fields import AbstractField, AbstractOrbitField, HamiltonianField, NBodyField

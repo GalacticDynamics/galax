@@ -64,10 +64,10 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> op1
     GalileanSpatialTranslation(CartesianPos3D( ... ))
 
-    >>> xpot1 = gp.TransformedPotential(original_potential=pot, xop=op1)
+    >>> xpot1 = gp.TransformedPotential(base_potential=pot, xop=op1)
     >>> xpot1
     TransformedPotential(
-      original_potential=TriaxialHernquistPotential( ... ),
+      base_potential=TriaxialHernquistPotential( ... ),
       xop=GalileanSpatialTranslation(
         translation=CartesianPos3D( ... )
       )
@@ -91,7 +91,7 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> op2.translation.t.uconvert("Myr")  # doctest: +SKIP
     Quantity['time'](Array(3.26156378, dtype=float64), unit='Myr')
 
-    >>> xpot2 = gp.TransformedPotential(original_potential=pot, xop=op2)
+    >>> xpot2 = gp.TransformedPotential(base_potential=pot, xop=op2)
 
     We can see that the potential energy is the same as before, since we have
     been evaluating the potential at ``w1.t=t=0``:
@@ -113,7 +113,7 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> op3
     GalileanBoost(CartesianVel3D( ... ))
 
-    >>> xpot3 = gp.TransformedPotential(original_potential=pot, xop=op3)
+    >>> xpot3 = gp.TransformedPotential(base_potential=pot, xop=op3)
     >>> xpot3.potential(w2)
     Quantity[...](Array(-1.37421204, dtype=float64), unit='kpc2 / Myr2')
 
@@ -124,7 +124,7 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> op4
     GalileanRotation(rotation=f64[3,3])
 
-    >>> xpot4 = gp.TransformedPotential(original_potential=pot, xop=op4)
+    >>> xpot4 = gp.TransformedPotential(base_potential=pot, xop=op4)
     >>> xpot4.potential(w1)
     Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
@@ -148,7 +148,7 @@ class TransformedPotential(AbstractTransformedPotential):
       velocity=GalileanBoost( ... )
     )
 
-    >>> xpot5 = gp.TransformedPotential(original_potential=pot, xop=op5)
+    >>> xpot5 = gp.TransformedPotential(base_potential=pot, xop=op5)
     >>> xpot5.potential(w2)
     Quantity[...](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
@@ -156,7 +156,7 @@ class TransformedPotential(AbstractTransformedPotential):
     will make a sequence that mimics the previous example:
 
     >>> op6 = op4 | op2 | op3
-    >>> xpot6 = gp.TransformedPotential(original_potential=pot, xop=op6)
+    >>> xpot6 = gp.TransformedPotential(base_potential=pot, xop=op6)
     >>> xpot6.potential(w2)
     Quantity[...](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
@@ -170,7 +170,7 @@ class TransformedPotential(AbstractTransformedPotential):
     ...     r_s=u.Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
 
     >>> op7 = gc.ops.ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg/Gyr"))
-    >>> xpot7 = gp.TransformedPotential(original_potential=pot2, xop=op7)
+    >>> xpot7 = gp.TransformedPotential(base_potential=pot2, xop=op7)
 
     The potential energy at a given position will change with time:
 
@@ -181,7 +181,7 @@ class TransformedPotential(AbstractTransformedPotential):
 
     """  # noqa: E501
 
-    original_potential: AbstractPotential
+    base_potential: AbstractPotential
 
     xop: cxo.AbstractOperator = eqx.field(default=cxo.Identity())
     """Transformation to reference frame of the potential.
@@ -217,7 +217,7 @@ class TransformedPotential(AbstractTransformedPotential):
         t = u.Quantity.from_(t, self.units["time"])  # TODO: no munge
         qp, tp = inv(xyz, t)
         # Evaluate the potential energy at the transformed position, time.
-        return self.original_potential._potential(qp, tp)  # noqa: SLF001
+        return self.base_potential._potential(qp, tp)  # noqa: SLF001
 
 
 #####################################################################
@@ -239,13 +239,13 @@ def simplify_op(pot: TransformedPotential, /) -> TransformedPotential:
     >>> xpot = gp.TransformedPotential(pot, op)
     >>> xpot
     TransformedPotential(
-      original_potential=KeplerPotential( ... ),
+      base_potential=KeplerPotential( ... ),
       xop=GalileanRotation(rotation=f64[3,3])
     )
 
     >>> cx.ops.simplify_op(xpot)
     TransformedPotential(
-      original_potential=KeplerPotential( ... ),
+      base_potential=KeplerPotential( ... ),
       xop=Identity()
     )
 

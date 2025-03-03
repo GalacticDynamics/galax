@@ -80,7 +80,7 @@ class TranslatedPotential(AbstractTransformedPotential):
 
     >>> delta = gp.params.TimeDependentTranslationParameter.from_(
     ...     path_t, trajectory, units=pot.units)
-    >>> pot_tdelta = gp.TranslatedPotential(original_potential=pot,
+    >>> pot_tdelta = gp.TranslatedPotential(base_potential=pot,
     ...                                     translation=delta)
 
     >>> pot_tdelta.potential(xyz, t)
@@ -92,7 +92,7 @@ class TranslatedPotential(AbstractTransformedPotential):
     """
 
     #: the original potential
-    original_potential: AbstractPotential
+    base_potential: AbstractPotential
 
     translation: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
@@ -107,7 +107,7 @@ class TranslatedPotential(AbstractTransformedPotential):
         xyz = xyz - delta
 
         # Evaluate the potential energy at the transformed position, time.
-        return self.original_potential._potential(xyz, t)  # noqa: SLF001
+        return self.base_potential._potential(xyz, t)  # noqa: SLF001
 
 
 # ============================================================================
@@ -150,7 +150,7 @@ class TimeDependentTranslationParameter(AbstractParameter):
 
     >>> delta = gp.params.TimeDependentTranslationParameter.from_(
     ...     path_t, trajectory, units=pot.units)
-    >>> pot_tdelta = gp.TranslatedPotential(original_potential=pot,
+    >>> pot_tdelta = gp.TranslatedPotential(base_potential=pot,
     ...                                     translation=delta)
 
     >>> pot_tdelta.potential(xyz, t)

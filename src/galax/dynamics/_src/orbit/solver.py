@@ -654,7 +654,6 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 # ===============================================
 # Init Dispatches
 
-OptArgs: TypeAlias = dict[str, Any] | None
 OptUSys: TypeAlias = u.AbstractUnitSystem | None
 
 
@@ -678,7 +677,7 @@ def init(
     field: AbstractOrbitField | Terms,
     qp: Any,
     t0: gt.BBtQuSz0 | gt.BBtLikeSz0,
-    args: OptArgs = None,
+    args: gt.OptArgs = None,
     /,
     *,
     units: OptUSys = None,
@@ -694,7 +693,7 @@ def init(
     self: OrbitSolver,
     field: AbstractOrbitField | Terms,
     tqp: Any,
-    args: OptArgs = None,
+    args: gt.OptArgs = None,
     /,
     *,
     units: OptUSys = None,
@@ -710,7 +709,7 @@ def init(
     self: OrbitSolver,
     field: AbstractOrbitField,
     w0s: gc.AbstractCompositePhaseSpaceCoordinate,
-    args: OptArgs = None,
+    args: gt.OptArgs = None,
     /,
     *,
     units: OptUSys = None,

@@ -27,7 +27,6 @@ from galax.dynamics._src.fields import AbstractField
 
 QPQParr: TypeAlias = tuple[gdt.QParr, gdt.QParr]
 QPQP: TypeAlias = tuple[gdt.QP, gdt.QP]
-OptArgs: TypeAlias = dict[str, Any] | None
 
 
 @final
@@ -163,7 +162,7 @@ def _parse_y0(y0: QPQParr | QPQP, /, units: u.AbstractUnitSystem) -> QPQParr:
 @MWandLMCField.__call__.dispatch
 @partial(eqx.filter_jit)
 def __call__(
-    self: MWandLMCField, t: gt.LikeSz0, coords: QPQParr, _: OptArgs = None, /
+    self: MWandLMCField, t: gt.LikeSz0, coords: QPQParr, _: gt.OptArgs = None, /
 ) -> QPQParr:
     mw_x0, mw_v0 = coords[0]  # MW position and velocity
     lmc_x1, lmc_v1 = coords[1]  # LMC position and velocity
@@ -201,7 +200,7 @@ def __call__(
 @MWandLMCField.__call__.dispatch
 @partial(eqx.filter_jit)
 def __call__(
-    self: MWandLMCField, t: gt.QuSz0, coords: QPQP, args: OptArgs = None, /
+    self: MWandLMCField, t: gt.QuSz0, coords: QPQP, args: gt.OptArgs = None, /
 ) -> QPQParr:
     t = u.ustrip(AllowValue, self.units["time"], t)
     coords = jtu.map(

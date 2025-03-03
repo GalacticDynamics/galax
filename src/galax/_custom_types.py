@@ -19,7 +19,7 @@ Notes
 
 __all__: list[str] = []
 
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 import astropy.units as apyu
 from jaxtyping import Array, ArrayLike, Float, Int, Real, ScalarLike, Shaped
@@ -33,6 +33,7 @@ Shape: TypeAlias = tuple[int, ...]
 Dimension: TypeAlias = apyu.PhysicalType
 Unit: TypeAlias = apyu.Unit | apyu.UnitBase | apyu.CompositeUnit
 
+OptArgs: TypeAlias = dict[str, Any] | None
 
 # =============================================================================
 # Vectors

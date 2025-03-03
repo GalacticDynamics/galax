@@ -5,13 +5,11 @@ __all__ = [
     "io",
     "params",
     "plot",
-    # base
+    # ABCs
     "AbstractPotential",
-    # core
     "AbstractSinglePotential",
-    # composite
     "AbstractCompositePotential",
-    "AbstractPreCompositedPotential",
+    # composite
     "CompositePotential",
     # builtin
     "LongMuraliBarPotential",
@@ -34,10 +32,6 @@ __all__ = [
     "TriaxialNFWPotential",
     "Vogelsberger08TriaxialNFWPotential",
     "NullPotential",
-    "BovyMWPotential2014",
-    "LM10Potential",
-    "MilkyWayPotential",
-    "MilkyWayPotential2022",
     "BurkertPotential",
     "HernquistPotential",
     "IsochronePotential",
@@ -47,6 +41,12 @@ __all__ = [
     "PowerLawCutoffPotential",
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
+    # Pre-composited
+    "AbstractPreCompositedPotential",
+    "BovyMWPotential2014",
+    "LM10Potential",
+    "MilkyWayPotential",
+    "MilkyWayPotential2022",
     # xfm
     "AbstractTransformedPotential",
     "TransformedPotential",

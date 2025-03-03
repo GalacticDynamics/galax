@@ -11,7 +11,6 @@ import unxt as u
 
 import galax._custom_types as gt
 import galax.coordinates as gc
-import galax.potential as gp
 from .base import AbstractOrbit
 
 
@@ -47,7 +46,6 @@ class Orbit(AbstractOrbit):
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential( ... ),
       interpolant=None
     )
 
@@ -58,7 +56,6 @@ class Orbit(AbstractOrbit):
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential( ... ),
       interpolant=PhaseSpaceInterpolation( ... )
     )
 
@@ -68,7 +65,6 @@ class Orbit(AbstractOrbit):
       p=CartesianVel3D( ... ),
       t=Quantity['time'](Array(500., dtype=float64, ...), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential( ... ),
       interpolant=None
     )
 
@@ -88,9 +84,6 @@ class Orbit(AbstractOrbit):
 
     frame: gc.frames.SimulationFrame  # TODO: support frames
     """The reference frame of the phase-space position."""
-
-    potential: gp.AbstractPotential
-    """Potential in which the orbit was integrated."""
 
     interpolant: gc.PhaseSpaceObjectInterpolant | None = None
     """The interpolation function."""

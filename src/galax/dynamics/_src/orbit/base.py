@@ -3,11 +3,9 @@
 __all__ = ["AbstractOrbit"]
 
 from dataclasses import KW_ONLY, replace
-from functools import partial
 from typing import Any, ClassVar
 
 import equinox as eqx
-import jax
 from jaxtyping import Array, Bool, Int
 from numpy import ndarray
 from plum import dispatch
@@ -17,8 +15,7 @@ import quaxed.numpy as jnp
 
 import galax._custom_types as gt
 import galax.coordinates as gc
-import galax.potential as gp
-from .plot_helper import PlotOrbitDescriptor, ProxyAbstractOrbit
+from .plot_helper import PlotOrbitDescriptor
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
@@ -39,14 +36,11 @@ class AbstractOrbit(gc.AbstractBasicPhaseSpaceCoordinate):
     #: The reference frame of the phase-space coordinate.
     frame: eqx.AbstractVar[gc.frames.SimulationFrame]  # TODO: support frames
 
-    #: The potential in which the orbit was integrated.
-    potential: eqx.AbstractVar[gp.AbstractPotential]
-
     #: The interpolant of the orbit.
     interpolant: eqx.AbstractVar[gc.PhaseSpaceObjectInterpolant | None]
 
-    _GETITEM_DYNAMIC_FILTER_SPEC: ClassVar = (True, True, True, False, False, False)
-    _GETITEM_TIME_FILTER_SPEC: ClassVar = (False, False, True, False, False, False)
+    _GETITEM_DYNAMIC_FILTER_SPEC: ClassVar = (True, True, True, False, False)
+    _GETITEM_TIME_FILTER_SPEC: ClassVar = (False, False, True, False, False)
 
     # -------------------------------------------------------------------------
 
@@ -64,15 +58,7 @@ class AbstractOrbit(gc.AbstractBasicPhaseSpaceCoordinate):
             f"{self.__class__.__name__} was not integrated with interpolation.",
         )
         qp = interpolant(t)
-        return replace(
-            self,
-            q=qp.q,
-            p=qp.p,
-            t=qp.t,
-            potential=self.potential,
-            interpolant=None,
-            frame=self.frame,
-        )
+        return replace(self, q=qp.q, p=qp.p, t=qp.t, interpolant=None, frame=self.frame)
 
     # ==========================================================================
     # Array properties
@@ -85,62 +71,6 @@ class AbstractOrbit(gc.AbstractBasicPhaseSpaceCoordinate):
         tbatch, _ = batched_shape(self.t, expect_ndim=1)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         return batch_shape, gc.ComponentShapeTuple(q=qshape, p=pshape, t=1)
-
-    # ==========================================================================
-    # Dynamical quantities
-
-    @partial(jax.jit, inline=True)
-    def potential_energy(
-        self, potential: gp.AbstractPotential | None = None, /
-    ) -> gt.BtFloatQuSz0:
-        r"""Return the specific potential energy.
-
-        .. math::
-
-            E_\Phi = \Phi(\boldsymbol{q})
-
-        Parameters
-        ----------
-        potential : `galax.potential.AbstractPotential` | None
-            The potential object to compute the energy from. If `None`
-            (default), use the potential attribute of the orbit.
-
-        Returns
-        -------
-        E : Array[float, (*batch,)]
-            The specific potential energy.
-        """
-        if potential is None:
-            return self.potential.potential(self.q, t=self.t)
-        return potential.potential(self.q, t=self.t)
-
-    @partial(jax.jit, inline=True)
-    def total_energy(
-        self, potential: gp.AbstractPotential | None = None, /
-    ) -> gt.BtFloatQuSz0:
-        r"""Return the specific total energy.
-
-        .. math::
-
-            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
-            E_\Phi = \Phi(\boldsymbol{q})
-            E = E_K + E_\Phi
-
-        Parameters
-        ----------
-        potential : `galax.potential.AbstractPotential` | None
-            The potential object to compute the energy from. If `None`
-            (default), use the potential attribute of the orbit.
-
-        Returns
-        -------
-        E : Array[float, (*batch,)]
-            The kinetic energy.
-        """
-        return self.kinetic_energy() + self.potential_energy(potential)
-
-
-ProxyAbstractOrbit.deliver(AbstractOrbit)
 
 
 #####################################################################
@@ -182,7 +112,6 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: tuple[Any, ...], /) -> 
         ... ),
         t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
         frame=SimulationFrame(),
-        potential=KeplerPotential( ... ),
         interpolant=None
     )
 
@@ -224,7 +153,6 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: slice, /) -> Any:
         ),
         t=Quantity['time'](Array([  0., 100.], dtype=float64), unit='Myr'),
         frame=SimulationFrame(),
-        potential=KeplerPotential( ... ),
         interpolant=None
     )
 
@@ -252,7 +180,7 @@ def _psc_getitem_time_index(
     >>> pot=gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> orbit = gd.Orbit(
     ...     q=u.Quantity([[0, 1, 2]], "kpc"), p=u.Quantity([[4, 5, 6]], "km/s"),
-    ...     t=u.Quantity(0, "Gyr"), potential=pot,
+    ...     t=u.Quantity(0, "Gyr"),
     ...     frame=gc.frames.simulation_frame)
     >>> print(orbit)
     Orbit(

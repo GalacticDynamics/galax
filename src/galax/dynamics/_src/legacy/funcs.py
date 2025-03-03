@@ -28,16 +28,13 @@ _select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
 )
 
 
-def orbit_from_psp(
-    w: gc.PhaseSpaceCoordinate, t: gt.QuSzTime, potential: gp.AbstractPotential
-) -> Orbit:
+def orbit_from_psp(w: gc.PhaseSpaceCoordinate, t: gt.QuSzTime) -> Orbit:
     """Create an orbit object from the phase-space position."""
     return Orbit(
         q=w.q,
         p=w.p,
         t=t,
         frame=w.frame,
-        potential=potential,
         interpolant=getattr(w, "interpolant", None),
     )
 
@@ -136,7 +133,6 @@ def evaluate_orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential(...),
       interpolant=None
     )
 
@@ -153,7 +149,6 @@ def evaluate_orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential(...),
       interpolant=None
     )
 
@@ -165,7 +160,6 @@ def evaluate_orbit(
         q=CartesianPos3D(...), p=CartesianVel3D(...),
         t=Quantity['time'](Array([500.], dtype=float64, ...), unit='Myr'),
         frame=SimulationFrame(),
-        potential=KeplerPotential(...),
         interpolant=None
     )
 
@@ -184,7 +178,6 @@ def evaluate_orbit(
       p=CartesianVel3D(...),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential(...),
       interpolant=None
     )
 
@@ -237,7 +230,7 @@ def evaluate_orbit(
     ws = integrator(field, qp0, t[0], t[-1], saveat=t, dense=dense)
 
     # Return the orbit object
-    return orbit_from_psp(ws, t, pot)
+    return orbit_from_psp(ws, t)
 
 
 @dispatch
@@ -278,7 +271,6 @@ def evaluate_orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
       t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
       frame=SimulationFrame(),
-      potential=KeplerPotential(...),
       interpolant=None
     )
 

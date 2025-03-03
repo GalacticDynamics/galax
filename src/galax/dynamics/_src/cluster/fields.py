@@ -254,7 +254,7 @@ class Baumgardt1998MassLossRate(AbstractMassRateField):
     ...     p=u.Quantity([0, 180, 0], "km/s"), t=u.Quantity(0, "Gyr"))
     >>> orbit = gd.evaluate_orbit(pot, w0, u.Quantity([0, 1], "Gyr"), dense=True)
 
-    >>> kwargs = {"orbit": orbit, "m_avg": u.Quantity(3, "Msun"),
+    >>> kwargs = {"orbit": orbit, "potential": pot, "m_avg": u.Quantity(3, "Msun"),
     ...           "xi0": 0.001, "alpha": 14.9, "r_hm": u.Quantity(1, "pc")}
 
     >>> dMdt_fn(0, u.Quantity(1e4, "Msun"), kwargs)  # [Msun/Myr]
@@ -284,7 +284,7 @@ class Baumgardt1998MassLossRate(AbstractMassRateField):
         # Setup
         orbit = args["orbit"]
         orbit = cast(Orbit, eqx.error_if(orbit, orbit is None, "need orbit"))
-        pot = orbit.potential
+        pot = args["potential"]
         usys = pot.units
         Mq = FastQ.from_(M, usys["mass"])
 

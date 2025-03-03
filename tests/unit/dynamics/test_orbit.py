@@ -45,7 +45,6 @@ class TestOrbit(AbstractBasicPhaseSpaceCoordinate_Test[gd.Orbit]):
             q=q,
             p=p,
             t=t,
-            potential=potential,
             interpolant=None,
             frame=gc.frames.simulation_frame,
         )

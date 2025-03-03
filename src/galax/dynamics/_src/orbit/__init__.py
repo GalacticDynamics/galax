@@ -15,8 +15,8 @@ __all__ = [
     "PhaseSpaceInterpolation",
 ]
 
+from .api import compute_orbit
 from .base import AbstractOrbit
-from .compute import compute_orbit
 from .field_base import AbstractOrbitField
 from .field_hamiltonian import HamiltonianField
 from .field_nbody import NBodyField
@@ -27,6 +27,6 @@ from .solver import OrbitSolver
 
 # Register by import
 # isort: split
-from . import register_dfx, register_gc  # noqa: F401
+from . import compute, register_dfx, register_gc  # noqa: F401
 
 ProxyAbstractOrbit.deliver(AbstractOrbit)

@@ -33,11 +33,11 @@ default_solver = dfxtra.DiffEqSolver(
 def integrate_orbit(
     pot: gp.AbstractPotential,
     w0: gdt.QParr,
-    /,
-    ts: gt.LikeSz0,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
+    /,
     *,
+    saveat: gt.LikeSz0,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
     dense: bool = False,
@@ -64,6 +64,7 @@ def integrate_orbit(
     """
     terms = HamiltonianField(pot).terms(solver)
 
+    ts = saveat
     saveat = dfx.SaveAt(
         t0=False, t1=False, ts=ts if not dense else None, dense=dense, steps=False
     )
@@ -81,14 +82,14 @@ def integrate_orbit(
 
 
 @partial(jax.jit, static_argnames=("solver", "solver_kwargs", "dense"))
-def integrate_orbit_batch_scan(
+def integrate_orbit(
     pot: gp.AbstractPotential,
     w0: NQParr,
-    ts: Real[Array, "batch time"],
-    /,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
+    /,
     *,
+    saveat: Real[Array, "time"] | Real[Array, "N time"],
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
     dense: bool = False,
@@ -105,13 +106,13 @@ def integrate_orbit_batch_scan(
     def body(carry: list[int], _: float) -> tuple[list[int], dfx.Solution]:
         i = carry[0]
         w0_i = (w0[0][i], w0[1][i])
-        ts_i = ts if len(ts.shape) == 1 else ts[i]
+        saveat_i = saveat if len(saveat.shape) == 1 else saveat[i]
         soln = integrate_orbit(
             pot,
             w0_i,
-            ts_i,
-            t0=t0,
-            t1=t1,
+            t0,
+            t1,
+            saveat=saveat_i,
             dense=dense,
             solver=solver,
             solver_kwargs=solver_kwargs,
@@ -128,11 +129,11 @@ def integrate_orbit_batch_scan(
 def integrate_orbit_batch_vmap(
     pot: gp.AbstractPotential,
     w0: NQParr,
-    ts: Real[Array, "batch time"],
-    /,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
+    /,
     *,
+    saveat: Real[Array, "N time"] | Real[Array, "N time"],
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
     dense: bool = False,
@@ -147,20 +148,20 @@ def integrate_orbit_batch_vmap(
     integrator = lambda w0, ts: integrate_orbit(
         pot,
         w0,
-        ts,
-        t0=t0,
-        t1=t1,
+        t0,
+        t1,
+        saveat=ts,
         dense=dense,
         solver=solver,
         solver_kwargs=solver_kwargs,
     )
 
-    if len(ts.shape) == 1:
-        func = lambda w0: integrator(w0, ts)  # type: ignore[no-untyped-call]
+    if len(saveat.shape) == 1:
+        func = lambda w0: integrator(w0, saveat)  # type: ignore[no-untyped-call]
         integrator_mapped = jax.vmap(func, in_axes=((0, 0),))
     else:
         func = jax.vmap(integrator, in_axes=((0, 0), 0))
-        integrator_mapped = lambda w0: func(w0, ts)  # type: ignore[call-arg, no-untyped-call]
+        integrator_mapped = lambda w0: func(w0, saveat)  # type: ignore[call-arg, no-untyped-call]
 
     soln: dfx.Solution = integrator_mapped(w0)
     return soln

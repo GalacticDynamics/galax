@@ -122,7 +122,7 @@ def gen_stream_ics(
     ws_jax = integrate_orbit(
         pot,
         (prog_w0[..., :3], prog_w0[..., 3:]),
-        ts,
+        saveat=ts,
         solver=solver,
         solver_kwargs=solver_kwargs,
     ).ys
@@ -192,7 +192,7 @@ def gen_stream_scan(
         ys = integrate_orbit(
             pot,
             (w0[..., :3], w0[..., 3:]),
-            ts,
+            saveat=ts,
             solver=solver,
             solver_kwargs=solver_kwargs,
             dense=False,

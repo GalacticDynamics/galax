@@ -661,7 +661,9 @@ def init(
     /,
 ) -> SolveState:
     """Initialize from terms, unit/array tuple, and time."""
+    # Parse the inputs to jax arrays
     t0, y0 = parse_to_t_y(None, t0, qp, ustrip=field.units)  # TODO: frame
+    # Initialize the state
     return self._init_impl(field, t0, y0, args, field.units)
 
 
@@ -1099,10 +1101,7 @@ def solve(
     # Parse the inputs
     usys = getattr(field, "units", None)
     t0, qp0 = parse_to_t_y(None, t0, qp0, ustrip=usys)  # TODO: frame
-    if u.quantity.is_any_quantity(t1):
-        t1 = u.ustrip(AllowValue, usys["time"], t1)
-    else:
-        t1 = jnp.asarray(t1)
+    t1 = u.ustrip(AllowValue, usys["time"], jnp.asarray(t1))
     return self.solve(loop_strategy, field, qp0, t0, t1, **kw)
 
 

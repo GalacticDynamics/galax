@@ -22,6 +22,8 @@ from .orbit import Orbit
 from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
 from galax.dynamics._src.orbit.solver import OrbitSolver
 
+default_solver = OrbitSolver()
+
 
 @dispatch
 @eqx.filter_jit
@@ -36,7 +38,7 @@ def compute_orbit(
 ) -> Orbit:
     # Parse inputs
     thefield = field if isinstance(field, HamiltonianField) else HamiltonianField(field)
-    solver = OrbitSolver() if solver is None else solver
+    solver = default_solver if solver is None else solver
     units = thefield.units
     ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))  # ensure t units
 

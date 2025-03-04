@@ -342,6 +342,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
                 A :class:`~galax.coordinates.PhaseSpacePosition` will be
                 constructed, interpreting the array as the  'q', 'p' (each
                 Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
+
         t: Quantity[float, (time,)]
             Array of times at which to compute the orbit. The first element
             should be the initial time and the last element should be the final

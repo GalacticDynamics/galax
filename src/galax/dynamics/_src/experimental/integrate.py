@@ -57,9 +57,9 @@ def integrate_orbit(
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
     pot: gp.AbstractPotential,
     qp0: gdt.QParr,
+    /,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
-    /,
     *,
     saveat: gt.LikeSz0,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
@@ -113,9 +113,9 @@ def integrate_orbit(
 def integrate_orbit(
     pot: gp.AbstractPotential,
     qp0: Any,
+    /,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
-    /,
     **kwargs: Any,
 ) -> dfx.Solution:
     """Integrate the orbit.
@@ -132,9 +132,9 @@ def integrate_orbit(
     loop_strategy: type[lstrat.Determine],  # noqa: ARG001
     pot: gp.AbstractPotential,
     qp0: BQParr,
+    /,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
-    /,
     **kw: Any,
 ) -> dfx.Solution:
     """Re-dispatch based on the determined loop strategy."""
@@ -161,9 +161,9 @@ def integrate_orbit(
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
     pot: gp.AbstractPotential,
     qp0: BQParr,
+    /,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
-    /,
     *,
     saveat: Real[Array, "time"] | Real[Array, "B time"],
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
@@ -229,9 +229,9 @@ def integrate_orbit(
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
     pot: gp.AbstractPotential,
     qp0: BQParr,
+    /,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
-    /,
     *,
     saveat: Real[Array, "time"] | Real[Array, "B time"],
     solver: dfxtra.AbstractDiffEqSolver = default_solver,

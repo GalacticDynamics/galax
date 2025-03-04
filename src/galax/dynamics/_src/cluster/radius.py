@@ -52,7 +52,7 @@ class AbstractTidalRadiusMethod:
 
 
 @dispatch
-def tidal_radius(pot: gp.AbstractPotential, *args: Any, **kwargs: Any) -> gt.BBtQuSz0:
+def tidal_radius(pot: gp.AbstractPotential, *args: Any, **kwargs: Any) -> gt.BBtQorVSz0:
     """Compute radius, defaulting to King (1962) tidal radius."""
     return tidal_radius_king1962(pot, *args, **kwargs)
 
@@ -186,7 +186,7 @@ class King1962(AbstractTidalRadiusMethod):
 @dispatch
 def tidal_radius(
     _: type[King1962], pot: gp.AbstractPotential, *args: Any, **kw: Any
-) -> gt.BBtQuSz0:
+) -> gt.BBtQorVSz0:
     """Compute the tidal radius of a cluster in the potential."""
     return tidal_radius_king1962(pot, *args, **kw)
 
@@ -199,7 +199,7 @@ def tidal_radius(
 def tidal_radius_king1962(
     pot: gp.AbstractPotential,
     xyz: gt.BBtSz3,
-    v: gt.BBtSz3,
+    v_xyz: gt.BBtSz3,
     /,
     *,
     mass: gt.BBtSz0 | gt.BBtQuSz0,  # cluster mass
@@ -211,7 +211,7 @@ def tidal_radius_king1962(
 
     d2phi_dr2 = pot.d2potential_dr2(xyz, t)
     GM = pot.constants["G"].value * mass  # TODO: G unit handling
-    return jnp.cbrt(GM / (omega(xyz, v) ** 2 - d2phi_dr2))
+    return jnp.cbrt(GM / (omega(xyz, v_xyz) ** 2 - d2phi_dr2))
 
 
 @dispatch

@@ -442,6 +442,8 @@ def d2potential_dr2(
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
     xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
     rhat = cx.vecs.normalize_vector(xyz)
+    # TODO: benchmark this vs the hessian approach commented out below
+    # d2phi_dr2 = jnp.sum(jax.grad(pot.dpotential_dr)(xyz, t) * rhat)  # noqa: ERA001, E501
     H = pot.hessian(xyz, t)
     d2phi_dr2 = jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)  # rhat · H · rhat
     return (

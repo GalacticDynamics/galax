@@ -14,6 +14,7 @@ from typing import Any, TypeAlias, final
 from typing_extensions import override
 
 import equinox as eqx
+import interpax as ipx
 import jax
 import jax.tree as jtu
 from jax import lax
@@ -29,6 +30,7 @@ from unxt.quantity import AllowValue
 import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
+from .uniform_acceleration import UniformAcceleration
 from galax.dynamics._src.fields import AbstractField
 
 QPQParr: TypeAlias = tuple[gdt.QParr, gdt.QParr]
@@ -333,17 +335,14 @@ def make_mw_lmc_potential(
     ...      t_interp=u.Quantity(jnp.linspace(-0, -14, 1_000), "Gyr"))
     >>> mw_lmc_pot
     CompositePotential({'mw': TranslatedPotential(
-      base_potential=MilkyWayPotential( ... ),
-      translation=TimeDependentTranslationParameter(
-        translation=CubicSpline( ... ), units=...
-      )
-    ), 'lmc': TranslatedPotential(
-      base_potential=NFWPotential( ... ),
-      translation=TimeDependentTranslationParameter(
-        translation=CubicSpline( ... ),
-        units=...
-      )
-    )})
+            base_potential=MilkyWayPotential( ... ),
+            translation=TimeDependentTranslationParameter( ... )
+        ),
+        'lmc': TranslatedPotential(
+            base_potential=NFWPotential( ... ),
+            translation=TimeDependentTranslationParameter( ... )
+        ),
+        'mw_acc': UniformAcceleration( ... )})
 
     """
     from galax.dynamics import integrate_field
@@ -378,4 +377,10 @@ def make_mw_lmc_potential(
         ),
     )
 
-    return gp.CompositePotential(mw=mw_moving, lmc=lmc_moving)
+    unif_acc = UniformAcceleration(
+        velocity_func=ipx.CubicSpline(soln.ts[::-1], soln.ys[0][1][::-1]),
+        units=units,
+        func_supports_units=False,
+    )
+
+    return gp.CompositePotential(mw=mw_moving, lmc=lmc_moving, mw_acc=unif_acc)

@@ -3,13 +3,14 @@
 __all__: list[str] = []
 
 from functools import partial
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 import diffrax as dfx
 import equinox as eqx
 import jax
 from jaxtyping import Array, Real
 
+import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 
 import galax._custom_types as gt
@@ -21,7 +22,14 @@ from galax.dynamics._src.cluster.api import tidal_radius
 SzN3: TypeAlias = Real[Array, "N 3"]
 SzN6: TypeAlias = Real[Array, "N 6"]
 
-default_dfx_solver = dfx.Dopri5(scan_kind="bounded")
+default_solver = dfxtra.DiffEqSolver(
+    solver=dfx.Dopri5(scan_kind="bounded"),
+    stepsize_controller=dfx.PIDController(
+        rtol=1e-7, atol=1e-7, dtmin=0.3, dtmax=None, force_dtmin=True, jump_ts=None
+    ),
+    max_steps=10_000,
+    # adjoint=ForwardMode(),  # noqa: ERA001
+)
 
 
 @partial(eqx.filter_jit)
@@ -99,7 +107,7 @@ def release_model(
     return pos_lead, pos_trail, v_lead, v_trail
 
 
-@partial(eqx.filter_jit)
+@partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
 def gen_stream_ics(
     pot: gp.AbstractPotential,
     ts: gt.SzTime,
@@ -108,22 +116,15 @@ def gen_stream_ics(
     Msat: gt.LikeSz0,
     seed_num: int,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
-    solver: dfx.AbstractSolver = default_dfx_solver,
-    rtol: float = 1e-7,
-    atol: float = 1e-7,
-    dtmin: float = 0.3,
-    dtmax: float | None = None,
-    max_steps: int = 10_000,
+    solver: dfxtra.AbstractDiffEqSolver = default_solver,
+    solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[SzN3, SzN3, SzN3, SzN3]:
     ws_jax = integrate_orbit(
         pot,
         (prog_w0[..., :3], prog_w0[..., 3:]),
         ts,
         solver=solver,
-        stepsize_controller=dfx.PIDController(
-            rtol=rtol, atol=atol, dtmin=dtmin, dtmax=dtmax
-        ),
-        max_steps=max_steps,
+        solver_kwargs=solver_kwargs,
     ).ys
     Msat = Msat * jnp.ones(len(ts))
 
@@ -159,8 +160,7 @@ def gen_stream_ics(
     return x_close_arr, x_far_arr, v_close_arr, v_far_arr
 
 
-# @eqx.filter_jit
-@partial(jax.jit, static_argnames=("solver", "rtol", "atol", "max_steps"))
+@partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
 def gen_stream_scan(
     pot: gp.AbstractPotential,
     prog_w0: gt.Sz6,
@@ -168,13 +168,9 @@ def gen_stream_scan(
     /,
     Msat: gt.LikeSz0,
     seed_num: int,
-    solver: dfx.AbstractSolver = default_dfx_solver,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
-    rtol: float = 1e-7,
-    atol: float = 1e-7,
-    dtmin: float = 0.3,
-    dtmax: float | None = None,
-    max_steps: int = 10_000,
+    solver: dfxtra.AbstractDiffEqSolver = default_solver,
+    solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[SzN6, SzN6]:
     """Generate stellar stream.
 
@@ -189,14 +185,7 @@ def gen_stream_scan(
         seed_num=seed_num,
         kval_arr=kval_arr,
         solver=solver,
-        rtol=rtol,
-        atol=atol,
-        dtmin=dtmin,
-        dtmax=dtmax,
-        max_steps=max_steps,
-    )
-    stepsize_controller = dfx.PIDController(
-        rtol=rtol, atol=atol, dtmin=dtmin, dtmax=dtmax
+        solver_kwargs=solver_kwargs,
     )
 
     def orb_integrator(w0: gt.Sz6, ts: gt.SzTime) -> SzN6:
@@ -205,8 +194,7 @@ def gen_stream_scan(
             (w0[..., :3], w0[..., 3:]),
             ts,
             solver=solver,
-            stepsize_controller=stepsize_controller,
-            max_steps=max_steps,
+            solver_kwargs=solver_kwargs,
             dense=False,
         ).ys
         return jnp.concat((ys[0][-1, :], ys[1][-1, :]), axis=-1)

@@ -206,12 +206,12 @@ class RigidMWandLMCField(AbstractField):
 
 
 def _parse_y0(y0: QPQParr | QPQP, /, units: u.AbstractUnitSystem) -> QPQParr:
-    to_array_fn = (  # noqa: E731
+    to_array_fn = (
         lambda x: u.ustrip(units[u.dimension_of(x)], x)
         if u.quantity.is_any_quantity(x)
         else x
     )
-    is_leaf = lambda x: eqx.is_array(x) or u.quantity.is_any_quantity(x)  # noqa: E731
+    is_leaf = lambda x: eqx.is_array(x) or u.quantity.is_any_quantity(x)
     y0: QPQParr = jtu.map(to_array_fn, y0, is_leaf=is_leaf)
     return y0
 

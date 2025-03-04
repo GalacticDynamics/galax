@@ -282,7 +282,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         # where dynamic is q, p, ... and static is frame, ...
         leaves, treedef = eqx.tree_flatten_one_level(self)
         leaf_types = tuple(type(x) for x in leaves if x is not None)
-        is_leaf = lambda x: isinstance(x, leaf_types)  # noqa: E731
+        is_leaf = lambda x: isinstance(x, leaf_types)
         dynamic, static = eqx.partition(
             leaves, list(self._GETITEM_DYNAMIC_FILTER_SPEC), is_leaf=is_leaf
         )

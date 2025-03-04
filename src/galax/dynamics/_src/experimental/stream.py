@@ -3,17 +3,20 @@
 __all__: list[str] = []
 
 from functools import partial
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, cast
+from typing_extensions import Unpack
 
 import diffrax as dfx
-import equinox as eqx
 import jax
-from jaxtyping import Array, Real
+import jax.random as jr
+from jaxtyping import Array, PRNGKeyArray, Real
 
+import coordinax as cx
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 
 import galax._custom_types as gt
+import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 from .integrate import integrate_orbit
 from galax.dynamics._src.api import omega
@@ -32,20 +35,18 @@ default_solver = dfxtra.DiffEqSolver(
 )
 
 
-@partial(eqx.filter_jit)
-def release_model(
+@partial(jax.jit)
+def fardal2015_release_model(
+    key: PRNGKeyArray,
     pot: gp.AbstractPotential,
+    t: gt.LikeSz0,
     x: gt.Sz3,
     v: gt.Sz3,
     Msat: gt.LikeSz0,
-    i: int,
-    t: gt.LikeSz0,
-    seed_num: int,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
 ) -> tuple[gt.Sz3, gt.Sz3, gt.Sz3, gt.Sz3]:
     # ---------------------------------
-    # if kval_arr is a scalar, then we assume the default values of kvals
-    pred = jnp.isscalar(kval_arr)
+    # If kval_arr is a scalar, then we assume the default values of kvals
 
     def true_func() -> Real[Array, "8"]:
         return jnp.array([2.0, 0.3, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5])
@@ -53,111 +54,85 @@ def release_model(
     def false_func() -> Real[Array, "8"]:
         return jnp.ones(8) * kval_arr
 
-    kval_arr = jax.lax.cond(pred, true_func, false_func)
     kr_bar, kvphi_bar, kz_bar, kvz_bar, sigma_kr, sigma_kvphi, sigma_kz, sigma_kvz = (
-        kval_arr
+        jax.lax.cond(jnp.isscalar(kval_arr), true_func, false_func)
     )
 
     # ---------------------------------
 
-    key_master = jax.random.PRNGKey(seed_num)
-    random_ints = jax.random.randint(key=key_master, shape=(5,), minval=0, maxval=1000)
+    key1, key2, key3, key4 = jr.split(key, 4)
 
-    keya = jax.random.PRNGKey(i * random_ints[0])
-    keyb = jax.random.PRNGKey(i * random_ints[1])
+    Omega = omega(x, v)  # orbital angular frequency about the origin
+    r_tidal = tidal_radius(pot, x, v, mass=Msat, t=t)  # tidal radius
+    v_circ = Omega * r_tidal  # relative velocity
 
-    keyc = jax.random.PRNGKey(i * random_ints[2])
-    keyd = jax.random.PRNGKey(i * random_ints[3])
-
-    omega_val = omega(x, v)
-
-    r = jnp.linalg.norm(x)
-    r_hat = x / r
-    r_tidal = tidal_radius(pot, x, v, mass=Msat, t=t)
-    rel_v = omega_val * r_tidal  # relative velocity
-
-    # circlar_velocity
-    v_circ = rel_v  # jnp.sqrt( r*dphi_dr )
-
-    L_vec = jnp.cross(x, v)
-    z_hat = L_vec / jnp.linalg.norm(L_vec)
-
+    # unit vectors
+    r_hat = cx.vecs.normalize_vector(x)
+    z_hat = cx.vecs.normalize_vector(jnp.linalg.cross(x, v))
     phi_vec = v - jnp.sum(v * r_hat) * r_hat
-    phi_hat = phi_vec / jnp.linalg.norm(phi_vec)
+    phi_hat = cx.vecs.normalize_vector(phi_vec)
 
-    kr_samp = kr_bar + jax.random.normal(keya, shape=(1,)) * sigma_kr
-    kvphi_samp = kr_samp * (
-        kvphi_bar + jax.random.normal(keyb, shape=(1,)) * sigma_kvphi
-    )
-    kz_samp = kz_bar + jax.random.normal(keyc, shape=(1,)) * sigma_kz
-    kvz_samp = kvz_bar + jax.random.normal(keyd, shape=(1,)) * sigma_kvz
-
-    ## Trailing arm
-    pos_trail = x + kr_samp * r_hat * (r_tidal)
-    pos_trail = pos_trail + z_hat * kz_samp * (r_tidal / 1.0)
-    v_trail = v + (0.0 + kvphi_samp * v_circ * (1.0)) * phi_hat
-    v_trail = v_trail + (kvz_samp * v_circ * (1.0)) * z_hat
+    # k vals
+    shape = r_tidal.shape
+    kr_samp = kr_bar + jr.normal(key1, shape) * sigma_kr
+    kvphi_samp = kr_samp * (kvphi_bar + jr.normal(key2, shape) * sigma_kvphi)
+    kz_samp = kz_bar + jr.normal(key3, shape) * sigma_kz
+    kvz_samp = kvz_bar + jr.normal(key4, shape) * sigma_kvz
 
     # Leading arm
-    pos_lead = x + kr_samp * r_hat * (-r_tidal)  # nudge in
-    pos_lead = pos_lead + z_hat * kz_samp * (-r_tidal / 1.0)
-    v_lead = v + (0.0 + kvphi_samp * v_circ * (-1.0)) * phi_hat
-    v_lead = v_lead + (kvz_samp * v_circ * (-1.0)) * z_hat
+    x_lead = x - r_tidal * (kr_samp * r_hat - kz_samp * z_hat)
+    v_lead = v - v_circ * (kvphi_samp * phi_hat - kvz_samp * z_hat)
 
-    return pos_lead, pos_trail, v_lead, v_trail
+    # Trailing arm
+    x_trail = x + r_tidal * (kr_samp * r_hat + kz_samp * z_hat)
+    v_trail = v + v_circ * (kvphi_samp * phi_hat + kvz_samp * z_hat)
+
+    return x_lead, v_lead, x_trail, v_trail
+
+
+##############################################################################
+
+ICSScanIn: TypeAlias = tuple[gt.Sz0, gdt.Qarr, gdt.Parr, gt.Sz0]  # t, x, v, Msat
+ICSScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]  # x/v_l1, x/v_l2
+ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
 
 
 @partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
 def gen_stream_ics(
     pot: gp.AbstractPotential,
     ts: gt.SzTime,
-    prog_w0: gt.Sz6,
+    prog_w0: gdt.QParr,
     /,
     Msat: gt.LikeSz0,
-    seed_num: int,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    *,
+    key: PRNGKeyArray,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[SzN3, SzN3, SzN3, SzN3]:
-    ws_jax = integrate_orbit(
+    prog_xs, prog_vs = integrate_orbit(
         pot,
-        (prog_w0[..., :3], prog_w0[..., 3:]),
+        prog_w0,
         saveat=ts,
         solver=solver,
         solver_kwargs=solver_kwargs,
     ).ys
     Msat = Msat * jnp.ones(len(ts))
 
-    Carry: TypeAlias = tuple[int, gt.Sz3, gt.Sz3, gt.Sz3, gt.Sz3]
-    State: TypeAlias = tuple[gt.Sz3, gt.Sz3, gt.Sz3, gt.Sz3]
-
-    def scan_fun(carry: Carry, t: gt.Sz0) -> tuple[Carry, State]:
-        i = carry[0]
-        x_L1_new, x_L2_new, v_L1_new, v_L2_new = release_model(
-            pot,
-            ws_jax[0][i],
-            ws_jax[1][i],
-            Msat=Msat[i],
-            i=i,
-            t=t,
-            seed_num=seed_num,
-            kval_arr=kval_arr,
+    def scan_fn(carry: ICSScanCarry, x: ICSScanIn) -> tuple[ICSScanCarry, ICSScanOut]:
+        key, subkey = jr.split(carry[0])
+        xv_l12_new = fardal2015_release_model(
+            subkey, pot, t=x[0], x=x[1], v=x[2], Msat=x[3], kval_arr=kval_arr
         )
-        new_carry = (i + 1, x_L1_new, x_L2_new, v_L1_new, v_L2_new)
-        state = (x_L1_new, x_L2_new, v_L1_new, v_L2_new)
-        return new_carry, state
+        new_carry = (key, *xv_l12_new)
+        return new_carry, xv_l12_new
 
-    init_carry: Carry = (
-        0,
-        jnp.zeros(3, dtype=float),
-        jnp.zeros(3, dtype=float),
-        jnp.zeros(3, dtype=float),
-        jnp.zeros(3, dtype=float),
-    )
-    _, all_states = jax.lax.scan(scan_fun, init_carry, ts)
-    x_close_arr, x_far_arr, v_close_arr, v_far_arr = all_states
+    init_carry = (key, jnp.zeros(3), jnp.zeros(3), jnp.zeros(3), jnp.zeros(3))
+    _, all_states = jax.lax.scan(scan_fn, init_carry, (ts, prog_xs, prog_vs, Msat))
+    return cast(ICSScanOut, all_states)
 
-    return x_close_arr, x_far_arr, v_close_arr, v_far_arr
+
+##############################################################################
 
 
 @partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
@@ -177,13 +152,13 @@ def gen_stream_scan(
     By scanning over the release model/integration. Better for CPU usage.
 
     """
-    x_close_arr, x_far_arr, v_close_arr, v_far_arr = gen_stream_ics(
+    x_close_arr, v_close_arr, x_far_arr, v_far_arr = gen_stream_ics(
         pot,
         ts,
-        prog_w0,
+        (prog_w0[..., :3], prog_w0[..., 3:]),
         Msat=Msat,
-        seed_num=seed_num,
         kval_arr=kval_arr,
+        key=jr.key(seed_num),
         solver=solver,
         solver_kwargs=solver_kwargs,
     )

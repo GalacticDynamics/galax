@@ -203,3 +203,53 @@ def simulate_stream_scan(
     q_lead, v_lead, q_trail, v_trail = all_states
 
     return (q_lead, v_lead), (q_trail, v_trail)
+
+
+@partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
+def simulate_stream_vmap(
+    pot: gp.AbstractPotential,
+    prog_w0: gdt.QParr,
+    /,
+    release_times: gt.SzTime,
+    t1: gt.LikeSz0,
+    Msat: gt.LikeSz0,
+    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    *,
+    key: PRNGKeyArray,
+    solver: dfxtra.AbstractDiffEqSolver = default_solver,
+    solver_kwargs: dict[str, Any] | None = None,
+) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]]:
+    t1 = jnp.array(t1)
+    x0s_l1, v0s_l1, x0s_l2, v0s_l2 = gen_stream_ics(  # x/v_l1/2 shape (N, 3)
+        pot,
+        jnp.concatenate([release_times, t1[None]]),
+        prog_w0,
+        Msat=Msat,
+        kval_arr=kval_arr,
+        key=key,
+        solver=solver,
+        solver_kwargs=solver_kwargs,
+    )
+
+    @partial(jax.jit)
+    @partial(jax.vmap, in_axes=((0, 0), 0))  # map over particles
+    def integrate_particle_orbit(xv0: gdt.QParr, t0: gt.Sz0) -> gdt.QParr:
+        ys = integrate_orbit(
+            pot,
+            xv0,
+            t0=t0,
+            t1=t1,
+            saveat=t1[None],
+            solver=solver,
+            solver_kwargs=solver_kwargs,
+            dense=False,
+        ).ys
+        return (ys[0][-1], ys[1][-1])  # return final xv
+
+    x0s = jnp.stack([x0s_l1[:-1], x0s_l2[:-1]], axis=0)
+    v0s = jnp.stack([v0s_l1[:-1], v0s_l2[:-1]], axis=0)
+    integrate_particles = jax.vmap(integrate_particle_orbit, in_axes=(0, None))
+    xs, vs = integrate_particles((x0s, v0s), release_times)
+    w_lead, w_trail = (xs[0], vs[0]), (xs[1], vs[1])
+
+    return w_lead, w_trail

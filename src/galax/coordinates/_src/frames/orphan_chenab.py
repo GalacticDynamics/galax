@@ -8,6 +8,7 @@ from typing import final
 from plum import dispatch
 
 import coordinax as cx
+import coordinax.frames as cxf
 import quaxed.numpy as jnp
 from coordinax.frames import AbstractReferenceFrame
 
@@ -20,6 +21,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     --------
     >>> import unxt as u
     >>> import coordinax as cx
+    >>> import coordinax.frames as cxf  # for concision
     >>> import galax.coordinates as gc
 
     Define the frame:
@@ -30,16 +32,47 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
 
     Build frame transformation operators to/from ICRS:
 
-    >>> icrs = cx.frames.ICRS()
+    >>> icrs = cxf.ICRS()
 
-    >>> op = cx.frames.frame_transform_op(icrs, frame)
+    >>> op = cxf.frame_transform_op(icrs, frame)
     >>> op
     GalileanRotation(rotation=f64[3,3])
 
-    >>> cx.frames.frame_transform_op(frame, icrs)
+    >>> cxf.frame_transform_op(frame, icrs)
     GalileanRotation(rotation=f64[3,3])
 
     Transform a position from ICRS to Orphan-Chenab:
+
+    >>> q_icrs = cx.vecs.LonLatSphericalPos(
+    ...     lon=u.Quantity(0, "deg"), lat=u.Quantity(0, "deg"),
+    ...     distance=u.Quantity(1, "kpc"))
+    >>> print(q_icrs)
+    <LonLatSphericalPos (lon[deg], lat[deg], distance[kpc])
+        [0 0 1]>
+
+    >>> q_oc = op(q_icrs)
+    >>> print(q_oc)
+    <LonLatSphericalPos (lon[rad], lat[deg], distance[kpc])
+        [ 4.224 17.448  1.   ]>
+
+    The reverse transform from the OC to ICRS frame is just as easy:
+
+    >>> q_icrs_back = cxf.frame_transform_op(frame, icrs)(q_oc)
+    >>> print(q_icrs_back)  # note the float32 precision loss
+    <LonLatSphericalPos (lon[rad], lat[deg], distance[kpc])
+        [6.283e+00 9.607e-07 1.000e+00]>
+
+    We can transform to other frames:
+
+    >>> gc_frame = cxf.Galactocentric()
+    >>> op_gc = cxf.frame_transform_op(frame, gc_frame)
+    >>> print(op_gc(q_oc).vconvert(cx.CartesianPos3D))
+    <CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        [-8.509  0.726 -0.547]>
+
+    The frame operator accepts a variety of input types. Let's work up the type
+    ladder, using the ICRS-to-OC frame transform operator ``op`` we defined
+    earlier:
 
     - `unxt.Quantity` Cartesian positions:
 
@@ -108,6 +141,9 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     """  # noqa: E501
 
 
+# ===============================================================
+# Base transform
+
 R_icrs_to_oc = jnp.array(
     [
         [-0.44761231, -0.08785756, -0.88990128],
@@ -133,3 +169,25 @@ def frame_transform_op(
     /,
 ) -> cx.ops.GalileanRotation:
     return cx.ops.GalileanRotation(R_icrs_to_oc.T)
+
+
+# ===============================================================
+# Other transforms
+
+_icrs_frame = cxf.ICRS()
+
+
+# TODO: upstream this to coordinax
+@dispatch.multi(
+    (cxf.AbstractReferenceFrame, OrphanChenab),
+    (OrphanChenab, cxf.AbstractReferenceFrame),
+)
+def frame_transform_op(
+    from_frame: cxf.AbstractReferenceFrame,
+    to_frame: cxf.AbstractReferenceFrame,
+    /,
+) -> cx.ops.Pipe:
+    fromframe_to_icrs = frame_transform_op(from_frame, _icrs_frame)
+    icrs_to_toframe = frame_transform_op(_icrs_frame, to_frame)
+    pipe = fromframe_to_icrs | icrs_to_toframe
+    return cx.ops.simplify_op(pipe)

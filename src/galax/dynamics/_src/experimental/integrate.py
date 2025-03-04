@@ -7,7 +7,9 @@ from typing import Any, TypeAlias
 
 import diffrax as dfx
 import jax
+import jax.extend as jex
 from jaxtyping import Array, Real
+from plum import dispatch
 
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
@@ -15,9 +17,10 @@ import quaxed.numpy as jnp
 import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
+import galax.utils.loop_strategies as lstrat
 from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
 
-NQParr: TypeAlias = tuple[Real[gdt.Qarr, "N"], Real[gdt.Parr, "N"]]
+BQParr: TypeAlias = tuple[Real[gdt.Qarr, "B"], Real[gdt.Parr, "B"]]
 
 default_solver = dfxtra.DiffEqSolver(
     solver=dfx.Dopri8(scan_kind="bounded"),
@@ -29,10 +32,31 @@ default_solver = dfxtra.DiffEqSolver(
 )
 
 
-@partial(jax.jit, static_argnames=("solver", "solver_kwargs", "dense"))
+@dispatch.multi(
+    (
+        type[lstrat.AbstractLoopStrategy],
+        gp.AbstractPotential,
+        gdt.QParr,
+        gt.LikeSz0 | None,
+        gt.LikeSz0 | None,
+    ),
+    (
+        type[lstrat.NoLoop],
+        gp.AbstractPotential,
+        BQParr,
+        gt.LikeSz0 | None,
+        gt.LikeSz0 | None,
+    ),
+)
+@partial(
+    jax.jit,
+    static_argnums=(0,),
+    static_argnames=("solver", "solver_kwargs", "dense"),
+)
 def integrate_orbit(
+    loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
     pot: gp.AbstractPotential,
-    w0: gdt.QParr,
+    qp0: gdt.QParr,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
     /,
@@ -46,7 +70,7 @@ def integrate_orbit(
 
     Parameters
     ----------
-    w0:
+    qp0:
         length 6 array [x,y,z,vx,vy,vz]
     ts:
         array of saved times. Must be at least length 2, specifying a minimum
@@ -74,42 +98,112 @@ def integrate_orbit(
         t0=ts.min() if t0 is None else t0,
         t1=ts.max() if t1 is None else t1,
         dt0=None,
-        y0=w0,
+        y0=qp0,
         saveat=saveat,
         **(solver_kwargs or {}),
     )
     return soln
 
 
-@partial(jax.jit, static_argnames=("solver", "solver_kwargs", "dense"))
+# ---------------------------
+# auto-determine
+
+
+@dispatch(precedence=-1)
 def integrate_orbit(
     pot: gp.AbstractPotential,
-    w0: NQParr,
+    qp0: Any,
+    t0: gt.LikeSz0 | None = None,
+    t1: gt.LikeSz0 | None = None,
+    /,
+    **kwargs: Any,
+) -> dfx.Solution:
+    """Integrate the orbit.
+
+    This function re-dispatches to the correct integrator based on the
+    determined loop strategy.
+
+    """
+    return integrate_orbit(lstrat.Determine, pot, qp0, t0, t1, **kwargs)
+
+
+@dispatch(precedence=-1)
+def integrate_orbit(
+    loop_strategy: type[lstrat.Determine],  # noqa: ARG001
+    pot: gp.AbstractPotential,
+    qp0: BQParr,
+    t0: gt.LikeSz0 | None = None,
+    t1: gt.LikeSz0 | None = None,
+    /,
+    **kw: Any,
+) -> dfx.Solution:
+    """Re-dispatch based on the determined loop strategy."""
+    # Determine the loop strategy
+    platform = jex.backend.get_backend().platform
+    loop_strat = lstrat.Scan if platform == "cpu" else lstrat.VMap
+
+    # Call solver with appropriate loop strategy
+    return integrate_orbit(loop_strat, pot, qp0, t0, t1, **kw)
+
+
+# ---------------------------
+
+ScanCarry: TypeAlias = list[int]
+
+
+@dispatch
+@partial(
+    jax.jit,
+    static_argnums=(0,),
+    static_argnames=("solver", "solver_kwargs", "dense"),
+)
+def integrate_orbit(
+    loop_strategy: type[lstrat.Scan],  # noqa: ARG001
+    pot: gp.AbstractPotential,
+    qp0: BQParr,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
     /,
     *,
-    saveat: Real[Array, "time"] | Real[Array, "N time"],
+    saveat: Real[Array, "time"] | Real[Array, "B time"],
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
     dense: bool = False,
 ) -> dfx.Solution:
     """Integrate a batch of orbits using scan [best for CPU usage].
 
-    w0: shape ((N,3), (N,3)) array of initial conditions ts: array of saved
-    times. Can either be 1D array (same for all trajectories), or N x M array,
-    where M is the number of saved times for each trajectory.
+    Parameters
+    ----------
+    qp0:
+        shape ((B,3), (B,3)) array of initial conditions
+    ts:
+        array of save times. Can either be 1D array (same for all trajectories),
+        or (B x T) array, where T is the number of saved times for each
+        trajectory.
+
+    Returns
+    -------
+    `dfx.Solution`:
+        The solution to the differential equation. The ``ys`` attribute contains
+        the solution at the saved times ``ts`` and will have shape (B, T, 6).
+
+    Notes
+    -----
+    `diffrax.diffeqsolve` can solve a batched `y0` array, but this function is
+    actually faster, at the expense of only being able to solve for a single
+    batch axis, but at the gain of being able to batch over the `saveat`. If you
+    want to speed compare against raw `diffrax.diffeqsolve`, you can use the
+    `galax.utils.loop_strategies.NoLoop` loop strategy.
 
     """
 
     @partial(jax.jit)
-    def body(carry: list[int], _: float) -> tuple[list[int], dfx.Solution]:
+    def body(carry: ScanCarry, _: float) -> tuple[ScanCarry, dfx.Solution]:
         i = carry[0]
-        w0_i = (w0[0][i], w0[1][i])
         saveat_i = saveat if len(saveat.shape) == 1 else saveat[i]
         soln = integrate_orbit(
             pot,
-            w0_i,
+            (qp0[0][i], qp0[1][i]),
             t0,
             t1,
             saveat=saveat_i,
@@ -120,34 +214,59 @@ def integrate_orbit(
         return [i + 1], soln
 
     init_carry = [0]
-    _, state = jax.lax.scan(body, init_carry, jnp.arange(len(w0)))
+    _, state = jax.lax.scan(body, init_carry, jnp.arange(len(qp0)))
     soln: dfx.Solution = state
     return soln
 
 
-@partial(jax.jit, static_argnames=("solver", "solver_kwargs", "dense"))
-def integrate_orbit_batch_vmap(
+@dispatch
+@partial(
+    jax.jit,
+    static_argnums=(0,),
+    static_argnames=("solver", "solver_kwargs", "dense"),
+)
+def integrate_orbit(
+    loop_strategy: type[lstrat.VMap],  # noqa: ARG001
     pot: gp.AbstractPotential,
-    w0: NQParr,
+    qp0: BQParr,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
     /,
     *,
-    saveat: Real[Array, "N time"] | Real[Array, "N time"],
+    saveat: Real[Array, "time"] | Real[Array, "B time"],
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
     dense: bool = False,
 ) -> dfx.Solution:
-    """Integrate a batch of orbits using vmap [best for GPU usage].
+    """Integrate a batch of orbits using scan [best for GPU usage].
 
-    w0: shape ((N,3), (N,3)) array of initial conditions ts: array of saved
-    times. Can either be 1D array (same for all trajectories), or N x M array,
-    where M is the number of saved times for each trajectory.
+    Parameters
+    ----------
+    qp0:
+        shape ((B,3), (B,3)) array of initial conditions
+    ts:
+        array of save times. Can either be 1D array (same for all trajectories),
+        or (B x T) array, where T is the number of saved times for each
+        trajectory.
+
+    Returns
+    -------
+    `dfx.Solution`:
+        The solution to the differential equation. The ``ys`` attribute contains
+        the solution at the saved times ``ts`` and will have shape (B, T, 6).
+
+    Notes
+    -----
+    `diffrax.diffeqsolve` can solve a batched `y0` array, but this function is
+    actually faster, at the expense of only being able to solve for a single
+    batch axis, but at the gain of being able to batch over the `saveat`. If you
+    want to speed compare against raw `diffrax.diffeqsolve`, you can use the
+    `galax.utils.loop_strategies.NoLoop` loop strategy.
 
     """
-    integrator = lambda w0, ts: integrate_orbit(
+    integrator = lambda qp0, ts: integrate_orbit(
         pot,
-        w0,
+        qp0,
         t0,
         t1,
         saveat=ts,
@@ -155,13 +274,8 @@ def integrate_orbit_batch_vmap(
         solver=solver,
         solver_kwargs=solver_kwargs,
     )
+    in_axes = ((0, 0), (None if saveat.ndim == 1 else 0))
+    integrator_mapped = jax.vmap(integrator, in_axes=in_axes)
 
-    if len(saveat.shape) == 1:
-        func = lambda w0: integrator(w0, saveat)  # type: ignore[no-untyped-call]
-        integrator_mapped = jax.vmap(func, in_axes=((0, 0),))
-    else:
-        func = jax.vmap(integrator, in_axes=((0, 0), 0))
-        integrator_mapped = lambda w0: func(w0, saveat)  # type: ignore[call-arg, no-untyped-call]
-
-    soln: dfx.Solution = integrator_mapped(w0)
+    soln: dfx.Solution = integrator_mapped(qp0, saveat)
     return soln

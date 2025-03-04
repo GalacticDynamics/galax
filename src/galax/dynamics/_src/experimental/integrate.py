@@ -88,6 +88,7 @@ def integrate_orbit(
     """
     terms = HamiltonianField(pot).terms(solver)
 
+    # Parse times / saveat
     ts = saveat
     saveat = dfx.SaveAt(
         t0=False, t1=False, ts=ts if not dense else None, dense=dense, steps=False
@@ -264,12 +265,12 @@ def integrate_orbit(
     `galax.utils.loop_strategies.NoLoop` loop strategy.
 
     """
-    integrator = lambda qp0, ts: integrate_orbit(
+    integrator = lambda qp0, saveat: integrate_orbit(
         pot,
         qp0,
         t0,
         t1,
-        saveat=ts,
+        saveat=saveat,
         dense=dense,
         solver=solver,
         solver_kwargs=solver_kwargs,

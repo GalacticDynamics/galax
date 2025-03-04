@@ -103,13 +103,15 @@ def gen_stream_ics(
     ts: gt.SzTime,
     prog_w0: gdt.QParr,
     /,
-    Msat: gt.LikeSz0,
+    Msat: gt.LikeSz0 | gt.SzTime,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
     *,
     key: PRNGKeyArray,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[SzN3, SzN3, SzN3, SzN3]:
+    # Integrate the progenitor's orbit to get the stream progenitor's positions
+    # and velocities at the stream particle release times.
     prog_xs, prog_vs = integrate_orbit(
         pot,
         prog_w0,
@@ -117,8 +119,9 @@ def gen_stream_ics(
         solver=solver,
         solver_kwargs=solver_kwargs,
     ).ys
-    Msat = Msat * jnp.ones(len(ts))
 
+    # Define the scan function for generating the stream particle's initial
+    # conditions given the release time, position, velocity, and Msat.
     def scan_fn(carry: ICSScanCarry, x: ICSScanIn) -> tuple[ICSScanCarry, ICSScanOut]:
         key, subkey = jr.split(carry[0])
         xv_l12_new = fardal2015_release_model(
@@ -127,7 +130,12 @@ def gen_stream_ics(
         new_carry = (key, *xv_l12_new)
         return new_carry, xv_l12_new
 
+    # Initial carry is [key, x_l1, v_l1, x_l2, v_l2]
     init_carry = (key, jnp.zeros(3), jnp.zeros(3), jnp.zeros(3), jnp.zeros(3))
+    Msat = Msat * jnp.ones(len(ts))  # shape match for scanning
+
+    # Scan over the release times/xs/vs/ms to generate the stream particle's
+    # initial conditions.
     _, all_states = jax.lax.scan(scan_fn, init_carry, (ts, prog_xs, prog_vs, Msat))
     return cast(ICSScanOut, all_states)
 
@@ -135,84 +143,63 @@ def gen_stream_ics(
 ##############################################################################
 
 
+StreamScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]
+StreamCarry: TypeAlias = tuple[int, Unpack[StreamScanOut]]
+
+
 @partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
-def gen_stream_scan(
+def simulate_stream_scan(
     pot: gp.AbstractPotential,
-    prog_w0: gt.Sz6,
-    ts: gt.SzTime,
+    prog_w0: gdt.QParr,
     /,
+    release_times: gt.SzTime,
+    t1: gt.LikeSz0,
     Msat: gt.LikeSz0,
-    seed_num: int,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    *,
+    key: PRNGKeyArray,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
-) -> tuple[SzN6, SzN6]:
+) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]]:
     """Generate stellar stream.
 
     By scanning over the release model/integration. Better for CPU usage.
 
     """
-    x_close_arr, v_close_arr, x_far_arr, v_far_arr = gen_stream_ics(
+    t1 = jnp.atleast_1d(t1)
+    x0s_l1, v0s_l1, x0s_l2, v0s_l2 = gen_stream_ics(  # x/v_l1/2 shape (N, 3)
         pot,
-        ts,
-        (prog_w0[..., :3], prog_w0[..., 3:]),
+        jnp.concatenate([release_times, t1]),
+        prog_w0,
         Msat=Msat,
         kval_arr=kval_arr,
-        key=jr.key(seed_num),
+        key=key,
         solver=solver,
         solver_kwargs=solver_kwargs,
     )
 
-    def orb_integrator(w0: gt.Sz6, ts: gt.SzTime) -> SzN6:
-        ys = integrate_orbit(
-            pot,
-            (w0[..., :3], w0[..., 3:]),
-            saveat=ts,
-            solver=solver,
-            solver_kwargs=solver_kwargs,
-            dense=False,
-        ).ys
-        return jnp.concat((ys[0][-1, :], ys[1][-1, :]), axis=-1)
-
-    orb_integrator_mapped = jax.jit(jax.vmap(orb_integrator, in_axes=(0, None)))
-
-    Carry: TypeAlias = tuple[int, gt.Sz3, gt.Sz3, gt.Sz3, gt.Sz3]
-    State: TypeAlias = tuple[gt.Sz6, gt.Sz6]
-
     @partial(jax.jit)
-    def scan_fun(carry: Carry, _: int) -> tuple[Carry, State]:
-        i, x0_close_i, x0_far_i, v0_close_i, v0_far_i = carry
-        curr_particle_w0_close = jnp.hstack([x0_close_i, v0_close_i])
-        curr_particle_w0_far = jnp.hstack([x0_far_i, v0_far_i])
+    @partial(jax.vmap, in_axes=((0, 0), None))  # map over stream arms
+    def integrate_orbits(xv0: gdt.QParr, t0: gt.Sz0) -> gdt.QParr:
+        ys = integrate_orbit(
+            pot, xv0, t0, saveat=t1, solver=solver, solver_kwargs=solver_kwargs
+        ).ys
+        return (ys[0][-1], ys[1][-1])  # return final xv
 
-        ts_arr = jnp.array([ts[i], ts[-1]])
-        curr_particle_loc = jnp.vstack([curr_particle_w0_close, curr_particle_w0_far])
-        w_particle = orb_integrator_mapped(curr_particle_loc, ts_arr)
+    @partial(jax.jit)  # scan over particles (release times)
+    def scan_fun(carry: StreamCarry, _: int) -> tuple[StreamCarry, StreamScanOut]:
+        i, x0_l1_i, v0_l1_i, x0_l2_i, v0_l2_i = carry
 
-        w_particle_close = w_particle[0]
-        w_particle_far = w_particle[1]
+        xv0s_i = jnp.vstack([x0_l1_i, x0_l2_i]), jnp.vstack([v0_l1_i, v0_l2_i])
+        xs_i, vs_i = integrate_orbits(xv0s_i, release_times[i])
 
-        new_carry = (
-            i + 1,
-            x_close_arr[i + 1, :],
-            x_far_arr[i + 1, :],
-            v_close_arr[i + 1, :],
-            v_far_arr[i + 1, :],
-        )
-        new_state = (w_particle_close, w_particle_far)
-        return new_carry, new_state
+        j = i + 1
+        new_carry = (j, x0s_l1[j, :], v0s_l1[j, :], x0s_l2[j, :], v0s_l2[j, :])
+        return new_carry, (xs_i[0], vs_i[0], xs_i[1], vs_i[1])
 
-    init_carry = (
-        0,
-        x_close_arr[0, :],
-        x_far_arr[0, :],
-        v_close_arr[0, :],
-        v_far_arr[0, :],
-    )
-    # Particle ids is one less than len(ts): ts[-1] defines final time to
-    # integrate up to the observed time
-    particle_ids = jnp.arange(len(x_close_arr) - 1)
-    _, all_states = jax.lax.scan(scan_fun, init_carry, particle_ids)
-    lead_arm, trail_arm = all_states
+    init_carry = (0, x0s_l1[0, :], v0s_l1[0, :], x0s_l2[0, :], v0s_l2[0, :])
+    idxs = jnp.arange(len(release_times))
+    _, all_states = jax.lax.scan(scan_fun, init_carry, idxs)
+    q_lead, v_lead, q_trail, v_trail = all_states
 
-    return lead_arm, trail_arm
+    return (q_lead, v_lead), (q_trail, v_trail)

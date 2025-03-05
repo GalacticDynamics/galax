@@ -27,6 +27,10 @@ class Determine(AbstractLoopStrategy):
     """Loop strategy for :func:`jax.vmap`."""
 
 
+class NoLoop(AbstractLoopStrategy):
+    """Loop strategy for not performing a loop."""
+
+
 class AbstractVMap(AbstractLoopStrategy):
     """Loop strategy for :func:`jax.vmap`."""
 

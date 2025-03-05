@@ -68,6 +68,9 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
     from .orbit import AbstractSolver, Orbit, OrbitSolver, compute_orbit
 
     # isort: split
+    from ._src import experimental  # noqa: F401
+
+    # isort: split
     from ._src import register_api
 
 

@@ -4,6 +4,8 @@ __all__: list[str] = []
 
 from typing import TypeAlias
 
+from jaxtyping import Real
+
 import galax._custom_types as gt
 
 # ---------------------------
@@ -12,6 +14,8 @@ import galax._custom_types as gt
 Qarr: TypeAlias = gt.Sz3
 BtQarr: TypeAlias = gt.BtSz3
 BBtQarr: TypeAlias = gt.BBtSz3
+
+BQarr: TypeAlias = Real[gt.Sz3, "batch"]
 
 Q: TypeAlias = gt.QuSz3
 BtQ: TypeAlias = gt.BtQuSz3

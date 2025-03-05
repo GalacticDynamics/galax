@@ -86,10 +86,14 @@ w0 = gc.PhaseSpaceCoordinate(
     t=u.Quantity(0.0, "Gyr"),
 )
 w0_ = w0.w(units="galactic")
-qp0 = (w0_[:3], w0_[3:])
+qp0 = (w0_[0:3], w0_[3:6])
 
 ts = jnp.linspace(0.0, 100.0, 1_000)  # [Myr]
 
+tback = -4_000
+stripping_times = jnp.linspace(tback, -150, 2_000)
+t1 = 0
+Msat = 1e5  # [Msun]
 
 static_argnums = {"static_argnums": (0,)}
 static_argnames = {"static_argnames": ("solver", "solver_kwargs", "dense")}
@@ -127,10 +131,60 @@ funcs_id_and_args: list[tuple[Func, ID, JITOpts, Unpack[tuple[Arguments, ...]]]]
         gd.experimental.stream.fardal2015_release_model,
         "scalar",
         None,
-        Arguments(jr.key(0), pot, 0, qp0[0], qp0[1], 1e5),
+        Arguments(jr.key(0), pot, 0, qp0[0], qp0[1], Msat),
     ),
     # ================================================
     # Streams
+    (
+        gd.experimental.stream.simulate_stream,
+        "no-flag",
+        {"static_argnames": ("solver", "solver_kwargs")},
+        Arguments(
+            pot, qp0, release_times=stripping_times, t1=t1, Msat=Msat, key=jr.key(0)
+        ),
+    ),
+    (
+        gd.experimental.stream.simulate_stream,
+        "determine",
+        static_argnums | {"static_argnames": ("solver", "solver_kwargs")},
+        Arguments(
+            loop_strategies.Determine,
+            pot,
+            qp0,
+            release_times=stripping_times,
+            t1=t1,
+            Msat=Msat,
+            key=jr.key(0),
+        ),
+    ),
+    (
+        gd.experimental.stream.simulate_stream,
+        "scan",
+        static_argnums | {"static_argnames": ("solver", "solver_kwargs")},
+        Arguments(
+            loop_strategies.Scan,
+            pot,
+            qp0,
+            release_times=stripping_times,
+            t1=t1,
+            Msat=Msat,
+            key=jr.key(0),
+        ),
+    ),
+    (
+        gd.experimental.stream.simulate_stream,
+        "vmap",
+        static_argnums | {"static_argnames": ("solver", "solver_kwargs")},
+        Arguments(
+            loop_strategies.VMap,
+            pot,
+            qp0,
+            release_times=stripping_times,
+            t1=t1,
+            Msat=Msat,
+            key=jr.key(0),
+        ),
+    ),
 ]
 
 

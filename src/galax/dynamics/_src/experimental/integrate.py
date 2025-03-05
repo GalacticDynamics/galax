@@ -6,6 +6,7 @@ from functools import partial
 from typing import Any, TypeAlias
 
 import diffrax as dfx
+import equinox as eqx
 import jax
 import jax.extend as jex
 from jaxtyping import Array, Real
@@ -30,6 +31,57 @@ default_solver = dfxtra.DiffEqSolver(
     max_steps=10_000,
     # adjoint=ForwardMode(),  # noqa: ERA001
 )
+
+
+def parse_t0_t1_saveat(
+    t0: gt.LikeSz0 | None,
+    t1: gt.LikeSz0 | None,
+    saveat: gt.LikeSz0 | None,
+    *,
+    dense: bool,
+) -> tuple[gt.LikeSz0, gt.LikeSz0, dfx.SaveAt]:
+    """Parse t0, t1, and saveat."""
+    # Parse times / saveat TODO: see if this can be simplified with a PR to
+    # https://github.com/patrick-kidger/diffrax/blob/14baa1edddcacf27c0483962b3c9cf2e86e6e5b6/diffrax/_saveat.py#L18
+    # There are 3 cases to consider:
+    # 1. saveat is None, in which case we integrate from t0 to t1, returning the
+    #    solution at t1. Neither t0 nor t1 can be None.
+    # 2. saveat is a 0-D array (a scalar), in which case we integrate from t0 to
+    #    saveat, skipping the need for t1. t0 cannot be None.
+    # 3. saveat is a length>2 1-D array, in which case we integrate from t0 to
+    #    t1, saving at the times specified in saveat. t0 and t1 can be None, in
+    #    which case they are inferred from saveat.
+    ts = jnp.array(saveat) if saveat is not None else None
+    if ts is None:
+        t0 = eqx.error_if(
+            t0, t0 is None or t1 is None, "t0, t1 must be specified if saveat is None"
+        )
+        saver = dfx.SaveAt(
+            t0=False, t1=True if not dense else None, ts=None, dense=dense, steps=False
+        )
+    elif ts.ndim == 0:
+        t0 = eqx.error_if(t0, t0 is None, "t0 must be specified if saveat is a scalar")
+        t1 = ts
+        saver = dfx.SaveAt(
+            t0=False,
+            t1=False,
+            ts=jnp.array([t0, ts]) if not dense else None,
+            dense=dense,
+            steps=False,
+        )
+    else:
+        ts = eqx.error_if(
+            ts,
+            len(ts) < 2 and (t0 is None or t1 is None),
+            "if t0 or t1 are None, saveat must be [t0, ..., t1]",
+        )
+        t0 = jnp.min(ts) if t0 is None else t0
+        t1 = jnp.max(ts) if t1 is None else t1
+        saver = dfx.SaveAt(
+            t0=False, t1=False, ts=ts if not dense else None, dense=dense, steps=False
+        )
+
+    return t0, t1, saver
 
 
 @dispatch.multi(
@@ -61,7 +113,7 @@ def integrate_orbit(
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
     *,
-    saveat: gt.LikeSz0,
+    saveat: gt.LikeSz0 | None = None,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
     dense: bool = False,
@@ -70,38 +122,47 @@ def integrate_orbit(
 
     Parameters
     ----------
+    loop_strategy:
+        Loop strategy to use for the integration. Because of multiple dispatch,
+        this argument can be omitted.
+    pot:
+        The potential in which to integrate the orbit.
     qp0:
-        length 6 array [x,y,z,vx,vy,vz]
-    ts:
-        array of saved times. Must be at least length 2, specifying a minimum
-        and maximum time. This does _not_ determine the timestep
+        The initial conditions of the orbit. Should be a tuple of two arrays,
+        the first containing the initial positions in Cartesian coordinates and
+        the second containing the initial velocities in Cartesian coordinates.
+    t0,t1,ts:
+        Start time, end time, and save times. There are 3 cases:
+
+        1. saveat is None, in which case we integrate from t0 to t1, returning
+           the solution at t1. Neither t0 nor t1 can be None.
+        2. saveat is a 0-D array (a scalar), in which case we integrate from t0
+           to saveat, skipping the need for t1. t0 cannot be None.
+        3. saveat is a length>2 1-D array, in which case we integrate from t0 to
+           t1, saving at the times specified in saveat. t0 and t1 can be None,
+           in which case they are inferred from saveat.
+
+        In all cases, if `dense` is `True`, the solution is interpolated between
+        `t0` and `t1` and no save times are used.
 
     solver:
-        Solver to use for the integration.
+        Solver to use for the integration. See `diffraxtra.AbstractDiffEqSolver`
+        for more information.
     solver_kwargs:
         Additional keyword arguments to pass to the solver, e.g. 'max_steps',
-        'stepsize_controller', etc.
+        'stepsize_controller', etc. See `diffraxtra.AbstractDiffEqSolver` for
+        more information.
     dense:
-        When `False`, return orbit at times ts. When `True`, return dense
-        interpolation of orbit between ts.min() and ts.max().
+        When `False` (default), return orbit at times ts. When `True`, return
+        dense interpolation of orbit between `t0` and `t1`.
 
     """
     terms = HamiltonianField(pot).terms(solver)
 
-    # Parse times / saveat
-    ts = saveat
-    saveat = dfx.SaveAt(
-        t0=False, t1=False, ts=ts if not dense else None, dense=dense, steps=False
-    )
+    t0, t1, saver = parse_t0_t1_saveat(t0, t1, saveat, dense=dense)
 
     soln: dfx.Solution = solver(
-        terms,
-        t0=ts.min() if t0 is None else t0,
-        t1=ts.max() if t1 is None else t1,
-        dt0=None,
-        y0=qp0,
-        saveat=saveat,
-        **(solver_kwargs or {}),
+        terms, t0=t0, t1=t1, dt0=None, y0=qp0, saveat=saver, **(solver_kwargs or {})
     )
     return soln
 

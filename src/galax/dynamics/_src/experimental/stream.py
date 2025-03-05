@@ -98,7 +98,7 @@ ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
 
 
 @partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
-def gen_stream_ics(
+def generate_stream_ics(
     pot: gp.AbstractPotential,
     ts: gt.SzTime,
     prog_w0: gdt.QParr,
@@ -166,10 +166,10 @@ def simulate_stream_scan(
     By scanning over the release model/integration. Better for CPU usage.
 
     """
-    t1 = jnp.atleast_1d(t1)
-    x0s_l1, v0s_l1, x0s_l2, v0s_l2 = gen_stream_ics(  # x/v_l1/2 shape (N, 3)
+    t1 = jnp.asarray(t1)
+    x0s_l1, v0s_l1, x0s_l2, v0s_l2 = generate_stream_ics(  # x/v_l1/2 shape (N, 3)
         pot,
-        jnp.concatenate([release_times, t1]),
+        jnp.concatenate([release_times, t1[None]]),
         prog_w0,
         Msat=Msat,
         kval_arr=kval_arr,
@@ -181,8 +181,8 @@ def simulate_stream_scan(
     @partial(jax.jit)
     @partial(jax.vmap, in_axes=((0, 0), None))  # map over stream arms
     def integrate_orbits(xv0: gdt.QParr, t0: gt.Sz0) -> gdt.QParr:
-        ys = integrate_orbit(
-            pot, xv0, t0, saveat=t1, solver=solver, solver_kwargs=solver_kwargs
+        ys: gdt.QParr = integrate_orbit(
+            pot, xv0, t0, t1, solver=solver, solver_kwargs=solver_kwargs
         ).ys
         return (ys[0][-1], ys[1][-1])  # return final xv
 
@@ -220,7 +220,7 @@ def simulate_stream_vmap(
     solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]]:
     t1 = jnp.array(t1)
-    x0s_l1, v0s_l1, x0s_l2, v0s_l2 = gen_stream_ics(  # x/v_l1/2 shape (N, 3)
+    x0s_l1, v0s_l1, x0s_l2, v0s_l2 = generate_stream_ics(  # x/v_l1/2 shape (N, 3)
         pot,
         jnp.concatenate([release_times, t1[None]]),
         prog_w0,
@@ -234,15 +234,8 @@ def simulate_stream_vmap(
     @partial(jax.jit)
     @partial(jax.vmap, in_axes=((0, 0), 0))  # map over particles
     def integrate_particle_orbit(xv0: gdt.QParr, t0: gt.Sz0) -> gdt.QParr:
-        ys = integrate_orbit(
-            pot,
-            xv0,
-            t0=t0,
-            t1=t1,
-            saveat=t1[None],
-            solver=solver,
-            solver_kwargs=solver_kwargs,
-            dense=False,
+        ys: gdt.QParr = integrate_orbit(
+            pot, xv0, t0, t1, solver=solver, solver_kwargs=solver_kwargs, dense=False
         ).ys
         return (ys[0][-1], ys[1][-1])  # return final xv
 

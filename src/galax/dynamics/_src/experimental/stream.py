@@ -10,6 +10,7 @@ import diffrax as dfx
 import jax
 import jax.random as jr
 from jaxtyping import Array, PRNGKeyArray, Real
+from plum import dispatch
 
 import coordinax as cx
 import diffraxtra as dfxtra
@@ -18,6 +19,7 @@ import quaxed.numpy as jnp
 import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
+import galax.utils.loop_strategies as lstrat
 from .integrate import integrate_orbit
 from galax.dynamics._src.api import omega
 from galax.dynamics._src.cluster.api import tidal_radius
@@ -143,21 +145,112 @@ def generate_stream_ics(
 ##############################################################################
 
 
+@dispatch.abstract
+def simulate_stream(*args: Any, **kwargs: Any) -> Any:
+    """Simulate a stellar stream.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import jax.random as jr
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.HernquistPotential(1e12, 10, units="galactic")
+    >>> qp = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
+    >>> ts = jnp.linspace(-4_000, -150, 2_000)
+    >>> t1 = 0.0
+    >>> Msat = 1e5
+
+    >>> stream_lead, stream_trail = gd.experimental.stream.simulate_stream(
+    ...     pot, qp, release_times=ts, t1=t1, Msat=Msat, key=jr.key(0))
+
+    """
+
+
+# ---------------------------
+# auto-determine
+
+
+@dispatch
+def simulate_stream(
+    pot: gp.AbstractPotential,
+    prog_w0: gdt.QParr,
+    /,
+    *,
+    release_times: gt.SzTime,
+    t1: gt.LikeSz0,
+    Msat: gt.LikeSz0,
+    key: PRNGKeyArray,
+    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    solver: dfxtra.AbstractDiffEqSolver = default_solver,
+    solver_kwargs: dict[str, Any] | None = None,
+) -> Any:
+    return simulate_stream(
+        lstrat.Determine,
+        pot,
+        prog_w0,
+        release_times=release_times,
+        t1=t1,
+        Msat=Msat,
+        kval_arr=kval_arr,
+        key=key,
+        solver=solver,
+        solver_kwargs=solver_kwargs,
+    )
+
+
+@dispatch
+def simulate_stream(
+    loop_strategy: type[lstrat.Determine],  # noqa: ARG001
+    pot: gp.AbstractPotential,
+    prog_w0: gdt.QParr,
+    /,
+    *,
+    release_times: gt.SzTime,
+    t1: gt.LikeSz0,
+    Msat: gt.LikeSz0,
+    key: PRNGKeyArray,
+    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    solver: dfxtra.AbstractDiffEqSolver = default_solver,
+    solver_kwargs: dict[str, Any] | None = None,
+) -> Any:
+    # Determine the loop strategy
+    loop_strat = lstrat.VMap  # TODO: an actual heuristic
+    return simulate_stream(
+        loop_strat,
+        pot,
+        prog_w0,
+        release_times=release_times,
+        t1=t1,
+        Msat=Msat,
+        key=key,
+        kval_arr=kval_arr,
+        solver=solver,
+        solver_kwargs=solver_kwargs,
+    )
+
+
+# ---------------------------
+
+
 StreamScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]
 StreamCarry: TypeAlias = tuple[int, Unpack[StreamScanOut]]
 
 
-@partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
-def simulate_stream_scan(
+@dispatch
+@partial(jax.jit, static_argnums=(0,), static_argnames=("solver", "solver_kwargs"))
+def simulate_stream(
+    loop_strategy: type[lstrat.Scan],  # noqa: ARG001
     pot: gp.AbstractPotential,
     prog_w0: gdt.QParr,
     /,
+    *,
     release_times: gt.SzTime,
     t1: gt.LikeSz0,
     Msat: gt.LikeSz0,
-    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
-    *,
     key: PRNGKeyArray,
+    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]]:
@@ -205,17 +298,19 @@ def simulate_stream_scan(
     return (q_lead, v_lead), (q_trail, v_trail)
 
 
-@partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
-def simulate_stream_vmap(
+@dispatch
+@partial(jax.jit, static_argnums=(0,), static_argnames=("solver", "solver_kwargs"))
+def simulate_stream(
+    loop_strategy: type[lstrat.VMap],  # noqa: ARG001
     pot: gp.AbstractPotential,
     prog_w0: gdt.QParr,
     /,
+    *,
     release_times: gt.SzTime,
     t1: gt.LikeSz0,
     Msat: gt.LikeSz0,
-    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
-    *,
     key: PRNGKeyArray,
+    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]]:

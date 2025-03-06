@@ -182,6 +182,7 @@ def simulate_stream(
     t1: gt.LikeSz0,
     Msat: gt.LikeSz0,
     key: PRNGKeyArray,
+    dense: bool = False,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
@@ -195,6 +196,7 @@ def simulate_stream(
         Msat=Msat,
         kval_arr=kval_arr,
         key=key,
+        dense=dense,
         solver=solver,
         solver_kwargs=solver_kwargs,
     )
@@ -211,6 +213,7 @@ def simulate_stream(
     t1: gt.LikeSz0,
     Msat: gt.LikeSz0,
     key: PRNGKeyArray,
+    dense: bool = False,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
@@ -225,6 +228,7 @@ def simulate_stream(
         t1=t1,
         Msat=Msat,
         key=key,
+        dense=dense,
         kval_arr=kval_arr,
         solver=solver,
         solver_kwargs=solver_kwargs,
@@ -239,7 +243,11 @@ StreamCarry: TypeAlias = tuple[int, Unpack[StreamScanOut]]
 
 
 @dispatch
-@partial(jax.jit, static_argnums=(0,), static_argnames=("solver", "solver_kwargs"))
+@partial(
+    jax.jit,
+    static_argnums=(0,),
+    static_argnames=("dense", "solver", "solver_kwargs"),
+)
 def simulate_stream(
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
     pot: gp.AbstractPotential,
@@ -250,10 +258,11 @@ def simulate_stream(
     t1: gt.LikeSz0,
     Msat: gt.LikeSz0,
     key: PRNGKeyArray,
+    dense: bool = False,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
-) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]]:
+) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]] | dfx.Solution:
     """Generate stellar stream.
 
     By scanning over the release model/integration. Better for CPU usage.
@@ -274,32 +283,48 @@ def simulate_stream(
     @partial(jax.jit)
     @partial(jax.vmap, in_axes=((0, 0), None))  # map over stream arms
     def integrate_orbits(xv0: gdt.QParr, t0: gt.Sz0) -> gdt.QParr:
-        ys: gdt.QParr = integrate_orbit(
-            pot, xv0, t0, t1, solver=solver, solver_kwargs=solver_kwargs
-        ).ys
-        return (ys[0][-1], ys[1][-1])  # return final xv
+        soln: dfx.Solution = integrate_orbit(
+            pot, xv0, t0, t1, dense=dense, solver=solver, solver_kwargs=solver_kwargs
+        )
+        return soln if dense else (soln.ys[0][-1], soln.ys[1][-1])  # return final xv
 
     @partial(jax.jit)  # scan over particles (release times)
-    def scan_fun(carry: StreamCarry, _: int) -> tuple[StreamCarry, StreamScanOut]:
+    def scan_fun(
+        carry: StreamCarry, _: int
+    ) -> tuple[StreamCarry, StreamScanOut | tuple[dfx.Solution]]:
         i, x0_l1_i, v0_l1_i, x0_l2_i, v0_l2_i = carry
 
         xv0s_i = jnp.vstack([x0_l1_i, x0_l2_i]), jnp.vstack([v0_l1_i, v0_l2_i])
-        xs_i, vs_i = integrate_orbits(xv0s_i, release_times[i])
+        soln = integrate_orbits(xv0s_i, release_times[i])
 
+        if dense:
+            new_state = (soln,)
+        else:
+            xs_i, vs_i = soln
+            new_state = (xs_i[0], vs_i[0], xs_i[1], vs_i[1])
         j = i + 1
         new_carry = (j, x0s_l1[j, :], v0s_l1[j, :], x0s_l2[j, :], v0s_l2[j, :])
-        return new_carry, (xs_i[0], vs_i[0], xs_i[1], vs_i[1])
+        return new_carry, new_state
 
     init_carry = (0, x0s_l1[0, :], v0s_l1[0, :], x0s_l2[0, :], v0s_l2[0, :])
     idxs = jnp.arange(len(release_times))
     _, all_states = jax.lax.scan(scan_fun, init_carry, idxs)
-    q_lead, v_lead, q_trail, v_trail = all_states
 
-    return (q_lead, v_lead), (q_trail, v_trail)
+    if dense:
+        out = all_states[0]
+    else:
+        q_lead, v_lead, q_trail, v_trail = all_states
+        out = (q_lead, v_lead), (q_trail, v_trail)
+
+    return out
 
 
 @dispatch
-@partial(jax.jit, static_argnums=(0,), static_argnames=("solver", "solver_kwargs"))
+@partial(
+    jax.jit,
+    static_argnums=(0,),
+    static_argnames=("dense", "solver", "solver_kwargs"),
+)
 def simulate_stream(
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
     pot: gp.AbstractPotential,
@@ -310,6 +335,7 @@ def simulate_stream(
     t1: gt.LikeSz0,
     Msat: gt.LikeSz0,
     key: PRNGKeyArray,
+    dense: bool = False,
     kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
@@ -328,16 +354,24 @@ def simulate_stream(
 
     @partial(jax.jit)
     @partial(jax.vmap, in_axes=((0, 0), 0))  # map over particles
-    def integrate_particle_orbit(xv0: gdt.QParr, t0: gt.Sz0) -> gdt.QParr:
-        ys: gdt.QParr = integrate_orbit(
-            pot, xv0, t0, t1, solver=solver, solver_kwargs=solver_kwargs, dense=False
-        ).ys
-        return (ys[0][-1], ys[1][-1])  # return final xv
+    def integrate_particle_orbit(
+        xv0: gdt.QParr, t0: gt.Sz0
+    ) -> dfx.Solution | gdt.QParr:
+        soln = integrate_orbit(
+            pot, xv0, t0, t1, solver=solver, solver_kwargs=solver_kwargs, dense=dense
+        )
+        return soln if dense else (soln.ys[0][-1], soln.ys[1][-1])  # return final xv
 
     x0s = jnp.stack([x0s_l1[:-1], x0s_l2[:-1]], axis=0)
     v0s = jnp.stack([v0s_l1[:-1], v0s_l2[:-1]], axis=0)
     integrate_particles = jax.vmap(integrate_particle_orbit, in_axes=(0, None))
-    xs, vs = integrate_particles((x0s, v0s), release_times)
-    w_lead, w_trail = (xs[0], vs[0]), (xs[1], vs[1])
+    result = integrate_particles((x0s, v0s), release_times)
 
-    return w_lead, w_trail
+    if dense:
+        out = result
+    else:
+        w_lead = (result[0][0], result[1][0])  # x, v
+        w_trail = (result[0][1], result[1][1])  # x, v
+        out = (w_lead, w_trail)
+
+    return out

@@ -34,12 +34,12 @@ FuncAndArgs: TypeAlias = tuple[Func, Arguments]
 ID: TypeAlias = str
 
 JITOpts = dict[str, Any] | None
-ProcessFn: TypeAlias = Callable[[Func, Arguments, JITOpts], FuncAndArgs]
+ProcessFn: TypeAlias = Callable[[Func, JITOpts, Arguments], FuncAndArgs]
 
 
 # implements ProcessFn
 def process_func(
-    func: Func, args: Arguments, jit_kwargs: JITOpts
+    func: Func, jit_kwargs: JITOpts, args: Arguments
 ) -> tuple[Compiled, Arguments]:
     """JIT (with options) and compile the function."""
     jit_kw = jit_kwargs or {}
@@ -53,7 +53,7 @@ class ParameterizationKWArgs(TypedDict):
     ids: list[str]
 
 
-def process_pytest_argvalues(
+def process_pytest_paramatrization(
     process_fn: ProcessFn,
     arg_id_values: list[
         tuple[Func, str | None, JITOpts, Unpack[tuple[Arguments, ...]]]
@@ -68,7 +68,7 @@ def process_pytest_argvalues(
     for func, ID, jit_kw, *many_argobjs in arg_id_values:
         for argobj in many_argobjs:
             ids.append(f"{func.__name__}-{ID or '*'}-{get_types(argobj)}")
-            processed_argvalues.append(process_fn(func, argobj, jit_kw))
+            processed_argvalues.append(process_fn(func, jit_kw, argobj))
 
     # Process the argvalues and return the parameterization, with IDs
     return {"argvalues": processed_argvalues, "ids": ids}
@@ -128,7 +128,7 @@ funcs_id_and_args: list[tuple[Func, ID, JITOpts, Unpack[tuple[Arguments, ...]]]]
     # ================================================
     # DF
     (
-        gd.experimental.stream.fardal2015_release_model,
+        gd.experimental.df.Fardal2015DF().sample,
         "scalar",
         None,
         Arguments(jr.key(0), pot, 0, qp0[0], qp0[1], Msat),
@@ -185,6 +185,21 @@ funcs_id_and_args: list[tuple[Func, ID, JITOpts, Unpack[tuple[Arguments, ...]]]]
             key=jr.key(0),
         ),
     ),
+    (
+        gd.experimental.stream.simulate_stream,
+        "df",
+        static_argnums | {"static_argnames": ("solver", "solver_kwargs")},
+        Arguments(
+            loop_strategies.VMap,
+            pot,
+            qp0,
+            release_times=stripping_times,
+            t1=t1,
+            Msat=Msat,
+            key=jr.key(0),
+            kinematic_df=gd.experimental.df.Fardal2015DF(),
+        ),
+    ),
 ]
 
 
@@ -192,7 +207,8 @@ funcs_id_and_args: list[tuple[Func, ID, JITOpts, Unpack[tuple[Arguments, ...]]]]
 
 
 @pytest.mark.parametrize(
-    ("func", "argobj"), **process_pytest_argvalues(process_func, funcs_id_and_args)
+    ("func", "argobj"),
+    **process_pytest_paramatrization(process_func, funcs_id_and_args),
 )
 @pytest.mark.benchmark(group="quaxed", max_time=1.0, warmup=False)
 def test_jit_compile(func, argobj):
@@ -201,7 +217,8 @@ def test_jit_compile(func, argobj):
 
 
 @pytest.mark.parametrize(
-    ("func", "argobj"), **process_pytest_argvalues(process_func, funcs_id_and_args)
+    ("func", "argobj"),
+    **process_pytest_paramatrization(process_func, funcs_id_and_args),
 )
 @pytest.mark.benchmark(
     group="galax.dynamics",

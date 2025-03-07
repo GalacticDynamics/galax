@@ -12,7 +12,6 @@ import jax.random as jr
 from jaxtyping import Array, PRNGKeyArray, Real
 from plum import dispatch
 
-import coordinax as cx
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 
@@ -20,9 +19,8 @@ import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 import galax.utils.loop_strategies as lstrat
+from .df import AbstractKinematicDF, Fardal2015DF
 from .integrate import integrate_orbit
-from galax.dynamics._src.api import omega
-from galax.dynamics._src.cluster.api import tidal_radius
 
 SzN3: TypeAlias = Real[Array, "N 3"]
 SzN6: TypeAlias = Real[Array, "N 6"]
@@ -36,61 +34,7 @@ default_solver = dfxtra.DiffEqSolver(
     # adjoint=ForwardMode(),  # noqa: ERA001
 )
 
-
-@partial(jax.jit)
-def fardal2015_release_model(
-    key: PRNGKeyArray,
-    pot: gp.AbstractPotential,
-    t: gt.LikeSz0,
-    x: gt.Sz3,
-    v: gt.Sz3,
-    Msat: gt.LikeSz0,
-    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
-) -> tuple[gt.Sz3, gt.Sz3, gt.Sz3, gt.Sz3]:
-    # ---------------------------------
-    # If kval_arr is a scalar, then we assume the default values of kvals
-
-    def true_func() -> Real[Array, "8"]:
-        return jnp.array([2.0, 0.3, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5])
-
-    def false_func() -> Real[Array, "8"]:
-        return jnp.ones(8) * kval_arr
-
-    kr_bar, kvphi_bar, kz_bar, kvz_bar, sigma_kr, sigma_kvphi, sigma_kz, sigma_kvz = (
-        jax.lax.cond(jnp.isscalar(kval_arr), true_func, false_func)
-    )
-
-    # ---------------------------------
-
-    key1, key2, key3, key4 = jr.split(key, 4)
-
-    Omega = omega(x, v)  # orbital angular frequency about the origin
-    r_tidal = tidal_radius(pot, x, v, mass=Msat, t=t)  # tidal radius
-    v_circ = Omega * r_tidal  # relative velocity
-
-    # unit vectors
-    r_hat = cx.vecs.normalize_vector(x)
-    z_hat = cx.vecs.normalize_vector(jnp.linalg.cross(x, v))
-    phi_vec = v - jnp.sum(v * r_hat) * r_hat
-    phi_hat = cx.vecs.normalize_vector(phi_vec)
-
-    # k vals
-    shape = r_tidal.shape
-    kr_samp = kr_bar + jr.normal(key1, shape) * sigma_kr
-    kvphi_samp = kr_samp * (kvphi_bar + jr.normal(key2, shape) * sigma_kvphi)
-    kz_samp = kz_bar + jr.normal(key3, shape) * sigma_kz
-    kvz_samp = kvz_bar + jr.normal(key4, shape) * sigma_kvz
-
-    # Leading arm
-    x_lead = x - r_tidal * (kr_samp * r_hat - kz_samp * z_hat)
-    v_lead = v - v_circ * (kvphi_samp * phi_hat - kvz_samp * z_hat)
-
-    # Trailing arm
-    x_trail = x + r_tidal * (kr_samp * r_hat + kz_samp * z_hat)
-    v_trail = v + v_circ * (kvphi_samp * phi_hat + kvz_samp * z_hat)
-
-    return x_lead, v_lead, x_trail, v_trail
-
+default_kinematic_df = Fardal2015DF()
 
 ##############################################################################
 
@@ -99,46 +43,56 @@ ICSScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]  # x/v_l1,
 ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
 
 
+# TODO: fold this into a SprayDF
 @partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
 def generate_stream_ics(
     pot: gp.AbstractPotential,
-    ts: gt.SzTime,
+    release_times: gt.SzTime,
     prog_w0: gdt.QParr,
     /,
-    Msat: gt.LikeSz0 | gt.SzTime,
-    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    Msat: gt.LikeSz0 | gt.SzTime,  # can be time-dependent by matching release_times
+    kinematic_df: AbstractKinematicDF | None = None,
     *,
     key: PRNGKeyArray,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[SzN3, SzN3, SzN3, SzN3]:
+    """Generate the initial conditions for the stream particles.
+
+    This function generates the initial conditions for the stream particles
+    given the progenitor's orbit, the release times, and the progenitor's
+    mass.
+
+    """
     # Integrate the progenitor's orbit to get the stream progenitor's positions
     # and velocities at the stream particle release times.
     prog_xs, prog_vs = integrate_orbit(
         pot,
         prog_w0,
-        saveat=ts,
+        saveat=release_times,
         solver=solver,
         solver_kwargs=solver_kwargs,
     ).ys
+
+    w0_df = default_kinematic_df if kinematic_df is None else kinematic_df
 
     # Define the scan function for generating the stream particle's initial
     # conditions given the release time, position, velocity, and Msat.
     def scan_fn(carry: ICSScanCarry, x: ICSScanIn) -> tuple[ICSScanCarry, ICSScanOut]:
         key, subkey = jr.split(carry[0])
-        xv_l12_new = fardal2015_release_model(
-            subkey, pot, t=x[0], x=x[1], v=x[2], Msat=x[3], kval_arr=kval_arr
-        )
+        xv_l12_new = w0_df.sample(subkey, pot, t=x[0], x=x[1], v=x[2], Msat=x[3])
         new_carry = (key, *xv_l12_new)
         return new_carry, xv_l12_new
 
     # Initial carry is [key, x_l1, v_l1, x_l2, v_l2]
     init_carry = (key, jnp.zeros(3), jnp.zeros(3), jnp.zeros(3), jnp.zeros(3))
-    Msat = Msat * jnp.ones(len(ts))  # shape match for scanning
+    Msat = Msat * jnp.ones(len(release_times))  # shape match for scanning
 
     # Scan over the release times/xs/vs/ms to generate the stream particle's
     # initial conditions.
-    _, all_states = jax.lax.scan(scan_fn, init_carry, (ts, prog_xs, prog_vs, Msat))
+    _, all_states = jax.lax.scan(
+        scan_fn, init_carry, (release_times, prog_xs, prog_vs, Msat)
+    )
     return cast(ICSScanOut, all_states)
 
 
@@ -183,7 +137,7 @@ def simulate_stream(
     Msat: gt.LikeSz0,
     key: PRNGKeyArray,
     dense: bool = False,
-    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    kinematic_df: AbstractKinematicDF | None = None,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> Any:
@@ -194,9 +148,9 @@ def simulate_stream(
         release_times=release_times,
         t1=t1,
         Msat=Msat,
-        kval_arr=kval_arr,
         key=key,
         dense=dense,
+        kinematic_df=kinematic_df,
         solver=solver,
         solver_kwargs=solver_kwargs,
     )
@@ -214,7 +168,7 @@ def simulate_stream(
     Msat: gt.LikeSz0,
     key: PRNGKeyArray,
     dense: bool = False,
-    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    kinematic_df: AbstractKinematicDF | None = None,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> Any:
@@ -229,7 +183,7 @@ def simulate_stream(
         Msat=Msat,
         key=key,
         dense=dense,
-        kval_arr=kval_arr,
+        kinematic_df=kinematic_df,
         solver=solver,
         solver_kwargs=solver_kwargs,
     )
@@ -259,7 +213,7 @@ def simulate_stream(
     Msat: gt.LikeSz0,
     key: PRNGKeyArray,
     dense: bool = False,
-    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    kinematic_df: AbstractKinematicDF | None = None,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]] | dfx.Solution:
@@ -274,7 +228,7 @@ def simulate_stream(
         jnp.concatenate([release_times, t1[None]]),
         prog_w0,
         Msat=Msat,
-        kval_arr=kval_arr,
+        kinematic_df=kinematic_df,
         key=key,
         solver=solver,
         solver_kwargs=solver_kwargs,
@@ -336,18 +290,18 @@ def simulate_stream(
     Msat: gt.LikeSz0,
     key: PRNGKeyArray,
     dense: bool = False,
-    kval_arr: Real[Array, "8"] | gt.Sz0 | float = 1.0,
+    kinematic_df: AbstractKinematicDF | None = None,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
-) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]]:
-    t1 = jnp.array(t1)
+) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]] | dfx.Solution:
+    t1 = jnp.asarray(t1)
     x0s_l1, v0s_l1, x0s_l2, v0s_l2 = generate_stream_ics(  # x/v_l1/2 shape (N, 3)
         pot,
         jnp.concatenate([release_times, t1[None]]),
         prog_w0,
         Msat=Msat,
-        kval_arr=kval_arr,
         key=key,
+        kinematic_df=kinematic_df,
         solver=solver,
         solver_kwargs=solver_kwargs,
     )

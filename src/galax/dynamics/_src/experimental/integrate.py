@@ -19,6 +19,7 @@ import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 import galax.utils.loop_strategies as lstrat
+from galax.dynamics._src.orbit.field_base import AbstractOrbitField
 from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
 
 BQParr: TypeAlias = tuple[Real[gdt.Qarr, "B"], Real[gdt.Parr, "B"]]
@@ -59,6 +60,7 @@ def parse_t0_t1_saveat(
         saver = dfx.SaveAt(
             t0=False, t1=True if not dense else None, ts=None, dense=dense, steps=False
         )
+
     elif ts.ndim == 0:
         t0 = eqx.error_if(t0, t0 is None, "t0 must be specified if saveat is a scalar")
         t1 = ts
@@ -69,6 +71,7 @@ def parse_t0_t1_saveat(
             dense=dense,
             steps=False,
         )
+
     else:
         ts = eqx.error_if(
             ts,
@@ -84,17 +87,20 @@ def parse_t0_t1_saveat(
     return t0, t1, saver
 
 
+# =============================================================================
+
+
 @dispatch.multi(
     (
         type[lstrat.AbstractLoopStrategy],
-        gp.AbstractPotential,
+        gp.AbstractPotential | AbstractOrbitField,
         gdt.QParr,
         gt.LikeSz0 | None,
         gt.LikeSz0 | None,
     ),
     (
         type[lstrat.NoLoop],
-        gp.AbstractPotential,
+        gp.AbstractPotential | AbstractOrbitField,
         BQParr,
         gt.LikeSz0 | None,
         gt.LikeSz0 | None,
@@ -107,7 +113,7 @@ def parse_t0_t1_saveat(
 )
 def integrate_orbit(
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: gdt.QParr,
     /,
     t0: gt.LikeSz0 | None = None,
@@ -157,7 +163,8 @@ def integrate_orbit(
         dense interpolation of orbit between `t0` and `t1`.
 
     """
-    terms = HamiltonianField(pot).terms(solver)
+    field = pot if isinstance(pot, AbstractOrbitField) else HamiltonianField(pot)
+    terms = field.terms(solver)
 
     t0, t1, saver = parse_t0_t1_saveat(t0, t1, saveat, dense=dense)
 
@@ -173,7 +180,7 @@ def integrate_orbit(
 
 @dispatch(precedence=-1)
 def integrate_orbit(
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: Any,
     /,
     t0: gt.LikeSz0 | None = None,
@@ -192,7 +199,7 @@ def integrate_orbit(
 @dispatch(precedence=-1)
 def integrate_orbit(
     loop_strategy: type[lstrat.Determine],  # noqa: ARG001
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: BQParr,
     /,
     t0: gt.LikeSz0 | None = None,
@@ -221,7 +228,7 @@ ScanCarry: TypeAlias = list[int]
 )
 def integrate_orbit(
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: BQParr,
     /,
     t0: gt.LikeSz0 | None = None,
@@ -289,7 +296,7 @@ def integrate_orbit(
 )
 def integrate_orbit(
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: BQParr,
     /,
     t0: gt.LikeSz0 | None = None,

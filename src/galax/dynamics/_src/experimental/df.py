@@ -65,6 +65,8 @@ default_sigma_kvphi: Final = 0.5
 default_sigma_kz: Final = 0.5
 default_sigma_kvz: Final = 0.5
 
+array_unless_jitting = Unless(ArgInfo, jnp.asarray)
+
 
 # TODO: rename to Fardal-like, since it can have different parameters?
 @final
@@ -120,30 +122,16 @@ class Fardal2015DF(AbstractKinematicDF):
 
     """
 
-    kr_bar: gt.Sz0 = field(
-        default=default_kr_bar, converter=Unless(ArgInfo, jnp.asarray)
-    )
-    kvphi_bar: gt.Sz0 = field(
-        default=default_kvphi_bar, converter=Unless(ArgInfo, jnp.asarray)
-    )
-    kz_bar: gt.Sz0 = field(
-        default=default_kz_bar, converter=Unless(ArgInfo, jnp.asarray)
-    )
-    kvz_bar: gt.Sz0 = field(
-        default=default_kvz_bar, converter=Unless(ArgInfo, jnp.asarray)
-    )
-    sigma_kr: gt.Sz0 = field(
-        default=default_sigma_kr, converter=Unless(ArgInfo, jnp.asarray)
-    )
+    kr_bar: gt.Sz0 = field(default=default_kr_bar, converter=array_unless_jitting)
+    kvphi_bar: gt.Sz0 = field(default=default_kvphi_bar, converter=array_unless_jitting)
+    kz_bar: gt.Sz0 = field(default=default_kz_bar, converter=array_unless_jitting)
+    kvz_bar: gt.Sz0 = field(default=default_kvz_bar, converter=array_unless_jitting)
+    sigma_kr: gt.Sz0 = field(default=default_sigma_kr, converter=array_unless_jitting)
     sigma_kvphi: gt.Sz0 = field(
-        default=default_sigma_kvphi, converter=Unless(ArgInfo, jnp.asarray)
+        default=default_sigma_kvphi, converter=array_unless_jitting
     )
-    sigma_kz: gt.Sz0 = field(
-        default=default_sigma_kz, converter=Unless(ArgInfo, jnp.asarray)
-    )
-    sigma_kvz: gt.Sz0 = field(
-        default=default_sigma_kvz, converter=Unless(ArgInfo, jnp.asarray)
-    )
+    sigma_kz: gt.Sz0 = field(default=default_sigma_kz, converter=array_unless_jitting)
+    sigma_kvz: gt.Sz0 = field(default=default_sigma_kvz, converter=array_unless_jitting)
 
     @partial(jax.jit)
     def sample(

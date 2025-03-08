@@ -129,7 +129,7 @@ funcs_id_and_args: list[tuple[Func, ID, JITOpts, Unpack[tuple[Arguments, ...]]]]
     # DF
     (
         gd.experimental.df.Fardal2015DF().sample,
-        "scalar",
+        "Fardal15",
         None,
         Arguments(jr.key(0), pot, 0, qp0[0], qp0[1], Msat),
     ),

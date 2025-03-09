@@ -19,6 +19,7 @@ import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 import galax.utils.loop_strategies as lstrat
+from galax.dynamics._src.orbit.field_base import AbstractOrbitField
 from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
 
 BQParr: TypeAlias = tuple[Real[gdt.Qarr, "B"], Real[gdt.Parr, "B"]]
@@ -59,6 +60,7 @@ def parse_t0_t1_saveat(
         saver = dfx.SaveAt(
             t0=False, t1=True if not dense else None, ts=None, dense=dense, steps=False
         )
+
     elif ts.ndim == 0:
         t0 = eqx.error_if(t0, t0 is None, "t0 must be specified if saveat is a scalar")
         t1 = ts
@@ -69,6 +71,7 @@ def parse_t0_t1_saveat(
             dense=dense,
             steps=False,
         )
+
     else:
         ts = eqx.error_if(
             ts,
@@ -84,17 +87,143 @@ def parse_t0_t1_saveat(
     return t0, t1, saver
 
 
+# =============================================================================
+
+
+@dispatch.abstract
+def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
+    """Integrate the orbit associated with a potential function.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
+    >>> x0 = jnp.array([15.0, 0.0, 0.0])  # [kpc]
+    >>> v0 = jnp.array([0.0, 0.225, 0.0]) # [kpc/Myr]
+    >>> xv0 = (x0, v0)
+    >>> t0 = 0
+    >>> t1 = 10
+    >>> saveat = jnp.linspace(t0, t1, 100)
+
+    >>> orbit = gd.experimental.integrate_orbit(pot, xv0, t0=0, t1=10, saveat=saveat)
+    >>> orbit
+    Solution( t0=f64[], t1=f64[], ts=f64[100],
+      ys=(f64[100,3], f64[100,3]), interpolation=None,
+      ... )
+    >>> orbit.ys
+    (Array([[15.        ,  0.        ,  0.        ],
+            [14.9999803 ,  0.02272726,  0.        ],
+            ...
+            [14.80724256,  2.24035029,  0.        ]], dtype=float64),
+     Array([[ 0.        ,  0.225     ,  0.        ],
+            [-0.00039007,  0.2249997 ,  0.        ],
+             ...
+            [-0.03848635,  0.22210598,  0.        ]], dtype=float64))
+
+    ## Using a field:
+
+    Or the field can be passed directly:
+
+    >>> field = gd.HamiltonianField(pot)
+    >>> orbit = gd.experimental.integrate_orbit(field, xv0, t0=0, t1=10, saveat=saveat)
+
+    ## Integrating a batch of orbits:
+
+    To integrate a batch of orbits, the initial conditions (and save times) can
+    be batched:
+
+    >>> x0 = jnp.array([[15.0, 0.0, 0.0], [16.0, 0.0, 0.0]])  # [kpc]
+    >>> v0 = jnp.array([[0.0, 0.225, 0.0], [0.0, 0.226, 0.0]]) # [kpc/Myr]
+    >>> xv0 = (x0, v0)
+
+    >>> orbit = gd.experimental.integrate_orbit(pot, xv0, t0=0, t1=10, saveat=saveat)
+    >>> orbit
+    Solution( t0=f64[2], t1=f64[2], ts=f64[2,100],
+      ys=(f64[2,100,3], f64[2,100,3]), interpolation=None,
+      ... )
+    >>> orbit.ys
+    (Array([[[15.        ,  0.        ,  0.        ],
+             [14.9999803 ,  0.02272726,  0.        ],
+             ...
+             [14.80724256,  2.24035029,  0.        ]],
+            [[16.        ,  0.        ,  0.        ],
+             [15.99998119,  0.02282827,  0.        ],
+             ...
+             [15.81593188,  2.2513237 ,  0.        ]]], dtype=float64),
+     Array([[[ 0.        ,  0.225     ,  0.        ],
+             [-0.00039007,  0.2249997 ,  0.        ],
+             ...
+             [-0.03848635,  0.22210598,  0.        ]],
+            [[ 0.        ,  0.226     ,  0.        ],
+             [-0.0003724 ,  0.22599973,  0.        ],
+             ...
+             [-0.03675917,  0.22339773,  0.        ]]], dtype=float64))
+
+    ## Loop strategies:
+
+    Loop strategies can be used to control the integration. For example, to
+    automatically determine the best loop strategy:
+
+    >>> import galax.utils.loop_strategies as lstrat
+
+    >>> orbit = gd.experimental.integrate_orbit(lstrat.Determine,
+    ...     pot, xv0, t0=0, t1=10, saveat=saveat)
+    >>> orbit
+    Solution( t0=f64[2], t1=f64[2], ts=f64[2,100],
+      ys=(f64[2,100,3], f64[2,100,3]), interpolation=None,
+      ... )
+
+    On a CPU this will use the `Scan` loop strategy, while on a GPU it will use
+    the `VMap` loop strategy. To force a specific loop strategy:
+
+    >>> orbit = gd.experimental.integrate_orbit(lstrat.Scan,
+    ...     pot, xv0, t0=0, t1=10, saveat=saveat)
+    >>> orbit
+    Solution( t0=f64[2], t1=f64[2], ts=f64[2,100],
+      ys=(f64[2,100,3], f64[2,100,3]), interpolation=None,
+      ... )
+
+    >>> orbit = gd.experimental.integrate_orbit(lstrat.VMap,
+    ...     pot, xv0, t0=0, t1=10, saveat=saveat)
+    >>> orbit
+    Solution( t0=f64[2], t1=f64[2], ts=f64[2,100],
+      ys=(f64[2,100,3], f64[2,100,3]), interpolation=None,
+      ... )
+
+    If the ``saveat`` time is not batched then `diffrax.diffeqsolve` can
+    directly support batched ``y0``, however this is usually slower than using
+    the other loop strategies (including ``Determine``) and results in a
+    different output shape. For example:
+
+    >>> orbit = gd.experimental.integrate_orbit(lstrat.NoLoop,
+    ...     pot, xv0, t0=0, t1=10, saveat=saveat)
+    >>> orbit
+    Solution( t0=f64[], t1=f64[], ts=f64[100],
+      ys=(f64[100,2,3], f64[100,2,3]), interpolation=None,
+      ... )
+
+    """
+    raise NotImplementedError  # pragma: no cover
+
+
+# ---------------------------
+
+
 @dispatch.multi(
     (
         type[lstrat.AbstractLoopStrategy],
-        gp.AbstractPotential,
+        gp.AbstractPotential | AbstractOrbitField,
         gdt.QParr,
         gt.LikeSz0 | None,
         gt.LikeSz0 | None,
     ),
     (
         type[lstrat.NoLoop],
-        gp.AbstractPotential,
+        gp.AbstractPotential | AbstractOrbitField,
         BQParr,
         gt.LikeSz0 | None,
         gt.LikeSz0 | None,
@@ -107,7 +236,7 @@ def parse_t0_t1_saveat(
 )
 def integrate_orbit(
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: gdt.QParr,
     /,
     t0: gt.LikeSz0 | None = None,
@@ -157,7 +286,8 @@ def integrate_orbit(
         dense interpolation of orbit between `t0` and `t1`.
 
     """
-    terms = HamiltonianField(pot).terms(solver)
+    field = pot if isinstance(pot, AbstractOrbitField) else HamiltonianField(pot)
+    terms = field.terms(solver)
 
     t0, t1, saver = parse_t0_t1_saveat(t0, t1, saveat, dense=dense)
 
@@ -173,7 +303,7 @@ def integrate_orbit(
 
 @dispatch(precedence=-1)
 def integrate_orbit(
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: Any,
     /,
     t0: gt.LikeSz0 | None = None,
@@ -192,7 +322,7 @@ def integrate_orbit(
 @dispatch(precedence=-1)
 def integrate_orbit(
     loop_strategy: type[lstrat.Determine],  # noqa: ARG001
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: BQParr,
     /,
     t0: gt.LikeSz0 | None = None,
@@ -221,7 +351,7 @@ ScanCarry: TypeAlias = list[int]
 )
 def integrate_orbit(
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: BQParr,
     /,
     t0: gt.LikeSz0 | None = None,
@@ -289,7 +419,7 @@ def integrate_orbit(
 )
 def integrate_orbit(
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
-    pot: gp.AbstractPotential,
+    pot: gp.AbstractPotential | AbstractOrbitField,
     qp0: BQParr,
     /,
     t0: gt.LikeSz0 | None = None,

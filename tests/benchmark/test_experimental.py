@@ -109,6 +109,12 @@ funcs_id_and_args: list[tuple[Func, ID, JITOpts, Unpack[tuple[Arguments, ...]]]]
     ),
     (
         gd.experimental.integrate.integrate_orbit,
+        "field",
+        static_argnames,
+        Arguments(field, qp0, ts[0], ts[-1], saveat=ts),
+    ),
+    (
+        gd.experimental.integrate.integrate_orbit,
         "scalar-NoLoop",
         static_argnums | static_argnames,
         Arguments(loop_strategies.NoLoop, pot, qp0, ts[0], ts[-1], saveat=ts),
@@ -121,9 +127,21 @@ funcs_id_and_args: list[tuple[Func, ID, JITOpts, Unpack[tuple[Arguments, ...]]]]
     ),
     (
         gd.experimental.integrate.integrate_orbit,
+        "field-Scan",
+        static_argnums | static_argnames,
+        Arguments(loop_strategies.Scan, field, qp0, ts[0], ts[-1], saveat=ts),
+    ),
+    (
+        gd.experimental.integrate.integrate_orbit,
         "scalar-VMap",
         static_argnums | static_argnames,
         Arguments(loop_strategies.VMap, pot, qp0, ts[0], ts[-1], saveat=ts),
+    ),
+    (
+        gd.experimental.integrate.integrate_orbit,
+        "field-VMap",
+        static_argnums | static_argnames,
+        Arguments(loop_strategies.VMap, field, qp0, ts[0], ts[-1], saveat=ts),
     ),
     # ================================================
     # DF

@@ -8,6 +8,7 @@ import jax
 import jax.random as jr
 import pytest
 from jax._src.stages import Compiled
+from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -85,15 +86,23 @@ w0 = gc.PhaseSpaceCoordinate(
     p=u.Quantity([0.0, 220.0, 0.0], "km/s"),
     t=u.Quantity(0.0, "Gyr"),
 )
-w0_ = w0.w(units="galactic")
-qp0 = (w0_[0:3], w0_[3:6])
+qp0 = (
+    convert(w0.q, u.Quantity).ustrip(pot.units["length"]),
+    convert(w0.p, u.Quantity).ustrip(pot.units["speed"]),
+)
+t0 = w0.t.ustrip(pot.units["time"])
 
 ts = jnp.linspace(0.0, 100.0, 1_000)  # [Myr]
 
-tback = -4_000
-stripping_times = jnp.linspace(tback, -150, 2_000)
+# Stream simulation
+stream_simulator = gd.experimental.stream.StreamSimulator()
+release_times = jnp.linspace(-4_000, -150, 2_000)
 t1 = 0
 Msat = 1e5  # [Msun]
+stream_ics = stream_simulator.init(
+    pot, qp0, t0, release_times=release_times, Msat=Msat, key=jr.key(0)
+)
+
 
 static_argnums = {"static_argnums": (0,)}
 static_argnames = {"static_argnames": ("solver", "solver_kwargs", "dense")}
@@ -154,69 +163,48 @@ funcs_id_and_args: list[tuple[Func, ID, JITOpts, Unpack[tuple[Arguments, ...]]]]
     # ================================================
     # Streams
     (
-        gd.experimental.stream.simulate_stream,
-        "no-flag",
+        stream_simulator.init,
+        "defaults",
+        {"static_argnames": ("solver", "solver_kwargs")},
+        Arguments(pot, qp0, t0, release_times=release_times, Msat=Msat, key=jr.key(0)),
+    ),
+    (
+        stream_simulator.init,
+        "kinematic_df",
         {"static_argnames": ("solver", "solver_kwargs")},
         Arguments(
-            pot, qp0, release_times=stripping_times, t1=t1, Msat=Msat, key=jr.key(0)
-        ),
-    ),
-    (
-        gd.experimental.stream.simulate_stream,
-        "determine",
-        static_argnums | {"static_argnames": ("solver", "solver_kwargs")},
-        Arguments(
-            loop_strategies.Determine,
             pot,
             qp0,
-            release_times=stripping_times,
-            t1=t1,
-            Msat=Msat,
-            key=jr.key(0),
-        ),
-    ),
-    (
-        gd.experimental.stream.simulate_stream,
-        "scan",
-        static_argnums | {"static_argnames": ("solver", "solver_kwargs")},
-        Arguments(
-            loop_strategies.Scan,
-            pot,
-            qp0,
-            release_times=stripping_times,
-            t1=t1,
-            Msat=Msat,
-            key=jr.key(0),
-        ),
-    ),
-    (
-        gd.experimental.stream.simulate_stream,
-        "vmap",
-        static_argnums | {"static_argnames": ("solver", "solver_kwargs")},
-        Arguments(
-            loop_strategies.VMap,
-            pot,
-            qp0,
-            release_times=stripping_times,
-            t1=t1,
-            Msat=Msat,
-            key=jr.key(0),
-        ),
-    ),
-    (
-        gd.experimental.stream.simulate_stream,
-        "df",
-        static_argnums | {"static_argnames": ("solver", "solver_kwargs")},
-        Arguments(
-            loop_strategies.VMap,
-            pot,
-            qp0,
-            release_times=stripping_times,
-            t1=t1,
+            t0,
+            release_times=release_times,
             Msat=Msat,
             key=jr.key(0),
             kinematic_df=gd.experimental.df.Fardal2015DF(),
         ),
+    ),
+    (
+        stream_simulator.run,
+        "no-flag",
+        static_argnames,
+        Arguments(pot, stream_ics, t1=t0),
+    ),
+    (
+        stream_simulator.run,
+        "determine",
+        static_argnums | static_argnames,
+        Arguments(loop_strategies.Determine, pot, stream_ics, t1=t0),
+    ),
+    (
+        stream_simulator.run,
+        "scan",
+        static_argnums | static_argnames,
+        Arguments(loop_strategies.Scan, pot, stream_ics, t1=t0),
+    ),
+    (
+        stream_simulator.run,
+        "vmap",
+        static_argnums | static_argnames,
+        Arguments(loop_strategies.VMap, pot, stream_ics, t1=t0),
     ),
 ]
 

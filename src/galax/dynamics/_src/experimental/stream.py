@@ -2,6 +2,7 @@
 
 __all__: list[str] = []
 
+from collections.abc import Mapping
 from functools import partial
 from typing import Any, TypeAlias, final
 from typing_extensions import Unpack
@@ -133,7 +134,7 @@ class StreamSimulator:
         *,
         key: PRNGKeyArray,
         solver: dfxtra.AbstractDiffEqSolver = default_solver,
-        solver_kwargs: dict[str, Any] | None = None,
+        solver_kwargs: Mapping[str, Any] | None = None,
     ) -> StreamICs:
         """Generate the initial conditions for the stream particles.
 
@@ -236,7 +237,7 @@ def run(
     t1: gt.LikeSz0,
     dense: bool = False,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
-    solver_kwargs: dict[str, Any] | None = None,
+    solver_kwargs: Mapping[str, Any] | None = None,
 ) -> Any:
     return self.run(
         lstrat.Determine,
@@ -260,7 +261,7 @@ def run(
     t1: gt.LikeSz0,
     dense: bool = False,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
-    solver_kwargs: dict[str, Any] | None = None,
+    solver_kwargs: Mapping[str, Any] | None = None,
 ) -> Any:
     # Determine the loop strategy
     loop_strat = lstrat.VMap  # TODO: an actual heuristic
@@ -298,7 +299,7 @@ def run(
     t1: gt.LikeSz0,
     dense: bool = False,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
-    solver_kwargs: dict[str, Any] | None = None,
+    solver_kwargs: Mapping[str, Any] | None = None,
 ) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]] | dfx.Solution:
     """Generate stellar stream.
 
@@ -364,7 +365,7 @@ def run(
     t1: gt.LikeSz0,
     dense: bool = False,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
-    solver_kwargs: dict[str, Any] | None = None,
+    solver_kwargs: Mapping[str, Any] | None = None,
 ) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]] | dfx.Solution:
     t1 = jnp.asarray(t1)
     x0s_l1, v0s_l1 = prog.qp_lead

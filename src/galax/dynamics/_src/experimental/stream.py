@@ -3,7 +3,7 @@
 __all__: list[str] = []
 
 from functools import partial
-from typing import Any, TypeAlias, cast, final
+from typing import Any, TypeAlias, final
 from typing_extensions import Unpack
 
 import diffrax as dfx
@@ -24,6 +24,7 @@ import galax.utils.loop_strategies as lstrat
 from .df import AbstractKinematicDF, Fardal2015DF
 from .integrate import integrate_orbit
 
+SzTime3: TypeAlias = Real[Array, "time 3"]
 SzN3: TypeAlias = Real[Array, "N 3"]
 SzN6: TypeAlias = Real[Array, "N 6"]
 
@@ -42,6 +43,25 @@ default_kinematic_df = Fardal2015DF()
 ##############################################################################
 
 
+@final
+@partial(
+    register_dataclass,
+    data_fields=["release_times", "prog_mass", "qp_lead", "qp_trail"],
+    meta_fields=[],
+)
+@dataclass
+class StreamICs:
+    """Initial conditions for the stream particles."""
+
+    release_times: gt.SzTime
+    prog_mass: gt.SzTime
+    qp_lead: tuple[SzTime3, SzTime3]
+    qp_trail: tuple[SzTime3, SzTime3]
+
+
+# =========================================================
+
+
 ICSScanIn: TypeAlias = tuple[gt.Sz0, gdt.Qarr, gdt.Parr, gt.Sz0]  # t, x, v, Msat
 ICSScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]  # x/v_l1, x/v_l2
 ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
@@ -56,6 +76,24 @@ ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
 )
 @dataclass
 class StreamSimulator:
+    """Simulate a stellar stream.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import jax.random as jr
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.HernquistPotential(1e12, 10, units="galactic")
+    >>> qp = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
+    >>> stripping_times = jnp.linspace(-4_000, -150, 2_000)
+
+    >>> stream_simulator = gd.experimental.stream.StreamSimulator()
+    >>> prog_ics
+
+    """
+
     @partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
     def init(
         self,
@@ -69,7 +107,7 @@ class StreamSimulator:
         key: PRNGKeyArray,
         solver: dfxtra.AbstractDiffEqSolver = default_solver,
         solver_kwargs: dict[str, Any] | None = None,
-    ) -> tuple[SzN3, SzN3, SzN3, SzN3]:
+    ) -> StreamICs:
         """Generate the initial conditions for the stream particles.
 
         This function generates the initial conditions for the stream particles
@@ -108,7 +146,12 @@ class StreamSimulator:
         _, all_states = jax.lax.scan(
             scan_fn, init_carry, (release_times, prog_xs, prog_vs, Msat)
         )
-        return cast(ICSScanOut, all_states)
+        return StreamICs(
+            release_times,
+            prog_mass=Msat,
+            qp_lead=all_states[0:2],
+            qp_trail=all_states[2:4],
+        )
 
     @dispatch.abstract
     def run(self, *args: Any, **kwargs: Any) -> Any:
@@ -143,28 +186,20 @@ class StreamSimulator:
 def run(
     self: StreamSimulator,
     pot: gp.AbstractPotential,
-    prog_w0: gdt.QParr,
+    prog: StreamICs,
     /,
     *,
-    release_times: gt.SzTime,
     t1: gt.LikeSz0,
-    Msat: gt.LikeSz0,
-    key: PRNGKeyArray,
     dense: bool = False,
-    kinematic_df: AbstractKinematicDF | None = None,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> Any:
     return self.run(
         lstrat.Determine,
         pot,
-        prog_w0,
-        release_times=release_times,
+        prog,
         t1=t1,
-        Msat=Msat,
-        key=key,
         dense=dense,
-        kinematic_df=kinematic_df,
         solver=solver,
         solver_kwargs=solver_kwargs,
     )
@@ -175,15 +210,11 @@ def run(
     self: StreamSimulator,
     loop_strategy: type[lstrat.Determine],  # noqa: ARG001
     pot: gp.AbstractPotential,
-    prog_w0: gdt.QParr,
+    prog: StreamICs,
     /,
     *,
-    release_times: gt.SzTime,
     t1: gt.LikeSz0,
-    Msat: gt.LikeSz0,
-    key: PRNGKeyArray,
     dense: bool = False,
-    kinematic_df: AbstractKinematicDF | None = None,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> Any:
@@ -192,13 +223,9 @@ def run(
     return self.run(
         loop_strat,
         pot,
-        prog_w0,
-        release_times=release_times,
+        prog,
         t1=t1,
-        Msat=Msat,
-        key=key,
         dense=dense,
-        kinematic_df=kinematic_df,
         solver=solver,
         solver_kwargs=solver_kwargs,
     )
@@ -218,18 +245,14 @@ StreamCarry: TypeAlias = tuple[int, Unpack[StreamScanOut]]
     static_argnames=("dense", "solver", "solver_kwargs"),
 )
 def run(
-    self: StreamSimulator,
+    self: StreamSimulator,  # noqa: ARG001
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
     pot: gp.AbstractPotential,
-    prog_w0: gdt.QParr,
+    prog: StreamICs,
     /,
     *,
-    release_times: gt.SzTime,
     t1: gt.LikeSz0,
-    Msat: gt.LikeSz0,
-    key: PRNGKeyArray,
     dense: bool = False,
-    kinematic_df: AbstractKinematicDF | None = None,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]] | dfx.Solution:
@@ -239,16 +262,8 @@ def run(
 
     """
     t1 = jnp.asarray(t1)
-    x0s_l1, v0s_l1, x0s_l2, v0s_l2 = self.init(  # x/v_l1/2 shape (N, 3)
-        pot,
-        jnp.concatenate([release_times, t1[None]]),
-        prog_w0,
-        Msat=Msat,
-        kinematic_df=kinematic_df,
-        key=key,
-        solver=solver,
-        solver_kwargs=solver_kwargs,
-    )
+    x0s_l1, v0s_l1 = prog.qp_lead
+    x0s_l2, v0s_l2 = prog.qp_trail
 
     @partial(jax.jit)
     @partial(jax.vmap, in_axes=((0, 0), None))  # map over stream arms
@@ -265,7 +280,7 @@ def run(
         i, x0_l1_i, v0_l1_i, x0_l2_i, v0_l2_i = carry
 
         xv0s_i = jnp.vstack([x0_l1_i, x0_l2_i]), jnp.vstack([v0_l1_i, v0_l2_i])
-        soln = integrate_orbits(xv0s_i, release_times[i])
+        soln = integrate_orbits(xv0s_i, prog.release_times[i])
 
         if dense:
             new_state = (soln,)
@@ -277,7 +292,7 @@ def run(
         return new_carry, new_state
 
     init_carry = (0, x0s_l1[0, :], v0s_l1[0, :], x0s_l2[0, :], v0s_l2[0, :])
-    idxs = jnp.arange(len(release_times))
+    idxs = jnp.arange(len(prog.release_times))
     _, all_states = jax.lax.scan(scan_fun, init_carry, idxs)
 
     if dense:
@@ -296,32 +311,20 @@ def run(
     static_argnames=("dense", "solver", "solver_kwargs"),
 )
 def run(
-    self: StreamSimulator,
+    self: StreamSimulator,  # noqa: ARG001
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
     pot: gp.AbstractPotential,
-    prog_w0: gdt.QParr,
+    prog: StreamICs,
     /,
     *,
-    release_times: gt.SzTime,
     t1: gt.LikeSz0,
-    Msat: gt.LikeSz0,
-    key: PRNGKeyArray,
     dense: bool = False,
-    kinematic_df: AbstractKinematicDF | None = None,
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> tuple[tuple[SzN3, SzN3], tuple[SzN3, SzN3]] | dfx.Solution:
     t1 = jnp.asarray(t1)
-    x0s_l1, v0s_l1, x0s_l2, v0s_l2 = self.init(  # x/v_l1/2 shape (N, 3)
-        pot,
-        jnp.concatenate([release_times, t1[None]]),
-        prog_w0,
-        Msat=Msat,
-        key=key,
-        kinematic_df=kinematic_df,
-        solver=solver,
-        solver_kwargs=solver_kwargs,
-    )
+    x0s_l1, v0s_l1 = prog.qp_lead
+    x0s_l2, v0s_l2 = prog.qp_trail
 
     @partial(jax.jit)
     @partial(jax.vmap, in_axes=((0, 0), 0))  # map over particles
@@ -333,10 +336,10 @@ def run(
         )
         return soln if dense else (soln.ys[0][-1], soln.ys[1][-1])  # return final xv
 
-    x0s = jnp.stack([x0s_l1[:-1], x0s_l2[:-1]], axis=0)
-    v0s = jnp.stack([v0s_l1[:-1], v0s_l2[:-1]], axis=0)
+    x0s = jnp.stack([x0s_l1, x0s_l2], axis=0)
+    v0s = jnp.stack([v0s_l1, v0s_l2], axis=0)
     integrate_particles = jax.vmap(integrate_particle_orbit, in_axes=(0, None))
-    result = integrate_particles((x0s, v0s), release_times)
+    result = integrate_particles((x0s, v0s), prog.release_times)
 
     if dense:
         out = result

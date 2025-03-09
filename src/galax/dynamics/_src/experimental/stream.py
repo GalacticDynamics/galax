@@ -86,21 +86,48 @@ class StreamSimulator:
     >>> import galax.dynamics as gd
 
     >>> pot = gp.HernquistPotential(1e12, 10, units="galactic")
-    >>> qp = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
-    >>> stripping_times = jnp.linspace(-4_000, -150, 2_000)
+    >>> qp0 = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
+    >>> t0 = 0.0  # now
+    >>> release_times = jnp.linspace(-4_000, -150, 2_000)
 
     >>> stream_simulator = gd.experimental.stream.StreamSimulator()
+    >>> prog_ics = stream_simulator.init(pot, qp0, t0,
+    ...     release_times=release_times, Msat=1e5, key=jr.key(0))
     >>> prog_ics
+    StreamICs(release_times=Array([-4000. , ...  -150. ], dtype=float64),
+        prog_mass=Array([100000., ... 100000.], dtype=float64),
+        qp_lead=(Array([[-1.07924439e+01, -7.37489800e+00, -1.80585858e-02],
+                        ...
+                        [-4.72861830e+00,  1.40355376e+01, -2.59068091e-02]], dtype=float64),
+                 Array([[ 4.88701470e-02, -2.75920181e-01, -3.55040709e-04],
+                        ...
+                        [-2.10197865e-01, -8.18185909e-02, -1.29460838e-04]], dtype=float64)),
+        qp_trail=(Array([[-1.09735894e+01, -7.49868179e+00, -1.80585858e-02],
+                        ...
+                        [-4.84009594e+00,  1.43664267e+01, -2.59068091e-02]], dtype=float64),
+                 Array([[ 4.96114690e-02, -2.77005033e-01, -3.55040709e-04],
+                        ...
+                        [-2.09998407e-01, -8.17513929e-02, -1.29460838e-04]],  dtype=float64)))
 
-    """
+    >>> stream_lead, stream_trail = stream_simulator.run(pot, prog_ics, t1=t0)
+    >>> stream_lead
+    (Array([[ 8.17363908e+00,  7.06167200e+00,  1.57614710e-02],
+            ...,
+            [ 1.48119877e+01,  3.65839156e-01,  1.69433893e-02]],      dtype=float64),
+     Array([[-3.23020402e-01,  1.29335442e-01, -4.61335351e-05],
+            ...,
+            [-1.35276009e-02,  2.24964959e-01, -3.41789771e-04]],      dtype=float64))
+
+    """  # noqa: E501
 
     @partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
     def init(
         self,
         pot: gp.AbstractPotential,
-        release_times: gt.SzTime,
         prog_w0: gdt.QParr,
+        prog_t0: gt.LikeSz0,
         /,
+        release_times: gt.SzTime,
         Msat: gt.LikeSz0 | gt.SzTime,  # can be time-dependent by matching release_times
         kinematic_df: AbstractKinematicDF | None = None,
         *,
@@ -115,6 +142,22 @@ class StreamSimulator:
         mass.
 
         """
+        # Sort the stripping times in ascending order.
+        release_times = jnp.sort(release_times)
+
+        # Integrate the progenitor from `t0` to the start of the release times.
+        # Then when it's integrated over the release times, it will be at the
+        # correct position. Note: diffrax is fine to integrate with t0 = t1
+        prog_w0 = integrate_orbit(
+            pot,
+            prog_w0,
+            t0=prog_t0,
+            t1=release_times[0],
+            solver=solver,
+            solver_kwargs=solver_kwargs,
+        ).ys
+        prog_w0 = (prog_w0[0][-1], prog_w0[1][-1])  # rm the extra t batch dim
+
         # Integrate the progenitor's orbit to get the stream progenitor's positions
         # and velocities at the stream particle release times.
         prog_xs, prog_vs = integrate_orbit(
@@ -165,15 +208,16 @@ class StreamSimulator:
         >>> import galax.dynamics as gd
 
         >>> pot = gp.HernquistPotential(1e12, 10, units="galactic")
-        >>> qp = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
-        >>> ts = jnp.linspace(-4_000, -150, 2_000)
-        >>> t1 = 0.0
+        >>> qp0 = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
+        >>> t0 = 0.0
+        >>> release_times = jnp.linspace(-4_000, -150, 2_000)
         >>> Msat = 1e5
 
         >>> stream_simulator = gd.experimental.stream.StreamSimulator()
+        >>> prog_ics = stream_simulator.init(pot, qp0, t0,
+        ...     release_times=release_times, Msat=1e5, key=jr.key(0))
 
-        >>> stream_lead, stream_trail = stream_simulator.run(
-        ...     pot, qp, release_times=ts, t1=t1, Msat=Msat, key=jr.key(0))
+        >>> stream_lead, stream_trail = stream_simulator.run(pot, prog_ics, t1=t0)
 
         """
 

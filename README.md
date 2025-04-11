@@ -81,6 +81,15 @@ If you found this library to be useful in academic work, then please cite.
 
 We welcome contributions!
 
+Galax uses [`uv`](https://docs.astral.sh/uv) for development dependency
+management (make sure you have `uv` version >=0.4.27 installed). For example, to
+run the test suite, install the `test` group and run `pytest` with:
+
+```
+uv sync --group test
+uv run pytest src docs tests
+```
+
 ### Contributors
 
 See the

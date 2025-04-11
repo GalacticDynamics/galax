@@ -52,6 +52,7 @@ expected_all = [
     "HardCutoffNFWPotential",
     # xfm
     "AbstractTransformedPotential",
+    "FlattenedInThePotential",
     "TransformedPotential",
     "TriaxialInThePotential",
     "TranslatedPotential",

@@ -41,7 +41,63 @@ def parse_t0_t1_saveat(
     *,
     dense: bool,
 ) -> tuple[gt.LikeSz0, gt.LikeSz0, dfx.SaveAt]:
-    """Parse t0, t1, and saveat."""
+    """Parse t0, t1, and saveat.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+
+    >>> t0 = 0.0
+    >>> t1 = 1.0
+
+    ## saveat is None
+
+    >>> parse_t0_t1_saveat(t0, t1, None, dense=False)
+    (0.0, 1.0,
+     SaveAt(...t0=False, t1=True, ts=None, ... dense=False, ...))
+
+    >>> try:
+    ...     parse_t0_t1_saveat(None, t1, None, dense=False)
+    ... except Exception as e:
+    ...     print(e)
+    t0, t1 must be specified if saveat is None
+
+    >>> try:
+    ...     parse_t0_t1_saveat(t0, None, None, dense=False)
+    ... except Exception as e:
+    ...     print(e)
+    t0, t1 must be specified if saveat is None
+
+    ## saveat is a scalar
+
+    >>> saveat = jnp.array(0.5)
+    >>> parse_t0_t1_saveat(t0, None, saveat, dense=False)
+    (0.0, Array(0.5, ...),
+     SaveAt(... t0=False, t1=False, ts=f64[2], ... dense=False, ...))
+
+    >>> try: parse_t0_t1_saveat(None, None, saveat, dense=False)
+    ... except Exception as e:
+    ...     print(e)
+    t0 must be specified if saveat is a scalar
+
+    ## saveat is a 1D array
+
+    >>> saveat = jnp.array([0.1, 0.5, 0.75])
+    >>> parse_t0_t1_saveat(t0, t1, saveat, dense=False)
+    (0.0, 1.0,
+     SaveAt(... t0=False, t1=False, ts=f64[3], ... dense=False, ...))
+
+    >>> parse_t0_t1_saveat(None, None, saveat, dense=False)
+    (Array(0.1, dtype=float64), Array(0.75, dtype=float64),
+     SaveAt(... t0=False, t1=False, ts=f64[3], ... dense=False, ...))
+
+    >>> try:
+    ...     parse_t0_t1_saveat(None, None, jnp.array([0.5]), dense=False)
+    ... except Exception as e:
+    ...     print(e)
+    if t0 or t1 are None, saveat must be [t0, ..., t1]
+
+    """
     # Parse times / saveat TODO: see if this can be simplified with a PR to
     # https://github.com/patrick-kidger/diffrax/blob/14baa1edddcacf27c0483962b3c9cf2e86e6e5b6/diffrax/_saveat.py#L18
     # There are 3 cases to consider:
@@ -109,6 +165,8 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     >>> t1 = 10
     >>> saveat = jnp.linspace(t0, t1, 100)
 
+    ## Using a potential:
+
     >>> orbit = gd.experimental.integrate_orbit(pot, xv0, t0=0, t1=10, saveat=saveat)
     >>> orbit
     Solution( t0=f64[], t1=f64[], ts=f64[100],
@@ -129,7 +187,33 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     Or the field can be passed directly:
 
     >>> field = gd.HamiltonianField(pot)
-    >>> orbit = gd.experimental.integrate_orbit(field, xv0, t0=0, t1=10, saveat=saveat)
+    >>> orbit = gd.experimental.integrate_orbit(field, xv0, t0=0, t1=t1, saveat=saveat)
+
+    ## Dense integration:
+
+    Instead of saving at specific times, the orbit can be integrated and
+    interpolated at between t0 and t1:
+
+    >>> orbit = gd.experimental.integrate_orbit(pot, xv0, t0=0, t1=t1, dense=True)
+    >>> orbit
+    Solution( t0=f64[], t1=f64[], ts=None, ys=None,
+              interpolation=DenseInterpolation( ... ), ... )
+
+    Note that the number of steps internal to the interpolation is controlled by
+    ``max_steps`` of the 'solver' `diffraxtra.AbstractDiffEqSolver` object.
+
+    `diffrax.DenseInterpolation` in `diffrax.Solution` objects can only be
+    evaluated with scalar arguments. To be able to evaluate with a vector of
+    times, use ``dense_vectorize=True``:
+
+    >>> orbit = gd.experimental.integrate_orbit(pot, xv0, t0=0, t1=t1,
+    ...     dense=True, dense_vectorize=True)
+    >>> orbit
+    Solution( t0=f64[], t1=f64[], ts=None, ys=None,
+              interpolation=VectorizedDenseInterpolation( ... ), ... )
+
+    `diffraxtra.VectorizedDenseInterpolation` also works when a batch of orbits
+    is integrated...
 
     ## Integrating a batch of orbits:
 
@@ -232,7 +316,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
 @partial(
     jax.jit,
     static_argnums=(0,),
-    static_argnames=("solver", "solver_kwargs", "dense"),
+    static_argnames=("solver", "solver_kwargs", "dense", "dense_vectorize"),
 )
 def integrate_orbit(
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
@@ -246,6 +330,7 @@ def integrate_orbit(
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
     dense: bool = False,
+    dense_vectorize: bool = False,
 ) -> dfx.Solution:
     """Integrate orbit associated with potential function.
 
@@ -281,9 +366,14 @@ def integrate_orbit(
         Additional keyword arguments to pass to the solver, e.g. 'max_steps',
         'stepsize_controller', etc. See `diffraxtra.AbstractDiffEqSolver` for
         more information.
+
     dense:
         When `False` (default), return orbit at times ts. When `True`, return
         dense interpolation of orbit between `t0` and `t1`.
+    dense_vectorize:
+        When `True`, process the dense solution using
+        `diffraxtra.VectorizedDenseInterpolation` to enable easy vectorized
+        evaluation of the solution.
 
     """
     field = pot if isinstance(pot, AbstractOrbitField) else HamiltonianField(pot)
@@ -294,6 +384,9 @@ def integrate_orbit(
     soln: dfx.Solution = solver(
         terms, t0=t0, t1=t1, dt0=None, y0=qp0, saveat=saver, **(solver_kwargs or {})
     )
+    if dense_vectorize:
+        soln = dfxtra.VectorizedDenseInterpolation.apply_to_solution(soln)
+
     return soln
 
 
@@ -347,7 +440,7 @@ ScanCarry: TypeAlias = list[int]
 @partial(
     jax.jit,
     static_argnums=(0,),
-    static_argnames=("solver", "solver_kwargs", "dense"),
+    static_argnames=("solver", "solver_kwargs", "dense", "dense_vectorize"),
 )
 def integrate_orbit(
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
@@ -361,11 +454,10 @@ def integrate_orbit(
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
     dense: bool = False,
+    dense_vectorize: bool = False,
 ) -> dfx.Solution:
     """Integrate a batch of orbits using scan [best for CPU usage].
 
-    Parameters
-    ----------
     qp0:
         shape ((B,3), (B,3)) array of initial conditions
     ts:
@@ -402,12 +494,17 @@ def integrate_orbit(
             dense=dense,
             solver=solver,
             solver_kwargs=solver_kwargs,
+            dense_vectorize=False,
         )
         return [i + 1], soln
 
     init_carry = [0]
     _, state = jax.lax.scan(body, init_carry, jnp.arange(len(qp0)))
     soln: dfx.Solution = state
+
+    if dense_vectorize:
+        soln = dfxtra.VectorizedDenseInterpolation.apply_to_solution(soln)
+
     return soln
 
 
@@ -415,7 +512,7 @@ def integrate_orbit(
 @partial(
     jax.jit,
     static_argnums=(0,),
-    static_argnames=("solver", "solver_kwargs", "dense"),
+    static_argnames=("solver", "solver_kwargs", "dense", "dense_vectorize"),
 )
 def integrate_orbit(
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
@@ -429,6 +526,7 @@ def integrate_orbit(
     solver: dfxtra.AbstractDiffEqSolver = default_solver,
     solver_kwargs: dict[str, Any] | None = None,
     dense: bool = False,
+    dense_vectorize: bool = False,
 ) -> dfx.Solution:
     """Integrate a batch of orbits using scan [best for GPU usage].
 
@@ -465,9 +563,12 @@ def integrate_orbit(
         dense=dense,
         solver=solver,
         solver_kwargs=solver_kwargs,
+        dense_vectorize=False,
     )
     in_axes = ((0, 0), (None if saveat.ndim == 1 else 0))
     integrator_mapped = jax.vmap(integrator, in_axes=in_axes)
 
     soln: dfx.Solution = integrator_mapped(qp0, saveat)
+    if dense_vectorize:
+        soln = dfxtra.VectorizedDenseInterpolation.apply_to_solution(soln)
     return soln

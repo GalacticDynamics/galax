@@ -12,7 +12,6 @@ import jax
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt

@@ -21,7 +21,6 @@ import numpy as np
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -29,6 +28,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import r_spherical
 
 
 @final
@@ -88,7 +88,7 @@ class NFWPotential(AbstractSinglePotential):
             \Phi(r) = -\frac{G M}{r_s} \frac{r_s}{r} \log(1 + \frac{r}{r_s})
         """
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
 
         params = {
@@ -110,7 +110,7 @@ class NFWPotential(AbstractSinglePotential):
 
         """
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
 
         params = {

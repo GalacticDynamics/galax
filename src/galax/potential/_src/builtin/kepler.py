@@ -19,7 +19,6 @@ import jax
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -27,6 +26,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import r_spherical
 
 
 @final
@@ -53,7 +53,7 @@ class KeplerPotential(AbstractSinglePotential):
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
 
         params = {
@@ -65,7 +65,7 @@ class KeplerPotential(AbstractSinglePotential):
     @partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
 
         params = {"m_tot": self.m_tot(t, ustrip=self.units["mass"])}

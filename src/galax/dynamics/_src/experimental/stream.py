@@ -2,8 +2,8 @@
 
 __all__: list[str] = []
 
+import functools as ft
 from collections.abc import Mapping
-from functools import partial
 from typing import Any, TypeAlias, final
 from typing_extensions import Unpack
 
@@ -45,7 +45,7 @@ default_kinematic_df = Fardal2015DF()
 
 
 @final
-@partial(
+@ft.partial(
     register_dataclass,
     data_fields=["release_times", "prog_mass", "qp_lead", "qp_trail"],
     meta_fields=[],
@@ -70,7 +70,7 @@ ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
 
 # TODO: rename to Fardal-like, since it can have different parameters?
 @final
-@partial(
+@ft.partial(
     register_dataclass,
     data_fields=[],
     meta_fields=[],
@@ -121,7 +121,7 @@ class StreamSimulator:
 
     """  # noqa: E501
 
-    @partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
+    @ft.partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
     def init(
         self,
         pot: gp.AbstractPotential,
@@ -284,7 +284,7 @@ StreamCarry: TypeAlias = tuple[int, Unpack[StreamScanOut]]
 
 
 @StreamSimulator.run.dispatch
-@partial(
+@ft.partial(
     jax.jit,
     static_argnums=(1,),
     static_argnames=("dense", "solver", "solver_kwargs"),
@@ -310,15 +310,15 @@ def run(
     x0s_l1, v0s_l1 = prog.qp_lead
     x0s_l2, v0s_l2 = prog.qp_trail
 
-    @partial(jax.jit)
-    @partial(jax.vmap, in_axes=((0, 0), None))  # map over stream arms
+    @ft.partial(jax.jit)
+    @ft.partial(jax.vmap, in_axes=((0, 0), None))  # map over stream arms
     def integrate_orbits(xv0: gdt.QParr, t0: gt.Sz0) -> gdt.QParr:
         soln: dfx.Solution = integrate_orbit(
             pot, xv0, t0, t1, dense=dense, solver=solver, solver_kwargs=solver_kwargs
         )
         return soln if dense else (soln.ys[0][-1], soln.ys[1][-1])  # return final xv
 
-    @partial(jax.jit)  # scan over particles (release times)
+    @ft.partial(jax.jit)  # scan over particles (release times)
     def scan_fun(
         carry: StreamCarry, _: int
     ) -> tuple[StreamCarry, StreamScanOut | tuple[dfx.Solution]]:
@@ -350,7 +350,7 @@ def run(
 
 
 @StreamSimulator.run.dispatch
-@partial(
+@ft.partial(
     jax.jit,
     static_argnums=(1,),
     static_argnames=("dense", "solver", "solver_kwargs"),
@@ -371,8 +371,8 @@ def run(
     x0s_l1, v0s_l1 = prog.qp_lead
     x0s_l2, v0s_l2 = prog.qp_trail
 
-    @partial(jax.jit)
-    @partial(jax.vmap, in_axes=((0, 0), 0))  # map over particles
+    @ft.partial(jax.jit)
+    @ft.partial(jax.vmap, in_axes=((0, 0), 0))  # map over particles
     def integrate_particle_orbit(
         xv0: gdt.QParr, t0: gt.Sz0
     ) -> dfx.Solution | gdt.QParr:

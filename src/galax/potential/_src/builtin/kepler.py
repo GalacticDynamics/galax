@@ -9,8 +9,8 @@ __all__ = [
     "point_mass_potential",
 ]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import final
 
 import equinox as eqx
@@ -48,7 +48,7 @@ class KeplerPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
@@ -62,7 +62,7 @@ class KeplerPotential(AbstractSinglePotential):
         }
         return potential(params, r)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
@@ -75,7 +75,7 @@ class KeplerPotential(AbstractSinglePotential):
 # ============================================
 
 
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def point_mass_potential(G: gt.Sz0, m: gt.Sz0, r: gt.Sz0, /) -> gt.Sz0:
     r"""Potential energy for a point mass.
 
@@ -89,7 +89,7 @@ def point_mass_potential(G: gt.Sz0, m: gt.Sz0, r: gt.Sz0, /) -> gt.Sz0:
 
 
 # TODO: with units
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
     r"""Specific potential energy.
 
@@ -102,7 +102,7 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
     return point_mass_potential(p["G"], p["m_tot"], r)
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Density profile for the Kepler potential.
 

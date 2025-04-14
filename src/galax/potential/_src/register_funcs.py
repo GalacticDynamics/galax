@@ -2,7 +2,7 @@
 
 __all__: list[str] = []
 
-from functools import partial
+import functools as ft
 from typing import Any
 
 import jax
@@ -29,7 +29,7 @@ from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def potential(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
 ) -> gt.BBtSz0:
@@ -45,7 +45,7 @@ def potential(
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def potential(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
 ) -> gt.BBtSz0:
@@ -82,7 +82,7 @@ def potential(
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def gradient(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
 ) -> gt.BBtSz3:
@@ -98,7 +98,7 @@ def gradient(
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def gradient(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
 ) -> gt.BBtSz3:
@@ -110,7 +110,7 @@ def gradient(
 
 
 @dispatch
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def gradient(
     pot: AbstractPotential, xyz: u.AbstractQuantity, /, *, t: u.AbstractQuantity
 ) -> Real[u.Quantity["acceleration"], "*#batch 3"]:
@@ -121,7 +121,7 @@ def gradient(
 
 
 @dispatch
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def gradient(
     pot: AbstractPotential, q: u.AbstractQuantity, t: u.AbstractQuantity, /
 ) -> Real[u.Quantity["acceleration"], "*#batch 3"]:
@@ -135,7 +135,7 @@ def gradient(
 
 
 @dispatch
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def gradient(
     pot: AbstractPotential, tq: Any, /, *, t: Any = None
 ) -> cx.vecs.CartesianAcc3D:
@@ -162,7 +162,7 @@ def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def laplacian(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
 ) -> gt.BBtSz0:
@@ -178,7 +178,7 @@ def laplacian(
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def laplacian(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
 ) -> gt.BBtSz0:
@@ -217,7 +217,7 @@ def laplacian(
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def density(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
 ) -> gt.BBtSz0:
@@ -233,7 +233,7 @@ def density(
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def density(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
 ) -> gt.BBtSz0:
@@ -272,7 +272,7 @@ def density(
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def hessian(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
 ) -> gt.BBtSz33:
@@ -288,7 +288,7 @@ def hessian(
 
 # TODO: consider "*#batch 1" for t
 @dispatch  # special-case Array input to not return Quantity
-@partial(jax.jit, inline=True)
+@ft.partial(jax.jit, inline=True)
 def hessian(
     pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
 ) -> gt.BBtSz33:
@@ -378,7 +378,7 @@ def tidal_tensor(
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def local_circular_velocity(
     pot: AbstractPotential, q: Any, t: Any, /
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
@@ -396,7 +396,7 @@ def local_circular_velocity(
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def local_circular_velocity(
     pot: AbstractPotential, q: Any, /, *, t: Any = None
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
@@ -409,7 +409,7 @@ def local_circular_velocity(
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def dpotential_dr(pot: AbstractPotential, q: Any, t: Any, /) -> gt.BBtSz0 | gt.BBtQuSz0:
     xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
     r_hat = cx.vecs.normalize_vector(xyz)
@@ -423,7 +423,7 @@ def dpotential_dr(pot: AbstractPotential, q: Any, t: Any, /) -> gt.BBtSz0 | gt.B
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def dpotential_dr(
     pot: AbstractPotential, q: Any, /, *, t: Any = None
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
@@ -436,7 +436,7 @@ def dpotential_dr(
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def d2potential_dr2(
     pot: AbstractPotential, q: Any, t: Any, /
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
@@ -454,7 +454,7 @@ def d2potential_dr2(
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def d2potential_dr2(
     pot: AbstractPotential, q: Any, /, *, t: Any = None
 ) -> gt.BBtSz0 | gt.BBtQuSz0:

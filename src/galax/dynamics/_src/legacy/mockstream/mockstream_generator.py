@@ -2,8 +2,8 @@
 
 __all__ = ["MockStreamGenerator"]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import TypeAlias, cast, final
 
 import equinox as eqx
@@ -71,7 +71,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
     # ==========================================================================
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _run_scan(  # TODO: output shape depends on the input shape
         self,
         ts: gt.QuSzTime,
@@ -120,7 +120,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         return lead_arm_w, trail_arm_w
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _run_vmap(  # TODO: output shape depends on the input shape
         self,
         ts: gt.QuSzTime,
@@ -133,7 +133,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         t_f = ts[-1] + u.Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
 
-        @partial(jax.jit, inline=True)
+        @ft.partial(jax.jit, inline=True)
         def one_pt_intg(
             i: gt.IntSz0, w0_l_i: gt.Sz6, w0_t_i: gt.Sz6
         ) -> tuple[gt.Sz6, gt.Sz6]:
@@ -152,7 +152,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg)(pt_ids, w0_lead, w0_trail)
         return lead_arm_w, trail_arm_w
 
-    @partial(jax.jit, static_argnames=("vmapped",))
+    @ft.partial(jax.jit, static_argnames=("vmapped",))
     def run(
         self,
         rng: PRNGKeyArray,

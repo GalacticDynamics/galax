@@ -11,8 +11,8 @@ __all__ = [
     "potential",
 ]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import final
 
 import equinox as eqx
@@ -77,7 +77,7 @@ class NFWPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
@@ -98,7 +98,7 @@ class NFWPotential(AbstractSinglePotential):
         }
         return potential(params, r)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r"""Density.
 
@@ -212,7 +212,7 @@ class NFWPotential(AbstractSinglePotential):
 # -----------------------------------------------
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
     r"""Central density for the NFW model.
 
@@ -234,7 +234,7 @@ def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
     return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
     r"""Characteristic mass for the NFW model.
 
@@ -258,7 +258,7 @@ def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
 # -----------------------------------------------
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Density profile for the NFW model.
 
@@ -276,7 +276,7 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     return rho0 / (x * (1 + x) ** 2)
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def enclosed_mass(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Enclosed mass for the NFW model.
 
@@ -291,7 +291,7 @@ def enclosed_mass(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     return m * (jnp.log(1 + x) - x / (1 + x))
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Potential for the NFW model.
 

@@ -2,9 +2,9 @@
 
 __all__ = ["AbstractField"]
 
+import functools as ft
 from collections.abc import Callable
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import Any
 
 import diffrax as dfx
@@ -165,7 +165,7 @@ def terms(
 
 
 @dfxtra.AbstractDiffEqSolver.__call__.dispatch(precedence=1)  # type: ignore[misc]
-@partial(eqx.filter_jit)
+@ft.partial(eqx.filter_jit)
 def call(
     self: dfxtra.AbstractDiffEqSolver,
     field: AbstractField,

@@ -7,9 +7,9 @@ __all__ = [
 ]
 
 
+import functools as ft
 from collections.abc import Callable
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import Any, TypeAlias, final
 from typing_extensions import override
 
@@ -37,7 +37,7 @@ QPQParr: TypeAlias = tuple[gdt.QParr, gdt.QParr]
 QPQP: TypeAlias = tuple[gdt.QP, gdt.QP]
 
 
-@partial(jax.jit, static_argnames=("log10r_max", "log10r_num"))
+@ft.partial(jax.jit, static_argnames=("log10r_max", "log10r_num"))
 def radial_velocity_dispersion_helper(  # TODO: better name
     pot: gp.AbstractPotential,
     /,
@@ -223,7 +223,7 @@ def _parse_y0(y0: QPQParr | QPQP, /, units: u.AbstractUnitSystem) -> QPQParr:
 
 
 @RigidMWandLMCField.__call__.dispatch
-@partial(eqx.filter_jit)
+@ft.partial(eqx.filter_jit)
 def __call__(
     self: RigidMWandLMCField, t: gt.LikeSz0, coords: QPQParr, _: gt.OptArgs = None, /
 ) -> QPQParr:
@@ -261,7 +261,7 @@ def __call__(
 
 
 @RigidMWandLMCField.__call__.dispatch
-@partial(eqx.filter_jit)
+@ft.partial(eqx.filter_jit)
 def __call__(
     self: RigidMWandLMCField, t: gt.QuSz0, coords: QPQP, args: gt.OptArgs = None, /
 ) -> QPQParr:

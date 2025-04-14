@@ -16,7 +16,7 @@ __all__ = [
     "tidal_radius_king1962",
 ]
 
-from functools import partial
+import functools as ft
 from typing import Any, NoReturn, final
 
 import jax
@@ -195,7 +195,7 @@ def tidal_radius(
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def tidal_radius_king1962(
     pot: gp.AbstractPotential,
     xyz: gt.BBtSz3,
@@ -215,7 +215,7 @@ def tidal_radius_king1962(
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def tidal_radius_king1962(
     pot: gp.AbstractPotential,
     x: gt.BBtQuSz3 | cx.vecs.AbstractPos3D,

@@ -4,9 +4,9 @@ __all__ = [
     "TriaxialNFWPotential",
 ]
 
+import functools as ft
 from collections.abc import Callable
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import final
 
 import equinox as eqx
@@ -31,7 +31,7 @@ class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
     x: Shaped[Array, "O"]
     w: Shaped[Array, "O"]
 
-    @partial(jax.jit, static_argnums=(1,))
+    @ft.partial(jax.jit, static_argnums=(1,))
     def __call__(
         self,
         f: Callable[
@@ -104,7 +104,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
     # ==========================================================================
 
-    @partial(jax.jit, static_argnames=("ustrip",))
+    @ft.partial(jax.jit, static_argnames=("ustrip",))
     def rho0(
         self, t: gt.BBtQuSz0, /, *, ustrip: bool = False
     ) -> gt.BtFloatQuSz0 | gt.BtFloatSz0:
@@ -120,7 +120,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     # ==========================================================================
     # Potential energy
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _ellipsoid_surface(
         self,
         q: Shaped[Array, "1 *batch 3"],
@@ -143,7 +143,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
         )
 
     # TODO: fix this to enable non-Quantity mode.
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         r"""Potential energy for the triaxial NFW.
 
@@ -237,7 +237,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     # ==========================================================================
 
     # TODO: make this work w/out units
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs  # TODO: work w/out units
         xyz = u.Quantity.from_(xyz, self.units["length"])

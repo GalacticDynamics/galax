@@ -2,8 +2,8 @@
 
 __all__ = ["AbstractPhaseSpaceCoordinate", "ComponentShapeTuple"]
 
+import functools as ft
 from abc import abstractmethod
-from functools import partial
 from typing import TYPE_CHECKING, Any, NamedTuple, cast
 from typing_extensions import override
 
@@ -229,7 +229,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         """
         return potential.potential(self.q, t=self.t)
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def total_energy(self, potential: "AbstractPotential") -> gt.BtFloatQuSz0:
         r"""Return the specific total energy.
 
@@ -277,7 +277,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         """
         return self.kinetic_energy() + self.potential_energy(potential)
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def angular_momentum(self) -> cx.vecs.CartesianGeneric3D:
         r"""Compute the angular momentum.
 

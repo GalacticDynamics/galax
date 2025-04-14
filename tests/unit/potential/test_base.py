@@ -1,6 +1,6 @@
 import copy
+import functools as ft
 from abc import ABCMeta, abstractmethod
-from functools import partial
 from typing import Any, ClassVar, final
 
 import equinox as eqx
@@ -219,7 +219,7 @@ class TestAbstractPotential(AbstractPotential_Test):
                 converter=ImmutableMap,
             )
 
-            @partial(jax.jit)
+            @ft.partial(jax.jit)
             def _potential(  # TODO: inputs w/ units
                 self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
             ) -> gt.BBtSz0:

@@ -4,7 +4,7 @@ __all__ = [
     "ConstantParameter",
 ]
 
-from functools import partial
+import functools as ft
 from typing import Any, NoReturn, final
 
 import equinox as eqx
@@ -125,7 +125,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
         msg = "Cannot materialise a ConstantParameter."
         raise NotImplementedError(msg)
 
-    @partial(jax.jit, static_argnames=("ustrip",))
+    @ft.partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
         self,
         t: gt.BBtQuSz0 = t0,  # noqa: ARG002

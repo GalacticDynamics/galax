@@ -2,9 +2,9 @@
 
 __all__ = ["TranslatedPotential", "TimeDependentTranslationParameter"]
 
+import functools as ft
 from collections.abc import Callable
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import Any, final
 
 import equinox as eqx
@@ -96,7 +96,7 @@ class TranslatedPotential(AbstractTransformedPotential):
 
     translation: AbstractParameter = ParameterField(dimensions="length")  # type: ignore[assignment]
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         ul = self.units["length"]
         xyz = u.ustrip(AllowValue, ul, xyz.astype(float))

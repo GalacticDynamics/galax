@@ -7,8 +7,8 @@ __all__ = [
     "MultipolePotential",
 ]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import final
 
 import equinox as eqx
@@ -74,7 +74,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
         )
         _ = eqx.error_if(t, jnp.logical_or(s_shape != shape, t_shape != shape), msg)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -140,7 +140,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
         )
         _ = eqx.error_if(t, jnp.logical_or(s_shape != shape, t_shape != shape), msg)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -218,7 +218,7 @@ class MultipolePotential(AbstractMultipolePotential):
         )
         _ = eqx.error_if(t, pred, msg)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)

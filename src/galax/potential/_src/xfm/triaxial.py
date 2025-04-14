@@ -2,7 +2,7 @@
 
 __all__ = ["TriaxialInThePotential"]
 
-from functools import partial
+import functools as ft
 
 import jax
 
@@ -81,7 +81,7 @@ class TriaxialInThePotential(AbstractTransformedPotential):
         doc="ratio of the z-axis to the x-axis",
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz.astype(float))
         # Transform the position

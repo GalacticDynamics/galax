@@ -2,8 +2,8 @@
 
 __all__ = ["Vogelsberger08TriaxialNFWPotential"]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import final
 
 import equinox as eqx
@@ -55,14 +55,14 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _r_e(self, xyz: gt.BtSz3, t: gt.BBtSz0) -> gt.BtFloatSz0:
         q1sq = self.q1(t, ustrip=self.units["dimensionless"]) ** 2
         q2sq = 3 - q1sq
         x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
         return jnp.sqrt(x**2 + y**2 / q1sq + z**2 / q2sq)
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _r_tilde(self, xyz: gt.BtSz3, t: gt.BBtSz0) -> gt.BtFloatSz0:
         a_r = self.a_r(t, ustrip=self.units["dimensionless"])
         r_a = a_r * self.r_s(t, ustrip=self.units["length"])
@@ -71,7 +71,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         r = jnp.linalg.vector_norm(xyz, axis=-1)
         return (r_a + r) * r_e / (r_a + r_e)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)

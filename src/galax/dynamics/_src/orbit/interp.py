@@ -2,8 +2,8 @@
 
 __all__ = ["PhaseSpaceInterpolation"]
 
+import functools as ft
 from collections.abc import Callable
-from functools import partial
 from typing import Any, cast
 
 import diffrax as dfx
@@ -27,7 +27,7 @@ import galax._custom_types as gt
 import galax.coordinates as gc
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def within_bounds(
     t: Real[Array, "N"], t_lower: Real[Array, ""], t_upper: Real[Array, ""]
 ) -> Bool[Array, "N"]:

@@ -2,7 +2,7 @@
 
 __all__ = ["HamiltonianField"]
 
-from functools import partial
+import functools as ft
 from typing import Any, final
 
 import diffrax as dfx
@@ -306,7 +306,7 @@ def terms(
 
 
 @AbstractOrbitField.__call__.dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def call(self: HamiltonianField, tqp: Any, args: gt.OptArgs = None, /) -> gdt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     t, (xyz, v_xyz) = parse_to_t_y(None, tqp, ustrip=self.units)
@@ -314,7 +314,7 @@ def call(self: HamiltonianField, tqp: Any, args: gt.OptArgs = None, /) -> gdt.Bt
 
 
 @AbstractOrbitField.__call__.dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def call(
     self: HamiltonianField, tq: Any, qp: Any, args: gt.OptArgs = None, /
 ) -> gdt.BtPAarr:
@@ -324,7 +324,7 @@ def call(
 
 
 @AbstractOrbitField.__call__.dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def call(
     self: HamiltonianField, t: Any, q: Any, p: Any, args: gt.OptArgs = None, /
 ) -> gdt.BtPAarr:

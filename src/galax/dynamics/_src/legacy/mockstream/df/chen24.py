@@ -3,8 +3,8 @@
 __all__ = ["ChenStreamDF"]
 
 
+import functools as ft
 import warnings
-from functools import partial
 from typing import final
 
 import jax
@@ -57,7 +57,7 @@ class ChenStreamDF(AbstractStreamDF):
             stacklevel=1,
         )
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _sample(
         self,
         key: PRNGKeyArray,

@@ -2,8 +2,8 @@
 
 __all__ = ["LeeSutoTriaxialNFWPotential"]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import Final, final
 
 import equinox as eqx
@@ -95,7 +95,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
             f"a1 {self.a1(t)} >= a2 {self.a2(t)} >= a3 {self.a3(t)} is required",
         )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:

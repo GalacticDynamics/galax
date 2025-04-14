@@ -2,8 +2,8 @@
 
 __all__: list[str] = []
 
+import functools as ft
 from collections.abc import Callable, Sequence
-from functools import partial
 from typing import Any, NotRequired, TypedDict, TypeVar, cast
 from typing_extensions import ParamSpec, Unpack
 
@@ -44,7 +44,7 @@ def vectorize_method(
     excluded = excluded if excluded[0] == -1 else (-1, *excluded)
     kw["excluded"] = tuple(i + 1 for i in excluded)
 
-    return partial(jnp.vectorize, **kw)
+    return ft.partial(jnp.vectorize, **kw)
 
 
 # ============================================================================

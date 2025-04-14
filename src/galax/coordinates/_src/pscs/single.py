@@ -2,8 +2,8 @@
 
 __all__ = ["PhaseSpaceCoordinate"]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import Any, ClassVar, final
 from typing_extensions import override
 
@@ -167,7 +167,7 @@ class PhaseSpaceCoordinate(AbstractBasicPhaseSpaceCoordinate):
 
 # TODO: generalize
 @AbstractPhaseSpaceCoordinate.from_.dispatch(precedence=1)
-@partial(eqx.filter_jit, inline=True)
+@ft.partial(eqx.filter_jit, inline=True)
 def from_(
     cls: type[PhaseSpaceCoordinate], obj: AbstractCompositePhaseSpaceCoordinate, /
 ) -> PhaseSpaceCoordinate:

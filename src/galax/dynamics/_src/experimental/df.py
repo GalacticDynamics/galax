@@ -3,7 +3,7 @@
 __all__: list[str] = []
 
 import abc
-from functools import partial
+import functools as ft
 from typing import Any, Final, Self, final
 
 import jax
@@ -70,7 +70,7 @@ array_unless_jitting = Unless(ArgInfo, jnp.asarray)
 
 # TODO: rename to Fardal-like, since it can have different parameters?
 @final
-@partial(
+@ft.partial(
     register_dataclass,
     data_fields=[
         "kr_bar",
@@ -133,7 +133,7 @@ class Fardal2015DF(AbstractKinematicDF):
     sigma_kz: gt.Sz0 = field(default=default_sigma_kz, converter=array_unless_jitting)
     sigma_kvz: gt.Sz0 = field(default=default_sigma_kvz, converter=array_unless_jitting)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def sample(
         self: "Fardal2015DF",
         key: PRNGKeyArray,

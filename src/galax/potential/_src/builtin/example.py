@@ -5,8 +5,8 @@ __all__ = [
     "HenonHeilesPotential",
 ]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import final
 
 import equinox as eqx
@@ -71,7 +71,7 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -83,7 +83,7 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
 
         return 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(omega) * xyz), axis=-1)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _density(self, _: gt.BBtQorVSz3, t: gt.BtQuSz0 | gt.BtSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         t = u.Quantity.from_(t, self.units["time"])
@@ -153,7 +153,7 @@ class HenonHeilesPotential(AbstractSinglePotential):
     """,
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(
         self,
         xyz: gt.BBtQorVSz3,

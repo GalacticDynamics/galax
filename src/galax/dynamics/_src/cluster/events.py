@@ -2,7 +2,7 @@
 
 __all__ = ["MassBelowThreshold"]
 
-from functools import partial
+import functools as ft
 from typing import Any
 
 import equinox as eqx
@@ -47,7 +47,7 @@ class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
             msg = f"Threshold must have mass units, not {self.threshold.unit}"
             raise ValueError(msg)
 
-    @partial(eqx.filter_jit)
+    @ft.partial(eqx.filter_jit)
     def __call__(
         self: "MassBelowThreshold",
         t: Any,  # noqa: ARG002

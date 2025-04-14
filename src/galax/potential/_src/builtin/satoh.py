@@ -7,7 +7,7 @@ __all__ = [
     "potential",
 ]
 
-from functools import partial
+import functools as ft
 from typing import final
 
 import jax
@@ -41,7 +41,7 @@ class SatohPotential(AbstractSinglePotential):
 
     b: AbstractParameter = ParameterField(dimensions="length", doc="Scale height.")  # type: ignore[assignment]
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)

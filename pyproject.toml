@@ -295,6 +295,7 @@
       "diffrax" = "dfx"
       "diffraxtra" = "dfxtra"
       "equinox" = "eqx"
+      "functools" = "ft"
       "galax.coordinates" = "gc"
       "galax.potential" = "gp"
       "galax.dynamics" = "gd"

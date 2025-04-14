@@ -5,7 +5,6 @@ __all__ = [
     "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
-    "KeplerPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
     "StoneOstriker15Potential",
@@ -14,12 +13,11 @@ __all__ = [
 
 from dataclasses import KW_ONLY
 from functools import partial
-from typing import Any, final
+from typing import Any, Final, final
 
 import equinox as eqx
 import jax
 
-import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import quaxed.scipy.special as qsp
 import unxt as u
@@ -27,13 +25,15 @@ from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
-from .const import BURKERT_CONST
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
 # -------------------------------------------------------------------
+
+
+BURKERT_CONST: Final = 3 * jnp.log(jnp.asarray(2.0)) - 0.5 * jnp.pi
 
 
 @final
@@ -278,60 +278,6 @@ class JaffePotential(AbstractSinglePotential):
 
         r = jnp.linalg.vector_norm(xyz, axis=-1)
         return -self.constants["G"].value * m / r_s * jnp.log(1 + r_s / r)
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class KeplerPotential(AbstractSinglePotential):
-    r"""The Kepler potential for a point mass.
-
-    .. math::
-
-        \Phi = -\frac{G M(t)}{r}
-    """
-
-    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="mass", doc="Total mass of the potential."
-    )
-
-    _: KW_ONLY
-    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    @partial(jax.jit)
-    def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
-    ) -> gt.BBtSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
-
-        # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
-        return -self.constants["G"].value * m_tot / r
-
-    @partial(jax.jit)
-    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
-
-        # Compute parameters
-        m = self.m_tot(t, ustrip=self.units["mass"])
-
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
-        pred = jnp.logical_or(  # are we at the origin with non-zero mass?
-            jnp.greater(r, jnp.zeros_like(r)), jnp.equal(m, jnp.zeros_like(m))
-        )
-        return qlax.select(
-            pred, jnp.zeros_like(r), jnp.full_like(r, fill_value=jnp.inf)
-        )
 
 
 # -------------------------------------------------------------------

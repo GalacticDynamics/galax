@@ -142,3 +142,7 @@ XYZArrayLike: TypeAlias = (
     | list[ScalarLike]
     | tuple[ScalarLike, ScalarLike, ScalarLike]
 )
+
+# TODO: shape hint that can encompass both scalar and matrix parameters, but
+# which can be specified down.
+Params: TypeAlias = dict[str, Real[Array, "..."]]

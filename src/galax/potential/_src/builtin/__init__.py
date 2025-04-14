@@ -51,6 +51,7 @@ from .example import (
     HarmonicOscillatorPotential,
     HenonHeilesPotential,
 )
+from .hernquist import HernquistPotential, TriaxialHernquistPotential
 from .kepler import KeplerPotential
 from .logarithmic import (
     LMJ09LogarithmicPotential,
@@ -80,11 +81,9 @@ from .null import NullPotential
 from .satoh import SatohPotential
 from .spherical import (
     BurkertPotential,
-    HernquistPotential,
     IsochronePotential,
     JaffePotential,
     PlummerPotential,
     PowerLawCutoffPotential,
     StoneOstriker15Potential,
-    TriaxialHernquistPotential,
 )

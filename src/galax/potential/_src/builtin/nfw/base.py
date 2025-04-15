@@ -119,6 +119,37 @@ class NFWPotential(AbstractSinglePotential):
         }
         return density(params, r)
 
+    @ft.partial(jax.jit)
+    def _mass_enclosed(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
+        r"""Enclosed mass.
+
+        .. math::
+
+            M(<r) = \frac{m}{\ln(1 + x) - \frac{x}{1 + x}}
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> nfw = gp.NFWPotential(m=1e11, r_s=15, units="galactic")
+
+        >>> q = u.Quantity([10, 0, 0], "kpc")
+        >>> t = u.Quantity(0, "Gyr")
+        >>> nfw._mass_enclosed(q, t)
+        Array(1.10825624e+10, dtype=float64)
+
+        """
+        # Parse inputs
+        r = r_spherical(xyz, self.units["length"])
+        t = u.Quantity.from_(t, self.units["time"])
+
+        params = {
+            "m": self.m(t, ustrip=self.units["mass"]),
+            "r_s": self.r_s(t, ustrip=self.units["length"]),
+        }
+        return enclosed_mass(params, r)
+
     # ===========================================
     # Constructors
 

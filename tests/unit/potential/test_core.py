@@ -1,4 +1,4 @@
-from functools import partial
+import functools as ft
 from typing import Any, ClassVar
 
 import equinox as eqx
@@ -64,7 +64,7 @@ class TestAbstractSinglePotential(AbstractSinglePotential_Test):
                 default=default_constants, converter=ImmutableMap
             )
 
-            @partial(jax.jit, inline=True)
+            @ft.partial(jax.jit, inline=True)
             def _potential(  # TODO: inputs w/ units
                 self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
             ) -> gt.BBtSz0:

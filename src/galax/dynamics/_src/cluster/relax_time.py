@@ -16,7 +16,7 @@ __all__ = [
     "core_relaxation_time_spitzer1987",
 ]
 
-from functools import partial
+import functools as ft
 from typing import Annotated as Antd, Any, NoReturn, TypeAlias, TypeVar, cast, final
 from typing_extensions import Doc
 
@@ -112,7 +112,7 @@ def relaxation_time(
     (gt.BBtSz0, gt.BBtSz0, gt.BBtSz0),
     (gt.BBtQuSz0, gt.BBtQuSz0, gt.BBtQuSz0),
 )
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def relaxation_time_baumgardt1998(
     M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
     r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
@@ -230,7 +230,7 @@ def _relaxation_time_spitzer1987(
     return jnp.sqrt(r**3 / G / M) * prefactor * N / lnLambda
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def half_mass_relaxation_time_spitzer1987(
     M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
     r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
@@ -274,7 +274,7 @@ def half_mass_relaxation_time_spitzer1987(
     )
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def core_relaxation_time_spitzer1987(
     Mc: Antd[BBtAorQSz0, Doc("mass of the cluster")],
     r_c: Antd[BBtAorQSz0, Doc("core radius of the cluster")],

@@ -2,10 +2,10 @@
 
 __all__: list[str] = []
 
-import functools
+import dataclasses
+import functools as ft
 import inspect
 import operator
-from dataclasses import Field
 from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ def all_vars(obj: object | type, /) -> dict[str, Any]:
     """Get all vars."""
     # Get all the class variables
     cls = obj if inspect.isclass(obj) else type(obj)
-    return functools.reduce(operator.__or__, map(vars, cls.mro()[::-1]))
+    return ft.reduce(operator.__or__, map(vars, cls.mro()[::-1]))
 
 
 def all_parameters(obj: object | type, /) -> "dict[str, ParameterField]":
@@ -44,6 +44,9 @@ def all_parameters(obj: object | type, /) -> "dict[str, ParameterField]":
         for k, v in all_cls_vars.items()
         if (
             isinstance(v, ParameterField)
-            or (isinstance(v, Field) and isinstance(v.default, ParameterField))
+            or (
+                isinstance(v, dataclasses.Field)
+                and isinstance(v.default, ParameterField)
+            )
         )
     }

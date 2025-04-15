@@ -10,7 +10,7 @@ import galax._custom_types as gt
 import galax.potential as gp
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import ParameterMMixin, ParameterScaleRadiusMixin
+from .test_common import ParameterMMixin, ParameterRSMixin
 from galax._interop.optional_deps import OptDeps
 
 
@@ -105,7 +105,7 @@ class TestLeeSutoTriaxialNFWPotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
     ShapeA1ParameterMixin,
     ShapeA2ParameterMixin,
     ShapeA3ParameterMixin,

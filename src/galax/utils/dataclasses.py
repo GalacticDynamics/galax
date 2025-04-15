@@ -3,7 +3,7 @@
 __all__ = ["ModuleMeta"]
 
 import dataclasses
-import functools
+import functools as ft
 import inspect
 from collections.abc import Callable
 from enum import Enum, auto
@@ -85,7 +85,7 @@ def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
     original_init = cls.__init__
     sig = inspect.signature(original_init)
 
-    @functools.wraps(original_init)
+    @ft.wraps(original_init)
     def init(self: DataclassInstance, *args: Any, **kwargs: Any) -> None:
         __tracebackhide__ = True  # pylint: disable=unused-variable
 

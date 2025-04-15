@@ -18,7 +18,7 @@ from .test_abstractmultipole import (
     ParameterSlmMixin,
     ParameterTlmMixin,
 )
-from .test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
+from .test_common import ParameterMTotMixin, ParameterRSMixin
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps
 
 ###############################################################################
@@ -29,7 +29,7 @@ class TestMultipoleOuterPotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
     ParameterSlmMixin,
     ParameterTlmMixin,
 ):

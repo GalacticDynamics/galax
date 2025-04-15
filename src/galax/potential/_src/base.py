@@ -1,9 +1,9 @@
 __all__ = ["AbstractPotential"]
 
 import abc
+import functools as ft
 from collections.abc import Mapping
 from dataclasses import KW_ONLY, fields, replace
-from functools import partial
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 
@@ -141,7 +141,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         """
         return api.potential(self, *args, **kwargs)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def __call__(self, *args: Any) -> Any:
         """Compute the potential energy at the given position(s).
 
@@ -167,7 +167,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # Gradient
 
     @vectorize_method(signature="(3),()->(3)")
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _gradient(
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0, /
     ) -> gt.FloatSz3:
@@ -188,7 +188,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # Laplacian
 
     @vectorize_method(signature="(3),()->()")
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _laplacian(
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, /, t: gt.QuSz0 | gt.Sz0
     ) -> gt.FloatSz0:
@@ -208,7 +208,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # ---------------------------------------
     # Density
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _density(self, q: gt.BBtQuSz3, t: gt.BBtQuSz0 | gt.QuSz0, /) -> gt.BBtFloatSz0:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
@@ -226,7 +226,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # Hessian
 
     @vectorize_method(signature="(3),()->(3,3)")
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _hessian(
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
     ) -> gt.Sz33:

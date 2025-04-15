@@ -3,7 +3,7 @@
 __all__ = ["FardalStreamDF"]
 
 
-from functools import partial
+import functools as ft
 from typing import final
 
 import jax
@@ -45,7 +45,7 @@ class FardalStreamDF(AbstractStreamDF):
     https://ui.adsabs.harvard.edu/abs/2015MNRAS.452..301F/abstract
     """
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _sample(
         self,
         key: PRNGKeyArray,

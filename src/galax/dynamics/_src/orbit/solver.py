@@ -7,8 +7,8 @@ This is private API.
 __all__ = ["OrbitSolver"]
 
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import Any, TypeAlias, final
 
 import diffrax as dfx
@@ -723,7 +723,7 @@ def run(
     y0_f = jtu.map(lambda x: x.reshape(-1, *x.shape[ndim0:]), y0)
 
     # vmap over the solver
-    @partial(jax.vmap, in_axes=(0, 0, jtu.map(lambda _: 0, y0)))
+    @ft.partial(jax.vmap, in_axes=(0, 0, jtu.map(lambda _: 0, y0)))
     def runner(t0: gt.Sz0, t1: gt.Sz0, y0: PyTree, /) -> dfx.Solution:
         return self(field, t0=t0, t1=t1, y0=y0, args=args, **solver_kw)
 
@@ -772,7 +772,7 @@ def run(
 
 
 @OrbitSolver.solve.dispatch(precedence=1)  # type: ignore[misc]
-@partial(eqx.filter_jit)
+@ft.partial(eqx.filter_jit)
 def solve(
     self: OrbitSolver,
     field: AbstractOrbitField,
@@ -885,7 +885,7 @@ def _is_saveat_arr(saveat: Any, /) -> bool:
 
 
 @OrbitSolver.solve.dispatch
-@partial(eqx.filter_jit)
+@ft.partial(eqx.filter_jit)
 def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Vectorize],  # noqa: ARG001
@@ -905,7 +905,7 @@ def solve(
 
     # Build the vectorized solver. To get the right broadcasting the Q, P need
     # to be split up, then recombined.
-    @partial(jnp.vectorize, signature="(3),(3),(),()->()")
+    @ft.partial(jnp.vectorize, signature="(3),(3),(),()->()")
     def batched_call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
         return scalar_solver(self, field, (q, p), t0, t1, saveat=saveat, **kw)
 
@@ -930,7 +930,7 @@ def solve(
 
 
 @OrbitSolver.solve.dispatch
-@partial(eqx.filter_jit)
+@ft.partial(eqx.filter_jit)
 def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
@@ -959,7 +959,7 @@ def solve(
     q0_f, p0_f = q0_b.reshape(-1, 3), p0_b.reshape(-1, 3)
 
     # Build the vectorized solver.
-    @partial(jax.vmap, in_axes=(0, 0, 0, 0))
+    @ft.partial(jax.vmap, in_axes=(0, 0, 0, 0))
     def batched_call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
         return scalar_solver(self, field, (q, p), t0, t1, saveat=saveat, **kw)
 
@@ -985,7 +985,7 @@ def solve(
 
 
 @OrbitSolver.solve.dispatch
-@partial(eqx.filter_jit)
+@ft.partial(eqx.filter_jit)
 def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001

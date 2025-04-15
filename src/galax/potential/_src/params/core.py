@@ -5,7 +5,7 @@ __all__ = [
     "CustomParameter",
 ]
 
-from functools import partial
+import functools as ft
 from typing import Any, final
 
 import equinox as eqx
@@ -66,7 +66,7 @@ class LinearParameter(AbstractParameter):
         """Check the initialization of the class."""
         # TODO: check point_value and slope * point_time have the same dimensions
 
-    @partial(jax.jit, static_argnames=("ustrip",))
+    @ft.partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
         self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **_: Any
     ) -> gt.QuSzAny | gt.SzAny:
@@ -132,7 +132,7 @@ class CustomParameter(AbstractParameter):
 
     func: ParameterCallable = eqx.field(static=True)
 
-    @partial(jax.jit, static_argnames=("ustrip",))
+    @ft.partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
         self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
     ) -> gt.QuSzAny | gt.SzAny:

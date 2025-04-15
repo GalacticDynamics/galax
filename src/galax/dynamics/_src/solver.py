@@ -8,8 +8,8 @@ __all__ = ["AbstractSolver", "SolveState", "integrate_field"]
 
 
 import abc
+import functools as ft
 from dataclasses import fields
-from functools import partial
 from typing import Any, TypeAlias
 
 import diffrax as dfx
@@ -106,8 +106,8 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[
 
     """
 
-    @partial(jnp.vectorize, excluded=(0, 1, 3, 4, 5))
-    @partial(eqx.filter_jit)
+    @ft.partial(jnp.vectorize, excluded=(0, 1, 3, 4, 5))
+    @ft.partial(eqx.filter_jit)
     def _init_impl(
         self,
         field: AbstractField,
@@ -261,7 +261,7 @@ def _parse_t0_t1(
     return t0, t1
 
 
-@partial(eqx.filter_jit)
+@ft.partial(eqx.filter_jit)
 def integrate_field(
     field: AbstractField,
     y0: PyTree[Array],

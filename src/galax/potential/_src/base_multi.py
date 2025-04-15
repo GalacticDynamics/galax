@@ -3,10 +3,10 @@
 __all__ = ["AbstractCompositePotential", "AbstractPreCompositedPotential"]
 
 
+import functools as ft
 import uuid
 from collections.abc import Hashable, ItemsView, Iterator, KeysView, Mapping, ValuesView
 from dataclasses import MISSING, replace
-from functools import partial
 from typing import TYPE_CHECKING, Any, cast
 from typing_extensions import override
 
@@ -34,7 +34,7 @@ class AbstractCompositePotential(AbstractPotential):
 
     # === Potential ===
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -43,7 +43,7 @@ class AbstractCompositePotential(AbstractPotential):
             axis=0,
         )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _gradient(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz3:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -52,7 +52,7 @@ class AbstractCompositePotential(AbstractPotential):
             axis=0,
         )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -61,7 +61,7 @@ class AbstractCompositePotential(AbstractPotential):
             axis=0,
         )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
@@ -70,7 +70,7 @@ class AbstractCompositePotential(AbstractPotential):
             axis=0,
         )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _hessian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz33:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)

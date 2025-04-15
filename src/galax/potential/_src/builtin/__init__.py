@@ -41,7 +41,6 @@ __all__ = [
     "TriaxialHernquistPotential",
 ]
 
-from .bars import LongMuraliBarPotential, MonariEtAl2016BarPotential
 from .disks import (
     KuzminPotential,
     MiyamotoNagaiPotential,
@@ -52,17 +51,19 @@ from .example import (
     HarmonicOscillatorPotential,
     HenonHeilesPotential,
 )
-from .flattened import SatohPotential
+from .kepler import KeplerPotential
 from .logarithmic import (
     LMJ09LogarithmicPotential,
     LogarithmicPotential,
 )
+from .longmurali import LongMuraliBarPotential
 from .milkyway import (
     BovyMWPotential2014,
     LM10Potential,
     MilkyWayPotential,
     MilkyWayPotential2022,
 )
+from .monari2016 import MonariEtAl2016BarPotential
 from .multipole import (
     AbstractMultipolePotential,
     MultipoleInnerPotential,
@@ -76,12 +77,12 @@ from .nfw import (
     Vogelsberger08TriaxialNFWPotential,
 )
 from .null import NullPotential
+from .satoh import SatohPotential
 from .spherical import (
     BurkertPotential,
     HernquistPotential,
     IsochronePotential,
     JaffePotential,
-    KeplerPotential,
     PlummerPotential,
     PowerLawCutoffPotential,
     StoneOstriker15Potential,

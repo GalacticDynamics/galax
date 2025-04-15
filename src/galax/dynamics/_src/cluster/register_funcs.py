@@ -2,7 +2,7 @@
 
 __all__: list[str] = []
 
-from functools import partial
+import functools as ft
 
 import equinox as eqx
 import jax
@@ -21,7 +21,7 @@ from .radius import tidal_radius_king1962
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def lagrange_points(
     potential: gp.AbstractPotential, x: gt.Sz3, v: gt.Sz3, /, *, mass: gt.Sz0, t: gt.Sz0
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
@@ -34,7 +34,7 @@ def lagrange_points(
 
 
 @dispatch
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def lagrange_points(
     potential: gp.AbstractPotential,
     x: gt.QuSz3 | cx.vecs.AbstractPos3D,

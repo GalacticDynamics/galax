@@ -8,7 +8,7 @@ import unxt as u
 import galax._custom_types as gt
 import galax.potential as gp
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
+from .test_common import ParameterMTotMixin, ParameterRSMixin
 from galax._interop.optional_deps import OptDeps
 
 
@@ -16,7 +16,7 @@ class TestKuzminPotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
 ):
     """Test the `galax.potential.KuzminPotential` class."""
 

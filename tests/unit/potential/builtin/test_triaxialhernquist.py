@@ -12,7 +12,7 @@ import galax.potential as gp
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import (
     ParameterMTotMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 )
@@ -22,7 +22,7 @@ class TestTriaxialHernquistPotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
 ):

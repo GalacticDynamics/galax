@@ -2,9 +2,11 @@
 
 __all__: list[str] = []
 
+import functools as ft
 from typing import Any, TypeAlias
 
 import equinox as eqx
+import jax
 import numpy as np
 from jax.dtypes import canonicalize_dtype
 from plum import Dispatcher, convert
@@ -29,6 +31,17 @@ def parse_dtypes(dtype2: np.dtype, dtype1: Any, /) -> np.dtype | None:
         if dtype1 is None
         else jnp.promote_types(dtype2, canonicalize_dtype(dtype1))
     )
+
+
+# ==============================================================================
+
+
+@ft.partial(jax.jit, inline=True, static_argnames=("unit",))
+def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
+    """Spherical radius."""
+    xyz = u.ustrip(AllowValue, unit, xyz)
+    r = jnp.linalg.vector_norm(xyz, axis=-1)
+    return r  # noqa: RET504
 
 
 # ==============================================================================

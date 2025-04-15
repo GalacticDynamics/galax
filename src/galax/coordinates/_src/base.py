@@ -2,8 +2,8 @@
 
 __all__ = ["AbstractPhaseSpaceObject"]
 
+import functools as ft
 from abc import abstractmethod
-from functools import partial
 from textwrap import indent
 from typing import TYPE_CHECKING, Any, Self, cast
 
@@ -450,7 +450,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
     # Dynamical quantities
 
     # TODO: property?
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def kinetic_energy(self) -> Shaped[u.Quantity["specific energy"], "*batch"]:
         r"""Return the specific kinetic energy.
 
@@ -498,7 +498,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         """
         return 0.5 * self.p.norm(self.q) ** 2
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def angular_momentum(self) -> cx.vecs.CartesianGeneric3D:
         r"""Compute the angular momentum.
 

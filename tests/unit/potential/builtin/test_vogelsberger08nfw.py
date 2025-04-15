@@ -13,7 +13,7 @@ from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import (
     ParameterMMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
     ParameterShapeQ1Mixin,
 )
 
@@ -48,7 +48,7 @@ class TestVogelsberger08TriaxialNFWPotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
     ParameterShapeQ1Mixin,
     ShapeTransitionRadiusParameterMixin,
 ):

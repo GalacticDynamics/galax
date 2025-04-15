@@ -25,7 +25,6 @@ import astropy.units as apyu
 from jaxtyping import Array, ArrayLike, Float, Int, Real, ScalarLike, Shaped
 
 import unxt as u
-from unxt.quantity import AbstractQuantity
 
 # =============================================================================
 
@@ -45,7 +44,7 @@ Sz0: TypeAlias = Real[Array, ""]
 BtSz0: TypeAlias = Real[Sz0, "*batch"]
 BBtSz0: TypeAlias = Real[Sz0, "*#batch"]
 
-QuSz0: TypeAlias = Real[AbstractQuantity, ""]
+QuSz0: TypeAlias = Real[u.AbstractQuantity, ""]
 BtQuSz0: TypeAlias = Real[QuSz0, "*batch"]
 BBtQuSz0: TypeAlias = Real[QuSz0, "*#batch"]
 
@@ -59,7 +58,7 @@ FloatSz0: TypeAlias = Float[Array, ""]
 BtFloatSz0: TypeAlias = Float[FloatSz0, "*batch"]
 BBtFloatSz0: TypeAlias = Float[FloatSz0, "*#batch"]
 
-FloatQuSz0: TypeAlias = Float[AbstractQuantity, ""]
+FloatQuSz0: TypeAlias = Float[u.AbstractQuantity, ""]
 BtFloatQuSz0: TypeAlias = Float[FloatQuSz0, "*batch"]
 BBtFloatQuSz0: TypeAlias = Float[FloatQuSz0, "*#batch"]
 
@@ -72,19 +71,19 @@ BBtLikeSz0: TypeAlias = Real[LikeSz0, "*#batch"]
 # ---------------------------
 # 1-vector
 
-QuSz1: TypeAlias = Real[AbstractQuantity, "1"]
+QuSz1: TypeAlias = Real[u.AbstractQuantity, "1"]
 
 # ---------------------------
 # A 3-vector, e.g. q=(x, y, z) or p=(vx, vy, vz).
 
 FloatSz3: TypeAlias = Float[Array, "3"]
-FloatQuSz3: TypeAlias = Float[AbstractQuantity, "3"]
+FloatQuSz3: TypeAlias = Float[u.AbstractQuantity, "3"]
 
 Sz3: TypeAlias = Real[Array, "3"]
 BtSz3: TypeAlias = Real[Sz3, "*batch"]
 BBtSz3: TypeAlias = Real[Sz3, "*#batch"]
 
-QuSz3: TypeAlias = Real[AbstractQuantity, "3"]
+QuSz3: TypeAlias = Real[u.AbstractQuantity, "3"]
 BtQuSz3: TypeAlias = Real[QuSz3, "*batch"]
 BBtQuSz3: TypeAlias = Real[QuSz3, "*#batch"]
 
@@ -115,7 +114,7 @@ BBtSz7: TypeAlias = Real[Array, "*#batch 7"]
 Sz33: TypeAlias = Real[Array, "3 3"]
 BBtSz33: TypeAlias = Real[Sz33, "*#batch"]
 
-QuSz33: TypeAlias = Real[AbstractQuantity, "3 3"]
+QuSz33: TypeAlias = Real[u.AbstractQuantity, "3 3"]
 BBtQuSz33: TypeAlias = Real[QuSz33, "*#batch"]
 
 # ================================
@@ -127,11 +126,11 @@ SzN: TypeAlias = Shaped[Array, "N"]
 
 # Time vector
 SzTime: TypeAlias = Real[Array, "time"]
-QuSzTime: TypeAlias = Real[AbstractQuantity, "time"]
+QuSzTime: TypeAlias = Real[u.AbstractQuantity, "time"]
 
 # A real array with any shape.
 SzAny: TypeAlias = Real[Array, "..."]
-QuSzAny: TypeAlias = Real[AbstractQuantity, "..."]
+QuSzAny: TypeAlias = Real[u.AbstractQuantity, "..."]
 
 # ===============================
 # TODO: sort
@@ -142,3 +141,7 @@ XYZArrayLike: TypeAlias = (
     | list[ScalarLike]
     | tuple[ScalarLike, ScalarLike, ScalarLike]
 )
+
+# TODO: shape hint that can encompass both scalar and matrix parameters, but
+# which can be specified down.
+Params: TypeAlias = dict[str, Real[Array, "..."]]

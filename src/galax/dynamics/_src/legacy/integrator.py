@@ -2,9 +2,9 @@
 
 __all__ = ["Integrator"]
 
+import functools as ft
 from collections.abc import Mapping
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import Any, Literal, TypeAlias, TypeVar, final
 
 import diffrax as dfx
@@ -193,7 +193,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     # =====================================================
     # Call
 
-    @partial(eqx.filter_jit)
+    @ft.partial(eqx.filter_jit)
     def _call_(
         self: "Integrator",
         field: AbstractOrbitField,

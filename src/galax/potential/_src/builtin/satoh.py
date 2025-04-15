@@ -1,8 +1,13 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["SatohPotential"]
+__all__ = [
+    # class
+    "SatohPotential",
+    # functions
+    "potential",
+]
 
-from functools import partial
+import functools as ft
 from typing import final
 
 import jax
@@ -36,18 +41,28 @@ class SatohPotential(AbstractSinglePotential):
 
     b: AbstractParameter = ParameterField(dimensions="length", doc="Scale height.")  # type: ignore[assignment]
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.Quantity.from_(t, self.units["time"])
 
-        # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        a = self.a(t, ustrip=self.units["length"])
-        b = self.b(t, ustrip=self.units["length"])
+        params = {
+            "G": self.constants["G"].value,
+            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
+            "a": self.a(t, ustrip=self.units["length"]),
+            "b": self.b(t, ustrip=self.units["length"]),
+        }
+        return potential(params, xyz)
 
-        R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
-        z = xyz[..., 2]
-        term = R2 + z**2 + a * (a + 2 * jnp.sqrt(z**2 + b**2))
-        return -self.constants["G"].value * m_tot / jnp.sqrt(term)
+
+# ===================================================================
+
+
+@ft.partial(jax.jit)
+def potential(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
+    r"""Specific potential energy."""
+    R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
+    z = xyz[..., 2]
+    term = R2 + z**2 + p["a"] * (p["a"] + 2 * jnp.sqrt(z**2 + p["b"] ** 2))
+    return -p["G"] * p["m_tot"] / jnp.sqrt(term)

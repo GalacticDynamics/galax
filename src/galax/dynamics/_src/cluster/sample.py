@@ -6,7 +6,7 @@ This is private API.
 
 __all__ = ["ReleaseTimeSampler"]
 
-from functools import partial
+import functools as ft
 from typing import Any
 
 import diffrax as dfx
@@ -86,7 +86,7 @@ class ReleaseTimeSampler(eqx.Module):  # type: ignore[misc]
             msg = "Mass history must be dense."
             raise ValueError(msg)
 
-    @partial(jax.jit, static_argnames=("n_stars",))
+    @ft.partial(jax.jit, static_argnames=("n_stars",))
     def sample(
         self,
         key: PRNGKeyArray,

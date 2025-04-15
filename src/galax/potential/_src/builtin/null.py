@@ -2,8 +2,8 @@
 
 __all__ = ["NullPotential"]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import Any, final
 
 import equinox as eqx
@@ -46,26 +46,26 @@ class NullPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _potential(self, q: gt.BBtQorVSz3, _: Any, /) -> gt.BBtSz0:
         return jnp.zeros(q.shape[:-1], dtype=q.dtype)
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _gradient(self, q: gt.BBtQorVSz3, /, _: gt.BBtQorVSz0) -> gt.BBtSz3:
         """See ``gradient``."""
         return jnp.zeros(q.shape[:-1] + (3,), dtype=q.dtype)
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _laplacian(self, xyz: gt.BBtQorVSz3, /, _: gt.BBtQorVSz0) -> gt.BBtFloatSz0:
         """See ``laplacian``."""
         return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _density(self, xyz: gt.BBtQorVSz3, _: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         """See ``density``."""
         return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)
 
-    @partial(jax.jit, inline=True)
+    @ft.partial(jax.jit, inline=True)
     def _hessian(self, q: gt.BBtQorVSz3, _: gt.BBtQorVSz0, /) -> gt.BBtSz33:
         """See ``hessian``."""
         return jnp.zeros(q.shape[:-1] + (3, 3), dtype=q.dtype)

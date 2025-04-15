@@ -3,7 +3,7 @@
 __all__ = ["AbstractStreamDF"]
 
 import abc
-from functools import partial
+import functools as ft
 from typing import TypeAlias
 
 import equinox as eqx
@@ -27,7 +27,7 @@ Carry: TypeAlias = tuple[gt.QuSz3, gt.QuSz3, gt.QuSz3, gt.QuSz3]
 class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
     """Abstract base class of Stream Distribution Functions."""
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def sample(
         self,
         rng: PRNGKeyArray,

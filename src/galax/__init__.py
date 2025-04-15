@@ -14,12 +14,7 @@ __all__ = [
 from . import _custom_types, setup_package as setup_package
 
 # isort: split
-from . import (
-    coordinates,
-    dynamics,
-    potential,
-    utils,
-)
+from . import coordinates, dynamics, potential, utils
 from ._version import version as __version__, version_tuple as __version_tuple__
 
 # Optional dependencies

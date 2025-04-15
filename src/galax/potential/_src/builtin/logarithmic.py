@@ -5,8 +5,8 @@ __all__ = [
     "LMJ09LogarithmicPotential",
 ]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import final
 
 import equinox as eqx
@@ -22,6 +22,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import r_spherical
 
 
 @final
@@ -39,17 +40,15 @@ class LogarithmicPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
-
         # Compute parameters
         r_s = self.r_s(t, ustrip=self.units["length"])
         v_c = self.v_c(t, ustrip=self.units["speed"])
 
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
         return 0.5 * v_c**2 * jnp.log(r_s**2 + r**2)
 
 
@@ -85,7 +84,7 @@ class LMJ09LogarithmicPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)

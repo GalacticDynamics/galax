@@ -2,7 +2,7 @@
 
 __all__: list[str] = []
 
-from functools import partial
+import functools as ft
 from typing import Any, TypeAlias
 
 import diffrax as dfx
@@ -313,7 +313,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
         gt.LikeSz0 | None,
     ),
 )
-@partial(
+@ft.partial(
     jax.jit,
     static_argnums=(0,),
     static_argnames=("solver", "solver_kwargs", "dense", "dense_vectorize"),
@@ -437,7 +437,7 @@ ScanCarry: TypeAlias = list[int]
 
 
 @dispatch
-@partial(
+@ft.partial(
     jax.jit,
     static_argnums=(0,),
     static_argnames=("solver", "solver_kwargs", "dense", "dense_vectorize"),
@@ -481,7 +481,7 @@ def integrate_orbit(
 
     """
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def body(carry: ScanCarry, _: float) -> tuple[ScanCarry, dfx.Solution]:
         i = carry[0]
         saveat_i = saveat if len(saveat.shape) == 1 else saveat[i]
@@ -509,7 +509,7 @@ def integrate_orbit(
 
 
 @dispatch
-@partial(
+@ft.partial(
     jax.jit,
     static_argnums=(0,),
     static_argnames=("solver", "solver_kwargs", "dense", "dense_vectorize"),

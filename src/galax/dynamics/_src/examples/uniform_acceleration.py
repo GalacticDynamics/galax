@@ -4,9 +4,9 @@ __all__ = [
     "UniformAcceleration",
 ]
 
+import functools as ft
 from collections.abc import Callable
 from dataclasses import KW_ONLY
-from functools import partial
 from typing import final
 
 import equinox as eqx
@@ -60,12 +60,12 @@ class UniformAcceleration(gp.AbstractSinglePotential):
 
     """
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0) -> gt.BBtSz0:
         # This does not have a potential
         raise NotImplementedError
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _gradient(self, _: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0, /) -> gt.FloatSz3:
         # The gradient is the jacobian of the velocity function
         if not self.func_supports_units:
@@ -74,7 +74,7 @@ class UniformAcceleration(gp.AbstractSinglePotential):
         grad = jax.jacfwd(self.velocity_func)(t)
         return u.ustrip(AllowValue, self.units["acceleration"], grad)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _hessian(
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
     ) -> gt.Sz33:

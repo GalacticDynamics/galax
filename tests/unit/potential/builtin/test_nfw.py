@@ -9,7 +9,7 @@ import unxt as u
 import galax._custom_types as gt
 import galax.potential as gp
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import ParameterMMixin, ParameterScaleRadiusMixin
+from .test_common import ParameterMMixin, ParameterRSMixin
 
 ###############################################################################
 
@@ -18,7 +18,7 @@ class TestNFWPotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
 ):
     @pytest.fixture(scope="class")
     @override

@@ -5,21 +5,19 @@ __all__ = [
     "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
-    "KeplerPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
 ]
 
+import functools as ft
 from dataclasses import KW_ONLY
-from functools import partial
-from typing import Any, final
+from typing import Any, Final, final
 
 import equinox as eqx
 import jax
 
-import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import quaxed.scipy.special as qsp
 import unxt as u
@@ -27,13 +25,16 @@ from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
-from .const import BURKERT_CONST
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import r_spherical
 
 # -------------------------------------------------------------------
+
+
+BURKERT_CONST: Final = 3 * jnp.log(jnp.asarray(2.0)) - 0.5 * jnp.pi
 
 
 @final
@@ -62,18 +63,17 @@ class BurkertPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
-
         # Compute parameters
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
 
         # Compute potential
-        x = jnp.linalg.vector_norm(xyz, axis=-1) / r_s
+        x = r / r_s
         xinv = 1 / x
         prefactor = self.constants["G"].value * m / (r_s * BURKERT_CONST)
         return -prefactor * (
@@ -83,23 +83,21 @@ class BurkertPotential(AbstractSinglePotential):
             - (1 - xinv) * jnp.log(1 + x**2)
         )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
-
         # Compute parameters
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
 
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
         return m / (jnp.pi * BURKERT_CONST) / ((r + r_s) * (r**2 + r_s**2))
 
-    @partial(jax.jit)
-    def _mass(self, q: gt.BBtQuSz3, /, t: gt.BtQuSz0 | gt.QuSz0) -> gt.BtFloatQuSz0:
+    @ft.partial(jax.jit)
+    def _mass(self, xyz: gt.BBtQuSz3, /, t: gt.BtQuSz0 | gt.QuSz0) -> gt.BtFloatQuSz0:
         t = u.Quantity.from_(t, self.units["time"])
-        x = jnp.linalg.vector_norm(q, axis=-1) / self.r_s(t)
+        x = jnp.linalg.vector_norm(xyz, axis=-1) / self.r_s(t)
         return (
             self.m(t)
             / BURKERT_CONST
@@ -180,20 +178,18 @@ class HernquistPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
-
         # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
 
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
         return -self.constants["G"].value * m_tot / (r + r_s)
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
@@ -240,19 +236,17 @@ class IsochronePotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
-
         # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
 
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
         return -self.constants["G"].value * m_tot / (r_s + jnp.sqrt(r**2 + r_s**2))
 
 
@@ -266,72 +260,16 @@ class JaffePotential(AbstractSinglePotential):
     m: AbstractParameter = ParameterField(dimensions="mass", doc="Characteristic mass.")  # type: ignore[assignment]
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale length.")  # type: ignore[assignment]
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
-
         # Compute parameters
         m = self.m(t, ustrip=self.units["mass"])
         r_s = self.r_s(t, ustrip=self.units["length"])
 
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
         return -self.constants["G"].value * m / r_s * jnp.log(1 + r_s / r)
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class KeplerPotential(AbstractSinglePotential):
-    r"""The Kepler potential for a point mass.
-
-    .. math::
-
-        \Phi = -\frac{G M(t)}{r}
-    """
-
-    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="mass", doc="Total mass of the potential."
-    )
-
-    _: KW_ONLY
-    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    @partial(jax.jit)
-    def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
-    ) -> gt.BBtSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
-
-        # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
-        return -self.constants["G"].value * m_tot / r
-
-    @partial(jax.jit)
-    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
-
-        # Compute parameters
-        m = self.m_tot(t, ustrip=self.units["mass"])
-
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
-        pred = jnp.logical_or(  # are we at the origin with non-zero mass?
-            jnp.greater(r, jnp.zeros_like(r)), jnp.equal(m, jnp.zeros_like(m))
-        )
-        return qlax.select(
-            pred, jnp.zeros_like(r), jnp.full_like(r, fill_value=jnp.inf)
-        )
 
 
 # -------------------------------------------------------------------
@@ -350,7 +288,7 @@ class PlummerPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         ul = self.units["length"]
@@ -368,7 +306,7 @@ class PlummerPotential(AbstractSinglePotential):
 # -------------------------------------------------------------------
 
 
-@partial(jax.jit)
+@ft.partial(jax.jit)
 def _safe_gamma_inc(a: u.Quantity, x: u.Quantity) -> u.Quantity:  # TODO: types
     return qsp.gammainc(a, x) * qsp.gamma(a)
 
@@ -407,20 +345,18 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
         # Parse inputs
         ul = self.units["length"]
-        xyz = u.ustrip(AllowValue, ul, xyz)
+        r = r_spherical(xyz, ul)
         t = u.Quantity.from_(t, self.units["time"])
-
         # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         alpha = self.alpha(t, ustrip=self.units["dimensionless"])
         r_c = self.r_c(t, ustrip=ul)
 
         a = alpha / 2
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
         s2 = (r / r_c) ** 2
         GM = self.constants["G"].value * m_tot
 
@@ -458,19 +394,17 @@ class StoneOstriker15Potential(AbstractSinglePotential):
     # def __check_init__(self) -> None:
     #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
         # Parse inputs
         ul = self.units["length"]
-        xyz = u.ustrip(AllowValue, ul, xyz)
+        r = r_spherical(xyz, ul)
         t = u.Quantity.from_(t, self.units["time"])
-
         # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
         r_h = self.r_h(t, ustrip=ul)
         r_c = self.r_c(t, ustrip=ul)
 
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
         A = -2 * self.constants["G"].value * m_tot / (jnp.pi * (r_h - r_c))
         return A * (
             (r_h / r) * jnp.atan2(r, r_h)
@@ -554,7 +488,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
         converter=ImmutableMap, default=default_constants
     )
 
-    @partial(jax.jit)
+    @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:

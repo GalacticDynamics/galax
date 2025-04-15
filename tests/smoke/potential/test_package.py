@@ -49,6 +49,7 @@ expected_all = [
     "PowerLawCutoffPotential",
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
+    "HardCutoffNFWPotential",
     # xfm
     "AbstractTransformedPotential",
     "TransformedPotential",

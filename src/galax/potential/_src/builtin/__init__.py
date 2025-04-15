@@ -39,6 +39,7 @@ __all__ = [
     "PowerLawCutoffPotential",
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
+    "HardCutoffNFWPotential",
 ]
 
 from .disks import (
@@ -71,6 +72,7 @@ from .multipole import (
     MultipolePotential,
 )
 from .nfw import (
+    HardCutoffNFWPotential,
     LeeSutoTriaxialNFWPotential,
     NFWPotential,
     TriaxialNFWPotential,

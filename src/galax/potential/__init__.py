@@ -41,6 +41,7 @@ __all__ = [
     "PowerLawCutoffPotential",
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
+    "HardCutoffNFWPotential",
     # Pre-composited
     "AbstractPreCompositedPotential",
     "BovyMWPotential2014",
@@ -95,6 +96,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         AbstractMultipolePotential,
         BovyMWPotential2014,
         BurkertPotential,
+        HardCutoffNFWPotential,
         HarmonicOscillatorPotential,
         HenonHeilesPotential,
         HernquistPotential,

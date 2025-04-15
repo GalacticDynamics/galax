@@ -2,13 +2,11 @@
 
 __all__ = [
     "BurkertPotential",
-    "HernquistPotential",
     "IsochronePotential",
     "JaffePotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
     "StoneOstriker15Potential",
-    "TriaxialHernquistPotential",
 ]
 
 import functools as ft
@@ -155,53 +153,6 @@ class BurkertPotential(AbstractSinglePotential):
         """
         m = jnp.pi * rho_0 * r_s**3 * BURKERT_CONST
         return cls(m=m, r_s=r_s, **kwargs)
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class HernquistPotential(AbstractSinglePotential):
-    """Hernquist Potential."""
-
-    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="mass", doc="Total mass of the potential."
-    )
-
-    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="length", doc="Scale radius."
-    )
-
-    _: KW_ONLY
-    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    @ft.partial(jax.jit)
-    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        # Parse inputs
-        r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
-        # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-
-        return -self.constants["G"].value * m_tot / (r + r_s)
-
-    @ft.partial(jax.jit)
-    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
-
-        # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-
-        s = jnp.linalg.vector_norm(xyz, axis=-1) / r_s
-        rho0 = m_tot / (2 * jnp.pi * r_s**3)
-        return rho0 / (s * (1 + s) ** 3)
 
 
 # -------------------------------------------------------------------
@@ -411,99 +362,3 @@ class StoneOstriker15Potential(AbstractSinglePotential):
             - (r_c / r) * jnp.atan2(r, r_c)
             + 0.5 * jnp.log((r**2 + r_h**2) / (r**2 + r_c**2))
         )
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class TriaxialHernquistPotential(AbstractSinglePotential):
-    """Triaxial Hernquist Potential.
-
-    Parameters
-    ----------
-    m_tot : :class:`~galax.potential.AbstractParameter`['mass']
-        Mass parameter. This can be a
-        :class:`~galax.potential.AbstractParameter` or an appropriate callable
-        or constant, like a Quantity. See
-        :class:`~galax.potential.ParameterField` for details.
-    r_s : :class:`~galax.potential.AbstractParameter`['length']
-        A scale length that determines the concentration of the system.  This
-        can be a :class:`~galax.potential.AbstractParameter` or an appropriate
-        callable or constant, like a Quantity. See
-        :class:`~galax.potential.ParameterField` for details.
-    q1 : :class:`~galax.potential.AbstractParameter`['length']
-        Scale length in the y direction. This can be a
-        :class:`~galax.potential.AbstractParameter` or an appropriate callable
-        or constant, like a Quantity. See
-        :class:`~galax.potential.ParameterField` for details.
-    a2 : :class:`~galax.potential.AbstractParameter`['length']
-        Scale length in the z direction. This can be a
-        :class:`~galax.potential.AbstractParameter` or an appropriate callable
-        or constant, like a Quantity. See
-        :class:`~galax.potential.ParameterField` for details.
-
-    units : :class:`~unxt.AbstractUnitSystem`, keyword-only
-        The unit system to use for the potential.  This parameter accepts a
-        :class:`~unxt.AbstractUnitSystem` or anything that can be converted to a
-        :class:`~unxt.AbstractUnitSystem` using :func:`~unxt.unitsystem`.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-
-    >>> pot = gp.TriaxialHernquistPotential(m_tot=1e12, r_s=8, q1=1, q2=0.5,
-    ...                                     units="galactic")
-
-    >>> q = u.Quantity([1, 0, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
-    >>> pot.potential(q, t)
-    Quantity[...](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
-    """
-
-    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
-
-    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="length",
-        doc="Scale a scale length that determines the concentration of the system.",
-    )
-
-    # TODO: move to a triaxial wrapper
-    q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""),
-        dimensions="dimensionless",
-        doc="Scale length in the y direction divided by ``c``.",
-    )
-
-    q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""),
-        dimensions="dimensionless",
-        doc="Scale length in the z direction divided by ``c``.",
-    )
-
-    _: KW_ONLY
-    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
-        converter=ImmutableMap, default=default_constants
-    )
-
-    @ft.partial(jax.jit)
-    def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
-    ) -> gt.BBtSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
-
-        # Compute parameters
-        u1 = self.units["dimensionless"]
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        q1, q2 = self.q1(t, ustrip=u1), self.q2(t, ustrip=u1)
-
-        r_s = eqx.error_if(r_s, r_s <= 0, "r_s must be positive")
-        rprime = jnp.sqrt(
-            xyz[..., 0] ** 2 + (xyz[..., 1] / q1) ** 2 + (xyz[..., 2] / q2) ** 2
-        )
-        return -self.constants["G"].value * m_tot / (rprime + r_s)

@@ -2,7 +2,6 @@
 
 __all__ = [
     "BurkertPotential",
-    "IsochronePotential",
     "PowerLawCutoffPotential",
 ]
 
@@ -149,52 +148,6 @@ class BurkertPotential(AbstractSinglePotential):
         """
         m = jnp.pi * rho_0 * r_s**3 * BURKERT_CONST
         return cls(m=m, r_s=r_s, **kwargs)
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class IsochronePotential(AbstractSinglePotential):
-    r"""Isochrone Potential.
-
-    .. math::
-
-        \Phi = -\frac{G M(t)}{r_s + \sqrt{r^2 + r_s^2}}
-    """
-
-    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="mass", doc="Total mass of the potential."
-    )
-
-    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="length",
-        doc=r"""Scale radius of the potential.
-
-    The value of :math:`r_s` defines the transition between the inner, more
-    harmonic oscillator-like behavior of the potential, and the outer, :math:`1
-    / r` Keplerian falloff.
-    """,
-    )
-
-    _: KW_ONLY
-    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    @ft.partial(jax.jit)
-    def _potential(  # TODO: inputs w/ units
-        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
-    ) -> gt.BBtSz0:
-        # Parse inputs
-        r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
-        # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-
-        return -self.constants["G"].value * m_tot / (r_s + jnp.sqrt(r**2 + r_s**2))
 
 
 # -------------------------------------------------------------------

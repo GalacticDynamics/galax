@@ -53,6 +53,7 @@ from .example import (
     HenonHeilesPotential,
 )
 from .hernquist import HernquistPotential, TriaxialHernquistPotential
+from .isochrone import IsochronePotential
 from .jaffe import JaffePotential
 from .kepler import KeplerPotential
 from .logarithmic import (
@@ -85,7 +86,6 @@ from .plummer import PlummerPotential
 from .satoh import SatohPotential
 from .spherical import (
     BurkertPotential,
-    IsochronePotential,
     PowerLawCutoffPotential,
 )
 from .stoneostriker15 import StoneOstriker15Potential

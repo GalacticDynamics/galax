@@ -21,7 +21,7 @@ from .disks import MiyamotoNagaiPotential, MN3Sech2Potential
 from .hernquist import HernquistPotential
 from .logarithmic import LMJ09LogarithmicPotential
 from .nfw import NFWPotential
-from .spherical import PowerLawCutoffPotential
+from .powerlawcutoff import PowerLawCutoffPotential
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_multi import AbstractPreCompositedPotential
 

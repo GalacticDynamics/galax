@@ -1,7 +1,10 @@
 """galax: Galactic Dynamix in Jax."""
 
 __all__ = [
+    # class
     "PowerLawCutoffPotential",
+    # functions
+    "potential",
 ]
 
 import functools as ft
@@ -68,16 +71,32 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
         t = u.Quantity.from_(t, self.units["time"])
-        # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        alpha = self.alpha(t, ustrip=self.units["dimensionless"])
-        r_c = self.r_c(t, ustrip=ul)
 
-        a = alpha / 2
-        s2 = (r / r_c) ** 2
-        GM = self.constants["G"].value * m_tot
+        params = {
+            "G": self.constants["G"].value,
+            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
+            "alpha": self.alpha(t, ustrip=self.units["dimensionless"]),
+            "r_c": self.r_c(t, ustrip=ul),
+        }
+        return potential(params, r)
 
-        return GM * (
-            (a - 1.5) * _safe_gamma_inc(1.5 - a, s2) / (r * qsp.gamma(2.5 - a))
-            + _safe_gamma_inc(1 - a, s2) / (r_c * qsp.gamma(1.5 - a))
-        )
+
+# ===================================================================
+
+
+@ft.partial(jax.jit)
+def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
+    r"""Potential for the power-law cutoff density profile.
+
+    $$ \Phi(r) = -\frac{G M}{2\pi \Gamma\left(\frac{3 - \alpha}{2}\right) r_c^3}
+    \left(\frac{r_c}{r}\right)^\alpha
+    \exp\left[-\left(\frac{r}{r_c}\right)^2\right] $$
+    """
+    a = p["alpha"] / 2
+    s2 = (r / p["r_c"]) ** 2
+    GM = p["G"] * p["m_tot"]
+
+    return GM * (
+        (a - 1.5) * _safe_gamma_inc(1.5 - a, s2) / (r * qsp.gamma(2.5 - a))
+        + _safe_gamma_inc(1 - a, s2) / (p["r_c"] * qsp.gamma(1.5 - a))
+    )

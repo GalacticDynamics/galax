@@ -84,6 +84,6 @@ from .nfw import (
 )
 from .null import NullPotential
 from .plummer import PlummerPotential
+from .powerlawcutoff import PowerLawCutoffPotential
 from .satoh import SatohPotential
-from .spherical import PowerLawCutoffPotential
 from .stoneostriker15 import StoneOstriker15Potential

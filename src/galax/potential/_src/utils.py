@@ -41,7 +41,7 @@ def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
     """Spherical radius."""
     xyz = u.ustrip(AllowValue, unit, xyz)
     r = jnp.linalg.vector_norm(xyz, axis=-1)
-    return r  # noqa: RET504
+    return r
 
 
 # ==============================================================================

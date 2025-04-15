@@ -42,6 +42,7 @@ __all__ = [
     "HardCutoffNFWPotential",
 ]
 
+from .burkert import BurkertPotential
 from .disks import (
     KuzminPotential,
     MiyamotoNagaiPotential,
@@ -53,6 +54,8 @@ from .example import (
     HenonHeilesPotential,
 )
 from .hernquist import HernquistPotential, TriaxialHernquistPotential
+from .isochrone import IsochronePotential
+from .jaffe import JaffePotential
 from .kepler import KeplerPotential
 from .logarithmic import (
     LMJ09LogarithmicPotential,
@@ -80,12 +83,7 @@ from .nfw import (
     Vogelsberger08TriaxialNFWPotential,
 )
 from .null import NullPotential
+from .plummer import PlummerPotential
+from .powerlawcutoff import PowerLawCutoffPotential
 from .satoh import SatohPotential
-from .spherical import (
-    BurkertPotential,
-    IsochronePotential,
-    JaffePotential,
-    PlummerPotential,
-    PowerLawCutoffPotential,
-    StoneOstriker15Potential,
-)
+from .stoneostriker15 import StoneOstriker15Potential

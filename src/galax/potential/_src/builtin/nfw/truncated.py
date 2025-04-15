@@ -23,7 +23,7 @@ from xmmutablemap import ImmutableMap
 import galax._custom_types as gt
 from .base import (
     density as nfw_density,
-    enclosed_mass as nfw_enclosed_mass,
+    mass_enclosed as nfw_mass_enclosed,
     potential as nfw_potential,
 )
 from galax.potential._src.base import default_constants
@@ -279,7 +279,7 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     """
     r_t = p["r_t"]
-    return nfw_enclosed_mass(p, jnp.where(r <= r_t, r, r_t))
+    return nfw_mass_enclosed(p, jnp.where(r <= r_t, r, r_t))
 
 
 # -------------------------------------------------------------------
@@ -307,7 +307,7 @@ def _outer_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     from the center of the potential. The total mass is given by the NFW mass
     enclosed within the truncation radius $r_t$.
     """
-    m_tot = nfw_enclosed_mass(p, p["r_t"])
+    m_tot = nfw_mass_enclosed(p, p["r_t"])
     return point_mass_potential(p["G"], m_tot, r)
 
 

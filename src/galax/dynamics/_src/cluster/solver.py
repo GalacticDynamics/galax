@@ -214,4 +214,4 @@ def solve(
         **solver_kw,
     )
 
-    return soln  # noqa: RET504
+    return soln

@@ -3,7 +3,6 @@
 __all__ = [
     "BurkertPotential",
     "IsochronePotential",
-    "JaffePotential",
     "PowerLawCutoffPotential",
 ]
 
@@ -196,28 +195,6 @@ class IsochronePotential(AbstractSinglePotential):
         r_s = self.r_s(t, ustrip=self.units["length"])
 
         return -self.constants["G"].value * m_tot / (r_s + jnp.sqrt(r**2 + r_s**2))
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class JaffePotential(AbstractSinglePotential):
-    """Jaffe Potential."""
-
-    m: AbstractParameter = ParameterField(dimensions="mass", doc="Characteristic mass.")  # type: ignore[assignment]
-    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale length.")  # type: ignore[assignment]
-
-    @ft.partial(jax.jit)
-    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        # Parse inputs
-        r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
-        # Compute parameters
-        m = self.m(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-
-        return -self.constants["G"].value * m / r_s * jnp.log(1 + r_s / r)
 
 
 # -------------------------------------------------------------------

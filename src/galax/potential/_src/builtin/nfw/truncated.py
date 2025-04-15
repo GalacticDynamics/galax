@@ -157,6 +157,57 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
         }
         return potential(params, r)
 
+    @ft.partial(jax.jit)
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
+        r"""Density.
+
+        $$ \rho(r) = \frac{\rho_0}{u (1 + u)^2} $$
+
+        where $\rho_0$ is the central density and $u = r / r_s$ is the
+        dimensionless radius. We actually parametrize not with $\rho_0$ but by a
+        characteristic mass $m$, defined as $m = 4\pi\rho_0 r_s^3$.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.HardCutoffNFWPotential(m=1e11, r_s=15, r_t=20, units="galactic")
+
+        Evaluating at the truncation radius:
+        >>> q = u.Quantity([20, 0, 0], "kpc")
+        >>> t = u.Quantity(0, "Gyr")
+        >>> pot.density(q, t)
+        Quantity[...](Array(324806.00630999, dtype=float64), unit='solMass / kpc3')
+
+        Evaluating at a radius larger than the truncation radius:
+        >>> q = u.Quantity([25, 0, 0], "kpc")
+        >>> pot.density(q, t)
+        Quantity[...](Array(0., dtype=float64), unit='solMass / kpc3')
+
+        Evaluating at a radius smaller than the truncation radius:
+        >>> q = u.Quantity([10, 0, 0], "kpc")
+        >>> pot.density(q, t)
+        Quantity[...](Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
+
+        For comparison, here's a standard NFW potential:
+
+        >>> nfw = gp.NFWPotential(m=1e11, r_s=15, units="galactic")
+        >>> nfw.density(q, t)
+        Quantity[...](Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
+
+        """
+        # Parse inputs
+        r = r_spherical(xyz, self.units["length"])
+        t = u.Quantity.from_(t, self.units["time"])
+
+        params = {
+            "m": self.m(t, ustrip=self.units["mass"]),
+            "r_s": self.r_s(t, ustrip=self.units["length"]),
+            "r_t": self.r_t(t, ustrip=self.units["length"]),
+        }
+        return density(params, r)
+
 
 # ===================================================================
 

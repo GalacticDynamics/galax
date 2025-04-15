@@ -80,12 +80,12 @@ from .nfw import (
     Vogelsberger08TriaxialNFWPotential,
 )
 from .null import NullPotential
+from .plummer import PlummerPotential
 from .satoh import SatohPotential
 from .spherical import (
     BurkertPotential,
     IsochronePotential,
     JaffePotential,
-    PlummerPotential,
     PowerLawCutoffPotential,
 )
 from .stoneostriker15 import StoneOstriker15Potential

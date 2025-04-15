@@ -4,7 +4,6 @@ __all__ = [
     "BurkertPotential",
     "IsochronePotential",
     "JaffePotential",
-    "PlummerPotential",
     "PowerLawCutoffPotential",
 ]
 
@@ -18,7 +17,6 @@ import jax
 import quaxed.numpy as jnp
 import quaxed.scipy.special as qsp
 import unxt as u
-from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -220,37 +218,6 @@ class JaffePotential(AbstractSinglePotential):
         r_s = self.r_s(t, ustrip=self.units["length"])
 
         return -self.constants["G"].value * m / r_s * jnp.log(1 + r_s / r)
-
-
-# -------------------------------------------------------------------
-
-
-@final
-class PlummerPotential(AbstractSinglePotential):
-    """Plummer Potential."""
-
-    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
-    r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale length.")  # type: ignore[assignment]
-
-    _: KW_ONLY
-    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
-        default=default_constants, converter=ImmutableMap
-    )
-
-    @ft.partial(jax.jit)
-    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        # Parse inputs
-        ul = self.units["length"]
-        xyz = u.ustrip(AllowValue, ul, xyz)
-        t = u.Quantity.from_(t, self.units["time"])
-
-        # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=ul)
-
-        r2 = jnp.linalg.vector_norm(xyz, axis=-1) ** 2
-        return -self.constants["G"].value * m_tot / jnp.sqrt(r2 + r_s**2)
 
 
 # -------------------------------------------------------------------

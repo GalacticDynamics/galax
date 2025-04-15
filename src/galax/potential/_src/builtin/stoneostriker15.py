@@ -102,7 +102,7 @@ def rhoc_of_mtot(p: gt.Params, /) -> gt.FloatSz0:
     """
     r_c, r_h = p["r_c"], p["r_h"]
     rho_c = p["m_tot"] * (r_h + r_c) / (2 * jnp.pi**2 * r_c**2 * r_h**2)
-    return rho_c  # noqa: RET504
+    return rho_c
 
 
 @ft.partial(jax.jit)

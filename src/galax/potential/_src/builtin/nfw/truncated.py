@@ -23,6 +23,7 @@ from xmmutablemap import ImmutableMap
 import galax._custom_types as gt
 from .base import (
     density as nfw_density,
+    mass_enclosed as nfw_mass_enclosed,
     potential as nfw_potential,
 )
 from galax.potential._src.base import default_constants

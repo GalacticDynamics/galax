@@ -87,5 +87,5 @@ from .spherical import (
     JaffePotential,
     PlummerPotential,
     PowerLawCutoffPotential,
-    StoneOstriker15Potential,
 )
+from .stoneostriker15 import StoneOstriker15Potential

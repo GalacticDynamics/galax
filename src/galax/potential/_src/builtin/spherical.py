@@ -6,7 +6,6 @@ __all__ = [
     "JaffePotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
-    "StoneOstriker15Potential",
 ]
 
 import functools as ft
@@ -314,51 +313,4 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
         return GM * (
             (a - 1.5) * _safe_gamma_inc(1.5 - a, s2) / (r * qsp.gamma(2.5 - a))
             + _safe_gamma_inc(1 - a, s2) / (r_c * qsp.gamma(1.5 - a))
-        )
-
-
-# -------------------------------------------------------------------
-
-
-class StoneOstriker15Potential(AbstractSinglePotential):
-    r"""StoneOstriker15Potential(m, r_c, r_h, units=None, origin=None, R=None).
-
-    Stone potential from `Stone & Ostriker (2015)
-    <http://dx.doi.org/10.1088/2041-8205/806/2/L28>`_.
-
-    .. math::
-
-        \Phi = -\frac{2 G m}{\pi (r_h - r_c)} \left(
-            \frac{r_h}{r} \tan^{-1}(\frac{r}{r_h})
-            - \frac{r_c}{r} \tan^{-1}(\frac{r}{r_c})
-            + \frac{1}{2} \log(\frac{r^2 + r_h^2}{r^2 + r_c^2})
-            \right)
-
-    """
-
-    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass")  # type: ignore[assignment]
-
-    r_c: AbstractParameter = ParameterField(dimensions="length", doc="Core radius.")  # type: ignore[assignment]
-
-    r_h: AbstractParameter = ParameterField(dimensions="length", doc="Halo radius.")  # type: ignore[assignment]
-
-    # def __check_init__(self) -> None:
-    #     _ = eqx.error_if(self.r_c, self.r_c.value >= self.r_h.value, "Core radius must be less than halo radius")   # noqa: E501, ERA001
-
-    @ft.partial(jax.jit)
-    def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
-        # Parse inputs
-        ul = self.units["length"]
-        r = r_spherical(xyz, ul)
-        t = u.Quantity.from_(t, self.units["time"])
-        # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_h = self.r_h(t, ustrip=ul)
-        r_c = self.r_c(t, ustrip=ul)
-
-        A = -2 * self.constants["G"].value * m_tot / (jnp.pi * (r_h - r_c))
-        return A * (
-            (r_h / r) * jnp.atan2(r, r_h)
-            - (r_c / r) * jnp.atan2(r, r_c)
-            + 0.5 * jnp.log((r**2 + r_h**2) / (r**2 + r_c**2))
         )

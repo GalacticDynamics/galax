@@ -7,7 +7,7 @@ __all__ = [
     "rho0_of_m",
     "m_of_rho0",
     "density",
-    "enclosed_mass",
+    "mass_enclosed",
     "potential",
 ]
 
@@ -148,7 +148,7 @@ class NFWPotential(AbstractSinglePotential):
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return enclosed_mass(params, r)
+        return mass_enclosed(params, r)
 
     # ===========================================
     # Constructors
@@ -308,7 +308,7 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
 
 @ft.partial(jax.jit)
-def enclosed_mass(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Enclosed mass for the NFW model.
 
     $$ M(<r) = \frac{m}{\ln(1 + x) - \frac{x}{1 + x}} $$

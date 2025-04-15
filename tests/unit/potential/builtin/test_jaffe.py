@@ -8,14 +8,14 @@ import unxt as u
 import galax._custom_types as gt
 import galax.potential as gp
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import ParameterMMixin, ParameterScaleRadiusMixin
+from .test_common import ParameterMMixin, ParameterRSMixin
 
 
 class TestJaffePotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
 ):
     """Test the `galax.potential.JaffePotential` class."""
 

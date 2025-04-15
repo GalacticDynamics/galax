@@ -8,14 +8,14 @@ import unxt as u
 import galax._custom_types as gt
 import galax.potential as gp
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
+from .test_common import ParameterMTotMixin, ParameterRSMixin
 
 
 class TestIsochronePotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
 ):
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.IsochronePotential]:

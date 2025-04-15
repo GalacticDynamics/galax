@@ -94,51 +94,47 @@ class TestLMJ09LogarithmicPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(0.11819267, unit="kpc2 / Myr2")
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        exp = u.Quantity(0.09557772, unit="kpc2 / Myr2")
+        got = pot.potential(x, t=0)
+        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_gradient(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity([-0.00046885, 0.00181093, 0.00569646], "kpc / Myr2")
+        exp = u.Quantity([-0.00114565, 0.00442512, 0.01391965], "kpc / Myr2")
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_density(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(48995543.34035844, "solMass / kpc3")
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        exp = u.Quantity(31101011.36872738, "solMass / kpc3")
+        got = pot.density(x, t=0)
+        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
+        exp = u.Quantity(
             [
-                [0.00100608, -0.00070826, 0.00010551],
-                [-0.00070826, 0.00114681, -0.00040755],
-                [0.00010551, -0.00040755, 0.00061682],
+                [0.00242779, -0.00161236, 0.00063003],
+                [-0.00161236, 0.00234527, -0.0024335],
+                [0.00063003, -0.0024335, -0.00301492],
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        got = pot.hessian(x, t=0)
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        exp = u.Quantity(
             [
-                [8.28469691e-05, -7.08263497e-04, 1.05514716e-04],
-                [-7.08263497e-04, 2.23569293e-04, -4.07553647e-04],
-                [1.05514716e-04, -4.07553647e-04, -3.06416262e-04],
+                [0.00184175, -0.00161236, 0.00063003],
+                [-0.00161236, 0.00175922, -0.0024335],
+                [0.00063003, -0.0024335, -0.00360097],
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        got = pot.tidal_tensor(x, t=0)
+        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     # ==========================================================================
     # Interoperability

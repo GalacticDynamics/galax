@@ -19,7 +19,7 @@ from .test_abstractmultipole import (
     MultipoleTestMixin,
     ParameterAngularCoefficientsMixin,
 )
-from .test_common import ParameterMTotMixin, ParameterScaleRadiusMixin
+from .test_common import ParameterMTotMixin, ParameterRSMixin
 
 ###############################################################################
 
@@ -218,7 +218,7 @@ class TestMultipolePotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
-    ParameterScaleRadiusMixin,
+    ParameterRSMixin,
     ParameterISlmMixin,
     ParameterITlmMixin,
     ParameterOSlmMixin,

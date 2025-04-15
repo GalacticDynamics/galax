@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, ClassVar
 from typing_extensions import override
 
 import pytest
@@ -68,6 +68,8 @@ class TestHardCutoffNFWPotential(
     ParameterRSMixin,
     ParameterRTMixin,
 ):
+    HAS_GALA_COUNTERPART: ClassVar[bool] = False
+
     @pytest.fixture(scope="class")
     @override
     def pot_cls(self) -> type[gp.HardCutoffNFWPotential]:

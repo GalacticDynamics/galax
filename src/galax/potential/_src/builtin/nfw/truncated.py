@@ -38,26 +38,53 @@ from galax.potential._src.utils import r_spherical
 class HardCutoffNFWPotential(AbstractSinglePotential):
     r"""Sharply Truncated NFW Potential.
 
-    Unlike a standard NFW potential this potential is truncated at a specified
-    radius, meaning it has a finite mass.
+    Unlike a standard NFW potential this potential is sharply truncated at a
+    specified radius, meaning it has a finite mass.
 
     Terms:
 
     - $r$ is the radial coordinate
     - $r_s$ is the scale radius
     - $r_t$ is the truncation radius
-    - $M_{tot}$ is the total mass of the potential
+    - $m$ is the characteristic mass of the potential
 
-    The mass enclosed within a radius is given by
+    The density profile is given by
 
     $$
-
-    M(<r)= \begin{cases}
-        M_{NFW}(<r), & \text{if } r \le r_t, \\
-        M_{NFW}(<r_t), & \text{if } r > r_t,
+    \rho(r) = \begin{cases}
+        \rho_{NFW}(r) & r \le r_{t}, \\
+        0,            & r > r_{t},
     \end{cases}
+    $$
+
+    where $\rho_{NFW}(r)$ is the NFW density profile. Solving for the mass
+    enclosed within a radius, the mass profile is trivially related to the
+    non-truncated NFW mass profile:
 
     $$
+    M(<r)= \begin{cases}
+        M_{NFW}(<r),   & \text{if } r \le r_t, \\
+        M_{NFW}(<r_t), & \text{if } r > r_t
+    \end{cases}
+    $$
+
+    Within the truncation radius the potential is almost the same as the NFW
+    potential, but with a constant offset. Outside the truncation radius the
+    potential is given by the Kepler potential, which is a point mass potential
+    with the mass given by the NFW mass enclosed within the truncation radius.
+    The constant offset ensures continuity of the potential at the truncation
+    radius.
+
+    $$
+    \Phi(r) = \begin{cases}
+        \Phi_{NFW}(r) + \frac{G m}{r_s + r_t}, & r \le r_t, \\
+        -\frac{G M_{NFW}(<r_t)}{r},            & r > r_t,
+    \end{cases}
+    $$
+
+    Note that the potential is continuous at the truncation radius, but its
+    derivative is not. This is a consequence of the fact that the density is
+    sharply truncated at the truncation radius.
 
     """
 
@@ -66,9 +93,9 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
         doc=r"""Total mass.""",
     )
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
-    r_t: AbstractParameter = ParameterField(
+    r_t: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="length", doc="Truncation radius. This should be larger than r_s."
-    )  # type: ignore[assignment]
+    )
 
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
@@ -83,22 +110,14 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
 
         $$
         M(<r)= \begin{cases}
-            M_{\mathrm{tot}};\dfrac{\ln(1+x) - \dfrac{x}{1+x}}{\ln(1+x_{\max}) -
-            \dfrac{x_{\max}}{1+x_{\max}}}, & \text{if } r \le r_{\max}, \\
-            M_{\mathrm{tot}}, & \text{if } r > r_{\max},
+            M_{NFW}(<r),   & \text{if } r \le r_t, \\
+            M_{NFW}(<r_t), & \text{if } r > r_t
         \end{cases}
         $$
 
         where $x = r / r_s$ is the dimensionless radius, $x_{\max} = r_{\max} /
         r_s$ and the other parameters are defined on this class as the
         parameters of this potential.
-
-        Parameters
-        ----------
-        xyz
-            Cartesian position vector.
-        t
-            Time.
 
         Examples
         --------
@@ -161,7 +180,12 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r"""Density.
 
-        $$ \rho(r) = \frac{\rho_0}{u (1 + u)^2} $$
+        $$
+        \rho(r) = \begin{cases}
+            \rho_{NFW}(r) & r \le r_{t}, \\
+            0,            & r > r_{t},
+        \end{cases}
+        $$
 
         where $\rho_0$ is the central density and $u = r / r_s$ is the
         dimensionless radius. We actually parametrize not with $\rho_0$ but by a
@@ -291,10 +315,12 @@ def _outer_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Specific potential energy.
 
-    $$ \Phi(r) = \begin{cases}
-        \Phi_{NFW}(r) + \frac{Gm}{r_s + r_t}, & r \le r_t, \\ -\frac{G
-        M_{NFW}(<r_t)}{r}, & r > r_t,
-    \end{cases} $$
+    $$
+    \Phi(r) = \begin{cases}
+        \Phi_{NFW}(r) + \frac{G m}{r_s + r_t}, & r \le r_t, \\
+        -\frac{G M_{NFW}(<r_t)}{r}, & r > r_t,
+    \end{cases}
+    $$
 
     where
 

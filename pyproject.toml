@@ -29,7 +29,7 @@
   dependencies = [
     "astropy>=7.0",
     "beartype>=0.19",
-    "coordinax>=0.20.1",
+    "coordinax>=0.20.1,<0.21",
     "dataclassish>=0.8.0",
     "diffrax>=0.6",
     "diffraxtra>=1.5.1",

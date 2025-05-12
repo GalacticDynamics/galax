@@ -14,7 +14,7 @@ from typing import final
 import equinox as eqx
 import jax
 
-import quaxed.scipy.special as qsp
+import quaxed.scipy.special as jsp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
@@ -27,8 +27,8 @@ from galax.potential._src.utils import r_spherical
 
 
 @ft.partial(jax.jit)
-def _safe_gamma_inc(a: u.Quantity, x: u.Quantity) -> u.Quantity:  # TODO: types
-    return qsp.gammainc(a, x) * qsp.gamma(a)
+def _safe_gamma_inc(a: gt.SzN, x: gt.SzN) -> gt.SzN:
+    return jsp.gammainc(a, x) * jsp.gamma(a)
 
 
 @final
@@ -97,6 +97,6 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     GM = p["G"] * p["m_tot"]
 
     return GM * (
-        (a - 1.5) * _safe_gamma_inc(1.5 - a, s2) / (r * qsp.gamma(2.5 - a))
-        + _safe_gamma_inc(1 - a, s2) / (p["r_c"] * qsp.gamma(1.5 - a))
+        (a - 1.5) * _safe_gamma_inc(1.5 - a, s2) / (r * jsp.gamma(2.5 - a))
+        + _safe_gamma_inc(1 - a, s2) / (p["r_c"] * jsp.gamma(1.5 - a))
     )

@@ -6,9 +6,11 @@ __all__ = [
     "TriaxialNFWPotential",
     "HardCutoffNFWPotential",
     "Vogelsberger08TriaxialNFWPotential",
+    "gNFWPotential",
 ]
 
 from .base import NFWPotential
+from .generalized import gNFWPotential
 from .leesuto import LeeSutoTriaxialNFWPotential
 from .triaxial import TriaxialNFWPotential
 from .truncated import HardCutoffNFWPotential

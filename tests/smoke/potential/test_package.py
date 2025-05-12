@@ -50,6 +50,7 @@ expected_all = [
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
     "HardCutoffNFWPotential",
+    "gNFWPotential",
     # xfm
     "AbstractTransformedPotential",
     "TransformedPotential",

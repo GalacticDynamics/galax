@@ -94,7 +94,7 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
     )
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
     r_t: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="length", doc="Truncation radius. This should be larger than r_s."
+        dimensions="length", doc="Truncation radius."
     )
 
     _: KW_ONLY

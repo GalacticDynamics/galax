@@ -25,6 +25,7 @@ __all__ = [
     "NFWPotential",
     "TriaxialNFWPotential",
     "Vogelsberger08TriaxialNFWPotential",
+    "gNFWPotential",
     "NullPotential",
     "BovyMWPotential2014",
     "LM10Potential",
@@ -81,6 +82,7 @@ from .nfw import (
     NFWPotential,
     TriaxialNFWPotential,
     Vogelsberger08TriaxialNFWPotential,
+    gNFWPotential,
 )
 from .null import NullPotential
 from .plummer import PlummerPotential

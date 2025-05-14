@@ -53,6 +53,7 @@ expected_all = [
     "gNFWPotential",
     # xfm
     "AbstractTransformedPotential",
+    "FlattenedInThePotential",
     "TransformedPotential",
     "TriaxialInThePotential",
     "TranslatedPotential",

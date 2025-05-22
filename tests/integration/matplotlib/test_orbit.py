@@ -70,6 +70,14 @@ def test_orbit_plot_scatter(orbit: gd.Orbit) -> Figure:
 
 
 @pytest.mark.mpl_image_compare(deterministic=True)
+def test_orbit_plot_time(orbit: gd.Orbit) -> Figure:
+    """Test plotting an orbit in a Kepler potential."""
+    ax = orbit.plot(x="t", y="y")
+
+    return ax.figure
+
+
+@pytest.mark.mpl_image_compare(deterministic=True)
 def test_orbit_plot_time_color(orbit: gd.Orbit) -> Figure:
     """Test plotting an orbit in a Kepler potential."""
     ax = orbit.plot(x="x", y="y", plot_function="scatter", c="orbit.t")

@@ -19,6 +19,8 @@ def _get_component(orbit: gd.Orbit, coord: str) -> AbstractQuantity:
         out = getattr(orbit.q, coord)
     elif hasattr(orbit.p, coord):
         out = getattr(orbit.p, coord)
+    elif hasattr(orbit, coord):  # allows for, e.g., orbit.t
+        out = getattr(orbit, coord)
     elif coord.startswith("d_"):
         out = getattr(orbit.p, coord[2:])
     else:

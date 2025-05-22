@@ -2,6 +2,8 @@ __all__ = ["plot_components"]
 
 from typing import Any, Protocol, runtime_checkable
 
+import jax.numpy as jnp
+import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from plum import dispatch
 
@@ -76,3 +78,48 @@ def plot_components(
     ax.set_ylabel(f"{y} [{y_data.unit}]")
 
     return ax
+
+
+@dispatch
+def plot_components(
+    orbit: gd.Orbit,
+    backend: type[MatplotlibBackend] = MatplotlibBackend,
+    /,
+    *,
+    plot_function: str | PlotFunctionCallable = "plot",
+    vector_representation: Any = None,
+    axes: Any | None = None,
+    subplots_kw: dict[str, Any] | None = None,
+    **kwargs: Any,
+) -> Axes:
+    if subplots_kw is None:
+        subplots_kw = {}
+
+    components = orbit.q.components
+    xidxs, yidxs = jnp.triu_indices(len(components), 1)
+
+    # TODO: 5 is an arbitrary number - is there a way to get this from matplotlib?
+    subplots_kw.setdefault("figsize", (len(components) * 5, 5))
+    if axes is None:
+        _, axes = plt.subplots(1, len(components), **subplots_kw)
+    elif len(axes) != len(components):
+        msg = (
+            f"Number of matplotlib axes ({len(axes)}) does not match number of "
+            f"components to plot ({len(components)})"
+        )
+        raise ValueError(msg)
+
+    for ax, xidx, yidx in zip(axes, xidxs, yidxs, strict=True):
+        plot_components(
+            orbit,
+            backend=backend,
+            x=components[xidx],
+            y=components[yidx],
+            plot_function=plot_function,
+            vector_representation=vector_representation,
+            ax=ax,
+            subplots_kw=None,
+            **kwargs,
+        )
+
+    return axes

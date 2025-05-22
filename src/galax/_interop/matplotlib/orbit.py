@@ -40,11 +40,11 @@ class PlotFunctionCallable(Protocol):
 @dispatch
 def plot_components(
     orbit: gd.Orbit,
+    x: str,
+    y: str,
     backend: type[MatplotlibBackend] = MatplotlibBackend,  # noqa: ARG001
     /,
     *,
-    x: str,
-    y: str,
     plot_function: str | PlotFunctionCallable = "plot",
     vector_representation: Any = None,
     ax: Any | None = None,
@@ -91,7 +91,7 @@ def plot_components(
     axes: Any | None = None,
     subplots_kw: dict[str, Any] | None = None,
     **kwargs: Any,
-) -> Axes:
+) -> Any:  # TODO: type hint for array of axes is borked?
     if subplots_kw is None:
         subplots_kw = {}
 
@@ -112,9 +112,9 @@ def plot_components(
     for ax, xidx, yidx in zip(axes, xidxs, yidxs, strict=True):
         plot_components(
             orbit,
-            backend=backend,
-            x=components[xidx],
-            y=components[yidx],
+            components[xidx],
+            components[yidx],
+            backend,
             plot_function=plot_function,
             vector_representation=vector_representation,
             ax=ax,

@@ -51,6 +51,7 @@ __all__ = [
     "MilkyWayPotential2022",
     # xfm
     "AbstractTransformedPotential",
+    "FlattenedInThePotential",
     "TransformedPotential",
     "TriaxialInThePotential",
     "TranslatedPotential",
@@ -133,6 +134,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._src.composite import CompositePotential
     from ._src.xfm import (
         AbstractTransformedPotential,
+        FlattenedInThePotential,
         TransformedPotential,
         TranslatedPotential,
         TriaxialInThePotential,

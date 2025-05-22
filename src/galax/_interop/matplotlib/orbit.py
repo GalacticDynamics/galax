@@ -1,6 +1,6 @@
 __all__ = ["plot_components"]
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -40,17 +40,25 @@ class PlotFunctionCallable(Protocol):
 @dispatch
 def plot_components(
     orbit: gd.Orbit,
-    x: str,
-    y: str,
     backend: type[MatplotlibBackend] = MatplotlibBackend,  # noqa: ARG001
     /,
     *,
+    x: str | None = None,
+    y: str | None = None,
     plot_function: str | PlotFunctionCallable = "plot",
     vector_representation: Any = None,
     ax: Any | None = None,
     subplots_kw: dict[str, Any] | None = None,
     **kwargs: Any,
-) -> Axes:
+) -> Axes | Any:
+    if x is None and y is None:
+        # Plot all components:
+        return plot_all_components(orbit, axes=ax, **kwargs)
+
+    if (x is None and y is not None) or (x is not None and y is None):
+        msg = "Both x and y components must be specified, or neither."
+        raise ValueError(msg)
+
     # Process figure and axes
     _, ax = _get_figure(ax, subplots_kw)
 
@@ -58,8 +66,8 @@ def plot_components(
         orbit = orbit.vconvert(vector_representation)
 
     # get the x, y data
-    x_data = _get_component(orbit, x)
-    y_data = _get_component(orbit, y)
+    x_data = _get_component(orbit, cast("str", x))
+    y_data = _get_component(orbit, cast("str", y))
 
     # intercept color
     if "c" in kwargs and kwargs["c"] == "orbit.t":
@@ -80,18 +88,14 @@ def plot_components(
     return ax
 
 
-@dispatch
-def plot_components(
+def plot_all_components(
     orbit: gd.Orbit,
-    backend: type[MatplotlibBackend] = MatplotlibBackend,
     /,
     *,
-    plot_function: str | PlotFunctionCallable = "plot",
-    vector_representation: Any = None,
     axes: Any | None = None,
-    subplots_kw: dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> Any:  # TODO: type hint for array of axes is borked?
+    subplots_kw = kwargs.pop("subplots_kw", None)
     if subplots_kw is None:
         subplots_kw = {}
 
@@ -112,11 +116,8 @@ def plot_components(
     for ax, xidx, yidx in zip(axes, xidxs, yidxs, strict=True):
         plot_components(
             orbit,
-            components[xidx],
-            components[yidx],
-            backend,
-            plot_function=plot_function,
-            vector_representation=vector_representation,
+            x=components[xidx],
+            y=components[yidx],
             ax=ax,
             subplots_kw=None,
             **kwargs,

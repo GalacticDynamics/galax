@@ -226,17 +226,17 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
 
         >>> print(w[jnp.array(0)])
         PhaseSpacePosition(
-            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            q=<CartesianPos3D: (x, y, z) [kpc]
                 [1 2 3]>,
-            p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+            p=<CartesianVel3D: (x, y, z) [km / s]
                 [4 5 6]>,
             frame=SimulationFrame())
 
         >>> print(w[jnp.array([0])])
         PhaseSpacePosition(
-            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            q=<CartesianPos3D: (x, y, z) [kpc]
                 [[1 2 3]]>,
-            p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+            p=<CartesianVel3D: (x, y, z) [km / s]
                 [[4 5 6]]>,
             frame=SimulationFrame())
 
@@ -253,10 +253,10 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
 
         >>> print(w[0], w[0].shape, sep='\n')
         PhaseSpacePosition(
-            q=<CartesianPos3D (x[m], y[m], z[m])
+            q=<CartesianPos3D: (x, y, z) [m]
                 [[1 2 3]
                 [4 5 6]]>,
-            p=<CartesianVel3D (x[m / s], y[m / s], z[m / s])
+            p=<CartesianVel3D: (x, y, z) [m / s]
                 [[ 7  8  9]
                 [10 11 12]]>,
             frame=SimulationFrame())
@@ -264,9 +264,9 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
 
         >>> print(w[0, 1])
         PhaseSpacePosition(
-            q=<CartesianPos3D (x[m], y[m], z[m])
+            q=<CartesianPos3D: (x, y, z) [m]
                 [4 5 6]>,
-            p=<CartesianVel3D (x[m / s], y[m / s], z[m / s])
+            p=<CartesianVel3D: (x, y, z) [m / s]
                 [10 11 12]>,
             frame=SimulationFrame())
 
@@ -311,9 +311,9 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         ...                              t=u.Quantity(-1, "Gyr"))
         >>> print(wt)
         PhaseSpaceCoordinate(
-            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            q=<CartesianPos3D: (x, y, z) [kpc]
                 [1 2 3]>,
-            p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+            p=<CartesianVel3D: (x, y, z) [km / s]
                 [4 5 6]>,
             t=Quantity(-1, unit='Gyr'),
             frame=SimulationFrame())
@@ -322,9 +322,9 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         ...                           p=u.Quantity([4, 5, 6], "km/s"))
         >>> print(w)
         PhaseSpacePosition(
-            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            q=<CartesianPos3D: (x, y, z) [kpc]
                 [1 2 3]>,
-            p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+            p=<CartesianVel3D: (x, y, z) [km / s]
                 [4 5 6]>,
             frame=SimulationFrame())
 
@@ -530,13 +530,13 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         >>> wt = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
         >>> h = wt.angular_momentum()
         >>> print(h)
-        <Cartesian3D (x[AU2 / yr], y[AU2 / yr], z[AU2 / yr])
+        <Cartesian3D: (x, y, z) [AU2 / yr]
             [0. 0. 2.]>
 
         >>> w = gc.PhaseSpacePosition(q=q, p=p)
         >>> h = w.angular_momentum()
         >>> print(h)
-        <Cartesian3D (x[AU2 / yr], y[AU2 / yr], z[AU2 / yr])
+        <Cartesian3D: (x, y, z) [AU2 / yr]
             [0. 0. 2.]>
 
         """

@@ -43,11 +43,11 @@ pot = gp.MilkyWayPotential()
 orbit = gd.evaluate_orbit(pot, w, u.Quantity(jnp.linspace(0, 1, 100), "Gyr"))
 print(orbit)
 # Orbit(
-#     q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+#     q=<CartesianPos3D: (x, y, z) [kpc]
 #         [[ 8.     0.     0.   ]
 #          ...
 #          [ 7.804 -0.106  0.   ]]>,
-#     p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+#     p=<CartesianVel3D: (x, y, z) [kpc / Myr]
 #         [[ 0.     0.225  0.   ]
 #          ...
 #          [ 0.018  0.23   0.   ]]>,

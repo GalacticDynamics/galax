@@ -308,7 +308,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
         >>> h = w.angular_momentum()
         >>> print(h)
-        <Cartesian3D (x[AU2 / yr], y[AU2 / yr], z[AU2 / yr])
+        <Cartesian3D: (x, y, z) [AU2 / yr]
             [0. 0. 2.]>
 
         """

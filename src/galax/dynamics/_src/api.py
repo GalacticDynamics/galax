@@ -48,21 +48,21 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
     >>> p = cx.CartesianVel3D.from_(v)
     >>> h = gd.specific_angular_momentum(q, p)
     >>> print(h)
-    <Cartesian3D (x[m2 / s], y[m2 / s], z[m2 / s])
+    <Cartesian3D: (x, y, z) [m2 / s]
         [ 0.  0. 64.]>
 
     >>> space = cx.Space(length=cx.CartesianPos3D.from_([[[7., 0, 0], [8, 0, 0]]], "m"),
     ...                  speed=cx.CartesianVel3D.from_([[[0., 5, 0], [0, 6, 0]]], "m/s"))
     >>> h = gd.specific_angular_momentum(space)
     >>> print(h)
-    <Cartesian3D (x[m2 / s], y[m2 / s], z[m2 / s])
+    <Cartesian3D: (x, y, z) [m2 / s]
         [[[ 0.  0. 35.]
           [ 0.  0. 48.]]]>
 
     >>> w = cx.frames.Coordinate(space, frame=gc.frames.simulation_frame)
     >>> h = gd.specific_angular_momentum(w)
     >>> print(h)
-    <Cartesian3D (x[m2 / s], y[m2 / s], z[m2 / s])
+    <Cartesian3D: (x, y, z) [m2 / s]
         [[[ 0.  0. 35.]
           [ 0.  0. 48.]]]>
 
@@ -71,7 +71,7 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
     ...                             t=u.Quantity(0, "yr"))
     >>> h = gd.specific_angular_momentum(w)
     >>> print(h)
-    <Cartesian3D (x[AU2 / yr], y[AU2 / yr], z[AU2 / yr])
+    <Cartesian3D: (x, y, z) [AU2 / yr]
         [0. 0. 2.]>
 
     """  # noqa: E501

@@ -174,9 +174,9 @@ def _psc_getitem_time_index(
     ...     frame=gc.frames.simulation_frame)
     >>> print(orbit)
     Orbit(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[0 1 2]]>,
-        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+        p=<CartesianVel3D: (x, y, z) [km / s]
             [[4 5 6]]>,
         t=Quantity(0, unit='Gyr'),
         ...)
@@ -187,9 +187,9 @@ def _psc_getitem_time_index(
 
     >>> print(orbit[jnp.array(0)])
     Orbit(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [0 1 2]>,
-        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+        p=<CartesianVel3D: (x, y, z) [km / s]
             [4 5 6]>,
         t=Quantity(0, unit='Gyr'),
         ...)

@@ -83,10 +83,10 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[-5.151 -6.454 -5.795]
              [ 4.277  4.633  1.426]]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
         t=Quantity(Array(1000., dtype=float64), unit='Myr'),

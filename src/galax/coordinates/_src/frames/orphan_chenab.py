@@ -67,7 +67,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     >>> gc_frame = cxf.Galactocentric()
     >>> op_gc = cxf.frame_transform_op(frame, gc_frame)
     >>> print(op_gc(q_oc).vconvert(cx.CartesianPos3D))
-    <CartesianPos3D (x[kpc], y[kpc], z[kpc])
+    <CartesianPos3D: (x, y, z) [kpc]
         [-8.509  0.726 -0.547]>
 
     The frame operator accepts a variety of input types. Let's work up the type
@@ -84,7 +84,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
 
     >>> q = cx.vecs.CartesianPos3D.from_([1.0, 2.0, 3.0], "kpc")
     >>> print(op(q))
-    <CartesianPos3D (x[kpc], y[kpc], z[kpc])
+    <CartesianPos3D: (x, y, z) [kpc]
         [-3.293  1.068  1.42 ]>
 
     >>> q = cx.vecs.SphericalPos(r=u.Quantity(1.0, "kpc"), theta=u.Quantity(45, "deg"), phi=u.Quantity(45, "deg"))
@@ -121,7 +121,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     PhaseSpacePosition(
         q=<SphericalPos (r[kpc], theta[rad], phi[rad])
             [1.    1.115 3.097]>,
-        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+        p=<CartesianVel3D: (x, y, z) [km / s]
             [-3.293  1.068  1.42 ]>,
         frame=OrphanChenab())
 
@@ -133,7 +133,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     PhaseSpaceCoordinate(
         q=<SphericalPos (r[kpc], theta[rad], phi[rad])
             [1.    1.115 3.097]>,
-        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+        p=<CartesianVel3D: (x, y, z) [km / s]
             [-3.293  1.068  1.42 ]>,
         t=Quantity(0., unit='Gyr'),
         frame=OrphanChenab())

@@ -88,10 +88,10 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(w, w.shape, sep='\n')
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[-5.151 -6.454 -5.795]
              [ 4.277  4.633  1.426]]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
         t=Quantity(Array(1000., dtype=float64), unit='Myr'),
@@ -290,9 +290,9 @@ def terms(
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [ 7.645 -0.701  0.   ]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.228 0.215 0.   ]>,
         t=Quantity(Array(200., dtype=float64), unit='Myr'),
         frame=SimulationFrame())

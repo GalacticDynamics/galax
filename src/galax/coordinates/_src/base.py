@@ -315,7 +315,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
                 [1 2 3]>,
             p=<CartesianVel3D: (x, y, z) [km / s]
                 [4 5 6]>,
-            t=Quantity(-1, unit='Gyr'),
+            t=Quantity['time'](-1, unit='Gyr'),
             frame=SimulationFrame())
 
         >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),

@@ -135,7 +135,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
             [1.    1.115 3.097]>,
         p=<CartesianVel3D: (x, y, z) [km / s]
             [-3.293  1.068  1.42 ]>,
-        t=Quantity(0., unit='Gyr'),
+        t=Quantity['time'](0., unit='Gyr'),
         frame=OrphanChenab())
 
     """  # noqa: E501

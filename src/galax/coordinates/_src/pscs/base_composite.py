@@ -214,14 +214,14 @@ def getitem(
                 [1 2 3]>,
             p=<CartesianVel3D: (x, y, z) [m / s]
                 [4 5 6]>,
-            t=Quantity(Array(7, dtype=int64, ...), unit='s'),
+            t=Quantity['time'](7, unit='s'),
             frame=SimulationFrame()),
         w2=PhaseSpaceCoordinate(
             q=<CartesianPos3D: (x, y, z) [m]
                 [1.5 2.5 3.5]>,
             p=<CartesianVel3D: (x, y, z) [m / s]
                 [4.5 5.5 6.5]>,
-            t=Quantity(Array(6, dtype=int64, ...), unit='s'),
+            t=Quantity['time'](6, unit='s'),
             frame=SimulationFrame()))
 
     """

@@ -91,7 +91,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
     >>> w.shape
     ()
@@ -140,7 +140,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.149  0.386  0.   ]
              [ 0.235 -0.255  0.   ]]>,
-        t=Quantity(Array(271.82818285, dtype=float64, ...), unit='Myr'),
+        t=Quantity['time'](271.82818285, unit='Myr'),
         frame=SimulationFrame())
 
     The interpolant is vectorized:
@@ -427,7 +427,7 @@ def call(
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
 
     >>> w = integrator(field, w0, t0=t0, t1=t1)
@@ -437,7 +437,7 @@ def call(
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
 
     >>> w = integrator(field, y0=w0, t0=t0, t1=t1)
@@ -447,7 +447,7 @@ def call(
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
 
     """
@@ -646,14 +646,14 @@ def call(
                 [ 6.247 -5.121  0.   ]>,
             p=<CartesianVel3D: (x, y, z) [kpc / Myr]
                 [0.359 0.033 0.   ]>,
-            t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+            t=Quantity['time'](1000., unit='Myr'),
             frame=SimulationFrame()),
         w02=PhaseSpaceCoordinate(
             q=<CartesianPos3D: (x, y, z) [kpc]
                 [5.121 6.247 0.   ]>,
             p=<CartesianVel3D: (x, y, z) [kpc / Myr]
                 [-0.033  0.359  0.   ]>,
-            t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+            t=Quantity['time'](1000., unit='Myr'),
             frame=SimulationFrame()))
 
     """

@@ -89,7 +89,7 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
-        t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
 
     The solver can be customized. Here are a few examples:

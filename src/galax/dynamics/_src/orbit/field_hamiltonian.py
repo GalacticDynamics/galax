@@ -94,7 +94,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
-        t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
     (2,)
 
@@ -294,7 +294,7 @@ def terms(
             [ 7.645 -0.701  0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.228 0.215 0.   ]>,
-        t=Quantity(Array(200., dtype=float64), unit='Myr'),
+        t=Quantity['time'](200., unit='Myr'),
         frame=SimulationFrame())
 
     """

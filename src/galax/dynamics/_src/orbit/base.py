@@ -178,7 +178,7 @@ def _psc_getitem_time_index(
             [[0 1 2]]>,
         p=<CartesianVel3D: (x, y, z) [km / s]
             [[4 5 6]]>,
-        t=Quantity(0, unit='Gyr'),
+        t=Quantity['time'](0, unit='Gyr'),
         ...)
     >>> orbit.ndim
     1
@@ -191,7 +191,7 @@ def _psc_getitem_time_index(
             [0 1 2]>,
         p=<CartesianVel3D: (x, y, z) [km / s]
             [4 5 6]>,
-        t=Quantity(0, unit='Gyr'),
+        t=Quantity['time'](0, unit='Gyr'),
         ...)
 
     Otherwise:

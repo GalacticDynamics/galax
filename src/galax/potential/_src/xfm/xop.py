@@ -215,7 +215,7 @@ class TransformedPotential(AbstractTransformedPotential):
         # Transform the position, time.
         xyz = u.Quantity.from_(xyz, self.units["length"])  # TODO: no munge
         t = u.Quantity.from_(t, self.units["time"])  # TODO: no munge
-        qp, tp = inv(xyz, t)
+        tp, qp = inv(t, xyz)
         # Evaluate the potential energy at the transformed position, time.
         return self.base_potential._potential(qp, tp)  # noqa: SLF001
 

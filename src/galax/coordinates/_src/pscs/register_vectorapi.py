@@ -253,7 +253,7 @@ def call(
     """
     # TODO: ACCOUNT FOR THE VELOCITY?!?
     # Shifting the coordinate and time
-    q, t = self(psp.q, psp.t)
+    t, q = self(psp.t, psp.q)
     # Transforming the momentum. The actual value of momentum is not
     # affected by the translation, however for non-Cartesian coordinates the
     # representation of the momentum in will be different.  First transform
@@ -306,7 +306,7 @@ def call(
     """
     # TODO: ACCOUNT FOR THE VELOCITY?!?
     # Shifting the coordinate and time
-    q, t = self(psp.q, psp.t)
+    t, q = self(psp.t, psp.q)
     # Transforming the momentum. The actual value of momentum is not
     # affected by the translation, however for non-Cartesian coordinates the
     # representation of the momentum in will be different.  First transform
@@ -358,7 +358,7 @@ def call(
     Quantity(Array(1, dtype=int64, ...), unit='Gyr')
     """
     # Shifting the coordinate and time
-    q, t = self(psp.q, psp.t)
+    t, q = self(psp.t, psp.q)
     # Transforming the momentum. The momentum is transformed to Cartesian
     # coordinates at the original coordinate. Then the rotation is applied to
     # the momentum. The momentum is then transformed back to the original

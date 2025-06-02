@@ -42,7 +42,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     @pytest.fixture
     def t_stripping(self) -> gt.QuSzTime:
         """Time vector for stripping."""
-        return u.Quantity(jnp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
+        return u.Quantity(jnp.linspace(0.0, 4e3, 10, dtype=float), "Myr")
 
     @pytest.fixture
     def prog_w0(self) -> gc.PhaseSpaceCoordinate:

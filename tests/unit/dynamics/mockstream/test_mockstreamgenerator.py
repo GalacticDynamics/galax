@@ -26,9 +26,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     @pytest.fixture
     def pot(self) -> gp.NFWPotential:
         """Mock stream DF."""
-        return gp.NFWPotential(
-            m=u.Quantity(1.0e12, "Msun"), r_s=u.Quantity(15.0, "kpc"), units="galactic"
-        )
+        return gp.NFWPotential(m=1e12, r_s=15.0, units="galactic")
 
     @pytest.fixture
     def mockgen(

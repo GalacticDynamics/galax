@@ -45,7 +45,7 @@ def convert_potential(
       m_tot=...
     )
     >>> pot.m_tot(0)
-    Quantity['mass'](Array(1.e+11, dtype=float64), unit='solMass')
+    Quantity(Array(1.e+11, dtype=float64), unit='solMass')
 
     """  # noqa: E501
     return galpy_to_galax(from_)
@@ -236,10 +236,10 @@ def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gp.BurkertPotential:
     )
 
     >>> pot.m(0)
-    Quantity['mass'](Array(8.18153508e+10, dtype=float64), unit='solMass')
+    Quantity(Array(8.18153508e+10, dtype=float64), unit='solMass')
 
     >>> pot.r_s(0)
-    Quantity['length'](Array(8., dtype=float64,...), unit='kpc')
+    Quantity(Array(8., dtype=float64,...), unit='kpc')
 
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?
@@ -356,7 +356,7 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gp.IsochronePotential:
     )
 
     >>> pot.m_tot(0)
-    Quantity['mass'](Array(1.e+11, dtype=float64), unit='solMass')
+    Quantity(Array(1.e+11, dtype=float64), unit='solMass')
 
     """  # noqa: E501
     return gp.IsochronePotential(
@@ -463,7 +463,7 @@ def galpy_to_galax(pot: gpy.KeplerPotential, /) -> gp.KeplerPotential:
       m_tot=...
     )
     >>> pot.m_tot(0)
-    Quantity['mass'](Array(1.e+11, dtype=float64, ...), unit='solMass')
+    Quantity(Array(1.e+11, dtype=float64, ...), unit='solMass')
 
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?
@@ -788,7 +788,7 @@ def galpy_to_galax(
     )
 
     >>> pot.m_tot(0)
-    Quantity['mass'](Array(5.12e+08, dtype=float64), unit='solMass')
+    Quantity(Array(5.12e+08, dtype=float64), unit='solMass')
 
     """  # noqa: E501
     return gp.PowerLawCutoffPotential(

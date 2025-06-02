@@ -74,8 +74,8 @@ def lagrange_points(
 
     >>> lpts = gd.cluster.lagrange_points(pot, x, v, mass=mass, t=t)
     >>> lpts
-    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
-                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+    L1L2LagrangePoints(l1=Quantity(Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity(Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
 
     - With `coordinax.vecs.AbstractVector`:
 
@@ -84,40 +84,40 @@ def lagrange_points(
 
     >>> lpts = gd.cluster.lagrange_points(pot, q, p, mass=mass, t=t)
     >>> lpts
-    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
-                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+    L1L2LagrangePoints(l1=Quantity(Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity(Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
 
     - With `coordinax.Space`:
 
     >>> space = cx.Space(length=q, speed=p)
     >>> lpts = gd.cluster.lagrange_points(pot, space, mass=mass, t=t)
     >>> lpts
-    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
-                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+    L1L2LagrangePoints(l1=Quantity(Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity(Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
 
     - With `coordinax.Coordinate`:
 
     >>> coord = cx.Coordinate(space, frame=gc.frames.simulation_frame)
     >>> lpts = gd.cluster.lagrange_points(pot, coord, mass=mass, t=t)
     >>> lpts
-    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
-                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+    L1L2LagrangePoints(l1=Quantity(Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity(Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
 
     - With `coordinax.PhaseSpacePosition`:
 
     >>> w = gc.PhaseSpacePosition(q=q, p=p)
     >>> lpts = gd.cluster.lagrange_points(pot, w, mass=mass, t=t)
     >>> lpts
-    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
-                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+    L1L2LagrangePoints(l1=Quantity(Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity(Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
 
     - With `coordinax.PhaseSpaceCoordinate`:
 
     >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
     >>> lpts = gd.cluster.lagrange_points(pot, w, mass=mass)
     >>> lpts
-    L1L2LagrangePoints(l1=Quantity['length'](Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
-                       l2=Quantity['length'](Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
+    L1L2LagrangePoints(l1=Quantity(Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
+                       l2=Quantity(Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
 
     """  # noqa: E501
     raise NotImplementedError  # pragma: no cover
@@ -142,7 +142,7 @@ def relaxation_time(*args: Any, **kwargs: Any) -> u.AbstractQuantity:
     >>> G = u.Quantity(4.30091e-3, "pc km2 / (s2 Msun)")
 
     >>> gdc.relaxation_time(M, r_hm, m_avg, G=G).uconvert("Myr")
-    Quantity['time'](Array(129.50788873, dtype=float64, weak_type=True), unit='Myr')
+    Quantity(Array(129.50788873, dtype=float64, weak_type=True), unit='Myr')
 
     There are many different definitions of the relaxation time.
     By passing a flag object you can choose the one you want.
@@ -151,19 +151,19 @@ def relaxation_time(*args: Any, **kwargs: Any) -> u.AbstractQuantity:
     - Baumgardt (1998) (the default):
 
     >>> gdc.relaxation_time(gdc.relax_time.Baumgardt1998, M, r_hm, m_avg, G=G).uconvert("Myr")
-    Quantity['time'](Array(129.50788873, dtype=float64, ...), unit='Myr')
+    Quantity(Array(129.50788873, dtype=float64, ...), unit='Myr')
 
     - Spitzer (1987) half-mass:
 
     >>> lnLambda = 10  # very approximate
     >>> gdc.relaxation_time(gdc.relax_time.Spitzer1987HalfMass, M, r_hm, m_avg, lnLambda=lnLambda, G=G).uconvert("Myr")
-    Quantity['time'](Array(143.38057289, dtype=float64, weak_type=True), unit='Myr')
+    Quantity(Array(143.38057289, dtype=float64, weak_type=True), unit='Myr')
 
     - Spitzer (1987) core:
 
     >>> Mcore, r_c = M / 5, r_hm / 5  # very approximate
     >>> gdc.relaxation_time(gdc.relax_time.Spitzer1987Core, Mcore, r_c, m_avg, lnLambda=lnLambda, G=G).uconvert("Myr")
-    Quantity['time'](Array(11.47044583, dtype=float64, weak_type=True), unit='Myr')
+    Quantity(Array(11.47044583, dtype=float64, weak_type=True), unit='Myr')
 
     Using multiple-dispatch, you can register your own relaxation time
     definition.
@@ -197,47 +197,47 @@ def tidal_radius(*args: Any, **kwargs: Any) -> gt.BBtQuSz0:
     >>> mass = u.Quantity(1e4, "Msun")
 
     >>> gdc.tidal_radius(pot, x, v, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
+    Quantity(Array(0.06362008, dtype=float64), unit='kpc')
 
     >>> q = cx.CartesianPos3D.from_(x)
     >>> p = cx.CartesianVel3D.from_(v)
     >>> gdc.tidal_radius(pot, q, p, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
+    Quantity(Array(0.06362008, dtype=float64), unit='kpc')
 
     >>> space = cx.Space(length=q, speed=p)
     >>> gdc.tidal_radius(pot, space, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
+    Quantity(Array(0.06362008, dtype=float64), unit='kpc')
 
     >>> coord = cx.Coordinate(space, frame=gc.frames.simulation_frame)
     >>> gdc.tidal_radius(pot, coord, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
+    Quantity(Array(0.06362008, dtype=float64), unit='kpc')
 
     >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
     >>> gdc.tidal_radius(pot, w, mass=mass)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
+    Quantity(Array(0.06362008, dtype=float64), unit='kpc')
 
     Now with different methods:
 
     - King (1962) (the default):
 
     >>> gdc.tidal_radius(gdc.radius.King1962, pot, x, v, mass=mass, t=t)
-    Quantity['length'](Array(0.06362008, dtype=float64), unit='kpc')
+    Quantity(Array(0.06362008, dtype=float64), unit='kpc')
 
     - von Hoerner (1957):
 
     >>> gdc.tidal_radius(gdc.radius.Hoerner1957, pot, x, mass=mass, t=t).uconvert("pc")
-    Quantity['length'](Array(36.94695299, dtype=float64), unit='pc')
+    Quantity(Array(36.94695299, dtype=float64), unit='pc')
 
     - King (1962) with a point mass:
 
     >>> rperi = jnp.linalg.vector_norm(x, axis=-1)
     >>> gdc.tidal_radius(gdc.radius.King1962PointMass, pot,
     ...                  rperi=rperi, mass=mass, t=t, e=0.5).uconvert("pc")
-    Quantity['length'](Array(30.65956192, dtype=float64), unit='pc')
+    Quantity(Array(30.65956192, dtype=float64), unit='pc')
 
     >>> gdc.tidal_radius(gdc.radius.King1962PointMass, pot,
     ...                  rperi=q, mass=mass, t=t, e=0.5).uconvert("pc")
-    Quantity['length'](Array(30.65956192, dtype=float64), unit='pc')
+    Quantity(Array(30.65956192, dtype=float64), unit='pc')
 
     """
     raise NotImplementedError  # pragma: no cover

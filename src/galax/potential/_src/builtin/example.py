@@ -46,17 +46,17 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
       units=LTMAUnitSystem( ... ),
       constants=ImmutableMap({'G': ...}),
       omega=ConstantParameter(
-        value=Quantity[...]( value=...i64[], unit=Unit("1 / Myr") )
+        value=Quantity( value=...i64[], unit=Unit("1 / Myr") )
       ) )
 
     >>> q = u.Quantity([1.0, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")
 
     >>> pot.potential(q, t)
-    Quantity[...](Array(0.5, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(0.5, dtype=float64), unit='kpc2 / Myr2')
 
     >>> pot.density(q, t)
-    Quantity[...](Array(1.76897707e+10, dtype=float64), unit='solMass / kpc3')
+    Quantity(Array(1.76897707e+10, dtype=float64), unit='solMass / kpc3')
 
     """
 
@@ -132,7 +132,7 @@ class HenonHeilesPotential(AbstractSinglePotential):
     >>> q = u.Quantity([1.0, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity['...'](Array(0.5, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(0.5, dtype=float64), unit='kpc2 / Myr2')
 
     """
 

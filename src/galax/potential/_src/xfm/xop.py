@@ -48,15 +48,15 @@ class TransformedPotential(AbstractTransformedPotential):
     The triaxiality can be seen in the potential energy of the three positions:
 
     >>> pot.potential(w1)
-    Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = u.Quantity([0, 1, 0], "kpc")
     >>> pot.potential(q, t)
-    Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = u.Quantity([0, 0, 1], "kpc")
     >>> pot.potential(q, t)
-    Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     Let's apply a spatial translation to the potential:
 
@@ -77,19 +77,19 @@ class TransformedPotential(AbstractTransformedPotential):
     translated by 3 kpc in the x-direction:
 
     >>> xpot1.potential(w1)
-    Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     This is the same as evaluating the untranslated potential at [-2, 0, 0] kpc:
 
     >>> q = u.Quantity([-2, 0, 0], "kpc")
     >>> pot.potential(q, u.Quantity(0, "Gyr"))
-    Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     We can also apply a time translation to the potential:
 
     >>> op2 = cx.ops.GalileanTranslation.from_([1_000, 0, 0, 0], "kpc")
     >>> op2.translation.t.uconvert("Myr")  # doctest: +SKIP
-    Quantity['time'](Array(3.26156378, dtype=float64), unit='Myr')
+    Quantity(Array(3.26156378, dtype=float64), unit='Myr')
 
     >>> xpot2 = gp.TransformedPotential(base_potential=pot, xop=op2)
 
@@ -97,7 +97,7 @@ class TransformedPotential(AbstractTransformedPotential):
     been evaluating the potential at ``w1.t=t=0``:
 
     >>> xpot2.potential(w1)
-    Quantity[...](Array(-2.24851747, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-2.24851747, dtype=float64), unit='kpc2 / Myr2')
 
     But if we evaluate the potential at a different time, the potential energy
     will be different:
@@ -105,7 +105,7 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> from dataclasses import replace
     >>> w2 = replace(w1, t=u.Quantity(10, "Myr"))
     >>> xpot2.potential(w2)
-    Quantity[...](Array(-2.25076672, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-2.25076672, dtype=float64), unit='kpc2 / Myr2')
 
     Now let's boost the potential by 200 km/s in the y-direction:
 
@@ -115,7 +115,7 @@ class TransformedPotential(AbstractTransformedPotential):
 
     >>> xpot3 = gp.TransformedPotential(base_potential=pot, xop=op3)
     >>> xpot3.potential(w2)
-    Quantity[...](Array(-1.37421204, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-1.37421204, dtype=float64), unit='kpc2 / Myr2')
 
     Alternatively we can rotate the potential by 90 degrees about the y-axis:
 
@@ -126,11 +126,11 @@ class TransformedPotential(AbstractTransformedPotential):
 
     >>> xpot4 = gp.TransformedPotential(base_potential=pot, xop=op4)
     >>> xpot4.potential(w1)
-    Quantity[...](Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = u.Quantity([0, 0, 1], "kpc")
     >>> xpot4.potential(q, t)
-    Quantity[...](Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
 
     If you look all the way back to the first examples, you will see that the
     potential energy at [1, 0, 0] and [0, 0, 1] have swapped, as expected for a
@@ -150,7 +150,7 @@ class TransformedPotential(AbstractTransformedPotential):
 
     >>> xpot5 = gp.TransformedPotential(base_potential=pot, xop=op5)
     >>> xpot5.potential(w2)
-    Quantity[...](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
     The second way is to create a custom sequence of operators. In this case we
     will make a sequence that mimics the previous example:
@@ -158,7 +158,7 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> op6 = op4 | op2 | op3
     >>> xpot6 = gp.TransformedPotential(base_potential=pot, xop=op6)
     >>> xpot6.potential(w2)
-    Quantity[...](Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
 
     We've seen that the potential can be time-dependent, but so far the
     operators have been Galilean. Let's fix the time-dependent mass of the

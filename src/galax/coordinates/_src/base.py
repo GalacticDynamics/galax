@@ -204,7 +204,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         PhaseSpaceCoordinate(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity['time'](Array(0, dtype=int64), unit='Gyr'),
+            t=Quantity(Array(0, dtype=int64), unit='Gyr'),
             frame=SimulationFrame()
         )
 
@@ -212,7 +212,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         PhaseSpaceCoordinate(
             q=CartesianPos3D( ... ),
             p=CartesianVel3D( ... ),
-            t=Quantity['time'](Array([0], dtype=int64), unit='Gyr'),
+            t=Quantity(Array([0], dtype=int64), unit='Gyr'),
             frame=SimulationFrame()
         )
 
@@ -315,7 +315,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
                 [1 2 3]>,
             p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
                 [4 5 6]>,
-            t=Quantity['time'](Array(-1, dtype=int64, ...), unit='Gyr'),
+            t=Quantity(Array(-1, dtype=int64, ...), unit='Gyr'),
             frame=SimulationFrame())
 
         >>> w = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
@@ -485,14 +485,14 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         We can compute the kinetic energy:
 
         >>> wt.kinetic_energy()
-        Quantity[...](Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
+        Quantity(Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
                             dtype=float64), unit='km2 / s2')
 
         Also with a phase-space position (lacking time):
 
         >>> w = gc.PhaseSpacePosition(q, p)
         >>> w.kinetic_energy()
-        Quantity[...](Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
+        Quantity(Array([[0.5, 2. , 4.5, 8. ], [0.5, 2. , 4.5, 8. ]],
                             dtype=float64), unit='km2 / s2')
 
         """
@@ -640,7 +640,7 @@ def vconvert(
     >>> cx.vconvert({"q": cxv.LonLatSphericalPos, "p": cxv.LonCosLatSphericalVel}, wt)
     PhaseSpaceCoordinate( q=LonLatSphericalPos(...),
                           p=LonCosLatSphericalVel(...),
-                          t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                          t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
                           frame=SimulationFrame() )
 
     """
@@ -675,7 +675,7 @@ def vconvert(
     >>> cx.vconvert(cx.vecs.CylindricalPos, psp)
     PhaseSpaceCoordinate( q=CylindricalPos(...),
                           p=CylindricalVel(...),
-                          t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                          t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
                           frame=SimulationFrame() )
 
     If the new representation requires keyword arguments, they can be passed
@@ -684,7 +684,7 @@ def vconvert(
     >>> cx.vconvert(cx.vecs.ProlateSpheroidalPos, psp, Delta=u.Quantity(2.0, "kpc"))
     PhaseSpaceCoordinate( q=ProlateSpheroidalPos(...),
                         p=ProlateSpheroidalVel(...),
-                        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                        t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
                         frame=SimulationFrame() )
 
     """

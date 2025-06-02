@@ -42,7 +42,7 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
     >>> x = u.Quantity(x, "m")
     >>> v = u.Quantity(v, "m/s")
     >>> gd.specific_angular_momentum(x, v)
-    Quantity[...](Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
+    Quantity(Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
 
     >>> q = cx.CartesianPos3D.from_(x)
     >>> p = cx.CartesianVel3D.from_(v)
@@ -99,7 +99,7 @@ def omega(x: Any, v: Any, /) -> gt.BBtQuSz0:
     >>> x = u.Quantity(x, "m")
     >>> v = u.Quantity(v, "m/s")
     >>> omega(x, v)
-    Quantity['frequency'](Array(1., dtype=float64), unit='1 / s')
+    Quantity(Array(1., dtype=float64), unit='1 / s')
 
     >>> q = cx.CartesianPos3D.from_(x)
     >>> p = cx.CartesianVel3D.from_(v)

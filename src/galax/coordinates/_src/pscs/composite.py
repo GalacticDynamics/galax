@@ -101,13 +101,13 @@ class CompositePhaseSpaceCoordinate(AbstractCompositePhaseSpaceCoordinate):
     example, the time of ``w2`` is earlier than ``w1``.
 
     >>> cw.t
-    Quantity['time'](Array([6, 7], dtype=int64, ...), unit='s')
+    Quantity(Array([6, 7], dtype=int64, ...), unit='s')
 
     >>> cw.q.x
-    Quantity['length'](Array([1.5, 1. ], dtype=float64), unit='m')
+    Quantity(Array([1.5, 1. ], dtype=float64), unit='m')
 
     >>> cw.p.x
-    Quantity['speed'](Array([4.5, 4. ], dtype=float64), unit='m / s')
+    Quantity(Array([4.5, 4. ], dtype=float64), unit='m / s')
 
     We can transform the composite phase-space position to a new position class.
 

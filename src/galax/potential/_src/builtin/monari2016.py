@@ -48,7 +48,7 @@ class MonariEtAl2016BarPotential(AbstractSinglePotential):
     ...     units="galactic",
     ... )
     >>> pot(u.Quantity([8.0, 0.0, 0.0], "kpc"), u.Quantity(0.0, "Gyr"))
-    Quantity[...](Array(-0.00010847, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.00010847, dtype=float64), unit='kpc2 / Myr2')
 
     """
 

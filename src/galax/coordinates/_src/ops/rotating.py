@@ -165,7 +165,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         >>> op = gc.ops.ConstantRotationZOperator.from_(360, "deg / Gyr")
         >>> op.inverse
         ConstantRotationZOperator(
-            Omega_z=Quantity[...]( value=...i64[], unit=Unit("deg / Gyr") )
+            Omega_z=Quantity( value=...i64[], unit=Unit("deg / Gyr") )
         )
 
         """
@@ -196,7 +196,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         Array([0., 1., 0.], dtype=float64)
 
         >>> newt
-        Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+        Quantity(Array(1, dtype=int64, ...), unit='Gyr')
 
         This rotation is time dependent. If we rotate by 2 Gyr, we go another
         90 degrees.
@@ -233,7 +233,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         Array([0., 1., 0.], dtype=float64)
 
         >>> newt
-        Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+        Quantity(Array(1, dtype=int64, ...), unit='Gyr')
 
         This rotation is time dependent.
 
@@ -270,7 +270,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         Array([0., 1., 0.], dtype=float64)
 
         >>> newpsp.t
-        Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+        Quantity(Array(1, dtype=int64, ...), unit='Gyr')
 
         This rotation is time dependent.
 

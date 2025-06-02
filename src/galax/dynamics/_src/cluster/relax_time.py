@@ -144,7 +144,7 @@ def relaxation_time_baumgardt1998(
     >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
 
     >>> gdc.relax_time.relaxation_time_baumgardt1998(M, r_hm, m_avg, G=G).uconvert("Myr")
-    Quantity['time'](Array(129.63033763, dtype=float64, ...), unit='Myr')
+    Quantity(Array(129.63033763, dtype=float64, ...), unit='Myr')
 
     The function also works with raw JAX arrays, in which case the
     inputs are assumed to be in compatible units:
@@ -260,7 +260,7 @@ def half_mass_relaxation_time_spitzer1987(
     >>> lnLambda = 10
 
     >>> gdc.relax_time.half_mass_relaxation_time_spitzer1987(M, r_hm, m_avg, G=G, lnLambda=lnLambda).uconvert("Myr")
-    Quantity['time'](Array(143.51613833, dtype=float64, ...), unit='Myr')
+    Quantity(Array(143.51613833, dtype=float64, ...), unit='Myr')
 
     The function also works with raw JAX arrays, in which case the
     inputs are assumed to be in compatible units:
@@ -304,7 +304,7 @@ def core_relaxation_time_spitzer1987(
     >>> lnLambda = 10
 
     >>> gdc.relax_time.core_relaxation_time_spitzer1987(M, r_hm, m_avg, G=G, lnLambda=lnLambda).uconvert("Myr")
-    Quantity['time'](Array(1.43516138, dtype=float64, ...), unit='Myr')
+    Quantity(Array(1.43516138, dtype=float64, ...), unit='Myr')
 
     The function also works with raw JAX arrays, in which case the
     inputs are assumed to be in compatible units:

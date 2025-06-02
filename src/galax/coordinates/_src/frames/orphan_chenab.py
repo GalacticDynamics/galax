@@ -78,7 +78,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
 
     >>> xyz = u.Quantity([1.0, 2.0, 3.0], "kpc")
     >>> op(xyz)
-    Quantity[...](Array([-3.29303127,  1.06791461,  1.41968428], dtype=float64), unit='kpc')
+    Quantity(Array([-3.29303127,  1.06791461,  1.41968428], dtype=float64), unit='kpc')
 
     - `coordinax.AbstractVector`:
 
@@ -135,7 +135,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
             [1.    1.115 3.097]>,
         p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
             [-3.293  1.068  1.42 ]>,
-        t=Quantity['time'](Array(0., dtype=float64, weak_type=True), unit='Gyr'),
+        t=Quantity(Array(0., dtype=float64, weak_type=True), unit='Gyr'),
         frame=OrphanChenab())
 
     """  # noqa: E501

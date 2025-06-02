@@ -93,8 +93,8 @@ def parse_to_xyz_t(
     >>> q = u.Quantity([1, 0, 0], "kpc")
     >>> t = u.Quantity(1, "Gyr")
     >>> parse_to_xyz_t(None, q, t)
-    (Quantity['length'](Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr'))
+    (Quantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
+     Quantity(Array(1, dtype=int64, ...), unit='Gyr'))
 
     >>> parse_to_xyz_t(None, q, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -102,19 +102,19 @@ def parse_to_xyz_t(
 
     >>> tq = u.Quantity([0, 1, 0, 0], "kpc")
     >>> parse_to_xyz_t(None, tq)
-    (Quantity['length'](Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(0., dtype=float64), unit='kpc s / m'))
+    (Quantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
+     Quantity(Array(0., dtype=float64), unit='kpc s / m'))
 
     >>> parse_to_xyz_t(None, tq, u.Quantity(0, "Gyr"))
-    (Quantity['length'](Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(0., dtype=float64), unit='kpc s / m'))
+    (Quantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
+     Quantity(Array(0., dtype=float64), unit='kpc s / m'))
 
     - `coordinax.AbstractVector` objects:
 
     >>> q = cx.vecs.CartesianPos3D.from_([1, 0, 0], "kpc")
     >>> parse_to_xyz_t(None, q, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     >>> parse_to_xyz_t(None, q, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -123,18 +123,18 @@ def parse_to_xyz_t(
     >>> tq = cx.vecs.FourVector(q=q, t=t)
     >>> parse_to_xyz_t(None, tq)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     >>> parse_to_xyz_t(None, tq, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     - `coordinax.Space` objects:
 
     >>> space = cx.Space(length=q)
     >>> parse_to_xyz_t(None, space, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     >>> parse_to_xyz_t(None, space, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -143,18 +143,18 @@ def parse_to_xyz_t(
     >>> space = cx.Space(length=tq)
     >>> parse_to_xyz_t(None, space)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     >>> parse_to_xyz_t(None, space, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     - `coordinax.AbstractCoordinate` objects:
 
     >>> coord = cx.Coordinate(cx.Space(length=q), frame=gc.frames.simulation_frame)
     >>> parse_to_xyz_t(None, coord, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     >>> parse_to_xyz_t(None, coord, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -163,11 +163,11 @@ def parse_to_xyz_t(
     >>> coord = cx.Coordinate(cx.Space(length=tq), frame=gc.frames.simulation_frame)
     >>> parse_to_xyz_t(None, coord)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     >>> parse_to_xyz_t(None, coord, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     - `galax.coordinates.PhaseSpacePosition` objects:
 
@@ -175,7 +175,7 @@ def parse_to_xyz_t(
     >>> w = gc.PhaseSpacePosition(q=q, p=p)
     >>> parse_to_xyz_t(None, w, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     >>> parse_to_xyz_t(None, w, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -187,7 +187,7 @@ def parse_to_xyz_t(
 
     >>> parse_to_xyz_t(None, wt)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     >>> parse_to_xyz_t(None, wt, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -195,7 +195,7 @@ def parse_to_xyz_t(
 
     >>> parse_to_xyz_t(None, wt, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
-     Quantity['time'](Array(1, dtype=int64, weak_type=True), unit='Gyr'))
+     Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
     """
 

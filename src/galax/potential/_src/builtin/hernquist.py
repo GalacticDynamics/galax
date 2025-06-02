@@ -107,7 +107,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     >>> q = u.Quantity([1, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity[...](Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
     """
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]

@@ -70,7 +70,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+        t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
         frame=SimulationFrame()
     )
 
@@ -224,7 +224,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
 
         >>> pot = gp.MilkyWayPotential()
         >>> w.potential_energy(pot)
-        Quantity[...](Array(..., dtype=float64), unit='kpc2 / Myr2')
+        Quantity(Array(..., dtype=float64), unit='kpc2 / Myr2')
 
         """
         return potential.potential(self.q, t=self.t)
@@ -272,7 +272,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
 
         >>> pot = gp.MilkyWayPotential()
         >>> w.total_energy(pot)
-        Quantity[...](Array(..., dtype=float64), unit='km2 / s2')
+        Quantity(Array(..., dtype=float64), unit='km2 / s2')
 
         """
         return self.kinetic_energy() + self.potential_energy(potential)
@@ -362,21 +362,21 @@ def getitem(
     True
 
     >>> w[0, 1].q.x, w[0, 1].t
-    (Quantity['length'](Array(4, dtype=int64), unit='m'),
-     Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'))
+    (Quantity(Array(4, dtype=int64), unit='m'),
+     Quantity(Array(0, dtype=int64, ...), unit='Gyr'))
 
     >>> w[0, 1].q.x, w[0, 1].t
-    (Quantity['length'](Array(4, dtype=int64), unit='m'),
-     Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'))
+    (Quantity(Array(4, dtype=int64), unit='m'),
+     Quantity(Array(0, dtype=int64, ...), unit='Gyr'))
 
     >>> w = replace(w, t=u.Quantity([0], "Myr"))
     >>> w[0, 1].q.x, w[0, 1].t
-    (Quantity['length'](Array(4, dtype=int64), unit='m'),
-     Quantity['time'](Array(0, dtype=int64), unit='Myr'))
+    (Quantity(Array(4, dtype=int64), unit='m'),
+     Quantity(Array(0, dtype=int64), unit='Myr'))
 
     >>> w = replace(w, t=u.Quantity([[[0],[1]]], "Myr"))
     >>> w[0, :].t
-    Quantity['time'](Array([[0], [1]], dtype=int64), unit='Myr')
+    Quantity(Array([[0], [1]], dtype=int64), unit='Myr')
 
     - `slice` | `int`:
 
@@ -384,7 +384,7 @@ def getitem(
     >>> w[0].shape
     (2,)
     >>> w[0].t
-    Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr')
+    Quantity(Array(0, dtype=int64, ...), unit='Gyr')
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3]], "m"),
     ...                             p=u.Quantity([[4, 5, 6]], "m/s"),
@@ -392,7 +392,7 @@ def getitem(
     >>> w[0].q.shape
     ()
     >>> w[0].t
-    Quantity['time'](Array(7, dtype=int64), unit='s')
+    Quantity(Array(7, dtype=int64), unit='s')
 
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[[1, 2, 3], [1, 2, 3]]], "m"),
     ...                             p=u.Quantity([[[4, 5, 6], [4, 5, 6]]], "m/s"),
@@ -400,7 +400,7 @@ def getitem(
     >>> w[0].q.shape
     (2,)
     >>> w[0].t
-    Quantity['time'](Array([7], dtype=int64), unit='s')
+    Quantity(Array([7], dtype=int64), unit='s')
 
     ## Orbit:
 

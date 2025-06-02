@@ -279,7 +279,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         ...                             p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
         ...                             t=u.Quantity(0.0, "Gyr"))
         >>> pot.local_circular_velocity(w)
-        Quantity['speed'](Array(0.74987517, dtype=float64), unit='kpc / Myr')
+        Quantity(Array(0.74987517, dtype=float64), unit='kpc / Myr')
 
         """
         return api.local_circular_velocity(self, *args, **kwargs)

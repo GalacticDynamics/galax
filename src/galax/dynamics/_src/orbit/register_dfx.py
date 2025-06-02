@@ -64,7 +64,7 @@ def from_(
         p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity(Array(1000., dtype=float64), unit='Myr'),
         frame=SimulationFrame())
     (2,)
 
@@ -144,7 +144,7 @@ def from_(
             [[ 0.199 -0.114  0.   ]
              [ 0.257  0.196  0.   ]
              [ 0.102  0.644  0.   ]]>,
-        t=Quantity['time'](Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
+        t=Quantity(Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
         frame=SimulationFrame(),
         interpolant=PhaseSpaceInterpolation( ... ))
 
@@ -174,7 +174,7 @@ def from_(
              [[-0.376 -0.026 -0.125]
               [-0.496 -0.48  -0.165]
               [ 0.043 -0.549  0.014]]]>,
-        t=Quantity['time'](Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
+        t=Quantity(Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
         frame=SimulationFrame(),
         interpolant=PhaseSpaceInterpolation( ... ))
 
@@ -204,7 +204,7 @@ def from_(
              [[-0.39   0.377 -0.13 ]
               [-0.295  0.033 -0.098]
               [-0.143 -0.167 -0.048]]]>,
-        t=Quantity['time'](Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
+        t=Quantity(Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
         frame=SimulationFrame(),
         interpolant=PhaseSpaceInterpolation( ... ))
 

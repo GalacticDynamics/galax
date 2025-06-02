@@ -202,23 +202,23 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
         >>> q = u.Quantity([20, 0, 0], "kpc")
         >>> t = u.Quantity(0, "Gyr")
         >>> pot.density(q, t)
-        Quantity[...](Array(324806.00630999, dtype=float64), unit='solMass / kpc3')
+        Quantity(Array(324806.00630999, dtype=float64), unit='solMass / kpc3')
 
         Evaluating at a radius larger than the truncation radius:
         >>> q = u.Quantity([25, 0, 0], "kpc")
         >>> pot.density(q, t)
-        Quantity[...](Array(0., dtype=float64), unit='solMass / kpc3')
+        Quantity(Array(0., dtype=float64), unit='solMass / kpc3')
 
         Evaluating at a radius smaller than the truncation radius:
         >>> q = u.Quantity([10, 0, 0], "kpc")
         >>> pot.density(q, t)
-        Quantity[...](Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
+        Quantity(Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
 
         For comparison, here's a standard NFW potential:
 
         >>> nfw = gp.NFWPotential(m=1e11, r_s=15, units="galactic")
         >>> nfw.density(q, t)
-        Quantity[...](Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
+        Quantity(Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
 
         """
         # Parse inputs

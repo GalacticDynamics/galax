@@ -53,20 +53,20 @@ class TranslatedPotential(AbstractTransformedPotential):
     For reference, the potential at the specific position is:
 
     >>> pot.potential(xyz, t)
-    Quantity[...](Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
 
     Now we will translate the potential by 1 kpc in the y-direction:
 
     >>> delta = u.Quantity([0.0, 1.0, 0.0], "kpc")
     >>> pot_delta = gp.TranslatedPotential(pot, translation=delta)
     >>> pot_delta.potential(xyz, t)
-    Quantity[...](Array(-0.44761769, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.44761769, dtype=float64), unit='kpc2 / Myr2')
 
     To show that the translation is along the y-axis, we can translate the
     position by the same amount:
 
     >>> pot.potential(xyz - delta, t)
-    Quantity[...](Array(-0.44761769, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.44761769, dtype=float64), unit='kpc2 / Myr2')
 
     We can make a time-dependent translation. This one is very simple, but of
     course it could be more complicated, like the trajectory of an orbit.
@@ -84,10 +84,10 @@ class TranslatedPotential(AbstractTransformedPotential):
     ...                                     translation=delta)
 
     >>> pot_tdelta.potential(xyz, t)
-    Quantity[...](Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
 
     >>> pot_tdelta.potential(xyz, u.Quantity(100, "Myr"))
-    Quantity[...](Array(-0.04998336, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.04998336, dtype=float64), unit='kpc2 / Myr2')
 
     """
 
@@ -136,7 +136,7 @@ class TimeDependentTranslationParameter(AbstractParameter):
     For reference, the potential at the specific position is:
 
     >>> pot.potential(xyz, t)
-    Quantity[...](Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
 
     We can make a time-dependent translation. This one is very simple, but of
     course it could be more complicated, like the trajectory of an orbit.
@@ -154,10 +154,10 @@ class TimeDependentTranslationParameter(AbstractParameter):
     ...                                     translation=delta)
 
     >>> pot_tdelta.potential(xyz, t)
-    Quantity[...](Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
 
     >>> pot_tdelta.potential(xyz, u.Quantity(100, "Myr"))
-    Quantity[...](Array(-0.04998336, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.04998336, dtype=float64), unit='kpc2 / Myr2')
 
     """
 

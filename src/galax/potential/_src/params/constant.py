@@ -36,50 +36,50 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
 
     >>> p = gp.params.ConstantParameter(value=u.Quantity(1., "Msun"))
     >>> p
-    ConstantParameter(Quantity['mass'](Array(1., dtype=float64, ...), unit='solMass'))
+    ConstantParameter(Quantity(Array(1., dtype=float64, ...), unit='solMass'))
 
     The parameter value is constant:
 
     >>> p(u.Quantity(0, "Gyr"))
-    Quantity['mass'](Array(1., dtype=float64, ...), unit='solMass')
+    Quantity(Array(1., dtype=float64, ...), unit='solMass')
 
     >>> p(u.Quantity(1, "Gyr")) - p(u.Quantity(2, "Gyr"))
-    Quantity['mass'](Array(0., dtype=float64, ...), unit='solMass')
+    Quantity(Array(0., dtype=float64, ...), unit='solMass')
 
     ConstantParameter supports arithmetic operations with other
     ConstantParameter objects:
 
     >>> p + p
-    ConstantParameter(Quantity['mass'](Array(2., dtype=float64, ...), unit='solMass'))
+    ConstantParameter(Quantity(Array(2., dtype=float64, ...), unit='solMass'))
 
     >>> p - p
-    ConstantParameter(Quantity['mass'](Array(0., dtype=float64, ...), unit='solMass'))
+    ConstantParameter(Quantity(Array(0., dtype=float64, ...), unit='solMass'))
 
     Most arithmetic operations degrade it back to a `unxt.Quantity`:
 
     >>> p + u.Quantity(2, "Msun")
-    Quantity['mass'](Array(3., dtype=float64), unit='solMass')
+    Quantity(Array(3., dtype=float64), unit='solMass')
 
     >>> u.Quantity(2, "Msun") + p
-    Quantity['mass'](Array(3., dtype=float64), unit='solMass')
+    Quantity(Array(3., dtype=float64), unit='solMass')
 
     >>> p - u.Quantity(2, "Msun")
-    Quantity['mass'](Array(-1., dtype=float64), unit='solMass')
+    Quantity(Array(-1., dtype=float64), unit='solMass')
 
     >>> u.Quantity(2, "Msun") - p
-    Quantity['mass'](Array(1., dtype=float64), unit='solMass')
+    Quantity(Array(1., dtype=float64), unit='solMass')
 
     >>> p * 2
-    Quantity['mass'](Array(2., dtype=float64), unit='solMass')
+    Quantity(Array(2., dtype=float64), unit='solMass')
 
     >>> 2 * p
-    Quantity['mass'](Array(2., dtype=float64), unit='solMass')
+    Quantity(Array(2., dtype=float64), unit='solMass')
 
     >>> p / 2
-    Quantity['mass'](Array(0.5, dtype=float64), unit='solMass')
+    Quantity(Array(0.5, dtype=float64), unit='solMass')
 
     >>> 2 / p
-    Quantity['kg-1'](Array(2., dtype=float64), unit='1 / solMass')
+    Quantity(Array(2., dtype=float64), unit='1 / solMass')
 
     """
 
@@ -164,7 +164,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
 
         >>> p = ConstantParameter(value=u.Quantity(1, "Msun"))
         >>> p
-        ConstantParameter(Quantity['mass'](Array(1, dtype=int64, ...), unit='solMass'))
+        ConstantParameter(Quantity(Array(1, dtype=int64, ...), unit='solMass'))
 
         """
         return f"{self.__class__.__name__}({self.value!r})"

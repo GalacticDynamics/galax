@@ -186,7 +186,7 @@ def replace(
 
     >>> new_pot = replace(pot, disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e12, "Msun"), a=6.5, b=0.26, units="galactic"))
     >>> new_pot["disk"].m_tot.value
-    Quantity['mass'](Array(1.e+12, dtype=float64,...), unit='solMass')
+    Quantity(Array(1.e+12, dtype=float64,...), unit='solMass')
 
     """  # noqa: E501
     # TODO: directly call the Mapping implementation
@@ -215,7 +215,7 @@ def replace(
 
     >>> new_pot = replace(pot, {"disk": {"m_tot": u.Quantity(1e12, "Msun")}})
     >>> new_pot["disk"].m_tot.value
-    Quantity['mass'](Array(1.e+12, dtype=float64,...), unit='solMass')
+    Quantity(Array(1.e+12, dtype=float64,...), unit='solMass')
 
     """
     # AbstractCompositePhaseSpaceCoordinate is both a Mapping and a dataclass

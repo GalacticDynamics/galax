@@ -45,15 +45,15 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     >>> q = u.Quantity([1, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t).decompose(pot.units)
-    Quantity[...](Array(-0.14620419, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.14620419, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = u.Quantity([0, 1, 0], "kpc")
     >>> pot.potential(q, t).decompose(pot.units)
-    Quantity[...](Array(-0.14593972, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.14593972, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = u.Quantity([0, 0, 1], "kpc")
     >>> pot.potential(q, t).decompose(pot.units)
-    Quantity[...](Array(-0.14570309, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.14570309, dtype=float64), unit='kpc2 / Myr2')
     """
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]

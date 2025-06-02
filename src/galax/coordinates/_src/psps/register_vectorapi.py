@@ -132,7 +132,7 @@ def call(
     )
 
     >>> newpos.q.x
-    Quantity['length'](Array(2, dtype=int64), unit='kpc')
+    Quantity(Array(2, dtype=int64), unit='kpc')
     """
     msg = "implement this method in the subclass"
     raise NotImplementedError(msg)
@@ -177,7 +177,7 @@ def call(
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity['length'](Array(2, dtype=int64), unit='kpc')
+    Quantity(Array(2, dtype=int64), unit='kpc')
 
     This spatial translation is time independent.
 
@@ -226,14 +226,14 @@ def call(self: cxo.GalileanRotation, psp: PhaseSpacePosition, /) -> PhaseSpacePo
     >>> newpsp = op(psp)
 
     >>> newpsp.q.x
-    Quantity['length'](Array(0.70710678, dtype=float64), unit='m')
+    Quantity(Array(0.70710678, dtype=float64), unit='m')
     >>> newpsp.q.norm()
     BareQuantity(Array(1., dtype=float64), unit='m')
 
     >>> newpsp.p.x
-    Quantity['speed'](Array(0.70710678, dtype=float64), unit='m / s')
+    Quantity(Array(0.70710678, dtype=float64), unit='m / s')
     >>> newpsp.p.norm()
-    Quantity['speed'](Array(1., dtype=float64), unit='m / s')
+    Quantity(Array(1., dtype=float64), unit='m / s')
 
     """
     # Shifting the position

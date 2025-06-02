@@ -65,7 +65,7 @@ def vconvert(
     >>> psp.vconvert(cx.vecs.CylindricalPos)
     PhaseSpaceCoordinate( q=CylindricalPos(...),
                           p=CylindricalVel(...),
-                          t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                          t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
                           frame=SimulationFrame() )
 
     We can also convert it to a different representation with a different
@@ -74,7 +74,7 @@ def vconvert(
     >>> psp.vconvert(cx.vecs.LonLatSphericalPos, cx.vecs.LonCosLatSphericalVel)
     PhaseSpaceCoordinate( q=LonLatSphericalPos(...),
                           p=LonCosLatSphericalVel(...),
-                          t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                          t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
                           frame=SimulationFrame() )
     """
     return cast(
@@ -123,7 +123,7 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+        t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
         frame=SimulationFrame()
     )
 
@@ -132,12 +132,12 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+        t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
         frame=SimulationFrame()
     )
 
     >>> newpos.q.x
-    Quantity['length'](Array(2, dtype=int64), unit='kpc')
+    Quantity(Array(2, dtype=int64), unit='kpc')
 
     """
     msg = "implement this method in the subclass"  # pragma: no cover
@@ -184,10 +184,10 @@ def call(
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity['length'](Array(2, dtype=int64), unit='kpc')
+    Quantity(Array(2, dtype=int64), unit='kpc')
 
     >>> newpsp.t
-    Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr')
+    Quantity(Array(0, dtype=int64, ...), unit='Gyr')
 
     This spatial translation is time independent.
 
@@ -234,10 +234,10 @@ def call(
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity['length'](Array(2, dtype=int64), unit='kpc')
+    Quantity(Array(2, dtype=int64), unit='kpc')
 
     >>> newpsp.t.uconvert("Myr")  # doctest: +SKIP
-    Quantity['time'](Array(6.52312755, dtype=float64), unit='Myr')
+    Quantity(Array(6.52312755, dtype=float64), unit='Myr')
 
     This spatial translation is time independent.
 
@@ -248,7 +248,7 @@ def call(
     But the time translation is not.
 
     >>> op(psp2).t
-    Quantity['time'](Array(1.00652313, dtype=float64, ...), unit='Gyr')
+    Quantity(Array(1.00652313, dtype=float64, ...), unit='Gyr')
 
     """
     # TODO: ACCOUNT FOR THE VELOCITY?!?
@@ -292,16 +292,16 @@ def call(
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity['length'](Array(2, dtype=int64), unit='kpc')
+    Quantity(Array(2, dtype=int64), unit='kpc')
 
     >>> newpsp.t
-    Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+    Quantity(Array(1, dtype=int64, ...), unit='Gyr')
 
     This spatial translation is time dependent.
 
     >>> psp2 = replace(psp, t=u.Quantity(2, "Gyr"))
     >>> op(psp2).q.x
-    Quantity['length'](Array(3, dtype=int64), unit='kpc')
+    Quantity(Array(3, dtype=int64), unit='kpc')
 
     """
     # TODO: ACCOUNT FOR THE VELOCITY?!?
@@ -344,18 +344,18 @@ def call(
     >>> newpsp = op(psp)
 
     >>> newpsp.q.x
-    Quantity['length'](Array(0.70710678, dtype=float64), unit='m')
+    Quantity(Array(0.70710678, dtype=float64), unit='m')
     >>> newpsp.q.norm()
     BareQuantity(Array(1., dtype=float64), unit='m')
 
     >>> newpsp.p.x
-    Quantity['speed'](Array(0.70710678, dtype=float64), unit='m / s')
+    Quantity(Array(0.70710678, dtype=float64), unit='m / s')
     >>> newpsp.p.norm()
-    Quantity['speed'](Array(1., dtype=float64), unit='m / s')
+    Quantity(Array(1., dtype=float64), unit='m / s')
 
     The time is not affected by the rotation.
     >>> newpsp.t
-    Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+    Quantity(Array(1, dtype=int64, ...), unit='Gyr')
     """
     # Shifting the coordinate and time
     q, t = self(psp.q, psp.t)
@@ -398,7 +398,7 @@ def call(
     >>> op(psp)
     PhaseSpaceCoordinate( q=CartesianPos3D( ... ),
                           p=CartesianVel3D( ... ),
-                          t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+                          t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
                           frame=SimulationFrame() )
     """
     return x

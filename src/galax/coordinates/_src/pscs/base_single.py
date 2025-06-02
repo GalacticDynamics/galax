@@ -43,12 +43,12 @@ class AbstractBasicPhaseSpaceCoordinate(AbstractPhaseSpaceCoordinate):
     >>> psp.uconvert("solarsystem")
     PhaseSpaceCoordinate(
         q=CartesianPos3D(
-            x=Quantity[...](value=...f64[], unit=Unit("AU")),
+            x=Quantity(value=...f64[], unit=Unit("AU")),
             ... ),
         p=CartesianVel3D(
-            x=Quantity[...]( value=...f64[], unit=Unit("AU / yr") ),
+            x=Quantity( value=...f64[], unit=Unit("AU / yr") ),
             ... ),
-        t=Quantity['time'](..., unit='yr'),
+        t=Quantity(..., unit='yr'),
         frame=SimulationFrame()
     )
 

@@ -54,10 +54,10 @@ class FlattenedInThePotential(AbstractTransformedPotential):
     Array(True, dtype=bool)
 
     >>> opot.potential(x2, t)
-    Quantity[...](Array(-0.40895474, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.40895474, dtype=float64), unit='kpc2 / Myr2')
 
     >>> xpot.potential(x2, t)
-    Quantity[...](Array(-0.42842878, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.42842878, dtype=float64), unit='kpc2 / Myr2')
 
     >>> opot.potential(x2 / 2.0, t) == xpot.potential(x2, t)
     Array(True, dtype=bool)

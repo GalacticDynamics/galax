@@ -14,7 +14,7 @@ from typing import final
 import equinox as eqx
 import jax
 from equinox import field
-from jax.scipy.special import sph_harm
+from jax.scipy.special import sph_harm_y
 from jaxtyping import Array, Float
 
 import quaxed.numpy as jnp
@@ -284,5 +284,5 @@ def compute_Ylm(
     *,
     l_max: int,
 ) -> tuple[Float[Array, "*batch"], Float[Array, "*batch"]]:
-    Ylm = sph_harm(jnp.atleast_1d(m), jnp.atleast_1d(l), phi, theta, n_max=l_max)
+    Ylm = sph_harm_y(jnp.atleast_1d(l), jnp.atleast_1d(m), theta, phi, n_max=l_max)
     return Ylm.real, Ylm.imag

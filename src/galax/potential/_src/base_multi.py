@@ -12,10 +12,13 @@ from typing_extensions import override
 
 import equinox as eqx
 import jax
+import wadler_lindig as wl
 from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
+from dataclassish import field_items
+from dataclassish.flags import FilterRepr
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
@@ -373,3 +376,37 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
         """
         key = eqx.error_if(key, key not in self._keys, f"key {key} not found")
         return cast(AbstractPotential, getattr(self, key))
+
+    # ===========================================
+    # Wadler-Lindig API
+
+    def __pdoc__(self, **kwargs: Any) -> wl.AbstractDoc:
+        """Return the Wadler-Lindig representation of this class.
+
+        This is used for the `__repr__` and `__str__` methods or when using the
+        `wadler_lindig` library.
+
+        Examples
+        --------
+        >>> import galax.potential as gp
+        >>> import wadler_lindig as wl
+
+        >>> pot = gp.MilkyWayPotential()
+        >>> wl.pprint(pot)
+        MilkyWayPotential(
+            disk=MiyamotoNagaiPotential(...),
+            halo=NFWPotential(...),
+            bulge=HernquistPotential(...),
+            nucleus=HernquistPotential(...),
+            units=...,
+            constants=ImmutableMap({'G': ...})
+        )
+
+        """
+        return wl.bracketed(
+            begin=wl.TextDoc(f"{self.__class__.__name__}("),
+            docs=wl.named_objs(list(field_items(FilterRepr, self)), **kwargs),
+            sep=wl.comma,
+            end=wl.TextDoc(")"),
+            indent=kwargs.get("indent", 4),
+        )

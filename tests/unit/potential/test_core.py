@@ -7,6 +7,7 @@ import pytest
 
 import quaxed.numpy as jnp
 import unxt as u
+from dataclassish import replace
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
@@ -37,7 +38,7 @@ class AbstractSinglePotential_Test(AbstractPotential_Test, FieldUnitSystemMixin)
 
         @jax.jit
         def init_potential_evaluate() -> None:
-            inner_pot = pot.__class__(**pot.parameters, units=pot.units)
+            inner_pot = replace(pot, **pot.parameters, units=pot.units)
             inner_pot.potential(x, t=0)
 
         init_potential_evaluate()

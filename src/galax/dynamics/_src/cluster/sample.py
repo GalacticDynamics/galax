@@ -67,7 +67,7 @@ class ReleaseTimeSampler(eqx.Module):  # type: ignore[misc]
     >>> n_stars = 5
     >>> release_times = sampler.sample(key, t0, t1, n_stars=n_stars, mass_params=params)
     >>> release_times.round(2)
-    Quantity(Array([0.44, 0.63, 0.68, 0.82, 1.17], dtype=float64), unit='Gyr')
+    Quantity(Array([0.41, 0.8 , 1.03, 1.11, 1.92], dtype=float64), unit='Gyr')
 
     """
 

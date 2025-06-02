@@ -46,7 +46,7 @@ def convert_potential(
     KeplerPotential(
       units=LTMAUnitSystem( ... ),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( value=Quantity(value=f64[], unit=Unit("solMass")) )
+      m_tot=ConstantParameter(value=Quantity(f64[], unit='solMass'))
     )
 
     """  # noqa: E501
@@ -289,8 +289,8 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         BurkertPotential(
         units=LTMAUnitSystem( length=Unit("kpc"), ...),
         constants=ImmutableMap({'G': ...}),
-        m=ConstantParameter( ... ),
-        r_s=ConstantParameter( ... )
+        m=ConstantParameter(...),
+        r_s=ConstantParameter(...)
         )
 
         .. skip: end
@@ -355,7 +355,7 @@ def gala_to_galax(
     HarmonicOscillatorPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      omega=ConstantParameter( ... )
+      omega=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -411,8 +411,8 @@ def gala_to_galax(
     HernquistPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
     """  # noqa: E501
     params = gala.parameters
@@ -466,8 +466,8 @@ def gala_to_galax(
     IsochronePotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
 
     """  # noqa: E501
     params = dict(gala.parameters)
@@ -527,8 +527,8 @@ def gala_to_galax(
     JaffePotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
     """
     params = gala.parameters
@@ -582,7 +582,8 @@ def gala_to_galax(
     KeplerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( value=Quantity(value=f64[], unit=Unit("solMass")) ) )
+      m_tot=ConstantParameter(value=Quantity(f64[], unit='solMass'))
+    )
     """  # noqa: E501
     params = dict(gala.parameters)
     params["m_tot"] = params.pop("m")
@@ -700,11 +701,11 @@ def gala_to_galax(
     LongMuraliBarPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': Quantity...}),
-      m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... ),
-      b=ConstantParameter( ... ),
-      c=ConstantParameter( ... ),
-      alpha=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      a=ConstantParameter(...),
+      b=ConstantParameter(...),
+      c=ConstantParameter(...),
+      alpha=ConstantParameter(...)
     )
     """
     params = gala.parameters
@@ -770,9 +771,9 @@ def gala_to_galax(
     MiyamotoNagaiPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... ),
-      b=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      a=ConstantParameter(...),
+      b=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -830,9 +831,9 @@ def gala_to_galax(
     MN3Sech2Potential(
       units=LTMAUnitSystem( ... ),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      h_R=ConstantParameter( ... ),
-      h_z=ConstantParameter( ... ),
+      m_tot=ConstantParameter(...),
+      h_R=ConstantParameter(...),
+      h_z=ConstantParameter(...),
       positive_density=True
     )
 
@@ -944,8 +945,8 @@ def gala_to_galax(
     PlummerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -1011,9 +1012,9 @@ def gala_to_galax(
     PowerLawCutoffPotential(
         units=LTMAUnitSystem( length=Unit("kpc"), ...),
         constants=ImmutableMap({'G': ...}),
-        m_tot=ConstantParameter( ... ),
-        alpha=ConstantParameter( ... ),
-        r_c=ConstantParameter( ... )
+        m_tot=ConstantParameter(...),
+        alpha=ConstantParameter(...),
+        r_c=ConstantParameter(...)
     )
 
     .. skip: end
@@ -1082,9 +1083,9 @@ def gala_to_galax(
     SatohPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... ),
-      b=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      a=ConstantParameter(...),
+      b=ConstantParameter(...)
     )
     """
     params = gala.parameters
@@ -1139,9 +1140,9 @@ def gala_to_galax(
     StoneOstriker15Potential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_c=ConstantParameter( ... ),
-      r_h=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_c=ConstantParameter(...),
+      r_h=ConstantParameter(...)
     )
     """  # noqa: E501
     params = gala.parameters
@@ -1202,8 +1203,8 @@ def gala_to_galax(
     LogarithmicPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      v_c=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      v_c=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
     """
     params = gala.parameters
@@ -1370,8 +1371,8 @@ def gala_to_galax(
     NFWPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """
@@ -1398,11 +1399,11 @@ def gala_to_galax(
     LeeSutoTriaxialNFWPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... ),
-      a1=ConstantParameter( ... ),
-      a2=ConstantParameter( ... ),
-      a3=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...),
+      a1=ConstantParameter(...),
+      a2=ConstantParameter(...),
+      a3=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -1442,8 +1443,8 @@ def gala_to_galax(
     NFWPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( value=Quantity(value=f64[], unit=Unit("solMass")) ),
-      r_s=ConstantParameter( value=Quantity(value=f64[], unit=Unit("kpc")) )
+      m=ConstantParameter(value=Quantity(f64[], unit='solMass')),
+      r_s=ConstantParameter(value=Quantity(f64[], unit='kpc'))
     )
 
     """
@@ -1495,11 +1496,11 @@ def gala_to_galax(
     LeeSutoTriaxialNFWPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... ),
-      a1=ConstantParameter( ... ),
-      a2=ConstantParameter( ... ),
-      a3=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...),
+      a1=ConstantParameter(...),
+      a2=ConstantParameter(...),
+      a3=ConstantParameter(...)
     )
 
     """  # noqa: E501

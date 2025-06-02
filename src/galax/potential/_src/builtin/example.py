@@ -45,9 +45,8 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     HarmonicOscillatorPotential(
       units=LTMAUnitSystem( ... ),
       constants=ImmutableMap({'G': ...}),
-      omega=ConstantParameter(
-        value=Quantity( value=...i64[], unit=Unit("1 / Myr") )
-      ) )
+      omega=ConstantParameter(value=Quantity(weak_i64[], unit='1 / Myr'))
+    )
 
     >>> q = u.Quantity([1.0, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")
@@ -125,8 +124,8 @@ class HenonHeilesPotential(AbstractSinglePotential):
     HenonHeilesPotential(
       units=LTMAUnitSystem( ... ),
       constants=ImmutableMap({'G': ...}),
-      coeff=ConstantParameter( ... ),
-      timescale=ConstantParameter( ... )
+      coeff=ConstantParameter(...),
+      timescale=ConstantParameter(...)
     )
 
     >>> q = u.Quantity([1.0, 0, 0], "kpc")

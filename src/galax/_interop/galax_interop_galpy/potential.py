@@ -231,8 +231,8 @@ def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gp.BurkertPotential:
     BurkertPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     >>> pot.m(0)
@@ -295,8 +295,8 @@ def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gp.HernquistPotential:
     HernquistPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -351,8 +351,8 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gp.IsochronePotential:
     IsochronePotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     >>> pot.m_tot(0)
@@ -407,8 +407,8 @@ def galpy_to_galax(pot: gpy.JaffePotential, /) -> gp.JaffePotential:
     JaffePotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """
@@ -510,8 +510,8 @@ def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gp.KuzminPotential:
     KuzminPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -563,11 +563,11 @@ def galpy_to_galax(pot: gpy.SoftenedNeedleBarPotential, /) -> gp.LongMuraliBarPo
     LongMuraliBarPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... ),
-      b=ConstantParameter( ... ),
-      c=ConstantParameter( ... ),
-      alpha=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      a=ConstantParameter(...),
+      b=ConstantParameter(...),
+      c=ConstantParameter(...),
+      alpha=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -626,9 +626,9 @@ def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotent
     MiyamotoNagaiPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... ),
-      b=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      a=ConstantParameter(...),
+      b=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -681,7 +681,6 @@ def galpy_to_galax(_: gpy.NullPotential, /) -> gp.NullPotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     NullPotential(
-      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...})
     )
 
@@ -725,8 +724,8 @@ def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gp.PlummerPotential:
     PlummerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -782,9 +781,9 @@ def galpy_to_galax(
     PowerLawCutoffPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      alpha=ConstantParameter( ... ),
-      r_c=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      alpha=ConstantParameter(...),
+      r_c=ConstantParameter(...)
     )
 
     >>> pot.m_tot(0)
@@ -853,8 +852,8 @@ def galpy_to_galax(pot: gpy.NFWPotential, /) -> gp.NFWPotential:
     NFWPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """  # noqa: E501

@@ -545,7 +545,7 @@ def from_(
     >>> pot = gp.NFWPotential.from_({"m": 1e12, "r_s": 3, "units": "galactic"})
     >>> pot
     NFWPotential( units=..., constants=ImmutableMap({'G': ...}),
-                  m=ConstantParameter( ... ), r_s=ConstantParameter( ... ) )
+                  m=ConstantParameter(...), r_s=ConstantParameter(...) )
 
     """
     return cls(**obj)

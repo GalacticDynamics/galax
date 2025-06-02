@@ -59,8 +59,8 @@ class CompositePotential(
     >>> pot["disk"]
     KuzminPotential(
       units=..., constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """

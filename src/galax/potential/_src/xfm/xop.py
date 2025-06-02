@@ -68,9 +68,7 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> xpot1
     TransformedPotential(
       base_potential=TriaxialHernquistPotential( ... ),
-      xop=GalileanSpatialTranslation(
-        translation=CartesianPos3D( ... )
-      )
+      xop=GalileanSpatialTranslation(CartesianPos3D( ... ))
     )
 
     Now the potential energy is different because the potential has been

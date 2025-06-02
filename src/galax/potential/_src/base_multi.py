@@ -368,9 +368,9 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
         MiyamotoNagaiPotential(
             units=...,
             constants=ImmutableMap({'G': ...}),
-            m_tot=ConstantParameter( ... ),
-            a=ConstantParameter( ... ),
-            b=ConstantParameter( ... )
+            m_tot=ConstantParameter(...),
+            a=ConstantParameter(...),
+            b=ConstantParameter(...)
         )
 
         """

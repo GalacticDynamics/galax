@@ -137,8 +137,8 @@ class BurkertPotential(AbstractSinglePotential):
         BurkertPotential(
             units=LTMAUnitSystem( length=Unit("kpc"), ...),
             constants=ImmutableMap({'G': ...}),
-            m=ConstantParameter( ... ),
-            r_s=ConstantParameter( ... )
+            m=ConstantParameter(...),
+            r_s=ConstantParameter(...)
         )
 
         """

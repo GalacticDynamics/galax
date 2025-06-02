@@ -205,10 +205,9 @@ def from_(cls: type[AbstractSolver], solver: dfxtra.DiffEqSolver) -> AbstractSol
     >>> new_solver = gd.OrbitSolver.from_(solver)
     >>> new_solver
     OrbitSolver(
-      solver=Dopri5(scan_kind=None),
+      solver=Dopri5(),
       stepsize_controller=ConstantStepSize(),
-      adjoint=RecursiveCheckpointAdjoint(checkpoints=None),
-      event=None,
+      adjoint=RecursiveCheckpointAdjoint(),
       max_steps=4096
     )
 

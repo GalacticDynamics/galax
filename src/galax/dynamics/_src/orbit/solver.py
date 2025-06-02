@@ -101,9 +101,10 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> solver = gd.OrbitSolver.from_(diffeqsolver)
     >>> solver
     OrbitSolver(
-        solver=Dopri8(scan_kind=None),
-        stepsize_controller=PIDController( rtol=1e-05, atol=1e-05, ... ),
-        ...
+        solver=Dopri8(),
+        stepsize_controller=PIDController(rtol=1e-05, atol=1e-05),
+        adjoint=RecursiveCheckpointAdjoint(),
+        max_steps=4096
     )
 
     2. A `dict` of keyword arguments:
@@ -111,10 +112,7 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> solver = gd.OrbitSolver.from_({
     ...     "solver": dfx.Dopri8(), "stepsize_controller": dfx.ConstantStepSize()})
     >>> solver
-    OrbitSolver(
-        solver=Dopri8(scan_kind=None), stepsize_controller=ConstantStepSize(),
-        ...
-    )
+    OrbitSolver(solver=Dopri8(), stepsize_controller=ConstantStepSize())
 
     """
 

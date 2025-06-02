@@ -30,7 +30,7 @@ default_solver = dfxtra.DiffEqSolver(
         rtol=1e-7, atol=1e-7, dtmin=0.3, dtmax=None, force_dtmin=True, jump_ts=None
     ),
     max_steps=10_000,
-    # adjoint=ForwardMode(),  # noqa: ERA001
+    adjoint=dfx.ForwardMode(),
 )
 
 

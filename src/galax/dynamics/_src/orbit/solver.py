@@ -130,7 +130,7 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     #: How to differentiate in `diffeqsolve`.
     #: See `diffrax` for options.
-    adjoint: dfx.AbstractAdjoint = dfx.RecursiveCheckpointAdjoint(checkpoints=None)
+    adjoint: dfx.AbstractAdjoint = dfx.ForwardMode()
 
     #: Event. Can override the `event` argument when calling `DiffEqSolver`
     event: dfx.Event | None = None

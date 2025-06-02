@@ -91,7 +91,7 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: tuple[Any, ...], /) -> 
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0., 0.], "kpc"),
     ...     p=u.Quantity([0., 230, 0.], "km/s"),
@@ -129,7 +129,7 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: slice, /) -> Any:
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0., 0.], "kpc"),
     ...     p=u.Quantity([0., 230, 0.], "km/s"),
@@ -139,8 +139,8 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: slice, /) -> Any:
 
     >>> orbit[0:2]
     Orbit(
-        q=CartesianPos3D( x=Quantity([8. , 7.82101993], unit='kpc'), ... ),
-        p=CartesianVel3D( x=Quantity([0. , 0.16015294], unit='kpc / Myr'), ... ),
+        q=CartesianPos3D( x=Quantity([ 8. , -7.7020901], unit='kpc'), ... ),
+        p=CartesianVel3D( x=Quantity([ 0. , -0.02609503], unit='kpc / Myr'), ... ),
         t=Quantity([  0., 100.], unit='Myr'),
         frame=SimulationFrame(),
         interpolant=None
@@ -213,7 +213,7 @@ def getitem(self: AbstractOrbit, index: int) -> gc.PhaseSpaceCoordinate:
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0., 0.], "kpc"),
     ...     p=u.Quantity([0., 230, 0.], "km/s"),

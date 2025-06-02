@@ -43,7 +43,7 @@ def evaluate_orbit(
 
     We can then create the point-mass' potential, with galactic units:
 
-    >>> potential = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> potential = gp.KeplerPotential(m_tot=1e11, units="galactic")
 
     We can then integrate an initial phase-space position in this potential to
     get an orbit:

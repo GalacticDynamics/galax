@@ -101,7 +101,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     The ``__call__`` is very flexible and can be called with many different
     combinations of arguments. Let's work up the type ladder:
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     `galax.dynamics.fields.HamiltonianField` can be called using many
@@ -115,22 +115,22 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     >>> v = jnp.array([0, 0.22499668, 0])  # [kpc/Myr] (~220 km/s)
 
     >>> field(t, x, v, None)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> field(t, (x, v))
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> xv = jnp.concat([x, v])
     >>> field(t, xv)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> txv = jnp.concat([jnp.array([t]), x, v])
     >>> field(txv)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     - `unxt.Quantity` (assumed to be in Cartesian coordinates).
 
@@ -139,12 +139,12 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     >>> p = u.Quantity([0, 220, 0], "km/s")
 
     >>> field(t, (q, p))
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> field(t, q, p)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     - `coordinax.vecs.AbstractVector`:
 
@@ -152,77 +152,77 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     >>> p = cx.CartesianVel3D.from_(p)
 
     >>> field(t, q, p)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> field(t, (q, p))
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     - `coordinax.vecs.FourVector`:
 
     >>> tq = cx.vecs.FourVector(q=q, t=t)
 
     >>> field(tq, p)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> field(tq, p)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     - `coordinax.vecs.Space`:
 
     >>> space = cx.Space(length=tq, speed=p)
     >>> field(space)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> space = cx.Space(length=q, speed=p)
     >>> field(t, space)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     - `coordinax.frames.AbstractCoordinate`:
 
     >>> coord = cx.Coordinate(space, frame=gc.frames.SimulationFrame())
     >>> field(t, coord)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
     ...                       frame=gc.frames.SimulationFrame())
     >>> field(coord)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> field(t, coord)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
     ...                       frame=gc.frames.SimulationFrame())
     >>> field(coord)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     - `galax.coordinates.PhaseSpacePosition`:
 
     >>> w = gc.PhaseSpacePosition(q=q, p=p)
     >>> field(t, w)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     - `galax.coordinates.PhaseSpaceCoordinate`:
 
     >>> wt = gc.PhaseSpaceCoordinate(t=t, q=q, p=p)
     >>> field(wt)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     >>> field(t, wt)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-        Array([-0.0702891, -0.       , -0.       ], dtype=float64))
+    (Array([0.         , 0.22499668, 0.        ], dtype=float64),
+     Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
     """
 
@@ -268,7 +268,7 @@ def terms(
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> solver = dfx.SemiImplicitEuler()
@@ -291,9 +291,9 @@ def terms(
     >>> print(w)
     PhaseSpaceCoordinate(
         q=<CartesianPos3D: (x, y, z) [kpc]
-            [ 7.645 -0.701  0.   ]>,
+            [7.091 3.504 0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
-            [0.228 0.215 0.   ]>,
+            [-0.111  0.199  0. ]>,
         t=Quantity['time'](200., unit='Myr'),
         frame=SimulationFrame())
 

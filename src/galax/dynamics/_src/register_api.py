@@ -39,17 +39,17 @@ def specific_angular_momentum(
 @ft.partial(jax.jit, inline=True)
 def specific_angular_momentum(
     x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /
-) -> cx.vecs.CartesianGeneric3D:
+) -> cx.vecs.Cartesian3D:
     """Compute from `coordinax.vecs.AbstractVector`s."""
     v = convert(cx.vconvert(cx.CartesianVel3D, v, x), BareQuantity)
     x = convert(cx.vconvert(cx.CartesianPos3D, x), BareQuantity)
     h = api.specific_angular_momentum(x, v)
-    return cx.vecs.CartesianGeneric3D(x=h[..., 0], y=h[..., 1], z=h[..., 2])
+    return cx.vecs.Cartesian3D(x=h[..., 0], y=h[..., 1], z=h[..., 2])
 
 
 @dispatch
 @ft.partial(jax.jit)
-def specific_angular_momentum(w: cx.Space, /) -> cx.vecs.CartesianGeneric3D:
+def specific_angular_momentum(w: cx.Space, /) -> cx.vecs.Cartesian3D:
     """Compute from `coordinax.Space`."""
     return api.specific_angular_momentum(w["length"], w["speed"])
 
@@ -58,16 +58,14 @@ def specific_angular_momentum(w: cx.Space, /) -> cx.vecs.CartesianGeneric3D:
 @ft.partial(jax.jit)
 def specific_angular_momentum(
     w: cx.frames.AbstractCoordinate, /
-) -> cx.vecs.CartesianGeneric3D:
+) -> cx.vecs.Cartesian3D:
     """Compute from `coordinax.frames.AbstractCoordinate`."""
     return api.specific_angular_momentum(w.data)
 
 
 @dispatch
 @ft.partial(jax.jit, inline=True)
-def specific_angular_momentum(
-    w: gc.AbstractPhaseSpaceObject, /
-) -> cx.vecs.CartesianGeneric3D:
+def specific_angular_momentum(w: gc.AbstractPhaseSpaceObject, /) -> cx.vecs.Cartesian3D:
     """Compute from `galax.coordinates.AbstractPhaseSpaceObject`."""
     return api.specific_angular_momentum(w.q, w.p)
 

@@ -142,8 +142,8 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> op5
     GalileanOperator(
       rotation=GalileanRotation(rotation=f64[3,3]),
-      translation=GalileanTranslation( ... ),
-      velocity=GalileanBoost( ... )
+      translation=GalileanTranslation(...),
+      velocity=GalileanBoost(...)
     )
 
     >>> xpot5 = gp.TransformedPotential(base_potential=pot, xop=op5)

@@ -57,7 +57,7 @@ print(orbit)
 orbit_sph = orbit.vconvert(cx.vecs.LonLatSphericalPos)
 print(orbit_sph)
 # Orbit(
-#     q=<LonLatSphericalPos (lon[rad], lat[deg], distance[kpc])
+#     q=<LonLatSphericalPos: (lon[rad], lat[deg], distance[kpc])
 #         [[0.000e+00 3.858e-16 8.000e+00]
 #          ...
 #          [6.270e+00 3.858e-16 7.805e+00]]>,

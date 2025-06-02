@@ -150,6 +150,45 @@ class StreamSimulator:
         given the progenitor's orbit, the release times, and the progenitor's
         mass.
 
+        Parameters
+        ----------
+        pot
+            The potential in which the progenitor is orbiting.
+        prog_w0
+            The initial conditions of the progenitor's orbit, as a tuple of
+            position and velocity: `(x, v)`, where `x` and `v` are arrays of
+            shape `(3,)` representing the position and velocity in the
+            potential's units.
+        prog_t0
+            The time at which the progenitor's orbit is initialized, in the
+            potential's time units.
+
+        release_times
+            The times at which the stream particles are released, in the
+            potential's time units. This should be an array of shape `(N,)`
+            where `N` is the number of stream particles.
+        Msat
+            The mass of the progenitor at the release times. This can be a
+            scalar or an array of shape `(N,)` where `N` is the number of
+            stream particles. If a scalar, it is assumed to be constant for
+            all stream particles. If an array, it should match the shape of
+            `release_times`.
+        kinematic_df
+            The kinematic distribution function to use for sampling the
+            stream particles' initial conditions. If `None`, a default
+            distribution function is used (Fardal2015DF).
+
+        key
+            A JAX random key for reproducibility. This is used to sample the
+            initial conditions of the stream particles from the kinematic
+            distribution function.
+        solver
+            The differential equation solver to use for integrating the
+            progenitor's orbit. Defaults to the default solver.
+        solver_kwargs
+            Additional keyword arguments to pass to the differential equation
+            solver. This can include parameters like `rtol`, `atol`, etc.
+
         """
         # Sort the stripping times in ascending order.
         release_times = jnp.sort(release_times)

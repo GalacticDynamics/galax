@@ -70,7 +70,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
+        t=Quantity(0, unit='Gyr'),
         frame=SimulationFrame()
     )
 

@@ -137,11 +137,11 @@ phase-space positions at times::
     >>> orbit
     Orbit(
         q=CartesianPos3D(
-          x=Quantity(value=f64[2000], unit=Unit("kpc")),
+          x=Quantity([...], unit='kpc'),
           ...
         ),
         p=CartesianVel3D(...),
-        t=Quantity(Array([...], dtype=float64), unit='Myr'),
+        t=Quantity([...], unit='Myr'),
         frame=SimulationFrame(),
         interpolant=None
     )

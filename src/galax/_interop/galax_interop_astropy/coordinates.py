@@ -91,7 +91,7 @@ def from_(
     PhaseSpaceCoordinate(
         q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
         p=LonCosLatSphericalVel( lon_coslat=..., lat=..., distance=... ),
-        t=Quantity(Array(0., dtype=float64), unit='Myr'),
+        t=Quantity(0., unit='Myr'),
         frame=SimulationFrame()
     )
 
@@ -187,7 +187,7 @@ def from_(
     PhaseSpaceCoordinate(
         q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
         p=LonCosLatSphericalVel( lon_coslat=..., lat=..., distance=... ),
-        t=Quantity(Array(0., dtype=float64), unit='Myr'),
+        t=Quantity(0., unit='Myr'),
         frame=SimulationFrame()
     )
 

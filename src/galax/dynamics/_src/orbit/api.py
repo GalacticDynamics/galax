@@ -42,7 +42,7 @@ def compute_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )
@@ -58,7 +58,7 @@ def compute_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )
@@ -69,7 +69,7 @@ def compute_orbit(
     >>> orbit
     Orbit(
         q=CartesianPos3D(...), p=CartesianVel3D(...),
-        t=Quantity(Array(500., dtype=float64), unit='Myr'),
+        t=Quantity(500., unit='Myr'),
         frame=SimulationFrame(),
         interpolant=None
     )
@@ -82,12 +82,9 @@ def compute_orbit(
     >>> orbit = gd.compute_orbit(potential, w0, ts)
     >>> orbit
     Orbit(
-      q=CartesianPos3D(
-        x=Quantity(value=f64[2,10], unit=Unit("kpc")),
-        ...
-      ),
+      q=CartesianPos3D( x=Quantity([...], unit='kpc'), ... ),
       p=CartesianVel3D(...),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )
@@ -120,7 +117,7 @@ def compute_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )

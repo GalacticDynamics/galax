@@ -337,7 +337,7 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
     `astropy.units.Quantity`, which is interpreted as a Cartesian position:
 
     >>> q = [1., 2, 3] * apyu.kpc
-    >>> print(pot.gradient(q, t))
+    >>> pot.gradient(q, t)
     Quantity(Array([0.08587681, 0.17175361, 0.25763042], dtype=float64), unit='kpc / Myr2')
 
     Again, this can be batched.  If the input position object has no units (i.e.
@@ -384,7 +384,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
     ...                             t=u.Quantity([0, 1], "Gyr"))
     >>> pot.laplacian(w)
-    Quantity(Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
+    Quantity(Array([2.77555756e-17, 8.67361738e-19], dtype=float64), unit='1 / Myr2')
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
@@ -407,7 +407,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     >>> q = cx.CartesianPos3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
     >>> pot.laplacian(q, t=t)
-    Quantity(Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
+    Quantity(Array([2.77555756e-17, 8.67361738e-19], dtype=float64), unit='1 / Myr2')
 
     Instead of passing a `~coordinax.AbstractPos3D` (in this case a
     `~coordinax.CartesianPos3D`), we can instead pass a
@@ -424,7 +424,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> t = 0
     >>> pot.laplacian(q, t)
-    Array([2.77555756e-17, 0.00000000e+00], dtype=float64)
+    Array([2.77555756e-17, 8.67361738e-19], dtype=float64)
 
     - - -
 
@@ -455,7 +455,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     >>> q = apyc.CartesianRepresentation(apyu.Quantity([[1, 4], [2, 5], [3, 6]], "kpc"))
     >>> pot.laplacian(q, t)
-    Quantity(Array([2.77555756e-17, 0.00000000e+00], dtype=float64), unit='1 / Myr2')
+    Quantity(Array([2.77555756e-17, 8.67361738e-19], dtype=float64), unit='1 / Myr2')
 
     Instead of passing a `~coordinax.AbstractPos3D` (in this case a
     `~coordinax.CartesianPos3D`), we can instead pass a
@@ -472,7 +472,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     >>> import numpy as np
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> pot.laplacian(q, t)
-    Array([2.77555756e-17, 0.00000000e+00], dtype=float64)
+    Array([2.77555756e-17, 8.67361738e-19], dtype=float64)
 
     .. skip: end
 

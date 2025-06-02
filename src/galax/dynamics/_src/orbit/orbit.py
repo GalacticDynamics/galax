@@ -44,7 +44,7 @@ class Orbit(AbstractOrbit):
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )
@@ -54,7 +54,7 @@ class Orbit(AbstractOrbit):
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=PhaseSpaceInterpolation( ... )
     )
@@ -63,7 +63,7 @@ class Orbit(AbstractOrbit):
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity(Array(500., dtype=float64, ...), unit='Myr'),
+      t=Quantity(500., unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )

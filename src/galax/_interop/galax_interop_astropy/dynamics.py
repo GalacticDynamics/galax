@@ -57,7 +57,7 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )
@@ -67,7 +67,7 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )
@@ -81,11 +81,11 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(
-        x=Quantity(value=f64[2,10], unit=Unit("kpc")),
+        x=Quantity([...], unit='kpc'),
         ...
       ),
       p=CartesianVel3D(...),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )

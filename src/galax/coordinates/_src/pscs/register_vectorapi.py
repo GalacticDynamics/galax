@@ -65,7 +65,7 @@ def vconvert(
     >>> psp.vconvert(cx.vecs.CylindricalPos)
     PhaseSpaceCoordinate( q=CylindricalPos(...),
                           p=CylindricalVel(...),
-                          t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
+                          t=Quantity(0, unit='Gyr'),
                           frame=SimulationFrame() )
 
     We can also convert it to a different representation with a different
@@ -74,7 +74,7 @@ def vconvert(
     >>> psp.vconvert(cx.vecs.LonLatSphericalPos, cx.vecs.LonCosLatSphericalVel)
     PhaseSpaceCoordinate( q=LonLatSphericalPos(...),
                           p=LonCosLatSphericalVel(...),
-                          t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
+                          t=Quantity(0, unit='Gyr'),
                           frame=SimulationFrame() )
     """
     return cast(
@@ -123,7 +123,7 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
+        t=Quantity(0, unit='Gyr'),
         frame=SimulationFrame()
     )
 
@@ -132,7 +132,7 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
+        t=Quantity(0, unit='Gyr'),
         frame=SimulationFrame()
     )
 
@@ -398,7 +398,7 @@ def call(
     >>> op(psp)
     PhaseSpaceCoordinate( q=CartesianPos3D( ... ),
                           p=CartesianVel3D( ... ),
-                          t=Quantity(Array(0, dtype=int64, ...), unit='Gyr'),
+                          t=Quantity(0, unit='Gyr'),
                           frame=SimulationFrame() )
     """
     return x

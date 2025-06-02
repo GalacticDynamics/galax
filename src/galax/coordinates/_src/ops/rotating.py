@@ -164,9 +164,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
         >>> op = gc.ops.ConstantRotationZOperator.from_(360, "deg / Gyr")
         >>> op.inverse
-        ConstantRotationZOperator(
-            Omega_z=Quantity( value=...i64[], unit=Unit("deg / Gyr") )
-        )
+        ConstantRotationZOperator(Omega_z=Quantity(weak_i64[], unit='deg / Gyr'))
 
         """
         return ConstantRotationZOperator(Omega_z=-self.Omega_z)

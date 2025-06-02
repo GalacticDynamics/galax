@@ -281,7 +281,7 @@ def uconvert(
     >>> cwt.uconvert(u.unitsystems.solarsystem)
     CompositePhaseSpaceCoordinate({'wt1': PhaseSpaceCoordinate(
         q=CartesianPos3D(
-            x=Quantity(value=...f64[], unit=Unit("AU")),
+            x=Quantity(2.06264806e+08, unit='AU'),
             ...
 
     """
@@ -324,13 +324,13 @@ def vconvert(
     CompositePhaseSpaceCoordinate({'wt1': PhaseSpaceCoordinate(
             q=CylindricalPos( ... ),
             p=SphericalVel( ... ),
-            t=Quantity(Array(7, dtype=int64, ...), unit='s'),
+            t=Quantity(7, unit='s'),
             frame=SimulationFrame()
         ),
         'wt2': PhaseSpaceCoordinate(
             q=CylindricalPos( ... ),
             p=SphericalVel( ... ),
-            t=Quantity(Array(6, dtype=int64, ...), unit='s'),
+            t=Quantity(6, unit='s'),
             frame=SimulationFrame()
     )})
 

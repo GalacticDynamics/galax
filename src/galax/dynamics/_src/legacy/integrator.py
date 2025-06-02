@@ -105,7 +105,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity(Array(..., dtype=float64), unit='Myr'),
+        t=Quantity([...], unit='Myr'),
         frame=SimulationFrame()
     )
     >>> ws.shape
@@ -149,10 +149,10 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> w(t)
     PhaseSpaceCoordinate(
       q=CartesianPos3D(
-        x=Quantity(value=f64[2,100], unit=Unit("kpc")),
+        x=Quantity([...], unit='kpc'),
         ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity(Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame()
     )
 
@@ -165,12 +165,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     (2,)
     >>> ws(t)
     PhaseSpaceCoordinate(
-        q=CartesianPos3D(
-            x=Quantity(value=f64[2,100], unit=Unit("kpc")),
-            ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity(Array(..., dtype=float64), unit='Myr'),
-        frame=SimulationFrame()
+      q=CartesianPos3D( x=Quantity([...], unit='kpc'), ... ),
+      p=CartesianVel3D( ... ),
+      t=Quantity([ 0. , ... , 1000. ],
+        unit='Myr'),
+      frame=SimulationFrame()
     )
 
     """
@@ -346,7 +345,7 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity(1000., unit='Myr'),
         frame=SimulationFrame()
     )
     >>> w.shape
@@ -360,7 +359,7 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity(Array(..., dtype=float64), unit='Myr'),
+        t=Quantity([...], unit='Myr'),
         frame=SimulationFrame()
     )
     >>> ws.shape
@@ -595,7 +594,7 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity(Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity(1000., unit='Myr'),
         frame=SimulationFrame()
     )
 

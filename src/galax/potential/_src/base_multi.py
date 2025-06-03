@@ -12,10 +12,13 @@ from typing_extensions import override
 
 import equinox as eqx
 import jax
+import wadler_lindig as wl
 from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
+from dataclassish import field_items
+from dataclassish.flags import FilterRepr
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
@@ -183,7 +186,7 @@ def replace(
 
     >>> new_pot = replace(pot, disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e12, "Msun"), a=6.5, b=0.26, units="galactic"))
     >>> new_pot["disk"].m_tot.value
-    Quantity['mass'](Array(1.e+12, dtype=float64,...), unit='solMass')
+    Quantity(Array(1.e+12, dtype=float64,...), unit='solMass')
 
     """  # noqa: E501
     # TODO: directly call the Mapping implementation
@@ -212,7 +215,7 @@ def replace(
 
     >>> new_pot = replace(pot, {"disk": {"m_tot": u.Quantity(1e12, "Msun")}})
     >>> new_pot["disk"].m_tot.value
-    Quantity['mass'](Array(1.e+12, dtype=float64,...), unit='solMass')
+    Quantity(Array(1.e+12, dtype=float64,...), unit='solMass')
 
     """
     # AbstractCompositePhaseSpaceCoordinate is both a Mapping and a dataclass
@@ -365,11 +368,45 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
         MiyamotoNagaiPotential(
             units=...,
             constants=ImmutableMap({'G': ...}),
-            m_tot=ConstantParameter( ... ),
-            a=ConstantParameter( ... ),
-            b=ConstantParameter( ... )
+            m_tot=ConstantParameter(...),
+            a=ConstantParameter(...),
+            b=ConstantParameter(...)
         )
 
         """
         key = eqx.error_if(key, key not in self._keys, f"key {key} not found")
         return cast(AbstractPotential, getattr(self, key))
+
+    # ===========================================
+    # Wadler-Lindig API
+
+    def __pdoc__(self, **kwargs: Any) -> wl.AbstractDoc:
+        """Return the Wadler-Lindig representation of this class.
+
+        This is used for the `__repr__` and `__str__` methods or when using the
+        `wadler_lindig` library.
+
+        Examples
+        --------
+        >>> import galax.potential as gp
+        >>> import wadler_lindig as wl
+
+        >>> pot = gp.MilkyWayPotential()
+        >>> wl.pprint(pot)
+        MilkyWayPotential(
+            disk=MiyamotoNagaiPotential(...),
+            halo=NFWPotential(...),
+            bulge=HernquistPotential(...),
+            nucleus=HernquistPotential(...),
+            units=...,
+            constants=ImmutableMap({'G': ...})
+        )
+
+        """
+        return wl.bracketed(
+            begin=wl.TextDoc(f"{self.__class__.__name__}("),
+            docs=wl.named_objs(list(field_items(FilterRepr, self)), **kwargs),
+            sep=wl.comma,
+            end=wl.TextDoc(")"),
+            indent=kwargs.get("indent", 4),
+        )

@@ -45,7 +45,7 @@ def convert_potential(
       m_tot=...
     )
     >>> pot.m_tot(0)
-    Quantity['mass'](Array(1.e+11, dtype=float64), unit='solMass')
+    Quantity(Array(1.e+11, dtype=float64), unit='solMass')
 
     """  # noqa: E501
     return galpy_to_galax(from_)
@@ -231,15 +231,15 @@ def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gp.BurkertPotential:
     BurkertPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     >>> pot.m(0)
-    Quantity['mass'](Array(8.18153508e+10, dtype=float64), unit='solMass')
+    Quantity(Array(8.18153508e+10, dtype=float64), unit='solMass')
 
     >>> pot.r_s(0)
-    Quantity['length'](Array(8., dtype=float64,...), unit='kpc')
+    Quantity(Array(8., dtype=float64,...), unit='kpc')
 
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?
@@ -295,8 +295,8 @@ def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gp.HernquistPotential:
     HernquistPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -351,12 +351,12 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gp.IsochronePotential:
     IsochronePotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     >>> pot.m_tot(0)
-    Quantity['mass'](Array(1.e+11, dtype=float64), unit='solMass')
+    Quantity(Array(1.e+11, dtype=float64), unit='solMass')
 
     """  # noqa: E501
     return gp.IsochronePotential(
@@ -407,8 +407,8 @@ def galpy_to_galax(pot: gpy.JaffePotential, /) -> gp.JaffePotential:
     JaffePotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """
@@ -463,7 +463,7 @@ def galpy_to_galax(pot: gpy.KeplerPotential, /) -> gp.KeplerPotential:
       m_tot=...
     )
     >>> pot.m_tot(0)
-    Quantity['mass'](Array(1.e+11, dtype=float64, ...), unit='solMass')
+    Quantity(Array(1.e+11, dtype=float64, ...), unit='solMass')
 
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?
@@ -510,8 +510,8 @@ def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gp.KuzminPotential:
     KuzminPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -563,11 +563,11 @@ def galpy_to_galax(pot: gpy.SoftenedNeedleBarPotential, /) -> gp.LongMuraliBarPo
     LongMuraliBarPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... ),
-      b=ConstantParameter( ... ),
-      c=ConstantParameter( ... ),
-      alpha=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      a=ConstantParameter(...),
+      b=ConstantParameter(...),
+      c=ConstantParameter(...),
+      alpha=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -626,9 +626,9 @@ def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotent
     MiyamotoNagaiPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      a=ConstantParameter( ... ),
-      b=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      a=ConstantParameter(...),
+      b=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -681,7 +681,6 @@ def galpy_to_galax(_: gpy.NullPotential, /) -> gp.NullPotential:
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     NullPotential(
-      units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...})
     )
 
@@ -725,8 +724,8 @@ def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gp.PlummerPotential:
     PlummerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """  # noqa: E501
@@ -782,13 +781,13 @@ def galpy_to_galax(
     PowerLawCutoffPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m_tot=ConstantParameter( ... ),
-      alpha=ConstantParameter( ... ),
-      r_c=ConstantParameter( ... )
+      m_tot=ConstantParameter(...),
+      alpha=ConstantParameter(...),
+      r_c=ConstantParameter(...)
     )
 
     >>> pot.m_tot(0)
-    Quantity['mass'](Array(5.12e+08, dtype=float64), unit='solMass')
+    Quantity(Array(5.12e+08, dtype=float64), unit='solMass')
 
     """  # noqa: E501
     return gp.PowerLawCutoffPotential(
@@ -853,8 +852,8 @@ def galpy_to_galax(pot: gpy.NFWPotential, /) -> gp.NFWPotential:
     NFWPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter( ... ),
-      r_s=ConstantParameter( ... )
+      m=ConstantParameter(...),
+      r_s=ConstantParameter(...)
     )
 
     """  # noqa: E501

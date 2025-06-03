@@ -31,7 +31,7 @@ def test_bar_means_of_rotation() -> None:
     q = u.Quantity([5.0, 0.0, 0.0], "kpc")
     t = u.Quantity(0.0, "Myr")
 
-    newq, newt = op.inverse(q, t)
+    newq, newt = op.inverse(t, q)
     assert isinstance(newq, u.Quantity)
     assert isinstance(newt, u.Quantity)
 

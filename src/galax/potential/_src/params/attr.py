@@ -31,7 +31,7 @@ class AbstractParametersAttribute:
 
     >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> pot.parameters
-    mappingproxy({'m_tot': ConstantParameter(Quantity['mass'](Array(1.e+12, dtype=float64, ...), unit='solMass'))})
+    mappingproxy({'m_tot': ConstantParameter(Quantity(Array(1.e+12, dtype=float64, ...), unit='solMass'))})
 
     """  # noqa: E501
 
@@ -75,7 +75,7 @@ class ParametersAttribute(AbstractParametersAttribute):
 
     >>> kepler = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> kepler.parameters
-    mappingproxy({'m_tot': ConstantParameter(Quantity['mass'](Array(1.e+12, dtype=float64, ...), unit='solMass'))})
+    mappingproxy({'m_tot': ConstantParameter(Quantity(Array(1.e+12, dtype=float64, ...), unit='solMass'))})
 
     """  # noqa: E501
 
@@ -120,7 +120,7 @@ class CompositeParametersAttribute(AbstractParametersAttribute):
     >>> composite.parameters
     mappingproxy({'kepler':
         mappingproxy({'m_tot':
-            ConstantParameter(Quantity['mass'](Array(1.e+12, dtype=float64, ...), unit='solMass'))})})
+            ConstantParameter(Quantity(Array(1.e+12, dtype=float64, ...), unit='solMass'))})})
 
     """  # noqa: E501
 

@@ -83,13 +83,13 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w)
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[-5.151 -6.454 -5.795]
              [ 4.277  4.633  1.426]]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
 
     The solver can be customized. Here are a few examples:
@@ -101,9 +101,10 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> solver = gd.OrbitSolver.from_(diffeqsolver)
     >>> solver
     OrbitSolver(
-        solver=Dopri8(scan_kind=None),
-        stepsize_controller=PIDController( rtol=1e-05, atol=1e-05, ... ),
-        ...
+        solver=Dopri8(),
+        stepsize_controller=PIDController(rtol=1e-05, atol=1e-05),
+        adjoint=RecursiveCheckpointAdjoint(),
+        max_steps=4096
     )
 
     2. A `dict` of keyword arguments:
@@ -111,10 +112,7 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> solver = gd.OrbitSolver.from_({
     ...     "solver": dfx.Dopri8(), "stepsize_controller": dfx.ConstantStepSize()})
     >>> solver
-    OrbitSolver(
-        solver=Dopri8(scan_kind=None), stepsize_controller=ConstantStepSize(),
-        ...
-    )
+    OrbitSolver(solver=Dopri8(), stepsize_controller=ConstantStepSize())
 
     """
 
@@ -132,7 +130,7 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     #: How to differentiate in `diffeqsolve`.
     #: See `diffrax` for options.
-    adjoint: dfx.AbstractAdjoint = dfx.RecursiveCheckpointAdjoint(checkpoints=None)
+    adjoint: dfx.AbstractAdjoint = dfx.ForwardMode()
 
     #: Event. Can override the `event` argument when calling `DiffEqSolver`
     event: dfx.Event | None = None
@@ -375,7 +373,7 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> state.y
         (Array([[-5.15111583, -6.45413687, -5.79500531],
                 [ 4.2771096 ,  4.63284576,  1.4257032 ]], dtype=float64),
-         Array([[ 0.22466724, -0.06793485,  0.25275065],
+         Array([[ 0.22466725, -0.06793485,  0.25275065],
                 [-0.43921376, -0.0023005 , -0.14640459]], dtype=float64))
 
         """

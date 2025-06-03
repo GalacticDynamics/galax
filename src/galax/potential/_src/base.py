@@ -279,7 +279,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         ...                             p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
         ...                             t=u.Quantity(0.0, "Gyr"))
         >>> pot.local_circular_velocity(w)
-        Quantity['speed'](Array(0.74987517, dtype=float64), unit='kpc / Myr')
+        Quantity(Array(0.74987517, dtype=float64), unit='kpc / Myr')
 
         """
         return api.local_circular_velocity(self, *args, **kwargs)
@@ -545,7 +545,7 @@ def from_(
     >>> pot = gp.NFWPotential.from_({"m": 1e12, "r_s": 3, "units": "galactic"})
     >>> pot
     NFWPotential( units=..., constants=ImmutableMap({'G': ...}),
-                  m=ConstantParameter( ... ), r_s=ConstantParameter( ... ) )
+                  m=ConstantParameter(...), r_s=ConstantParameter(...) )
 
     """
     return cls(**obj)

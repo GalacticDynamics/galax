@@ -113,9 +113,7 @@ class ParameterField:
     KeplerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      mass=ConstantParameter(
-        value=Quantity[PhysicalType('mass')](value=...f64[], unit=Unit("solMass"))
-      )
+      mass=ConstantParameter(value=Quantity(weak_f64[], unit='solMass'))
     )
 
     """

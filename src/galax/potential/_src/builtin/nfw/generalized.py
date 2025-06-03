@@ -238,7 +238,7 @@ def Bz_from_hyp2f1(a: gt.FloatSz0, b: gt.FloatSz0, z: gt.BBtFloatSz0) -> gt.BBtF
     Array(0.375, dtype=float64)
 
     >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
-    Array(0.375, dtype=float64, weak_type=True)
+    Array(0.375, dtype=float64)
 
     `Bz_from_hyp2f1` works for b = 0:
 
@@ -249,13 +249,13 @@ def Bz_from_hyp2f1(a: gt.FloatSz0, b: gt.FloatSz0, z: gt.BBtFloatSz0) -> gt.BBtF
     But `jsp.beta` does not work for b = 0:
 
     >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
-    Array(nan, dtype=float64, weak_type=True)
+    Array(nan, dtype=float64)
 
     We can confirm that `Bz_from_hyp2f1` is correct by comparison when $b \sim 0$:
 
     >>> b = 1e-4
     >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
-    Array(0.69312316, dtype=float64, weak_type=True)
+    Array(0.69312316, dtype=float64)
 
     """
     return (z**a / a) * hyp2f1(a, 1 - b, a + 1, z)

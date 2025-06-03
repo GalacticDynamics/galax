@@ -73,7 +73,7 @@ class PhaseSpaceCoordinate(AbstractBasicPhaseSpaceCoordinate):
     PhaseSpaceCoordinate(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
+      t=Quantity(7, unit='s'),
       frame=SimulationFrame()
     )
 
@@ -104,7 +104,7 @@ class PhaseSpaceCoordinate(AbstractBasicPhaseSpaceCoordinate):
     PhaseSpaceCoordinate(
       q=SphericalPos( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
+      t=Quantity(7, unit='s'),
       frame=SimulationFrame()
     )
 
@@ -192,7 +192,7 @@ def from_(
     PhaseSpaceCoordinate(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array([7, 7], dtype=int64, ...), unit='Myr'),
+      t=Quantity([7, 7], unit='Myr'),
       frame=SimulationFrame()
     )
 
@@ -221,7 +221,7 @@ def from_(
     PhaseSpaceCoordinate(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(0., dtype=float64, ...), unit='kpc s / km'),
+      t=Quantity(0., unit='kpc s / km'),
       frame=SimulationFrame()
     )
 

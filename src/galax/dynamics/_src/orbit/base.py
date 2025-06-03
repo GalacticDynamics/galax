@@ -91,7 +91,7 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: tuple[Any, ...], /) -> 
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0., 0.], "kpc"),
     ...     p=u.Quantity([0., 230, 0.], "km/s"),
@@ -104,13 +104,9 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: tuple[Any, ...], /) -> 
 
     >>> orbit[(slice(None),)]
     Orbit(
-        q=CartesianPos3D(
-        x=Quantity[...](value=f64[10], unit=Unit("kpc")),
-        ... ),
-        p=CartesianVel3D(
-        x=Quantity[...]( value=f64[10], unit=Unit("kpc / Myr") ),
-        ... ),
-        t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+        q=CartesianPos3D( x=Quantity([...], unit='kpc'), ... ),
+        p=CartesianVel3D( x=Quantity([...], unit='kpc / Myr'), ... ),
+        t=Quantity([...], unit='Myr'),
         frame=SimulationFrame(),
         interpolant=None
     )
@@ -133,7 +129,7 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: slice, /) -> Any:
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0., 0.], "kpc"),
     ...     p=u.Quantity([0., 230, 0.], "km/s"),
@@ -143,15 +139,9 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: slice, /) -> Any:
 
     >>> orbit[0:2]
     Orbit(
-        q=CartesianPos3D(
-        x=Quantity[...](value=f64[2], unit=Unit("kpc")),
-        ...
-        ),
-        p=CartesianVel3D(
-        x=Quantity[...]( value=f64[2], unit=Unit("kpc / Myr") ),
-        ...
-        ),
-        t=Quantity['time'](Array([  0., 100.], dtype=float64), unit='Myr'),
+        q=CartesianPos3D( x=Quantity([ 8. , -7.7020901], unit='kpc'), ... ),
+        p=CartesianVel3D( x=Quantity([ 0. , -0.02609503], unit='kpc / Myr'), ... ),
+        t=Quantity([  0., 100.], unit='Myr'),
         frame=SimulationFrame(),
         interpolant=None
     )
@@ -184,11 +174,11 @@ def _psc_getitem_time_index(
     ...     frame=gc.frames.simulation_frame)
     >>> print(orbit)
     Orbit(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[0 1 2]]>,
-        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+        p=<CartesianVel3D: (x, y, z) [km / s]
             [[4 5 6]]>,
-        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+        t=Quantity['time'](0, unit='Gyr'),
         ...)
     >>> orbit.ndim
     1
@@ -197,11 +187,11 @@ def _psc_getitem_time_index(
 
     >>> print(orbit[jnp.array(0)])
     Orbit(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [0 1 2]>,
-        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+        p=<CartesianVel3D: (x, y, z) [km / s]
             [4 5 6]>,
-        t=Quantity['time'](Array(0, dtype=int64, ...), unit='Gyr'),
+        t=Quantity['time'](0, unit='Gyr'),
         ...)
 
     Otherwise:
@@ -223,7 +213,7 @@ def getitem(self: AbstractOrbit, index: int) -> gc.PhaseSpaceCoordinate:
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0., 0.], "kpc"),
     ...     p=u.Quantity([0., 230, 0.], "km/s"),
@@ -235,11 +225,11 @@ def getitem(self: AbstractOrbit, index: int) -> gc.PhaseSpaceCoordinate:
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(0., dtype=float64), unit='Myr'),
+        t=Quantity(0., unit='Myr'),
         frame=SimulationFrame()
     )
     >>> orbit[0].t
-    Quantity['time'](Array(0., dtype=float64), unit='Myr')
+    Quantity(Array(0., dtype=float64), unit='Myr')
 
     """
     return gc.PhaseSpaceCoordinate(q=self.q[index], p=self.p[index], t=self.t[index])

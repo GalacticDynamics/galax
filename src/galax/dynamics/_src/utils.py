@@ -43,14 +43,7 @@ def parse_saveat(obj: dfx.SaveAt, /, *, dense: bool | None) -> dfx.SaveAt:
     --------
     >>> import diffrax as dfx
     >>> parse_saveat(dfx.SaveAt(ts=[0, 1, 2, 3]), dense=True)
-    SaveAt(
-      subs=SubSaveAt( t0=False, t1=False, ts=i64[4],
-                      steps=False, fn=<function save_y> ),
-      dense=True,
-      solver_state=False,
-      controller_state=False,
-      made_jump=False
-    )
+    SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
 
     """
     return obj if dense is None else replace(obj, dense=dense)
@@ -69,14 +62,7 @@ def parse_saveat(
 
     >>> units = u.unitsystem("galactic")
     >>> parse_saveat(units, dfx.SaveAt(ts=[0, 1, 2, 3]), dense=True)
-    SaveAt(
-      subs=SubSaveAt( t0=False, t1=False, ts=i64[4],
-                      steps=False, fn=<function save_y> ),
-      dense=True,
-      solver_state=False,
-      controller_state=False,
-      made_jump=False
-    )
+    SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
 
     """
     return obj if dense is None else replace(obj, dense=dense)
@@ -97,20 +83,10 @@ def parse_saveat(
     >>> import jax.numpy as jnp
 
     >>> parse_saveat(None, 0.5, dense=True)
-    SaveAt(
-      subs=SubSaveAt( t0=False, t1=False, ts=weak_f64[1],
-                      steps=False, fn=<function save_y> ),
-      dense=True,
-      ...
-    )
+    SaveAt(subs=SubSaveAt(ts=weak_f64[1]), dense=True)
 
     >>> parse_saveat(units, [0, 1, 2, 3], dense=True)
-    SaveAt(
-      subs=SubSaveAt( t0=False, t1=False, ts=i64[4],
-                      steps=False, fn=<function save_y> ),
-      dense=True,
-      ...
-    )
+    SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
 
     """
     ts = jnp.atleast_1d(jnp.asarray(ts))
@@ -130,20 +106,10 @@ def parse_saveat(
     >>> units = u.unitsystem("galactic")
 
     >>> parse_saveat(units, u.Quantity(0.5, "Myr"), dense=True)
-    SaveAt(
-      subs=SubSaveAt( t0=False, t1=False, ts=weak_f64[1],
-                      steps=False, fn=<function save_y> ),
-      dense=True,
-      ...
-    )
+    SaveAt(subs=SubSaveAt(ts=weak_f64[1]), dense=True)
 
     >>> parse_saveat(units, u.Quantity([0, 1, 2, 3], "Myr"), dense=True)
-    SaveAt(
-      subs=SubSaveAt( t0=False, t1=False, ts=i64[4],
-                      steps=False, fn=<function save_y> ),
-      dense=True,
-      ...
-    )
+    SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
 
     """
     return parse_saveat(units, ts.ustrip(units["time"]), dense=dense)

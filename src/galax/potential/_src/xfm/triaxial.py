@@ -56,10 +56,10 @@ class TriaxialInThePotential(AbstractTransformedPotential):
     Array(True, dtype=bool)
 
     >>> opot.potential(y, t)
-    Quantity[...](Array(-4.49850215, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-4.49850215, dtype=float64), unit='kpc2 / Myr2')
 
     >>> xpot.potential(y, t)
-    Quantity[...](Array(-8.9970043, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-8.9970043, dtype=float64), unit='kpc2 / Myr2')
 
     >>> opot.potential(y / 2, t) == xpot.potential(y, t)
     Array(True, dtype=bool)

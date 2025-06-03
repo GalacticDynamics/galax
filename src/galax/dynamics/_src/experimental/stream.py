@@ -35,7 +35,7 @@ default_solver = dfxtra.DiffEqSolver(
         rtol=1e-7, atol=1e-7, dtmin=0.3, dtmax=None, force_dtmin=True, jump_ts=None
     ),
     max_steps=10_000,
-    # adjoint=ForwardMode(),  # noqa: ERA001
+    adjoint=dfx.ForwardMode(),
 )
 
 default_kinematic_df = Fardal2015DF()
@@ -68,7 +68,7 @@ ICSScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]  # x/v_l1,
 ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
 
 
-# TODO: rename to Fardal-like, since it can have different parameters?
+# TODO: put images in the docstring
 @final
 @ft.partial(
     register_dataclass,
@@ -95,29 +95,37 @@ class StreamSimulator:
     >>> prog_ics = stream_simulator.init(pot, qp0, t0,
     ...     release_times=release_times, Msat=1e5, key=jr.key(0))
     >>> prog_ics
-    StreamICs(release_times=Array([-4000. , ...  -150. ], dtype=float64),
-        prog_mass=Array([100000., ... 100000.], dtype=float64),
-        qp_lead=(Array([[-1.07924439e+01, -7.37489800e+00, -1.80585858e-02],
-                        ...
-                        [-4.72861830e+00,  1.40355376e+01, -2.59068091e-02]], dtype=float64),
-                 Array([[ 4.88701470e-02, -2.75920181e-01, -3.55040709e-04],
-                        ...
-                        [-2.10197865e-01, -8.18185909e-02, -1.29460838e-04]], dtype=float64)),
-        qp_trail=(Array([[-1.09735894e+01, -7.49868179e+00, -1.80585858e-02],
-                        ...
-                        [-4.84009594e+00,  1.43664267e+01, -2.59068091e-02]], dtype=float64),
-                 Array([[ 4.96114690e-02, -2.77005033e-01, -3.55040709e-04],
-                        ...
-                        [-2.09998407e-01, -8.17513929e-02, -1.29460838e-04]],  dtype=float64)))
+    StreamICs(release_times=Array([-4000. ...  -150. ], dtype=float64),
+        prog_mass=Array([100000., ..., 100000.], dtype=float64),
+        qp_lead=(Array([[-10.76187104,  -7.35400639,   0.0674116 ],
+                        [-10.67981739,  -7.88966322,   0.01748606],
+                        ...,
+                        [ -4.30480319,  14.11376906,   0.04298453],
+                        [ -4.72896837,  14.03657666,  -0.09171104]], dtype=float64),
+                 Array([[ 4.77386246e-02, -2.74264308e-01, -4.68601912e-04],
+                        [ 6.23646752e-02, -2.67352292e-01, -1.26827331e-03],
+                        ...,
+                        [-2.13532056e-01, -6.83334144e-02, -2.09492156e-04],
+                        [-2.09972781e-01, -8.17427593e-02, -1.58559419e-04]],      dtype=float64)),
+        qp_trail=(Array([[-11.00416221,  -7.5195734 ,   0.0674116 ],
+                         [-10.8712839 ,  -8.03110818,   0.01748606],
+                         ...,
+                         [ -4.44634357,  14.57782472,   0.04298453],
+                         [ -4.83974586,  14.36538765,  -0.09171104]], dtype=float64),
+                  Array([[ 5.07429914e-02, -2.78660906e-01, -4.68601912e-04],
+                         [ 6.21540598e-02, -2.67067193e-01, -1.26827331e-03],
+                         ...,
+                         [-2.15139556e-01, -6.88237136e-02, -2.09492156e-04],
+                         [-2.10223491e-01, -8.18272245e-02, -1.58559419e-04]],      dtype=float64)))
 
     >>> stream_lead, stream_trail = stream_simulator.run(pot, prog_ics, t1=t0)
     >>> stream_lead
-    (Array([[ 8.17363908e+00,  7.06167200e+00,  1.57614710e-02],
+    (Array([[-4.99685677e+00,  5.65910858e+00,  3.63136282e-02],
             ...,
-            [ 1.48119877e+01,  3.65839156e-01,  1.69433893e-02]],      dtype=float64),
-     Array([[-3.23020402e-01,  1.29335442e-01, -4.61335351e-05],
+            [ 1.48125263e+01,  3.73149460e-01,  4.11255117e-02]],      dtype=float64),
+     Array([[-3.87842191e-01, -2.21692094e-01,  2.45336141e-03],
             ...,
-            [-1.35276009e-02,  2.24964959e-01, -3.41789771e-04]],      dtype=float64))
+            [-1.39058722e-02,  2.24719748e-01, -1.28802309e-03]],      dtype=float64))
 
     """  # noqa: E501
 
@@ -141,6 +149,45 @@ class StreamSimulator:
         This function generates the initial conditions for the stream particles
         given the progenitor's orbit, the release times, and the progenitor's
         mass.
+
+        Parameters
+        ----------
+        pot
+            The potential in which the progenitor is orbiting.
+        prog_w0
+            The initial conditions of the progenitor's orbit, as a tuple of
+            position and velocity: `(x, v)`, where `x` and `v` are arrays of
+            shape `(3,)` representing the position and velocity in the
+            potential's units.
+        prog_t0
+            The time at which the progenitor's orbit is initialized, in the
+            potential's time units.
+
+        release_times
+            The times at which the stream particles are released, in the
+            potential's time units. This should be an array of shape `(N,)`
+            where `N` is the number of stream particles.
+        Msat
+            The mass of the progenitor at the release times. This can be a
+            scalar or an array of shape `(N,)` where `N` is the number of
+            stream particles. If a scalar, it is assumed to be constant for
+            all stream particles. If an array, it should match the shape of
+            `release_times`.
+        kinematic_df
+            The kinematic distribution function to use for sampling the
+            stream particles' initial conditions. If `None`, a default
+            distribution function is used (Fardal2015DF).
+
+        key
+            A JAX random key for reproducibility. This is used to sample the
+            initial conditions of the stream particles from the kinematic
+            distribution function.
+        solver
+            The differential equation solver to use for integrating the
+            progenitor's orbit. Defaults to the default solver.
+        solver_kwargs
+            Additional keyword arguments to pass to the differential equation
+            solver. This can include parameters like `rtol`, `atol`, etc.
 
         """
         # Sort the stripping times in ascending order.

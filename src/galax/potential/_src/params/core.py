@@ -51,10 +51,10 @@ class LinearParameter(AbstractParameter):
     ...                      point_value=u.Quantity(1e9, "Msun"))
 
     >>> lp(u.Quantity(0, "Gyr")).uconvert("Msun")
-    Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
+    Quantity(Array(1.e+09, dtype=float64), unit='solMass')
 
     >>> jnp.round(lp(u.Quantity(1.0, "Gyr")), 3)
-    Quantity['mass'](Array(0., dtype=float64, ...), unit='Gyr solMass / yr')
+    Quantity(Array(0., dtype=float64, ...), unit='Gyr solMass / yr')
 
     """
 
@@ -92,10 +92,10 @@ class LinearParameter(AbstractParameter):
         ...                      point_value=u.Quantity(1e9, "Msun"))
 
         >>> lp(u.Quantity(0, "Gyr")).uconvert("Msun")
-        Quantity['mass'](Array(1.e+09, dtype=float64), unit='solMass')
+        Quantity(Array(1.e+09, dtype=float64), unit='solMass')
 
         >>> jnp.round(lp(u.Quantity(1, "Gyr")), 3)
-        Quantity['mass'](Array(0., dtype=float64), unit='Gyr solMass / yr')
+        Quantity(Array(0., dtype=float64), unit='Gyr solMass / yr')
 
         """
         out = self.slope * (t - self.point_time) + self.point_value
@@ -126,7 +126,7 @@ class CustomParameter(AbstractParameter):
 
     >>> up = CustomParameter(func=func)
     >>> up(u.Quantity(1e3, "Myr"))
-    Quantity['mass'](Array(1.e+12, dtype=float64, ...), unit='Myr solMass / Gyr')
+    Quantity(Array(1.e+12, dtype=float64, ...), unit='Myr solMass / Gyr')
 
     """
 

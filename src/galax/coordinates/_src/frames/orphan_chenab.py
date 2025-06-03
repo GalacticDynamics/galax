@@ -47,19 +47,19 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     ...     lon=u.Quantity(0, "deg"), lat=u.Quantity(0, "deg"),
     ...     distance=u.Quantity(1, "kpc"))
     >>> print(q_icrs)
-    <LonLatSphericalPos (lon[deg], lat[deg], distance[kpc])
+    <LonLatSphericalPos: (lon[deg], lat[deg], distance[kpc])
         [0 0 1]>
 
     >>> q_oc = op(q_icrs)
     >>> print(q_oc)
-    <LonLatSphericalPos (lon[rad], lat[deg], distance[kpc])
+    <LonLatSphericalPos: (lon[rad], lat[deg], distance[kpc])
         [ 4.224 17.448  1.   ]>
 
     The reverse transform from the OC to ICRS frame is just as easy:
 
     >>> q_icrs_back = cxf.frame_transform_op(frame, icrs)(q_oc)
     >>> print(q_icrs_back)  # note the float32 precision loss
-    <LonLatSphericalPos (lon[rad], lat[deg], distance[kpc])
+    <LonLatSphericalPos: (lon[rad], lat[deg], distance[kpc])
         [6.283e+00 9.607e-07 1.000e+00]>
 
     We can transform to other frames:
@@ -67,7 +67,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     >>> gc_frame = cxf.Galactocentric()
     >>> op_gc = cxf.frame_transform_op(frame, gc_frame)
     >>> print(op_gc(q_oc).vconvert(cx.CartesianPos3D))
-    <CartesianPos3D (x[kpc], y[kpc], z[kpc])
+    <CartesianPos3D: (x, y, z) [kpc]
         [-8.509  0.726 -0.547]>
 
     The frame operator accepts a variety of input types. Let's work up the type
@@ -78,18 +78,18 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
 
     >>> xyz = u.Quantity([1.0, 2.0, 3.0], "kpc")
     >>> op(xyz)
-    Quantity[...](Array([-3.29303127,  1.06791461,  1.41968428], dtype=float64), unit='kpc')
+    Quantity(Array([-3.29303127,  1.06791461,  1.41968428], dtype=float64), unit='kpc')
 
     - `coordinax.AbstractVector`:
 
     >>> q = cx.vecs.CartesianPos3D.from_([1.0, 2.0, 3.0], "kpc")
     >>> print(op(q))
-    <CartesianPos3D (x[kpc], y[kpc], z[kpc])
+    <CartesianPos3D: (x, y, z) [kpc]
         [-3.293  1.068  1.42 ]>
 
     >>> q = cx.vecs.SphericalPos(r=u.Quantity(1.0, "kpc"), theta=u.Quantity(45, "deg"), phi=u.Quantity(45, "deg"))
     >>> print(op(q))
-    <SphericalPos (r[kpc], theta[rad], phi[rad])
+    <SphericalPos: (r[kpc], theta[rad], phi[rad])
         [1.    1.115 3.097]>
 
     - `coordinax.Space`:
@@ -97,7 +97,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     >>> space = cx.Space(length=q)
     >>> print(op(space))
     Space({
-       'length': <SphericalPos (r[kpc], theta[rad], phi[rad])
+       'length': <SphericalPos: (r[kpc], theta[rad], phi[rad])
            [1.    1.115 3.097]>
     })
 
@@ -107,7 +107,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     >>> print(coord.to_frame(frame))
     Coordinate(
         data=Space({
-           'length': <SphericalPos (r[kpc], theta[rad], phi[rad])
+           'length': <SphericalPos: (r[kpc], theta[rad], phi[rad])
                [1.    1.115 3.097]>
         }),
         frame=OrphanChenab()
@@ -119,9 +119,9 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     >>> w = gc.PhaseSpacePosition(q=q, p=p, frame=icrs)
     >>> print(w.to_frame(frame))
     PhaseSpacePosition(
-        q=<SphericalPos (r[kpc], theta[rad], phi[rad])
+        q=<SphericalPos: (r[kpc], theta[rad], phi[rad])
             [1.    1.115 3.097]>,
-        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+        p=<CartesianVel3D: (x, y, z) [km / s]
             [-3.293  1.068  1.42 ]>,
         frame=OrphanChenab())
 
@@ -131,11 +131,11 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     ...                             frame=icrs)
     >>> print(w.to_frame(frame))
     PhaseSpaceCoordinate(
-        q=<SphericalPos (r[kpc], theta[rad], phi[rad])
+        q=<SphericalPos: (r[kpc], theta[rad], phi[rad])
             [1.    1.115 3.097]>,
-        p=<CartesianVel3D (x[km / s], y[km / s], z[km / s])
+        p=<CartesianVel3D: (x, y, z) [km / s]
             [-3.293  1.068  1.42 ]>,
-        t=Quantity['time'](Array(0., dtype=float64, weak_type=True), unit='Gyr'),
+        t=Quantity['time'](0., unit='Gyr'),
         frame=OrphanChenab())
 
     """  # noqa: E501

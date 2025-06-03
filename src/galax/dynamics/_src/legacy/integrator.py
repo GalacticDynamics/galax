@@ -87,11 +87,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> w = integrator(field, w0, t0, t1)
     >>> print(w)
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [ 6.247 -5.121  0.   ]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
     >>> w.shape
     ()
@@ -105,7 +105,7 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+        t=Quantity([...], unit='Myr'),
         frame=SimulationFrame()
     )
     >>> ws.shape
@@ -134,13 +134,13 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
 
     >>> print(w(u.Quantity(100 * jnp.e, "Myr")))
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[ 2.666 -6.846  0.   ]
              [-0.873 -9.098  0.   ]]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.149  0.386  0.   ]
              [ 0.235 -0.255  0.   ]]>,
-        t=Quantity['time'](Array(271.82818285, dtype=float64, ...), unit='Myr'),
+        t=Quantity['time'](271.82818285, unit='Myr'),
         frame=SimulationFrame())
 
     The interpolant is vectorized:
@@ -149,10 +149,10 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     >>> w(t)
     PhaseSpaceCoordinate(
       q=CartesianPos3D(
-        x=Quantity[...](value=f64[2,100], unit=Unit("kpc")),
+        x=Quantity([...], unit='kpc'),
         ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame()
     )
 
@@ -165,12 +165,11 @@ class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
     (2,)
     >>> ws(t)
     PhaseSpaceCoordinate(
-        q=CartesianPos3D(
-            x=Quantity[...](value=f64[2,100], unit=Unit("kpc")),
-            ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
-        frame=SimulationFrame()
+      q=CartesianPos3D( x=Quantity([...], unit='kpc'), ... ),
+      p=CartesianVel3D( ... ),
+      t=Quantity([ 0. , ... , 1000. ],
+        unit='Myr'),
+      frame=SimulationFrame()
     )
 
     """
@@ -346,7 +345,7 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity(1000., unit='Myr'),
         frame=SimulationFrame()
     )
     >>> w.shape
@@ -360,7 +359,7 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+        t=Quantity([...], unit='Myr'),
         frame=SimulationFrame()
     )
     >>> ws.shape
@@ -424,31 +423,31 @@ def call(
     >>> w = integrator(field, w0, t0, t1=t1)
     >>> print(w)
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [ 6.247 -5.121  0.   ]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
 
     >>> w = integrator(field, w0, t0=t0, t1=t1)
     >>> print(w)
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [ 6.247 -5.121  0.   ]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
 
     >>> w = integrator(field, y0=w0, t0=t0, t1=t1)
     >>> print(w)
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [ 6.247 -5.121  0.   ]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
 
     """
@@ -595,7 +594,7 @@ def call(
     PhaseSpaceCoordinate(
         q=CartesianPos3D( ... ),
         p=CartesianVel3D( ... ),
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity(1000., unit='Myr'),
         frame=SimulationFrame()
     )
 
@@ -643,18 +642,18 @@ def call(
     >>> print(w)
     CompositePhaseSpaceCoordinate(
         w01=PhaseSpaceCoordinate(
-            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            q=<CartesianPos3D: (x, y, z) [kpc]
                 [ 6.247 -5.121  0.   ]>,
-            p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+            p=<CartesianVel3D: (x, y, z) [kpc / Myr]
                 [0.359 0.033 0.   ]>,
-            t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+            t=Quantity['time'](1000., unit='Myr'),
             frame=SimulationFrame()),
         w02=PhaseSpaceCoordinate(
-            q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+            q=<CartesianPos3D: (x, y, z) [kpc]
                 [5.121 6.247 0.   ]>,
-            p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+            p=<CartesianVel3D: (x, y, z) [kpc / Myr]
                 [-0.033  0.359  0.   ]>,
-            t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+            t=Quantity['time'](1000., unit='Myr'),
             frame=SimulationFrame()))
 
     """

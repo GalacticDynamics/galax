@@ -29,12 +29,14 @@ class NullPotential(AbstractSinglePotential):
 
     >>> pot = gp.NullPotential()
     >>> pot
-    NullPotential( units=..., constants=ImmutableMap({'G': ...}) )
+    NullPotential(
+      constants=ImmutableMap({'G': ...})
+    )
 
     >>> q = u.Quantity([1, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity[...](Array(0, dtype=int64), unit='kpc2 / Myr2')
+    Quantity(Array(0, dtype=int64), unit='kpc2 / Myr2')
 
     """
 

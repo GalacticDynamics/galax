@@ -76,7 +76,7 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     True
 
     >>> print(cwt.q)
-    <CartesianPos3D (x[kpc], y[kpc], z[kpc])
+    <CartesianPos3D: (x, y, z) [kpc]
         [[ 1  2  3]
          [10 20 30]]>
 
@@ -210,18 +210,18 @@ def getitem(
     >>> print(cw[...])
     CompositePhaseSpaceCoordinate(
         w1=PhaseSpaceCoordinate(
-            q=<CartesianPos3D (x[m], y[m], z[m])
+            q=<CartesianPos3D: (x, y, z) [m]
                 [1 2 3]>,
-            p=<CartesianVel3D (x[m / s], y[m / s], z[m / s])
+            p=<CartesianVel3D: (x, y, z) [m / s]
                 [4 5 6]>,
-            t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
+            t=Quantity['time'](7, unit='s'),
             frame=SimulationFrame()),
         w2=PhaseSpaceCoordinate(
-            q=<CartesianPos3D (x[m], y[m], z[m])
+            q=<CartesianPos3D: (x, y, z) [m]
                 [1.5 2.5 3.5]>,
-            p=<CartesianVel3D (x[m / s], y[m / s], z[m / s])
+            p=<CartesianVel3D: (x, y, z) [m / s]
                 [4.5 5.5 6.5]>,
-            t=Quantity['time'](Array(6, dtype=int64, ...), unit='s'),
+            t=Quantity['time'](6, unit='s'),
             frame=SimulationFrame()))
 
     """
@@ -281,7 +281,7 @@ def uconvert(
     >>> cwt.uconvert(u.unitsystems.solarsystem)
     CompositePhaseSpaceCoordinate({'wt1': PhaseSpaceCoordinate(
         q=CartesianPos3D(
-            x=Quantity[...](value=...f64[], unit=Unit("AU")),
+            x=Quantity(2.06264806e+08, unit='AU'),
             ...
 
     """
@@ -324,13 +324,13 @@ def vconvert(
     CompositePhaseSpaceCoordinate({'wt1': PhaseSpaceCoordinate(
             q=CylindricalPos( ... ),
             p=SphericalVel( ... ),
-            t=Quantity['time'](Array(7, dtype=int64, ...), unit='s'),
+            t=Quantity(7, unit='s'),
             frame=SimulationFrame()
         ),
         'wt2': PhaseSpaceCoordinate(
             q=CylindricalPos( ... ),
             p=SphericalVel( ... ),
-            t=Quantity['time'](Array(6, dtype=int64, ...), unit='s'),
+            t=Quantity(6, unit='s'),
             frame=SimulationFrame()
     )})
 

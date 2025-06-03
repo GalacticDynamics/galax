@@ -43,7 +43,7 @@ def evaluate_orbit(
 
     We can then create the point-mass' potential, with galactic units:
 
-    >>> potential = gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> potential = gp.KeplerPotential(m_tot=1e11, units="galactic")
 
     We can then integrate an initial phase-space position in this potential to
     get an orbit:
@@ -57,7 +57,7 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )
@@ -67,7 +67,7 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(...), p=CartesianVel3D(...),
-      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )
@@ -81,11 +81,11 @@ def evaluate_orbit(
     >>> orbit
     Orbit(
       q=CartesianPos3D(
-        x=Quantity[PhysicalType('length')](value=f64[2,10], unit=Unit("kpc")),
+        x=Quantity([...], unit='kpc'),
         ...
       ),
       p=CartesianVel3D(...),
-      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )

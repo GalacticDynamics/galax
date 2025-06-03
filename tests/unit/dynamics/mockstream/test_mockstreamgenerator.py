@@ -26,9 +26,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     @pytest.fixture
     def pot(self) -> gp.NFWPotential:
         """Mock stream DF."""
-        return gp.NFWPotential(
-            m=u.Quantity(1.0e12, "Msun"), r_s=u.Quantity(15.0, "kpc"), units="galactic"
-        )
+        return gp.NFWPotential(m=1e12, r_s=15.0, units="galactic")
 
     @pytest.fixture
     def mockgen(
@@ -44,7 +42,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     @pytest.fixture
     def t_stripping(self) -> gt.QuSzTime:
         """Time vector for stripping."""
-        return u.Quantity(jnp.linspace(0.0, 4e3, 8_000, dtype=float), "Myr")
+        return u.Quantity(jnp.linspace(0.0, 4e3, 10, dtype=float), "Myr")
 
     @pytest.fixture
     def prog_w0(self) -> gc.PhaseSpaceCoordinate:

@@ -58,13 +58,13 @@ def from_(
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
     >>> print(w, w.shape, sep='\n')
     PhaseSpaceCoordinate(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[-5.151 -6.454 -5.795]
              [ 4.277  4.633  1.426]]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
-        t=Quantity['time'](Array(1000., dtype=float64), unit='Myr'),
+        t=Quantity['time'](1000., unit='Myr'),
         frame=SimulationFrame())
     (2,)
 
@@ -136,15 +136,15 @@ def from_(
     >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(orbit[..., :3])
     Orbit(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[-2.78  -7.464  0.   ]
              [-0.082 -7.06   0.   ]
              [ 2.406 -2.454  0.   ]]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.199 -0.114  0.   ]
              [ 0.257  0.196  0.   ]
              [ 0.102  0.644  0.   ]]>,
-        t=Quantity['time'](Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
+        t=Quantity['time']([200. , 211.42857143, 222.85714286], unit='Myr'),
         frame=SimulationFrame(),
         interpolant=PhaseSpaceInterpolation( ... ))
 
@@ -160,21 +160,21 @@ def from_(
     >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(orbit[..., :3])
     Orbit(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[[-1.715 -3.596 -1.929]
               [ 3.373 -1.433  3.794]
               [ 5.663  3.143  6.371]]
              [[ 4.418  5.691  1.473]
               [-0.859  3.25  -0.286]
               [-3.383 -3.917 -1.128]]]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[[ 0.454 -0.097  0.511]
               [ 0.327  0.395  0.368]
               [ 0.099  0.373  0.112]]
              [[-0.376 -0.026 -0.125]
               [-0.496 -0.48  -0.165]
               [ 0.043 -0.549  0.014]]]>,
-        t=Quantity['time'](Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
+        t=Quantity['time']([200. , 211.42857143, 222.85714286], unit='Myr'),
         frame=SimulationFrame(),
         interpolant=PhaseSpaceInterpolation( ... ))
 
@@ -190,25 +190,25 @@ def from_(
     >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(orbit[..., :3])
     Orbit(
-        q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+        q=<CartesianPos3D: (x, y, z) [kpc]
             [[[-1.715e+00 -3.596e+00 -1.929e+00]
               [ 3.373e+00 -1.433e+00  3.794e+00]
               [ 5.663e+00  3.143e+00  6.371e+00]]
              [[-8.248e-03  5.207e+00 -2.749e-03]
               [-4.030e+00  7.323e+00 -1.343e+00]
               [-6.566e+00  6.488e+00 -2.189e+00]]]>,
-        p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[[ 0.454 -0.097  0.511]
               [ 0.327  0.395  0.368]
               [ 0.099  0.373  0.112]]
              [[-0.39   0.377 -0.13 ]
               [-0.295  0.033 -0.098]
               [-0.143 -0.167 -0.048]]]>,
-        t=Quantity['time'](Array([200. , 211.42857143, 222.85714286], dtype=float64), unit='Myr'),
+        t=Quantity['time']([200. , 211.42857143, 222.85714286], unit='Myr'),
         frame=SimulationFrame(),
         interpolant=PhaseSpaceInterpolation( ... ))
 
-    """  # noqa: E501
+    """
     # TODO: don't double construct?
     w = gc.PhaseSpaceCoordinate.from_(
         soln, frame=frame, units=units, unbatch_time=unbatch_time

@@ -43,21 +43,21 @@ pot = gp.MilkyWayPotential()
 orbit = gd.evaluate_orbit(pot, w, u.Quantity(jnp.linspace(0, 1, 100), "Gyr"))
 print(orbit)
 # Orbit(
-#     q=<CartesianPos3D (x[kpc], y[kpc], z[kpc])
+#     q=<CartesianPos3D: (x, y, z) [kpc]
 #         [[ 8.     0.     0.   ]
 #          ...
 #          [ 7.804 -0.106  0.   ]]>,
-#     p=<CartesianVel3D (x[kpc / Myr], y[kpc / Myr], z[kpc / Myr])
+#     p=<CartesianVel3D: (x, y, z) [kpc / Myr]
 #         [[ 0.     0.225  0.   ]
 #          ...
 #          [ 0.018  0.23   0.   ]]>,
-#     t=Quantity['time'](Array([0., ..., 1000.], dtype=float64), unit='Myr')
+#     t=Quantity(Array([0., ..., 1000.], dtype=float64), unit='Myr')
 # )
 
 orbit_sph = orbit.vconvert(cx.vecs.LonLatSphericalPos)
 print(orbit_sph)
 # Orbit(
-#     q=<LonLatSphericalPos (lon[rad], lat[deg], distance[kpc])
+#     q=<LonLatSphericalPos: (lon[rad], lat[deg], distance[kpc])
 #         [[0.000e+00 3.858e-16 8.000e+00]
 #          ...
 #          [6.270e+00 3.858e-16 7.805e+00]]>,
@@ -65,7 +65,7 @@ print(orbit_sph)
 #         [[ 0.028  0.     0.   ]
 #          ...
 #          [ 0.03   0.     0.015]]>,
-#     t=Quantity['time'](Array([0., ..., 1000.], dtype=float64), unit='Myr')
+#     t=Quantity(Array([0., ..., 1000.], dtype=float64), unit='Myr')
 # )
 ```
 

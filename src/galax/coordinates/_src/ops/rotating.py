@@ -109,7 +109,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
     We can also apply the rotation to a :class:`~galax.coordinax.FourVector`.
 
     >>> t = u.Quantity(1, "Gyr")
-    >>> v4 = cx.FourVector(t=t, q =u.Quantity([1, 0, 0], "kpc"))
+    >>> v4 = cx.FourVector(t=t, q=u.Quantity([1, 0, 0], "kpc"))
 
     >>> newv4 = op(v4)
     >>> convert(newv4.q, u.Quantity).value.round(2)
@@ -118,7 +118,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
     We can also apply the rotation to a :class:`~coordinax.AbstractPos3D`.
 
     >>> q = cx.CartesianPos3D.from_(u.Quantity([1, 0, 0], "kpc"))
-    >>> newq, newt = op(q, t)
+    >>> newt, newq = op(t, q)
     >>> convert(newq, u.Quantity).value.round(2)
     Array([0., 1., 0.], dtype=float64)
 
@@ -128,7 +128,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
     ``(*batch, 4)``.
 
     >>> q = u.Quantity([1, 0, 0], "kpc")
-    >>> newq, newt = op(q, t)
+    >>> newt, newq = op(t, q)
     >>> newq.value.round(2)
     Array([0., 1., 0.], dtype=float64)
     """
@@ -164,9 +164,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
         >>> op = gc.ops.ConstantRotationZOperator.from_(360, "deg / Gyr")
         >>> op.inverse
-        ConstantRotationZOperator(
-            Omega_z=Quantity[...]( value=...i64[], unit=Unit("deg / Gyr") )
-        )
+        ConstantRotationZOperator(Omega_z=Quantity(weak_i64[], unit='deg / Gyr'))
 
         """
         return ConstantRotationZOperator(Omega_z=-self.Omega_z)
@@ -176,8 +174,8 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
     @cxo.AbstractOperator.__call__.dispatch(precedence=1)
     def __call__(
         self: "ConstantRotationZOperator",
-        q: u.AbstractQuantity,
         t: u.AbstractQuantity,
+        q: u.AbstractQuantity,
         /,
     ) -> tuple[u.AbstractQuantity, u.AbstractQuantity]:
         """Apply the translation to the Cartesian coordinates.
@@ -191,30 +189,30 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
         >>> q = u.Quantity([1, 0, 0], "kpc")
         >>> t = u.Quantity(1, "Gyr")
-        >>> newq, newt = op(q, t)
+        >>> newt, newq = op(t, q)
         >>> newq.value.round(2)
         Array([0., 1., 0.], dtype=float64)
 
         >>> newt
-        Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+        Quantity(Array(1, dtype=int64, ...), unit='Gyr')
 
         This rotation is time dependent. If we rotate by 2 Gyr, we go another
         90 degrees.
 
-        >>> op(q, u.Quantity(2, "Gyr"))[0].value.round(2)
+        >>> op(u.Quantity(2, "Gyr"), q)[1].value.round(2)
         Array([-1.,  0.,  0.], dtype=float64)
 
         """
         Rz = rot_z(self.Omega_z * t)
-        return (vec_matmul(Rz, q), t)
+        return (t, vec_matmul(Rz, q))
 
     @cxo.AbstractOperator.__call__.dispatch(precedence=1)
     def __call__(
         self: "ConstantRotationZOperator",
-        vec: cx.vecs.AbstractPos3D,
         t: u.Quantity["time"],
+        vec: cx.vecs.AbstractPos3D,
         /,
-    ) -> tuple[cx.vecs.AbstractPos3D, u.Quantity["time"]]:
+    ) -> tuple[u.Quantity["time"], cx.vecs.AbstractPos3D]:
         """Apply the translation to the coordinates.
 
         Examples
@@ -228,23 +226,23 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
         >>> q = cx.CartesianPos3D.from_([1, 0, 0], "kpc")
         >>> t = u.Quantity(1, "Gyr")
-        >>> newq, newt = op(q, t)
+        >>> newt, newq = op(t, q)
         >>> convert(newq, u.Quantity).value.round(2)
         Array([0., 1., 0.], dtype=float64)
 
         >>> newt
-        Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+        Quantity(Array(1, dtype=int64, ...), unit='Gyr')
 
         This rotation is time dependent.
 
-        >>> convert(op(q, u.Quantity(2, "Gyr"))[0], u.Quantity).value.round(2)
+        >>> convert(op(u.Quantity(2, "Gyr"), q)[1], u.Quantity).value.round(2)
         Array([-1., 0., 0.], dtype=float64)
 
         """
         q = convert(vec.vconvert(cx.CartesianPos3D), u.Quantity)
-        qp, tp = self(q, t)
+        tp, qp = self(t, q)
         vecp = cx.CartesianPos3D.from_(qp).vconvert(type(vec))
-        return (vecp, tp)
+        return tp, vecp
 
     @cxo.AbstractOperator.__call__.dispatch
     def __call__(
@@ -270,7 +268,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
         Array([0., 1., 0.], dtype=float64)
 
         >>> newpsp.t
-        Quantity['time'](Array(1, dtype=int64, ...), unit='Gyr')
+        Quantity(Array(1, dtype=int64, ...), unit='Gyr')
 
         This rotation is time dependent.
 
@@ -280,7 +278,7 @@ class ConstantRotationZOperator(cxo.AbstractOperator):  # type: ignore[misc]
 
         """
         # Shifting the position and time
-        q, t = self(psp.q, psp.t)
+        t, q = self(psp.t, psp.q)
         # Transforming the momentum. The actual value of momentum is not
         # affected by the translation, however for non-Cartesian coordinates the
         # representation of the momentum in will be different.  First transform

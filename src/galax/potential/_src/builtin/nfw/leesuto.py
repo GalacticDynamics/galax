@@ -45,15 +45,15 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     >>> q = u.Quantity([1, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t).decompose(pot.units)
-    Quantity[...](Array(-0.14620419, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.14620419, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = u.Quantity([0, 1, 0], "kpc")
     >>> pot.potential(q, t).decompose(pot.units)
-    Quantity[...](Array(-0.14593972, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.14593972, dtype=float64), unit='kpc2 / Myr2')
 
     >>> q = u.Quantity([0, 0, 1], "kpc")
     >>> pot.potential(q, t).decompose(pot.units)
-    Quantity[...](Array(-0.14570309, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(-0.14570309, dtype=float64), unit='kpc2 / Myr2')
     """
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -89,10 +89,14 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
 
     def __check_init__(self) -> None:
         t = u.Quantity(0.0, "Myr")
+        # TODO: simplify this check
+        a1 = self.a1(t, ustrip=self.units["dimensionless"])
+        a2 = self.a2(t, ustrip=self.units["dimensionless"])
+        a3 = self.a3(t, ustrip=self.units["dimensionless"])
         _ = eqx.error_if(
             t,
-            jnp.logical_or(self.a1(t) < self.a2(t), self.a2(t) < self.a3(t)),
-            f"a1 {self.a1(t)} >= a2 {self.a2(t)} >= a3 {self.a3(t)} is required",
+            jnp.logical_or(a1 < a2, a2 < a3),
+            f"a1 {a1} >= a2 {a2} >= a3 {a3} is required",
         )
 
     @ft.partial(jax.jit)

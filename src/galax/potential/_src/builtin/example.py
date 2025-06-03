@@ -45,18 +45,17 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     HarmonicOscillatorPotential(
       units=LTMAUnitSystem( ... ),
       constants=ImmutableMap({'G': ...}),
-      omega=ConstantParameter(
-        value=Quantity[...]( value=...i64[], unit=Unit("1 / Myr") )
-      ) )
+      omega=ConstantParameter(value=Quantity(weak_i64[], unit='1 / Myr'))
+    )
 
     >>> q = u.Quantity([1.0, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")
 
     >>> pot.potential(q, t)
-    Quantity[...](Array(0.5, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(0.5, dtype=float64), unit='kpc2 / Myr2')
 
     >>> pot.density(q, t)
-    Quantity[...](Array(1.76897707e+10, dtype=float64), unit='solMass / kpc3')
+    Quantity(Array(1.76897707e+10, dtype=float64), unit='solMass / kpc3')
 
     """
 
@@ -125,14 +124,14 @@ class HenonHeilesPotential(AbstractSinglePotential):
     HenonHeilesPotential(
       units=LTMAUnitSystem( ... ),
       constants=ImmutableMap({'G': ...}),
-      coeff=ConstantParameter( ... ),
-      timescale=ConstantParameter( ... )
+      coeff=ConstantParameter(...),
+      timescale=ConstantParameter(...)
     )
 
     >>> q = u.Quantity([1.0, 0, 0], "kpc")
     >>> t = u.Quantity(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity['...'](Array(0.5, dtype=float64), unit='kpc2 / Myr2')
+    Quantity(Array(0.5, dtype=float64), unit='kpc2 / Myr2')
 
     """
 

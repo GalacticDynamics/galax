@@ -32,7 +32,7 @@ class Orbit(AbstractOrbit):
     >>> import galax.dynamics as gd
     >>> import galax.potential as gp
 
-    >>> potential = gp.KeplerPotential(m_tot=1e12, units="galactic")
+    >>> potential = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Quantity([8., 0., 0.], "kpc"),
     ...     p=u.Quantity([0., 230, 0.], "km/s"),
@@ -44,7 +44,7 @@ class Orbit(AbstractOrbit):
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )
@@ -54,7 +54,7 @@ class Orbit(AbstractOrbit):
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(..., dtype=float64), unit='Myr'),
+      t=Quantity([...], unit='Myr'),
       frame=SimulationFrame(),
       interpolant=PhaseSpaceInterpolation( ... )
     )
@@ -63,7 +63,7 @@ class Orbit(AbstractOrbit):
     Orbit(
       q=CartesianPos3D( ... ),
       p=CartesianVel3D( ... ),
-      t=Quantity['time'](Array(500., dtype=float64, ...), unit='Myr'),
+      t=Quantity(500., unit='Myr'),
       frame=SimulationFrame(),
       interpolant=None
     )

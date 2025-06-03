@@ -39,6 +39,13 @@ def orbit(potential: gp.AbstractPotential, w0: gc.PhaseSpacePosition) -> gd.Orbi
 
 
 @pytest.mark.mpl_image_compare(deterministic=True)
+def test_orbit_plot_all_components(orbit: gd.Orbit) -> Figure:
+    """Test plotting all components of an orbit in a Kepler potential."""
+    axes = orbit.plot()
+    return axes[0].figure
+
+
+@pytest.mark.mpl_image_compare(deterministic=True)
 def test_orbit_plot(orbit: gd.Orbit) -> Figure:
     """Test plotting an orbit in a Kepler potential."""
     ax = orbit.plot(x="x", y="y")
@@ -58,6 +65,14 @@ def test_orbit_plot_represent_as(orbit: gd.Orbit) -> Figure:
 def test_orbit_plot_scatter(orbit: gd.Orbit) -> Figure:
     """Test plotting an orbit in a Kepler potential."""
     ax = orbit.plot(x="x", y="y", plot_function="scatter")
+
+    return ax.figure
+
+
+@pytest.mark.mpl_image_compare(deterministic=True)
+def test_orbit_plot_time(orbit: gd.Orbit) -> Figure:
+    """Test plotting an orbit in a Kepler potential."""
+    ax = orbit.plot(x="t", y="y")
 
     return ax.figure
 

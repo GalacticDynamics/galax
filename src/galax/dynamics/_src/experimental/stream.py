@@ -1,6 +1,6 @@
 """Experimental dynamics."""
 
-__all__: list[str] = []
+__all__ = ["StreamSimulator"]
 
 import functools as ft
 from collections.abc import Mapping
@@ -70,11 +70,7 @@ ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
 
 # TODO: put images in the docstring
 @final
-@ft.partial(
-    register_dataclass,
-    data_fields=[],
-    meta_fields=[],
-)
+@ft.partial(register_dataclass, data_fields=[], meta_fields=[])
 @dataclass
 class StreamSimulator:
     """Simulate a stellar stream.
@@ -129,6 +125,7 @@ class StreamSimulator:
 
     """  # noqa: E501
 
+    # TODO: enable init from an Orbit instance + release time information.
     @ft.partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
     def init(
         self,

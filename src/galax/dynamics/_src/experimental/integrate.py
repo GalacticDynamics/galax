@@ -1,6 +1,6 @@
 """Experimental dynamics."""
 
-__all__: list[str] = []
+__all__: list[str] = ["integrate_orbit"]
 
 import functools as ft
 from typing import Any, TypeAlias
@@ -295,6 +295,8 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
 # ---------------------------
 
 
+# Base Cases:
+# 1. Abstract or No loop strategy, single trajectory.
 @dispatch.multi(
     (
         type[lstrat.AbstractLoopStrategy],
@@ -330,7 +332,7 @@ def integrate_orbit(
     dense: bool = False,
     dense_vectorize: bool = False,
 ) -> dfx.Solution:
-    """Integrate orbit associated with potential function.
+    """Integrate an orbit in a potential.
 
     Parameters
     ----------

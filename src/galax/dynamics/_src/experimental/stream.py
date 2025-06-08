@@ -244,19 +244,31 @@ class StreamSimulator:
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
 
-        >>> pot = gp.HernquistPotential(1e12, 10, units="galactic")
-        >>> qp0 = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
-        >>> t0 = 0.0
-        >>> release_times = jnp.linspace(-4_000, -150, 2_000)
-        >>> Msat = 1e5
+        >>> pot = gp.NFWPotential(8.73951152e+11, 15, units="galactic")
+        >>> qp0 = (jnp.array([10.0, 0.0, 0.0]),
+        ...        jnp.array([0.0, 0.17386107, 0.0]))
+        >>> t0, t1 = 0.0, 1_000.0
+        >>> release_times = jnp.linspace(t0, t1, 1_000)
+        >>> Msat = 2.5e4
 
         >>> stream_simulator = gd.experimental.stream.StreamSimulator()
         >>> prog_ics = stream_simulator.init(pot, qp0, t0,
         ...     release_times=release_times, Msat=1e5, key=jr.key(0))
 
         >>> stream_lead, stream_trail = stream_simulator.run(pot, prog_ics, t1=t0)
+        >>> stream_lead
+        (Array([[ 9.81455527e+00,  0.00000000e+00,  8.51988216e-02],
+                [ 9.85159942e+00, -2.78733758e-03,  2.32619681e-02],
+                ...,
+                [ 9.43116948e+00, -2.16524182e+00,  2.98726030e-02],
+                [ 8.26514488e+00, -4.11015501e+00,  2.01546004e-02]],      dtype=float64),
+         Array([[ 0.00000000e+00,  1.70849143e-01, -5.30095038e-04],
+                [ 3.26832788e-05,  1.74065081e-01, -1.45228915e-03],
+                ...,
+                [ 5.82063245e-02,  1.67026840e-01,  5.05606273e-04],
+                [ 1.10606610e-01,  1.46136278e-01,  1.14352437e-03]],      dtype=float64))
 
-        """
+        """  # noqa: E501
 
 
 # ---------------------------

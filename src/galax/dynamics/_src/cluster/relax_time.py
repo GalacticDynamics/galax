@@ -76,89 +76,6 @@ def relaxation_time(
 
 
 ######################################################################
-# Baumgardt (1998) relaxation time
-# TODO: I don't think this is the original reference
-
-
-@final
-class Baumgardt1998(AbstractRelaxationTimeMethod):
-    r"""Relaxation time from Baumgardt (1998).
-
-    $$ t_r = \frac{0.138 \sqrt{M_c} r_{hm}^{3/2}}{\sqrt{G} m_{avg} \\ln(0.4 N)} $$
-
-    """
-
-
-@dispatch.multi(
-    (type[Baumgardt1998], gt.BBtSz0, gt.BBtSz0, gt.BBtSz0),
-    (type[Baumgardt1998], gt.BBtQuSz0, gt.BBtQuSz0, gt.BBtQuSz0),
-)
-def relaxation_time(
-    _: type[Baumgardt1998],
-    M: BBtAorQSz0,
-    r_hm: BBtAorQSz0,
-    m_avg: BBtAorQSz0,
-    /,
-    **kw: Any,
-) -> BBtAorQSz0:
-    """Compute relaxation time using Baumgardt (1998) formula."""
-    return relaxation_time_baumgardt1998(M, r_hm, m_avg, **kw)
-
-
-# ---------------------------
-
-
-@dispatch.multi(
-    (gt.BBtSz0, gt.BBtSz0, gt.BBtSz0),
-    (gt.BBtQuSz0, gt.BBtQuSz0, gt.BBtQuSz0),
-)
-@ft.partial(jax.jit)
-def relaxation_time_baumgardt1998(
-    M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
-    r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
-    m_avg: Antd[BBtAorQSz0, Doc("average stellar mass")],
-    /,
-    *,
-    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
-) -> BBtAorQSz0:
-    r"""Compute the cluster's relaxation time.
-
-    Baumgardt 1998 Equation 1.
-
-    $$
-        t_r = \frac{0.138 \sqrt{M_c} r_{hm}^{3/2}}{\sqrt{G} m_{avg} \ln(0.4 N)}
-    $$
-
-    where $N$ is the number of stars in the cluster, $M_c$ is the mass of the
-    cluster, $r_{hm}$ is the half-mass radius of the cluster, $m_{avg}$ is the
-    average stellar mass, and $G$ is the gravitational constant.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.dynamics.cluster as gdc
-
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.5, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
-
-    >>> gdc.relax_time.relaxation_time_baumgardt1998(M, r_hm, m_avg, G=G).uconvert("Myr")
-    Quantity(Array(129.63033763, dtype=float64, ...), unit='Myr')
-
-    The function also works with raw JAX arrays, in which case the
-    inputs are assumed to be in compatible units:
-
-    >>> gdc.relax_time.relaxation_time_baumgardt1998(M.value, r_hm.value, m_avg.value, G=0.00449)
-    Array(129.63033763, dtype=float64, ...)
-
-    """  # noqa: E501
-    G = _check_types_match(G, M, name="G")
-    N = M / m_avg
-    return 0.138 * jnp.sqrt(N * r_hm**3 / (G * m_avg)) / jnp.log(0.4 * N)
-
-
-######################################################################
 # Spitzer 1987 relaxation time
 
 
@@ -316,3 +233,86 @@ def core_relaxation_time_spitzer1987(
     return _relaxation_time_spitzer1987(
         Mc, r_c, m_avg, prefactor=0.34, lnLambda=lnLambda, G=G
     )
+
+
+######################################################################
+# Baumgardt (1998) relaxation time
+# TODO: I don't think this is the original reference
+
+
+@final
+class Baumgardt1998(AbstractRelaxationTimeMethod):
+    r"""Relaxation time from Baumgardt (1998).
+
+    $$ t_r = \frac{0.138 \sqrt{M_c} r_{hm}^{3/2}}{\sqrt{G} m_{avg} \\ln(0.4 N)} $$
+
+    """
+
+
+@dispatch.multi(
+    (type[Baumgardt1998], gt.BBtSz0, gt.BBtSz0, gt.BBtSz0),
+    (type[Baumgardt1998], gt.BBtQuSz0, gt.BBtQuSz0, gt.BBtQuSz0),
+)
+def relaxation_time(
+    _: type[Baumgardt1998],
+    M: BBtAorQSz0,
+    r_hm: BBtAorQSz0,
+    m_avg: BBtAorQSz0,
+    /,
+    **kw: Any,
+) -> BBtAorQSz0:
+    """Compute relaxation time using Baumgardt (1998) formula."""
+    return relaxation_time_baumgardt1998(M, r_hm, m_avg, **kw)
+
+
+# ---------------------------
+
+
+@dispatch.multi(
+    (gt.BBtSz0, gt.BBtSz0, gt.BBtSz0),
+    (gt.BBtQuSz0, gt.BBtQuSz0, gt.BBtQuSz0),
+)
+@ft.partial(jax.jit)
+def relaxation_time_baumgardt1998(
+    M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
+    r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
+    m_avg: Antd[BBtAorQSz0, Doc("average stellar mass")],
+    /,
+    *,
+    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
+) -> BBtAorQSz0:
+    r"""Compute the cluster's relaxation time.
+
+    Baumgardt 1998 Equation 1.
+
+    $$
+        t_r = \frac{0.138 \sqrt{M_c} r_{hm}^{3/2}}{\sqrt{G} m_{avg} \ln(0.4 N)}
+    $$
+
+    where $N$ is the number of stars in the cluster, $M_c$ is the mass of the
+    cluster, $r_{hm}$ is the half-mass radius of the cluster, $m_{avg}$ is the
+    average stellar mass, and $G$ is the gravitational constant.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.dynamics.cluster as gdc
+
+    >>> M = u.Quantity(1e4, "Msun")
+    >>> r_hm = u.Quantity(2, "pc")
+    >>> m_avg = u.Quantity(0.5, "Msun")
+    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+
+    >>> gdc.relax_time.relaxation_time_baumgardt1998(M, r_hm, m_avg, G=G).uconvert("Myr")
+    Quantity(Array(129.63033763, dtype=float64, ...), unit='Myr')
+
+    The function also works with raw JAX arrays, in which case the
+    inputs are assumed to be in compatible units:
+
+    >>> gdc.relax_time.relaxation_time_baumgardt1998(M.value, r_hm.value, m_avg.value, G=0.00449)
+    Array(129.63033763, dtype=float64, ...)
+
+    """  # noqa: E501
+    G = _check_types_match(G, M, name="G")
+    N = M / m_avg
+    return 0.138 * jnp.sqrt(N * r_hm**3 / (G * m_avg)) / jnp.log(0.4 * N)

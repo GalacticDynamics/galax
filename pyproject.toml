@@ -124,6 +124,10 @@
   version.source                   = "vcs"
 
 
+[tool.codespell]
+ignore-words-list = "Hart"  # in dynamics/_src/cluster/relax_time.py
+
+
 [tool.commitizen]
   name = "cz_gitmoji"
 

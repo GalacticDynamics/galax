@@ -332,8 +332,8 @@ class Baumgardt1998MassLossRate(AbstractMassRateField):
             self.relaxation_time_flag,
             Mq,
             args["r_hm"],
-            args["m_avg"],
-            G=pot.constants["G"],
+            m_avg=args["m_avg"],
+            constants=pot.constants,
         ).uconvert("Myr")
         r_ratio = u.ustrip("", args["r_hm"] / r_t)
 

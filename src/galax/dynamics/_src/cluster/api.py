@@ -139,31 +139,37 @@ def relaxation_time(*args: Any, **kwargs: Any) -> u.AbstractQuantity:
     >>> M = u.Quantity(1e4, "Msun")
     >>> r_hm = u.Quantity(2, "pc")
     >>> m_avg = u.Quantity(0.5, "Msun")
-    >>> G = u.Quantity(4.30091e-3, "pc km2 / (s2 Msun)")
 
-    >>> gdc.relaxation_time(M, r_hm, m_avg, G=G).uconvert("Myr")
-    Quantity(Array(129.50788873, dtype=float64, weak_type=True), unit='Myr')
+    >>> gdc.relaxation_time(M, r_hm, m_avg=m_avg).uconvert("Myr")
+    Quantity(Array(129.50777927, dtype=float64), unit='Myr')
 
     There are many different definitions of the relaxation time.
     By passing a flag object you can choose the one you want.
     Let's work through the built-in options:
 
+    >>> flags = gdc.relax_time  # (not only flags)
+
     - Baumgardt (1998) (the default):
 
-    >>> gdc.relaxation_time(gdc.relax_time.Baumgardt1998, M, r_hm, m_avg, G=G).uconvert("Myr")
-    Quantity(Array(129.50788873, dtype=float64, ...), unit='Myr')
+    >>> gdc.relaxation_time(flags.Baumgardt1998, M, r_hm, m_avg=m_avg).uconvert("Myr")
+    Quantity(Array(129.50777927, dtype=float64), unit='Myr')
+
+    - Spitzer and Hart (1971):
+
+    >>> gdc.relaxation_time(flags.SpitzerHart1971, M, r_hm, m_avg=m_avg).uconvert("Myr")
+    Quantity(Array(151.23177551, dtype=float64), unit='Myr')
 
     - Spitzer (1987) half-mass:
 
     >>> lnLambda = 10  # very approximate
-    >>> gdc.relaxation_time(gdc.relax_time.Spitzer1987HalfMass, M, r_hm, m_avg, lnLambda=lnLambda, G=G).uconvert("Myr")
-    Quantity(Array(143.38057289, dtype=float64, weak_type=True), unit='Myr')
+    >>> gdc.relaxation_time(flags.Spitzer1987HalfMass, M, r_hm, m_avg=m_avg, lnLambda=lnLambda).uconvert("Myr")
+    Quantity(Array(143.38045171, dtype=float64), unit='Myr')
 
     - Spitzer (1987) core:
 
     >>> Mcore, r_c = M / 5, r_hm / 5  # very approximate
-    >>> gdc.relaxation_time(gdc.relax_time.Spitzer1987Core, Mcore, r_c, m_avg, lnLambda=lnLambda, G=G).uconvert("Myr")
-    Quantity(Array(11.47044583, dtype=float64, weak_type=True), unit='Myr')
+    >>> gdc.relaxation_time(flags.Spitzer1987Core, Mcore, r_c, m_avg=m_avg, lnLambda=lnLambda).uconvert("Myr")
+    Quantity(Array(11.47043614, dtype=float64), unit='Myr')
 
     Using multiple-dispatch, you can register your own relaxation time
     definition.

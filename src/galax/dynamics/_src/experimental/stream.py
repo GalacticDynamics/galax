@@ -88,9 +88,9 @@ class StreamSimulator:
     >>> release_times = jnp.linspace(-4_000, -150, 2_000)
 
     >>> stream_simulator = gd.experimental.stream.StreamSimulator()
-    >>> prog_ics = stream_simulator.init(pot, qp0, t0,
+    >>> stream_ics = stream_simulator.init(pot, qp0, t0,
     ...     release_times=release_times, Msat=1e5, key=jr.key(0))
-    >>> prog_ics
+    >>> stream_ics
     StreamICs(release_times=Array([-4000. ...  -150. ], dtype=float64),
         prog_mass=Array([100000., ..., 100000.], dtype=float64),
         qp_lead=(Array([[-10.76187104,  -7.35400639,   0.0674116 ],
@@ -106,7 +106,7 @@ class StreamSimulator:
                          ...,
                          [-2.10223491e-01, -8.18272245e-02, -1.58559419e-04]],      dtype=float64)))
 
-    >>> stream_lead, stream_trail = stream_simulator.run(pot, prog_ics, t1=t0)
+    >>> stream_lead, stream_trail = stream_simulator.run(pot, stream_ics, t1=t0)
     >>> stream_lead
     (Array([[-4.99685677e+00,  5.65910858e+00,  3.63136282e-02],
             ...,
@@ -252,10 +252,10 @@ class StreamSimulator:
         >>> Msat = 2.5e4
 
         >>> stream_simulator = gd.experimental.stream.StreamSimulator()
-        >>> prog_ics = stream_simulator.init(pot, qp0, t0,
+        >>> stream_ics = stream_simulator.init(pot, qp0, t0,
         ...     release_times=release_times, Msat=1e5, key=jr.key(0))
 
-        >>> stream_lead, stream_trail = stream_simulator.run(pot, prog_ics, t1=t0)
+        >>> stream_lead, stream_trail = stream_simulator.run(pot, stream_ics, t1=t0)
         >>> stream_lead
         (Array([[ 9.81455527e+00,  0.00000000e+00,  8.51988216e-02],
                 [ 9.85159942e+00, -2.78733758e-03,  2.32619681e-02],

@@ -15,13 +15,13 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
-from .events import MassBelowThreshold
-from .fields import (
+from .dmdt import (
     AbstractMassRateField,
     CustomMassRateField,
     FieldArgs,
     MassVectorField,
 )
+from .events import MassBelowThreshold
 from galax.dynamics._src.solver import AbstractSolver, SolveState
 from galax.dynamics._src.utils import parse_saveat
 

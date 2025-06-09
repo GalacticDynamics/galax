@@ -1,6 +1,6 @@
 """Experimental dynamics."""
 
-__all__: list[str] = []
+__all__ = ["StreamSimulator"]
 
 import functools as ft
 from collections.abc import Mapping
@@ -70,11 +70,7 @@ ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
 
 # TODO: put images in the docstring
 @final
-@ft.partial(
-    register_dataclass,
-    data_fields=[],
-    meta_fields=[],
-)
+@ft.partial(register_dataclass, data_fields=[], meta_fields=[])
 @dataclass
 class StreamSimulator:
     """Simulate a stellar stream.
@@ -92,33 +88,25 @@ class StreamSimulator:
     >>> release_times = jnp.linspace(-4_000, -150, 2_000)
 
     >>> stream_simulator = gd.experimental.stream.StreamSimulator()
-    >>> prog_ics = stream_simulator.init(pot, qp0, t0,
+    >>> stream_ics = stream_simulator.init(pot, qp0, t0,
     ...     release_times=release_times, Msat=1e5, key=jr.key(0))
-    >>> prog_ics
+    >>> stream_ics
     StreamICs(release_times=Array([-4000. ...  -150. ], dtype=float64),
         prog_mass=Array([100000., ..., 100000.], dtype=float64),
         qp_lead=(Array([[-10.76187104,  -7.35400639,   0.0674116 ],
-                        [-10.67981739,  -7.88966322,   0.01748606],
                         ...,
-                        [ -4.30480319,  14.11376906,   0.04298453],
                         [ -4.72896837,  14.03657666,  -0.09171104]], dtype=float64),
                  Array([[ 4.77386246e-02, -2.74264308e-01, -4.68601912e-04],
-                        [ 6.23646752e-02, -2.67352292e-01, -1.26827331e-03],
                         ...,
-                        [-2.13532056e-01, -6.83334144e-02, -2.09492156e-04],
                         [-2.09972781e-01, -8.17427593e-02, -1.58559419e-04]],      dtype=float64)),
         qp_trail=(Array([[-11.00416221,  -7.5195734 ,   0.0674116 ],
-                         [-10.8712839 ,  -8.03110818,   0.01748606],
                          ...,
-                         [ -4.44634357,  14.57782472,   0.04298453],
                          [ -4.83974586,  14.36538765,  -0.09171104]], dtype=float64),
                   Array([[ 5.07429914e-02, -2.78660906e-01, -4.68601912e-04],
-                         [ 6.21540598e-02, -2.67067193e-01, -1.26827331e-03],
                          ...,
-                         [-2.15139556e-01, -6.88237136e-02, -2.09492156e-04],
                          [-2.10223491e-01, -8.18272245e-02, -1.58559419e-04]],      dtype=float64)))
 
-    >>> stream_lead, stream_trail = stream_simulator.run(pot, prog_ics, t1=t0)
+    >>> stream_lead, stream_trail = stream_simulator.run(pot, stream_ics, t1=t0)
     >>> stream_lead
     (Array([[-4.99685677e+00,  5.65910858e+00,  3.63136282e-02],
             ...,
@@ -129,6 +117,7 @@ class StreamSimulator:
 
     """  # noqa: E501
 
+    # TODO: enable init from an Orbit instance + release time information.
     @ft.partial(jax.jit, static_argnames=("solver", "solver_kwargs"))
     def init(
         self,
@@ -255,19 +244,31 @@ class StreamSimulator:
         >>> import galax.potential as gp
         >>> import galax.dynamics as gd
 
-        >>> pot = gp.HernquistPotential(1e12, 10, units="galactic")
-        >>> qp0 = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
-        >>> t0 = 0.0
-        >>> release_times = jnp.linspace(-4_000, -150, 2_000)
-        >>> Msat = 1e5
+        >>> pot = gp.NFWPotential(8.73951152e+11, 15, units="galactic")
+        >>> qp0 = (jnp.array([10.0, 0.0, 0.0]),
+        ...        jnp.array([0.0, 0.17386107, 0.0]))
+        >>> t0, t1 = 0.0, 1_000.0
+        >>> release_times = jnp.linspace(t0, t1, 1_000)
+        >>> Msat = 2.5e4
 
         >>> stream_simulator = gd.experimental.stream.StreamSimulator()
-        >>> prog_ics = stream_simulator.init(pot, qp0, t0,
+        >>> stream_ics = stream_simulator.init(pot, qp0, t0,
         ...     release_times=release_times, Msat=1e5, key=jr.key(0))
 
-        >>> stream_lead, stream_trail = stream_simulator.run(pot, prog_ics, t1=t0)
+        >>> stream_lead, stream_trail = stream_simulator.run(pot, stream_ics, t1=t0)
+        >>> stream_lead
+        (Array([[ 9.81455527e+00,  0.00000000e+00,  8.51988216e-02],
+                [ 9.85159942e+00, -2.78733758e-03,  2.32619681e-02],
+                ...,
+                [ 9.43116948e+00, -2.16524182e+00,  2.98726030e-02],
+                [ 8.26514488e+00, -4.11015501e+00,  2.01546004e-02]],      dtype=float64),
+         Array([[ 0.00000000e+00,  1.70849143e-01, -5.30095038e-04],
+                [ 3.26832788e-05,  1.74065081e-01, -1.45228915e-03],
+                ...,
+                [ 5.82063245e-02,  1.67026840e-01,  5.05606273e-04],
+                [ 1.10606610e-01,  1.46136278e-01,  1.14352437e-03]],      dtype=float64))
 
-        """
+        """  # noqa: E501
 
 
 # ---------------------------

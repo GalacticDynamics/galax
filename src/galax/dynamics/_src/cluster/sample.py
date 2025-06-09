@@ -18,7 +18,7 @@ from jaxtyping import Array, Float, PRNGKeyArray
 import quaxed.numpy as jnp
 import unxt as u
 
-from .fields import AbstractMassRateField
+from .dmdt import AbstractMassRateField
 
 
 class ReleaseTimeSampler(eqx.Module):  # type: ignore[misc]

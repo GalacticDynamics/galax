@@ -25,8 +25,7 @@ __all__ = [
 
 from . import radius, relax_time
 from .api import lagrange_points, relaxation_time, tidal_radius
-from .events import MassBelowThreshold
-from .fields import (
+from .dmdt import (
     AbstractMassRateField,
     Baumgardt1998MassLossRate,
     ConstantMassRate,
@@ -34,6 +33,7 @@ from .fields import (
     MassVectorField,
     ZeroMassRate,
 )
+from .events import MassBelowThreshold
 from .sample import ReleaseTimeSampler
 from .solver import MassSolver
 

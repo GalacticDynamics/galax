@@ -11,13 +11,23 @@ __all__ = [
 
 from abc import abstractmethod
 from dataclasses import KW_ONLY
-from typing import Any, Protocol, TypeAlias, TypedDict, cast, final, runtime_checkable
+from typing import (
+    Any,
+    Final,
+    Protocol,
+    TypeAlias,
+    TypedDict,
+    cast,
+    final,
+    runtime_checkable,
+)
 
 import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Real, Shaped
 
 import unxt as u
+from dataclassish.converters import Unless
 from unxt.quantity import AllowValue, BareQuantity as FastQ
 
 from .api import relaxation_time, tidal_radius
@@ -28,6 +38,7 @@ from galax.dynamics._src.orbit.orbit import Orbit
 
 Time: TypeAlias = Any
 ClusterMass: TypeAlias = Any
+mass_loss_dimensions: Final = u.dimension_of(u.unit("kg/s"))
 
 
 class FieldArgs(TypedDict, total=False):
@@ -195,13 +206,39 @@ class ConstantMassRate(AbstractMassRateField):
     >>> mass_history.ys
     Array([10000.,  9750.,  9500.,  9250.,  9000.], dtype=float64)
 
+    The mass rate can also be a quantity:
+
+    >>> dmdt_fn = gdc.ConstantMassRate(u.Quantity(-1, "Msun/Myr"), units="galactic")
+    >>> mass_history = mass_solver.solve(dmdt_fn, M, t0, t1, saveat=saveat)
+    >>> mass_history.ys
+    Array([10000.,  9750.,  9500.,  9250.,  9000.], dtype=float64)
+
+    The mass rate will be checked to make sure it has the correct dimensions:
+
+    >>> try: dmdt_fn = gdc.ConstantMassRate(u.Quantity(-1, "km/s"), units="galactic")
+    ... except ValueError as e: print(e)
+    `dm_dt` must have dimensions of 'mass/time', but got speed/velocity
+
     """
 
-    dm_dt: Real[Array | u.AbstractQuantity, ""] = eqx.field(converter=jnp.asarray)
+    dm_dt: Real[Array | u.AbstractQuantity, ""] = eqx.field(
+        converter=Unless(u.AbstractQuantity, jnp.asarray)
+    )
     _: KW_ONLY
     units: u.AbstractUnitSystem = eqx.field(
         converter=u.unitsystem, default="galactic", static=True
     )
+
+    def __check_init__(self) -> None:
+        if (
+            isinstance(self.dm_dt, u.AbstractQuantity)
+            and u.dimension_of(self.dm_dt) != mass_loss_dimensions
+        ):
+            msg = (
+                f"`dm_dt` must have dimensions of 'mass/time', "
+                f"but got {u.dimension_of(self.dm_dt)}"
+            )
+            raise ValueError(msg)
 
     def __call__(
         self,

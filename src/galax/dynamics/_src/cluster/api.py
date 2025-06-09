@@ -42,7 +42,7 @@ class L1L2LagrangePoints(NamedTuple, Generic[T]):
 def lagrange_points(
     potential: gp.AbstractPotential, x: Any, v: Any, /, mass: Any, t: Any
 ) -> L1L2LagrangePoints[Any]:
-    """Compute the lagrange points of a cluster in a host potential.
+    """Compute the L1, L2 lagrange points of a cluster in a host potential.
 
     Examples
     --------

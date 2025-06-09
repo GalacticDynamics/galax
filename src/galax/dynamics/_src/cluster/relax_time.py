@@ -10,6 +10,8 @@ __all__ = [
     # specific methods
     "Baumgardt1998",
     "relaxation_time_baumgardt1998",
+    "SpitzerHart1971",
+    "relaxation_time_spitzer_hart_1971",
     "Spitzer1987HalfMass",
     "half_mass_relaxation_time_spitzer1987",
     "Spitzer1987Core",
@@ -73,6 +75,122 @@ def relaxation_time(
 ) -> BBtAorQSz0:
     """Compute relaxation time, defaulting to Baumgardt (1998) formula."""
     return relaxation_time_baumgardt1998(M, r_hm, m_avg, **kw)
+
+
+######################################################################
+# 10.1086/150855: Spitzer and Hart (1971) relaxation time
+# Also in 10.1093/mnras/268.1.257
+
+
+@final
+class SpitzerHart1971(AbstractRelaxationTimeMethod):
+    r"""Relaxation time from Spitzer and Hart (1971).
+
+    $$
+    t_{\mathrm{rh}} = \frac{0.138 \sqrt{N} r_{\mathrm{h}}^{3/2}}
+                           {\sqrt{M G} \ln(\gamma N)}
+    $$
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.dynamics.cluster as gdc
+
+    >>> M = u.Quantity(1e4, "Msun")
+    >>> r_hm = u.Quantity(2, "pc")
+    >>> m_avg = u.Quantity(0.42, "Msun")
+    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> trh = gdc.relaxation_time(gdc.relax_time.SpitzerHart1971, M, r_hm,
+    ...     m_avg=m_avg, gamma=0.11, G=G)
+    >>> print(trh)
+    Quantity['time'](176.21612725, unit='Myr')
+
+    """
+
+
+@dispatch.multi(
+    (type[SpitzerHart1971], gt.BBtSz0, gt.BBtSz0),
+    (type[SpitzerHart1971], gt.BBtQuSz0, gt.BBtQuSz0),
+)
+def relaxation_time(
+    _: type[SpitzerHart1971],
+    M: BBtAorQSz0,
+    r_hm: BBtAorQSz0,
+    /,
+    m_avg: BBtAorQSz0,
+    **kw: Any,
+) -> BBtAorQSz0:
+    r"""Compute relaxation time using Spitzer and Hart (1971) formula.
+
+    $$
+    t_{\mathrm{rh}} = \frac{0.138 \sqrt{N} r_{\mathrm{h}}^{3/2}}
+                           {\sqrt{M G} \ln(\gamma N)}
+    $$
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.dynamics.cluster as gdc
+
+    >>> M = u.Quantity(1e4, "Msun")
+    >>> r_hm = u.Quantity(2, "pc")
+    >>> m_avg = u.Quantity(0.42, "Msun")
+    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> trh = gdc.relaxation_time(gdc.relax_time.SpitzerHart1971, M, r_hm,
+    ...     m_avg=m_avg, gamma=0.11, G=G)
+    >>> print(trh)
+    Quantity['time'](176.21612725, unit='Myr')
+
+    """
+    return relaxation_time_spitzer_hart_1971(M, r_hm, m_avg=m_avg, **kw)
+
+
+# ---------------------------
+
+
+@ft.partial(jax.jit)
+def relaxation_time_spitzer_hart_1971(
+    M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
+    r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
+    /,
+    *,
+    m_avg: Antd[float, Doc("mean stellar mass.")] = 0.42,
+    gamma: Antd[float, Doc("Coulomb logarithm term.")] = 0.11,
+    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
+) -> BBtAorQSz0:
+    r"""Compute relaxation time using Spitzer and Hart (1971) formula.
+
+    $$ t_{\mathrm{rh}} = \frac{0.138 \sqrt{N} r_{\mathrm{h}}^{3/2}}
+                              {\sqrt{M G} \ln(\gamma N)}
+    $$
+
+    where:
+
+    - $N = m / \bar{M}$ is the mean number of stars in the cluster,
+    - $r_h$ is the half-mass radius of the cluster,
+    - $\bar{M}$ is the mean stellar mass. For a Chabrier (2005) IMF between 0.08
+      and 100 $M_{\odot}$ this is approximately 0.42 $M_{\odot}$,
+    - $G$ is the gravitational constant,
+    - $\ln(\gamma N)$ is the Coulomb logarithm. For equal-mass clusters (Giersz
+      & Heggie 1994) $\gamma \sim 0.11$.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.dynamics.cluster as gdc
+
+    >>> M = u.Quantity(1e4, "Msun")
+    >>> r_hm = u.Quantity(2, "pc")
+    >>> m_avg = u.Quantity(0.42, "Msun")
+    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> trh = gdc.relax_time.relaxation_time_spitzer_hart_1971(
+    ...     M, r_hm, m_avg=m_avg, gamma=0.11, G=G)
+    >>> print(trh)
+    Quantity['time'](176.21612725, unit='Myr')
+
+    """
+    N = M / m_avg
+    return 0.138 * jnp.sqrt(N * r_hm**3 / (G * m_avg)) / jnp.log(gamma * N)
 
 
 ######################################################################

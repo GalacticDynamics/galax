@@ -13,14 +13,14 @@ import quaxed.numpy as jnp
 
 import galax._custom_types as gt
 
-BatchableIntLike: TypeAlias = Shaped[gt.IntLike, "*#batch"]
+BatchableIntSz0: TypeAlias = Shaped[gt.IntSz0, "*#batch"]
 
 T = TypeVar("T", bound=ArrayLike)
 
 
 @partial(jax.jit)
 @partial(jax.numpy.vectorize, signature="(3)->(3)")
-def cartesian_to_spherical(xyz: gt.Vec3, /) -> gt.Vec3:
+def cartesian_to_spherical(xyz: gt.FloatSz3, /) -> gt.FloatSz3:
     """Convert Cartesian coordinates to spherical coordinates.
 
     Parameters
@@ -64,7 +64,7 @@ def psi_of_r(r: T) -> T:
 
 @partial(jax.numpy.vectorize, signature="(n),(),()->(n)", excluded=(3,))
 @partial(jax.jit, static_argnames=("m_max",))  # TODO: should l,m be static?
-def _real_Ylm(theta: gt.VecN, l: gt.IntLike, m: gt.IntLike, m_max: int) -> gt.VecN:
+def _real_Ylm(theta: gt.SzN, l: gt.IntSz0, m: gt.IntSz0, m_max: int) -> gt.SzN:
     # TODO: sph_harm only supports scalars, even though it returns an array!
     theta = xp.atleast_1d(theta)
     return sph_harm(
@@ -74,7 +74,7 @@ def _real_Ylm(theta: gt.VecN, l: gt.IntLike, m: gt.IntLike, m_max: int) -> gt.Ve
 
 @partial(jax.jit, static_argnames=("m_max",))
 def real_Ylm(
-    theta: gt.SzAny, l: BatchableIntLike, m: BatchableIntLike, m_max: int = 100
+    theta: gt.SzAny, l: BatchableIntSz0, m: BatchableIntSz0, m_max: int = 100
 ) -> gt.SzAny:
     r"""Get the spherical harmonic :math:`Y_{lm}(\theta)` of the polar angle.
 

@@ -4,13 +4,12 @@ from functools import partial
 from typing import TypeAlias, TypeVar, cast
 
 import jax
-from jax import lax
-from jax.scipy.special import sph_harm
 from jaxtyping import ArrayLike, Shaped
 
 import quaxed.numpy as jnp
 
 import galax._custom_types as gt
+from galax.potential._src.builtin.multipole import compute_Ylm
 
 BatchableIntSz0: TypeAlias = Shaped[gt.IntSz0, "*#batch"]
 
@@ -53,16 +52,6 @@ def psi_of_r(r: T) -> T:
 # =============================================================================
 
 
-@partial(jax.numpy.vectorize, signature="(n),(),()->(n)", excluded=(3,))
-@partial(jax.jit, static_argnames=("m_max",))  # TODO: should l,m be static?
-def _real_Ylm(theta: gt.SzN, l: gt.IntSz0, m: gt.IntSz0, m_max: int) -> gt.SzN:
-    # TODO: sph_harm only supports scalars, even though it returns an array!
-    theta = jnp.atleast_1d(theta)
-    return sph_harm(
-        m, jnp.atleast_1d(l), theta=jnp.zeros_like(theta), phi=theta, n_max=m_max
-    ).real
-
-
 @partial(jax.jit, static_argnames=("m_max",))
 def real_Ylm(
     theta: gt.SzAny, l: BatchableIntSz0, m: BatchableIntSz0, m_max: int = 100
@@ -90,4 +79,5 @@ def real_Ylm(
         ``(n),(),()->(n)``.
     """
     # TODO: raise an error if m > m_max
-    return _real_Ylm(theta, l, m, m_max)
+    _real_Ylm, _ = compute_Ylm(l, m, theta=theta, phi=jnp.zeros_like(theta), l_max=m_max)
+    return _real_Ylm

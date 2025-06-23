@@ -4,7 +4,6 @@ import hypothesis
 import hypothesis.extra.numpy as hnp
 import jax
 import numpy as np
-import numpy.typing as npt
 import scipy.special as sp
 from hypothesis import assume, given, strategies as st
 

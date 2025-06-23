@@ -1,4 +1,4 @@
-"""Test the Gegenbauer class."""
+"""Test Gegenbauer utils."""
 
 import jax
 import numpy as np
@@ -11,8 +11,6 @@ from galax.potential._src.scf.coeffs_helper import (
     expansion_coeffs_Anl_discrete,
     normalization_Knl,
 )
-from galax.potential._src.scf.gegenbauer import GegenbauerCalculator
-
 
 def test_normalization_Knl():
     """Test the ``normalization_Knl`` function.
@@ -51,9 +49,8 @@ def test_expansion_coeffs_Anl_discrete():
 @jax.jit
 def compare_rho_nl(s, n, l):
     """Compare the ``rho_nl`` function."""
-    gc = GegenbauerCalculator(10)
 
-    mock = rho_nl(s, n, l, gegenbauer=gc)
+    mock = rho_nl(s, n, l)
     observed = jax.lax.stop_gradient(mock)
 
     return -jnp.sum((observed - mock) ** 2)

@@ -9,13 +9,13 @@ from jaxtyping import Array, Float
 
 from .coeffs_helper import normalization_Knl
 from .utils import psi_of_r
-from galax.potential._src.scf.gegenbauer import GegenbauerCalculator
+from spexial import eval_gegenbauer
 from galax.typing import IntLike
 
 
-@partial(jax.jit, static_argnames=("gegenbauer",))
+@jax.jit
 def rho_nl(
-    s: Float[Array, "N"], n: int, l: int, *, gegenbauer: GegenbauerCalculator
+    s: Float[Array, "N"], n: int, l: int, *,
 ) -> Float[Array, "N"]:
     r"""Radial density expansion terms.
 
@@ -27,9 +27,6 @@ def rho_nl(
         Radial expansion term.
     l : int
         Spherical harmonic term.
-    gegenbauer : GegenbauerCalculator, keyword-only
-        Gegenbauer calculator. This is used to compute the Gegenbauer
-        polynomials efficiently.
 
     Returns
     -------
@@ -39,16 +36,16 @@ def rho_nl(
         jnp.sqrt(4 * jnp.pi)
         * (normalization_Knl(n=n, l=l) / (2 * jnp.pi))
         * (s**l / (s * (1 + s) ** (2 * l + 3)))
-        * gegenbauer(n, 2 * l + 1.5, psi_of_r(s))
+        * eval_gegenbauer(n, 2 * l + 1.5, psi_of_r(s))
     )
 
 
 # ======================================================================
 
 
-@partial(jax.jit, static_argnames=("gegenbauer",))
+@jax.jit
 def phi_nl(
-    s: Float[Array, "samples"], n: IntLike, l: IntLike, gegenbauer: GegenbauerCalculator
+    s: Float[Array, "samples"], n: IntLike, l: IntLike,
 ) -> Float[Array, "samples"]:
     r"""Angular density expansion terms.
 
@@ -60,9 +57,6 @@ def phi_nl(
         Radial expansion term.
     l : int
         Spherical harmonic term.
-    gegenbauer : GegenbauerCalculator, keyword-only
-        Gegenbauer calculator. This is used to compute the Gegenbauer
-        polynomials efficiently.
 
     Returns
     -------
@@ -71,17 +65,15 @@ def phi_nl(
     Examples
     --------
     >>> import jax.numpy as jnp
-    >>> from galax.potential._src.scf.gegenbauer import GegenbauerCalculator
-    >>> gegenbauer = GegenbauerCalculator(100)
-    >>> phi_nl(0.5, 1, 1, gegenbauer=gegenbauer)
+    >>> phi_nl(0.5, 1, 1)
     Array(0.5, dtype=float32)
-    >>> phi_nl(jnp.array([0.5, 0.5]), 1, 1, gegenbauer=gegenbauer)
+    >>> phi_nl(jnp.array([0.5, 0.5]), 1, 1)
     Array([0.5, 0.5], dtype=float32)
     """
     return (
         -jnp.sqrt(4 * jnp.pi)
         * (s**l / (1.0 + s) ** (2 * l + 1))
-        * gegenbauer(n, 2 * l + 1.5, psi_of_r(s))
+        * eval_gegenbauer(n, 2 * l + 1.5, psi_of_r(s))
     )
 
 

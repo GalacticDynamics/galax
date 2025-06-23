@@ -11,7 +11,7 @@ from jaxtyping import ArrayLike, Shaped
 
 import quaxed.numpy as jnp
 
-import galax.typing as gt
+import galax._custom_types as gt
 
 BatchableIntLike: TypeAlias = Shaped[gt.IntLike, "*#batch"]
 
@@ -74,8 +74,8 @@ def _real_Ylm(theta: gt.VecN, l: gt.IntLike, m: gt.IntLike, m_max: int) -> gt.Ve
 
 @partial(jax.jit, static_argnames=("m_max",))
 def real_Ylm(
-    theta: gt.FloatAnyShape, l: BatchableIntLike, m: BatchableIntLike, m_max: int = 100
-) -> gt.FloatAnyShape:
+    theta: gt.SzAny, l: BatchableIntLike, m: BatchableIntLike, m_max: int = 100
+) -> gt.SzAny:
     r"""Get the spherical harmonic :math:`Y_{lm}(\theta)` of the polar angle.
 
     This is different than the scipy (and thus JAX) convention, which is

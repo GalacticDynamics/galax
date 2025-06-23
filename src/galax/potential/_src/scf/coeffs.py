@@ -12,11 +12,10 @@ from jaxtyping import Array, Float
 import galax.typing as gt
 from .bfe_helper import phi_nl_vec
 from .coeffs_helper import expansion_coeffs_Anl_discrete
-from .gegenbauer import GegenbauerCalculator
 from .utils import cartesian_to_spherical, real_Ylm
 
 
-@partial(jax.jit, static_argnames=("nmax", "lmax", "gegenbauer"))
+@partial(jax.jit, static_argnames=("nmax", "lmax"))
 def compute_coeffs_discrete(
     xyz: Float[Array, "samples 3"],
     mass: Float[Array, "samples"],  # type: ignore[name-defined]
@@ -24,7 +23,6 @@ def compute_coeffs_discrete(
     nmax: gt.IntLike,
     lmax: gt.IntLike,
     r_s: gt.FloatQScalar,
-    gegenbauer: GegenbauerCalculator | None = None,
 ) -> tuple[
     Float[Array, "{nmax}+1 {lmax}+1 {lmax}+1"],
     Float[Array, "{nmax}+1 {lmax}+1 {lmax}+1"],
@@ -53,11 +51,6 @@ def compute_coeffs_discrete(
         Scale radius.
         :todo:`unit support`
 
-    gegenbauer : GegenbauerCalculator, optional
-        Gegenbauer calculator. This is used to compute the Gegenbauer
-        polynomials efficiently. If not provided, a new calculator will be
-        created.
-
     Returns
     -------
     Snlm : Array[float, (nmax+1, lmax+1, lmax+1)]
@@ -65,13 +58,6 @@ def compute_coeffs_discrete(
     Tnlm : Array[float, (nmax+1, lmax+1, lmax+1)]
         The value of the sine expansion coefficient.
     """
-    if gegenbauer is None:
-        ggncalc = GegenbauerCalculator(nmax=nmax)
-    elif gegenbauer.nmax < nmax:
-        msg = "gegenbauer.nmax != nmax"
-        raise ValueError(msg)
-    else:
-        ggncalc = gegenbauer
 
     rthetaphi = cartesian_to_spherical(xyz)
     r = rthetaphi[..., 0]
@@ -83,7 +69,7 @@ def compute_coeffs_discrete(
     ls = jnp.arange(lmax + 1)[None, :]  # (n, l)
 
     Anl_til = expansion_coeffs_Anl_discrete(ns, ls)  # (n, l)
-    phinl = phi_nl_vec(s, ns, ls, ggncalc)  # (n, l, N)
+    phinl = phi_nl_vec(s, ns, ls)  # (n, l, N)
 
     li, mi = jnp.tril_indices(lmax + 1)  # (l*(l+1)//2,)
     lm = jnp.zeros((lmax + 1, lmax + 1), dtype=int).at[li, mi].set(li)  # (l, m)

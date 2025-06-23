@@ -14,7 +14,6 @@ from jaxtyping import Array, Float
 import galax.typing as gt
 from .bfe_helper import phi_nl_vec, rho_nl as calculate_rho_nl
 from .coeffs import compute_coeffs_discrete
-from .gegenbauer import GegenbauerCalculator
 from .utils import cartesian_to_spherical, real_Ylm
 from galax.potential._src.core import AbstractPotential
 from galax.potential._src.param import AbstractParameter, ParameterField
@@ -60,7 +59,6 @@ class SCFPotential(AbstractPotential):
 
     nmax: int = eqx.field(init=False, static=True, repr=False)
     lmax: int = eqx.field(init=False, static=True, repr=False)
-    _ultra_sph: GegenbauerCalculator = eqx.field(init=False, static=True, repr=False)
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -69,9 +67,6 @@ class SCFPotential(AbstractPotential):
         shape = self.Snlm(0).shape
         object.__setattr__(self, "nmax", shape[0] - 1)
         object.__setattr__(self, "lmax", shape[1] - 1)
-
-        # gegenbauer calculator
-        object.__setattr__(self, "_ultra_sph", GegenbauerCalculator(self.nmax))
 
     # ==========================================================================
 
@@ -88,7 +83,7 @@ class SCFPotential(AbstractPotential):
 
         ns = jnp.arange(self.nmax + 1)[:, None, None]  # (n, [l], [m])
         ls = jnp.arange(self.lmax + 1)[None, :, None]  # ([n], l, [m])
-        phi_nl = phi_nl_vec(s, ns, ls, self._ultra_sph)  # (n, l, [m], N)
+        phi_nl = phi_nl_vec(s, ns, ls)  # (n, l, [m], N)
 
         li, mi = jnp.tril_indices(self.lmax + 1)  # (l*(l+1)//2,)
         shape = (1, self.lmax + 1, self.lmax + 1, 1)  # ([n], l, m, [N])
@@ -121,7 +116,7 @@ class SCFPotential(AbstractPotential):
         ns = jnp.arange(self.nmax + 1)[:, None, None]  # (n, [l], [m])
         ls = jnp.arange(self.lmax + 1)[None, :, None]  # ([n], l, [m])
 
-        phi_nl = calculate_rho_nl(s, ns[None], ls[None], gegenbauer=self._ultra_sph)
+        phi_nl = calculate_rho_nl(s, ns[None], ls[None])
 
         li, mi = jnp.tril_indices(self.lmax + 1)  # (l*(l+1)//2,)
         shape = (1, 1, self.lmax + 1, self.lmax + 1)

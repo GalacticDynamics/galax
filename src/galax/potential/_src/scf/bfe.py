@@ -15,8 +15,9 @@ import galax._custom_types as gt
 from .bfe_helper import phi_nl_vec, rho_nl as calculate_rho_nl
 from .coeffs import compute_coeffs_discrete
 from .utils import cartesian_to_spherical, real_Ylm
-from galax.potential._src.core import AbstractPotential
-from galax.potential._src.param import AbstractParameter, ParameterField
+from galax.potential import AbstractPotential
+from galax.potential._src.params.base import AbstractParameter
+from galax.potential._src.params.field import ParameterField
 
 ##############################################################################
 
@@ -72,8 +73,8 @@ class SCFPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     def _potential(
-        self, xyz: gt.BatchQVec3, t: gt.BatchableRealQScalar, /
-    ) -> gt.VecN | gt.FloatScalar:
+        self, xyz: gt.BtQuSz3, t: gt.BtQuSz0, /
+    ) -> gt.SzN | gt.FloatSz0:
         r_s = self.r_s(t)
         r, theta, phi = cartesian_to_spherical(xyz).T
 
@@ -105,7 +106,7 @@ class SCFPotential(AbstractPotential):
 
     @partial(jax.jit, inline=True)
     @eqx.filter_vmap(in_axes=(None, 1, None))  # type: ignore[misc]  # on `q` axis 1
-    def _density(self, q: gt.LengthVec3, /, t: gt.RealQScalar) -> Float[Array, "N"]:  # type: ignore[name-defined]
+    def _density(self, q: gt.QuSz3, /, t: gt.QuSz0) -> Float[Array, "N"]:  # type: ignore[name-defined]
         """Compute the density at the given position(s)."""
         r, theta, phi = cartesian_to_spherical(q)
         r_s = self.r_s(t)
@@ -157,13 +158,14 @@ class STnlmSnapshotParameter(AbstractParameter):  # type: ignore[misc]
     """Spherical harmonic term."""
 
     def __call__(
-        self, t: gt.TimeScalar, *, r_s: gt.LengthScalar, **_: Any
+        self, t: gt.QuSz0, *, r_s: gt.QuSz0, **_: Any
     ) -> tuple[
         Float[Array, "{self.nmax}+1 {self.lmax}+1 {self.lmax}+1"],
         Float[Array, "{self.nmax}+1 {self.lmax}+1 {self.lmax}+1"],
     ]:
         """Return the coefficients at the given time(s).
 
+        TODO: are the types correct here? Should they be quantity specific?
         Parameters
         ----------
         t : float | Array[float, ()]

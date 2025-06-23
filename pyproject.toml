@@ -53,6 +53,7 @@
     "wadler_lindig>=0.1.6",
     "xmmutablemap>=0.1",
     "zeroth>=1.0",
+    "spexial @ git+https://github.com/JAXtronomy/spexial.git@main",
 ]
 
   [project.optional-dependencies]

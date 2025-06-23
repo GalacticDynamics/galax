@@ -5,6 +5,7 @@ __all__: list[str] = []
 from functools import partial
 
 import jax
+import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from .coeffs_helper import normalization_Knl
@@ -15,7 +16,7 @@ import galax._custom_types as gt
 
 @jax.jit
 def rho_nl(
-    s: Float[Array, "N"], n: int, l: int, *,
+    s: Float[Array, "N"], n: int, l: int,
 ) -> Float[Array, "N"]:
     r"""Radial density expansion terms.
 
@@ -45,7 +46,7 @@ def rho_nl(
 
 @jax.jit
 def phi_nl(
-    s: Float[Array, "samples"], n: IntLike, l: IntLike,
+    s: Float[Array, "samples"], n: gt.IntSz0, l: gt.IntSz0,
 ) -> Float[Array, "samples"]:
     r"""Angular density expansion terms.
 

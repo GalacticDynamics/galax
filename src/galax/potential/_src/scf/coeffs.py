@@ -20,9 +20,9 @@ def compute_coeffs_discrete(
     xyz: Float[Array, "samples 3"],
     mass: Float[Array, "samples"],  # type: ignore[name-defined]
     *,
-    nmax: gt.IntLike,
-    lmax: gt.IntLike,
-    r_s: gt.FloatQScalar,
+    nmax: gt.IntSz0,
+    lmax: gt.IntSz0,
+    r_s: gt.FloatQuSz0,
 ) -> tuple[
     Float[Array, "{nmax}+1 {lmax}+1 {lmax}+1"],
     Float[Array, "{nmax}+1 {lmax}+1 {lmax}+1"],

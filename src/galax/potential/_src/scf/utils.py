@@ -5,7 +5,6 @@ from typing import TypeAlias, TypeVar, cast
 
 import jax
 from jax import lax
-from jax._src.numpy.util import promote_args_inexact
 from jax.scipy.special import sph_harm
 from jaxtyping import ArrayLike, Shaped
 
@@ -42,14 +41,6 @@ def cartesian_to_spherical(xyz: gt.FloatSz3, /) -> gt.FloatSz3:
     )  # inclination angle
     phi = jnp.arctan2(xyz[1], xyz[0])  # azimuthal angle
     return jnp.array([r, theta, phi])
-
-
-# TODO: replace with upstream, when available
-def factorial(n: T) -> T:
-    """Factorial helper function."""
-    (n,) = promote_args_inexact("factorial", n)
-    return cast("T", jnp.where(n < 0, 0, lax.exp(lax.lgamma(n + 1))))
-
 
 def psi_of_r(r: T) -> T:
     r""":math:`\psi(r) = (r-1)/(r+1)`.

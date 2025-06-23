@@ -4,13 +4,10 @@ __all__: list[str] = []
 
 from typing import overload
 
-from jax.scipy.special import gamma
+from jax.scipy.special import gamma, factorial
 from jaxtyping import Array, Float, Integer
 
 import quaxed.numpy as jnp
-
-from .utils import factorial
-
 
 @overload
 def normalization_Knl(n: int, l: int) -> float: ...

@@ -10,7 +10,7 @@ from jaxtyping import Array, Float
 from .coeffs_helper import normalization_Knl
 from .utils import psi_of_r
 from spexial import eval_gegenbauer
-from galax.typing import IntLike
+import galax._custom_types as gt
 
 
 @jax.jit

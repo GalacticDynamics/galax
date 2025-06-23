@@ -11,7 +11,7 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-import galax.typing as gt
+import galax._custom_types as gt
 from .bfe_helper import phi_nl_vec, rho_nl as calculate_rho_nl
 from .coeffs import compute_coeffs_discrete
 from .utils import cartesian_to_spherical, real_Ylm

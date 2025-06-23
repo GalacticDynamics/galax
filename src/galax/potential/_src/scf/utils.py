@@ -48,7 +48,7 @@ def cartesian_to_spherical(xyz: gt.FloatSz3, /) -> gt.FloatSz3:
 def factorial(n: T) -> T:
     """Factorial helper function."""
     (n,) = promote_args_inexact("factorial", n)
-    return cast("T", jnp.where(n < 0, 0, jnp.exp(lax.lgamma(n + 1))))
+    return cast("T", jnp.where(n < 0, 0, lax.exp(lax.lgamma(n + 1))))
 
 
 def psi_of_r(r: T) -> T:
@@ -90,7 +90,7 @@ def real_Ylm(
     l, m : int | Array[int, ()]
         Spherical harmonic terms. l in [0,lmax], m in [0,l].
     m_max : int, optional
-        Maximum order of the spherical harmonic ejnpansion.
+        Maximum order of the spherical harmonic expansion.
 
     Returns
     -------

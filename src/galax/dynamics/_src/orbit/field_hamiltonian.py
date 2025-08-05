@@ -3,7 +3,7 @@
 __all__ = ["HamiltonianField"]
 
 import functools as ft
-from typing import TYPE_CHECKING, Any, final
+from typing import Any, final
 
 import diffrax as dfx
 import jax
@@ -14,14 +14,8 @@ import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
+from galax.dynamics._src.experimental.leapfrog import SymplecticSolverT
 from galax.dynamics._src.utils import parse_to_t_y
-
-if TYPE_CHECKING:
-    from galax.dynamics import experimental
-
-    SymplecticSolverT = experimental.leapfrog.SymplecticSolverT
-else:
-    SymplecticSolverT = None
 
 
 @final

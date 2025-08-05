@@ -3,8 +3,7 @@
 __all__ = ["HamiltonianField"]
 
 import functools as ft
-
-from typing import Any, final
+from typing import TYPE_CHECKING, Any, final
 
 import diffrax as dfx
 import jax
@@ -16,6 +15,13 @@ import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
 from galax.dynamics._src.utils import parse_to_t_y
+
+if TYPE_CHECKING:
+    from galax.dynamics import experimental
+
+    SymplecticSolverT = experimental.leapfrog.SymplecticSolverT
+else:
+    SymplecticSolverT = None
 
 
 @final
@@ -256,7 +262,7 @@ class HamiltonianField(AbstractOrbitField):
 @AbstractOrbitField.terms.dispatch
 def terms(
     self: HamiltonianField,
-    _: dfx.SemiImplicitEuler,
+    _: SymplecticSolverT,
     /,
 ) -> tuple[dfx.ODETerm, dfx.ODETerm]:
     r"""Return the AbstractTerm terms for the SemiImplicitEuler solver.

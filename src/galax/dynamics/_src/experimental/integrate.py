@@ -20,7 +20,6 @@ import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 import galax.utils.loop_strategies as lstrat
 from galax.dynamics._src.orbit.field_base import AbstractOrbitField
-from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
 
 BQParr: TypeAlias = tuple[Real[gdt.Qarr, "B"], Real[gdt.Parr, "B"]]
 
@@ -376,6 +375,11 @@ def integrate_orbit(
         evaluation of the solution.
 
     """
+    # Note: this is needed to prevent a circular import
+    from galax.dynamics._src.orbit.field_hamiltonian import (
+        HamiltonianField,
+    )
+
     field = pot if isinstance(pot, AbstractOrbitField) else HamiltonianField(pot)
     terms = field.terms(solver)
 

@@ -32,7 +32,8 @@
     "coordinax>=0.22.1",
     "dataclassish>=0.8.0",
     "diffrax>=0.7",
-    "diffraxtra>=1.5.1",
+    # "diffraxtra>=1.5.1",  # TODO: TEMPORARY FOR CI IN PR TO RUN
+    "diffraxtra @ git+https://github.com/adrn/diffraxtra.git@dt0-none",
     "equinox>=0.12.1",
     "interpax>=0.3.8",
     "is-annotated>=1.0",

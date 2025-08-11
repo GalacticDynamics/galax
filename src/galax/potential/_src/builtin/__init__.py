@@ -41,6 +41,7 @@ __all__ = [
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
     "HardCutoffNFWPotential",
+    "GaussianPotential",
 ]
 
 from .burkert import BurkertPotential
@@ -54,6 +55,7 @@ from .example import (
     HarmonicOscillatorPotential,
     HenonHeilesPotential,
 )
+from .gaussian import GaussianPotential
 from .hernquist import HernquistPotential, TriaxialHernquistPotential
 from .isochrone import IsochronePotential
 from .jaffe import JaffePotential

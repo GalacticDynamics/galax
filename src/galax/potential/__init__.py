@@ -43,6 +43,7 @@ __all__ = [
     "TriaxialHernquistPotential",
     "HardCutoffNFWPotential",
     "gNFWPotential",
+    "GaussianPotential",
     # Pre-composited
     "AbstractPreCompositedPotential",
     "BovyMWPotential2014",
@@ -98,6 +99,7 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         AbstractMultipolePotential,
         BovyMWPotential2014,
         BurkertPotential,
+        GaussianPotential,
         HardCutoffNFWPotential,
         HarmonicOscillatorPotential,
         HenonHeilesPotential,

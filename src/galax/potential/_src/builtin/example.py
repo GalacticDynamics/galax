@@ -90,7 +90,8 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
         # Compute parameters
         omega = jnp.atleast_1d(self.omega(t, ustrip=self.units["frequency"]))
 
-        # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i \omega_i^2
+        # TODO: fix this - not valid for arbitrary ndim
+        # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i^N \omega_i^2 / N
         denom = 4 * jnp.pi * self.constants["G"].value
         return jnp.sum(omega**2, axis=-1) / denom
 

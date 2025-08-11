@@ -559,14 +559,18 @@ wheels = [
 
 [[package]]
 name = "diffraxtra"
-version = "0.1.dev19+g40bb513"
-source = { git = "https://github.com/adrn/diffraxtra.git?rev=dt0-none#40bb51369d94796d363a92f8c912a9c8bd8419ff" }
+version = "1.5.2"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "diffrax" },
     { name = "equinox" },
     { name = "jaxtyping" },
     { name = "plum-dispatch" },
     { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/18/96/31538b3c43318811809d98b4a1fb5d3130f5689f44abfd1fcd909428a4cc/diffraxtra-1.5.2.tar.gz", hash = "sha256:b23cae37ca16e9bcbc39ce370b1d467243f2b5b962e357e5606c6ab2d313d436", size = 74006 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/5d/d7d669aecce89d69cda8fe6b84f9f7f18fb04b902cb5f4680f862b93fa7e/diffraxtra-1.5.2-py3-none-any.whl", hash = "sha256:6deabfd346bc9edadb7f9aeb6743088b8110216cd657f271ce666b9a7e22c89b", size = 16120 },
 ]
 
 [[package]]
@@ -839,7 +843,7 @@ requires-dist = [
     { name = "coordinax", specifier = ">=0.22.1" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
-    { name = "diffraxtra", git = "https://github.com/adrn/diffraxtra.git?rev=dt0-none" },
+    { name = "diffraxtra", specifier = ">=1.5.2" },
     { name = "equinox", specifier = ">=0.12.1" },
     { name = "gala", marker = "extra == 'all'", specifier = ">=1.9" },
     { name = "gala", marker = "extra == 'interop-all'", specifier = ">=1.9" },

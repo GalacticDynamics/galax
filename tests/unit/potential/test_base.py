@@ -129,6 +129,15 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
             atol=u.Quantity(1e-15, pot.units["specific energy"]),
         )
 
+    def test_potential_density_correspondence(
+        self, pot: gp.AbstractPotential, x: gt.QuSz3
+    ) -> None:
+        lhs = jnp.trace(pot.hessian(x, 0))
+        rhs = 4 * jnp.pi * pot.constants["G"] * pot.density(x, 0)
+        assert jnp.isclose(
+            lhs, rhs, atol=u.Quantity(1e-15, pot.units["frequency drift"])
+        )
+
     # ---------------------------------
 
     def test_call(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:

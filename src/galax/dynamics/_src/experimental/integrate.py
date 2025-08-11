@@ -382,7 +382,7 @@ def integrate_orbit(
     t0, t1, saver = parse_t0_t1_saveat(t0, t1, saveat, dense=dense)
 
     soln: dfx.Solution = solver(
-        terms, t0=t0, t1=t1, dt0=None, y0=qp0, saveat=saver, **(solver_kwargs or {})
+        terms, t0=t0, t1=t1, y0=qp0, saveat=saver, **(solver_kwargs or {})
     )
     if dense_vectorize:
         soln = dfxtra.VectorizedDenseInterpolation.apply_to_solution(soln)

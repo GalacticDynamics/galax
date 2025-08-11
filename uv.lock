@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version < '3.12'",
@@ -558,7 +559,7 @@ wheels = [
 
 [[package]]
 name = "diffraxtra"
-version = "1.5.1"
+version = "1.5.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "diffrax" },
@@ -567,9 +568,9 @@ dependencies = [
     { name = "plum-dispatch" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/40/9e/eb5c4da425816a93e49cb8c5867865f027408440c3eadcb3af63c0217ca8/diffraxtra-1.5.1.tar.gz", hash = "sha256:4142bb133c728ee0ba1a95f483c590db70a6c57cc983bff3a3660182b21ea387", size = 73879 }
+sdist = { url = "https://files.pythonhosted.org/packages/18/96/31538b3c43318811809d98b4a1fb5d3130f5689f44abfd1fcd909428a4cc/diffraxtra-1.5.2.tar.gz", hash = "sha256:b23cae37ca16e9bcbc39ce370b1d467243f2b5b962e357e5606c6ab2d313d436", size = 74006 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/8d/574fd9ba44b8e96527e1bbfb126bd05db3517913dfeff1c79527d2c9d7fd/diffraxtra-1.5.1-py3-none-any.whl", hash = "sha256:9af4b118cac1450fedf90c22ac7950271f38855eb93371c598ff1770a858873a", size = 15998 },
+    { url = "https://files.pythonhosted.org/packages/ec/5d/d7d669aecce89d69cda8fe6b84f9f7f18fb04b902cb5f4680f862b93fa7e/diffraxtra-1.5.2-py3-none-any.whl", hash = "sha256:6deabfd346bc9edadb7f9aeb6743088b8110216cd657f271ce666b9a7e22c89b", size = 16120 },
 ]
 
 [[package]]
@@ -842,7 +843,7 @@ requires-dist = [
     { name = "coordinax", specifier = ">=0.22.1" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
-    { name = "diffraxtra", specifier = ">=1.5.1" },
+    { name = "diffraxtra", specifier = ">=1.5.2" },
     { name = "equinox", specifier = ">=0.12.1" },
     { name = "gala", marker = "extra == 'all'", specifier = ">=1.9" },
     { name = "gala", marker = "extra == 'interop-all'", specifier = ">=1.9" },
@@ -873,6 +874,7 @@ requires-dist = [
     { name = "xmmutablemap", specifier = ">=0.1" },
     { name = "zeroth", specifier = ">=1.0" },
 ]
+provides-extras = ["all", "interop-all", "interop-astropy", "interop-gala", "interop-galpy", "plot-all", "plot-matplotlib"]
 
 [package.metadata.requires-dev]
 dev = [

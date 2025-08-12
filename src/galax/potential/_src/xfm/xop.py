@@ -15,6 +15,7 @@ import unxt as u
 import galax._custom_types as gt
 from .base import AbstractTransformedPotential
 from galax.potential._src.base import AbstractPotential
+from galax.utils.defaults import DEFAULT_TIME
 
 
 @final
@@ -189,7 +190,9 @@ class TransformedPotential(AbstractTransformedPotential):
 
     """
 
-    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+    def _potential(
+        self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0 = DEFAULT_TIME, /
+    ) -> gt.BBtSz0:
         """Compute the potential energy at the given position(s).
 
         This method applies the operators to the coordinates and then evaluates

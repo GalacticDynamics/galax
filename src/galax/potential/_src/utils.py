@@ -19,6 +19,7 @@ from unxt.quantity import AllowValue, BareQuantity
 
 import galax._custom_types as gt
 import galax.coordinates as gc
+from galax.utils.defaults import DEFAULT_TIME
 
 OptUSys: TypeAlias = u.AbstractUnitSystem | None
 
@@ -204,7 +205,7 @@ def parse_to_xyz_t(
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
     xyz: gt.XYZArrayLike,
-    t: gt.BBtLikeSz0,  # TODO: consider also "*#batch 1"
+    t: gt.BBtLikeSz0 | None,  # TODO: consider also "*#batch 1"
     /,
     *,
     dtype: Any = None,
@@ -213,7 +214,11 @@ def parse_to_xyz_t(
     """Parse input arguments to position & time."""
     # Process the input arguments into arrays
     xyz = jnp.asarray(xyz, dtype=dtype)
-    t = jnp.asarray(t, dtype=dtype)
+    t = (
+        jnp.asarray(t, dtype=dtype)
+        if t is not None
+        else jnp.asarray(DEFAULT_TIME.value, dtype=dtype)
+    )
 
     # The coordinates are assumed to be in the simulation frame and may need to
     # be transformed to the target frame.
@@ -263,12 +268,12 @@ def parse_to_xyz_t(
 
 @coord_dispatcher.multi(
     (cxf.AbstractReferenceFrame | None, gt.BBtQuSz3, gt.BBtQuSz0),
-    (cxf.AbstractReferenceFrame | None, gt.BBtQuSz3, gt.BBtSz0 | float | int),
+    (cxf.AbstractReferenceFrame | None, gt.BBtQuSz3, gt.BBtSz0 | float | int | None),
 )
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
     xyz: gt.BBtQorVSz3,
-    t: gt.BBtQorVSz0 | float | int,
+    t: gt.BBtQorVSz0 | float | int | None,
     /,
     *,
     dtype: Any = None,
@@ -276,7 +281,11 @@ def parse_to_xyz_t(
 ) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0]:
     """Parse input arguments to position & time."""
     xyz = jnp.asarray(xyz, dtype=dtype)
-    t = jnp.asarray(t, dtype=dtype)
+    t = (
+        jnp.asarray(t, dtype=dtype)
+        if t is not None
+        else jnp.asarray(DEFAULT_TIME, dtype=dtype)
+    )
 
     if ustrip is not None:
         xyz = u.ustrip(AllowValue, ustrip["length"], xyz)

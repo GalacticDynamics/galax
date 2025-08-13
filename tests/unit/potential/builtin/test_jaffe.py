@@ -8,13 +8,13 @@ import unxt as u
 import galax._custom_types as gt
 import galax.potential as gp
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import ParameterMMixin, ParameterRSMixin
+from .test_common import ParameterMTotMixin, ParameterRSMixin
 
 
 class TestJaffePotential(
     AbstractSinglePotential_Test,
     # Parameters
-    ParameterMMixin,
+    ParameterMTotMixin,
     ParameterRSMixin,
 ):
     """Test the `galax.potential.JaffePotential` class."""
@@ -26,11 +26,11 @@ class TestJaffePotential(
     @pytest.fixture(scope="class")
     def fields_(
         self,
-        field_m: u.Quantity,
+        field_m_tot: u.Quantity,
         field_r_s: u.Quantity,
         field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
-        return {"m": field_m, "r_s": field_r_s, "units": field_units}
+        return {"m_tot": field_m_tot, "r_s": field_r_s, "units": field_units}
 
     # ==========================================================================
 

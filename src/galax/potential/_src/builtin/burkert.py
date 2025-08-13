@@ -35,20 +35,22 @@ BURKERT_CONST: Final = 3 * jnp.log(jnp.asarray(2.0)) - 0.5 * jnp.pi
 
 @final
 class BurkertPotential(AbstractSinglePotential):
-    """Burkert Potential.
+    r"""Burkert Potential.
 
     https://ui.adsabs.harvard.edu/abs/1995ApJ...447L..25B/abstract,
     https://iopscience.iop.org/article/10.1086/309140/fulltext/50172.text.html.
+
+    The mass parameter sets the core mass:
+
+    .. math::
+
+        M_0 = \\pi \rho_0 r_s^3 (3 \\log(2) - \\pi / 2)
 
     """
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass",
-        doc=r"""Characteristic mass of the potential.
-
-    $$ m0 = \pi \rho_0 r_s^3 (3 \log(2) - \pi / 2) $$
-
-    """,
+        doc="Core mass of the potential (i.e. the mass within r_s).",
     )
 
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius")  # type: ignore[assignment]

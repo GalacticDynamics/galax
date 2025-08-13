@@ -527,13 +527,13 @@ def gala_to_galax(
     JaffePotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter(...),
+      m_tot=ConstantParameter(...),
       r_s=ConstantParameter(...)
     )
     """
     params = gala.parameters
     pot = gp.JaffePotential(
-        m=params["m"], r_s=params["c"], units=_check_gala_units(gala.units)
+        m_tot=params["m"], r_s=params["c"], units=_check_gala_units(gala.units)
     )
     return _apply_xop(_get_xop(gala), pot)
 
@@ -547,7 +547,7 @@ def galax_to_gala(pot: gp.JaffePotential, /) -> galap.JaffePotential:
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.JaffePotential(m=1e11, r_s=20, units="galactic")
+    >>> pot = gp.JaffePotential(m_tot=1e11, r_s=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <JaffePotential: m=1.00e+11, c=20.00 (kpc,Myr,solMass,rad)>
 
@@ -555,7 +555,7 @@ def galax_to_gala(pot: gp.JaffePotential, /) -> galap.JaffePotential:
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
     return galap.JaffePotential(
-        m=convert(pot.m(0), APYQuantity),
+        m=convert(pot.m_tot(0), APYQuantity),
         c=convert(pot.r_s(0), APYQuantity),
         units=_galax_to_gala_units(pot.units),
     )

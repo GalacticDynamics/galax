@@ -104,7 +104,7 @@ class gNFWPotential(AbstractSinglePotential):
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass",
-        doc=r"""Total mass.""",
+        doc="""Scale mass. This is NOT the total mass.""",
     )
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
     gamma: AbstractParameter = ParameterField(  # type: ignore[assignment]

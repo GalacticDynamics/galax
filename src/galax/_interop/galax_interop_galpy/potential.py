@@ -407,13 +407,13 @@ def galpy_to_galax(pot: gpy.JaffePotential, /) -> gp.JaffePotential:
     JaffePotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
       constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter(...),
+      m_tot=ConstantParameter(...),
       r_s=ConstantParameter(...)
     )
 
     """
     return gp.JaffePotential(
-        m=_galpy_mass(pot),
+        m_tot=_galpy_mass(pot),
         r_s=u.Quantity(pot.a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
@@ -428,7 +428,7 @@ def galax_to_galpy(pot: gp.JaffePotential, /) -> gpy.JaffePotential:
     >>> import galpy.potential as gpy
     >>> import galax.potential as gp
 
-    >>> pot = gp.JaffePotential(m=1e11, r_s=1.0, units="galactic")
+    >>> pot = gp.JaffePotential(m_tot=1e11, r_s=1.0, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalpyLibrary, pot)
     <galpy.potential...JaffePotential object at ...>
 

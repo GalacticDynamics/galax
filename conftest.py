@@ -1,6 +1,7 @@
 """Doctest configuration."""
 
 from doctest import ELLIPSIS, NORMALIZE_WHITESPACE
+from typing import Any
 
 from sybil import Sybil
 from sybil.parsers import myst, rest
@@ -54,3 +55,16 @@ if not OptDeps.GALA.installed:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_gala/*")
 if not OptDeps.GALPY.installed:
     collect_ignore_glob.append("src/galax/_interop/galax_interop_galpy/*")
+
+
+def pytest_report_header(config: Any) -> str:  # noqa: D103, ARG001
+    hdr = []
+
+    if OptDeps.ASTROPY.installed:
+        hdr.append(f"astropy: {get_version('astropy')}")
+    if OptDeps.GALA.installed:
+        hdr.append(f"gala: {get_version('gala')}")
+    if OptDeps.GALPY.installed:
+        hdr.append(f"galpy: {get_version('galpy')}")
+
+    return "\n".join(hdr)

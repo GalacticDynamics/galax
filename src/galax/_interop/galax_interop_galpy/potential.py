@@ -436,7 +436,7 @@ def galax_to_galpy(pot: gp.JaffePotential, /) -> gpy.JaffePotential:
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.JaffePotential(
-        amp=convert(pot.m(0) * pot.constants["G"], AstropyQuantity),
+        amp=convert(pot.m_tot(0) * pot.constants["G"], AstropyQuantity),
         a=convert(pot.r_s(0), AstropyQuantity),
     )
 

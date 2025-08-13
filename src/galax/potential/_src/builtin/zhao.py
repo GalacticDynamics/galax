@@ -31,6 +31,14 @@ class ZhaoPotential(AbstractSinglePotential):
 
     This model has a finite total mass for :math:`\beta > 3`. The other power-law
     parameters should satisfy :math:`\alpha > 0` and :math:`0 \leq \gamma < 3`.
+
+    This model also reduces to a number of well-known analytic forms for certain values
+    of the parameters (reproduced from Table 1 of Zhao 1996):
+    - :math:`(\alpha, \beta, \gamma) = (1, 4, 1)`: Hernquist model
+    - :math:`(\alpha, \beta, \gamma) = (1, 4, 2)`: Jaffe model
+    - :math:`(\alpha, \beta, \gamma) = (1/2, 5, 0)`: Plummer model
+    - :math:`(\alpha, \beta, \gamma) = (1, 3, 1)`: NFW model
+    - :math:`(\alpha, \beta, \gamma) = (1, 3, \gamma)`: Generalized NFW model
     """
 
     m: AbstractParameter = ParameterField(

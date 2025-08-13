@@ -549,7 +549,7 @@ def galax_to_gala(pot: gp.JaffePotential, /) -> galap.JaffePotential:
 
     >>> pot = gp.JaffePotential(m_tot=1e11, r_s=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <JaffePotential: m_tot=1.00e+11, c=20.00 (kpc,Myr,solMass,rad)>
+    <JaffePotential: m=1.00e+11, c=20.00 (kpc,Myr,solMass,rad)>
 
     """
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())

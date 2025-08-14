@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["GaussianPotential"]
+__all__ = ["GaussianDensityPotential"]
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -23,8 +23,8 @@ from galax.potential._src.utils import r_spherical
 
 
 @final
-class GaussianPotential(AbstractSinglePotential):
-    r"""A spherical Gaussian potential.
+class GaussianDensityPotential(AbstractSinglePotential):
+    r"""Potential of a spherical Gaussian density profile.
 
     The gravitational potential corresponding to a spherical Gaussian density profile:
 

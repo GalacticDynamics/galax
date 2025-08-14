@@ -11,15 +11,15 @@ from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMTotMixin, ParameterRSMixin
 
 
-class TestGaussianPotential(
+class TestGaussianDensityPotential(
     AbstractSinglePotential_Test,
     # Parameters
     ParameterMTotMixin,
     ParameterRSMixin,
 ):
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[gp.GaussianPotential]:
-        return gp.GaussianPotential
+    def pot_cls(self) -> type[gp.GaussianDensityPotential]:
+        return gp.GaussianDensityPotential
 
     @pytest.fixture(scope="class")
     def fields_(self, field_m_tot, field_r_s, field_units) -> dict[str, Any]:
@@ -27,26 +27,26 @@ class TestGaussianPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: gp.GaussianPotential, x: gt.QuSz3) -> None:
+    def test_potential(self, pot: gp.GaussianDensityPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(-1.20205548, pot.units["specific energy"])
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: gp.GaussianPotential, x: gt.QuSz3) -> None:
+    def test_gradient(self, pot: gp.GaussianDensityPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [0.08562732, 0.17125464, 0.25688196], pot.units["acceleration"]
         )
         got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: gp.GaussianPotential, x: gt.QuSz3) -> None:
+    def test_density(self, pot: gp.GaussianDensityPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(57898701.53591853, pot.units["mass density"])
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: gp.GaussianPotential, x: gt.QuSz3) -> None:
+    def test_hessian(self, pot: gp.GaussianDensityPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.06751239, -0.03622985, -0.05434478],

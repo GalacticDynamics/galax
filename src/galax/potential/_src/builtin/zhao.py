@@ -138,6 +138,7 @@ class ZhaoPotential(AbstractSinglePotential):
         constants (optional)
             Physical constants to use for the potential.
         """
+        beta = eqx.error_if(beta, beta <= 3.0, "Beta must be >3 to have finite mass.")
         usys = u.unitsystem(units)
         params = {
             "r_s": u.ustrip(usys["length"], r_s) if hasattr(r_s, "unit") else r_s,

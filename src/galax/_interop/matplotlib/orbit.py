@@ -55,7 +55,7 @@ def plot_components(
 ) -> Axes | Any:
     if x is None and y is None:
         # Plot all components:
-        return plot_all_components(orbit, axes=ax, **kwargs)
+        return plot_all_components(orbit, **kwargs)
 
     if (x is None and y is not None) or (x is not None and y is None):
         msg = "Both x and y components must be specified, or neither."
@@ -107,11 +107,11 @@ def plot_all_components(
     # TODO: 5 is an arbitrary number - is there a way to get this from matplotlib?
     subplots_kw.setdefault("figsize", (len(components) * 5, 5))
     if axes is None:
-        _, axes = plt.subplots(1, len(components), **subplots_kw)
-    elif len(axes) != len(components):
+        _, axes = plt.subplots(1, len(xidxs), **subplots_kw)
+    elif len(axes) != len(xidxs):
         msg = (
             f"Number of matplotlib axes ({len(axes)}) does not match number of "
-            f"components to plot ({len(components)})"
+            f"pairwise components to plot ({len(xidxs)})"
         )
         raise ValueError(msg)
 

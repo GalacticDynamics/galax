@@ -160,7 +160,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
 
 @ft.partial(jax.jit)
 def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
-    r"""Density profile for the Kepler potential."""
+    r"""Density profile for the Hernquist potential."""
     s = r / p["r_s"]
     rho0 = p["m_tot"] / (2 * jnp.pi * p["r_s"] ** 3)
     return rho0 / (s * (1 + s) ** 3)

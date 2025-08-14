@@ -102,6 +102,55 @@ class ZhaoPotential(AbstractSinglePotential):
         }
         return density(p, r)
 
+    # ===========================================
+    # Constructors
+
+    @classmethod
+    def from_m_tot(
+        cls,
+        m_tot: gt.Sz0 | u.Quantity["mass"],
+        r_s: gt.Sz0 | u.Quantity["length"],
+        alpha: gt.Sz0 | u.Quantity["dimensionless"],
+        beta: gt.Sz0 | u.Quantity["dimensionless"],
+        gamma: gt.Sz0 | u.Quantity["dimensionless"],
+        *,
+        units: u.AbstractUnitSystem | str = "galactic",
+        constants: ImmutableMap[str, u.AbstractQuantity] = default_constants,
+    ) -> "ZhaoPotential":
+        """Create a Zhao potential from a total mass and scale radius.
+
+        Note: This is only possible when beta > 3, when the model has finite mass.
+
+        Parameters
+        ----------
+        m_tot
+            Total mass of the halo.
+        r_s
+            Scale radius of the halo.
+        alpha
+            Inner slope of the halo density profile.
+        beta
+            Outer slope of the halo density profile.
+        gamma
+            Transition slope of the halo density profile.
+        units (optional)
+            Unit system to use for the potential.
+        constants (optional)
+            Physical constants to use for the potential.
+        """
+        usys = u.unitsystem(units)
+        params = {
+            "r_s": u.ustrip(usys["length"], r_s) if hasattr(r_s, "unit") else r_s,
+            "alpha": alpha,
+            "beta": beta,
+            "gamma": gamma,
+        }
+        return cls(
+            m=m_tot * _total_mass_factor(params, params["r_s"]),
+            **params,
+            units=units,
+            constants=constants,
+        )
 
 
 @ft.partial(jax.jit)
@@ -110,7 +159,6 @@ def _total_mass_factor(p: gt.Params, r_ref: gt.Sz0) -> gt.FloatSz0:
     c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
     x = r_ref / p["r_s"]
     chi = x ** (1.0 / p["alpha"]) / (1.0 + x ** (1.0 / p["alpha"]))
-    # chi = jnp.power(x, 1.0 / p["alpha"]) / (1.0 + jnp.power(x, 1.0 / p["alpha"]))
     return jsp.betainc(c0 - q0, q0, chi)
 
 

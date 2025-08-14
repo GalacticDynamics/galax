@@ -9,13 +9,15 @@ from galax.potential._src.builtin.zhao import ZhaoPotential
 
 check_funcs = ["potential", "gradient", "density", "hessian"]
 
-# settings of (alpha, beta, gamma) and correspondence to known models:
-abg_pot = {
-    (1, 4, 1): gp.HernquistPotential,
-    (1, 4, 2): gp.JaffePotential,
-    (1 / 2, 5, 0): gp.PlummerPotential,
-    # (1, 3, 1): gp.NFWPotential,
-}
+# Settings of (alpha, beta, gamma) and correspondence to known models
+abg_pot_finite = [
+    ((1, 4, 1), gp.HernquistPotential),
+    ((1, 4, 2), gp.JaffePotential),
+    ((1 / 2, 5, 0), gp.PlummerPotential),
+]
+abg_pot_infinite = [
+    ((1, 3, 1), gp.NFWPotential),
+]
 
 
 @pytest.fixture
@@ -27,19 +29,18 @@ def xyz():
 
 
 @pytest.mark.parametrize("func_name", check_funcs)
-@pytest.mark.parametrize(("abg", "OtherPotential"), list(abg_pot.items()))
-def test_zhao_against_correspondences(func_name, abg, OtherPotential, xyz):
-    zhao = ZhaoPotential(
-        m=u.Quantity(1.3e11, "Msun"),
+@pytest.mark.parametrize(("abg", "OtherPotential"), abg_pot_finite)
+def test_zhao_against_finite_mass_correspondences(func_name, abg, OtherPotential, xyz):
+    m_tot = u.Quantity(1.3e11, "Msun")
+    zhao = ZhaoPotential.from_m_tot(
+        m_tot=m_tot,
         r_s=u.Quantity(8.1, "kpc"),
         alpha=abg[0],
         beta=abg[1],
         gamma=abg[2],
         units="galactic",
     )
-    other = OtherPotential(
-        m_tot=zhao.parameters["m"], r_s=zhao.parameters["r_s"], units="galactic"
-    )
+    other = OtherPotential(m_tot=m_tot, r_s=zhao.parameters["r_s"], units="galactic")
 
     zhao_result = getattr(zhao, func_name)(xyz, u.Quantity(0.0, "Myr"))
     other_result = getattr(other, func_name)(xyz, u.Quantity(0.0, "Myr"))

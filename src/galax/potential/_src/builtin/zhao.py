@@ -119,6 +119,22 @@ def _rho0(m: gt.Sz0, alpha: gt.Sz0, beta: gt.Sz0, gamma: gt.Sz0, /) -> gt.Sz0:
 
 
 @ft.partial(jax.jit)
+def _cpq(a: gt.Sz0, b: gt.Sz0, g: gt.Sz0) -> tuple[gt.Sz0, gt.Sz0, gt.Sz0]:
+    """Constants defined in appendix of Zhao (1996)."""
+    c0 = a * (b - g)
+    p0 = a * (2.0 - g)
+    q0 = a * (b - 3.0)
+    return c0, p0, q0
+
+
+@ft.partial(jax.jit)
+def _r_to_xz(p: gt.Params, r: gt.Sz0) -> gt.FloatSz0:
+    """Convert radius to the variable z used in the potential."""
+    x = r / p["r_s"]
+    return x, x ** (1.0 / p["alpha"]) / (1.0 + x ** (1.0 / p["alpha"]))
+
+
+@ft.partial(jax.jit)
 def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     """Spherical density profile for double power-law Zhao model."""
     x = r / p["r_s"]
@@ -130,6 +146,15 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
 
 @ft.partial(jax.jit)
+def mass_enclosed(p: gt.Params, z: gt.Sz0) -> gt.Sz0:
+    a, b, g = p["alpha"], p["beta"], p["gamma"]
+    rho0 = _rho0(p["m"], a, b, g)
+    *_, q0 = _cpq(a, b, g)
+    aM = a * (3.0 - g)
+    return 4.0 * jnp.pi * rho0 * a * (jsp.beta(aM, q0) * jsp.betainc(aM, q0, z))
+
+
+@ft.partial(jax.jit)
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
     r"""Spherical potential for double power-law Zhao model.
 
@@ -137,29 +162,31 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
 
     This function uses the variable z for what Zhao called :math:`\chi`.
     """
-    x = r / p["r_s"]
-    alpha, beta, gamma = p["alpha"], p["beta"], p["gamma"]
+    a, b, g = p["alpha"], p["beta"], p["gamma"]
 
-    # What Zhao calls "chi":
-    z = x ** (1.0 / alpha) / (1.0 + x ** (1.0 / alpha))
+    # z here is what Zhao calls "chi":
+    x, z = _r_to_xz(p, r)
 
-    rho0 = _rho0(p["m"], alpha, beta, gamma)
+    # Special case the Jaffe potential, where there is an "inf - inf" below
+    is_jaffe = (a == 1.0) & (b == 4.0) & (g == 2.0)
 
-    # Constants defined in appendix of Zhao (1996)
-    p0 = alpha * (2.0 - gamma)
-    q0 = alpha * (beta - 3.0)
-    c0 = alpha * (beta - gamma)
+    def Phi_jaffe() -> gt.Sz0:
+        return -p["G"] * p["m"] / p["r_s"] * jnp.log1p(1.0 / x)
+
+    rho0 = _rho0(p["m"], a, b, g)
+    c0, p0, _ = _cpq(a, b, g)
 
     # Left term in Eq. 7
-    term_l = jsp.beta(c0 - q0, q0) * jsp.betainc(c0 - q0, q0, z)
+    term_l = mass_enclosed(p, z)
 
     # Right term in Eq. 7
-    # This uses a trick (from chatgpt) for avoiding the pole as p0 -> 0 (gamma -> 2)
-    #   Trick: compute as exp(betaln + log(1 - I_z))
     eps = jnp.sqrt(jnp.finfo(r.dtype).eps)
     p0_safe = jnp.where(p0 <= 0, eps, p0)
     logB = jsp.betaln(p0_safe, c0 - p0)
     log1mI = jnp.log1p(-jsp.betainc(p0_safe, c0 - p0, z))
-    term_r = jnp.exp(logB + log1mI)
+    term_r = 4.0 * jnp.pi * rho0 * a / p["r_s"] * jnp.exp(logB + log1mI)
 
-    return -4.0 * jnp.pi * p["G"] * rho0 * alpha * (term_l / r + term_r / p["r_s"])
+    def Phi_general() -> gt.Sz0:
+        return -p["G"] * (term_l / r + term_r)
+
+    return jax.lax.cond(is_jaffe, Phi_jaffe, Phi_general)

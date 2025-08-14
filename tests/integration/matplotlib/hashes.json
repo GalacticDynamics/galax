@@ -4,5 +4,7 @@
   "integration.matplotlib.test_orbit.test_orbit_plot_scatter": "e7f337382dada6558022a0888f2f741c90e74a6531ececa293e7754df273a4ee",
   "integration.matplotlib.test_orbit.test_orbit_plot_time_color": "3a12252a7e2b676d8c3427b36b6d8c5753023e3a0b416b0d7433a9e7dcd91c92",
   "integration.matplotlib.test_potential.test_kepler_potential_contours": "f21ac32338c8120f0f8851f1fef3c516bc906bb21452539868361cf86833e561",
-  "integration.matplotlib.test_potential.test_kernel_density_contours": "51f9e6ca266b063efdd9fd6914b09d689b9ff4be55554a5b0a981e54b972e8d3"
+  "integration.matplotlib.test_potential.test_kernel_density_contours": "51f9e6ca266b063efdd9fd6914b09d689b9ff4be55554a5b0a981e54b972e8d3",
+  "integration.matplotlib.test_orbit.test_orbit_plot_all_components": "8195a0ed6cd92a3334151d2a3513fc3764f06e36b785bd046451d89a542f33f0",
+  "integration.matplotlib.test_orbit.test_orbit_plot_time": "3f9856b4798abfb6b1a136eec33088d552368b05067eaa658cfe3c4f4c81dc27"
 }

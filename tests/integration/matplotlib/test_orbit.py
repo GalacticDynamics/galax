@@ -1,5 +1,6 @@
 """Test the `galax.dynamics.orbit` package contents."""
 
+import matplotlib.pyplot as plt
 import pytest
 from matplotlib.figure import Figure
 
@@ -39,6 +40,13 @@ def orbit(potential: gp.AbstractPotential, w0: gc.PhaseSpacePosition) -> gd.Orbi
 
 
 @pytest.mark.mpl_image_compare(deterministic=True)
+def test_orbit_plot_all_components(orbit: gd.Orbit) -> Figure:
+    """Test plotting all components of an orbit in a Kepler potential."""
+    axes = orbit.plot()
+    return axes[0].figure
+
+
+@pytest.mark.mpl_image_compare(deterministic=True)
 def test_orbit_plot(orbit: gd.Orbit) -> Figure:
     """Test plotting an orbit in a Kepler potential."""
     ax = orbit.plot(x="x", y="y")
@@ -63,6 +71,14 @@ def test_orbit_plot_scatter(orbit: gd.Orbit) -> Figure:
 
 
 @pytest.mark.mpl_image_compare(deterministic=True)
+def test_orbit_plot_time(orbit: gd.Orbit) -> Figure:
+    """Test plotting an orbit in a Kepler potential."""
+    ax = orbit.plot(x="t", y="y")
+
+    return ax.figure
+
+
+@pytest.mark.mpl_image_compare(deterministic=True)
 def test_orbit_plot_time_color(orbit: gd.Orbit) -> Figure:
     """Test plotting an orbit in a Kepler potential."""
     ax = orbit.plot(x="x", y="y", plot_function="scatter", c="orbit.t")
@@ -70,7 +86,28 @@ def test_orbit_plot_time_color(orbit: gd.Orbit) -> Figure:
     return ax.figure
 
 
+##############################################################################
+# Expected failures
+
+
 def test_orbit_no_attribute(orbit: gd.Orbit) -> None:
     """Test failed plot."""
     with pytest.raises(AttributeError):
         orbit.plot(x="z", y="not_an_attribute")
+
+
+def test_orbit_only_one_component(orbit: gd.Orbit) -> None:
+    """Test failed plot."""
+    with pytest.raises(ValueError, match="Both x and y"):
+        orbit.plot(x="z")
+
+    with pytest.raises(ValueError, match="Both x and y"):
+        orbit.plot(y="z")
+
+
+def test_orbit_wrong_size_axes(orbit: gd.Orbit) -> None:
+    """Test failed plot."""
+    fig, axes = plt.subplots(1, 2)
+    with pytest.raises(ValueError, match="Number of matplotlib axes"):
+        orbit.plot(axes=axes)
+    plt.close(fig)

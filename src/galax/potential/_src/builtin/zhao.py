@@ -44,8 +44,9 @@ class ZhaoPotential(AbstractSinglePotential):
     m: AbstractParameter = ParameterField(
         dimensions="mass",
         doc=(
-            "Mass parameter. When beta > 3, this is the total mass. When beta <= 3, "
-            "this is a scale mass."
+            "Scale mass parameter. This is equivalent to the mass enclosed within the "
+            "scale radius. When beta > 3, the model has finite mass, but when beta <= 3"
+            " the total mass is infinite."
         ),
     )  # type: ignore[assignment]
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
@@ -102,20 +103,41 @@ class ZhaoPotential(AbstractSinglePotential):
         return density(p, r)
 
 
+
 @ft.partial(jax.jit)
-def _rho0(m: gt.Sz0, alpha: gt.Sz0, beta: gt.Sz0, gamma: gt.Sz0, /) -> gt.Sz0:
-    r"""Scale density.
+def _total_mass_factor(p: gt.Params, r_ref: gt.Sz0) -> gt.FloatSz0:
+    """Compute the total mass factor for the Zhao profile."""
+    c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
+    x = r_ref / p["r_s"]
+    chi = x ** (1.0 / p["alpha"]) / (1.0 + x ** (1.0 / p["alpha"]))
+    # chi = jnp.power(x, 1.0 / p["alpha"]) / (1.0 + jnp.power(x, 1.0 / p["alpha"]))
+    return jsp.betainc(c0 - q0, q0, chi)
 
-    Define the scale density (called "C" in the Zhao paper) such that the integral:
 
-        \int_0^\infty 4\pi r^2 \rho(r) \, dr = m
+@ft.partial(jax.jit)
+def _rho0(p: gt.Params, r_ref: gt.Sz0 | None = None) -> gt.FloatSz0:
+    """Compute the normalization density for the Zhao profile.
 
-    for models with finite mass.
+    This computes the normalization constant rho_0 (called C in Zhao 1996) for the Zhao
+    density profile. The normalization is set that the mass parameter is the mass
+    enclosed within ``r_ref``. If no r_ref is specified to this function (as happens in
+    the default initializer for the ``ZhaoPotential``), it is set to the scale radius,
+    so the mass parameter is interpreted to be the mass enclosed within the scale
+    radius.
 
-    See Eq. 44 in Zhao (1996).
+    This implementation uses the hyp2f1 hypergeometric function instead of the
+    incomplete beta function because jax (and scipy) only provide the *regularized*
+    version of the incomplete beta function. This means that it blows up when b <= 0 in
+    B(a, b, z) because the complete beta function B(a, b) is undefined when b <= 0. The
+    hyp2f1 function is defined for all values of a, b, and z, so it can handle the case
+    where b <= 0.
     """
-    denom = alpha * jsp.beta(alpha * (3.0 - gamma), alpha * (beta - 3.0))
-    return m / (4.0 * jnp.pi * denom)
+    r_ref = r_ref if r_ref is not None else p["r_s"]
+    chi_norm = _r_to_u_chi(p, r_ref)[1]
+    a = p["alpha"] * (3.0 - p["gamma"])
+    b = p["alpha"] * (p["beta"] - 3.0)
+    denom = (chi_norm**a / a) * jsp.hyp2f1(a, 1.0 - b, a + 1.0, chi_norm)
+    return p["m"] / (4.0 * jnp.pi * p["alpha"] * denom)
 
 
 @ft.partial(jax.jit)
@@ -128,30 +150,43 @@ def _cpq(a: gt.Sz0, b: gt.Sz0, g: gt.Sz0) -> tuple[gt.Sz0, gt.Sz0, gt.Sz0]:
 
 
 @ft.partial(jax.jit)
-def _r_to_xz(p: gt.Params, r: gt.Sz0) -> gt.FloatSz0:
-    """Convert radius to the variable z used in the potential."""
-    x = r / p["r_s"]
-    return x, x ** (1.0 / p["alpha"]) / (1.0 + x ** (1.0 / p["alpha"]))
+def _r_to_u_chi(p: gt.Params, r: gt.Sz0) -> gt.FloatSz0:
+    r"""Convert radius to u and chi variables defined below.
+
+    .. math::
+
+        u = r / r_s
+        chi = \frac{u^{1/\alpha}}{1 + u^{1/\alpha}}
+
+    """
+    uu = r / p["r_s"]
+    return uu, uu ** (1.0 / p["alpha"]) / (1.0 + uu ** (1.0 / p["alpha"]))
 
 
 @ft.partial(jax.jit)
 def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     """Spherical density profile for double power-law Zhao model."""
-    x = r / p["r_s"]
+    uu = r / p["r_s"]
     alpha, beta, gamma = p["alpha"], p["beta"], p["gamma"]
-    rho0 = _rho0(p["m"], alpha, beta, gamma)
+    rho0 = _rho0(p)
 
     b = (beta - gamma) * alpha
-    return (rho0 / (p["r_s"] ** 3)) / x**gamma / (1.0 + x ** (1.0 / alpha)) ** b
+    return rho0 / (p["r_s"] ** 3) / uu**gamma / (1.0 + uu ** (1.0 / alpha)) ** b
 
 
 @ft.partial(jax.jit)
-def mass_enclosed(p: gt.Params, z: gt.Sz0) -> gt.Sz0:
+def mass_enclosed(p: gt.Params, r: gt.Sz0) -> gt.Sz0:
     a, b, g = p["alpha"], p["beta"], p["gamma"]
-    rho0 = _rho0(p["m"], a, b, g)
-    *_, q0 = _cpq(a, b, g)
-    aM = a * (3.0 - g)
-    return 4.0 * jnp.pi * rho0 * a * (jsp.beta(aM, q0) * jsp.betainc(aM, q0, z))
+    _, chi = _r_to_u_chi(p, r)
+    rho0 = _rho0(p)
+    c0, _, q0 = _cpq(a, b, g)
+    return (
+        4.0
+        * jnp.pi
+        * rho0
+        * a
+        * (jsp.beta(c0 - q0, q0) * jsp.betainc(c0 - q0, q0, chi))
+    )
 
 
 @ft.partial(jax.jit)
@@ -164,26 +199,26 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
     """
     a, b, g = p["alpha"], p["beta"], p["gamma"]
 
-    # z here is what Zhao calls "chi":
-    x, z = _r_to_xz(p, r)
+    uu, chi = _r_to_u_chi(p, r)
 
     # Special case the Jaffe potential, where there is an "inf - inf" below
     is_jaffe = (a == 1.0) & (b == 4.0) & (g == 2.0)
 
     def Phi_jaffe() -> gt.Sz0:
-        return -p["G"] * p["m"] / p["r_s"] * jnp.log1p(1.0 / x)
+        # Note: the extra factor of 2 is because m is mass enclosed in r_s, not total
+        return -p["G"] * 2 * p["m"] / p["r_s"] * jnp.log1p(1.0 / uu)
 
-    rho0 = _rho0(p["m"], a, b, g)
+    rho0 = _rho0(p)
     c0, p0, _ = _cpq(a, b, g)
 
     # Left term in Eq. 7
-    term_l = mass_enclosed(p, z)
+    term_l = mass_enclosed(p, r)
 
     # Right term in Eq. 7
     eps = jnp.sqrt(jnp.finfo(r.dtype).eps)
     p0_safe = jnp.where(p0 <= 0, eps, p0)
     logB = jsp.betaln(p0_safe, c0 - p0)
-    log1mI = jnp.log1p(-jsp.betainc(p0_safe, c0 - p0, z))
+    log1mI = jnp.log1p(-jsp.betainc(p0_safe, c0 - p0, chi))
     term_r = 4.0 * jnp.pi * rho0 * a / p["r_s"] * jnp.exp(logB + log1mI)
 
     def Phi_general() -> gt.Sz0:

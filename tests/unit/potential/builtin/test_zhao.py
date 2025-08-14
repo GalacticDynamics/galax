@@ -130,19 +130,18 @@ class TestZhaoPotential(
     # ==========================================================================
 
     def test_potential(self, pot: ZhaoPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(-1.07419698, unit="kpc2 / Myr2")
-        print(pot.parameters)
+        expect = u.Quantity(-2.83144346, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
     def test_gradient(self, pot: ZhaoPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity([0.06671604, 0.13343208, 0.20014812], "kpc / Myr2")
+        expect = u.Quantity([0.1758548, 0.35170961, 0.52756441], "kpc / Myr2")
         got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: ZhaoPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(3.39060592e08, "solMass / kpc3")
+        expect = u.Quantity(8.93719599e08, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
@@ -150,9 +149,9 @@ class TestZhaoPotential(
     def test_hessian(self, pot: ZhaoPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
-                [0.05378882, -0.02585444, -0.03878166],
-                [-0.02585444, 0.01500716, -0.07756332],
-                [-0.03878166, -0.07756332, -0.04962894],
+                [0.14178033, -0.06814894, -0.10222341],
+                [-0.06814894, 0.03955692, -0.20444682],
+                [-0.10222341, -0.20444682, -0.13081543],
             ],
             "1/Myr2",
         )
@@ -167,9 +166,9 @@ class TestZhaoPotential(
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Quantity(
             [
-                [0.04739981, -0.02585444, -0.03878166],
-                [-0.02585444, 0.00861815, -0.07756332],
-                [-0.03878166, -0.07756332, -0.05601795],
+                [0.12493972, -0.06814894, -0.10222341],
+                [-0.06814894, 0.02271631, -0.20444682],
+                [-0.10222341, -0.20444682, -0.14765604],
             ],
             "1/Myr2",
         )

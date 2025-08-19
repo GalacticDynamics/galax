@@ -18,6 +18,7 @@ from . import api
 from .base import AbstractPotential
 from .utils import parse_to_xyz_t
 from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
+from galax.utils.defaults import DEFAULT_TIME
 
 # =============================================================================
 # Potential Energy
@@ -47,9 +48,43 @@ def potential(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def potential(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential,
+    xyz: gt.XYZArrayLike,
+    /,
+    *,
+    t: gt.BBtLikeSz0 = DEFAULT_TIME.value,
 ) -> gt.BBtSz0:
     return api.potential(pot, xyz, t)
+
+
+# ---------------------------
+# Quantity
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def potential(
+    pot: AbstractPotential,
+    q: u.AbstractQuantity,
+    /,
+    *,
+    t: u.AbstractQuantity = DEFAULT_TIME,
+) -> Real[u.Quantity["specific energy"], "*#batch"]:
+    """Compute from a quantity."""
+    q, t = parse_to_xyz_t(None, q, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    phi = pot._potential(q, t)  # noqa: SLF001
+    return u.Quantity(phi, pot.units["specific energy"])
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def potential(
+    pot: AbstractPotential, q: u.AbstractQuantity, t: u.AbstractQuantity, /
+) -> Real[u.Quantity["specific energy"], "*#batch"]:
+    """Compute the potential energy at the given position(s)."""
+    q, t = parse_to_xyz_t(None, q, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    phi = pot._potential(q, t)  # noqa: SLF001
+    return u.Quantity(phi, pot.units["specific energy"])
 
 
 # ---------------------------
@@ -60,6 +95,7 @@ def potential(
     pot: AbstractPotential, tq: Any, /, *, t: Any = None
 ) -> Real[u.Quantity["specific energy"], "*#batch"]:
     """Compute from a q + t object."""
+    # Note: No default time here because if not specified, use the time on the tq object
     return api.potential(pot, tq, t)
 
 
@@ -100,7 +136,11 @@ def gradient(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def gradient(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential,
+    xyz: gt.XYZArrayLike,
+    /,
+    *,
+    t: gt.BBtLikeSz0 = DEFAULT_TIME.value,
 ) -> gt.BBtSz3:
     return api.gradient(pot, xyz, t)
 
@@ -112,7 +152,11 @@ def gradient(
 @dispatch
 @ft.partial(jax.jit, inline=True)
 def gradient(
-    pot: AbstractPotential, xyz: u.AbstractQuantity, /, *, t: u.AbstractQuantity
+    pot: AbstractPotential,
+    xyz: u.AbstractQuantity,
+    /,
+    *,
+    t: u.AbstractQuantity = DEFAULT_TIME,
 ) -> Real[u.Quantity["acceleration"], "*#batch 3"]:
     """Compute from a q + t object."""
     xyz, t = parse_to_xyz_t(None, xyz, t, ustrip=pot.units, dtype=float)  # TODO: frame
@@ -140,6 +184,7 @@ def gradient(
     pot: AbstractPotential, tq: Any, /, *, t: Any = None
 ) -> cx.vecs.CartesianAcc3D:
     """Compute from a q + t object."""
+    # Note: No default time here because if not specified, use the time on the tq object
     xyz, t = parse_to_xyz_t(None, tq, t, ustrip=pot.units, dtype=float)  # TODO: frame
     grad = pot._gradient(xyz, t)  # noqa: SLF001
     return cx.vecs.CartesianAcc3D.from_(grad, pot.units["acceleration"])
@@ -180,9 +225,43 @@ def laplacian(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def laplacian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential,
+    xyz: gt.XYZArrayLike,
+    /,
+    *,
+    t: gt.BBtLikeSz0 = DEFAULT_TIME.value,
 ) -> gt.BBtSz0:
     return api.laplacian(pot, xyz, t)
+
+
+# ---------------------------
+# Quantity
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def laplacian(
+    pot: AbstractPotential,
+    xyz: u.AbstractQuantity,
+    /,
+    *,
+    t: u.AbstractQuantity = DEFAULT_TIME,
+) -> Real[u.Quantity["frequency drift"], "*#batch"]:
+    """Compute from a quantity object."""
+    xyz, t = parse_to_xyz_t(None, xyz, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    lapl = pot._laplacian(xyz, t)  # noqa: SLF001
+    return u.Quantity.from_(lapl, pot.units["frequency drift"])
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def laplacian(
+    pot: AbstractPotential, q: u.AbstractQuantity, t: u.AbstractQuantity, /
+) -> Real[u.Quantity["frequency drift"], "*#batch"]:
+    """Compute from a quantity object and a time."""
+    xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    lapl = pot._laplacian(xyz, t)  # noqa: SLF001
+    return u.Quantity.from_(lapl, pot.units["frequency drift"])
 
 
 # ---------------------------
@@ -235,9 +314,43 @@ def density(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def density(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential,
+    xyz: gt.XYZArrayLike,
+    /,
+    *,
+    t: gt.BBtLikeSz0 = DEFAULT_TIME.value,
 ) -> gt.BBtSz0:
     return api.density(pot, xyz, t)
+
+
+# ---------------------------
+# Quantity
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def density(
+    pot: AbstractPotential,
+    xyz: u.AbstractQuantity,
+    /,
+    *,
+    t: u.AbstractQuantity = DEFAULT_TIME,
+) -> Real[u.Quantity["mass density"], "*#batch"]:
+    """Compute from a quantity object."""
+    xyz, t = parse_to_xyz_t(None, xyz, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    rho = pot._density(xyz, t)  # noqa: SLF001
+    return u.Quantity.from_(rho, pot.units["mass density"])
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def density(
+    pot: AbstractPotential, q: u.AbstractQuantity, t: u.AbstractQuantity, /
+) -> Real[u.Quantity["mass density"], "*#batch"]:
+    """Compute from a quantity object and a time."""
+    xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    rho = pot._density(xyz, t)  # noqa: SLF001
+    return u.Quantity.from_(rho, pot.units["mass density"])
 
 
 # ---------------------------
@@ -290,9 +403,47 @@ def hessian(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def hessian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential,
+    xyz: gt.XYZArrayLike,
+    /,
+    *,
+    t: gt.BBtLikeSz0 = DEFAULT_TIME.value,
 ) -> gt.BBtSz33:
     return api.hessian(pot, xyz, t)
+
+
+# ---------------------------
+# Quantity
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def hessian(
+    pot: AbstractPotential,
+    xyz: u.AbstractQuantity,
+    /,
+    *,
+    t: u.AbstractQuantity = DEFAULT_TIME,
+) -> Real[u.Quantity["frequency drift"], "*#batch 3 3"]:
+    """Compute from a quantity object."""
+    xyz, t = parse_to_xyz_t(None, xyz, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    phi = pot._hessian(xyz, t)  # noqa: SLF001
+    return u.Quantity.from_(phi, pot.units["frequency drift"])
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def hessian(
+    pot: AbstractPotential,
+    xyz: u.AbstractQuantity,
+    /,
+    *,
+    t: u.AbstractQuantity = DEFAULT_TIME,
+) -> Real[u.Quantity["frequency drift"], "*#batch 3 3"]:
+    """Compute from a quantity object."""
+    xyz, t = parse_to_xyz_t(None, xyz, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    phi = pot._hessian(xyz, t)  # noqa: SLF001
+    return u.Quantity.from_(phi, pot.units["frequency drift"])
 
 
 # ---------------------------

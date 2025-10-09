@@ -5,7 +5,7 @@ import numpy as np
 
 import quaxed.numpy as jnp
 
-import galax.potential as gpx
+import galax.potential._src as gpx
 
 
 def test_compute_coeffs_discrete():

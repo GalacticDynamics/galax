@@ -48,7 +48,7 @@ def cartesian_to_spherical(xyz: gt.FloatSz3, /) -> gt.FloatSz3:
 def factorial(n: T) -> T:
     """Factorial helper function."""
     (n,) = promote_args_inexact("factorial", n)
-    return cast("T", xp.where(n < 0, 0, lax.exp(lax.lgamma(n + 1))))
+    return cast("T", jnp.where(n < 0, 0, jnp.exp(lax.lgamma(n + 1))))
 
 
 def psi_of_r(r: T) -> T:
@@ -66,9 +66,9 @@ def psi_of_r(r: T) -> T:
 @partial(jax.jit, static_argnames=("m_max",))  # TODO: should l,m be static?
 def _real_Ylm(theta: gt.SzN, l: gt.IntSz0, m: gt.IntSz0, m_max: int) -> gt.SzN:
     # TODO: sph_harm only supports scalars, even though it returns an array!
-    theta = xp.atleast_1d(theta)
+    theta = jnp.atleast_1d(theta)
     return sph_harm(
-        m, xp.atleast_1d(l), theta=xp.zeros_like(theta), phi=theta, n_max=m_max
+        m, jnp.atleast_1d(l), theta=jnp.zeros_like(theta), phi=theta, n_max=m_max
     ).real
 
 
@@ -90,7 +90,7 @@ def real_Ylm(
     l, m : int | Array[int, ()]
         Spherical harmonic terms. l in [0,lmax], m in [0,l].
     m_max : int, optional
-        Maximum order of the spherical harmonic expansion.
+        Maximum order of the spherical harmonic ejnpansion.
 
     Returns
     -------

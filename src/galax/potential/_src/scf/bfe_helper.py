@@ -44,7 +44,7 @@ def rho_nl(
 # ======================================================================
 
 
-@jax.jit
+@partial(jax.jit, static_argnames=("n", "l"))
 def phi_nl(
     s: Float[Array, "samples"], n: gt.IntSz0, l: gt.IntSz0,
 ) -> Float[Array, "samples"]:

@@ -54,6 +54,8 @@
     "xmmutablemap>=0.1",
     "zeroth>=1.0",
     "spexial @ git+https://github.com/JAXtronomy/spexial.git@main",
+    "hypothesis>=6.135.14",
+    "gala>=1.9.1",
 ]
 
   [project.optional-dependencies]

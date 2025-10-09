@@ -26,7 +26,7 @@ class ParameterCallable(Protocol):
 
         Parameters
         ----------
-        t : `~galax.typing.BBtQuSz0`
+        t : `~galax._custom_types.BBtQuSz0`
             Time(s) at which to compute the parameter value.
         ustrip : Unit | None
             Unit to strip from the parameter value.
@@ -62,7 +62,7 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
 
         Parameters
         ----------
-        t : `~galax.typing.BBtQuSz0`
+        t : `~galax._custom_types.BBtQuSz0`
             The time(s) at which to compute the parameter value.
         ustrip : Unit | None
             The unit to strip from the parameter value. If None, the

@@ -10,14 +10,12 @@ from jaxtyping import Array, Float
 
 from .coeffs_helper import normalization_Knl
 from .utils import psi_of_r
-from spexial import eval_gegenbauer
+from spexial import eval_gegenbauers
 import galax._custom_types as gt
 
 
-@jax.jit
-def rho_nl(
-    s: Float[Array, "N"], n: int, l: int,
-) -> Float[Array, "N"]:
+def rho_nl(n: gt.IntSz0, l: gt.IntSz0, s: gt.FloatSz0,
+) -> gt.FloatSz0:
     r"""Radial density expansion terms.
 
     Parameters
@@ -37,31 +35,32 @@ def rho_nl(
         jnp.sqrt(4 * jnp.pi)
         * (normalization_Knl(n=n, l=l) / (2 * jnp.pi))
         * (s**l / (s * (1 + s) ** (2 * l + 3)))
-        * eval_gegenbauer(n, 2 * l + 1.5, psi_of_r(s))
+        * eval_gegenbauers(n, 2 * l + 1.5, psi_of_r(s))
     )
 
+rho_nl_jit_vec = jax.jit(
+    jax.vmap( jax.vmap(rho_nl, in_axes=(None, 0, None),), in_axes=(None, None, 0)), static_argnames="n"
+)
 
 # ======================================================================
 
 
-@partial(jax.jit, static_argnames=("n", "l"))
-def phi_nl(
-    s: Float[Array, "samples"], n: gt.IntSz0, l: gt.IntSz0,
-) -> Float[Array, "samples"]:
+def phi_nl(n: gt.IntSz0, l: gt.IntSz0, s: gt.FloatSz0,
+) -> gt.FloatSz0:
     r"""Angular density expansion terms.
 
     Parameters
     ----------
-    s : Array[float, (n_samples,)]
-        Scaled radius :math:`r/r_s`.
     n : int
-        Radial expansion term.
+        Max Radial expansion term.
     l : int
         Spherical harmonic term.
+    s : Float
+        Scaled radius :math:`r/r_s`.
 
     Returns
     -------
-    Array[float, (n_samples,)]
+    Array[float, (n + 1,)]
 
     Examples
     --------
@@ -74,11 +73,9 @@ def phi_nl(
     return (
         -jnp.sqrt(4 * jnp.pi)
         * (s**l / (1.0 + s) ** (2 * l + 1))
-        * eval_gegenbauer(n, 2 * l + 1.5, psi_of_r(s))
+        * eval_gegenbauers(n, 2 * l + 1.5, psi_of_r(s))
     )
 
-
-phi_nl_vec = jnp.vectorize(phi_nl, signature="(n),(),()->(n)", excluded=(3,))
-
-phi_nl_grad = jax.jit(jnp.vectorize(jax.grad(phi_nl, argnums=0), excluded=(3,)))
-r"""Derivative :math:`\frac{d}{dr} \phi_{nl}`."""
+phi_nl_jit_vec = jax.jit(
+    jax.vmap( jax.vmap(phi_nl, in_axes=(None, 0, None),), in_axes=(None, None, 0)), static_argnames="n"
+)

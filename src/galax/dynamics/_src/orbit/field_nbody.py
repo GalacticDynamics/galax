@@ -19,7 +19,7 @@ from .field_base import AbstractOrbitField
 
 
 @final
-class NBodyField(AbstractOrbitField, strict=True):  # type: ignore[call-arg]
+class NBodyField(AbstractOrbitField):
     r"""Dynamics field for N-Body EoM.
 
     .. warning::

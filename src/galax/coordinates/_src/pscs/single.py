@@ -203,7 +203,7 @@ def from_(
 @AbstractPhaseSpaceObject.from_.dispatch
 def from_(
     cls: type[PhaseSpaceCoordinate],
-    data: cx.Space,
+    data: cx.KinematicSpace,
     frame: cx.frames.AbstractReferenceFrame,
     /,
 ) -> PhaseSpaceCoordinate:
@@ -214,7 +214,7 @@ def from_(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> data = cx.Space(length=cx.FourVector.from_([0, 1, 2, 3], "kpc"),
+    >>> data = cx.KinematicSpace(length=cx.FourVector.from_([0, 1, 2, 3], "kpc"),
     ...                 speed=cx.CartesianVel3D.from_([4, 5, 6], "km/s"))
 
     >>> gc.PhaseSpaceCoordinate.from_(data, gc.frames.simulation_frame)

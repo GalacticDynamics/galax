@@ -24,7 +24,7 @@ from galax.dynamics._src.orbit import Orbit
 Carry: TypeAlias = tuple[gt.QuSz3, gt.QuSz3, gt.QuSz3, gt.QuSz3]
 
 
-class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
+class AbstractStreamDF(eqx.Module):  # type: ignore[misc]
     """Abstract base class of Stream Distribution Functions."""
 
     @ft.partial(jax.jit)

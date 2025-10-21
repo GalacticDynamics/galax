@@ -16,7 +16,7 @@ from galax.dynamics._src.fields import AbstractField
 from galax.dynamics._src.utils import parse_to_t_y
 
 
-class AbstractOrbitField(AbstractField, strict=True):  # type: ignore[call-arg]
+class AbstractOrbitField(AbstractField):
     """ABC for fields for computing orbits.
 
     Note that this provides a default implementation for the `terms` property,

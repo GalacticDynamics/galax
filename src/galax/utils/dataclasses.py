@@ -9,7 +9,7 @@ from collections.abc import Callable
 from enum import Enum, auto
 from typing import Any, Generic, TypeVar, cast, overload
 
-from equinox._module import _has_dataclass_init, _ModuleMeta
+from equinox._module._module import _has_dataclass_init, _ModuleMeta
 
 from dataclassish import DataclassInstance
 from dataclassish.converters import AbstractConverter
@@ -70,8 +70,8 @@ class sentineled(AbstractConverter[ArgT, RetT], Generic[ArgT, RetT, SenT]):
 
     def __call__(self, value: ArgT | SenT, /) -> RetT | SenT:
         if value is self.sentinel:
-            return cast(SenT, value)
-        return self.converter(cast(ArgT, value))
+            return cast("SenT", value)
+        return self.converter(cast("ArgT", value))
 
 
 ##############################################################################
@@ -133,14 +133,10 @@ class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
         bases: tuple[type, ...],
         namespace: dict[str, Any],
         /,
-        *,
-        strict: bool = False,
         **kwargs: Any,
     ) -> type:
         # [Step 1] Create the class using `_ModuleMeta`.
-        cls: type = super().__new__(
-            mcs, name, bases, namespace, strict=strict, **kwargs
-        )
+        cls: type = super().__new__(mcs, name, bases, namespace, **kwargs)
 
         # [Step 2] Convert the defaults.
         for k, v in namespace.items():

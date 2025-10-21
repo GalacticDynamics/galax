@@ -13,7 +13,7 @@ from .base import AbstractPotential, default_constants
 from .composite import CompositePotential
 
 
-class AbstractSinglePotential(AbstractPotential, strict=True):
+class AbstractSinglePotential(AbstractPotential):
     """Abstract base class for all potential objects."""
 
     _: KW_ONLY

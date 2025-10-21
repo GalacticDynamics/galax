@@ -233,7 +233,7 @@ def tidal_radius_king1962(
 @dispatch
 def tidal_radius_king1962(
     pot: gp.AbstractPotential,
-    space: cx.Space,
+    space: cx.KinematicSpace,
     /,
     *,
     mass: gt.BBtQuSz0,

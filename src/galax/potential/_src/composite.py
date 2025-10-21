@@ -32,7 +32,6 @@ class UnitsOptionEnum(eqx.Enumeration):  # type: ignore[misc]
 class CompositePotential(
     AbstractCompositePotential,
     ImmutableMap[str, AbstractPotential],  # type: ignore[misc]
-    strict=False,
 ):
     """Composite Potential.
 

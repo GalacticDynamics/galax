@@ -226,7 +226,7 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.ops.GalileanTranslation(u.Quantity([2_000, 1, 1, 1], "kpc"))
+    >>> op = cx.ops.GalileanTranslation.from_(u.Quantity([2_000, 1, 1, 1], "kpc"))
 
     >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
     ...                               p=u.Quantity([0, 0, 0], "kpc/Gyr"),

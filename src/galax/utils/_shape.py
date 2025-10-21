@@ -17,7 +17,7 @@ AnyScalar: TypeAlias = Shaped[Array, ""]
 ArrayAnyShape: TypeAlias = Shaped[Array | quax.ArrayValue, "..."]
 
 
-def vector_batched_shape(obj: cx.vecs.AbstractVector) -> tuple[gt.Shape, int]:
+def vector_batched_shape(obj: cx.vecs.AbstractVector, /) -> tuple[gt.Shape, int]:
     """Return the batch and component shape of a vector."""
     return obj.shape, len(obj.components)
 

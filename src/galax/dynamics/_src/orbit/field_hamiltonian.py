@@ -18,7 +18,7 @@ from galax.dynamics._src.utils import parse_to_t_y
 
 
 @final
-class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-arg]
+class HamiltonianField(AbstractOrbitField):
     r"""Dynamics field for Hamiltonian EoM.
 
     This is for Hamilton's equations for motion for a particle in a potential.
@@ -171,14 +171,14 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
-    - `coordinax.vecs.Space`:
+    - `coordinax.vecs.KinematicSpace`:
 
-    >>> space = cx.Space(length=tq, speed=p)
+    >>> space = cx.KinematicSpace(length=tq, speed=p)
     >>> field(space)
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
-    >>> space = cx.Space(length=q, speed=p)
+    >>> space = cx.KinematicSpace(length=q, speed=p)
     >>> field(t, space)
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
@@ -190,7 +190,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
-    >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
+    >>> coord = cx.Coordinate(cx.KinematicSpace(length=tq, speed=p),
     ...                       frame=gc.frames.SimulationFrame())
     >>> field(coord)
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
@@ -200,7 +200,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
-    >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
+    >>> coord = cx.Coordinate(cx.KinematicSpace(length=tq, speed=p),
     ...                       frame=gc.frames.SimulationFrame())
     >>> field(coord)
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),

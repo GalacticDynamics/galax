@@ -26,7 +26,7 @@ from galax.dynamics._src.solver import AbstractSolver, SolveState
 from galax.dynamics._src.utils import parse_saveat
 
 
-class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
+class MassSolver(AbstractSolver):
     """Solver for mass history.
 
     Examples

@@ -16,7 +16,7 @@ import diffraxtra as dfxtra
 import unxt as u
 
 
-class AbstractField(eqx.Module, strict=True):  # type: ignore[misc,call-arg]
+class AbstractField(eqx.Module):  # type: ignore[misc]
     """Abstract base class for fields.
 
     Methods

@@ -24,11 +24,9 @@ from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.utils import PSPVConvertOptions
 
 
-# Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     AbstractPhaseSpaceCoordinate,
     ImmutableMap[str, AbstractPhaseSpaceCoordinate],  # type: ignore[misc]
-    strict=False,  # type: ignore[call-arg]
 ):
     r"""Abstract base class of composite phase-space coordinates.
 
@@ -187,7 +185,7 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
 
 @AbstractPhaseSpaceObject.__getitem__.dispatch
 def getitem(
-    self: AbstractCompositePhaseSpaceCoordinate, key: Any
+    self: AbstractCompositePhaseSpaceCoordinate, key: Any, /
 ) -> AbstractCompositePhaseSpaceCoordinate:
     """Get item from the key.
 
@@ -230,9 +228,7 @@ def getitem(
 
 
 @AbstractPhaseSpaceObject.__getitem__.dispatch
-def getitem(
-    self: AbstractCompositePhaseSpaceCoordinate, key: str
-) -> AbstractPhaseSpaceCoordinate:
+def getitem(self: AbstractCompositePhaseSpaceCoordinate, key: str, /) -> Any:
     """Get item from the key.
 
     Examples

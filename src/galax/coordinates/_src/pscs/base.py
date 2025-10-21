@@ -44,7 +44,6 @@ class ComponentShapeTuple(NamedTuple):
 # =============================================================================
 
 
-# TODO: make it strict=True
 class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
     r"""ABC underlying phase-space positions and their composites.
 
@@ -109,7 +108,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
 
     @override
     @property
-    def data(self) -> cx.Space:  # type: ignore[misc]
+    def data(self) -> cx.KinematicSpace:  # type: ignore[misc]
         """Return the data as a space.
 
         Examples
@@ -123,10 +122,12 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         ...                             p=u.Quantity([4, 5, 6], "km/s"),
         ...                             t=u.Quantity(0, "Gyr"))
         >>> pos.data
-        Space({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) })
+        KinematicSpace({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) })
 
         """
-        return cx.Space(length=cx.vecs.FourVector(t=self.t, q=self.q), speed=self.p)
+        return cx.KinematicSpace(
+            length=cx.vecs.FourVector(t=self.t, q=self.q), speed=self.p
+        )
 
     # ==========================================================================
     # Array API
@@ -330,7 +331,7 @@ def _psc_getitem_time_index(_: AbstractPhaseSpaceCoordinate, index: Any, /) -> A
     return index
 
 
-@AbstractPhaseSpaceObject.__getitem__.dispatch  # type: ignore[attr-defined,misc]
+@AbstractPhaseSpaceObject.__getitem__.dispatch  # type: ignore[misc]
 def getitem(
     self: AbstractPhaseSpaceCoordinate, index: Any, /
 ) -> AbstractPhaseSpaceCoordinate:

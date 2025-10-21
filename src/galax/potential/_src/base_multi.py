@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     import galax.potential  # noqa: ICN001
 
 
-# Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePotential(AbstractPotential):
     """Base class for composite potentials."""
 

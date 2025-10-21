@@ -95,7 +95,7 @@ class AbstractPhaseSpaceObject_Test(Generic[CT], metaclass=ABCMeta):
 
     def test_data_keys(self, w: CT) -> None:
         """Test :attr:`~galax.coordinates.PhaseSpacePosition.data`."""
-        assert isinstance(w.data, cx.Space)
+        assert isinstance(w.data, cx.KinematicSpace)
         assert "length" in w.data
         assert "speed" in w.data
 

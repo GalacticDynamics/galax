@@ -39,7 +39,7 @@ DimT = u.dimension("time")
 ##############################################################################
 
 
-class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
+class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
     """Abstract Potential Class."""
 
     parameters: ClassVar = ParametersAttribute(MappingProxyType({}))

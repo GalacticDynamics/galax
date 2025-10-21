@@ -43,11 +43,9 @@ __all__ = [
 ]
 
 
-from jaxtyping import install_import_hook
+from galax.setup_package import install_import_hook
 
-from galax.setup_package import RUNTIME_TYPECHECKER
-
-with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
+with install_import_hook("galax.dynamics"):
     from diffraxtra import DiffEqSolver
 
     from . import cluster, examples, fields, integrate, mockstream, plot
@@ -75,4 +73,4 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
 
 
 # Cleanup
-del (install_import_hook, RUNTIME_TYPECHECKER, register_api)
+del install_import_hook, register_api

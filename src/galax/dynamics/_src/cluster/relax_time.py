@@ -19,8 +19,7 @@ __all__ = [
 ]
 
 import functools as ft
-from typing import Annotated as Antd, Any, NoReturn, TypeAlias, TypeVar, cast, final
-from typing_extensions import Doc
+from typing import Any, NoReturn, TypeAlias, TypeVar, cast, final
 
 import equinox as eqx
 import jax
@@ -42,7 +41,7 @@ def _check_types_match(obj: T, comparator: object, /, name: str) -> T:
         or (not is_any_quantity(obj) and is_any_quantity(comparator)),
         f"{name} must be of type {'Quantity' if is_any_quantity(obj) else 'Array'}",
     )
-    return cast(T, out)
+    return cast("T", out)
 
 
 #####################################################################
@@ -150,13 +149,13 @@ def relaxation_time(
 
 @ft.partial(jax.jit)
 def relaxation_time_spitzer_hart_1971(
-    M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
-    r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
+    M: BBtAorQSz0,
+    r_hm: BBtAorQSz0,
     /,
     *,
-    m_avg: Antd[float, Doc("mean stellar mass.")] = 0.42,
-    gamma: Antd[float, Doc("Coulomb logarithm term.")] = 0.11,
-    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
+    m_avg: float = 0.42,
+    gamma: float = 0.11,
+    G: float = 0.00449,
 ) -> BBtAorQSz0:
     r"""Compute relaxation time using Spitzer and Hart (1971) formula.
 
@@ -173,6 +172,20 @@ def relaxation_time_spitzer_hart_1971(
     - $G$ is the gravitational constant,
     - $\ln(\gamma N)$ is the Coulomb logarithm. For equal-mass clusters (Giersz
       & Heggie 1994) $\gamma \sim 0.11$.
+
+    Parameters
+    ----------
+    M : BBtAorQSz0
+        Mass of the cluster.
+    r_hm : BBtAorQSz0
+        Half-mass radius of the cluster.
+    m_avg : float, optional
+        Mean stellar mass. Default is 0.42 (Chabrier 2005 IMF between 0.08 and
+        100 $M_{\odot}$).
+    gamma : float, optional
+        Coulomb logarithm term. Default is 0.11 (Giersz & Heggie 1994).
+    G : float, optional
+        Gravitational constant.
 
     Examples
     --------
@@ -267,13 +280,13 @@ def _relaxation_time_spitzer1987(
 
 @ft.partial(jax.jit)
 def half_mass_relaxation_time_spitzer1987(
-    M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
-    r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
-    m_avg: Antd[BBtAorQSz0, Doc("average stellar mass")],
+    M: BBtAorQSz0,
+    r_hm: BBtAorQSz0,
+    m_avg: BBtAorQSz0,
     /,
     *,
-    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
-    lnLambda: Antd[gt.RealScalarLike, Doc("Coulomb logarithm")],
+    G: BBtAorQSz0,
+    lnLambda: gt.RealScalarLike,
 ) -> BBtAorQSz0:
     r"""Compute the cluster's relaxation time.
 
@@ -282,6 +295,19 @@ def half_mass_relaxation_time_spitzer1987(
     .. math::
 
         t_r = \frac{0.1 N}{\ln(0.4 N)} \frac{r_{hm}^3}{G M}
+
+    Parameters
+    ----------
+    M : BBtAorQSz0
+        Mass of the cluster.
+    r_hm : BBtAorQSz0
+        Half-mass radius of the cluster.
+    m_avg : BBtAorQSz0
+        Average stellar mass.
+    G : BBtAorQSz0
+        Gravitational constant.
+    lnLambda : RealScalarLike
+        Coulomb logarithm.
 
     Examples
     --------
@@ -311,13 +337,13 @@ def half_mass_relaxation_time_spitzer1987(
 
 @ft.partial(jax.jit)
 def core_relaxation_time_spitzer1987(
-    Mc: Antd[BBtAorQSz0, Doc("mass of the cluster")],
-    r_c: Antd[BBtAorQSz0, Doc("core radius of the cluster")],
-    m_avg: Antd[BBtAorQSz0, Doc("average stellar mass")],
+    Mc: BBtAorQSz0,
+    r_c: BBtAorQSz0,
+    m_avg: BBtAorQSz0,
     /,
     *,
-    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
-    lnLambda: Antd[gt.RealScalarLike, Doc("Coulomb logarithm")],
+    G: BBtAorQSz0,
+    lnLambda: gt.RealScalarLike,
 ) -> BBtAorQSz0:
     r"""Compute the cluster's relaxation time.
 
@@ -326,6 +352,19 @@ def core_relaxation_time_spitzer1987(
     .. math::
 
         t_r = \frac{0.2 N}{\ln(0.4 N)} \frac{r_c^3}{G M_c}
+
+    Parameters
+    ----------
+    Mc : BBtAorQSz0
+        Mass of the cluster.
+    r_c : BBtAorQSz0
+        Core radius of the cluster.
+    m_avg : BBtAorQSz0
+        Average stellar mass.
+    G : BBtAorQSz0
+        Gravitational constant.
+    lnLambda : RealScalarLike
+        Coulomb logarithm.
 
     Examples
     --------
@@ -392,12 +431,7 @@ def relaxation_time(
 )
 @ft.partial(jax.jit)
 def relaxation_time_baumgardt1998(
-    M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
-    r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
-    m_avg: Antd[BBtAorQSz0, Doc("average stellar mass")],
-    /,
-    *,
-    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
+    M: BBtAorQSz0, r_hm: BBtAorQSz0, m_avg: BBtAorQSz0, /, *, G: BBtAorQSz0
 ) -> BBtAorQSz0:
     r"""Compute the cluster's relaxation time.
 
@@ -410,6 +444,17 @@ def relaxation_time_baumgardt1998(
     where $N$ is the number of stars in the cluster, $M_c$ is the mass of the
     cluster, $r_{hm}$ is the half-mass radius of the cluster, $m_{avg}$ is the
     average stellar mass, and $G$ is the gravitational constant.
+
+    Parameters
+    ----------
+    M : BBtAorQSz0
+        Mass of the cluster.
+    r_hm : BBtAorQSz0
+        Half-mass radius of the cluster.
+    m_avg : BBtAorQSz0
+        Average stellar mass.
+    G : BBtAorQSz0
+        Gravitational constant.
 
     Examples
     --------

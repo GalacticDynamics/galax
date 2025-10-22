@@ -17,7 +17,7 @@ from typing import (
     get_type_hints,
     overload,
 )
-from typing_extensions import Doc, override
+from typing_extensions import override
 
 from astropy.units import PhysicalType as Dimension, Quantity as AstropyQuantity
 
@@ -142,13 +142,6 @@ class ParameterField:
         """Set the name of the parameter."""
         object.__setattr__(self, "name", name)
 
-        # Try to get the documentation from the annotation
-        ann = owner.__annotations__[name]  # Get the annotation from the class
-        if isannotated(ann):
-            for arg in get_args(ann)[1:]:
-                if isinstance(arg, Doc):
-                    object.__setattr__(self, "doc", arg.documentation)
-
     @property
     @override
     def __doc__(self) -> str | None:  # type: ignore[override]
@@ -188,7 +181,7 @@ class ParameterField:
             return self
 
         # Get from instance
-        return cast(AbstractParameter, instance.__dict__[self.name])
+        return cast("AbstractParameter", instance.__dict__[self.name])
 
     # -----------------------------
 

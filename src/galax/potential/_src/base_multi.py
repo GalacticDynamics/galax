@@ -240,7 +240,7 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
 
     """
 
-    _keys: tuple[str, ...] = eqx.field(init=False, repr=False, static=True)
+    _keys: tuple[str, ...] = eqx.field(repr=False, static=True)
 
     def __init__(
         self,

@@ -91,7 +91,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
     See :func:`numpy.polynomial.legendre.leggauss` for details.
     """
-    _integrator: GaussLegendreIntegrator = eqx.field(init=False)
+    _integrator: GaussLegendreIntegrator = eqx.field(default=None)
 
     def __post_init__(self) -> None:
         # Gauss-Legendre quadrature

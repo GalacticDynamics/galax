@@ -3,9 +3,6 @@
 __all__ = ["galax_to_galpy", "galpy_to_galax"]
 
 
-from typing import Annotated as Antd
-from typing_extensions import Doc
-
 import equinox as eqx
 import galpy.potential as gpy
 import numpy as np
@@ -130,9 +127,7 @@ def _galpy_mass(pot: gpy.Potential, /) -> u.Quantity:
 
 
 @dispatch.abstract
-def galpy_to_galax(
-    _: Antd[gpy.Potential, Doc("The Galpy potential to convert to galax.")], /
-) -> Antd[gp.AbstractPotential, Doc("The resulting Galax potential.")]:
+def galpy_to_galax(_: gpy.Potential, /) -> gp.AbstractPotential:
     """Convert a :mod:`galpy` potential to a :mod:`galax` potential.
 
     This dispatch is for all :mod:`galpy` potentials that do not have a
@@ -147,10 +142,7 @@ def galpy_to_galax(
 #       Gala potentials are not time-dependent, so we need to specify how to
 #       handle time-dependent Galax parameters.
 @dispatch.abstract
-def galax_to_galpy(
-    _: Antd[gp.AbstractPotential, Doc("The galax potential to convert to Galpy")],
-    /,
-) -> Antd[gpy.Potential, Doc("The resulting Galpy potential.")]:
+def galax_to_galpy(_: gp.AbstractPotential, /) -> gpy.Potential:
     """Convert a Galax potential to a Gala potential.
 
     This dispatch is for all :mod:`galax` potentials that do not have a

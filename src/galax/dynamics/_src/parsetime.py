@@ -5,8 +5,7 @@ __all__ = ["parse_time_specification"]
 
 from collections.abc import Sequence
 from numbers import Number
-from typing import Annotated as Ann, Any
-from typing_extensions import Doc
+from typing import Any
 
 from jaxtyping import Array, ArrayLike, Shaped
 from plum import dispatch
@@ -17,16 +16,14 @@ from unxt._src.units.api import AstropyUnits as Unit
 
 
 def parse_time_specification(
-    units: Ann[
-        u.AbstractUnitSystem | None, Doc("The unit system in which to express times.")
-    ] = None,
+    units: u.AbstractUnitSystem | None = None,
     *,
-    t: Ann[u.AbstractQuantity | None, Doc("full time array.")] = None,
-    t0: Ann[u.AbstractQuantity | None, Doc("The starting time.")] = None,
-    dt: Ann[u.AbstractQuantity | None, Doc("The time step(s).")] = None,
-    n_steps: Ann[int | None, Doc("The number of steps.")] = None,
-    t1: Ann[u.AbstractQuantity | None, Doc("The final time (inclusive).")] = None,
-) -> Ann[u.AbstractQuantity, Doc("An array of times.")]:
+    t: u.AbstractQuantity | None = None,
+    t0: u.AbstractQuantity | None = None,
+    dt: u.AbstractQuantity | None = None,
+    n_steps: int | None = None,
+    t1: u.AbstractQuantity | None = None,
+) -> u.AbstractQuantity:
     """Construct and return an array of times.
 
     This is useful for constructing the `ts` argument of `diffrax.SaveAt`.
@@ -49,18 +46,18 @@ def parse_time_specification(
     Parameters
     ----------
     units : UnitSystem-like
-        The unit system to use. See :func:`unxt.unitsystem`.
+        The unit system in which to express times. See :func:`unxt.unitsystem`.
 
     t : Quantity, optional
         An array of times.
     t0 : Quantity, optional
         The starting time.
     dt : Quantity, optional
-        The timestep.
+        The time steps.
     n_steps : int, optional
         The number of time steps.
     t1 : Quantity, optional
-        The final time.
+        The final time (inclusive).
 
     Returns
     -------

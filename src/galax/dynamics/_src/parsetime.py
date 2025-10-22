@@ -191,7 +191,7 @@ def parse_time_spec(
     n_steps: int,
     t1: Any,
     /,
-) -> Shaped[u.AbstractQuantity, "{n_steps}"]:
+) -> u.AbstractQuantity:  #  (n_steps,)
     """Return a time array from the initial and final times and number of steps."""
     unit = _parse_to_time_unit(units)
     return u.Quantity.from_(jnp.linspace(t0, t1, n_steps), unit)
@@ -206,7 +206,7 @@ def parse_time_spec(
     n_steps: int,
     t1: None,  # noqa: ARG001
     /,
-) -> Shaped[u.AbstractQuantity, "{n_steps}"]:
+) -> u.AbstractQuantity:  #  (n_steps,)
     """Return a time array from the initial time, timestep, and number of steps."""
     return parse_time_spec(units, t, t0, None, n_steps, t0 + dt * n_steps)
 
@@ -235,7 +235,7 @@ def parse_time_spec(
     n_steps: None,  # noqa: ARG001
     t1: None,  # noqa: ARG001
     /,
-) -> Shaped[u.AbstractQuantity, "N+1"]:
+) -> u.AbstractQuantity:  # (N+1,)
     """Return a time array from the initial time and an array of time steps."""
     unit = _parse_to_time_unit(units)
     t0 = u.Quantity.from_(t0, unit)

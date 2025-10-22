@@ -12,11 +12,9 @@ __all__ = [
     "ConstantMassProtenitor",
 ]
 
-from jaxtyping import install_import_hook
+from galax.setup_package import install_import_hook
 
-from galax.setup_package import RUNTIME_TYPECHECKER
-
-with install_import_hook("galax.dynamics.dynamics", RUNTIME_TYPECHECKER):
+with install_import_hook("galax.dynamics.dynamics"):
     from ._src.legacy.mockstream import MockStreamGenerator
     from ._src.legacy.mockstream.df import (
         AbstractStreamDF,
@@ -28,4 +26,4 @@ with install_import_hook("galax.dynamics.dynamics", RUNTIME_TYPECHECKER):
     from ._src.mockstream import MockStream, MockStreamArm
 
 # Cleanup
-del install_import_hook, RUNTIME_TYPECHECKER
+del install_import_hook

@@ -14,11 +14,9 @@ __all__ = [
     "radial_velocity_dispersion_helper",
 ]
 
-from jaxtyping import install_import_hook
+from galax.setup_package import install_import_hook
 
-from galax.setup_package import RUNTIME_TYPECHECKER
-
-with install_import_hook("galax.dynamics.examples", RUNTIME_TYPECHECKER):
+with install_import_hook("galax.dynamics.examples"):
     from ._src.examples.mw_lmc import (
         RigidMWandLMCField,
         make_mw_lmc_potential,
@@ -26,4 +24,4 @@ with install_import_hook("galax.dynamics.examples", RUNTIME_TYPECHECKER):
     )
 
 # Cleanup
-del install_import_hook, RUNTIME_TYPECHECKER
+del install_import_hook

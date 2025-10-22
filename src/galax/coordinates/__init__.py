@@ -23,11 +23,9 @@ __all__ = [
     "PhaseSpaceObjectInterpolant",
 ]
 
-from jaxtyping import install_import_hook
+from galax.setup_package import install_import_hook
 
-from galax.setup_package import RUNTIME_TYPECHECKER
-
-with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
+with install_import_hook("galax.coordinates"):
     from . import frames, ops
     from ._src.base import AbstractPhaseSpaceObject
     from ._src.interp import PhaseSpaceObjectInterpolant
@@ -45,4 +43,4 @@ with install_import_hook("galax.coordinates", RUNTIME_TYPECHECKER):
     )
 
 # Clean up the namespace
-del install_import_hook, RUNTIME_TYPECHECKER
+del install_import_hook

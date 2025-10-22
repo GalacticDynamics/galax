@@ -23,11 +23,9 @@ __all__ = [
     "relaxation_time",
 ]
 
-from jaxtyping import install_import_hook
+from galax.setup_package import install_import_hook
 
-from galax.setup_package import RUNTIME_TYPECHECKER
-
-with install_import_hook("galax.dynamics.fields", RUNTIME_TYPECHECKER):
+with install_import_hook("galax.dynamics.fields"):
     from ._src.cluster import (
         AbstractMassRateField,
         Baumgardt1998MassLossRate,
@@ -46,4 +44,4 @@ with install_import_hook("galax.dynamics.fields", RUNTIME_TYPECHECKER):
     )
 
 # Cleanup
-del install_import_hook, RUNTIME_TYPECHECKER
+del install_import_hook

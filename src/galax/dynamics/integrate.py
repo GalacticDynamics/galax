@@ -8,11 +8,9 @@ __all__ = [
     "InterpolatedPhaseSpaceCoordinate",
 ]
 
-from jaxtyping import install_import_hook
+from galax.setup_package import install_import_hook
 
-from galax.setup_package import RUNTIME_TYPECHECKER
-
-with install_import_hook("galax.dynamics.integrate", RUNTIME_TYPECHECKER):
+with install_import_hook("galax.dynamics.integrate"):
     from ._src.legacy import (
         Integrator,
         InterpolatedPhaseSpaceCoordinate,
@@ -22,4 +20,4 @@ with install_import_hook("galax.dynamics.integrate", RUNTIME_TYPECHECKER):
     from ._src.parsetime import parse_time_specification
 
 # Cleanup
-del install_import_hook, RUNTIME_TYPECHECKER
+del install_import_hook

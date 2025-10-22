@@ -69,11 +69,9 @@ __all__ = [
     "d2potential_dr2",
 ]
 
-from jaxtyping import install_import_hook
+from galax.setup_package import install_import_hook
 
-from galax.setup_package import RUNTIME_TYPECHECKER
-
-with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
+with install_import_hook("galax.potential"):
     from . import io, params, plot
     from ._src.api import (
         acceleration,
@@ -146,4 +144,4 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
 
 
 # Cleanup
-del install_import_hook, RUNTIME_TYPECHECKER, register_funcs
+del install_import_hook, register_funcs

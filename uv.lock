@@ -856,17 +856,18 @@ requires-dist = [
     { name = "galpy", marker = "extra == 'all'", specifier = ">=1.8" },
     { name = "galpy", marker = "extra == 'interop-all'", specifier = ">=1.8" },
     { name = "galpy", marker = "extra == 'interop-galpy'", specifier = ">=1.8" },
-    { name = "interpax", specifier = ">=0.3.8" },
+    { name = "interpax", specifier = ">=0.3.11" },
     { name = "is-annotated", specifier = ">=1.0" },
     { name = "jax", specifier = ">=0.6.0" },
     { name = "jaxlib", specifier = ">=0.6.0" },
-    { name = "jaxtyping", specifier = ">=0.3.1" },
+    { name = "jaxtyping", specifier = ">=0.3.3" },
     { name = "matplotlib", marker = "extra == 'all'", specifier = ">=3.8" },
     { name = "matplotlib", marker = "extra == 'plot-all'", specifier = ">=3.8" },
     { name = "matplotlib", marker = "extra == 'plot-matplotlib'", specifier = ">=3.8" },
-    { name = "optimistix", specifier = ">=0.0.10" },
-    { name = "optional-dependencies", specifier = ">=0.3" },
-    { name = "optype", specifier = ">=0.9.0" },
+    { name = "optimistix", specifier = ">=0.0.11" },
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
+    { name = "optype", marker = "python_full_version < '3.12'", specifier = ">=0.13.0" },
+    { name = "optype", marker = "python_full_version >= '3.12'", specifier = ">=0.14.0" },
     { name = "packaging", specifier = ">=24.1" },
     { name = "plotting-backends", specifier = ">=0.1" },
     { name = "plum-dispatch", specifier = ">=2.5.8" },
@@ -874,9 +875,9 @@ requires-dist = [
     { name = "quaxed", specifier = ">=0.10.2" },
     { name = "tensorflow-probability", extras = ["jax"], specifier = ">=0.25.0" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
-    { name = "unxt", specifier = ">=1.7.0" },
-    { name = "wadler-lindig", specifier = ">=0.1.6" },
-    { name = "xmmutablemap", specifier = ">=0.1" },
+    { name = "unxt", specifier = ">=1.7.2" },
+    { name = "wadler-lindig", specifier = ">=0.1.7" },
+    { name = "xmmutablemap", specifier = ">=0.2.1" },
     { name = "zeroth", specifier = ">=1.0" },
 ]
 provides-extras = ["all", "interop-all", "interop-astropy", "interop-gala", "interop-galpy", "plot-all", "plot-matplotlib"]
@@ -1495,7 +1496,7 @@ wheels = [
 
 [[package]]
 name = "optimistix"
-version = "0.0.10"
+version = "0.0.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "equinox" },
@@ -1504,21 +1505,21 @@ dependencies = [
     { name = "lineax" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/ec/0d51681732f15ccb8e2a546d7358a4d56132016b73b822a52b54e3a2450e/optimistix-0.0.10.tar.gz", hash = "sha256:80a481d66d64c9445eaf74158b71d65a9087b7e038f0c4bc7714ef5ff6350050", size = 55112 }
+sdist = { url = "https://files.pythonhosted.org/packages/35/10/0d2318a80016a42e2dbcae0be1bea3f51fce0ff5bd919afe532e1e03f0ed/optimistix-0.0.11.tar.gz", hash = "sha256:cfce0de98e7e9fdbcc2ce6d49a9f82cd3166fd0eee29c0c7a1983f8aefd37757", size = 66648 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/9c/4672a90dfd2ce7d40428759c9aaed0164a9a90010349f607aa5e29132766/optimistix-0.0.10-py3-none-any.whl", hash = "sha256:f10eb93d24311aca21fb6d1e74f39a4a38f976d5accbd577ef1705218609bfdc", size = 84274 },
+    { url = "https://files.pythonhosted.org/packages/ac/08/085ca409275952524e907156d9091a76b97d2c81a1099b2cb48a08c5ca3c/optimistix-0.0.11-py3-none-any.whl", hash = "sha256:acb4fb23b598db03e376900fcb61aee8dd511de41411e849661c0ffe9e4cd1c6", size = 97384 },
 ]
 
 [[package]]
 name = "optional-dependencies"
-version = "0.3.2"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "packaging" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/26/ca/3f17d662f69cb0cfb1f0503d45cde988dcf66a0cf01a58a6c8965378422a/optional_dependencies-0.3.2.tar.gz", hash = "sha256:653accf158865b6867004390334fa7e72c43f432b5f2c47c05927196c7611127", size = 12610 }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/9a/01c2aaee8ec00abe3dd51368c8a8c341b4352c1b23859d862edd62bd7ae5/optional_dependencies-0.4.0.tar.gz", hash = "sha256:8c2a764021ec47466a9c0375608d6976aa7f0d87f9a611e511ae70861edbd921", size = 68226 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/45/582749493b8eddd0933b2d8de39b2f0cda20b3475a9d16b2447a804fd6b3/optional_dependencies-0.3.2-py3-none-any.whl", hash = "sha256:e377389e9db9d54e42b04319ba71cdd256dde561ad8d4e89cbb5847d1f8bae3f", size = 8506 },
+    { url = "https://files.pythonhosted.org/packages/70/1c/c03aa5a23a3320f8b2875e1ddf6db679412533d95da2ebee15bfe611c1e3/optional_dependencies-0.4.0-py3-none-any.whl", hash = "sha256:aa5e4c2939681cf6b5f38de9ed7cdd60647526076452c29fbe170335fe34bf4a", size = 8551 },
 ]
 
 [[package]]
@@ -2360,7 +2361,7 @@ wheels = [
 
 [[package]]
 name = "unxt"
-version = "1.7.1"
+version = "1.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -2379,9 +2380,9 @@ dependencies = [
     { name = "xmmutablemap" },
     { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/84/58/ce9b4cb809c02bc31e05f4159b4e2a11a67b64bcf0eec36b5e70d001712f/unxt-1.7.1.tar.gz", hash = "sha256:3a1dd4a3e1a49f940d6f51886b0b3e5ceffb58f54ceae40eff42fa45c77a67ed", size = 898594 }
+sdist = { url = "https://files.pythonhosted.org/packages/a1/16/2d48f2f8d50fa8fe7ae10a7d5f489299b2742ba65c9d5360a47b2d95d253/unxt-1.7.2.tar.gz", hash = "sha256:e9d01cc292f8271a0956ca39901d8a02111e909ac4a170e33bdae1373568d93f", size = 886644 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/79/5e/2208be74ef7836dbc1209922789908624a475c77b818098a262b82fa63b1/unxt-1.7.1-py3-none-any.whl", hash = "sha256:9981ea6df817dd09b58d94d1db29b86f51dae759fc5b427787a4837331cadb1c", size = 74147 },
+    { url = "https://files.pythonhosted.org/packages/09/0c/66a053460d40c676842f4fe0034f0105d90029c55be15998d5908c742dc4/unxt-1.7.2-py3-none-any.whl", hash = "sha256:83e92efd1023abefa42542861cb1167ade9322e24036c7cc68c374b6a47ba929", size = 74300 },
 ]
 
 [[package]]
@@ -2434,11 +2435,11 @@ wheels = [
 
 [[package]]
 name = "wadler-lindig"
-version = "0.1.6"
+version = "0.1.7"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4d/c8/e2112ecb627e01c9e2911f9b388167231c23a114946946d046f4e9535118/wadler_lindig-0.1.6.tar.gz", hash = "sha256:8b6adad9718291a7d82fb088a596b93659ce2346321ca76819810affbc66102b", size = 15812 }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/67/cbae4bf7683a64755c2c1778c418fea96d00e34395bb91743f08bd951571/wadler_lindig-0.1.7.tar.gz", hash = "sha256:81d14d3fe77d441acf3ebd7f4aefac20c74128bf460e84b512806dccf7b2cd55", size = 15842 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/9a/937038f3efc70871fb26b0ee6148efcfcfb96643c517c2aaddd7ed07ad76/wadler_lindig-0.1.6-py3-none-any.whl", hash = "sha256:d707f63994c7d3e1e125e7fb7e196f4adb6f80f4a11beb955c6da937754026a3", size = 20483 },
+    { url = "https://files.pythonhosted.org/packages/8d/96/04e7b441807b26b794da5b11e59ed7f83b2cf8af202bd7eba8ad2fa6046e/wadler_lindig-0.1.7-py3-none-any.whl", hash = "sha256:e3ec83835570fd0a9509f969162aeb9c65618f998b1f42918cfc8d45122fe953", size = 20516 },
 ]
 
 [[package]]
@@ -2505,15 +2506,15 @@ wheels = [
 
 [[package]]
 name = "xmmutablemap"
-version = "0.1"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/47/28/6d72be55ddf2285a041ff10349963140932f44fbfdaf04911d9c6b8e0f94/xmmutablemap-0.1.tar.gz", hash = "sha256:b1c8e0fad1f06cebf581d43adfcf27b8cbec44bea56b3862e1b1a3d508433b78", size = 11017 }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/a6/c4043eb00f297956a5447109985f41fabb0adbbf80786a21c2949f798ba4/xmmutablemap-0.2.1.tar.gz", hash = "sha256:38a881b0fcc54352e2751628d11519d023bc6677e978483736f8f51b45c7147f", size = 97896 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/e8/54c83bb090fbe711f0bad4cfd2a17274b137389dbca6f136669f8e19fecb/xmmutablemap-0.1-py3-none-any.whl", hash = "sha256:9334ea1963c16258aca77acd8b3f0ebede24743f71cc591c856753d30131e2ab", size = 6178 },
+    { url = "https://files.pythonhosted.org/packages/99/89/4628be42c56e0063b2158a468fc0de3e21285800f8cab07f2d3be684c763/xmmutablemap-0.2.1-py3-none-any.whl", hash = "sha256:002f97986e1cc343d362e38eae62a0a51ca7b76bd3b1de0f70a8f05dbe2b8c5c", size = 7584 },
 ]
 
 [[package]]

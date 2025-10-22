@@ -114,7 +114,8 @@
     "pytest-cov>=5",
     "pytest>=8.3",
     "sybil>=8.0.0",
-  ]
+    "pytest-env>=1.1.5",
+]
   test-mpl = ["pytest-mpl>=0.17.0"]
 
 
@@ -236,9 +237,10 @@ ignore-words-list = "Hart"  # in dynamics/_src/cluster/relax_time.py
     "serial",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
   ]
-  minversion = "6.0"
+  minversion = "8.0"
   testpaths = ["docs", "src/galax", "tests/"]
   xfail_strict = true
+  env = ["JAX_ENABLE_X64=True"]
 
 
 [tool.ruff]

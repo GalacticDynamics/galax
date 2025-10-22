@@ -134,6 +134,7 @@ def parse_to_t_y(
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
     >>> import coordinax as cx
+    >>> import coordinax.vecs as cxv
     >>> import galax.coordinates as gc
     >>> from galax.dynamics._src.utils import parse_to_t_y
 
@@ -206,8 +207,8 @@ def parse_to_t_y(
 
     - `coordinax.vecs.AbstractVector`:
 
-    >>> q = cx.vecs.CartesianPos3D.from_(xyz)
-    >>> p = cx.vecs.CartesianVel3D.from_(v_xyz)
+    >>> q = cxv.CartesianPos3D.from_(xyz)
+    >>> p = cxv.CartesianVel3D.from_(v_xyz)
 
     >>> parse_to_t_y(None, t, (q, p), ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
@@ -217,7 +218,7 @@ def parse_to_t_y(
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> qt = cx.vecs.FourVector(q=q, t=t)
+    >>> qt = cxv.FourVector(q=q, t=t)
     >>> parse_to_t_y(None, (qt, p), ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
@@ -226,14 +227,14 @@ def parse_to_t_y(
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    - `coordinax.vecs.Space`:
+    - `coordinax.vecs.KinematicSpace`:
 
-    >>> space = cx.vecs.Space(length=q, speed=p)
+    >>> space = cxv.KinematicSpace(length=q, speed=p)
     >>> parse_to_t_y(None, t, space, ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> space = cx.vecs.Space(length=qt, speed=p)
+    >>> space = cxv.KinematicSpace(length=qt, speed=p)
     >>> parse_to_t_y(None, space, ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
@@ -244,14 +245,14 @@ def parse_to_t_y(
 
     - `coordinax.frames.AbstractCoordinate`:
 
-    >>> coord = cx.frames.Coordinate(cx.vecs.Space(length=q, speed=p),
-    ...                              frame=gc.frames.simulation_frame)
+    >>> coord = cx.Coordinate(cxv.KinematicSpace(length=q, speed=p),
+    ...                       frame=gc.frames.simulation_frame)
     >>> parse_to_t_y(None, t, coord, ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> coord = cx.frames.Coordinate(cx.vecs.Space(length=qt, speed=p),
-    ...                              frame=gc.frames.simulation_frame)
+    >>> coord = cx.Coordinate(cxv.KinematicSpace(length=qt, speed=p),
+    ...                       frame=gc.frames.simulation_frame)
     >>> parse_to_t_y(None, coord, ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
@@ -461,7 +462,7 @@ def parse_to_t_y(
 
 @coord_dispatcher
 def parse_to_t_y(
-    to_frame: OptRefFrame, t: Any, qp: cxv.Space, /, *, ustrip: UnitSystem
+    to_frame: OptRefFrame, t: Any, qp: cxv.KinematicSpace, /, *, ustrip: UnitSystem
 ) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
     q, p = qp["length"], qp["speed"]
     t = eqx.error_if(
@@ -474,7 +475,7 @@ def parse_to_t_y(
 
 @coord_dispatcher
 def parse_to_t_y(
-    to_frame: OptRefFrame, qp: cxv.Space, /, *, ustrip: UnitSystem
+    to_frame: OptRefFrame, qp: cxv.KinematicSpace, /, *, ustrip: UnitSystem
 ) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
     q, p = qp["length"], qp["speed"]
     return parse_to_t_y(to_frame, None, (q, p), ustrip=ustrip)

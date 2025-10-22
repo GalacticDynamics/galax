@@ -36,7 +36,7 @@ DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], 
 # SolveState
 
 
-class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
+class SolveState(eqx.Module):  # type: ignore[misc]
     """State of the solver.
 
     This is used as the return value for `galax.dynamics.AbstractSolver.init`
@@ -96,7 +96,7 @@ class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
 # Abstract Solver
 
 
-class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[call-arg,misc]
+class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
     """ABC for solvers.
 
     Notes

@@ -35,7 +35,6 @@ class ComponentShapeTuple(NamedTuple):
 # =============================================================================
 
 
-# TODO: make it strict=True
 class PhaseSpacePosition(AbstractPhaseSpaceObject):
     r"""Phase-Space Position with time.
 
@@ -147,7 +146,7 @@ class PhaseSpacePosition(AbstractPhaseSpaceObject):
 
     @override
     @property
-    def data(self) -> cx.Space:  # type: ignore[misc]
+    def data(self) -> cx.KinematicSpace:  # type: ignore[misc]
         """Return the data as a space.
 
         Examples
@@ -160,10 +159,11 @@ class PhaseSpacePosition(AbstractPhaseSpaceObject):
         >>> pos = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
         ...                             p=u.Quantity([4, 5, 6], "km/s"))
         >>> pos.data
-        Space({ 'length': CartesianPos3D( ... ), 'speed': CartesianVel3D( ... ) })
+        KinematicSpace({ 'length': CartesianPos3D( ... ),
+                         'speed': CartesianVel3D( ... ) })
 
         """
-        return cx.Space(length=self.q, speed=self.p)
+        return cx.KinematicSpace(length=self.q, speed=self.p)
 
     # ==========================================================================
     # Array properties
@@ -188,7 +188,7 @@ class PhaseSpacePosition(AbstractPhaseSpaceObject):
 @AbstractPhaseSpaceObject.from_.dispatch  # type: ignore[attr-defined,misc]
 def from_(
     cls: type[PhaseSpacePosition],
-    data: cx.Space,
+    data: cx.KinematicSpace,
     frame: cx.frames.AbstractReferenceFrame,
     /,
 ) -> PhaseSpacePosition:
@@ -200,7 +200,7 @@ def from_(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> data = cx.Space(length=cx.CartesianPos3D.from_([1, 2, 3], "kpc"),
+    >>> data = cx.KinematicSpace(length=cx.CartesianPos3D.from_([1, 2, 3], "kpc"),
     ...                 speed=cx.CartesianVel3D.from_([4, 5, 6], "km/s"))
     >>> frame = gc.frames.simulation_frame
 

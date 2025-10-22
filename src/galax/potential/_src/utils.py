@@ -13,6 +13,7 @@ from plum import Dispatcher, convert
 
 import coordinax as cx
 import coordinax.frames as cxf
+import coordinax.vecs as cxv
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue, BareQuantity
@@ -129,9 +130,9 @@ def parse_to_xyz_t(
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
      Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
 
-    - `coordinax.Space` objects:
+    - `coordinax.KinematicSpace` objects:
 
-    >>> space = cx.Space(length=q)
+    >>> space = cx.KinematicSpace(length=q)
     >>> parse_to_xyz_t(None, space, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
      Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
@@ -140,7 +141,7 @@ def parse_to_xyz_t(
     (Array([1, 0, 0], dtype=int64),
      Array(1000., dtype=float64, weak_type=True))
 
-    >>> space = cx.Space(length=tq)
+    >>> space = cx.KinematicSpace(length=tq)
     >>> parse_to_xyz_t(None, space)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
      Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
@@ -151,7 +152,8 @@ def parse_to_xyz_t(
 
     - `coordinax.AbstractCoordinate` objects:
 
-    >>> coord = cx.Coordinate(cx.Space(length=q), frame=gc.frames.simulation_frame)
+    >>> coord = cx.Coordinate(cx.KinematicSpace(length=q),
+    ...                       frame=gc.frames.simulation_frame)
     >>> parse_to_xyz_t(None, coord, t)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
      Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
@@ -160,7 +162,8 @@ def parse_to_xyz_t(
     (Array([1, 0, 0], dtype=int64),
      Array(1000., dtype=float64, weak_type=True))
 
-    >>> coord = cx.Coordinate(cx.Space(length=tq), frame=gc.frames.simulation_frame)
+    >>> coord = cx.Coordinate(cx.KinematicSpace(length=tq),
+    ...                       frame=gc.frames.simulation_frame)
     >>> parse_to_xyz_t(None, coord)
     (BareQuantity(Array([1, 0, 0], dtype=int64), unit='kpc'),
      Quantity(Array(1, dtype=int64, weak_type=True), unit='Gyr'))
@@ -378,7 +381,7 @@ def parse_to_xyz_t(
 @coord_dispatcher
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
-    space: cx.vecs.Space,
+    space: cxv.KinematicSpace,
     /,
     *,
     dtype: Any = None,
@@ -393,7 +396,7 @@ def parse_to_xyz_t(
 @coord_dispatcher
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
-    space: cx.vecs.Space,
+    space: cxv.KinematicSpace,
     t: Any,
     /,
     *,

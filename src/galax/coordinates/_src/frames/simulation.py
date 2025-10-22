@@ -6,17 +6,32 @@ Building off of `coordinax.frames`.
 
 __all__ = ["SimulationFrame", "simulation_frame"]
 
-from typing import Any, cast, final
+import weakref
+from typing import Any, final
 
+import equinox as eqx
 from plum import dispatch
 
 import coordinax as cx
 
-_singleton_insts: dict[type, object] = {}
+_singleton_insts: weakref.WeakKeyDictionary[type, object] = weakref.WeakKeyDictionary()
+
+
+class SingletonModuleMeta(eqx._module._module._ModuleMeta):  # type: ignore[misc] # noqa: SLF001
+    """A metaclass for singleton modules."""
+
+    def __call__(cls, /, *args: Any, **kwargs: Any) -> Any:
+        # Check if instance already exists
+        if cls in _singleton_insts:
+            return _singleton_insts[cls]
+        # Create new instance and cache it
+        self = super().__call__(*args, **kwargs)
+        _singleton_insts[cls] = self
+        return self
 
 
 @final
-class SimulationFrame(cx.frames.AbstractReferenceFrame):  # type: ignore[misc]
+class SimulationFrame(cx.frames.AbstractReferenceFrame, metaclass=SingletonModuleMeta):  # type: ignore[misc]
     """The simulation reference frame.
 
     This is a reference frame that cannot be transformed to or from.
@@ -39,15 +54,6 @@ class SimulationFrame(cx.frames.AbstractReferenceFrame):  # type: ignore[misc]
     `frame_transform_op(SimulationFrame(), ICRS())` could not be resolved...
 
     """
-
-    def __new__(cls, /, *_: Any, **__: Any) -> "SimulationFrame":
-        # Check if instance already exists
-        if cls in _singleton_insts:
-            return cast("SimulationFrame", _singleton_insts[cls])
-        # Create new instance and cache it
-        self = object.__new__(cls)
-        _singleton_insts[cls] = self
-        return self
 
 
 simulation_frame = SimulationFrame()

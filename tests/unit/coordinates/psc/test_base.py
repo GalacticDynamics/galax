@@ -61,7 +61,7 @@ class AbstractPhaseSpaceCoordinate_Test(
 
     def test_data_keys(self, w: WT) -> None:
         """Test :attr:`~galax.coordinates.PhaseSpacePosition.data`."""
-        assert isinstance(w.data, cx.Space)
+        assert isinstance(w.data, cx.KinematicSpace)
 
         assert "length" in w.data
         assert isinstance(w.data["length"], cx.vecs.FourVector)

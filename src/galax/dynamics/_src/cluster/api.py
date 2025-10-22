@@ -87,9 +87,9 @@ def lagrange_points(
     L1L2LagrangePoints(l1=Quantity(Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
                        l2=Quantity(Array([8.02929074, 0. , 0. ], dtype=float64), unit='kpc'))
 
-    - With `coordinax.Space`:
+    - With `coordinax.KinematicSpace`:
 
-    >>> space = cx.Space(length=q, speed=p)
+    >>> space = cx.KinematicSpace(length=q, speed=p)
     >>> lpts = gd.cluster.lagrange_points(pot, space, mass=mass, t=t)
     >>> lpts
     L1L2LagrangePoints(l1=Quantity(Array([7.97070926, 0. , 0. ], dtype=float64), unit='kpc'),
@@ -204,7 +204,7 @@ def tidal_radius(*args: Any, **kwargs: Any) -> gt.BBtQuSz0:
     >>> gdc.tidal_radius(pot, q, p, mass=mass, t=t)
     Quantity(Array(0.06362008, dtype=float64), unit='kpc')
 
-    >>> space = cx.Space(length=q, speed=p)
+    >>> space = cx.KinematicSpace(length=q, speed=p)
     >>> gdc.tidal_radius(pot, space, mass=mass, t=t)
     Quantity(Array(0.06362008, dtype=float64), unit='kpc')
 

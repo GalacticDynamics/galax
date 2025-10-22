@@ -5,11 +5,12 @@ __all__ = ["AbstractPhaseSpaceObject"]
 import functools as ft
 from abc import abstractmethod
 from textwrap import indent
-from typing import TYPE_CHECKING, Any, Self, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import equinox as eqx
 import equinox.internal as eqxi
 import jax
+import wadler_lindig as wl
 from jaxtyping import Real, Shaped
 from plum import conversion_method, convert, dispatch
 
@@ -29,7 +30,6 @@ else:
     from equinox import AbstractClassVar
 
 
-# TODO: make it strict=True
 class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[misc]
     r"""ABC underlying phase-space positions and their composites."""
 
@@ -51,7 +51,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         cls: "type[AbstractPhaseSpaceObject]", *args: Any, **kwargs: Any
     ) -> "AbstractPhaseSpaceObject":
         """Construct from arguments, defaulting to AbstractVector constructor."""
-        return cast(AbstractPhaseSpaceObject, super().from_(*args, **kwargs))
+        return cast("AbstractPhaseSpaceObject", super().from_(*args, **kwargs))
 
     # ==========================================================================
     # Array API
@@ -178,7 +178,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
 
     _GETITEM_DYNAMIC_FILTER_SPEC: AbstractClassVar[tuple[bool, ...]]
 
-    @dispatch
+    @dispatch.abstract
     def __getitem__(
         self: "AbstractPhaseSpaceObject", index: Any
     ) -> "AbstractPhaseSpaceObject":
@@ -271,30 +271,21 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
             frame=SimulationFrame())
 
         """
-        # Fast path [()]
-        if isinstance(index, tuple) and len(index) == 0:
-            return self
-        # Fast path [slice(None)]
-        if isinstance(index, slice) and index == SLICE_ALL:
-            return self
+        raise NotImplementedError  # pragma: no cover
 
-        # Flatten by one level and partition into dynamic and static
-        # where dynamic is q, p, ... and static is frame, ...
-        leaves, treedef = eqx.tree_flatten_one_level(self)
-        leaf_types = tuple(type(x) for x in leaves if x is not None)
-        is_leaf = lambda x: isinstance(x, leaf_types)
-        dynamic, static = eqx.partition(
-            leaves, list(self._GETITEM_DYNAMIC_FILTER_SPEC), is_leaf=is_leaf
+    # ==========================================================================
+    # Wadler-Lindig API
+
+    def __pdoc__(self, **kwargs: object) -> wl.AbstractDoc:
+        return wl.bracketed(
+            begin=wl.TextDoc(f"{self.__class__.__name__}("),
+            docs=wl.named_objs(
+                field_items(self), short_arrays=False, compact_arrays=True
+            ),
+            sep=wl.comma,
+            end=wl.TextDoc(")"),
+            indent=kwargs.get("indent", 4),
         )
-        # Apply the index to the dynamic part
-        dynamic = eqxi.ω(dynamic)[index].ω
-        # Re-combine the dynamic and static parts
-        leaves = eqx.combine(dynamic, static, is_leaf=is_leaf)
-        # Rebuild the object
-        w = jax.tree.unflatten(treedef, leaves)
-
-        # The base assumption is to try to apply the index to all array fields
-        return cast("Self", w)
 
     # ==========================================================================
     # Python API
@@ -614,6 +605,37 @@ def from_(
 
 
 # =========================================================
+# `__getitem__`
+
+
+@AbstractPhaseSpaceObject.__getitem__.dispatch  # type: ignore[misc]
+def getitem(self: AbstractPhaseSpaceObject, index: Any, /) -> AbstractPhaseSpaceObject:
+    # Fast path [()]
+    if isinstance(index, tuple) and len(index) == 0:
+        return self
+    # Fast path [slice(None)]
+    if isinstance(index, slice) and index == SLICE_ALL:
+        return self
+
+    # Flatten by one level and partition into dynamic and static
+    # where dynamic is q, p, ... and static is frame, ...
+    leaves, treedef = eqx.tree_flatten_one_level(self)
+    leaf_types = tuple(type(x) for x in leaves if x is not None)
+    is_leaf = lambda x: isinstance(x, leaf_types)
+    dynamic, static = eqx.partition(
+        leaves, list(self._GETITEM_DYNAMIC_FILTER_SPEC), is_leaf=is_leaf
+    )
+    # Apply the index to the dynamic part
+    dynamic = eqxi.ω(dynamic)[index].ω
+    # Re-combine the dynamic and static parts
+    leaves = eqx.combine(dynamic, static, is_leaf=is_leaf)
+    # Rebuild the object
+    w: AbstractPhaseSpaceObject = jax.tree.unflatten(treedef, leaves)
+
+    return w
+
+
+# =========================================================
 # `coordinax.vconvert`
 
 
@@ -714,7 +736,7 @@ def convert_psp_to_coordinax_coordinate(
     ...                               t=u.Quantity(0, "Gyr"))
     >>> convert(psp, cx.Coordinate)
     Coordinate(
-        data=Space({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) }),
+        KinematicSpace({ 'length': FourVector( ... ), 'speed': CartesianVel3D( ... ) }),
         frame=SimulationFrame()
     )
 

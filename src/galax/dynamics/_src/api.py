@@ -51,7 +51,7 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
     <Cartesian3D: (x, y, z) [m2 / s]
         [ 0.  0. 64.]>
 
-    >>> space = cx.Space(length=cx.CartesianPos3D.from_([[[7., 0, 0], [8, 0, 0]]], "m"),
+    >>> space = cx.KinematicSpace(length=cx.CartesianPos3D.from_([[[7., 0, 0], [8, 0, 0]]], "m"),
     ...                  speed=cx.CartesianVel3D.from_([[[0., 5, 0], [0, 6, 0]]], "m/s"))
     >>> h = gd.specific_angular_momentum(space)
     >>> print(h)
@@ -106,7 +106,7 @@ def omega(x: Any, v: Any, /) -> gt.BBtQuSz0:
     >>> omega(q, p)
     BareQuantity(Array(1., dtype=float64), unit='1 / s')
 
-    >>> space = cx.Space(length=q, speed=p)
+    >>> space = cx.KinematicSpace(length=q, speed=p)
     >>> omega(space)
     BareQuantity(Array(1., dtype=float64), unit='1 / s')
 

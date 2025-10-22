@@ -39,7 +39,7 @@ default_stepsize_controller = dfx.PIDController(rtol=1e-7, atol=1e-7)
 
 
 @final
-class Integrator(eqx.Module, strict=True):  # type: ignore[call-arg,misc]
+class Integrator(eqx.Module):  # type: ignore[misc]
     """Integrator using :func:`diffrax.diffeqsolve`.
 
     This integrator uses the :func:`diffrax.diffeqsolve` function to integrate

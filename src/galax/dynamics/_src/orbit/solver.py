@@ -39,7 +39,7 @@ default_saveat = dfx.SaveAt(t1=True)
 
 
 @final
-class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
+class OrbitSolver(AbstractSolver):
     """Dynamics solver.
 
     The most useful method is `.solve()`, which handles initialization and
@@ -212,13 +212,13 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         >>> solver.init(field, (q0, p0), t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
-        - From a `coordinax.vecs.Space`:
+        - From a `coordinax.vecs.KinematicSpace`:
 
-        >>> space = cx.Space(length=q0, speed=p0)
+        >>> space = cx.KinematicSpace(length=q0, speed=p0)
         >>> solver.init(field, space, t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
-        >>> space = cx.Space(length=cx.vecs.FourVector(t0, q0), speed=p0)
+        >>> space = cx.KinematicSpace(length=cx.vecs.FourVector(t0, q0), speed=p0)
         >>> solver.init(field, space, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
@@ -497,16 +497,16 @@ class OrbitSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         Solution( t0=f64[], t1=f64[], ts=f64[],
                   ys=(f64[3], f64[3]), ...)
 
-        - `coordinax.Space`:
+        - `coordinax.KinematicSpace`:
 
-        >>> w0 = cx.Space(length=q0, speed=p0)
+        >>> w0 = cx.KinematicSpace(length=q0, speed=p0)
 
         >>> soln = solver.solve(field, w0, t0, t1, unbatch_time=True)
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[],
                   ys=(f64[3], f64[3]), ...)
 
-        >>> w0 = cx.Space(length=cx.vecs.FourVector(q=q0, t=t0), speed=p0)
+        >>> w0 = cx.KinematicSpace(length=cx.vecs.FourVector(q=q0, t=t0), speed=p0)
 
         >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
         >>> soln

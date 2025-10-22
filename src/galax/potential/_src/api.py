@@ -101,13 +101,13 @@ def potential(*args: Any, **kwargs: Any) -> Any:
     >>> pot.potential(tq)
     Quantity(Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
-    - `coordinax.vecs.Space`:
+    - `coordinax.vecs.KinematicSpace`:
 
-    >>> space = cx.vecs.Space(length=q)
+    >>> space = cx.vecs.KinematicSpace(length=q)
     >>> pot.potential(space, t)
     Quantity(Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
-    >>> space = cx.vecs.Space(length=tq)
+    >>> space = cx.vecs.KinematicSpace(length=tq)
     >>> pot.potential(space)
     Quantity(Array(-1.20227527, dtype=float64), unit='kpc2 / Myr2')
 
@@ -268,9 +268,9 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
     <CartesianAcc3D: (x, y, z) [kpc / Myr2]
         [0.086 0.172 0.258]>
 
-    - `coordinax.vecs.Space`:
+    - `coordinax.vecs.KinematicSpace`:
 
-    >>> w = cx.vecs.Space(length=q)
+    >>> w = cx.vecs.KinematicSpace(length=q)
     >>> print(pot.gradient(w, t))
     <CartesianAcc3D: (x, y, z) [kpc / Myr2]
         [0.086 0.172 0.258]>
@@ -1148,14 +1148,15 @@ def d2potential_dr2(*args: Any, **kwargs: Any) -> gt.BBtQorVSz0:
 
     - `coordinax.Coordinate`:
 
-    >>> coord = cx.Coordinate({"length": cx.vecs.FourVector.from_([0, 1, 2, 3], "kpc")},
+    >>> import coordinax.vecs as cxv
+    >>> coord = cx.Coordinate({"length": cxv.FourVector.from_([0, 1, 2, 3], "kpc")},
     ...                       frame=gc.frames.simulation_frame)
     >>> pot.d2potential_dr2(coord, t)
     Quantity(Array(-0.17175361, dtype=float64), unit='1 / Myr2')
 
-    - `coordinax.Space`:
+    - `coordinax.KinematicSpace`:
 
-    >>> space = cx.Space({"length": cx.vecs.FourVector.from_([0, 1, 2, 3], "kpc")})
+    >>> space = cx.KinematicSpace({"length": cxv.FourVector.from_([0, 1, 2, 3], "kpc")})
     >>> pot.d2potential_dr2(space, t)
     Quantity(Array(-0.17175361, dtype=float64), unit='1 / Myr2')
 

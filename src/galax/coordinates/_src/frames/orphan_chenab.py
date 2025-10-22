@@ -92,24 +92,13 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     <SphericalPos: (r[kpc], theta[rad], phi[rad])
         [1.    1.115 3.097]>
 
-    - `coordinax.Space`:
-
-    >>> space = cx.Space(length=q)
-    >>> print(op(space))
-    Space({
-       'length': <SphericalPos: (r[kpc], theta[rad], phi[rad])
-           [1.    1.115 3.097]>
-    })
-
     - `coordinax.Coordinate`:
 
-    >>> coord = cx.Coordinate(space, frame=icrs)
+    >>> coord = cx.Coordinate(q, frame=icrs)
     >>> print(coord.to_frame(frame))
     Coordinate(
-        data=Space({
-           'length': <SphericalPos: (r[kpc], theta[rad], phi[rad])
-               [1.    1.115 3.097]>
-        }),
+        { 'length': <SphericalPos: (r[kpc], theta[rad], phi[rad])
+               [1.    1.115 3.097]> },
         frame=OrphanChenab()
     )
 

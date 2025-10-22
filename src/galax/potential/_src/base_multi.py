@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     import galax.potential  # noqa: ICN001
 
 
-# Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePotential(AbstractPotential):
     """Base class for composite potentials."""
 
@@ -241,7 +240,7 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
 
     """
 
-    _keys: tuple[str, ...] = eqx.field(init=False, repr=False, static=True)
+    _keys: tuple[str, ...] = eqx.field(repr=False, static=True)
 
     def __init__(
         self,

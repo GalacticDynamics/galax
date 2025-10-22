@@ -202,8 +202,8 @@ def _psc_getitem_time_index(
     return Ellipsis if index.ndim < orbit.ndim else index
 
 
-@gc.AbstractPhaseSpaceObject.__getitem__.dispatch  # type: ignore[attr-defined,misc]
-def getitem(self: AbstractOrbit, index: int) -> gc.PhaseSpaceCoordinate:
+@gc.AbstractPhaseSpaceObject.__getitem__.dispatch  # type: ignore[misc]
+def getitem(self: AbstractOrbit, index: int, /) -> gc.PhaseSpaceCoordinate:
     """Get the orbit at a specific time.
 
     Examples

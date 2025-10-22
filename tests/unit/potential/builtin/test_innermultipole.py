@@ -1,6 +1,5 @@
 """Test the `MultipoleInnerPotential` class."""
 
-import sys
 from typing import Any
 from typing_extensions import override
 
@@ -86,14 +85,10 @@ class TestMultipoleInnerPotential(
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MultipoleInnerPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
-            3.04941279e-05 if sys.platform == "darwin" else 2.89194575e-05,
-            unit="solMass / kpc3",
-        )
+        exp = u.Quantity(2.89194575e-05, unit="solMass / kpc3")
+        got = pot.density(x, t=0)
 
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.MultipoleInnerPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(

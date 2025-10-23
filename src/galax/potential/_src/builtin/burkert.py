@@ -1,13 +1,15 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = [
+__all__ = (
     # class
     "BurkertPotential",
     # functions
     "rho0",
     "density",
     "potential",
-]
+    "mass_enclosed",
+    "mass_total",
+)
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -27,10 +29,7 @@ from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
-# -------------------------------------------------------------------
-
-
-BURKERT_CONST: Final = 3 * jnp.log(jnp.asarray(2.0)) - 0.5 * jnp.pi
+CONST_BURKER: Final = 3 * jnp.log(jnp.asarray(2.0)) - jnp.pi / 2
 
 
 @final
@@ -89,13 +88,15 @@ class BurkertPotential(AbstractSinglePotential):
 
     @ft.partial(jax.jit)
     def _mass(self, xyz: gt.BBtQuSz3, /, t: gt.BtQuSz0 | gt.QuSz0) -> gt.BtFloatQuSz0:
+        # Parse inputs
+        r = r_spherical(xyz, self.units["length"])
         t = u.Quantity.from_(t, self.units["time"])
-        x = jnp.linalg.vector_norm(xyz, axis=-1) / self.r_s(t)
-        return (
-            self.m(t)
-            / BURKERT_CONST
-            * (-2 * jnp.atan(x) + 2 * jnp.log(1 + x) + jnp.log(1 + x**2))
-        )
+
+        params = {
+            "m": self.m(t, ustrip=self.units["mass"]),
+            "r_s": self.r_s(t, ustrip=self.units["length"]),
+        }
+        return mass_enclosed(params, r)
 
     # -------------------------------------------------------------------
 
@@ -144,7 +145,7 @@ class BurkertPotential(AbstractSinglePotential):
         )
 
         """
-        m = jnp.pi * rho_0 * r_s**3 * BURKERT_CONST
+        m = jnp.pi * rho_0 * r_s**3 * CONST_BURKER
         return cls(m=m, r_s=r_s, **kwargs)
 
 
@@ -154,7 +155,7 @@ class BurkertPotential(AbstractSinglePotential):
 @ft.partial(jax.jit)
 def rho0(m: gt.QuSz0, r_s: gt.QuSz0, /) -> gt.Sz0:
     r"""Central density of the potential."""
-    return m / (BURKERT_CONST * jnp.pi * r_s**3)
+    return m / (CONST_BURKER * jnp.pi * r_s**3)
 
 
 @ft.partial(jax.jit)
@@ -166,8 +167,35 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     where $m$ is the characteristic mass and $r_s$ is the scale radius.
     """
-    factor = p["m"] / (jnp.pi * BURKERT_CONST)
+    factor = p["m"] / (jnp.pi * CONST_BURKER)
     return factor / ((r + p["r_s"]) * (r**2 + p["r_s"] ** 2))
+
+
+@ft.partial(jax.jit)
+def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
+    r"""Enclosed mass profile for the Burkert potential.
+
+    $$ M(r) = \frac{m}{3 \log(2) - \pi / 2}
+        \left[ 2 \log(1 + r/r_s) + \log(1 + (r/r_s)^2)
+        - 2 \tan^{-1}(r/r_s) \right]
+    $$
+
+    where $m$ is the characteristic mass and $r_s$ is the scale radius.
+    """
+    x = r / p["r_s"]
+    factor = p["m"] / CONST_BURKER
+    return factor * (2 * jnp.log(1 + x) + jnp.log(1 + x**2) - 2 * jnp.atan(x))
+
+
+@ft.partial(jax.jit)
+def mass_total(p: gt.Params, /) -> gt.FloatSz0:
+    r"""Total mass for the Burkert potential.
+
+    $$ M_{\rm tot} = \begin{cases} \infty & m > 0 \\
+    0 & m \leq 0 \end{cases} $$
+
+    """
+    return jax.lax.select(p["m"] > 0, jnp.inf, 0.0)
 
 
 @ft.partial(jax.jit)
@@ -188,7 +216,7 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r_s = p["r_s"]
     x = r / r_s
     xinv = 1 / x
-    prefactor = p["G"] * p["m"] / (r_s * BURKERT_CONST)
+    prefactor = p["G"] * p["m"] / (r_s * CONST_BURKER)
     return -prefactor * (
         jnp.pi
         - 2 * (1 + xinv) * jnp.atan(x)

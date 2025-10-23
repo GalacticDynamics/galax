@@ -44,12 +44,6 @@ __all__ = [
 ]
 
 from .burkert import BurkertPotential
-from .disks import (
-    KuzminPotential,
-    MiyamotoNagaiPotential,
-    MN3ExponentialPotential,
-    MN3Sech2Potential,
-)
 from .example import (
     HarmonicOscillatorPotential,
     HenonHeilesPotential,
@@ -58,10 +52,8 @@ from .hernquist import HernquistPotential, TriaxialHernquistPotential
 from .isochrone import IsochronePotential
 from .jaffe import JaffePotential
 from .kepler import KeplerPotential
-from .logarithmic import (
-    LMJ09LogarithmicPotential,
-    LogarithmicPotential,
-)
+from .kuzmin import KuzminPotential
+from .logarithmic import LMJ09LogarithmicPotential, LogarithmicPotential
 from .longmurali import LongMuraliBarPotential
 from .milkyway import (
     BovyMWPotential2014,
@@ -69,6 +61,8 @@ from .milkyway import (
     MilkyWayPotential,
     MilkyWayPotential2022,
 )
+from .miyamotonagai import MiyamotoNagaiPotential
+from .mn3 import MN3ExponentialPotential, MN3Sech2Potential
 from .monari2016 import MonariEtAl2016BarPotential
 from .multipole import (
     AbstractMultipolePotential,

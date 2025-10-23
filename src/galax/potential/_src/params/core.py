@@ -42,19 +42,35 @@ class LinearParameter(AbstractParameter):
 
     Examples
     --------
-    >>> from galax.potential.params import LinearParameter
+    >>> import coordinax.vecs as cxv
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
     >>> import unxt as u
     >>> import quaxed.numpy as jnp
 
-    >>> lp = LinearParameter(slope=u.Quantity(-1, "Msun/yr"),
-    ...                      point_time=u.Quantity(0, "Myr"),
-    ...                      point_value=u.Quantity(1e9, "Msun"))
+    >>> lp = gp.params.LinearParameter(slope=u.Quantity(-1e3, "Msun/yr"),
+    ...     point_time=u.Quantity(0, "Myr"), point_value=u.Quantity(1e12, "Msun"))
 
     >>> lp(u.Quantity(0, "Gyr")).uconvert("Msun")
-    Quantity(Array(1.e+09, dtype=float64), unit='solMass')
+    Quantity(Array(1.e+12, dtype=float64), unit='solMass')
 
     >>> jnp.round(lp(u.Quantity(1.0, "Gyr")), 3)
     Quantity(Array(0., dtype=float64, ...), unit='Gyr solMass / yr')
+
+    Now let's show it in a potential:
+
+    >>> pot = gp.KeplerPotential(m_tot=lp, units="galactic")
+
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([5.0, 0.0, 0.0], "kpc"),
+    ...                              p=u.Quantity([0.0, 1_000.0, 0.0], "km/s"),
+    ...                              t=u.Quantity(0.0, "Myr"))
+    >>> savets = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")
+    >>> orbit = gd.compute_orbit(pot, w0, savets)
+    >>> orbit.q.vconvert(cxv.CylindricalPos).rho.round(3)
+    Distance(Array([ 5.   ,  7.159,  6.654, 10.295, 12.194, 11.337, 19.999,
+                    24.589, 30.147, 40.37 ], dtype=float64),
+        unit='kpc')
 
     """
 

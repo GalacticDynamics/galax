@@ -1,13 +1,13 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = [
+__all__ = (
     # class
     "KeplerPotential",
     # functions
     "density",
     "potential",
     "point_mass_potential",
-]
+)
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -91,7 +91,7 @@ def point_mass_potential(G: gt.Sz0, m: gt.Sz0, r: gt.Sz0, /) -> gt.Sz0:
 # TODO: with units
 @ft.partial(jax.jit)
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
-    r"""Specific potential energy.
+    r"""Kepler potential specific potential energy.
 
     $$ \Phi(r) = -\frac{G m_{tot}}{r} $$
 

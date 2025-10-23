@@ -28,7 +28,7 @@ from .base import (
 )
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
-from galax.potential._src.builtin.kepler import point_mass_potential
+from galax.potential._src.builtin import kepler
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
@@ -308,7 +308,7 @@ def _outer_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     enclosed within the truncation radius $r_t$.
     """
     m_tot = nfw_mass_enclosed(p, p["r_t"])
-    return point_mass_potential(p["G"], m_tot, r)
+    return kepler.point_mass_potential(p["G"], m_tot, r)
 
 
 @ft.partial(jax.jit)

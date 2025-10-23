@@ -17,9 +17,10 @@ import unxt as u
 from xmmutablemap import ImmutableMap
 
 from .const import SQRT2
-from .disks import MiyamotoNagaiPotential, MN3Sech2Potential
 from .hernquist import HernquistPotential
 from .logarithmic import LMJ09LogarithmicPotential
+from .miyamotonagai import MiyamotoNagaiPotential
+from .mn3 import MN3Sech2Potential
 from .nfw import NFWPotential
 from .powerlawcutoff import PowerLawCutoffPotential
 from galax.potential._src.base import default_constants
@@ -54,6 +55,10 @@ class BovyMWPotential2014(AbstractPreCompositedPotential):
 
     Note: in subclassing, order of arguments must match order of potential
     components added at bottom of init.
+
+    Examples
+    --------
+    >>> import unxt as u
     """
 
     disk: MiyamotoNagaiPotential = eqx.field(

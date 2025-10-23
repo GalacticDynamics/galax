@@ -64,6 +64,26 @@ class HernquistPotential(AbstractSinglePotential):
         return density(params, r)
 
 
+# ============================================
+
+
+@ft.partial(jax.jit)
+def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
+    r"""Density profile for the Kepler potential."""
+    s = r / p["r_s"]
+    rho0 = p["m_tot"] / (2 * jnp.pi * p["r_s"] ** 3)
+    return rho0 / (s * (1 + s) ** 3)
+
+
+@ft.partial(jax.jit)
+def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
+    r"""Specific potential energy."""
+    return -p["G"] * p["m_tot"] / (r + p["r_s"])
+
+
+##############################################################################
+
+
 @final
 class TriaxialHernquistPotential(AbstractSinglePotential):
     """Triaxial Hernquist Potential.
@@ -153,20 +173,3 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
         return potential(params, rprime)
-
-
-# ============================================
-
-
-@ft.partial(jax.jit)
-def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
-    r"""Density profile for the Kepler potential."""
-    s = r / p["r_s"]
-    rho0 = p["m_tot"] / (2 * jnp.pi * p["r_s"] ** 3)
-    return rho0 / (s * (1 + s) ** 3)
-
-
-@ft.partial(jax.jit)
-def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
-    r"""Specific potential energy."""
-    return -p["G"] * p["m_tot"] / (r + p["r_s"])

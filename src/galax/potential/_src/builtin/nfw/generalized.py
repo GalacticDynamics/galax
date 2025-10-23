@@ -14,6 +14,7 @@ import jax.numpy as jnp
 import tensorflow_probability.substrates.jax as tfp
 
 import unxt as u
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax._custom_types as gt
@@ -23,6 +24,10 @@ from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
+from galax.utils._jax import vectorize_method
+
+DimL = u.dimension("length")
+DimT = u.dimension("time")
 
 
 @final
@@ -146,6 +151,21 @@ class gNFWPotential(AbstractSinglePotential):
             "gamma": self.gamma(t, ustrip=self.units["dimensionless"]),
         }
         return potential(params, r)
+
+    @vectorize_method(signature="(3),()->(3)")
+    @ft.partial(jax.jit)
+    def _gradient(  # TODO: inputs w/ units
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
+    ) -> gt.FloatSz3:
+        xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
+        t_ = u.Quantity.from_(t, self.units["time"])
+        params = {
+            "G": self.constants["G"].value,
+            "m": self.m(t_, ustrip=self.units["mass"]),
+            "r_s": self.r_s(t_, ustrip=self.units["length"]),
+            "gamma": self.gamma(t_, ustrip=self.units["dimensionless"]),
+        }
+        return gradient(params, xyz)
 
 
 # ===================================================================
@@ -337,3 +357,35 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     outer = (p["m"] / rs) * Bz_from_hyp2f1(1.0, 2.0 - p["gamma"], z2)
 
     return -p["G"] * (inner + outer)
+
+
+@ft.partial(jax.jit)
+def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
+    r"""Gradient of the potential for the gNFW model.
+
+    $$ \nabla \Phi(r) = G M(<r) / r^2 \hat{r} $$
+
+    where $M(<r)$ is the enclosed mass.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import galax.potential as gp
+
+    A gNFW potential matches the NFW potential when $\gamma = 1$:
+
+    >>> gnfw = gp.gNFWPotential(m=1e12, r_s=1, gamma=1, units="galactic")
+    >>> nfw = gp.NFWPotential(m=1e12, r_s=1, units="galactic")
+
+    >>> x, t = jnp.array([8, 0, 0]), 0
+    >>> gnfw.gradient(x, t)
+    Array([0.09196173, 0.        , 0.        ], dtype=float64)
+
+    >>> jnp.allclose(gnfw.gradient(x, t), nfw.gradient(x, t), atol=1e-8)
+    Array(True, dtype=bool)
+
+    """
+    r_mag = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
+    mass_enc = mass_enclosed(p, r_mag)
+    grad_mag = p["G"] * mass_enc / (r_mag**2)
+    return grad_mag * (xyz / r_mag)

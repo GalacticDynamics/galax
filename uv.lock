@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version < '3.12'",
@@ -355,7 +354,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.23.0"
+version = "0.23.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -375,9 +374,9 @@ dependencies = [
     { name = "wadler-lindig" },
     { name = "xmmutablemap" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c6/3d/3fe71f67799b6a50f5a34427ae0241c171e579d8c26186300dc8ae580ad9/coordinax-0.23.0.tar.gz", hash = "sha256:2513807b29348a40222e7cea21f22da73aae1bef27d703021039aea9d141dcb0", size = 735100 }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/19/e916264a6560700b8cc8c422dcc8f148490ff1cc41cdbc2ea0c3205b9a75/coordinax-0.23.1.tar.gz", hash = "sha256:f6a730661872b804c6844a2a8f506af400d1f93d9d903d88938c8d7a629cc542", size = 735648 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ed/c9/b84370f321533a1007f90c93aa454ffe93b00bccbf3992995d0100f691f5/coordinax-0.23.0-py3-none-any.whl", hash = "sha256:77368d51ec3dc908a6c2a8212883af33e93cc5f129d1134ea45d0b1bda977b5f", size = 194354 },
+    { url = "https://files.pythonhosted.org/packages/03/d3/58d01dd10c2b3512269c1014cc4c352ea561e331bff5304ab2b2e38abea5/coordinax-0.23.1-py3-none-any.whl", hash = "sha256:564e9d8735c02da81cf5ecac8b074f375ec61e1c895526398d4a3e1921f4e85a", size = 194514 },
 ]
 
 [[package]]
@@ -845,7 +844,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = "==0.21.0" },
-    { name = "coordinax", specifier = ">=0.23.0" },
+    { name = "coordinax", specifier = ">=0.23.1" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
@@ -880,7 +879,6 @@ requires-dist = [
     { name = "xmmutablemap", specifier = ">=0.2.1" },
     { name = "zeroth", specifier = ">=1.0" },
 ]
-provides-extras = ["all", "interop-all", "interop-astropy", "interop-gala", "interop-galpy", "plot-all", "plot-matplotlib"]
 
 [package.metadata.requires-dev]
 dev = [

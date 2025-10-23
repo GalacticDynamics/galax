@@ -28,8 +28,8 @@
   ]
   dependencies = [
     "astropy>=7.0",
-    "beartype==0.21.0",  # TODO: figure out why 0.22.0 breaks things
-    "coordinax>=0.23.0",
+    "beartype==0.21.0", # TODO: figure out why 0.22.0 breaks things
+    "coordinax>=0.23.1",
     "dataclassish>=0.8.0",
     "diffrax>=0.7",
     "diffraxtra>=1.5.2",

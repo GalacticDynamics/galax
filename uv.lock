@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version < '3.12'",
@@ -736,6 +737,7 @@ dependencies = [
     { name = "jax" },
     { name = "jaxlib" },
     { name = "jaxtyping" },
+    { name = "oncequinox" },
     { name = "optimistix" },
     { name = "optional-dependencies" },
     { name = "optype", version = "0.13.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -863,6 +865,7 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'all'", specifier = ">=3.8" },
     { name = "matplotlib", marker = "extra == 'plot-all'", specifier = ">=3.8" },
     { name = "matplotlib", marker = "extra == 'plot-matplotlib'", specifier = ">=3.8" },
+    { name = "oncequinox", specifier = ">=0.1.0" },
     { name = "optimistix", specifier = ">=0.0.11" },
     { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "optype", marker = "python_full_version < '3.12'", specifier = ">=0.13.0" },
@@ -879,6 +882,7 @@ requires-dist = [
     { name = "xmmutablemap", specifier = ">=0.2.1" },
     { name = "zeroth", specifier = ">=1.0" },
 ]
+provides-extras = ["all", "interop-all", "interop-astropy", "interop-gala", "interop-galpy", "plot-all", "plot-matplotlib"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1481,6 +1485,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c0/90/ee8668e84c5d5cc080ef3beb622c016adf19ca3aa51afe9dbdcc6a9baf59/numpy-2.1.1-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:910b47a6d0635ec1bd53b88f86120a52bf56dcc27b51f18c7b4a2e2224c29f0f", size = 16023473 },
     { url = "https://files.pythonhosted.org/packages/38/a0/57c24b2131879183051dc698fbb53fd43b77c3fa85b6e6311014f2bc2973/numpy-2.1.1-cp313-cp313t-musllinux_1_1_x86_64.whl", hash = "sha256:13cc11c00000848702322af4de0147ced365c81d66053a67c2e962a485b3717c", size = 16400624 },
     { url = "https://files.pythonhosted.org/packages/bb/4c/14a41eb5c9548c6cee6af0936eabfd985c69230ffa2f2598321431a9aa0a/numpy-2.1.1-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:53e27293b3a2b661c03f79aa51c3987492bd4641ef933e366e0f9f6c9bf257ec", size = 14155072 },
+]
+
+[[package]]
+name = "oncequinox"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "equinox" },
+    { name = "jax" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5b/2b/9bb1b5d5a02c634df2a2c62113b071e046e594f3c74dbe4a947e751240fa/oncequinox-0.1.0.tar.gz", hash = "sha256:ece50c70084893f5333b1346e8ac16ee6642291243159b5091ecbc0b728722f7", size = 110817 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/75/ad/f9a0314b32d6afee7b41b86172f9b0a60b974816675cde42bd34a41632c5/oncequinox-0.1.0-py3-none-any.whl", hash = "sha256:63f50a9af0ba1b0fa27b3e3ce85d004c4ceaee0ed8712fd3afd57d646e662502", size = 5637 },
 ]
 
 [[package]]

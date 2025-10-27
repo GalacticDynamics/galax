@@ -6,28 +6,12 @@ Building off of `coordinax.frames`.
 
 __all__ = ["SimulationFrame", "simulation_frame"]
 
-import weakref
-from typing import Any, final
+from typing import final
 
-import equinox as eqx
 from plum import dispatch
 
 import coordinax as cx
-
-_singleton_insts: weakref.WeakKeyDictionary[type, object] = weakref.WeakKeyDictionary()
-
-
-class SingletonModuleMeta(eqx._module._module._ModuleMeta):  # type: ignore[misc] # noqa: SLF001
-    """A metaclass for singleton modules."""
-
-    def __call__(cls, /, *args: Any, **kwargs: Any) -> Any:
-        # Check if instance already exists
-        if cls in _singleton_insts:
-            return _singleton_insts[cls]
-        # Create new instance and cache it
-        self = super().__call__(*args, **kwargs)
-        _singleton_insts[cls] = self
-        return self
+from oncequinox import SingletonModuleMeta
 
 
 @final

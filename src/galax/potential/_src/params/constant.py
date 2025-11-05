@@ -135,7 +135,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
 
         Parameters
         ----------
-        t : `~galax.typing.BBtQuSz0`, optional
+        t : `~galax._custom_types.BBtQuSz0`, optional
             This is ignored and is thus optional. Note that for most
             :class:`~galax.potential.AbstractParameter` the time is required.
         ustrip : Unit | None

@@ -49,7 +49,7 @@
     "plum-dispatch>=2.5.8",
     "quax>=0.2.1",
     "quaxed>=0.10.2",
-    "tensorflow-probability[jax]>=0.25.0",
+    "tfp-nightly[jax]>=0.25.0",
     "typing-extensions>=4.13.2",
     "unxt>=1.7.2",
     "wadler_lindig>=0.1.7",

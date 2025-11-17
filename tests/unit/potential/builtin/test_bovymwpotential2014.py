@@ -29,7 +29,7 @@ class TestBovyMWPotential2014(AbstractSpecialCompositePotential_Test):
     # ==========================================================================
 
     def test_potential(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
-        expect = u.Quantity(-0.09550731, unit="kpc2 / Myr2")
+        expect = u.Quantity(-0.16359185, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

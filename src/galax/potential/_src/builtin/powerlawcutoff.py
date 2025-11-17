@@ -88,15 +88,29 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Potential for the power-law cutoff density profile.
 
-    $$ \Phi(r) = -\frac{G M}{2\pi \Gamma\left(\frac{3 - \alpha}{2}\right) r_c^3}
-    \left(\frac{r_c}{r}\right)^\alpha
-    \exp\left[-\left(\frac{r}{r_c}\right)^2\right] $$
+    Following Gala's implementation, we compute the potential and subtract
+    the asymptotic value to enforce Phi(infinity) = 0.
     """
-    a = p["alpha"] / 2
+    alpha_half = p["alpha"] / 2
     s2 = (r / p["r_c"]) ** 2
     GM = p["G"] * p["m_tot"]
 
-    return GM * (
-        (a - 1.5) * _safe_gamma_inc(1.5 - a, s2) / (r * jsp.gamma(2.5 - a))
-        + _safe_gamma_inc(1 - a, s2) / (p["r_c"] * jsp.gamma(1.5 - a))
+    # Compute potential terms
+    gamma_arg = 1.5 - alpha_half
+    term1 = (
+        GM
+        * _safe_gamma_inc(gamma_arg, s2)
+        * (alpha_half - 1.5)
+        / (r * jsp.gamma(2.5 - alpha_half))
     )
+    term2 = GM * _safe_gamma_inc(1 - alpha_half, s2) / (p["r_c"] * jsp.gamma(gamma_arg))
+
+    # Subtract asymptotic value to enforce Phi(infinity) = 0
+    # Only needed when gamma_arg > 0 (i.e., alpha < 3)
+    phi_infinity = jax.lax.cond(
+        gamma_arg > 0,
+        lambda: GM * jsp.gamma(1 - alpha_half) / (p["r_c"] * jsp.gamma(gamma_arg)),
+        lambda: 0.0,
+    )
+
+    return term1 + term2 - phi_infinity

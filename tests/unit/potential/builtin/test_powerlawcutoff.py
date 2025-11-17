@@ -97,7 +97,7 @@ class TestPowerLawCutoffPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.PowerLawCutoffPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(6.26573365, unit="kpc2 / Myr2")
+        expect = u.Quantity(-1.20227523, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )

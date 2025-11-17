@@ -209,13 +209,11 @@ class MultipolePotential(AbstractMultipolePotential):
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
         t = u.Quantity(0.0, "Gyr")
-        is_shape, it_shape = self.ISlm(t).shape, self.ITlm(t).shape
-        os_shape, ot_shape = self.OSlm(t).shape, self.OTlm(t).shape
-        # TODO: check shape across time.
+        iss, its = self.ISlm(t).shape, self.ITlm(t).shape
+        oss, ots = self.OSlm(t).shape, self.OTlm(t).shape
+        # Check shapes match expected
         msg = "I/OSlm and I/OTlm must have the shape (l_max + 1, l_max + 1)."
-        pred = jnp.any(
-            jnp.array([x != shape for x in (is_shape, it_shape, os_shape, ot_shape)])
-        )
+        pred = (iss != shape) or (its != shape) or (oss != shape) or (ots != shape)
         _ = eqx.error_if(t, pred, msg)
 
     @ft.partial(jax.jit)

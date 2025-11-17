@@ -69,7 +69,7 @@ def convert_potential(
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <KeplerPotential: m=1.00e+11 (kpc,Myr,solMass,rad)>
+    <KeplerPotential: m=1.00e+11 solMass (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     return galax_to_gala(from_)
@@ -321,7 +321,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 
         >>> pot = gp.BurkertPotential(m=1e11, r_s=20, units="galactic")
         >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-        <BurkertPotential: rho=7.82e+06, r0=20.00 (kpc,Myr,solMass,rad)>
+        <BurkertPotential: rho=7.82e+06 solMass / kpc3, r0=20.00 kpc (kpc,Myr,solMass,rad)>
 
         .. skip: end
 
@@ -379,7 +379,7 @@ def galax_to_gala(
 
     >>> pot = gp.HarmonicOscillatorPotential(omega=u.Quantity(1, "1/Myr"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <HarmonicOscillatorPotential: omega=[1.] (kpc,Myr,solMass,rad)>
+    <HarmonicOscillatorPotential: omega=[1.] 1 / Myr (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -433,7 +433,7 @@ def galax_to_gala(pot: gp.HernquistPotential, /) -> galap.HernquistPotential:
 
     >>> pot = gp.HernquistPotential(m_tot=1e11, r_s=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <HernquistPotential: m=1.00e+11, c=20.00 (kpc,Myr,solMass,rad)>
+    <HernquistPotential: m=1.00e+11 solMass, c=20.00 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -489,7 +489,7 @@ def galax_to_gala(pot: gp.IsochronePotential, /) -> galap.IsochronePotential:
 
     >>> pot = gp.IsochronePotential(m_tot=1e11, r_s=10, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <IsochronePotential: m=1.00e+11, b=10.00 (kpc,Myr,solMass,rad)>
+    <IsochronePotential: m=1.00e+11 solMass, b=10.00 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -549,7 +549,7 @@ def galax_to_gala(pot: gp.JaffePotential, /) -> galap.JaffePotential:
 
     >>> pot = gp.JaffePotential(m_tot=1e11, r_s=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <JaffePotential: m=1.00e+11, c=20.00 (kpc,Myr,solMass,rad)>
+    <JaffePotential: m=1.00e+11 solMass, c=20.00 kpc (kpc,Myr,solMass,rad)>
 
     """
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -603,7 +603,7 @@ def galax_to_gala(pot: gp.KeplerPotential, /) -> galap.KeplerPotential:
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <KeplerPotential: m=1.00e+11 (kpc,Myr,solMass,rad)>
+    <KeplerPotential: m=1.00e+11 solMass (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -663,7 +663,7 @@ def galax_to_gala(pot: gp.KuzminPotential, /) -> galap.KuzminPotential:
 
     >>> pot = gp.KuzminPotential(m_tot=1e11, r_s=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <KuzminPotential: m=1.00e+11, a=20.00 (kpc,Myr,solMass,rad)>
+    <KuzminPotential: m=1.00e+11 solMass, a=20.00 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -735,7 +735,7 @@ def galax_to_gala(pot: gp.LongMuraliBarPotential, /) -> galap.LongMuraliBarPoten
     ...     units="galactic",
     ... )
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <LongMuraliBarPotential: m=1.00e+11, a=20.00, b=10.00, c=5.00, alpha=0.10 (kpc,Myr,solMass,rad)>
+    <LongMuraliBarPotential: m=1.00e+11 solMass, a=20.00 kpc, b=10.00 kpc, c=5.00 kpc, alpha=0.10 rad (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -795,7 +795,7 @@ def galax_to_gala(pot: gp.MiyamotoNagaiPotential, /) -> galap.MiyamotoNagaiPoten
 
     >>> pot = gp.MiyamotoNagaiPotential(m_tot=1e11, a=6.5, b=0.26, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <MiyamotoNagaiPotential: m=1.00e+11, a=6.50, b=0.26 (kpc,Myr,solMass,rad)>
+    <MiyamotoNagaiPotential: m=1.00e+11 solMass, a=6.50 kpc, b=0.26 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -861,7 +861,7 @@ def galax_to_gala(
 
     >>> pot = gp.MN3ExponentialPotential(m_tot=1e11, h_R=3.0, h_z=0.2, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <MN3ExponentialDiskPotential: m=1.00e+11, h_R=3.00, h_z=0.20 (kpc,Myr,solMass,rad)>
+    <MN3ExponentialDiskPotential: m=1.00e+11 solMass, h_R=3.00 kpc, h_z=0.20 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -969,7 +969,7 @@ def galax_to_gala(pot: gp.PlummerPotential, /) -> galap.PlummerPotential:
 
     >>> pot = gp.PlummerPotential(m_tot=1e11, r_s=10, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <PlummerPotential: m=1.00e+11, b=10.00 (kpc,Myr,solMass,rad)>
+    <PlummerPotential: m=1.00e+11 solMass, b=10.00 kpc (kpc,Myr,solMass,rad)>
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
@@ -1044,7 +1044,7 @@ def galax_to_gala(pot: gp.PowerLawCutoffPotential, /) -> galap.PowerLawCutoffPot
 
     >>> pot = gp.PowerLawCutoffPotential(m_tot=1e11, alpha=1.8, r_c=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <PowerLawCutoffPotential: m=1.00e+11, alpha=1.80, r_c=20.00 (kpc,Myr,solMass,rad)>
+    <PowerLawCutoffPotential: m=1.00e+11 solMass, alpha=1.80 , r_c=20.00 kpc (kpc,Myr,solMass,rad)>
 
     .. skip: end
     """  # noqa: E501
@@ -1106,7 +1106,7 @@ def galax_to_gala(pot: gp.SatohPotential, /) -> galap.SatohPotential:
 
     >>> pot = gp.SatohPotential(m_tot=1e11, a=20, b=10, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <SatohPotential: m=1.00e+11, a=20.00, b=10.00 (kpc,Myr,solMass,rad)>
+    <SatohPotential: m=1.00e+11 solMass, a=20.00 kpc, b=10.00 kpc (kpc,Myr,solMass,rad)>
 
     """
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -1163,7 +1163,7 @@ def galax_to_gala(pot: gp.StoneOstriker15Potential, /) -> galap.StonePotential:
 
     >>> pot = gp.StoneOstriker15Potential(m_tot=1e11, r_c=20, r_h=10, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <StonePotential: m=1.00e+11, r_c=20.00, r_h=10.00 (kpc,Myr,solMass,rad)>
+    <StonePotential: m=1.00e+11 solMass, r_c=20.00 kpc, r_h=10.00 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -1243,7 +1243,7 @@ def galax_to_gala(pot: gp.LogarithmicPotential, /) -> galap.LogarithmicPotential
 
     >>> pot = gp.LogarithmicPotential(v_c=u.Quantity(220, "km/s"), r_s=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <LogarithmicPotential: v_c=0.22, r_h=20.00, q1=1.00, q2=1.00, q3=1.00, phi=0 (kpc,Myr,solMass,rad)>
+    <LogarithmicPotential: v_c=0.22 kpc / Myr, r_h=20.00 kpc, q1=1.00 , q2=1.00 , q3=1.00 , phi=0 rad (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -1270,7 +1270,7 @@ def galax_to_gala(pot: gp.LMJ09LogarithmicPotential, /) -> galap.LogarithmicPote
     ...     units="galactic",
     ... )
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <LogarithmicPotential: v_c=0.22, r_h=20.00, q1=1.00, q2=1.00, q3=1.00, phi=0 (kpc,Myr,solMass,rad)>
+    <LogarithmicPotential: v_c=0.22 kpc / Myr, r_h=20.00 kpc, q1=1.00 , q2=1.00 , q3=1.00 , phi=0 rad (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -1466,7 +1466,8 @@ def galax_to_gala(pot: gp.NFWPotential, /) -> galap.NFWPotential:
 
     >>> pot = gp.NFWPotential(m=1e12, r_s=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <NFWPotential: m=1.00e+12, r_s=20.00, a=1.00, b=1.00, c=1.00 (kpc,Myr,solMass,rad)>
+    <NFWPotential: m=1.00e+12 solMass, r_s=20.00 kpc, a=1.00 , b=1.00 , c=1.00
+     (kpc,Myr,solMass,rad)>
 
     """
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
@@ -1534,7 +1535,7 @@ def galax_to_gala(
     ...                                      a1=1, a2=0.9, a3=0.8,
     ...                                      units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    <LeeSutoTriaxialNFWPotential: v_c=0.47, r_s=20.00, a=1.00, b=0.90, c=0.80 (kpc,Myr,solMass,rad)>
+    <LeeSutoTriaxialNFWPotential: v_c=0.47 kpc / Myr, r_s=20.00 kpc, a=1.00 , b=0.90 , c=0.80  (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())

@@ -67,7 +67,7 @@
       "galax[interop-galpy]",
     ]
     interop-astropy = ["astropy>=6.1"]
-    interop-gala = ["gala>=1.9", "galax[interop-astropy]"]
+    interop-gala = ["gala>=1.10", "galax[interop-astropy]"]
     interop-galpy = ["galax[interop-astropy]", "galpy >= 1.8"]
     # TODO: agama
     plot-all        = ["galax[plot-matplotlib]"]
@@ -231,6 +231,7 @@ ignore-words-list = "Hart"  # in dynamics/_src/cluster/relax_time.py
     "ignore:auto\\-close\\(\\)ing of figures upon backend switching is deprecated:DeprecationWarning",
     "ignore:jax\\.core\\.pp_eqn_rules is deprecated:DeprecationWarning",
     "ignore:numpy\\.ndarray size changed:RuntimeWarning",
+    "ignore:The get_name method is deprecated:astropy.utils.exceptions.AstropyDeprecationWarning",     # from gala
     "ignore:unhashable type:FutureWarning",                                                            # TODO: from diffrax
     "ignore:jax\\.interpreters\\.xla\\.pytype_aval_mappings is deprecated:DeprecationWarning",  # from tensorflow-probability[jax]
   ]

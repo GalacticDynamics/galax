@@ -383,8 +383,8 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([[1, 2, 3], [4, 5, 6]], "kpc"),
     ...                             p=u.Quantity([[4, 5, 6], [7, 8, 9]], "km/s"),
     ...                             t=u.Quantity([0, 1], "Gyr"))
-    >>> pot.laplacian(w)
-    Quantity(Array([2.77555756e-17, 8.67361738e-19], dtype=float64), unit='1 / Myr2')
+    >>> pot.laplacian(w).round(4)
+    Quantity(Array([0., 0.], dtype=float64), unit='1 / Myr2')
 
     This function is very flexible and can accept a broad variety of inputs. For
     example, instead of passing a
@@ -392,30 +392,30 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     `~vector.FourVector`:
 
     >>> w = cx.FourVector(q=u.Quantity([1, 2, 3], "kpc"), t=u.Quantity(0, "Gyr"))
-    >>> pot.laplacian(w)
-    Quantity(Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
+    >>> pot.laplacian(w).round(4)
+    Quantity(Array(0., dtype=float64), unit='1 / Myr2')
 
     Or using a `~coordinax.AbstractPos3D` and time `unxt.Quantity` (which can be
     positional or a keyword argument):
 
     >>> q = cx.CartesianPos3D.from_([1, 2, 3], "kpc")
     >>> t = u.Quantity(0, "Gyr")
-    >>> pot.laplacian(q, t=t)
-    Quantity(Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
+    >>> pot.laplacian(q, t=t).round(4)
+    Quantity(Array(0., dtype=float64), unit='1 / Myr2')
 
     We can also compute the potential energy at multiple positions:
 
     >>> q = cx.CartesianPos3D.from_([[1, 2, 3], [4, 5, 6]], "kpc")
-    >>> pot.laplacian(q, t=t)
-    Quantity(Array([2.77555756e-17, 8.67361738e-19], dtype=float64), unit='1 / Myr2')
+    >>> pot.laplacian(q, t=t).round(4)
+    Quantity(Array([0., 0.], dtype=float64), unit='1 / Myr2')
 
     Instead of passing a `~coordinax.AbstractPos3D` (in this case a
     `~coordinax.CartesianPos3D`), we can instead pass a
     `unxt.Quantity`, which is interpreted as a Cartesian position:
 
     >>> q = u.Quantity([1., 2, 3], "kpc")
-    >>> pot.laplacian(q, t)
-    Quantity(Array(2.77555756e-17, dtype=float64), unit='1 / Myr2')
+    >>> pot.laplacian(q, t).round(4)
+    Quantity(Array(0., dtype=float64), unit='1 / Myr2')
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is an `~jax.Array`), it is assumed to be in the same unit system as the
@@ -423,8 +423,8 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> t = 0
-    >>> pot.laplacian(q, t)
-    Array([2.77555756e-17, 8.67361738e-19], dtype=float64)
+    >>> pot.laplacian(q, t).round(4)
+    Array([0., 0.], dtype=float64)
 
     - - -
 
@@ -454,16 +454,16 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     We can also compute the potential energy at multiple positions:
 
     >>> q = apyc.CartesianRepresentation(apyu.Quantity([[1, 4], [2, 5], [3, 6]], "kpc"))
-    >>> pot.laplacian(q, t)
-    Quantity(Array([2.77555756e-17, 8.67361738e-19], dtype=float64), unit='1 / Myr2')
+    >>> pot.laplacian(q, t).round(4)
+    Quantity(Array([0., 0.], dtype=float64), unit='1 / Myr2')
 
     Instead of passing a `~coordinax.AbstractPos3D` (in this case a
     `~coordinax.CartesianPos3D`), we can instead pass a
     `unxt.Quantity`, which is interpreted as a Cartesian position:
 
     >>> q = [1., 2, 3] * apyu.kpc
-    >>> pot.laplacian(q, t)
-    Array(2.77555756e-17, dtype=float64)
+    >>> pot.laplacian(q, t).round(4)
+    Array(0., dtype=float64)
 
     Again, this can be batched.  If the input position object has no units (i.e.
     is a `~numpy.ndarray`), it is assumed to be in the same unit system
@@ -471,8 +471,8 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     >>> import numpy as np
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
-    >>> pot.laplacian(q, t)
-    Array([2.77555756e-17, 8.67361738e-19], dtype=float64)
+    >>> pot.laplacian(q, t).round(4)
+    Array([0., 0.], dtype=float64)
 
     .. skip: end
 

@@ -27,6 +27,7 @@ from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
+from galax.utils.defaults import DEFAULT_TIME
 
 if TYPE_CHECKING:
     import galax.dynamics  # noqa: ICN001
@@ -110,7 +111,9 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
     # Potential energy
 
     @abc.abstractmethod
-    def _potential(self, q: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtQorVSz0:
+    def _potential(
+        self, q: gt.BBtQorVSz3, t: gt.BBtQorVSz0 = DEFAULT_TIME, /
+    ) -> gt.BBtQorVSz0:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.
@@ -123,9 +126,10 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
         q : Quantity[float, (3,), 'length']
             The Cartesian position at which to compute the value of the
             potential. The units are the same as the potential's unit system.
-        t : Quantity[float, (), 'time']
+        t : Quantity[float, (), 'time'], optional
             The time at which to compute the value of the potential.
             The units are the same as the potential's unit system.
+            Defaults to 0 if not provided.
 
         Returns
         -------
@@ -169,7 +173,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
     @vectorize_method(signature="(3),()->(3)")
     @ft.partial(jax.jit)
     def _gradient(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0, /
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 = DEFAULT_TIME, /
     ) -> gt.FloatSz3:
         """See ``gradient``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
@@ -190,7 +194,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
     @vectorize_method(signature="(3),()->()")
     @ft.partial(jax.jit)
     def _laplacian(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, /, t: gt.QuSz0 | gt.Sz0
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, /, t: gt.QuSz0 | gt.Sz0 = DEFAULT_TIME
     ) -> gt.FloatSz0:
         """See ``laplacian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
@@ -209,7 +213,9 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
     # Density
 
     @ft.partial(jax.jit)
-    def _density(self, q: gt.BBtQuSz3, t: gt.BBtQuSz0 | gt.QuSz0, /) -> gt.BBtFloatSz0:
+    def _density(
+        self, q: gt.BBtQuSz3, t: gt.BBtQuSz0 | gt.QuSz0 = DEFAULT_TIME, /
+    ) -> gt.BBtFloatSz0:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
         laplacian = self._laplacian(q, t)
@@ -228,7 +234,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
     @vectorize_method(signature="(3),()->(3,3)")
     @ft.partial(jax.jit)
     def _hessian(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0 = DEFAULT_TIME, /
     ) -> gt.Sz33:
         """See ``hessian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)

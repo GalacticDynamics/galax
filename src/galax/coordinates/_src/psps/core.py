@@ -309,7 +309,7 @@ def vconvert(
 # `unxt.uconvert` dispatches
 
 
-@dispatch(precedence=1)  # type: ignore[call-overload, misc]  # TODO: make precedence=0
+@dispatch(precedence=1)  # TODO: make precedence=0
 def uconvert(
     units: u.AbstractUnitSystem | str, psp: PhaseSpacePosition
 ) -> PhaseSpacePosition:

@@ -16,7 +16,6 @@ from quax import ArrayValue, register
 
 import unxt as u
 from dataclassish.converters import Unless
-from unxt._src.units.api import AstropyUnits
 from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
@@ -128,7 +127,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
         self,
         t: gt.BBtQuSz0 = t0,  # noqa: ARG002
         *,
-        ustrip: AstropyUnits | None = None,
+        ustrip: u.AbstractUnit | None = None,
         **__: Any,
     ) -> gt.QuSzAny:
         """Return the constant parameter value.

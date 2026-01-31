@@ -13,7 +13,6 @@ import jax
 import jax.core
 
 import unxt as u
-from unxt._src.units.api import AstropyUnits
 from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
@@ -84,7 +83,7 @@ class LinearParameter(AbstractParameter):
 
     @ft.partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
-        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **_: Any
+        self, t: gt.BBtQuSz0, *, ustrip: u.AbstractUnit | None = None, **_: Any
     ) -> gt.QuSzAny | gt.SzAny:
         """Return the parameter value.
 
@@ -150,7 +149,7 @@ class CustomParameter(AbstractParameter):
 
     @ft.partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
-        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+        self, t: gt.BBtQuSz0, *, ustrip: u.AbstractUnit | None = None, **kwargs: Any
     ) -> gt.QuSzAny | gt.SzAny:
         out = self.func(t, **kwargs)
         return out if ustrip is None else u.ustrip(AllowValue, ustrip, out)

@@ -29,7 +29,7 @@
   dependencies = [
     "astropy>=7.0",
     "beartype==0.21.0", # TODO: figure out why 0.22.0 breaks things
-    "coordinax>=0.23.1",
+    "coordinax>=0.23.2",
     "dataclassish>=0.8.0",
     "diffrax>=0.7",
     "diffraxtra>=1.5.2",
@@ -51,7 +51,7 @@
     "quaxed>=0.10.2",
     "tfp-nightly[jax]>=0.25.0",
     "typing-extensions>=4.13.2",
-    "unxt>=1.7.7",
+    "unxt>=1.10.3",
     "wadler_lindig>=0.1.7",
     "xmmutablemap>=0.2.1",
     "zeroth>=1.0",

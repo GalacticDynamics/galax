@@ -1,6 +1,6 @@
 """Utilities for dynamics."""
 
-__all__ = ["parse_time_specification"]
+__all__ = ("parse_time_specification",)
 
 
 from collections.abc import Sequence
@@ -12,7 +12,6 @@ from plum import dispatch
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt._src.units.api import AstropyUnits as Unit
 
 
 def parse_time_specification(
@@ -163,7 +162,7 @@ def parse_time_specification(
 # -----------------------------------------------
 
 
-def _parse_to_time_unit(obj: Any, /) -> Unit | None:
+def _parse_to_time_unit(obj: Any, /) -> u.AbstractUnit | None:
     return u.unitsystem(obj)["time"] if obj is not None else None
 
 

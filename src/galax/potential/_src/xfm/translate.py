@@ -14,7 +14,6 @@ from jaxtyping import Array, Real
 from plum import dispatch
 
 import unxt as u
-from unxt._src.units.api import AstropyUnits
 from unxt.quantity import AllowValue
 
 import galax._custom_types as gt
@@ -172,7 +171,7 @@ class TimeDependentTranslationParameter(AbstractParameter):
         self,
         t: gt.BBtQorVSz0,
         *,
-        ustrip: AstropyUnits | None = None,
+        ustrip: u.AbstractUnit | None = None,
         **_: Any,
     ) -> gt.BBtQuSz3:
         t = u.ustrip(u.quantity.AllowValue, self.units["time"], t)

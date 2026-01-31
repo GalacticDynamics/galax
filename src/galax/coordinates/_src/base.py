@@ -279,9 +279,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
     def __pdoc__(self, **kwargs: object) -> wl.AbstractDoc:
         return wl.bracketed(
             begin=wl.TextDoc(f"{self.__class__.__name__}("),
-            docs=wl.named_objs(
-                field_items(self), short_arrays=False, compact_arrays=True
-            ),
+            docs=wl.named_objs(field_items(self), short_arrays="compact"),
             sep=wl.comma,
             end=wl.TextDoc(")"),
             indent=kwargs.get("indent", 4),

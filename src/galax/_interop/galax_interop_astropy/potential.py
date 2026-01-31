@@ -47,7 +47,7 @@ def parse_to_xyz_t(
 # =============================================================================
 
 
-@dispatch(precedence=1)  # type: ignore[call-overload,misc]
+@dispatch(precedence=1)
 def potential(
     pot: gp.AbstractPotential,
     xyz: Real[APYQuantity, "*#batch 3"],
@@ -63,7 +63,7 @@ def potential(
     return gp.potential(pot, convert(xyz, FastQ), convert(t, FastQ))
 
 
-@dispatch(precedence=1)  # type: ignore[call-overload,misc]
+@dispatch(precedence=1)
 def gradient(
     pot: gp.AbstractPotential,
     xyz: Real[APYQuantity, "*#batch 3"],
@@ -79,7 +79,7 @@ def gradient(
     return gp.gradient(pot, convert(xyz, FastQ), convert(t, FastQ))
 
 
-@dispatch(precedence=1)  # type: ignore[call-overload,misc]
+@dispatch(precedence=1)
 def density(
     pot: gp.AbstractPotential,
     xyz: Real[APYQuantity, "*#batch 3"],
@@ -95,7 +95,7 @@ def density(
     return gp.density(pot, convert(xyz, FastQ), convert(t, FastQ))
 
 
-@dispatch(precedence=1)  # type: ignore[call-overload,misc]
+@dispatch(precedence=1)
 def hessian(
     pot: gp.AbstractPotential,
     xyz: Real[APYQuantity, "*#batch 3"],

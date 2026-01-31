@@ -255,7 +255,7 @@ def getitem(self: AbstractCompositePhaseSpaceCoordinate, key: str, /) -> Any:
 # `unxt.uconvert`
 
 
-@dispatch(precedence=1)  # type: ignore[call-overload,misc]  # TODO: make precedence=0
+@dispatch(precedence=1)  # TODO: make precedence=0
 def uconvert(
     usys: u.AbstractUnitSystem | str, cwt: AbstractCompositePhaseSpaceCoordinate, /
 ) -> AbstractCompositePhaseSpaceCoordinate:

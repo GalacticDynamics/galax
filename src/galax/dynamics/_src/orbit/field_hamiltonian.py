@@ -14,6 +14,7 @@ import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
+from galax.dynamics._src.experimental.leapfrog import SymplecticSolverT
 from galax.dynamics._src.utils import parse_to_t_y
 
 
@@ -255,7 +256,7 @@ class HamiltonianField(AbstractOrbitField):
 @AbstractOrbitField.terms.dispatch  # type: ignore[misc]
 def terms(
     self: HamiltonianField,
-    _: dfx.SemiImplicitEuler,
+    _: SymplecticSolverT,
     /,
 ) -> tuple[dfx.ODETerm, dfx.ODETerm]:
     r"""Return the AbstractTerm terms for the SemiImplicitEuler solver.

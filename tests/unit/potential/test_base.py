@@ -18,6 +18,7 @@ import galax.potential as gp
 import galax.potential.params as gpp
 from .io.test_gala import GalaIOMixin
 from galax.potential._src.base import default_constants
+from galax.utils.defaults import DEFAULT_TIME
 
 
 class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
@@ -200,6 +201,34 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts))
         assert jnp.allclose(orbits.t, ts, atol=u.Quantity(1e-16, "Myr"))
+
+    @pytest.mark.parametrize(
+        "func_name",
+        [
+            "potential",
+            "gradient",
+            "hessian",
+            "laplacian",
+            "acceleration",
+            "tidal_tensor",
+            "local_circular_velocity",
+            "dpotential_dr",
+            "d2potential_dr2",
+        ],
+    )
+    def test_optional_time(
+        self, func_name: str, pot: gp.AbstractPotential, x: gt.QuSz3
+    ):
+        """Test that potentials work with optional time."""
+        # Test with explicit time
+        with_time = getattr(pot, func_name)(x, t=DEFAULT_TIME)
+
+        # Tests with default time (should be equivalent)
+        default_time = getattr(pot, func_name)(x)
+        default_time_arr = getattr(pot, func_name)(x.value)
+
+        assert jnp.allclose(with_time.value, default_time.value)
+        assert jnp.allclose(default_time.value, default_time_arr)
 
 
 ##############################################################################

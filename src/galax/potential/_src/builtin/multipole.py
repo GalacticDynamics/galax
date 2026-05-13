@@ -9,13 +9,14 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
+from jaxtyping import Array, Float
 from typing import final
 
 import equinox as eqx
 import jax
 from equinox import field
 from jax.scipy.special import sph_harm_y
-from jaxtyping import Array, Float
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -65,7 +66,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        t = u.Quantity(0.0, "Gyr")
+        t = u.Q(0.0, "Gyr")
         s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
         # TODO: check shape across time.
         msg = (
@@ -78,7 +79,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
@@ -131,7 +132,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        t = u.Quantity(0.0, "Gyr")
+        t = u.Q(0.0, "Gyr")
         s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
         # TODO: check shape across time.
         msg = (
@@ -144,7 +145,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
@@ -208,7 +209,7 @@ class MultipolePotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        t = u.Quantity(0.0, "Gyr")
+        t = u.Q(0.0, "Gyr")
         iss, its = self.ISlm(t).shape, self.ITlm(t).shape
         oss, ots = self.OSlm(t).shape, self.OTlm(t).shape
         # Check shapes match expected
@@ -220,7 +221,7 @@ class MultipolePotential(AbstractMultipolePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         u1 = self.units["dimensionless"]

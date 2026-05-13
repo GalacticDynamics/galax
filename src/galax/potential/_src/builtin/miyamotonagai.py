@@ -8,6 +8,7 @@ __all__ = (
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -52,7 +53,7 @@ class MiyamotoNagaiPotential(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         ul = self.units["length"]

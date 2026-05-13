@@ -2,11 +2,11 @@
 
 __all__ = ["NBodyField"]
 
+from jaxtyping import Array, Float, Real
 from typing import Any, final
 
 import equinox as eqx
 import jax
-from jaxtyping import Array, Float, Real
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -37,17 +37,17 @@ class NBodyField(AbstractOrbitField):
     >>> import unxt as u
     >>> import galax.dynamics as gd
 
-    >>> q = u.Quantity([[-1, 0, 0], [1, 0, 0]], "AU") / 2
-    >>> p = u.Quantity([[0, -1, 0], [0, 1, 0]], "km/s") * 25
+    >>> q = u.Q([[-1, 0, 0], [1, 0, 0]], "AU") / 2
+    >>> p = u.Q([[0, -1, 0], [0, 1, 0]], "km/s") * 25
 
     >>> solver = gd.OrbitSolver()
 
     >>> field = gd.fields.NBodyField(
-    ...     masses=u.Quantity([1, 1], "Msun"),
-    ...     eps=u.Quantity(1e-4, "AU"),
+    ...     masses=u.Q([1, 1], "Msun"),
+    ...     eps=u.Q(1e-4, "AU"),
     ...     external_potential=gp.NullPotential(units="solarsystem"))
 
-    >>> t0, t1 = u.Quantity(0, "yr"), u.Quantity(2, "yr")
+    >>> t0, t1 = u.Q(0, "yr"), u.Q(2, "yr")
     >>> soln = solver.solve(field, (q, p), t0, t1)
 
     >>> soln.ys[0][-1, :, :].round(4)
@@ -84,7 +84,7 @@ class NBodyField(AbstractOrbitField):
         raise NotImplementedError  # pragma: no cover
 
 
-@NBodyField.__call__.dispatch  # type: ignore[misc]
+@NBodyField.__call__.dispatch  # type: ignore[misc,union-attr]
 @jax.jit  # type: ignore[misc]
 def __call__(
     self: "NBodyField",

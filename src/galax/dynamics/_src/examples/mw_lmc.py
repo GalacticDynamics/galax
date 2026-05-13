@@ -8,8 +8,10 @@ __all__ = [
 
 
 import functools as ft
-from collections.abc import Callable
 from dataclasses import KW_ONLY
+
+from collections.abc import Callable
+from jaxtyping import Array, Real
 from typing import Any, TypeAlias, final
 from typing_extensions import override
 
@@ -19,7 +21,6 @@ import jax
 import jax.tree as jtu
 from jax import lax
 from jax.scipy.integrate import trapezoid
-from jaxtyping import Array, Real
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -125,16 +126,16 @@ class RigidMWandLMCField(AbstractField):
     >>> lmc_pot = gp.NFWPotential(m=1e11, r_s=5, units="galactic")
 
     >>> def sigma_fn(xyz):
-    ...     return u.Quantity(130, "km/s").ustrip("kpc/Myr")
+    ...     return u.Q(130, "km/s").ustrip("kpc/Myr")
 
-    >>> b_coulomb_min=u.Quantity(1, "kpc")
+    >>> b_coulomb_min=u.Q(1, "kpc")
 
     >>> field = gd.examples.RigidMWandLMCField(mw_pot=mw_pot, lmc_pot=lmc_pot,
     ...     sigma_func=sigma_fn, b_coulomb_min=b_coulomb_min)
 
-    >>> y0 = ((u.Quantity([0, 0, 0], "kpc"), u.Quantity([0, 0, 0], "kpc/Myr")),
-    ...       (u.Quantity([-0.8, -41.5, -26.8], "kpc"), u.Quantity([-56, -219, 186], "km/s")))
-    >>> ts = u.Quantity(jnp.linspace(0, -14_000, 100), "Myr")
+    >>> y0 = ((u.Q([0, 0, 0], "kpc"), u.Q([0, 0, 0], "kpc/Myr")),
+    ...       (u.Q([-0.8, -41.5, -26.8], "kpc"), u.Q([-56, -219, 186], "km/s")))
+    >>> ts = u.Q(jnp.linspace(0, -14_000, 100), "Myr")
 
     >>> soln = gd.integrate_field( field, y0, ts )
 
@@ -189,14 +190,15 @@ class RigidMWandLMCField(AbstractField):
         """Evaluate the field at a given coordinate."""
         raise NotImplementedError  # pragma: no cover
 
-    @AbstractField.parse_inputs.dispatch  # type: ignore[misc]
-    def parse_inputs(
+    @override
+    @AbstractField.parse_inputs.dispatch  # type: ignore[misc,union-attr]
+    def parse_inputs(  # type: ignore[override]
         self: "RigidMWandLMCField",
         t0: gt.LikeSz0 | gt.QuSz0,
         y0: QPQParr | QPQP,
         /,
         *,
-        ustrip: bool = False,  # noqa: ARG002
+        ustrip: bool = False,
     ) -> tuple[gt.Sz0, QPQParr]:
         t0 = u.ustrip(AllowValue, self.units["time"], t0)
         y0 = _parse_y0(y0, self.units)
@@ -283,11 +285,11 @@ def _sigma_fn(_: gt.Sz3, /) -> gt.Sz0:
     Maps (Array[float, (3)]) -> Array[float, ()].
 
     """
-    return u.Quantity(130, "km/s").ustrip("kpc/Myr")
+    return u.Q(130, "km/s").ustrip("kpc/Myr")
 
 
-t_interp = u.Quantity(jnp.linspace(0, -14, 10_000), "Gyr")
-b_coulomb_min_default = u.Quantity(1, "kpc")
+t_interp = u.Q(jnp.linspace(0, -14, 10_000), "Gyr")
+b_coulomb_min_default = u.Q(1, "kpc")
 
 
 def make_mw_lmc_potential(
@@ -321,18 +323,18 @@ def make_mw_lmc_potential(
     Examples
     --------
     >>> def sigma_fn(xyz):
-    ...     return u.Quantity(130, "km/s").ustrip("kpc/Myr")
+    ...     return u.Q(130, "km/s").ustrip("kpc/Myr")
 
     >>> mw_pot = gp.MilkyWayPotential(units="galactic")
     >>> lmc_pot = gp.NFWPotential(m=1e11, r_s=5, units="galactic")
 
-    >>> mw_w0 = (u.Quantity([0, 0, 0], "kpc"), u.Quantity([0, 0, 0], "kpc/Myr"))
-    >>> lmc_w0 = (u.Quantity([-0.8, -41.5, -26.8], "kpc"),
-    ...           u.Quantity([-56, -219, 186], "km/s"))
+    >>> mw_w0 = (u.Q([0, 0, 0], "kpc"), u.Q([0, 0, 0], "kpc/Myr"))
+    >>> lmc_w0 = (u.Q([-0.8, -41.5, -26.8], "kpc"),
+    ...           u.Q([-56, -219, 186], "km/s"))
 
     >>> mw_lmc_pot = make_mw_lmc_potential(mw_pot, lmc_pot, mw_w0, lmc_w0,
-    ...      sigma_func=sigma_fn, b_coulomb_min=u.Quantity(1, "kpc"),
-    ...      t_interp=u.Quantity(jnp.linspace(-0, -14, 1_000), "Gyr"))
+    ...      sigma_func=sigma_fn, b_coulomb_min=u.Q(1, "kpc"),
+    ...      t_interp=u.Q(jnp.linspace(-0, -14, 1_000), "Gyr"))
     >>> mw_lmc_pot
     CompositePotential({'mw': TranslatedPotential(
             base_potential=MilkyWayPotential( ... ),

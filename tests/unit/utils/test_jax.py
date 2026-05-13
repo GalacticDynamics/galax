@@ -1,7 +1,8 @@
 """Test the :mod:`galax.utils._jax` module."""
 
-import jax.numpy as jnp
 from jaxtyping import Array, Float
+
+import jax.numpy as jnp
 
 from galax.utils._jax import vectorize_method
 

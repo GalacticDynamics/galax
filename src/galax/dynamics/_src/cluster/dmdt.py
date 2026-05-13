@@ -11,6 +11,8 @@ __all__ = [
 
 from abc import abstractmethod
 from dataclasses import KW_ONLY
+
+from jaxtyping import Array, Real, Shaped
 from typing import (
     Any,
     Final,
@@ -24,7 +26,6 @@ from typing import (
 
 import equinox as eqx
 import jax.numpy as jnp
-from jaxtyping import Array, Real, Shaped
 
 import unxt as u
 from dataclassish.converters import Unless
@@ -134,8 +135,8 @@ class ZeroMassRate(AbstractMassRateField):
 
     Evaluating the vector field:
 
-    >>> t = u.Quantity(0, "Gyr")
-    >>> M = u.Quantity(1e4, "Msun")
+    >>> t = u.Q(0, "Gyr")
+    >>> M = u.Q(1e4, "Msun")
     >>> dmdt = dmdt_fn(t, M, {})
     >>> dmdt
     Array(0., dtype=float64)
@@ -143,7 +144,7 @@ class ZeroMassRate(AbstractMassRateField):
     Showing it in the mass solver:
 
     >>> mass_solver = gdc.MassSolver()
-    >>> t0, t1 = u.Quantity([0, 1], "Gyr")
+    >>> t0, t1 = u.Q([0, 1], "Gyr")
     >>> saveat = jnp.linspace(t0, t1, 5)
     >>> mass_history = mass_solver.solve(dmdt_fn, M, t0, t1, saveat=saveat)
     >>> mass_history.ys
@@ -191,8 +192,8 @@ class ConstantMassRate(AbstractMassRateField):
 
     Evaluating the vector field:
 
-    >>> t = u.Quantity(0, "Gyr")
-    >>> M = u.Quantity(1e4, "Msun")
+    >>> t = u.Q(0, "Gyr")
+    >>> M = u.Q(1e4, "Msun")
     >>> dmdt = dmdt_fn(t, M, {})
     >>> dmdt
     Array(-1., dtype=float64)
@@ -200,7 +201,7 @@ class ConstantMassRate(AbstractMassRateField):
     Showing it in the mass solver:
 
     >>> mass_solver = gdc.MassSolver()
-    >>> t0, t1 = u.Quantity([0, 1], "Gyr")
+    >>> t0, t1 = u.Q([0, 1], "Gyr")
     >>> saveat = jnp.linspace(t0, t1, 5)
     >>> mass_history = mass_solver.solve(dmdt_fn, M, t0, t1, saveat=saveat)
     >>> mass_history.ys
@@ -208,14 +209,14 @@ class ConstantMassRate(AbstractMassRateField):
 
     The mass rate can also be a quantity:
 
-    >>> dmdt_fn = gdc.ConstantMassRate(u.Quantity(-1, "Msun/Myr"), units="galactic")
+    >>> dmdt_fn = gdc.ConstantMassRate(u.Q(-1, "Msun/Myr"), units="galactic")
     >>> mass_history = mass_solver.solve(dmdt_fn, M, t0, t1, saveat=saveat)
     >>> mass_history.ys
     Array([10000.,  9750.,  9500.,  9250.,  9000.], dtype=float64)
 
     The mass rate will be checked to make sure it has the correct dimensions:
 
-    >>> try: dmdt_fn = gdc.ConstantMassRate(u.Quantity(-1, "km/s"), units="galactic")
+    >>> try: dmdt_fn = gdc.ConstantMassRate(u.Q(-1, "km/s"), units="galactic")
     ... except ValueError as e: print(e)
     `dm_dt` must have dimensions of 'mass/time', but got speed/velocity
 
@@ -287,14 +288,15 @@ class Baumgardt1998MassLossRate(AbstractMassRateField):
     >>> import galax.dynamics as gd
 
     >>> pot = gp.MilkyWayPotential2022()
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([8, 0, 0], "kpc"),
-    ...     p=u.Quantity([0, 180, 0], "km/s"), t=u.Quantity(0, "Gyr"))
-    >>> orbit = gd.evaluate_orbit(pot, w0, u.Quantity([0, 1], "Gyr"), dense=True)
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8, 0, 0], "kpc"),
+    ...                              p=u.Q([0, 180, 0], "km/s"),
+    ...                              t=u.Q(0, "Gyr"))
+    >>> orbit = gd.evaluate_orbit(pot, w0, u.Q([0, 1], "Gyr"), dense=True)
 
-    >>> kwargs = {"orbit": orbit, "potential": pot, "m_avg": u.Quantity(3, "Msun"),
-    ...           "xi0": 0.001, "alpha": 14.9, "r_hm": u.Quantity(1, "pc")}
+    >>> kwargs = {"orbit": orbit, "potential": pot, "m_avg": u.Q(3, "Msun"),
+    ...           "xi0": 0.001, "alpha": 14.9, "r_hm": u.Q(1, "pc")}
 
-    >>> dMdt_fn(0, u.Quantity(1e4, "Msun"), kwargs)  # [Msun/Myr]
+    >>> dMdt_fn(0, u.Q(1e4, "Msun"), kwargs)  # [Msun/Myr]
     Array(-1.10392877, dtype=float64)
 
     """  # noqa: E501
@@ -320,15 +322,15 @@ class Baumgardt1998MassLossRate(AbstractMassRateField):
     def __call__(self, t: Time, M: ClusterMass, args: Any, /, **kw: Any) -> Array:  # noqa: ARG002
         # Setup
         orbit = args["orbit"]
-        orbit = cast(Orbit, eqx.error_if(orbit, orbit is None, "need orbit"))
+        orbit = cast("Orbit", eqx.error_if(orbit, orbit is None, "need orbit"))
         pot = args["potential"]
         usys = pot.units
         Mq = FastQ.from_(M, usys["mass"])
 
         # Compute
         r_t = tidal_radius(self.tidal_radius_flag, pot, orbit(t), mass=Mq)
-        r_t = r_t.uconvert("pc")
-        t_relax = relaxation_time(
+        r_t = r_t.uconvert("pc")  # type: ignore[attr-defined]
+        t_relax = relaxation_time(  # type: ignore[attr-defined]
             self.relaxation_time_flag,
             Mq,
             args["r_hm"],

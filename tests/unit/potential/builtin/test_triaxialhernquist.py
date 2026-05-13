@@ -47,24 +47,20 @@ class TestTriaxialHernquistPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.TriaxialHernquistPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(-0.61215074, pot.units["specific energy"])
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(-0.61215074, pot.units["specific energy"])
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.TriaxialHernquistPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
-            [0.01312095, 0.02168751, 0.15745134], pot.units["acceleration"]
-        )
+        expect = u.Q([0.01312095, 0.02168751, 0.15745134], pot.units["acceleration"])
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     @pytest.mark.xfail(reason="WFF?")
     def test_density(self, pot: gp.TriaxialHernquistPotential, x: gt.QuSz3) -> None:
         assert pot.density(x, t=0).decompose(pot.units).value >= 0
 
     def test_hessian(self, pot: gp.TriaxialHernquistPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.01223294, -0.00146778, -0.0106561],
                 [-0.00146778, 0.00841767, -0.01761339],
@@ -72,16 +68,14 @@ class TestTriaxialHernquistPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, "1/Myr2")
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, "1/Myr2"))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.03047921, -0.00146778, -0.0106561],
                 [-0.00146778, 0.02666394, -0.01761339],
@@ -90,5 +84,5 @@ class TestTriaxialHernquistPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )

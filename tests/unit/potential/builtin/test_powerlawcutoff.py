@@ -19,25 +19,25 @@ class AlphaParameterMixin(ParameterFieldMixin):
 
     @pytest.fixture(scope="class")
     def field_alpha(self) -> u.Quantity["dimensionless"]:
-        return u.Quantity(0.9, "")
+        return u.Q(0.9, "")
 
     # =====================================================
 
     def test_alpha_constant(self, pot_cls, fields):
         """Test the `alpha` parameter."""
-        fields["alpha"] = u.Quantity(1.0, "")
+        fields["alpha"] = u.Q(1.0, "")
         pot = pot_cls(**fields)
-        assert pot.alpha(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "")
+        assert pot.alpha(t=u.Q(0, "Myr")) == u.Q(1.0, "")
 
     def test_alpha_userfunc(self, pot_cls, fields):
         """Test the `alpha` parameter."""
 
         def cos_alpha(t: u.Quantity["time"]) -> u.Quantity[""]:
-            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "")
+            return u.Q(10 * jnp.cos(t.ustrip("Myr")), "")
 
         fields["alpha"] = cos_alpha
         pot = pot_cls(**fields)
-        assert pot.alpha(t=u.Quantity(0, "Myr")) == u.Quantity(10, "")
+        assert pot.alpha(t=u.Q(0, "Myr")) == u.Q(10, "")
 
 
 class RCParameterMixin(ParameterFieldMixin):
@@ -45,25 +45,25 @@ class RCParameterMixin(ParameterFieldMixin):
 
     @pytest.fixture(scope="class")
     def field_r_c(self) -> u.Quantity["length"]:
-        return u.Quantity(1.0, "kpc")
+        return u.Q(1.0, "kpc")
 
     # =====================================================
 
     def test_r_c_constant(self, pot_cls, fields):
         """Test the `r_c` parameter."""
-        fields["r_c"] = u.Quantity(1.0, "kpc")
+        fields["r_c"] = u.Q(1.0, "kpc")
         pot = pot_cls(**fields)
-        assert pot.r_c(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "kpc")
+        assert pot.r_c(t=u.Q(0, "Myr")) == u.Q(1.0, "kpc")
 
     def test_r_c_userfunc(self, pot_cls, fields):
         """Test the `r_c` parameter."""
 
         def cos_r_c(t: u.Quantity["time"]) -> u.Quantity["length"]:
-            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "kpc")
+            return u.Q(10 * jnp.cos(t.ustrip("Myr")), "kpc")
 
         fields["r_c"] = cos_r_c
         pot = pot_cls(**fields)
-        assert pot.r_c(t=u.Quantity(0, "Myr")) == u.Quantity(10, "kpc")
+        assert pot.r_c(t=u.Q(0, "Myr")) == u.Q(10, "kpc")
 
 
 class TestPowerLawCutoffPotential(
@@ -97,24 +97,20 @@ class TestPowerLawCutoffPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.PowerLawCutoffPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(-1.20227523, unit="kpc2 / Myr2")
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(-1.20227523, unit="kpc2 / Myr2")
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.PowerLawCutoffPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity([0.08587672, 0.17175344, 0.25763016], "kpc / Myr2")
+        expect = u.Q([0.08587672, 0.17175344, 0.25763016], "kpc / Myr2")
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.PowerLawCutoffPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(41457.38551946, "solMass / kpc3")
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(41457.38551946, "solMass / kpc3")
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.PowerLawCutoffPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.06747473, -0.03680397, -0.05520596],
                 [-0.03680397, 0.01226877, -0.11041192],
@@ -122,16 +118,14 @@ class TestPowerLawCutoffPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.06747395, -0.03680397, -0.05520596],
                 [-0.03680397, 0.01226799, -0.11041192],
@@ -140,7 +134,7 @@ class TestPowerLawCutoffPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )
 
     # ---------------------------------

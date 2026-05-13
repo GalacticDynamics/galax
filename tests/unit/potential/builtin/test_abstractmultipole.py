@@ -1,8 +1,9 @@
 """Test AbstractMultipolePotential."""
 
+from jaxtyping import Array, Shaped
+
 import jax
 import pytest
-from jaxtyping import Array, Shaped
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -41,10 +42,10 @@ class ParameterSlmMixin(ParameterAngularCoefficientsMixin):
         Slm = jnp.zeros((l_max + 1, l_max + 1))
         Slm = Slm.at[1, :].set(5.0)
 
-        fields["Slm"] = u.Quantity(Slm, "")
+        fields["Slm"] = u.Q(Slm, "")
         pot = pot_cls(**fields)
         assert isinstance(pot.Slm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.Slm.value, u.Quantity(Slm, ""))
+        assert jnp.allclose(pot.Slm.value, u.Q(Slm, ""))
 
     def test_Slm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -54,7 +55,7 @@ class ParameterSlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["Slm"] = Slm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.Slm(t=u.Quantity(0, "Myr")), Slm)
+        assert jnp.allclose(pot.Slm(t=u.Q(0, "Myr")), Slm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_Slm_userfunc(self, pot_cls, fields):
@@ -65,7 +66,7 @@ class ParameterSlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["Slm"] = lambda t: Slm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.Slm(t=u.Quantity(0, "Myr")), Slm)
+        assert jnp.allclose(pot.Slm(t=u.Q(0, "Myr")), Slm)
 
 
 class ParameterTlmMixin(ParameterAngularCoefficientsMixin):
@@ -86,11 +87,11 @@ class ParameterTlmMixin(ParameterAngularCoefficientsMixin):
         Tlm = jnp.zeros((l_max + 1, l_max + 1))
         Tlm = Tlm.at[1, :].set(5.0)
 
-        fields["Tlm"] = u.Quantity(Tlm, "")
+        fields["Tlm"] = u.Q(Tlm, "")
         fields["l_max"] = l_max
         pot = pot_cls(**fields)
         assert isinstance(pot.Tlm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.Tlm.value, u.Quantity(Tlm, ""))
+        assert jnp.allclose(pot.Tlm.value, u.Q(Tlm, ""))
 
     def test_Tlm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -100,7 +101,7 @@ class ParameterTlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["Tlm"] = Tlm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.Tlm(t=u.Quantity(0, "Myr")), Tlm)
+        assert jnp.allclose(pot.Tlm(t=u.Q(0, "Myr")), Tlm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_Tlm_userfunc(self, pot_cls, fields):
@@ -111,7 +112,7 @@ class ParameterTlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["Tlm"] = lambda t: Tlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.Tlm(t=u.Quantity(0, "Myr")), Tlm)
+        assert jnp.allclose(pot.Tlm(t=u.Q(0, "Myr")), Tlm)
 
 
 class MultipoleTestMixin:

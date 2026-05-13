@@ -41,24 +41,20 @@ class TestBurkertPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:
-        expect = u.Quantity(-15.76623941, "kpc2 / Myr2")
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(-15.76623941, "kpc2 / Myr2")
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:
-        expect = u.Quantity([0.54053104, 1.08106208, 1.62159313], "kpc / Myr2")
+        expect = u.Q([0.54053104, 1.08106208, 1.62159313], "kpc / Myr2")
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:
-        expect = u.Quantity(8.79860325e09, "solMass / kpc3")
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(8.79860325e09, "solMass / kpc3")
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.BurkertPotential, x: gt.Sz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.46023037, -0.16060135, -0.24090202],
                 [-0.16060135, 0.21932834, -0.48180405],
@@ -66,16 +62,14 @@ class TestBurkertPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.29443581, -0.16060135, -0.24090202],
                 [-0.16060135, 0.05353378, -0.48180405],
@@ -84,7 +78,7 @@ class TestBurkertPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )
 
     # ==========================================================================

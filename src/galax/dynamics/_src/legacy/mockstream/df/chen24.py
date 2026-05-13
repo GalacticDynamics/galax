@@ -5,11 +5,12 @@ __all__ = ["ChenStreamDF"]
 
 import functools as ft
 import warnings
+
+from jaxtyping import PRNGKeyArray
 from typing import final
 
 import jax
 import jax.random as jr
-from jaxtyping import PRNGKeyArray
 
 import coordinax as cx
 import quaxed.numpy as jnp

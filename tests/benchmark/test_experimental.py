@@ -82,9 +82,7 @@ pot = gp.HernquistPotential(1e12, 10, units="galactic")
 field = gd.HamiltonianField(pot)
 
 w0 = gc.PhaseSpaceCoordinate(
-    q=u.Quantity([15.0, 0.0, 0.0], "kpc"),
-    p=u.Quantity([0.0, 220.0, 0.0], "km/s"),
-    t=u.Quantity(0.0, "Gyr"),
+    q=u.Q([15.0, 0.0, 0.0], "kpc"), p=u.Q([0.0, 220.0, 0.0], "km/s"), t=u.Q(0.0, "Gyr")
 )
 qp0 = (
     convert(w0.q, u.Quantity).ustrip(pot.units["length"]),

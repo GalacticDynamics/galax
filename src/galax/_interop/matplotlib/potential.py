@@ -53,7 +53,7 @@ def plot_potential_contours(
     /,
     *,
     grid: tuple[u.Quantity | int, ...],
-    t: u.Quantity["time"] = u.Quantity(0.0, "Myr"),  # noqa: B008
+    t: u.Quantity["time"] = u.Q(0.0, "Myr"),  # noqa: B008
     filled: bool = True,
     ax: Any | None = None,
     labels: tuple[str, ...] | None = None,
@@ -142,7 +142,7 @@ def _plot_potential_countours_1d(
     q = q.at[:, grids[0][0]].set(x1)
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
-    q = u.Quantity(q, pot.units["length"])
+    q = u.Q(q, pot.units["length"])
 
     # Evaluate potential
     Z = pot.potential(q, t)
@@ -181,7 +181,7 @@ def _plot_potential_countours_2d(
     q = q.at[:, grids[1][0]].set(jnp.ravel(x2))
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
-    q = u.Quantity(q, pot.units["length"])
+    q = u.Q(q, pot.units["length"])
 
     # Evaluate potential
     Z = pot.potential(q, t)
@@ -209,7 +209,7 @@ def plot_density_contours(
     /,
     *,
     grid: tuple[u.Quantity | int, ...],
-    t: u.Quantity["time"] = u.Quantity(0.0, "Myr"),  # noqa: B008
+    t: u.Quantity["time"] = u.Q(0.0, "Myr"),  # noqa: B008
     filled: bool = True,
     ax: Axes | None = None,
     labels: tuple[str, ...] | None = None,
@@ -291,7 +291,7 @@ def _plot_density_countours_1d(
     q = q.at[:, grids[0][0]].set(x1)
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
-    q = u.Quantity(q, pot.units["length"])
+    q = u.Q(q, pot.units["length"])
 
     # Evaluate density
     Z = pot.density(q, t)
@@ -330,7 +330,7 @@ def _plot_density_countours_2d(
     q = q.at[:, grids[1][0]].set(jnp.ravel(x2))
     for ii, slc in slices:
         q = q.at[:, ii].set(slc)
-    q = u.Quantity(q, pot.units["length"])
+    q = u.Q(q, pot.units["length"])
 
     # Evaluate potential
     Z = pot.density(q, t)

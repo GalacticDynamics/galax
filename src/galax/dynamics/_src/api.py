@@ -39,10 +39,10 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
     >>> gd.specific_angular_momentum(x, v)
     Array([ 0.,  0., 64.], dtype=float64)
 
-    >>> x = u.Quantity(x, "m")
-    >>> v = u.Quantity(v, "m/s")
+    >>> x = u.Q(x, "m")
+    >>> v = u.Q(v, "m/s")
     >>> gd.specific_angular_momentum(x, v)
-    Quantity(Array([ 0.,  0., 64.], dtype=float64), unit='m2 / s')
+    Q([ 0.,  0., 64.], 'm2 / s')
 
     >>> q = cx.CartesianPos3D.from_(x)
     >>> p = cx.CartesianVel3D.from_(v)
@@ -66,9 +66,9 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
         [[[ 0.  0. 35.]
           [ 0.  0. 48.]]]>
 
-    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1., 0, 0], "au"),
-    ...                             p=u.Quantity([0, 2., 0], "au/yr"),
-    ...                             t=u.Quantity(0, "yr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Q([1., 0, 0], "au"),
+    ...                             p=u.Q([0, 2., 0], "au/yr"),
+    ...                             t=u.Q(0, "yr"))
     >>> h = gd.specific_angular_momentum(w)
     >>> print(h)
     <Cartesian3D: (x, y, z) [AU2 / yr]
@@ -96,27 +96,27 @@ def omega(x: Any, v: Any, /) -> gt.BBtQuSz0:
     >>> omega(x, v)
     Array(1., dtype=float64)
 
-    >>> x = u.Quantity(x, "m")
-    >>> v = u.Quantity(v, "m/s")
+    >>> x = u.Q(x, "m")
+    >>> v = u.Q(v, "m/s")
     >>> omega(x, v)
-    Quantity(Array(1., dtype=float64), unit='1 / s')
+    Q(1., '1 / s')
 
     >>> q = cx.CartesianPos3D.from_(x)
     >>> p = cx.CartesianVel3D.from_(v)
     >>> omega(q, p)
-    BareQuantity(Array(1., dtype=float64), unit='1 / s')
+    BareQuantity(1., '1 / s')
 
     >>> space = cx.KinematicSpace(length=q, speed=p)
     >>> omega(space)
-    BareQuantity(Array(1., dtype=float64), unit='1 / s')
+    BareQuantity(1., '1 / s')
 
     >>> w = cx.frames.Coordinate(space, frame=gc.frames.simulation_frame)
     >>> omega(w)
-    BareQuantity(Array(1., dtype=float64), unit='1 / s')
+    BareQuantity(1., '1 / s')
 
-    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Quantity(0, "yr"))
+    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(0, "yr"))
     >>> omega(w)
-    BareQuantity(Array(1., dtype=float64), unit='1 / s')
+    BareQuantity(1., '1 / s')
 
     """
     raise NotImplementedError  # pragma: no cover

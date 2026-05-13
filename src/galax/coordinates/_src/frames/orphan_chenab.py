@@ -44,8 +44,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     Transform a position from ICRS to Orphan-Chenab:
 
     >>> q_icrs = cx.vecs.LonLatSphericalPos(
-    ...     lon=u.Quantity(0, "deg"), lat=u.Quantity(0, "deg"),
-    ...     distance=u.Quantity(1, "kpc"))
+    ...     lon=u.Q(0, "deg"), lat=u.Q(0, "deg"), distance=u.Q(1, "kpc"))
     >>> print(q_icrs)
     <LonLatSphericalPos: (lon[deg], lat[deg], distance[kpc])
         [0 0 1]>
@@ -76,9 +75,9 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
 
     - `unxt.Quantity` Cartesian positions:
 
-    >>> xyz = u.Quantity([1.0, 2.0, 3.0], "kpc")
+    >>> xyz = u.Q([1.0, 2.0, 3.0], "kpc")
     >>> op(xyz)
-    Quantity(Array([-3.29303127,  1.06791461,  1.41968428], dtype=float64), unit='kpc')
+    Q([-3.29303127,  1.06791461,  1.41968428], 'kpc')
 
     - `coordinax.AbstractVector`:
 
@@ -87,7 +86,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
     <CartesianPos3D: (x, y, z) [kpc]
         [-3.293  1.068  1.42 ]>
 
-    >>> q = cx.vecs.SphericalPos(r=u.Quantity(1.0, "kpc"), theta=u.Quantity(45, "deg"), phi=u.Quantity(45, "deg"))
+    >>> q = cx.vecs.SphericalPos(r=u.Q(1.0, "kpc"), theta=u.Q(45, "deg"), phi=u.Q(45, "deg"))
     >>> print(op(q))
     <SphericalPos: (r[kpc], theta[rad], phi[rad])
         [1.    1.115 3.097]>
@@ -104,7 +103,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
 
     - `galax.coordinates.PhaseSpacePosition`:
 
-    >>> p=u.Quantity([1.0, 2.0, 3.0], "km/s")
+    >>> p=u.Q([1.0, 2.0, 3.0], "km/s")
     >>> w = gc.PhaseSpacePosition(q=q, p=p, frame=icrs)
     >>> print(w.to_frame(frame))
     PhaseSpacePosition(
@@ -112,20 +111,18 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
             [1.    1.115 3.097]>,
         p=<CartesianVel3D: (x, y, z) [km / s]
             [-3.293  1.068  1.42 ]>,
-        frame=OrphanChenab())
+        frame=OrphanChenab() )
 
     - `galax.coordinates.PhaseSpaceCoordinate`:
 
-    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Quantity(0.0, "Gyr"),
-    ...                             frame=icrs)
+    >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(0.0, "Gyr"), frame=icrs)
     >>> print(w.to_frame(frame))
     PhaseSpaceCoordinate(
         q=<SphericalPos: (r[kpc], theta[rad], phi[rad])
             [1.    1.115 3.097]>,
         p=<CartesianVel3D: (x, y, z) [km / s]
             [-3.293  1.068  1.42 ]>,
-        t=Quantity['time'](0., unit='Gyr'),
-        frame=OrphanChenab())
+        t=Q(0., 'Gyr'), frame=OrphanChenab() )
 
     """  # noqa: E501
 

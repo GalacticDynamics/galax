@@ -8,6 +8,7 @@ __all__ = [
 ]
 
 import functools as ft
+
 from typing import final
 
 import jax
@@ -45,7 +46,7 @@ class SatohPotential(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,

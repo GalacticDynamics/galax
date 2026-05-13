@@ -5,8 +5,9 @@ __all__ = [
 ]
 
 import functools as ft
-from collections.abc import Callable
 from dataclasses import KW_ONLY
+
+from collections.abc import Callable
 from typing import final
 
 import equinox as eqx

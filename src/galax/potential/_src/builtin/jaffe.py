@@ -8,6 +8,7 @@ __all__ = [
 ]
 
 import functools as ft
+
 from typing import final
 
 import jax
@@ -33,7 +34,7 @@ class JaffePotential(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,

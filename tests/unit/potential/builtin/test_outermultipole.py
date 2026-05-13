@@ -1,11 +1,11 @@
 """Test the `MultipoleOuterPotential` class."""
 
+from jaxtyping import Array, Shaped
 from typing import Any
 from typing_extensions import override
 
 import equinox as eqx
 import pytest
-from jaxtyping import Array, Shaped
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -72,22 +72,20 @@ class TestMultipoleOuterPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.MultipoleOuterPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(0.62939434, unit="kpc2 / Myr2")
-        assert jnp.isclose(pot.potential(x, t=0), exp, atol=u.Quantity(1e-8, exp.unit))
+        exp = u.Q(0.62939434, unit="kpc2 / Myr2")
+        assert jnp.isclose(pot.potential(x, t=0), exp, atol=u.Q(1e-8, exp.unit))
 
     def test_gradient(self, pot: gp.MultipoleOuterPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(
-            [-0.13487022, -0.26974043, -0.19481253], pot.units["acceleration"]
-        )
+        exp = u.Q([-0.13487022, -0.26974043, -0.19481253], pot.units["acceleration"])
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.allclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     def test_density(self, pot: gp.MultipoleOuterPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(0, unit="solMass / kpc3")
-        assert jnp.isclose(pot.density(x, t=0), exp, atol=u.Quantity(1e-8, exp.unit))
+        exp = u.Q(0, unit="solMass / kpc3")
+        assert jnp.isclose(pot.density(x, t=0), exp, atol=u.Q(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.MultipoleOuterPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(
+        exp = u.Q(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
                 [0.09633587, 0.05780152, 0.19909413],
@@ -95,14 +93,14 @@ class TestMultipoleOuterPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(pot.hessian(x, t=0), exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.allclose(pot.hessian(x, t=0), exp, atol=u.Q(1e-8, exp.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        exp = u.Quantity(
+        exp = u.Q(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
                 [0.09633587, 0.05780152, 0.19909413],
@@ -110,9 +108,7 @@ class TestMultipoleOuterPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), exp, atol=u.Quantity(1e-8, exp.unit)
-        )
+        assert jnp.allclose(pot.tidal_tensor(x, t=0), exp, atol=u.Q(1e-8, exp.unit))
 
     # ==========================================================================
     # Interoperability

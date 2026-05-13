@@ -1,6 +1,7 @@
 import copy
 import functools as ft
 from abc import ABCMeta, abstractmethod
+
 from typing import Any, ClassVar, final
 
 import equinox as eqx
@@ -55,12 +56,12 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
     @pytest.fixture(scope="class")
     def x(self, units: u.AbstractUnitSystem) -> gt.QuSz3:
         """Create a position vector for testing."""
-        return u.Quantity(jnp.asarray([1, 2, 3], dtype=float), units["length"])
+        return u.Q(jnp.asarray([1, 2, 3], dtype=float), units["length"])
 
     @pytest.fixture(scope="class")
     def v(sel, units: u.AbstractUnitSystem) -> gt.QuSz3:
         """Create a velocity vector for testing."""
-        return u.Quantity(jnp.asarray([4, 5, 6], dtype=float), units["speed"])
+        return u.Q(jnp.asarray([4, 5, 6], dtype=float), units["speed"])
 
     @pytest.fixture(scope="class")
     def xv(self, x: gt.QuSz3, v: gt.QuSz3) -> gt.Sz6:
@@ -72,14 +73,14 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
     @pytest.fixture(scope="class")
     def batchx(self, units: u.AbstractUnitSystem) -> gt.BBtQuSz3:
         """Create a batch of position vectors for testing."""
-        return u.Quantity(
+        return u.Q(
             jnp.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=float), units["length"]
         )
 
     @pytest.fixture(scope="class")
     def batchv(self, units: u.AbstractUnitSystem) -> gt.BBtQuSz3:
         """Create a batch of velocity vectors for testing."""
-        return u.Quantity(
+        return u.Q(
             jnp.asarray([[4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float),
             units["speed"],
         )
@@ -94,7 +95,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
     @pytest.fixture(scope="class")
     def t(self) -> u.Quantity["time"]:
         """Create a time for testing."""
-        return u.Quantity(0.0, "Gyr")
+        return u.Q(0.0, "Gyr")
 
     ###########################################################################
 
@@ -126,7 +127,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         assert jnp.allclose(
             pot.potential(batchx, t=0)[0],
             pot.potential(batchx[0], t=0),
-            atol=u.Quantity(1e-15, pot.units["specific energy"]),
+            atol=u.Q(1e-15, pot.units["specific energy"]),
         )
 
     def test_potential_density_correspondence(
@@ -134,9 +135,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
     ) -> None:
         lhs = jnp.trace(pot.hessian(x, 0))
         rhs = 4 * jnp.pi * pot.constants["G"] * pot.density(x, 0)
-        assert jnp.isclose(
-            lhs, rhs, atol=u.Quantity(1e-15, pot.units["frequency drift"])
-        )
+        assert jnp.isclose(lhs, rhs, atol=u.Q(1e-15, pot.units["frequency drift"]))
 
     # ---------------------------------
 
@@ -177,7 +176,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
 
     def test_evaluate_orbit(self, pot: gp.AbstractPotential, xv: gt.Sz6) -> None:
         """Test the `AbstractPotential.evaluate_orbit` method."""
-        ts = u.Quantity(jnp.linspace(0.0, 1.0, 100), "Myr")
+        ts = u.Q(jnp.linspace(0.0, 1.0, 100), "Myr")
 
         orbit = pot.evaluate_orbit(xv, ts)
         assert isinstance(orbit, gd.Orbit)
@@ -186,20 +185,20 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
 
     def test_evaluate_orbit_batch(self, pot: gp.AbstractPotential, xv: gt.Sz6) -> None:
         """Test the `AbstractPotential.evaluate_orbit` method."""
-        ts = u.Quantity(jnp.linspace(0.0, 1.0, 100), "Myr")
+        ts = u.Q(jnp.linspace(0.0, 1.0, 100), "Myr")
 
         # Simple batch
         orbits = pot.evaluate_orbit(xv[None, :], ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (1, len(ts))
-        assert jnp.allclose(orbits.t, ts, atol=u.Quantity(1e-16, "Myr"))
+        assert jnp.allclose(orbits.t, ts, atol=u.Q(1e-16, "Myr"))
 
         # More complicated batch
         xv2 = jnp.stack([xv, xv], axis=0)
         orbits = pot.evaluate_orbit(xv2, ts)
         assert isinstance(orbits, gd.Orbit)
         assert orbits.shape == (2, len(ts))
-        assert jnp.allclose(orbits.t, ts, atol=u.Quantity(1e-16, "Myr"))
+        assert jnp.allclose(orbits.t, ts, atol=u.Q(1e-16, "Myr"))
 
 
 ##############################################################################
@@ -218,7 +217,7 @@ class TestAbstractPotential(AbstractPotential_Test):
 
         class TestPotential(gp.AbstractPotential):
             m_tot: gpp.AbstractParameter = gpp.ParameterField(
-                dimensions="mass", default=u.Quantity(1e12, "Msun")
+                dimensions="mass", default=u.Q(1e12, "Msun")
             )
             units: u.AbstractUnitSystem = eqx.field(
                 default=u.unitsystems.galactic, static=True
@@ -260,30 +259,28 @@ class TestAbstractPotential(AbstractPotential_Test):
 
     def test_potential(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.potential` method."""
-        exp = u.Quantity(1.20227527, "kpc2/Myr2")
+        exp = u.Q(1.20227527, "kpc2/Myr2")
         got = pot.potential(x, t=0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, "kpc2/Myr2"))
+        assert jnp.allclose(got, exp, atol=u.Q(1e-8, "kpc2/Myr2"))
 
     # ---------------------------------
 
     def test_gradient(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.gradient` method."""
-        expect = u.Quantity(
-            [-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"]
-        )
+        expect = u.Q([-0.08587681, -0.17175361, -0.25763042], pot.units["acceleration"])
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.density` method."""
         # TODO: fix negative density!!!
         got = pot.density(x, t=0)
-        exp = u.Quantity(-4.90989768e-07, pot.units["mass density"])
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        exp = u.Q(-4.90989768e-07, pot.units["mass density"])
+        assert jnp.allclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.hessian` method."""
-        expected = u.Quantity(
+        expected = u.Q(
             jnp.asarray(
                 [
                     [-0.06747463, 0.03680435, 0.05520652],
@@ -293,16 +290,14 @@ class TestAbstractPotential(AbstractPotential_Test):
             ),
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expected, atol=u.Quantity(1e-8, "1/Myr2")
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expected, atol=u.Q(1e-8, "1/Myr2"))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [-0.06747463, 0.03680435, 0.05520652],
                 [0.03680435, -0.01226812, 0.11041304],
@@ -311,5 +306,5 @@ class TestAbstractPotential(AbstractPotential_Test):
             pot.units["frequency drift"],
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )

@@ -29,24 +29,22 @@ class TestBovyMWPotential2014(AbstractSpecialCompositePotential_Test):
     # ==========================================================================
 
     def test_potential(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
-        expect = u.Quantity(-0.16359185, unit="kpc2 / Myr2")
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(-0.16359185, unit="kpc2 / Myr2")
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
-        expect = u.Quantity([0.00231875, 0.0046375, 0.01042675], "kpc / Myr2")
+        expect = u.Q([0.00231875, 0.0046375, 0.01042675], "kpc / Myr2")
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
         got = pot.density(x, t=0)
-        exp = u.Quantity(0.024911277, "Msun / pc3")
-        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        exp = u.Q(0.024911277, "Msun / pc3")
+        assert jnp.isclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.BovyMWPotential2014, x: gt.QuSz3) -> None:
         got = pot.hessian(x, t=0)
-        exp = u.Quantity(
+        exp = u.Q(
             [
                 [0.00208414, -0.00046922, -0.0009568],
                 [-0.00046922, 0.00138031, -0.00191361],
@@ -54,14 +52,14 @@ class TestBovyMWPotential2014(AbstractSpecialCompositePotential_Test):
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.allclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.00161473, -0.00046922, -0.0009568],
                 [-0.00046922, 0.0009109, -0.00191361],
@@ -70,7 +68,7 @@ class TestBovyMWPotential2014(AbstractSpecialCompositePotential_Test):
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )
 
     # ---------------------------------

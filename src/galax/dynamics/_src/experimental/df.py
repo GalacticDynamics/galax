@@ -4,13 +4,14 @@ __all__: list[str] = []
 
 import abc
 import functools as ft
+
+from jaxtyping import PRNGKeyArray
 from typing import Any, Final, Self, final
 
 import jax
 import jax.random as jr
 from jax.stages import ArgInfo
 from jax.tree_util import register_dataclass
-from jaxtyping import PRNGKeyArray
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -44,10 +45,8 @@ class AbstractKinematicDF(metaclass=abc.ABCMeta):
     # ================================================
     # JAX stuff
 
-    def tree_flatten(
-        self,
-    ) -> tuple[dict[str, gt.Sz0], None]:
-        return (dict(field_items(self)), None)
+    def tree_flatten(self) -> tuple[dict[str, gt.Sz0], None]:
+        return (dict(field_items(self)), None)  # type: ignore[call-overload]
 
     @classmethod
     def tree_unflatten(cls, _: Any, children: dict[str, gt.Sz0]) -> Self:
@@ -150,7 +149,7 @@ class Fardal2015DF(AbstractKinematicDF):
 
         Omega = omega(x, v)  # orbital angular frequency about the origin
         r_tidal = tidal_radius(pot, x, v, mass=Msat, t=t)  # tidal radius
-        v_circ = Omega * r_tidal  # relative velocity
+        v_circ = Omega * r_tidal  # type: ignore[operator] # relative velocity
 
         # unit vectors
         r_hat = cx.vecs.normalize_vector(x)
@@ -159,7 +158,7 @@ class Fardal2015DF(AbstractKinematicDF):
         phi_hat = cx.vecs.normalize_vector(phi_vec)
 
         # k vals
-        shape = r_tidal.shape
+        shape = r_tidal.shape  # type: ignore[attr-defined]
         kr_samp = self.kr_bar + jr.normal(key1, shape) * self.sigma_kr
         kvphi_samp = kr_samp * (
             self.kvphi_bar + jr.normal(key2, shape) * self.sigma_kvphi

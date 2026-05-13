@@ -71,11 +71,11 @@ that enable fast calculations of computed or derived quantities. For example,
 we could compute the potential energy or the acceleration at a Cartesian
 position near the Sun::
 
-    >>> xyz = u.Quantity([-8., 0, 0], "kpc")
+    >>> xyz = u.Q([-8., 0, 0], "kpc")
     >>> mw.potential(xyz, t=0).uconvert("kpc2 / Myr2")
-    Quantity(Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.16440296, 'kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0)
-    Quantity(Array([ 0.00702262, -0.        , -0.        ], dtype=float64), unit='kpc / Myr2')
+    Q([ 0.00702262, -0. , -0. ], 'kpc / Myr2')
 
 The values that are returned by most methods in :mod:`galax` are provided as
 Astropy :class:`~astropy.units.Quantity` objects, which represent numerical data
@@ -84,9 +84,9 @@ re-represented in any equivalent units, so, for example, we could display the
 energy or acceleration in other units::
 
     >>> mw.potential(xyz, t=0).uconvert("kpc2/Myr2")
-    Quantity(Array(-0.16440296, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.16440296, 'kpc2 / Myr2')
     >>> mw.acceleration(xyz, t=0)
-    Quantity(Array([ 0.00702262, -0.        , -0.        ], dtype=float64), unit='kpc / Myr2')
+    Q([ 0.00702262, -0. , -0. ], 'kpc / Myr2')
 
 Now that we have a potential model, if we want to compute an orbit, we need to
 specify a set of initial conditions to initialize the numerical orbit
@@ -98,8 +98,8 @@ velocity vectors. As an example orbit, we will use a position and velocity that
 is close to the Sun's Galactocentric position and velocity::
 
     >>> import galax.coordinates as gc
-    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([-8.1, 0, 0.02], "kpc"),
-    ...                             p=u.Quantity([13, 245, 8.], "km/s"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Q([-8.1, 0, 0.02], "kpc"),
+    ...                             p=u.Q([13, 245, 8.], "km/s"))
 
 By convention, I typically use the variable ``w`` to represent phase-space
 positions, so here ``psp`` is meant to imply "initial conditions." Note that,
@@ -136,15 +136,8 @@ phase-space positions at times::
 
     >>> orbit
     Orbit(
-        q=CartesianPos3D(
-          x=Quantity([...], unit='kpc'),
-          ...
-        ),
-        p=CartesianVel3D(...),
-        t=Quantity([...], unit='Myr'),
-        frame=SimulationFrame(),
-        interpolant=None
-    )
+      q=CartesianPos3D( x=Q([-8.1 , ...], 'kpc'), ... ), p=CartesianVel3D(...),
+      t=Q([...], 'Myr'), frame=SimulationFrame(), interpolant=None )
 
 :class:`~galax.dynamics.Orbit` objects have many of their own useful methods for
 performing common tasks, like plotting an orbit::
@@ -164,9 +157,9 @@ performing common tasks, like plotting an orbit::
     import galax.potential as gp
 
     mw = gp.MilkyWayPotential()
-    psp = gc.PhaseSpacePosition(q=u.Quantity([-8.1, 0, 0.02], "kpc"),
-                                p=u.Quantity([13, 245, 8.], "km/s"))
-    ts = u.Quantity(jnp.arange(0, 2_000, step=1), "Myr")
+    psp = gc.PhaseSpacePosition(q=u.Q([-8.1, 0, 0.02], "kpc"),
+                                p=u.Q([13, 245, 8.], "km/s"))
+    ts = u.Q(jnp.arange(0, 2_000, step=1), "Myr")
     orbit = gd.evaluate_orbit(psp, ts)
 
     orbit.plot(['x', 'y'])

@@ -13,11 +13,11 @@ import galax.potential as gp
 def test_kepler_potential_contours() -> Figure:
     """Test plotting Kepler potential contours."""
     pot = gp.KeplerPotential(
-        m_tot=u.Quantity(1e11, "Msun"),
+        m_tot=u.Q(1e11, "Msun"),
         units="galactic",
     )
 
-    grid = u.Quantity(jnp.linspace(-7, 7, 64), "kpc")
+    grid = u.Q(jnp.linspace(-7, 7, 64), "kpc")
 
     fig = pot.plot.potential_contours(grid=(grid, grid, 0), cmap="Blues")
 
@@ -28,11 +28,11 @@ def test_kepler_potential_contours() -> Figure:
 def test_kernel_density_contours() -> Figure:
     """Test plotting kernel density contours."""
     pot = gp.KeplerPotential(
-        m_tot=u.Quantity(1e11, "Msun"),
+        m_tot=u.Q(1e11, "Msun"),
         units="galactic",
     )
 
-    grid = u.Quantity(jnp.linspace(-7, 7, 64), "kpc")
+    grid = u.Q(jnp.linspace(-7, 7, 64), "kpc")
 
     fig = pot.plot.density_contours(grid=(grid, grid, 0), cmap="Blues")
 

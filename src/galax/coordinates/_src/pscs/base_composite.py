@@ -3,12 +3,13 @@
 __all__ = ["AbstractCompositePhaseSpaceCoordinate"]
 
 from abc import abstractmethod
+
 from collections.abc import Hashable, Mapping
+from jaxtyping import Shaped
 from types import MappingProxyType
 from typing import Any, ClassVar, cast
 
 import equinox as eqx
-from jaxtyping import Shaped
 from plum import dispatch
 
 import coordinax as cx
@@ -20,8 +21,7 @@ from zeroth import zeroth
 
 import galax._custom_types as gt
 from .base import AbstractPhaseSpaceCoordinate, ComponentShapeTuple
-from galax.coordinates._src.base import AbstractPhaseSpaceObject
-from galax.coordinates._src.utils import PSPVConvertOptions
+from galax.coordinates._src.utils import PSPVConvertOptions, getitem
 
 
 class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
@@ -62,12 +62,12 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     ...             for k in vs[0].components}
     ...    return replace(vs[0], **comps)
 
-    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                               p=u.Quantity([4, 5, 6], "km/s"),
-    ...                               t=u.Quantity(7, "Myr"))
-    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Quantity([10, 20, 30], "kpc"),
-    ...                               p=u.Quantity([40, 50, 60], "km/s"),
-    ...                               t=u.Quantity(7, "Myr"))
+    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                               p=u.Q([4, 5, 6], "km/s"),
+    ...                               t=u.Q(7, "Myr"))
+    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Q([10, 20, 30], "kpc"),
+    ...                               p=u.Q([40, 50, 60], "km/s"),
+    ...                               t=u.Q(7, "Myr"))
 
     >>> cwt = gc.CompositePhaseSpaceCoordinate(wt1=wt1, wt2=wt2)
     >>> cwt["wt1"] is wt1
@@ -136,12 +136,12 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
 
-        >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-        ...                               p=u.Quantity([4, 5, 6], "m/s"),
-        ...                               t=u.Quantity(7.0, "s"))
-        >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-        ...                               p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-        ...                               t=u.Quantity(6.0, "s"))
+        >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"),
+        ...                               p=u.Q([4, 5, 6], "m/s"),
+        ...                               t=u.Q(7.0, "s"))
+        >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Q([1.5, 2.5, 3.5], "m"),
+        ...                               p=u.Q([4.5, 5.5, 6.5], "m/s"),
+        ...                               t=u.Q(6.0, "s"))
 
         >>> cwt = gc.CompositePhaseSpaceCoordinate(wt1=wt1, wt2=wt2)
         >>> cwt._shape_tuple
@@ -165,7 +165,7 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     # Python API
 
     def __repr__(self) -> str:  # TODO: not need this hack
-        return cast(str, ImmutableMap.__repr__(self))
+        return cast("str", ImmutableMap.__repr__(self))
 
     # ===============================================================
     # Collection methods
@@ -173,7 +173,7 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     @property
     def shapes(self) -> Mapping[str, gt.Shape]:
         """Get the shapes of the components."""
-        return MappingProxyType({k: v.shape for k, v in field_items(self)})
+        return MappingProxyType({k: v.shape for k, v in field_items(self)})  # type: ignore[attr-defined]
 
 
 #####################################################################
@@ -183,7 +183,7 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
 # `__getitem__`
 
 
-@AbstractPhaseSpaceObject.__getitem__.dispatch
+@getitem.dispatch
 def getitem(
     self: AbstractCompositePhaseSpaceCoordinate, key: Any, /
 ) -> AbstractCompositePhaseSpaceCoordinate:
@@ -197,12 +197,12 @@ def getitem(
     >>> import unxt as u
     >>> import galax.coordinates as gc
 
-    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-    ...                              p=u.Quantity([4, 5, 6], "m/s"),
-    ...                              t=u.Quantity(7, "s"))
-    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=u.Quantity(6, "s"))
+    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"),
+    ...                              p=u.Q([4, 5, 6], "m/s"),
+    ...                              t=u.Q(7, "s"))
+    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Q([1.5, 2.5, 3.5], "m"),
+    ...                              p=u.Q([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=u.Q(6, "s"))
     >>> cw = gc.CompositePhaseSpaceCoordinate(w1=w1, w2=w2)
 
     >>> print(cw[...])
@@ -212,22 +212,20 @@ def getitem(
                 [1 2 3]>,
             p=<CartesianVel3D: (x, y, z) [m / s]
                 [4 5 6]>,
-            t=Quantity['time'](7, unit='s'),
-            frame=SimulationFrame()),
+            t=Q(7, 's'), frame=SimulationFrame() ),
         w2=PhaseSpaceCoordinate(
             q=<CartesianPos3D: (x, y, z) [m]
                 [1.5 2.5 3.5]>,
             p=<CartesianVel3D: (x, y, z) [m / s]
                 [4.5 5.5 6.5]>,
-            t=Quantity['time'](6, unit='s'),
-            frame=SimulationFrame()))
+            t=Q(6, 's'), frame=SimulationFrame() ) )
 
     """
     # Get from each value, e.g. a slice
     return type(self)(**{k: v[key] for k, v in self.items()})
 
 
-@AbstractPhaseSpaceObject.__getitem__.dispatch
+@getitem.dispatch
 def getitem(self: AbstractCompositePhaseSpaceCoordinate, key: str, /) -> Any:
     """Get item from the key.
 
@@ -236,12 +234,12 @@ def getitem(self: AbstractCompositePhaseSpaceCoordinate, key: str, /) -> Any:
     >>> import unxt as u
     >>> import galax.coordinates as gc
 
-    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-    ...                              p=u.Quantity([4, 5, 6], "m/s"),
-    ...                              t=u.Quantity(7.0, "s"))
-    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=u.Quantity(6.0, "s"))
+    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"),
+    ...                              p=u.Q([4, 5, 6], "m/s"),
+    ...                              t=u.Q(7.0, "s"))
+    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Q([1.5, 2.5, 3.5], "m"),
+    ...                              p=u.Q([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=u.Q(6.0, "s"))
     >>> cw = gc.CompositePhaseSpaceCoordinate(w1=w1, w2=w2)
 
     >>> cw["w1"] is w1
@@ -255,7 +253,8 @@ def getitem(self: AbstractCompositePhaseSpaceCoordinate, key: str, /) -> Any:
 # `unxt.uconvert`
 
 
-@dispatch(precedence=1)  # TODO: make precedence=0
+# TODO: make precedence=0
+@dispatch(precedence=1)  # type: ignore[call-overload,misc]
 def uconvert(
     usys: u.AbstractUnitSystem | str, cwt: AbstractCompositePhaseSpaceCoordinate, /
 ) -> AbstractCompositePhaseSpaceCoordinate:
@@ -269,15 +268,15 @@ def uconvert(
     >>> import unxt as u
     >>> import galax.coordinates as gc
 
-    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                              p=u.Quantity([4, 5, 6], "km/s"),
-    ...                              t=u.Quantity(7, "Myr"))
+    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                              p=u.Q([4, 5, 6], "km/s"),
+    ...                              t=u.Q(7, "Myr"))
 
     >>> cwt = gc.CompositePhaseSpaceCoordinate(wt1=wt1)
     >>> cwt.uconvert(u.unitsystems.solarsystem)
     CompositePhaseSpaceCoordinate({'wt1': PhaseSpaceCoordinate(
         q=CartesianPos3D(
-            x=Quantity(2.06264806e+08, unit='AU'),
+            x=Q(2.06264806e+08, 'AU'),
             ...
 
     """
@@ -306,28 +305,24 @@ def vconvert(
     We define a composite phase-space position with two components.
     Every component is a phase-space position in Cartesian coordinates.
 
-    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-    ...                              p=u.Quantity([4, 5, 6], "m/s"),
-    ...                              t=u.Quantity(7, "s"))
-    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=u.Quantity(6, "s"))
+    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"),
+    ...                               p=u.Q([4, 5, 6], "m/s"),
+    ...                               t=u.Q(7, "s"))
+    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Q([1.5, 2.5, 3.5], "m"),
+    ...                               p=u.Q([4.5, 5.5, 6.5], "m/s"),
+    ...                               t=u.Q(6, "s"))
     >>> cpsp = gc.CompositePhaseSpaceCoordinate(wt1=wt1, wt2=wt2)
 
     We can transform the composite phase-space position to a new position class.
 
     >>> cx.vconvert({"q": cx.vecs.CylindricalPos, "p": cx.vecs.SphericalVel}, cpsp)
     CompositePhaseSpaceCoordinate({'wt1': PhaseSpaceCoordinate(
-            q=CylindricalPos( ... ),
-            p=SphericalVel( ... ),
-            t=Quantity(7, unit='s'),
-            frame=SimulationFrame()
+            q=CylindricalPos(...), p=SphericalVel(...),
+            t=Q(7, 's'), frame=SimulationFrame()
         ),
         'wt2': PhaseSpaceCoordinate(
-            q=CylindricalPos( ... ),
-            p=SphericalVel( ... ),
-            t=Quantity(6, unit='s'),
-            frame=SimulationFrame()
+            q=CylindricalPos(...), p=SphericalVel(...),
+            t=Q(6, 's'), frame=SimulationFrame()
     )})
 
     """
@@ -359,26 +354,24 @@ def vconvert(
     We define a composite phase-space position with two components.
     Every component is a phase-space position in Cartesian coordinates.
 
-    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-    ...                               p=u.Quantity([4, 5, 6], "m/s"),
-    ...                               t=u.Quantity(7, "s"))
-    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-    ...                               p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                               t=u.Quantity(6, "s"))
+    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"),
+    ...                               p=u.Q([4, 5, 6], "m/s"),
+    ...                               t=u.Q(7, "s"))
+    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Q([1.5, 2.5, 3.5], "m"),
+    ...                               p=u.Q([4.5, 5.5, 6.5], "m/s"),
+    ...                               t=u.Q(6, "s"))
     >>> cpsp = gc.CompositePhaseSpaceCoordinate(wt1=wt1, wt2=wt2)
 
     We can transform the composite phase-space position to a new position class.
 
     >>> cx.vconvert(cx.vecs.CylindricalPos, cpsp)
     CompositePhaseSpaceCoordinate({'wt1': PhaseSpaceCoordinate(
-        q=CylindricalPos( ... ),
-        p=CylindricalVel( ... ),
-        t=Quantity...
+        q=CylindricalPos(...), p=CylindricalVel(...),
+        t=Q(7, 's'), frame=SimulationFrame()
       ),
       'wt2': PhaseSpaceCoordinate(
-        q=CylindricalPos( ... ),
-        p=CylindricalVel( ... ),
-        t=...
+        q=CylindricalPos(...), p=CylindricalVel(...),
+        t=Q(6, 's'), frame=SimulationFrame()
     )})
 
     """
@@ -404,12 +397,12 @@ def replace(
     We define a composite phase-space position with two components.
     Every component is a phase-space position in Cartesian coordinates.
 
-    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-    ...                              p=u.Quantity([4, 5, 6], "m/s"),
-    ...                              t=u.Quantity(7.0, "s"))
-    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=u.Quantity(6.0, "s"))
+    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"),
+    ...                               p=u.Q([4, 5, 6], "m/s"),
+    ...                               t=u.Q(7.0, "s"))
+    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Q([1.5, 2.5, 3.5], "m"),
+    ...                               p=u.Q([4.5, 5.5, 6.5], "m/s"),
+    ...                               t=u.Q(6.0, "s"))
     >>> cpsp = gc.CompositePhaseSpaceCoordinate(wt1=wt1, wt2=wt2)
 
     We can replace the components of the composite phase-space position.
@@ -450,19 +443,19 @@ def replace(
     We define a composite phase-space position with two components. Every
     component is a phase-space position in Cartesian coordinates.
 
-    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-    ...                              p=u.Quantity([4, 5, 6], "m/s"),
-    ...                              t=u.Quantity(7.0, "s"))
-    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-    ...                              p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                              t=u.Quantity(6.0, "s"))
+    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"),
+    ...                               p=u.Q([4, 5, 6], "m/s"),
+    ...                               t=u.Q(7.0, "s"))
+    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Q([1.5, 2.5, 3.5], "m"),
+    ...                               p=u.Q([4.5, 5.5, 6.5], "m/s"),
+    ...                               t=u.Q(6.0, "s"))
     >>> cpsp = gc.CompositePhaseSpaceCoordinate(wt1=wt1, wt2=wt2)
 
     We can selectively replace the ``t`` component of each constituent
     phase-space position.
 
-    >>> cwt2 = replace(cpsp, {"wt1": {"t": u.Quantity(10.0, "s")},
-    ...                        "wt2": {"t": u.Quantity(11.0, "s")}})
+    >>> cwt2 = replace(cpsp, {"wt1": {"t": u.Q(10.0, "s")},
+    ...                        "wt2": {"t": u.Q(11.0, "s")}})
 
     """
     # AbstractCompositePhaseSpaceCoordinate is both a Mapping and a dataclass

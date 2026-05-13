@@ -7,10 +7,10 @@ __all__: tuple[str, ...] = ()
 
 import contextlib
 import os
-from collections.abc import Sequence
-from typing import Any, Final, Literal
 
+from collections.abc import Sequence
 from jaxtyping import install_import_hook as _install_import_hook
+from typing import Any, Final, Literal
 
 _RUNTIME_TYPECHECKER: str | None | Literal[False]
 match os.getenv("GALAX_ENABLE_RUNTIME_TYPECHECKING", "False"):

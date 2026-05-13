@@ -8,6 +8,7 @@ __all__ = [
 ]
 
 import functools as ft
+
 from typing import final
 
 import jax
@@ -52,7 +53,7 @@ class LongMuraliBarPotential(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         ul = self.units["length"]
         params = {

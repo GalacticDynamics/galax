@@ -3,6 +3,7 @@
 __all__: list[str] = []
 
 from dataclasses import replace
+
 from typing import Any, cast
 
 import jax.numpy as jnp
@@ -54,18 +55,16 @@ def vconvert(
 
     We can create a phase-space position and convert it to a 6-vector:
 
-    >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                               p=u.Quantity([4, 5, 6], "km/s"),
-    ...                               t=u.Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                               p=u.Q([4, 5, 6], "km/s"),
+    ...                               t=u.Q(0, "Gyr"))
     >>> psp.w(units="galactic")
     Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
 
     We can also convert it to a different representation:
 
     >>> psp.vconvert(cx.vecs.CylindricalPos)
-    PhaseSpaceCoordinate( q=CylindricalPos(...),
-                          p=CylindricalVel(...),
-                          t=Quantity(0, unit='Gyr'),
+    PhaseSpaceCoordinate( q=CylindricalPos(...), p=CylindricalVel(...), t=Q(0, 'Gyr'),
                           frame=SimulationFrame() )
 
     We can also convert it to a different representation with a different
@@ -74,11 +73,11 @@ def vconvert(
     >>> psp.vconvert(cx.vecs.LonLatSphericalPos, cx.vecs.LonCosLatSphericalVel)
     PhaseSpaceCoordinate( q=LonLatSphericalPos(...),
                           p=LonCosLatSphericalVel(...),
-                          t=Quantity(0, unit='Gyr'),
+                          t=Q(0, 'Gyr'),
                           frame=SimulationFrame() )
     """
     return cast(
-        AbstractPhaseSpaceCoordinate,
+        "AbstractPhaseSpaceCoordinate",
         cx.vconvert({"q": position_cls, "p": velocity_cls}, self, **kwargs),
     )
 
@@ -110,34 +109,34 @@ def call(
 
     We can then create a spatial translation operator:
 
-    >>> op = cx.ops.GalileanSpatialTranslation(u.Quantity([1, 2, 3], "kpc"))
+    >>> op = cx.ops.GalileanSpatialTranslation(u.Q([1, 2, 3], "kpc"))
     >>> op
     GalileanSpatialTranslation(CartesianPos3D( ... ))
 
     We can then apply the operator to a coordinate:
 
-    >>> pos = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                               p=u.Quantity([4, 5, 6], "km/s"),
-    ...                               t=u.Quantity(0, "Gyr"))
+    >>> pos = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                               p=u.Q([4, 5, 6], "km/s"),
+    ...                               t=u.Q(0, "Gyr"))
     >>> pos
     PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity(0, unit='Gyr'),
-        frame=SimulationFrame()
+      q=CartesianPos3D(x=Q(1, 'kpc'), y=Q(2, 'kpc'), z=Q(3, 'kpc')),
+      p=CartesianVel3D(x=Q(4, 'km / s'), y=Q(5, 'km / s'), z=Q(6, 'km / s')),
+      t=Q(0, 'Gyr'),
+      frame=SimulationFrame()
     )
 
     >>> newpos = op(pos)
     >>> newpos
     PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity(0, unit='Gyr'),
-        frame=SimulationFrame()
+      q=CartesianPos3D(x=Q(2, 'kpc'), y=Q(4, 'kpc'), z=Q(6, 'kpc')),
+      p=CartesianVel3D(x=Q(4, 'km / s'), y=Q(5, 'km / s'), z=Q(6, 'km / s')),
+      t=Q(0, 'Gyr'),
+      frame=SimulationFrame()
     )
 
     >>> newpos.q.x
-    Quantity(Array(2, dtype=int64), unit='kpc')
+    Q(2, 'kpc')
 
     """
     msg = "implement this method in the subclass"  # pragma: no cover
@@ -175,23 +174,23 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> shift = cx.CartesianPos3D.from_(u.Quantity([1, 1, 1], "kpc"))
+    >>> shift = cx.CartesianPos3D.from_(u.Q([1, 1, 1], "kpc"))
     >>> op = cx.ops.GalileanSpatialTranslation(shift)
 
-    >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                               p=u.Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                               t=u.Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                               p=u.Q([0, 0, 0], "kpc/Gyr"),
+    ...                               t=u.Q(0, "Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity(Array(2, dtype=int64), unit='kpc')
+    Q(2, 'kpc')
 
     >>> newpsp.t
-    Quantity(Array(0, dtype=int64, ...), unit='Gyr')
+    Q(0, 'Gyr')
 
     This spatial translation is time independent.
 
-    >>> psp2 = replace(psp, t=u.Quantity(1, "Gyr"))
+    >>> psp2 = replace(psp, t=u.Q(1, "Gyr"))
     >>> op(psp2).q.x == newpsp.q.x
     Array(True, dtype=bool)
 
@@ -226,29 +225,29 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.ops.GalileanTranslation.from_(u.Quantity([2_000, 1, 1, 1], "kpc"))
+    >>> op = cx.ops.GalileanTranslation.from_(u.Q([2_000, 1, 1, 1], "kpc"))
 
-    >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                               p=u.Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                               t=u.Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                               p=u.Q([0, 0, 0], "kpc/Gyr"),
+    ...                               t=u.Q(0, "Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity(Array(2, dtype=int64), unit='kpc')
+    Q(2, 'kpc')
 
     >>> newpsp.t.uconvert("Myr")  # doctest: +SKIP
-    Quantity(Array(6.52312755, dtype=float64), unit='Myr')
+    Q(Array(6.52312755, dtype=float64), unit='Myr')
 
     This spatial translation is time independent.
 
-    >>> psp2 = replace(psp, t=u.Quantity(1, "Gyr"))
+    >>> psp2 = replace(psp, t=u.Q(1, "Gyr"))
     >>> op(psp2).q.x == newpsp.q.x
     Array(True, dtype=bool)
 
     But the time translation is not.
 
     >>> op(psp2).t
-    Quantity(Array(1.00652313, dtype=float64, ...), unit='Gyr')
+    Q(1.00652313, 'Gyr')
 
     """
     # TODO: ACCOUNT FOR THE VELOCITY?!?
@@ -284,24 +283,24 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> op = cx.ops.GalileanBoost(u.Quantity([1, 1, 1], "kpc/Gyr"))
+    >>> op = cx.ops.GalileanBoost(u.Q([1, 1, 1], "kpc/Gyr"))
 
-    >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                               p=u.Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                               t=u.Quantity(1, "Gyr"))
+    >>> psp = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                               p=u.Q([0, 0, 0], "kpc/Gyr"),
+    ...                               t=u.Q(1, "Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity(Array(2, dtype=int64), unit='kpc')
+    Q(2, 'kpc')
 
     >>> newpsp.t
-    Quantity(Array(1, dtype=int64, ...), unit='Gyr')
+    Q(1, 'Gyr')
 
     This spatial translation is time dependent.
 
-    >>> psp2 = replace(psp, t=u.Quantity(2, "Gyr"))
+    >>> psp2 = replace(psp, t=u.Q(2, "Gyr"))
     >>> op(psp2).q.x
-    Quantity(Array(3, dtype=int64), unit='kpc')
+    Q(3, 'kpc')
 
     """
     # TODO: ACCOUNT FOR THE VELOCITY?!?
@@ -331,31 +330,31 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> theta = u.Quantity(45, "deg")
+    >>> theta = u.Q(45, "deg")
     >>> Rz = jnp.asarray([[jnp.cos(theta), -jnp.sin(theta), 0],
     ...                  [jnp.sin(theta), jnp.cos(theta),  0],
     ...                  [0,             0,              1]])
     >>> op = cx.ops.GalileanRotation(Rz)
 
-    >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 0, 0], "m"),
-    ...                               p=u.Quantity([1, 0, 0], "m/s"),
-    ...                               t=u.Quantity(1, "Gyr"))
+    >>> psp = gc.PhaseSpaceCoordinate(q=u.Q([1, 0, 0], "m"),
+    ...                               p=u.Q([1, 0, 0], "m/s"),
+    ...                               t=u.Q(1, "Gyr"))
 
     >>> newpsp = op(psp)
 
     >>> newpsp.q.x
-    Quantity(Array(0.70710678, dtype=float64), unit='m')
+    Q(0.70710678, 'm')
     >>> newpsp.q.norm()
-    BareQuantity(Array(1., dtype=float64), unit='m')
+    BareQuantity(1., 'm')
 
     >>> newpsp.p.x
-    Quantity(Array(0.70710678, dtype=float64), unit='m / s')
+    Q(0.70710678, 'm / s')
     >>> newpsp.p.norm()
-    Quantity(Array(1., dtype=float64), unit='m / s')
+    Q(1., 'm / s')
 
     The time is not affected by the rotation.
     >>> newpsp.t
-    Quantity(Array(1, dtype=int64, ...), unit='Gyr')
+    Q(1, 'Gyr')
     """
     # Shifting the coordinate and time
     t, q = self(psp.t, psp.q)
@@ -391,14 +390,15 @@ def call(
 
     >>> op = cx.ops.Identity()
 
-    >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                               p=u.Quantity([0, 0, 0], "kpc/Gyr"),
-    ...                               t=u.Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                               p=u.Q([0, 0, 0], "kpc/Gyr"),
+    ...                               t=u.Q(0, "Gyr"))
 
     >>> op(psp)
-    PhaseSpaceCoordinate( q=CartesianPos3D( ... ),
-                          p=CartesianVel3D( ... ),
-                          t=Quantity(0, unit='Gyr'),
-                          frame=SimulationFrame() )
+    PhaseSpaceCoordinate(
+      q=CartesianPos3D(x=Q(1, 'kpc'), y=Q(2, 'kpc'), z=Q(3, 'kpc')),
+      p=CartesianVel3D(x=Q(0, 'kpc / Gyr'), y=Q(0, 'kpc / Gyr'), z=Q(0, 'kpc / Gyr')),
+      t=Q(0, 'Gyr'), frame=SimulationFrame()
+    )
     """
     return x

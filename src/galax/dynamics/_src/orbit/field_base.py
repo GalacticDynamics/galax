@@ -6,10 +6,10 @@ This is private API.
 
 __all__ = ["AbstractOrbitField"]
 
+from jaxtyping import Array, PyTree
 from typing import Any
 from typing_extensions import override
 
-from jaxtyping import Array, PyTree
 from plum import dispatch
 
 from galax.dynamics._src.fields import AbstractField
@@ -31,7 +31,8 @@ class AbstractOrbitField(AbstractField):
     def __call__(self, *_: Any, **kw: Any) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
 
-    @AbstractField.parse_inputs.dispatch  # type: ignore[misc]
+    @override
+    @AbstractField.parse_inputs.dispatch  # type: ignore[misc,override,union-attr]
     def parse_inputs(
         self: "AbstractOrbitField", *args: Any, ustrip: bool = True, **kwargs: Any
     ) -> tuple[Array, PyTree[Array]]:

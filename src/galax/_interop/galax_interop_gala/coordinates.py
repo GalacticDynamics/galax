@@ -3,6 +3,7 @@
 __all__: list[str] = []
 
 import warnings
+
 from typing import Any
 
 import gala.dynamics as galad
@@ -41,9 +42,9 @@ def gala_psp_to_galax_psp(obj: galad.PhaseSpacePosition, /) -> gc.PhaseSpacePosi
     >>> galax_w = convert(gala_w, gcx.PhaseSpacePosition)
     >>> galax_w
     PhaseSpacePosition(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        frame=SimulationFrame()
+      q=CartesianPos3D(x=Q(1., 'kpc'), y=Q(2., 'kpc'), z=Q(3., 'kpc')),
+      p=CartesianVel3D(x=Q(4., 'km / s'), y=Q(5., 'km / s'), z=Q(6., 'km / s')),
+      frame=SimulationFrame()
     )
     """
     return gc.PhaseSpacePosition(q=obj.pos, p=obj.vel, frame=gc.frames.simulation_frame)
@@ -129,8 +130,7 @@ def galax_psp_to_gala_psp(obj: gc.PhaseSpaceCoordinate, /) -> galad.PhaseSpacePo
     it to a :class:`gala.dynamics.PhaseSpacePosition`.
 
     >>> galax_w = gcx.PhaseSpaceCoordinate(
-    ...     q=[1, 2, 3] * u.kpc, p=[4, 5, 6] * u.km / u.s, t=2 * u.Myr
-    ... )
+    ...     q=[1, 2, 3] * u.kpc, p=[4, 5, 6] * u.km / u.s, t=2 * u.Myr )
 
     >>> with catch_warnings(action="ignore"):
     ...     gala_w = convert(galax_w, gd.PhaseSpacePosition)

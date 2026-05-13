@@ -24,6 +24,6 @@ class AbstractSpecialCompositePotential_Test(AbstractCompositePotential_Test):
             _ = pot_cls(
                 **pot_map,
                 not_expected=gp.KeplerPotential(
-                    m_tot=u.Quantity(1, "solMass"), units="galactic"
+                    m_tot=u.Q(1, "solMass"), units="galactic"
                 ),
             )

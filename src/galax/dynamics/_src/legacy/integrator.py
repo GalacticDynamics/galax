@@ -3,13 +3,14 @@
 __all__ = ["Integrator"]
 
 import functools as ft
-from collections.abc import Mapping
 from dataclasses import KW_ONLY
+
+from collections.abc import Mapping
+from jaxtyping import ArrayLike, Shaped
 from typing import Any, Literal, TypeAlias, TypeVar, final
 
 import diffrax as dfx
 import equinox as eqx
-from jaxtyping import ArrayLike, Shaped
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -72,8 +73,8 @@ class Integrator(eqx.Module):  # type: ignore[misc]
 
     Then we define initial conditions:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
-    ...                            p=u.Quantity([0, 200, 0], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Q([10, 0, 0], "kpc"),
+    ...                            p=u.Q([0, 200, 0], "km/s"))
 
     Now we can integrate the phase-space position for 1 Gyr, getting the final
     position.  The integrator accepts any function for the equations of motion.
@@ -83,7 +84,7 @@ class Integrator(eqx.Module):  # type: ignore[misc]
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+    >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> w = integrator(field, w0, t0, t1)
     >>> print(w)
     PhaseSpaceCoordinate(
@@ -91,23 +92,18 @@ class Integrator(eqx.Module):  # type: ignore[misc]
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](1000., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(1000., 'Myr'), frame=SimulationFrame() )
     >>> w.shape
     ()
 
     Instead of just returning the final position, we can get the state of the
     system at any times ``saveat``:
 
-    >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
+    >>> ts = u.Q(jnp.linspace(0, 1, 10), "Gyr")  # 10 steps
     >>> ws = integrator(field, w0, t0, t1, saveat=ts)
     >>> ws
-    PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity([...], unit='Myr'),
-        frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                          t=Q( [...], 'Myr' ), frame=SimulationFrame() )
     >>> ws.shape
     (10,)
 
@@ -116,8 +112,8 @@ class Integrator(eqx.Module):  # type: ignore[misc]
     conditions at once, returning a batch of final conditions (or a batch of
     conditions at the requested times ``saveat``):
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
-    ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Q([[10, 0, 0], [11, 0, 0]], "kpc"),
+    ...                            p=u.Q([[0, 200, 0], [0, 210, 0]], "km/s"))
     >>> w = integrator(field, w0, t0, t1)
     >>> w.shape
     (2,)
@@ -132,7 +128,7 @@ class Integrator(eqx.Module):  # type: ignore[misc]
     The interpolated solution can be evaluated at any time in the domain to get
     the phase-space position at that time:
 
-    >>> print(w(u.Quantity(100 * jnp.e, "Myr")))
+    >>> print(w(u.Q(100 * jnp.e, "Myr")))
     PhaseSpaceCoordinate(
         q=<CartesianPos3D: (x, y, z) [kpc]
             [[ 2.666 -6.846  0.   ]
@@ -140,37 +136,25 @@ class Integrator(eqx.Module):  # type: ignore[misc]
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.149  0.386  0.   ]
              [ 0.235 -0.255  0.   ]]>,
-        t=Quantity['time'](271.82818285, unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(271.82818285, 'Myr'), frame=SimulationFrame() )
 
     The interpolant is vectorized:
 
-    >>> t = u.Quantity(jnp.linspace(0, 1, 100), "Gyr")
+    >>> t = u.Q(jnp.linspace(0, 1, 100), "Gyr")
     >>> w(t)
-    PhaseSpaceCoordinate(
-      q=CartesianPos3D(
-        x=Quantity([...], unit='kpc'),
-        ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity([...], unit='Myr'),
-      frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                          t=Q( [...], 'Myr' ), frame=SimulationFrame() )
 
     And it works on batches:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
-    ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Q([[10, 0, 0], [11, 0, 0]], "kpc"),
+    ...                            p=u.Q([[0, 200, 0], [0, 210, 0]], "km/s"))
     >>> ws = integrator(field, w0, t0, t1, dense=True)
     >>> ws.shape
     (2,)
     >>> ws(t)
-    PhaseSpaceCoordinate(
-      q=CartesianPos3D( x=Quantity([...], unit='kpc'), ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity([ 0. , ... , 1000. ],
-        unit='Myr'),
-      frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+        t=Q( [ 0. , ... , 1000. ], 'Myr' ), frame=SimulationFrame() )
 
     """
 
@@ -323,8 +307,8 @@ def call(
 
     We define initial conditions:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
-    ...                            p=u.Quantity([0, 200, 0], "km/s")
+    >>> w0 = gc.PhaseSpacePosition(q=u.Q([10, 0, 0], "kpc"),
+    ...                            p=u.Q([0, 200, 0], "km/s")
     ...                            ).w(units="galactic")
     >>> w0.shape
     (6,)
@@ -339,29 +323,21 @@ def call(
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+    >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> w = integrator(field, w0, t0, t1)
     >>> w
-    PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity(1000., unit='Myr'),
-        frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                          t=Q(1000., 'Myr'), frame=SimulationFrame() )
     >>> w.shape
     ()
 
     We can also request the orbit at specific times:
 
-    >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Myr")  # 10 steps
+    >>> ts = u.Q(jnp.linspace(0, 1, 10), "Myr")  # 10 steps
     >>> ws = integrator(field, w0, t0, t1, saveat=ts)
     >>> ws
-    PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity([...], unit='Myr'),
-        frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                          t=Q([...], 'Myr'), frame=SimulationFrame() )
     >>> ws.shape
     (10,)
 
@@ -403,8 +379,8 @@ def call(
 
     We define initial conditions:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
-    ...                            p=u.Quantity([0, 200, 0], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Q([10, 0, 0], "kpc"),
+    ...                            p=u.Q([0, 200, 0], "km/s"))
 
     (Note that the ``t`` attribute is not used.)
 
@@ -416,7 +392,7 @@ def call(
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> integrator = gd.integrate.Integrator()
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+    >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
 
     Different kwargs:
 
@@ -427,8 +403,7 @@ def call(
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](1000., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(1000., 'Myr'), frame=SimulationFrame() )
 
     >>> w = integrator(field, w0, t0=t0, t1=t1)
     >>> print(w)
@@ -437,8 +412,7 @@ def call(
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](1000., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(1000., 'Myr'), frame=SimulationFrame() )
 
     >>> w = integrator(field, y0=w0, t0=t0, t1=t1)
     >>> print(w)
@@ -447,8 +421,7 @@ def call(
             [ 6.247 -5.121  0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [0.359 0.033 0.   ]>,
-        t=Quantity['time'](1000., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(1000., 'Myr'), frame=SimulationFrame() )
 
     """
     # y0: Any, t0: Any, t1: Any
@@ -516,8 +489,8 @@ def call(
     once, returning a batch of final conditions (or a batch of conditions at
     the requested times):
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([[10, 0, 0], [11, 0, 0]], "kpc"),
-    ...                            p=u.Quantity([[0, 200, 0], [0, 210, 0]], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Q([[10, 0, 0], [11, 0, 0]], "kpc"),
+    ...                            p=u.Q([[0, 200, 0], [0, 210, 0]], "km/s"))
 
     Now we can integrate the phase-space position for 1 Gyr, getting the
     final position.  The integrator accepts any function for the equations
@@ -526,7 +499,7 @@ def call(
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
 
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+    >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> integrator = gd.integrate.Integrator()
     >>> ws = integrator(field, w0, t0, t1)
     >>> ws.shape
@@ -579,8 +552,8 @@ def call(
 
     We define initial conditions and a potential:
 
-    >>> w0 = gc.PhaseSpacePosition(q=u.Quantity([10, 0, 0], "kpc"),
-    ...                            p=u.Quantity([0, 200, 0], "km/s"))
+    >>> w0 = gc.PhaseSpacePosition(q=u.Q([10, 0, 0], "kpc"),
+    ...                            p=u.Q([0, 200, 0], "km/s"))
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)
@@ -588,15 +561,11 @@ def call(
     We can integrate the phase-space position:
 
     >>> integrator = gd.integrate.Integrator()
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+    >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> w = integrator(field, w0, t0, t1)
     >>> w
-    PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity(1000., unit='Myr'),
-        frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                          t=Q(1000., 'Myr'), frame=SimulationFrame() )
 
     """
     return self(field, w0._qp(units=field.units), t0, t1, **kwargs)  # noqa: SLF001
@@ -623,12 +592,12 @@ def call(
 
     We define initial conditions and a potential:
 
-    >>> w01 = gc.PhaseSpaceCoordinate(q=u.Quantity([10, 0, 0], "kpc"),
-    ...                               p=u.Quantity([0, 200, 0], "km/s"),
-    ...                               t=u.Quantity(0, "Gyr"))
-    >>> w02 = gc.PhaseSpaceCoordinate(q=u.Quantity([0, 10, 0], "kpc"),
-    ...                               p=u.Quantity([-200, 0, 0], "km/s"),
-    ...                               t=u.Quantity(0, "Gyr"))
+    >>> w01 = gc.PhaseSpaceCoordinate(q=u.Q([10, 0, 0], "kpc"),
+    ...                               p=u.Q([0, 200, 0], "km/s"),
+    ...                               t=u.Q(0, "Gyr"))
+    >>> w02 = gc.PhaseSpaceCoordinate(q=u.Q([0, 10, 0], "kpc"),
+    ...                               p=u.Q([-200, 0, 0], "km/s"),
+    ...                               t=u.Q(0, "Gyr"))
     >>> w0 = gc.CompositePhaseSpaceCoordinate(w01=w01, w02=w02)
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
@@ -637,7 +606,7 @@ def call(
     We can integrate the composite phase-space position:
 
     >>> integrator = gd.integrate.Integrator()
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+    >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> w = integrator(field, w0, t0, t1)
     >>> print(w)
     CompositePhaseSpaceCoordinate(
@@ -646,15 +615,13 @@ def call(
                 [ 6.247 -5.121  0.   ]>,
             p=<CartesianVel3D: (x, y, z) [kpc / Myr]
                 [0.359 0.033 0.   ]>,
-            t=Quantity['time'](1000., unit='Myr'),
-            frame=SimulationFrame()),
+            t=Q(1000., 'Myr'), frame=SimulationFrame() ),
         w02=PhaseSpaceCoordinate(
             q=<CartesianPos3D: (x, y, z) [kpc]
                 [5.121 6.247 0.   ]>,
             p=<CartesianVel3D: (x, y, z) [kpc / Myr]
                 [-0.033  0.359  0.   ]>,
-            t=Quantity['time'](1000., unit='Myr'),
-            frame=SimulationFrame()))
+            t=Q(1000., 'Myr'), frame=SimulationFrame() ) )
 
     """
     # TODO: Interpolated form

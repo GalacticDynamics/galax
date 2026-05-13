@@ -2,9 +2,8 @@
 
 __all__: list[str] = []
 
-from typing import TypeAlias
-
 from jaxtyping import Real
+from typing import TypeAlias
 
 import galax._custom_types as gt
 

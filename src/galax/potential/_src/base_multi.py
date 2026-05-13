@@ -5,8 +5,9 @@ __all__ = ["AbstractCompositePotential", "AbstractPreCompositedPotential"]
 
 import functools as ft
 import uuid
-from collections.abc import Hashable, ItemsView, Iterator, KeysView, Mapping, ValuesView
 from dataclasses import MISSING, replace
+
+from collections.abc import Hashable, ItemsView, Iterator, KeysView, Mapping, ValuesView
 from typing import TYPE_CHECKING, Any, cast
 from typing_extensions import override
 
@@ -112,16 +113,16 @@ class AbstractCompositePotential(AbstractPotential):
     # Mapping Protocol
 
     def __getitem__(self, key: str) -> AbstractPotential:
-        return cast(AbstractPotential, self._data[key])
+        return cast("AbstractPotential", self._data[key])
 
     def keys(self) -> KeysView[str]:
-        return cast(KeysView[str], self._data.keys())
+        return cast("KeysView[str]", self._data.keys())
 
     def values(self) -> ValuesView[AbstractPotential]:
-        return cast(ValuesView[AbstractPotential], self._data.values())
+        return cast("ValuesView[AbstractPotential]", self._data.values())
 
     def items(self) -> ItemsView[str, AbstractPotential]:
-        return cast(ItemsView[str, AbstractPotential], self._data.items())
+        return cast("ItemsView[str, AbstractPotential]", self._data.items())
 
     # ===========================================
     # Extending Mapping
@@ -183,9 +184,9 @@ def replace(
     ...     halo=gp.NFWPotential(m=1e12, r_s=20, units="galactic"),
     ... )
 
-    >>> new_pot = replace(pot, disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e12, "Msun"), a=6.5, b=0.26, units="galactic"))
+    >>> new_pot = replace(pot, disk=gp.MiyamotoNagaiPotential(m_tot=u.Q(1e12, "Msun"), a=6.5, b=0.26, units="galactic"))
     >>> new_pot["disk"].m_tot.value
-    Quantity(Array(1.e+12, dtype=float64,...), unit='solMass')
+    Q(1.e+12, 'solMass')
 
     """  # noqa: E501
     # TODO: directly call the Mapping implementation
@@ -212,9 +213,9 @@ def replace(
     ...     halo=gp.NFWPotential(m=1e12, r_s=20, units="galactic"),
     ... )
 
-    >>> new_pot = replace(pot, {"disk": {"m_tot": u.Quantity(1e12, "Msun")}})
+    >>> new_pot = replace(pot, {"disk": {"m_tot": u.Q(1e12, "Msun")}})
     >>> new_pot["disk"].m_tot.value
-    Quantity(Array(1.e+12, dtype=float64,...), unit='solMass')
+    Q(1.e+12, 'solMass')
 
     """
     # AbstractCompositePhaseSpaceCoordinate is both a Mapping and a dataclass
@@ -374,7 +375,7 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
 
         """
         key = eqx.error_if(key, key not in self._keys, f"key {key} not found")
-        return cast(AbstractPotential, getattr(self, key))
+        return cast("AbstractPotential", getattr(self, key))
 
     # ===========================================
     # Wadler-Lindig API
@@ -404,7 +405,10 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
         """
         return wl.bracketed(
             begin=wl.TextDoc(f"{self.__class__.__name__}("),
-            docs=wl.named_objs(list(field_items(FilterRepr, self)), **kwargs),
+            docs=wl.named_objs(
+                list(field_items(FilterRepr, self)),  # type: ignore[call-overload]
+                **{"use_short_name": True, **kwargs},
+            ),
             sep=wl.comma,
             end=wl.TextDoc(")"),
             indent=kwargs.get("indent", 4),

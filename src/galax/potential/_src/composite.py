@@ -4,6 +4,7 @@ __all__ = ["CompositePotential"]
 
 
 from dataclasses import KW_ONLY
+
 from types import MappingProxyType
 from typing import Any, ClassVar, TypeAlias, cast, final
 

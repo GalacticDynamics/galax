@@ -2,10 +2,11 @@
 
 from abc import ABCMeta, abstractmethod
 
+from jaxtyping import PRNGKeyArray
+
 import jax.random as jr
 import jax.tree as jtu
 import pytest
-from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -42,21 +43,21 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     @pytest.fixture
     def t_stripping(self) -> gt.QuSzTime:
         """Time vector for stripping."""
-        return u.Quantity(jnp.linspace(0.0, 4e3, 10), "Myr")
+        return u.Q(jnp.linspace(0.0, 4e3, 10), "Myr")
 
     @pytest.fixture
     def prog_w0(self) -> gc.PhaseSpaceCoordinate:
         """Progenitor initial conditions."""
         return gc.PhaseSpaceCoordinate(
-            q=u.Quantity([30, 10, 20], "kpc"),
-            p=u.Quantity([10, -150, -20], "km/s"),
-            t=u.Quantity(0.0, "Myr"),
+            q=u.Q([30, 10, 20], "kpc"),
+            p=u.Q([10, -150, -20], "km/s"),
+            t=u.Q(0.0, "Myr"),
         )
 
     @pytest.fixture
     def prog_mass(self) -> gt.QuSz0:
         """Progenitor mass."""
-        return u.Quantity(1e4, "Msun")
+        return u.Q(1e4, "Msun")
 
     @pytest.fixture
     def rng(self) -> PRNGKeyArray:

@@ -40,30 +40,26 @@ class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
 
     def test_potential(self, pot: gp.MilkyWayPotential2022, x: gt.QuSz3) -> None:
         """Test the `MilkyWayPotential2022.potential` method."""
-        expect = u.Quantity(-0.1906119, pot.units["specific energy"])
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(-0.1906119, pot.units["specific energy"])
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.MilkyWayPotential2022, x: gt.QuSz3) -> None:
         """Test the `MilkyWayPotential2022.gradient` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [0.00235500422114, 0.00471000844229, 0.0101667940117],
             pot.units["acceleration"],
         )
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MilkyWayPotential2022, x: gt.QuSz3) -> None:
         """Test the `MilkyWayPotential2022.density` method."""
-        expect = u.Quantity(33_807_052.01837142, pot.units["mass density"])
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(33_807_052.01837142, pot.units["mass density"])
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.MilkyWayPotential2022, x: gt.QuSz3) -> None:
         """Test the `MilkyWayPotential2022.hessian` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.0021196, -0.00047082, -0.0008994],
                 [-0.00047082, 0.00141337, -0.0017988],
@@ -71,16 +67,14 @@ class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.00148256, -0.00047082, -0.0008994],
                 [-0.00047082, 0.00077633, -0.0017988],
@@ -89,5 +83,5 @@ class TestMilkyWayPotential2022(AbstractSpecialCompositePotential_Test):
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )

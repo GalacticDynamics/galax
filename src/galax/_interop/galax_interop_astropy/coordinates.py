@@ -30,8 +30,7 @@ def from_(
     >>> import galax.coordinates as gc
 
     >>> vec = coord.SphericalRepresentation(
-    ...     lon=u.Quantity(10, u.deg), lat=u.Quantity(34, u.deg),
-    ...     distance=u.Quantity(3, u.kpc),
+    ...     lon=10*u.deg, lat=34*u.deg, distance=3*u.kpc,
     ...     differentials=coord.SphericalCosLatDifferential(
     ...         d_lon_coslat=1*u.deg/u.Myr, d_lat=1*u.deg/u.Myr,
     ...         d_distance=1*u.kpc/u.Myr) )
@@ -77,8 +76,7 @@ def from_(
     >>> import galax.coordinates as gc
 
     >>> vec = coord.SphericalRepresentation(
-    ...     lon=u.Quantity(10, u.deg), lat=u.Quantity(34, u.deg),
-    ...     distance=u.Quantity(3, u.kpc),
+    ...     lon=10*u.deg, lat=34*u.deg, distance=3*u.kpc,
     ...     differentials=coord.SphericalCosLatDifferential(
     ...         d_lon_coslat=1*u.deg/u.Myr, d_lat=1*u.deg/u.Myr,
     ...         d_distance=1*u.kpc/u.Myr) )
@@ -87,13 +85,10 @@ def from_(
         (10., 34., 3.)
      (has differentials w.r.t.: 's')>
 
-    >>> gc.PhaseSpaceCoordinate.from_(vec, u.Quantity(0, "Myr"))
+    >>> gc.PhaseSpaceCoordinate.from_(vec, 0*u.Myr)
     PhaseSpaceCoordinate(
-        q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
-        p=LonCosLatSphericalVel( lon_coslat=..., lat=..., distance=... ),
-        t=Quantity(0., unit='Myr'),
-        frame=SimulationFrame()
-    )
+      q=LonLatSphericalPos(...), p=LonCosLatSphericalVel(...),
+      t=Q(0., 'Myr'), frame=SimulationFrame() )
 
     """
     if "s" not in vec.differentials:
@@ -128,8 +123,7 @@ def from_(
     >>> import galax.coordinates as gc
 
     >>> vec = coord.SphericalRepresentation(
-    ...     lon=u.Quantity(10, u.deg), lat=u.Quantity(34, u.deg),
-    ...     distance=u.Quantity(3, u.kpc))
+    ...     lon=10*u.deg, lat=34*u.deg, distance=3*u.kpc)
     >>> dif = coord.SphericalCosLatDifferential(
     ...         d_lon_coslat=1*u.deg/u.Myr, d_lat=1*u.deg/u.Myr,
     ...         d_distance=1*u.kpc/u.Myr)
@@ -174,8 +168,7 @@ def from_(
     >>> import galax.coordinates as gc
 
     >>> vec = coord.SphericalRepresentation(
-    ...     lon=u.Quantity(10, u.deg), lat=u.Quantity(34, u.deg),
-    ...     distance=u.Quantity(3, u.kpc))
+    ...     lon=10*u.deg, lat=34*u.deg, distance=3*u.kpc)
     >>> dif = coord.SphericalCosLatDifferential(
     ...         d_lon_coslat=1*u.deg/u.Myr, d_lat=1*u.deg/u.Myr,
     ...         d_distance=1*u.kpc/u.Myr)
@@ -183,13 +176,10 @@ def from_(
     <SphericalRepresentation (lon, lat, distance) in (deg, deg, kpc)
         (10., 34., 3.)>
 
-    >>> gc.PhaseSpaceCoordinate.from_(vec, dif, u.Quantity(0, "Myr"))
+    >>> gc.PhaseSpaceCoordinate.from_(vec, dif, 0*u.Myr)
     PhaseSpaceCoordinate(
-        q=LonLatSphericalPos( lon=..., lat=..., distance=... ),
-        p=LonCosLatSphericalVel( lon_coslat=..., lat=..., distance=... ),
-        t=Quantity(0., unit='Myr'),
-        frame=SimulationFrame()
-    )
+        q=LonLatSphericalPos(...), p=LonCosLatSphericalVel(...),
+        t=Q(0., 'Myr'), frame=SimulationFrame() )
 
     """
     return gc.PhaseSpaceCoordinate(q=vec.without_differentials(), p=dif, t=t)

@@ -3,13 +3,14 @@
 __all__ = ["PhaseSpaceInterpolation"]
 
 import functools as ft
+
 from collections.abc import Callable
+from jaxtyping import Array, Bool, Int, PyTree, Real
 from typing import Any, cast
 
 import diffrax as dfx
 import equinox as eqx
 import jax
-from jaxtyping import Array, Bool, Int, PyTree, Real
 
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp

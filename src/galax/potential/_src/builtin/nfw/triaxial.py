@@ -5,14 +5,15 @@ __all__ = [
 ]
 
 import functools as ft
-from collections.abc import Callable
 from dataclasses import KW_ONLY
+
+from collections.abc import Callable
+from jaxtyping import Array, Float, Shaped
 from typing import final
 
 import equinox as eqx
 import jax
 import numpy as np
-from jaxtyping import Array, Float, Shaped
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -69,13 +70,13 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     )
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""),
+        default=u.Q(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the y/x direction.",
     )
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""),
+        default=u.Q(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the z/x direction.",
     )
@@ -201,8 +202,8 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
         """
         # Parse inputs
-        xyz = u.Quantity.from_(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        xyz = u.Q.from_(xyz, self.units["length"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         r_s = self.r_s(t)
@@ -240,8 +241,8 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs  # TODO: work w/out units
-        xyz = u.Quantity.from_(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        xyz = u.Q.from_(xyz, self.units["length"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         rho0 = self.rho0(t)

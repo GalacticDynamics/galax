@@ -3,13 +3,14 @@
 __all__: list[str] = ["integrate_orbit"]
 
 import functools as ft
+
+from jaxtyping import Array, Real
 from typing import Any, TypeAlias
 
 import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.extend as jex
-from jaxtyping import Array, Real
 from plum import dispatch
 
 import diffraxtra as dfxtra

@@ -3,6 +3,7 @@
 __all__ = ("ParameterCallable", "AbstractParameter")
 
 import abc
+
 from typing import Any, Protocol, runtime_checkable
 
 import equinox as eqx

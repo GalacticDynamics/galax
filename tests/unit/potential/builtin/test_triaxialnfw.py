@@ -54,23 +54,21 @@ class TestTriaxialNFWPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.TriaxialNFWPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(-1.06475915, unit="kpc2 / Myr2")
+        expect = u.Q(-1.06475915, unit="kpc2 / Myr2")
         got = pot.potential(x, t=0)
-        assert jnp.isclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.isclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.TriaxialNFWPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity([0.03189139, 0.0604938, 0.13157674], "kpc / Myr2")
+        expect = u.Q([0.03189139, 0.0604938, 0.13157674], "kpc / Myr2")
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.TriaxialNFWPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(2.32106514e08, "solMass / kpc3")
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(2.32106514e08, "solMass / kpc3")
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.TriaxialNFWPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.02774251, -0.00788965, -0.0165603],
                 [-0.00788965, 0.01521376, -0.03105306],
@@ -78,16 +76,14 @@ class TestTriaxialNFWPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.02336886, -0.00788965, -0.0165603],
                 [-0.00788965, 0.01084011, -0.03105306],
@@ -96,5 +92,5 @@ class TestTriaxialNFWPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )

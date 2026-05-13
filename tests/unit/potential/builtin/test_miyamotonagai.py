@@ -37,26 +37,20 @@ class TestMiyamotoNagaiPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.MiyamotoNagaiPotential, x: Sz3) -> None:
-        expect = u.Quantity(-0.95208676, pot.units["specific energy"])
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(-0.95208676, pot.units["specific energy"])
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.MiyamotoNagaiPotential, x: Sz3) -> None:
-        expect = u.Quantity(
-            [0.04264751, 0.08529503, 0.16840152], pot.units["acceleration"]
-        )
+        expect = u.Q([0.04264751, 0.08529503, 0.16840152], pot.units["acceleration"])
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MiyamotoNagaiPotential, x: Sz3) -> None:
-        expect = u.Quantity(1.9949418e08, pot.units["mass density"])
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(1.9949418e08, pot.units["mass density"])
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.MiyamotoNagaiPotential, x: Sz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.03691649, -0.01146205, -0.02262999],
                 [-0.01146205, 0.01972342, -0.04525999],
@@ -64,16 +58,14 @@ class TestMiyamotoNagaiPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.03315736, -0.01146205, -0.02262999],
                 [-0.01146205, 0.0159643, -0.04525999],
@@ -82,5 +74,5 @@ class TestMiyamotoNagaiPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )

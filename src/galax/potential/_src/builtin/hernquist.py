@@ -4,6 +4,7 @@ __all__ = ["HernquistPotential", "TriaxialHernquistPotential"]
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -43,7 +44,7 @@ class HernquistPotential(AbstractSinglePotential):
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
@@ -55,7 +56,7 @@ class HernquistPotential(AbstractSinglePotential):
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
@@ -124,10 +125,10 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     >>> pot = gp.TriaxialHernquistPotential(m_tot=1e12, r_s=8, q1=1, q2=0.5,
     ...                                     units="galactic")
 
-    >>> q = u.Quantity([1, 0, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = u.Q([1, 0, 0], "kpc")
+    >>> t = u.Q(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity(Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.49983357, 'kpc2 / Myr2')
     """
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
@@ -139,13 +140,13 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
 
     # TODO: move to a triaxial wrapper
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""),
+        default=u.Q(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the y direction divided by ``c``.",
     )
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""),
+        default=u.Q(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the z direction divided by ``c``.",
     )
@@ -159,7 +160,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         u1 = self.units["dimensionless"]
         q1, q2 = self.q1(t, ustrip=u1), self.q2(t, ustrip=u1)

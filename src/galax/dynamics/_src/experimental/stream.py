@@ -3,7 +3,9 @@
 __all__ = ["StreamSimulator"]
 
 import functools as ft
+
 from collections.abc import Mapping
+from jaxtyping import Array, PRNGKeyArray, Real
 from typing import Any, TypeAlias, final
 from typing_extensions import Unpack
 
@@ -11,7 +13,6 @@ import diffrax as dfx
 import jax
 import jax.random as jr
 from jax.tree_util import register_dataclass
-from jaxtyping import Array, PRNGKeyArray, Real
 from plum import dispatch
 
 import diffraxtra as dfxtra

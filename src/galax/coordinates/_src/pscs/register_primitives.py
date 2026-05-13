@@ -23,19 +23,18 @@ def add_wts(
     >>> import unxt as u
     >>> import galax.coordinates as gc
 
-    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                              p=u.Quantity([4, 5, 6], "km/s"),
-    ...                              t=u.Quantity(0, "Gyr"))
-    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Quantity([-1, -2, -3], "kpc"),
-    ...                              p=u.Quantity([-4, -5, -6], "km/s"),
-    ...                              t=u.Quantity(0, "Gyr"))
+    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                              p=u.Q([4, 5, 6], "km/s"),
+    ...                              t=u.Q(0, "Gyr"))
+    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Q([-1, -2, -3], "kpc"),
+    ...                              p=u.Q([-4, -5, -6], "km/s"),
+    ...                              t=u.Q(0, "Gyr"))
     >>> w3 = w1 + w2
     >>> w3
     PhaseSpaceCoordinate(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity(0, unit='Gyr'),
-      frame=SimulationFrame()
+      q=CartesianPos3D(x=Q(0, 'kpc'), y=Q(0, 'kpc'), z=Q(0, 'kpc')),
+      p=CartesianVel3D(x=Q(0, 'km / s'), y=Q(0, 'km / s'), z=Q(0, 'km / s')),
+      t=Q(0, 'Gyr'), frame=SimulationFrame()
     )
 
     >>> w3.q.x.value
@@ -44,7 +43,7 @@ def add_wts(
     If the times are different, an error is raised:
 
     >>> from dataclassish import replace
-    >>> w4 = replace(w2, t=u.Quantity(1, "Gyr"))
+    >>> w4 = replace(w2, t=u.Q(1, "Gyr"))
     >>> try: w1 + w4
     ... except Exception: print("Error")
     Error

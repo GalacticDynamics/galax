@@ -2,10 +2,10 @@
 
 __all__: list[str] = []
 
+from jaxtyping import Array, Shaped
 from typing import Literal, TypeAlias, overload
 
 import quax
-from jaxtyping import Array, Shaped
 
 import coordinax as cx
 import quaxed.numpy as jnp

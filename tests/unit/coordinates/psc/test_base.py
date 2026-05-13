@@ -2,6 +2,7 @@
 
 from abc import ABCMeta
 from dataclasses import replace
+
 from typing import TypeVar
 
 import jax.random as jr
@@ -36,9 +37,9 @@ class AbstractPhaseSpaceCoordinate_Test(
         """Return a phase-space position."""
         _, keys = getkeys(3)
 
-        q = u.Quantity(jr.normal(next(keys), (*shape, 3)), "kpc")
-        p = u.Quantity(jr.normal(next(keys), (*shape, 3)), "km/s")
-        t = u.Quantity(jr.normal(next(keys), shape), "Myr")
+        q = u.Q(jr.normal(next(keys), (*shape, 3)), "kpc")
+        p = u.Q(jr.normal(next(keys), (*shape, 3)), "km/s")
+        t = u.Q(jr.normal(next(keys), shape), "Myr")
         return w_cls(q=q, p=p, t=t, frame=gc.frames.simulation_frame)
 
     #################################################################
@@ -129,11 +130,9 @@ class AbstractPhaseSpaceCoordinate_Test(
         """Test method ``potential``."""
         pe = w.potential_energy(pot)
         assert pe.shape == w.shape  # confirm relation to shape and components
-        assert jnp.all(pe <= u.Quantity(0, "km2/s2"))
+        assert jnp.all(pe <= u.Q(0, "km2/s2"))
         # definitional
-        assert jnp.allclose(
-            pe, pot.potential(w.q, t=0), atol=u.Quantity(1e-10, pe.unit)
-        )
+        assert jnp.allclose(pe, pot.potential(w.q, t=0), atol=u.Q(1e-10, pe.unit))
 
     # ------------------------------
 
@@ -148,5 +147,5 @@ class AbstractPhaseSpaceCoordinate_Test(
         assert jnp.allclose(
             pe,
             w.kinetic_energy() + pot.potential(w.q, t=0),
-            atol=u.Quantity(1e-10, pe.unit),
+            atol=u.Q(1e-10, pe.unit),
         )

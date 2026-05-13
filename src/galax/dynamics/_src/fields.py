@@ -3,13 +3,14 @@
 __all__ = ["AbstractField"]
 
 import functools as ft
-from collections.abc import Callable
 from dataclasses import KW_ONLY
+
+from collections.abc import Callable
+from jaxtyping import ArrayLike, PyTree
 from typing import Any
 
 import diffrax as dfx
 import equinox as eqx
-from jaxtyping import ArrayLike, PyTree
 from plum import dispatch
 
 import diffraxtra as dfxtra
@@ -42,9 +43,9 @@ class AbstractField(eqx.Module):  # type: ignore[misc]
 
     Evaluate the field at a given coordinate:
 
-    >>> t = u.Quantity(0, "Gyr")
-    >>> x = u.Quantity([8., 0, 0], "kpc")
-    >>> v = u.Quantity([0, 220, 0], "km/s")
+    >>> t = u.Q(0, "Gyr")
+    >>> x = u.Q([8., 0, 0], "kpc")
+    >>> v = u.Q([0, 220, 0], "km/s")
 
     >>> field(t, x, v)
     (Array([0.        , 0.22499668, 0.        ], dtype=float64),

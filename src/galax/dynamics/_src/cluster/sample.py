@@ -7,13 +7,14 @@ This is private API.
 __all__ = ["ReleaseTimeSampler"]
 
 import functools as ft
+
+from jaxtyping import Array, Float, PRNGKeyArray
 from typing import Any
 
 import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.random as jr
-from jaxtyping import Array, Float, PRNGKeyArray
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -36,18 +37,19 @@ class ReleaseTimeSampler(eqx.Module):  # type: ignore[misc]
 
     >>> dMdt_fn = gdc.Baumgardt1998MassLossRate()
     >>> pot = gp.MilkyWayPotential2022()
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([15, 0, 0], "kpc"),
-    ...     p=u.Quantity([0, 100, 0], "km/s"), t=u.Quantity(0, "Gyr"))
-    >>> orbit = gd.compute_orbit(pot, w0, u.Quantity([0, 2], "Gyr"), dense=True)
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([15, 0, 0], "kpc"),
+    ...                              p=u.Q([0, 100, 0], "km/s"),
+    ...                              t=u.Q(0, "Gyr"))
+    >>> orbit = gd.compute_orbit(pot, w0, u.Q([0, 2], "Gyr"), dense=True)
 
-    >>> params = {"orbit": orbit, "potential": pot, "m_avg": u.Quantity(3, "Msun"),
-    ...           "xi0": 0.001, "alpha": 14.9, "r_hm": u.Quantity(1, "pc")}
+    >>> params = {"orbit": orbit, "potential": pot, "m_avg": u.Q(3, "Msun"),
+    ...           "xi0": 0.001, "alpha": 14.9, "r_hm": u.Q(1, "pc")}
 
-    >>> M0 = u.Quantity(1e4, "Msun")
+    >>> M0 = u.Q(1e4, "Msun")
     >>> dMdt_fn(0, M0, params)  # [Msun/Myr]
     Array(-1.06101689, dtype=float64)
 
-    >>> t0, t1 = u.Quantity([0, 2], "Gyr")
+    >>> t0, t1 = u.Q([0, 2], "Gyr")
     >>> mass_solver = gdc.MassSolver()
     >>> mass_history = mass_solver.solve(dMdt_fn, M0, t0, t1, args=params,
     ...      dense=True, vectorize_interpolation=True)
@@ -67,7 +69,7 @@ class ReleaseTimeSampler(eqx.Module):  # type: ignore[misc]
     >>> n_stars = 5
     >>> release_times = sampler.sample(key, t0, t1, n_stars=n_stars, mass_params=params)
     >>> release_times.round(2)
-    Quantity(Array([0.41, 0.8 , 1.03, 1.11, 1.92], dtype=float64), unit='Gyr')
+    Q([0.41, 0.8 , 1.03, 1.11, 1.92], 'Gyr')
 
     """
 

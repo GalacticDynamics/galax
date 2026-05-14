@@ -1,12 +1,13 @@
 """Test the `MultipolePotential` class."""
 
 import re
+
+from jaxtyping import Array, Shaped
 from typing import Any
 from typing_extensions import override
 
 import equinox as eqx
 import pytest
-from jaxtyping import Array, Shaped
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -44,10 +45,10 @@ class ParameterISlmMixin(ParameterAngularCoefficientsMixin):
         ISlm = jnp.zeros((l_max + 1, l_max + 1))
         ISlm = ISlm.at[1, :].set(5.0)
 
-        fields["ISlm"] = u.Quantity(ISlm, "")
+        fields["ISlm"] = u.Q(ISlm, "")
         pot = pot_cls(**fields)
         assert isinstance(pot.ISlm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.ISlm.value, u.Quantity(ISlm, ""))
+        assert jnp.allclose(pot.ISlm.value, u.Q(ISlm, ""))
 
     def test_ISlm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -57,7 +58,7 @@ class ParameterISlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["ISlm"] = ISlm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.ISlm(t=u.Quantity(0, "Myr")), ISlm)
+        assert jnp.allclose(pot.ISlm(t=u.Q(0, "Myr")), ISlm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_ISlm_userfunc(self, pot_cls, fields):
@@ -68,7 +69,7 @@ class ParameterISlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["ISlm"] = lambda t: ISlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.ISlm(t=u.Quantity(0, "Myr")), ISlm)
+        assert jnp.allclose(pot.ISlm(t=u.Q(0, "Myr")), ISlm)
 
 
 class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
@@ -89,11 +90,11 @@ class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
         ITlm = jnp.zeros((l_max + 1, l_max + 1))
         ITlm = ITlm.at[1, :].set(5.0)
 
-        fields["ITlm"] = u.Quantity(ITlm, "")
+        fields["ITlm"] = u.Q(ITlm, "")
         fields["l_max"] = l_max
         pot = pot_cls(**fields)
         assert isinstance(pot.ITlm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.ITlm.value, u.Quantity(ITlm, ""))
+        assert jnp.allclose(pot.ITlm.value, u.Q(ITlm, ""))
 
     def test_ITlm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -103,7 +104,7 @@ class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["ITlm"] = ITlm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.ITlm(t=u.Quantity(0, "Myr")), ITlm)
+        assert jnp.allclose(pot.ITlm(t=u.Q(0, "Myr")), ITlm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_ITlm_userfunc(self, pot_cls, fields):
@@ -114,7 +115,7 @@ class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["ITlm"] = lambda t: ITlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.ITlm(t=u.Quantity(0, "Myr")), ITlm)
+        assert jnp.allclose(pot.ITlm(t=u.Q(0, "Myr")), ITlm)
 
 
 class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
@@ -137,10 +138,10 @@ class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
         OSlm = jnp.zeros((l_max + 1, l_max + 1))
         OSlm = OSlm.at[1, :].set(5.0)
 
-        fields["OSlm"] = u.Quantity(OSlm, "")
+        fields["OSlm"] = u.Q(OSlm, "")
         pot = pot_cls(**fields)
         assert isinstance(pot.OSlm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.OSlm.value, u.Quantity(OSlm, ""))
+        assert jnp.allclose(pot.OSlm.value, u.Q(OSlm, ""))
 
     def test_OSlm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -150,7 +151,7 @@ class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["OSlm"] = OSlm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.OSlm(t=u.Quantity(0, "Myr")), OSlm)
+        assert jnp.allclose(pot.OSlm(t=u.Q(0, "Myr")), OSlm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_OSlm_userfunc(self, pot_cls, fields):
@@ -161,7 +162,7 @@ class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["OSlm"] = lambda t: OSlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.OSlm(t=u.Quantity(0, "Myr")), OSlm)
+        assert jnp.allclose(pot.OSlm(t=u.Q(0, "Myr")), OSlm)
 
 
 class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
@@ -182,11 +183,11 @@ class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
         OTlm = jnp.zeros((l_max + 1, l_max + 1))
         OTlm = OTlm.at[1, :].set(5.0)
 
-        fields["OTlm"] = u.Quantity(OTlm, "")
+        fields["OTlm"] = u.Q(OTlm, "")
         fields["l_max"] = l_max
         pot = pot_cls(**fields)
         assert isinstance(pot.OTlm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.OTlm.value, u.Quantity(OTlm, ""))
+        assert jnp.allclose(pot.OTlm.value, u.Q(OTlm, ""))
 
     def test_OTlm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -196,7 +197,7 @@ class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["OTlm"] = OTlm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.OTlm(t=u.Quantity(0, "Myr")), OTlm)
+        assert jnp.allclose(pot.OTlm(t=u.Q(0, "Myr")), OTlm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_OTlm_userfunc(self, pot_cls, fields):
@@ -207,7 +208,7 @@ class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["OTlm"] = lambda t: OTlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.OTlm(t=u.Quantity(0, "Myr")), OTlm)
+        assert jnp.allclose(pot.OTlm(t=u.Q(0, "Myr")), OTlm)
 
 
 ###############################################################################
@@ -267,26 +268,20 @@ class TestMultipolePotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(33.59908611, unit="kpc2 / Myr2")
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(33.59908611, unit="kpc2 / Myr2")
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
-            [-0.13487022, -0.26974043, 10.79508472], pot.units["acceleration"]
-        )
+        expect = u.Q([-0.13487022, -0.26974043, 10.79508472], pot.units["acceleration"])
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(4.73805126e-05, pot.units["mass density"])
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(4.73805126e-05, pot.units["mass density"])
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
                 [0.09633587, 0.05780152, 0.19909413],
@@ -294,16 +289,14 @@ class TestMultipolePotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [-0.08670228, 0.09633587, 0.09954706],
                 [0.09633587, 0.05780152, 0.19909413],
@@ -312,7 +305,7 @@ class TestMultipolePotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )
 
     # ==========================================================================

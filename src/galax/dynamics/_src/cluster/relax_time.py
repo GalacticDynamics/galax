@@ -19,6 +19,7 @@ __all__ = [
 ]
 
 import functools as ft
+
 from typing import Any, NoReturn, TypeAlias, TypeVar, cast, final
 
 import equinox as eqx
@@ -95,14 +96,14 @@ class SpitzerHart1971(AbstractRelaxationTimeMethod):
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.42, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.42, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> trh = gdc.relaxation_time(gdc.relax_time.SpitzerHart1971, M, r_hm,
     ...     m_avg=m_avg, gamma=0.11, G=G)
-    >>> print(trh)
-    Quantity['time'](176.21612725, unit='Myr')
+    >>> trh
+    Q(176.21612725, 'Myr')
 
     """
 
@@ -131,14 +132,14 @@ def relaxation_time(
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.42, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.42, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> trh = gdc.relaxation_time(gdc.relax_time.SpitzerHart1971, M, r_hm,
     ...     m_avg=m_avg, gamma=0.11, G=G)
-    >>> print(trh)
-    Quantity['time'](176.21612725, unit='Myr')
+    >>> trh
+    Q(176.21612725, 'Myr')
 
     """
     return relaxation_time_spitzer_hart_1971(M, r_hm, m_avg=m_avg, **kw)
@@ -192,14 +193,14 @@ def relaxation_time_spitzer_hart_1971(
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.42, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.42, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> trh = gdc.relax_time.relaxation_time_spitzer_hart_1971(
     ...     M, r_hm, m_avg=m_avg, gamma=0.11, G=G)
-    >>> print(trh)
-    Quantity['time'](176.21612725, unit='Myr')
+    >>> trh
+    Q(176.21612725, 'Myr')
 
     """
     N = M / m_avg
@@ -314,14 +315,14 @@ def half_mass_relaxation_time_spitzer1987(
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.5, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.5, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> lnLambda = 10
 
     >>> gdc.relax_time.half_mass_relaxation_time_spitzer1987(M, r_hm, m_avg, G=G, lnLambda=lnLambda).uconvert("Myr")
-    Quantity(Array(143.51613833, dtype=float64, ...), unit='Myr')
+    Q(143.51613833, 'Myr')
 
     The function also works with raw JAX arrays, in which case the
     inputs are assumed to be in compatible units:
@@ -371,14 +372,14 @@ def core_relaxation_time_spitzer1987(
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(2e3, "Msun")
-    >>> r_hm = u.Quantity(0.1, "pc")
-    >>> m_avg = u.Quantity(0.5, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(2e3, "Msun")
+    >>> r_hm = u.Q(0.1, "pc")
+    >>> m_avg = u.Q(0.5, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> lnLambda = 10
 
     >>> gdc.relax_time.core_relaxation_time_spitzer1987(M, r_hm, m_avg, G=G, lnLambda=lnLambda).uconvert("Myr")
-    Quantity(Array(1.43516138, dtype=float64, ...), unit='Myr')
+    Q(1.43516138, 'Myr')
 
     The function also works with raw JAX arrays, in which case the
     inputs are assumed to be in compatible units:
@@ -461,13 +462,13 @@ def relaxation_time_baumgardt1998(
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.5, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.5, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
 
     >>> gdc.relax_time.relaxation_time_baumgardt1998(M, r_hm, m_avg, G=G).uconvert("Myr")
-    Quantity(Array(129.63033763, dtype=float64, ...), unit='Myr')
+    Q(129.63033763, 'Myr')
 
     The function also works with raw JAX arrays, in which case the
     inputs are assumed to be in compatible units:

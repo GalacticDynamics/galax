@@ -8,8 +8,9 @@ https:://github.com/nstarman/bound-class. See the license in the LICENSE files.
 __all__: list[str] = []
 
 import weakref
-from collections.abc import Callable
 from dataclasses import dataclass, replace
+
+from collections.abc import Callable
 from typing import Any, Generic, NoReturn, Self, TypeVar, overload
 
 BndTo = TypeVar("BndTo")

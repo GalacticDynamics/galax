@@ -9,6 +9,7 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -62,7 +63,7 @@ class IsochronePotential(AbstractSinglePotential):
     ) -> gt.BBtSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,

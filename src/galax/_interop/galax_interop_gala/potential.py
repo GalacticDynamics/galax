@@ -110,9 +110,7 @@ PT = TypeVar("PT", bound=gp.AbstractPotential)
 
 def _get_xop(pot: galap.PotentialBase, /) -> cx.ops.AbstractOperator:
     """Convert a Gala transformation to a Galax transformation."""
-    xop = cx.ops.GalileanSpatialTranslation(
-        u.Quantity(pot.origin, unit=pot.units["length"])
-    )
+    xop = cx.ops.GalileanSpatialTranslation(u.Q(pot.origin, unit=pot.units["length"]))
     if pot.R is not None:
         xop = cx.ops.GalileanRotation(pot.R) | xop
     return cx.ops.simplify_op(xop)
@@ -377,7 +375,7 @@ def galax_to_gala(
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.HarmonicOscillatorPotential(omega=u.Quantity(1, "1/Myr"), units="galactic")
+    >>> pot = gp.HarmonicOscillatorPotential(omega=u.Q(1, "1/Myr"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <HarmonicOscillatorPotential: omega=[1.] 1 / Myr (kpc,Myr,solMass,rad)>
 
@@ -699,13 +697,13 @@ def gala_to_galax(
     >>> pot = galap.LongMuraliBarPotential(m=1e11, a=20, b=10, c=5, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     LongMuraliBarPotential(
-      units=LTMAUnitSystem( length=Unit("kpc"), ...),
-      constants=ImmutableMap({'G': Quantity...}),
-      m_tot=ConstantParameter(...),
-      a=ConstantParameter(...),
-      b=ConstantParameter(...),
-      c=ConstantParameter(...),
-      alpha=ConstantParameter(...)
+      units=LTMAUnitSystem(...),
+      constants=ImmutableMap({'G': Q(4.49850215e-12, 'kpc3 / (solMass Myr2)')}),
+      m_tot=ConstantParameter(value=Quantity(f64[], unit='solMass')),
+      a=ConstantParameter(value=Quantity(f64[], unit='kpc')),
+      b=ConstantParameter(value=Quantity(f64[], unit='kpc')),
+      c=ConstantParameter(value=Quantity(f64[], unit='kpc')),
+      alpha=ConstantParameter(value=Quantity(f64[], unit='rad'))
     )
     """
     params = gala.parameters
@@ -729,11 +727,8 @@ def galax_to_gala(pot: gp.LongMuraliBarPotential, /) -> galap.LongMuraliBarPoten
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.LongMuraliBarPotential(
-    ...     m_tot=1e11, a=20, b=10, c=5,
-    ...     alpha=u.Quantity(0.1, "rad"),
-    ...     units="galactic",
-    ... )
+    >>> pot = gp.LongMuraliBarPotential(m_tot=1e11, a=20, b=10, c=5,
+    ...                                 alpha=u.Q(0.1, "rad"), units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <LongMuraliBarPotential: m=1.00e+11 solMass, a=20.00 kpc, b=10.00 kpc, c=5.00 kpc, alpha=0.10 rad (kpc,Myr,solMass,rad)>
 
@@ -1241,7 +1236,7 @@ def galax_to_gala(pot: gp.LogarithmicPotential, /) -> galap.LogarithmicPotential
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.LogarithmicPotential(v_c=u.Quantity(220, "km/s"), r_s=20, units="galactic")
+    >>> pot = gp.LogarithmicPotential(v_c=u.Q(220, "km/s"), r_s=20, units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <LogarithmicPotential: v_c=0.22 kpc / Myr, r_h=20.00 kpc, q1=1.00 , q2=1.00 , q3=1.00 , phi=0 rad (kpc,Myr,solMass,rad)>
 
@@ -1265,10 +1260,8 @@ def galax_to_gala(pot: gp.LMJ09LogarithmicPotential, /) -> galap.LogarithmicPote
     >>> import galax.potential as gp
 
     >>> pot = gp.LMJ09LogarithmicPotential(
-    ...     v_c=u.Quantity(220, "km/s"), r_s=20, phi=0,
-    ...     q1=1.0, q2=1.0, q3=1.0,
-    ...     units="galactic",
-    ... )
+    ...     v_c=u.Q(220, "km/s"), r_s=20, phi=0, q1=1.0, q2=1.0, q3=1.0,
+    ...     units="galactic")
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <LogarithmicPotential: v_c=0.22 kpc / Myr, r_h=20.00 kpc, q1=1.00 , q2=1.00 , q3=1.00 , phi=0 rad (kpc,Myr,solMass,rad)>
 
@@ -1409,7 +1402,7 @@ def gala_to_galax(
     """  # noqa: E501
     units = pot.units
     params = pot.parameters
-    G = u.Quantity(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
+    G = u.Q(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
 
     return gp.LeeSutoTriaxialNFWPotential(
         m=params["v_c"] ** 2 * params["r_s"] / G,
@@ -1507,7 +1500,7 @@ def gala_to_galax(
     """  # noqa: E501
     units = pot.units
     params = pot.parameters
-    G = u.Quantity(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
+    G = u.Q(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
 
     return gp.LeeSutoTriaxialNFWPotential(
         m=params["v_c"] ** 2 * params["r_s"] / G,
@@ -1540,7 +1533,7 @@ def galax_to_gala(
     """  # noqa: E501
     _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
-    t = u.Quantity(0.0, pot.units["time"])
+    t = u.Q(0.0, pot.units["time"])
     v_c: APYQuantity = convert(
         jnp.sqrt(pot.constants["G"] * pot.m(t) / pot.r_s(t)), APYQuantity
     )
@@ -1678,7 +1671,7 @@ def galax_to_gala(pot: gp.LM10Potential, /) -> galap.LM10Potential:
     >>> pot = gp.LM10Potential(
     ...     disk=gp.MiyamotoNagaiPotential(m_tot=1e11, a=6.5, b=0.26, units="galactic"),
     ...     bulge=gp.HernquistPotential(m_tot=1e10, r_s=1, units="galactic"),
-    ...     halo=gp.LMJ09LogarithmicPotential(v_c=u.Quantity(220, "km/s"), r_s=20, q1=1, q2=1, q3=1, phi=0, units="galactic"),
+    ...     halo=gp.LMJ09LogarithmicPotential(v_c=u.Q(220, "km/s"), r_s=20, q1=1, q2=1, q3=1, phi=0, units="galactic"),
     ... )
 
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)

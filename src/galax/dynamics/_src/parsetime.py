@@ -3,11 +3,12 @@
 __all__ = ("parse_time_specification",)
 
 
-from collections.abc import Sequence
 from numbers import Number
+
+from collections.abc import Sequence
+from jaxtyping import Array, ArrayLike, Shaped
 from typing import Any
 
-from jaxtyping import Array, ArrayLike, Shaped
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -70,90 +71,90 @@ def parse_time_specification(
 
     From a Quantity:
 
-    >>> gdi.parse_time_specification(t=u.Quantity([1, 2, 3], "Myr"))
-    Quantity(Array([1, 2, 3], dtype=int64), unit='Myr')
+    >>> gdi.parse_time_specification(t=u.Q([1, 2, 3], "Myr"))
+    Q([1, 2, 3], 'Myr')
 
     In the units of a specific unit system:
 
-    >>> gdi.parse_time_specification(units="galactic", t=u.Quantity([1, 2, 3], "Myr"))
-    Quantity(Array([1, 2, 3], dtype=int64), unit='Myr')
+    >>> gdi.parse_time_specification(units="galactic", t=u.Q([1, 2, 3], "Myr"))
+    Q([1, 2, 3], 'Myr')
 
-    >>> gdi.parse_time_specification(units="solarsystem", t=u.Quantity([1, 2, 3], "Myr"))
-    Quantity(Array([1000000., 2000000., 3000000.], dtype=float64, weak_type=True), unit='yr')
+    >>> gdi.parse_time_specification(units="solarsystem", t=u.Q([1, 2, 3], "Myr"))
+    Q([1000000., 2000000., 3000000.], 'yr')
 
     From a non-Quantity array, interpreted as having the time units of the given
     unit system:
 
     >>> gdi.parse_time_specification(units="solarsystem", t=[1, 2, 3])
-    Quantity(Array([1, 2, 3], dtype=int64), unit='yr')
+    Q([1, 2, 3], 'yr')
 
     >>> gdi.parse_time_specification(units="galactic", t=[1, 2, 3])
-    Quantity(Array([1, 2, 3], dtype=int64), unit='Myr')
+    Q([1, 2, 3], 'Myr')
 
     From the starting time, ending time, and number of steps:
 
-    >>> gdi.parse_time_specification(t0=u.Quantity(0, "Myr"), t1=u.Quantity(1, "Myr"), n_steps=3)
-    Quantity(Array([0. , 0.5, 1. ], dtype=float64), unit='Myr')
+    >>> gdi.parse_time_specification(t0=u.Q(0, "Myr"), t1=u.Q(1, "Myr"), n_steps=3)
+    Q([0. , 0.5, 1. ], 'Myr')
 
     In the units of a specific unit system:
 
-    >>> gdi.parse_time_specification(units="solarsystem", t0=u.Quantity(0, "Myr"), t1=u.Quantity(1, "Myr"), n_steps=3)
-    Quantity(Array([      0.,  500000., 1000000.], dtype=float64), unit='yr')
+    >>> gdi.parse_time_specification(units="solarsystem", t0=u.Q(0, "Myr"), t1=u.Q(1, "Myr"), n_steps=3)
+    Q([      0.,  500000., 1000000.], 'yr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
     >>> gdi.parse_time_specification(units="solarsystem", t0=0, t1=1, n_steps=3)
-    Quantity(Array([0. , 0.5, 1. ], dtype=float64), unit='yr')
+    Q([0. , 0.5, 1. ], 'yr')
 
     From the starting time, timestep, and number of steps:
 
-    >>> gdi.parse_time_specification(t0=u.Quantity(0, "Myr"), dt=u.Quantity(1, "Myr"), n_steps=3)
-    Quantity(Array([0. , 1.5, 3. ], dtype=float64), unit='Myr')
+    >>> gdi.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q(1, "Myr"), n_steps=3)
+    Q([0. , 1.5, 3. ], 'Myr')
 
     In the units of a specific unit system:
 
-    >>> gdi.parse_time_specification(units="galactic", t0=u.Quantity(0, "Myr"), dt=u.Quantity(1, "Myr"), n_steps=3)
-    Quantity(Array([0. , 1.5, 3. ], dtype=float64), unit='Myr')
+    >>> gdi.parse_time_specification(units="galactic", t0=u.Q(0, "Myr"), dt=u.Q(1, "Myr"), n_steps=3)
+    Q([0. , 1.5, 3. ], 'Myr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
     >>> gdi.parse_time_specification(units="solarsystem", t0=0, dt=1, n_steps=3)
-    Quantity(Array([0. , 1.5, 3. ], dtype=float64), unit='yr')
+    Q([0. , 1.5, 3. ], 'yr')
 
     From the starting time, time step, and ending time:
 
-    >>> gdi.parse_time_specification(t0=u.Quantity(0, "Myr"), dt=u.Quantity(1, "Myr"), t1=u.Quantity(3, "Myr"))
-    Quantity(Array([0, 1, 2], dtype=int64), unit='Myr')
+    >>> gdi.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q(1, "Myr"), t1=u.Q(3, "Myr"))
+    Q([0, 1, 2], 'Myr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
     >>> gdi.parse_time_specification(units="galactic", t0=0, dt=1, t1=3)
-    Quantity(Array([0, 1, 2], dtype=int64), unit='Myr')
+    Q([0, 1, 2], 'Myr')
 
     >>> gdi.parse_time_specification(units="solarsystem", t0=0, dt=1, t1=3)
-    Quantity(Array([0, 1, 2], dtype=int64), unit='yr')
+    Q([0, 1, 2], 'yr')
 
     From the starting time and an array of time steps:
 
-    >>> gdi.parse_time_specification(t0=u.Quantity(0, "Myr"), dt=u.Quantity([1, 2], "Myr"))
-    Quantity(Array([0, 1, 3], dtype=int64), unit='Myr')
+    >>> gdi.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q([1, 2], "Myr"))
+    Q([0, 1, 3], 'Myr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
     >>> import jax.numpy as jnp
     >>> gdi.parse_time_specification(units="galactic", t0=0, dt=jnp.asarray([1, 2]))
-    Quantity(Array([0, 1, 3], dtype=int64), unit='Myr')
+    Q([0, 1, 3], 'Myr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
     >>> import jax.numpy as jnp
     >>> gdi.parse_time_specification(units="galactic", t0=0, dt=[1, 2])
-    Quantity(Array([0, 1, 3], dtype=int64), unit='Myr')
+    Q([0, 1, 3], 'Myr')
 
     """  # noqa: E501
     return parse_time_spec(units, t, t0, dt, n_steps, t1)
@@ -178,7 +179,7 @@ def parse_time_spec(
 ) -> u.AbstractQuantity:
     """Return the given array of times as a :class:`unxt.Quantity`."""
     unit = _parse_to_time_unit(units)
-    return u.Quantity.from_(t, unit)
+    return u.Q.from_(t, unit)
 
 
 @dispatch
@@ -193,7 +194,7 @@ def parse_time_spec(
 ) -> u.AbstractQuantity:  #  (n_steps,)
     """Return a time array from the initial and final times and number of steps."""
     unit = _parse_to_time_unit(units)
-    return u.Quantity.from_(jnp.linspace(t0, t1, n_steps), unit)
+    return u.Q.from_(jnp.linspace(t0, t1, n_steps), unit)
 
 
 @dispatch
@@ -222,7 +223,7 @@ def parse_time_spec(
 ) -> u.AbstractQuantity:
     """Return a time array from the initial and final times and the time step."""
     unit = _parse_to_time_unit(units)
-    return u.Quantity.from_(jnp.arange(t0, t1, dt), unit)
+    return u.Q.from_(jnp.arange(t0, t1, dt), unit)
 
 
 @dispatch
@@ -237,8 +238,8 @@ def parse_time_spec(
 ) -> u.AbstractQuantity:  # (N+1,)
     """Return a time array from the initial time and an array of time steps."""
     unit = _parse_to_time_unit(units)
-    t0 = u.Quantity.from_(t0, unit)
-    dt = u.Quantity.from_(dt, unit)
+    t0 = u.Q.from_(t0, unit)
+    dt = u.Q.from_(dt, unit)
     return jnp.concat((t0[None], jnp.cumsum(t0 + dt)))
 
 

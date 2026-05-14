@@ -9,6 +9,7 @@ __all__ = [
 
 
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -63,26 +64,26 @@ class BovyMWPotential2014(AbstractPreCompositedPotential):
 
     disk: MiyamotoNagaiPotential = eqx.field(
         default=MiyamotoNagaiPotential(
-            m_tot=u.Quantity(68_193_902_782.346756, "Msun"),
-            a=u.Quantity(3.0, "kpc"),
-            b=u.Quantity(280, "pc"),
+            m_tot=u.Q(68_193_902_782.346756, "Msun"),
+            a=u.Q(3.0, "kpc"),
+            b=u.Q(280, "pc"),
             units="galactic",
         ),
         converter=MiyamotoNagaiPotential.from_,
     )
     bulge: PowerLawCutoffPotential = eqx.field(
         default=PowerLawCutoffPotential(
-            m_tot=u.Quantity(4501365375.06545, "Msun"),
+            m_tot=u.Q(4501365375.06545, "Msun"),
             alpha=1.8,
-            r_c=u.Quantity(1.9, "kpc"),
+            r_c=u.Q(1.9, "kpc"),
             units="galactic",
         ),
         converter=PowerLawCutoffPotential.from_,
     )
     halo: NFWPotential = eqx.field(
         default=NFWPotential(
-            m=u.Quantity(4.3683325e11, "Msun"),
-            r_s=u.Quantity(16, "kpc"),
+            m=u.Q(4.3683325e11, "Msun"),
+            r_s=u.Q(16, "kpc"),
             units="galactic",
         ),
         converter=NFWPotential.from_,
@@ -132,29 +133,29 @@ class LM10Potential(AbstractPreCompositedPotential):
 
     disk: MiyamotoNagaiPotential = eqx.field(
         default=MiyamotoNagaiPotential(
-            m_tot=u.Quantity(1e11, "Msun"),
-            a=u.Quantity(6.5, "kpc"),
-            b=u.Quantity(0.26, "kpc"),
+            m_tot=u.Q(1e11, "Msun"),
+            a=u.Q(6.5, "kpc"),
+            b=u.Q(0.26, "kpc"),
             units="galactic",
         ),
         converter=MiyamotoNagaiPotential.from_,
     )
     bulge: HernquistPotential = eqx.field(
         default=HernquistPotential(
-            m_tot=u.Quantity(3.4e10, "Msun"),
-            r_s=u.Quantity(0.7, "kpc"),
+            m_tot=u.Q(3.4e10, "Msun"),
+            r_s=u.Q(0.7, "kpc"),
             units="galactic",
         ),
         converter=HernquistPotential.from_,
     )
     halo: LMJ09LogarithmicPotential = eqx.field(
         default=LMJ09LogarithmicPotential(
-            v_c=u.Quantity(SQRT2 * 121.858, "km / s"),
-            r_s=u.Quantity(12.0, "kpc"),
+            v_c=u.Q(SQRT2 * 121.858, "km / s"),
+            r_s=u.Q(12.0, "kpc"),
             q1=1.38,
             q2=1.0,
             q3=1.36,
-            phi=u.Quantity(97, "degree"),
+            phi=u.Q(97, "degree"),
             units="galactic",
         ),
         converter=LMJ09LogarithmicPotential.from_,
@@ -201,28 +202,28 @@ class MilkyWayPotential(AbstractPreCompositedPotential):
 
     disk: MiyamotoNagaiPotential = eqx.field(
         default=MiyamotoNagaiPotential(
-            m_tot=u.Quantity(6.8e10, "Msun"),
-            a=u.Quantity(3.0, "kpc"),
-            b=u.Quantity(0.28, "kpc"),
+            m_tot=u.Q(6.8e10, "Msun"),
+            a=u.Q(3.0, "kpc"),
+            b=u.Q(0.28, "kpc"),
             units="galactic",
         ),
         converter=MiyamotoNagaiPotential.from_,
     )
     halo: NFWPotential = eqx.field(
         default=NFWPotential(
-            m=u.Quantity(5.4e11, "Msun"), r_s=u.Quantity(15.62, "kpc"), units="galactic"
+            m=u.Q(5.4e11, "Msun"), r_s=u.Q(15.62, "kpc"), units="galactic"
         ),
         converter=NFWPotential.from_,
     )
     bulge: HernquistPotential = eqx.field(
         default=HernquistPotential(
-            m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units="galactic"
+            m_tot=u.Q(5e9, "Msun"), r_s=u.Q(1.0, "kpc"), units="galactic"
         ),
         converter=HernquistPotential.from_,
     )
     nucleus: HernquistPotential = eqx.field(
         default=HernquistPotential(
-            m_tot=u.Quantity(1.71e9, "Msun"), r_s=u.Quantity(70, "pc"), units="galactic"
+            m_tot=u.Q(1.71e9, "Msun"), r_s=u.Q(70, "pc"), units="galactic"
         ),
         converter=HernquistPotential.from_,
     )
@@ -273,9 +274,9 @@ class MilkyWayPotential2022(AbstractPreCompositedPotential):
 
     disk: MN3Sech2Potential = eqx.field(
         default=MN3Sech2Potential(
-            m_tot=u.Quantity(4.7717e10, "Msun"),
-            h_R=u.Quantity(2.6, "kpc"),
-            h_z=u.Quantity(0.3, "kpc"),
+            m_tot=u.Q(4.7717e10, "Msun"),
+            h_R=u.Q(2.6, "kpc"),
+            h_z=u.Q(0.3, "kpc"),
             positive_density=True,
             units="galactic",
         ),
@@ -283,22 +284,22 @@ class MilkyWayPotential2022(AbstractPreCompositedPotential):
     )
     halo: NFWPotential = eqx.field(
         default=NFWPotential(
-            m=u.Quantity(5.5427e11, "Msun"),
-            r_s=u.Quantity(15.626, "kpc"),
+            m=u.Q(5.5427e11, "Msun"),
+            r_s=u.Q(15.626, "kpc"),
             units="galactic",
         ),
         converter=NFWPotential.from_,
     )
     bulge: HernquistPotential = eqx.field(
         default=HernquistPotential(
-            m_tot=u.Quantity(5e9, "Msun"), r_s=u.Quantity(1.0, "kpc"), units="galactic"
+            m_tot=u.Q(5e9, "Msun"), r_s=u.Q(1.0, "kpc"), units="galactic"
         ),
         converter=HernquistPotential.from_,
     )
     nucleus: HernquistPotential = eqx.field(
         default=HernquistPotential(
-            m_tot=u.Quantity(1.8142e9, "Msun"),
-            r_s=u.Quantity(68.8867, "pc"),
+            m_tot=u.Q(1.8142e9, "Msun"),
+            r_s=u.Q(68.8867, "pc"),
             units="galactic",
         ),
         converter=HernquistPotential.from_,

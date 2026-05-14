@@ -48,18 +48,18 @@ class TriaxialInThePotential(AbstractTransformedPotential):
     >>> opot = gp.KeplerPotential(1e12, units="galactic")
     >>> xpot = gp.TriaxialInThePotential(opot, y_over_x=2.0)
 
-    >>> x = u.Quantity([1, 0, 0], "kpc")
-    >>> y = u.Quantity([0, 1, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
+    >>> x = u.Q([1, 0, 0], "kpc")
+    >>> y = u.Q([0, 1, 0], "kpc")
+    >>> t = u.Q(0, "Gyr")
 
     >>> opot.potential(x, t) == xpot.potential(x, t)
     Array(True, dtype=bool)
 
     >>> opot.potential(y, t)
-    Quantity(Array(-4.49850215, dtype=float64), unit='kpc2 / Myr2')
+    Q(-4.49850215, 'kpc2 / Myr2')
 
     >>> xpot.potential(y, t)
-    Quantity(Array(-8.9970043, dtype=float64), unit='kpc2 / Myr2')
+    Q(-8.9970043, 'kpc2 / Myr2')
 
     >>> opot.potential(y / 2, t) == xpot.potential(y, t)
     Array(True, dtype=bool)
@@ -70,13 +70,13 @@ class TriaxialInThePotential(AbstractTransformedPotential):
     base_potential: AbstractPotential
 
     y_over_x: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1, ""),
+        default=u.Q(1, ""),
         dimensions="dimensionless",
         doc="ratio of the y-axis to the x-axis",
     )
 
     z_over_x: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1, ""),
+        default=u.Q(1, ""),
         dimensions="dimensionless",
         doc="ratio of the z-axis to the x-axis",
     )

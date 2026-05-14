@@ -3,6 +3,7 @@
 __all__ = ["InterpolatedPhaseSpaceCoordinate"]
 
 from dataclasses import KW_ONLY
+
 from typing import ClassVar, final
 
 import diffrax as dfx

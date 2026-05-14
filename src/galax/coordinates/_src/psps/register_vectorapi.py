@@ -3,6 +3,7 @@
 __all__: list[str] = []
 
 from dataclasses import replace
+
 from typing import Any, cast
 
 import jax.numpy as jnp
@@ -53,8 +54,8 @@ def vconvert(
 
     We can create a phase-space position and convert it to a 6-vector:
 
-    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                             p=u.Quantity([4, 5, 6], "km/s"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Q([1, 2, 3], "kpc"),
+    ...                             p=u.Q([4, 5, 6], "km/s"))
     >>> psp.w(units="galactic")
     Array([1. , 2. , 3. , 0.00409085, 0.00511356, 0.00613627], dtype=float64, ...)
 
@@ -76,7 +77,7 @@ def vconvert(
                         frame=SimulationFrame() )
     """
     return cast(
-        PhaseSpacePosition,
+        "PhaseSpacePosition",
         cx.vconvert({"q": position_cls, "p": velocity_cls}, self, **kwargs),
     )
 
@@ -108,31 +109,25 @@ def call(
 
     We can then create a spatial translation operator:
 
-    >>> op = cx.ops.GalileanSpatialTranslation(u.Quantity([1, 2, 3], "kpc"))
+    >>> op = cx.ops.GalileanSpatialTranslation(u.Q([1, 2, 3], "kpc"))
     >>> op
     GalileanSpatialTranslation(CartesianPos3D( ... ))
 
     We can then apply the operator to a position:
 
-    >>> pos = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                             p=u.Quantity([4, 5, 6], "km/s"))
+    >>> pos = gc.PhaseSpacePosition(q=u.Q([1, 2, 3], "kpc"),
+    ...                             p=u.Q([4, 5, 6], "km/s"))
     >>> pos
-    PhaseSpacePosition(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        frame=SimulationFrame()
-    )
+    PhaseSpacePosition( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                        frame=SimulationFrame() )
 
     >>> newpos = op(pos)
     >>> newpos
-    PhaseSpacePosition(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        frame=SimulationFrame()
-    )
+    PhaseSpacePosition( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                        frame=SimulationFrame() )
 
     >>> newpos.q.x
-    Quantity(Array(2, dtype=int64), unit='kpc')
+    Q(2, 'kpc')
     """
     msg = "implement this method in the subclass"
     raise NotImplementedError(msg)
@@ -169,15 +164,15 @@ def call(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> shift = cx.CartesianPos3D.from_(u.Quantity([1, 1, 1], "kpc"))
+    >>> shift = cx.CartesianPos3D.from_(u.Q([1, 1, 1], "kpc"))
     >>> op = cx.ops.GalileanSpatialTranslation(shift)
 
-    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Q([1, 2, 3], "kpc"),
+    ...                             p=u.Q([0, 0, 0], "kpc/Gyr"))
 
     >>> newpsp = op(psp)
     >>> newpsp.q.x
-    Quantity(Array(2, dtype=int64), unit='kpc')
+    Q(2, 'kpc')
 
     This spatial translation is time independent.
 
@@ -214,26 +209,26 @@ def call(self: cxo.GalileanRotation, psp: PhaseSpacePosition, /) -> PhaseSpacePo
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> theta = u.Quantity(45, "deg")
+    >>> theta = u.Q(45, "deg")
     >>> Rz = jnp.asarray([[jnp.cos(theta), -jnp.sin(theta), 0],
     ...                  [jnp.sin(theta), jnp.cos(theta),  0],
     ...                  [0,             0,              1]])
     >>> op = cx.ops.GalileanRotation(Rz)
 
-    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 0, 0], "m"),
-    ...                             p=u.Quantity([1, 0, 0], "m/s"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Q([1, 0, 0], "m"),
+    ...                             p=u.Q([1, 0, 0], "m/s"))
 
     >>> newpsp = op(psp)
 
     >>> newpsp.q.x
-    Quantity(Array(0.70710678, dtype=float64), unit='m')
+    Q(0.70710678, 'm')
     >>> newpsp.q.norm()
-    BareQuantity(Array(1., dtype=float64), unit='m')
+    BareQuantity(1., 'm')
 
     >>> newpsp.p.x
-    Quantity(Array(0.70710678, dtype=float64), unit='m / s')
+    Q(0.70710678, 'm / s')
     >>> newpsp.p.norm()
-    Quantity(Array(1., dtype=float64), unit='m / s')
+    Q(1., 'm / s')
 
     """
     # Shifting the position
@@ -270,12 +265,11 @@ def call(
 
     >>> op = cx.ops.Identity()
 
-    >>> psp = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                             p=u.Quantity([0, 0, 0], "kpc/Gyr"))
+    >>> psp = gc.PhaseSpacePosition(q=u.Q([1, 2, 3], "kpc"),
+    ...                             p=u.Q([0, 0, 0], "kpc/Gyr"))
 
     >>> op(psp)
-    PhaseSpacePosition( q=CartesianPos3D( ... ),
-                        p=CartesianVel3D( ... ),
+    PhaseSpacePosition( q=CartesianPos3D(...), p=CartesianVel3D(...),
                         frame=SimulationFrame() )
     """
     return x

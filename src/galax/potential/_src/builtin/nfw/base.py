@@ -13,6 +13,7 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -89,7 +90,7 @@ class NFWPotential(AbstractSinglePotential):
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
@@ -111,7 +112,7 @@ class NFWPotential(AbstractSinglePotential):
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
@@ -134,15 +135,15 @@ class NFWPotential(AbstractSinglePotential):
 
         >>> nfw = gp.NFWPotential(m=1e11, r_s=15, units="galactic")
 
-        >>> q = u.Quantity([10, 0, 0], "kpc")
-        >>> t = u.Quantity(0, "Gyr")
+        >>> q = u.Q([10, 0, 0], "kpc")
+        >>> t = u.Q(0, "Gyr")
         >>> nfw._mass_enclosed(q, t)
         Array(1.10825624e+10, dtype=float64)
 
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
@@ -226,7 +227,7 @@ class NFWPotential(AbstractSinglePotential):
             rho_c = (3 * cosmo.H(0.0) ** 2 / (8 * np.pi * default_constants["G"])).to(
                 usys["mass density"]
             )
-            rho_c = u.Quantity(rho_c.value, usys["mass density"])
+            rho_c = u.Q(rho_c.value, usys["mass density"])
 
         r_vir = jnp.cbrt(M200 / (200 * rho_c) / (4.0 / 3 * jnp.pi))
         r_s = r_vir / c

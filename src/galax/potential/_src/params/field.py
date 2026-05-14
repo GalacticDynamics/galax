@@ -7,6 +7,7 @@ __all__ = ["ParameterField"]
 from dataclasses import KW_ONLY, is_dataclass
 from inspect import isclass, isfunction
 from textwrap import dedent
+
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -71,7 +72,7 @@ def converter_parameter(value: Any) -> AbstractParameter:
     else:
         # `Quantity.from_`` handles errors if the value cannot be
         # converted to a Quantity.
-        out = ConstantParameter(u.Quantity.from_(value))
+        out = ConstantParameter(u.Q.from_(value))
 
     return out
 
@@ -108,7 +109,7 @@ class ParameterField:
 
     The simplest example is a constant mass:
 
-    >>> potential = KeplerPotential(mass=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> potential = KeplerPotential(mass=u.Q(1e12, "Msun"), units="galactic")
     >>> potential
     KeplerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
@@ -216,7 +217,7 @@ class ParameterField:
             v = CustomParameter(func=value)
         else:
             unit = potential.units[self.dimensions]
-            v = ConstantParameter(u.Quantity.from_(value, unit))
+            v = ConstantParameter(u.Q.from_(value, unit))
 
         # Set
         potential.__dict__[self.name] = v

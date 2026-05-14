@@ -2,6 +2,7 @@ __all__ = ["AbstractSinglePotential"]
 
 import uuid
 from dataclasses import KW_ONLY
+
 from typing import Any
 
 import equinox as eqx

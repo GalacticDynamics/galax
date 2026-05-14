@@ -23,11 +23,11 @@ class TestBatchedShape:
             (jnp.asarray([[1, 2], [3, 4]]), 1, ((2,), (2,))),
             (jnp.asarray([[1, 2], [3, 4]]), 2, ((), (2, 2))),
             # Quantity
-            (u.Quantity(42, "m"), 0, ((), ())),
-            (u.Quantity([1], "m"), 0, ((1,), ())),
-            (u.Quantity([1, 2, 3], "m"), 1, ((), (3,))),
-            (u.Quantity([[1, 2], [3, 4]], "m"), 1, ((2,), (2,))),
-            (u.Quantity([[1, 2], [3, 4]], "m"), 2, ((), (2, 2))),
+            (u.Q(42, "m"), 0, ((), ())),
+            (u.Q([1], "m"), 0, ((1,), ())),
+            (u.Q([1, 2, 3], "m"), 1, ((), (3,))),
+            (u.Q([[1, 2], [3, 4]], "m"), 1, ((2,), (2,))),
+            (u.Q([[1, 2], [3, 4]], "m"), 2, ((), (2, 2))),
         ],
     )
     def test_batched_shape(
@@ -54,13 +54,13 @@ class TestExpandBatchDims:
             (jnp.asarray([1, 2]), 1, jnp.asarray([[1, 2]])),
             (jnp.asarray(1), 2, jnp.asarray([[1]])),
             # Quantity
-            (u.Quantity(1, "m"), 0, u.Quantity(1, "m")),
-            (u.Quantity([2], "m"), 0, u.Quantity([2], "m")),
-            (u.Quantity([1, 2], "m"), 0, u.Quantity([1, 2], "m")),
-            (u.Quantity(1, "m"), 1, u.Quantity([1], "m")),
-            (u.Quantity([2], "m"), 1, u.Quantity([[2]], "m")),
-            (u.Quantity([1, 2], "m"), 1, u.Quantity([[1, 2]], "m")),
-            (u.Quantity(1, "m"), 2, u.Quantity([[1]], "m")),
+            (u.Q(1, "m"), 0, u.Q(1, "m")),
+            (u.Q([2], "m"), 0, u.Q([2], "m")),
+            (u.Q([1, 2], "m"), 0, u.Q([1, 2], "m")),
+            (u.Q(1, "m"), 1, u.Q([1], "m")),
+            (u.Q([2], "m"), 1, u.Q([[2]], "m")),
+            (u.Q([1, 2], "m"), 1, u.Q([[1, 2]], "m")),
+            (u.Q(1, "m"), 2, u.Q([[1]], "m")),
         ],
     )
     def test_expand_batch_dims(
@@ -87,13 +87,13 @@ class TestExpandArrDims:
             (jnp.asarray([1, 2]), 1, jnp.asarray([[1], [2]])),
             (jnp.asarray(1), 2, jnp.asarray([[1]])),
             # Quantity
-            (u.Quantity(1, "m"), 0, u.Quantity(1, "m")),
-            (u.Quantity([2], "m"), 0, u.Quantity([2], "m")),
-            (u.Quantity([1, 2], "m"), 0, u.Quantity([1, 2], "m")),
-            (u.Quantity(1, "m"), 1, u.Quantity([1], "m")),
-            (u.Quantity([2], "m"), 1, u.Quantity([[2]], "m")),
-            (u.Quantity([1, 2], "m"), 1, u.Quantity([[1], [2]], "m")),
-            (u.Quantity(1, "m"), 2, u.Quantity([[1]], "m")),
+            (u.Q(1, "m"), 0, u.Q(1, "m")),
+            (u.Q([2], "m"), 0, u.Q([2], "m")),
+            (u.Q([1, 2], "m"), 0, u.Q([1, 2], "m")),
+            (u.Q(1, "m"), 1, u.Q([1], "m")),
+            (u.Q([2], "m"), 1, u.Q([[2]], "m")),
+            (u.Q([1, 2], "m"), 1, u.Q([[1], [2]], "m")),
+            (u.Q(1, "m"), 2, u.Q([[1]], "m")),
         ],
     )
     def test_expand_arr_dims(

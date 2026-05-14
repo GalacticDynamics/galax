@@ -48,7 +48,7 @@ class GalaIOMixin:
         # quick test that the potential energies are the same
         got = rpot(x, 0)
         exp = pot(x, 0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-14, exp.unit))
+        assert jnp.allclose(got, exp, atol=u.Q(1e-14, exp.unit))
 
         # TODO: add more robust tests
 
@@ -79,7 +79,7 @@ class GalaIOMixin:
         assert jnp.allclose(
             jnp.ravel(galax),
             jnp.ravel(convert(gala, u.Quantity)),
-            atol=u.Quantity(atol, galax.unit),
+            atol=u.Q(atol, galax.unit),
         )
 
 

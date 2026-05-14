@@ -26,32 +26,32 @@ class ParameterPhiMixin(ParameterFieldMixin):
 
     @pytest.fixture(scope="class")
     def field_phi(self) -> u.Quantity["angle"]:
-        return u.Quantity(220, "deg")
+        return u.Q(220, "deg")
 
     # =====================================================
 
     def test_phi_units(self, pot_cls, fields):
         """Test the speed parameter."""
-        fields["phi"] = u.Quantity(1.0, u.unit(220 * u.unit("deg")))
+        fields["phi"] = u.Q(1.0, u.unit(220 * u.unit("deg")))
         pot = pot_cls(**fields)
         assert isinstance(pot.phi, gp.params.ConstantParameter)
-        assert pot.phi.value == u.Quantity(220, "deg")
+        assert pot.phi.value == u.Q(220, "deg")
 
     def test_phi_constant(self, pot_cls, fields):
         """Test the speed parameter."""
-        fields["phi"] = u.Quantity(1.0, "deg")
+        fields["phi"] = u.Q(1.0, "deg")
         pot = pot_cls(**fields)
-        assert pot.phi(t=u.Quantity(0, "Myr")) == u.Quantity(1.0, "deg")
+        assert pot.phi(t=u.Q(0, "Myr")) == u.Q(1.0, "deg")
 
     def test_phi_userfunc(self, pot_cls, fields):
         """Test the phi parameter."""
 
         def cos_phi(t: u.Quantity["time"]) -> u.Quantity["angle"]:
-            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "deg")
+            return u.Q(10 * jnp.cos(t.ustrip("Myr")), "deg")
 
         fields["phi"] = cos_phi
         pot = pot_cls(**fields)
-        assert pot.phi(t=u.Quantity(0, "Myr")) == u.Quantity(10, "deg")
+        assert pot.phi(t=u.Q(0, "Myr")) == u.Q(10, "deg")
 
 
 class TestLMJ09LogarithmicPotential(
@@ -94,22 +94,22 @@ class TestLMJ09LogarithmicPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(0.09557772, unit="kpc2 / Myr2")
+        exp = u.Q(0.09557772, unit="kpc2 / Myr2")
         got = pot.potential(x, t=0)
-        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.isclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     def test_gradient(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity([-0.00114565, 0.00442512, 0.01391965], "kpc / Myr2")
+        exp = u.Q([-0.00114565, 0.00442512, 0.01391965], "kpc / Myr2")
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.allclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     def test_density(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(31101011.36872738, "solMass / kpc3")
+        exp = u.Q(31101011.36872738, "solMass / kpc3")
         got = pot.density(x, t=0)
-        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.isclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.LMJ09LogarithmicPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(
+        exp = u.Q(
             [
                 [0.00242779, -0.00161236, 0.00063003],
                 [-0.00161236, 0.00234527, -0.0024335],
@@ -118,14 +118,14 @@ class TestLMJ09LogarithmicPotential(
             "1/Myr2",
         )
         got = pot.hessian(x, t=0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.allclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        exp = u.Quantity(
+        exp = u.Q(
             [
                 [0.00184175, -0.00161236, 0.00063003],
                 [-0.00161236, 0.00175922, -0.0024335],
@@ -134,7 +134,7 @@ class TestLMJ09LogarithmicPotential(
             "1/Myr2",
         )
         got = pot.tidal_tensor(x, t=0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.allclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     # ==========================================================================
     # Interoperability

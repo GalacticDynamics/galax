@@ -1,7 +1,8 @@
 """Tests for the `galax.potential.CompositePotential` class."""
 
-from collections.abc import Mapping
 from dataclasses import replace
+
+from collections.abc import Mapping
 from typing import Any
 from typing_extensions import override
 
@@ -99,9 +100,7 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
 
     def test_or_pot(self, pot: gp.AbstractCompositePotential) -> None:
         """Test the `__or__` method with a single potential."""
-        single_pot = gp.KeplerPotential(
-            m_tot=u.Quantity(1e12, "solMass"), units="galactic"
-        )
+        single_pot = gp.KeplerPotential(m_tot=u.Q(1e12, "solMass"), units="galactic")
         newpot = pot | single_pot
 
         assert isinstance(newpot, gp.CompositePotential)
@@ -217,14 +216,14 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         """Composite potential."""
         return {
             "disk": gp.MiyamotoNagaiPotential(
-                m_tot=u.Quantity(1e10, "solMass"),
-                a=u.Quantity(6.5, "kpc"),
-                b=u.Quantity(4.5, "kpc"),
+                m_tot=u.Q(1e10, "solMass"),
+                a=u.Q(6.5, "kpc"),
+                b=u.Q(4.5, "kpc"),
                 units="galactic",
             ),
             "halo": gp.NFWPotential(
-                m=u.Quantity(1e12, "solMass"),
-                r_s=u.Quantity(5, "kpc"),
+                m=u.Q(1e12, "solMass"),
+                r_s=u.Q(5, "kpc"),
                 units="galactic",
             ),
         }
@@ -287,26 +286,20 @@ class TestCompositePotential(AbstractCompositePotential_Test):
     # ==========================================================================
 
     def test_potential(self, pot: gp.CompositePotential, x: Sz3) -> None:
-        expect = u.Quantity(jnp.asarray(-0.6753781), "kpc2 / Myr2")
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(jnp.asarray(-0.6753781), "kpc2 / Myr2")
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.CompositePotential, x: Sz3) -> None:
-        expect = u.Quantity(
-            [0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"]
-        )
+        expect = u.Q([0.01124388, 0.02248775, 0.03382281], pot.units["acceleration"])
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.CompositePotential, x: Sz3) -> None:
-        expect = u.Quantity(2.7958598e08, "Msun / kpc3")
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(2.7958598e08, "Msun / kpc3")
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.CompositePotential, x: Sz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             jnp.asarray(
                 [
                     [0.00996317, -0.0025614, -0.00384397],
@@ -316,16 +309,14 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             ),
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.00469486, -0.0025614, -0.00384397],
                 [-0.0025614, 0.00085275, -0.00768793],
@@ -334,5 +325,5 @@ class TestCompositePotential(AbstractCompositePotential_Test):
             pot.units["frequency drift"],
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )

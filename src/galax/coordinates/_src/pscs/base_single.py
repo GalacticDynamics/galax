@@ -37,20 +37,14 @@ class AbstractBasicPhaseSpaceCoordinate(AbstractPhaseSpaceCoordinate):
 
     We can create a phase-space position and convert it to different units:
 
-    >>> psp = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                             p=u.Quantity([4, 5, 6], "km/s"),
-    ...                             t=u.Quantity(0, "Gyr"))
+    >>> psp = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                               p=u.Q([4, 5, 6], "km/s"),
+    ...                               t=u.Q(0, "Gyr"))
     >>> psp.uconvert("solarsystem")
     PhaseSpaceCoordinate(
-        q=CartesianPos3D(
-            x=Quantity(2.06264806e+08, unit='AU'),
-            ... ),
-        p=CartesianVel3D(
-            x=Quantity(0.84379811, unit='AU / yr'),
-            ... ),
-        t=Quantity(0., unit='yr'),
-        frame=SimulationFrame()
-    )
+      q=CartesianPos3D( x=Q(2.06264806e+08, 'AU'), ... ),
+      p=CartesianVel3D( x=Q(0.84379811, 'AU / yr'), ... ),
+      t=Q(0., 'yr'), frame=SimulationFrame() )
 
     """
 
@@ -63,7 +57,8 @@ class AbstractBasicPhaseSpaceCoordinate(AbstractPhaseSpaceCoordinate):
 # `unxt.uconvert` dispatches
 
 
-@dispatch(precedence=1)  # TODO: make precedence=0
+# TODO: make precedence=0
+@dispatch(precedence=1)  # type: ignore[call-overload,misc]
 def uconvert(
     units: u.AbstractUnitSystem | str, wt: AbstractBasicPhaseSpaceCoordinate
 ) -> AbstractBasicPhaseSpaceCoordinate:

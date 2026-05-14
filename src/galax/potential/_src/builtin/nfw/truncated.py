@@ -11,6 +11,7 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -128,18 +129,18 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
 
         Evaluating at the truncation radius:
 
-        >>> q = u.Quantity([20, 0, 0], "kpc")
-        >>> t = u.Quantity(0, "Gyr")
+        >>> q = u.Q([20, 0, 0], "kpc")
+        >>> t = u.Q(0, "Gyr")
         >>> pot._mass_enclosed(q, t)
         Array(2.75869289e+10, dtype=float64)
 
         Evaluating at a radius larger than the truncation radius:
-        >>> q = u.Quantity([25, 0, 0], "kpc")
+        >>> q = u.Q([25, 0, 0], "kpc")
         >>> pot._mass_enclosed(q, t)
         Array(2.75869289e+10, dtype=float64)
 
         Evaluating at a radius smaller than the truncation radius:
-        >>> q = u.Quantity([10, 0, 0], "kpc")
+        >>> q = u.Q([10, 0, 0], "kpc")
         >>> pot._mass_enclosed(q, t)
         Array(1.10825624e+10, dtype=float64)
 
@@ -152,7 +153,7 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
@@ -166,7 +167,7 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
         self, xyz: gt.Sz3, t: gt.Sz0, /
     ) -> gt.Sz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
@@ -199,31 +200,31 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
         >>> pot = gp.HardCutoffNFWPotential(m=1e11, r_s=15, r_t=20, units="galactic")
 
         Evaluating at the truncation radius:
-        >>> q = u.Quantity([20, 0, 0], "kpc")
-        >>> t = u.Quantity(0, "Gyr")
+        >>> q = u.Q([20, 0, 0], "kpc")
+        >>> t = u.Q(0, "Gyr")
         >>> pot.density(q, t)
-        Quantity(Array(324806.00630999, dtype=float64), unit='solMass / kpc3')
+        Q(324806.00630999, 'solMass / kpc3')
 
         Evaluating at a radius larger than the truncation radius:
-        >>> q = u.Quantity([25, 0, 0], "kpc")
+        >>> q = u.Q([25, 0, 0], "kpc")
         >>> pot.density(q, t)
-        Quantity(Array(0., dtype=float64), unit='solMass / kpc3')
+        Q(0., 'solMass / kpc3')
 
         Evaluating at a radius smaller than the truncation radius:
-        >>> q = u.Quantity([10, 0, 0], "kpc")
+        >>> q = u.Q([10, 0, 0], "kpc")
         >>> pot.density(q, t)
-        Quantity(Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
+        Q(1273239.54473516, 'solMass / kpc3')
 
         For comparison, here's a standard NFW potential:
 
         >>> nfw = gp.NFWPotential(m=1e11, r_s=15, units="galactic")
         >>> nfw.density(q, t)
-        Quantity(Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
+        Q(1273239.54473516, 'solMass / kpc3')
 
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),

@@ -22,25 +22,25 @@ class ParameterOmegaMixin(ParameterFieldMixin):
 
     @pytest.fixture(scope="class")
     def field_omega(self) -> u.Quantity["frequency"]:
-        return u.Quantity(1.0, "Hz")
+        return u.Q(1.0, "Hz")
 
     # =====================================================
 
     def test_omega_constant(self, pot_cls, fields):
         """Test the `omega` parameter."""
-        fields["omega"] = u.Quantity(1.0, "Hz")
+        fields["omega"] = u.Q(1.0, "Hz")
         pot = pot_cls(**fields)
-        assert pot.omega(t=0) == u.Quantity(1.0, "Hz")
+        assert pot.omega(t=0) == u.Q(1.0, "Hz")
 
     def test_omega_userfunc(self, pot_cls, fields):
         """Test the `omega` parameter."""
 
         def cos_omega(t: u.Quantity["time"]) -> u.Quantity["frequency"]:
-            return u.Quantity(10 * jnp.cos(t.ustrip("Myr")), "Hz")
+            return u.Q(10 * jnp.cos(t.ustrip("Myr")), "Hz")
 
         fields["omega"] = cos_omega
         pot = pot_cls(**fields)
-        assert pot.omega(t=u.Quantity(0, "Myr")) == u.Quantity(10, "Hz")
+        assert pot.omega(t=u.Q(0, "Myr")) == u.Q(10, "Hz")
 
 
 ################################################################################
@@ -65,8 +65,8 @@ class TestHarmonicOscillatorPotential(
 
     def test_potential(self, pot: gp.HarmonicOscillatorPotential, x: gt.QuSz3) -> None:
         got = pot.potential(x, t=0)
-        expect = u.Quantity(6.97117482e27, pot.units["specific energy"])
-        assert jnp.isclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        expect = u.Q(6.97117482e27, pot.units["specific energy"])
+        assert jnp.isclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     @pytest.mark.skip(reason="TODO: skip until harmonic oscillator fixed")
     def test_potential_density_correspondence(
@@ -76,17 +76,17 @@ class TestHarmonicOscillatorPotential(
 
     def test_gradient(self, pot: gp.HarmonicOscillatorPotential, x: gt.Sz3) -> None:
         got = pot.gradient(x, t=0)
-        expect = u.Quantity([9.95882118e26, 1.99176424e27, 2.98764635e27], "kpc / Myr2")
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        expect = u.Q([9.95882118e26, 1.99176424e27, 2.98764635e27], "kpc / Myr2")
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.HarmonicOscillatorPotential, x: gt.QuSz3) -> None:
         got = pot.density(x, t=0)
-        expect = u.Quantity(1.76169263e37, unit="solMass / kpc3")
-        assert jnp.isclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        expect = u.Q(1.76169263e37, unit="solMass / kpc3")
+        assert jnp.isclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.HarmonicOscillatorPotential, x: gt.QuSz3) -> None:
         got = pot.hessian(x, t=0)
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [9.95882118e26, 0.00000000e00, 0.00000000e00],
                 [0.00000000e00, 9.95882118e26, 0.00000000e00],
@@ -94,14 +94,14 @@ class TestHarmonicOscillatorPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: AbstractPotential, x: gt.Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0],
@@ -110,7 +110,7 @@ class TestHarmonicOscillatorPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )
 
     # ---------------------------------
@@ -154,7 +154,7 @@ class TestHarmonicOscillatorPotential(
         assert jnp.allclose(
             jnp.ravel(galax1d),
             jnp.ravel(convert(gala, u.Quantity)),
-            atol=u.Quantity(atol, galax.unit),
+            atol=u.Q(atol, galax.unit),
         )
 
     # ==========================================================================

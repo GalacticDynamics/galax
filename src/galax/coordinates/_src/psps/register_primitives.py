@@ -21,17 +21,14 @@ def add_psps(
     >>> import unxt as u
     >>> import galax.coordinates as gc
 
-    >>> w1 = gc.PhaseSpacePosition(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                            p=u.Quantity([4, 5, 6], "km/s"))
-    >>> w2 = gc.PhaseSpacePosition(q=u.Quantity([-1, -2, -3], "kpc"),
-    ...                            p=u.Quantity([-4, -5, -6], "km/s"))
+    >>> w1 = gc.PhaseSpacePosition(q=u.Q([1, 2, 3], "kpc"),
+    ...                            p=u.Q([4, 5, 6], "km/s"))
+    >>> w2 = gc.PhaseSpacePosition(q=u.Q([-1, -2, -3], "kpc"),
+    ...                            p=u.Q([-4, -5, -6], "km/s"))
     >>> w3 = w1 + w2
     >>> w3
-    PhaseSpacePosition(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      frame=SimulationFrame()
-    )
+    PhaseSpacePosition( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                        frame=SimulationFrame() )
 
     >>> w3.q.x.value
     Array(0, dtype=int64)

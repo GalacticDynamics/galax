@@ -6,6 +6,7 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -128,7 +129,7 @@ class gNFWPotential(AbstractSinglePotential):
         self, xyz: gt.Sz3, t: gt.Sz0, /
     ) -> gt.Sz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
@@ -142,7 +143,7 @@ class gNFWPotential(AbstractSinglePotential):
         self, xyz: gt.Sz3, t: gt.Sz0, /
     ) -> gt.Sz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
@@ -158,7 +159,7 @@ class gNFWPotential(AbstractSinglePotential):
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
     ) -> gt.FloatSz3:
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
-        t_ = u.Quantity.from_(t, self.units["time"])
+        t_ = u.Q.from_(t, self.units["time"])
         params = {
             "G": self.constants["G"].value,
             "m": self.m(t_, ustrip=self.units["mass"]),

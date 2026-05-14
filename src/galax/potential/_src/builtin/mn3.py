@@ -8,11 +8,12 @@ __all__ = [
 import abc
 import functools as ft
 from dataclasses import KW_ONLY
+
+from jaxtyping import Array
 from typing import Final, final
 
 import equinox as eqx
 import jax
-from jaxtyping import Array
 
 import quaxed.numpy as jnp
 import unxt as u

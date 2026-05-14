@@ -47,10 +47,10 @@ def from_(
     >>> field = gd.fields.HamiltonianField(pot)
     >>> solver = gd.OrbitSolver()  # defaults to Dopri8
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"),
-    ...     t=u.Quantity(0, "Gyr"))
-    >>> t1 = u.Quantity(1, "Gyr")
+    ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"),
+    ...     t=u.Q(0, "Gyr"))
+    >>> t1 = u.Q(1, "Gyr")
     >>> soln = solver.solve(field, w0, t1)
     >>> soln.ts.shape, soln.ys[0].shape
     ((1,), (1, 2, 3))
@@ -64,8 +64,7 @@ def from_(
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
-        t=Quantity['time'](1000., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(1000., 'Myr'), frame=SimulationFrame() )
     (2,)
 
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame,
@@ -121,13 +120,13 @@ def from_(
     >>> field = gd.fields.HamiltonianField(pot)
 
     >>> solver = gd.OrbitSolver()
-    >>> t1 = u.Quantity(1, "Gyr")
-    >>> saveat=u.Quantity(jnp.linspace(0.2, 1, 71), "Gyr")
+    >>> t1 = u.Q(1, "Gyr")
+    >>> saveat=u.Q(jnp.linspace(0.2, 1, 71), "Gyr")
 
     Solving scalar initial conditions:
 
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([8, 0, 0], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"), t=u.Quantity(0, "Gyr"))
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8, 0, 0], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"), t=u.Q(0, "Gyr"))
 
     >>> soln = solver.solve(field, w0, t1, dense=True, saveat=saveat)
     >>> (soln.ts.shape, jax.tree.map(lambda x: x.shape, soln.ys))
@@ -144,14 +143,14 @@ def from_(
             [[ 0.199 -0.114  0.   ]
              [ 0.257  0.196  0.   ]
              [ 0.102  0.644  0.   ]]>,
-        t=Quantity['time']([200. , 211.42857143, 222.85714286], unit='Myr'),
+        t=Q([200. , 211.42857143, 222.85714286], 'Myr'),
         frame=SimulationFrame(),
-        interpolant=PhaseSpaceInterpolation( ... ))
+        interpolant=PhaseSpaceInterpolation(...) )
 
     Solving batched initial conditions:
 
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"), t=u.Quantity(0, "Gyr"))
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"), t=u.Q(0, "Gyr"))
 
     >>> soln = solver.solve(field, w0, t1, dense=True, saveat=saveat)
     >>> (soln.ts.shape, jax.tree.map(lambda x: x.shape, soln.ys))
@@ -174,14 +173,14 @@ def from_(
              [[-0.376 -0.026 -0.125]
               [-0.496 -0.48  -0.165]
               [ 0.043 -0.549  0.014]]]>,
-        t=Quantity['time']([200. , 211.42857143, 222.85714286], unit='Myr'),
+        t=Q([200. , 211.42857143, 222.85714286], 'Myr'),
         frame=SimulationFrame(),
-        interpolant=PhaseSpaceInterpolation( ... ))
+        interpolant=PhaseSpaceInterpolation( ... ) )
 
     Solving batched times and initial conditions:
 
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"), t=u.Quantity([0, 0.1], "Gyr"))
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"), t=u.Q([0, 0.1], "Gyr"))
 
     >>> soln = solver.solve(field, w0, t1, dense=True, saveat=saveat)
     >>> (soln.ts.shape, jax.tree.map(lambda x: x.shape, soln.ys))
@@ -204,9 +203,9 @@ def from_(
              [[-0.39   0.377 -0.13 ]
               [-0.295  0.033 -0.098]
               [-0.143 -0.167 -0.048]]]>,
-        t=Quantity['time']([200. , 211.42857143, 222.85714286], unit='Myr'),
+        t=Q([200. , 211.42857143, 222.85714286], 'Myr'),
         frame=SimulationFrame(),
-        interpolant=PhaseSpaceInterpolation( ... ))
+        interpolant=PhaseSpaceInterpolation( ... ) )
 
     """
     # TODO: don't double construct?

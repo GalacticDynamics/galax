@@ -9,14 +9,16 @@ __all__ = ["OrbitSolver"]
 
 import functools as ft
 from dataclasses import KW_ONLY
+
+from jaxtyping import PyTree
 from typing import Any, TypeAlias, final
+from typing_extensions import override
 
 import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.extend as jex
 import jax.tree as jtu
-from jaxtyping import PyTree
 from plum import dispatch
 
 import diffraxtra as dfxtra
@@ -68,13 +70,13 @@ class OrbitSolver(AbstractSolver):
     Define the initial conditions, here a phase-space position
 
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"),
-    ...     t=u.Quantity(0, "Gyr"))
+    ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"),
+    ...     t=u.Q(0, "Gyr"))
 
     Solve, stepping from `w0.t` to `t1`.
 
-    >>> t1 = u.Quantity(1, "Gyr")
+    >>> t1 = u.Q(1, "Gyr")
     >>> soln = solver.solve(field, w0, t1)
     >>> soln
     Solution( t0=f64[], t1=f64[], ts=f64[1],
@@ -89,8 +91,7 @@ class OrbitSolver(AbstractSolver):
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
-        t=Quantity['time'](1000., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(1000., 'Myr'), frame=SimulationFrame() )
 
     The solver can be customized. Here are a few examples:
 
@@ -142,8 +143,9 @@ class OrbitSolver(AbstractSolver):
 
     # -------------------------------------------
 
+    @override
     @dispatch.abstract
-    def init(
+    def init(  # type: ignore[override]
         self: "OrbitSolver", field: Any, t0: Any, t1: Any, y0: Any, args: Any
     ) -> Any:
         """Initialize the `galax.dynamics.solve.SolveState`.
@@ -169,9 +171,9 @@ class OrbitSolver(AbstractSolver):
         Define the initial conditions, here a phase-space position
 
         >>> w0 = gc.PhaseSpaceCoordinate(
-        ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-        ...     p=u.Quantity([0, 220, 0], "km/s"),
-        ...     t=u.Quantity(0, "Gyr"))
+        ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+        ...     p=u.Q([0, 220, 0], "km/s"),
+        ...     t=u.Q(0, "Gyr"))
 
         Then the `galax.dynamics.solve.SolveState` can be initialized.
 
@@ -200,8 +202,8 @@ class OrbitSolver(AbstractSolver):
 
         - From a tuple of `unxt.Quantity`:
 
-        >>> y0 = (u.Quantity([8, 0, 0], "kpc"), u.Quantity([0, 220, 0], "km/s"))
-        >>> t0 = u.Quantity(0, "Gyr")
+        >>> y0 = (u.Q([8, 0, 0], "kpc"), u.Q([0, 220, 0], "km/s"))
+        >>> t0 = u.Q(0, "Gyr")
         >>> solver.init(field, y0, t0, None)
         SolveState( t=weak_f64[], y=(f64[3], f64[3]), ... )
 
@@ -232,27 +234,27 @@ class OrbitSolver(AbstractSolver):
         - from a `galax.coordinates.PhaseSpacePosition` (no time):
 
         >>> w0 = gc.PhaseSpacePosition(q=w0.q, p=w0.p)  # no time
-        >>> t0 = u.Quantity(0, "Gyr")
+        >>> t0 = u.Q(0, "Gyr")
         >>> solver.init(field, w0, t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
         - From a `galax.coordinates.PhaseSpaceCoordinate`:
 
         >>> w0 = gc.PhaseSpaceCoordinate(
-        ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-        ...     p=u.Quantity([0, 220, 0], "km/s"),
-        ...     t=u.Quantity(0, "Gyr"))
+        ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+        ...     p=u.Q([0, 220, 0], "km/s"),
+        ...     t=u.Q(0, "Gyr"))
         >>> solver.init(field, w0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
         - From a `galax.coordinates.CompositePhaseSpaceCoordinate`:
 
-        >>> w01 = gc.PhaseSpaceCoordinate(q=u.Quantity([10, 0, 0], "kpc"),
-        ...                               p=u.Quantity([0, 200, 0], "km/s"),
-        ...                               t=u.Quantity(0, "Gyr"))
-        >>> w02 = gc.PhaseSpaceCoordinate(q=u.Quantity([0, 10, 0], "kpc"),
-        ...                               p=u.Quantity([-200, 0, 0], "km/s"),
-        ...                               t=u.Quantity(0, "Gyr"))
+        >>> w01 = gc.PhaseSpaceCoordinate(q=u.Q([10, 0, 0], "kpc"),
+        ...                               p=u.Q([0, 200, 0], "km/s"),
+        ...                               t=u.Q(0, "Gyr"))
+        >>> w02 = gc.PhaseSpaceCoordinate(q=u.Q([0, 10, 0], "kpc"),
+        ...                               p=u.Q([-200, 0, 0], "km/s"),
+        ...                               t=u.Q(0, "Gyr"))
         >>> w0s = gc.CompositePhaseSpaceCoordinate(w01=w01, w02=w02)
 
         >>> solver.init(field, w0s, None)
@@ -297,9 +299,9 @@ class OrbitSolver(AbstractSolver):
         Define the initial conditions:
 
         >>> w0 = gc.PhaseSpaceCoordinate(
-        ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-        ...     p=u.Quantity([0, 220, 0], "km/s"),
-        ...     t=u.Quantity(0, "Gyr"))
+        ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+        ...     p=u.Q([0, 220, 0], "km/s"),
+        ...     t=u.Q(0, "Gyr"))
 
         Initialize the state.
 
@@ -311,7 +313,7 @@ class OrbitSolver(AbstractSolver):
 
         Evolve the state to `t1`.
 
-        >>> t1 = u.Quantity(10, "Myr")
+        >>> t1 = u.Q(10, "Myr")
         >>> state = solver.step(field, state, t1, None)
         >>> state.y
         (Array([[7.48122073, 2.20035764, 8.41637332],
@@ -330,8 +332,9 @@ class OrbitSolver(AbstractSolver):
 
     # -------------------------------------------
 
+    @override
     @dispatch.abstract
-    def run(
+    def run(  # type: ignore[override]
         self, field: Any, state: SolveState, t1: Any, args: PyTree, **solver_kw: Any
     ) -> SolveState:
         """Run the state to `t1`.
@@ -354,9 +357,9 @@ class OrbitSolver(AbstractSolver):
         Define the initial conditions:
 
         >>> w0 = gc.PhaseSpaceCoordinate(
-        ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-        ...     p=u.Quantity([0, 220, 0], "km/s"),
-        ...     t=u.Quantity(0, "Gyr"))
+        ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+        ...     p=u.Q([0, 220, 0], "km/s"),
+        ...     t=u.Q(0, "Gyr"))
 
         Initialize the state.
 
@@ -368,7 +371,7 @@ class OrbitSolver(AbstractSolver):
 
         Evolve the state to `t1`.
 
-        >>> t1 = u.Quantity(1, "Gyr")
+        >>> t1 = u.Q(1, "Gyr")
         >>> state = solver.run(field, state, t1, None)
         >>> state.y
         (Array([[-5.15111583, -6.45413687, -5.79500531],
@@ -426,10 +429,10 @@ class OrbitSolver(AbstractSolver):
 
         Solve for a single set of initial conditions.
 
-        >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([8, 0, 0], "kpc"),
-        ...                            p=u.Quantity([0, 220, 0], "km/s"),
-        ...                            t=u.Quantity(0, "Myr"))
-        >>> t1 = u.Quantity(1, "Gyr")
+        >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8, 0, 0], "kpc"),
+        ...                            p=u.Q([0, 220, 0], "km/s"),
+        ...                            t=u.Q(0, "Myr"))
+        >>> t1 = u.Q(1, "Gyr")
 
         >>> soln = solver.solve(field, w0, t1, unbatch_time=True)
         >>> soln
@@ -464,11 +467,11 @@ class OrbitSolver(AbstractSolver):
 
         - tuple of `unxt.Quantity`:
 
-        >>> xyz0 = u.Quantity([8, 0, 0], "kpc")
-        >>> v_xyz = u.Quantity([0, 220, 0], "km/s")
+        >>> xyz0 = u.Q([8, 0, 0], "kpc")
+        >>> v_xyz = u.Q([0, 220, 0], "km/s")
         >>> w0 = (xyz0, v_xyz)
 
-        >>> t0, t1 = u.Quantity([0, 1], "Gyr")
+        >>> t0, t1 = u.Q([0, 1], "Gyr")
         >>> soln = solver.solve(field, w0, t0, t1)
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[1],
@@ -542,12 +545,12 @@ class OrbitSolver(AbstractSolver):
 
         - `galax.coordinates.AbstractCompositePhaseSpaceCoordinate`:
 
-        >>> w01 = gc.PhaseSpaceCoordinate(q=u.Quantity([10, 0, 0], "kpc"),
-        ...                               p=u.Quantity([0, 200, 0], "km/s"),
-        ...                               t=u.Quantity(0, "Gyr"))
-        >>> w02 = gc.PhaseSpaceCoordinate(q=u.Quantity([0, 10, 0], "kpc"),
-        ...                               p=u.Quantity([-200, 0, 0], "km/s"),
-        ...                               t=u.Quantity(10, "Myr"))
+        >>> w01 = gc.PhaseSpaceCoordinate(q=u.Q([10, 0, 0], "kpc"),
+        ...                               p=u.Q([0, 200, 0], "km/s"),
+        ...                               t=u.Q(0, "Gyr"))
+        >>> w02 = gc.PhaseSpaceCoordinate(q=u.Q([0, 10, 0], "kpc"),
+        ...                               p=u.Q([-200, 0, 0], "km/s"),
+        ...                               t=u.Q(10, "Myr"))
         >>> w0s = gc.CompositePhaseSpaceCoordinate(w01=w01, w02=w02)
 
         >>> soln = solver.solve(field, w0s, t1, unbatch_time=True)
@@ -559,7 +562,7 @@ class OrbitSolver(AbstractSolver):
 
         - `galax.dynamics.solve.SolveState` from ``.init()``:
 
-        >>> state = solver.init(field, w0, u.Quantity(0, "Gyr"), None)
+        >>> state = solver.init(field, w0, u.Q(0, "Gyr"), None)
         >>> soln = solver.solve(field, state, t1, unbatch_time=True)
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[],
@@ -569,7 +572,7 @@ class OrbitSolver(AbstractSolver):
 
         This can be solved for a specific set of times, not just `t1`.
 
-        >>> soln = solver.solve(field, w0, t0, t1, saveat=u.Quantity(0.5, "Gyr"))
+        >>> soln = solver.solve(field, w0, t0, t1, saveat=u.Q(0.5, "Gyr"))
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[1],
                   ys=(f64[1,3], f64[1,3]), ... )
@@ -578,7 +581,7 @@ class OrbitSolver(AbstractSolver):
          Array([[ 0.21977442, -0.1196412 ,  0. ]], dtype=float64))
 
         >>> soln = solver.solve(field, w0, t0, t1,
-        ...     saveat=u.Quantity([0.25, 0.5], "Gyr"))
+        ...     saveat=u.Q([0.25, 0.5], "Gyr"))
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[2],
                   ys=(f64[2,3], f64[2,3]), ... )
@@ -587,7 +590,7 @@ class OrbitSolver(AbstractSolver):
         scalar.
 
         >>> soln = solver.solve(field, w0, t0, t1,
-        ...      saveat=u.Quantity(0.5, "Gyr"), unbatch_time=True)
+        ...      saveat=u.Q(0.5, "Gyr"), unbatch_time=True)
         >>> soln
         Solution( t0=f64[], t1=f64[], ts=f64[],
                   ys=(f64[3], f64[3]), ... )
@@ -597,8 +600,8 @@ class OrbitSolver(AbstractSolver):
         A set of initial conditions can be solved at once. The resulting
         `diffrax.Solution` has a `ys` shape of ([time], *shape, 3),
 
-        >>> w0s = (u.Quantity([[8, 0, 0], [9, 0, 0]], "kpc"),
-        ...        u.Quantity([[0, 220, 0], [0, 230, 0]], "km/s"))
+        >>> w0s = (u.Q([[8, 0, 0], [9, 0, 0]], "kpc"),
+        ...        u.Q([[0, 220, 0], [0, 230, 0]], "km/s"))
 
         >>> soln = solver.solve(field, w0s, t0, t1)
         >>> soln
@@ -613,7 +616,7 @@ class OrbitSolver(AbstractSolver):
         This can be batched with a set of times that can be broadcasted to the
         shape of ``w0s``.
 
-        >>> t1 = u.Quantity([1, 1.1], "Gyr")
+        >>> t1 = u.Q([1, 1.1], "Gyr")
         >>> soln = solver.solve(field, w0, t0, t1)
         >>> soln
         Solution( t0=f64[2], t1=f64[2], ts=f64[2,1],
@@ -631,7 +634,7 @@ class OrbitSolver(AbstractSolver):
         done by passing ``vectorize_interpolation=True``. To emphasize the
         differences, let's do this on a batched solve.
 
-        >>> t0 = u.Quantity([-1, -0.5], "Gyr")
+        >>> t0 = u.Q([-1, -0.5], "Gyr")
         >>> soln = solver.solve(field, w0s, t0, t1, dense=True,
         ...                     vectorize_interpolation=True)
         >>> newq, newp = soln.evaluate(0.5)  # Myr
@@ -769,7 +772,7 @@ def run(
 # TODO: check if this is any faster than the `init-run` pattern.
 
 
-@OrbitSolver.solve.dispatch(precedence=1)  # type: ignore[misc]
+@OrbitSolver.solve.dispatch(precedence=1)  # type: ignore[misc,union-attr]
 @ft.partial(eqx.filter_jit)
 def solve(
     self: OrbitSolver,
@@ -801,7 +804,7 @@ def solve(
     return soln
 
 
-scalar_solver = OrbitSolver.solve.invoke(
+scalar_solver = OrbitSolver.solve.invoke(  # type: ignore[union-attr]
     OrbitSolver,
     AbstractOrbitField,
     tuple[gdt.BBtQarr, gdt.BBtParr],

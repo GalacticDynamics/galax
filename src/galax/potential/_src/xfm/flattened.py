@@ -46,18 +46,18 @@ class FlattenedInThePotential(AbstractTransformedPotential):
     >>> opot = gp.HernquistPotential(1e12, 10.0, units="galactic")
     >>> xpot = gp.FlattenedInThePotential(opot, q_z=2.0)
 
-    >>> x1 = u.Quantity([1, 0, 0], "kpc")
-    >>> x2 = u.Quantity([0, 0, 1], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
+    >>> x1 = u.Q([1, 0, 0], "kpc")
+    >>> x2 = u.Q([0, 0, 1], "kpc")
+    >>> t = u.Q(0, "Gyr")
 
     >>> opot.potential(x1, t) == xpot.potential(x1, t)
     Array(True, dtype=bool)
 
     >>> opot.potential(x2, t)
-    Quantity(Array(-0.40895474, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.40895474, 'kpc2 / Myr2')
 
     >>> xpot.potential(x2, t)
-    Quantity(Array(-0.42842878, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.42842878, 'kpc2 / Myr2')
 
     >>> opot.potential(x2 / 2.0, t) == xpot.potential(x2, t)
     Array(True, dtype=bool)
@@ -68,7 +68,7 @@ class FlattenedInThePotential(AbstractTransformedPotential):
     base_potential: AbstractPotential
 
     q_z: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1, ""),
+        default=u.Q(1, ""),
         dimensions="dimensionless",
         doc="ratio of the z-axis to the x- or y-axis (or cylindrical radius)",
     )

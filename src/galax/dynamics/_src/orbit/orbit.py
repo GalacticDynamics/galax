@@ -34,39 +34,25 @@ class Orbit(AbstractOrbit):
 
     >>> potential = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([8., 0., 0.], "kpc"),
-    ...     p=u.Quantity([0., 230, 0.], "km/s"),
-    ...     t=u.Quantity(0, "Myr"))
-    >>> ts = u.Quantity(jnp.linspace(0., 1., 10), "Gyr")
+    ...     q=u.Q([8., 0., 0.], "kpc"),
+    ...     p=u.Q([0., 230, 0.], "km/s"),
+    ...     t=u.Q(0, "Myr"))
+    >>> ts = u.Q(jnp.linspace(0., 1., 10), "Gyr")
 
     >>> orbit = gd.evaluate_orbit(potential, w0, ts)
     >>> orbit
-    Orbit(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity([...], unit='Myr'),
-      frame=SimulationFrame(),
-      interpolant=None
-    )
+    Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...),
+      t=Q( [ 0. , ..., 1000. ], 'Myr' ),
+      frame=SimulationFrame(), interpolant=None )
 
     >>> orbit = gd.evaluate_orbit(potential, w0, ts, dense=True)
     >>> orbit
-    Orbit(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity([...], unit='Myr'),
-      frame=SimulationFrame(),
-      interpolant=PhaseSpaceInterpolation( ... )
-    )
+    Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q( [...], 'Myr' ),
+           frame=SimulationFrame(), interpolant=PhaseSpaceInterpolation(...) )
 
-    >>> orbit(u.Quantity(0.5, "Gyr"))
-    Orbit(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity(500., unit='Myr'),
-      frame=SimulationFrame(),
-      interpolant=None
-    )
+    >>> orbit(u.Q(0.5, "Gyr"))
+    Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q(500., 'Myr'),
+           frame=SimulationFrame(), interpolant=None )
 
     """
 

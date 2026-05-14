@@ -42,7 +42,7 @@ def convert_potential(
       m_tot=...
     )
     >>> pot.m_tot(0)
-    Quantity(Array(1.e+11, dtype=float64), unit='solMass')
+    Q(1.e+11, 'solMass')
 
     """  # noqa: E501
     return galpy_to_galax(from_)
@@ -117,7 +117,7 @@ def _error_if_not_all_constant_parameters(
 
 def _galpy_mass(pot: gpy.Potential, /) -> u.Quantity:
     """Get the total mass of a Galpy potential."""
-    return u.Quantity.from_(
+    return u.Q.from_(
         pot._amp * conversion.mass_in_msol(pot._vo, pot._ro),  # noqa: SLF001
         "Msun",
     )
@@ -177,7 +177,7 @@ def galpy_to_galax(pot: list[gpy.Potential], /) -> gp.CompositePotential:
 
     """  # noqa: E501
     return gp.CompositePotential(
-        {f"pot_{i}": galpy_to_galax(p) for i, p in enumerate(pot)}
+        {f"pot_{i}": galpy_to_galax(p) for i, p in enumerate(pot)}  # type: ignore[misc]
     )
 
 
@@ -228,19 +228,19 @@ def galpy_to_galax(pot: gpy.BurkertPotential, /) -> gp.BurkertPotential:
     )
 
     >>> pot.m(0)
-    Quantity(Array(8.18153508e+10, dtype=float64), unit='solMass')
+    Q(8.18153508e+10, 'solMass')
 
     >>> pot.r_s(0)
-    Quantity(Array(8., dtype=float64,...), unit='kpc')
+    Q(8., 'kpc')
 
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?
     return gp.BurkertPotential.from_central_density(
-        rho_0=u.Quantity(
+        rho_0=u.Q(
             pot._amp * conversion.dens_in_msolpc3(pot._vo, pot._ro),  # noqa: SLF001
             "Msun / pc3",
         ),
-        r_s=u.Quantity(pot.a * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=u.Q(pot.a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -295,8 +295,8 @@ def galpy_to_galax(pot: gpy.HernquistPotential, /) -> gp.HernquistPotential:
     # TODO: factor in the constants, e.g. G?
     # TODO: unit management
     return gp.HernquistPotential(
-        m_tot=u.Quantity.from_(pot.mass(np.inf), "Msun"),
-        r_s=u.Quantity.from_(pot.a, "kpc"),
+        m_tot=u.Q.from_(pot.mass(np.inf), "Msun"),
+        r_s=u.Q.from_(pot.a, "kpc"),
         units="galactic",
     )
 
@@ -348,12 +348,12 @@ def galpy_to_galax(pot: gpy.IsochronePotential, /) -> gp.IsochronePotential:
     )
 
     >>> pot.m_tot(0)
-    Quantity(Array(1.e+11, dtype=float64), unit='solMass')
+    Q(1.e+11, 'solMass')
 
     """  # noqa: E501
     return gp.IsochronePotential(
         m_tot=_galpy_mass(pot),
-        r_s=u.Quantity(pot.b * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=u.Q(pot.b * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -391,10 +391,10 @@ def galpy_to_galax(pot: gpy.JaffePotential, /) -> gp.JaffePotential:
     Examples
     --------
     >>> import galpy.potential as gpy
-    >>> import astropy.units as u
+    >>> import astropy.units as apyu
     >>> import galax.potential as gp
 
-    >>> pot = gpy.JaffePotential(amp=u.Quantity(1e11, "Msun"), a=1.0)
+    >>> pot = gpy.JaffePotential(amp=apyu.Quantity(1e11, "Msun"), a=1.0)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     JaffePotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
@@ -406,7 +406,7 @@ def galpy_to_galax(pot: gpy.JaffePotential, /) -> gp.JaffePotential:
     """
     return gp.JaffePotential(
         m_tot=_galpy_mass(pot),
-        r_s=u.Quantity(pot.a * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=u.Q(pot.a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -455,7 +455,7 @@ def galpy_to_galax(pot: gpy.KeplerPotential, /) -> gp.KeplerPotential:
       m_tot=...
     )
     >>> pot.m_tot(0)
-    Quantity(Array(1.e+11, dtype=float64, ...), unit='solMass')
+    Q(1.e+11, 'solMass')
 
     """  # noqa: E501
     # TODO: factor in the constants, e.g. G?
@@ -509,7 +509,7 @@ def galpy_to_galax(pot: gpy.KuzminDiskPotential, /) -> gp.KuzminPotential:
     """  # noqa: E501
     return gp.KuzminPotential(
         m_tot=_galpy_mass(pot),
-        r_s=u.Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=u.Q.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -565,11 +565,11 @@ def galpy_to_galax(pot: gpy.SoftenedNeedleBarPotential, /) -> gp.LongMuraliBarPo
     """  # noqa: E501
     return gp.LongMuraliBarPotential(
         m_tot=_galpy_mass(pot),
-        a=u.Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
-        b=u.Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
-        c=u.Quantity.from_(np.sqrt(pot._c2) * pot._ro, "kpc"),  # noqa: SLF001
+        a=u.Q.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
+        b=u.Q.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
+        c=u.Q.from_(np.sqrt(pot._c2) * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
-        alpha=u.Quantity.from_(pot._pa, "rad"),  # noqa: SLF001
+        alpha=u.Q.from_(pot._pa, "rad"),  # noqa: SLF001
     )
 
 
@@ -626,8 +626,8 @@ def galpy_to_galax(pot: gpy.MiyamotoNagaiPotential, /) -> gp.MiyamotoNagaiPotent
     """  # noqa: E501
     return gp.MiyamotoNagaiPotential(
         m_tot=_galpy_mass(pot),
-        a=u.Quantity.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
-        b=u.Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
+        a=u.Q.from_(pot._a * pot._ro, "kpc"),  # noqa: SLF001
+        b=u.Q.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -723,7 +723,7 @@ def galpy_to_galax(pot: gpy.PlummerPotential, /) -> gp.PlummerPotential:
     """  # noqa: E501
     return gp.PlummerPotential(
         m_tot=_galpy_mass(pot),
-        r_s=u.Quantity.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=u.Q.from_(pot._b * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -779,13 +779,13 @@ def galpy_to_galax(
     )
 
     >>> pot.m_tot(0)
-    Quantity(Array(5.12e+08, dtype=float64), unit='solMass')
+    Q(5.12e+08, 'solMass')
 
     """  # noqa: E501
     return gp.PowerLawCutoffPotential(
         m_tot=_galpy_mass(pot),
-        alpha=u.Quantity(pot.alpha, ""),
-        r_c=u.Quantity.from_(pot.rc * pot._ro, "kpc"),  # noqa: SLF001
+        alpha=u.Q(pot.alpha, ""),
+        r_c=u.Q.from_(pot.rc * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 
@@ -811,10 +811,7 @@ def galax_to_galpy(
     pot = _error_if_not_all_constant_parameters(pot)
 
     return gpy.PowerSphericalPotentialwCutoff(
-        amp=convert(
-            pot.density(u.Quantity([0, 0, 0], "kpc"), u.Quantity(0, "Myr")),
-            AstropyQuantity,
-        ),
+        amp=convert(pot.density(u.Q([0, 0, 0], "kpc"), u.Q(0, "Myr")), AstropyQuantity),
         alpha=convert(pot.alpha(0), AstropyQuantity),
         rc=convert(pot.r_c(0), AstropyQuantity),
     )
@@ -835,10 +832,10 @@ def galpy_to_galax(pot: gpy.NFWPotential, /) -> gp.NFWPotential:
     Examples
     --------
     >>> import galpy.potential as gpy
-    >>> import astropy.units as u
+    >>> import astropy.units as apyu
     >>> import galax.potential as gp
 
-    >>> galpy_pot = gpy.NFWPotential(amp=u.Quantity(1e11, "Msun"), a=1.0)
+    >>> galpy_pot = gpy.NFWPotential(amp=apyu.Quantity(1e11, "Msun"), a=1.0)
     >>> pot = gp.io.convert_potential(gp.io.GalaxLibrary, galpy_pot)
     >>> pot
     NFWPotential(
@@ -851,7 +848,7 @@ def galpy_to_galax(pot: gpy.NFWPotential, /) -> gp.NFWPotential:
     """  # noqa: E501
     return gp.NFWPotential(
         m=_galpy_mass(pot),
-        r_s=u.Quantity.from_(pot.a * pot._ro, "kpc"),  # noqa: SLF001
+        r_s=u.Q.from_(pot.a * pot._ro, "kpc"),  # noqa: SLF001
         units="galactic",
     )
 

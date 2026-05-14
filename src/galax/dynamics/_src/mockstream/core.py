@@ -2,10 +2,10 @@
 
 __all__ = ["MockStream"]
 
+from jaxtyping import Array, Shaped
 from typing import final
 
 import jax.tree as jtu
-from jaxtyping import Array, Shaped
 
 import coordinax as cx
 import quaxed.numpy as jnp

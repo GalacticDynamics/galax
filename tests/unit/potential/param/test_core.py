@@ -61,18 +61,18 @@ class TestConstantParameter(TestAbstractParameter[ConstantParameter]):
 
     @pytest.fixture(scope="class")
     def field_value(self, field_unit) -> float:
-        return u.Quantity(1.0, field_unit)
+        return u.Q(1.0, field_unit)
 
     @pytest.fixture(scope="class")
     def param(self, param_cls: type[T], field_unit: Unit, field_value: float) -> T:
-        return param_cls(u.Quantity.from_(field_value, unit=field_unit))
+        return param_cls(u.Q.from_(field_value, unit=field_unit))
 
     # ===============================================================
 
     def test_call(self, param: T, field_value: float) -> None:
         """Test `galax.potential.ConstantParameter` call method."""
         assert param(t=1.0) == field_value
-        assert param(t=u.Quantity(1.0, "s")) == field_value
+        assert param(t=u.Q(1.0, "s")) == field_value
 
     def test_mul(self, param: T, field_value: float) -> None:
         """Test `galax.potential.ConstantParameter` multiplication."""
@@ -96,9 +96,9 @@ class TestParameterCallable:
         assert not issubclass(object, ParameterCallable)
 
     def test_isinstance(self) -> None:
-        assert isinstance(ConstantParameter(u.Quantity(1.0, "km")), ParameterCallable)
+        assert isinstance(ConstantParameter(u.Q(1.0, "km")), ParameterCallable)
         assert isinstance(
-            CustomParameter(lambda t: u.Quantity.from_(t, "km")), ParameterCallable
+            CustomParameter(lambda t: u.Q.from_(t, "km")), ParameterCallable
         )
 
 
@@ -112,7 +112,7 @@ class TestCustomParameter(TestAbstractParameter[CustomParameter]):
     @pytest.fixture(scope="class")
     def field_func(self) -> ParameterCallable:
         def func(t: u.Quantity["time"], **kwargs: Any) -> Any:
-            return u.Quantity(u.ustrip("Gyr", t), "kpc")
+            return u.Q(u.ustrip("Gyr", t), "kpc")
 
         return func
 
@@ -126,10 +126,10 @@ class TestCustomParameter(TestAbstractParameter[CustomParameter]):
 
     def test_call(self, param: T) -> None:
         """Test :class:`galax.potential.CustomParameter` call method."""
-        assert param(t=u.Quantity(1.0, "Gyr")) == u.Quantity(1.0, "kpc")
+        assert param(t=u.Q(1.0, "Gyr")) == u.Q(1.0, "kpc")
 
         # TODO: sort out what this tests
-        # assert param(t=u.Quantity(1.0, u.unit("s"))) == u.Quantity(0.97779222, "km")
+        # assert param(t=u.Q(1.0, u.unit("s"))) == u.Q(0.97779222, "km")
 
         # t = jnp.asarray([1.0, 2.0])
         # assert array_equal(param(t=t), t)

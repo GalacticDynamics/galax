@@ -38,25 +38,21 @@ class TestNFWPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(-1.87120528, pot.units["specific energy"])
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(-1.87120528, pot.units["specific energy"])
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
-            [0.06589185, 0.1317837, 0.19767556], pot.units["acceleration"]
-        )
+        expect = u.Q([0.06589185, 0.1317837, 0.19767556], pot.units["acceleration"])
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
         got = pot.density(x, t=0)
-        exp = u.Quantity(9.45944763e08, pot.units["mass density"])
-        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        exp = u.Q(9.45944763e08, pot.units["mass density"])
+        assert jnp.isclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
     def test_hessian(self, pot: gp.NFWPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.05559175, -0.02060021, -0.03090031],
                 [-0.02060021, 0.02469144, -0.06180062],
@@ -64,23 +60,21 @@ class TestNFWPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_special_inits(self) -> None:
         """Test specialized initializers of the NFW potential."""
         pot = gp.NFWPotential.from_circular_velocity(
-            v_c=u.Quantity(220.0, "km/s"), r_s=u.Quantity(15.0, "kpc"), units="galactic"
+            v_c=u.Q(220.0, "km/s"), r_s=u.Q(15.0, "kpc"), units="galactic"
         )
         got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
         exp = -0.23399598
         assert jnp.allclose(got, exp, atol=1e-8)
 
         pot = gp.NFWPotential.from_circular_velocity(
-            v_c=u.Quantity(220.0, "km/s"),
-            r_s=u.Quantity(15.0, "kpc"),
-            r_ref=u.Quantity(20.0, "kpc"),
+            v_c=u.Q(220, "km/s"),
+            r_s=u.Q(15, "kpc"),
+            r_ref=u.Q(20, "kpc"),
             units="galactic",
         )
         got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
@@ -88,17 +82,14 @@ class TestNFWPotential(
         assert jnp.allclose(got, exp, atol=1e-8)
 
         pot = gp.NFWPotential.from_M200_c(
-            M200=u.Quantity(1e12, "Msun"), c=15.0, units="galactic"
+            M200=u.Q(1e12, "Msun"), c=15.0, units="galactic"
         )
         got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
         exp = -0.15451932
         assert jnp.allclose(got, exp, atol=1e-8)
 
         pot = gp.NFWPotential.from_M200_c(
-            M200=u.Quantity(1e12, "Msun"),
-            c=15.0,
-            rho_c=u.Quantity(1, "g / m3"),
-            units="galactic",
+            M200=u.Q(1e12, "Msun"), c=15.0, rho_c=u.Q(1, "g / m3"), units="galactic"
         )
         got = pot.potential(jnp.array([1.0, 2.0, 3.0]), 0.0)
         exp = -10.73095438
@@ -109,7 +100,7 @@ class TestNFWPotential(
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.03776704, -0.02060021, -0.03090031],
                 [-0.02060021, 0.00686674, -0.06180062],
@@ -118,5 +109,5 @@ class TestNFWPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )

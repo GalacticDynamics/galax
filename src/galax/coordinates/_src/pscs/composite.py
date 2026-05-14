@@ -3,10 +3,10 @@
 __all__ = ["CompositePhaseSpaceCoordinate"]
 
 from collections.abc import Iterable, Mapping
+from jaxtyping import Array, Int, PyTree, Shaped
 from typing import Any, final
 
 import jax.tree as jtu
-from jaxtyping import Array, Int, PyTree, Shaped
 
 import coordinax as cx
 import coordinax.frames as cxf
@@ -64,12 +64,12 @@ class CompositePhaseSpaceCoordinate(AbstractCompositePhaseSpaceCoordinate):
     constructors for Cartesian positions and velocities. To see the full
     constructor, see :class:`~galax.coordinates.PhaseSpaceCoordinate`.
 
-    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-    ...                            p=u.Quantity([4, 5, 6], "m/s"),
-    ...                            t=u.Quantity(7, "s"))
-    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Quantity([1.5, 2.5, 3.5], "m"),
-    ...                            p=u.Quantity([4.5, 5.5, 6.5], "m/s"),
-    ...                            t=u.Quantity(6, "s"))
+    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"),
+    ...                              p=u.Q([4, 5, 6], "m/s"),
+    ...                              t=u.Q(7, "s"))
+    >>> w2 = gc.PhaseSpaceCoordinate(q=u.Q([1.5, 2.5, 3.5], "m"),
+    ...                              p=u.Q([4.5, 5.5, 6.5], "m/s"),
+    ...                              t=u.Q(6, "s"))
 
     We can create a composite phase-space position from these two phase-space
     positions:
@@ -77,50 +77,43 @@ class CompositePhaseSpaceCoordinate(AbstractCompositePhaseSpaceCoordinate):
     >>> cw = gc.CompositePhaseSpaceCoordinate(w1=w1, w2=w2)
     >>> cw
     CompositePhaseSpaceCoordinate({'w1': PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity...
+        q=CartesianPos3D(...), p=CartesianVel3D(...),
+        t=Q(7, 's'), frame=SimulationFrame()
       ),
       'w2': PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity...
+        q=CartesianPos3D(...), p=CartesianVel3D(...),
+        t=Q(6, 's'), frame=SimulationFrame()
     )})
 
     The individual phase-space positions can be accessed via the keys:
 
     >>> cw["w1"]
-    PhaseSpaceCoordinate(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity...
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                          t=Q(7, 's'), frame=SimulationFrame() )
 
     The ``q``, ``p``, and ``t`` attributes are the concatenation of the
     constituent phase-space positions, sorted by ``t``. Note that in this
     example, the time of ``w2`` is earlier than ``w1``.
 
     >>> cw.t
-    Quantity(Array([6, 7], dtype=int64, ...), unit='s')
+    Q([6, 7], 's')
 
     >>> cw.q.x
-    Quantity(Array([1.5, 1. ], dtype=float64), unit='m')
+    Q([1.5, 1. ], 'm')
 
     >>> cw.p.x
-    Quantity(Array([4.5, 4. ], dtype=float64), unit='m / s')
+    Q([4.5, 4. ], 'm / s')
 
     We can transform the composite phase-space position to a new position class.
 
     >>> cw.vconvert(cx.vecs.CylindricalPos)
     CompositePhaseSpaceCoordinate({'w1': PhaseSpaceCoordinate(
-        q=CylindricalPos( ... ),
-        p=CylindricalVel( ... ),
-        t=Quantity...
+        q=CylindricalPos(...), p=CylindricalVel(...),
+        t=Q(7, 's'), frame=SimulationFrame()
       ),
       'w2': PhaseSpaceCoordinate(
-        q=CylindricalPos( ... ),
-        p=CylindricalVel( ... ),
-        t=...
+        q=CylindricalPos(...), p=CylindricalVel(...),
+        t=Q(6, 's'), frame=SimulationFrame()
     )})
 
     The shape of the composite phase-space position is the broadcast shape of

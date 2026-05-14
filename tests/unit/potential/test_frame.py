@@ -15,7 +15,7 @@ def test_bar_means_of_rotation() -> None:
         m_tot=1e9, a=5.0, b=0.1, c=0.1, alpha=0, units="galactic"
     )
 
-    Omega_z_angv = u.Quantity(220.0, "deg/Myr")
+    Omega_z_angv = u.Q(220.0, "deg/Myr")
 
     def alpha_func(t: u.Quantity) -> u.Quantity["deg"]:
         return Omega_z_angv * t
@@ -28,8 +28,8 @@ def test_bar_means_of_rotation() -> None:
     xpot = gp.TransformedPotential(basepot, op)
 
     # quick test of the op
-    q = u.Quantity([5.0, 0.0, 0.0], "kpc")
-    t = u.Quantity(0.0, "Myr")
+    q = u.Q([5.0, 0.0, 0.0], "kpc")
+    t = u.Q(0.0, "Myr")
 
     newq, newt = op.inverse(t, q)
     assert isinstance(newq, u.Quantity)
@@ -40,17 +40,17 @@ def test_bar_means_of_rotation() -> None:
     assert jnp.array_equal(xpot.acceleration(q, t), hardpot.acceleration(q, t))
 
     # They should be equivalent at t=110 Myr (1/2 period)
-    t = u.Quantity(110, "Myr")
+    t = u.Q(110, "Myr")
     assert xpot.potential(q, t) == hardpot.potential(q, t)
     assert jnp.array_equal(xpot.acceleration(q, t), hardpot.acceleration(q, t))
 
     # They should be equivalent at t=220 Myr (1 period)
-    t = u.Quantity(220, "Myr")
+    t = u.Q(220, "Myr")
     assert xpot.potential(q, t) == hardpot.potential(q, t)
     assert jnp.array_equal(xpot.acceleration(q, t), hardpot.acceleration(q, t))
 
     # They should be equivalent at t=55 Myr (1/4 period)
-    t = u.Quantity(55, "Myr")
+    t = u.Q(55, "Myr")
     assert xpot.potential(q, t) == hardpot.potential(q, t)
     assert jnp.array_equal(xpot.acceleration(q, t), hardpot.acceleration(q, t))
 

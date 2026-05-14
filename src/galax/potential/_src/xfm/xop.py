@@ -4,6 +4,7 @@ __all__ = ["TransformedPotential"]
 
 
 from dataclasses import replace
+
 from typing import final
 
 import equinox as eqx
@@ -34,29 +35,29 @@ class TransformedPotential(AbstractTransformedPotential):
 
     Now we define a triaxial Hernquist potential with a time-dependent mass:
 
-    >>> mfunc = gp.params.CustomParameter(lambda t: u.Quantity(1e12 * (1 + u.ustrip(AllowValue, "Gyr", t) / 10), "Msun"))
+    >>> mfunc = gp.params.CustomParameter(lambda t: u.Q(1e12 * (1 + u.ustrip(AllowValue, "Gyr", t) / 10), "Msun"))
     >>> pot = gp.TriaxialHernquistPotential(m_tot=mfunc, r_s=1,
     ...                                     q1=1, q2=0.5, units="galactic")
 
     Let's see the triaxiality of the potential:
 
-    >>> t = u.Quantity(0, "Gyr")
-    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 0, 0], "kpc"),
-    ...                              p=u.Quantity([0, 1, 0], "km/s"),
+    >>> t = u.Q(0, "Gyr")
+    >>> w1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 0, 0], "kpc"),
+    ...                              p=u.Q([0, 1, 0], "km/s"),
     ...                              t=t)
 
     The triaxiality can be seen in the potential energy of the three positions:
 
     >>> pot.potential(w1)
-    Quantity(Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
+    Q(-2.24925108, 'kpc2 / Myr2')
 
-    >>> q = u.Quantity([0, 1, 0], "kpc")
+    >>> q = u.Q([0, 1, 0], "kpc")
     >>> pot.potential(q, t)
-    Quantity(Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
+    Q(-2.24925108, 'kpc2 / Myr2')
 
-    >>> q = u.Quantity([0, 0, 1], "kpc")
+    >>> q = u.Q([0, 0, 1], "kpc")
     >>> pot.potential(q, t)
-    Quantity(Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Q(-1.49950072, 'kpc2 / Myr2')
 
     Let's apply a spatial translation to the potential:
 
@@ -75,19 +76,19 @@ class TransformedPotential(AbstractTransformedPotential):
     translated by 3 kpc in the x-direction:
 
     >>> xpot1.potential(w1)
-    Quantity(Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Q(-1.49950072, 'kpc2 / Myr2')
 
     This is the same as evaluating the untranslated potential at [-2, 0, 0] kpc:
 
-    >>> q = u.Quantity([-2, 0, 0], "kpc")
-    >>> pot.potential(q, u.Quantity(0, "Gyr"))
-    Quantity(Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    >>> q = u.Q([-2, 0, 0], "kpc")
+    >>> pot.potential(q, u.Q(0, "Gyr"))
+    Q(-1.49950072, 'kpc2 / Myr2')
 
     We can also apply a time translation to the potential:
 
     >>> op2 = cx.ops.GalileanTranslation.from_([1_000, 0, 0, 0], "kpc")
     >>> op2.translation.t.uconvert("Myr")  # doctest: +SKIP
-    Quantity(Array(3.26156378, dtype=float64), unit='Myr')
+    Q(3.26156378, 'Myr')
 
     >>> xpot2 = gp.TransformedPotential(base_potential=pot, xop=op2)
 
@@ -95,15 +96,15 @@ class TransformedPotential(AbstractTransformedPotential):
     been evaluating the potential at ``w1.t=t=0``:
 
     >>> xpot2.potential(w1)
-    Quantity(Array(-2.24851747, dtype=float64), unit='kpc2 / Myr2')
+    Q(-2.24851747, 'kpc2 / Myr2')
 
     But if we evaluate the potential at a different time, the potential energy
     will be different:
 
     >>> from dataclasses import replace
-    >>> w2 = replace(w1, t=u.Quantity(10, "Myr"))
+    >>> w2 = replace(w1, t=u.Q(10, "Myr"))
     >>> xpot2.potential(w2)
-    Quantity(Array(-2.25076672, dtype=float64), unit='kpc2 / Myr2')
+    Q(-2.25076672, 'kpc2 / Myr2')
 
     Now let's boost the potential by 200 km/s in the y-direction:
 
@@ -113,22 +114,22 @@ class TransformedPotential(AbstractTransformedPotential):
 
     >>> xpot3 = gp.TransformedPotential(base_potential=pot, xop=op3)
     >>> xpot3.potential(w2)
-    Quantity(Array(-1.37421204, dtype=float64), unit='kpc2 / Myr2')
+    Q(-1.37421204, 'kpc2 / Myr2')
 
     Alternatively we can rotate the potential by 90 degrees about the y-axis:
 
     >>> import quaxed.numpy as jnp
-    >>> op4 = cx.ops.GalileanRotation.from_euler("y", u.Quantity(90, "deg"))
+    >>> op4 = cx.ops.GalileanRotation.from_euler("y", u.Q(90, "deg"))
     >>> op4
     GalileanRotation(rotation=f64[3,3])
 
     >>> xpot4 = gp.TransformedPotential(base_potential=pot, xop=op4)
     >>> xpot4.potential(w1)
-    Quantity(Array(-1.49950072, dtype=float64), unit='kpc2 / Myr2')
+    Q(-1.49950072, 'kpc2 / Myr2')
 
-    >>> q = u.Quantity([0, 0, 1], "kpc")
+    >>> q = u.Q([0, 0, 1], "kpc")
     >>> xpot4.potential(q, t)
-    Quantity(Array(-2.24925108, dtype=float64), unit='kpc2 / Myr2')
+    Q(-2.24925108, 'kpc2 / Myr2')
 
     If you look all the way back to the first examples, you will see that the
     potential energy at [1, 0, 0] and [0, 0, 1] have swapped, as expected for a
@@ -148,7 +149,7 @@ class TransformedPotential(AbstractTransformedPotential):
 
     >>> xpot5 = gp.TransformedPotential(base_potential=pot, xop=op5)
     >>> xpot5.potential(w2)
-    Quantity(Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
+    Q(-1.16598068, 'kpc2 / Myr2')
 
     The second way is to create a custom sequence of operators. In this case we
     will make a sequence that mimics the previous example:
@@ -156,7 +157,7 @@ class TransformedPotential(AbstractTransformedPotential):
     >>> op6 = op4 | op2 | op3
     >>> xpot6 = gp.TransformedPotential(base_potential=pot, xop=op6)
     >>> xpot6.potential(w2)
-    Quantity(Array(-1.16598068, dtype=float64), unit='kpc2 / Myr2')
+    Q(-1.16598068, 'kpc2 / Myr2')
 
     We've seen that the potential can be time-dependent, but so far the
     operators have been Galilean. Let's fix the time-dependent mass of the
@@ -164,10 +165,10 @@ class TransformedPotential(AbstractTransformedPotential):
     way. We will also exaggerate the triaxiality of the potential to make the
     effect of the rotation more obvious:
 
-    >>> pot2 = gp.TriaxialHernquistPotential(m_tot=u.Quantity(1e12, "Msun"),
-    ...     r_s=u.Quantity(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
+    >>> pot2 = gp.TriaxialHernquistPotential(m_tot=u.Q(1e12, "Msun"),
+    ...     r_s=u.Q(1, "kpc"), q1=0.1, q2=0.1, units="galactic")
 
-    >>> op7 = gc.ops.ConstantRotationZOperator(Omega_z=u.Quantity(90, "deg/Gyr"))
+    >>> op7 = gc.ops.ConstantRotationZOperator(Omega_z=u.Q(90, "deg/Gyr"))
     >>> xpot7 = gp.TransformedPotential(base_potential=pot2, xop=op7)
 
     The potential energy at a given position will change with time:
@@ -211,8 +212,8 @@ class TransformedPotential(AbstractTransformedPotential):
         # Make inverse operator  # TODO: pre-compute and cache
         inv = self.xop.inverse
         # Transform the position, time.
-        xyz = u.Quantity.from_(xyz, self.units["length"])  # TODO: no munge
-        t = u.Quantity.from_(t, self.units["time"])  # TODO: no munge
+        xyz = u.Q.from_(xyz, self.units["length"])  # TODO: no munge
+        t = u.Q.from_(t, self.units["time"])  # TODO: no munge
         tp, qp = inv(t, xyz)
         # Evaluate the potential energy at the transformed position, time.
         return self.base_potential._potential(qp, tp)  # noqa: SLF001
@@ -233,7 +234,7 @@ def simplify_op(pot: TransformedPotential, /) -> TransformedPotential:
     >>> import galax.potential as gp
 
     >>> pot = gp.KeplerPotential(1e12, units="galactic")
-    >>> op = cx.ops.GalileanRotation.from_euler("z", u.Quantity(0, "deg"))
+    >>> op = cx.ops.GalileanRotation.from_euler("z", u.Q(0, "deg"))
     >>> xpot = gp.TransformedPotential(pot, op)
     >>> xpot
     TransformedPotential(

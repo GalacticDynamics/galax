@@ -4,6 +4,7 @@ __all__ = ["NullPotential"]
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import Any, final
 
 import equinox as eqx
@@ -33,10 +34,10 @@ class NullPotential(AbstractSinglePotential):
       constants=ImmutableMap({'G': ...})
     )
 
-    >>> q = u.Quantity([1, 0, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = u.Q([1, 0, 0], "kpc")
+    >>> t = u.Q(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity(Array(0, dtype=int64), unit='kpc2 / Myr2')
+    Q(0, 'kpc2 / Myr2')
 
     """
 

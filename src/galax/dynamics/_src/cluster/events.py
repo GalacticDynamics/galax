@@ -3,10 +3,11 @@
 __all__ = ["MassBelowThreshold"]
 
 import functools as ft
+
+from jaxtyping import Array
 from typing import Any
 
 import equinox as eqx
-from jaxtyping import Array
 
 import unxt as u
 from unxt.quantity import AllowValue
@@ -28,13 +29,13 @@ class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
     >>> import unxt as u
     >>> from galax.dynamics.cluster import MassBelowThreshold
 
-    >>> cond_fn = MassBelowThreshold(u.Quantity(0.0, "Msun"))
+    >>> cond_fn = MassBelowThreshold(u.Q(0.0, "Msun"))
     >>> args = {"units": u.unitsystems.galactic}
 
-    >>> cond_fn(0.0, u.Quantity(1.0, "Msun"), args)
+    >>> cond_fn(0.0, u.Q(1.0, "Msun"), args)
     Array(1., dtype=float64, weak_type=True)
 
-    >>> cond_fn(0.0, u.Quantity(0.0, "Msun"), args)
+    >>> cond_fn(0.0, u.Q(0.0, "Msun"), args)
     Array(0., dtype=float64, weak_type=True)
 
     """
@@ -74,12 +75,12 @@ class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
         >>> import unxt as u
         >>> import galax.dynamics as gd
 
-        >>> event = dfx.Event(gd.cluster.MassBelowThreshold(u.Quantity(0.0, "Msun")))
+        >>> event = dfx.Event(gd.cluster.MassBelowThreshold(u.Q(0.0, "Msun")))
         >>> mass_solver = gd.cluster.MassSolver(event=event)
 
         >>> mass_field = lambda t, Mc, args: -2e5 / (t + 1)
-        >>> Mc0 = u.Quantity(1e6, "Msun")
-        >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+        >>> Mc0 = u.Q(1e6, "Msun")
+        >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
         >>> saveat = jnp.linspace(t0, t1, 10)
         >>> mass_soln = mass_solver.solve(mass_field, Mc0, t0, t1, saveat=saveat)
         >>> mass_soln.ys

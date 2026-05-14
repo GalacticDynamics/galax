@@ -19,10 +19,10 @@ Notes
 
 __all__: list[str] = []
 
+from jaxtyping import Array, ArrayLike, Float, Int, Real, ScalarLike, Shaped
 from typing import Any, TypeAlias
 
 import astropy.units as apyu
-from jaxtyping import Array, ArrayLike, Float, Int, Real, ScalarLike, Shaped
 
 import unxt as u
 

@@ -13,6 +13,7 @@ __all__ = (
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import Any, Final, final
 
 import equinox as eqx
@@ -64,7 +65,7 @@ class BurkertPotential(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute potential
         params = {
@@ -78,7 +79,7 @@ class BurkertPotential(AbstractSinglePotential):
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
@@ -90,7 +91,7 @@ class BurkertPotential(AbstractSinglePotential):
     def _mass(self, xyz: gt.BBtQuSz3, /, t: gt.BtQuSz0 | gt.QuSz0) -> gt.BtFloatQuSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
@@ -133,8 +134,8 @@ class BurkertPotential(AbstractSinglePotential):
         >>> import unxt as u
         >>> import galax.potential as gp
 
-        >>> rho_0 = u.Quantity(1e6, "Msun / kpc3")
-        >>> r_s = u.Quantity(1, "kpc")
+        >>> rho_0 = u.Q(1e6, "Msun / kpc3")
+        >>> r_s = u.Q(1, "kpc")
         >>> pot = gp.BurkertPotential.from_central_density(rho_0, r_s, units="galactic")
         >>> pot
         BurkertPotential(

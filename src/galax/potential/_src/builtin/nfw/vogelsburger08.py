@@ -4,6 +4,7 @@ __all__ = ["Vogelsberger08TriaxialNFWPotential"]
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -32,7 +33,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="dimensionless",
-        default=u.Quantity(1.0, ""),
+        default=u.Q(1.0, ""),
         doc="""y/x axis ratio.
 
     The z/x axis ratio is defined as :math:`q_2^2 = 3 - q_1^2`
@@ -41,7 +42,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
 
     a_r: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="dimensionless",
-        default=u.Quantity(1.0, ""),
+        default=u.Q(1.0, ""),
         doc="""Transition radius relative to :math:`r_s`.
 
     :math:`r_a = a_r r_s  is a transition scale where the potential shape
@@ -75,7 +76,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         m = self.m(t, ustrip=self.units["mass"])

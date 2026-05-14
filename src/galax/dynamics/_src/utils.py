@@ -11,13 +11,14 @@ __all__ = [
 ]
 
 from dataclasses import replace
+
+from jaxtyping import Array, ArrayLike, Bool
 from typing import Any, TypeAlias, TypeVar, cast
 
 import diffrax as dfx
 import equinox as eqx
 import jax
 import optype as op
-from jaxtyping import Array, ArrayLike, Bool
 from plum import convert, dispatch
 
 import coordinax.frames as cxf
@@ -105,10 +106,10 @@ def parse_saveat(
 
     >>> units = u.unitsystem("galactic")
 
-    >>> parse_saveat(units, u.Quantity(0.5, "Myr"), dense=True)
+    >>> parse_saveat(units, u.Q(0.5, "Myr"), dense=True)
     SaveAt(subs=SubSaveAt(ts=weak_f64[1]), dense=True)
 
-    >>> parse_saveat(units, u.Quantity([0, 1, 2, 3], "Myr"), dense=True)
+    >>> parse_saveat(units, u.Q([0, 1, 2, 3], "Myr"), dense=True)
     SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
 
     """
@@ -184,9 +185,9 @@ def parse_to_t_y(
 
     - `unxt.AbstractQuantity`:
 
-    >>> xyz = u.Quantity([1, 0, 0], "kpc")
-    >>> v_xyz = u.Quantity([0, 1, 0], "km / s")
-    >>> t = u.Quantity(1, "Gyr")
+    >>> xyz = u.Q([1, 0, 0], "kpc")
+    >>> v_xyz = u.Q([0, 1, 0], "km / s")
+    >>> t = u.Q(1, "Gyr")
 
     >>> parse_to_t_y(None, t, (xyz, v_xyz), ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
@@ -196,12 +197,12 @@ def parse_to_t_y(
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> txyz = u.Quantity([0, 1, 0, 0], "kpc")
+    >>> txyz = u.Q([0, 1, 0, 0], "kpc")
     >>> parse_to_t_y(None, (txyz, v_xyz), ustrip=usys)
     (Array(0., dtype=float64),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> parse_to_t_y(None, u.Quantity(0, "Gyr"), (txyz, v_xyz), ustrip=usys)
+    >>> parse_to_t_y(None, u.Q(0, "Gyr"), (txyz, v_xyz), ustrip=usys)
     (Array(0., dtype=float64),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 

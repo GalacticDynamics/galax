@@ -3,6 +3,7 @@
 __all__ = ["HamiltonianField"]
 
 import functools as ft
+
 from typing import Any, final
 
 import diffrax as dfx
@@ -75,10 +76,10 @@ class HamiltonianField(AbstractOrbitField):
 
     >>> solver = gd.OrbitSolver()  # defaults to Dopri8
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"),
-    ...     t=u.Quantity(0, "Gyr"))
-    >>> t1 = u.Quantity(1, "Gyr")
+    ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"),
+    ...     t=u.Q(0, "Gyr"))
+    >>> t1 = u.Q(1, "Gyr")
     >>> soln = solver.solve(field, w0, t1)
     >>> soln
     Solution( t0=f64[], t1=f64[], ts=f64[1],
@@ -94,8 +95,7 @@ class HamiltonianField(AbstractOrbitField):
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
-        t=Quantity['time'](1000., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(1000., 'Myr'), frame=SimulationFrame() )
     (2,)
 
     The ``__call__`` is very flexible and can be called with many different
@@ -134,9 +134,9 @@ class HamiltonianField(AbstractOrbitField):
 
     - `unxt.Quantity` (assumed to be in Cartesian coordinates).
 
-    >>> t = u.Quantity(0, "Gyr")
-    >>> q = u.Quantity([8., 0, 0], "kpc")
-    >>> p = u.Quantity([0, 220, 0], "km/s")
+    >>> t = u.Q(0, "Gyr")
+    >>> q = u.Q([8., 0, 0], "kpc")
+    >>> p = u.Q([0, 220, 0], "km/s")
 
     >>> field(t, (q, p))
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
@@ -252,7 +252,7 @@ class HamiltonianField(AbstractOrbitField):
 # Terms dispatches
 
 
-@AbstractOrbitField.terms.dispatch  # type: ignore[misc]
+@AbstractOrbitField.terms.dispatch  # type: ignore[misc,union-attr]
 def terms(
     self: HamiltonianField,
     _: dfx.SemiImplicitEuler,
@@ -281,10 +281,10 @@ def terms(
     >>> dynamics_solver = gd.OrbitSolver(solver,
     ...                                     stepsize_controller=dfx.ConstantStepSize())
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([8., 0, 0], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"),
-    ...     t=u.Quantity(0, "Gyr"))
-    >>> t1 = u.Quantity(200, "Myr")
+    ...     q=u.Q([8., 0, 0], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"),
+    ...     t=u.Q(0, "Gyr"))
+    >>> t1 = u.Q(200, "Myr")
 
     >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
@@ -294,8 +294,7 @@ def terms(
             [7.091 3.504 0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [-0.111  0.199  0. ]>,
-        t=Quantity['time'](200., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(200., 'Myr'), frame=SimulationFrame() )
 
     """
     return (dfx.ODETerm(self.dx_dt), dfx.ODETerm(self.dv_dt))

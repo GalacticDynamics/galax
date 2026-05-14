@@ -36,24 +36,20 @@ class TestKuzminPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.KuzminPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(-0.98165365, unit="kpc2 / Myr2")
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(-0.98165365, unit="kpc2 / Myr2")
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.KuzminPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity([0.04674541, 0.09349082, 0.18698165], "kpc / Myr2")
+        expect = u.Q([0.04674541, 0.09349082, 0.18698165], "kpc / Myr2")
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.KuzminPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(2.45494884e-07, "solMass / kpc3")
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(2.45494884e-07, "solMass / kpc3")
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.KuzminPotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.0400675, -0.01335583, -0.02671166],
                 [-0.01335583, 0.02003375, -0.05342333],
@@ -61,16 +57,14 @@ class TestKuzminPotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.0400675, -0.01335583, -0.02671166],
                 [-0.01335583, 0.02003375, -0.05342333],
@@ -79,7 +73,7 @@ class TestKuzminPotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )
 
     # ---------------------------------

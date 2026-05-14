@@ -36,11 +36,9 @@ class TestOrbit(AbstractBasicPhaseSpaceCoordinate_Test[gd.Orbit]):
         """Return a phase-space position."""
         _, subkeys = getkeys(3)
 
-        q = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
-        p = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
-        t = u.Quantity(
-            jr.normal(next(subkeys), shape[-1:]), unit=potential.units["time"]
-        )
+        q = u.Q(jr.normal(next(subkeys), (*shape, 3)), "kpc")
+        p = u.Q(jr.normal(next(subkeys), (*shape, 3)), "km/s")
+        t = u.Q(jr.normal(next(subkeys), shape[-1:]), unit=potential.units["time"])
         return w_cls(
             q=q,
             p=p,

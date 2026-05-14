@@ -4,6 +4,7 @@ __all__ = ["LeeSutoTriaxialNFWPotential"]
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import Final, final
 
 import equinox as eqx
@@ -42,18 +43,18 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     >>> pot = gp.LeeSutoTriaxialNFWPotential(
     ...     m=1e11, r_s=15, a1=1, a2=0.9, a3=0.8, units="galactic")
 
-    >>> q = u.Quantity([1, 0, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = u.Q([1, 0, 0], "kpc")
+    >>> t = u.Q(0, "Gyr")
     >>> pot.potential(q, t).decompose(pot.units)
-    Quantity(Array(-0.14620419, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.14620419, 'kpc2 / Myr2')
 
-    >>> q = u.Quantity([0, 1, 0], "kpc")
+    >>> q = u.Q([0, 1, 0], "kpc")
     >>> pot.potential(q, t).decompose(pot.units)
-    Quantity(Array(-0.14593972, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.14593972, 'kpc2 / Myr2')
 
-    >>> q = u.Quantity([0, 0, 1], "kpc")
+    >>> q = u.Q([0, 0, 1], "kpc")
     >>> pot.potential(q, t).decompose(pot.units)
-    Quantity(Array(-0.14570309, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.14570309, 'kpc2 / Myr2')
     """
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -68,17 +69,17 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
 
     a1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=u.Quantity(1.0, ""), doc="Major axis."
+        dimensions="dimensionless", default=u.Q(1.0, ""), doc="Major axis."
     )
 
     a2: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="dimensionless",
-        default=u.Quantity(1.0, ""),
+        default=u.Q(1.0, ""),
         doc="Intermediate axis.",
     )
 
     a3: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=u.Quantity(1.0, ""), doc="Minor axis."
+        dimensions="dimensionless", default=u.Q(1.0, ""), doc="Minor axis."
     )
 
     _: KW_ONLY
@@ -88,7 +89,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     )
 
     def __check_init__(self) -> None:
-        t = u.Quantity(0.0, "Myr")
+        t = u.Q(0.0, "Myr")
         # TODO: simplify this check
         a1 = self.a1(t, ustrip=self.units["dimensionless"])
         a2 = self.a2(t, ustrip=self.units["dimensionless"])
@@ -103,7 +104,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
         ul = self.units["dimensionless"]
         params = {
             "G": self.constants["G"].value,

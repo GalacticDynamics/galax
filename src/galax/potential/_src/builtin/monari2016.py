@@ -9,6 +9,7 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import jax
@@ -40,22 +41,22 @@ class MonariEtAl2016BarPotential(AbstractSinglePotential):
 
     >>> pot = gp.MonariEtAl2016BarPotential(
     ...     alpha=0.01,
-    ...     R0=u.Quantity(8.0, "kpc"),
-    ...     v0=u.Quantity(220.0, "km/s"),
-    ...     Rb=u.Quantity(3.5, "kpc"),
-    ...     phi_b=u.Quantity(25, "deg"),
-    ...     Omega=u.Quantity(52.2, "km/(s kpc)"),
+    ...     R0=u.Q(8.0, "kpc"),
+    ...     v0=u.Q(220.0, "km/s"),
+    ...     Rb=u.Q(3.5, "kpc"),
+    ...     phi_b=u.Q(25, "deg"),
+    ...     Omega=u.Q(52.2, "km/(s kpc)"),
     ...     units="galactic",
     ... )
-    >>> pot(u.Quantity([8.0, 0.0, 0.0], "kpc"), u.Quantity(0.0, "Gyr"))
-    Quantity(Array(-0.00010847, dtype=float64), unit='kpc2 / Myr2')
+    >>> pot(u.Q([8.0, 0.0, 0.0], "kpc"), u.Q(0.0, "Gyr"))
+    Q(-0.00010847, 'kpc2 / Myr2')
 
     """
 
     _: KW_ONLY
 
     alpha: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(0.01, ""),
+        default=u.Q(0.01, ""),
         dimensions="dimensionless",
         doc="""The amplitude.
 
@@ -73,17 +74,17 @@ class MonariEtAl2016BarPotential(AbstractSinglePotential):
     )
 
     Rb: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(3.5, "kpc"),
+        default=u.Q(3.5, "kpc"),
         dimensions="length",
         doc="The length of the bar.",
     )
 
     phi_b: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(25, "deg"), dimensions="angle", doc="Bar angle."
+        default=u.Q(25, "deg"), dimensions="angle", doc="Bar angle."
     )
 
     Omega: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(52.2, "km/(s kpc)"),
+        default=u.Q(52.2, "km/(s kpc)"),
         dimensions="frequency",
         doc="Bar pattern speed.",
     )

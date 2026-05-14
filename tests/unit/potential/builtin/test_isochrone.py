@@ -28,26 +28,20 @@ class TestIsochronePotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.IsochronePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(-0.9231515, pot.units["specific energy"])
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(-0.9231515, pot.units["specific energy"])
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.IsochronePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
-            [0.04891392, 0.09782784, 0.14674175], pot.units["acceleration"]
-        )
+        expect = u.Q([0.04891392, 0.09782784, 0.14674175], pot.units["acceleration"])
         got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.IsochronePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(5.04511665e08, pot.units["mass density"])
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(5.04511665e08, pot.units["mass density"])
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.IsochronePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.0404695, -0.01688883, -0.02533324],
                 [-0.01688883, 0.01513626, -0.05066648],
@@ -55,16 +49,14 @@ class TestIsochronePotential(
             ],
             "1/Myr2",
         )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     # ---------------------------------
     # Convenience methods
 
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
+        expect = u.Q(
             [
                 [0.03096285, -0.01688883, -0.02533324],
                 [-0.01688883, 0.00562961, -0.05066648],
@@ -73,5 +65,5 @@ class TestIsochronePotential(
             "1/Myr2",
         )
         assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
+            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
         )

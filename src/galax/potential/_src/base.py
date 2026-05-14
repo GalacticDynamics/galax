@@ -2,8 +2,10 @@ __all__ = ["AbstractPotential"]
 
 import abc
 import functools as ft
-from collections.abc import Mapping
 from dataclasses import KW_ONLY, fields, replace
+
+from collections.abc import Mapping
+from jaxtyping import Array
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 
@@ -11,7 +13,6 @@ import equinox as eqx
 import jax
 from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
-from jaxtyping import Array
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -31,7 +32,7 @@ from galax.utils.dataclasses import ModuleMeta
 if TYPE_CHECKING:
     import galax.dynamics  # noqa: ICN001
 
-default_constants = ImmutableMap({"G": u.Quantity.from_(_CONST_G)})
+default_constants = ImmutableMap({"G": u.Q.from_(_CONST_G)})
 DimL = u.dimension("length")
 DimT = u.dimension("time")
 
@@ -275,11 +276,11 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
         >>> import galax.potential as gp
 
         >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-        >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
-        ...                             p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
-        ...                             t=u.Quantity(0.0, "Gyr"))
+        >>> w = gc.PhaseSpaceCoordinate(q=u.Q([8.0, 0.0, 0.0], "kpc"),
+        ...                             p=u.Q([0.0, 0.0, 0.0], "km/s"),
+        ...                             t=u.Q(0.0, "Gyr"))
         >>> pot.local_circular_velocity(w)
-        Quantity(Array(0.74987517, dtype=float64), unit='kpc / Myr')
+        Q(0.74987517, 'kpc / Myr')
 
         """
         return api.local_circular_velocity(self, *args, **kwargs)

@@ -16,22 +16,22 @@ import galax.potential as gp
 @pytest.fixture
 def potential() -> gp.KeplerPotential:
     """Kepler potential fixture."""
-    return gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    return gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
 
 
 @pytest.fixture
 def w0() -> gc.PhaseSpacePosition:
     """Phase space position fixture."""
     return gc.PhaseSpacePosition(
-        q=u.Quantity([8.0, 0.0, 0.5], "kpc"),
-        p=u.Quantity([0.0, 220.0, 0.0], "km/s"),
+        q=u.Q([8.0, 0.0, 0.5], "kpc"),
+        p=u.Q([0.0, 220.0, 0.0], "km/s"),
     )
 
 
 @pytest.fixture
 def orbit(potential: gp.AbstractPotential, w0: gc.PhaseSpacePosition) -> gd.Orbit:
     """Orbit fixture."""
-    ts = u.Quantity(jnp.linspace(0.0, 70, 1000), "Myr")
+    ts = u.Q(jnp.linspace(0.0, 70, 1000), "Myr")
     orb: gd.Orbit = gd.evaluate_orbit(potential, w0, ts)
     return orb
 

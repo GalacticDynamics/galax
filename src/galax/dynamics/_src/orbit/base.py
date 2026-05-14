@@ -3,10 +3,11 @@
 __all__ = ["AbstractOrbit"]
 
 from dataclasses import KW_ONLY, replace
+
+from jaxtyping import Array, Bool, Int
 from typing import Any, ClassVar
 
 import equinox as eqx
-from jaxtyping import Array, Bool, Int
 from numpy import ndarray
 from plum import dispatch
 
@@ -16,6 +17,7 @@ import quaxed.numpy as jnp
 import galax._custom_types as gt
 import galax.coordinates as gc
 from .plot_helper import PlotOrbitDescriptor
+from galax.coordinates._src.utils import getitem
 from galax.utils._shape import batched_shape, vector_batched_shape
 
 
@@ -93,23 +95,18 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: tuple[Any, ...], /) -> 
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([8., 0., 0.], "kpc"),
-    ...     p=u.Quantity([0., 230, 0.], "km/s"),
-    ...     t=u.Quantity(0, "Myr"))
-    >>> ts = u.Quantity(jnp.linspace(0, 1, 10), "Gyr")
+    ...     q=u.Q([8., 0., 0.], "kpc"),
+    ...     p=u.Q([0., 230, 0.], "km/s"),
+    ...     t=u.Q(0, "Myr"))
+    >>> ts = u.Q(jnp.linspace(0, 1, 10), "Gyr")
     >>> orbit = gd.evaluate_orbit(pot, w0, ts)
 
     >>> orbit[()] is orbit
     True
 
     >>> orbit[(slice(None),)]
-    Orbit(
-        q=CartesianPos3D( x=Quantity([...], unit='kpc'), ... ),
-        p=CartesianVel3D( x=Quantity([...], unit='kpc / Myr'), ... ),
-        t=Quantity([...], unit='Myr'),
-        frame=SimulationFrame(),
-        interpolant=None
-    )
+    Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q( [...], 'Myr' ),
+           frame=SimulationFrame(), interpolant=None )
 
     """
     # Handle the time index, subselecting the time component of the index
@@ -131,20 +128,15 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: slice, /) -> Any:
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([8., 0., 0.], "kpc"),
-    ...     p=u.Quantity([0., 230, 0.], "km/s"),
-    ...     t=u.Quantity(0, "Myr"))
-    >>> ts = u.Quantity(jnp.linspace(0, 1, 11), "Gyr")
+    ...     q=u.Q([8., 0., 0.], "kpc"),
+    ...     p=u.Q([0., 230, 0.], "km/s"),
+    ...     t=u.Q(0, "Myr"))
+    >>> ts = u.Q(jnp.linspace(0, 1, 11), "Gyr")
     >>> orbit = gd.evaluate_orbit(pot, w0, ts)
 
     >>> orbit[0:2]
-    Orbit(
-        q=CartesianPos3D( x=Quantity([ 8. , -7.7020901], unit='kpc'), ... ),
-        p=CartesianVel3D( x=Quantity([ 0. , -0.02609503], unit='kpc / Myr'), ... ),
-        t=Quantity([  0., 100.], unit='Myr'),
-        frame=SimulationFrame(),
-        interpolant=None
-    )
+    Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q([  0., 100.], 'Myr'),
+           frame=SimulationFrame(), interpolant=None )
 
     """
     # The index only applies to the time component if the slice reaches
@@ -169,8 +161,8 @@ def _psc_getitem_time_index(
 
     >>> pot=gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> orbit = gd.Orbit(
-    ...     q=u.Quantity([[0, 1, 2]], "kpc"), p=u.Quantity([[4, 5, 6]], "km/s"),
-    ...     t=u.Quantity(0, "Gyr"),
+    ...     q=u.Q([[0, 1, 2]], "kpc"), p=u.Q([[4, 5, 6]], "km/s"),
+    ...     t=u.Q(0, "Gyr"),
     ...     frame=gc.frames.simulation_frame)
     >>> print(orbit)
     Orbit(
@@ -178,8 +170,7 @@ def _psc_getitem_time_index(
             [[0 1 2]]>,
         p=<CartesianVel3D: (x, y, z) [km / s]
             [[4 5 6]]>,
-        t=Quantity['time'](0, unit='Gyr'),
-        ...)
+        t=Q(0, 'Gyr'), frame=SimulationFrame(), interpolant=None )
     >>> orbit.ndim
     1
 
@@ -191,8 +182,7 @@ def _psc_getitem_time_index(
             [0 1 2]>,
         p=<CartesianVel3D: (x, y, z) [km / s]
             [4 5 6]>,
-        t=Quantity['time'](0, unit='Gyr'),
-        ...)
+        t=Q(0, 'Gyr'), frame=SimulationFrame(), interpolant=None )
 
     Otherwise:
 
@@ -202,7 +192,7 @@ def _psc_getitem_time_index(
     return Ellipsis if index.ndim < orbit.ndim else index
 
 
-@gc.AbstractPhaseSpaceObject.__getitem__.dispatch  # type: ignore[misc]
+@getitem.dispatch
 def getitem(self: AbstractOrbit, index: int, /) -> gc.PhaseSpaceCoordinate:
     """Get the orbit at a specific time.
 
@@ -215,21 +205,20 @@ def getitem(self: AbstractOrbit, index: int, /) -> gc.PhaseSpaceCoordinate:
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([8., 0., 0.], "kpc"),
-    ...     p=u.Quantity([0., 230, 0.], "km/s"),
-    ...     t=u.Quantity(0, "Myr"))
-    >>> ts = u.Quantity([0., 1.], "Gyr")
+    ...     q=u.Q([8., 0., 0.], "kpc"),
+    ...     p=u.Q([0., 230, 0.], "km/s"),
+    ...     t=u.Q(0, "Myr"))
+    >>> ts = u.Q([0., 1.], "Gyr")
     >>> orbit = gd.evaluate_orbit(pot, w0, ts)
 
     >>> orbit[0]
     PhaseSpaceCoordinate(
-        q=CartesianPos3D( ... ),
-        p=CartesianVel3D( ... ),
-        t=Quantity(0., unit='Myr'),
-        frame=SimulationFrame()
+      q=CartesianPos3D(x=Q(8., 'kpc'), y=Q(0., 'kpc'), z=Q(0., 'kpc')),
+      p=CartesianVel3D(...),
+      t=Q(0., 'Myr'), frame=SimulationFrame()
     )
     >>> orbit[0].t
-    Quantity(Array(0., dtype=float64), unit='Myr')
+    Q(0., 'Myr')
 
     """
     return gc.PhaseSpaceCoordinate(q=self.q[index], p=self.p[index], t=self.t[index])

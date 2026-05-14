@@ -3,10 +3,11 @@
 __all__: list[str] = []
 
 import functools as ft
+
+from jaxtyping import Real
 from typing import Any
 
 import jax
-from jaxtyping import Real
 from plum import dispatch
 
 import coordinax as cx
@@ -70,7 +71,7 @@ def potential(
     """Compute the potential energy at the given position(s)."""
     xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units)  # TODO: frame
     phi = pot._potential(xyz, t)  # noqa: SLF001
-    return u.Quantity(phi, pot.units["specific energy"])
+    return u.Q(phi, pot.units["specific energy"])
 
 
 # =============================================================================
@@ -117,7 +118,7 @@ def gradient(
     """Compute from a q + t object."""
     xyz, t = parse_to_xyz_t(None, xyz, t, ustrip=pot.units, dtype=float)  # TODO: frame
     grad = pot._gradient(xyz, t)  # noqa: SLF001
-    return u.Quantity.from_(grad, pot.units["acceleration"])
+    return u.Q.from_(grad, pot.units["acceleration"])
 
 
 @dispatch
@@ -128,7 +129,7 @@ def gradient(
     """Compute the potential energy at the given position(s)."""
     xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units, dtype=float)  # TODO: frame
     grad = pot._gradient(xyz, t)  # noqa: SLF001
-    return u.Quantity.from_(grad, pot.units["acceleration"])
+    return u.Q.from_(grad, pot.units["acceleration"])
 
 
 # ---------------------------
@@ -195,7 +196,7 @@ def laplacian(
     """Compute from a q + t object."""
     xyz, t = parse_to_xyz_t(None, tq, t, dtype=float, ustrip=pot.units)  # TODO: frame
     lapl = pot._laplacian(xyz, t)  # noqa: SLF001
-    return u.Quantity(lapl, pot.units["frequency drift"])
+    return u.Q(lapl, pot.units["frequency drift"])
 
 
 @dispatch
@@ -205,7 +206,7 @@ def laplacian(
     """Compute the laplacian energy at the given position(s)."""
     xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=pot.units)  # TODO: frame
     lapl = pot._laplacian(xyz, t)  # noqa: SLF001
-    return u.Quantity(lapl, pot.units["frequency drift"])
+    return u.Q(lapl, pot.units["frequency drift"])
 
 
 # =============================================================================
@@ -250,7 +251,7 @@ def density(
     """Compute from a q + t object."""
     xyz, t = parse_to_xyz_t(None, tq, t, dtype=float, ustrip=pot.units)  # TODO: frame
     rho = pot._density(xyz, t)  # noqa: SLF001
-    return u.Quantity(rho, pot.units["mass density"])
+    return u.Q(rho, pot.units["mass density"])
 
 
 @dispatch
@@ -260,7 +261,7 @@ def density(
     """Compute the density at the given position(s)."""
     xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=pot.units)  # TODO: frame
     rho = pot._density(xyz, t)  # noqa: SLF001
-    return u.Quantity(rho, pot.units["mass density"])
+    return u.Q(rho, pot.units["mass density"])
 
 
 # =============================================================================
@@ -305,7 +306,7 @@ def hessian(
     """Compute from a q + t object."""
     xyz, t = parse_to_xyz_t(None, tq, t, dtype=float, ustrip=pot.units)  # TODO: frame
     phi = pot._hessian(xyz, t)  # noqa: SLF001
-    return u.Quantity(phi, pot.units["frequency drift"])
+    return u.Q(phi, pot.units["frequency drift"])
 
 
 @dispatch
@@ -315,7 +316,7 @@ def hessian(
     """Compute the potential energy at the given position(s)."""
     xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=pot.units)  # TODO: frame
     phi = pot._hessian(xyz, t)  # noqa: SLF001
-    return u.Quantity(phi, pot.units["frequency drift"])
+    return u.Q(phi, pot.units["frequency drift"])
 
 
 # =============================================================================
@@ -335,7 +336,7 @@ def acceleration(pot: AbstractPotential, /, *args: Any, **kwargs: Any) -> Any:
         `~galax.potential.gradient` for more details.
 
     """
-    return -api.gradient(pot, *args, **kwargs)
+    return -api.gradient(pot, *args, **kwargs)  # type: ignore[operator]
 
 
 # =============================================================================
@@ -389,7 +390,7 @@ def local_circular_velocity(
     dPhi_dr = jnp.sum(dPhi_dxyz * xyz / r[..., None], axis=-1)
     vcirc = jnp.sqrt(r * jnp.abs(dPhi_dr))
     return (
-        u.Quantity.from_(vcirc, pot.units["velocity"])
+        u.Q.from_(vcirc, pot.units["velocity"])
         if u.quantity.is_any_quantity(xyz)
         else vcirc
     )
@@ -416,7 +417,7 @@ def dpotential_dr(pot: AbstractPotential, q: Any, t: Any, /) -> gt.BBtSz0 | gt.B
     grad = api.gradient(pot, xyz, t)
     dphi_dr = jnp.sum(grad * r_hat, axis=-1)
     return (
-        u.Quantity.from_(dphi_dr, pot.units["acceleration"])
+        u.Q.from_(dphi_dr, pot.units["acceleration"])
         if u.quantity.is_any_quantity(xyz)
         else dphi_dr
     )
@@ -447,7 +448,7 @@ def d2potential_dr2(
     H = pot.hessian(xyz, t)
     d2phi_dr2 = jnp.einsum("...i,...ij,...j -> ...", rhat, H, rhat)  # rhat · H · rhat
     return (
-        u.Quantity.from_(d2phi_dr2, pot.units["frequency drift"])
+        u.Q.from_(d2phi_dr2, pot.units["frequency drift"])
         if u.quantity.is_any_quantity(xyz)
         else d2phi_dr2
     )
@@ -479,7 +480,7 @@ def spherical_mass_enclosed(
     dPhi_dr = api.dpotential_dr(pot, xyz, t)
     m_encl = r2 * jnp.abs(dPhi_dr) / pot.constants["G"].value
     return (
-        u.Quantity.from_(m_encl, pot.units["mass"])
+        u.Q.from_(m_encl, pot.units["mass"])
         if u.quantity.is_any_quantity(q)
         else m_encl
     )

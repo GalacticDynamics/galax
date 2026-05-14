@@ -4,12 +4,13 @@ __all__ = ["MockStreamGenerator"]
 
 import functools as ft
 from dataclasses import KW_ONLY
+
+from jaxtyping import PRNGKeyArray
 from typing import TypeAlias, cast, final
 
 import equinox as eqx
 import jax
 import jax.extend as jex
-from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -54,7 +55,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @property
     def units(self) -> u.AbstractUnitSystem:
         """Units of the potential."""
-        return cast(u.AbstractUnitSystem, self.potential.units)
+        return cast("u.AbstractUnitSystem", self.potential.units)
 
     # ==========================================================================
 
@@ -63,7 +64,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     ) -> Orbit:
         """Integrate the progenitor orbit."""
         return cast(
-            Orbit,
+            "Orbit",
             evaluate_orbit(
                 self.potential, w0, ts, integrator=self.progenitor_integrator
             ),
@@ -84,7 +85,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)
-        t_f = ts[-1] + u.Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
+        t_f = ts[-1] + u.Q(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         def one_pt_intg(
             carry: Carry, _: gt.IntSz0
@@ -131,7 +132,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Better for GPU usage.
         """
-        t_f = ts[-1] + u.Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
+        t_f = ts[-1] + u.Q(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         @ft.partial(jax.jit, inline=True)
         def one_pt_intg(
@@ -218,8 +219,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             w0 = gc.PhaseSpaceCoordinate(q=prog_w0.q, p=prog_w0.p, t=ts[0])
         else:
             w0 = gc.PhaseSpaceCoordinate(
-                q=u.Quantity(prog_w0[0:3], self.units["length"]),
-                p=u.Quantity(prog_w0[3:6], self.units["speed"]),
+                q=u.Q(prog_w0[0:3], self.units["length"]),
+                p=u.Q(prog_w0[3:6], self.units["speed"]),
                 t=u.uconvert(self.potential.units["time"], ts[0]),
             )
         w0 = eqx.error_if(w0, w0.ndim > 0, "prog_w0 must be scalar")

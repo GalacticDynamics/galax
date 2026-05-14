@@ -5,14 +5,24 @@ __all__ = ["ModuleMeta"]
 import dataclasses
 import functools as ft
 import inspect
-from collections.abc import Callable
+import sys
 from enum import Enum, auto
+
+from collections.abc import Callable
 from typing import Any, Generic, TypeVar, cast, overload
 
 from equinox._module._module import _has_dataclass_init, _ModuleMeta
 
-from dataclassish import DataclassInstance
 from dataclassish.converters import AbstractConverter
+
+if sys.version_info >= (3, 12):
+    import optype as op
+
+    _DataclassBase = op.dataclasses.HasDataclassFields
+else:
+    from dataclassish import (  # type: ignore[attr-defined]
+        DataclassInstance as _DataclassBase,  # ty: ignore[unresolved-import]
+    )
 
 ##############################################################################
 # Converter
@@ -86,7 +96,7 @@ def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
     sig = inspect.signature(original_init)
 
     @ft.wraps(original_init)
-    def init(self: DataclassInstance, *args: Any, **kwargs: Any) -> None:
+    def init(self: _DataclassBase, *args: Any, **kwargs: Any) -> None:
         __tracebackhide__ = True  # pylint: disable=unused-variable
 
         # Apply any converter to its argument.
@@ -97,7 +107,7 @@ def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
         # Call the original `__init__`.
         init.__wrapped__(*ba.args, **ba.kwargs)
 
-    cls.__init__ = init  # type: ignore[assignment, method-assign]
+    cls.__init__ = init  # type: ignore[method-assign]
 
     return cls
 

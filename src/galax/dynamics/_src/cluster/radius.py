@@ -17,6 +17,7 @@ __all__ = [
 ]
 
 import functools as ft
+
 from typing import Any, NoReturn, final
 
 import jax
@@ -106,7 +107,7 @@ def tidal_radius_hoerner1957(
     """
     # TODO: a way to select different mass calculator
     r = jnp.linalg.vector_norm(xyz, axis=-1)
-    return jnp.cbrt(mass / (2 * gp.spherical_mass_enclosed(pot, xyz, t))) * r
+    return jnp.cbrt(mass / (2 * gp.spherical_mass_enclosed(pot, xyz, t))) * r  # type: ignore[operator]
 
 
 #####################################################################
@@ -164,7 +165,7 @@ def tidal_radius_king1962_pointmass(
 
     r = jnp.linalg.vector_norm(x, axis=-1)
     m_encl = gp.spherical_mass_enclosed(pot, x, t)  # TODO: flag to sel mass calculator
-    return jnp.cbrt(mass / ((3 + e) * m_encl)) * r
+    return jnp.cbrt(mass / ((3 + e) * m_encl)) * r  # type: ignore[operator]
 
 
 #####################################################################

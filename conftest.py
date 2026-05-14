@@ -1,6 +1,7 @@
 """Doctest configuration."""
 
 from doctest import ELLIPSIS, NORMALIZE_WHITESPACE
+
 from typing import Any
 
 from sybil import Sybil

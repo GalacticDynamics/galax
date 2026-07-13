@@ -4,12 +4,14 @@ __all__ = ["MockStreamArm"]
 
 from typing import Any, ClassVar, Protocol, cast, final, runtime_checkable
 
+import diffrax as dfx
 import equinox as eqx
 from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import BareQuantity
 
 import galax._custom_types as gt
 import galax.coordinates as gc
@@ -66,6 +68,41 @@ class MockStreamArm(gc.AbstractBasicPhaseSpaceCoordinate):
 
 
 #####################################################################
+
+
+@gc.AbstractPhaseSpaceObject.from_.dispatch  # type: ignore[attr-defined,misc]
+def from_(
+    cls: type[MockStreamArm],
+    soln: dfx.Solution,
+    /,
+    *,
+    release_time: gt.BBtQuSz0,
+    frame: cx.frames.AbstractReferenceFrame,
+    units: u.AbstractUnitSystem,  # not dispatched on, but required
+    unbatch_time: bool = True,
+) -> MockStreamArm:
+    """Create a new instance of the class."""
+    # Reshape (*tbatch, T, *ybatch) to (*tbatch, *ybatch, T)
+    t = soln.ts  # already in the shape (*tbatch, T)
+    n_tbatch = soln.t0.ndim
+    q = jnp.moveaxis(soln.ys[0], n_tbatch, -2)
+    p = jnp.moveaxis(soln.ys[1], n_tbatch, -2)
+
+    # Reshape (*tbatch, *ybatch, T) to (*tbatch, *ybatch) if T == 1
+    if unbatch_time and t.shape[-1] == 1:
+        t = t[..., -1]
+        q = q[..., -1, :]
+        p = p[..., -1, :]
+
+    # Convert the solution to a phase-space position
+    return cls(
+        q=cx.CartesianPos3D.from_(q, units["length"]),
+        p=cx.CartesianVel3D.from_(p, units["speed"]),
+        t=BareQuantity(t, units["time"]),
+        release_time=release_time,
+        frame=frame,
+    )
+
 
 # =========================================================
 # `__getitem__`

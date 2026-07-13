@@ -1,10 +1,11 @@
 """:mod:`galax.dynamics.mockstream`."""
 
 __all__ = [
-    # Legacy
-    "MockStreamGenerator",
+    "StreamSimulator",
     "MockStreamArm",
     "MockStream",
+    # Legacy
+    "MockStreamGenerator",
     "AbstractStreamDF",
     "FardalStreamDF",
     "ChenStreamDF",
@@ -23,7 +24,7 @@ with install_import_hook("galax.dynamics.dynamics"):
         FardalStreamDF,
         ProgenitorMassCallable,
     )
-    from ._src.mockstream import MockStream, MockStreamArm
+    from ._src.mockstream import MockStream, MockStreamArm, StreamSimulator
 
 # Cleanup
 del install_import_hook

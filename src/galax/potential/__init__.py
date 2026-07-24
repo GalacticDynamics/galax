@@ -27,6 +27,7 @@ __all__ = [
     "MultipoleInnerPotential",
     "MultipoleOuterPotential",
     "MultipolePotential",
+    "AxisymmetricGaussianPotential",
     "GaussianPotential",
     "TriaxialGaussianPotential",
     "LeeSutoTriaxialNFWPotential",
@@ -96,6 +97,7 @@ with install_import_hook("galax.potential"):
     from ._src.base_single import AbstractSinglePotential
     from ._src.builtin import (
         AbstractMultipolePotential,
+        AxisymmetricGaussianPotential,
         BovyMWPotential2014,
         BurkertPotential,
         GaussianPotential,

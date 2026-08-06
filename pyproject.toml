@@ -171,6 +171,17 @@ disable_error_code = ["name-defined"] # <- jaxtyping
 module = "galax.*"
 
 [[tool.mypy.overrides]]
+# `dataclassish.converters.field`'s `**kwargs: DataclassFieldKwargsNotMetadata`
+# is missing `Unpack[...]`, so mypy checks each kwarg against the TypedDict
+# itself instead of unpacking it. Only bites on py>=3.12, where
+# `DataclassFieldKwargsNotMetadata` is a real TypedDict (it's `Any` below 3.12).
+disable_error_code = ["arg-type"]
+module = [
+  "galax.dynamics._src.experimental.df",
+  "galax.potential._src.params.field",
+]
+
+[[tool.mypy.overrides]]
 ignore_missing_imports = true
 module = [
   "astropy.*",

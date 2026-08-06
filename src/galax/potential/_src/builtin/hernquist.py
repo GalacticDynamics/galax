@@ -19,7 +19,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-from galax.potential._src.utils import r_spherical
+from galax.potential._src.utils import r_spherical, safe_sqrt
 
 
 @final
@@ -163,7 +163,7 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
 
         u1 = self.units["dimensionless"]
         q1, q2 = self.q1(t, ustrip=u1), self.q2(t, ustrip=u1)
-        rprime = jnp.sqrt(
+        rprime = safe_sqrt(
             xyz[..., 0] ** 2 + (xyz[..., 1] / q1) ** 2 + (xyz[..., 2] / q2) ** 2
         )
 

@@ -37,11 +37,53 @@ def parse_dtypes(dtype2: np.dtype, dtype1: Any, /) -> np.dtype | None:
 # ==============================================================================
 
 
+@ft.partial(jax.jit, inline=True)
+def safe_sqrt(q2: gt.BBtFloatSz0, /) -> gt.BBtFloatSz0:
+    """Square root that stays differentiable where its argument vanishes.
+
+    ``sqrt`` has an infinite derivative at 0, so a radius built as
+    ``sqrt(x**2 + y**2 + z**2)`` makes `jax.grad` and `jax.hessian` of every
+    potential defined in terms of it NaN at the origin. Offsetting by the
+    smallest normal float keeps the derivative finite. The offset is ~1e-308
+    (float64), so the value is unchanged for any physically meaningful
+    position.
+
+    The offset must be applied to the primal, not just the tangent: recovering
+    the correct Hessian of a cored profile at the origin needs ``Phi'(r) / r``
+    evaluated at a genuinely non-zero ``r``.
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> from galax.potential._src.utils import safe_sqrt
+
+    The value matches `jnp.sqrt`:
+
+    >>> safe_sqrt(jnp.asarray(4.0))
+    Array(2., dtype=float64)
+
+    but the derivative at zero is finite rather than infinite:
+
+    >>> import jax
+    >>> jnp.isfinite(jax.grad(safe_sqrt)(jnp.asarray(0.0)))
+    Array(True, dtype=bool, weak_type=True)
+    >>> jax.grad(jnp.sqrt)(jnp.asarray(0.0))
+    Array(inf, dtype=float64...)
+
+    """
+    tiny = jnp.finfo(jnp.promote_types(q2.dtype, float)).tiny
+    return jnp.sqrt(q2 + tiny)
+
+
 @ft.partial(jax.jit, inline=True, static_argnames=("unit",))
 def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
-    """Spherical radius."""
+    """Spherical radius.
+
+    Uses `safe_sqrt` so that the gradient and hessian of potentials written in
+    terms of ``r`` are finite at the origin rather than NaN.
+    """
     xyz = u.ustrip(AllowValue, unit, xyz)
-    r = jnp.linalg.vector_norm(xyz, axis=-1)
+    r = safe_sqrt(jnp.sum(jnp.square(xyz), axis=-1))
     return r
 
 

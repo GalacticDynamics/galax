@@ -2,7 +2,6 @@
 
 from collections.abc import Callable
 from typing import Any, TypeAlias, TypedDict
-from typing_extensions import Unpack
 
 import jax
 import jax.random as jr
@@ -56,9 +55,7 @@ class ParameterizationKWArgs(TypedDict):
 
 def process_pytest_paramatrization(
     process_fn: ProcessFn,
-    arg_id_values: list[
-        tuple[Func, str | None, JITOpts, Unpack[tuple[Arguments, ...]]]
-    ],
+    arg_id_values: list[tuple[Func, str | None, JITOpts, *tuple[Arguments, ...]]],
 ) -> ParameterizationKWArgs:
     """Process the argvalues."""
     # Get the ID for each parameterization
@@ -105,7 +102,7 @@ stream_ics = stream_simulator.init(
 static_argnums = {"static_argnums": (0,)}
 static_argnames = {"static_argnames": ("solver", "solver_kwargs", "dense")}
 
-funcs_id_and_args: list[tuple[Func, ID, JITOpts, Unpack[tuple[Arguments, ...]]]] = [
+funcs_id_and_args: list[tuple[Func, ID, JITOpts, *tuple[Arguments, ...]]] = [
     # ================================================
     # Orbit integration
     (

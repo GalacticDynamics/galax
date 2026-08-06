@@ -5,8 +5,7 @@ __all__ = ["MassSolver"]
 from dataclasses import KW_ONLY
 
 from jaxtyping import PyTree
-from typing import Any
-from typing_extensions import override
+from typing import Any, override
 
 import diffrax as dfx
 import equinox as eqx

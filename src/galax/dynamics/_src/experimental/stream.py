@@ -7,7 +7,6 @@ import functools as ft
 from collections.abc import Mapping
 from jaxtyping import Array, PRNGKeyArray, Real
 from typing import Any, TypeAlias, final
-from typing_extensions import Unpack
 
 import diffrax as dfx
 import jax
@@ -66,7 +65,7 @@ class StreamICs:
 
 ICSScanIn: TypeAlias = tuple[gt.Sz0, gdt.Qarr, gdt.Parr, gt.Sz0]  # t, x, v, Msat
 ICSScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]  # x/v_l1, x/v_l2
-ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
+ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, *ICSScanOut]
 
 
 # TODO: put images in the docstring
@@ -329,7 +328,7 @@ def run(
 
 
 StreamScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]
-StreamCarry: TypeAlias = tuple[int, Unpack[StreamScanOut]]
+StreamCarry: TypeAlias = tuple[int, *StreamScanOut]
 
 
 @StreamSimulator.run.dispatch

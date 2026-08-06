@@ -17,8 +17,8 @@ from typing import (
     get_args,
     get_type_hints,
     overload,
+    override,
 )
-from typing_extensions import override
 
 from astropy.units import PhysicalType as Dimension, Quantity as AstropyQuantity
 

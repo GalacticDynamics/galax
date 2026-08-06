@@ -5,24 +5,15 @@ __all__ = ["ModuleMeta"]
 import dataclasses
 import functools as ft
 import inspect
-import sys
 from enum import Enum, auto
 
 from collections.abc import Callable
-from typing import Any, Generic, TypeVar, cast, overload
+from typing import Any, cast, overload
 
+import optype as op
 from equinox._module._module import _has_dataclass_init, _ModuleMeta
 
 from dataclassish.converters import AbstractConverter
-
-if sys.version_info >= (3, 12):
-    import optype as op
-
-    _DataclassBase = op.dataclasses.HasDataclassFields
-else:
-    from dataclassish import (  # type: ignore[attr-defined]
-        DataclassInstance as _DataclassBase,  # ty: ignore[unresolved-import]
-    )
 
 ##############################################################################
 # Converter
@@ -32,13 +23,8 @@ class Sentinel(Enum):
     MISSING = auto()
 
 
-ArgT = TypeVar("ArgT")  # Input type
-RetT = TypeVar("RetT")  # Return type
-SenT = TypeVar("SenT", bound=Enum)  # Sentinel type
-
-
 @dataclasses.dataclass(frozen=True, slots=True, eq=False)
-class sentineled(AbstractConverter[ArgT, RetT], Generic[ArgT, RetT, SenT]):
+class sentineled[ArgT, RetT, SenT: Enum](AbstractConverter[ArgT, RetT]):
     """Optional converter with a defined sentinel value.
 
     This converter allows for a field to be optional, i.e., it can be set to
@@ -87,16 +73,16 @@ class sentineled(AbstractConverter[ArgT, RetT], Generic[ArgT, RetT, SenT]):
 ##############################################################################
 # ModuleMeta
 
-T = TypeVar("T")
 
-
-def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
+def _add_converter_init_to_class[T](cls: type[T], /) -> type[T]:
     """Make a new `__init__` method that applies the converters."""
     original_init = cls.__init__
     sig = inspect.signature(original_init)
 
     @ft.wraps(original_init)
-    def init(self: _DataclassBase, *args: Any, **kwargs: Any) -> None:
+    def init(
+        self: op.dataclasses.HasDataclassFields, *args: Any, **kwargs: Any
+    ) -> None:
         __tracebackhide__ = True  # pylint: disable=unused-variable
 
         # Apply any converter to its argument.
@@ -107,7 +93,7 @@ def _add_converter_init_to_class(cls: type[T], /) -> type[T]:
         # Call the original `__init__`.
         init.__wrapped__(*ba.args, **ba.kwargs)
 
-    cls.__init__ = init  # type: ignore[method-assign]
+    cls.__init__ = init  # type: ignore[method-assign,assignment]
 
     return cls
 

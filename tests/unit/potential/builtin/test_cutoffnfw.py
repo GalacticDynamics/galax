@@ -1,5 +1,4 @@
-from typing import Any, ClassVar
-from typing_extensions import override
+from typing import Any, ClassVar, override
 
 import pytest
 

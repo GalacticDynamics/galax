@@ -3,8 +3,7 @@
 import re
 
 from jaxtyping import Array, Shaped
-from typing import Any
-from typing_extensions import override
+from typing import Any, override
 
 import equinox as eqx
 import pytest

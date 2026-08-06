@@ -1,6 +1,6 @@
 """Test :class:`~galax.dynamics._src.orbit`."""
 
-from typing_extensions import override
+from typing import override
 
 import jax.random as jr
 import pytest

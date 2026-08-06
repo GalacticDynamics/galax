@@ -2,7 +2,6 @@
 
 __all__ = ["gala_to_galax", "galax_to_gala"]
 
-from typing import TypeVar
 
 import equinox as eqx
 import gala.potential as galap
@@ -105,8 +104,6 @@ def convert_potential(
 # -----------------------
 # Helper functions
 
-PT = TypeVar("PT", bound=gp.AbstractPotential)
-
 
 def _get_xop(pot: galap.PotentialBase, /) -> cx.ops.AbstractOperator:
     """Convert a Gala transformation to a Galax transformation."""
@@ -116,7 +113,7 @@ def _get_xop(pot: galap.PotentialBase, /) -> cx.ops.AbstractOperator:
     return cx.ops.simplify_op(xop)
 
 
-def _apply_xop(
+def _apply_xop[PT: gp.AbstractPotential](
     xop: cx.ops.AbstractOperator, pot: PT, /
 ) -> PT | gp.TransformedPotential:
     """Apply a Galax transformation to a potential."""

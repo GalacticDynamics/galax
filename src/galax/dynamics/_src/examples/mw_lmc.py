@@ -12,8 +12,7 @@ from dataclasses import KW_ONLY
 
 from collections.abc import Callable
 from jaxtyping import Array, Real
-from typing import Any, TypeAlias, final
-from typing_extensions import override
+from typing import Any, TypeAlias, final, override
 
 import equinox as eqx
 import interpax as ipx

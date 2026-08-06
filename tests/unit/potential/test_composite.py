@@ -3,8 +3,7 @@
 from dataclasses import replace
 
 from collections.abc import Mapping
-from typing import Any
-from typing_extensions import override
+from typing import Any, override
 
 import pytest
 

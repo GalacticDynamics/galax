@@ -5,8 +5,7 @@ __all__ = ["PhaseSpaceCoordinate"]
 import functools as ft
 from dataclasses import KW_ONLY
 
-from typing import Any, ClassVar, final
-from typing_extensions import override
+from typing import Any, ClassVar, final, override
 
 import equinox as eqx
 from plum import dispatch

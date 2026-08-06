@@ -5,8 +5,8 @@ __all__: list[str] = []
 import functools as ft
 
 from collections.abc import Callable, Sequence
-from typing import Any, NotRequired, TypedDict, TypeVar, cast
-from typing_extensions import ParamSpec, Unpack
+from typing import Any, NotRequired, TypedDict, TypeVar, Unpack, cast
+from typing_extensions import ParamSpec
 
 import quax
 

@@ -5,8 +5,7 @@ __all__ = ["AbstractPhaseSpaceCoordinate", "ComponentShapeTuple"]
 import functools as ft
 from abc import abstractmethod
 
-from typing import TYPE_CHECKING, Any, NamedTuple, cast
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, NamedTuple, cast, override
 
 import equinox as eqx
 import equinox.internal as eqxi

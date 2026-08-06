@@ -134,6 +134,20 @@ class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
     x: Shaped[Array, "O"]
     w: Shaped[Array, "O"]
 
+    @classmethod
+    def for_order(cls, order: int, /) -> "GaussLegendreIntegrator":
+        """Build the integrator for the interval [0, 1].
+
+        See :func:`numpy.polynomial.legendre.leggauss` for details on
+        ``order``.
+        """
+        x_, w_ = np.polynomial.legendre.leggauss(order)
+        x, w = jnp.asarray(x_, dtype=float), jnp.asarray(w_, dtype=float)
+        # Interval change from [-1, 1] to [0, 1]
+        x = 0.5 * (x + 1)
+        w = 0.5 * w
+        return cls(x, w)
+
     @ft.partial(jax.jit, static_argnums=(1,))
     def __call__(
         self,

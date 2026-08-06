@@ -12,7 +12,6 @@ from typing import final
 
 import equinox as eqx
 import jax
-import numpy as np
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -92,13 +91,8 @@ class AxisymmetricGaussianPotential(AbstractSinglePotential):
     _integrator: GaussLegendreIntegrator = eqx.field(default=None)
 
     def __post_init__(self) -> None:
-        # Gauss-Legendre quadrature
-        x_, w_ = np.polynomial.legendre.leggauss(self.integration_order)
-        x, w = jnp.asarray(x_, dtype=float), jnp.asarray(w_, dtype=float)
-        # Interval change from [-1, 1] to [0, 1]
-        x = 0.5 * (x + 1)
-        w = 0.5 * w
-        object.__setattr__(self, "_integrator", GaussLegendreIntegrator(x, w))
+        integrator = GaussLegendreIntegrator.for_order(self.integration_order)
+        object.__setattr__(self, "_integrator", integrator)
 
     # ==========================================================================
 

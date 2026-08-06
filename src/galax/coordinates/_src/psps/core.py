@@ -5,8 +5,7 @@ __all__ = ["PhaseSpacePosition", "ComponentShapeTuple"]
 import warnings
 from dataclasses import KW_ONLY, replace
 
-from typing import Any, ClassVar, NamedTuple
-from typing_extensions import override
+from typing import Any, ClassVar, NamedTuple, override
 
 import equinox as eqx
 from plum import dispatch

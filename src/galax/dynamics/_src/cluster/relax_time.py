@@ -20,7 +20,7 @@ __all__ = [
 
 import functools as ft
 
-from typing import Any, NoReturn, TypeAlias, TypeVar, cast, final
+from typing import Any, NoReturn, TypeAlias, cast, final
 
 import equinox as eqx
 import jax
@@ -32,10 +32,11 @@ from unxt.quantity import is_any_quantity
 import galax._custom_types as gt
 
 BBtAorQSz0: TypeAlias = gt.BBtSz0 | gt.BBtQuSz0
-T = TypeVar("T", bound=gt.BBtSz0 | gt.BBtQuSz0)
 
 
-def _check_types_match(obj: T, comparator: object, /, name: str) -> T:
+def _check_types_match[T: (gt.BBtSz0 | gt.BBtQuSz0)](
+    obj: T, comparator: object, /, name: str
+) -> T:
     out = eqx.error_if(
         obj,
         (is_any_quantity(obj) and not is_any_quantity(comparator))

@@ -18,7 +18,7 @@ __all__ = [
     "tidal_radius",
 ]
 
-from typing import Any, Generic, NamedTuple, TypeVar
+from typing import Any, NamedTuple
 
 from plum import dispatch
 
@@ -30,10 +30,8 @@ import galax.potential as gp
 #########################################################################
 # Lagrange points
 
-T = TypeVar("T")
 
-
-class L1L2LagrangePoints(NamedTuple, Generic[T]):
+class L1L2LagrangePoints[T](NamedTuple):
     l1: T
     l2: T
 

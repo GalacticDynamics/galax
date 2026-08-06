@@ -11,8 +11,7 @@ import functools as ft
 from dataclasses import KW_ONLY
 
 from jaxtyping import PyTree
-from typing import Any, TypeAlias, final
-from typing_extensions import override
+from typing import Any, TypeAlias, final, override
 
 import diffrax as dfx
 import equinox as eqx

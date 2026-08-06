@@ -539,18 +539,17 @@ def parse_to_t_y(
 #####################################################################
 
 
-T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
 
 
-def _identity(x: T) -> T:
+def _identity[T](x: T) -> T:
     return x
 
 
-def _reverse(x: op.CanGetitem[Any, T]) -> T:
+def _reverse[T](x: op.CanGetitem[Any, T]) -> T:
     return x[::-1]
 
 
-def cond_reverse(pred: Bool[Array, ""], x: T) -> T:
+def cond_reverse[T](pred: Bool[Array, ""], x: T) -> T:
     """Reverse `x` if `pred` is True."""
-    return cast(T, jax.lax.cond(pred, _reverse, _identity, x))
+    return cast("T", jax.lax.cond(pred, _reverse, _identity, x))

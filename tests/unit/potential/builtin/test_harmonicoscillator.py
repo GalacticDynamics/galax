@@ -1,7 +1,6 @@
 """Unit tests for the `HarmonicOscillatorPotential` class."""
 
-from typing import Any
-from typing_extensions import override
+from typing import Any, override
 
 import pytest
 from plum import convert

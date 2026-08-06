@@ -7,8 +7,7 @@ This is private API.
 __all__ = ["AbstractOrbitField"]
 
 from jaxtyping import Array, PyTree
-from typing import Any
-from typing_extensions import override
+from typing import Any, override
 
 from plum import dispatch
 

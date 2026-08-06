@@ -20,6 +20,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import safe_sqrt, safe_vector_norm
 
 
 @final
@@ -61,7 +62,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         q1sq = self.q1(t, ustrip=self.units["dimensionless"]) ** 2
         q2sq = 3 - q1sq
         x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
-        return jnp.sqrt(x**2 + y**2 / q1sq + z**2 / q2sq)
+        return safe_sqrt(x**2 + y**2 / q1sq + z**2 / q2sq)
 
     @ft.partial(jax.jit, inline=True)
     def _r_tilde(self, xyz: gt.BtSz3, t: gt.BBtSz0) -> gt.BtFloatSz0:
@@ -69,7 +70,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         r_a = a_r * self.r_s(t, ustrip=self.units["length"])
 
         r_e = self._r_e(xyz, t)
-        r = jnp.linalg.vector_norm(xyz, axis=-1)
+        r = safe_vector_norm(xyz)
         return (r_a + r) * r_e / (r_a + r_e)
 
     @ft.partial(jax.jit)
@@ -83,4 +84,4 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         r_s = self.r_s(t, ustrip=self.units["length"])
 
         r = self._r_tilde(xyz, t)
-        return -self.constants["G"].value * m * jnp.log(1.0 + r / r_s) / r
+        return -self.constants["G"].value * m * jnp.log1p(r / r_s) / r

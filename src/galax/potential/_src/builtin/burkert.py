@@ -185,7 +185,7 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     """
     x = r / p["r_s"]
     factor = p["m"] / CONST_BURKER
-    return factor * (2 * jnp.log(1 + x) + jnp.log(1 + x**2) - 2 * jnp.atan(x))
+    return factor * (2 * jnp.log1p(x) + jnp.log1p(x**2) - 2 * jnp.atan(x))
 
 
 @ft.partial(jax.jit)
@@ -221,6 +221,6 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     return -prefactor * (
         jnp.pi
         - 2 * (1 + xinv) * jnp.atan(x)
-        + 2 * (1 + xinv) * jnp.log(1 + x)
-        - (1 - xinv) * jnp.log(1 + x**2)
+        + 2 * (1 + xinv) * jnp.log1p(x)
+        - (1 - xinv) * jnp.log1p(x**2)
     )

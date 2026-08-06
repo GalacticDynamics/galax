@@ -88,9 +88,11 @@ class gNFWPotential(AbstractSinglePotential):
     >>> jnp.isclose(gnfw.potential(x, t), nfw.potential(x, t), atol=1e-8)
     Array(True, dtype=bool)
 
+    Both are finite at the origin, where $\\Phi(0) = -G m / r_s$:
+
     >>> x = jnp.array([0, 0, 0])
     >>> gnfw.potential(x, t), nfw.potential(x, t)
-    (Array(nan, dtype=float64), Array(nan, dtype=float64))
+    (Array(-4.49850215, dtype=float64), Array(-4.49850215, dtype=float64))
 
     The gNFW potential is a generalization of the NFW potential, so it can be
     used to model a wider range of profiles. For example, if we set $\gamma =
@@ -329,9 +331,11 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     >>> jnp.isclose(gnfw.potential(x, t), nfw.potential(x, t), atol=1e-8)
     Array(True, dtype=bool)
 
+    Both are finite at the origin, where $\\Phi(0) = -G m / r_s$:
+
     >>> x = jnp.array([0, 0, 0])
     >>> gnfw.potential(x, t), nfw.potential(x, t)
-    (Array(nan, dtype=float64), Array(nan, dtype=float64))
+    (Array(-4.49850215, dtype=float64), Array(-4.49850215, dtype=float64))
 
     The gNFW potential is a generalization of the NFW potential, so it can be
     used to model a wider range of profiles. For example, if we set

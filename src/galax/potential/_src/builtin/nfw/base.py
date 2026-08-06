@@ -320,7 +320,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     """
     x = r / p["r_s"]
     m = p["m"]
-    return m * (jnp.log(1 + x) - x / (1 + x))
+    return m * (jnp.log1p(x) - x / (1 + x))
 
 
 @ft.partial(jax.jit)
@@ -335,4 +335,4 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r_s = p["r_s"]
     x = r / r_s
     phi0 = -p["G"] * p["m"] / r_s
-    return phi0 * jnp.log(1 + x) / x
+    return phi0 * jnp.log1p(x) / x

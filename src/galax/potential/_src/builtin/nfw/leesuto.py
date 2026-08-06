@@ -20,6 +20,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import safe_vector_norm
 
 LOG2: Final = jnp.log(jnp.asarray(2.0))
 
@@ -127,7 +128,7 @@ def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BtFloatSz0:
     # https://github.com/adrn/gala/blob/2067009de41518a71c674d0252bc74a7b2d78a36/gala/potential/potential/builtin/builtin_potentials.c#L1472
 
     # Parse inputs
-    r = jnp.linalg.vector_norm(xyz, axis=-1)
+    r = safe_vector_norm(xyz)
 
     v_c2 = p["G"] * p["m"] / p["r_s"]
 
@@ -142,7 +143,7 @@ def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BtFloatSz0:
     s = r / p["r_s"]
 
     # The functions F1, F2, and F3 and some useful quantities
-    log1pu = jnp.log(1 + s)
+    log1pu = jnp.log1p(s)
     u2 = s**2
     um3 = s ** (-3)
     costh2 = xyz[..., 2] ** 2 / r**2  # z^2 / r^2

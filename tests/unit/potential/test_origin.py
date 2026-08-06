@@ -6,13 +6,14 @@ every potential defined in terms of ``r``. See `galax.potential._src.utils.safe_
 """
 
 import jax
+import numpy as np
 import pytest
 
 import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from galax.potential._src.utils import safe_sqrt
+from galax.potential._src.utils import safe_sqrt, safe_vector_norm
 
 # Potentials that are regular at the origin, with the analytic value of
 # d^2Phi/dx^2 there (the Hessian is isotropic, so the diagonal suffices).
@@ -62,6 +63,26 @@ def test_safe_sqrt_derivative_is_finite_at_zero() -> None:
     """...but its derivative at zero must be finite, unlike `jnp.sqrt`."""
     assert jnp.isinf(jax.grad(jnp.sqrt)(jnp.asarray(0.0)))
     assert jnp.isfinite(jax.grad(safe_sqrt)(jnp.asarray(0.0)))
+
+
+def test_safe_vector_norm_matches_vector_norm_to_1ulp() -> None:
+    """`safe_vector_norm` must agree with `jnp.linalg.vector_norm`.
+
+    Agreement is to within a rounding ulp rather than bitwise: the offset
+    itself is a no-op at these magnitudes, but XLA fuses ``sum(square(x))``
+    differently from `vector_norm`'s scaled algorithm.
+    """
+    rng = np.random.default_rng(0)
+    n = 20_000
+    xyz = jnp.asarray(rng.normal(size=(n, 3)) * 10 ** rng.uniform(-6, 6, size=(n, 1)))
+    expect = jnp.linalg.vector_norm(xyz, axis=-1)
+    assert jnp.allclose(safe_vector_norm(xyz), expect, rtol=4e-16, atol=0.0)
+
+
+def test_safe_vector_norm_gradient_at_origin() -> None:
+    """Its gradient at the origin is zero, where `vector_norm` gives NaN."""
+    assert jnp.all(jnp.isnan(jax.grad(jnp.linalg.vector_norm)(ORIGIN)))
+    assert jnp.array_equal(jax.grad(safe_vector_norm)(ORIGIN), jnp.zeros(3))
 
 
 @pytest.mark.parametrize(("pot", "denom"), REGULAR, ids=lambda p: type(p).__name__)

@@ -75,15 +75,49 @@ def safe_sqrt(q2: gt.BBtFloatSz0, /) -> gt.BBtFloatSz0:
     return jnp.sqrt(q2 + tiny)
 
 
+@ft.partial(jax.jit, inline=True)
+def safe_vector_norm(x: gt.BBtSz3, /) -> gt.BBtFloatSz0:
+    """`jnp.linalg.vector_norm` over the last axis, differentiable at the origin.
+
+    Values match `jnp.linalg.vector_norm` to within a rounding ulp -- the
+    offset is a no-op at any meaningful magnitude, but XLA fuses
+    ``sum(square(x))`` differently from `vector_norm`'s scaled algorithm. The
+    derivative at the origin is finite rather than NaN. See `safe_sqrt`.
+
+    Unlike `vector_norm`, this overflows for ``|x| > ~1e154`` (float64), which
+    no physical position reaches.
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> from galax.potential._src.utils import safe_vector_norm
+
+    >>> xyz = jnp.asarray([3.0, 4.0, 0.0])
+    >>> safe_vector_norm(xyz)
+    Array(5., dtype=float64)
+
+    At the origin the gradient is zero -- the value `jnp.linalg.vector_norm`
+    cannot give -- rather than NaN:
+
+    >>> import jax
+    >>> jax.grad(safe_vector_norm)(jnp.zeros(3))
+    Array([0., 0., 0.], dtype=float64)
+    >>> jax.grad(jnp.linalg.vector_norm)(jnp.zeros(3))
+    Array([nan, nan, nan], dtype=float64)
+
+    """
+    return safe_sqrt(jnp.sum(jnp.square(x), axis=-1))
+
+
 @ft.partial(jax.jit, inline=True, static_argnames=("unit",))
 def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
     """Spherical radius.
 
-    Uses `safe_sqrt` so that the gradient and hessian of potentials written in
-    terms of ``r`` are finite at the origin rather than NaN.
+    Uses `safe_vector_norm` so that the gradient and hessian of potentials
+    written in terms of ``r`` are finite at the origin rather than NaN.
     """
     xyz = u.ustrip(AllowValue, unit, xyz)
-    r = safe_sqrt(jnp.sum(jnp.square(xyz), axis=-1))
+    r = safe_vector_norm(xyz)
     return r
 
 

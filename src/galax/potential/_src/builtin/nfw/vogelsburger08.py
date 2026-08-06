@@ -19,7 +19,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-from galax.potential._src.utils import safe_sqrt
+from galax.potential._src.utils import safe_sqrt, safe_vector_norm
 
 
 @final
@@ -69,7 +69,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         r_a = a_r * self.r_s(t, ustrip=self.units["length"])
 
         r_e = self._r_e(xyz, t)
-        r = safe_sqrt(jnp.sum(jnp.square(xyz), axis=-1))
+        r = safe_vector_norm(xyz)
         return (r_a + r) * r_e / (r_a + r_e)
 
     @ft.partial(jax.jit)

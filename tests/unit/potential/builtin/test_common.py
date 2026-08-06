@@ -8,7 +8,7 @@ from plum import convert
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 import galax.potential as gp
 import galax.potential.params as gpp
 from ..param.test_field import ParameterFieldMixin
@@ -401,11 +401,9 @@ def assert_gaussian_matches_galpy(
 
     `galax`'s ``GaussianPotential``/``TriaxialGaussianPotential`` have no gala
     counterpart, but galpy has ``galpy.potential.TriaxialGaussianPotential``
-    (the spherical case is just ``b = c = 1``). Note that galpy's ``amp`` is
-    the *total* mass for any ``b, c``, whereas `galax`'s ``m`` fixes the
-    central density (matching the ``TriaxialNFWPotential`` convention), so the
-    true total mass is ``m * q1 * q2``. We map ``amp = m * q1 * q2`` here so
-    the two potentials describe the same density field.
+    (the spherical case is just ``b = c = 1``). Both galpy's ``amp`` and
+    `galax`'s ``m_tot`` are the *total* mass for any ``b, c`` (``q1, q2``), so
+    we can map ``amp = m_tot`` directly.
     """
     from galpy.potential import (
         TriaxialGaussianPotential as GalpyGaussianPotential,
@@ -414,13 +412,13 @@ def assert_gaussian_matches_galpy(
     )
 
     t0 = u.Q(0, "Myr")
-    m = pot.m(t=t0)
+    m_tot = pot.m_tot(t=t0)
     r_s = pot.r_s(t=t0)
     q1 = pot.q1(t=t0) if hasattr(pot, "q1") else u.Q(1.0, "")
     q2 = pot.q2(t=t0) if hasattr(pot, "q2") else u.Q(1.0, "")
 
     galpy_pot = GalpyGaussianPotential(
-        amp=convert(m * q1 * q2, apyu.Quantity),
+        amp=convert(m_tot, apyu.Quantity),
         sigma=convert(r_s, apyu.Quantity),
         b=float(q1.ustrip("")),
         c=float(q2.ustrip("")),

@@ -7,11 +7,11 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 import galax.potential as gp
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import (
-    ParameterMMixin,
+    ParameterMTotMixin,
     ParameterRSMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
@@ -23,7 +23,7 @@ from galax._interop.optional_deps import OptDeps
 class TestTriaxialGaussianPotential(
     AbstractSinglePotential_Test,
     # Parameters
-    ParameterMMixin,
+    ParameterMTotMixin,
     ParameterRSMixin,
     ParameterShapeQ1Mixin,
     ParameterShapeQ2Mixin,
@@ -39,14 +39,14 @@ class TestTriaxialGaussianPotential(
     @pytest.fixture(scope="class")
     def fields_(
         self,
-        field_m: u.Quantity,
+        field_m_tot: u.Quantity,
         field_r_s: u.Quantity,
         field_q1: u.Quantity,
         field_q2: u.Quantity,
         field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
         return {
-            "m": field_m,
+            "m_tot": field_m_tot,
             "r_s": field_r_s,
             "q1": field_q1,
             "q2": field_q2,
@@ -56,25 +56,25 @@ class TestTriaxialGaussianPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.TriaxialGaussianPotential, x: gt.QuSz3) -> None:
-        expect = u.Q(-0.64255935, unit="kpc2 / Myr2")
+        expect = u.Q(-1.16828959, unit="kpc2 / Myr2")
         got = pot.potential(x, t=0)
         assert jnp.isclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_gradient(self, pot: gp.TriaxialGaussianPotential, x: gt.QuSz3) -> None:
-        expect = u.Q([0.03956623, 0.0765244, 0.13704284], "kpc / Myr2")
+        expect = u.Q([0.07193859, 0.13913527, 0.24916877], "kpc / Myr2")
         got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.TriaxialGaussianPotential, x: gt.QuSz3) -> None:
-        expect = u.Q(112.31556702, "solMass / kpc3")
+        expect = u.Q(204.21022033, "solMass / kpc3")
         assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.TriaxialGaussianPotential, x: gt.QuSz3) -> None:
         expect = u.Q(
             [
-                [0.03303733, -0.0124193, -0.02445886],
-                [-0.0124193, 0.0146227, -0.04636713],
-                [-0.02445886, -0.04636713, -0.04766002],
+                [0.06006787, -0.02258055, -0.04447065],
+                [-0.02258055, 0.02658673, -0.08430387],
+                [-0.04447065, -0.08430387, -0.08665458],
             ],
             "1/Myr2",
         )
@@ -87,9 +87,9 @@ class TestTriaxialGaussianPotential(
         """Test the `AbstractPotential.tidal_tensor` method."""
         expect = u.Q(
             [
-                [0.03303733, -0.0124193, -0.02445886],
-                [-0.0124193, 0.01462269, -0.04636713],
-                [-0.02445886, -0.04636713, -0.04766002],
+                [0.06006786, -0.02258055, -0.04447065],
+                [-0.02258055, 0.02658672, -0.08430387],
+                [-0.04447065, -0.08430387, -0.08665459],
             ],
             "1/Myr2",
         )

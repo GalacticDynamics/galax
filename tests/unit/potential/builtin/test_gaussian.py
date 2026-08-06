@@ -6,11 +6,11 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 import galax.potential as gp
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import (
-    ParameterMMixin,
+    ParameterMTotMixin,
     ParameterRSMixin,
     assert_gaussian_matches_galpy,
 )
@@ -22,7 +22,7 @@ from galax._interop.optional_deps import OptDeps
 class TestGaussianPotential(
     AbstractSinglePotential_Test,
     # Parameters
-    ParameterMMixin,
+    ParameterMTotMixin,
     ParameterRSMixin,
 ):
     HAS_GALA_COUNTERPART: ClassVar[bool] = False
@@ -36,11 +36,11 @@ class TestGaussianPotential(
     @override
     def fields_(
         self,
-        field_m: u.Quantity,
+        field_m_tot: u.Quantity,
         field_r_s: u.Quantity,
         field_units: u.AbstractUnitSystem,
     ) -> dict[str, Any]:
-        return {"m": field_m, "r_s": field_r_s, "units": field_units}
+        return {"m_tot": field_m_tot, "r_s": field_r_s, "units": field_units}
 
     # ==========================================================================
 

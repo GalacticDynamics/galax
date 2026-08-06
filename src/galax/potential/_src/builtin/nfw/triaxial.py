@@ -7,7 +7,6 @@ __all__ = [
 import functools as ft
 from dataclasses import KW_ONLY
 
-from collections.abc import Callable
 from jaxtyping import Array, Float, Shaped
 from typing import final
 
@@ -24,26 +23,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-
-
-class GaussLegendreIntegrator(eqx.Module):
-    """Gauss-Legendre quadrature integrator."""
-
-    x: Shaped[Array, "O"]
-    w: Shaped[Array, "O"]
-
-    @ft.partial(jax.jit, static_argnums=(1,))
-    def __call__(
-        self,
-        f: Callable[
-            [Shaped[Array, "N *#batch"]],
-            Shaped[Array, "N *batch"] | Shaped[u.Quantity["dimensionless"], "N *batch"],
-        ],
-        /,
-    ) -> Shaped[Array, "*batch"] | Shaped[u.Quantity["dimensionless"], "*batch"]:
-        y = f(self.x)
-        w = self.w.reshape(self.w.shape + (1,) * (y.ndim - 1))
-        return jnp.sum(y * w, axis=0)
+from galax.potential._src.utils import GaussLegendreIntegrator
 
 
 @final

@@ -7,7 +7,6 @@ __all__ = [
 import functools as ft
 from dataclasses import KW_ONLY
 
-from collections.abc import Callable
 from jaxtyping import Array, Float, Shaped
 from typing import final
 
@@ -19,31 +18,12 @@ import quaxed.numpy as jnp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-
-
-class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
-    """Gauss-Legendre quadrature integrator."""
-
-    x: Shaped[Array, "O"]
-    w: Shaped[Array, "O"]
-
-    @ft.partial(jax.jit, static_argnums=(1,))
-    def __call__(
-        self,
-        f: Callable[
-            [Shaped[Array, "N *#batch"]],
-            Shaped[Array, "N *batch"] | Shaped[u.Quantity["dimensionless"], "N *batch"],
-        ],
-        /,
-    ) -> Shaped[Array, "*batch"] | Shaped[u.Quantity["dimensionless"], "*batch"]:
-        y = f(self.x)
-        w = self.w.reshape(self.w.shape + (1,) * (y.ndim - 1))
-        return jnp.sum(y * w, axis=0)
+from galax.potential._src.utils import GaussLegendreIntegrator
 
 
 @final
@@ -52,14 +32,19 @@ class AxisymmetricGaussianPotential(AbstractSinglePotential):
 
     .. math::
 
-        \rho(R, z) = \frac{G M}{(2\pi)^{3/2} r_s^3} \exp\left(-\frac{\xi^2}{2
-        r_s^2}\right)
+        \rho(R, z) = \frac{m_\mathrm{tot}}{q_2 (2\pi)^{3/2} r_s^3}
+        \exp\left(-\frac{\xi^2}{2 r_s^2}\right)
 
     where
 
     .. math::
 
         \xi^2 = R^2 + \frac{z^2}{q_2^2}, \qquad R^2 = x^2 + y^2
+
+    The extra :math:`q_2` in the normalization (relative to the spherical
+    `~galax.potential.GaussianPotential`) keeps :math:`m_\mathrm{tot}` equal
+    to the true total mass for any flattening, as in
+    `~galax.potential.TriaxialGaussianPotential`.
 
     This is the axisymmetric (:math:`q_1 = 1`) special case of
     `~galax.potential.TriaxialGaussianPotential` -- ``q2`` is the same z/x
@@ -79,7 +64,7 @@ class AxisymmetricGaussianPotential(AbstractSinglePotential):
     Gaussian is not among them.
     """
 
-    m: AbstractParameter = ParameterField(  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass", doc="Total mass of the potential."
     )
 
@@ -123,12 +108,14 @@ class AxisymmetricGaussianPotential(AbstractSinglePotential):
     ) -> gt.BtFloatQuSz0 | gt.BtFloatSz0:
         r"""Central density.
 
-        $$ \rho_0 = \frac{M}{(2 \pi)^{3/2} r_s^3} $$
+        $$ \rho_0 = \frac{m_\mathrm{tot}}{q_2 (2 \pi)^{3/2} r_s^3} $$
 
         """
-        m = self.m(t, ustrip=self.units["mass"] if ustrip else None)
+        u1 = self.units["dimensionless"]
+        m_tot = self.m_tot(t, ustrip=self.units["mass"] if ustrip else None)
         r_s = self.r_s(t, ustrip=self.units["length"] if ustrip else None)
-        return m / ((2 * jnp.pi) ** 1.5 * r_s**3)
+        q2 = self.q2(t, ustrip=u1 if ustrip else None)
+        return m_tot / (q2 * (2 * jnp.pi) ** 1.5 * r_s**3)
 
     # ==========================================================================
     # Potential energy

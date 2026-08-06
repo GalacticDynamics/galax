@@ -24,7 +24,7 @@ import quaxed.scipy.special as jsp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
@@ -40,24 +40,25 @@ class GaussianPotential(AbstractSinglePotential):
 
     The density profile is given by:
 
-    $$ \rho(r) = \frac{ m }{ (2 \pi)^{3/2} r_s^3 } \exp\left(-\frac{r^2}{2
-    r_s^2}\right) $$
+    $$ \rho(r) = \frac{ m_\mathrm{tot} }{ (2 \pi)^{3/2} r_s^3 }
+    \exp\left(-\frac{r^2}{2 r_s^2}\right) $$
 
-    where :math:`m` is the total mass and :math:`r_s` is the scale radius.
-    Unlike the NFW profile, the Gaussian profile has a finite total mass, so
-    :math:`m` is the total (rather than a characteristic) mass.
+    where :math:`m_\mathrm{tot}` is the total mass and :math:`r_s` is the
+    scale radius. Unlike the NFW profile, the Gaussian profile has a finite
+    total mass, so :math:`m_\mathrm{tot}` is the total (rather than a
+    characteristic) mass.
 
     Solving Poisson's equation gives the gravitational potential
 
-    $$ \Phi(r) = -\frac{G m}{r} \mathrm{erf}\left(\frac{r}{\sqrt{2} r_s}\right)
-    $$
+    $$ \Phi(r) = -\frac{G m_\mathrm{tot}}{r}
+    \mathrm{erf}\left(\frac{r}{\sqrt{2} r_s}\right) $$
 
     Which has the expected behavior of being finite at the center and going to
-    the Kepler potential :math:`-G m / r` at large radii.
+    the Kepler potential :math:`-G m_\mathrm{tot} / r` at large radii.
 
     """
 
-    m: AbstractParameter = ParameterField(  # type: ignore[assignment]
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass", doc="Total mass of the potential."
     )
 
@@ -79,7 +80,7 @@ class GaussianPotential(AbstractSinglePotential):
 
         .. math::
 
-            \Phi(r) = -\frac{G m}{r} \mathrm{erf}\left(\frac{r}{\sqrt{2}
+            \Phi(r) = -\frac{G m_\mathrm{tot}}{r} \mathrm{erf}\left(\frac{r}{\sqrt{2}
             r_s}\right)
         """
         # Parse inputs
@@ -88,7 +89,7 @@ class GaussianPotential(AbstractSinglePotential):
 
         params = {
             "G": self.constants["G"].value,
-            "m": self.m(t, ustrip=self.units["mass"]),
+            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
         return potential(params, r)
@@ -99,7 +100,7 @@ class GaussianPotential(AbstractSinglePotential):
 
         .. math::
 
-            \rho_0 = \frac{m}{(2 \pi)^{3/2} r_s^3}
+            \rho_0 = \frac{m_\mathrm{tot}}{(2 \pi)^{3/2} r_s^3}
             \rho(r) = \rho_0 \exp\left(-\frac{u^2}{2}\right)
 
         """
@@ -108,7 +109,7 @@ class GaussianPotential(AbstractSinglePotential):
         t = u.Q.from_(t, self.units["time"])
 
         params = {
-            "m": self.m(t, ustrip=self.units["mass"]),
+            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
         return density(params, r)
@@ -119,7 +120,7 @@ class GaussianPotential(AbstractSinglePotential):
 
         .. math::
 
-            M(<r) = m \left[ \mathrm{erf}\left(\frac{x}{\sqrt{2}}\right) -
+            M(<r) = m_\mathrm{tot} \left[ \mathrm{erf}\left(\frac{x}{\sqrt{2}}\right) -
             \sqrt{\frac{2}{\pi}} x \exp\left(-\frac{x^2}{2}\right) \right]
 
         Examples
@@ -127,7 +128,7 @@ class GaussianPotential(AbstractSinglePotential):
         >>> import unxt as u
         >>> import galax.potential as gp
 
-        >>> pot = gp.GaussianPotential(m=1e11, r_s=15, units="galactic")
+        >>> pot = gp.GaussianPotential(m_tot=1e11, r_s=15, units="galactic")
 
         >>> q = u.Q([10, 0, 0], "kpc")
         >>> t = u.Q(0, "Gyr")
@@ -140,7 +141,7 @@ class GaussianPotential(AbstractSinglePotential):
         t = u.Q.from_(t, self.units["time"])
 
         params = {
-            "m": self.m(t, ustrip=self.units["mass"]),
+            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
         return mass_enclosed(params, r)
@@ -156,10 +157,10 @@ class GaussianPotential(AbstractSinglePotential):
 def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
     r"""Central density for the Gaussian model.
 
-    The Gaussian profile is parametrized by a total mass $m$ and a scale
-    radius $r_s$. The central density is given by
+    The Gaussian profile is parametrized by a total mass $m_\mathrm{tot}$ and
+    a scale radius $r_s$. The central density is given by
 
-    $$ \rho_0 = \frac{m}{(2 \pi)^{3/2} r_s^3}. $$
+    $$ \rho_0 = \frac{m_\mathrm{tot}}{(2 \pi)^{3/2} r_s^3}. $$
 
     Examples
     --------
@@ -167,21 +168,21 @@ def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
 
     A quick sanity check:
 
-    >>> rho0_of_m({"m": 1.0, "r_s": 1.0}) - 1 / (2 * jnp.pi) ** 1.5
+    >>> rho0_of_m({"m_tot": 1.0, "r_s": 1.0}) - 1 / (2 * jnp.pi) ** 1.5
     Array(0., dtype=float64, weak_type=True)
 
     """
-    return p["m"] / ((2 * jnp.pi) ** 1.5 * p["r_s"] ** 3)
+    return p["m_tot"] / ((2 * jnp.pi) ** 1.5 * p["r_s"] ** 3)
 
 
 @ft.partial(jax.jit)
 def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
     r"""Total mass for the Gaussian model.
 
-    The Gaussian profile is parametrized by a total mass $m$ and a scale
-    radius $r_s$. The total mass is given by
+    The Gaussian profile is parametrized by a total mass $m_\mathrm{tot}$ and
+    a scale radius $r_s$. The total mass is given by
 
-    $$ m = (2 \pi)^{3/2} \rho_0 r_s^3. $$
+    $$ m_\mathrm{tot} = (2 \pi)^{3/2} \rho_0 r_s^3. $$
 
     Examples
     --------
@@ -220,31 +221,39 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Enclosed mass for the Gaussian model.
 
-    $$ M(<r) = m \left[ \mathrm{erf}\left(\frac{x}{\sqrt{2}}\right) -
+    $$ M(<r) = m_\mathrm{tot} \left[ \mathrm{erf}\left(\frac{x}{\sqrt{2}}\right) -
     \sqrt{\frac{2}{\pi}} x \exp\left(-\frac{x^2}{2}\right) \right] $$
 
-    where $x = r / r_s$ is the dimensionless radius and $m$ is the total
-    mass.
+    where $x = r / r_s$ is the dimensionless radius and $m_\mathrm{tot}$ is
+    the total mass.
 
     """
     x = r / p["r_s"]
-    m = p["m"]
+    m_tot = p["m_tot"]
     erf_term = jsp.erf(x / jnp.sqrt(2.0))
     exp_term = jnp.sqrt(2.0 / jnp.pi) * x * jnp.exp(-(x**2) / 2)
-    return m * (erf_term - exp_term)
+    return m_tot * (erf_term - exp_term)
 
 
 @ft.partial(jax.jit)
 def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Potential for the Gaussian model.
 
-    $$ \Phi(r) = -\frac{G m}{r} \mathrm{erf}\left(\frac{r}{\sqrt{2}
+    $$ \Phi(r) = -\frac{G m_\mathrm{tot}}{r} \mathrm{erf}\left(\frac{r}{\sqrt{2}
     r_s}\right) $$
 
-    where $m$ is the total mass and $r_s$ is the scale radius.
+    where $m_\mathrm{tot}$ is the total mass and $r_s$ is the scale radius.
+    At $r=0$ this is the $0/0$ limit $\Phi(0) = -G m_\mathrm{tot}
+    \sqrt{2/\pi} / r_s$, which we substitute explicitly since the profile is
+    finite (unlike e.g. the Kepler potential) at the center.
 
     """
     r_s = p["r_s"]
-    x = r / r_s
-    phi0 = -p["G"] * p["m"] / r
-    return phi0 * jsp.erf(x / jnp.sqrt(2.0))
+    # erf(x)/x -> sqrt(2/pi)/r_s as r -> 0; guard the division so autodiff
+    # doesn't see a 0/0 either.
+    safe_r = jnp.where(r == 0, 1.0, r)
+    x = safe_r / r_s
+    phi0 = -p["G"] * p["m_tot"] / safe_r
+    phi = phi0 * jsp.erf(x / jnp.sqrt(2.0))
+    phi_origin = -p["G"] * p["m_tot"] * jnp.sqrt(2.0 / jnp.pi) / r_s
+    return jnp.where(r == 0, phi_origin, phi)

@@ -4,7 +4,8 @@ __all__: tuple[str, ...] = ()
 
 import functools as ft
 
-from jaxtyping import Array, Bool
+from collections.abc import Callable
+from jaxtyping import Array, Bool, Shaped
 from typing import Any, TypeAlias, cast
 
 import equinox as eqx
@@ -122,6 +123,29 @@ def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
     xyz = u.ustrip(AllowValue, unit, xyz)
     r = safe_vector_norm(xyz)
     return r  # type: ignore[no-any-return]
+
+
+# ==============================================================================
+
+
+class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
+    """Gauss-Legendre quadrature integrator."""
+
+    x: Shaped[Array, "O"]
+    w: Shaped[Array, "O"]
+
+    @ft.partial(jax.jit, static_argnums=(1,))
+    def __call__(
+        self,
+        f: Callable[
+            [Shaped[Array, "N *#batch"]],
+            Shaped[Array, "N *batch"] | Shaped[u.Quantity["dimensionless"], "N *batch"],
+        ],
+        /,
+    ) -> Shaped[Array, "*batch"] | Shaped[u.Quantity["dimensionless"], "*batch"]:
+        y = f(self.x)
+        w = self.w.reshape(self.w.shape + (1,) * (y.ndim - 1))
+        return jnp.sum(y * w, axis=0)
 
 
 # ==============================================================================

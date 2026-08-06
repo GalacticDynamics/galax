@@ -4,7 +4,7 @@ description = "Galactic Dynamics in Jax."
 dynamic = ["version"]
 license = { text = "MIT License" }
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
   { name = "galax maintainers", email = "nstarman@users.noreply.github.com" },
   { name = "Adrian Price-Whelan", email = "adrianmpw@gmail.com" },
@@ -20,7 +20,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
@@ -43,8 +42,7 @@ dependencies = [
   "oncequinox>=0.1.0",
   "optimistix>=0.0.11",
   "optional-dependencies>=0.4.0",
-  "optype>=0.13.0; python_version < '3.12'",
-  "optype>=0.14.0; python_version >= '3.12'",
+  "optype>=0.14.0",
   "packaging>=24.1",
   "plotting_backends>=0.1",
   "plum>=2.8.0; python_version < '3.14'",
@@ -151,7 +149,7 @@ run.source = ["galax"]
 
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 
 disallow_incomplete_defs = true
 disallow_untyped_defs = true
@@ -209,7 +207,7 @@ messages_control.disable = [
   "wrong-import-order",            # handled by ruff
   "wrong-import-position",
 ]
-py-version = "3.11"
+py-version = "3.12"
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
 

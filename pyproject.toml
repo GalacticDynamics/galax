@@ -273,6 +273,7 @@ ignore = [
   "TD002", # Missing author in TODO
   "TD003", # Missing issue link on the line following this TODO
   "UP037", # Remove quote from type annotation  <- jaxtyping
+  "UP040", # Use `type` instead of `TypeAlias`  <- plum/beartype can't resolve PEP 695 `type` statements
 ]
 
 [tool.ruff.lint.per-file-ignores]

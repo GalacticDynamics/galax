@@ -27,7 +27,7 @@ from .plot import PlotPotentialDescriptor
 from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars
-from galax.utils.dataclasses import ModuleMeta
+from galax.potential.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
     import galax.dynamics  # noqa: ICN001

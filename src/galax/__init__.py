@@ -7,11 +7,10 @@ __all__ = [
     "coordinates",
     "potential",
     "dynamics",
-    "utils",
 ]
 
 # isort: split
-from . import coordinates, dynamics, potential, utils
+from . import coordinates, dynamics, potential
 from ._version import version as __version__, version_tuple as __version_tuple__
 
 # Optional dependencies

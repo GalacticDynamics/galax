@@ -17,5 +17,4 @@ def test_all() -> None:
         "coordinates",
         "dynamics",
         "potential",
-        "utils",
     }

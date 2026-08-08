@@ -6,10 +6,9 @@ import warnings
 
 from typing import Any
 
-import plum
-
 import astropy.coordinates as apyc
 import gala.dynamics as galad
+import plum
 
 import galax.coordinates as gc
 

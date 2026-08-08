@@ -5,10 +5,10 @@ __all__ = ["plot_components"]
 from typing import Any, Protocol, cast, runtime_checkable
 
 import jax.numpy as jnp
-from plum import dispatch
-
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
+from plum import dispatch
+
 from plotting_backends import MatplotlibBackend
 from unxt.quantity import AbstractQuantity
 

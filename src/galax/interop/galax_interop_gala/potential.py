@@ -4,19 +4,19 @@ __all__ = ["gala_to_galax", "galax_to_gala"]
 
 
 import equinox as eqx
-from astropy.units import Quantity as APYQuantity
-from packaging.version import Version
-from plum import convert, dispatch
-
-import coordinax as cx
 import gala.potential as galap
-import quaxed.numpy as jnp
-import unxt as u
+from astropy.units import Quantity as APYQuantity
 from gala.units import (
     DimensionlessUnitSystem as GalaDimensionlessUnitSystem,
     UnitSystem as GalaUnitSystem,
     dimensionless as gala_dimensionless,
 )
+from packaging.version import Version
+from plum import convert, dispatch
+
+import coordinax as cx
+import quaxed.numpy as jnp
+import unxt as u
 
 import galax.potential as gp
 import galax.potential.io as gpio

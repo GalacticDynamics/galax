@@ -984,7 +984,7 @@ requires-dist = [
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.25.0" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
-    { name = "unxt", specifier = ">=1.11.2" },
+    { name = "unxt", specifier = ">=1.11.2,<2" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
     { name = "xmmutablemap", specifier = ">=0.2.1" },
     { name = "zeroth", specifier = ">=1.2.0" },

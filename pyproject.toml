@@ -176,6 +176,14 @@ run.source = ["galax"]
 [tool.mypy]
 python_version = "3.12"
 
+# `src/galax` is a PEP 420 namespace directory. Without an explicit package
+# base, mypy derives a module name by walking up to the first directory
+# without `__init__.py`, naming this module `potential._src.base` rather than
+# `galax.potential._src.base` and losing every cross-module type.
+explicit_package_bases = true
+mypy_path = "src"
+namespace_packages = true
+
 disallow_incomplete_defs = true
 disallow_untyped_defs = true
 exclude = [

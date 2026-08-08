@@ -259,18 +259,12 @@ similarities.ignore-imports = "yes"
 [tool.pytest.ini_options]
 addopts = [
   "--arraydiff",
-  # `src/galax` is a PEP 420 namespace package. The default "prepend" import
-  # mode derives a module name by walking up until it finds a directory
-  # without `__init__.py`, which would import `src/galax/potential/_src/base.py`
-  # as top-level `potential._src.base` when collecting doctests from `src`.
-  "--import-mode=importlib",
   "--showlocals",
   "--strict-config",
   "--strict-markers",
   "-p no:doctest",    # using sybil
   "-ra",
 ]
-consider_namespace_packages = true
 filterwarnings = [
   "error",
   "ignore:Attribute s is deprecated:DeprecationWarning",                                             # from Sybil

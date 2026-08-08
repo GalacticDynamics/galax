@@ -6,4 +6,4 @@ would pull sibling submodules -- and therefore other `galax` portions -- in whil
 a portion is still initialising, so this module deliberately stays empty.
 """
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()

@@ -4,10 +4,10 @@ __all__: tuple[str, ...] = ()
 
 from typing import Any
 
-from astropy.units import Quantity as APYQuantity
 from plum import convert, dispatch
 
 import unxt as u
+from astropy.units import Quantity as APYQuantity
 
 import galax.coordinates as gc
 import galax.dynamics as gd

@@ -23,7 +23,7 @@ __all__ = [
     "PhaseSpaceObjectInterpolant",
 ]
 
-from .setup_package import install_import_hook
+from .setup_package import install_import_hook, load_interop_plugins
 
 with install_import_hook("galax.coordinates"):
     from . import frames, ops
@@ -44,3 +44,10 @@ with install_import_hook("galax.coordinates"):
 
 # Clean up the namespace
 del install_import_hook
+
+# Interoperability with third-party libraries. Importing a registered module is
+# what performs its `plum` dispatch registration; entry points let separately
+# installed distributions extend `galax.coordinates` without it knowing they exist.
+load_interop_plugins("galax.coordinates.interop")
+
+del load_interop_plugins

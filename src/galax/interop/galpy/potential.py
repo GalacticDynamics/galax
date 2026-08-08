@@ -4,13 +4,13 @@ __all__ = ["galax_to_galpy", "galpy_to_galax"]
 
 
 import equinox as eqx
-import galpy.potential as gpy
 import numpy as np
 from astropy.units import Quantity as AstropyQuantity
-from galpy.util import conversion
 from plum import convert, dispatch
 
+import galpy.potential as gpy
 import unxt as u
+from galpy.util import conversion
 
 import galax.potential as gp
 import galax.potential.io as gdio

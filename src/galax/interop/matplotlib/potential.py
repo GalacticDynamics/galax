@@ -1,17 +1,19 @@
+"""Matplotlib backend for plotting `galax.potential` potentials."""
+
 __all__ = ["plot_density_contours", "plot_potential_contours"]
 
 
 from typing import Any
 
-import matplotlib.pyplot as plt
 from astropy.utils import isiterable
+from plum import dispatch
+
+import matplotlib.pyplot as plt
+import quaxed.numpy as jnp
+import unxt as u
 from matplotlib.axes import Axes
 from matplotlib.cm import Blues
 from matplotlib.figure import Figure
-from plum import dispatch
-
-import quaxed.numpy as jnp
-import unxt as u
 from plotting_backends import MatplotlibBackend
 
 from galax.potential._src.base import AbstractPotential

@@ -11,7 +11,7 @@ from ..io.test_gala import parametrize_test_method_gala
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMTotMixin
-from galax._interop.optional_deps import GSL_ENABLED, OptDeps
+from galax.interop.optional_deps import GSL_ENABLED, OptDeps
 
 
 class AlphaParameterMixin(ParameterFieldMixin):

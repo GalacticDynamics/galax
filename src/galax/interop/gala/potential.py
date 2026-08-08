@@ -4,23 +4,23 @@ __all__ = ["gala_to_galax", "galax_to_gala"]
 
 
 import equinox as eqx
-import gala.potential as galap
 from astropy.units import Quantity as APYQuantity
+from packaging.version import Version
+from plum import convert, dispatch
+
+import coordinax as cx
+import gala.potential as galap
+import quaxed.numpy as jnp
+import unxt as u
 from gala.units import (
     DimensionlessUnitSystem as GalaDimensionlessUnitSystem,
     UnitSystem as GalaUnitSystem,
     dimensionless as gala_dimensionless,
 )
-from packaging.version import Version
-from plum import convert, dispatch
-
-import coordinax as cx
-import quaxed.numpy as jnp
-import unxt as u
 
 import galax.potential as gp
 import galax.potential.io as gpio
-from galax._interop.optional_deps import OptDeps
+from galax.interop.optional_deps import OptDeps
 
 ##############################################################################
 # Hook into general dispatcher
@@ -274,7 +274,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         .. invisible-code-block: python
 
             from packaging.version import Version
-            from galax._interop.optional_deps import OptDeps
+            from galax.interop.optional_deps import OptDeps
             skip = not OptDeps.GALA.installed or OptDeps.GALA < Version("1.8.2")
 
         .. skip: start if(skip, reason="Requires Gala v1.8.2+")
@@ -309,7 +309,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         .. invisible-code-block: python
 
             from packaging.version import Version
-            from galax._interop.optional_deps import OptDeps
+            from galax.interop.optional_deps import OptDeps
             skip = not OptDeps.GALA.installed or OptDeps.GALA < Version("1.8.2")
 
         .. skip: start if(skip, reason="Requires Gala v1.8.2+")
@@ -991,7 +991,7 @@ def gala_to_galax(
     --------
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import GSL_ENABLED
+        from galax.interop.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1027,7 +1027,7 @@ def galax_to_gala(pot: gp.PowerLawCutoffPotential, /) -> galap.PowerLawCutoffPot
     --------
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import GSL_ENABLED
+        from galax.interop.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1285,6 +1285,7 @@ def galax_to_gala(pot: gp.LMJ09LogarithmicPotential, /) -> galap.LogarithmicPote
 def gala_to_galax(
     gala: galap.MultipolePotential, /
 ) -> gp.MultipoleInnerPotential | gp.MultipoleOuterPotential | gp.TransformedPotential:
+    """Convert a `gala` multipole potential to its `galax` equivalent."""
     params = gala.parameters
     cls = (
         gp.MultipoleInnerPotential
@@ -1561,7 +1562,7 @@ def gala_to_galax(pot: galap.BovyMWPotential2014, /) -> gp.BovyMWPotential2014:
     --------
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import GSL_ENABLED
+        from galax.interop.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1595,7 +1596,7 @@ def galax_to_gala(pot: gp.BovyMWPotential2014, /) -> galap.BovyMWPotential2014:
     --------
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import GSL_ENABLED
+        from galax.interop.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 

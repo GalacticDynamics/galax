@@ -9,7 +9,7 @@ import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMTotMixin, ParameterRSMixin
-from galax._interop.optional_deps import OptDeps
+from galax.interop.optional_deps import OptDeps
 
 
 class TestKuzminPotential(

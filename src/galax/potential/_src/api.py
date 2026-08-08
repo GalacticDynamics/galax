@@ -140,7 +140,7 @@ def potential(*args: Any, **kwargs: Any) -> Any:
 
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import OptDeps
+        from galax.interop.optional_deps import OptDeps
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
@@ -308,7 +308,7 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
 
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import OptDeps
+        from galax.interop.optional_deps import OptDeps
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
@@ -436,7 +436,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
 
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import OptDeps
+        from galax.interop.optional_deps import OptDeps
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
@@ -561,7 +561,7 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
 
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import OptDeps
+        from galax.interop.optional_deps import OptDeps
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
@@ -718,7 +718,7 @@ def hessian(*args: Any, **kwargs: Any) -> Any:
 
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import OptDeps
+        from galax.interop.optional_deps import OptDeps
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 
@@ -962,7 +962,7 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
 
     .. invisible-code-block: python
 
-        from galax._interop.optional_deps import OptDeps
+        from galax.interop.optional_deps import OptDeps
 
     .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
 

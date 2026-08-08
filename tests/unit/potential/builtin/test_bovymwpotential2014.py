@@ -9,7 +9,7 @@ import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..io.test_gala import parametrize_test_method_gala
 from .test_composite import AbstractSpecialCompositePotential_Test
-from galax._interop.optional_deps import GSL_ENABLED, OptDeps
+from galax.interop.optional_deps import GSL_ENABLED, OptDeps
 
 
 class TestBovyMWPotential2014(AbstractSpecialCompositePotential_Test):

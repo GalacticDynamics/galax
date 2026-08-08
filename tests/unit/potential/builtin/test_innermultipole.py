@@ -18,7 +18,7 @@ from .test_abstractmultipole import (
     ParameterTlmMixin,
 )
 from .test_common import ParameterMTotMixin, ParameterRSMixin
-from galax._interop.optional_deps import GSL_ENABLED, OptDeps
+from galax.interop.optional_deps import GSL_ENABLED, OptDeps
 
 ###############################################################################
 

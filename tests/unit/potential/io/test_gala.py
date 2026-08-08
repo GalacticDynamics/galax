@@ -12,7 +12,7 @@ import unxt as u
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
-from galax._interop.optional_deps import OptDeps
+from galax.interop.optional_deps import OptDeps
 
 parametrize_test_method_gala = pytest.mark.parametrize(
     ("method0", "method1", "atol"),

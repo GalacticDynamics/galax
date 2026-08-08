@@ -470,7 +470,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
         --------
         .. invisible-code-block: python
 
-            from galax._interop.optional_deps import OptDeps
+            from galax.interop.optional_deps import OptDeps
 
         .. skip: start if(not OptDeps.GALA.installed, reason="requires gala")
 

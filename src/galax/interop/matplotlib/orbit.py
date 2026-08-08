@@ -1,12 +1,14 @@
+"""Matplotlib backend for plotting `galax.dynamics` orbits."""
+
 __all__ = ["plot_components"]
 
 from typing import Any, Protocol, cast, runtime_checkable
 
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
 from plum import dispatch
 
+import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 from plotting_backends import MatplotlibBackend
 from unxt.quantity import AbstractQuantity
 
@@ -53,6 +55,7 @@ def plot_components(
     subplots_kw: dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> Axes | Any:
+    """Plot components of an orbit with `matplotlib`."""
     if x is None and y is None:
         # Plot all components:
         return plot_all_components(orbit, **kwargs)

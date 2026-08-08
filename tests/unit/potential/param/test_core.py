@@ -6,8 +6,8 @@ import pytest
 
 import unxt as u
 
-from galax._custom_types import Unit
 from galax.potential._src.params.core import ParameterCallable
+from galax.potential.custom_types import Unit
 from galax.potential.params import AbstractParameter, ConstantParameter, CustomParameter
 
 T = TypeVar("T", bound=AbstractParameter)

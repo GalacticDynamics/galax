@@ -21,7 +21,7 @@ from plum import dispatch
 
 import unxt as u
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 
 
 @dispatch.abstract

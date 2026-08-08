@@ -14,8 +14,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from dataclassish import replace
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.coordinates.custom_types as gt
 import galax.potential as gp
 from ..test_base import AbstractPhaseSpaceObject_Test, getkeys
 

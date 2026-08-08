@@ -5,8 +5,8 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.potential as gp
+import galax.potential.custom_types as gt
 from ..io.test_gala import parametrize_test_method_gala
 from .test_composite import AbstractSpecialCompositePotential_Test
 from galax._interop.optional_deps import GSL_ENABLED, OptDeps

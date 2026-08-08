@@ -10,7 +10,7 @@ import equinox as eqx
 
 import unxt as u
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 
 
 @runtime_checkable

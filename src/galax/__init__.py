@@ -8,10 +8,7 @@ __all__ = [
     "potential",
     "dynamics",
     "utils",
-    "_custom_types",
 ]
-
-from . import _custom_types
 
 # isort: split
 from . import coordinates, dynamics, potential, utils

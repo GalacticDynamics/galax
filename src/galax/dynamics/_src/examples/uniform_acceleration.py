@@ -16,7 +16,7 @@ import jax
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 
 

@@ -18,7 +18,7 @@ import quaxed.numpy as jnp
 from dataclassish import field_items
 from dataclassish.converters import Unless, dataclass, field
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from galax.dynamics._src.api import omega
 from galax.dynamics._src.cluster.api import tidal_radius

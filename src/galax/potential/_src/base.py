@@ -20,7 +20,7 @@ import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from . import api
 from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
 from .plot import PlotPotentialDescriptor

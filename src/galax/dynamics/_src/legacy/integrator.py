@@ -17,9 +17,9 @@ import quaxed.numpy as jnp
 from unxt.quantity import AbstractQuantity, BareQuantity as FastQ
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
 from .interp_psp import InterpolatedPhaseSpaceCoordinate
 from galax.dynamics._src.orbit import OrbitSolver, PhaseSpaceInterpolation
 from galax.dynamics.fields import AbstractOrbitField

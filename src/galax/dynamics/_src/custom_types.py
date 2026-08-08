@@ -5,7 +5,7 @@ __all__: tuple[str, ...] = ()
 from jaxtyping import Real
 from typing import TypeAlias
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 
 # ---------------------------
 # Q

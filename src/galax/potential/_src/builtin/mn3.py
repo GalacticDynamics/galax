@@ -21,7 +21,7 @@ from unxt.quantity import AllowValue
 from unxt.unitsystems import dimensionless
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from . import miyamotonagai as mn
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential

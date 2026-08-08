@@ -12,9 +12,9 @@ from plum import dispatch
 import quaxed.numpy as jnp
 from unxt.quantity import BareQuantity as FastQ
 
-import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .integrator import Integrator
 from galax.dynamics._src.orbit import HamiltonianField, Orbit

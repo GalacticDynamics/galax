@@ -20,7 +20,7 @@ import unxt as u
 from dataclassish import field_items, replace
 from unxt.quantity import AbstractQuantity, BareQuantity as FastQ
 
-import galax._custom_types as gt
+import galax.coordinates.custom_types as gt
 from .utils import SLICE_ALL, PSPVConvertOptions, getitem
 from galax.coordinates._src.frames import SimulationFrame
 

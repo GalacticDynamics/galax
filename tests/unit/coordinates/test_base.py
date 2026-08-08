@@ -12,8 +12,8 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.coordinates.custom_types as gt
 
 
 def getkeys(

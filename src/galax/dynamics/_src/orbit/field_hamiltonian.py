@@ -11,8 +11,8 @@ import jax
 
 import unxt as u
 
-import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
 from galax.dynamics._src.utils import parse_to_t_y

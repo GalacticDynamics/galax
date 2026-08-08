@@ -19,7 +19,7 @@ from dataclassish import field_items
 from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
-import galax._custom_types as gt
+import galax.coordinates.custom_types as gt
 from .base import AbstractPhaseSpaceCoordinate, ComponentShapeTuple
 from galax.coordinates._src.utils import PSPVConvertOptions, getitem
 

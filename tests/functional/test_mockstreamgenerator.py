@@ -11,9 +11,9 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics as gd
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 
 usys = u.unitsystem("kpc", "Myr", "Msun", "radian")

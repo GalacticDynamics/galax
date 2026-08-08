@@ -12,8 +12,8 @@ from dataclassish import replace
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
 import galax.potential as gp
+import galax.potential.custom_types as gt
 import galax.potential.params as gpp
 from .test_base import AbstractPotential_Test
 from .test_utils import FieldUnitSystemMixin

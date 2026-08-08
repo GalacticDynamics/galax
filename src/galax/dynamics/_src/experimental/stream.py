@@ -18,8 +18,8 @@ import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 from dataclassish.converters import dataclass
 
-import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 import galax.utils.loop_strategies as lstrat
 from .df import AbstractKinematicDF, Fardal2015DF

@@ -24,8 +24,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 from . import custom_types as gdt
 from galax.potential._src.utils import coord_dispatcher, speed_of_light
 

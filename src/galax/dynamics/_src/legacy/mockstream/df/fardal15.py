@@ -14,7 +14,7 @@ import jax.random as jr
 import coordinax as cx
 import quaxed.numpy as jnp
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .base import AbstractStreamDF
 from galax.dynamics._src.api import omega

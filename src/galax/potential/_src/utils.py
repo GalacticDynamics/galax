@@ -21,8 +21,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue, BareQuantity
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.potential.custom_types as gt
 
 OptUSys: TypeAlias = u.AbstractUnitSystem | None
 
@@ -586,7 +586,6 @@ def parse_to_xyz_t(
 # Moved here from `galax.dynamics._src.utils`: `potential` is the lower
 # subpackage of the two that use it, so keeping it in `dynamics` meant
 # `potential` importing upward.
-
 
 def _identity[T](x: T) -> T:
     return x

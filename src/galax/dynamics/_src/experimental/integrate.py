@@ -16,8 +16,8 @@ from plum import dispatch
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 
-import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 import galax.utils.loop_strategies as lstrat
 from galax.dynamics._src.orbit.field_base import AbstractOrbitField

@@ -15,10 +15,10 @@ Notes
 
 __all__: tuple[str, ...] = ()
 
+from jaxtyping import Array, ArrayLike, Float, Real, ScalarLike
 from typing import TypeAlias
 
 import astropy.units as apyu
-from jaxtyping import Array, ArrayLike, Float, Real, ScalarLike
 
 import unxt as u
 

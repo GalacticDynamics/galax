@@ -15,9 +15,8 @@ Notes
 
 __all__: tuple[str, ...] = ()
 
-from typing import TypeAlias
-
 from jaxtyping import Array, Float, Real, Shaped
+from typing import TypeAlias
 
 import unxt as u
 

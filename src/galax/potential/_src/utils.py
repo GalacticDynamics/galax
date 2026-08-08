@@ -587,6 +587,7 @@ def parse_to_xyz_t(
 # subpackage of the two that use it, so keeping it in `dynamics` meant
 # `potential` importing upward.
 
+
 def _identity[T](x: T) -> T:
     return x
 

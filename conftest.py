@@ -1,15 +1,46 @@
 """Doctest configuration."""
 
+import importlib
 from doctest import ELLIPSIS, NORMALIZE_WHITESPACE
-
+from pathlib import Path
+from types import ModuleType
 from typing import Any
 
+import sybil.document
 from sybil import Sybil
 from sybil.parsers import myst, rest
 from sybil.sybil import SybilCollection
 
 from optional_dependencies import OptionalDependencyEnum, auto
 from optional_dependencies.utils import chain_checks, get_version, is_installed
+
+_SRC = (Path(__file__).parent / "src").resolve()
+_sybil_import_path = sybil.document.import_path
+
+
+def _import_path(path: Path) -> ModuleType:
+    """Import a source file as its real module, for namespace packages.
+
+    Sybil derives a module name by walking up from the file until it finds a
+    directory without `__init__.py` (`sybil.python.import_path`). `src/galax` is
+    a PEP 420 namespace directory, so that walk stops one level too deep and
+    yields `potential._src.api` instead of `galax.potential._src.api`. Resolving
+    against `src/` gives the true dotted name. Anything outside `src/` falls
+    back to Sybil's own logic.
+
+    This is separate from pytest's `--import-mode`, which Sybil does not use.
+    """
+    try:
+        relative = Path(path).resolve().relative_to(_SRC)
+    except ValueError:
+        return _sybil_import_path(path)
+    parts = relative.parts[:-1]
+    if relative.name != "__init__.py":
+        parts += (relative.stem,)
+    return importlib.import_module(".".join(parts))
+
+
+sybil.document.import_path = _import_path
 
 optionflags = ELLIPSIS | NORMALIZE_WHITESPACE
 

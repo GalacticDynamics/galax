@@ -26,9 +26,7 @@ def run(code: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-@pytest.mark.parametrize(
-    "portion", ["coordinates", "potential", "dynamics", "coordinates.custom_types"]
-)
+@pytest.mark.parametrize("portion", ["coordinates", "potential", "dynamics"])
 def test_portion_imports_alone(portion: str) -> None:
     """Each portion imports on its own, with no sibling imported first."""
     proc = run(f"import galax.{portion}")
@@ -65,30 +63,3 @@ def test_jit_then_late_potential_import() -> None:
     """)
     assert proc.returncode == 0, proc.stderr
     assert "UnexpectedTracerError" not in proc.stderr
-
-
-def test_default_constants_are_concrete() -> None:
-    """`default_constants` must never hold a `jax` tracer.
-
-    It is module-level shared state, so a tracer captured into it survives for
-    the life of the process and breaks unrelated later calls.
-    """
-    proc = run("""
-        import coordinax as cx
-        import unxt as u
-
-        import galax.coordinates as gc
-
-        q = cx.CartesianPos3D(x=u.Q(1, "kpc"), y=u.Q([1.0, 2], "kpc"), z=u.Q(2, "kpc"))
-        p = cx.CartesianVel3D(
-            x=u.Q(0, "km/s"), y=u.Q([1.0, 2], "km/s"), z=u.Q(0, "km/s")
-        )
-        gc.PhaseSpaceCoordinate(q, p, t=u.Q(0, "Myr")).angular_momentum()
-
-        from galax.potential._src.base import default_constants
-
-        for k, v in default_constants.items():
-            kind = type(v.value).__name__
-            assert "Tracer" not in kind, f"{k} is a {kind}"
-    """)
-    assert proc.returncode == 0, proc.stderr

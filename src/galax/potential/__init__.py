@@ -11,44 +11,8 @@ __all__ = [
     "AbstractCompositePotential",
     # composite
     "CompositePotential",
-    # builtin
-    "LongMuraliBarPotential",
-    "MonariEtAl2016BarPotential",
-    "KuzminPotential",
-    "MiyamotoNagaiPotential",
-    "MN3ExponentialPotential",
-    "MN3Sech2Potential",
-    "HarmonicOscillatorPotential",
-    "HenonHeilesPotential",
-    "SatohPotential",
-    "LMJ09LogarithmicPotential",
-    "LogarithmicPotential",
-    "AbstractMultipolePotential",
-    "MultipoleInnerPotential",
-    "MultipoleOuterPotential",
-    "MultipolePotential",
-    "LeeSutoTriaxialNFWPotential",
-    "NFWPotential",
-    "TriaxialNFWPotential",
-    "Vogelsberger08TriaxialNFWPotential",
-    "NullPotential",
-    "BurkertPotential",
-    "HernquistPotential",
-    "IsochronePotential",
-    "JaffePotential",
-    "KeplerPotential",
-    "PlummerPotential",
-    "PowerLawCutoffPotential",
-    "StoneOstriker15Potential",
-    "TriaxialHernquistPotential",
-    "HardCutoffNFWPotential",
-    "gNFWPotential",
     # Pre-composited
     "AbstractPreCompositedPotential",
-    "BovyMWPotential2014",
-    "LM10Potential",
-    "MilkyWayPotential",
-    "MilkyWayPotential2022",
     # xfm
     "AbstractTransformedPotential",
     "FlattenedInThePotential",
@@ -92,43 +56,8 @@ with install_import_hook("galax.potential"):
         AbstractPreCompositedPotential,
     )
     from ._src.base_single import AbstractSinglePotential
-    from ._src.builtin import (
-        AbstractMultipolePotential,
-        BovyMWPotential2014,
-        BurkertPotential,
-        HardCutoffNFWPotential,
-        HarmonicOscillatorPotential,
-        HenonHeilesPotential,
-        HernquistPotential,
-        IsochronePotential,
-        JaffePotential,
-        KeplerPotential,
-        KuzminPotential,
-        LeeSutoTriaxialNFWPotential,
-        LM10Potential,
-        LMJ09LogarithmicPotential,
-        LogarithmicPotential,
-        LongMuraliBarPotential,
-        MilkyWayPotential,
-        MilkyWayPotential2022,
-        MiyamotoNagaiPotential,
-        MN3ExponentialPotential,
-        MN3Sech2Potential,
-        MonariEtAl2016BarPotential,
-        MultipoleInnerPotential,
-        MultipoleOuterPotential,
-        MultipolePotential,
-        NFWPotential,
-        NullPotential,
-        PlummerPotential,
-        PowerLawCutoffPotential,
-        SatohPotential,
-        StoneOstriker15Potential,
-        TriaxialHernquistPotential,
-        TriaxialNFWPotential,
-        Vogelsberger08TriaxialNFWPotential,
-        gNFWPotential,
-    )
+    from ._src.builtin import *
+    from ._src.builtin import __all__ as _builtin_all
     from ._src.composite import CompositePotential
     from ._src.xfm import (
         AbstractTransformedPotential,
@@ -142,6 +71,7 @@ with install_import_hook("galax.potential"):
     # isort: split
     from ._src import register_funcs
 
+__all__ = __all__ + list(_builtin_all)
 
 # Cleanup
 del install_import_hook, register_funcs

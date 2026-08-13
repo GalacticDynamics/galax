@@ -6,9 +6,9 @@ import warnings
 
 from typing import Any
 
+import astropy.coordinates as apyc
 import gala.dynamics as galad
 import plum
-from astropy.coordinates import BaseDifferential, BaseRepresentation
 
 import galax.coordinates as gc
 
@@ -101,8 +101,8 @@ def galax_psp_to_gala_psp(obj: gc.PhaseSpacePosition, /) -> galad.PhaseSpacePosi
     warnings.warn("The frame is not preserved in the conversion!", stacklevel=2)
 
     return galad.PhaseSpacePosition(
-        pos=plum.convert(obj.q, BaseRepresentation),
-        vel=plum.convert(obj.p, BaseDifferential),
+        pos=plum.convert(obj.q, apyc.BaseRepresentation),
+        vel=plum.convert(obj.p, apyc.BaseDifferential),
     )
 
 
@@ -145,6 +145,6 @@ def galax_psp_to_gala_psp(obj: gc.PhaseSpaceCoordinate, /) -> galad.PhaseSpacePo
     )
 
     return galad.PhaseSpacePosition(
-        pos=plum.convert(obj.q, BaseRepresentation),
-        vel=plum.convert(obj.p, BaseDifferential),
+        pos=plum.convert(obj.q, apyc.BaseRepresentation),
+        vel=plum.convert(obj.p, apyc.BaseDifferential),
     )

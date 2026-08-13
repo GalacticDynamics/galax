@@ -85,18 +85,18 @@ Homepage = "https://github.com/GalacticDynamics/galax"
 # does not drag in potential-level interop. A plugin whose third-party target
 # is not installed is skipped by the loader.
 [project.entry-points."galax.coordinates.interop"]
-astropy = "galax.interop.galax_interop_astropy.coordinates"
-gala = "galax.interop.galax_interop_gala.coordinates"
+astropy = "galax.interop.astropy.coordinates"
+gala = "galax.interop.gala.coordinates"
 
 [project.entry-points."galax.potential.interop"]
-astropy = "galax.interop.galax_interop_astropy.potential"
-gala = "galax.interop.galax_interop_gala.potential"
-galpy = "galax.interop.galax_interop_galpy.potential"
-matplotlib = "galax.interop.galax_interop_matplotlib.potential"
+astropy = "galax.interop.astropy.potential"
+gala = "galax.interop.gala.potential"
+galpy = "galax.interop.galpy.potential"
+matplotlib = "galax.interop.matplotlib.potential"
 
 [project.entry-points."galax.dynamics.interop"]
-astropy = "galax.interop.galax_interop_astropy.dynamics"
-matplotlib = "galax.interop.galax_interop_matplotlib.orbit"
+astropy = "galax.interop.astropy.dynamics"
+matplotlib = "galax.interop.matplotlib.orbit"
 
 
 [build-system]
@@ -339,6 +339,12 @@ ignore = [
 # loose module in them is correctly "part of an implicit namespace
 # package". That is the intent, not a mistake.
 "src/galax/interop/*.py" = ["INP001"]
+# Each interop portion is named after the library it wraps, so e.g.
+# `galax.interop.astropy.coordinates` importing `astropy.coordinates` looks
+# like a self-import. It isn't: these are absolute imports resolving to the
+# third-party package. Safe because `--import-mode=importlib` keeps
+# `src/galax/interop` off sys.path, so the portion never shadows the library.
+"src/galax/interop/*/*.py" = ["PLW0406"]
 "notebooks/**" = ["ANN", "D103", "FBT", "T201"]
 "noxfile.py" = ["ERA001", "T20"]
 "tests/**" = [
@@ -381,6 +387,10 @@ exempt-modules = []
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+# The interop portions are named after the libraries they wrap, so without this
+# isort infers e.g. `astropy` is first-party inside `src/galax/interop/astropy`
+# and hoists it into galax's own import block.
+known-third-party = ["astropy", "gala", "galpy", "matplotlib"]
 known-first-party = [
   "coordinax",
   "dataclassish",

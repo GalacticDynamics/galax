@@ -97,11 +97,11 @@ class OptDeps(OptionalDependencyEnum):
 
 collect_ignore_glob = []
 if not OptDeps.ASTROPY.installed:
-    collect_ignore_glob.append("src/galax/interop/galax_interop_astropy/*")
+    collect_ignore_glob.append("src/galax/interop/astropy/*")
 if not OptDeps.GALA.installed:
-    collect_ignore_glob.append("src/galax/interop/galax_interop_gala/*")
+    collect_ignore_glob.append("src/galax/interop/gala/*")
 if not OptDeps.GALPY.installed:
-    collect_ignore_glob.append("src/galax/interop/galax_interop_galpy/*")
+    collect_ignore_glob.append("src/galax/interop/galpy/*")
 
 
 def pytest_report_header(config: Any) -> str:  # noqa: D103, ARG001

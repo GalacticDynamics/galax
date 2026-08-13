@@ -5,11 +5,11 @@ __all__: tuple[str, ...] = ()
 from jaxtyping import Real
 from typing import Any
 
+import astropy.coordinates as apyc
+from astropy.units import Quantity as APYQuantity
 from plum import convert, dispatch
 
-import astropy.coordinates as apyc
 import coordinax as cx
-from astropy.units import Quantity as APYQuantity
 from unxt.quantity import BareQuantity as FastQ
 
 import galax.potential as gp

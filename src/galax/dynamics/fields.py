@@ -7,7 +7,7 @@ __all__ = [
     "NBodyField",
 ]
 
-from galax.setup_package import install_import_hook
+from .setup_package import install_import_hook
 
 with install_import_hook("galax.dynamics.fields"):
     from ._src.fields import AbstractField

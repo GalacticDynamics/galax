@@ -5,7 +5,7 @@ __all__: tuple[str, ...] = ()
 from jaxtyping import Real
 from typing import Any
 
-from astropy.coordinates import BaseRepresentation
+import astropy.coordinates as apyc
 from astropy.units import Quantity as APYQuantity
 from plum import convert, dispatch
 
@@ -34,7 +34,7 @@ def parse_to_xyz_t(
 @coord_dispatcher
 def parse_to_xyz_t(
     to_frame: cx.frames.AbstractReferenceFrame | None,
-    q: BaseRepresentation,
+    q: apyc.BaseRepresentation,
     t: Any,
     /,
     **kw: Any,

@@ -313,7 +313,12 @@ ignore = [
   "TID252", # Relative imports from parent modules are banned
 ]
 
+[tool.ruff.lint.flake8-import-conventions]
+# `from astropy.coordinates import X` is banned; import the module as `apyc`.
+banned-from = ["astropy.coordinates"]
+
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
+"astropy.coordinates" = "apyc"
 "coordinax" = "cx"
 "diffrax" = "dfx"
 "diffraxtra" = "dfxtra"

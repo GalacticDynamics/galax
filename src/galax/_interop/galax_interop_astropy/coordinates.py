@@ -25,13 +25,13 @@ def from_(
 
     Examples
     --------
-    >>> import astropy.coordinates as coord
+    >>> import astropy.coordinates as apyc
     >>> import astropy.units as u
     >>> import galax.coordinates as gc
 
-    >>> vec = coord.SphericalRepresentation(
+    >>> vec = apyc.SphericalRepresentation(
     ...     lon=10*u.deg, lat=34*u.deg, distance=3*u.kpc,
-    ...     differentials=coord.SphericalCosLatDifferential(
+    ...     differentials=apyc.SphericalCosLatDifferential(
     ...         d_lon_coslat=1*u.deg/u.Myr, d_lat=1*u.deg/u.Myr,
     ...         d_distance=1*u.kpc/u.Myr) )
     >>> vec
@@ -71,13 +71,13 @@ def from_(
 
     Examples
     --------
-    >>> import astropy.coordinates as coord
+    >>> import astropy.coordinates as apyc
     >>> import astropy.units as u
     >>> import galax.coordinates as gc
 
-    >>> vec = coord.SphericalRepresentation(
+    >>> vec = apyc.SphericalRepresentation(
     ...     lon=10*u.deg, lat=34*u.deg, distance=3*u.kpc,
-    ...     differentials=coord.SphericalCosLatDifferential(
+    ...     differentials=apyc.SphericalCosLatDifferential(
     ...         d_lon_coslat=1*u.deg/u.Myr, d_lat=1*u.deg/u.Myr,
     ...         d_distance=1*u.kpc/u.Myr) )
     >>> vec
@@ -118,13 +118,13 @@ def from_(
 
     Examples
     --------
-    >>> import astropy.coordinates as coord
+    >>> import astropy.coordinates as apyc
     >>> import astropy.units as u
     >>> import galax.coordinates as gc
 
-    >>> vec = coord.SphericalRepresentation(
+    >>> vec = apyc.SphericalRepresentation(
     ...     lon=10*u.deg, lat=34*u.deg, distance=3*u.kpc)
-    >>> dif = coord.SphericalCosLatDifferential(
+    >>> dif = apyc.SphericalCosLatDifferential(
     ...         d_lon_coslat=1*u.deg/u.Myr, d_lat=1*u.deg/u.Myr,
     ...         d_distance=1*u.kpc/u.Myr)
     >>> vec
@@ -163,13 +163,13 @@ def from_(
 
     Examples
     --------
-    >>> import astropy.coordinates as coord
+    >>> import astropy.coordinates as apyc
     >>> import astropy.units as u
     >>> import galax.coordinates as gc
 
-    >>> vec = coord.SphericalRepresentation(
+    >>> vec = apyc.SphericalRepresentation(
     ...     lon=10*u.deg, lat=34*u.deg, distance=3*u.kpc)
-    >>> dif = coord.SphericalCosLatDifferential(
+    >>> dif = apyc.SphericalCosLatDifferential(
     ...         d_lon_coslat=1*u.deg/u.Myr, d_lat=1*u.deg/u.Myr,
     ...         d_distance=1*u.kpc/u.Myr)
     >>> vec

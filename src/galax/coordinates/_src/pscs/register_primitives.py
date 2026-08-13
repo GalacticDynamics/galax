@@ -1,6 +1,6 @@
 """Register primitives for PSPs."""
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()
 
 from dataclasses import replace
 

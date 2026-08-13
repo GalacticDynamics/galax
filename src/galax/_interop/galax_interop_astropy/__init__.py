@@ -1,6 +1,6 @@
 """Compatibility with :mod:`astropy.coordinates`."""
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()
 
 from .coordinates import *
 from .dynamics import *

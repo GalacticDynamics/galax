@@ -17,7 +17,7 @@ Notes
 
 """
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()
 
 from jaxtyping import Array, ArrayLike, Float, Int, Real, ScalarLike, Shaped
 from typing import Any, TypeAlias

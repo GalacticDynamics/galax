@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()
 
 import functools as ft
 

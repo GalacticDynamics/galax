@@ -1,6 +1,6 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()
 
 from jaxtyping import Array, Shaped
 from typing import Literal, TypeAlias, overload

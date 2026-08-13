@@ -1,6 +1,6 @@
 """``galax`` Potentials."""
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()
 
 
 # NOTE: this avoids a circular import

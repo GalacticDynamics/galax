@@ -11,8 +11,17 @@ def test_version() -> None:
 
 
 def test_is_namespace_package() -> None:
-    """`galax` is a namespace: no `__init__.py`, so no `__file__`."""
-    assert getattr(galax, "__file__", None) is None
+    """`galax` is a namespace package.
+
+    Asserted through the spec, which is how :pep:`451` defines it: a namespace
+    package has no origin but does have submodule search locations. Checking
+    `type(galax.__path__).__name__ == "_NamespacePath"` would test a CPython
+    internal instead, and `__file__ is None` only tests a consequence.
+    """
+    spec = galax.__spec__
+    assert spec is not None
+    assert spec.origin is None
+    assert spec.submodule_search_locations is not None
 
 
 def test_no_package_attributes() -> None:

@@ -259,10 +259,18 @@ similarities.ignore-imports = "yes"
 [tool.pytest.ini_options]
 addopts = [
   "--arraydiff",
+  # `src/galax` and `src/galax/interop` are namespace directories. Under the
+  # default "prepend" mode pytest derives a module name by walking up to the
+  # first directory without an `__init__.py` and puts that directory on
+  # sys.path -- which makes the leaf of a namespace package shadow a real
+  # library. Matches `coordinax` and `unxt`. NB: deliberately *not*
+  # `consider_namespace_packages`, which renames test modules and breaks
+  # pytest-mpl's hash lookups.
+  "--import-mode=importlib",
   "--showlocals",
   "--strict-config",
   "--strict-markers",
-  "-p no:doctest",    # using sybil
+  "-p no:doctest",           # using sybil
   "-ra",
 ]
 filterwarnings = [

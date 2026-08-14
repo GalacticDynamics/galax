@@ -423,7 +423,9 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         """
         usys = u.unitsystem(units)
         q, p = self._qp(units=usys)
-        return jnp.concat((q.ustrip(usys["length"]), p.ustrip(usys["speed"])), axis=-1)
+        qarr, parr = q.ustrip(usys["length"]), p.ustrip(usys["speed"])
+        _result = jnp.concat((qarr, parr), axis=-1)
+        return _result  # type: ignore[no-any-return]
 
     # ==========================================================================
     # Dynamical quantities

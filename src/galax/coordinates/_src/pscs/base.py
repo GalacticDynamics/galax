@@ -174,7 +174,7 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         q = jnp.broadcast_to(convert(cart.q, FastQ), (*batch, comps.q))
         p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))
         t = jnp.broadcast_to(self.t.ustrip(usys["time"])[..., None], (*batch, comps.t))
-        return jnp.concat((t, q.value, p.value), axis=-1)
+        return jnp.concat((t, q.value, p.value), axis=-1)  # type: ignore[no-any-return]
 
     # ==========================================================================
     # Dynamical quantities

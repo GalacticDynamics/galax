@@ -139,7 +139,7 @@ def parse_t0_t1_saveat(
             t0=False, t1=False, ts=ts if not dense else None, dense=dense, steps=False
         )
 
-    return t0, t1, saver
+    return t0, t1, saver  # type: ignore[return-value]
 
 
 # =============================================================================

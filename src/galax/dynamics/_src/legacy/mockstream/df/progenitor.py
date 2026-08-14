@@ -27,7 +27,7 @@ class ProgenitorMassCallable(Protocol):
         ...
 
 
-class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
+class ConstantMassProtenitor(eqx.Module):
     """Progenitor mass callable that returns a constant mass.
 
     Parameters

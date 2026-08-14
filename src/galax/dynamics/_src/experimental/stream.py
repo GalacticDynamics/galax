@@ -224,11 +224,13 @@ class StreamSimulator:
         # Scan over the release times/xs/vs/ms to generate the stream particle's
         # initial conditions.
         _, all_states = jax.lax.scan(
-            scan_fn, init_carry, (release_times, prog_xs, prog_vs, Msat)
+            scan_fn,  # type: ignore[arg-type]
+            init_carry,
+            (release_times, prog_xs, prog_vs, Msat),
         )
         return StreamICs(
             release_times,
-            prog_mass=Msat,
+            prog_mass=Msat,  # type: ignore[arg-type]
             qp_lead=all_states[0:2],
             qp_trail=all_states[2:4],
         )

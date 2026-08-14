@@ -89,7 +89,7 @@ def radial_velocity_dispersion_helper(  # TODO: better name
     integral = trapezoid(integrand, x=r_grid)
 
     sigma2 = jnp.power(r, -2 * beta) / innermost_density * integral
-    return jnp.sqrt(sigma2)
+    return jnp.sqrt(sigma2)  # type: ignore[no-any-return]
 
 
 @final
@@ -181,11 +181,13 @@ class RigidMWandLMCField(AbstractField):
         """Mass of the LMC."""
         xyz = jnp.array([100.0, 0, 0])
         t = jnp.array(0.0)
-        return gp.spherical_mass_enclosed(self.lmc_pot, xyz, t)
+        return gp.spherical_mass_enclosed(self.lmc_pot, xyz, t)  # type: ignore[return-value]
 
     @override  # specify the signature of the `__call__` method.
     @dispatch.abstract
-    def __call__(self, *_: Any, **kw: Any) -> tuple[Any, Any]:
+    def __call__(  # type: ignore[override]
+        self, *_: Any, **kw: Any
+    ) -> tuple[Any, Any]:
         """Evaluate the field at a given coordinate."""
         raise NotImplementedError  # pragma: no cover
 
@@ -284,7 +286,7 @@ def _sigma_fn(_: gt.Sz3, /) -> gt.Sz0:
     Maps (Array[float, (3)]) -> Array[float, ()].
 
     """
-    return u.Q(130, "km/s").ustrip("kpc/Myr")
+    return u.Q(130, "km/s").ustrip("kpc/Myr")  # type: ignore[no-any-return]
 
 
 t_interp = u.Q(jnp.linspace(0, -14, 10_000), "Gyr")

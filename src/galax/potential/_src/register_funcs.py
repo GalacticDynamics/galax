@@ -366,13 +366,15 @@ def tidal_tensor(
 
     """
     J = api.hessian(pot, *args, **kwargs)  # (*batch, 3, 3)
-    batch_shape, arr_shape = batched_shape(J, expect_ndim=2)  # (*batch), (3, 3)
+    batch_shape, arr_shape = batched_shape(  # type: ignore[call-overload]
+        J, expect_ndim=2
+    )  # (*batch), (3, 3)
     traced = (
-        expand_batch_dims(jnp.eye(3), ndim=len(batch_shape))
+        expand_batch_dims(jnp.eye(3), ndim=len(batch_shape))  # type: ignore[operator]
         * expand_arr_dims(jnp.trace(J, axis1=-2, axis2=-1), ndim=len(arr_shape))
         / 3
     )
-    return J - traced
+    return J - traced  # type: ignore[operator]
 
 
 # =============================================================================

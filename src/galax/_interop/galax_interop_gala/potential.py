@@ -297,7 +297,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         )
         return _apply_xop(_get_xop(gala), pot)
 
-    @dispatch
+    @dispatch  # type: ignore[misc]
     def galax_to_gala(pot: gp.BurkertPotential, /) -> galap.BurkertPotential:
         """Convert a `galax.potential.BurkertPotential` to a `gala.potential.BurkertPotential`.
 
@@ -1207,6 +1207,7 @@ def gala_to_galax(
         or params["q3"] != 1
         or params["phi"] != 0
     ):
+        pot: gp.LogarithmicPotential | gp.LMJ09LogarithmicPotential
         pot = gp.LMJ09LogarithmicPotential(
             v_c=params["v_c"],
             r_s=params["r_h"],

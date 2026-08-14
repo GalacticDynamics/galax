@@ -51,7 +51,7 @@ class HernquistPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -62,7 +62,7 @@ class HernquistPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
 
 # ============================================
@@ -73,7 +73,7 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Density profile for the Kepler potential."""
     s = r / p["r_s"]
     rho0 = p["m_tot"] / (2 * jnp.pi * p["r_s"] ** 3)
-    return rho0 / (s * (1 + s) ** 3)
+    return rho0 / (s * (1 + s) ** 3)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -173,4 +173,4 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return potential(params, rprime)
+        return potential(params, rprime)  # type: ignore[no-any-return]

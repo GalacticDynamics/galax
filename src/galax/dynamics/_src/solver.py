@@ -37,7 +37,7 @@ DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], 
 # SolveState
 
 
-class SolveState(eqx.Module):  # type: ignore[misc]
+class SolveState(eqx.Module):
     """State of the solver.
 
     This is used as the return value for `galax.dynamics.AbstractSolver.init`
@@ -255,13 +255,13 @@ def _parse_t0_t1(
         return t0, t1
 
     def t0_t1_are_different() -> tuple[gt.Sz0, gt.Sz0]:
-        return t0, t1
+        return t0, t1  # type: ignore[return-value]
 
     t0, t1 = jax.lax.cond(t0 != t1, t0_t1_are_different, t0_t1_are_same)
-    return t0, t1
+    return t0, t1  # type: ignore[return-value]
 
 
-@ft.partial(eqx.filter_jit)
+@eqx.filter_jit
 def integrate_field(
     field: AbstractField,
     y0: PyTree[Array],

@@ -249,4 +249,4 @@ def simplify_op(pot: TransformedPotential, /) -> TransformedPotential:
     )
 
     """
-    return replace(pot, xop=cxo.simplify_op(pot.xop))
+    return replace(pot, xop=cxo.simplify_op(pot.xop))  # type: ignore[call-arg]

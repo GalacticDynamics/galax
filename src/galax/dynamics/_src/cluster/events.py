@@ -13,7 +13,7 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 
-class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
+class MassBelowThreshold(eqx.Module):
     """Event to stop integration when the mass falls below a threshold.
 
     Instances can be used as the ``cond_fn`` argument of `diffrax.Event`. Since
@@ -88,4 +88,5 @@ class MassBelowThreshold(eqx.Module):  # type: ignore[misc]
 
         """
         mu = args["units"]["mass"]
-        return u.ustrip(AllowValue, mu, y) - self.threshold.ustrip(mu)
+        _result = u.ustrip(AllowValue, mu, y) - self.threshold.ustrip(mu)
+        return _result  # type: ignore[no-any-return]

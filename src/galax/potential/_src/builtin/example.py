@@ -81,7 +81,8 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
         # \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
         omega = self.omega(t, ustrip=self.units["frequency"])
 
-        return 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(omega) * xyz), axis=-1)
+        _result = 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(omega) * xyz), axis=-1)
+        return _result  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, _: gt.BBtQorVSz3, t: gt.BtQuSz0 | gt.BtSz0, /) -> gt.BBtFloatSz0:
@@ -94,7 +95,7 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
         # TODO: fix this - not valid for arbitrary ndim
         # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i^N \omega_i^2 / N
         denom = 4 * jnp.pi * self.constants["G"].value
-        return jnp.sum(omega**2, axis=-1) / denom
+        return jnp.sum(omega**2, axis=-1) / denom  # type: ignore[no-any-return]
 
 
 # -------------------------------------------------------------------
@@ -171,4 +172,5 @@ class HenonHeilesPotential(AbstractSinglePotential):
 
         x2, y = xyz[..., 0] ** 2, xyz[..., 1]
         R2 = x2 + y**2
-        return (R2 / 2 + coeff * (x2 * y - y**3 / 3.0)) / ts2
+        _result = (R2 / 2 + coeff * (x2 * y - y**3 / 3.0)) / ts2
+        return _result  # type: ignore[no-any-return]

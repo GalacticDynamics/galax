@@ -97,7 +97,7 @@ class NFWPotential(AbstractSinglePotential):
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -118,7 +118,7 @@ class NFWPotential(AbstractSinglePotential):
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _mass_enclosed(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -149,7 +149,7 @@ class NFWPotential(AbstractSinglePotential):
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return mass_enclosed(params, r)
+        return mass_enclosed(params, r)  # type: ignore[no-any-return]
 
     # ===========================================
     # Constructors
@@ -263,7 +263,7 @@ def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
     Array(0., dtype=float64, weak_type=True)
 
     """
-    return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)
+    return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -284,7 +284,7 @@ def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
     Array(0., dtype=float64, weak_type=True)
 
     """
-    return 4 * jnp.pi * p["rho0"] * p["r_s"] ** 3
+    return 4 * jnp.pi * p["rho0"] * p["r_s"] ** 3  # type: ignore[no-any-return]
 
 
 # -----------------------------------------------
@@ -320,7 +320,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     """
     x = r / p["r_s"]
     m = p["m"]
-    return m * (jnp.log1p(x) - x / (1 + x))
+    return m * (jnp.log1p(x) - x / (1 + x))  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -335,4 +335,4 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r_s = p["r_s"]
     x = r / r_s
     phi0 = -p["G"] * p["m"] / r_s
-    return phi0 * jnp.log1p(x) / x
+    return phi0 * jnp.log1p(x) / x  # type: ignore[no-any-return]

@@ -40,7 +40,7 @@ DimT = u.dimension("time")
 ##############################################################################
 
 
-class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
+class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
     """Abstract Potential Class."""
 
     parameters: ClassVar = ParametersAttribute(MappingProxyType({}))
@@ -176,7 +176,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
         grad_op = jax.grad(self._potential)
-        return grad_op(xyz, t)
+        return grad_op(xyz, t)  # type: ignore[no-any-return]
 
     def gradient(self, *args: Any, **kwargs: Any) -> Any:
         """Compute the gradient of the potential at the given position(s).
@@ -197,7 +197,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
         hess_op = jax.hessian(self._potential, argnums=0)
-        return jnp.trace(hess_op(xyz, t))
+        return jnp.trace(hess_op(xyz, t))  # type: ignore[no-any-return]
 
     def laplacian(self, *args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
         """Compute the laplacian of the potential at the given position(s).
@@ -214,7 +214,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
         laplacian = self._laplacian(q, t)
-        return laplacian / (4 * jnp.pi * self.constants["G"].value)
+        _result = laplacian / (4 * jnp.pi * self.constants["G"].value)
+        return _result  # type: ignore[no-any-return]
 
     def density(self, *args: Any, **kwargs: Any) -> gt.BBtFloatSz0 | gt.BBtFloatQuSz0:
         """Compute the density at the given position(s).
@@ -235,7 +236,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):  # type: ignore[misc]
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
         hess_op = jax.hessian(self._potential)
-        return hess_op(xyz, t)
+        return hess_op(xyz, t)  # type: ignore[no-any-return]
 
     def hessian(self, *args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
         """Compute the hessian of the potential at the given position(s).

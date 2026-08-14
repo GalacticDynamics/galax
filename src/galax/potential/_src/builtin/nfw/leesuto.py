@@ -115,7 +115,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
             "a2": self.a2(t, ustrip=ul),
             "a3": self.a3(t, ustrip=ul),
         }
-        return potential(params, xyz)
+        return potential(params, xyz)  # type: ignore[no-any-return]
 
 
 # =============================================================

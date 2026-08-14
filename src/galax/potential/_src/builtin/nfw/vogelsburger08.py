@@ -62,7 +62,8 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         q1sq = self.q1(t, ustrip=self.units["dimensionless"]) ** 2
         q2sq = 3 - q1sq
         x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
-        return safe_sqrt(x**2 + y**2 / q1sq + z**2 / q2sq)
+        _result = safe_sqrt(x**2 + y**2 / q1sq + z**2 / q2sq)
+        return _result  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit, inline=True)
     def _r_tilde(self, xyz: gt.BtSz3, t: gt.BBtSz0) -> gt.BtFloatSz0:
@@ -71,7 +72,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
 
         r_e = self._r_e(xyz, t)
         r = safe_vector_norm(xyz)
-        return (r_a + r) * r_e / (r_a + r_e)
+        return (r_a + r) * r_e / (r_a + r_e)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
@@ -84,4 +85,5 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         r_s = self.r_s(t, ustrip=self.units["length"])
 
         r = self._r_tilde(xyz, t)
-        return -self.constants["G"].value * m * jnp.log1p(r / r_s) / r
+        _result = -self.constants["G"].value * m * jnp.log1p(r / r_s) / r
+        return _result  # type: ignore[no-any-return]

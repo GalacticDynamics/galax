@@ -22,7 +22,7 @@ import unxt as u
 from .dmdt import AbstractMassRateField
 
 
-class ReleaseTimeSampler(eqx.Module):  # type: ignore[misc]
+class ReleaseTimeSampler(eqx.Module):
     """Release time sampler.
 
     This requires a dense mass history solution.

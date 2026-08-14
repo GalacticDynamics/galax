@@ -75,7 +75,7 @@ def safe_sqrt(q2: gt.BBtFloatSz0, /) -> gt.BBtFloatSz0:
 
     """
     tiny = jnp.finfo(jnp.promote_types(q2.dtype, float)).tiny
-    return jnp.sqrt(q2 + tiny)
+    return jnp.sqrt(q2 + tiny)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit, inline=True)
@@ -109,7 +109,7 @@ def safe_vector_norm(x: gt.BBtSz3, /) -> gt.BBtFloatSz0:
     Array([nan, nan, nan], dtype=float64)
 
     """
-    return safe_sqrt(jnp.sum(jnp.square(x), axis=-1))
+    return safe_sqrt(jnp.sum(jnp.square(x), axis=-1))  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit, inline=True, static_argnames=("unit",))
@@ -121,7 +121,7 @@ def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
     """
     xyz = u.ustrip(AllowValue, unit, xyz)
     r = safe_vector_norm(xyz)
-    return r
+    return r  # type: ignore[no-any-return]
 
 
 # ==============================================================================

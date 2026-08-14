@@ -72,7 +72,7 @@ class PlummerPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=ul),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
@@ -86,7 +86,7 @@ class PlummerPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=ul),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -105,7 +105,7 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     """
     rho0 = 3 * p["m_tot"] / (4 * jnp.pi * p["r_s"] ** 3)
-    return rho0 / jnp.power(1 + (r / p["r_s"]) ** 2, 2.5)
+    return rho0 / jnp.power(1 + (r / p["r_s"]) ** 2, 2.5)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -115,7 +115,8 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $$ M(<r) = \frac{M_{tot} r^3}{(r^2 + r_s^2)^{3/2}} $$
 
     """
-    return p["m_tot"] * r**3 / jnp.power(r**2 + p["r_s"] ** 2, 1.5)
+    _result = p["m_tot"] * r**3 / jnp.power(r**2 + p["r_s"] ** 2, 1.5)
+    return _result  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -128,4 +129,5 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $r_s$ is the scale length.
 
     """
-    return -p["G"] * p["m_tot"] / jnp.sqrt(r**2 + p["r_s"] ** 2)
+    _result = -p["G"] * p["m_tot"] / jnp.sqrt(r**2 + p["r_s"] ** 2)
+    return _result  # type: ignore[no-any-return]

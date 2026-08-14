@@ -43,7 +43,7 @@ class ParameterCallable(Protocol):
 # -------------------------------------------
 
 
-class AbstractParameter(eqx.Module):  # type: ignore[misc]
+class AbstractParameter(eqx.Module):
     """Abstract base class for Parameters on a Potential.
 
     Parameters are time-dependent quantities that are used to define a

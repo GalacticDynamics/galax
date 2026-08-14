@@ -6,11 +6,11 @@
 
 __all__: tuple[str, ...] = ()
 
-from collections.abc import Callable
 from jaxtyping import Array, Shaped
-from typing import Any, Literal, TypeAlias, cast, overload
+from typing import Literal, TypeAlias, overload
 
 import quax
+from quax import quaxify
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -19,16 +19,6 @@ import galax._custom_types as gt
 
 AnyScalar: TypeAlias = Shaped[Array, ""]
 ArrayAnyShape: TypeAlias = Shaped[Array | quax.ArrayValue, "..."]
-
-
-def quaxify[**P, R](fn: Callable[P, R], *, filter_spec: Any = True) -> Callable[P, R]:
-    """Wrap a function with `quax.quaxify`, preserving its signature.
-
-    `quax.quaxify` is untyped, so decorating with it directly makes the
-    decorated function untyped too. The `cast` keeps type checkers seeing the
-    original signature.
-    """
-    return cast("Callable[P, R]", quax.quaxify(fn, filter_spec=filter_spec))
 
 
 def vector_batched_shape(obj: cx.vecs.AbstractVector, /) -> tuple[gt.Shape, int]:

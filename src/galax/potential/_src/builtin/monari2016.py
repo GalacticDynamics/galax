@@ -104,7 +104,7 @@ class MonariEtAl2016BarPotential(AbstractSinglePotential):
             "phi_b": self.phi_b(t, ustrip=self.units["angle"]),
             "Omega": self.Omega(t, ustrip=self.units["frequency"]),
         }
-        return potential(params, xyz, t)
+        return potential(params, xyz, t)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -117,7 +117,7 @@ def U_of_r(s: gt.Sz0, /) -> gt.Sz0:
         return s**3 - 2.0
 
     pred = s >= 1
-    return jax.lax.cond(pred, gtr_func, less_func, s)
+    return jax.lax.cond(pred, gtr_func, less_func, s)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -134,4 +134,5 @@ def potential(p: gt.Params, xyz: gt.Sz3, t: gt.Sz0, /) -> gt.Sz0:
     phi = jnp.arctan2(xyz[1], xyz[0])
     gamma_b = 2 * (phi - p["phi_b"] - p["Omega"] * t)  # M+2016 eq.2
 
-    return prefactor * u_of_r * (R2 / r2) * jnp.cos(gamma_b)  # M+2016 eq.1
+    energy = prefactor * u_of_r * (R2 / r2) * jnp.cos(gamma_b)  # M+2016 eq.1
+    return energy  # type: ignore[no-any-return]

@@ -124,7 +124,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
         t = u.ustrip(AllowValue, self.units["time"], t)
         # TODO: swap to use mn.potential when have an easy way to construct
         # paarams dict.
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.asarray([mn._potential(xyz, t) for mn in self._get_mn_components(t)]),  # noqa: SLF001
             axis=0,
         )
@@ -135,7 +135,7 @@ class AbstractMN3Potential(AbstractSinglePotential):
         densities = jnp.asarray(
             [mn._density(xyz, t) for mn in self._get_mn_components(t)]  # noqa: SLF001
         )
-        return jnp.sum(densities, axis=0)
+        return jnp.sum(densities, axis=0)  # type: ignore[no-any-return]
 
 
 @final
@@ -160,7 +160,7 @@ class MN3ExponentialPotential(AbstractMN3Potential):
 
     @property
     def _b_coeffs(self) -> Array:
-        return MN3_B_COEFFS_EXP
+        return MN3_B_COEFFS_EXP  # type: ignore[no-any-return]
 
 
 @final
@@ -184,4 +184,4 @@ class MN3Sech2Potential(AbstractMN3Potential):
 
     @property
     def _b_coeffs(self) -> Array:
-        return MN3_B_COEFFS_SECH2
+        return MN3_B_COEFFS_SECH2  # type: ignore[no-any-return]

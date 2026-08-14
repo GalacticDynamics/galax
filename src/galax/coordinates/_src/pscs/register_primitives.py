@@ -12,7 +12,7 @@ import quaxed.numpy as jnp
 from .base import AbstractPhaseSpaceCoordinate
 
 
-@register(jax.lax.add_p)  # type: ignore[misc]
+@register(jax.lax.add_p)
 def add_wts(
     wt1: AbstractPhaseSpaceCoordinate, wt2: AbstractPhaseSpaceCoordinate, /
 ) -> AbstractPhaseSpaceCoordinate:

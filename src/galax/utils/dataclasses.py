@@ -100,7 +100,7 @@ def _add_converter_init_to_class[T](cls: type[T], /) -> type[T]:
 
 # TODO: upstream this to Equinox
 # TODO: Equinox doesn't seem to respect the conversion of the default value anymore.
-class ModuleMeta(_ModuleMeta):  # type: ignore[misc]
+class ModuleMeta(_ModuleMeta):
     """Equinox-compatible module metaclass.
 
     This metaclass extends Equinox's :class:`equinox._module._ModuleMeta` to

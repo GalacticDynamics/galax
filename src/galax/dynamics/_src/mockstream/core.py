@@ -79,6 +79,6 @@ class MockStream(gc.AbstractCompositePhaseSpaceCoordinate):
         ]
 
     @property
-    def frame(self) -> cx.frames.AbstractReferenceFrame:
+    def frame(self) -> cx.frames.AbstractReferenceFrame:  # type: ignore[override]
         """The reference frame of the phase-space position."""
         return self._frame

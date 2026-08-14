@@ -63,7 +63,7 @@ class MiyamotoNagaiPotential(AbstractSinglePotential):
             "a": self.a(t, ustrip=ul),
             "b": self.b(t, ustrip=ul),
         }
-        return potential(p, xyz)
+        return potential(p, xyz)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -75,4 +75,4 @@ def potential(p: gt.Params, xyz: gt.Sz3) -> gt.Sz0:
     """Miyamoto-Nagai potential function."""
     R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
     zp2 = (jnp.sqrt(xyz[..., 2] ** 2 + p["b"] ** 2) + p["a"]) ** 2
-    return -p["G"] * p["m_tot"] / jnp.sqrt(R2 + zp2)
+    return -p["G"] * p["m_tot"] / jnp.sqrt(R2 + zp2)  # type: ignore[no-any-return]

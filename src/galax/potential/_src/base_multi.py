@@ -40,7 +40,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._potential(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -49,7 +49,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _gradient(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz3:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._gradient(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -58,7 +58,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._laplacian(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -67,7 +67,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._density(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -76,7 +76,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _hessian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz33:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._hessian(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -112,7 +112,7 @@ class AbstractCompositePotential(AbstractPotential):
     # Mapping Protocol
 
     def __getitem__(self, key: str) -> AbstractPotential:
-        return cast("AbstractPotential", self._data[key])
+        return self._data[key]
 
     def keys(self) -> KeysView[str]:
         return cast("KeysView[str]", self._data.keys())
@@ -294,7 +294,7 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
             setattr(self, k, pot)
 
     @property
-    def _data(self) -> ImmutableMap[str, AbstractPotential]:
+    def _data(self) -> ImmutableMap[str, AbstractPotential]:  # type: ignore[override]
         """Return the parameters as an ImmutableMap."""
         return ImmutableMap({k: getattr(self, k) for k in self._keys})
 

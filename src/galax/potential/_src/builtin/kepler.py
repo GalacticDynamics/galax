@@ -61,7 +61,7 @@ class KeplerPotential(AbstractSinglePotential):
             "G": self.constants["G"].value,
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -70,7 +70,7 @@ class KeplerPotential(AbstractSinglePotential):
         t = u.Q.from_(t, self.units["time"])
 
         params = {"m_tot": self.m_tot(t, ustrip=self.units["mass"])}
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
 
 # ============================================
@@ -100,7 +100,7 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
     from the center of the potential.
 
     """
-    return point_mass_potential(p["G"], p["m_tot"], r)
+    return point_mass_potential(p["G"], p["m_tot"], r)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -118,4 +118,5 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
         jnp.greater(r, jnp.zeros_like(r)),
         jnp.equal(p["m_tot"], jnp.zeros_like(p["m_tot"])),
     )
-    return qlax.select(pred, jnp.zeros_like(r), jnp.full_like(r, fill_value=jnp.inf))
+    _result = qlax.select(pred, jnp.zeros_like(r), jnp.full_like(r, fill_value=jnp.inf))
+    return _result  # type: ignore[no-any-return]

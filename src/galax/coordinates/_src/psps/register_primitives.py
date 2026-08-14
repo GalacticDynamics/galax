@@ -10,7 +10,7 @@ from quax import register
 from .core import PhaseSpacePosition
 
 
-@register(jax.lax.add_p)  # type: ignore[misc]
+@register(jax.lax.add_p)
 def add_psps(
     psp1: PhaseSpacePosition, psp2: PhaseSpacePosition, /
 ) -> PhaseSpacePosition:

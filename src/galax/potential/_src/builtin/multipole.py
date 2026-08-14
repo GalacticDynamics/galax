@@ -98,13 +98,15 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
         # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
         def summand(l: int, m: int) -> Float[Array, "*batch"]:
             cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            return jnp.pow(s, l) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
+            _result = jnp.pow(s, l) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
+            return _result  # type: ignore[no-any-return]
 
         summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
         if is_scalar:
             summation = summation[0]
 
-        return self.constants["G"].value * m_tot / r_s * summation
+        _result = self.constants["G"].value * m_tot / r_s * summation
+        return _result  # type: ignore[no-any-return]
 
 
 @final
@@ -164,13 +166,15 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
         # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
         def summand(l: int, m: int) -> Float[Array, "*batch"]:
             cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            return jnp.pow(s, -(l + 1)) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
+            _result = jnp.pow(s, -(l + 1)) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
+            return _result  # type: ignore[no-any-return]
 
         summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
         if is_scalar:
             summation = summation[0]
 
-        return self.constants["G"].value * m_tot / r_s * summation
+        _result = self.constants["G"].value * m_tot / r_s * summation
+        return _result  # type: ignore[no-any-return]
 
 
 @final
@@ -243,13 +247,14 @@ class MultipolePotential(AbstractMultipolePotential):
             cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
             inner = jnp.pow(s, l) * (ISlm[l, m] * cPlm + ITlm[l, m] * sPlm)
             outer = jnp.pow(s, -l - 1) * (OSlm[l, m] * cPlm + OTlm[l, m] * sPlm)
-            return inner + outer
+            return inner + outer  # type: ignore[no-any-return]
 
         summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
         if is_scalar:
             summation = summation[0]
 
-        return self.constants["G"].value * m_tot / r_s * summation
+        _result = self.constants["G"].value * m_tot / r_s * summation
+        return _result  # type: ignore[no-any-return]
 
 
 # ===== Helper functions =====

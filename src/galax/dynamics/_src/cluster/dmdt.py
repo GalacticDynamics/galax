@@ -250,7 +250,8 @@ class ConstantMassRate(AbstractMassRateField):
         **kwargs: Any,  # noqa: ARG002
     ) -> Shaped[Array, "{M}"]:
         unit = self.units["mass"] / self.units["time"]
-        return u.ustrip(AllowValue, unit, self.dm_dt) * jnp.ones_like(M)
+        _result = u.ustrip(AllowValue, unit, self.dm_dt) * jnp.ones_like(M)
+        return _result  # type: ignore[no-any-return]
 
 
 ######################################################
@@ -342,4 +343,5 @@ class Baumgardt1998MassLossRate(AbstractMassRateField):
         dmdt = (
             -args["xi0"] * jnp.sqrt(1.0 + (args["alpha"] * r_ratio) ** 3) * Mq / t_relax
         )
-        return u.ustrip(usys["mass"] / usys["time"], dmdt)
+        _result = u.ustrip(usys["mass"] / usys["time"], dmdt)
+        return _result  # type: ignore[no-any-return]

@@ -65,7 +65,7 @@ class KuzminPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return potential(params, xyz)
+        return potential(params, xyz)  # type: ignore[no-any-return]
 
 
 # ====================================================================
@@ -81,4 +81,5 @@ def potential(p: gt.Params, xyz: gt.BBtSz3) -> gt.BBtSz0:
     """
     R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
     z = xyz[..., 2]
-    return -p["G"] * p["m_tot"] / jnp.sqrt(R2 + (jnp.abs(z) + p["r_s"]) ** 2)
+    _result = -p["G"] * p["m_tot"] / jnp.sqrt(R2 + (jnp.abs(z) + p["r_s"]) ** 2)
+    return _result  # type: ignore[no-any-return]

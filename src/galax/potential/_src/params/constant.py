@@ -100,7 +100,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
         ShapedArray(float64[], weak_type=True)
 
         """
-        return self.value.aval()
+        return self.value.aval()  # type: ignore[no-any-return]
 
     def materialise(self) -> NoReturn:
         """Return the dtype and shape info.
@@ -170,7 +170,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
 # add_p
 
 
-@register(jax.lax.add_p)  # type: ignore[misc]
+@register(jax.lax.add_p)
 def add_p_constantparams(
     x: ConstantParameter, y: ConstantParameter, /
 ) -> ConstantParameter:
@@ -195,7 +195,7 @@ def add_p_constantparam_scalar(
 # sub_p
 
 
-@register(jax.lax.sub_p)  # type: ignore[misc]
+@register(jax.lax.sub_p)
 def sub_p_constantparams(
     x: ConstantParameter, y: ConstantParameter, /
 ) -> ConstantParameter:
@@ -220,14 +220,14 @@ def sub_p_constantparam_scalar(
 # mul_p
 
 
-@register(jax.lax.mul_p)  # type: ignore[misc]
+@register(jax.lax.mul_p)
 def mul_p_obj_constantparam(
     x: ConstantParameter, y: u.AbstractQuantity | ArrayLike, /
 ) -> u.AbstractQuantity:
     return x.value * y
 
 
-@register(jax.lax.mul_p)  # type: ignore[misc]
+@register(jax.lax.mul_p)
 def mul_p_constantparam_obj(
     x: u.AbstractQuantity | ArrayLike, y: ConstantParameter, /
 ) -> u.AbstractQuantity:

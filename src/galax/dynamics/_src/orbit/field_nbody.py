@@ -67,7 +67,7 @@ class NBodyField(AbstractOrbitField):
         default=gp.NullPotential(units="galactic")
     )
 
-    @property
+    @property  # type: ignore[misc]
     def units(self) -> u.AbstractUnitSystem:
         return self.external_potential.units
 
@@ -75,9 +75,10 @@ class NBodyField(AbstractOrbitField):
     def _G(self) -> gt.Sz0:
         us = self.units
         unit = us["length"] ** 3 / (us["mass"] * us["time"] ** 2)
-        return self.external_potential.constants["G"].ustrip(unit)
+        _result = self.external_potential.constants["G"].ustrip(unit)
+        return _result  # type: ignore[no-any-return]
 
-    @dispatch.abstract
+    @dispatch.abstract  # type: ignore[override]
     def __call__(
         self, t: Any, qp: tuple[Any, Any], args: tuple[Any, ...], /
     ) -> tuple[Any, Any]:
@@ -85,7 +86,7 @@ class NBodyField(AbstractOrbitField):
 
 
 @NBodyField.__call__.dispatch  # type: ignore[misc,union-attr]
-@jax.jit  # type: ignore[misc]
+@jax.jit
 def __call__(
     self: "NBodyField",
     t: gt.LikeSz0,
@@ -104,12 +105,12 @@ def __call__(
     diffs = x[:, None, :] - x[None, :, :]  # (N, N, 3)
 
     # Compute softened squared distances.
-    eps = self.eps.ustrip(units["length"])
+    eps = u.ustrip(AllowValue, units["length"], self.eps)
     soft_d2s = jnp.sum(diffs**2, axis=-1)[:, :, None] + eps**2  # (N, N, 1)
     soft_d3s = soft_d2s * jnp.sqrt(soft_d2s)  # (N, N, 1)
 
     # Compute pairwise forces.
-    ms = self.masses.ustrip(units["mass"])  # (N,)
+    ms = u.ustrip(AllowValue, units["mass"], self.masses)  # (N,)
     m2s = ms[:, None, None] * ms[None, :, None]  # (N, N, 1)
     forces = self._G * m2s / soft_d3s * diffs  # (N, N, 3)
 

@@ -182,7 +182,7 @@ default_saveat = dfx.SaveAt(t1=True)
 
 
 @MassSolver.solve.dispatch  # type: ignore[misc,union-attr]
-@eqx.filter_jit  # type: ignore[misc]
+@eqx.filter_jit
 def solve(
     self: MassSolver,
     field: AbstractMassRateField | MassVectorField,

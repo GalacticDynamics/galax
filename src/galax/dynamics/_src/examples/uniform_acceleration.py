@@ -73,7 +73,8 @@ class UniformAcceleration(gp.AbstractSinglePotential):
             t = u.ustrip(AllowValue, self.units["time"], t)
 
         grad = jax.jacfwd(self.velocity_func)(t)
-        return u.ustrip(AllowValue, self.units["acceleration"], grad)
+        _result = u.ustrip(AllowValue, self.units["acceleration"], grad)
+        return _result  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _hessian(
@@ -83,4 +84,4 @@ class UniformAcceleration(gp.AbstractSinglePotential):
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
         hess_op = jax.jacfwd(self._gradient, argnums=0)
-        return hess_op(xyz, t)
+        return hess_op(xyz, t)  # type: ignore[no-any-return]

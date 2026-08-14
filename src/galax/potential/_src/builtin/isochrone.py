@@ -70,7 +70,7 @@ class IsochronePotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -86,4 +86,5 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     """
     r_s = p["r_s"]
-    return -p["G"] * p["m_tot"] / (r_s + jnp.sqrt(r**2 + r_s**2))
+    _result = -p["G"] * p["m_tot"] / (r_s + jnp.sqrt(r**2 + r_s**2))
+    return _result  # type: ignore[no-any-return]

@@ -32,13 +32,14 @@ import galax.coordinates as gc
 def within_bounds(
     t: Real[Array, "N"], t_lower: Real[Array, ""], t_upper: Real[Array, ""]
 ) -> Bool[Array, "N"]:
-    return jnp.logical_and(jnp.greater_equal(t, t_lower), jnp.less_equal(t, t_upper))
+    _result = jnp.logical_and(jnp.greater_equal(t, t_lower), jnp.less_equal(t, t_upper))
+    return _result  # type: ignore[no-any-return]
 
 
 # TODO: move this to galax.coordinates?
 # TODO: address mypy complaints about subclassing
 # AbstractVectorizedDenseInterpolation
-class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
+class PhaseSpaceInterpolation(eqx.Module):
     """Evaluate phase-space interpolations."""
 
     #: The vectorized interpolation object.
@@ -49,7 +50,7 @@ class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
     #: The unit system for the interpolation.
     units: u.AbstractUnitSystem = eqx.field(static=True, converter=u.unitsystem)
 
-    @eqx.filter_jit  # type: ignore[misc]
+    @eqx.filter_jit
     def evaluate(self, ts: Any) -> gc.PhaseSpaceCoordinate:
         usys = self.units
         t = FastQ.from_(ts, usys["time"])
@@ -98,7 +99,7 @@ class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
         return cast(int, self.interp.batch_ndim)
 
     def __call__(self, *args: Any, **kwds: Any) -> gc.PhaseSpaceCoordinate:
-        return cast(gc.PhaseSpaceCoordinate, self.evaluate(*args, **kwds))
+        return self.evaluate(*args, **kwds)
 
     @property
     def t0(self) -> BatchedRealScalar:
@@ -118,7 +119,7 @@ class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
     @property
     def ts_size(self) -> Int[Array, "..."]:  # TODO: shape
         """The number of times in the interpolation."""
-        return self.interp.ts_size
+        return self.interp.ts_size  # type: ignore[no-any-return]
 
     @property
     def infos(self) -> VecDenseInfos:

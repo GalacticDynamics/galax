@@ -6,9 +6,11 @@ here rather than in `coordinates` alongside `batched_shape`.
 
 __all__: tuple[str, ...] = ()
 
+from quax import quaxify
+
 import quaxed.numpy as jnp
 
-from galax.coordinates._src.shape import ArrayAnyShape, quaxify
+from galax.coordinates._src.shape import ArrayAnyShape
 
 
 @quaxify
@@ -44,7 +46,7 @@ def expand_batch_dims(arr: ArrayAnyShape, /, ndim: int) -> ArrayAnyShape:
     >>> expand_batch_dims(jnp.array([0, 1]), ndim=1).shape
     (1, 2)
     """
-    return jnp.expand_dims(arr, axis=tuple(range(ndim)))
+    return jnp.expand_dims(arr, axis=tuple(range(ndim)))  # type: ignore[no-any-return]
 
 
 @quaxify
@@ -81,4 +83,5 @@ def expand_arr_dims(arr: ArrayAnyShape, /, ndim: int) -> ArrayAnyShape:
     (2, 1)
     """
     nbatch = len(arr.shape)
-    return jnp.expand_dims(arr, axis=tuple(nbatch + i for i in range(ndim)))
+    _result = jnp.expand_dims(arr, axis=tuple(nbatch + i for i in range(ndim)))
+    return _result  # type: ignore[no-any-return]

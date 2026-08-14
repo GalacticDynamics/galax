@@ -160,7 +160,7 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
             "r_t": self.r_t(t, ustrip=self.units["length"]),
         }
-        return mass_enclosed(params, r)
+        return mass_enclosed(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
@@ -175,7 +175,7 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
             "r_t": self.r_t(t, ustrip=self.units["length"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -231,7 +231,7 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
             "r_t": self.r_t(t, ustrip=self.units["length"]),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -280,7 +280,8 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     """
     r_t = p["r_t"]
-    return nfw_mass_enclosed(p, jnp.where(r <= r_t, r, r_t))
+    _result = nfw_mass_enclosed(p, jnp.where(r <= r_t, r, r_t))
+    return _result  # type: ignore[no-any-return]
 
 
 # -------------------------------------------------------------------
@@ -295,7 +296,7 @@ def _inner_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     """
     nfw = nfw_potential(p, r)
     constant = p["G"] * p["m"] / (p["r_s"] + p["r_t"])
-    return nfw + constant
+    return nfw + constant  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -309,7 +310,7 @@ def _outer_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     enclosed within the truncation radius $r_t$.
     """
     m_tot = nfw_mass_enclosed(p, p["r_t"])
-    return kepler.point_mass_potential(p["G"], m_tot, r)
+    return kepler.point_mass_potential(p["G"], m_tot, r)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -333,4 +334,5 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
       r_s$
 
     """
-    return jnp.where(r <= p["r_t"], _inner_potential(p, r), _outer_potential(p, r))
+    _result = jnp.where(r <= p["r_t"], _inner_potential(p, r), _outer_potential(p, r))
+    return _result  # type: ignore[no-any-return]

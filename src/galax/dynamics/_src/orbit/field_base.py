@@ -27,7 +27,9 @@ class AbstractOrbitField(AbstractField):
 
     @override  # specify the signature of the `__call__` method.
     @dispatch.abstract
-    def __call__(self, *_: Any, **kw: Any) -> tuple[Any, Any]:
+    def __call__(  # type: ignore[override]
+        self, *_: Any, **kw: Any
+    ) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
 
     @override

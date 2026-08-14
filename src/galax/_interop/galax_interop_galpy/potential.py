@@ -101,15 +101,13 @@ def convert_potential(
 # Helper functions
 
 
-def _error_if_not_all_constant_parameters(
-    pot: gp.AbstractPotential,
-) -> gp.AbstractPotential:
+def _error_if_not_all_constant_parameters[PT: gp.AbstractPotential](pot: PT) -> PT:
     """Check if all parameters are constant."""
     is_time_dep = any(
         not isinstance(getattr(pot, name), gp.params.ConstantParameter)
         for name in pot.parameters
     )
-    pot: gp.AbstractPotential = eqx.error_if(
+    pot = eqx.error_if(
         pot, is_time_dep, "Gala does not support time-dependent parameters."
     )
     return pot

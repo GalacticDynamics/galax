@@ -83,6 +83,7 @@ repos:
           - dataclassish
           - optype
           - plum-dispatch>=2.5.7
+          - quax
 
   - repo: https://github.com/codespell-project/codespell
     rev: "v2.3.0"

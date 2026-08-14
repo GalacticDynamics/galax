@@ -187,6 +187,6 @@ class CompositePhaseSpaceCoordinate(AbstractCompositePhaseSpaceCoordinate):
         ]
 
     @property
-    def frame(self) -> cxf.AbstractReferenceFrame:
+    def frame(self) -> cxf.AbstractReferenceFrame:  # type: ignore[override]
         """The reference frame."""
         return self._frame

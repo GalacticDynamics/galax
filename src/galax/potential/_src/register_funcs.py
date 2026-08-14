@@ -18,7 +18,8 @@ import galax._custom_types as gt
 from . import api
 from .base import AbstractPotential
 from .utils import parse_to_xyz_t
-from galax.utils._shape import batched_shape, expand_arr_dims, expand_batch_dims
+from galax.coordinates._src.shape import batched_shape
+from galax.potential._src.shape import expand_arr_dims, expand_batch_dims
 
 # =============================================================================
 # Potential Energy

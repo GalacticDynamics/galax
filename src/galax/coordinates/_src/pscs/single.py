@@ -21,7 +21,7 @@ from .base_composite import AbstractCompositePhaseSpaceCoordinate
 from .base_single import AbstractBasicPhaseSpaceCoordinate
 from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.frames import SimulationFrame, simulation_frame
-from galax.utils._shape import batched_shape, vector_batched_shape
+from galax.coordinates._src.shape import batched_shape, vector_batched_shape
 
 
 @final

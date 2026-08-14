@@ -144,7 +144,7 @@ report.exclude_also = [
   '@abc.abstractmethod',
   '@abstractmethod',
 ]
-run.omit = ["*/utils/_boundinstance.py"]
+run.omit = ["*/_boundinstance/*"]
 run.source = ["galax"]
 
 

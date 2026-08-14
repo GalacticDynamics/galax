@@ -24,9 +24,9 @@ import galax._custom_types as gt
 from . import api
 from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
 from .plot import PlotPotentialDescriptor
+from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars
-from galax.utils._jax import vectorize_method
 from galax.utils.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:

@@ -22,10 +22,10 @@ import galax._custom_types as gt
 from .base import rho0_of_m
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
-from galax.utils._jax import vectorize_method
 
 DimL = u.dimension("length")
 DimT = u.dimension("time")

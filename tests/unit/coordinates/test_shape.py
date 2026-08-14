@@ -6,7 +6,7 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
+import galax.coordinates.custom_types as gt
 from galax.coordinates._src.shape import batched_shape
 
 

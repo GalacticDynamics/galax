@@ -14,8 +14,8 @@ from plum import dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 from .plot_helper import PlotOrbitDescriptor
 from galax.coordinates._src.shape import batched_shape, vector_batched_shape
 from galax.coordinates._src.utils import getitem

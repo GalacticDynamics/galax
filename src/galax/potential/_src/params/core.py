@@ -16,7 +16,7 @@ import jax.core
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import AbstractParameter, ParameterCallable
 
 t0 = u.Q(0, "Myr")

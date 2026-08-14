@@ -14,7 +14,7 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from . import api
 from .base import AbstractPotential
 from .utils import parse_to_xyz_t

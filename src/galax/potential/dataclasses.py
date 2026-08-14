@@ -39,7 +39,7 @@ class sentineled[ArgT, RetT, SenT: Enum](AbstractConverter[ArgT, RetT]):
     --------
     >>> from typing import Literal
     >>> import equinox as eqx
-    >>> from galax.utils.dataclasses import sentineled, Sentinel
+    >>> from galax.potential.dataclasses import sentineled, Sentinel
 
     >>> class Class(eqx.Module):
     ...     a: int | Literal[Sentinel.MISSING] = eqx.field(

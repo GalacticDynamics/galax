@@ -13,9 +13,9 @@ import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
 import galax.dynamics as gd
 import galax.potential as gp
+import galax.potential.custom_types as gt
 import galax.potential.params as gpp
 from .io.test_gala import GalaIOMixin
 from galax.potential._src.base import default_constants

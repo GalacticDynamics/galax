@@ -15,8 +15,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity as FastQ
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 from galax.coordinates._src.frames import SimulationFrame
 from galax.coordinates._src.pscs.base import ComponentShapeTuple
 from galax.coordinates._src.shape import batched_shape, vector_batched_shape

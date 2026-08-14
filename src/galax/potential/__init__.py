@@ -69,7 +69,7 @@ __all__ = [
     "d2potential_dr2",
 ]
 
-from .setup_package import install_import_hook
+from .setup_package import install_import_hook, load_interop_plugins
 
 with install_import_hook("galax.potential"):
     from . import io, params, plot
@@ -145,3 +145,10 @@ with install_import_hook("galax.potential"):
 
 # Cleanup
 del install_import_hook, register_funcs
+
+# Interoperability with third-party libraries. Importing a registered module is
+# what performs its `plum` dispatch registration; entry points let separately
+# installed distributions extend `galax.potential` without it knowing they exist.
+load_interop_plugins("galax.potential.interop")
+
+del load_interop_plugins

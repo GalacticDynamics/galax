@@ -27,8 +27,8 @@ import unxt as u
 from dataclassish.converters import Unless
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .uniform_acceleration import UniformAcceleration
 from galax.dynamics._src.fields import AbstractField

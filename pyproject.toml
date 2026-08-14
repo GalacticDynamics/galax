@@ -79,6 +79,25 @@ Changelog = "https://github.com/GalacticDynamics/galax/releases"
 Discussions = "https://github.com/GalacticDynamics/galax/discussions"
 Homepage = "https://github.com/GalacticDynamics/galax"
 
+# Interoperability plugins. Each portion loads its own group at the end of its
+# `__init__`; importing a registered module performs its `plum` dispatch
+# registration. Groups are per-portion so that importing `galax.coordinates`
+# does not drag in potential-level interop. A plugin whose third-party target
+# is not installed is skipped by the loader.
+[project.entry-points."galax.coordinates.interop"]
+astropy = "galax.interop.astropy.coordinates"
+gala = "galax.interop.gala.coordinates"
+
+[project.entry-points."galax.potential.interop"]
+astropy = "galax.interop.astropy.potential"
+gala = "galax.interop.gala.potential"
+galpy = "galax.interop.galpy.potential"
+matplotlib = "galax.interop.matplotlib.potential"
+
+[project.entry-points."galax.dynamics.interop"]
+astropy = "galax.interop.astropy.dynamics"
+matplotlib = "galax.interop.matplotlib.orbit"
+
 
 [build-system]
 build-backend = "hatchling.build"
@@ -119,9 +138,15 @@ test-mpl = ["pytest-mpl>=0.17.0"]
 
 
 [tool.hatch]
-build.hooks.vcs.version-file = "src/galax/_version.py"
 metadata.allow-direct-references = true
 version.source = "vcs"
+
+# `src/galax` is a PEP 420 namespace directory with no `__init__.py`, so the
+# package cannot be auto-detected and must be named explicitly. There is no
+# version-file hook: a namespace directory must not hold a module owned by one
+# distribution, so `galax.__version__` no longer exists. Use
+# `importlib.metadata.version("galax")`.
+build.targets.wheel.packages = ["src/galax"]
 
 
 [tool.codespell]
@@ -150,6 +175,14 @@ run.source = ["galax"]
 
 [tool.mypy]
 python_version = "3.12"
+
+# `src/galax` is a PEP 420 namespace directory. Without an explicit package
+# base, mypy derives a module name by walking up to the first directory
+# without `__init__.py`, naming this module `potential._src.base` rather than
+# `galax.potential._src.base` and losing every cross-module type.
+explicit_package_bases = true
+mypy_path = "src"
+namespace_packages = true
 
 disallow_incomplete_defs = true
 disallow_untyped_defs = true
@@ -226,10 +259,18 @@ similarities.ignore-imports = "yes"
 [tool.pytest.ini_options]
 addopts = [
   "--arraydiff",
+  # `src/galax` and `src/galax/interop` are namespace directories. Under the
+  # default "prepend" mode pytest derives a module name by walking up to the
+  # first directory without an `__init__.py` and puts that directory on
+  # sys.path -- which makes the leaf of a namespace package shadow a real
+  # library. Matches `coordinax` and `unxt`. NB: deliberately *not*
+  # `consider_namespace_packages`, which renames test modules and breaks
+  # pytest-mpl's hash lookups.
+  "--import-mode=importlib",
   "--showlocals",
   "--strict-config",
   "--strict-markers",
-  "-p no:doctest",    # using sybil
+  "-p no:doctest",           # using sybil
   "-ra",
 ]
 filterwarnings = [
@@ -294,6 +335,16 @@ ignore = [
   "A001",   # Variable `copyright` is shadowing a Python builtin
   "INP001", # implicit namespace package
 ]
+# `galax` and `galax.interop` are PEP 420 namespace directories, so any
+# loose module in them is correctly "part of an implicit namespace
+# package". That is the intent, not a mistake.
+"src/galax/interop/*.py" = ["INP001"]
+# Each interop portion is named after the library it wraps, so e.g.
+# `galax.interop.astropy.coordinates` importing `astropy.coordinates` looks
+# like a self-import. It isn't: these are absolute imports resolving to the
+# third-party package. Safe because `--import-mode=importlib` keeps
+# `src/galax/interop` off sys.path, so the portion never shadows the library.
+"src/galax/interop/*/*.py" = ["PLW0406"]
 "notebooks/**" = ["ANN", "D103", "FBT", "T201"]
 "noxfile.py" = ["ERA001", "T20"]
 "tests/**" = [
@@ -336,6 +387,10 @@ exempt-modules = []
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+# The interop portions are named after the libraries they wrap, so without this
+# isort infers e.g. `astropy` is first-party inside `src/galax/interop/astropy`
+# and hoists it into galax's own import block.
+known-third-party = ["astropy", "gala", "galpy", "matplotlib"]
 known-first-party = [
   "coordinax",
   "dataclassish",

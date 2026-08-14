@@ -19,7 +19,7 @@ import unxt as u
 from dataclassish.converters import Unless
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import AbstractParameter
 
 t0 = u.Q(0, "Myr")

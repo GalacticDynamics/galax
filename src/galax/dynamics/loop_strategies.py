@@ -10,7 +10,7 @@ class AbstractLoopStrategy:
 
     Examples
     --------
-    >>> from galax.utils.loop_strategies import AbstractLoopStrategy
+    >>> from galax.dynamics.loop_strategies import AbstractLoopStrategy
     >>> try: AbstractLoopStrategy()
     ... except TypeError as e: print(e)
     Cannot instantiate LoopStrategy classes

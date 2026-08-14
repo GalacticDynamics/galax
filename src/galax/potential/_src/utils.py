@@ -21,8 +21,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue, BareQuantity
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.potential.custom_types as gt
 
 OptUSys: TypeAlias = u.AbstractUnitSystem | None
 

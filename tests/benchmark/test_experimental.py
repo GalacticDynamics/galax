@@ -15,7 +15,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-from galax.utils import loop_strategies
+from galax.dynamics import loop_strategies
 
 # =============================================================================
 # Tools for crafting a benchmark suite

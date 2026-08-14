@@ -24,7 +24,7 @@ from plum import dispatch
 
 import unxt as u
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 
 #########################################################################

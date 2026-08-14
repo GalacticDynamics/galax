@@ -22,7 +22,7 @@ from dataclassish.flags import FilterRepr
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import AbstractPotential, default_constants
 
 if TYPE_CHECKING:

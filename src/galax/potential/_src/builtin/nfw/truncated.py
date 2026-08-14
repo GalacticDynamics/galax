@@ -21,7 +21,7 @@ import quaxed.numpy as jnp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import (
     density as nfw_density,
     mass_enclosed as nfw_mass_enclosed,

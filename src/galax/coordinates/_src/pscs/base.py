@@ -17,7 +17,7 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity as FastQ
 
-import galax._custom_types as gt
+import galax.coordinates.custom_types as gt
 from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.frames import SimulationFrame
 from galax.coordinates._src.utils import SLICE_ALL, getitem
@@ -275,7 +275,13 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         """
         return self.kinetic_energy() + self.potential_energy(potential)
 
-    @ft.partial(jax.jit, inline=True)
+    # Deliberately not `jax.jit`-ed: the body defers `from galax.dynamics
+    # import ...` (`galax.coordinates` cannot import it at module scope without
+    # a cycle), and under `jit` that import runs inside a live trace. Any
+    # module-level state built during it then captures a tracer -- this poisoned
+    # `galax.potential`'s `default_constants` and made every later potential
+    # raise `UnexpectedTracerError`. Every `specific_angular_momentum`
+    # implementation is already jitted, so the outer jit bought nothing.
     def angular_momentum(self) -> cx.vecs.Cartesian3D:
         r"""Compute the angular momentum.
 

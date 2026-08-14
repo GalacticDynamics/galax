@@ -31,7 +31,7 @@ from unxt.quantity import AbstractQuantity
 from .base import AbstractParameter, ParameterCallable
 from .constant import ConstantParameter
 from .core import CustomParameter
-from galax.utils.dataclasses import Sentinel, sentineled
+from galax.potential.dataclasses import Sentinel, sentineled
 
 if TYPE_CHECKING:
     from galax.potential import AbstractPotential

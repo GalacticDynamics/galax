@@ -15,7 +15,7 @@ from quax import quaxify
 import coordinax as cx
 import quaxed.numpy as jnp
 
-import galax._custom_types as gt
+import galax.coordinates.custom_types as gt
 
 AnyScalar: TypeAlias = Shaped[Array, ""]
 ArrayAnyShape: TypeAlias = Shaped[Array | quax.ArrayValue, "..."]

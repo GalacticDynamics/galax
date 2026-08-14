@@ -15,7 +15,7 @@ from plum import dispatch
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 from .dmdt import (
     AbstractMassRateField,
     CustomMassRateField,

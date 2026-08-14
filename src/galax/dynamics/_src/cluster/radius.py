@@ -28,8 +28,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue, BareQuantity
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from galax.dynamics._src.api import omega
 

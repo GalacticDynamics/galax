@@ -1,3 +1,5 @@
+"""Matplotlib backend for plotting `galax.potential` potentials."""
+
 __all__ = ["plot_density_contours", "plot_potential_contours"]
 
 

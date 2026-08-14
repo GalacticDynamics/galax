@@ -8,8 +8,8 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.potential as gp
+import galax.potential.custom_types as gt
 from ..param.test_field import ParameterFieldMixin
 
 

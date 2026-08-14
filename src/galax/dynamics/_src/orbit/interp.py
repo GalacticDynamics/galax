@@ -24,8 +24,8 @@ from diffraxtra._src.interp import (  # TODO: make this public API in diffraxtra
 )
 from unxt.quantity import BareQuantity as FastQ
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 
 
 @ft.partial(jax.jit)

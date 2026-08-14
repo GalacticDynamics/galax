@@ -980,7 +980,7 @@ requires-dist = [
     { name = "plotting-backends", specifier = ">=0.1" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "quax", specifier = ">=0.3.2" },
+    { name = "quax", specifier = ">=0.4.3" },
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.25.0" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
@@ -2282,7 +2282,7 @@ wheels = [
 
 [[package]]
 name = "quax"
-version = "0.3.2"
+version = "0.4.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "equinox" },
@@ -2292,9 +2292,9 @@ dependencies = [
     { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
     { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/15/66c9a1a32168726ba0f4adeb158e737a012e2a2ec19c638dfa24f7d4b0ab/quax-0.3.2.tar.gz", hash = "sha256:94a1656c55f813ca5f6e76b69f085c8dcc701673928f7616af1f2536da158f62", size = 171557, upload-time = "2026-05-04T13:43:07.09Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/7c/b43f62a8246364704ba9335c94ad278c784879017076d5e04572e7eb91fc/quax-0.4.3.tar.gz", hash = "sha256:962f907f9aa8d41a09330e060897af6e6f10d47fc9ff15de163ccfa550f6eed3", size = 203771, upload-time = "2026-08-04T21:14:00.316Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/08/ef6ff182c14090127dcb1cb0a7724e327b5a2ef0c0e3e8afcd1c5672441b/quax-0.3.2-py3-none-any.whl", hash = "sha256:d63ea1f6af06711ee256cfd38d19e980b9ded760c58c49a5ccb668d5f2a5c6c3", size = 39313, upload-time = "2026-05-04T13:43:05.48Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/80/e64007939af7c63575966fc5b4d5dedd93b60c16b675cc313854d3bd42c9/quax-0.4.3-py3-none-any.whl", hash = "sha256:09de449d07ddfc8b20c2f942efa3b406e64554aea4801a48decdaef268db57d4", size = 59424, upload-time = "2026-08-04T21:13:58.915Z" },
 ]
 
 [[package]]
@@ -2690,7 +2690,7 @@ wheels = [
 
 [[package]]
 name = "unxt"
-version = "1.11.2"
+version = "1.11.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -2712,22 +2712,34 @@ dependencies = [
     { name = "xmmutablemap" },
     { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/c1/196675cf1d0d659e03e6beab5d68c6bfc703c7b02e771957cdb787f98f42/unxt-1.11.2.tar.gz", hash = "sha256:07a6ddeffb18733ca2d52fc9a5fa43be9f92fc271b84142d371aea58c4741e19", size = 1062862, upload-time = "2026-05-08T21:06:08.991Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/74/5c7e1172257b8882d3bee17ca5ff18d61f6d4beafe85f79df46118f6edc6/unxt-1.11.4.tar.gz", hash = "sha256:118af7a495d813b5de13d677bcbd3336dbccc28838492d7b65bb7d836f55dbf9", size = 1066483, upload-time = "2026-06-29T13:17:32.485Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/99/fe4542790e9b6d156414e461ccbb13c824d408a2c6df8b0aa87fbe5440a9/unxt-1.11.2-py3-none-any.whl", hash = "sha256:4352b889595a4657393607043b39548235962a95e34660559207223c6eed2279", size = 91438, upload-time = "2026-05-08T21:06:06.919Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/52/f4215ba3879bbc540762f3b5ad07763a28887c1659e1be232cca3dc3bebc/unxt-1.11.4-py3-none-any.whl", hash = "sha256:66c43508919fecd43aff0e328d42bcae6871f5fbdd4499e1e6b2a7a83759ec5e", size = 94210, upload-time = "2026-06-29T13:17:31.072Z" },
 ]
 
 [[package]]
 name = "unxt-api"
-version = "1.10.1"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "unxts-api" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/dd/05/4fdcf04277ca3237d19388ee0c4902f5c52061f713316a9a7d0808b30ebe/unxt_api-2.0.0.tar.gz", hash = "sha256:164ae14673bde98c7358fba12e3e94080a26c979c72e2e8ad1298fd1531026fb", size = 5462, upload-time = "2026-07-24T18:00:06.468Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/ac/b1faf16701501fde6241ab5df42f12a339d069b9d84b607f607d897fd1a9/unxt_api-2.0.0-py3-none-any.whl", hash = "sha256:10e19f7c31b29a8be6e54f266b0dd0bd8c861482ac1f46d0fecaddf5a29be160", size = 2946, upload-time = "2026-07-24T18:00:05.367Z" },
+]
+
+[[package]]
+name = "unxts-api"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
     { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/59/55/a9e4f226a3d2f26a8bafc55868b8b8ec290cdf3766d9dc378b3b2dd0eb0c/unxt_api-1.10.1.tar.gz", hash = "sha256:dae10d19edc0b96b225dfa122d0ed5999ad8523d3b0e63f33a3acc2ccdff0cbc", size = 21341, upload-time = "2026-01-24T22:28:06.289Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a7/57/0ba96217d877cf2eb4002045650d9521d1d0d5cc91e1226fc9877a1ed675/unxts_api-2.0.0.tar.gz", hash = "sha256:b5bdb90a0836099e788549d65a95d979281dd5fb2d06164620cc983aeb1cd6c4", size = 12570, upload-time = "2026-07-24T18:05:26.804Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/63/64/4f4fb51ee7558784a566fb30d8e0d04c689501f7856aa47d279bf6d745cf/unxt_api-1.10.1-py3-none-any.whl", hash = "sha256:7cc4ed4b4d22a9a93fe185add206861a5931f45e892d68d86c8034c445e28ba6", size = 6266, upload-time = "2026-01-24T22:28:05.087Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/2d/41ac3d8e5f98aafabe5ce1790418d13b8e743fa75d50ac0c5513507c114f/unxts_api-2.0.0-py3-none-any.whl", hash = "sha256:a4b6729fbfcb2f8536302ea676352d1866eaeb6a916a843afaeaa18c65b66bbd", size = 5934, upload-time = "2026-07-24T18:05:25.729Z" },
 ]
 
 [[package]]

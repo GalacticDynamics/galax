@@ -12,7 +12,7 @@ __all__ = [
     "ConstantMassProtenitor",
 ]
 
-from galax.setup_package import install_import_hook
+from .setup_package import install_import_hook
 
 with install_import_hook("galax.dynamics.dynamics"):
     from ._src.legacy.mockstream import MockStreamGenerator

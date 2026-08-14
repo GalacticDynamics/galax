@@ -14,7 +14,7 @@ __all__ = [
     "radial_velocity_dispersion_helper",
 ]
 
-from galax.setup_package import install_import_hook
+from .setup_package import install_import_hook
 
 with install_import_hook("galax.dynamics.examples"):
     from ._src.examples.mw_lmc import (

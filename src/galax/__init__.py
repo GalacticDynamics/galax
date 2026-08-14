@@ -11,7 +11,7 @@ __all__ = [
     "_custom_types",
 ]
 
-from . import _custom_types, setup_package as setup_package
+from . import _custom_types
 
 # isort: split
 from . import coordinates, dynamics, potential, utils

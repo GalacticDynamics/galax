@@ -9,7 +9,7 @@ __all__ = [
     "PhaseSpaceInterpolation",
 ]
 
-from galax.setup_package import install_import_hook
+from .setup_package import install_import_hook
 
 with install_import_hook("galax.dynamics.solve"):
     from ._src.orbit import Orbit, OrbitSolver, PhaseSpaceInterpolation, compute_orbit

@@ -4,11 +4,13 @@ __all__: tuple[str, ...] = ()
 
 import functools as ft
 
-from typing import Any, TypeAlias
+from jaxtyping import Array, Bool
+from typing import Any, TypeAlias, cast
 
 import equinox as eqx
 import jax
 import numpy as np
+import optype as op
 from jax.dtypes import canonicalize_dtype
 from plum import Dispatcher, convert
 
@@ -578,3 +580,22 @@ def parse_to_xyz_t(
     return parse_to_xyz_t(
         None, wt.q, jnp.asarray(wt.t, dtype=dtype), dtype=dtype, ustrip=ustrip
     )
+
+
+# ============================================================================
+# Moved here from `galax.dynamics._src.utils`: `potential` is the lower
+# subpackage of the two that use it, so keeping it in `dynamics` meant
+# `potential` importing upward.
+
+
+def _identity[T](x: T) -> T:
+    return x
+
+
+def _reverse[T](x: op.CanGetitem[Any, T]) -> T:
+    return x[::-1]
+
+
+def cond_reverse[T](pred: Bool[Array, ""], x: T) -> T:
+    """Reverse `x` if `pred` is True."""
+    return cast("T", jax.lax.cond(pred, _reverse, _identity, x))

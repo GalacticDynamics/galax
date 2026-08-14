@@ -1,4 +1,4 @@
-"""Galax package setup.
+"""`galax.potential` package setup.
 
 Copyright (c) 2023 galax maintainers. All rights reserved.
 """

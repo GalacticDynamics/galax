@@ -1,10 +1,10 @@
-"""Test the :mod:`galax.utils._jax` module."""
+"""Test the :mod:`galax.potential._src.jax` module."""
 
 from jaxtyping import Array, Float
 
 import jax.numpy as jnp
 
-from galax.utils._jax import vectorize_method
+from galax.potential._src.jax import vectorize_method
 
 
 def test_vectorize_method() -> None:

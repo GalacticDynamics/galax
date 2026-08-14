@@ -18,8 +18,8 @@ from dataclassish.converters import Unless
 import galax._custom_types as gt
 from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.frames import SimulationFrame, simulation_frame
+from galax.coordinates._src.shape import vector_batched_shape
 from galax.coordinates._src.utils import PSPVConvertOptions
-from galax.utils._shape import vector_batched_shape
 
 
 class ComponentShapeTuple(NamedTuple):

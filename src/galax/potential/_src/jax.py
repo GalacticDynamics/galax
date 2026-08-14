@@ -1,14 +1,12 @@
-"""galax: Galactic Dynamix in Jax."""
+"""JAX helpers for `galax.potential`. Private API."""
 
 __all__: tuple[str, ...] = ()
 
 import functools as ft
 
 from collections.abc import Callable, Sequence
-from typing import Any, NotRequired, TypedDict, TypeVar, Unpack, cast
+from typing import NotRequired, TypedDict, TypeVar, Unpack
 from typing_extensions import ParamSpec
-
-import quax
 
 import quaxed.numpy as jnp
 
@@ -46,11 +44,3 @@ def vectorize_method(
     kw["excluded"] = tuple(i + 1 for i in excluded)
 
     return ft.partial(jnp.vectorize, **kw)
-
-
-# ============================================================================
-
-
-def quaxify(fn: Callable[P, R], *, filter_spec: Any = True) -> Callable[P, R]:
-    """Wrap a function with :func:`quax.quaxify`."""
-    return cast("Callable[P, R]", quax.quaxify(fn, filter_spec=filter_spec))

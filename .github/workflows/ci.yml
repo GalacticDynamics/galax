@@ -169,4 +169,13 @@ jobs:
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           mode: "instrumentation"
-          run: uv run pytest tests/benchmark --codspeed
+          # Instrumentation mode runs under Valgrind, whose x87 emulation gives
+          # `numpy.longdouble` a bit signature numpy does not recognise, so
+          # importing `numpy.ma` warns. `filterwarnings = ["error"]` turns that
+          # into an exception during session start, aborting the whole run with
+          # an INTERNALERROR before a single benchmark is collected. The warning
+          # says nothing about galax, so ignore it here rather than repo-wide,
+          # where it would still flag a genuinely broken numpy build.
+          run:
+            uv run pytest tests/benchmark --codspeed -W
+            "ignore:Signature:UserWarning"

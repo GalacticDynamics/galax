@@ -211,7 +211,7 @@ funcs_id_and_args: list[tuple[Func, ID, JITOpts, *tuple[Arguments, ...]]] = [
     ("func", "argobj"),
     **process_pytest_paramatrization(process_func, funcs_id_and_args),
 )
-@pytest.mark.benchmark(group="quaxed", max_time=1.0, warmup=False)
+@pytest.mark.benchmark(group="quaxed", max_time=1.0)
 def test_jit_compile(func, argobj):
     """Test the speed of jitting a function."""
     _ = func.lower(*argobj.args, **argobj.kwargs).compile()
@@ -224,7 +224,6 @@ def test_jit_compile(func, argobj):
 @pytest.mark.benchmark(
     group="galax.dynamics",
     max_time=1.0,  # NOTE: max_time is ignored
-    warmup=True,
 )
 def test_execute(func, argobj):
     """Test the speed of calling the function."""

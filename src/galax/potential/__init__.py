@@ -27,6 +27,9 @@ __all__ = [
     "MultipoleInnerPotential",
     "MultipoleOuterPotential",
     "MultipolePotential",
+    "AxisymmetricGaussianPotential",
+    "GaussianPotential",
+    "TriaxialGaussianPotential",
     "LeeSutoTriaxialNFWPotential",
     "NFWPotential",
     "TriaxialNFWPotential",
@@ -94,8 +97,10 @@ with install_import_hook("galax.potential"):
     from ._src.base_single import AbstractSinglePotential
     from ._src.builtin import (
         AbstractMultipolePotential,
+        AxisymmetricGaussianPotential,
         BovyMWPotential2014,
         BurkertPotential,
+        GaussianPotential,
         HardCutoffNFWPotential,
         HarmonicOscillatorPotential,
         HenonHeilesPotential,
@@ -124,6 +129,7 @@ with install_import_hook("galax.potential"):
         PowerLawCutoffPotential,
         SatohPotential,
         StoneOstriker15Potential,
+        TriaxialGaussianPotential,
         TriaxialHernquistPotential,
         TriaxialNFWPotential,
         Vogelsberger08TriaxialNFWPotential,

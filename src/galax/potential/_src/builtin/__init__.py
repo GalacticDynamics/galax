@@ -21,6 +21,9 @@ __all__ = [
     "MultipoleInnerPotential",
     "MultipoleOuterPotential",
     "MultipolePotential",
+    "AxisymmetricGaussianPotential",
+    "GaussianPotential",
+    "TriaxialGaussianPotential",
     "LeeSutoTriaxialNFWPotential",
     "NFWPotential",
     "TriaxialNFWPotential",
@@ -47,6 +50,11 @@ from .burkert import BurkertPotential
 from .example import (
     HarmonicOscillatorPotential,
     HenonHeilesPotential,
+)
+from .gaussian import (
+    AxisymmetricGaussianPotential,
+    GaussianPotential,
+    TriaxialGaussianPotential,
 )
 from .hernquist import HernquistPotential, TriaxialHernquistPotential
 from .isochrone import IsochronePotential

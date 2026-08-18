@@ -1,7 +1,7 @@
 """galax: Galactic Dynamix in Jax."""
 
 __all__ = [
-    "TriaxialNFWPotential",
+    "TriaxialGaussianPotential",
 ]
 
 import functools as ft
@@ -26,22 +26,29 @@ from galax.potential._src.utils import GaussLegendreIntegrator
 
 
 @final
-class TriaxialNFWPotential(AbstractSinglePotential):
-    r"""Triaxial (density) NFW Potential.
+class TriaxialGaussianPotential(AbstractSinglePotential):
+    r"""Triaxial (density) Gaussian Potential.
 
     .. math::
 
-        \rho(q) = \frac{G M}{4\pi r_s^3} \frac{1}{(\xi/r_s) (1 + \xi/r_s)^2}
+        \rho(q) = \frac{m_\mathrm{tot}}{q_1 q_2 (2\pi)^{3/2} r_s^3}
+        \exp\left(-\frac{\xi^2}{2 r_s^2}\right)
 
     where
 
     .. math::
 
         \xi^2 = x^2 + \frac{y^2}{q_1^2} + \frac{z^2}{q_2^2}
+
+    The extra :math:`q_1 q_2` in the normalization (relative to the spherical
+    `~galax.potential.GaussianPotential`) keeps :math:`m_\mathrm{tot}` equal
+    to the true total mass for any flattening: squashing the density by
+    :math:`q_1 q_2` in volume must be compensated by boosting the central
+    density by the same factor to conserve mass.
     """
 
-    m: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="mass", doc="mass scale of the potential."
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Total mass of the potential."
     )
 
     r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -85,12 +92,15 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     ) -> gt.BtFloatQuSz0 | gt.BtFloatSz0:
         r"""Central density.
 
-        $$ \rho_0 = \frac{M}{4 \pi r_s^3} $$
+        $$ \rho_0 = \frac{m_\mathrm{tot}}{q_1 q_2 (2 \pi)^{3/2} r_s^3} $$
 
         """
-        m = self.m(t, ustrip=self.units["mass"] if ustrip else None)
+        u1 = self.units["dimensionless"]
+        m_tot = self.m_tot(t, ustrip=self.units["mass"] if ustrip else None)
         r_s = self.r_s(t, ustrip=self.units["length"] if ustrip else None)
-        return m / (4 * jnp.pi * r_s**3)
+        q1 = self.q1(t, ustrip=u1 if ustrip else None)
+        q2 = self.q2(t, ustrip=u1 if ustrip else None)
+        return m_tot / (q1 * q2 * (2 * jnp.pi) ** 1.5 * r_s**3)
 
     # ==========================================================================
     # Potential energy
@@ -120,10 +130,10 @@ class TriaxialNFWPotential(AbstractSinglePotential):
     # TODO: fix this to enable non-Quantity mode.
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        r"""Potential energy for the triaxial NFW.
+        r"""Potential energy for the triaxial Gaussian.
 
-        The NFW potential is spherically symmetric. For the triaxial (density)
-        case, we define ellipsoidal (and dimensionless) coordinates
+        The Gaussian potential is spherically symmetric. For the triaxial
+        (density) case, we define ellipsoidal (and dimensionless) coordinates
 
         .. math::
 
@@ -133,8 +143,8 @@ class TriaxialNFWPotential(AbstractSinglePotential):
         evaluated under this mapping.
 
         Chandrasekhar (1969) [1]_ Theorem 12 (though more clearly written in
-        Merritt & Fridman (1996) [2]_ eq 2a) gives the form of the gravitational
-        potential.
+        Merritt & Fridman (1996) [2]_ eq 2a) gives the form of the
+        gravitational potential.
 
         .. math::
 
@@ -148,7 +158,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
             \Delta \psi(\xi) = \psi(\infty) - \psi(\xi)
                              = \int_{\xi^2}^{\infty} \rho(\xi^2) d\xi^2 = \rho_0
-                             r_s^2 \frac{2}{1 + \xi}
+                             r_s^2 \, 2 \exp\left(-\frac{\xi^2}{2}\right)
 
         and
 
@@ -195,8 +205,8 @@ class TriaxialNFWPotential(AbstractSinglePotential):
         def delta_psi_factor(
             s2: Float[Array | u.AbstractQuantity, "N *#batch"],
         ) -> Float[Array | u.AbstractQuantity, "N *batch"]:
-            xi = jnp.sqrt(self._ellipsoid_surface(xyz, q1sq, q2sq, s2)) / r_s
-            return 2.0 / (1.0 + xi)
+            xi2 = self._ellipsoid_surface(xyz, q1sq, q2sq, s2) / r_s**2
+            return 2.0 * jnp.exp(-xi2 / 2)
 
         def integrand(s: Float[Array, "N"]) -> Float[Array, "N *batch"]:
             s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
@@ -224,7 +234,7 @@ class TriaxialNFWPotential(AbstractSinglePotential):
         q1sq, q2sq = self.q1(t) ** 2, self.q2(t) ** 2
 
         s2 = jnp.asarray([1])
-        xi = jnp.sqrt(self._ellipsoid_surface(xyz[None], q1sq, q2sq, s2)[0]) / r_s
+        xi2 = self._ellipsoid_surface(xyz[None], q1sq, q2sq, s2)[0] / r_s**2
 
-        dens = rho0 / xi / (1.0 + xi) ** 2
+        dens = rho0 * jnp.exp(-xi2 / 2)
         return dens.ustrip(self.units["mass density"])  # type: ignore[no-any-return]

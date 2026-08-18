@@ -1,11 +1,15 @@
 from typing import Any
 
+import astropy.units as apyu
+import numpy as np
 import pytest
+from plum import convert
 
 import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
+import galax.potential.custom_types as gt
 import galax.potential.params as gpp
 from ..param.test_field import ParameterFieldMixin
 
@@ -380,3 +384,55 @@ class ParameterVCMixin(ParameterFieldMixin):
         fields["v_c"] = cos_v_c
         pot = pot_cls(**fields)
         assert pot.v_c(t=u.Q(0, "Myr")) == u.Q(10, "km/s")
+
+
+# =============================================================================
+# Galpy comparison helpers
+
+
+def assert_gaussian_matches_galpy(
+    pot: gp.AbstractSinglePotential,
+    x: gt.QuSz3,
+    *,
+    atol_pot: float = 1e-2,
+    rtol_dens: float = 1e-4,
+) -> None:
+    """Cross-check potential energy & density against galpy's Gaussian potential.
+
+    `galax`'s ``GaussianPotential``/``TriaxialGaussianPotential`` have no gala
+    counterpart, but galpy has ``galpy.potential.TriaxialGaussianPotential``
+    (the spherical case is just ``b = c = 1``). Both galpy's ``amp`` and
+    `galax`'s ``m_tot`` are the *total* mass for any ``b, c`` (``q1, q2``), so
+    we can map ``amp = m_tot`` directly.
+    """
+    from galpy.potential import (
+        TriaxialGaussianPotential as GalpyGaussianPotential,
+        evaluateDensities,
+        evaluatePotentials,
+    )
+
+    t0 = u.Q(0, "Myr")
+    m_tot = pot.m_tot(t=t0)
+    r_s = pot.r_s(t=t0)
+    q1 = pot.q1(t=t0) if hasattr(pot, "q1") else u.Q(1.0, "")
+    q2 = pot.q2(t=t0) if hasattr(pot, "q2") else u.Q(1.0, "")
+
+    galpy_pot = GalpyGaussianPotential(
+        amp=convert(m_tot, apyu.Quantity),
+        sigma=convert(r_s, apyu.Quantity),
+        b=float(q1.ustrip("")),
+        c=float(q2.ustrip("")),
+    )
+
+    xyz = convert(x, apyu.Quantity)
+    R = np.hypot(xyz[0], xyz[1])
+    z = xyz[2]
+    phi = np.arctan2(xyz[1].value, xyz[0].value) * apyu.rad
+
+    galax_pot = convert(pot.potential(x, t=0), apyu.Quantity).to_value("km2 / s2")
+    galpy_val = evaluatePotentials(galpy_pot, R, z, phi=phi)
+    assert np.isclose(galax_pot, galpy_val, atol=atol_pot)
+
+    galax_dens = convert(pot.density(x, t=0), apyu.Quantity).to_value("Msun / pc3")
+    galpy_dens = evaluateDensities(galpy_pot, R, z, phi=phi)
+    assert np.isclose(galax_dens, galpy_dens, rtol=rtol_dens)

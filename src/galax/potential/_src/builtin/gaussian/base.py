@@ -101,7 +101,7 @@ class GaussianPotential(AbstractSinglePotential):
         .. math::
 
             \rho_0 = \frac{m_\mathrm{tot}}{(2 \pi)^{3/2} r_s^3}
-            \rho(r) = \rho_0 \exp\left(-\frac{u^2}{2}\right)
+            \rho(r) = \rho_0 \exp\left(-\frac{r^2}{2 r_s^2}\right)
 
         """
         # Parse inputs

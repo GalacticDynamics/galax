@@ -128,7 +128,7 @@ def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
 # ==============================================================================
 
 
-class GaussLegendreIntegrator(eqx.Module):  # type: ignore[misc]
+class GaussLegendreIntegrator(eqx.Module):
     """Gauss-Legendre quadrature integrator."""
 
     x: Shaped[Array, "O"]

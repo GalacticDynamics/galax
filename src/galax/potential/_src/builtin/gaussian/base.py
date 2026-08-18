@@ -92,7 +92,7 @@ class GaussianPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -112,7 +112,7 @@ class GaussianPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _mass_enclosed(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -144,7 +144,7 @@ class GaussianPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return mass_enclosed(params, r)
+        return mass_enclosed(params, r)  # type: ignore[no-any-return]
 
 
 # =============================================================
@@ -172,7 +172,7 @@ def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
     Array(0., dtype=float64, weak_type=True)
 
     """
-    return p["m_tot"] / ((2 * jnp.pi) ** 1.5 * p["r_s"] ** 3)
+    return p["m_tot"] / ((2 * jnp.pi) ** 1.5 * p["r_s"] ** 3)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -193,7 +193,7 @@ def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
     Array(0., dtype=float64, weak_type=True)
 
     """
-    return (2 * jnp.pi) ** 1.5 * p["rho0"] * p["r_s"] ** 3
+    return (2 * jnp.pi) ** 1.5 * p["rho0"] * p["r_s"] ** 3  # type: ignore[no-any-return]
 
 
 # -----------------------------------------------
@@ -214,7 +214,7 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     """
     x = r / p["r_s"]
     rho0: gt.Sz0 = rho0_of_m(p)
-    return rho0 * jnp.exp(-(x**2) / 2)
+    return rho0 * jnp.exp(-(x**2) / 2)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -232,7 +232,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     m_tot = p["m_tot"]
     erf_term = jsp.erf(x / jnp.sqrt(2.0))
     exp_term = jnp.sqrt(2.0 / jnp.pi) * x * jnp.exp(-(x**2) / 2)
-    return m_tot * (erf_term - exp_term)
+    return m_tot * (erf_term - exp_term)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -256,4 +256,4 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     phi0 = -p["G"] * p["m_tot"] / safe_r
     phi = phi0 * jsp.erf(x / jnp.sqrt(2.0))
     phi_origin = -p["G"] * p["m_tot"] * jnp.sqrt(2.0 / jnp.pi) / r_s
-    return jnp.where(r == 0, phi_origin, phi)
+    return jnp.where(r == 0, phi_origin, phi)  # type: ignore[no-any-return]

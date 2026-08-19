@@ -89,11 +89,6 @@ class PhaseSpaceInterpolation(eqx.Module):
         return cast(gt.Shape, self.interp.batch_shape)
 
     @property
-    def y0_shape(self) -> gt.Shape:
-        """Return the shape of the initial value."""
-        return cast(gt.Shape, self.interp.y0_shape)
-
-    @property
     def batch_ndim(self) -> int:
         """Return the number of batch dimensions."""
         return cast(int, self.interp.batch_ndim)

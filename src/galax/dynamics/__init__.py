@@ -24,9 +24,10 @@ __all__ = [
     "Orbit",
     "OrbitSolver",
     # mockstream
+    "StreamSimulator",
     "MockStreamArm",
     "MockStream",
-    "MockStreamGenerator",
+    "MockStreamGenerator",  # TODO: deprecate
     # mockstream.df
     "AbstractStreamDF",
     "FardalStreamDF",
@@ -62,6 +63,7 @@ with install_import_hook("galax.dynamics"):
         MockStream,
         MockStreamArm,
         MockStreamGenerator,
+        StreamSimulator,
     )
     from .orbit import AbstractSolver, Orbit, OrbitSolver, compute_orbit
 

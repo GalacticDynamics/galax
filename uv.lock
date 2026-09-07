@@ -982,7 +982,7 @@ requires-dist = [
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
     { name = "quax", specifier = ">=0.4.3" },
     { name = "quaxed", specifier = ">=0.10.5" },
-    { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.25.0" },
+    { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.26.0.dev20260601" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
     { name = "unxt", specifier = ">=1.11.2,<2" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
@@ -2625,7 +2625,7 @@ wheels = [
 
 [[package]]
 name = "tfp-nightly"
-version = "0.26.0.dev20251116"
+version = "0.26.0.dev20260907"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py" },
@@ -2637,7 +2637,7 @@ dependencies = [
     { name = "six" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/af/070f2501effb0876cc1841f8ad06f5976fac14eed815e8b6a3863116ce4e/tfp_nightly-0.26.0.dev20251116-py2.py3-none-any.whl", hash = "sha256:aa4e91d0e2a1bc478ac2175c2537f188b669907e343b80eda7fa8441f2caf99c", size = 6975607, upload-time = "2025-11-16T09:43:59.187Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/12/23a3ffb0a83e1bf04cdfad3012b4d7a5a332297a8c5d13bce642df043bf0/tfp_nightly-0.26.0.dev20260907-py2.py3-none-any.whl", hash = "sha256:f0c7f24c5217c04e5e3e26b9710b4830abced930859193d4f5d6609f2662e5da", size = 6975581, upload-time = "2026-09-07T08:43:42.742Z" },
 ]
 
 [package.optional-dependencies]

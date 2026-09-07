@@ -771,7 +771,7 @@ def run(
 # TODO: check if this is any faster than the `init-run` pattern.
 
 
-@OrbitSolver.solve.dispatch(precedence=1)  # type: ignore[misc,union-attr]
+@OrbitSolver.solve.dispatch(precedence=1)  # type: ignore[misc]
 @ft.partial(eqx.filter_jit)
 def solve(
     self: OrbitSolver,
@@ -803,7 +803,7 @@ def solve(
     return soln
 
 
-scalar_solver = OrbitSolver.solve.invoke(  # type: ignore[union-attr]
+scalar_solver = OrbitSolver.solve.invoke(
     OrbitSolver,
     AbstractOrbitField,
     tuple[gdt.BBtQarr, gdt.BBtParr],

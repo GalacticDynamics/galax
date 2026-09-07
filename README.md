@@ -12,10 +12,10 @@
 pip install galax
 ```
 
-`galax` depends on `tfp-nightly`, which only ever publishes pre-release
-builds. Resolving it can be slow or fail outright on older `pip` resolvers;
-if you hit an installation error or an unexpectedly old version gets
-installed, upgrade `pip` first (`pip install -U pip`).
+`galax` depends on `tfp-nightly`, which only ever publishes pre-release builds.
+Resolving it can be slow or fail outright on older `pip` resolvers; if you hit
+an installation error or an unexpectedly old version gets installed, upgrade
+`pip` first (`pip install -U pip`).
 
 ## Documentation
 

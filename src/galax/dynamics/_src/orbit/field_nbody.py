@@ -85,7 +85,7 @@ class NBodyField(AbstractOrbitField):
         raise NotImplementedError  # pragma: no cover
 
 
-@NBodyField.__call__.dispatch  # type: ignore[misc,union-attr]
+@NBodyField.__call__.dispatch
 @jax.jit
 def __call__(
     self: "NBodyField",

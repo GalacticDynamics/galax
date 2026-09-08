@@ -7,12 +7,12 @@ __all__ = [
 import functools as ft
 from dataclasses import KW_ONLY
 
-from typing import final
+from collections.abc import Callable
+from typing import Any, final
 
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-import tensorflow_probability.substrates.jax as tfp
 
 import unxt as u
 from unxt.quantity import AllowValue
@@ -230,7 +230,25 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
 # -----------------------------------------------
 
-hyp2f1 = tfp.math.hypergeometric.hyp2f1_small_argument
+
+@ft.lru_cache(maxsize=1)
+def _hyp2f1_small_argument() -> Callable[..., Any]:
+    """Lazily import the ``tensorflow_probability`` hyp2f1 implementation.
+
+    ``tfp-nightly`` is no longer a core dependency: it only ever publishes
+    pre-release builds, which makes it a heavy, resolver-unfriendly
+    dependency to force on everyone just for this one potential class.
+    """
+    try:
+        import tensorflow_probability.substrates.jax as tfp
+    except ImportError as e:
+        msg = (
+            "`gNFWPotential` requires `tensorflow_probability` for its "
+            "hypergeometric-function implementation. Install it with "
+            "`pip install tensorflow_probability` (or `tfp-nightly[jax]`)."
+        )
+        raise ImportError(msg) from e
+    return tfp.math.hypergeometric.hyp2f1_small_argument  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -281,7 +299,7 @@ def Bz_from_hyp2f1(a: gt.FloatSz0, b: gt.FloatSz0, z: gt.BBtFloatSz0) -> gt.BBtF
     Array(0.69312316, dtype=float64)
 
     """
-    return (z**a / a) * hyp2f1(a, 1 - b, a + 1, z)  # type: ignore[no-any-return]
+    return (z**a / a) * _hyp2f1_small_argument()(a, 1 - b, a + 1, z)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)

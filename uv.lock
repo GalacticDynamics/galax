@@ -854,7 +854,6 @@ dependencies = [
     { name = "plum" },
     { name = "quax" },
     { name = "quaxed" },
-    { name = "tfp-nightly", extra = ["jax"] },
     { name = "typing-extensions" },
     { name = "unxt" },
     { name = "wadler-lindig" },
@@ -910,6 +909,7 @@ dev = [
     { name = "sphinx-autodoc-typehints" },
     { name = "sphinx-copybutton" },
     { name = "sybil" },
+    { name = "tfp-nightly", extra = ["jax"] },
     { name = "uv" },
 ]
 docs = [
@@ -928,6 +928,7 @@ test = [
     { name = "pytest-cov" },
     { name = "pytest-env" },
     { name = "sybil" },
+    { name = "tfp-nightly", extra = ["jax"] },
 ]
 test-all = [
     { name = "nox" },
@@ -939,6 +940,7 @@ test-all = [
     { name = "pytest-env" },
     { name = "pytest-mpl" },
     { name = "sybil" },
+    { name = "tfp-nightly", extra = ["jax"] },
 ]
 test-mpl = [
     { name = "pytest-mpl" },
@@ -982,7 +984,6 @@ requires-dist = [
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
     { name = "quax", specifier = ">=0.4.3" },
     { name = "quaxed", specifier = ">=0.10.5" },
-    { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.26.0.dev20260601" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
     { name = "unxt", specifier = ">=1.11.2,<2" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
@@ -1009,6 +1010,7 @@ dev = [
     { name = "sphinx-autodoc-typehints", specifier = ">=2.5" },
     { name = "sphinx-copybutton", specifier = ">=0.5.2" },
     { name = "sybil", specifier = ">=9.0.0" },
+    { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.26.0.dev20260601" },
     { name = "uv", specifier = ">=0.6.4" },
 ]
 docs = [
@@ -1027,6 +1029,7 @@ test = [
     { name = "pytest-cov", specifier = ">=5" },
     { name = "pytest-env", specifier = ">=1.1.5" },
     { name = "sybil", specifier = ">=9.0.0" },
+    { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.26.0.dev20260601" },
 ]
 test-all = [
     { name = "nox", specifier = ">=2024.10.9" },
@@ -1038,6 +1041,7 @@ test-all = [
     { name = "pytest-env", specifier = ">=1.1.5" },
     { name = "pytest-mpl", specifier = ">=0.17.0" },
     { name = "sybil", specifier = ">=9.0.0" },
+    { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.26.0.dev20260601" },
 ]
 test-mpl = [{ name = "pytest-mpl", specifier = ">=0.17.0" }]
 

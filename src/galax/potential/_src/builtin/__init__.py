@@ -44,6 +44,7 @@ __all__ = [
     "StoneOstriker15Potential",
     "TriaxialHernquistPotential",
     "HardCutoffNFWPotential",
+    "ZhaoPotential",
 ]
 
 from .burkert import BurkertPotential
@@ -91,3 +92,4 @@ from .plummer import PlummerPotential
 from .powerlawcutoff import PowerLawCutoffPotential
 from .satoh import SatohPotential
 from .stoneostriker15 import StoneOstriker15Potential
+from .zhao import ZhaoPotential

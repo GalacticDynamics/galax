@@ -46,6 +46,7 @@ __all__ = [
     "TriaxialHernquistPotential",
     "HardCutoffNFWPotential",
     "gNFWPotential",
+    "ZhaoPotential",
     # Pre-composited
     "AbstractPreCompositedPotential",
     "BovyMWPotential2014",
@@ -133,6 +134,7 @@ with install_import_hook("galax.potential"):
         TriaxialHernquistPotential,
         TriaxialNFWPotential,
         Vogelsberger08TriaxialNFWPotential,
+        ZhaoPotential,
         gNFWPotential,
     )
     from ._src.composite import CompositePotential

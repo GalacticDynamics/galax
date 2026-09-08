@@ -54,6 +54,7 @@ expected_all = [
     "TriaxialHernquistPotential",
     "HardCutoffNFWPotential",
     "gNFWPotential",
+    "ZhaoPotential",
     # xfm
     "AbstractTransformedPotential",
     "FlattenedInThePotential",

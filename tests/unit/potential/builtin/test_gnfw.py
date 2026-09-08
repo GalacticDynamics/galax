@@ -1,4 +1,4 @@
-from typing import Any, override
+from typing import Any, ClassVar, override
 
 import pytest
 
@@ -44,6 +44,8 @@ class TestGNFWPotential(
     ParameterRSMixin,
     GammaParameterMixin,
 ):
+    HAS_GALA_COUNTERPART: ClassVar[bool] = False
+
     @pytest.fixture(scope="class")
     @override
     def pot_cls(self) -> type[gp.gNFWPotential]:

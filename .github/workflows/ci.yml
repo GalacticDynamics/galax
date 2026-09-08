@@ -66,6 +66,20 @@ jobs:
       matrix:
         python-version: ["3.12", "3.14"]
         runs-on: [ubuntu-latest, macos-latest, windows-latest]
+        # macOS runners bill at 10x the Linux rate (and run ~3x slower
+        # wall-clock for this JAX-heavy suite even with the same xdist
+        # settings -- 3 workers vs Linux's 4, but each core is also slower);
+        # Windows bills at 2x. Both Python versions are already fully
+        # exercised on Linux, so re-running both on macOS/Windows is
+        # cross-OS coverage, not cross-version coverage -- one version per
+        # non-Linux OS still catches a platform-specific break. Pinned to the
+        # newest version so it doubles as "does the latest Python work here".
+        # Matches the pattern in unxt's CI.
+        exclude:
+          - runs-on: macos-latest
+            python-version: "3.12"
+          - runs-on: windows-latest
+            python-version: "3.12"
 
         # TODO: figure out OpenBLAS install
         #   ``ERROR: Dependency "OpenBLAS" not found, tried pkgconfig and cmake``

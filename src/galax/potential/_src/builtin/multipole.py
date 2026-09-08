@@ -23,13 +23,28 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 import galax.potential.custom_types as gt
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
 
-class AbstractMultipolePotential(AbstractSinglePotential):
-    """Abstract Multipole Potential."""
+class AbstractMultipolePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
+    r"""Abstract Multipole Potential.
+
+    Each term :math:`r^l Y_{lm}(\theta,\phi)` ("inner") and :math:`r^{-(l+1)}
+    Y_{lm}(\theta,\phi)` ("outer") is a *solid harmonic*: an exact,
+    source-free solution of Laplace's equation, :math:`\nabla^2 \Phi = 0`,
+    for every :math:`l, m` (Binney & Tremaine 2008, *Galactic Dynamics*, 2nd
+    ed., Sec. 2.4). Since :math:`\nabla^2` is linear, any sum of such terms
+    — inner, outer, or both, as used by the concrete subclasses below — is
+    itself source-free away from the origin. So the density is exactly zero
+    everywhere these potentials are evaluated (:math:`r>0`); all of the
+    represented mass sits, formally, at :math:`r=0` (for outer/mixed terms)
+    or at infinity (for inner terms only).
+    """
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass", doc="Total mass."
@@ -39,6 +54,10 @@ class AbstractMultipolePotential(AbstractSinglePotential):
 
     _: KW_ONLY
     l_max: int = field(static=True)
+
+    @ft.partial(jax.jit, inline=True)
+    def _density(self, xyz: gt.BBtQorVSz3, _: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
+        return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)  # type: ignore[no-any-return]
 
 
 @final

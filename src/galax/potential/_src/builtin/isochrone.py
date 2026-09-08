@@ -5,6 +5,7 @@ __all__ = [
     "IsochronePotential",
     # functions
     "potential",
+    "density",
 ]
 
 import functools as ft
@@ -21,18 +22,32 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
 
 @final
-class IsochronePotential(AbstractSinglePotential):
+class IsochronePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Isochrone Potential.
+
+    Hénon, M. 1959, Annales d'Astrophysique, 22, 126 (the "isochrone" model).
+    See also Binney & Tremaine 2008, *Galactic Dynamics*, 2nd ed., Sec. 2.2.2c.
 
     $$
     \Phi(r) = -\frac{G M}{r_s + \sqrt{r^2 + r_s^2}}
+    $$
+
+    with corresponding density (derived from the potential above via
+    Poisson's equation):
+
+    $$
+    \rho(r) = \frac{M r_s \left(3 r_s s + 2r^2 + 3 r_s^2\right)}
+        {4\pi s^3 (r_s+s)^3}, \qquad s = \sqrt{r^2+r_s^2}
     $$
 
     """
@@ -72,6 +87,18 @@ class IsochronePotential(AbstractSinglePotential):
         }
         return potential(params, r)  # type: ignore[no-any-return]
 
+    @ft.partial(jax.jit)
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        # Parse inputs
+        r = r_spherical(xyz, self.units["length"])
+        t = u.Q.from_(t, self.units["time"])
+
+        params = {
+            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
+            "r_s": self.r_s(t, ustrip=self.units["length"]),
+        }
+        return density(params, r)  # type: ignore[no-any-return]
+
 
 # ===================================================================
 
@@ -88,3 +115,22 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r_s = p["r_s"]
     _result = -p["G"] * p["m_tot"] / (r_s + jnp.sqrt(r**2 + r_s**2))
     return _result  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
+    r"""Density function for the isochrone potential.
+
+    Derived from the potential via Poisson's equation (Hénon 1959).
+
+    $$
+    \rho(r) = \frac{M r_s \left(3 r_s s + 2r^2 + 3 r_s^2\right)}
+        {4\pi s^3 (r_s+s)^3}, \qquad s = \sqrt{r^2+r_s^2}
+    $$
+
+    """
+    r_s, m_tot = p["r_s"], p["m_tot"]
+    s = jnp.sqrt(r**2 + r_s**2)
+    numer = m_tot * r_s * (3 * r_s * s + 2 * r**2 + 3 * r_s**2)
+    denom = 4 * jnp.pi * s**3 * (r_s + s) ** 3
+    return numer / denom  # type: ignore[no-any-return]

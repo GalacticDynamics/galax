@@ -157,7 +157,7 @@ build.targets.wheel.packages = ["src/galax"]
 
 
 [tool.codespell]
-ignore-words-list = "Hart" # in dynamics/_src/cluster/relax_time.py
+ignore-words-list = "Hart,numer" # Hart: dynamics/_src/cluster/relax_time.py; numer: numerator abbreviation
 
 
 [tool.commitizen]

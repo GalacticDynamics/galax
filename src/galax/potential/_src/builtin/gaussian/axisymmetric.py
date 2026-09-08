@@ -19,14 +19,17 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import GaussLegendreIntegrator
 
 
 @final
-class AxisymmetricGaussianPotential(AbstractSinglePotential):
+class AxisymmetricGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Axisymmetric (oblate/prolate) Gaussian Potential.
 
     .. math::

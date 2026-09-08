@@ -21,14 +21,32 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
 
 @final
-class MiyamotoNagaiPotential(AbstractSinglePotential):
-    """Miyamoto-Nagai Potential."""
+class MiyamotoNagaiPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
+    r"""Miyamoto-Nagai Potential.
+
+    Miyamoto, M., & Nagai, R. 1975, PASJ, 27, 533.
+    https://ui.adsabs.harvard.edu/abs/1975PASJ...27..533M
+
+    The density is given by their eq. 4 (see also Binney & Tremaine 2008,
+    *Galactic Dynamics*, 2nd ed., eq. 2.69a):
+
+    $$
+    \rho(R, z) = \frac{b^2 M}{4\pi} \,
+        \frac{a R^2 + (a + 3\zeta)(a + \zeta)^2}
+             {[R^2 + (a+\zeta)^2]^{5/2} \, \zeta^3},
+        \qquad \zeta = \sqrt{z^2 + b^2}
+    $$
+
+    """
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass", doc="Total mass of the potential."
@@ -65,6 +83,21 @@ class MiyamotoNagaiPotential(AbstractSinglePotential):
         }
         return potential(p, xyz)  # type: ignore[no-any-return]
 
+    @ft.partial(jax.jit, inline=True)
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Q.from_(t, self.units["time"])
+
+        # Compute parameters
+        ul = self.units["length"]
+        p = {
+            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
+            "a": self.a(t, ustrip=ul),
+            "b": self.b(t, ustrip=ul),
+        }
+        return density(p, xyz)  # type: ignore[no-any-return]
+
 
 # ===================================================================
 # Functions
@@ -76,3 +109,14 @@ def potential(p: gt.Params, xyz: gt.Sz3) -> gt.Sz0:
     R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
     zp2 = (jnp.sqrt(xyz[..., 2] ** 2 + p["b"] ** 2) + p["a"]) ** 2
     return -p["G"] * p["m_tot"] / jnp.sqrt(R2 + zp2)  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def density(p: gt.Params, xyz: gt.Sz3) -> gt.Sz0:
+    r"""Miyamoto-Nagai density function (Miyamoto & Nagai 1975, eq. 4)."""
+    a, b, m_tot = p["a"], p["b"], p["m_tot"]
+    R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
+    zeta = jnp.sqrt(xyz[..., 2] ** 2 + b**2)
+    numer = a * R2 + (a + 3 * zeta) * (a + zeta) ** 2
+    denom = (R2 + (a + zeta) ** 2) ** 2.5 * zeta**3
+    return b**2 * m_tot / (4 * jnp.pi) * numer / denom  # type: ignore[no-any-return]

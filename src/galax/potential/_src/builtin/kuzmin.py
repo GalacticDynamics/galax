@@ -22,20 +22,35 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
 
 @final
-class KuzminPotential(AbstractSinglePotential):
+class KuzminPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Kuzmin Potential.
+
+    Kuzmin, G. G. 1956, Astronomicheskii Zhurnal, 33, 27. See also Binney &
+    Tremaine 2008, *Galactic Dynamics*, 2nd ed., Sec. 2.2.1(b).
 
     .. math::
 
         \Phi(x, t) = -\frac{G M(t)}{\sqrt{R^2 + (a(t) + |z|)^2}}
 
     See https://galaxiesbook.org/chapters/II-01.-Flattened-Mass-Distributions.html#Razor-thin-disk:-The-Kuzmin-model
+
+    This is a razor-thin disk: all of the mass lies in an infinitesimally
+    thin sheet at :math:`z=0`, given by the surface density :math:`\Sigma(R)
+    = a M / [2\pi (R^2+a^2)^{3/2}]` (Binney & Tremaine eq. 2.67). The
+    corresponding *volume* mass density is a distributional delta function
+    at :math:`z=0` and is exactly zero everywhere off the plane
+    (:math:`\nabla^2\Phi = 0` for :math:`z \neq 0`, verified directly from
+    the potential above via Poisson's equation), so :func:`density` and the
+    resulting :func:`~galax.potential.laplacian` return exact zeros there.
 
     """
 
@@ -66,6 +81,13 @@ class KuzminPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
         return potential(params, xyz)  # type: ignore[no-any-return]
+
+    @ft.partial(jax.jit, inline=True)
+    def _density(self, xyz: gt.BBtQorVSz3, _: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        # Razor-thin disk: zero volume density off the z=0 plane (all mass
+        # is in the surface density there, which can't be represented as a
+        # finite volume density).
+        return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)  # type: ignore[no-any-return]
 
 
 # ====================================================================

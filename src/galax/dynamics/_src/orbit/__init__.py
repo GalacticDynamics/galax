@@ -1,29 +1,14 @@
 """Orbits. Private module."""
 
-__all__ = [
-    "AbstractOrbit",
-    "Orbit",
-    # Solve orbits
-    "compute_orbit",
-    "OrbitSolver",
-    # Fields
-    "AbstractOrbitField",
-    "HamiltonianField",
-    "NBodyField",
-    # misc
-    "plot_components",
-    "PhaseSpaceInterpolation",
-]
-
-from .api import compute_orbit
+from .api import *
 from .base import AbstractOrbit
-from .field_base import AbstractOrbitField
-from .field_hamiltonian import HamiltonianField
-from .field_nbody import NBodyField
-from .interp import PhaseSpaceInterpolation
-from .orbit import Orbit
-from .plot_helper import ProxyAbstractOrbit, plot_components
-from .solver import OrbitSolver
+from .field_base import *
+from .field_hamiltonian import *
+from .field_nbody import *
+from .interp import *
+from .orbit import *
+from .plot_helper import ProxyAbstractOrbit, plot_components as plot_components
+from .solver import *
 
 # Register by import
 # isort: split

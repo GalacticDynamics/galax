@@ -107,7 +107,7 @@ def _Bz0_log_series(a: gt.FloatSz0, z: gt.BBtFloatSz0, n: int = 60) -> gt.BBtFlo
         w_power = w_power * w
         return (coeff, w_power), coeff * w_power
 
-    (_, _), terms = jax.lax.scan(accumulate_term, (1 - a, w), jnp.arange(n - 1.0))
+    (_, _), terms = jax.lax.scan(accumulate_term, (1 - a, w), jnp.arange(n - 1))
     series_sum = (1 - a) * w + jnp.sum(terms, axis=0)
     return -_EULER_GAMMA - jsp.digamma(a) - series_sum - jnp.log(w)
 

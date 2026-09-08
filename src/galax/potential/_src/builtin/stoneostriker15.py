@@ -10,13 +10,16 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential.custom_types as gt
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
 
-class StoneOstriker15Potential(AbstractSinglePotential):
+class StoneOstriker15Potential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Potential from Stone and Ostriker 2015.
 
     http://dx.doi.org/10.1088/2041-8205/806/2/L28.

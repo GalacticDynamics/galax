@@ -25,7 +25,10 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
@@ -34,7 +37,7 @@ CONST_BURKER: Final = 3 * jnp.log(jnp.asarray(2.0)) - jnp.pi / 2
 
 
 @final
-class BurkertPotential(AbstractSinglePotential):
+class BurkertPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Burkert Potential.
 
     https://ui.adsabs.harvard.edu/abs/1995ApJ...447L..25B/abstract,

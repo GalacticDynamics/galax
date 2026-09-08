@@ -28,7 +28,10 @@ from .base import (
     potential as nfw_potential,
 )
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.builtin import kepler
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -36,7 +39,7 @@ from galax.potential._src.utils import r_spherical
 
 
 @final
-class HardCutoffNFWPotential(AbstractSinglePotential):
+class HardCutoffNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Sharply Truncated NFW Potential.
 
     Unlike a standard NFW potential this potential is sharply truncated at a

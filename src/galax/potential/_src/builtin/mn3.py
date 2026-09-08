@@ -24,7 +24,10 @@ from xmmutablemap import ImmutableMap
 import galax.potential.custom_types as gt
 from . import miyamotonagai as mn
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
@@ -52,7 +55,7 @@ MN3_B_COEFFS_EXP: Final = jnp.array([-0.269, 1.08, 1.092])
 MN3_B_COEFFS_SECH2: Final = jnp.array([-0.033, 0.262, 0.659])
 
 
-class AbstractMN3Potential(AbstractSinglePotential):
+class AbstractMN3Potential(LaplacianFromDensityMixin, AbstractSinglePotential):
     """A base class for sums of three Miyamoto-Nagai disk potentials."""
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]

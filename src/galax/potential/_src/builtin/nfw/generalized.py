@@ -21,7 +21,10 @@ import galax.potential.custom_types as gt
 from .base import rho0_of_m
 from .hyp2f1 import Bz_from_hyp2f1
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -32,7 +35,7 @@ DimT = u.dimension("time")
 
 
 @final
-class gNFWPotential(AbstractSinglePotential):
+class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Generalized NFW Potential.
 
     This potential is a generalized version of the NFW potential, which is a

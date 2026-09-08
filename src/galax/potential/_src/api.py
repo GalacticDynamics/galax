@@ -376,7 +376,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     ...                             t=u.Q(0, "Gyr"))
 
     >>> pot.laplacian(w)
-    Q(2.77555756e-17, '1 / Myr2')
+    Q(0., '1 / Myr2')
 
     We can also compute the potential energy at multiple positions and times:
 
@@ -449,7 +449,7 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     >>> q = apyc.CartesianRepresentation(apyu.Quantity([1, 2, 3], "kpc"))
     >>> t = 0 * apyu.Gyr
     >>> pot.laplacian(q, t)
-    Q(2.77555756e-17, '1 / Myr2')
+    Q(0., '1 / Myr2')
 
     We can also compute the potential energy at multiple positions:
 

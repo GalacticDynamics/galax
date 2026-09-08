@@ -1,4 +1,16 @@
-"""Zhao (1996) double power-law potential."""
+r"""Zhao (1996) double power-law potential.
+
+Zhao, H. 1996, MNRAS 278, 488 ("Analytical Models For Galactic Nuclei"),
+https://ui.adsabs.harvard.edu/abs/1996MNRAS.278..488Z. Equation numbers in
+this module refer to that paper.
+
+Everything this model needs -- potential (Eqs. 6-7), enclosed mass (Eq. 15) and
+density (Eq. 1) -- is closed-form in terms of the incomplete beta function
+(Eq. 43), so *no* quantity here is obtained by automatic differentiation:
+`gradient`, `hessian` and `laplacian` are all written analytically below. That
+matters for speed, because the alternative is differentiating through the
+incomplete beta function's series expansion on every force evaluation.
+"""
 
 __all__ = ["ZhaoPotential"]
 
@@ -8,7 +20,7 @@ from typing import final
 
 import equinox as eqx
 import jax
-import jax.scipy.special as jsp
+from jax.custom_derivatives import SymbolicZero
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -33,7 +45,12 @@ class ZhaoPotential(AbstractSinglePotential):
     This model represents a double power law in the density, with an inner slope
     :math:`\gamma` and an outer slope :math:`\beta`, but with a third parameter
     :math:`\alpha` that controls the width of the transition region between the two
-    power laws.
+    power laws (Zhao 1996, Eq. 1):
+
+    .. math::
+
+        \rho(r) = \frac{C}{u^\gamma (1 + u^{1/\alpha})^{(\beta - \gamma)\alpha}},
+        \quad u = r / r_s
 
     This model has a finite total mass for :math:`\beta > 3`. The other power-law
     parameters should satisfy :math:`\alpha > 0` and :math:`0 \leq \gamma < 3`.
@@ -67,69 +84,49 @@ class ZhaoPotential(AbstractSinglePotential):
         dimensions="dimensionless", doc="Inner slope (0 <= gamma < 3)."
     )  # type: ignore[assignment]
 
-    @ft.partial(jax.jit)
-    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        r = r_spherical(xyz, self.units["length"])
+    def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:
+        """Evaluate the parameters at ``t``, stripped to this unit system."""
         t = u.Q.from_(t, self.units["time"])
-
-        ulen = self.units["length"]
-        umass = self.units["mass"]
         udim = self.units["dimensionless"]
-        p = {
+        return {
             "G": self.constants["G"].value,
-            "m": self.m(t, ustrip=umass),
-            "r_s": self.r_s(t, ustrip=ulen),
+            "m": self.m(t, ustrip=self.units["mass"]),
+            "r_s": self.r_s(t, ustrip=self.units["length"]),
             "alpha": self.alpha(t, ustrip=udim),
             "beta": self.beta(t, ustrip=udim),
             "gamma": self.gamma(t, ustrip=udim),
         }
-        return potential(p, r)  # type: ignore[no-any-return]
+
+    @ft.partial(jax.jit)
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        r = r_spherical(xyz, self.units["length"])
+        return potential(self._params(t), r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
+        return density(self._params(t), r)  # type: ignore[no-any-return]
 
-        ulen = self.units["length"]
-        umass = self.units["mass"]
-        udim = self.units["dimensionless"]
-        p = {
-            "m": self.m(t, ustrip=umass),
-            "r_s": self.r_s(t, ustrip=ulen),
-            "alpha": self.alpha(t, ustrip=udim),
-            "beta": self.beta(t, ustrip=udim),
-            "gamma": self.gamma(t, ustrip=udim),
-        }
-        return density(p, r)  # type: ignore[no-any-return]
-
-    @vectorize_method(signature="(3),()->(3)")
     @ft.partial(jax.jit)
-    def _gradient(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
-    ) -> gt.FloatSz3:
-        """Analytic gradient, using the shell theorem.
-
-        The Zhao density profile is spherically symmetric, so (by Newton's shell
-        theorem) the force at radius r depends only on the mass enclosed within r.
-        Computing the gradient this way avoids differentiating through the
-        `hyp2f1`/`betainc` calls in `potential`, which is both slow and (for some
-        parameter values) numerically unstable under autodiff.
-        """
+    def _gradient(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz3:
+        """Analytic, from the enclosed mass; see `gradient`."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
-        t_ = u.Q.from_(t, self.units["time"])
+        return gradient(self._params(t), xyz)  # type: ignore[no-any-return]
 
-        ulen = self.units["length"]
-        umass = self.units["mass"]
-        udim = self.units["dimensionless"]
-        p = {
-            "G": self.constants["G"].value,
-            "m": self.m(t_, ustrip=umass),
-            "r_s": self.r_s(t_, ustrip=ulen),
-            "alpha": self.alpha(t_, ustrip=udim),
-            "beta": self.beta(t_, ustrip=udim),
-            "gamma": self.gamma(t_, ustrip=udim),
-        }
-        return gradient(p, xyz)  # type: ignore[no-any-return]
+    @ft.partial(jax.jit)
+    def _laplacian(self, xyz: gt.BBtQorVSz3, /, t: gt.BBtQorVSz0) -> gt.BBtFloatSz0:
+        """Analytic, from Poisson's equation; see `laplacian`."""
+        r = r_spherical(xyz, self.units["length"])
+        return laplacian(self._params(t), r)  # type: ignore[no-any-return]
+
+    @vectorize_method(signature="(3),()->(3,3)")
+    @ft.partial(jax.jit)
+    def _hessian(
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
+    ) -> gt.Sz33:
+        """Analytic, from the radial derivatives; see `hessian`."""
+        xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
+        return hessian(self._params(t), xyz)  # type: ignore[no-any-return]
 
     # ===========================================
     # Constructors
@@ -176,74 +173,224 @@ class ZhaoPotential(AbstractSinglePotential):
             "gamma": gamma,
         }
         return cls(
-            m=m_tot * _total_mass_factor(params, params["r_s"]),
+            m=m_tot * _mass_fraction_within_r_s(params),
             **params,
             units=units,
             constants=constants,
         )
 
 
-@ft.partial(jax.jit)
-def _total_mass_factor(p: gt.Params, r_ref: gt.Sz0) -> gt.FloatSz0:
-    """Compute the total mass factor for the Zhao profile.
+# ===================================================================
+# The incomplete beta function (Zhao Eq. 43)
+#
+# Zhao writes every dynamical quantity in terms of
+#
+#     B(a, b, x) = int_0^x t^(a-1) (1-t)^(b-1) dt              (Eq. 43)
+#
+# the *unregularized* incomplete beta function. `jax.scipy.special` provides
+# only the regularized `betainc`, and reconstructing Eq. 43 as
+# `beta(a, b) * betainc(a, b, x)` is nan whenever `b <= 0` -- exactly the
+# beta <= 3 (infinite total mass) regime -- because the complete beta function
+# diverges there even though the product does not.
+#
+# `jax.scipy.special.hyp2f1` can express it (DLMF 8.17.7) for any `b`, but it
+# is a `lax.while_loop` whose trip count is data-dependent: under `vmap` every
+# lane pays the worst lane's iteration count, and its derivative runs a second
+# such loop. The two fixed-length, geometrically convergent series below cost a
+# predictable ~64 fused multiply-adds instead, and carry an exact O(1)
+# derivative rule.
+#
+# (`nfw/hyp2f1.py` solves the same problem for `gNFWPotential`, but only for
+# the two parameter patterns that model needs -- `a == 1`, or `b == 0`. Zhao's
+# Eqs. 7 and 15 need general `(a, b)`.)
 
-    Only called from `ZhaoPotential.from_m_tot`, which requires beta > 3 (so
-    q0 = alpha * (beta - 3) > 0 and the regularized incomplete beta function
-    below is well-defined).
+_BZ_NTERMS = 64
+"""Series length. Both series converge like 2^-k, so this is ~1e-19."""
+
+
+def _bz_small_z(a: gt.Sz0, b: gt.Sz0, z: gt.BBtSz0) -> gt.BBtFloatSz0:
+    r"""$B(a, b, z)$ for $z \leq 1/2$, by the defining Taylor series.
+
+    Expanding $(1-t)^{b-1}$ binomially in Eq. 43 and integrating term by term,
+
+    .. math::
+
+        B(a, b, z) = z^a \sum_{k=0}^\infty \frac{(1-b)_k}{k!\,(a+k)} z^k
+
+    The terms fall off like $z^k \leq 2^{-k}$, hence the fixed term count.
+
+    Summed with `jax.lax.scan`, accumulating into the carry: the terms are
+    batched over `z`, so materializing them all at once would cost an
+    ``(*batch, 64)`` temporary and make this memory- rather than flop-bound.
     """
-    c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
-    x = r_ref / p["r_s"]
-    chi = x ** (1.0 / p["alpha"]) / (1.0 + x ** (1.0 / p["alpha"]))
-    return jsp.betainc(c0 - q0, q0, chi)
+
+    def step(
+        carry: tuple[gt.BBtFloatSz0, gt.BBtFloatSz0, gt.Sz0], k: gt.Sz0
+    ) -> tuple[tuple[gt.BBtFloatSz0, gt.BBtFloatSz0, gt.Sz0], None]:
+        total, z_pow, coeff = carry  # coeff = (1-b)_k / k!
+        total = total + coeff / (a + k) * z_pow
+        return (total, z_pow * z, coeff * (k + 1.0 - b) / (k + 1.0)), None
+
+    init = (jnp.zeros_like(z), jnp.ones_like(z), jnp.ones_like(a))
+    (total, _, _), _ = jax.lax.scan(step, init, jnp.arange(_BZ_NTERMS))
+    return z**a * total  # type: ignore[no-any-return]
 
 
-@ft.partial(jax.jit)
-def _Bz_from_hyp2f1(a: gt.Sz0, b: gt.Sz0, z: gt.BBtSz0) -> gt.BBtFloatSz0:
-    r"""Incomplete beta function ``B_z(a, b)`` via `hyp2f1`.
+def _bz_large_z(a: gt.Sz0, b: gt.Sz0, z: gt.BBtSz0) -> gt.BBtFloatSz0:
+    r"""$B(a, b, z)$ for $z > 1/2$, by reflecting about $t = 1/2$.
 
-    $$ B_z(a, b) = \frac{z^a}{a} \cdot {}_2F_1(a, 1 - b; a + 1; z) $$
+    Substituting $t = 1-u$ in Eq. 43 and splitting the range at $u = 1/2$,
 
-    See NIST DLMF 8.17.7 @ https://dlmf.nist.gov/8.17
+    .. math::
 
-    Unlike ``beta(a, b) * betainc(a, b, z)``, this is finite for ``b <= 0``: the
-    complete beta function ``B(a, b)`` (and so ``jax.scipy.special.beta``) diverges
-    there, but the product with the regularized incomplete beta function does not.
-    This uses `jax.scipy.special.hyp2f1` (rather than, e.g., a `custom_vjp`-only
-    implementation) so that it remains twice-differentiable, as needed for
-    `AbstractPotential.hessian`.
+        B(a, b, z) = \int_{w}^{1} u^{b-1}(1-u)^{a-1} du
+                   = B(a, b, 1/2) + \int_w^{1/2} u^{b-1}(1-u)^{a-1} du
+
+    with $w = 1 - z$. Expanding $(1-u)^{a-1}$ binomially (legitimate since
+    $u \leq 1/2$ on the remaining range) and integrating term by term,
+
+    .. math::
+
+        B(a, b, z) = B(a, b, 1/2)
+            + \sum_{m=0}^\infty \frac{(1-a)_m}{m!}
+              \frac{(1/2)^{b+m} - w^{b+m}}{b+m}
+
+    where the $b + m \to 0$ term is $\ln(1/(2w))$. Both pieces converge like
+    $2^{-m}$.
+
+    This branch is what makes $b \leq 0$ work: it never forms the complete beta
+    function $B(a, b)$, which is what diverges there, while keeping the genuine
+    $z \to 1$ divergence of $B(a, b, z)$ itself exact (as $w^b$, or $-\ln w$
+    when $b = 0$).
+
+    Summed with `jax.lax.scan` for the same reason as `_bz_small_z`.
     """
-    return (z**a / a) * jsp.hyp2f1(a, 1.0 - b, a + 1.0, z)  # type: ignore[no-any-return]
+    w = 1.0 - z
+    log_half_over_w = jnp.log(0.5 / w)
+
+    def step(
+        carry: tuple[gt.BBtFloatSz0, gt.BBtFloatSz0, gt.Sz0, gt.Sz0], m: gt.Sz0
+    ) -> tuple[tuple[gt.BBtFloatSz0, gt.BBtFloatSz0, gt.Sz0, gt.Sz0], None]:
+        total, w_pow, half_pow, coeff = carry  # coeff = (1-a)_m / m!
+        # ((1/2)^(b+m) - w^(b+m)) / (b+m), whose b+m -> 0 limit is log(1/(2w)).
+        bm = b + m
+        is_pole = jnp.abs(bm) < 1e-12
+        bm_safe = jnp.where(is_pole, 1.0, bm)
+        term = jnp.where(is_pole, log_half_over_w, (half_pow - w_pow) / bm_safe)
+        total = total + coeff * term
+        carry = (total, w_pow * w, half_pow * 0.5, coeff * (m + 1.0 - a) / (m + 1.0))
+        return carry, None
+
+    init = (jnp.zeros_like(w), w**b, 0.5**b, jnp.ones_like(a))
+    (total, _, _, _), _ = jax.lax.scan(step, init, jnp.arange(_BZ_NTERMS))
+    return _bz_small_z(a, b, jnp.full_like(w, 0.5)) + total  # type: ignore[no-any-return]
 
 
-@ft.partial(jax.jit)
-def _rho0(p: gt.Params, r_ref: gt.Sz0 | None = None) -> gt.FloatSz0:
-    """Compute the normalization density for the Zhao profile.
+def _incomplete_beta_impl(a: gt.Sz0, b: gt.Sz0, z: gt.BBtSz0) -> gt.BBtFloatSz0:
+    r"""$B(a, b, z)$ (Zhao Eq. 43) for $a > 0$, any real $b$, $z \in [0, 1)$.
 
-    This computes the normalization constant rho_0 (called C in Zhao 1996) for the Zhao
-    density profile. The normalization is set that the mass parameter is the mass
-    enclosed within ``r_ref``. If no r_ref is specified to this function (as happens in
-    the default initializer for the ``ZhaoPotential``), it is set to the scale radius,
-    so the mass parameter is interpreted to be the mass enclosed within the scale
-    radius.
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import jax.scipy.special as jsp
+    >>> from galax.potential._src.builtin.zhao import incomplete_beta
 
-    This implementation uses the hyp2f1 hypergeometric function (via `_Bz_from_hyp2f1`)
-    instead of the incomplete beta function because jax (and scipy) only provide the
-    *regularized* version of the incomplete beta function. This means that it blows up
-    when b <= 0 in B(a, b, z) because the complete beta function B(a, b) is undefined
-    when b <= 0. The hyp2f1 function is defined for all values of a, b, and z, so it
-    can handle the case where b <= 0.
+    It agrees with the regularized incomplete beta function wherever that is
+    defined, including close to the $z \to 1$ endpoint:
+
+    >>> a, b = 2.0, 1.5
+    >>> z = jnp.asarray([0.3, 0.999])
+    >>> bool(jnp.allclose(incomplete_beta(a, b, z),
+    ...                   jsp.beta(a, b) * jsp.betainc(a, b, z)))
+    True
+
+    But unlike that product it stays finite for ``b <= 0``, where the complete
+    beta function diverges:
+
+    >>> incomplete_beta(2.0, 0.0, jnp.asarray(0.5))
+    Array(0.19314718, dtype=float64)
+
+    >>> jsp.beta(2.0, 0.0) * jsp.betainc(2.0, 0.0, jnp.asarray(0.5))
+    Array(nan, dtype=float64)
+
     """
-    r_ref = r_ref if r_ref is not None else p["r_s"]
-    chi_norm = _r_to_u_chi(p, r_ref)[1]
-    a = p["alpha"] * (3.0 - p["gamma"])
-    b = p["alpha"] * (p["beta"] - 3.0)
-    denom = _Bz_from_hyp2f1(a, b, chi_norm)
-    return p["m"] / (4.0 * jnp.pi * p["alpha"] * denom)  # type: ignore[no-any-return]
+    z = jnp.asarray(z)
+    # Both branches are evaluated, so clamp each one's input into the range
+    # where it is well behaved; `where` then discards the unused value.
+    return jnp.where(  # type: ignore[no-any-return]
+        z <= 0.5,
+        _bz_small_z(a, b, jnp.minimum(z, 0.5)),
+        _bz_large_z(a, b, jnp.maximum(z, 0.5)),
+    )
+
+
+@jax.custom_jvp
+def incomplete_beta(a: gt.Sz0, b: gt.Sz0, z: gt.BBtSz0) -> gt.BBtFloatSz0:
+    """See `_incomplete_beta_impl` for the definition and examples.
+
+    The `jax.custom_jvp` gives the `z`-derivative in O(1) -- it is just the
+    Eq. 43 integrand evaluated at the endpoint (Leibniz) -- instead of
+    differentiating through a 64-term series. It is a `custom_jvp`, not a
+    `custom_vjp`, so that `jax.hessian`'s `jacfwd(jacrev(...))` still works for
+    anything downstream that has not been given an analytic form.
+    """
+    return _incomplete_beta_impl(a, b, z)
+
+
+@ft.partial(incomplete_beta.defjvp, symbolic_zeros=True)
+def _incomplete_beta_jvp(
+    primals: tuple[gt.Sz0, gt.Sz0, gt.BBtSz0],
+    tangents: tuple[
+        gt.Sz0 | SymbolicZero, gt.Sz0 | SymbolicZero, gt.BBtSz0 | SymbolicZero
+    ],
+) -> tuple[gt.BBtFloatSz0, gt.BBtFloatSz0]:
+    a, b, z = primals
+    a_dot, b_dot, z_dot = tangents
+
+    primal_out = _incomplete_beta_impl(a, b, z)
+    tangent_out = jnp.zeros_like(primal_out)
+
+    # d/dz B(a, b, z) = z^(a-1) (1-z)^(b-1): the Eq. 43 integrand at z.
+    if not isinstance(z_dot, SymbolicZero):
+        tangent_out = tangent_out + z ** (a - 1.0) * (1.0 - z) ** (b - 1.0) * z_dot
+
+    # The a/b tangents are only needed when the power-law indices are
+    # themselves differentiated; there is no cheap closed form, so fall back to
+    # autodiff of the series. Skipped entirely in the common case, where the
+    # differentiation is with respect to position at fixed alpha/beta/gamma.
+    a_zero, b_zero = isinstance(a_dot, SymbolicZero), isinstance(b_dot, SymbolicZero)
+    if not (a_zero and b_zero):
+        _, ab_tangent = jax.jvp(
+            lambda aa, bb: _incomplete_beta_impl(aa, bb, z),
+            (a, b),
+            (
+                jnp.zeros_like(a) if a_zero else a_dot,
+                jnp.zeros_like(b) if b_zero else b_dot,
+            ),
+        )
+        tangent_out = tangent_out + ab_tangent
+
+    return primal_out, tangent_out
+
+
+incomplete_beta = jax.jit(incomplete_beta)  # type: ignore[assignment]
+
+
+# ===================================================================
+# Model internals
 
 
 @ft.partial(jax.jit)
 def _cpq(a: gt.Sz0, b: gt.Sz0, g: gt.Sz0) -> tuple[gt.Sz0, gt.Sz0, gt.Sz0]:
-    """Constants defined in appendix of Zhao (1996)."""
+    r"""Zhao's $c_0$, $p_0$, $q_0$ (Eq. 42, at $l = 0$).
+
+    .. math::
+
+        p_0 = \alpha(2 - \gamma), \quad
+        q_0 = \alpha(\beta - 3), \quad
+        c_0 = \alpha(\beta - \gamma)
+
+    """
     c0 = a * (b - g)
     p0 = a * (2.0 - g)
     q0 = a * (b - 3.0)
@@ -251,97 +398,207 @@ def _cpq(a: gt.Sz0, b: gt.Sz0, g: gt.Sz0) -> tuple[gt.Sz0, gt.Sz0, gt.Sz0]:
 
 
 @ft.partial(jax.jit)
-def _r_to_u_chi(p: gt.Params, r: gt.Sz0) -> tuple[gt.FloatSz0, gt.FloatSz0]:
-    r"""Convert radius to u and chi variables defined below.
+def _r_to_chi(p: gt.Params, r: gt.BBtSz0, /) -> gt.BBtFloatSz0:
+    r"""Zhao's radial variable $\chi$ (Eq. 5).
 
     .. math::
 
-        u = r / r_s
-        chi = \frac{u^{1/\alpha}}{1 + u^{1/\alpha}}
+        \chi = \frac{u^{1/\alpha}}{u^{1/\alpha} + 1}, \quad u = r / r_s
 
+    Zhao works in units of the break radius, so $u = r / r_s$ plays the role of
+    his $r$. Note that $\chi(r_s) = 1/2$ for any $\alpha$.
     """
-    uu = r / p["r_s"]
-    return uu, uu ** (1.0 / p["alpha"]) / (1.0 + uu ** (1.0 / p["alpha"]))
+    ua = (r / p["r_s"]) ** (1.0 / p["alpha"])
+    return ua / (1.0 + ua)
 
 
 @ft.partial(jax.jit)
-def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
-    """Spherical density profile for double power-law Zhao model."""
-    uu = r / p["r_s"]
+def _mass_fraction_within_r_s(p: gt.Params, /) -> gt.FloatSz0:
+    r"""$M(r_s) / M_{tot}$, from Eq. 15 evaluated at $\chi = 1/2$ and $\chi = 1$.
+
+    Only used by `ZhaoPotential.from_m_tot`, which requires $\beta > 3$ so that
+    $M_{tot} = M(\infty)$ is finite.
+    """
+    c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
+    a = c0 - q0
+    total = incomplete_beta(a, q0, jnp.asarray(1.0))  # B(a, q0), q0 > 0 here
+    return incomplete_beta(a, q0, jnp.asarray(0.5)) / total
+
+
+@ft.partial(jax.jit)
+def _norm(p: gt.Params, /) -> gt.FloatSz0:
+    r"""Zhao's normalization constant $C$ (his Eq. 44), renormalized.
+
+    Zhao normalizes to unit total mass (Eq. 44), which only exists for
+    $\beta > 3$. The free parameter here is instead ``m``, the mass enclosed
+    within the scale radius, which is well defined for every valid
+    $(\alpha, \beta, \gamma)$. Inverting Eq. 15 at $r = r_s$, where
+    $\chi = 1/2$ (Eq. 5) for any $\alpha$,
+
+    .. math::
+
+        C = \frac{m}{4\pi\alpha B(\alpha(3-\gamma), \alpha(\beta-3), 1/2)}
+
+    The value returned carries an extra factor of $r_s^3$ relative to Zhao's
+    $C$ (his radii are in units of the break radius), i.e. it is a mass rather
+    than a density.
+    """
+    c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
+    bz_half = incomplete_beta(c0 - q0, q0, jnp.asarray(0.5))
+    return p["m"] / (4.0 * jnp.pi * p["alpha"] * bz_half)  # type: ignore[no-any-return]
+
+
+# ===================================================================
+# Model functions
+
+
+@ft.partial(jax.jit)
+def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""Density profile of the Zhao model (Eq. 1).
+
+    .. math::
+
+        \rho(r) = \frac{C}{u^\gamma (1 + u^{1/\alpha})^{(\beta-\gamma)\alpha}},
+        \quad u = r / r_s
+
+    """
     alpha, beta, gamma = p["alpha"], p["beta"], p["gamma"]
-    rho0 = _rho0(p)
-
+    uu = r / p["r_s"]
     b = (beta - gamma) * alpha
-    _result = rho0 / (p["r_s"] ** 3) / uu**gamma / (1.0 + uu ** (1.0 / alpha)) ** b
+    _result = _norm(p) / p["r_s"] ** 3 / uu**gamma / (1.0 + uu ** (1.0 / alpha)) ** b
     return _result  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
-def mass_enclosed(p: gt.Params, r: gt.BBtSz0) -> gt.BtFloatSz0:
-    r"""Mass enclosed within radius ``r`` for the Zhao model.
+def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""Mass enclosed within radius ``r`` (Eq. 15, without the black hole term).
 
-    Uses `_Bz_from_hyp2f1` rather than ``beta(a, b) * betainc(a, b, chi)`` directly:
-    the latter is nan whenever ``b <= 0`` (i.e. whenever ``beta <= 3``, the regime
-    with infinite total mass), because the complete beta function ``B(a, b)``
-    diverges there even though the *product* ``B(a, b) * I_chi(a, b)`` is finite.
+    .. math::
+
+        M(r) = 4\pi\alpha C B(\alpha(3-\gamma), \alpha(\beta-3), \chi)
+
     """
-    a, b, g = p["alpha"], p["beta"], p["gamma"]
-    _, chi = _r_to_u_chi(p, r)
-    rho0 = _rho0(p)
-    c0, _, q0 = _cpq(a, b, g)
-    _result = 4.0 * jnp.pi * rho0 * a * _Bz_from_hyp2f1(c0 - q0, q0, chi)
+    c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
+    chi = _r_to_chi(p, r)
+    _result = 4.0 * jnp.pi * p["alpha"] * _norm(p) * incomplete_beta(c0 - q0, q0, chi)
     return _result  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""Specific potential energy of the Zhao model (Eqs. 6 and 7).
+
+    .. math::
+
+        \Phi(r) = -4\pi G \rho(r) f_{0,0}(r) r^2
+
+    .. math::
+
+        f_{0,0}(r) = \frac{\alpha B(c_0 - q_0, q_0, \chi)}
+                          {\chi^{c_0-q_0} (1-\chi)^{q_0}}
+                   + \frac{\alpha B(c_0 - p_0, p_0, 1-\chi)}
+                          {(1-\chi)^{c_0-p_0} \chi^{p_0}}
+
+    with $c_0$, $p_0$, $q_0$ from Eq. 42 and $\chi$ from Eq. 5. The first term
+    is the contribution of the mass interior to $r$ (it is $M(r)/r$, Eq. 15),
+    the second that of the shell exterior to it.
+
+    Written with the general incomplete beta function of Eq. 43, both terms
+    stay finite across the whole valid parameter range: the first for
+    $\beta \leq 3$ (where $q_0 \leq 0$), the second for $\gamma \geq 2$ (where
+    $p_0 \leq 0$, e.g. the Jaffe model, $(\alpha,\beta,\gamma) = (1,4,2)$).
+    """
+    c0, p0, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
+    chi = _r_to_chi(p, r)
+    chi1 = 1.0 - chi
+
+    # Eq. 7, interior term: B(c0-q0, q0, chi) / (chi^(c0-q0) (1-chi)^q0)
+    interior = incomplete_beta(c0 - q0, q0, chi) / (chi ** (c0 - q0) * chi1**q0)
+    # Eq. 7, exterior term: B(c0-p0, p0, 1-chi) / ((1-chi)^(c0-p0) chi^p0)
+    exterior = incomplete_beta(c0 - p0, p0, chi1) / (chi1 ** (c0 - p0) * chi**p0)
+
+    f00 = p["alpha"] * (interior + exterior)
+    # Eq. 6, with G restored (Zhao sets G = 1).
+    _result = -4.0 * jnp.pi * p["G"] * density(p, r) * f00 * r**2
+    return _result  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def dpotential_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""Radial derivative of the potential.
+
+    The model is spherical, so by Newton's shell theorem only the mass interior
+    to $r$ (Eq. 15) contributes:
+
+    .. math::
+
+        \frac{d\Phi}{dr} = \frac{G M(r)}{r^2}
+
+    """
+    return p["G"] * mass_enclosed(p, r) / r**2  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def d2potential_dr2(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""Second radial derivative of the potential.
+
+    Differentiating `dpotential_dr` and substituting $M'(r) = 4\pi r^2 \rho(r)$
+    (Eqs. 15 and 1):
+
+    .. math::
+
+        \frac{d^2\Phi}{dr^2} = 4\pi G \rho(r) - \frac{2 G M(r)}{r^3}
+
+    """
+    interior = 2.0 * p["G"] * mass_enclosed(p, r) / r**3
+    return 4.0 * jnp.pi * p["G"] * density(p, r) - interior  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def laplacian(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""Laplacian of the potential, i.e. Poisson's equation with Eq. 1.
+
+    .. math::
+
+        \nabla^2 \Phi = 4 \pi G \rho(r)
+
+    """
+    return 4.0 * jnp.pi * p["G"] * density(p, r)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
 def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
-    r"""Gradient of the potential for the Zhao model.
+    r"""Gradient of the potential.
 
-    $$ \nabla \Phi(r) = G M(<r) / r^2 \hat{r} $$
+    .. math::
 
-    where $M(<r)$ is the enclosed mass. By Newton's shell theorem, the mass
-    outside ``r`` contributes no net force, so this analytic form avoids
-    differentiating through the special functions used in `potential`.
+        \nabla\Phi = \frac{d\Phi}{dr} \hat{r} = \frac{G M(r)}{r^2} \hat{r}
+
     """
-    r_mag = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
-    mass_enc = mass_enclosed(p, r_mag)
-    grad_mag = p["G"] * mass_enc / (r_mag**2)
-    return grad_mag * (xyz / r_mag)  # type: ignore[no-any-return]
+    r = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
+    return dpotential_dr(p, r) * (xyz / r)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
-def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
-    r"""Spherical potential for double power-law Zhao model.
+def hessian(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz33:
+    r"""Hessian of the potential.
 
-    See Eq. 6 and 7 in Zhao (1996).
+    For any spherical potential,
 
-    This function uses the variable z for what Zhao called :math:`\chi`.
+    .. math::
+
+        \partial_i \partial_j \Phi
+            = \frac{\Phi'(r)}{r} \delta_{ij}
+            + \left(\Phi''(r) - \frac{\Phi'(r)}{r}\right) \frac{x_i x_j}{r^2}
+
+    with $\Phi'$ and $\Phi''$ from `dpotential_dr` and `d2potential_dr2`.
     """
-    a, b, g = p["alpha"], p["beta"], p["gamma"]
+    r = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
+    radial = dpotential_dr(p, r) / r
+    d2phi_dr2 = d2potential_dr2(p, r)
 
-    uu, chi = _r_to_u_chi(p, r)
-
-    # Special case the Jaffe potential, where there is an "inf - inf" below
-    is_jaffe = (a == 1.0) & (b == 4.0) & (g == 2.0)
-
-    def Phi_jaffe() -> gt.Sz0:
-        # Note: the extra factor of 2 is because m is mass enclosed in r_s, not total
-        return -p["G"] * 2 * p["m"] / p["r_s"] * jnp.log1p(1.0 / uu)  # type: ignore[no-any-return]
-
-    rho0 = _rho0(p)
-    c0, p0, _ = _cpq(a, b, g)
-
-    # Left term in Eq. 7
-    term_l = mass_enclosed(p, r)
-
-    # Right term in Eq. 7
-    eps = jnp.sqrt(jnp.finfo(r.dtype).eps)
-    p0_safe = jnp.where(p0 <= 0, eps, p0)
-    logB = jsp.betaln(p0_safe, c0 - p0)
-    log1mI = jnp.log1p(-jsp.betainc(p0_safe, c0 - p0, chi))
-    term_r = 4.0 * jnp.pi * rho0 * a / p["r_s"] * jnp.exp(logB + log1mI)
-
-    def Phi_general() -> gt.Sz0:
-        return -p["G"] * (term_l / r + term_r)  # type: ignore[no-any-return]
-
-    return jax.lax.cond(is_jaffe, Phi_jaffe, Phi_general)  # type: ignore[no-any-return]
+    rhat = xyz / r
+    outer = rhat[..., :, None] * rhat[..., None, :]
+    eye = jnp.eye(3, dtype=outer.dtype)
+    _result = radial[..., None] * eye + (d2phi_dr2 - radial)[..., None] * outer
+    return _result  # type: ignore[no-any-return]

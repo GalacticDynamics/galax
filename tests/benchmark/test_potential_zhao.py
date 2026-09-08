@@ -1,21 +1,20 @@
-"""Benchmark ``ZhaoPotential`` against a closed-form potential (``Plummer``).
+"""Benchmark `ZhaoPotential` against a closed-form potential (`Plummer`).
 
-The Zhao (1996) double power-law potential computes its mass normalization and
-enclosed-mass terms from `hyp2f1`/`betainc`, which are much more expensive to
-evaluate -- and (for `potential`, which differentiates through them) especially
-to differentiate -- than a closed-form potential like Plummer's. See
+The Zhao (1996) model's potential, enclosed mass and normalization are all
+incomplete beta functions (Eqs. 7, 15, 44), so it can never be quite as cheap
+as a potential like Plummer's that is a couple of arithmetic operations. What
+it should *not* be is asymptotically worse: see
 https://github.com/GalacticDynamics/galax/pull/761#issuecomment-3185820797 for
-wall-clock measurements motivating this suite.
+the measurements that motivated this suite.
 
-`ZhaoPotential.gradient` is overridden with an analytic (shell-theorem) formula
-that only evaluates the enclosed mass forward, rather than differentiating
-through `potential`, so it should track `Plummer.gradient` far more closely
-than `potential`-vs-`potential` does.
+`gradient`, `laplacian` and `hessian` are written analytically (from Eq. 15
+and Poisson's equation) rather than by autodiff of `potential`, so they should
+cost no more than `potential` itself -- `laplacian` in particular is just
+`4 pi G rho` and so should track Plummer.
 
-`potential`/`gradient` are already jitted internally (`AbstractSinglePotential`
-wraps `_potential`/`_gradient` in `jax.jit`), so calling them directly -- after
-one warm-up call per input shape to prime the compilation cache -- benchmarks
-steady-state execution rather than re-tracing/compiling.
+Everything is jitted internally (`AbstractSinglePotential` wraps `_potential`
+and friends in `jax.jit`), so each case is warmed up at import, below, and the
+timed body is a single call.
 """
 
 import jax
@@ -26,6 +25,7 @@ import unxt as u
 import galax.potential as gp
 
 N_POINTS = [1, 1_000, 100_000]
+METHODS = ["potential", "gradient", "density", "laplacian", "hessian"]
 
 _xyz_all = jax.random.uniform(
     jax.random.key(0), (max(N_POINTS), 3), minval=-50.0, maxval=50.0
@@ -46,24 +46,19 @@ potentials = {
     ),
 }
 
+xyzs = {n: u.Quantity(_xyz_all[:n], "kpc") for n in N_POINTS}
 
-@pytest.mark.parametrize("name", potentials)
-@pytest.mark.parametrize("n", N_POINTS, ids=lambda n: f"n={n}")
-@pytest.mark.benchmark(group="potential.zhao.potential")
-def test_potential_eval(name, n):
-    """Wall-clock cost of evaluating the potential value at `n` points."""
-    pot = potentials[name]
-    xyz = u.Quantity(_xyz_all[:n], "kpc")
-    pot.potential(xyz, _t)  # warm up / compile, outside the timed region
-    jax.block_until_ready(pot.potential(xyz, _t))
+# Compile every case once, so the timed bodies below measure execution only.
+for _pot in potentials.values():
+    for _method in METHODS:
+        for _xyz in xyzs.values():
+            jax.block_until_ready(getattr(_pot, _method)(_xyz, _t))
 
 
 @pytest.mark.parametrize("name", potentials)
 @pytest.mark.parametrize("n", N_POINTS, ids=lambda n: f"n={n}")
-@pytest.mark.benchmark(group="potential.zhao.gradient")
-def test_gradient_eval(name, n):
-    """Wall-clock cost of evaluating the force (gradient) at `n` points."""
-    pot = potentials[name]
-    xyz = u.Quantity(_xyz_all[:n], "kpc")
-    pot.gradient(xyz, _t)  # warm up / compile, outside the timed region
-    jax.block_until_ready(pot.gradient(xyz, _t))
+@pytest.mark.parametrize("method", METHODS)
+@pytest.mark.benchmark(group="potential.zhao")
+def test_eval(method: str, n: int, name: str) -> None:
+    """Wall-clock cost of one `method` evaluation at `n` points."""
+    jax.block_until_ready(getattr(potentials[name], method)(xyzs[n], _t))

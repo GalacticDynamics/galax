@@ -49,7 +49,6 @@ dependencies = [
   "plum>=2.9.0; python_version >= '3.14'",
   "quax>=0.4.3",
   "quaxed>=0.10.5",
-  "tfp-nightly[jax]>=0.26.0.dev20260601",
   "typing-extensions>=4.13.2",
   "unxt>=1.11.2,<2",
   "wadler_lindig>=0.1.7",
@@ -133,6 +132,13 @@ test = [
   "pytest>=8.3",
   "sybil>=9.0.0",
   "pytest-env>=1.1.5",
+  # Exercises `gNFWPotential`'s tfp-backed hyp2f1 code path in CI; not a
+  # runtime dependency (it's imported lazily, only when that potential is
+  # actually used). The lower bound is kept close to the present:
+  # tfp-nightly publishes daily dev-only builds (no stable releases), so a
+  # loose bound leaves resolvers hundreds of pre-release candidates to
+  # backtrack through.
+  "tfp-nightly[jax]>=0.26.0.dev20260601",
 ]
 test-mpl = ["pytest-mpl>=0.17.0"]
 

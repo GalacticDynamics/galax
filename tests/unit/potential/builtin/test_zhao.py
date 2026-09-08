@@ -1,5 +1,7 @@
 from typing import Any, ClassVar
 
+import jax
+import numpy as np
 import pytest
 
 import quaxed.numpy as jnp
@@ -174,3 +176,67 @@ class TestZhaoPotential(
         assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
+
+
+# ===================================================================
+# Analytic derivatives
+#
+# `gradient`, `hessian` and `laplacian` are written analytically (Zhao Eqs. 15
+# and 1) rather than by autodiff of `potential`, so check them against autodiff
+# of the potential, over the special cases of the model's Table 1 list.
+
+ABG = [
+    (1.0, 4.0, 1.0),  # Hernquist
+    (1.0, 4.0, 2.0),  # Jaffe (p0 = 0)
+    (0.5, 5.0, 0.0),  # Plummer
+    (1.0, 3.0, 1.0),  # NFW (q0 = 0, infinite mass)
+    (0.9, 4.31, 1.2),  # generic
+]
+RADII = [0.05, 0.5, 1.0, 5.0, 50.0]
+
+
+def _pot(abg: tuple[float, float, float]) -> gp.ZhaoPotential:
+    alpha, beta, gamma = abg
+    return gp.ZhaoPotential(
+        m=u.Quantity(1e12, "Msun"),
+        r_s=u.Quantity(8.0, "kpc"),
+        alpha=alpha,
+        beta=beta,
+        gamma=gamma,
+        units="galactic",
+    )
+
+
+def _xyz_at(r: float) -> jnp.ndarray:
+    xyz = jnp.asarray([0.3, -0.5, 0.81])
+    return xyz / jnp.linalg.norm(xyz) * r
+
+
+@pytest.mark.parametrize("abg", ABG)
+@pytest.mark.parametrize("r", RADII)
+def test_analytic_gradient_matches_autodiff(abg, r: float) -> None:
+    """The shell-theorem gradient must match `jax.grad` of the potential."""
+    pot, xyz = _pot(abg), _xyz_at(r)
+    got = pot.gradient(xyz, t=0)
+    expect = jax.grad(lambda q: pot._potential(q, 0.0))(xyz)
+    np.testing.assert_allclose(np.asarray(got), np.asarray(expect), rtol=1e-8)
+
+
+@pytest.mark.parametrize("abg", ABG)
+@pytest.mark.parametrize("r", RADII)
+def test_analytic_hessian_matches_autodiff(abg, r: float) -> None:
+    """The analytic hessian must match `jax.hessian` of the potential."""
+    pot, xyz = _pot(abg), _xyz_at(r)
+    got = pot.hessian(xyz, t=0)
+    expect = jax.hessian(lambda q: pot._potential(q, 0.0))(xyz)
+    np.testing.assert_allclose(np.asarray(got), np.asarray(expect), rtol=1e-6)
+
+
+@pytest.mark.parametrize("abg", ABG)
+@pytest.mark.parametrize("r", RADII)
+def test_laplacian_is_poisson(abg, r: float) -> None:
+    """Poisson's equation: the laplacian must be 4 pi G rho (Eq. 1)."""
+    pot, xyz = _pot(abg), _xyz_at(r)
+    lap = pot.laplacian(xyz, t=0)
+    expect = 4 * jnp.pi * pot.constants["G"].value * pot.density(xyz, t=0)
+    np.testing.assert_allclose(np.asarray(lap), np.asarray(expect), rtol=1e-10)

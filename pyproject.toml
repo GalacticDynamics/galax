@@ -139,6 +139,7 @@ test = [
   # loose bound leaves resolvers hundreds of pre-release candidates to
   # backtrack through.
   "tfp-nightly[jax]>=0.26.0.dev20260601",
+  "pytest-xdist>=3.6.1",
 ]
 test-mpl = ["pytest-mpl>=0.17.0"]
 

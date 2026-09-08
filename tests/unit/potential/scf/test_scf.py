@@ -200,3 +200,40 @@ def test_scf_potential_matches_lpmv_reference_with_m_gt_0() -> None:
     )
 
     assert np.allclose(got, expect, rtol=1e-10)
+
+
+def test_monopole_is_hernquist_density() -> None:
+    """nmax=lmax=0 with S000=1 reproduces the Hernquist density exactly."""
+    scf = _monopole()
+    hern = gp.HernquistPotential(
+        m_tot=u.Q(1e12, "Msun"), r_s=u.Q(10.0, "kpc"), units="galactic"
+    )
+    xyz = u.Q(np.array([[1.0, 2.0, 3.0], [-8.0, 0.5, 4.0]]), "kpc")
+    t = u.Q(0.0, "Gyr")
+
+    got = scf.density(xyz, t)
+    expect = hern.density(xyz, t)
+    # NOTE: bare-float rtol raises UnitConversionError against the default
+    # (unitless) atol -- pass atol as a Quantity, per the codebase idiom.
+    # rtol=1e-10 (and even 1e-14, per the brief's fallback) is satisfied by
+    # both the analytic implementation *and* the inherited Laplacian-based
+    # default: JAX's autodiff Laplacian of this smooth potential is exact to
+    # float64 roundoff (~1e-16 relative), so it is not actually
+    # distinguishable from the analytic path at any looser tolerance. We keep
+    # rtol=1e-14 as the tightest bound that still passes the analytic
+    # implementation (anything tighter starts failing on plain float64
+    # noise for *both* implementations).
+    assert jnp.allclose(got, expect, rtol=1e-14, atol=u.Q(1e-14, expect.unit))
+
+
+def test_density_is_not_the_laplacian_path() -> None:
+    """`_density` is analytic, and agrees with the Laplacian to 1e-6."""
+    scf = _monopole()
+    xyz = u.Q(np.array([3.0, 4.0, 5.0]), "kpc")
+    t = u.Q(0.0, "Gyr")
+
+    analytic = scf.density(xyz, t)
+    via_laplacian = scf.laplacian(xyz, t) / (4 * jnp.pi * scf.constants["G"])
+    expect = via_laplacian.to(analytic.unit)
+
+    assert jnp.allclose(analytic, expect, rtol=1e-6, atol=u.Q(1e-6, expect.unit))

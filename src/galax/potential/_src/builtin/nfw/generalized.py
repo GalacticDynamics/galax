@@ -7,8 +7,7 @@ __all__ = [
 import functools as ft
 from dataclasses import KW_ONLY
 
-from collections.abc import Callable
-from typing import Any, final
+from typing import final
 
 import equinox as eqx
 import jax
@@ -20,6 +19,7 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from .base import rho0_of_m
+from .hyp2f1 import Bz_from_hyp2f1
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.jax import vectorize_method
@@ -228,80 +228,6 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     return rho0 * jnp.power(x, -p["gamma"]) * jnp.power(1 + x, p["gamma"] - 3)
 
 
-# -----------------------------------------------
-
-
-@ft.lru_cache(maxsize=1)
-def _hyp2f1_small_argument() -> Callable[..., Any]:
-    """Lazily import the ``tensorflow_probability`` hyp2f1 implementation.
-
-    ``tfp-nightly`` is no longer a core dependency: it only ever publishes
-    pre-release builds, which makes it a heavy, resolver-unfriendly
-    dependency to force on everyone just for this one potential class.
-    """
-    try:
-        import tensorflow_probability.substrates.jax as tfp
-    except ImportError as e:
-        msg = (
-            "`gNFWPotential` requires `tensorflow_probability` for its "
-            "hypergeometric-function implementation. Install it with "
-            "`pip install tensorflow-probability[jax]` (or `tfp-nightly[jax]`)."
-        )
-        raise ImportError(msg) from e
-    return tfp.math.hypergeometric.hyp2f1_small_argument  # type: ignore[no-any-return]
-
-
-@ft.partial(jax.jit)
-def Bz_from_hyp2f1(a: gt.FloatSz0, b: gt.FloatSz0, z: gt.BBtFloatSz0) -> gt.BBtFloatSz0:
-    r"""Incomplete beta function from hypergeometric function.
-
-    $$ B_z(a, 0) = \frac{z^a}{a} \cdot {}_2F_1(a, 1 - b; a + 1; z) $$
-
-    See NIST DLMF 8.17.7 @ https://dlmf.nist.gov/8.17
-
-    Parameters
-    ----------
-    a, b
-        The parameters of the incomplete beta function.
-    z
-        The value at which to evaluate the incomplete beta function.
-        Must be in the range [0, 1].
-
-    Examples
-    --------
-    >>> import jax.numpy as jnp
-    >>> import jax.scipy.special as jsp
-
-    >>> a, b = 1.0, 2.0
-    >>> z = jnp.array(0.5)
-
-    >>> Bz_from_hyp2f1(a, b, z)
-    Array(0.375, dtype=float64)
-
-    >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
-    Array(0.375, dtype=float64)
-
-    `Bz_from_hyp2f1` works for b = 0:
-
-    >>> b = 0.0
-    >>> Bz_from_hyp2f1(a, b, z)
-    Array(0.69314718, dtype=float64)
-
-    But `jsp.beta` does not work for b = 0:
-
-    >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
-    Array(nan, dtype=float64)
-
-    We can confirm that `Bz_from_hyp2f1` is correct by comparison when $b \sim 0$:
-
-    >>> b = 1e-4
-    >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
-    Array(0.69312316, dtype=float64)
-
-    """
-    return (z**a / a) * _hyp2f1_small_argument()(a, 1 - b, a + 1, z)  # type: ignore[no-any-return]
-
-
 @ft.partial(jax.jit)
 def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Enclosed mass for the NFW model.
@@ -321,7 +247,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     x = r / p["r_s"]
     z = x / (1 + x)
     _result = p["m"] * Bz_from_hyp2f1(3.0 - p["gamma"], 0.0, z)
-    return _result  # type: ignore[no-any-return]
+    return _result
 
 
 # -----------------------------------------------

@@ -17,14 +17,17 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical, safe_sqrt
 
 
 @final
-class HernquistPotential(AbstractSinglePotential):
+class HernquistPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     """Hernquist Potential."""
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -63,11 +66,6 @@ class HernquistPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
         return density(params, r)  # type: ignore[no-any-return]
-
-    @ft.partial(jax.jit)
-    def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
-        # Poisson's equation: faster than trace(hessian(potential)).
-        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
 
 
 # ============================================

@@ -19,14 +19,17 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import GaussLegendreIntegrator
 
 
 @final
-class TriaxialNFWPotential(AbstractSinglePotential):
+class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Triaxial (density) NFW Potential.
 
     .. math::
@@ -228,9 +231,3 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
         dens = rho0 / xi / (1.0 + xi) ** 2
         return dens.ustrip(self.units["mass density"])  # type: ignore[no-any-return]
-
-    @ft.partial(jax.jit)
-    def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # Poisson's equation: faster (and exact) vs. differentiating twice
-        # through the numerically-integrated `_potential`.
-        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]

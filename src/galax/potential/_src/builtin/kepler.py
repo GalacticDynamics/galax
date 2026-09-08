@@ -24,14 +24,17 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
 
 @final
-class KeplerPotential(AbstractSinglePotential):
+class KeplerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""The Kepler potential for a point mass.
 
     .. math::
@@ -71,11 +74,6 @@ class KeplerPotential(AbstractSinglePotential):
 
         params = {"m_tot": self.m_tot(t, ustrip=self.units["mass"])}
         return density(params, r)  # type: ignore[no-any-return]
-
-    @ft.partial(jax.jit)
-    def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
-        # Poisson's equation: faster than trace(hessian(potential)).
-        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
 
 
 # ============================================

@@ -23,14 +23,17 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
 
 @final
-class PlummerPotential(AbstractSinglePotential):
+class PlummerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Plummer Potential.
 
     The Plummer potential is a simple model for a spherical distribution of
@@ -73,11 +76,6 @@ class PlummerPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=ul),
         }
         return density(params, r)  # type: ignore[no-any-return]
-
-    @ft.partial(jax.jit)
-    def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        # Poisson's equation: faster than trace(hessian(potential)).
-        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

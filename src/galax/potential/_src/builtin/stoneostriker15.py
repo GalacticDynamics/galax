@@ -10,13 +10,16 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential.custom_types as gt
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
 
-class StoneOstriker15Potential(AbstractSinglePotential):
+class StoneOstriker15Potential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Potential from Stone and Ostriker 2015.
 
     http://dx.doi.org/10.1088/2041-8205/806/2/L28.
@@ -71,11 +74,6 @@ class StoneOstriker15Potential(AbstractSinglePotential):
             "r_c": self.r_c(t, ustrip=ul),
         }
         return density(params, r)  # type: ignore[no-any-return]
-
-    @ft.partial(jax.jit)
-    def _laplacian(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
-        # Poisson's equation: faster than trace(hessian(potential)).
-        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:

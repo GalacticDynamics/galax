@@ -25,7 +25,10 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
@@ -34,7 +37,7 @@ CONST_BURKER: Final = 3 * jnp.log(jnp.asarray(2.0)) - jnp.pi / 2
 
 
 @final
-class BurkertPotential(AbstractSinglePotential):
+class BurkertPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Burkert Potential.
 
     https://ui.adsabs.harvard.edu/abs/1995ApJ...447L..25B/abstract,
@@ -86,11 +89,6 @@ class BurkertPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
         return density(params, r)  # type: ignore[no-any-return]
-
-    @ft.partial(jax.jit)
-    def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
-        # Poisson's equation: faster than trace(hessian(potential)).
-        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _mass(self, xyz: gt.BBtQuSz3, /, t: gt.BtQuSz0 | gt.QuSz0) -> gt.BtFloatQuSz0:

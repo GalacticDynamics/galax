@@ -26,14 +26,17 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
 
 @final
-class NFWPotential(AbstractSinglePotential):
+class NFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""NFW Potential.
 
     The NFW profile is one of the most commonly used model profiles for dark
@@ -119,11 +122,6 @@ class NFWPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
         return density(params, r)  # type: ignore[no-any-return]
-
-    @ft.partial(jax.jit)
-    def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
-        # Poisson's equation: faster than trace(hessian(potential)).
-        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _mass_enclosed(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:

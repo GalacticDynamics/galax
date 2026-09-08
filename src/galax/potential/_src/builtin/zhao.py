@@ -251,6 +251,16 @@ def _norm(p: gt.Params, /) -> gt.FloatSz0:
     """
     c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
     bz_half = incomplete_beta(c0 - q0, q0, jnp.asarray(0.5))
+    return norm_from_bz_half(p, bz_half)  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def norm_from_bz_half(p: gt.Params, bz_half: gt.FloatSz0, /) -> gt.FloatSz0:
+    """`_norm` given an already-evaluated ``B(alpha(3-gamma), alpha(beta-3), 1/2)``.
+
+    Split out so that a variant with fixed power-law indices can supply that
+    value as a constant. See `_norm` for what it means.
+    """
     return p["m"] / (4.0 * jnp.pi * p["alpha"] * bz_half)  # type: ignore[no-any-return]
 
 
@@ -268,11 +278,19 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
         \quad u = r / r_s
 
     """
+    return density_from_norm(p, r, _norm(p))  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def density_from_norm(
+    p: gt.Params, r: gt.BBtSz0, norm: gt.FloatSz0, /
+) -> gt.BtFloatSz0:
+    """`density` given an already-evaluated normalization. See `density`."""
     alpha, beta, gamma = p["alpha"], p["beta"], p["gamma"]
     uu = r / p["r_s"]
     b = (beta - gamma) * alpha
-    _result = _norm(p) / p["r_s"] ** 3 / uu**gamma / (1.0 + uu ** (1.0 / alpha)) ** b
-    return _result  # type: ignore[no-any-return]
+    _result = norm / p["r_s"] ** 3 / uu**gamma / (1.0 + uu ** (1.0 / alpha)) ** b
+    return _result
 
 
 @ft.partial(jax.jit)
@@ -286,7 +304,15 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     """
     c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
     chi = _r_to_chi(p, r)
-    _result = 4.0 * jnp.pi * p["alpha"] * _norm(p) * incomplete_beta(c0 - q0, q0, chi)
+    return mass_enclosed_from_bz(p, _norm(p), incomplete_beta(c0 - q0, q0, chi))  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def mass_enclosed_from_bz(
+    p: gt.Params, norm: gt.FloatSz0, bz_interior: gt.BBtSz0, /
+) -> gt.BtFloatSz0:
+    """`mass_enclosed` given already-evaluated pieces. See `mass_enclosed`."""
+    _result = 4.0 * jnp.pi * p["alpha"] * norm * bz_interior
     return _result  # type: ignore[no-any-return]
 
 
@@ -316,16 +342,38 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     """
     c0, p0, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
     chi = _r_to_chi(p, r)
+    return potential_from_bz(  # type: ignore[no-any-return]
+        p,
+        r,
+        chi,
+        incomplete_beta(c0 - q0, q0, chi),
+        incomplete_beta(c0 - p0, p0, 1.0 - chi),
+        density(p, r),
+    )
+
+
+@ft.partial(jax.jit)
+def potential_from_bz(
+    p: gt.Params,
+    r: gt.BBtSz0,
+    chi: gt.BBtSz0,
+    bz_interior: gt.BBtSz0,
+    bz_exterior: gt.BBtSz0,
+    rho: gt.BBtSz0,
+    /,
+) -> gt.BtFloatSz0:
+    """Zhao Eqs. 6-7 from already-evaluated pieces. See `potential`."""
+    c0, p0, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
     chi1 = 1.0 - chi
 
     # Eq. 7, interior term: B(c0-q0, q0, chi) / (chi^(c0-q0) (1-chi)^q0)
-    interior = incomplete_beta(c0 - q0, q0, chi) / (chi ** (c0 - q0) * chi1**q0)
+    interior = bz_interior / (chi ** (c0 - q0) * chi1**q0)
     # Eq. 7, exterior term: B(c0-p0, p0, 1-chi) / ((1-chi)^(c0-p0) chi^p0)
-    exterior = incomplete_beta(c0 - p0, p0, chi1) / (chi1 ** (c0 - p0) * chi**p0)
+    exterior = bz_exterior / (chi1 ** (c0 - p0) * chi**p0)
 
     f00 = p["alpha"] * (interior + exterior)
     # Eq. 6, with G restored (Zhao sets G = 1).
-    _result = -4.0 * jnp.pi * p["G"] * density(p, r) * f00 * r**2
+    _result = -4.0 * jnp.pi * p["G"] * rho * f00 * r**2
     return _result  # type: ignore[no-any-return]
 
 
@@ -356,8 +404,15 @@ def d2potential_dr2(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
         \frac{d^2\Phi}{dr^2} = 4\pi G \rho(r) - \frac{2 G M(r)}{r^3}
 
     """
-    interior = 2.0 * p["G"] * mass_enclosed(p, r) / r**3
-    return 4.0 * jnp.pi * p["G"] * density(p, r) - interior  # type: ignore[no-any-return]
+    return d2potential_dr2_from(p, r, mass_enclosed(p, r), density(p, r))  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def d2potential_dr2_from(
+    p: gt.Params, r: gt.BBtSz0, m_enc: gt.BBtSz0, rho: gt.BBtSz0, /
+) -> gt.BtFloatSz0:
+    """`d2potential_dr2` from already-evaluated pieces. See `d2potential_dr2`."""
+    return 4.0 * jnp.pi * p["G"] * rho - 2.0 * p["G"] * m_enc / r**3  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -382,7 +437,15 @@ def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
 
     """
     r = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
-    return dpotential_dr(p, r) * (xyz / r)  # type: ignore[no-any-return]
+    return gradient_from_radial(dpotential_dr(p, r), xyz, r)  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def gradient_from_radial(
+    dphi_dr: gt.BBtSz0, xyz: gt.BBtSz3, r: gt.BBtSz0, /
+) -> gt.BBtSz3:
+    """`gradient` given dPhi/dr. See `gradient`."""
+    return dphi_dr * (xyz / r)
 
 
 @ft.partial(jax.jit)
@@ -400,9 +463,15 @@ def hessian(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz33:
     with $\Phi'$ and $\Phi''$ from `dpotential_dr` and `d2potential_dr2`.
     """
     r = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
-    radial = dpotential_dr(p, r) / r
-    d2phi_dr2 = d2potential_dr2(p, r)
+    return hessian_from_radial(dpotential_dr(p, r), d2potential_dr2(p, r), xyz, r)  # type: ignore[no-any-return]
 
+
+@ft.partial(jax.jit)
+def hessian_from_radial(
+    dphi_dr: gt.BBtSz0, d2phi_dr2: gt.BBtSz0, xyz: gt.Sz3, r: gt.BBtSz0, /
+) -> gt.Sz33:
+    """`hessian` given the two radial derivatives. See `hessian`."""
+    radial = dphi_dr / r
     rhat = xyz / r
     outer = rhat[..., :, None] * rhat[..., None, :]
     eye = jnp.eye(3, dtype=outer.dtype)

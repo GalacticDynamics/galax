@@ -23,13 +23,22 @@ convergent series with an exact O(1) derivative rule.
 See also `galax.potential._src.builtin.nfw.hyp2f1`, which solves the same
 problem for `gNFWPotential`, but only for the two parameter patterns that
 model needs (``a == 1``, or ``b == 0``), for which it has closed forms.
+
+When ``a`` and ``b`` are fixed for the lifetime of a potential,
+`ChebyshevIncompleteBeta` replaces those series with a short polynomial fitted
+once at construction.
 """
 
 __all__: tuple[str, ...] = ()
 
 import functools as ft
 
+from collections.abc import Callable
+from jaxtyping import Float
+
+import equinox as eqx
 import jax
+import numpy as np
 from jax.custom_derivatives import SymbolicZero
 
 import quaxed.numpy as jnp
@@ -236,3 +245,144 @@ def _incomplete_beta_jvp(
 
 
 incomplete_beta = jax.jit(incomplete_beta)  # type: ignore[assignment]
+
+
+# ===================================================================
+# Fitted form, for a potential whose (a, b) never change
+
+
+_FIT_SERIES_TERMS = 400
+"""Series terms used to build the fit targets. Host-side and once, so cheap."""
+
+
+def _poch_over_fact(x: float, n: int) -> np.ndarray:
+    """(x)_k / k! for k = 0 .. n-1."""
+    k = np.arange(1, n)
+    return np.cumprod(np.concatenate([[1.0], (x + k - 1) / k]))
+
+
+def _lo_target(a: float, b: float, z: np.ndarray) -> np.ndarray:
+    r"""$_2F_1(a, 1-b; a+1; z) = a B(a,b,z) / z^a$, the analytic part of `_small_z`."""
+    k = np.arange(_FIT_SERIES_TERMS)
+    coeff = _poch_over_fact(1.0 - b, _FIT_SERIES_TERMS) * a / (a + k)
+    return (coeff * z[..., None] ** k).sum(-1)
+
+
+def _hi_target(a: float, b: float, w: np.ndarray) -> np.ndarray:
+    r"""$V(w) = \sum_m \frac{(1-a)_m}{m!} \frac{w^m}{b+m}$, or its `b == 0` form.
+
+    This is the analytic factor in `B(a, b, 1-w) = const - w^b V(w)` -- see
+    `ChebyshevIncompleteBeta`. Summing the series rather than differencing
+    values of `B` avoids the cancellation that makes the latter useless as
+    `w -> 0`, which is exactly where the fit needs its nodes.
+    """
+    m = np.arange(_FIT_SERIES_TERMS)
+    c = _poch_over_fact(1.0 - a, _FIT_SERIES_TERMS)
+    w = w[..., None]
+    if b == 0:  # the m = 0 term is the -log(w) split off in __call__
+        return (c[1:] * w ** m[1:] / m[1:]).sum(-1)
+    return (c * w**m / (b + m)).sum(-1)
+
+
+def _chebfit(f: Callable[[np.ndarray], np.ndarray], n: int) -> np.ndarray:
+    """Chebyshev coefficients of `f` on [0, 1/2], from `n` Gauss-Chebyshev nodes."""
+    x = np.cos(np.pi * (np.arange(n) + 0.5) / n)
+    return np.polynomial.chebyshev.chebfit(x, f(0.25 * (x + 1)), n - 1)
+
+
+def _clenshaw(coef: Float[np.ndarray, " n"], x: gt.BBtSz0) -> gt.BBtFloatSz0:
+    """Evaluate a Chebyshev series at `x` in [-1, 1] by Clenshaw recurrence."""
+    b1 = jnp.zeros_like(x)
+    b2 = jnp.zeros_like(x)
+    for c in coef[:0:-1]:  # static length, so this unrolls at trace time
+        b1, b2 = 2.0 * x * b1 - b2 + c, b1
+    return x * b1 - b2 + coef[0]  # type: ignore[no-any-return]
+
+
+class ChebyshevIncompleteBeta(eqx.Module):
+    r"""$B(a, b, \cdot)$ for fixed $a, b$, as two Chebyshev panels.
+
+    `incomplete_beta` sums 64 series terms on every call because it must work
+    for any $(a, b)$. A potential with fixed power-law indices needs only one
+    function of one variable, which a short polynomial captures instead.
+
+    The function is a power law at both ends -- $z^a$ as $z \to 0$, and $w^b$
+    (or $\ln w$, or nothing) as $w = 1 - z \to 0$ -- so neither half is
+    analytic across the whole interval. Splitting at $z = 1/2$ and dividing out
+    the end behaviour leaves two analytic functions, which Chebyshev series
+    converge on geometrically:
+
+    .. math::
+
+        B(a, b, z) &= \frac{z^a}{a} \, {}_2F_1(a, 1-b; a+1; z), & z \leq 1/2 \\
+        B(a, b, z) &= \mathrm{const} - w^b V(w),                & w \leq 1/2 \\
+        B(a, b, z) &= \mathrm{const} + \ln w - V_0(w),          & w \leq 1/2,\, b = 0
+
+    In practice ~18 coefficients per panel reach 1e-13 over the whole
+    $(\alpha, \beta, \gamma)$ range of `ZhaoPotential`.
+
+    ``const`` is fixed by matching the two panels at $z = 1/2$, so the fit
+    needs no reference implementation beyond its own series.
+    """
+
+    a: float = eqx.field(static=True)
+    b: float = eqx.field(static=True)
+    const: float = eqx.field(static=True)
+    at_half: float = eqx.field(static=True)
+    """``B(a, b, 1/2)``, which the panel matching computes anyway."""
+    lo_coef: Float[np.ndarray, " n"]
+    hi_coef: Float[np.ndarray, " n"]
+
+    def __init__(self, a: float, b: float, n: int = 24) -> None:
+        a, b = float(a), float(b)
+        if a <= 0:
+            msg = f"`a` must be positive, got {a}."
+            raise ValueError(msg)
+        # b <= 0 is fine, and b == 0 has its own (log) branch, but the other
+        # non-positive integers need a log term this does not carry.
+        if b < 0 and b == int(b):
+            msg = (
+                f"b = {b} is a negative integer, where B(a, b, .) picks up a "
+                "logarithmic term this fit does not represent. Use "
+                "`ZhaoPotential` (the series form) for these indices."
+            )
+            raise ValueError(msg)
+
+        self.a, self.b = a, b
+        # numpy, not jax: the fit may run while a jit trace is active (the
+        # first call through a jitted method), and device arrays made there
+        # would be tracers. As numpy they are plain constants, which is also
+        # what we want them folded into the jaxpr as.
+        self.lo_coef = _chebfit(lambda z: _lo_target(a, b, z), n)
+        self.hi_coef = _chebfit(lambda w: _hi_target(a, b, w), n)
+
+        # Match the panels at z = w = 1/2, which fixes `const`.
+        half = 0.5**a * float(_lo_target(a, b, np.array(0.5))) / a
+        v_half = float(_hi_target(a, b, np.array(0.5)))
+        self.const = float(
+            half - np.log(2.0) + v_half if b == 0 else half + 0.5**b * v_half
+        )
+        self.at_half = float(half)
+
+    def __call__(self, z: gt.BBtSz0) -> gt.BBtFloatSz0:
+        """Evaluate B(a, b, z), for z in [0, 1].
+
+        Not jitted: every caller already is, and the coefficients are
+        constants that should fold into the caller's jaxpr.
+        """
+        z = jnp.asarray(z)
+        w = 1.0 - z
+        # Both panels are evaluated, so clamp each to its own domain; `where`
+        # then discards the extrapolated one.
+        z_lo = jnp.minimum(z, 0.5)
+        w_hi = jnp.minimum(w, 0.5)
+
+        lo = z_lo**self.a * _clenshaw(self.lo_coef, 4.0 * z_lo - 1.0) / self.a
+
+        v = _clenshaw(self.hi_coef, 4.0 * w_hi - 1.0)
+        hi = (
+            self.const - jnp.log(w_hi) - v
+            if self.b == 0
+            else self.const - w_hi**self.b * v
+        )
+        return jnp.where(z <= 0.5, lo, hi)  # type: ignore[no-any-return]

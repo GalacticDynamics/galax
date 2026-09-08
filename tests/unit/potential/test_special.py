@@ -12,7 +12,10 @@ from scipy.special import beta as scipy_beta, betainc as scipy_betainc, hyp2f1
 
 import quaxed.numpy as jnp
 
-from galax.potential._src.special import incomplete_beta
+from galax.potential._src.special import (
+    ChebyshevIncompleteBeta,
+    incomplete_beta,
+)
 
 # `a > 0` always (e.g. Zhao uses a = alpha*(3-gamma) or alpha*(beta-2)); `b` is
 # any real (b = alpha*(beta-3) <= 0 for the infinite-mass models, and
@@ -86,3 +89,45 @@ def test_second_derivative_composes() -> None:
     """`custom_jvp` (not `custom_vjp`) must survive `jacfwd(jacrev(...))`."""
     f = lambda zz: incomplete_beta(2.0, 1.5, zz)
     assert jnp.isfinite(jax.jacfwd(jax.jacrev(f))(jnp.asarray(0.3)))
+
+
+# ===================================================================
+# ChebyshevIncompleteBeta
+
+
+@pytest.mark.parametrize("a", AS)
+@pytest.mark.parametrize("b", [b for b in BS if not (b < 0 and b == int(b))])
+def test_chebyshev_matches_series(a: float, b: float) -> None:
+    """The fitted form must reproduce `incomplete_beta` over the whole range."""
+    z = jnp.asarray(np.concatenate([ZS, 1 - np.array(ZS)]))
+    got = ChebyshevIncompleteBeta(a, b, n=24)(z)
+    np.testing.assert_allclose(
+        np.asarray(got), np.asarray(incomplete_beta(a, b, z)), rtol=1e-11
+    )
+
+
+@pytest.mark.parametrize("n", [8, 16, 24, 32])
+def test_chebyshev_converges_with_coefficients(n: int) -> None:
+    """More coefficients must not make the fit worse."""
+    a, b = 1.62, 1.18
+    z = jnp.asarray(np.linspace(1e-6, 1 - 1e-6, 501))
+    ref = np.asarray(incomplete_beta(a, b, z))
+    got = np.asarray(ChebyshevIncompleteBeta(a, b, n=n)(z))
+    err = np.max(np.abs(got / ref - 1))
+    assert err < {8: 1e-4, 16: 1e-9, 24: 1e-12, 32: 1e-12}[n]
+
+
+def test_chebyshev_at_half_is_consistent() -> None:
+    """`at_half` must be the value the two panels are matched at."""
+    ch = ChebyshevIncompleteBeta(2.0, 1.3, n=24)
+    np.testing.assert_allclose(
+        ch.at_half, float(incomplete_beta(2.0, 1.3, jnp.asarray(0.5))), rtol=1e-12
+    )
+
+
+def test_chebyshev_rejects_unsupported_indices() -> None:
+    """`a <= 0` is outside the definition; negative-integer `b` needs a log term."""
+    with pytest.raises(ValueError, match="must be positive"):
+        ChebyshevIncompleteBeta(0.0, 1.0)
+    with pytest.raises(ValueError, match="negative integer"):
+        ChebyshevIncompleteBeta(2.0, -1.0)

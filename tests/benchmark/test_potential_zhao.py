@@ -12,6 +12,9 @@ and Poisson's equation) rather than by autodiff of `potential`, so they should
 cost no more than `potential` itself -- `laplacian` in particular is just
 `4 pi G rho` and so should track Plummer.
 
+`ZhaoInterp` is `InterpolatedZhaoPotential`: the same model with Eq. 43 fitted
+rather than summed, which should land near Plummer for every method.
+
 Everything is jitted internally (`AbstractSinglePotential` wraps `_potential`
 and friends in `jax.jit`), so each case is warmed up at import, below, and the
 timed body is a single call.
@@ -32,6 +35,15 @@ _xyz_all = jax.random.uniform(
 )
 _t = u.Quantity(0.0, "Myr")
 
+ZHAO_KW = {
+    "m": u.Quantity(1e12, "Msun"),
+    "r_s": u.Quantity(10.0, "kpc"),
+    "alpha": 1.0,
+    "beta": 4.0,
+    "gamma": 1.0,
+    "units": "galactic",
+}
+
 potentials = {
     "Zhao": gp.ZhaoPotential(
         m=u.Quantity(1e12, "Msun"),
@@ -41,6 +53,7 @@ potentials = {
         gamma=1.0,
         units="galactic",
     ),
+    "ZhaoInterp": gp.InterpolatedZhaoPotential(**ZHAO_KW),
     "Plummer": gp.PlummerPotential(
         m_tot=u.Quantity(1e12, "Msun"), r_s=u.Quantity(10.0, "kpc"), units="galactic"
     ),

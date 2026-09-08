@@ -49,11 +49,6 @@ dependencies = [
   "plum>=2.9.0; python_version >= '3.14'",
   "quax>=0.4.3",
   "quaxed>=0.10.5",
-  # Lower bound kept close to the present: tfp-nightly publishes daily
-  # dev-only builds (no stable releases), so a loose bound like `>=0.25.0`
-  # leaves resolvers hundreds of pre-release candidates to backtrack
-  # through, which can make `pip install` unreasonably slow or fail
-  # outright on older pip versions.
   "tfp-nightly[jax]>=0.26.0.dev20260601",
   "typing-extensions>=4.13.2",
   "unxt>=1.11.2,<2",

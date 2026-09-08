@@ -245,7 +245,7 @@ def _hyp2f1_small_argument() -> Callable[..., Any]:
         msg = (
             "`gNFWPotential` requires `tensorflow_probability` for its "
             "hypergeometric-function implementation. Install it with "
-            "`pip install tensorflow_probability` (or `tfp-nightly[jax]`)."
+            "`pip install tensorflow-probability[jax]` (or `tfp-nightly[jax]`)."
         )
         raise ImportError(msg) from e
     return tfp.math.hypergeometric.hyp2f1_small_argument  # type: ignore[no-any-return]

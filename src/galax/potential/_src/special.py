@@ -37,7 +37,24 @@ import quaxed.numpy as jnp
 import galax.potential.custom_types as gt
 
 _NTERMS = 64
-"""Series length. Both series below converge like 2^-k, so this is ~1e-19."""
+"""Series length. Both series below converge like 2^-k, so this is ~1e-19.
+
+Not worth trimming: measured over a in [0.2, 8], b in [-2.5, 6] and z up to
+1 - 1e-8, dropping to 48 terms costs an order of magnitude of accuracy at
+moderate `a` (5e-14 -> 6e-13) and 40 breaks the 1e-11 the tests assert, to
+save a fraction of a loop that `_UNROLL` already cut four-fold. Above
+a ~ 16 the error stops improving with term count at all -- it is cancellation
+between large alternating terms, not truncation -- so more terms would not
+help there either.
+"""
+
+_UNROLL = 16
+"""How far to unroll the series loops.
+
+Worth 4x: at 1e5 points the small-z series goes 10.0 ms -> 2.5 ms, for +0.1 s
+of compile time. Full unrolling (64) buys a further 15% for 2x the compile,
+and a trace-time Python loop is no faster than this while compiling worse.
+"""
 
 _POLE_BAND = 1e-3
 """Half-width of the band around `b + m == 0` where `_large_z` expands.
@@ -61,6 +78,11 @@ def _small_z(a: gt.Sz0, b: gt.Sz0, z: gt.BBtSz0) -> gt.BBtFloatSz0:
     Summed into a `jax.lax.scan` carry: the terms are batched over `z`, so
     materializing them all at once would cost a ``(*batch, 64)`` temporary and
     make this memory- rather than flop-bound.
+
+    `a`, `b` and `z` are closed over rather than carried. Threading them
+    through the carry (or `xs`) instead measures the same to within noise and
+    returns bit-identical values -- JAX turns a closed-over tracer into a
+    constant of the scan's jaxpr, so there is nothing there to hoist.
     """
 
     def step(
@@ -71,7 +93,7 @@ def _small_z(a: gt.Sz0, b: gt.Sz0, z: gt.BBtSz0) -> gt.BBtFloatSz0:
         return (total, z_pow * z, coeff * (k + 1.0 - b) / (k + 1.0)), None
 
     init = (jnp.zeros_like(z), jnp.ones_like(z), jnp.ones_like(a))
-    (total, _, _), _ = jax.lax.scan(step, init, jnp.arange(_NTERMS))
+    (total, _, _), _ = jax.lax.scan(step, init, jnp.arange(_NTERMS), unroll=_UNROLL)
     return z**a * total  # type: ignore[no-any-return]
 
 
@@ -143,8 +165,12 @@ def _large_z(a: gt.Sz0, b: gt.Sz0, z: gt.BBtSz0) -> gt.BBtFloatSz0:
         carry = (total, w_pow * w, half_pow * 0.5, coeff * (m + 1.0 - a) / (m + 1.0))
         return carry, None
 
+    # `_small_z(a, b, 1/2)` below looks like a scalar being recomputed per
+    # point, but computing it as a scalar and broadcasting is *slower*: XLA
+    # already folds the constant-array input, and doing it by hand breaks the
+    # fusion (measured 0.80x).
     init = (jnp.zeros_like(w), w**b, 0.5**b, jnp.ones_like(a))
-    (total, _, _, _), _ = jax.lax.scan(step, init, jnp.arange(_NTERMS))
+    (total, _, _, _), _ = jax.lax.scan(step, init, jnp.arange(_NTERMS), unroll=_UNROLL)
     return _small_z(a, b, jnp.full_like(w, 0.5)) + total  # type: ignore[no-any-return]
 
 

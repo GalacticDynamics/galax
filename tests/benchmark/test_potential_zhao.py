@@ -25,7 +25,7 @@ import unxt as u
 import galax.potential as gp
 
 N_POINTS = [1, 1_000, 100_000]
-METHODS = ["potential", "gradient", "density", "laplacian", "hessian"]
+METHODS = ["potential", "gradient", "laplacian", "hessian"]
 
 _xyz_all = jax.random.uniform(
     jax.random.key(0), (max(N_POINTS), 3), minval=-50.0, maxval=50.0

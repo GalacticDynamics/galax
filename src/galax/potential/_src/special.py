@@ -42,10 +42,8 @@ _NTERMS = 64
 _POLE_BAND = 1e-3
 """Half-width of the band around `b + m == 0` where `_large_z` expands.
 
-Wide enough that the direct form's cancellation there is still ~1e-13
-relative, narrow enough that the 4-term expansion's truncation error,
-O(s^4 L^5 / 120), is negligible over the range of `L = log(1-z)` reached in
-practice.
+Below this the direct form cancels; above it the expansion's O(s^4 L^5)
+truncation shows, for `L = log(1-z)`.
 """
 
 

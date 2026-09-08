@@ -5,6 +5,7 @@ __all__ = [
     "io",
     "params",
     "plot",
+    "scf",
     # ABCs
     "AbstractPotential",
     "AbstractSinglePotential",
@@ -47,6 +48,7 @@ __all__ = [
     "HardCutoffNFWPotential",
     "gNFWPotential",
     "ZhaoPotential",
+    "SCFPotential",
     # Pre-composited
     "AbstractPreCompositedPotential",
     "BovyMWPotential2014",
@@ -76,7 +78,7 @@ __all__ = [
 from .setup_package import install_import_hook, load_interop_plugins
 
 with install_import_hook("galax.potential"):
-    from . import io, params, plot
+    from . import io, params, plot, scf
     from ._src.api import (
         acceleration,
         d2potential_dr2,
@@ -129,6 +131,7 @@ with install_import_hook("galax.potential"):
         PlummerPotential,
         PowerLawCutoffPotential,
         SatohPotential,
+        SCFPotential,
         StoneOstriker15Potential,
         TriaxialGaussianPotential,
         TriaxialHernquistPotential,

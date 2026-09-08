@@ -1,16 +1,31 @@
 """Self-Consistent Field basis functions."""
 
-__all__ = ["phi_nl", "rho_nl"]
+__all__ = ["SCFPotential", "phi_nl", "rho_nl"]
 
 import functools as ft
+from dataclasses import KW_ONLY
 
 from jaxtyping import Array, Float
+from typing import final
 
+import equinox as eqx
 import jax
 
 import quaxed.numpy as jnp
+import unxt as u
+from unxt.quantity import AllowValue
+from xmmutablemap import ImmutableMap
 
+import galax.potential.custom_types as gt
 from .gegenbauer import gegenbauer_all
+from galax.potential._src.base import default_constants
+from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.builtin.multipole import (
+    cartesian_to_normalized_spherical,
+    compute_Ylm,
+)
+from galax.potential._src.params.base import AbstractParameter
+from galax.potential._src.params.field import ParameterField
 
 SQRT_FOURPI = 3.544907701811031
 """``sqrt(4 * pi)``, matching the literal in gala's ``bfe_helper.cpp``."""
@@ -82,3 +97,124 @@ def rho_nl(
     knl = 0.5 * n * (n + 4 * l + 3) + (l + 1) * (2 * l + 1)
     prefactor = SQRT_FOURPI * (knl / (2 * jnp.pi)) * s**l / (s * (1 + s) ** (2 * l + 3))
     return prefactor * cn  # type: ignore[no-any-return]
+
+
+@final
+class SCFPotential(AbstractSinglePotential):
+    r"""Self-Consistent Field (SCF) basis function expansion potential.
+
+    The method of Hernquist & Ostriker (1992) and Lowing et al. (2011), with
+    all coefficients real.
+
+    $$ \Phi(r,\theta,\phi) = \frac{G M}{r_s} \sum_{nlm} \phi_{nl}(s)
+       \left[ S_{nlm} \Re Y_l^m + T_{nlm} \Im Y_l^m \right] $$
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.potential as gp
+
+    The monopole term alone is the Hernquist potential:
+
+    >>> Snlm = jnp.zeros((1, 1, 1)).at[0, 0, 0].set(1.0)
+    >>> pot = gp.SCFPotential(m_tot=u.Q(1e12, "Msun"), r_s=u.Q(10.0, "kpc"),
+    ...                       Snlm=Snlm, Tnlm=jnp.zeros_like(Snlm),
+    ...                       units="galactic")
+    >>> pot.nmax, pot.lmax
+    (0, 0)
+
+    """
+
+    m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="mass", doc="Scale mass."
+    )
+    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="length", doc="Scale radius."
+    )
+    Snlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Expansion coefficients for the $\cos(m\phi)$ terms, shape "
+        r"``(nmax+1, lmax+1, lmax+1)``.",
+    )
+    Tnlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
+        dimensions="dimensionless",
+        doc=r"Expansion coefficients for the $\sin(m\phi)$ terms, shape "
+        r"``(nmax+1, lmax+1, lmax+1)``.",
+    )
+
+    _: KW_ONLY
+    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
+    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
+        default=default_constants, converter=ImmutableMap
+    )
+
+    nmax: int = eqx.field(init=False, static=True, repr=False)
+    lmax: int = eqx.field(init=False, static=True, repr=False)
+
+    def __post_init__(self) -> None:
+        # NOTE: must call super() -- it applies the unit system. (Do not copy
+        # nfw/triaxial.py's __post_init__, which omits this.)
+        super().__post_init__()
+        shape = self.Snlm(u.Q(0.0, "Gyr")).shape
+        object.__setattr__(self, "nmax", shape[0] - 1)
+        object.__setattr__(self, "lmax", shape[1] - 1)
+
+    def __check_init__(self) -> None:
+        s_shape = self.Snlm(u.Q(0.0, "Gyr")).shape
+        t_shape = self.Tnlm(u.Q(0.0, "Gyr")).shape
+        if s_shape != t_shape:
+            msg = (
+                "Snlm and Tnlm must have the same shape. "
+                f"Got {s_shape} and {t_shape}."
+            )
+            raise ValueError(msg)
+        if len(s_shape) != 3 or s_shape[1] != s_shape[2]:
+            msg = (
+                "Snlm and Tnlm must have shape (nmax+1, lmax+1, lmax+1). "
+                f"Got {s_shape}."
+            )
+            raise ValueError(msg)
+
+    # ==========================================================================
+
+    def _angular(
+        self, theta: gt.BtFloatSz0, phi: gt.BtFloatSz0, /
+    ) -> tuple[gt.BtFloatSz0, gt.BtFloatSz0]:
+        """Real and imaginary ``Y_l^m`` on the full ``(l, m)`` grid."""
+        lmax = self.lmax
+        batch = jnp.shape(theta)
+        ls, ms = jnp.tril_indices(lmax + 1)
+        cY, sY = jax.vmap(lambda l, m: compute_Ylm(l, m, theta, phi, l_max=lmax))(
+            ls, ms
+        )
+        if batch == ():
+            # `compute_Ylm`'s internal `atleast_1d` leaves a spurious size-1
+            # trailing axis when `theta`/`phi` are scalar; drop it.
+            cY, sY = cY[..., 0], sY[..., 0]
+        shape = (lmax + 1, lmax + 1, *batch)
+        return (
+            jnp.zeros(shape).at[ls, ms].set(cY),
+            jnp.zeros(shape).at[ls, ms].set(sY),
+        )
+
+    @ft.partial(jax.jit)
+    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.Q.from_(t, self.units["time"])
+
+        ud = self.units["dimensionless"]
+        m_tot = self.m_tot(t, ustrip=self.units["mass"])
+        r_s = self.r_s(t, ustrip=self.units["length"])
+        Snlm = self.Snlm(t, ustrip=ud)
+        Tnlm = self.Tnlm(t, ustrip=ud)
+
+        s, theta, phi = cartesian_to_normalized_spherical(xyz, r_s)
+        phinl = phi_nl(self.nmax, self.lmax, s)
+        cY, sY = self._angular(theta, phi)
+
+        summation = jnp.einsum("nlm,nl...,lm...->...", Snlm, phinl, cY) + jnp.einsum(
+            "nlm,nl...,lm...->...", Tnlm, phinl, sY
+        )
+
+        return self.constants["G"].value * m_tot / r_s * summation  # type: ignore[no-any-return]

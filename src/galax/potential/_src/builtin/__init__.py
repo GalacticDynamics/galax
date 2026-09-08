@@ -25,5 +25,6 @@ from .null import *
 from .plummer import *
 from .powerlawcutoff import *
 from .satoh import *
+from .scf import *
 from .stoneostriker15 import *
 from .zhao import *

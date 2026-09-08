@@ -179,3 +179,17 @@ jobs:
           run:
             uv run pytest tests/benchmark --codspeed -W
             "ignore:Signature:UserWarning"
+
+  status:
+    name: CI Pass
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+    needs: [pre-commit, smoke, checks, check_interop, benchmark]
+    steps:
+      - name: All required jobs passed
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
+        with:
+          jobs: ${{ toJSON(needs) }}
+          # benchmark only runs on workflow_dispatch / the run-benchmarks label /
+          # push to main (see its `if:`), so it's intentionally skipped on most PRs.
+          allowed-skips: benchmark

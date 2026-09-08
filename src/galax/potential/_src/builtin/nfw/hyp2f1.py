@@ -32,6 +32,7 @@ import functools as ft
 
 import jax
 import jax.numpy as jnp
+import jax.scipy.special as jsp
 from jax.custom_derivatives import SymbolicZero
 
 import galax.potential.custom_types as gt
@@ -100,7 +101,7 @@ def _Bz0_log_series(a: gt.FloatSz0, z: gt.BBtFloatSz0, n: int = 60) -> gt.BBtFlo
 
     (_, _), terms = jax.lax.scan(accumulate_term, (1 - a, w), jnp.arange(n - 1.0))
     series_sum = (1 - a) * w + jnp.sum(terms)
-    return -_EULER_GAMMA - jax.scipy.special.digamma(a) - series_sum - jnp.log(w)
+    return -_EULER_GAMMA - jsp.digamma(a) - series_sum - jnp.log(w)
 
 
 def _Bz_b_eq_0(a: gt.FloatSz0, z: gt.BBtFloatSz0) -> gt.BBtFloatSz0:

@@ -47,6 +47,7 @@ __all__ = [
     "HardCutoffNFWPotential",
     "gNFWPotential",
     "ZhaoPotential",
+    "InterpolatedZhaoPotential",
     # Pre-composited
     "AbstractPreCompositedPotential",
     "BovyMWPotential2014",
@@ -106,6 +107,7 @@ with install_import_hook("galax.potential"):
         HarmonicOscillatorPotential,
         HenonHeilesPotential,
         HernquistPotential,
+        InterpolatedZhaoPotential,
         IsochronePotential,
         JaffePotential,
         KeplerPotential,

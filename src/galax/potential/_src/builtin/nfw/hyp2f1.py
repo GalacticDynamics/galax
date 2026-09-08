@@ -66,9 +66,13 @@ def _Bz0_taylor_series(
 
     $$ B_z(a, 0) = \int_0^z \frac{t^{a-1}}{1-t}\,dt
     = \sum_{k=0}^\infty \frac{z^{a+k}}{a+k} $$
+
+    `z` may be batched (`a` is always a scalar); the series index gets its
+    own trailing axis so it doesn't get folded into `z`'s batch shape.
     """
     k = jnp.arange(n)
-    return jnp.sum(z ** (a + k) / (a + k))
+    terms = z[..., None] ** (a + k) / (a + k)
+    return jnp.sum(terms, axis=-1)
 
 
 def _Bz0_log_series(a: gt.FloatSz0, z: gt.BBtFloatSz0, n: int = 60) -> gt.BBtFloatSz0:
@@ -88,19 +92,23 @@ def _Bz0_log_series(a: gt.FloatSz0, z: gt.BBtFloatSz0, n: int = 60) -> gt.BBtFlo
     integral $\psi(a) = -\gamma_E + \int_0^1\frac{1-t^{a-1}}{1-t}dt$. Verified
     numerically against direct quadrature to ~1e-11 for $a \in (0, 4]$,
     $z \in [0, 1)$ up to $z = 1 - 10^{-7}$.
+
+    `z` may be batched (`a` is always a scalar); `jax.lax.scan` stacks each
+    step's (batch-shaped) term along a new leading axis, so the sum over
+    scan steps must be over `axis=0`, not a full reduction.
     """
     w = 1 - z
 
     def accumulate_term(
-        carry: tuple[gt.BBtFloatSz0, gt.BBtFloatSz0], m: gt.Sz0
-    ) -> tuple[tuple[gt.BBtFloatSz0, gt.BBtFloatSz0], gt.BBtFloatSz0]:
+        carry: tuple[gt.FloatSz0, gt.BBtFloatSz0], m: gt.Sz0
+    ) -> tuple[tuple[gt.FloatSz0, gt.BBtFloatSz0], gt.BBtFloatSz0]:
         coeff, w_power = carry
         coeff = coeff * (m + 2 - a) * (m + 1) / (m + 2) ** 2
         w_power = w_power * w
         return (coeff, w_power), coeff * w_power
 
     (_, _), terms = jax.lax.scan(accumulate_term, (1 - a, w), jnp.arange(n - 1.0))
-    series_sum = (1 - a) * w + jnp.sum(terms)
+    series_sum = (1 - a) * w + jnp.sum(terms, axis=0)
     return -_EULER_GAMMA - jsp.digamma(a) - series_sum - jnp.log(w)
 
 

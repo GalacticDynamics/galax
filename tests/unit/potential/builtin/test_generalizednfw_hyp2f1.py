@@ -134,3 +134,31 @@ def test_bz_from_hyp2f1_custom_jvp_matches_plain_autodiff(
     grad_plain = jax.grad(plain, argnums=(0, 1, 2))(a_, b_, z_)
     for gc, gp_ in zip(grad_custom, grad_plain, strict=True):
         assert float(gc) == pytest.approx(float(gp_), abs=1e-6)
+
+
+@pytest.mark.parametrize("gamma", GAMMAS)
+def test_bz_from_hyp2f1_batched_z_matches_looped(gamma: float) -> None:
+    """`Bz_from_hyp2f1` must handle batched `z`.
+
+    `_Bz0_taylor_series` summed over *all* axes instead of just the series
+    index, and `_Bz0_log_series` summed `jax.lax.scan`'s stacked output over
+    the wrong axis -- both silently assumed `z` was a scalar. This crashed
+    (or, worse, could silently miscompute) any batched evaluation, e.g.
+    `gNFWPotential.potential()` on more than one position at once.
+    """
+    a = jnp.asarray(3.0 - gamma)  # matches mass_enclosed's b=0 call pattern
+    z = jnp.array([0.1, 0.3, 0.5, 0.6, 0.8, 0.95, 0.999])  # spans both series
+
+    batched = Bz_from_hyp2f1(a, jnp.asarray(0.0), z)
+    looped = jnp.array([Bz_from_hyp2f1(a, jnp.asarray(0.0), zi) for zi in z])
+    assert jnp.allclose(batched, looped, atol=1e-10)
+
+
+def test_potential_batched_positions_matches_looped() -> None:
+    """`gNFWPotential.potential()` must handle multiple positions at once."""
+    pot = gp.gNFWPotential(m=1e12, r_s=1, gamma=1.3, units="galactic")
+    xs = jnp.array([[3.0, 0, 0], [5.0, 0, 0], [8.0, 0, 0], [20.0, 0, 0], [100.0, 0, 0]])
+
+    batched = pot.potential(xs, t=0)
+    looped = jnp.array([pot.potential(x, t=0) for x in xs])
+    assert jnp.allclose(batched, looped, atol=1e-10)

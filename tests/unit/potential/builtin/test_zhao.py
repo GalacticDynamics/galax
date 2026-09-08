@@ -5,12 +5,11 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.potential as gp
+import galax.potential.custom_types as gt
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMMixin, ParameterRSMixin
-from galax.potential._src.builtin.zhao import ZhaoPotential
 
 
 class AlphaParameterMixin(ParameterFieldMixin):
@@ -105,8 +104,8 @@ class TestZhaoPotential(
     HAS_GALA_COUNTERPART: ClassVar[bool] = False
 
     @pytest.fixture(scope="class")
-    def pot_cls(self) -> type[ZhaoPotential]:
-        return ZhaoPotential
+    def pot_cls(self) -> type[gp.ZhaoPotential]:
+        return gp.ZhaoPotential
 
     @pytest.fixture(scope="class")
     def fields_(
@@ -129,24 +128,24 @@ class TestZhaoPotential(
 
     # ==========================================================================
 
-    def test_potential(self, pot: ZhaoPotential, x: gt.QuSz3) -> None:
+    def test_potential(self, pot: gp.ZhaoPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(-2.83144346, unit="kpc2 / Myr2")
         assert jnp.isclose(
             pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_gradient(self, pot: ZhaoPotential, x: gt.QuSz3) -> None:
+    def test_gradient(self, pot: gp.ZhaoPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity([0.1758548, 0.35170961, 0.52756441], "kpc / Myr2")
         got = pot.gradient(x, t=0)
         assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
 
-    def test_density(self, pot: ZhaoPotential, x: gt.QuSz3) -> None:
+    def test_density(self, pot: gp.ZhaoPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(8.93719599e08, "solMass / kpc3")
         assert jnp.isclose(
             pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
         )
 
-    def test_hessian(self, pot: ZhaoPotential, x: gt.QuSz3) -> None:
+    def test_hessian(self, pot: gp.ZhaoPotential, x: gt.QuSz3) -> None:
         expect = u.Quantity(
             [
                 [0.14178033, -0.06814894, -0.10222341],

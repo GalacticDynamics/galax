@@ -192,7 +192,7 @@ class RigidMWandLMCField(AbstractField):
         raise NotImplementedError  # pragma: no cover
 
     @override
-    @AbstractField.parse_inputs.dispatch  # type: ignore[misc,union-attr]
+    @AbstractField.parse_inputs.dispatch
     def parse_inputs(  # type: ignore[override]
         self: "RigidMWandLMCField",
         t0: gt.LikeSz0 | gt.QuSz0,

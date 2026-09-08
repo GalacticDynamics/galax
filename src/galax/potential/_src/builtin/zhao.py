@@ -30,7 +30,6 @@ from xmmutablemap import ImmutableMap
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
-from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.special import incomplete_beta
@@ -120,12 +119,14 @@ class ZhaoPotential(AbstractSinglePotential):
         r = r_spherical(xyz, self.units["length"])
         return laplacian(self._params(t), r)  # type: ignore[no-any-return]
 
-    @vectorize_method(signature="(3),()->(3,3)")
     @ft.partial(jax.jit)
-    def _hessian(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
-    ) -> gt.Sz33:
-        """Analytic, from the radial derivatives; see `hessian`."""
+    def _hessian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz33:
+        """Analytic, from the radial derivatives; see `hessian`.
+
+        No `vectorize_method`: unlike an autodiff hessian, `hessian` below is
+        already batch-native, and wrapping it in the per-point vectorize costs
+        ~15%.
+        """
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         return hessian(self._params(t), xyz)  # type: ignore[no-any-return]
 

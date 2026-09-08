@@ -45,39 +45,28 @@ class TestSatohPotential(
         expect = u.Q(-0.97415472, unit="kpc2 / Myr2")
         assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/satoh", atol=1e-8
+    )
     def test_gradient(self, pot: gp.SatohPotential, x: gt.QuSz3) -> None:
-        expect = u.Q([0.0456823, 0.0913646, 0.18038493], "kpc / Myr2")
-        got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
+        return pot.gradient(x, t=0).ustrip(pot.units["acceleration"])
 
     def test_density(self, pot: gp.SatohPotential, x: gt.QuSz3) -> None:
         expect = u.Q(1.08825455e08, "solMass / kpc3")
         assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/satoh", atol=1e-8
+    )
     def test_hessian(self, pot: gp.SatohPotential, x: gt.QuSz3) -> None:
-        expect = u.Q(
-            [
-                [0.03925558, -0.01285344, -0.02537707],
-                [-0.01285344, 0.01997543, -0.05075415],
-                [-0.02537707, -0.05075415, -0.05307912],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
+        return pot.hessian(x, t=0).ustrip("1/Myr2")
 
     # ---------------------------------
     # Convenience methods
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/satoh", atol=1e-8
+    )
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Q(
-            [
-                [0.03720495, -0.01285344, -0.02537707],
-                [-0.01285344, 0.0179248, -0.05075415],
-                [-0.02537707, -0.05075415, -0.05512975],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
-        )
+        return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")

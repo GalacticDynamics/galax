@@ -83,39 +83,28 @@ class TestLongMuraliBarPotential(
         expect = u.Q(-0.9494695, unit="kpc2 / Myr2")
         assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/longmuralibar", atol=1e-8
+    )
     def test_gradient(self, pot: gp.LongMuraliBarPotential, x: gt.QuSz3) -> None:
-        expect = u.Q([0.04017315, 0.08220449, 0.16854858], "kpc / Myr2")
-        got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
+        return pot.gradient(x, t=0).ustrip(pot.units["acceleration"])
 
     def test_density(self, pot: gp.LongMuraliBarPotential, x: gt.QuSz3) -> None:
         expect = u.Q(2.02402357e08, "solMass / kpc3")
         assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/longmuralibar", atol=1e-8
+    )
     def test_hessian(self, pot: gp.LongMuraliBarPotential, x: gt.QuSz3) -> None:
-        expect = u.Q(
-            [
-                [0.03722412, -0.01077521, -0.02078279],
-                [-0.01077521, 0.02101076, -0.04320745],
-                [-0.02078279, -0.04320745, -0.0467931],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
+        return pot.hessian(x, t=0).ustrip("1/Myr2")
 
     # ---------------------------------
     # Convenience methods
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/longmuralibar", atol=1e-8
+    )
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Q(
-            [
-                [0.0334102, -0.01077521, -0.02078279],
-                [-0.01077521, 0.01719683, -0.04320745],
-                [-0.02078279, -0.04320745, -0.05060703],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
-        )
+        return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")

@@ -43,42 +43,31 @@ class TestMilkyWayPotential(AbstractSpecialCompositePotential_Test):
         expect = u.Q(-0.19386052, pot.units["specific energy"])
         assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/milkywaypotential", atol=1e-8
+    )
     def test_gradient(self, pot: gp.MilkyWayPotential, x: gt.QuSz3) -> None:
         """Test the :meth:`MilkyWayPotential.gradient` method."""
-        expect = u.Q([0.00256407, 0.00512815, 0.01115285], pot.units["acceleration"])
-        got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
+        return pot.gradient(x, t=0).ustrip(pot.units["acceleration"])
 
     def test_density(self, pot: gp.MilkyWayPotential, x: gt.QuSz3) -> None:
         """Test the :meth:`MilkyWayPotential.density` method."""
         expect = u.Q(33_365_858.46361218, pot.units["mass density"])
         assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/milkywaypotential", atol=1e-8
+    )
     def test_hessian(self, pot: gp.MilkyWayPotential, x: gt.QuSz3) -> None:
         """Test the :meth:`MilkyWayPotential.hessian` method."""
-        expect = u.Q(
-            [
-                [0.00231057, -0.000507, -0.00101276],
-                [-0.000507, 0.00155007, -0.00202552],
-                [-0.00101276, -0.00202552, -0.00197448],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
+        return pot.hessian(x, t=0).ustrip("1/Myr2")
 
     # ---------------------------------
     # Convenience methods
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/milkywaypotential", atol=1e-8
+    )
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Q(
-            [
-                [0.00168185, -0.000507, -0.00101276],
-                [-0.000507, 0.00092135, -0.00202552],
-                [-0.00101276, -0.00202552, -0.0026032],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
-        )
+        return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")

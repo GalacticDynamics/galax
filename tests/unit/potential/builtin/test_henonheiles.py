@@ -106,29 +106,29 @@ class TestHenonHeilesPotential(
         exp = u.Q(1.83333333, unit="kpc2 / Myr2")
         assert jnp.isclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/henonheiles", atol=1e-8
+    )
     def test_gradient(self, pot: gp.HenonHeilesPotential, x: gt.Sz3) -> None:
-        got = pot.gradient(x, t=0)
-        exp = u.Q([5.0, -1, 0], "kpc / Myr2")
-        assert jnp.allclose(got, exp, atol=u.Q(1e-8, exp.unit))
+        return pot.gradient(x, t=0).ustrip(pot.units["acceleration"])
 
     def test_density(self, pot: gp.HenonHeilesPotential, x: gt.Sz3) -> None:
         got = pot.density(x, t=0)
         exp = u.Q(3.53795414e10, "solMass / kpc3")
         assert jnp.isclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/henonheiles", atol=1e-8
+    )
     def test_hessian(self, pot: gp.HenonHeilesPotential, x: gt.Sz3) -> None:
-        got = pot.hessian(x, t=0)
-        exp = u.Q([[5.0, 2.0, 0.0], [2.0, -3.0, 0.0], [0.0, 0.0, 0.0]], "1/Myr2")
-        assert jnp.allclose(got, exp, atol=u.Q(1e-8, exp.unit))
+        return pot.hessian(x, t=0).ustrip("1/Myr2")
 
     # ---------------------------------
     # Convenience methods
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/henonheiles", atol=1e-8
+    )
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        got = pot.tidal_tensor(x, t=0)
-        exp = u.Q(
-            [[4.33333333, 2.0, 0.0], [2.0, -3.66666667, 0.0], [0.0, 0.0, -0.66666667]],
-            "1/Myr2",
-        )
-        assert jnp.allclose(got, exp, atol=u.Q(1e-8, exp.unit))
+        return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")

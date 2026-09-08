@@ -73,6 +73,11 @@ class StoneOstriker15Potential(AbstractSinglePotential):
         return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
+    def _laplacian(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
+        # Poisson's equation: faster than trace(hessian(potential)).
+        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
+
+    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
         # Parse inputs
         ul = self.units["length"]

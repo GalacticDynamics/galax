@@ -141,6 +141,13 @@ class gNFWPotential(AbstractSinglePotential):
         return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
+    def _laplacian(  # TODO: inputs w/ units
+        self, xyz: gt.Sz3, t: gt.Sz0, /
+    ) -> gt.Sz0:
+        # Poisson's equation: faster than trace(hessian(potential)).
+        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
+
+    @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.Sz3, t: gt.Sz0, /
     ) -> gt.Sz0:

@@ -228,3 +228,9 @@ class TriaxialNFWPotential(AbstractSinglePotential):
 
         dens = rho0 / xi / (1.0 + xi) ** 2
         return dens.ustrip(self.units["mass density"])  # type: ignore[no-any-return]
+
+    @ft.partial(jax.jit)
+    def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
+        # Poisson's equation: faster (and exact) vs. differentiating twice
+        # through the numerically-integrated `_potential`.
+        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]

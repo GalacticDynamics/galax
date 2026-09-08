@@ -137,6 +137,11 @@ class AbstractMN3Potential(AbstractSinglePotential):
         )
         return jnp.sum(densities, axis=0)  # type: ignore[no-any-return]
 
+    @ft.partial(jax.jit)
+    def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
+        # Poisson's equation: faster than trace(hessian(potential)).
+        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
+
 
 @final
 class MN3ExponentialPotential(AbstractMN3Potential):

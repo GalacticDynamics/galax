@@ -121,6 +121,11 @@ class NFWPotential(AbstractSinglePotential):
         return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
+    def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
+        # Poisson's equation: faster than trace(hessian(potential)).
+        return 4 * jnp.pi * self.constants["G"].value * self._density(xyz, t)  # type: ignore[no-any-return]
+
+    @ft.partial(jax.jit)
     def _mass_enclosed(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r"""Enclosed mass.
 

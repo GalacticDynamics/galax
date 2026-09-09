@@ -144,15 +144,21 @@ def test_compute_ylm_matches_condon_shortley_phase() -> None:
     """`compute_Ylm` must carry the same CS phase as `lpmv`-based `sphPlm`.
 
     This is the cheap, localized check: if it fails, the bug is in
-    `compute_Ylm`/`sph_harm_y`, not in `SCFPotential`'s assembly of terms.
+    `compute_Ylm`, not in `SCFPotential`'s assembly of terms.
     """
-    theta = jnp.asarray([0.3, 1.1, 2.0])
-    phi = jnp.asarray([0.4, -1.2, 2.7])
-    big_x = np.cos(np.asarray(theta))
-    phi_np = np.asarray(phi)
+    theta = np.asarray([0.3, 1.1, 2.0])
+    phi_np = np.asarray([0.4, -1.2, 2.7])
+    big_x = np.cos(theta)
+    # `compute_Ylm` takes a Cartesian unit direction, not (theta, phi).
+    uvec = jnp.asarray(
+        np.stack(
+            [np.sin(theta) * np.cos(phi_np), np.sin(theta) * np.sin(phi_np), big_x],
+            axis=-1,
+        )
+    )
 
     for l, m in [(1, 1), (2, 1), (2, 2), (3, 2), (3, 3)]:
-        cY, sY = compute_Ylm(l, m, theta, phi, l_max=3)
+        cY, sY = compute_Ylm(l, m, uvec)
         ref = np.array([_ref_sphPlm(l, m, x) for x in big_x])
         assert jnp.allclose(cY, ref * np.cos(m * phi_np), rtol=1e-10)
         assert jnp.allclose(sY, ref * np.sin(m * phi_np), rtol=1e-10)
@@ -265,14 +271,14 @@ def _quadrupole() -> gp.SCFPotential:
 @pytest.mark.parametrize("method", ["potential", "gradient", "density", "hessian"])
 def test_finite_on_coordinate_singularities(request, name, xyz, method) -> None:
     """Value and derivatives stay finite at r=0 and along the z-axis."""
-    if name == "origin" and method in ("gradient", "hessian"):
+    if name == "origin" and method == "hessian":
         request.applymarker(
             pytest.mark.xfail(
-                reason="d|q|/dq is 0/0 at the origin. Catching it needs a "
-                "`jnp.where` on `vector_norm`'s input, and any select that "
-                "intercepts q's cotangent perturbs the higher-derivative "
-                "graph enough to break MultipoleOuterPotential's exactly-zero "
-                "density. See cartesian_to_normalized_spherical.",
+                reason="The second derivative of |q| at the origin is still "
+                "0/0 even with `safe_vector_norm`'s floor: the first "
+                "derivative is finite but discontinuous there. The value, "
+                "density and gradient are all finite; only the hessian is "
+                "not. See `scaled_radius_and_direction`.",
             )
         )
 

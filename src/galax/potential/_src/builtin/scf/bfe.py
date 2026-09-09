@@ -21,8 +21,8 @@ from .gegenbauer import gegenbauer_all
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.builtin.multipole import (
-    cartesian_to_normalized_spherical,
-    compute_Ylm,
+    iter_Ylm,
+    scaled_radius_and_direction,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -178,21 +178,15 @@ class SCFPotential(AbstractSinglePotential):
 
     # ==========================================================================
 
-    def _angular(
-        self, theta: gt.BtFloatSz0, phi: gt.BtFloatSz0, /
-    ) -> tuple[gt.BtFloatSz0, gt.BtFloatSz0]:
+    def _angular(self, uvec: gt.BtSz3, /) -> tuple[gt.BtFloatSz0, gt.BtFloatSz0]:
         """Real and imaginary ``Y_l^m`` on the full ``(l, m)`` grid."""
         lmax = self.lmax
-        batch = jnp.shape(theta)
-        ls, ms = jnp.tril_indices(lmax + 1)
-        cY, sY = jax.vmap(lambda l, m: compute_Ylm(l, m, theta, phi, l_max=lmax))(
-            ls, ms
-        )
-        shape = (lmax + 1, lmax + 1, *batch)
-        return (
-            jnp.zeros(shape).at[ls, ms].set(cY),
-            jnp.zeros(shape).at[ls, ms].set(sY),
-        )
+        shape = (lmax + 1, lmax + 1, *jnp.shape(uvec)[:-1])
+        cgrid, sgrid = jnp.zeros(shape), jnp.zeros(shape)
+        for l, m, cY, sY in iter_Ylm(lmax, uvec):
+            cgrid = cgrid.at[l, m].set(cY)
+            sgrid = sgrid.at[l, m].set(sY)
+        return cgrid, sgrid
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
@@ -205,9 +199,9 @@ class SCFPotential(AbstractSinglePotential):
         Snlm = self.Snlm(t, ustrip=ud)
         Tnlm = self.Tnlm(t, ustrip=ud)
 
-        s, theta, phi = cartesian_to_normalized_spherical(xyz, r_s)
+        s, uvec = scaled_radius_and_direction(xyz, r_s)
         phinl = phi_nl(self.nmax, self.lmax, s)
-        cY, sY = self._angular(theta, phi)
+        cY, sY = self._angular(uvec)
 
         summation = jnp.einsum("nlm,nl...,lm...->...", Snlm, phinl, cY) + jnp.einsum(
             "nlm,nl...,lm...->...", Tnlm, phinl, sY
@@ -226,9 +220,9 @@ class SCFPotential(AbstractSinglePotential):
         Snlm = self.Snlm(t, ustrip=ud)
         Tnlm = self.Tnlm(t, ustrip=ud)
 
-        s, theta, phi = cartesian_to_normalized_spherical(xyz, r_s)
+        s, uvec = scaled_radius_and_direction(xyz, r_s)
         rhonl = rho_nl(self.nmax, self.lmax, s)
-        cY, sY = self._angular(theta, phi)
+        cY, sY = self._angular(uvec)
 
         summation = jnp.einsum("nlm,nl...,lm...->...", Snlm, rhonl, cY) + jnp.einsum(
             "nlm,nl...,lm...->...", Tnlm, rhonl, sY

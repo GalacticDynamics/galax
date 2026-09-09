@@ -15,8 +15,8 @@ from unxt.quantity import AllowValue
 
 from .bfe import phi_nl
 from galax.potential._src.builtin.multipole import (
-    cartesian_to_normalized_spherical,
-    compute_Ylm,
+    iter_Ylm,
+    scaled_radius_and_direction,
 )
 
 
@@ -72,17 +72,17 @@ def compute_coeffs_discrete(
     umass = getattr(mass, "unit", None)
     mass = jnp.asarray(u.ustrip(AllowValue, umass, mass) if umass else mass)
 
-    s, theta, phi = cartesian_to_normalized_spherical(xyz, r_s)
+    s, uvec = scaled_radius_and_direction(xyz, r_s)
 
     # shape: nmax+1 by lmax+1 by N
     phinl = phi_nl(nmax, lmax, s)
 
     # Angular part on the full (l, m) grid: (lmax+1, lmax+1, N)
-    ls, ms = jnp.tril_indices(lmax + 1)
-    cY, sY = jax.vmap(lambda l, m: compute_Ylm(l, m, theta, phi, l_max=lmax))(ls, ms)
     shape = (lmax + 1, lmax + 1, len(s))
-    cYg = jnp.zeros(shape).at[ls, ms].set(cY)
-    sYg = jnp.zeros(shape).at[ls, ms].set(sY)
+    cYg, sYg = jnp.zeros(shape), jnp.zeros(shape)
+    for l_, m_, cY, sY in iter_Ylm(lmax, uvec):
+        cYg = cYg.at[l_, m_].set(cY)
+        sYg = sYg.at[l_, m_].set(sY)
 
     # A_nl, via gammaln so the numerator does not overflow.
     n = jnp.arange(nmax + 1, dtype=float)[:, None]

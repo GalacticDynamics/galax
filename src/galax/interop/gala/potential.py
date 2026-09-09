@@ -3,6 +3,8 @@
 __all__ = ["gala_to_galax", "galax_to_gala"]
 
 
+from typing import Any
+
 import equinox as eqx
 import gala.potential as galap
 from astropy.units import Quantity as APYQuantity
@@ -1759,12 +1761,16 @@ def galax_to_gala(pot: gp.MilkyWayPotential, /) -> galap.MilkyWayPotential:
             case _:
                 return k
 
-    return galap.MilkyWayPotential(
-        **{
-            c: {rename(c, k): getattr(p, k)(0) for k in p.parameters}
-            for c, p in pot.items()
-        }
-    )
+    kwargs: dict[str, Any] = {
+        c: {rename(c, k): getattr(p, k)(0) for k in p.parameters}
+        for c, p in pot.items()
+    }
+    # gala>=1.11 merges MilkyWayPotential{,2022} behind a `version` argument. Without
+    # it gala warns and, in a future release, will default to the 2022 model.
+    if Version("1.11") <= OptDeps.GALA:
+        kwargs["version"] = "v1"
+
+    return galap.MilkyWayPotential(**kwargs)
 
 
 # ---------------------------

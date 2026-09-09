@@ -282,6 +282,8 @@ filterwarnings = [
   "ignore:jax\\.core\\.pp_eqn_rules is deprecated:DeprecationWarning",
   "ignore:numpy\\.ndarray size changed:RuntimeWarning",
   "ignore:The get_name method is deprecated:astropy.utils.exceptions.AstropyDeprecationWarning",     # from gala
+  "ignore:In a future version of Gala, the current MilkyWayPotential",                               # from gala>=1.11
+  "ignore:The MilkyWayPotential2022 class will be deprecated soon",                                  # from gala>=1.11
   "ignore:unhashable type:FutureWarning",                                                            # TODO: from diffrax
   "ignore:jax\\.interpreters\\.xla\\.pytype_aval_mappings is deprecated:DeprecationWarning",         # from tensorflow-probability[jax]
 ]

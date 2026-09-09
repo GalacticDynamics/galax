@@ -164,6 +164,30 @@ def test_coeffs_match_scalar_reference_for_flattened_triaxial_sample() -> None:
     assert abs(float(Snlm[0, 2, 0]) / m_tot) > 0.1
 
 
+def test_particle_at_origin_gives_finite_coefficients() -> None:
+    """A particle at exactly the origin must not poison the coefficients.
+
+    The origin is a coordinate singularity (``r = 0``, ``theta`` and ``phi``
+    undefined) that a snapshot can perfectly ordinarily contain -- e.g. a
+    central black hole marker, or a particle-centred frame. Coefficient
+    fitting must route through the guarded
+    `galax.potential._src.builtin.multipole.cartesian_to_normalized_spherical`
+    transform rather than recomputing ``theta``/``phi`` by hand, or this
+    single particle NaNs out most of the ``Snlm``/``Tnlm`` array.
+    """
+    n, r_s = 500, 10.0
+    xyz = np.asarray(_hernquist_samples(n, r_s))
+    xyz[0] = 0.0
+    mass = np.full(n, 1.0 / n)
+
+    Snlm, Tnlm = compute_coeffs_discrete(
+        jnp.asarray(xyz), jnp.asarray(mass), nmax=2, lmax=2, r_s=r_s
+    )
+
+    assert jnp.all(jnp.isfinite(Snlm))
+    assert jnp.all(jnp.isfinite(Tnlm))
+
+
 def test_compute_var_returns_a_covariance_block() -> None:
     """`compute_var=True` adds a (2, 2, ...) covariance array."""
     n, r_s = 5_000, 10.0

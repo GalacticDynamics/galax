@@ -14,7 +14,10 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 from .bfe import phi_nl
-from galax.potential._src.builtin.multipole import compute_Ylm
+from galax.potential._src.builtin.multipole import (
+    cartesian_to_normalized_spherical,
+    compute_Ylm,
+)
 
 
 @ft.partial(jax.jit, static_argnames=("nmax", "lmax", "compute_var"))
@@ -69,10 +72,7 @@ def compute_coeffs_discrete(
     umass = getattr(mass, "unit", None)
     mass = jnp.asarray(u.ustrip(AllowValue, umass, mass) if umass else mass)
 
-    r = jnp.linalg.vector_norm(xyz, axis=-1)
-    s = r / r_s
-    theta = jnp.acos(xyz[..., 2] / r)
-    phi = jnp.atan2(xyz[..., 1], xyz[..., 0])
+    s, theta, phi = cartesian_to_normalized_spherical(xyz, r_s)
 
     # shape: nmax+1 by lmax+1 by N
     phinl = phi_nl(nmax, lmax, s)

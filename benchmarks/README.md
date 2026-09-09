@@ -42,7 +42,11 @@ uv run --extra interop-gala python benchmarks/scf_vs_gala.py \
     --nl 2 6 --nl 6 6 --nl 12 6 --nl 24 6 --npoints 100000
 ```
 
-Measured on this machine (N=100,000, correctness-gated):
+Measured on this machine (N=100,000, correctness-gated), with a monopole-only
+coefficient array (`Snlm[0, 0, 0] = 1`, everything else zero). This is still a
+fair timing comparison: both implementations loop over every `(n, l, m)` index
+in the expansion regardless of whether its coefficient is zero, so the
+zeroed-out terms cost the same as non-zero ones would.
 
 | nmax | lmax |       N | gala (ms) | galax (ms) | speedup |
 | ---: | ---: | ------: | --------: | ---------: | ------: |

@@ -26,6 +26,11 @@ def gegenbauer_all(
     whole table costs $O(n_{max})$ rather than the $O(n_{max}^2)$ of evaluating
     each order independently.
 
+    Provisional: this is a generic special function, not SCF-specific, and may
+    move to the standalone `spexial` library in future -- see
+    ``docs/superpowers/specs/2026-09-08-spexial-special-functions-migration.md``.
+    It stays public here for now.
+
     Parameters
     ----------
     nmax

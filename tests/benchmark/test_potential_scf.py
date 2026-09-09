@@ -1,4 +1,13 @@
-"""Benchmarks for the SCF potential."""
+"""Benchmarks for the SCF potential.
+
+NOTE: pytest-codspeed 4.2.0's walltime instrument reports absolute numbers
+that are too small by roughly the `iter_per_round` factor -- it prints
+`stats.min_ns / iter_per_round` when `BenchmarkStats.from_list` has already
+divided by it, so a provably 5.00 ms busy-loop is reported as 0.557 ms. The
+dashboard's *relative* comparisons between runs (e.g. this commit vs. main)
+remain valid, since the same bias applies to both sides; only the absolute
+figures are optimistic.
+"""
 
 import jax
 import pytest

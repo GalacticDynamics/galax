@@ -327,3 +327,69 @@ class TestMultipolePotential(
         atol: float,
     ) -> None:
         super().test_method_gala(pot, method0, method1, x, atol)
+
+
+###############################################################################
+# Regression: batched evaluation must match per-position evaluation.
+#
+# `compute_Ylm` used to pass length-1 `l`/`m` arrays to `sph_harm_y` against a
+# length-N `theta`, which silently returned wrong values at every batch index
+# but 0 for any `l > 0` term. Every other Multipole fixture here evaluates a
+# single position, so nothing caught it.
+
+
+def _lm_coeffs(l_max: int) -> tuple[Shaped[Array, "3 3"], Shaped[Array, "3 3"]]:
+    """Build ``Slm``/``Tlm`` with non-zero entries at ``m >= 1``."""
+    Slm = jnp.zeros((l_max + 1, l_max + 1))
+    Slm = Slm.at[1, 0].set(0.4).at[1, 1].set(0.3).at[2, 2].set(0.15)
+    Tlm = jnp.zeros((l_max + 1, l_max + 1))
+    Tlm = Tlm.at[1, 1].set(0.25).at[2, 1].set(-0.2)
+    return Slm, Tlm
+
+
+_BATCH_XYZ = u.Q(
+    [[1.3, -2.1, 0.7], [4.0, 3.0, -5.0], [-1.5, 2.5, 3.5], [0.2, 0.6, -0.1]], "kpc"
+)
+
+
+@pytest.mark.parametrize(
+    "pot",
+    [
+        gp.MultipoleInnerPotential(
+            m_tot=u.Q(1e12, "Msun"),
+            r_s=u.Q(10.0, "kpc"),
+            Slm=_lm_coeffs(2)[0],
+            Tlm=_lm_coeffs(2)[1],
+            l_max=2,
+            units="galactic",
+        ),
+        gp.MultipoleOuterPotential(
+            m_tot=u.Q(1e12, "Msun"),
+            r_s=u.Q(10.0, "kpc"),
+            Slm=_lm_coeffs(2)[0],
+            Tlm=_lm_coeffs(2)[1],
+            l_max=2,
+            units="galactic",
+        ),
+        gp.MultipolePotential(
+            m_tot=u.Q(1e12, "Msun"),
+            r_s=u.Q(10.0, "kpc"),
+            ISlm=_lm_coeffs(2)[0],
+            ITlm=_lm_coeffs(2)[1],
+            OSlm=_lm_coeffs(2)[0],
+            OTlm=_lm_coeffs(2)[1],
+            l_max=2,
+            units="galactic",
+        ),
+    ],
+    ids=["inner", "outer", "both"],
+)
+def test_batched_matches_per_position(pot: gp.AbstractPotential) -> None:
+    """Evaluate a batch of positions and each position alone; require equality."""
+    t = u.Q(0.0, "Gyr")
+    batched = pot.potential(_BATCH_XYZ, t)
+    one_at_a_time = jnp.stack([pot.potential(xyz, t) for xyz in _BATCH_XYZ])
+
+    assert jnp.allclose(
+        batched, one_at_a_time, rtol=1e-12, atol=u.Q(1e-14, batched.unit)
+    )

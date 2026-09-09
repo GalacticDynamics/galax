@@ -1767,7 +1767,7 @@ def galax_to_gala(pot: gp.MilkyWayPotential, /) -> galap.MilkyWayPotential:
     }
     # gala>=1.11 merges MilkyWayPotential{,2022} behind a `version` argument. Without
     # it gala warns and, in a future release, will default to the 2022 model.
-    if Version("1.11") <= OptDeps.GALA:
+    if OptDeps.GALA.installed and Version("1.11") <= OptDeps.GALA:
         kwargs["version"] = "v1"
 
     return galap.MilkyWayPotential(**kwargs)

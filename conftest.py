@@ -96,11 +96,13 @@ class OptDeps(OptionalDependencyEnum):
 
 
 collect_ignore_glob = [
-    # Design notes and implementation plans, not user documentation. Sybil
-    # collects every `*.md`, but these carry illustrative snippets -- signature
+    # Local-only agent working artifacts (gitignored, never shipped). Sybil
+    # collects every `*.md`, and these carry illustrative snippets -- signature
     # sketches, proposed APIs for other libraries, shell transcripts -- that are
-    # deliberately not runnable.
+    # deliberately not runnable. Listed here so a local checkout that happens to
+    # contain them still collects cleanly.
     "docs/superpowers/*",
+    ".superpowers/*",
 ]
 if not OptDeps.ASTROPY.installed:
     collect_ignore_glob.append("src/galax/interop/astropy/*")

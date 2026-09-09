@@ -27,9 +27,8 @@ def gegenbauer_all(
     each order independently.
 
     Provisional: this is a generic special function, not SCF-specific, and may
-    move to the standalone `spexial` library in future -- see
-    ``docs/superpowers/specs/2026-09-08-spexial-special-functions-migration.md``.
-    It stays public here for now.
+    move to the standalone `spexial` library in future, which already has a
+    scalar-argument ``eval_gegenbauers``. It stays public here for now.
 
     Parameters
     ----------

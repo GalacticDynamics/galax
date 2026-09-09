@@ -23,7 +23,7 @@ from .test_abstractmultipole import (
     ParameterAngularCoefficientsMixin,
 )
 from .test_common import ParameterMTotMixin, ParameterRSMixin
-from galax.potential._src.builtin.multipole import compute_Ylm
+from galax.potential._src.builtin.multipole import compute_Ylm, iter_Ylm
 
 ###############################################################################
 
@@ -491,3 +491,28 @@ def test_on_axis_gradient_is_correct() -> None:
 
     # NaN compares unequal, so this subsumes an `isfinite` check.
     assert jnp.allclose(grad, expect, rtol=1e-6, atol=1e-12)
+
+
+@pytest.mark.parametrize("l_max", [0, 1, 6])
+def test_iter_Ylm_matches_compute_Ylm(l_max: int) -> None:
+    """Check the shared-recurrence table against the per-pair reference.
+
+    `iter_Ylm` carries the Legendre and azimuth recurrences across the whole
+    ``(l, m)`` table instead of restarting them for each pair. `compute_Ylm`
+    remains the readable single-pair definition, so it is the reference: the
+    two must agree exactly, up to round-off, for every pair. The order differs
+    (m-major vs l-major), so compare as a dict keyed by ``(l, m)``.
+    """
+    xyz = np.asarray(_BATCH_XYZ.ustrip("kpc"))
+    uvec = jnp.asarray(xyz / np.linalg.norm(xyz, axis=-1, keepdims=True))
+
+    got = {(l, m): (c, s) for l, m, c, s in iter_Ylm(l_max, uvec)}
+
+    expect_lm = [(l, m) for l in range(l_max + 1) for m in range(l + 1)]
+    assert sorted(got) == sorted(expect_lm)
+
+    for l, m in expect_lm:
+        want_cos, want_sin = compute_Ylm(l, m, uvec)
+        got_cos, got_sin = got[l, m]
+        assert np.allclose(got_cos, want_cos, rtol=1e-14, atol=1e-15)
+        assert np.allclose(got_sin, want_sin, rtol=1e-14, atol=1e-15)

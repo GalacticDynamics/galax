@@ -11,13 +11,23 @@ from collections.abc import Callable
 from jaxtyping import ArrayLike, Float, PyTree
 from typing import Any, ClassVar, TypeAlias
 
-from diffrax import SemiImplicitEuler
-from diffrax._custom_types import VF, Args, BoolScalarLike, DenseInfo, RealScalarLike
-from diffrax._local_interpolation import LocalLinearInterpolation
-from diffrax._solution import RESULTS
-from diffrax._solver.base import AbstractSolver
-from diffrax._term import AbstractTerm
+from diffrax import (
+    RESULTS,
+    AbstractSolver,
+    AbstractTerm,
+    LocalLinearInterpolation,
+    SemiImplicitEuler,
+)
 from equinox.internal import ω  # noqa: PLC2403
+
+# diffrax doesn't publicly export these; they're type hints only (no runtime
+# behavior depends on them), so redeclare as `Any` rather than importing
+# diffrax's private `_custom_types` module.
+VF: TypeAlias = Any
+Args: TypeAlias = Any
+BoolScalarLike: TypeAlias = Any
+DenseInfo: TypeAlias = Any
+RealScalarLike: TypeAlias = Any
 
 _ErrorEstimate: TypeAlias = None
 _SolverState: TypeAlias = None
@@ -30,8 +40,12 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
     """Leapfrog (velocity Verlet) symplectic integrator.
 
     This is a 2nd order symplectic integration method. This integrator does not support
-    adaptive step sizing. This is either known as kick-drift-kick leapfrog or velocity
-    Verlet.
+    adaptive step sizing: it provides no error estimate, so pair it with
+    `diffrax.ConstantStepSize` (e.g. via ``gd.OrbitSolver(Leapfrog(),
+    stepsize_controller=dfx.ConstantStepSize())``) rather than
+    `galax.dynamics.OrbitSolver`'s default adaptive `diffrax.PIDController`, which will
+    raise a `RuntimeError` for a solver without error estimates. This is either known as
+    kick-drift-kick leapfrog or velocity Verlet.
 
     Assuming that:
 

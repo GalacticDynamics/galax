@@ -25,6 +25,10 @@ from .null import *
 from .plummer import *
 from .powerlawcutoff import *
 from .satoh import *
-from .scf import *
+
+# Not `import *`: `scf.__all__` also carries the basis functions and the
+# coefficient fitter, which are not potentials. They stay reachable through
+# the public `galax.potential.scf`.
+from .scf import SCFPotential as SCFPotential
 from .stoneostriker15 import *
 from .zhao import *

@@ -95,7 +95,13 @@ class OptDeps(OptionalDependencyEnum):
     MATPLOTLIB = auto()
 
 
-collect_ignore_glob = []
+collect_ignore_glob = [
+    # Design notes and implementation plans, not user documentation. Sybil
+    # collects every `*.md`, but these carry illustrative snippets -- signature
+    # sketches, proposed APIs for other libraries, shell transcripts -- that are
+    # deliberately not runnable.
+    "docs/superpowers/*",
+]
 if not OptDeps.ASTROPY.installed:
     collect_ignore_glob.append("src/galax/interop/astropy/*")
 if not OptDeps.GALA.installed:

@@ -8,6 +8,7 @@ here.
 __all__ = ["Leapfrog", "SymplecticSolverT"]
 
 from collections.abc import Callable
+from jaxtyping import ArrayLike, Float, PyTree
 from typing import Any, ClassVar, TypeAlias
 
 from diffrax import SemiImplicitEuler
@@ -17,7 +18,6 @@ from diffrax._solution import RESULTS
 from diffrax._solver.base import AbstractSolver
 from diffrax._term import AbstractTerm
 from equinox.internal import ω  # noqa: PLC2403
-from jaxtyping import ArrayLike, Float, PyTree
 
 _ErrorEstimate: TypeAlias = None
 _SolverState: TypeAlias = None

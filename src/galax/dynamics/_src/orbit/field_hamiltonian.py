@@ -3,6 +3,7 @@
 __all__ = ["HamiltonianField"]
 
 import functools as ft
+
 from typing import Any, final
 
 import diffrax as dfx

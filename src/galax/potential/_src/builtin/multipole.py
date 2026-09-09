@@ -16,7 +16,6 @@ from typing import final
 
 import equinox as eqx
 import jax
-import numpy as np
 from equinox import field
 
 import quaxed.numpy as jnp
@@ -291,6 +290,37 @@ def scaled_radius_and_direction(
     return r / r_s, q / r[..., None]
 
 
+def legendre_seed(m: int, u: Float[Array, "*batch"], /) -> Float[Array, "*batch"]:
+    r"""Seed the reduced-Legendre recurrence at :math:`l = m` with :math:`N_{mm}p_m^m`.
+
+    Built in log space so :math:`p_m^m = (-1)^m (2m-1)!!` -- which overflows
+    float64 near :math:`m = 90` -- is never materialized; see
+    `reduced_legendre` for why that matters.
+    """
+    log_seed = (
+        0.5 * math.log((2 * m + 1) / (4 * math.pi))
+        + 0.5 * math.lgamma(2 * m + 1)
+        - m * math.log(2)
+        - math.lgamma(m + 1)
+    )
+    return jnp.full_like(u, (-1.0) ** m * math.exp(log_seed))  # type: ignore[no-any-return]
+
+
+def legendre_step_coeffs(l: int, m: int, /) -> tuple[float, float]:
+    r"""Give the ``(a, b)`` coefficients of the :math:`l-1 \to l` recurrence step.
+
+    :math:`q_l = a (u q_{l-1} - b q_{l-2})` for the normalized reduced Legendre
+    functions :math:`q_l = N_{lm} p_l^m`.
+    """
+    a = math.sqrt((4 * l * l - 1) / (l * l - m * m))
+    b = (
+        math.sqrt(((l - 1) ** 2 - m * m) / (4 * (l - 1) ** 2 - 1))
+        if l - 1 >= 1
+        else 0.0
+    )
+    return a, b
+
+
 def reduced_legendre(
     l: int, m: int, u: Float[Array, "*batch"], /
 ) -> Float[Array, "*batch"]:
@@ -311,24 +341,12 @@ def reduced_legendre(
     moderate :math:`m`. The normalized quantity is O(1) at every order: the
     seed is built in log space, and the recurrence carries it directly.
     """
-    # N_mm p_m^m, in log space so p_m^m itself is never materialized.
-    log_seed = (
-        0.5 * math.log((2 * m + 1) / (4 * math.pi))
-        + 0.5 * math.lgamma(2 * m + 1)
-        - m * math.log(2)
-        - math.lgamma(m + 1)
-    )
     q_prev = jnp.zeros_like(u)
-    q_cur = jnp.full_like(u, (-1.0) ** m * math.exp(log_seed))
+    q_cur = legendre_seed(m, u)
     for ll in range(m + 1, l + 1):
-        a = math.sqrt((4 * ll * ll - 1) / (ll * ll - m * m))
-        b = (
-            math.sqrt(((ll - 1) ** 2 - m * m) / (4 * (ll - 1) ** 2 - 1))
-            if ll - 1 >= 1
-            else 0.0
-        )
+        a, b = legendre_step_coeffs(ll, m)
         q_prev, q_cur = q_cur, a * (u * q_cur - b * q_prev)
-    return q_cur  # type: ignore[no-any-return]
+    return q_cur
 
 
 def compute_Ylm(
@@ -367,9 +385,34 @@ def compute_Ylm(
 def iter_Ylm(
     l_max: int, uvec: gt.BtSz3, /
 ) -> list[tuple[int, int, Float[Array, "*batch"], Float[Array, "*batch"]]]:
-    """Compute ``(l, m, Re Y_lm, Im Y_lm)`` for every ``0 <= m <= l <= l_max``."""
-    ls, ms = np.tril_indices(l_max + 1)
-    return [
-        (l, m, *compute_Ylm(l, m, uvec))
-        for l, m in zip(ls.tolist(), ms.tolist(), strict=True)
-    ]
+    r"""Compute ``(l, m, Re Y_lm, Im Y_lm)`` for every ``0 <= m <= l <= l_max``.
+
+    Same values as `compute_Ylm` called on each pair, but both recurrences are
+    carried across the table instead of restarted: one pass per ``m`` advances
+    :math:`((x + iy)/r)^m` by a single complex multiply and walks the Legendre
+    recurrence up in ``l`` from its seed at ``l = m``. That makes the whole
+    table :math:`O(l_\mathrm{max}^2)` rather than cubic -- and since ``l`` and
+    ``m`` are static, the saving is in traced operations, so it shrinks the
+    HLO and hence trace and compile time.
+
+    Terms come out in m-major order rather than the l-major order of
+    ``np.tril_indices``; every caller sums them, so the order is immaterial.
+    """
+    ux, uy, uz = uvec[..., 0], uvec[..., 1], uvec[..., 2]
+    cos_mphi, sin_mphi = jnp.ones_like(ux), jnp.zeros_like(ux)
+
+    out = []
+    for m in range(l_max + 1):
+        if m > 0:  # advance ((x + i y) / r)^m by one complex multiply
+            cos_mphi, sin_mphi = (
+                cos_mphi * ux - sin_mphi * uy,
+                cos_mphi * uy + sin_mphi * ux,
+            )
+
+        q_prev, q_cur = jnp.zeros_like(uz), legendre_seed(m, uz)
+        out.append((m, m, q_cur * cos_mphi, q_cur * sin_mphi))
+        for l in range(m + 1, l_max + 1):
+            a, b = legendre_step_coeffs(l, m)
+            q_prev, q_cur = q_cur, a * (uz * q_cur - b * q_prev)
+            out.append((l, m, q_cur * cos_mphi, q_cur * sin_mphi))
+    return out

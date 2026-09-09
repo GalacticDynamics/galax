@@ -40,23 +40,36 @@ NL = [(2, 2), (6, 4), (12, 6)]
 NPOINTS = [1, 1_000, 100_000]
 
 
-@pytest.mark.parametrize(("nmax", "lmax"), NL, ids=lambda v: f"nl{v}")
+# NOTE: pytest-codspeed's walltime instrument wraps `item.runtest` -- the
+# test *call* phase -- and repeats only that. Fixture setup runs once before
+# the repeated calls, outside the measured region. So `pot` and `xyz` are
+# built here in fixtures, not inside the test bodies: constructing an
+# `SCFPotential` costs ~5ms, which used to swamp the ~0.08ms evaluation this
+# benchmark is meant to measure.
+@pytest.fixture(params=NL, ids=lambda v: f"nl{v}")
+def pot(request: pytest.FixtureRequest) -> gp.SCFPotential:
+    """SCF potential, built outside the benchmarked region."""
+    nmax, lmax = request.param
+    return _pot(nmax, lmax)
+
+
+@pytest.fixture(params=NPOINTS, ids=lambda v: f"n{v}")
+def xyz(request: pytest.FixtureRequest) -> u.AbstractQuantity:
+    """Random evaluation points, built outside the benchmarked region."""
+    key = jax.random.key(0)
+    return u.Q(jax.random.normal(key, (request.param, 3)) * 10.0, "kpc")
+
+
 @pytest.mark.benchmark(group="galax.potential.scf", max_time=1.0)
-def test_compile(nmax, lmax) -> None:
+def test_compile(pot: gp.SCFPotential) -> None:
     """Time to trace and compile the potential."""
-    pot = _pot(nmax, lmax)
     xyz = u.Q(jnp.ones((1_000, 3)), "kpc")
     _ = jax.jit(_potential).lower(pot, xyz, u.Q(0.0, "Gyr")).compile()
 
 
-@pytest.mark.parametrize("npoints", NPOINTS, ids=lambda v: f"n{v}")
-@pytest.mark.parametrize(("nmax", "lmax"), NL, ids=lambda v: f"nl{v}")
 @pytest.mark.benchmark(group="galax.potential.scf", max_time=1.0)
-def test_potential(nmax, lmax, npoints) -> None:
+def test_potential(pot: gp.SCFPotential, xyz: u.AbstractQuantity) -> None:
     """Evaluate the potential on a batch of positions."""
-    pot = _pot(nmax, lmax)
-    key = jax.random.key(0)
-    xyz = u.Q(jax.random.normal(key, (npoints, 3)) * 10.0, "kpc")
     t = u.Q(0.0, "Gyr")
     fn = jax.jit(_potential)
     _ = jax.block_until_ready(fn(pot, xyz, t))  # warm up the cache
@@ -64,14 +77,9 @@ def test_potential(nmax, lmax, npoints) -> None:
     _ = jax.block_until_ready(fn(pot, xyz, t))
 
 
-@pytest.mark.parametrize("npoints", NPOINTS, ids=lambda v: f"n{v}")
-@pytest.mark.parametrize(("nmax", "lmax"), NL, ids=lambda v: f"nl{v}")
 @pytest.mark.benchmark(group="galax.potential.scf", max_time=1.0)
-def test_gradient(nmax, lmax, npoints) -> None:
+def test_gradient(pot: gp.SCFPotential, xyz: u.AbstractQuantity) -> None:
     """Evaluate the gradient (autodiff) on a batch of positions."""
-    pot = _pot(nmax, lmax)
-    key = jax.random.key(0)
-    xyz = u.Q(jax.random.normal(key, (npoints, 3)) * 10.0, "kpc")
     t = u.Q(0.0, "Gyr")
     fn = jax.jit(_gradient)
     _ = jax.block_until_ready(fn(pot, xyz, t))

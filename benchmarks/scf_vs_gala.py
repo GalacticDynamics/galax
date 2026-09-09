@@ -69,7 +69,11 @@ def main() -> None:
 
     import galax.potential as gp
 
-    assert jax.config.jax_enable_x64, "x64 must be on for a fair comparison"
+    if not jax.config.jax_enable_x64:
+        sys.exit(
+            "x64 must be enabled for a fair comparison (galax would be "
+            "running float32 against gala's float64)."
+        )
 
     rows = []
     for nmax, lmax in nls:
@@ -103,10 +107,16 @@ def main() -> None:
             fn = jax.jit(gp.potential)
             jax.block_until_ready(fn(xpot, galax_q, t))  # compile before timing
 
-            # Correctness gate: a fast wrong answer is not a benchmark.
+            # Correctness gate: a fast wrong answer is not a benchmark. Uses
+            # an explicit raise (not `assert`) so `python -O` can't skip it.
             got = np.asarray(fn(xpot, galax_q, t).value)
             exp = gpot.energy(gala_q).to_value("kpc2 / Myr2")
-            assert np.allclose(got, exp, rtol=1e-10), (nmax, lmax, npoints)
+            if not np.allclose(got, exp, rtol=1e-10):
+                sys.exit(
+                    f"correctness gate failed at nmax={nmax}, lmax={lmax}, "
+                    f"npoints={npoints}: galax={got!r} gala={exp!r}. "
+                    "A fast wrong answer is not a benchmark."
+                )
 
             t_gala = _time(lambda: gpot.energy(gala_q))
             t_galax = _time(lambda: jax.block_until_ready(fn(xpot, galax_q, t)))
@@ -121,6 +131,14 @@ def main() -> None:
             f"| {nmax} | {lmax} | {npoints:,} | {tg * 1e3:.4g} | "
             f"{tx * 1e3:.4g} | {tg / tx:.2f}x |"
         )
+    print(
+        "\nNote: gala's small-N rows are dominated by astropy `Quantity` / "
+        "`PotentialBase` wrapper overhead (~0.5ms), essentially flat across "
+        "(nmax, lmax); its C kernel (`gpot._energy`) alone runs in "
+        "~0.003ms. So small-N rows compare Python wrappers, not SCF "
+        "kernels -- the real nmax advantage only shows up at large N with "
+        "lmax held fixed (see README)."
+    )
 
 
 if __name__ == "__main__":

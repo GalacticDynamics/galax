@@ -64,9 +64,11 @@ def compute_coeffs_discrete(
     results, since the coefficients are a plain sum over ``k``.
 
     """
-    # `xyz` and `r_s` must share a length unit. If `r_s` carries one it sets
-    # the scale for both; otherwise every input is taken as a bare array.
-    ulen = getattr(r_s, "unit", None)
+    # `xyz` and `r_s` must share a length unit. Take it from whichever carries
+    # one, so a Quantity paired with a bare float is still stripped rather than
+    # silently passed through: only `s = r / r_s` matters, and mixing a stripped
+    # value with an unstripped one would scale it wrongly.
+    ulen = getattr(r_s, "unit", None) or getattr(xyz, "unit", None)
     xyz = jnp.asarray(u.ustrip(AllowValue, ulen, xyz) if ulen else xyz)
     r_s = jnp.asarray(u.ustrip(AllowValue, ulen, r_s) if ulen else r_s)
     umass = getattr(mass, "unit", None)

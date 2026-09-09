@@ -43,7 +43,7 @@ def test_nmax_lmax_derived_from_coefficients() -> None:
 
 def test_mismatched_coefficient_shapes_raise() -> None:
     """`Snlm` and `Tnlm` must share a shape."""
-    with pytest.raises(Exception, match="same shape"):
+    with pytest.raises(ValueError, match="same shape"):
         gp.SCFPotential(
             m_tot=u.Q(1e12, "Msun"),
             r_s=u.Q(10.0, "kpc"),
@@ -83,8 +83,10 @@ def test_scalar_input_gives_scalar_output() -> None:
 # independent scalar reference built from `scipy.special.lpmv` (which, like
 # GSL's `gsl_sf_legendre_sphPlm` that gala uses, carries the Condon-Shortley
 # phase), at m > 0 in both the cosine (`Snlm`) and sine (`Tnlm`) branches.
-# None of this calls `phi_nl`, `rho_nl`, `compute_Ylm`, or anything else in
-# `galax.potential._src.builtin.scf`.
+# The scalar reference below is built only from `scipy`/`numpy`: it never calls
+# `phi_nl`, `rho_nl`, `compute_Ylm` or anything else under test, so a failure
+# localizes to the implementation rather than to a shared helper. (The tests
+# themselves do of course call the code they are checking.)
 
 _SQRT_FOURPI = 3.544907701811031
 """``sqrt(4 * pi)``, matching the literal in gala's ``bfe_helper.cpp``."""

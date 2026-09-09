@@ -9,6 +9,8 @@ remain valid, since the same bias applies to both sides; only the absolute
 figures are optimistic.
 """
 
+from collections.abc import Callable
+
 import jax
 import pytest
 
@@ -76,21 +78,39 @@ def test_compile(pot: gp.SCFPotential) -> None:
     _ = jax.jit(_potential).lower(pot, xyz, u.Q(0.0, "Gyr")).compile()
 
 
-@pytest.mark.benchmark(group="galax.potential.scf", max_time=1.0)
-def test_potential(pot: gp.SCFPotential, xyz: u.AbstractQuantity) -> None:
-    """Evaluate the potential on a batch of positions."""
+@pytest.fixture
+def warm_potential(
+    pot: gp.SCFPotential, xyz: u.AbstractQuantity
+) -> Callable[[], object]:
+    """Return a jitted potential call, already compiled outside the timed body."""
     t = u.Q(0.0, "Gyr")
     fn = jax.jit(_potential)
-    _ = jax.block_until_ready(fn(pot, xyz, t))  # warm up the cache
+    jax.block_until_ready(fn(pot, xyz, t))
+    return lambda: jax.block_until_ready(fn(pot, xyz, t))
 
-    _ = jax.block_until_ready(fn(pot, xyz, t))
+
+@pytest.fixture
+def warm_gradient(
+    pot: gp.SCFPotential, xyz: u.AbstractQuantity
+) -> Callable[[], object]:
+    """Return a jitted gradient call, already compiled outside the timed body."""
+    t = u.Q(0.0, "Gyr")
+    fn = jax.jit(_gradient)
+    jax.block_until_ready(fn(pot, xyz, t))
+    return lambda: jax.block_until_ready(fn(pot, xyz, t))
+
+
+# The warm-up call lives in the fixture, not here. CodSpeed repeats the whole
+# test body, so a warm-up inside it would be timed on every repetition and
+# report ~2x the steady-state cost. Fixtures resolve once, outside the region
+# CodSpeed repeats.
+@pytest.mark.benchmark(group="galax.potential.scf", max_time=1.0)
+def test_potential(warm_potential: Callable[[], object]) -> None:
+    """Evaluate the potential on a batch of positions."""
+    _ = warm_potential()
 
 
 @pytest.mark.benchmark(group="galax.potential.scf", max_time=1.0)
-def test_gradient(pot: gp.SCFPotential, xyz: u.AbstractQuantity) -> None:
+def test_gradient(warm_gradient: Callable[[], object]) -> None:
     """Evaluate the gradient (autodiff) on a batch of positions."""
-    t = u.Q(0.0, "Gyr")
-    fn = jax.jit(_gradient)
-    _ = jax.block_until_ready(fn(pot, xyz, t))
-
-    _ = jax.block_until_ready(fn(pot, xyz, t))
+    _ = warm_gradient()

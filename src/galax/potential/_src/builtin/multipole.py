@@ -289,10 +289,16 @@ def scaled_radius_and_direction(
     :math:`r \sim 10^{-154}` that cubes straight past the bottom of float64
     and evaluates to ``inf``, so the hessian is NaN even though the value and
     the gradient are finite. Flooring the direction's denominator at
-    ``tiny**(1/3)`` keeps :math:`r^3` representable. Both floors are far below
-    any physical position -- the unit direction is bit-identical either way
-    off the origin -- and the returned ``s`` is unaffected, since it is built
-    from the unfloored-for-direction ``r``.
+    ``tiny**(1/3)`` keeps :math:`r^3` representable.
+
+    That floor does perturb the direction for sufficiently small non-zero
+    :math:`|q|`: measured in float64, ``q / r`` is bit-identical with and
+    without it down to :math:`|q| \sim 10^{-90}` and starts to differ by
+    :math:`10^{-95}`. Both floors therefore sit some eighty orders of
+    magnitude below any physical position, but "unchanged everywhere except
+    the origin" would be too strong a claim. The returned ``s`` is unaffected
+    either way, since it is built from the ``r`` that is not floored for the
+    direction.
     """
     r = safe_vector_norm(q)
     # `tiny**(2/3)` inside the square root floors `r` itself at `tiny**(1/3)`.

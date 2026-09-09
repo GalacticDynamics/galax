@@ -307,5 +307,11 @@ def compute_Ylm(
     *,
     l_max: int,
 ) -> tuple[Float[Array, "*batch"], Float[Array, "*batch"]]:
-    Ylm = sph_harm_y(jnp.atleast_1d(l), jnp.atleast_1d(m), theta, phi, n_max=l_max)
+    # `sph_harm_y` requires `l`, `m`, `theta`, `phi` to be 1D arrays of equal
+    # length: it pairs them up element-wise. Passing length-1 `l`/`m` against a
+    # length-N `theta` silently returns wrong values at every index but 0.
+    shape = jnp.shape(theta)
+    theta, phi = jnp.reshape(theta, (-1,)), jnp.reshape(phi, (-1,))
+    ls, ms = jnp.full(theta.shape, l), jnp.full(theta.shape, m)
+    Ylm = jnp.reshape(sph_harm_y(ls, ms, theta, phi, n_max=l_max), shape)
     return Ylm.real, Ylm.imag

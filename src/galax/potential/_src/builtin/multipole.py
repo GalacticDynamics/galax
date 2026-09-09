@@ -30,6 +30,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import safe_vector_norm
 
 
 class AbstractMultipolePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
@@ -278,8 +279,15 @@ def scaled_radius_and_direction(
     by :math:`(\theta, \phi)`: ``atan2(y, x)`` has gradient
     :math:`-y/(x^2+y^2)`, which is :math:`0/0` on the whole z-axis, so any
     :math:`m \ge 1` term built from it has NaN Cartesian derivatives there.
+
+    ``r`` uses `safe_vector_norm`, which floors it at
+    ``sqrt(finfo(dtype).tiny)`` -- around 1e-154 in float64, 1e-19 in float32.
+    Without that, :math:`\hat{q} = q/r` is ``0/0`` at the origin and the value
+    itself -- not just its derivatives -- comes back NaN. The floor is far
+    below any physical position in either dtype, so nothing off the origin is
+    perturbed.
     """
-    r = jnp.linalg.vector_norm(q, axis=-1)
+    r = safe_vector_norm(q)
     return r / r_s, q / r[..., None]
 
 

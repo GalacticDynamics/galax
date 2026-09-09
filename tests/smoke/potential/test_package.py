@@ -7,6 +7,7 @@ expected_all = [
     "io",
     "params",
     "plot",
+    "scf",
     # base
     "AbstractPotential",
     # core
@@ -55,6 +56,7 @@ expected_all = [
     "HardCutoffNFWPotential",
     "gNFWPotential",
     "ZhaoPotential",
+    "SCFPotential",
     # xfm
     "AbstractTransformedPotential",
     "FlattenedInThePotential",

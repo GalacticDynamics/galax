@@ -95,7 +95,15 @@ class OptDeps(OptionalDependencyEnum):
     MATPLOTLIB = auto()
 
 
-collect_ignore_glob = []
+collect_ignore_glob = [
+    # Local-only agent working artifacts (gitignored, never shipped). Sybil
+    # collects every `*.md`, and these carry illustrative snippets -- signature
+    # sketches, proposed APIs for other libraries, shell transcripts -- that are
+    # deliberately not runnable. Listed here so a local checkout that happens to
+    # contain them still collects cleanly.
+    "docs/superpowers/*",
+    ".superpowers/*",
+]
 if not OptDeps.ASTROPY.installed:
     collect_ignore_glob.append("src/galax/interop/astropy/*")
 if not OptDeps.GALA.installed:

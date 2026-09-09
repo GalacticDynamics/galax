@@ -7,6 +7,7 @@ from typing import Any
 
 import equinox as eqx
 import gala.potential as galap
+import numpy as np
 from astropy.units import Quantity as APYQuantity
 from gala.units import (
     DimensionlessUnitSystem as GalaDimensionlessUnitSystem,
@@ -1340,6 +1341,40 @@ def galax_to_gala(
             f"T{l}{m}": Tlm[l, m] for l, m in zip(ls, ms, strict=True) if Tlm[l, m] != 0
         },
         inner=isinstance(pot, gp.MultipoleInnerPotential),
+        units=_galax_to_gala_units(pot.units),
+    )
+
+
+# -----------------------------------------------------------------------------
+# SCF potential
+
+
+@dispatch
+def gala_to_galax(
+    gala: galap.SCFPotential, /
+) -> gp.SCFPotential | gp.TransformedPotential:
+    """Convert a `gala` SCF potential to its `galax` equivalent."""
+    params = gala.parameters
+    pot = gp.SCFPotential(
+        m_tot=params["m"],
+        r_s=params["r_s"],
+        Snlm=jnp.asarray(params["Snlm"]),
+        Tnlm=jnp.asarray(params["Tnlm"]),
+        units=gala.units,
+    )
+    return _apply_xop(_get_xop(gala), pot)
+
+
+@dispatch
+def galax_to_gala(pot: gp.SCFPotential, /) -> galap.SCFPotential:
+    """Convert a `galax` SCF potential to a `gala` potential."""
+    _error_if_not_all_constant_parameters(pot, "m_tot", "r_s", "Snlm", "Tnlm")
+
+    return galap.SCFPotential(
+        m=convert(pot.m_tot(0), APYQuantity),
+        r_s=convert(pot.r_s(0), APYQuantity),
+        Snlm=np.asarray(pot.Snlm(0).value),
+        Tnlm=np.asarray(pot.Tnlm(0).value),
         units=_galax_to_gala_units(pot.units),
     )
 

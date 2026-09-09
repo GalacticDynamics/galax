@@ -1,0 +1,127 @@
+# ruff: noqa: E402
+"""Wall-clock comparison of galax's SCFPotential against gala's.
+
+Run with::
+
+    uv run --extra interop-gala python benchmarks/scf_vs_gala.py
+
+Gala's SCFPotential requires a GSL-enabled build. The PyPI wheels are built
+with ``GALA_FORCE_GSL=1``, so a plain install suffices on linux-x86_64 and
+macOS-arm64.
+"""
+
+import os
+
+os.environ.setdefault("JAX_ENABLE_X64", "True")  # must precede jax import
+
+import argparse
+import sys
+import timeit
+
+import numpy as np
+
+
+def _require_gala() -> None:
+    try:
+        import gala  # noqa: F401
+        from gala._cconfig import GSL_ENABLED
+    except ImportError:
+        sys.exit(
+            "gala is not installed. Run:\n"
+            "  uv run --extra interop-gala python benchmarks/scf_vs_gala.py"
+        )
+    if not GSL_ENABLED:
+        sys.exit(
+            "gala was built without GSL, so gala.potential.SCFPotential is "
+            "unavailable. Reinstall gala from a wheel, or build with "
+            "GALA_FORCE_GSL=1."
+        )
+
+
+def _time(fn, *, repeat: int = 7, number: int | None = None) -> float:
+    """Best-of-`repeat` seconds per call."""
+    if number is None:
+        # Calibrate so each timing run takes ~50ms.
+        number = 1
+        while timeit.timeit(fn, number=number) < 0.05:
+            number *= 4
+    return min(timeit.repeat(fn, repeat=repeat, number=number)) / number
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--npoints", type=int, nargs="+", default=[1, 100, 1_000, 100_000, 1_000_000]
+    )
+    parser.add_argument("--nl", type=int, nargs=2, action="append", default=None)
+    args = parser.parse_args()
+    nls = [tuple(x) for x in (args.nl or [(2, 2), (6, 4), (12, 6)])]
+
+    _require_gala()
+
+    import astropy.units as apyu
+    import gala.potential as galap
+    import jax
+    from gala.units import galactic
+
+    import quaxed.numpy as jnp
+    import unxt as u
+
+    import galax.potential as gp
+
+    assert jax.config.jax_enable_x64, "x64 must be on for a fair comparison"
+
+    rows = []
+    for nmax, lmax in nls:
+        Snlm = np.zeros((nmax + 1, lmax + 1, lmax + 1))
+        Snlm[0, 0, 0] = 1.0
+        Tnlm = np.zeros_like(Snlm)
+
+        gpot = galap.SCFPotential(
+            m=1e12 * apyu.Msun,
+            r_s=10.0 * apyu.kpc,
+            Snlm=Snlm,
+            Tnlm=Tnlm,
+            units=galactic,
+        )
+        xpot = gp.SCFPotential(
+            m_tot=u.Q(1e12, "Msun"),
+            r_s=u.Q(10.0, "kpc"),
+            Snlm=jnp.asarray(Snlm),
+            Tnlm=jnp.asarray(Tnlm),
+            units="galactic",
+        )
+
+        for npoints in args.npoints:
+            rng = np.random.default_rng(0)
+            xyz = rng.normal(size=(npoints, 3)) * 10.0
+
+            gala_q = xyz.T * apyu.kpc
+            galax_q = u.Q(jnp.asarray(xyz), "kpc")
+            t = u.Q(0.0, "Gyr")
+
+            fn = jax.jit(gp.potential)
+            jax.block_until_ready(fn(xpot, galax_q, t))  # compile before timing
+
+            # Correctness gate: a fast wrong answer is not a benchmark.
+            got = np.asarray(fn(xpot, galax_q, t).value)
+            exp = gpot.energy(gala_q).to_value("kpc2 / Myr2")
+            assert np.allclose(got, exp, rtol=1e-10), (nmax, lmax, npoints)
+
+            t_gala = _time(lambda: gpot.energy(gala_q))
+            t_galax = _time(lambda: jax.block_until_ready(fn(xpot, galax_q, t)))
+
+            rows.append((nmax, lmax, npoints, t_gala, t_galax))
+
+    print(f"\njax backend: {jax.default_backend()}  x64: {jax.config.jax_enable_x64}\n")
+    print("| nmax | lmax | N | gala (ms) | galax (ms) | speedup |")
+    print("| ---: | ---: | ---: | ---: | ---: | ---: |")
+    for nmax, lmax, npoints, tg, tx in rows:
+        print(
+            f"| {nmax} | {lmax} | {npoints:,} | {tg * 1e3:.4g} | "
+            f"{tx * 1e3:.4g} | {tg / tx:.2f}x |"
+        )
+
+
+if __name__ == "__main__":
+    main()

@@ -237,3 +237,46 @@ def test_density_is_not_the_laplacian_path() -> None:
     expect = via_laplacian.to(analytic.unit)
 
     assert jnp.allclose(analytic, expect, rtol=1e-6, atol=u.Q(1e-6, expect.unit))
+
+
+def _quadrupole() -> gp.SCFPotential:
+    """Build an SCF potential with a non-zero m>0 term, exercising the phi path."""
+    snlm = jnp.zeros((2, 3, 3)).at[0, 0, 0].set(1.0).at[0, 2, 2].set(0.1)
+    tnlm = jnp.zeros((2, 3, 3)).at[0, 2, 1].set(0.05)
+    return gp.SCFPotential(
+        m_tot=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        Snlm=snlm,
+        Tnlm=tnlm,
+        units="galactic",
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "xyz"),
+    [
+        ("origin", [0.0, 0.0, 0.0]),
+        ("z_axis_positive", [0.0, 0.0, 5.0]),
+        ("z_axis_negative", [0.0, 0.0, -5.0]),
+    ],
+)
+@pytest.mark.parametrize("method", ["potential", "gradient", "density", "hessian"])
+def test_finite_on_coordinate_singularities(request, name, xyz, method) -> None:
+    """Value and derivatives stay finite at r=0 and along the z-axis."""
+    if name == "origin" and method in ("gradient", "hessian"):
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="d|q|/dq is 0/0 at the origin. Catching it needs a "
+                "`jnp.where` on `vector_norm`'s input, and any select that "
+                "intercepts q's cotangent perturbs the higher-derivative "
+                "graph enough to break MultipoleOuterPotential's exactly-zero "
+                "density. See cartesian_to_normalized_spherical.",
+            )
+        )
+
+    pot = _quadrupole()
+    q = u.Q(np.array(xyz), "kpc")
+
+    got = getattr(pot, method)(q, u.Q(0.0, "Gyr"))
+
+    assert jnp.all(jnp.isfinite(u.ustrip(got.unit, got))), f"{method} at {name}"

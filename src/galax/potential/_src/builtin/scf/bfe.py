@@ -188,10 +188,6 @@ class SCFPotential(AbstractSinglePotential):
         cY, sY = jax.vmap(lambda l, m: compute_Ylm(l, m, theta, phi, l_max=lmax))(
             ls, ms
         )
-        if batch == ():
-            # `compute_Ylm`'s internal `atleast_1d` leaves a spurious size-1
-            # trailing axis when `theta`/`phi` are scalar; drop it.
-            cY, sY = cY[..., 0], sY[..., 0]
         shape = (lmax + 1, lmax + 1, *batch)
         return (
             jnp.zeros(shape).at[ls, ms].set(cY),

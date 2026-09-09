@@ -286,20 +286,41 @@ def scaled_radius_and_direction(
 def reduced_legendre(
     l: int, m: int, u: Float[Array, "*batch"], /
 ) -> Float[Array, "*batch"]:
-    r"""Evaluate :math:`p_l^m(u) = P_l^m(u) / (1 - u^2)^{m/2}`.
+    r"""Evaluate :math:`N_{lm} p_l^m(u)`, with :math:`p_l^m = P_l^m/(1-u^2)^{m/2}`.
 
-    Include the Condon-Shortley phase, matching `scipy.special.lpmv` and GSL.
-    ``l`` and ``m`` are static, so the recurrence unrolls at trace time.
+    :math:`N_{lm} = \sqrt{\frac{2l+1}{4\pi}\frac{(l-m)!}{(l+m)!}}` is the
+    spherical-harmonic normalization, so this returns the *normalized* reduced
+    associated Legendre function. Includes the Condon-Shortley phase, matching
+    `scipy.special.lpmv` and GSL. ``l`` and ``m`` are static, so the recurrence
+    unrolls at trace time.
+
+    The normalization is folded into the recurrence rather than applied
+    afterwards, because :math:`p_l^m` alone is astronomically large -- its seed
+    is :math:`(2m-1)!!`, which overflows float64 near :math:`m = 90` and would
+    then make the whole harmonic ``nan`` via ``inf * 0`` on the axis, exactly
+    the failure this module now exists to avoid. Multiplying by the tiny
+    :math:`N_{lm}` afterwards also loses roughly two digits by cancellation at
+    moderate :math:`m`. The normalized quantity is O(1) at every order: the
+    seed is built in log space, and the recurrence carries it directly.
     """
-    # p_m^m = (-1)^m (2m - 1)!!, with (2m-1)!! = (2m)! / (2^m m!)
-    pmm = (-1.0) ** m * math.factorial(2 * m) / (2**m * math.factorial(m))
-    p_prev, p_cur = jnp.zeros_like(u), jnp.full_like(u, pmm)
+    # N_mm p_m^m, in log space so p_m^m itself is never materialized.
+    log_seed = (
+        0.5 * math.log((2 * m + 1) / (4 * math.pi))
+        + 0.5 * math.lgamma(2 * m + 1)
+        - m * math.log(2)
+        - math.lgamma(m + 1)
+    )
+    q_prev = jnp.zeros_like(u)
+    q_cur = jnp.full_like(u, (-1.0) ** m * math.exp(log_seed))
     for ll in range(m + 1, l + 1):
-        p_prev, p_cur = (
-            p_cur,
-            (u * (2 * ll - 1) * p_cur - (ll + m - 1) * p_prev) / (ll - m),
+        a = math.sqrt((4 * ll * ll - 1) / (ll * ll - m * m))
+        b = (
+            math.sqrt(((ll - 1) ** 2 - m * m) / (4 * (ll - 1) ** 2 - 1))
+            if ll - 1 >= 1
+            else 0.0
         )
-    return p_cur  # type: ignore[no-any-return]
+        q_prev, q_cur = q_cur, a * (u * q_cur - b * q_prev)
+    return q_cur  # type: ignore[no-any-return]
 
 
 def compute_Ylm(
@@ -316,9 +337,10 @@ def compute_Ylm(
         \quad\Longrightarrow\quad
         Y_l^m = N_{lm} \, p_l^m(z/r) \, \left(\frac{x + i y}{r}\right)^m
 
-    where :math:`p_l^m` is `reduced_legendre`. The right-hand side is
-    polynomial in :math:`x` and :math:`y`, so unlike the
-    :math:`(\theta, \phi)` form it is smooth on the z-axis.
+    where `reduced_legendre` supplies :math:`N_{lm} p_l^m` as a single
+    normalized quantity. The right-hand side is polynomial in :math:`x` and
+    :math:`y`, so unlike the :math:`(\theta, \phi)` form it is smooth on the
+    z-axis.
     """
     ux, uy, uz = uvec[..., 0], uvec[..., 1], uvec[..., 2]
 
@@ -330,10 +352,7 @@ def compute_Ylm(
             cos_mphi * uy + sin_mphi * ux,
         )
 
-    norm = math.sqrt(
-        (2 * l + 1) / (4 * math.pi) * math.factorial(l - m) / math.factorial(l + m)
-    )
-    plm = norm * reduced_legendre(l, m, uz)
+    plm = reduced_legendre(l, m, uz)  # already carries N_lm
     return plm * cos_mphi, plm * sin_mphi
 
 

@@ -437,6 +437,25 @@ def test_compute_Ylm_matches_lpmv(l: int) -> None:
         assert np.allclose(got_sin, expect * np.sin(m * phi), rtol=0, atol=1e-12)
 
 
+@pytest.mark.parametrize("m", [90, 150, 400])
+def test_compute_Ylm_finite_at_large_m(m: int) -> None:
+    """Stay finite where the unnormalized Legendre seed would overflow.
+
+    ``p_m^m`` is ``(2m-1)!!``, which overflows float64 near ``m = 90``. If the
+    normalization were applied after the recurrence rather than folded into
+    it, the seed would be ``inf`` and every value would come back ``nan`` --
+    including on the z-axis, via ``inf * 0``, reintroducing exactly the
+    failure this module exists to avoid.
+    """
+    xyz = np.asarray(_BATCH_XYZ.ustrip("kpc"))
+    uvec = jnp.asarray(xyz / np.linalg.norm(xyz, axis=-1, keepdims=True))
+
+    got_cos, got_sin = compute_Ylm(m, m, uvec)
+
+    assert np.all(np.isfinite(got_cos))
+    assert np.all(np.isfinite(got_sin))
+
+
 def test_on_axis_gradient_is_correct() -> None:
     """Check the z-axis gradient is correct, not merely finite.
 

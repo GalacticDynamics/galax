@@ -16,9 +16,13 @@ from diffrax import (
     AbstractSolver,
     AbstractTerm,
     LocalLinearInterpolation,
+    ODETerm,
     SemiImplicitEuler,
 )
 from equinox.internal import ω  # noqa: PLC2403
+
+from galax.dynamics._src.orbit.field_base import AbstractOrbitField
+from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
 
 # diffrax doesn't publicly export these; they're type hints only (no runtime
 # behavior depends on them), so redeclare as `Any` rather than importing
@@ -122,3 +126,17 @@ Leapfrog.__init__.__doc__ = """**Arguments:** None"""
 
 
 SymplecticSolverT: TypeAlias = Leapfrog | SemiImplicitEuler
+
+
+# ===============================================
+# Terms dispatch
+#
+# Registered here (rather than in `field_hamiltonian.py`) so that core orbit
+# code doesn't need to import the experimental package just to support
+# `Leapfrog`. See `field_hamiltonian.py` for the `SemiImplicitEuler` dispatch.
+
+
+@AbstractOrbitField.terms.dispatch
+def terms(self: HamiltonianField, _: Leapfrog, /) -> tuple[ODETerm, ODETerm]:
+    """Return the AbstractTerm terms for the Leapfrog solver."""
+    return (ODETerm(self.dx_dt), ODETerm(self.dv_dt))

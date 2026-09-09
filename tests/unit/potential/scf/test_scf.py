@@ -271,19 +271,8 @@ def _quadrupole() -> gp.SCFPotential:
     ],
 )
 @pytest.mark.parametrize("method", ["potential", "gradient", "density", "hessian"])
-def test_finite_on_coordinate_singularities(request, name, xyz, method) -> None:
+def test_finite_on_coordinate_singularities(name, xyz, method) -> None:
     """Value and derivatives stay finite at r=0 and along the z-axis."""
-    if name == "origin" and method == "hessian":
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="The second derivative of |q| at the origin is still "
-                "0/0 even with `safe_vector_norm`'s floor: the first "
-                "derivative is finite but discontinuous there. The value, "
-                "density and gradient are all finite; only the hessian is "
-                "not. See `scaled_radius_and_direction`.",
-            )
-        )
-
     pot = _quadrupole()
     q = u.Q(np.array(xyz), "kpc")
 

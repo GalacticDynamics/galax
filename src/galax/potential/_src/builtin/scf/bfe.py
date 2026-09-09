@@ -46,6 +46,23 @@ def _nl_axes(
     return n, l, cn
 
 
+def _s_pow_l(
+    lmax: int, s: Float[Array, "*batch"], /
+) -> Float[Array, "{lmax}+1 *batch"]:
+    r""":math:`s^l` for :math:`l = 0 \ldots l_{max}`, stacked on a leading axis.
+
+    Built with *integer* exponents rather than as ``s ** l`` against a float
+    ``l`` array. The two agree in value, but the float form is not twice
+    differentiable at :math:`s = 0`: the derivative of :math:`s^0` is
+    :math:`0 \cdot s^{-1}`, which JAX evaluates as ``0 * inf`` and returns
+    ``nan``, so the hessian of every SCF potential was NaN at the origin even
+    though the value and gradient were finite. ``lmax`` is static, so the
+    comprehension unrolls at trace time and `jax` uses `lax.integer_pow`,
+    whose derivative at zero is exact.
+    """
+    return jnp.stack([s**i for i in range(lmax + 1)])  # type: ignore[no-any-return]
+
+
 @ft.partial(jax.jit, static_argnums=(0, 1))
 def phi_nl(
     nmax: int, lmax: int, s: Float[Array, "*batch"], /
@@ -69,7 +86,7 @@ def phi_nl(
 
     """
     _, l, cn = _nl_axes(nmax, lmax, s)
-    prefactor = -SQRT_FOURPI * s**l / (1 + s) ** (2 * l + 1)
+    prefactor = -SQRT_FOURPI * _s_pow_l(lmax, s) / (1 + s) ** (2 * l + 1)
     return prefactor * cn
 
 
@@ -95,7 +112,12 @@ def rho_nl(
     """
     n, l, cn = _nl_axes(nmax, lmax, s)
     knl = 0.5 * n * (n + 4 * l + 3) + (l + 1) * (2 * l + 1)
-    prefactor = SQRT_FOURPI * (knl / (2 * jnp.pi)) * s**l / (s * (1 + s) ** (2 * l + 3))
+    prefactor = (
+        SQRT_FOURPI
+        * (knl / (2 * jnp.pi))
+        * _s_pow_l(lmax, s)
+        / (s * (1 + s) ** (2 * l + 3))
+    )
     return prefactor * cn  # type: ignore[no-any-return]
 
 

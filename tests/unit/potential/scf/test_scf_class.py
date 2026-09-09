@@ -80,6 +80,42 @@ class TestSCFPotential(
         )
         assert jnp.allclose(pot.hessian(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
+    def test_hessian_matches_finite_difference_of_gradient(
+        self, pot: gp.SCFPotential, x: gt.QuSz3
+    ) -> None:
+        """Cross-check the hessian against a finite difference of the gradient.
+
+        Gala cannot serve as the oracle for the hessian: its SCF backend has
+        no analytic hessian in the C code, so `gala`'s ``hessian()`` always
+        returns zero (that is why the "hessian" case is commented out of
+        ``test_method_gala`` below rather than compared). Gala *does*
+        independently verify galax's `gradient` (see ``test_method_gala``),
+        so this test numerically differentiates that gala-verified gradient
+        and checks it against the analytic hessian instead. Do not delete
+        this as "redundant" with `test_hessian`: that test only pins the
+        hessian to a hardcoded value (a regression guard against changes),
+        while this is the only check that the hessian is independently
+        correct -- e.g. it would catch a future hand-written `_hessian`
+        override that drifted from the autodiff-derived gradient, which a
+        uniform rescaling of `_potential` would not (both derivatives scale
+        together). Measured agreement at ``h=1e-5`` is ~4e-12.
+        """
+        h = 1e-5
+        x0, unit = x.value, x.unit
+
+        def grad(xv: gt.Sz3) -> gt.Sz3:
+            return pot.gradient(u.Q(xv, unit), t=0).value
+
+        fd = jnp.stack(
+            [
+                (grad(x0.at[i].add(h)) - grad(x0.at[i].add(-h))) / (2 * h)
+                for i in range(3)
+            ],
+            axis=0,
+        )
+        got = pot.hessian(x, t=0).value
+        assert jnp.allclose(got, fd, atol=1e-9)
+
     # ---------------------------------
     # Convenience methods
 

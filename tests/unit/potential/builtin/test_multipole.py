@@ -1,12 +1,15 @@
 """Test the `MultipolePotential` class."""
 
+import math
 import re
 
 from jaxtyping import Array, Shaped
 from typing import Any, override
 
 import equinox as eqx
+import numpy as np
 import pytest
+from scipy.special import lpmv
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -20,6 +23,7 @@ from .test_abstractmultipole import (
     ParameterAngularCoefficientsMixin,
 )
 from .test_common import ParameterMTotMixin, ParameterRSMixin
+from galax.potential._src.builtin.multipole import compute_Ylm
 
 ###############################################################################
 
@@ -395,3 +399,76 @@ def test_batched_matches_per_position(pot: gp.AbstractPotential) -> None:
     assert jnp.allclose(
         batched, one_at_a_time, rtol=1e-8, atol=u.Q(1e-10, batched.unit)
     )
+
+
+###############################################################################
+# The angular basis: correctness, and smoothness on the z-axis.
+#
+# `compute_Ylm` used to go through `theta = acos(z/r)`, `phi = atan2(y, x)`.
+# `atan2` has gradient `-y / (x**2 + y**2)`, i.e. `0/0` wherever `x = y = 0`,
+# so the Cartesian gradient and hessian of every `m >= 1` term were NaN on the
+# entire z-axis. It now evaluates
+#
+#     Y_l^m = N_lm * p_l^m(z/r) * ((x + i y) / r)**m
+#
+# which is polynomial in `x` and `y` and so has no z-axis singularity.
+
+
+@pytest.mark.parametrize("l", range(4))
+def test_compute_Ylm_matches_lpmv(l: int) -> None:
+    """Check the angular basis against `scipy.special.lpmv`.
+
+    This pins the Condon-Shortley phase convention, which must match `lpmv`
+    (and GSL): a sign flip per odd ``m`` would otherwise pass unnoticed by the
+    fixtures below, whose non-zero coefficients are sparse.
+    """
+    xyz = np.asarray(_BATCH_XYZ.ustrip("kpc"))
+    uvec = xyz / np.linalg.norm(xyz, axis=-1, keepdims=True)
+    phi = np.arctan2(uvec[:, 1], uvec[:, 0])
+
+    for m in range(l + 1):
+        norm = math.sqrt(
+            (2 * l + 1) / (4 * math.pi) * math.factorial(l - m) / math.factorial(l + m)
+        )
+        expect = norm * lpmv(m, l, uvec[:, 2])
+        got_cos, got_sin = compute_Ylm(l, m, jnp.asarray(uvec))
+
+        assert np.allclose(got_cos, expect * np.cos(m * phi), rtol=0, atol=1e-12)
+        assert np.allclose(got_sin, expect * np.sin(m * phi), rtol=0, atol=1e-12)
+
+
+def test_on_axis_gradient_is_correct() -> None:
+    """Check the z-axis gradient is correct, not merely finite.
+
+    The potential has non-zero ``m >= 1`` coefficients, so before the Cartesian
+    reformulation every component here was NaN. Comparing against a central
+    difference whose ``x``/``y`` samples straddle the axis from off-axis points
+    checks the value, not just that something finite came out.
+    """
+    Slm, Tlm = _lm_coeffs(2)
+    pot = gp.MultipoleInnerPotential(
+        m_tot=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        Slm=Slm,
+        Tlm=Tlm,
+        l_max=2,
+        units="galactic",
+    )
+    on_axis = u.Q([0.0, 0.0, 5.0], "kpc")
+
+    grad = pot.gradient(on_axis, t=0).ustrip(pot.units["acceleration"])
+
+    h = 1e-5  # small enough that O(h^2) truncation sits far below `rtol`
+    expect = jnp.stack(
+        [
+            (
+                pot.potential(on_axis + u.Q(step, "kpc"), t=0)
+                - pot.potential(on_axis - u.Q(step, "kpc"), t=0)
+            ).ustrip(pot.units["specific energy"])
+            / (2 * h)
+            for step in jnp.eye(3) * h
+        ]
+    )
+
+    # NaN compares unequal, so this subsumes an `isfinite` check.
+    assert jnp.allclose(grad, expect, rtol=1e-6, atol=1e-12)

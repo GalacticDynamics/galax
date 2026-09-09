@@ -8,6 +8,7 @@ __all__ = [
 ]
 
 import functools as ft
+import math
 from dataclasses import KW_ONLY
 
 from jaxtyping import Array, Float
@@ -15,8 +16,8 @@ from typing import final
 
 import equinox as eqx
 import jax
+import numpy as np
 from equinox import field
-from jax.scipy.special import sph_harm_y
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -106,21 +107,16 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
         Slm = self.Slm(t, ustrip=self.units["dimensionless"])
         Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
 
-        # spherical coordinates
+        # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
-        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(xyz), r_s)
+        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), r_s)
 
         # Compute the summation over l and m
-        l_max = self.l_max
-        ls, ms = jnp.tril_indices(l_max + 1)
-
-        # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
-        def summand(l: int, m: int) -> Float[Array, "*batch"]:
-            cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            _result = jnp.pow(s, l) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
-            return _result  # type: ignore[no-any-return]
-
-        summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
+        terms = [
+            jnp.pow(s, l) * (Slm[l, m] * cYlm + Tlm[l, m] * sYlm)
+            for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
+        ]
+        summation = jnp.sum(jnp.stack(terms), axis=0)
         if is_scalar:
             summation = summation[0]
 
@@ -174,21 +170,16 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
         Slm = self.Slm(t, ustrip=self.units["dimensionless"])
         Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
 
-        # spherical coordinates
+        # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
-        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(xyz), r_s)
+        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), r_s)
 
         # Compute the summation over l and m
-        l_max = self.l_max
-        ls, ms = jnp.tril_indices(l_max + 1)
-
-        # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
-        def summand(l: int, m: int) -> Float[Array, "*batch"]:
-            cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            _result = jnp.pow(s, -(l + 1)) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
-            return _result  # type: ignore[no-any-return]
-
-        summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
+        terms = [
+            jnp.pow(s, -(l + 1)) * (Slm[l, m] * cYlm + Tlm[l, m] * sYlm)
+            for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
+        ]
+        summation = jnp.sum(jnp.stack(terms), axis=0)
         if is_scalar:
             summation = summation[0]
 
@@ -253,22 +244,17 @@ class MultipolePotential(AbstractMultipolePotential):
         ISlm, ITlm = self.ISlm(t, ustrip=u1), self.ITlm(t, ustrip=u1)
         OSlm, OTlm = self.OSlm(t, ustrip=u1), self.OTlm(t, ustrip=u1)
 
-        # spherical coordinates
+        # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
-        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(xyz), r_s)
+        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), r_s)
 
         # Compute the summation over l and m
-        l_max = self.l_max
-        ls, ms = jnp.tril_indices(l_max + 1)
-
-        # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
-        def summand(l: int, m: int) -> Float[Array, "*batch"]:
-            cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            inner = jnp.pow(s, l) * (ISlm[l, m] * cPlm + ITlm[l, m] * sPlm)
-            outer = jnp.pow(s, -l - 1) * (OSlm[l, m] * cPlm + OTlm[l, m] * sPlm)
-            return inner + outer  # type: ignore[no-any-return]
-
-        summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
+        terms = [
+            jnp.pow(s, l) * (ISlm[l, m] * cYlm + ITlm[l, m] * sYlm)
+            + jnp.pow(s, -l - 1) * (OSlm[l, m] * cYlm + OTlm[l, m] * sYlm)
+            for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
+        ]
+        summation = jnp.sum(jnp.stack(terms), axis=0)
         if is_scalar:
             summation = summation[0]
 
@@ -279,39 +265,84 @@ class MultipolePotential(AbstractMultipolePotential):
 # ===== Helper functions =====
 
 
-def cartesian_to_normalized_spherical(
+def scaled_radius_and_direction(
     q: gt.BtSz3, r_s: gt.Sz0, /
-) -> tuple[gt.BtFloatSz0, gt.BtFloatSz0, gt.BtFloatSz0]:
-    r"""Convert Cartesian coordinates to normalized spherical coordinates.
+) -> tuple[gt.BtFloatSz0, gt.BtSz3]:
+    r"""Split Cartesian positions into :math:`r/r_s` and a unit direction.
 
     .. math::
 
-        r = \sqrt{x^2 + y^2 + z^2}
-        X = \cos(\theta) = z / r
-        \phi = \tan^{-1}\left(\frac{y}{x}\right)
+        r = \sqrt{x^2 + y^2 + z^2}, \qquad \hat{q} = q / r
 
+    The angular dependence is carried by the Cartesian unit vector rather than
+    by :math:`(\theta, \phi)`: ``atan2(y, x)`` has gradient
+    :math:`-y/(x^2+y^2)`, which is :math:`0/0` on the whole z-axis, so any
+    :math:`m \ge 1` term built from it has NaN Cartesian derivatives there.
     """
     r = jnp.linalg.vector_norm(q, axis=-1)
-    s = r / r_s
-    theta = jnp.acos(q[..., 2] / r)  # theta
-    phi = jnp.atan2(q[..., 1], q[..., 0])  # atan(y/x)
-    return s, theta, phi
+    return r / r_s, q / r[..., None]
 
 
-# TODO: vectorize such that it's signature="(l),(l),(N),(N)->(l, N)":
+def reduced_legendre(
+    l: int, m: int, u: Float[Array, "*batch"], /
+) -> Float[Array, "*batch"]:
+    r"""Evaluate :math:`p_l^m(u) = P_l^m(u) / (1 - u^2)^{m/2}`.
+
+    Include the Condon-Shortley phase, matching `scipy.special.lpmv` and GSL.
+    ``l`` and ``m`` are static, so the recurrence unrolls at trace time.
+    """
+    # p_m^m = (-1)^m (2m - 1)!!, with (2m-1)!! = (2m)! / (2^m m!)
+    pmm = (-1.0) ** m * math.factorial(2 * m) / (2**m * math.factorial(m))
+    p_prev, p_cur = jnp.zeros_like(u), jnp.full_like(u, pmm)
+    for ll in range(m + 1, l + 1):
+        p_prev, p_cur = (
+            p_cur,
+            (u * (2 * ll - 1) * p_cur - (ll + m - 1) * p_prev) / (ll - m),
+        )
+    return p_cur  # type: ignore[no-any-return]
+
+
 def compute_Ylm(
-    l: int,
-    m: int,
-    theta: Float[Array, "*batch"],
-    phi: Float[Array, "*batch"],
-    *,
-    l_max: int,
+    l: int, m: int, uvec: gt.BtSz3, /
 ) -> tuple[Float[Array, "*batch"], Float[Array, "*batch"]]:
-    # `sph_harm_y` requires `l`, `m`, `theta`, `phi` to be 1D arrays of equal
-    # length: it pairs them up element-wise. Passing length-1 `l`/`m` against a
-    # length-N `theta` silently returns wrong values at every index but 0.
-    shape = jnp.shape(theta)
-    theta, phi = jnp.reshape(theta, (-1,)), jnp.reshape(phi, (-1,))
-    ls, ms = jnp.full(theta.shape, l), jnp.full(theta.shape, m)
-    Ylm = jnp.reshape(sph_harm_y(ls, ms, theta, phi, n_max=l_max), shape)
-    return Ylm.real, Ylm.imag
+    r"""Compute the real and imaginary parts of :math:`Y_l^m`.
+
+    Evaluate the harmonic directly from the Cartesian unit direction
+    :math:`\hat{q} = (x, y, z)/r`, using
+
+    .. math::
+
+        \sin^m\theta \, e^{i m \phi} = \left(\frac{x + i y}{r}\right)^m
+        \quad\Longrightarrow\quad
+        Y_l^m = N_{lm} \, p_l^m(z/r) \, \left(\frac{x + i y}{r}\right)^m
+
+    where :math:`p_l^m` is `reduced_legendre`. The right-hand side is
+    polynomial in :math:`x` and :math:`y`, so unlike the
+    :math:`(\theta, \phi)` form it is smooth on the z-axis.
+    """
+    ux, uy, uz = uvec[..., 0], uvec[..., 1], uvec[..., 2]
+
+    # ((x + i y) / r)^m by repeated multiplication (m is static).
+    cos_mphi, sin_mphi = jnp.ones_like(ux), jnp.zeros_like(ux)
+    for _ in range(m):
+        cos_mphi, sin_mphi = (
+            cos_mphi * ux - sin_mphi * uy,
+            cos_mphi * uy + sin_mphi * ux,
+        )
+
+    norm = math.sqrt(
+        (2 * l + 1) / (4 * math.pi) * math.factorial(l - m) / math.factorial(l + m)
+    )
+    plm = norm * reduced_legendre(l, m, uz)
+    return plm * cos_mphi, plm * sin_mphi
+
+
+def iter_Ylm(
+    l_max: int, uvec: gt.BtSz3, /
+) -> list[tuple[int, int, Float[Array, "*batch"], Float[Array, "*batch"]]]:
+    """Compute ``(l, m, Re Y_lm, Im Y_lm)`` for every ``0 <= m <= l <= l_max``."""
+    ls, ms = np.tril_indices(l_max + 1)
+    return [
+        (l, m, *compute_Ylm(l, m, uvec))
+        for l, m in zip(ls.tolist(), ms.tolist(), strict=True)
+    ]

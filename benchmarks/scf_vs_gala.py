@@ -38,6 +38,16 @@ def _require_gala() -> None:
         )
 
 
+GATE_POINTS = 1_000
+"""Maximum positions compared by the correctness gate.
+
+The gate exists to prove the two implementations agree before any timing is
+reported, not to sample the domain exhaustively -- a systematic error shows up
+in the first handful of positions. Capping keeps the check cheap at large
+``npoints``.
+"""
+
+
 def _time(fn, *, repeat: int = 7, number: int | None = None) -> float:
     """Best-of-`repeat` seconds per call."""
     if number is None:
@@ -96,6 +106,13 @@ def main() -> None:
             units="galactic",
         )
 
+        # Hoisted out of the `npoints` loop: re-wrapping per iteration does not
+        # recompile (jit caches on the wrapped function and the argument avals,
+        # not on the wrapper instance -- measured 1699 ms cold, then 1.3 ms for
+        # a freshly wrapped call at the same shape), but there is no reason to
+        # rebuild it either.
+        fn = jax.jit(gp.potential)
+
         for npoints in args.npoints:
             rng = np.random.default_rng(0)
             xyz = rng.normal(size=(npoints, 3)) * 10.0
@@ -104,17 +121,24 @@ def main() -> None:
             galax_q = u.Q(jnp.asarray(xyz), "kpc")
             t = u.Q(0.0, "Gyr")
 
-            fn = jax.jit(gp.potential)
             jax.block_until_ready(fn(xpot, galax_q, t))  # compile before timing
 
-            # Correctness gate: a fast wrong answer is not a benchmark. Uses
-            # an explicit raise (not `assert`) so `python -O` can't skip it.
-            got = np.asarray(fn(xpot, galax_q, t).value)
-            exp = gpot.energy(gala_q).to_value("kpc2 / Myr2")
+            # Correctness gate: a fast wrong answer is not a benchmark. Uses an
+            # explicit exit (not `assert`) so `python -O` can't skip it.
+            #
+            # Checked on at most GATE_POINTS positions. The full arrays are
+            # still computed -- only the comparison is capped -- so this
+            # exercises the same kernel at the same shape, while avoiding an
+            # extra full-size gala evaluation and two host transfers per row
+            # (at npoints=1e6 that dominated the script's runtime).
+            n_gate = min(npoints, GATE_POINTS)
+            got = np.asarray(fn(xpot, galax_q, t).value)[:n_gate]
+            exp = gpot.energy(gala_q[:, :n_gate]).to_value("kpc2 / Myr2")
             if not np.allclose(got, exp, rtol=1e-10):
                 sys.exit(
                     f"correctness gate failed at nmax={nmax}, lmax={lmax}, "
-                    f"npoints={npoints}: galax={got!r} gala={exp!r}. "
+                    f"npoints={npoints} (checked {n_gate}): "
+                    f"galax={got!r} gala={exp!r}. "
                     "A fast wrong answer is not a benchmark."
                 )
 

@@ -11,7 +11,7 @@ import unxt as u
 
 import galax.potential as gp
 from galax.interop.optional_deps import GSL_ENABLED, OptDeps
-from galax.potential._src.builtin.multipole import compute_Ylm
+from galax.potential._src.builtin.multipole import iter_Ylm
 
 
 def _monopole(m_tot: float = 1e12, r_s: float = 10.0) -> gp.SCFPotential:
@@ -142,16 +142,23 @@ def _ref_potential(
     return g * m_tot / r_s * total
 
 
-def test_compute_ylm_matches_condon_shortley_phase() -> None:
-    """`compute_Ylm` must carry the same CS phase as `lpmv`-based `sphPlm`.
+def test_iter_ylm_matches_condon_shortley_phase() -> None:
+    """`iter_Ylm` must carry the same CS phase as the `lpmv`-based `sphPlm`.
 
-    This is the cheap, localized check: if it fails, the bug is in
-    `compute_Ylm`, not in `SCFPotential`'s assembly of terms.
+    The harmonics themselves come from `spexial`, which tests them against
+    `scipy.special` directly. What is checked here is galax's *adapter*: that
+    it keys the table by ``(l, m)`` the way every consumer indexes it, splits
+    real and imaginary parts the right way round, and takes the ``m >= 0`` half
+    of `spexial`'s SciPy-ordered second axis rather than the negative one --
+    where the phase differs by exactly the ``(-1)**m`` this test would catch.
+
+    Cheap and localized: if it fails, the bug is in the adapter, not in
+    `SCFPotential`'s assembly of terms.
     """
     theta = np.asarray([0.3, 1.1, 2.0])
     phi_np = np.asarray([0.4, -1.2, 2.7])
     big_x = np.cos(theta)
-    # `compute_Ylm` takes a Cartesian unit direction, not (theta, phi).
+    # The harmonics take a Cartesian unit direction, not (theta, phi).
     uvec = jnp.asarray(
         np.stack(
             [np.sin(theta) * np.cos(phi_np), np.sin(theta) * np.sin(phi_np), big_x],
@@ -159,8 +166,11 @@ def test_compute_ylm_matches_condon_shortley_phase() -> None:
         )
     )
 
+    table = {(l, m): (cY, sY) for l, m, cY, sY in iter_Ylm(3, uvec)}
+    assert sorted(table) == [(l, m) for l in range(4) for m in range(l + 1)]
+
     for l, m in [(1, 1), (2, 1), (2, 2), (3, 2), (3, 3)]:
-        cY, sY = compute_Ylm(l, m, uvec)
+        cY, sY = table[l, m]
         ref = np.array([_ref_sphPlm(l, m, x) for x in big_x])
         assert jnp.allclose(cY, ref * np.cos(m * phi_np), rtol=1e-10)
         assert jnp.allclose(sY, ref * np.sin(m * phi_np), rtol=1e-10)

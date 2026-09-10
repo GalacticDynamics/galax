@@ -112,7 +112,7 @@ def _ref_snlm_tnlm(
     """Scalar transcription of gala's ``S_nlm``/``T_nlm`` sum over particles.
 
     Gala-free: built from `sps.lpmv`/`sps.eval_gegenbauer` directly, not from
-    `phi_nl`/`compute_Ylm`, so it does not share a bug with the module under
+    `phi_nl`/`iter_Ylm`, so it does not share a bug with the module under
     test.
     """
     x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]

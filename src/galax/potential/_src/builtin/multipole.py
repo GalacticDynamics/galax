@@ -8,7 +8,6 @@ __all__ = [
 ]
 
 import functools as ft
-import math
 from dataclasses import KW_ONLY
 
 from jaxtyping import Array, Float
@@ -20,6 +19,7 @@ from equinox import field
 
 import quaxed.numpy as jnp
 import unxt as u
+from spexial import sph_harm_y_cart_all_terms
 from unxt.quantity import AllowValue
 
 import galax.potential.custom_types as gt
@@ -307,129 +307,48 @@ def scaled_radius_and_direction(
     return r / r_s, q / r_dir[..., None]
 
 
-def legendre_seed(m: int, u: Float[Array, "*batch"], /) -> Float[Array, "*batch"]:
-    r"""Seed the reduced-Legendre recurrence at :math:`l = m` with :math:`N_{mm}p_m^m`.
-
-    Built in log space so :math:`p_m^m = (-1)^m (2m-1)!!` -- which overflows
-    float64 near :math:`m = 90` -- is never materialized; see
-    `reduced_legendre` for why that matters.
-    """
-    log_seed = (
-        0.5 * math.log((2 * m + 1) / (4 * math.pi))
-        + 0.5 * math.lgamma(2 * m + 1)
-        - m * math.log(2)
-        - math.lgamma(m + 1)
-    )
-    return jnp.full_like(u, (-1.0) ** m * math.exp(log_seed))  # type: ignore[no-any-return]
-
-
-def legendre_step_coeffs(l: int, m: int, /) -> tuple[float, float]:
-    r"""Give the ``(a, b)`` coefficients of the :math:`l-1 \to l` recurrence step.
-
-    :math:`q_l = a (u q_{l-1} - b q_{l-2})` for the normalized reduced Legendre
-    functions :math:`q_l = N_{lm} p_l^m`.
-    """
-    a = math.sqrt((4 * l * l - 1) / (l * l - m * m))
-    b = (
-        math.sqrt(((l - 1) ** 2 - m * m) / (4 * (l - 1) ** 2 - 1))
-        if l - 1 >= 1
-        else 0.0
-    )
-    return a, b
-
-
-def reduced_legendre(
-    l: int, m: int, u: Float[Array, "*batch"], /
-) -> Float[Array, "*batch"]:
-    r"""Evaluate :math:`N_{lm} p_l^m(u)`, with :math:`p_l^m = P_l^m/(1-u^2)^{m/2}`.
-
-    :math:`N_{lm} = \sqrt{\frac{2l+1}{4\pi}\frac{(l-m)!}{(l+m)!}}` is the
-    spherical-harmonic normalization, so this returns the *normalized* reduced
-    associated Legendre function. Includes the Condon-Shortley phase, matching
-    `scipy.special.lpmv` and GSL. ``l`` and ``m`` are static, so the recurrence
-    unrolls at trace time.
-
-    The normalization is folded into the recurrence rather than applied
-    afterwards, because :math:`p_l^m` alone is astronomically large -- its seed
-    is :math:`(2m-1)!!`, which overflows float64 near :math:`m = 90` and would
-    then make the whole harmonic ``nan`` via ``inf * 0`` on the axis, exactly
-    the failure this module now exists to avoid. Multiplying by the tiny
-    :math:`N_{lm}` afterwards also loses roughly two digits by cancellation at
-    moderate :math:`m`. The normalized quantity is O(1) at every order: the
-    seed is built in log space, and the recurrence carries it directly.
-    """
-    q_prev = jnp.zeros_like(u)
-    q_cur = legendre_seed(m, u)
-    for ll in range(m + 1, l + 1):
-        a, b = legendre_step_coeffs(ll, m)
-        q_prev, q_cur = q_cur, a * (u * q_cur - b * q_prev)
-    return q_cur
-
-
-def compute_Ylm(
-    l: int, m: int, uvec: gt.BtSz3, /
-) -> tuple[Float[Array, "*batch"], Float[Array, "*batch"]]:
-    r"""Compute the real and imaginary parts of :math:`Y_l^m`.
-
-    Evaluate the harmonic directly from the Cartesian unit direction
-    :math:`\hat{q} = (x, y, z)/r`, using
-
-    .. math::
-
-        \sin^m\theta \, e^{i m \phi} = \left(\frac{x + i y}{r}\right)^m
-        \quad\Longrightarrow\quad
-        Y_l^m = N_{lm} \, p_l^m(z/r) \, \left(\frac{x + i y}{r}\right)^m
-
-    where `reduced_legendre` supplies :math:`N_{lm} p_l^m` as a single
-    normalized quantity. The right-hand side is polynomial in :math:`x` and
-    :math:`y`, so unlike the :math:`(\theta, \phi)` form it is smooth on the
-    z-axis.
-    """
-    ux, uy, uz = uvec[..., 0], uvec[..., 1], uvec[..., 2]
-
-    # ((x + i y) / r)^m by repeated multiplication (m is static).
-    cos_mphi, sin_mphi = jnp.ones_like(ux), jnp.zeros_like(ux)
-    for _ in range(m):
-        cos_mphi, sin_mphi = (
-            cos_mphi * ux - sin_mphi * uy,
-            cos_mphi * uy + sin_mphi * ux,
-        )
-
-    plm = reduced_legendre(l, m, uz)  # already carries N_lm
-    return plm * cos_mphi, plm * sin_mphi
-
-
 def iter_Ylm(
     l_max: int, uvec: gt.BtSz3, /
 ) -> list[tuple[int, int, Float[Array, "*batch"], Float[Array, "*batch"]]]:
-    r"""Compute ``(l, m, Re Y_lm, Im Y_lm)`` for every ``0 <= m <= l <= l_max``.
+    r"""Give ``(l, m, Re Y_lm, Im Y_lm)`` for every ``0 <= m <= l <= l_max``.
 
-    Same values as `compute_Ylm` called on each pair, but both recurrences are
-    carried across the table instead of restarted: one pass per ``m`` advances
-    :math:`((x + iy)/r)^m` by a single complex multiply and walks the Legendre
-    recurrence up in ``l`` from its seed at ``l = m``. That makes the whole
-    table :math:`O(l_\mathrm{max}^2)` rather than cubic -- and since ``l`` and
-    ``m`` are static, the saving is in traced operations, so it shrinks the
-    HLO and hence trace and compile time.
+    A thin adapter over `spexial.sph_harm_y_cart_all_terms`, which runs the
+    Legendre and azimuth recurrences *once* across the whole table -- one pass
+    per ``m``, advancing :math:`((x+iy)/r)^m` by a single complex multiply and
+    walking the Legendre recurrence up in ``l`` from its seed -- and evaluates
+    each harmonic from the Cartesian unit direction as :math:`N_{lm}
+    p_l^m(z/r) ((x+iy)/r)^m`. That form is polynomial in :math:`x` and
+    :math:`y`, and so smooth on the z-axis, where :math:`\theta` and
+    :math:`\phi` are singular and the chain rule sends the gradient of every
+    :math:`m \ge 1` term to exactly zero.
+
+    Why `spexial` rather than `jax.scipy.special.sph_harm_y`: upstream pairs
+    ``l[i]`` with ``theta[i]`` instead of broadcasting, so it returns silently
+    wrong values for a batch of positions, and its derivatives are ``nan`` at
+    both poles. Both are documented in `spexial`, with regression tests
+    asserting the defects directly.
+
+    Two things are adapted, and only two. `spexial` returns one complex array
+    per term, while every consumer here wants the real and imaginary parts
+    separately, since :math:`S_{lm}` and :math:`T_{lm}` are real and multiply
+    them independently. And `spexial`'s inner axis runs over
+    :math:`-l_{max} \ldots l_{max}`, following SciPy, while the real
+    expansions used here need only :math:`m \ge 0`.
+
+    Note the ``_terms`` spelling: `spexial.sph_harm_y_cart_all` computes the
+    same values but returns them *stacked* into one array, and indexing a
+    stacked table is what stops XLA folding each term into the caller's
+    summation as it is produced -- the whole table is materialized instead.
+    Measured on `MultipoleInnerPotential` at ``l_max = 12`` over a million
+    positions, the stacked form ran in 17.7 s against 10 ms here, for identical
+    values. Every consumer of this function immediately sums the terms.
 
     Terms come out in m-major order rather than the l-major order of
     ``np.tril_indices``; every caller sums them, so the order is immaterial.
     """
-    ux, uy, uz = uvec[..., 0], uvec[..., 1], uvec[..., 2]
-    cos_mphi, sin_mphi = jnp.ones_like(ux), jnp.zeros_like(ux)
-
-    out = []
-    for m in range(l_max + 1):
-        if m > 0:  # advance ((x + i y) / r)^m by one complex multiply
-            cos_mphi, sin_mphi = (
-                cos_mphi * ux - sin_mphi * uy,
-                cos_mphi * uy + sin_mphi * ux,
-            )
-
-        q_prev, q_cur = jnp.zeros_like(uz), legendre_seed(m, uz)
-        out.append((m, m, q_cur * cos_mphi, q_cur * sin_mphi))
-        for l in range(m + 1, l_max + 1):
-            a, b = legendre_step_coeffs(l, m)
-            q_prev, q_cur = q_cur, a * (uz * q_cur - b * q_prev)
-            out.append((l, m, q_cur * cos_mphi, q_cur * sin_mphi))
-    return out
+    terms = sph_harm_y_cart_all_terms(l_max, l_max, uvec)
+    return [
+        (l, m, terms[l][m].real, terms[l][m].imag)
+        for m in range(l_max + 1)
+        for l in range(m, l_max + 1)
+    ]

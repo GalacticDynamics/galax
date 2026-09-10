@@ -1,15 +1,12 @@
 """Test the `MultipolePotential` class."""
 
-import math
 import re
 
 from jaxtyping import Array, Shaped
 from typing import Any, override
 
 import equinox as eqx
-import numpy as np
 import pytest
-from scipy.special import lpmv
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -23,7 +20,6 @@ from .test_abstractmultipole import (
     ParameterAngularCoefficientsMixin,
 )
 from .test_common import ParameterMTotMixin, ParameterRSMixin
-from galax.potential._src.builtin.multipole import compute_Ylm, iter_Ylm
 
 ###############################################################################
 
@@ -327,10 +323,12 @@ class TestMultipolePotential(
 ###############################################################################
 # Regression: batched evaluation must match per-position evaluation.
 #
-# `compute_Ylm` used to pass length-1 `l`/`m` arrays to `sph_harm_y` against a
-# length-N `theta`, which silently returned wrong values at every batch index
-# but 0 for any `l > 0` term. Every other Multipole fixture here evaluates a
-# single position, so nothing caught it.
+# The angular basis used to pass length-1 `l`/`m` arrays to
+# `jax.scipy.special.sph_harm_y` against a length-N `theta`, which silently
+# returned wrong values at every batch index but 0 for any `l > 0` term.
+# Every other Multipole fixture here evaluates a single position, so nothing
+# caught it. `spexial` now takes `l`/`m` as static ints, which is what makes
+# the pairing impossible; this stays as the end-to-end statement of it.
 
 
 def _lm_coeffs(
@@ -402,58 +400,23 @@ def test_batched_matches_per_position(pot: gp.AbstractPotential) -> None:
 
 
 ###############################################################################
-# The angular basis: correctness, and smoothness on the z-axis.
+# The angular basis: smoothness on the z-axis.
 #
-# `compute_Ylm` used to go through `theta = acos(z/r)`, `phi = atan2(y, x)`.
+# The harmonics used to go through `theta = acos(z/r)`, `phi = atan2(y, x)`.
 # `atan2` has gradient `-y / (x**2 + y**2)`, i.e. `0/0` wherever `x = y = 0`,
 # so the Cartesian gradient and hessian of every `m >= 1` term were NaN on the
-# entire z-axis. It now evaluates
+# entire z-axis. `spexial.sph_harm_y_cart_all` evaluates
 #
 #     Y_l^m = N_lm * p_l^m(z/r) * ((x + i y) / r)**m
 #
 # which is polynomial in `x` and `y` and so has no z-axis singularity.
-
-
-@pytest.mark.parametrize("l", range(4))
-def test_compute_Ylm_matches_lpmv(l: int) -> None:
-    """Check the angular basis against `scipy.special.lpmv`.
-
-    This pins the Condon-Shortley phase convention, which must match `lpmv`
-    (and GSL): a sign flip per odd ``m`` would otherwise pass unnoticed by the
-    fixtures below, whose non-zero coefficients are sparse.
-    """
-    xyz = np.asarray(_BATCH_XYZ.ustrip("kpc"))
-    uvec = xyz / np.linalg.norm(xyz, axis=-1, keepdims=True)
-    phi = np.arctan2(uvec[:, 1], uvec[:, 0])
-
-    for m in range(l + 1):
-        norm = math.sqrt(
-            (2 * l + 1) / (4 * math.pi) * math.factorial(l - m) / math.factorial(l + m)
-        )
-        expect = norm * lpmv(m, l, uvec[:, 2])
-        got_cos, got_sin = compute_Ylm(l, m, jnp.asarray(uvec))
-
-        assert np.allclose(got_cos, expect * np.cos(m * phi), rtol=0, atol=1e-12)
-        assert np.allclose(got_sin, expect * np.sin(m * phi), rtol=0, atol=1e-12)
-
-
-@pytest.mark.parametrize("m", [90, 150, 400])
-def test_compute_Ylm_finite_at_large_m(m: int) -> None:
-    """Stay finite where the unnormalized Legendre seed would overflow.
-
-    ``p_m^m`` is ``(2m-1)!!``, which overflows float64 near ``m = 90``. If the
-    normalization were applied after the recurrence rather than folded into
-    it, the seed would be ``inf`` and every value would come back ``nan`` --
-    including on the z-axis, via ``inf * 0``, reintroducing exactly the
-    failure this module exists to avoid.
-    """
-    xyz = np.asarray(_BATCH_XYZ.ustrip("kpc"))
-    uvec = jnp.asarray(xyz / np.linalg.norm(xyz, axis=-1, keepdims=True))
-
-    got_cos, got_sin = compute_Ylm(m, m, uvec)
-
-    assert np.all(np.isfinite(got_cos))
-    assert np.all(np.isfinite(got_sin))
+#
+# The harmonics themselves -- the Condon-Shortley phase against `lpmv`, the
+# high-`m` seed overflow, the batched table against the per-pair function --
+# are now `spexial`'s to test, and it does, including regression tests that
+# assert the upstream `jax.scipy.special.sph_harm_y` defects directly. What
+# is checked here is that *these potentials* are assembled correctly from
+# them.
 
 
 def test_on_axis_gradient_is_correct() -> None:
@@ -491,28 +454,3 @@ def test_on_axis_gradient_is_correct() -> None:
 
     # NaN compares unequal, so this subsumes an `isfinite` check.
     assert jnp.allclose(grad, expect, rtol=1e-6, atol=1e-12)
-
-
-@pytest.mark.parametrize("l_max", [0, 1, 6])
-def test_iter_Ylm_matches_compute_Ylm(l_max: int) -> None:
-    """Check the shared-recurrence table against the per-pair reference.
-
-    `iter_Ylm` carries the Legendre and azimuth recurrences across the whole
-    ``(l, m)`` table instead of restarting them for each pair. `compute_Ylm`
-    remains the readable single-pair definition, so it is the reference: the
-    two must agree exactly, up to round-off, for every pair. The order differs
-    (m-major vs l-major), so compare as a dict keyed by ``(l, m)``.
-    """
-    xyz = np.asarray(_BATCH_XYZ.ustrip("kpc"))
-    uvec = jnp.asarray(xyz / np.linalg.norm(xyz, axis=-1, keepdims=True))
-
-    got = {(l, m): (c, s) for l, m, c, s in iter_Ylm(l_max, uvec)}
-
-    expect_lm = [(l, m) for l in range(l_max + 1) for m in range(l + 1)]
-    assert sorted(got) == sorted(expect_lm)
-
-    for l, m in expect_lm:
-        want_cos, want_sin = compute_Ylm(l, m, uvec)
-        got_cos, got_sin = got[l, m]
-        assert np.allclose(got_cos, want_cos, rtol=1e-14, atol=1e-15)
-        assert np.allclose(got_sin, want_sin, rtol=1e-14, atol=1e-15)

@@ -6,7 +6,7 @@ this module refer to that paper.
 
 Everything this model needs -- potential (Eqs. 6-7), enclosed mass (Eq. 15) and
 density (Eq. 1) -- is closed-form in terms of the incomplete beta function
-(Eq. 43, `galax.potential._src.special.incomplete_beta`), so *no* quantity here
+(Eq. 43, `spexial.incomplete_beta`), so *no* quantity here
 is obtained by automatic differentiation: `gradient`, `hessian` and `laplacian`
 are all written analytically below. That matters for speed, because the
 alternative is differentiating through that function on every force evaluation.
@@ -24,6 +24,7 @@ import jax.scipy.special as jsp
 
 import quaxed.numpy as jnp
 import unxt as u
+from spexial import incomplete_beta
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
@@ -32,7 +33,6 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-from galax.potential._src.special import incomplete_beta
 from galax.potential._src.utils import r_spherical
 
 DimL = u.dimension("length")

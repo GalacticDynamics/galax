@@ -217,11 +217,11 @@ class SCFPotential(AbstractSinglePotential):
         Two things about the order of operations here are load-bearing, and
         both were measured rather than reasoned.
 
-        **Each term is folded into the running sum as `iter_Ylm` produces it**,
-        rather than scattering the harmonics into an ``(l, m, *batch)`` grid
-        and contracting that with one `einsum`. The values are the same, but
-        the grid must be *materialized* before it can be contracted, while a
-        stack of terms consumed by a single reduction is fused away.
+        **Each term is added directly onto a running total**, rather than
+        scattering the harmonics into an ``(l, m, *batch)`` grid and
+        contracting that with one `einsum`. The values are the same, but the
+        grid must be *materialized* before it can be contracted, while a
+        running sum never holds more than one term's worth of temporaries.
 
         **The contraction over** ``n`` **is done once per** ``l``, not once per
         ``(l, m)``. Both are the same arithmetic; the difference is that
@@ -246,19 +246,25 @@ class SCFPotential(AbstractSinglePotential):
         order tested, and the potential is bit-identical at ``lmax = 6``.
         """
         # `iter_Ylm` yields m-major; this needs l-major, since the radial
-        # contraction is shared across the `m` of a given `l`.
-        ylm = {(l, m): (cY, sY) for l, m, cY, sY in iter_Ylm(self.lmax, uvec)}
+        # contraction is shared across the `m` of a given `l`. Bucketing first
+        # (rather than folding a dict) keeps every term on the accumulator
+        # below a plain running sum, with no intermediate collection kept
+        # around for XLA to materialize.
+        by_l: list[list[tuple[int, gt.BtFloatSz0, gt.BtFloatSz0]]] = [
+            [] for _ in range(self.lmax + 1)
+        ]
+        for l, m, cY, sY in iter_Ylm(self.lmax, uvec):
+            by_l[l].append((m, cY, sY))
 
-        terms = []
-        for l in range(self.lmax + 1):
+        total = jnp.zeros(jnp.shape(uvec)[:-1])
+        for l, ms in enumerate(by_l):
             # One matvec per l: (nmax+1, m) against (nmax+1, *batch).
             Sl = jnp.einsum("nm,n...->m...", Snlm[:, l, : l + 1], radial[:, l])
             Tl = jnp.einsum("nm,n...->m...", Tnlm[:, l, : l + 1], radial[:, l])
-            for m in range(l + 1):
-                cY, sY = ylm[l, m]
-                terms.append(Sl[m] * cY + Tl[m] * sY)
+            for m, cY, sY in ms:
+                total = total + Sl[m] * cY + Tl[m] * sY
 
-        return jnp.sum(jnp.stack(terms), axis=0)  # type: ignore[no-any-return]
+        return total  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

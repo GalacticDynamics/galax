@@ -11,7 +11,12 @@ import unxt as u
 
 import galax.potential as gp
 from galax.interop.optional_deps import GSL_ENABLED, OptDeps
-from galax.potential._src.builtin.multipole import compute_Ylm
+from galax.potential._src.builtin.multipole import (
+    compute_Ylm,
+    iter_Ylm,
+    scaled_radius_and_direction,
+)
+from galax.potential._src.builtin.scf.bfe import phi_nl, rho_nl
 
 
 def _monopole(m_tot: float = 1e12, r_s: float = 10.0) -> gp.SCFPotential:
@@ -210,6 +215,51 @@ def test_scf_potential_matches_lpmv_reference_with_m_gt_0() -> None:
     )
 
     assert np.allclose(got, expect, rtol=1e-10)
+
+
+def test_summation_matches_the_grid_contraction() -> None:
+    """REGRESSION: folding the ``(l, m)`` terms must not change the answer.
+
+    `SCFPotential._summation` used to scatter the harmonics into an
+    ``(l, m, *batch)`` grid and contract it with a single `einsum`. It now folds
+    each term into the running sum as `iter_Ylm` produces it, and contracts over
+    ``n`` once per ``l`` rather than once per ``(l, m)`` -- both because
+    materializing a grid to contract is what stops XLA fusing the reduction, but
+    neither may change a value.
+
+    The grid form is written out here as the readable reference it was, with
+    non-zero coefficients across the whole ``(n, l, m)`` block so that no index
+    is exercised only by a zero.
+    """
+    nmax, lmax = 4, 3
+    rng = np.random.default_rng(0)
+    snlm = jnp.asarray(rng.normal(size=(nmax + 1, lmax + 1, lmax + 1)) * 0.02)
+    tnlm = jnp.asarray(rng.normal(size=(nmax + 1, lmax + 1, lmax + 1)) * 0.02)
+    pot = gp.SCFPotential(
+        m_tot=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        Snlm=snlm,
+        Tnlm=tnlm,
+        units="galactic",
+    )
+
+    xyz = jnp.asarray(rng.normal(size=(64, 3)) * 8.0)
+    s, uvec = scaled_radius_and_direction(xyz, jnp.asarray(10.0))
+
+    for radial in (phi_nl(nmax, lmax, s), rho_nl(nmax, lmax, s)):
+        # The grid form, verbatim as it was.
+        shape = (lmax + 1, lmax + 1, *jnp.shape(uvec)[:-1])
+        cgrid, sgrid = jnp.zeros(shape), jnp.zeros(shape)
+        for l, m, cY, sY in iter_Ylm(lmax, uvec):
+            cgrid = cgrid.at[l, m].set(cY)
+            sgrid = sgrid.at[l, m].set(sY)
+        expect = jnp.einsum("nlm,nl...,lm...->...", snlm, radial, cgrid) + jnp.einsum(
+            "nlm,nl...,lm...->...", tnlm, radial, sgrid
+        )
+
+        got = pot._summation(radial, snlm, tnlm, uvec)
+
+        assert jnp.allclose(got, expect, rtol=1e-12, atol=1e-14)
 
 
 def test_monopole_is_hernquist_density() -> None:

@@ -19,11 +19,10 @@ turned out to have three problems for this exact use:
   computation graph made `gNFWPotential.hessian()`/`.tidal_tensor()` raise
   unconditionally (GalacticDynamics/galax#820).
 
-`Bz_from_hyp2f1` below replaces it with a native, closed-form / rapidly
-convergent implementation for exactly those two patterns (see `_Bz_a_eq_1`,
-`_Bz_b_eq_0`), plus a `jax.custom_jvp` giving an exact O(1) `z`-derivative.
-It does not implement the general `(a, b)` case; see `_Bz_from_hyp2f1_impl`'s
-docstring.
+`Bz_from_hyp2f1` below replaces it with an elementary closed form for the
+`a == 1` pattern (`_Bz_a_eq_1`) and `spexial.incomplete_beta` for `b == 0`,
+plus a `jax.custom_jvp` giving an exact O(1) `z`-derivative. It does not
+implement the general `(a, b)` case; see `_Bz_from_hyp2f1_impl`'s docstring.
 """
 
 __all__ = ["Bz_from_hyp2f1"]
@@ -32,8 +31,9 @@ import functools as ft
 
 import jax
 import jax.numpy as jnp
-import jax.scipy.special as jsp
 from jax.custom_derivatives import SymbolicZero
+
+from spexial import incomplete_beta
 
 import galax.potential.custom_types as gt
 
@@ -53,68 +53,24 @@ def _Bz_a_eq_1(b: gt.FloatSz0, z: gt.BBtFloatSz0) -> gt.BBtFloatSz0:
 
 
 # ===================================================================
-# b == 0: derived from the defining integral int_0^z t^(a-1)/(1-t) dt.
-# Two series, switched on z for fast & accurate convergence in both regimes.
-
-_EULER_GAMMA = 0.5772156649015328606
-
-
-def _Bz0_taylor_series(
-    a: gt.FloatSz0, z: gt.BBtFloatSz0, n: int = 60
-) -> gt.BBtFloatSz0:
-    r"""$B_z(a, 0)$ via its defining series, accurate for small $z$.
-
-    $$ B_z(a, 0) = \int_0^z \frac{t^{a-1}}{1-t}\,dt
-    = \sum_{k=0}^\infty \frac{z^{a+k}}{a+k} $$
-
-    `z` may be batched (`a` is always a scalar); the series index gets its
-    own trailing axis so it doesn't get folded into `z`'s batch shape.
-    """
-    k = jnp.arange(n)
-    terms = z[..., None] ** (a + k) / (a + k)
-    return jnp.sum(terms, axis=-1)
-
-
-def _Bz0_log_series(a: gt.FloatSz0, z: gt.BBtFloatSz0, n: int = 60) -> gt.BBtFloatSz0:
-    r"""$B_z(a, 0)$ via a series in $(1-z)$, accurate for $z$ near 1.
-
-    $B_z(a,0)$ diverges logarithmically as $z \to 1$ (see
-    `_Bz0_taylor_series`'s docstring), so this splits off that divergence
-    and expands the (smooth) remainder in $w = 1-z$:
-
-    $$ B_z(a, 0) = -\gamma_E - \psi(a) - \ln(w)
-    - \sum_{m=0}^\infty \frac{(1-a)_{m+1}}{(m+1)^2\,m!}\,w^{m+1} $$
-
-    Derived by substituting $t=1-u$, splitting off the $t\to1$ singularity as
-    $\int_0^z\frac{1}{1-t}dt=-\ln(w)$, expanding the (now finite at $u=0$)
-    remainder $(1-u)^{a-1}-1$ as a binomial series, and integrating
-    term-by-term; the resulting $w\to1$ ($z\to0$) limit is Gauss's digamma
-    integral $\psi(a) = -\gamma_E + \int_0^1\frac{1-t^{a-1}}{1-t}dt$. Verified
-    numerically against direct quadrature to ~1e-11 for $a \in (0, 4]$,
-    $z \in [0, 1)$ up to $z = 1 - 10^{-7}$.
-
-    `z` may be batched (`a` is always a scalar); `jax.lax.scan` stacks each
-    step's (batch-shaped) term along a new leading axis, so the sum over
-    scan steps must be over `axis=0`, not a full reduction.
-    """
-    w = 1 - z
-
-    def accumulate_term(
-        carry: tuple[gt.FloatSz0, gt.BBtFloatSz0], m: gt.Sz0
-    ) -> tuple[tuple[gt.FloatSz0, gt.BBtFloatSz0], gt.BBtFloatSz0]:
-        coeff, w_power = carry
-        coeff = coeff * (m + 2 - a) * (m + 1) / (m + 2) ** 2
-        w_power = w_power * w
-        return (coeff, w_power), coeff * w_power
-
-    (_, _), terms = jax.lax.scan(accumulate_term, (1 - a, w), jnp.arange(n - 1))
-    series_sum = (1 - a) * w + jnp.sum(terms, axis=0)
-    return -_EULER_GAMMA - jsp.digamma(a) - series_sum - jnp.log(w)
-
-
-def _Bz_b_eq_0(a: gt.FloatSz0, z: gt.BBtFloatSz0) -> gt.BBtFloatSz0:
-    """$B_z(a, 0)$, switching series based on $z$ for fast, accurate convergence."""
-    return jnp.where(z <= 0.5, _Bz0_taylor_series(a, z), _Bz0_log_series(a, z))
+# b == 0: delegated to `spexial.incomplete_beta`.
+#
+# This used to be two hand-written series here, switched on z -- a Taylor
+# series in z and an expansion in (1 - z) that splits off the logarithmic
+# divergence. `spexial.incomplete_beta` computes the same quantity for any
+# real `b`, so the b == 0 case is simply an instance of it, and the two agreed
+# to 4.4e-16 across every parameter `gNFWPotential` uses.
+#
+# It is also 9x faster: the local Taylor series materialized a `(N, 60)`
+# temporary (`z[..., None] ** (a + k)`) and was memory- rather than flop-bound,
+# where `spexial`'s two series are summed into a `lax.scan` carry. Measured at
+# N = 1e5: 24.4 ms -> 2.7 ms.
+#
+# The `a == 1` branch below is deliberately *not* delegated. It is an
+# elementary closed form, and `incomplete_beta`'s 64-term series is 5.5x slower
+# for it (0.52 ms -> 2.8 ms). Collapsing both patterns onto the general
+# function would have traded one speed-up for one slow-down; keeping the closed
+# form takes the speed-up alone.
 
 
 # ===================================================================
@@ -141,14 +97,21 @@ def _Bz_from_hyp2f1_impl(
     Notes
     -----
     `gNFWPotential` only ever calls this with `a == 1` (any `b`) or `b == 0`
-    (any `a`), both of which have closed-form / rapidly-convergent native
-    implementations above (`_Bz_a_eq_1`, `_Bz_b_eq_0`). This module does not
-    implement the general `(a, b)` case; see this module's docstring for why
-    (`tensorflow_probability`'s general implementation has three bugs for
+    (any `a`). The first is the elementary closed form `_Bz_a_eq_1`; the
+    second is `spexial.incomplete_beta`, which handles any real `b` and is
+    9x faster here than the hand-written series it replaced. This module does
+    not implement the general `(a, b)` case; see this module's docstring for
+    why (`tensorflow_probability`'s general implementation has three bugs for
     this use case).
 
     Examples
     --------
+    The results below are *weakly* typed because ``a`` and ``b`` are given as
+    Python floats: `spexial.incomplete_beta` preserves weak typing, so it
+    propagates rather than being forced strong. With array parameters -- which
+    is how `gNFWPotential` calls this -- the result is an ordinary strong
+    ``float64``.
+
     >>> import jax.numpy as jnp
     >>> import jax.scipy.special as jsp
 
@@ -156,7 +119,7 @@ def _Bz_from_hyp2f1_impl(
     >>> z = jnp.array(0.5)
 
     >>> Bz_from_hyp2f1(a, b, z)
-    Array(0.375, dtype=float64)
+    Array(0.375, dtype=float64, weak_type=True)
 
     >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
     Array(0.375, dtype=float64)
@@ -165,7 +128,7 @@ def _Bz_from_hyp2f1_impl(
 
     >>> b = 0.0
     >>> Bz_from_hyp2f1(a, b, z)
-    Array(0.69314718, dtype=float64)
+    Array(0.69314718, dtype=float64, weak_type=True)
 
     But `jsp.beta` does not work for b = 0:
 
@@ -179,8 +142,14 @@ def _Bz_from_hyp2f1_impl(
     Array(0.69312316, dtype=float64)
 
     """
+    # Both branches are traced, and both would be *evaluated* if the predicate
+    # were data -- but `a` is a compile-time constant at every call site in
+    # `gNFWPotential`, so XLA folds `a == 1.0` and eliminates the unselected
+    # branch. Verified rather than assumed: with `a = 1`, this measures 0.47 ms
+    # over 100,000 points against the 2.7 ms the `b == 0` branch alone costs,
+    # so that branch is plainly not being run.
     is_a1 = a == 1.0
-    return jnp.where(is_a1, _Bz_a_eq_1(b, z), _Bz_b_eq_0(a, z))
+    return jnp.where(is_a1, _Bz_a_eq_1(b, z), incomplete_beta(a, 0.0, z))
 
 
 def _dBz_dz(a: gt.FloatSz0, b: gt.FloatSz0, z: gt.BBtFloatSz0) -> gt.BBtFloatSz0:

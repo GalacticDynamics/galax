@@ -256,7 +256,7 @@ class SCFPotential(AbstractSinglePotential):
         for l, m, cY, sY in iter_Ylm(self.lmax, uvec):
             by_l[l].append((m, cY, sY))
 
-        total = jnp.zeros(jnp.shape(uvec)[:-1])
+        total = jnp.zeros(jnp.shape(uvec)[:-1], dtype=radial.dtype)
         for l, ms in enumerate(by_l):
             # One matvec per l: (nmax+1, m) against (nmax+1, *batch).
             Sl = jnp.einsum("nm,n...->m...", Snlm[:, l, : l + 1], radial[:, l])

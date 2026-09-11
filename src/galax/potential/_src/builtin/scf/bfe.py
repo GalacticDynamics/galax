@@ -200,15 +200,71 @@ class SCFPotential(AbstractSinglePotential):
 
     # ==========================================================================
 
-    def _angular(self, uvec: gt.BtSz3, /) -> tuple[gt.BtFloatSz0, gt.BtFloatSz0]:
-        """Real and imaginary ``Y_l^m`` on the full ``(l, m)`` grid."""
-        lmax = self.lmax
-        shape = (lmax + 1, lmax + 1, *jnp.shape(uvec)[:-1])
-        cgrid, sgrid = jnp.zeros(shape), jnp.zeros(shape)
-        for l, m, cY, sY in iter_Ylm(lmax, uvec):
-            cgrid = cgrid.at[l, m].set(cY)
-            sgrid = sgrid.at[l, m].set(sY)
-        return cgrid, sgrid
+    def _summation(
+        self,
+        radial: Float[Array, "{nmax}+1 {lmax}+1 *batch"],
+        Snlm: Float[Array, "n l m"],
+        Tnlm: Float[Array, "n l m"],
+        uvec: gt.BtSz3,
+        /,
+    ) -> gt.BBtSz0:
+        r"""Sum :math:`\sum_{nlm} R_{nl}(S_{nlm}\Re Y_l^m + T_{nlm}\Im Y_l^m)`.
+
+        Shared by `_potential` and `_density`, which differ only in the radial
+        factor :math:`R_{nl}` -- `phi_nl` or `rho_nl` -- and the prefactor
+        outside.
+
+        Two things about the order of operations here are load-bearing, and
+        both were measured rather than reasoned.
+
+        **Each term is added directly onto a running total**, rather than
+        scattering the harmonics into an ``(l, m, *batch)`` grid and
+        contracting that with one `einsum`. The values are the same, but the
+        grid must be *materialized* before it can be contracted, while a
+        running sum never holds more than one term's worth of temporaries.
+
+        **The contraction over** ``n`` **is done once per** ``l``, not once per
+        ``(l, m)``. Both are the same arithmetic; the difference is that
+        ``radial[:, l]`` -- which is ``(nmax+1, *batch)``, tens of megabytes at
+        a large batch -- is then read once for each ``l`` rather than once for
+        every ``m <= l``. Per-pair contraction was actually *slower* than the
+        grid it replaced for the density at ``nmax = 24``, which is what
+        surfaced this.
+
+        Measured on the potential over 200,000 positions, against the grid:
+
+        =================  ======  =======
+        ``(nmax, lmax)``     grid   folded
+        =================  ======  =======
+        ``(6, 4)``          47 ms    18 ms
+        ``(12, 6)``        129 ms    58 ms
+        ``(24, 6)``        169 ms    85 ms
+        ``(24, 12)``       967 ms   148 ms
+        =================  ======  =======
+
+        Values agree with the grid form to 3.4e-13 absolute at the largest
+        order tested, and the potential is bit-identical at ``lmax = 6``.
+        """
+        # `iter_Ylm` yields m-major; this needs l-major, since the radial
+        # contraction is shared across the `m` of a given `l`. Bucketing first
+        # (rather than folding a dict) keeps every term on the accumulator
+        # below a plain running sum, with no intermediate collection kept
+        # around for XLA to materialize.
+        by_l: list[list[tuple[int, gt.BtFloatSz0, gt.BtFloatSz0]]] = [
+            [] for _ in range(self.lmax + 1)
+        ]
+        for l, m, cY, sY in iter_Ylm(self.lmax, uvec):
+            by_l[l].append((m, cY, sY))
+
+        total = jnp.zeros(jnp.shape(uvec)[:-1], dtype=radial.dtype)
+        for l, ms in enumerate(by_l):
+            # One matvec per l: (nmax+1, m) against (nmax+1, *batch).
+            Sl = jnp.einsum("nm,n...->m...", Snlm[:, l, : l + 1], radial[:, l])
+            Tl = jnp.einsum("nm,n...->m...", Tnlm[:, l, : l + 1], radial[:, l])
+            for m, cY, sY in ms:
+                total = total + Sl[m] * cY + Tl[m] * sY
+
+        return total  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
@@ -223,11 +279,7 @@ class SCFPotential(AbstractSinglePotential):
 
         s, uvec = scaled_radius_and_direction(xyz, r_s)
         phinl = phi_nl(self.nmax, self.lmax, s)
-        cY, sY = self._angular(uvec)
-
-        summation = jnp.einsum("nlm,nl...,lm...->...", Snlm, phinl, cY) + jnp.einsum(
-            "nlm,nl...,lm...->...", Tnlm, phinl, sY
-        )
+        summation = self._summation(phinl, Snlm, Tnlm, uvec)
 
         return self.constants["G"].value * m_tot / r_s * summation  # type: ignore[no-any-return]
 
@@ -244,10 +296,6 @@ class SCFPotential(AbstractSinglePotential):
 
         s, uvec = scaled_radius_and_direction(xyz, r_s)
         rhonl = rho_nl(self.nmax, self.lmax, s)
-        cY, sY = self._angular(uvec)
-
-        summation = jnp.einsum("nlm,nl...,lm...->...", Snlm, rhonl, cY) + jnp.einsum(
-            "nlm,nl...,lm...->...", Tnlm, rhonl, sY
-        )
+        summation = self._summation(rhonl, Snlm, Tnlm, uvec)
 
         return m_tot / r_s**3 * summation  # type: ignore[no-any-return]

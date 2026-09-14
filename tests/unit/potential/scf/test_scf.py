@@ -152,9 +152,12 @@ def test_iter_ylm_matches_condon_shortley_phase() -> None:
     The harmonics themselves come from `spexial`, which tests them against
     `scipy.special` directly. What is checked here is galax's *adapter*: that
     it keys the table by ``(l, m)`` the way every consumer indexes it, splits
-    real and imaginary parts the right way round, and takes the ``m >= 0`` half
-    of `spexial`'s SciPy-ordered second axis rather than the negative one --
-    where the phase differs by exactly the ``(-1)**m`` this test would catch.
+    real and imaginary parts the right way round, and reads the order axis at
+    the right end of it. `spexial` lays that axis out as SciPy does -- ``m = 0``
+    upwards first, the negative orders at the tail -- so `iter_Ylm` indexes it
+    with a plain ``terms[l][m]`` and no offset. Were the layout the other way
+    round, or the index shifted, the same subscripts would return the ``-m``
+    harmonics, which differ by exactly the ``(-1)**m`` this test would catch.
 
     Cheap and localized: if it fails, the bug is in the adapter, not in
     `SCFPotential`'s assembly of terms.

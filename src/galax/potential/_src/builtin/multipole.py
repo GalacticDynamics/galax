@@ -319,8 +319,14 @@ def iter_Ylm(
     each harmonic from the Cartesian unit direction as :math:`N_{lm}
     p_l^m(z/r) ((x+iy)/r)^m`. That form is polynomial in :math:`x` and
     :math:`y`, and so smooth on the z-axis, where :math:`\theta` and
-    :math:`\phi` are singular and the chain rule sends the gradient of every
-    :math:`m \ge 1` term to exactly zero.
+    :math:`\phi` are not. Neither angle is differentiable at a pole --
+    :math:`\mathrm{d}\,\mathrm{acos}(z/r)` is :math:`-1/\sqrt{1 - (z/r)^2}`,
+    an infinity there, and :math:`\mathrm{atan2}(y, x)` has gradient
+    :math:`(-y, x)/(x^2 + y^2)`, which is :math:`0/0` -- so autodiff through
+    them returns ``nan``, and the chain rule carries that into the Cartesian
+    gradient and hessian of *every* term, :math:`m = 0` included. The
+    Cartesian form gives the true on-axis derivative instead, which for
+    :math:`m = 1` is not zero.
 
     Why `spexial` rather than `jax.scipy.special.sph_harm_y`: upstream pairs
     ``l[i]`` with ``theta[i]`` instead of broadcasting, so it returns silently
@@ -331,9 +337,12 @@ def iter_Ylm(
     Two things are adapted, and only two. `spexial` returns one complex array
     per term, while every consumer here wants the real and imaginary parts
     separately, since :math:`S_{lm}` and :math:`T_{lm}` are real and multiply
-    them independently. And `spexial`'s inner axis runs over
-    :math:`-l_{max} \ldots l_{max}`, following SciPy, while the real
-    expansions used here need only :math:`m \ge 0`.
+    them independently. And `spexial`'s inner axis carries both signs of the
+    order, laid out as SciPy does it -- :math:`m = 0 \ldots l_{max}` first and
+    the negative orders at the tail, reachable by negative indexing -- while
+    the real expansions used here need only :math:`m \ge 0`. That layout is
+    why ``terms[l][m]`` needs no offset: the non-negative half is already the
+    front of the axis.
 
     Note the ``_terms`` spelling: `spexial.sph_harm_y_cart_all` computes the
     same values but returns them *stacked* into one array, and indexing a

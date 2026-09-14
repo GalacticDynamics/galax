@@ -403,13 +403,19 @@ def test_batched_matches_per_position(pot: gp.AbstractPotential) -> None:
 # The angular basis: smoothness on the z-axis.
 #
 # The harmonics used to go through `theta = acos(z/r)`, `phi = atan2(y, x)`.
-# `atan2` has gradient `-y / (x**2 + y**2)`, i.e. `0/0` wherever `x = y = 0`,
-# so the Cartesian gradient and hessian of every `m >= 1` term were NaN on the
-# entire z-axis. `spexial.sph_harm_y_cart_all` evaluates
+# Neither angle is differentiable at a pole: `acos` has derivative
+# `-1 / sqrt(1 - (z/r)**2)`, an infinity there, and `atan2` has gradient
+# `(-y, x) / (x**2 + y**2)`, i.e. `0/0` wherever `x = y = 0`. Autodiff through
+# either returns NaN, so the Cartesian gradient and hessian of *every* term
+# were NaN on the entire z-axis -- `m = 0` included, not only `m >= 1`.
+# `spexial.sph_harm_y_cart_all_terms` evaluates
 #
 #     Y_l^m = N_lm * p_l^m(z/r) * ((x + i y) / r)**m
 #
-# which is polynomial in `x` and `y` and so has no z-axis singularity.
+# which is polynomial in `x` and `y` and so has no z-axis singularity. The
+# test below pins the value it gives there against a central difference; for
+# `m = 1` that derivative is non-zero, so "smooth on the axis" is a claim with
+# something to check rather than a zero that any broken implementation passes.
 #
 # The harmonics themselves -- the Condon-Shortley phase against `lpmv`, the
 # high-`m` seed overflow, the batched table against the per-pair function --

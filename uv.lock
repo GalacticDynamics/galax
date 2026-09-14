@@ -997,7 +997,7 @@ requires-dist = [
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
     { name = "quax", specifier = ">=0.4.3" },
     { name = "quaxed", specifier = ">=0.10.5" },
-    { name = "spexial", specifier = ">=0.2.0" },
+    { name = "spexial", specifier = ">=0.2.1" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
     { name = "unxt", specifier = ">=1.11.2,<2" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
@@ -2509,7 +2509,7 @@ wheels = [
 
 [[package]]
 name = "spexial"
-version = "0.2.0"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax" },
@@ -2517,9 +2517,9 @@ dependencies = [
     { name = "jaxtyping" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/cf/31ae4cb3e0fcdeb3632b5ebb4f255814530c22f9bf73da59242eb4c6fc53/spexial-0.2.0.tar.gz", hash = "sha256:429218eead4a4075023945452e77fbcc8a78b38bba64e6facc6ce6cd7d354144", size = 205146, upload-time = "2026-09-14T01:29:01.072Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/bd/d2b65409d29c709d2dd792cef3620e15acd2ab6ab34ae7050df2c3a87b41/spexial-0.2.1.tar.gz", hash = "sha256:1a1ad8dac67b3d1084b047096d7f2b4b053f4273b6e09f0bd6705092134a7842", size = 205963, upload-time = "2026-09-14T03:03:39.186Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/64/89ce0b4123ccfe5b696879856d7eae0ac25dbbf4a2c1de210f930ae4c826/spexial-0.2.0-py3-none-any.whl", hash = "sha256:e5218106013db353929324dc92243fd5baf8efbc748a8719955bb38f7826b9c7", size = 80862, upload-time = "2026-09-14T01:28:59.612Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/4e/cf3db03dabaaa5b8f096986e004fb1c4f7933307b40a0d7ee0258d095aba/spexial-0.2.1-py3-none-any.whl", hash = "sha256:cf1f43846788f65f196e529216f02897886578b518804158029bd65c518f488c", size = 81306, upload-time = "2026-09-14T03:03:37.983Z" },
 ]
 
 [[package]]

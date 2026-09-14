@@ -330,9 +330,11 @@ def iter_Ylm(
 
     Why `spexial` rather than `jax.scipy.special.sph_harm_y`: upstream pairs
     ``l[i]`` with ``theta[i]`` instead of broadcasting, so it returns silently
-    wrong values for a batch of positions, and its derivatives are ``nan`` at
-    both poles. Both are documented in `spexial`, with regression tests
-    asserting the defects directly.
+    wrong values for a batch of positions, and its pole derivatives are
+    non-finite for every :math:`l \ge 1` -- ``nan`` at :math:`\theta = 0`, and
+    at :math:`\theta = \pi` ``nan`` except the :math:`m = 1` terms, which come
+    back :math:`\pm\infty`. Both are documented in `spexial`, with regression
+    tests asserting the defects directly.
 
     Two things are adapted, and only two. `spexial` returns one complex array
     per term, while every consumer here wants the real and imaginary parts

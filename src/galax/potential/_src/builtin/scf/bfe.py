@@ -13,11 +13,11 @@ import jax
 
 import quaxed.numpy as jnp
 import unxt as u
+from spexial import eval_gegenbauers
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
-from .gegenbauer import gegenbauer_all
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.builtin.multipole import (
@@ -42,7 +42,10 @@ def _nl_axes(
         jnp.arange(nmax + 1, dtype=s.dtype), tuple(range(1, 2 + nbatch))
     )
     l = jnp.expand_dims(ls, tuple(range(1, 1 + nbatch)))
-    cn = gegenbauer_all(nmax, 2 * ls + 1.5, (s - 1) / (s + 1))
+    # `eval_gegenbauers` broadcasts `alpha` against `x` and stacks the orders on
+    # a new leading axis, so giving `alpha` the batch axes here is what turns a
+    # broadcast into the outer product this wants: (nmax+1, lmax+1, *batch).
+    cn = eval_gegenbauers(nmax, l * 2 + 1.5, (s - 1) / (s + 1))
     return n, l, cn
 
 

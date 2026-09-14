@@ -863,6 +863,7 @@ dependencies = [
     { name = "plum" },
     { name = "quax" },
     { name = "quaxed" },
+    { name = "spexial" },
     { name = "typing-extensions" },
     { name = "unxt" },
     { name = "wadler-lindig" },
@@ -996,6 +997,7 @@ requires-dist = [
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
     { name = "quax", specifier = ">=0.4.3" },
     { name = "quaxed", specifier = ">=0.10.5" },
+    { name = "spexial", specifier = ">=0.2.1" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
     { name = "unxt", specifier = ">=1.11.2,<2" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
@@ -1273,14 +1275,14 @@ wheels = [
 
 [[package]]
 name = "jaxtyping"
-version = "0.3.3"
+version = "0.3.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "wadler-lindig" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/1e/827f9e17b26e21c7d4d934fd1a214284ad05663afedd37c21ed105db366b/jaxtyping-0.3.3.tar.gz", hash = "sha256:8003cfd16ba2ad9b47fdda1d982a575299a81ddfc7997ad0e917c87a0897ea86", size = 45484, upload-time = "2025-10-01T13:46:51.933Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/91/c1/091b8852bd7cbf50bd655543c8506033cf4029300c67f8c176c1286879a9/jaxtyping-0.3.11.tar.gz", hash = "sha256:b09c14acf6686feb9e0df5b0d8c6e7c5b6f8d36bf059ee54cd522a186c2ef050", size = 46489, upload-time = "2026-06-13T18:35:23.167Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/97/88264b1af140f66ba7ca6eb2f3a108be233ee278bb3f1d5c750243e7458a/jaxtyping-0.3.3-py3-none-any.whl", hash = "sha256:a1c2f0f4351a8deda84b0e3b5c5a50894a1cdae2b82d841279fce4393aff4a7c", size = 55926, upload-time = "2025-10-01T13:46:50.621Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/38/c66bbdc5047f4776c2bd3e47e5295a350e3fa44d5b8942105e71c2a876a0/jaxtyping-0.3.11-py3-none-any.whl", hash = "sha256:8a4bedc4e3f963fa82df41bd13c7ebc2bad925601eb48614c65798f21329d4e3", size = 56593, upload-time = "2026-06-13T18:35:22.01Z" },
 ]
 
 [[package]]
@@ -2503,6 +2505,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/47/2c/0a5f6f8ee0d5589e48c7640213ed5175d52cf540a06725b628cc1a45d6ce/soupsieve-2.8.4.tar.gz", hash = "sha256:e121fd02e975c695e4e9e8774a5ee35d74714b59307868dcc5319ad2d9e3328e", size = 121110, upload-time = "2026-05-24T13:55:57.154Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5e/f5/0c41cb68dcae6b7de4fac4188a3a9589e21fb31df21ea3a2e888db95e6c9/soupsieve-2.8.4-py3-none-any.whl", hash = "sha256:e7e6b0769c8f51ed59acab6e994b00621096cfb1c640a7509295987388fbaf65", size = 37304, upload-time = "2026-05-24T13:55:55.406Z" },
+]
+
+[[package]]
+name = "spexial"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jax" },
+    { name = "jaxlib" },
+    { name = "jaxtyping" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b7/bd/d2b65409d29c709d2dd792cef3620e15acd2ab6ab34ae7050df2c3a87b41/spexial-0.2.1.tar.gz", hash = "sha256:1a1ad8dac67b3d1084b047096d7f2b4b053f4273b6e09f0bd6705092134a7842", size = 205963, upload-time = "2026-09-14T03:03:39.186Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/4e/cf3db03dabaaa5b8f096986e004fb1c4f7933307b40a0d7ee0258d095aba/spexial-0.2.1-py3-none-any.whl", hash = "sha256:cf1f43846788f65f196e529216f02897886578b518804158029bd65c518f488c", size = 81306, upload-time = "2026-09-14T03:03:37.983Z" },
 ]
 
 [[package]]

@@ -38,9 +38,9 @@ jobs:
           extra-args: --all-files
         env:
           # no-commit-to-branch always fails here: CI checks out the real
-          # `main` branch on every push, which is exactly what the hook
-          # exists to block for a human running `git commit`/`git push`
-          # locally.
+          # `main` branch on every push, which is exactly what this hook
+          # exists to block for a human running `git commit` locally (it's
+          # scoped to stages: [pre-commit], so it never fires on push).
           SKIP: no-commit-to-branch
 
   # Where there's smoke, there's fire!

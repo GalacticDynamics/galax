@@ -24,10 +24,12 @@ def _xdist_args(posargs: list[str]) -> list[str]:
 def lint(session: nox.Session) -> None:
     """Run the linter."""
     session.install("prek")
-    # no-commit-to-branch always fails here: CI checks out the real
-    # `main` branch on every push, which is exactly what the hook exists to
-    # block for a human running `git commit`/`git push` locally. Add it to
-    # any SKIP a caller already set, rather than clobbering it.
+    # no-commit-to-branch guards a human's local `git commit`/`git push`,
+    # not a manual "run every hook over all files" invocation like this
+    # one -- which CI also runs on every push to `main`, where it would
+    # otherwise always fail. Skipped here (locally or in CI); the
+    # installed git hook still catches the real case. Add it to any SKIP
+    # a caller already set, rather than clobbering it.
     skip = ",".join(filter(None, [os.environ.get("SKIP"), "no-commit-to-branch"]))
     session.run(
         "prek",

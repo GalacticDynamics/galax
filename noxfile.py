@@ -23,9 +23,9 @@ def _xdist_args(posargs: list[str]) -> list[str]:
 @nox.session
 def lint(session: nox.Session) -> None:
     """Run the linter."""
-    session.install("pre-commit")
+    session.install("prek")
     session.run(
-        "pre-commit",
+        "prek",
         "run",
         "--all-files",
         "--show-diff-on-failure",

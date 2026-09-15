@@ -36,6 +36,12 @@ jobs:
       - uses: j178/prek-action@v3.0.0
         with:
           extra-args: --all-files
+        env:
+          # no-commit-to-branch always fails here: CI checks out the real
+          # `main` branch on every push, which is exactly what the hook
+          # exists to block for a human running `git commit`/`git push`
+          # locally.
+          SKIP: no-commit-to-branch
 
   # Where there's smoke, there's fire!
   smoke:

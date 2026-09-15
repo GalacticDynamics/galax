@@ -24,12 +24,16 @@ def _xdist_args(posargs: list[str]) -> list[str]:
 def lint(session: nox.Session) -> None:
     """Run the linter."""
     session.install("prek")
+    # no-commit-to-branch always fails here: CI checks out the real
+    # `main` branch on every push, which is exactly what the hook exists to
+    # block for a human running `git commit`/`git push` locally.
     session.run(
         "prek",
         "run",
         "--all-files",
         "--show-diff-on-failure",
         *session.posargs,
+        env={"SKIP": "no-commit-to-branch"},
     )
 
 

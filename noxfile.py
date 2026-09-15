@@ -26,14 +26,16 @@ def lint(session: nox.Session) -> None:
     session.install("prek")
     # no-commit-to-branch always fails here: CI checks out the real
     # `main` branch on every push, which is exactly what the hook exists to
-    # block for a human running `git commit`/`git push` locally.
+    # block for a human running `git commit`/`git push` locally. Add it to
+    # any SKIP a caller already set, rather than clobbering it.
+    skip = ",".join(filter(None, [os.environ.get("SKIP"), "no-commit-to-branch"]))
     session.run(
         "prek",
         "run",
         "--all-files",
         "--show-diff-on-failure",
         *session.posargs,
-        env={"SKIP": "no-commit-to-branch"},
+        env={"SKIP": skip},
     )
 
 

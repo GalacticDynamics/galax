@@ -36,6 +36,9 @@ jobs:
       - uses: j178/prek-action@v3.0.0
         with:
           extra-args: --all-files
+        env:
+          # Not a real commit -- no-commit-to-branch would always fail here.
+          SKIP: no-commit-to-branch
 
   # Where there's smoke, there's fire!
   smoke:

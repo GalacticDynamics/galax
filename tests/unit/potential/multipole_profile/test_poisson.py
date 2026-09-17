@@ -23,16 +23,29 @@ REFERENCE = (
     ["nfw_sph", "nfw_tri", "hernquist_sph", "plummer_sph", "jaffe_sph"],
 )
 def test_solve_poisson_lm_matches_bfeax(case) -> None:
-    """Phi_lm agrees with the vendored `bfeax` oracle at G=1."""
+    """Phi_lm agrees with `bfeax` on every mode it handles correctly.
+
+    Modes with rho_lm(r_max) < 0 are excluded: `bfeax` drops their outer tail
+    and we do not. See https://github.com/jnibauer/bfeax/issues/1
+    """
     ref = np.load(REFERENCE)
     r = jnp.asarray(ref["r_knots"])
     rho_lm = jnp.asarray(ref[f"{case}_rho_lm"])
     l_per_mode = jnp.asarray(ref[f"{case}_lm"][:, 0], dtype=float)
     expect = ref[f"{case}_phi_lm"]
 
-    got = solve_poisson_lm(r, rho_lm, l_per_mode, jnp.asarray(1.0))
+    got = np.asarray(solve_poisson_lm(r, rho_lm, l_per_mode, jnp.asarray(1.0)))
+    agrees = np.asarray(ref[f"{case}_rho_lm"])[-1, :] > 0.0
+
     scale = np.max(np.abs(expect))
-    assert np.allclose(np.asarray(got), expect, atol=1e-13 * scale, rtol=1e-11)
+    assert np.allclose(
+        got[:, agrees], expect[:, agrees], atol=1e-13 * scale, rtol=1e-11
+    )
+    # And the excluded modes really do differ -- otherwise the fix did nothing.
+    if not agrees.all():
+        assert not np.allclose(
+            got[:, ~agrees], expect[:, ~agrees], atol=1e-13 * scale, rtol=1e-11
+        )
 
 
 def test_solve_poisson_lm_monopole_is_the_hernquist_potential() -> None:
@@ -63,3 +76,60 @@ def test_solve_poisson_lm_scales_linearly_in_G() -> None:
     a = solve_poisson_lm(r, rho_lm, jnp.asarray([0.0]), jnp.asarray(1.0))
     b = solve_poisson_lm(r, rho_lm, jnp.asarray([0.0]), jnp.asarray(2.5))
     assert jnp.allclose(b, 2.5 * a, rtol=1e-14)
+
+
+def test_outer_tail_applies_to_negative_modes() -> None:
+    """The outer tail must be sign-agnostic.
+
+    `bfeax` gates on `rho_lm[-1] > 0.0`, silently dropping the correction for
+    negative modes -- routine for l >= 1. A mode and its negation must give
+    exactly opposite Phi_lm, since the solve is linear in rho_lm.
+
+    See https://github.com/jnibauer/bfeax/issues/1
+    """
+    r = jnp.exp(jnp.linspace(jnp.log(1e-2), jnp.log(3e2), 128))
+    rho = 1.0 / (r * (1.0 + r) ** 2)
+    l = jnp.asarray([2.0])
+
+    pos = solve_poisson_lm(r, rho[:, None], l, jnp.asarray(1.0))
+    neg = solve_poisson_lm(r, -rho[:, None], l, jnp.asarray(1.0))
+
+    assert jnp.allclose(neg, -pos, rtol=1e-14)
+
+
+def test_outer_tail_is_load_bearing() -> None:
+    """Guard against a gate that disables the tail for every mode.
+
+    Reusing the inner gate's `1e-8 * max|rho_lm|` here would zero every tail:
+    that scale is the per-mode maximum, set by the inner cusp, and is ~1e9
+    larger than rho_lm(r_max).
+
+    Physically, for l = 0,
+    ``Phi(r) = -4 pi G [ M(<r)/(4 pi r) + int_r^inf rho r' dr' ]``
+    and the exterior term is strictly negative, so |Phi(r_max)| must exceed
+    the enclosed-mass-only value by a clear margin. Measured at ~20% for NFW.
+    """
+    r = jnp.exp(jnp.linspace(jnp.log(1e-2), jnp.log(3e2), 128))
+    rho = 1.0 / (r * (1.0 + r) ** 2)
+    rho_00 = jnp.sqrt(4.0 * jnp.pi) * rho
+
+    phi_00 = solve_poisson_lm(r, rho_00[:, None], jnp.asarray([0.0]), jnp.asarray(1.0))[
+        :, 0
+    ]
+    phi = phi_00 / jnp.sqrt(4.0 * jnp.pi)
+
+    m_enclosed = (
+        4.0
+        * jnp.pi
+        * jnp.concatenate(
+            [
+                jnp.zeros(1),
+                jnp.cumsum(
+                    0.5 * (rho[:-1] * r[:-1] ** 2 + rho[1:] * r[1:] ** 2) * jnp.diff(r)
+                ),
+            ]
+        )
+    )
+    enclosed_only = -m_enclosed / r
+
+    assert abs(float(phi[-1])) > 1.1 * abs(float(enclosed_only[-1]))

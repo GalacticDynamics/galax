@@ -16,13 +16,20 @@ power-law slope of :math:`\rho_{lm}` is estimated at each boundary from three
 grid points and an analytic tail appended, each guarded for convergence and
 for a negligible boundary value.
 
-.. warning::
+Outer-tail sign
+---------------
+The outer-tail gate is sign-agnostic, unlike ``bfeax``, which tests the
+signed value and so drops the correction for modes with
+:math:`\rho_{lm}(r_\max) < 0` -- routine for :math:`l \ge 1`. For a triaxial
+NFW halo at :math:`l_\max = 8` that is 6 of 15 retained modes, worth 40-47% in
+those :math:`\Phi_{lm}` near :math:`r_\max` and 1.7% in :math:`|a|` at
+:math:`r = 250` with :math:`r_\max = 300`. Reported upstream as
+https://github.com/jnibauer/bfeax/issues/1
 
-    The outer-tail gate below reproduces a defect in ``bfeax``: it tests the
-    *signed* value, so modes with :math:`\rho_{lm}(r_\max) < 0` -- routine for
-    :math:`l \ge 1` -- lose the correction entirely. Retained deliberately so
-    the port is bit-comparable with its oracle; fixed in a later commit. See
-    https://github.com/jnibauer/bfeax/issues/1
+Note the inner gate's ``1e-8 * scale`` threshold is deliberately *not*
+mirrored here: ``scale`` is the per-mode maximum over the whole radial range,
+set by the inner cusp, and is ~9 orders of magnitude larger than
+:math:`\rho_{lm}(r_\max)` -- reusing it disables the outer tail entirely.
 """
 
 __all__: tuple[str, ...] = ()
@@ -98,8 +105,7 @@ def solve_poisson_lm(
         # -- outer tail (r_max -> inf), rho_lm ~ A_out r^alpha_out ----------
         log_rho_out = jnp.log(jnp.abs(rho_col[-3:]) + _LOG_FLOOR)
         alpha_out = jnp.mean(jnp.diff(log_rho_out) / jnp.diff(log_r[-3:]))
-        # NOTE: signed test -- the bfeax defect. Do not "fix" here.
-        active_out = rho_col[-1] > 0.0
+        active_out = jnp.abs(rho_col[-1]) > 0.0
         denom = l - alpha_out - 2.0
         safe_out = jnp.where(jnp.abs(denom) > _SLOPE_TOL, denom, _SLOPE_TOL)
         dI_out = rho_col[-1] * jnp.exp((2.0 - l) * log_r[-1]) / safe_out

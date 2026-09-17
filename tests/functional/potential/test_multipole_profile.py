@@ -146,3 +146,41 @@ def test_symmetry_modes_agree_for_a_triaxial_density(symmetry) -> None:
         rtol=1e-6,
         atol=u.Q(0.0, "kpc2 / Myr2"),
     )
+
+
+def test_triaxial_nfw_reaches_outer_tail() -> None:
+    """Test the outer-tail correction near r_max where the defect is worst.
+
+    The r_max=1e4 kpc test evaluates at r/r_max ~ 0.0005-0.002, where the
+    outer tail contributes essentially nothing, so it cannot see the defect.
+    This test intentionally evaluates near r_max where the tail is load-bearing.
+
+    Before the fix (bfeax behavior), the negative modes lose their outer-tail
+    correction, underestimating |Phi_lm| by 40-47% at r=r_max for l>=1.
+    Post-fix measured error: ~8.6e-3 (improved from ~8.2e-3 pre-fix).
+    """
+    ref = gp.TriaxialNFWPotential(
+        m=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        q1=1.0,
+        q2=0.8,
+        units="galactic",
+    )
+    r_max = u.Q(300.0, "kpc")
+    pot = gp.MultipoleProfilePotential.from_potential(
+        ref,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=r_max,
+        n_r=256,
+        l_max=8,
+        symmetry="triaxial",
+    )
+    # Evaluate near r_max where outer tail contributes significantly
+    # r/r_max ~ 0.5, still well within the domain but far from r_min
+    x = u.Q([150.0, 150.0, 132.0], "kpc")
+    assert jnp.isclose(
+        pot.potential(x, t=0),
+        ref.potential(x, t=0),
+        rtol=1.2e-2,
+        atol=u.Q(0.0, "kpc2 / Myr2"),
+    )

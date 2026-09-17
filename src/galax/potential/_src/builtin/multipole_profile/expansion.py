@@ -12,6 +12,7 @@ stripped to the potential's unit system.
 
 __all__: tuple[str, ...] = ()
 
+import abc
 import functools as ft
 
 from jaxtyping import Array, Float
@@ -81,22 +82,36 @@ class MultipoleProfileMixin(eqx.Module):
     `LaplacianFromDensityMixin` pattern.
     """
 
+    #: The maximum multipole order.
+    l_max: eqx.AbstractVar[int]
+
+    #: The (l, m) mode keys.
+    lm_keys: eqx.AbstractVar[tuple[tuple[int, int], ...]]
+
+    #: The unit system.
+    units: eqx.AbstractVar[u.AbstractUnitSystem]
+
+    @abc.abstractmethod
+    def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:
+        """Build the parameter dictionary from the potential's fields."""
+        ...
+
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)  # type: ignore[attr-defined]
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         return expansion_potential(  # type: ignore[no-any-return]
-            self._params(t),  # type: ignore[attr-defined]
+            self._params(t),
             xyz,
-            self.l_max,  # type: ignore[attr-defined]
-            self.lm_keys,  # type: ignore[attr-defined]
+            self.l_max,
+            self.lm_keys,
         )
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)  # type: ignore[attr-defined]
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         return expansion_density(  # type: ignore[no-any-return]
-            self._params(t),  # type: ignore[attr-defined]
+            self._params(t),
             xyz,
-            self.l_max,  # type: ignore[attr-defined]
-            self.lm_keys,  # type: ignore[attr-defined]
+            self.l_max,
+            self.lm_keys,
         )

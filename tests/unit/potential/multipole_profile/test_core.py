@@ -1,9 +1,12 @@
 """Tests for the `MultipoleProfilePotential` class."""
 
+import pytest
+
 import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
+import galax.potential.params as gpp
 from galax.potential._src.builtin.multipole_profile.core import (
     AbstractMultipoleProfilePotential,
     MultipoleProfilePotential,
@@ -110,3 +113,106 @@ def test_potential_is_time_independent_for_constant_coefficients() -> None:
     x = u.Q([1.0, 2.0, 3.0], "kpc")
     p0, p5 = pot.potential(x, t=u.Q(0.0, "Gyr")), pot.potential(x, t=u.Q(5.0, "Gyr"))
     assert jnp.isclose(p0, p5, atol=u.Q(0.0, p0.unit))
+
+
+def test_from_potential_reproduces_hernquist() -> None:
+    """The headline use: wrap an existing potential's density."""
+    hern = _reference()
+    pot = MultipoleProfilePotential.from_potential(
+        hern,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e4, "kpc"),
+        n_r=256,
+        l_max=0,
+        symmetry="spherical",
+    )
+    x = u.Q([1.0, 2.0, 3.0], "kpc")
+    got_pot, exp_pot = pot.potential(x, t=0), hern.potential(x, t=0)
+    got_rho, exp_rho = pot.density(x, t=0), hern.density(x, t=0)
+    assert jnp.isclose(got_pot, exp_pot, rtol=1e-3, atol=u.Q(0.0, exp_pot.unit))
+    assert jnp.isclose(got_rho, exp_rho, rtol=1e-3, atol=u.Q(0.0, exp_rho.unit))
+
+
+def test_from_potential_inherits_units_and_constants() -> None:
+    hern = _reference()
+    pot = MultipoleProfilePotential.from_potential(
+        hern, r_min=u.Q(1e-2, "kpc"), r_max=u.Q(1e3, "kpc"), n_r=32, l_max=0
+    )
+    assert pot.units == hern.units
+    assert pot.constants["G"] == hern.constants["G"]
+
+
+def test_from_density_accepts_a_plain_callable() -> None:
+    m_tot, r_s = 1e12, 10.0
+
+    def rho(xyz, t):
+        r = jnp.linalg.norm(xyz, axis=-1)
+        return m_tot / (2.0 * jnp.pi) * r_s / (r * (r + r_s) ** 3)
+
+    pot = MultipoleProfilePotential.from_density(
+        rho,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e4, "kpc"),
+        n_r=256,
+        l_max=0,
+        symmetry="spherical",
+        units="galactic",
+    )
+    x = u.Q([1.0, 2.0, 3.0], "kpc")
+    got, exp = pot.potential(x, t=0), _reference().potential(x, t=0)
+    assert jnp.isclose(got, exp, rtol=1e-3, atol=u.Q(0.0, exp.unit))
+
+
+def test_from_density_defaults_angular_resolution_from_l_max() -> None:
+    def rho(xyz, t):
+        return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    pot = MultipoleProfilePotential.from_density(
+        rho,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e2, "kpc"),
+        n_r=32,
+        l_max=4,
+        symmetry="triaxial",
+        units="galactic",
+    )
+    assert pot.l_max == 4
+    assert pot.symmetry == "triaxial"
+    assert len(pot.lm_keys) == 6
+
+
+def test_from_density_rejects_an_unknown_symmetry() -> None:
+    def rho(xyz, t):
+        return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    with pytest.raises(ValueError, match="Unknown symmetry"):
+        MultipoleProfilePotential.from_density(
+            rho,
+            r_min=u.Q(1e-2, "kpc"),
+            r_max=u.Q(1e2, "kpc"),
+            l_max=2,
+            symmetry="cubic",
+            units="galactic",
+        )
+
+
+def test_from_potential_rejects_time_dependent_parameters() -> None:
+    """A built expansion cannot track a time-varying source.
+
+    Better to refuse than to hand back a potential silently inconsistent with
+    its own density. Lifting this needs
+    https://github.com/GalacticDynamics/galax/issues/849
+    """
+    hern = gp.HernquistPotential(
+        m_tot=gpp.LinearParameter(
+            slope=u.Q(1e11, "Msun / Gyr"),
+            point_time=u.Q(0.0, "Gyr"),
+            point_value=u.Q(1e12, "Msun"),
+        ),
+        r_s=u.Q(10.0, "kpc"),
+        units="galactic",
+    )
+    with pytest.raises(ValueError, match="time-dependent"):
+        MultipoleProfilePotential.from_potential(
+            hern, r_min=u.Q(1e-2, "kpc"), r_max=u.Q(1e3, "kpc"), n_r=32, l_max=0
+        )

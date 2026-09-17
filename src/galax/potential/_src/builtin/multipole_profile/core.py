@@ -245,15 +245,12 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
     --------
     >>> import unxt as u
     >>> import galax.potential as gp
-    >>> from galax.potential._src.builtin.multipole_profile.core import (
-    ...     MultipoleProfilePotential,
-    ... )
 
     An expansion of a Hernquist sphere reproduces it:
 
     >>> hern = gp.HernquistPotential(m_tot=u.Q(1e12, "Msun"),
     ...                              r_s=u.Q(10.0, "kpc"), units="galactic")
-    >>> pot = MultipoleProfilePotential.from_potential(
+    >>> pot = gp.MultipoleProfilePotential.from_potential(
     ...     hern, r_min=u.Q(1e-2, "kpc"), r_max=u.Q(1e4, "kpc"),
     ...     n_r=256, l_max=0, symmetry="spherical")
     >>> pot.l_max, pot.symmetry

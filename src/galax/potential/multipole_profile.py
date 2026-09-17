@@ -1,7 +1,4 @@
-"""Multipole profile expansion. Private API.
-
-See the public API in `galax.potential` and `galax.potential.multipole_profile`.
-"""
+"""`galax.potential.multipole_profile`."""
 
 __all__ = [
     "AbstractMultipoleProfilePotential",
@@ -18,14 +15,17 @@ __all__ = [
     "solve_poisson_lm",
 ]
 
-from .core import AbstractMultipoleProfilePotential, MultipoleProfilePotential
-from .expansion import expansion_density, expansion_potential
-from .funcs import build_expansion, radial_grid
-from .poisson import solve_poisson_lm
-from .project import (
+from ._src.builtin.multipole_profile import (
+    AbstractMultipoleProfilePotential,
+    MultipoleProfilePotential,
     angular_grid,
+    build_expansion,
     default_angular_resolution,
+    expansion_density,
+    expansion_potential,
     lm_keys,
     project_density,
+    radial_grid,
     real_ylm,
+    solve_poisson_lm,
 )

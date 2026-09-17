@@ -1,0 +1,129 @@
+"""Tests for the radial spline helpers and the build pipeline."""
+
+import interpax
+
+import quaxed.numpy as jnp
+
+from galax.potential._src.builtin.multipole_profile.funcs import (
+    build_expansion,
+    eval_log_spline,
+    fit_log_spline,
+    radial_grid,
+    subtract_inner_cusp,
+)
+from galax.potential._src.builtin.multipole_profile.project import (
+    default_angular_resolution,
+    lm_keys,
+)
+
+
+def test_radial_grid_endpoints_and_log_spacing() -> None:
+    r = radial_grid(65, jnp.asarray(1e-2), jnp.asarray(1e2))
+    assert r.shape == (65,)
+    assert jnp.isclose(r[0], 1e-2, rtol=1e-14)
+    assert jnp.isclose(r[-1], 1e2, rtol=1e-14)
+    dlog = jnp.diff(jnp.log(r))
+    assert jnp.allclose(dlog, dlog[0], rtol=1e-12)
+
+
+def test_spline_helpers_reproduce_natural_cubic_spline() -> None:
+    """`approx_df` + `CubicHermiteSpline` == `CubicSpline(bc_type="natural")`.
+
+    Verified exact (0.0) during design; this pins it against `interpax`
+    changes, since a refactor there is expected.
+    """
+    x = jnp.linspace(0.0, 1.0, 17)
+    y = jnp.stack([jnp.sin(3.0 * x), jnp.cos(2.0 * x)], axis=-1)
+    xq = jnp.linspace(0.0, 1.0, 51)
+
+    got = eval_log_spline(x, y, fit_log_spline(x, y), xq)
+    expect = interpax.CubicSpline(x, y, axis=0, bc_type="natural", check=False)(xq)
+
+    assert got.shape == (51, 2)
+    assert jnp.allclose(got, expect, atol=1e-14)
+
+
+def test_spline_interpolates_its_knots_exactly() -> None:
+    x = jnp.linspace(-1.0, 2.0, 21)
+    y = (x**3 - x)[:, None]
+    got = eval_log_spline(x, y, fit_log_spline(x, y), x)
+    assert jnp.allclose(got, y, atol=1e-12)
+
+
+def test_subtract_inner_cusp_removes_a_pure_power_law() -> None:
+    """A pure power law leaves a numerically zero residual.
+
+    The amplitude is `rho_lm` at the innermost knot, so the background is
+    `amplitude * (r / r_knots[0]) ** alpha`.
+    """
+    r = radial_grid(128, jnp.asarray(1e-3), jnp.asarray(1e3))
+    rho_lm = (3.0 * r**-1.5)[:, None]
+    residual, alpha, amplitude = subtract_inner_cusp(r, rho_lm)
+
+    assert jnp.isclose(alpha[0], -1.5, rtol=1e-10)
+    assert jnp.isclose(amplitude[0], 3.0 * r[0] ** -1.5, rtol=1e-12)
+    assert jnp.max(jnp.abs(residual)) < 1e-9 * jnp.max(jnp.abs(rho_lm))
+
+
+def test_subtract_inner_cusp_zeroes_negligible_modes() -> None:
+    """Modes negligible at `r_min` get no background, per `bfeax`'s 1e-6 gate."""
+    r = radial_grid(64, jnp.asarray(1e-2), jnp.asarray(1e2))
+    big = 1.0 / r
+    tiny = jnp.full_like(r, 1e-12) * big[0]
+    rho_lm = jnp.stack([big, tiny], axis=-1)
+
+    residual, alpha, amplitude = subtract_inner_cusp(r, rho_lm)
+    assert amplitude[1] == 0.0
+    assert alpha[1] == 0.0
+    assert jnp.allclose(residual[:, 1], tiny, atol=0.0)
+
+
+def test_build_expansion_reconstructs_a_cuspy_density() -> None:
+    """rho_lm from residual + background round-trips the projected rho_lm.
+
+    NFW's r^-1 cusp is exactly the case direct splining handles badly, which
+    is why the background is subtracted before fitting.
+    """
+
+    def rho(xyz, t):
+        r = jnp.linalg.norm(xyz, axis=-1)
+        return 1.0 / (r * (1.0 + r) ** 2)
+
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+    r = radial_grid(128, jnp.asarray(1e-2), jnp.asarray(3e2))
+    coeffs = build_expansion(
+        rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+    )
+
+    log_r = jnp.log(r)
+    residual = eval_log_spline(
+        log_r, coeffs["rho_residual_lm"], coeffs["drho_residual_lm"], log_r
+    )
+    background = coeffs["rho_amplitude"] * (r[:, None] / r[0]) ** coeffs["rho_alpha"]
+    got = residual + background
+
+    xyz = jnp.stack([r, jnp.zeros_like(r), jnp.zeros_like(r)], axis=-1)
+    expect = jnp.sqrt(4.0 * jnp.pi) * rho(xyz, jnp.asarray(0.0))
+    assert jnp.allclose(got[:, 0], expect, rtol=1e-10)
+
+
+def test_build_expansion_returns_consistent_shapes() -> None:
+    def rho(xyz, t):
+        r = jnp.linalg.norm(xyz, axis=-1)
+        return jnp.exp(-r)
+
+    keys = lm_keys(4, "triaxial")
+    n_theta, n_phi = default_angular_resolution(4)
+    r = radial_grid(32, jnp.asarray(1e-2), jnp.asarray(1e2))
+    coeffs = build_expansion(
+        rho, r, 4, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+    )
+
+    n_modes = len(keys)
+    assert coeffs["phi_lm"].shape == (32, n_modes)
+    assert coeffs["dphi_lm"].shape == (32, n_modes)
+    assert coeffs["rho_residual_lm"].shape == (32, n_modes)
+    assert coeffs["drho_residual_lm"].shape == (32, n_modes)
+    assert coeffs["rho_alpha"].shape == (n_modes,)
+    assert coeffs["rho_amplitude"].shape == (n_modes,)

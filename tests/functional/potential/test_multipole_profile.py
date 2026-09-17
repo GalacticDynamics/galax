@@ -149,15 +149,19 @@ def test_symmetry_modes_agree_for_a_triaxial_density(symmetry) -> None:
 
 
 def test_triaxial_nfw_reaches_outer_tail() -> None:
-    """Test the outer-tail correction near r_max where the defect is worst.
+    """Closed-form accuracy check at higher resolution near the outer boundary.
 
-    The r_max=1e4 kpc test evaluates at r/r_max ~ 0.0005-0.002, where the
-    outer tail contributes essentially nothing, so it cannot see the defect.
-    This test intentionally evaluates near r_max where the tail is load-bearing.
+    Complements the r_max=1e4 kpc test, which evaluates at r/r_max ~ 0.0005-0.002.
+    This test uses r_max=300 kpc and evaluates at r/r_max ~ 0.83, extending the
+    coverage range near the outer boundary.
 
-    Before the fix (bfeax behavior), the negative modes lose their outer-tail
-    correction, underestimating |Phi_lm| by 40-47% at r=r_max for l>=1.
-    Post-fix measured error: ~8.6e-3 (improved from ~8.2e-3 pre-fix).
+    Does NOT verify the outer-tail sign fix: at these parameters the residual error
+    is dominated by grid truncation and finite l_max. Toggling the gate alone moves
+    the error from 8.222e-3 to 8.587e-3 (same band, inconsistent direction).
+
+    The outer-tail sign fix is verified by `test_outer_tail_applies_to_negative_modes`
+    (in test_poisson.py), which checks the exact linearity Phi(-rho) == -Phi(rho)
+    that the buggy signed gate violated.
     """
     ref = gp.TriaxialNFWPotential(
         m=u.Q(1e12, "Msun"),
@@ -175,8 +179,7 @@ def test_triaxial_nfw_reaches_outer_tail() -> None:
         l_max=8,
         symmetry="triaxial",
     )
-    # Evaluate near r_max where outer tail contributes significantly
-    # r/r_max ~ 0.5, still well within the domain but far from r_min
+    # Evaluate at r/r_max ~ 0.83, extending coverage toward r_max
     x = u.Q([150.0, 150.0, 132.0], "kpc")
     assert jnp.isclose(
         pot.potential(x, t=0),

@@ -7,10 +7,15 @@ Legendre recurrence.
 
 __all__: tuple[str, ...] = ()
 
+import functools as ft
 import math
 
+from collections.abc import Callable
 from jaxtyping import Array, Float
 from typing import cast
+
+import jax
+import numpy as np
 
 import quaxed.numpy as jnp
 
@@ -87,3 +92,82 @@ def real_ylm(
         else:
             out.append(SQRT2 * sY)
     return cast(Float[Array, "n_modes *batch"], jnp.stack(out))
+
+
+def default_angular_resolution(l_max: int, /) -> tuple[int, int]:
+    r"""Return the default angular quadrature resolution for ``l_max``.
+
+    ``n_theta = l_max + 2`` Gauss-Legendre nodes in :math:`\cos\theta` and
+    ``n_phi = 2 l_max + 1`` uniform points in :math:`\phi`. These are
+    ``bfeax``'s defaults: a GL rule with :math:`n` nodes is exact for
+    polynomials of degree :math:`2n-1`, and its convergence tests found the
+    error plateaus at ``l_max + 2`` for smooth non-polynomial integrands.
+    ``n_phi`` is the Nyquist minimum for :math:`\cos(l_\max \phi)` and is kept
+    odd so :math:`\phi = 0` and :math:`\phi = \pi` are never both sampled.
+    """
+    return l_max + 2, 2 * l_max + 1
+
+
+def angular_grid(
+    n_theta: int, n_phi: int, /
+) -> tuple[Float[Array, "n_theta n_phi 3"], Float[Array, "n_theta n_phi"]]:
+    r"""Gauss-Legendre :math:`\times` uniform-:math:`\phi` grid on the sphere.
+
+    Returns Cartesian unit directions and quadrature weights such that
+    :math:`\int f \, d\Omega \approx \sum_{ij} w_{ij} f(\hat{u}_{ij})`.
+
+    The GL rule is applied in :math:`\cos\theta`, so its weights already carry
+    the :math:`d(\cos\theta)` measure and no :math:`\sin\theta` Jacobian is
+    needed. Nodes come from `numpy` at trace time -- they are static data, not
+    traced values.
+    """
+    x, w = np.polynomial.legendre.leggauss(n_theta)
+    cos_t = jnp.asarray(x, dtype=float)
+    sin_t = jnp.sqrt(jnp.clip(1.0 - cos_t**2, 0.0))
+    phi = jnp.arange(n_phi, dtype=float) * (2.0 * jnp.pi / n_phi)
+
+    uvec = jnp.stack(
+        [
+            sin_t[:, None] * jnp.cos(phi)[None, :],
+            sin_t[:, None] * jnp.sin(phi)[None, :],
+            jnp.broadcast_to(cos_t[:, None], (n_theta, n_phi)),
+        ],
+        axis=-1,
+    )
+    w_scaled = jnp.asarray(w, dtype=float)[:, None] * (2.0 * jnp.pi / n_phi)
+    weights = jnp.broadcast_to(w_scaled, (n_theta, n_phi))
+    return uvec, weights
+
+
+@ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))
+def project_density(
+    rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]],
+    r_knots: Float[Array, "n_r"],
+    l_max: int,
+    keys: tuple[tuple[int, int], ...],
+    n_theta: int,
+    n_phi: int,
+    t: gt.BBtSz0,
+    /,
+) -> Float[Array, "n_r n_modes"]:
+    r"""Project a density onto real spherical harmonics on each shell.
+
+    .. math::
+
+        \rho_{lm}(r) = \int \rho(r, \theta, \phi) Y_{lm}(\theta, \phi)
+                       \, d\Omega
+
+    ``rho_fn`` takes ``(xyz, t)`` with ``xyz`` of shape ``(..., 3)`` and must
+    broadcast over the leading axes -- the `galax` ``_density`` signature. It
+    is called once per radius on the full angular grid.
+    """
+    uvec, weights = angular_grid(n_theta, n_phi)
+    Y = real_ylm(l_max, keys, uvec)  # (n_modes, n_theta, n_phi)
+
+    def at_radius(r: Float[Array, ""]) -> Float[Array, "n_modes"]:
+        rho = rho_fn(r * uvec, t)  # (n_theta, n_phi)
+        return cast(
+            Float[Array, "n_modes"], jnp.einsum("kij,ij,ij->k", Y, rho, weights)
+        )
+
+    return jax.vmap(at_radius)(r_knots)

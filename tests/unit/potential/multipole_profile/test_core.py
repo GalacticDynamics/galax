@@ -216,3 +216,59 @@ def test_from_potential_rejects_time_dependent_parameters() -> None:
         MultipoleProfilePotential.from_potential(
             hern, r_min=u.Q(1e-2, "kpc"), r_max=u.Q(1e3, "kpc"), n_r=32, l_max=0
         )
+
+
+def test_from_density_rejects_n_r_less_than_4() -> None:
+    """Fewer than 3 knots in the spline gives unbounded behavior."""
+
+    def rho(xyz, t):
+        return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    with pytest.raises(ValueError, match="n_r must be >= 4"):
+        MultipoleProfilePotential.from_density(
+            rho,
+            r_min=u.Q(1e-2, "kpc"),
+            r_max=u.Q(1e2, "kpc"),
+            n_r=2,
+            l_max=0,
+            units="galactic",
+        )
+
+
+def test_from_density_rejects_r_min_greater_or_equal_to_r_max() -> None:
+    """r_min must be strictly less than r_max."""
+
+    def rho(xyz, t):
+        return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    with pytest.raises(ValueError, match="r_min must be < r_max"):
+        MultipoleProfilePotential.from_density(
+            rho,
+            r_min=u.Q(1e2, "kpc"),
+            r_max=u.Q(1e2, "kpc"),
+            n_r=32,
+            l_max=0,
+            units="galactic",
+        )
+
+
+def test_check_init_rejects_mismatched_lm_keys() -> None:
+    """lm_keys must match lm_keys(l_max, symmetry)."""
+    # Create a valid potential first
+    pot = _hernquist_potential()
+    # Try to construct one with mismatched lm_keys
+    wrong_keys = ((0, 0), (2, 0))  # Not valid for l_max=0
+    with pytest.raises(ValueError, match="lm_keys must match"):
+        MultipoleProfilePotential(
+            r_knots=pot.r_knots,
+            phi_lm=pot.phi_lm,
+            dphi_lm=pot.dphi_lm,
+            rho_residual_lm=pot.rho_residual_lm,
+            drho_residual_lm=pot.drho_residual_lm,
+            rho_amplitude=pot.rho_amplitude,
+            rho_alpha=pot.rho_alpha,
+            l_max=0,
+            lm_keys=wrong_keys,
+            symmetry="spherical",
+            units="galactic",
+        )

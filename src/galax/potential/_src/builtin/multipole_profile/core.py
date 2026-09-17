@@ -140,7 +140,51 @@ def _from_density(
     units: Any,
     constants: Any = default_constants,
 ) -> "MultipoleProfilePotential":
-    """Build an expansion of an arbitrary density (see the class docstring)."""
+    """Build an expansion of an arbitrary density (see the class docstring).
+
+    The expansion is defined only on ``[r_min, r_max]``. Outside this range,
+    cubic Hermite extrapolation in log :math:`r` is used, with no analytic
+    tail. Results degrade rapidly outside the bracket and can change sign
+    or grow unbounded. See the class docstring for details.
+
+    Parameters
+    ----------
+    rho : Callable
+        Density function to project, taking ``(xyz, t)`` in the unit system
+        and returning dimensionless density values.
+    r_min, r_max : Quantity
+        Inner and outer radii bracketing the region of interest.
+    n_r : int, optional
+        Number of radial knots (default 128). Must be >= 4.
+    l_max : int, optional
+        Maximum multipole order (default 8).
+    n_theta, n_phi : int, optional
+        Angular quadrature resolution. Defaults follow `default_angular_resolution`.
+    symmetry : str or None, optional
+        Symmetry assumption ("spherical", "axisymmetric", "triaxial", or None).
+    t : Quantity, optional
+        Time at which to evaluate the density. Defaults to 0 Gyr.
+    units : AbstractUnitSystem
+        Unit system for all inputs and outputs.
+    constants : Mapping, optional
+        Physical constants (default from `default_constants`).
+
+    Returns
+    -------
+    MultipoleProfilePotential
+        The expansion.
+
+    Raises
+    ------
+    ValueError
+        If ``n_r < 4`` or ``r_min >= r_max``.
+    """
+    if n_r < 4:
+        msg = (
+            f"n_r must be >= 4 (got {n_r}); fewer knots give unbounded spline behavior"
+        )
+        raise ValueError(msg)
+
     usys = u.unitsystem(units)
     consts = ImmutableMap(constants)
 
@@ -154,7 +198,13 @@ def _from_density(
             u.ustrip(usys["length"], u.Q.from_(q, usys["length"]))
         )
 
-    r_knots = radial_grid(n_r, to_len(r_min), to_len(r_max))
+    r_min_val = to_len(r_min)
+    r_max_val = to_len(r_max)
+    if r_min_val >= r_max_val:
+        msg = f"r_min must be < r_max (got r_min={r_min_val}, r_max={r_max_val})"
+        raise ValueError(msg)
+
+    r_knots = radial_grid(n_r, r_min_val, r_max_val)
     t_ = jnp.asarray(
         u.ustrip(
             usys["time"],
@@ -203,7 +253,41 @@ def _from_potential(
     symmetry: str | None = None,
     t: Any = None,
 ) -> "MultipoleProfilePotential":
-    """Build an expansion of another potential's density (see class docstring)."""
+    """Build an expansion of another potential's density (see class docstring).
+
+    The expansion is defined only on ``[r_min, r_max]``. Outside this range,
+    cubic Hermite extrapolation in log :math:`r` is used, with no analytic
+    tail. Results degrade rapidly outside the bracket and can change sign
+    or grow unbounded. See the class docstring for details.
+
+    Parameters
+    ----------
+    pot : AbstractPotential
+        Potential whose density to expand.
+    r_min, r_max : Quantity
+        Inner and outer radii bracketing the region of interest.
+    n_r : int, optional
+        Number of radial knots (default 128). Must be >= 4.
+    l_max : int, optional
+        Maximum multipole order (default 8).
+    n_theta, n_phi : int, optional
+        Angular quadrature resolution. Defaults follow `default_angular_resolution`.
+    symmetry : str or None, optional
+        Symmetry assumption ("spherical", "axisymmetric", "triaxial", or None).
+    t : Quantity, optional
+        Time at which to evaluate the density. Defaults to the potential's
+        default time.
+
+    Returns
+    -------
+    MultipoleProfilePotential
+        The expansion.
+
+    Raises
+    ------
+    ValueError
+        If ``pot`` is time-dependent, ``n_r < 4``, or ``r_min >= r_max``.
+    """
     _check_time_independent(pot)
     return _from_density(
         cls,
@@ -234,6 +318,16 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
     Build one with `from_density` or `from_potential` rather than by passing
     coefficients directly.
 
+    **Limitation: unbounded extrapolation outside** ``[r_min, r_max]``.
+    The radial splines use cubic Hermite with extrapolation enabled. Outside
+    the grid, the edge cubic continues in log :math:`r` with no analytic tail.
+    The potential can change sign and the density can grow unbounded as
+    :math:`r \to \infty`, degrading rapidly with no warning. Callers must
+    choose ``r_min`` and ``r_max`` to bracket the region they will actually
+    evaluate, including any region an orbit integrator may explore. A proper
+    fix (continuing the analytic :math:`r^{-(l+1)}` / :math:`r^l` tail) is
+    tracked separately.
+
     See Also
     --------
     galax.potential.MultipolePotential : the analytic constant-coefficient
@@ -259,3 +353,13 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
 
     from_density = classmethod(_from_density)
     from_potential = classmethod(_from_potential)
+
+    def __check_init__(self) -> None:
+        """Validate that lm_keys matches the symmetry."""
+        expected_keys = lm_keys(self.l_max, self.symmetry)
+        if self.lm_keys != expected_keys:
+            msg = (
+                f"lm_keys must match lm_keys(l_max, symmetry). "
+                f"Got {self.lm_keys}, expected {expected_keys}."
+            )
+            raise ValueError(msg)

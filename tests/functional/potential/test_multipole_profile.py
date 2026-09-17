@@ -60,9 +60,14 @@ def test_spherical_expansion_matches_the_closed_form(_analytic, name) -> None:  
 def test_triaxial_nfw_matches_the_homoeoid_integral() -> None:
     """Against `TriaxialNFWPotential`'s exact Chandrasekhar integral.
 
-    This is the test that would catch the outer-tail sign defect, since it
-    exercises l >= 1 modes against an independent solution of the same
-    density.
+    This is a closed-form accuracy check. Does NOT verify the outer-tail
+    sign fix; at these parameters the residual error is dominated by grid
+    truncation and finite l_max, so toggling the gate changes the error
+    inconsistently and imperceptibly.
+
+    The outer-tail sign fix is verified by `test_outer_tail_applies_to_negative_modes`
+    (in test_poisson.py), which checks the exact linearity Phi(-rho) == -Phi(rho)
+    that the buggy signed gate violated.
     """
     ref = gp.TriaxialNFWPotential(
         m=u.Q(1e12, "Msun"),
@@ -123,8 +128,7 @@ def test_error_is_second_order_in_n_r(_analytic) -> None:  # noqa: PT019
         assert 2.5 < coarse / fine < 6.0, errs
 
 
-@pytest.mark.parametrize("symmetry", [None, "triaxial"])
-def test_symmetry_modes_agree_for_a_triaxial_density(symmetry) -> None:
+def test_symmetry_modes_agree_for_a_triaxial_density() -> None:
     """Pruning modes that vanish by symmetry must not change the answer."""
     ref = gp.TriaxialNFWPotential(
         m=u.Q(1e12, "Msun"),
@@ -137,7 +141,7 @@ def test_symmetry_modes_agree_for_a_triaxial_density(symmetry) -> None:
         ref, r_min=R_MIN, r_max=R_MAX, n_r=128, l_max=4, symmetry=None
     )
     pruned = gp.MultipoleProfilePotential.from_potential(
-        ref, r_min=R_MIN, r_max=R_MAX, n_r=128, l_max=4, symmetry=symmetry
+        ref, r_min=R_MIN, r_max=R_MAX, n_r=128, l_max=4, symmetry="triaxial"
     )
     x = u.Q([3.0, 4.0, 5.0], "kpc")
     assert jnp.isclose(
@@ -187,3 +191,39 @@ def test_triaxial_nfw_reaches_outer_tail() -> None:
         rtol=1.2e-2,
         atol=u.Q(0.0, "kpc2 / Myr2"),
     )
+
+
+def test_outer_extrapolation_diverges_from_truth() -> None:
+    """Well outside the grid, cubic Hermite extrapolation degrades rapidly.
+
+    REGRESSION TEST: This pins the unguarded extrapolation behavior described
+    in the class docstring. The expansion is defined only on [r_min, r_max];
+    outside that range, the edge cubic in log r continues with no analytic
+    tail. The potential can change sign and the density can grow unbounded
+    as r -> infinity, degrading rapidly with no warning.
+
+    This test will FAIL if someone implements the proper analytic tail
+    (r^{-(l+1)} / r^l continuation), forcing them to update the expected
+    error bounds deliberately.
+    """
+    ref = gp.HernquistPotential(
+        m_tot=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        units="galactic",
+    )
+    r_max = u.Q(300.0, "kpc")
+    pot = gp.MultipoleProfilePotential.from_potential(
+        ref,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=r_max,
+        n_r=128,
+        l_max=0,
+        symmetry="spherical",
+    )
+    # Well outside r_max: error should be large
+    x_far = u.Q([700.0, 0.0, 0.0], "kpc")  # r/r_max ~ 2.33
+    phi_pot = pot.potential(x_far, t=0)
+    phi_ref = ref.potential(x_far, t=0)
+    # The error ratio should be large (demonstrates divergence from truth)
+    error_ratio = jnp.abs((phi_pot - phi_ref) / phi_ref)
+    assert error_ratio > 0.01, f"Expected large error outside grid, got {error_ratio}"

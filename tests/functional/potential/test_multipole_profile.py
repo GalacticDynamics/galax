@@ -204,7 +204,27 @@ def test_outer_extrapolation_diverges_from_truth() -> None:
 
     This test will FAIL if someone implements the proper analytic tail
     (r^{-(l+1)} / r^l continuation), forcing them to update the expected
-    error bounds deliberately.
+    error bounds deliberately. The thresholds below are set just under the
+    measured behaviour so that they actually trip: at r = 700 kpc with
+    r_max = 300 kpc the relative error is 4.10 and the potential comes out
+    POSITIVE (+1.97e-2) where the truth is negative (-6.34e-3). The sign
+    flip is the qualitative signature any real tail continuation removes,
+    so it is asserted alongside the magnitude rather than relying on a
+    loose error bound.
+
+    Measured extrapolation error for this configuration:
+
+    ======  =========  ==========  ===========
+    r/r_max  rel. err        Phi        truth
+    ======  =========  ==========  ===========
+      1.17     0.0247  -1.219e-02   -1.250e-02
+      1.67     0.7312  -2.371e-03   -8.821e-03
+      2.33     4.1020  +1.965e-02   -6.336e-03
+      3.33    15.8019  +6.593e-02   -4.454e-03
+    ======  =========  ==========  ===========
+
+    Tracked for a proper fix at
+    https://github.com/GalacticDynamics/galax/issues/850
     """
     ref = gp.HernquistPotential(
         m_tot=u.Q(1e12, "Msun"),
@@ -220,10 +240,18 @@ def test_outer_extrapolation_diverges_from_truth() -> None:
         l_max=0,
         symmetry="spherical",
     )
-    # Well outside r_max: error should be large
     x_far = u.Q([700.0, 0.0, 0.0], "kpc")  # r/r_max ~ 2.33
     phi_pot = pot.potential(x_far, t=0)
     phi_ref = ref.potential(x_far, t=0)
-    # The error ratio should be large (demonstrates divergence from truth)
+
+    # Magnitude: measured 4.10, so 1.0 leaves headroom while still tripping
+    # on any continuation that brings the error near the percent level.
     error_ratio = jnp.abs((phi_pot - phi_ref) / phi_ref)
-    assert error_ratio > 0.01, f"Expected large error outside grid, got {error_ratio}"
+    assert error_ratio > 1.0, f"Expected large error outside grid, got {error_ratio}"
+
+    # Sign: the truth is bound (negative) everywhere; the extrapolation is
+    # not. A correct tail cannot produce a positive potential here.
+    assert phi_ref < u.Q(0.0, "kpc2 / Myr2")
+    assert phi_pot > u.Q(
+        0.0, "kpc2 / Myr2"
+    ), f"Expected the unguarded extrapolation to flip sign, got {phi_pot}"

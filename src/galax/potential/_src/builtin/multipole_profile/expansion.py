@@ -27,6 +27,7 @@ from unxt.quantity import AllowValue
 import galax.potential.custom_types as gt
 from .funcs import eval_log_spline
 from .project import real_ylm
+from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.utils import safe_vector_norm
 
 
@@ -73,12 +74,15 @@ def expansion_density(
     return jnp.sum((residual + background) * Y, axis=-1)  # type: ignore[no-any-return]
 
 
-class MultipoleProfileMixin(eqx.Module):
+class MultipoleProfileMixin(AbstractSinglePotential):
     """Supply ``_potential``/``_density`` from ``_params``, ``l_max``, ``lm_keys``.
 
-    A mixin rather than a base class so that a wrapper can combine it with
-    another potential class without putting a second `AbstractPotential` in
-    its MRO. Mirrors the existing `LaplacianFromDensityMixin` pattern.
+    Carries the shared evaluation implementation but none of the field
+    declarations, so a potential that stores its expansion differently can
+    reuse the numerics by supplying ``_params``, ``l_max`` and ``lm_keys``.
+    Mix it in ahead of the concrete class so that its ``_potential`` and
+    ``_density`` win over `AbstractPotential`'s abstract stubs, the same way
+    `LaplacianFromDensityMixin` is used.
     """
 
     #: The maximum multipole order.
@@ -86,9 +90,6 @@ class MultipoleProfileMixin(eqx.Module):
 
     #: The (l, m) mode keys.
     lm_keys: eqx.AbstractVar[tuple[tuple[int, int], ...]]
-
-    #: The unit system.
-    units: eqx.AbstractVar[u.AbstractUnitSystem]
 
     @abc.abstractmethod
     def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:

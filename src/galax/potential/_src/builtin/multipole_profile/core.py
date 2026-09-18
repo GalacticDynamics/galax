@@ -75,19 +75,6 @@ class AbstractMultipoleProfilePotential(MultipoleProfileMixin, AbstractSinglePot
     )
 
     _: KW_ONLY
-    # Restated, matching `AbstractSinglePotential.units` exactly (converter
-    # and staticness included), purely so equinox's abstract-var resolution
-    # sees a concrete `units` here. `MultipoleProfileMixin` and
-    # `AbstractSinglePotential` both declare `units` -- the mixin as
-    # `eqx.AbstractVar`, the base class concretely -- and because the mixin
-    # is listed first in the MRO (required so its `_potential`/`_density`
-    # win over `AbstractPotential`'s abstract stubs), equinox's abstract-var
-    # scan (which walks the MRO in reverse) processes the mixin's abstract
-    # redeclaration *after* the base class's concrete one, leaving `units`
-    # abstract unless it is restated here. A bare re-annotation is not
-    # enough: it clears the abstractness but silently drops the converter,
-    # so `units` must be given in full.
-    units: u.AbstractUnitSystem = field(converter=u.unitsystem, static=True)
     l_max: int = field(static=True)
     lm_keys: tuple[tuple[int, int], ...] = field(static=True)
     symmetry: str | None = field(static=True, default=None)
@@ -293,7 +280,7 @@ def _from_density(
         jnp.asarray(consts["G"].decompose(usys).value),
     )
 
-    return cls(  # type: ignore[call-arg]
+    return cls(
         r_knots=u.Q(r_knots, usys["length"]),
         phi_lm=u.Q(coeffs["phi_lm"], usys["specific energy"]),
         dphi_lm=u.Q(coeffs["dphi_lm"], usys["specific energy"]),

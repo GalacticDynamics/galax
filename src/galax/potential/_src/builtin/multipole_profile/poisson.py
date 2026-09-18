@@ -13,8 +13,12 @@ Boundary tails
 --------------
 Truncating the grid at ``r_min`` and ``r_max`` biases both integrals. The
 power-law slope of :math:`\rho_{lm}` is estimated at each boundary from three
-grid points and an analytic tail appended, each guarded for convergence and
-for a negligible boundary value.
+grid points and an analytic tail appended. Both tails are guarded for
+convergence, but the two boundary-value gates deliberately differ: the inner
+one requires :math:`|\rho_{lm}(r_\min)|` to exceed ``_ACTIVE_TOL`` times the
+per-mode scale, while the outer one requires only
+:math:`\rho_{lm}(r_\max) \neq 0`. See "Outer-tail sign" for why the inner
+threshold is not reused at the outer boundary.
 
 Outer-tail sign
 ---------------
@@ -51,7 +55,13 @@ _SLOPE_TOL: float = 1e-6
 """Guard against a vanishing exponent denominator, matching ``bfeax``."""
 
 _ACTIVE_TOL: float = 1e-8
-"""Relative threshold for a non-negligible boundary value, matching ``bfeax``."""
+"""Relative threshold for a non-negligible *inner* boundary value.
+
+Matches ``bfeax``. Applies to the inner tail only -- the outer tail gates on
+:math:`\\rho_{lm}(r_\\max) \\neq 0` instead, because this threshold is taken
+against the per-mode maximum over the whole radial range, which is set by the
+inner cusp and would reject every mode at the outer boundary.
+"""
 
 
 @ft.partial(jax.jit)

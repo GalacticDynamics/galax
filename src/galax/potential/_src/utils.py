@@ -6,7 +6,7 @@ import functools as ft
 
 from collections.abc import Callable
 from jaxtyping import Array, Bool, Shaped
-from typing import Any, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import equinox as eqx
 import jax
@@ -24,6 +24,10 @@ from unxt.quantity import AllowValue, BareQuantity
 
 import galax.coordinates as gc
 import galax.potential.custom_types as gt
+from .symmetry import Symmetry
+
+if TYPE_CHECKING:
+    from .base import AbstractPotential
 
 OptUSys: TypeAlias = u.AbstractUnitSystem | None
 
@@ -664,6 +668,62 @@ def parse_to_xyz_t(
     return parse_to_xyz_t(
         None, wt.q, jnp.asarray(wt.t, dtype=dtype), dtype=dtype, ustrip=ustrip
     )
+
+
+def parse_pot_to_xyz_t(
+    pot: "AbstractPotential", q: Any, /, *args: Any, **kwargs: Any
+) -> tuple[Any, Any]:
+    """`parse_to_xyz_t`, with the potential supplying the parsing context.
+
+    Most inputs mean the same thing for every potential and are passed
+    straight through. A `coordinax.vecs.RadialPos` is the exception: a radius
+    only determines a position if the potential is spherically symmetric, so
+    it is resolved here, where `AbstractPotential.symmetry` is known.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.potential as gp
+    >>> from galax.potential._src.utils import parse_pot_to_xyz_t
+
+    >>> r = cx.vecs.RadialPos(r=u.Q(8.0, "kpc"))
+    >>> t = u.Q(0, "Gyr")
+
+    >>> pot = gp.HernquistPotential(m_tot=u.Q(1e12, "Msun"), r_s=u.Q(5, "kpc"),
+    ...                             units="galactic")
+    >>> parse_pot_to_xyz_t(pot, r, t)
+    (BareQuantity([8., 0., 0.], 'kpc'), Q(0, 'Gyr'))
+
+    A radius is ambiguous for anything else:
+
+    >>> pot = gp.MiyamotoNagaiPotential(m_tot=u.Q(1e12, "Msun"), a=u.Q(5, "kpc"),
+    ...                                 b=u.Q(1, "kpc"), units="galactic")
+    >>> try:
+    ...     parse_pot_to_xyz_t(pot, r, t)
+    ... except TypeError as e:
+    ...     print(e)
+    MiyamotoNagaiPotential declares symmetry 'none': a RadialPos is ambiguous,
+    since turning a radius into a position requires choosing a direction. Only
+    'spherical' symmetry makes that choice irrelevant. Pass a 3D position
+    instead, e.g. coordinax.vecs.SphericalPos.
+
+    """
+    if isinstance(q, cxv.RadialPos):
+        if pot.symmetry is not Symmetry.SPHERICAL:
+            msg = (
+                f"{type(pot).__name__} declares symmetry '{pot.symmetry}': a "
+                "RadialPos is ambiguous, since turning a radius into a "
+                "position requires choosing a direction. Only "
+                f"'{Symmetry.SPHERICAL}' symmetry makes that choice "
+                "irrelevant. Pass a 3D position instead, e.g. "
+                "coordinax.vecs.SphericalPos."
+            )
+            raise TypeError(msg)
+        q = q.vconvert(cx.CartesianPos3D)
+
+    # TODO: frame
+    return parse_to_xyz_t(None, q, *args, **kwargs)  # type: ignore[no-any-return]
 
 
 # ============================================================================

@@ -7,6 +7,7 @@ import unxt as u
 
 import galax.potential as gp
 import galax.potential.params as gpp
+from galax.potential._src.base import default_constants
 from galax.potential._src.builtin.multipole_profile.core import (
     AbstractMultipoleProfilePotential,
     MultipoleProfilePotential,
@@ -386,6 +387,80 @@ def test_check_init_rejects_mismatched_lm_keys() -> None:
             symmetry="spherical",
             units="galactic",
         )
+
+
+def _flattened_density(xyz, t):
+    """Return a triaxial exponential: angular structure in theta and in phi."""
+    del t
+    m = jnp.sqrt(xyz[..., 0] ** 2 + (xyz[..., 1] / 0.6) ** 2 + (xyz[..., 2] / 0.4) ** 2)
+    return 1e10 * jnp.exp(-m)
+
+
+def _time_scaled_density(xyz, t):
+    """Return a density whose amplitude genuinely depends on ``t``."""
+    r = jnp.linalg.norm(xyz, axis=-1)
+    return 1e10 * (1.0 + t) * jnp.exp(-r)
+
+
+def _max_rel(got, expect) -> float:
+    return float(jnp.max(jnp.abs(got - expect)) / jnp.max(jnp.abs(expect)))
+
+
+def test_from_density_uses_n_theta_and_n_phi_as_given() -> None:
+    """The overrides must reach the quadrature, in the right slots.
+
+    Compared against a direct `build_expansion` at the same resolution, and
+    against one with the two deliberately transposed: an override that is
+    ignored, or a pair that is silently swapped, fails one of the two. The
+    transposed build differs by 1.2e-2 here, well clear of the 1e-3 bound.
+    """
+    n_theta, n_phi = 5, 15  # distinct, and neither is the l_max=2 default
+    l_max, n_r = 2, 32
+    keys = lm_keys(l_max, None)
+    r = radial_grid(n_r, jnp.asarray(1e-2), jnp.asarray(1e2))
+    args = (_flattened_density, r, l_max, keys)
+    # `from_density`'s own G, so the comparison isolates the quadrature.
+    g = jnp.asarray(default_constants["G"].decompose(u.unitsystem("galactic")).value)
+    tail = (jnp.asarray(0.0), g)
+    direct = build_expansion(*args, n_theta, n_phi, *tail)
+    transposed = build_expansion(*args, n_phi, n_theta, *tail)
+
+    pot = MultipoleProfilePotential.from_density(
+        _flattened_density,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e2, "kpc"),
+        n_r=n_r,
+        l_max=l_max,
+        n_theta=n_theta,
+        n_phi=n_phi,
+        units="galactic",
+    )
+    got = u.ustrip("kpc2 / Myr2", pot.phi_lm(u.Q(0.0, "Gyr")))
+
+    assert _max_rel(got, direct["phi_lm"]) < 1e-12
+    assert _max_rel(got, transposed["phi_lm"]) > 1e-3
+
+
+def test_from_density_builds_at_the_requested_time() -> None:
+    """``t`` must reach the density, not be silently replaced by 0 Gyr."""
+    kw = {
+        "r_min": u.Q(1e-2, "kpc"),
+        "r_max": u.Q(1e2, "kpc"),
+        "n_r": 32,
+        "l_max": 0,
+        "symmetry": "spherical",
+        "units": "galactic",
+    }
+    at_0 = MultipoleProfilePotential.from_density(_time_scaled_density, **kw)
+    at_1 = MultipoleProfilePotential.from_density(
+        _time_scaled_density, t=u.Q(1.0, "Gyr"), **kw
+    )
+    t0 = u.Q(0.0, "Gyr")
+    phi_0 = u.ustrip("kpc2 / Myr2", at_0.phi_lm(t0))
+    phi_1 = u.ustrip("kpc2 / Myr2", at_1.phi_lm(t0))
+
+    # The density is linear in t, and galactic time is Myr: 1 Gyr -> 1 + 1000.
+    assert jnp.allclose(phi_1, 1001.0 * phi_0, rtol=1e-10)
 
 
 @pytest.mark.parametrize(

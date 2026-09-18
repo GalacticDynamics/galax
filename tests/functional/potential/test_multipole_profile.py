@@ -255,3 +255,95 @@ def test_outer_extrapolation_diverges_from_truth() -> None:
     assert phi_pot > u.Q(
         0.0, "kpc2 / Myr2"
     ), f"Expected the unguarded extrapolation to flip sign, got {phi_pot}"
+
+
+def test_gradient_is_nan_at_the_exact_origin(_analytic) -> None:  # noqa: PT019
+    """REGRESSION TEST: records current behaviour, it does not endorse it.
+
+    At exactly ``xyz = [0, 0, 0]`` the radial direction is undefined, so the
+    harmonics are evaluated on a zero vector and ``log r`` underflows. The
+    potential and the density come back finite but meaningless, and the
+    gradient comes back NaN where an analytic potential returns zero -- and a
+    single NaN poisons an entire vmapped batch of orbits.
+
+    This test will FAIL once the origin is handled (as it should be,
+    alongside the analytic tail tracked at
+    https://github.com/GalacticDynamics/galax/issues/850), forcing whoever
+    fixes it to state the new behaviour deliberately.
+    """
+    ref = _analytic["hernquist"]
+    pot = gp.MultipoleProfilePotential.from_potential(
+        ref, r_min=R_MIN, r_max=R_MAX, n_r=64, l_max=0, symmetry="spherical"
+    )
+    origin = u.Q([0.0, 0.0, 0.0], "kpc")
+
+    assert jnp.all(jnp.isnan(pot.gradient(origin, t=0).value))
+    # The analytic potential it was built from is perfectly well behaved here.
+    assert jnp.all(jnp.isfinite(ref.gradient(origin, t=0).value))
+
+
+def test_default_angular_resolution_controls_aliasing() -> None:
+    """The oversampled default must actually buy the accuracy it advertises.
+
+    A flattened halo is not band-limited, so under ``bfeax``'s minimal rule
+    (``l_max + 2``, ``2 l_max + 1``) the power above ``l_max`` aliases into
+    the retained modes. Measured here against a converged (60, 61) rule at
+    the same ``l_max`` -- aliasing alone, truncation held fixed -- the worst
+    relative error is 6.0e-4 with the current default and 1.7e-2 under the
+    minimal rule, so the 3e-3 bound below separates the two.
+
+    Without this, reverting `default_angular_resolution` to the minimal rule
+    fails only the test that restates its formula.
+    """
+    ref = gp.TriaxialNFWPotential(
+        m=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        q1=1.0,
+        q2=0.4,
+        units="galactic",
+    )
+    kw = {"r_min": R_MIN, "r_max": R_MAX, "n_r": 256, "l_max": 4}
+    default = gp.MultipoleProfilePotential.from_potential(ref, **kw)
+    converged = gp.MultipoleProfilePotential.from_potential(
+        ref, n_theta=60, n_phi=61, **kw
+    )
+    for x in [
+        u.Q([1.0, 2.0, 3.0], "kpc"),
+        u.Q([0.0, 0.0, 20.0], "kpc"),
+        u.Q([15.0, 5.0, 2.0], "kpc"),
+    ]:
+        assert jnp.isclose(
+            default.potential(x, t=0),
+            converged.potential(x, t=0),
+            rtol=3e-3,
+            atol=u.Q(0.0, "kpc2 / Myr2"),
+        )
+
+
+def test_symmetry_modes_agree_for_an_axisymmetric_density() -> None:
+    """Pruning to ``m = 0`` must not change an axisymmetric answer.
+
+    The counterpart of `test_symmetry_modes_agree_for_a_triaxial_density`
+    for the mode that upstream ``bfeax`` gets wrong (it also drops odd
+    ``l``). `MiyamotoNagaiPotential` is axisymmetric but not spherical, so
+    the pruned and unpruned builds differ in every mode but the answer.
+    """
+    ref = gp.MiyamotoNagaiPotential(
+        m_tot=u.Q(1e11, "Msun"),
+        a=u.Q(3.0, "kpc"),
+        b=u.Q(0.3, "kpc"),
+        units="galactic",
+    )
+    kw = {"r_min": R_MIN, "r_max": u.Q(1e3, "kpc"), "n_r": 128, "l_max": 4}
+    full = gp.MultipoleProfilePotential.from_potential(ref, symmetry=None, **kw)
+    pruned = gp.MultipoleProfilePotential.from_potential(
+        ref, symmetry="axisymmetric", **kw
+    )
+    assert len(pruned.lm_keys) == 5  # (0,0) .. (4,0), odd l included
+    for x in [u.Q([3.0, 4.0, 5.0], "kpc"), u.Q([8.0, 0.0, 1.0], "kpc")]:
+        assert jnp.isclose(
+            full.potential(x, t=0),
+            pruned.potential(x, t=0),
+            rtol=1e-6,
+            atol=u.Q(0.0, "kpc2 / Myr2"),
+        )

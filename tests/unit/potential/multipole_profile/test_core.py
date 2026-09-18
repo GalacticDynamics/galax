@@ -241,7 +241,13 @@ def test_from_potential_rejects_time_dependent_parameters() -> None:
 
 
 def test_from_density_rejects_n_r_less_than_4() -> None:
-    """Fewer than 3 knots in the spline gives unbounded behavior."""
+    """`n_r` must be at least 4.
+
+    The boundary power-law slopes are fitted over the innermost and outermost
+    three knots (`poisson.py` slices ``[:3]`` and ``[-3:]``, `funcs.py`
+    ``[:3]``), so fewer than four knots leaves the two windows identical and
+    the fits meaningless.
+    """
 
     def rho(xyz, t):
         return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))

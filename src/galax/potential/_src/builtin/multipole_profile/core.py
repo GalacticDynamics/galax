@@ -209,7 +209,9 @@ def _from_density(
     """
     if n_r < 4:
         msg = (
-            f"n_r must be >= 4 (got {n_r}); fewer knots give unbounded spline behavior"
+            f"n_r must be >= 4 (got {n_r}); the boundary slopes are fitted over "
+            "the innermost and outermost three knots, which are not distinct "
+            "windows below four"
         )
         raise ValueError(msg)
 

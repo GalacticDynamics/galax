@@ -23,13 +23,17 @@ def _xdist_args(posargs: list[str]) -> list[str]:
 @nox.session
 def lint(session: nox.Session) -> None:
     """Run the linter."""
-    session.install("pre-commit")
+    session.install("prek")
+    # Not a real commit -- no-commit-to-branch would always fail here.
+    # Merge into any SKIP already set, rather than clobber it.
+    skip = ",".join(filter(None, [os.environ.get("SKIP"), "no-commit-to-branch"]))
     session.run(
-        "pre-commit",
+        "prek",
         "run",
         "--all-files",
         "--show-diff-on-failure",
         *session.posargs,
+        env={"SKIP": skip},
     )
 
 

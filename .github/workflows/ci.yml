@@ -33,9 +33,12 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version-file: ".python-version"
-      - uses: pre-commit/action@v3.0.1
+      - uses: j178/prek-action@v3.0.0
         with:
-          extra_args: --all-files
+          extra-args: --all-files
+        env:
+          # Not a real commit -- no-commit-to-branch would always fail here.
+          SKIP: no-commit-to-branch
 
   # Where there's smoke, there's fire!
   smoke:

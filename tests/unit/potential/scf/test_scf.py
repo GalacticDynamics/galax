@@ -11,7 +11,11 @@ import unxt as u
 
 import galax.potential as gp
 from galax.interop.optional_deps import GSL_ENABLED, OptDeps
-from galax.potential._src.builtin.multipole import compute_Ylm
+from galax.potential._src.builtin.multipole import (
+    iter_Ylm,
+    scaled_radius_and_direction,
+)
+from galax.potential._src.builtin.scf.bfe import phi_nl, rho_nl
 
 
 def _monopole(m_tot: float = 1e12, r_s: float = 10.0) -> gp.SCFPotential:
@@ -84,7 +88,7 @@ def test_scalar_input_gives_scalar_output() -> None:
 # GSL's `gsl_sf_legendre_sphPlm` that gala uses, carries the Condon-Shortley
 # phase), at m > 0 in both the cosine (`Snlm`) and sine (`Tnlm`) branches.
 # The scalar reference below is built only from `scipy`/`numpy`: it never calls
-# `phi_nl`, `rho_nl`, `compute_Ylm` or anything else under test, so a failure
+# `phi_nl`, `rho_nl`, `iter_Ylm` or anything else under test, so a failure
 # localizes to the implementation rather than to a shared helper. (The tests
 # themselves do of course call the code they are checking.)
 
@@ -142,16 +146,26 @@ def _ref_potential(
     return g * m_tot / r_s * total
 
 
-def test_compute_ylm_matches_condon_shortley_phase() -> None:
-    """`compute_Ylm` must carry the same CS phase as `lpmv`-based `sphPlm`.
+def test_iter_ylm_matches_condon_shortley_phase() -> None:
+    """`iter_Ylm` must carry the same CS phase as the `lpmv`-based `sphPlm`.
 
-    This is the cheap, localized check: if it fails, the bug is in
-    `compute_Ylm`, not in `SCFPotential`'s assembly of terms.
+    The harmonics themselves come from `spexial`, which tests them against
+    `scipy.special` directly. What is checked here is galax's *adapter*: that
+    it keys the table by ``(l, m)`` the way every consumer indexes it, splits
+    real and imaginary parts the right way round, and reads the order axis at
+    the right end of it. `spexial` lays that axis out as SciPy does -- ``m = 0``
+    upwards first, the negative orders at the tail -- so `iter_Ylm` indexes it
+    with a plain ``terms[l][m]`` and no offset. Were the layout the other way
+    round, or the index shifted, the same subscripts would return the ``-m``
+    harmonics, which differ by exactly the ``(-1)**m`` this test would catch.
+
+    Cheap and localized: if it fails, the bug is in the adapter, not in
+    `SCFPotential`'s assembly of terms.
     """
     theta = np.asarray([0.3, 1.1, 2.0])
     phi_np = np.asarray([0.4, -1.2, 2.7])
     big_x = np.cos(theta)
-    # `compute_Ylm` takes a Cartesian unit direction, not (theta, phi).
+    # The harmonics take a Cartesian unit direction, not (theta, phi).
     uvec = jnp.asarray(
         np.stack(
             [np.sin(theta) * np.cos(phi_np), np.sin(theta) * np.sin(phi_np), big_x],
@@ -159,8 +173,11 @@ def test_compute_ylm_matches_condon_shortley_phase() -> None:
         )
     )
 
+    table = {(l, m): (cY, sY) for l, m, cY, sY in iter_Ylm(3, uvec)}
+    assert sorted(table) == [(l, m) for l in range(4) for m in range(l + 1)]
+
     for l, m in [(1, 1), (2, 1), (2, 2), (3, 2), (3, 3)]:
-        cY, sY = compute_Ylm(l, m, uvec)
+        cY, sY = table[l, m]
         ref = np.array([_ref_sphPlm(l, m, x) for x in big_x])
         assert jnp.allclose(cY, ref * np.cos(m * phi_np), rtol=1e-10)
         assert jnp.allclose(sY, ref * np.sin(m * phi_np), rtol=1e-10)
@@ -210,6 +227,51 @@ def test_scf_potential_matches_lpmv_reference_with_m_gt_0() -> None:
     )
 
     assert np.allclose(got, expect, rtol=1e-10)
+
+
+def test_summation_matches_the_grid_contraction() -> None:
+    """REGRESSION: folding the ``(l, m)`` terms must not change the answer.
+
+    `SCFPotential._summation` used to scatter the harmonics into an
+    ``(l, m, *batch)`` grid and contract it with a single `einsum`. It now folds
+    each term into the running sum as `iter_Ylm` produces it, and contracts over
+    ``n`` once per ``l`` rather than once per ``(l, m)`` -- both because
+    materializing a grid to contract is what stops XLA fusing the reduction, but
+    neither may change a value.
+
+    The grid form is written out here as the readable reference it was, with
+    non-zero coefficients across the whole ``(n, l, m)`` block so that no index
+    is exercised only by a zero.
+    """
+    nmax, lmax = 4, 3
+    rng = np.random.default_rng(0)
+    snlm = jnp.asarray(rng.normal(size=(nmax + 1, lmax + 1, lmax + 1)) * 0.02)
+    tnlm = jnp.asarray(rng.normal(size=(nmax + 1, lmax + 1, lmax + 1)) * 0.02)
+    pot = gp.SCFPotential(
+        m_tot=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        Snlm=snlm,
+        Tnlm=tnlm,
+        units="galactic",
+    )
+
+    xyz = jnp.asarray(rng.normal(size=(64, 3)) * 8.0)
+    s, uvec = scaled_radius_and_direction(xyz, jnp.asarray(10.0))
+
+    for radial in (phi_nl(nmax, lmax, s), rho_nl(nmax, lmax, s)):
+        # The grid form, verbatim as it was.
+        shape = (lmax + 1, lmax + 1, *jnp.shape(uvec)[:-1])
+        cgrid, sgrid = jnp.zeros(shape), jnp.zeros(shape)
+        for l, m, cY, sY in iter_Ylm(lmax, uvec):
+            cgrid = cgrid.at[l, m].set(cY)
+            sgrid = sgrid.at[l, m].set(sY)
+        expect = jnp.einsum("nlm,nl...,lm...->...", snlm, radial, cgrid) + jnp.einsum(
+            "nlm,nl...,lm...->...", tnlm, radial, sgrid
+        )
+
+        got = pot._summation(radial, snlm, tnlm, uvec)
+
+        assert jnp.allclose(got, expect, rtol=1e-12, atol=1e-14)
 
 
 def test_monopole_is_hernquist_density() -> None:
@@ -271,19 +333,8 @@ def _quadrupole() -> gp.SCFPotential:
     ],
 )
 @pytest.mark.parametrize("method", ["potential", "gradient", "density", "hessian"])
-def test_finite_on_coordinate_singularities(request, name, xyz, method) -> None:
+def test_finite_on_coordinate_singularities(name, xyz, method) -> None:
     """Value and derivatives stay finite at r=0 and along the z-axis."""
-    if name == "origin" and method == "hessian":
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="The second derivative of |q| at the origin is still "
-                "0/0 even with `safe_vector_norm`'s floor: the first "
-                "derivative is finite but discontinuous there. The value, "
-                "density and gradient are all finite; only the hessian is "
-                "not. See `scaled_radius_and_direction`.",
-            )
-        )
-
     pot = _quadrupole()
     q = u.Q(np.array(xyz), "kpc")
 

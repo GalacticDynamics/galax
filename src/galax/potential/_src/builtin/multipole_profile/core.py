@@ -150,10 +150,17 @@ def _from_density(
     Parameters
     ----------
     rho : Callable
-        Density function to project, taking ``(xyz, t)`` in the unit system
-        and returning dimensionless density values.
+        Density function to project. Takes ``(xyz, t)`` as bare arrays in
+        this unit system and returns bare *mass density* values in
+        ``units["mass density"]`` -- unit-stripped, but not dimensionless:
+        the values are a physical density, and are projected and fed into
+        the Poisson solve together with :math:`G`. ``xyz`` has shape
+        ``(..., 3)`` and the callable must broadcast over the leading axes,
+        matching `galax`'s own ``_density`` contract.
     r_min, r_max : Quantity
-        Inner and outer radii bracketing the region of interest.
+        Inner and outer radii bracketing the region of interest. These are
+        build-time grid configuration and must be concrete: like ``n_r``,
+        ``l_max`` and ``symmetry``, they are not traceable under `jax.jit`.
     n_r : int, optional
         Number of radial knots (default 512). Must be >= 4.
 
@@ -219,13 +226,19 @@ def _from_density(
             u.ustrip(usys["length"], u.Q.from_(q, usys["length"]))
         )
 
-    r_min_val = to_len(r_min)
-    r_max_val = to_len(r_max)
+    # Compare as Python floats, not 0-d arrays. A 0-d array is fine in an
+    # `if`, but a *traced* one raises `TracerBoolConversionError`, which would
+    # turn a clear "r_min must be < r_max" into a confusing jax error. The
+    # grid bracket is build-time configuration and is required to be concrete
+    # (as are `n_r`, `l_max` and `symmetry`), so forcing the conversion here
+    # reports that requirement at the point it is violated.
+    r_min_val = float(to_len(r_min))
+    r_max_val = float(to_len(r_max))
     if r_min_val >= r_max_val:
         msg = f"r_min must be < r_max (got r_min={r_min_val}, r_max={r_max_val})"
         raise ValueError(msg)
 
-    r_knots = radial_grid(n_r, r_min_val, r_max_val)
+    r_knots = radial_grid(n_r, jnp.asarray(r_min_val), jnp.asarray(r_max_val))
     t_ = jnp.asarray(
         u.ustrip(
             usys["time"],

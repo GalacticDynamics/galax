@@ -69,6 +69,13 @@ def solve_poisson_lm(
     an unrolled Python loop: one compiled body instead of
     :math:`(l_\max+1)^2` XLA subgraphs, which dominates trace and compile time
     at :math:`l_\max = 8`.
+
+    A `jax.vmap` of the same body is bit-identical and in fact somewhat faster
+    at runtime (measured: 81 modes at ``n_r=512``, 1.64 ms -> 0.68 ms; 289
+    modes, 6.58 ms -> 3.72 ms) with comparable trace and compile time, so the
+    scan is not a runtime optimization over `vmap` -- only over the unrolled
+    loop. The gap is ~1 ms inside a ~1500 ms one-off build compile, which is
+    not worth the churn of changing it.
     """
     log_r = jnp.log(r_knots)
     dr = jnp.diff(r_knots)

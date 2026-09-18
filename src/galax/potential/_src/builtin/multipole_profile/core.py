@@ -205,7 +205,7 @@ def _from_density(
     Raises
     ------
     ValueError
-        If ``n_r < 4`` or ``r_min >= r_max``.
+        If ``n_r < 4``, ``r_min <= 0``, or ``r_min >= r_max``.
     """
     if n_r < 4:
         msg = (
@@ -234,6 +234,12 @@ def _from_density(
     # reports that requirement at the point it is violated.
     r_min_val = float(to_len(r_min))
     r_max_val = float(to_len(r_max))
+    # The grid is log-spaced, so a non-positive bracket feeds `log` a zero or
+    # negative and surfaces much later as an opaque JaxRuntimeError from deep
+    # inside the jitted build. Reject it here, where the message can say why.
+    if r_min_val <= 0.0:
+        msg = f"r_min must be > 0 (got {r_min_val}); the radial grid is log-spaced"
+        raise ValueError(msg)
     if r_min_val >= r_max_val:
         msg = f"r_min must be < r_max (got r_min={r_min_val}, r_max={r_max_val})"
         raise ValueError(msg)
@@ -325,7 +331,8 @@ def _from_potential(
     Raises
     ------
     ValueError
-        If ``pot`` is time-dependent, ``n_r < 4``, or ``r_min >= r_max``.
+        If ``pot`` is time-dependent, ``n_r < 4``, ``r_min <= 0``, or
+        ``r_min >= r_max``.
     """
     _check_time_independent(pot)
     return _from_density(

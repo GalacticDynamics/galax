@@ -257,6 +257,29 @@ def test_from_density_rejects_n_r_less_than_4() -> None:
         )
 
 
+@pytest.mark.parametrize("r_min_kpc", [0.0, -1.0])
+def test_from_density_rejects_a_non_positive_r_min(r_min_kpc) -> None:
+    """The radial grid is log-spaced, so the bracket must be positive.
+
+    Without this guard, `log(r_min)` produces -inf or NaN and the failure
+    surfaces much later as an opaque `JaxRuntimeError` from inside the jitted
+    build, with no indication of which argument was at fault.
+    """
+
+    def rho(xyz, t):
+        return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    with pytest.raises(ValueError, match="r_min must be > 0"):
+        MultipoleProfilePotential.from_density(
+            rho,
+            r_min=u.Q(r_min_kpc, "kpc"),
+            r_max=u.Q(1e2, "kpc"),
+            n_r=32,
+            l_max=0,
+            units="galactic",
+        )
+
+
 def test_from_density_rejects_r_min_greater_or_equal_to_r_max() -> None:
     """r_min must be strictly less than r_max."""
 

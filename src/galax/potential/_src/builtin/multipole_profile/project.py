@@ -84,8 +84,10 @@ def real_ylm(
     Condon-Shortley phase.
 
     ``uvec`` is a *Cartesian* unit direction, not :math:`(\theta, \phi)`.
-    That is what keeps the result differentiable on the z-axis -- see
-    `galax.potential._src.builtin.multipole.compute_Ylm`.
+    That is what keeps the result differentiable on the z-axis: a
+    :math:`(\theta, \phi)` form has an ``atan2`` gradient of :math:`0/0`
+    there for every :math:`m \ge 1`. See `iter_Ylm`, which evaluates the
+    harmonic from the Cartesian direction for exactly this reason.
     """
     table = {(l, m): (cY, sY) for l, m, cY, sY in iter_Ylm(l_max, uvec)}
     out = []

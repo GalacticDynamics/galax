@@ -255,9 +255,21 @@ def _from_density(
     # `build_expansion` takes `rho_fn` as a jit static argument, so jax hashes
     # it. An equinox bound method (e.g. `some_pot._density`) closes over
     # array-valued parameters and is unhashable, raising "Non-hashable static
-    # arguments are not supported". Wrapping makes any callable acceptable.
+    # arguments are not supported". Wrap only in that case: a fresh `lambda`
+    # per call is a fresh hash, so wrapping unconditionally would force a full
+    # recompilation (~1 s) even when the caller passes a plain module-level
+    # function repeatedly.
+    try:
+        hash(rho)
+    except TypeError:
+        rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]] = (
+            lambda xyz, tt: rho(xyz, tt)
+        )
+    else:
+        rho_fn = rho
+
     coeffs = build_expansion(
-        lambda xyz, tt: rho(xyz, tt),
+        rho_fn,
         r_knots,
         l_max,
         keys,
@@ -335,9 +347,11 @@ def _from_potential(
         ``r_min >= r_max``.
     """
     _check_time_independent(pot)
+    # Passed through unwrapped: `_from_density` wraps it if it is unhashable,
+    # which a bound `_density` generally is.
     return _from_density(
         cls,
-        lambda xyz, tt: pot._density(xyz, tt),  # noqa: SLF001
+        pot._density,  # noqa: SLF001
         r_min=r_min,
         r_max=r_max,
         n_r=n_r,

@@ -164,10 +164,14 @@ def _spheroid_density(alpha, beta, gamma, q_y=1.0, q_z=1.0):
     return rho
 
 
-def test_default_angular_resolution_matches_bfeax() -> None:
-    """`n_theta = l_max + 2`, `n_phi = 2 l_max + 1`, odd `n_phi`."""
-    assert default_angular_resolution(8) == (10, 17)
-    assert default_angular_resolution(0) == (2, 1)
+def test_default_angular_resolution_oversamples() -> None:
+    """`n_theta = 2 l_max + 2`, `n_phi = 4 l_max + 2` -- ~2x Nyquist.
+
+    Deliberately above ``bfeax``'s minimal (l_max + 2, 2 l_max + 1), which is
+    exact only for band-limited densities and aliases otherwise.
+    """
+    assert default_angular_resolution(8) == (18, 34)
+    assert default_angular_resolution(0) == (2, 2)
 
 
 def test_angular_grid_vectors_are_unit_and_weights_sum_to_4pi() -> None:
@@ -208,7 +212,11 @@ def test_project_density_matches_bfeax(
     keys = lm_keys(8, symmetry)
     assert [tuple(k) for k in ref[f"{case}_lm"]] == list(keys)
 
-    n_theta, n_phi = default_angular_resolution(8)
+    # Pinned to the literal rule `bfeax` used to generate the reference, not
+    # `default_angular_resolution(8)`: the library default has deliberately
+    # moved to an oversampled rule to control aliasing, and this test is an
+    # oracle comparison that must reproduce the upstream quadrature exactly.
+    n_theta, n_phi = 10, 17
     got = project_density(
         _spheroid_density(alpha, beta, gamma, q_y, q_z),
         r,

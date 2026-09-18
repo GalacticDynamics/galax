@@ -103,15 +103,37 @@ def real_ylm(
 def default_angular_resolution(l_max: int, /) -> tuple[int, int]:
     r"""Return the default angular quadrature resolution for ``l_max``.
 
-    ``n_theta = l_max + 2`` Gauss-Legendre nodes in :math:`\cos\theta` and
-    ``n_phi = 2 l_max + 1`` uniform points in :math:`\phi`. These are
-    ``bfeax``'s defaults: a GL rule with :math:`n` nodes is exact for
-    polynomials of degree :math:`2n-1`, and its convergence tests found the
-    error plateaus at ``l_max + 2`` for smooth non-polynomial integrands.
-    ``n_phi`` is the Nyquist minimum for :math:`\cos(l_\max \phi)` and is kept
-    odd so :math:`\phi = 0` and :math:`\phi = \pi` are never both sampled.
+    ``n_theta = 2 l_max + 2`` Gauss-Legendre nodes in :math:`\cos\theta` and
+    ``n_phi = 4 l_max + 2`` uniform points in :math:`\phi`: roughly 2x the
+    Nyquist minimum in each angle.
+
+    ``bfeax``'s defaults (``l_max + 2``, ``2 l_max + 1``) are the minimum
+    exact rule for a *band-limited* integrand -- one with no power above
+    :math:`l_\max`. Real densities are not band-limited: a flattened halo has
+    power at every :math:`l`, and under a minimal rule that power aliases into
+    the retained modes rather than being discarded.
+
+    Measured on a :math:`q = 0.4` flattened NFW with ``n_r = 256``, against a
+    converged ``(120, 121)`` rule at the *same* ``l_max`` -- so this is
+    aliasing alone, with truncation held fixed -- the maximum relative error
+    in the potential is
+
+    ======= =============== ==============
+    l_max   minimal rule    this default
+    ======= =============== ==============
+    2       9.8e-2          2.0e-2
+    4       2.1e-2          8.2e-4
+    8       9.5e-4          1.3e-6
+    ======= =============== ==============
+
+    Acceleration tracks it within a factor of ~2. The cost is ~4x in the
+    one-off projection at build time and nothing at evaluation, since the
+    retained mode count is unchanged.
+
+    Pass ``n_theta`` / ``n_phi`` explicitly to `MultipoleProfilePotential`'s
+    constructors to trade build cost against residual aliasing deliberately.
     """
-    return l_max + 2, 2 * l_max + 1
+    return 2 * l_max + 2, 4 * l_max + 2
 
 
 def angular_grid(

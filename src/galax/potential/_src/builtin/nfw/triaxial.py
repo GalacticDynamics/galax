@@ -25,7 +25,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-from galax.potential._src.utils import GaussLegendreIntegrator
+from galax.potential._src.utils import gauss_legendre
 
 
 @final
@@ -74,12 +74,6 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 
     See :func:`numpy.polynomial.legendre.leggauss` for details.
     """
-    _integrator: GaussLegendreIntegrator = eqx.field(default=None)
-
-    def __post_init__(self) -> None:
-        integrator = GaussLegendreIntegrator.for_order(self.integration_order)
-        object.__setattr__(self, "_integrator", integrator)
-
     # ==========================================================================
 
     @ft.partial(jax.jit, static_argnames=("ustrip",))
@@ -207,7 +201,7 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
             return delta_psi_factor(s2) / denom  # type: ignore[no-any-return]
 
         # TODO: option to do integrate.quad
-        integral = self._integrator(integrand)
+        integral = gauss_legendre(integrand, self.integration_order)
 
         out = (-2.0 * jnp.pi * self.constants["G"] * rho0 * r_s**2 * q1 * q2) * integral
         return out.ustrip(self.units["specific energy"])  # type: ignore[no-any-return]

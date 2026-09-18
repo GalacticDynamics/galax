@@ -1,10 +1,11 @@
 r"""Radial representation and the expansion build pipeline.
 
 Radial profiles are stored as knot values plus knot derivatives with respect
-to :math:`\log r`, rather than as a fitted spline object. Evaluation then
-constructs an `interpax.CubicHermiteSpline`, which does no tridiagonal solve —
-so the coefficients stay ordinary arrays that a `ParameterField` can carry and
-that may vary with time, while retaining C2 accuracy.
+to :math:`\log r`, rather than as a fitted spline object. The knot derivatives
+come from a natural-cubic solve at build time, so the coefficients stay
+ordinary arrays that a `ParameterField` can carry and that may vary with time,
+while retaining C2 accuracy. Evaluation then applies the cubic Hermite basis
+directly to those arrays.
 
 Inner cusp subtraction
 ----------------------
@@ -71,12 +72,42 @@ def eval_log_spline(
     r"""Evaluate the spline defined by knot values and derivatives.
 
     Outside ``[log_r[0], log_r[-1]]`` the edge cubic is extrapolated, matching
-    ``bfeax``'s clamped-index evaluation.
+    ``bfeax``'s clamped-index evaluation: the interval index is clamped while
+    the local coordinate is not, so the edge cubic simply continues.
+
+    The cubic Hermite basis is applied directly rather than by constructing an
+    `interpax.CubicHermiteSpline`. That constructor materializes a
+    ``(4, n_r - 1, *rest)`` power-basis coefficient array from the knot data,
+    which is loop-invariant -- but this function is called from inside a
+    `diffrax` solver scan body, so the construction was re-executed on every
+    integration step (~53 us of fixed cost per call, dominating orbit
+    integration while staying invisible in a single large batch).
+
+    ``log_r`` is not assumed uniform: `r_knots` is a public parameter and may
+    carry arbitrary knots, so the interval is found by `searchsorted`.
     """
-    spline = interpax.CubicHermiteSpline(
-        log_r, values, derivs, axis=0, extrapolate=True, check=False
+    idx = jnp.clip(jnp.searchsorted(log_r, log_rq, side="right") - 1, 0, log_r.size - 2)
+    h = log_r[idx + 1] - log_r[idx]
+    s = (log_rq - log_r[idx]) / h
+
+    s2, s3 = s**2, s**3
+    h00 = 2.0 * s3 - 3.0 * s2 + 1.0
+    h10 = s3 - 2.0 * s2 + s
+    h01 = -2.0 * s3 + 3.0 * s2
+    h11 = s3 - s2
+
+    # Broadcast the (*batch,) basis factors against the (*batch, *rest) knots.
+    trailing = (1,) * (values.ndim - 1)
+
+    def rs(a: Array) -> Array:
+        return a.reshape((*a.shape, *trailing))
+
+    return (
+        rs(h00) * values[idx]
+        + rs(h10 * h) * derivs[idx]
+        + rs(h01) * values[idx + 1]
+        + rs(h11 * h) * derivs[idx + 1]
     )
-    return spline(log_rq)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)

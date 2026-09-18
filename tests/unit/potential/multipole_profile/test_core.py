@@ -386,3 +386,33 @@ def test_check_init_rejects_mismatched_lm_keys() -> None:
             symmetry="spherical",
             units="galactic",
         )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"l_max": -1}, "l_max must be >= 0"),
+        ({"l_max": 2, "n_theta": 0}, "n_theta must be >= 1"),
+        ({"l_max": 2, "n_phi": -3}, "n_phi must be >= 1"),
+    ],
+)
+def test_from_density_rejects_a_nonsensical_resolution(kwargs, match) -> None:
+    """Without these, `l_max=-1` selects no modes and fails much later.
+
+    ``lm_keys(-1)`` is empty and numpy eventually raises "deg must be a
+    positive integer" from inside the jitted build, with no hint as to which
+    argument was at fault; ``n_theta=0`` is the same story.
+    """
+
+    def rho(xyz, t):
+        return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    with pytest.raises(ValueError, match=match):
+        MultipoleProfilePotential.from_density(
+            rho,
+            r_min=u.Q(1e-2, "kpc"),
+            r_max=u.Q(1e2, "kpc"),
+            n_r=32,
+            units="galactic",
+            **kwargs,
+        )

@@ -8,7 +8,7 @@ from collections.abc import Callable
 from jaxtyping import Array, Float
 from typing import Any, final
 
-import jax
+import jax.core
 from equinox import field
 
 import quaxed.numpy as jnp
@@ -206,13 +206,20 @@ def _from_density(
     Raises
     ------
     ValueError
-        If ``n_r < 4``, ``r_min <= 0``, or ``r_min >= r_max``.
+        If ``n_r < 4``, ``l_max < 0``, ``n_theta`` or ``n_phi`` is given and
+        is ``< 1``, ``r_min <= 0``, or ``r_min >= r_max``.
     """
     if n_r < 4:
         msg = (
             f"n_r must be >= 4 (got {n_r}); the boundary slopes are fitted over "
             "the innermost and outermost three knots, which are not distinct "
             "windows below four"
+        )
+        raise ValueError(msg)
+    if l_max < 0:
+        msg = (
+            f"l_max must be >= 0 (got {l_max}); a negative order selects no "
+            "modes at all and fails later inside the Legendre recurrence"
         )
         raise ValueError(msg)
 
@@ -223,6 +230,10 @@ def _from_density(
     default_theta, default_phi = default_angular_resolution(l_max)
     n_theta = default_theta if n_theta is None else n_theta
     n_phi = default_phi if n_phi is None else n_phi
+    for name, n in (("n_theta", n_theta), ("n_phi", n_phi)):
+        if n < 1:
+            msg = f"{name} must be >= 1 (got {n}); it is a quadrature node count"
+            raise ValueError(msg)
 
     def to_len(q: Any) -> Float[Array, "..."]:
         return jnp.asarray(  # type: ignore[no-any-return]
@@ -346,7 +357,8 @@ def _from_potential(
     Raises
     ------
     ValueError
-        If ``pot`` is time-dependent, ``n_r < 4``, ``r_min <= 0``, or
+        If ``pot`` is time-dependent, ``n_r < 4``, ``l_max < 0``, ``n_theta``
+        or ``n_phi`` is given and is ``< 1``, ``r_min <= 0``, or
         ``r_min >= r_max``.
     """
     _check_time_independent(pot)

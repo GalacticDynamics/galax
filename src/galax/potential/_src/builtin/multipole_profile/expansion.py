@@ -88,8 +88,11 @@ class MultipoleProfileMixin(AbstractSinglePotential):
     #: The maximum multipole order.
     l_max: eqx.AbstractVar[int]
 
-    #: The (l, m) mode keys.
-    lm_keys: eqx.AbstractVar[tuple[tuple[int, int], ...]]
+    @property
+    @abc.abstractmethod
+    def lm_keys(self) -> tuple[tuple[int, int], ...]:
+        """The (l, m) mode keys, in the order the coefficient columns use."""
+        ...
 
     @abc.abstractmethod
     def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:

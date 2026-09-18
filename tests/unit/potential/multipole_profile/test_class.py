@@ -53,7 +53,6 @@ class TestMultipoleProfilePotential(AbstractSinglePotential_Test):
             "rho_amplitude": built.rho_amplitude(u.Q(0.0, "Gyr")),
             "rho_alpha": built.rho_alpha(u.Q(0.0, "Gyr")),
             "l_max": built.l_max,
-            "lm_keys": built.lm_keys,
             "symmetry": built.symmetry,
             "units": field_units,
         }

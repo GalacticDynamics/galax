@@ -76,8 +76,19 @@ class AbstractMultipoleProfilePotential(MultipoleProfileMixin, AbstractSinglePot
 
     _: KW_ONLY
     l_max: int = field(static=True)
-    lm_keys: tuple[tuple[int, int], ...] = field(static=True)
     symmetry: str | None = field(static=True, default=None)
+
+    @property
+    def lm_keys(self) -> tuple[tuple[int, int], ...]:
+        """The (l, m) modes, determined by ``l_max`` and ``symmetry``.
+
+        Recomputed rather than stored: it is a pure function of two static
+        fields, so a stored copy could only ever disagree with them. The
+        result is a plain tuple of int pairs, which hashes and compares by
+        value, so passing it as a `jax.jit` static argument on the
+        evaluation path does not defeat the compilation cache.
+        """
+        return lm_keys(self.l_max, self.symmetry)  # validates `symmetry`
 
     def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:
         """Evaluate the coefficients at ``t``, stripped to this unit system."""
@@ -289,7 +300,6 @@ def _from_density(
         rho_amplitude=u.Q(coeffs["rho_amplitude"], usys["mass density"]),
         rho_alpha=u.Q(coeffs["rho_alpha"], ""),
         l_max=l_max,
-        lm_keys=keys,
         symmetry=symmetry,
         units=usys,
         constants=consts,
@@ -429,7 +439,7 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
     from_potential = classmethod(_from_potential)
 
     def __check_init__(self) -> None:
-        """Validate the mode list, the coefficient shapes and the radial grid.
+        """Validate the coefficient shapes and the radial grid.
 
         ``__init__`` is public -- coefficients computed elsewhere can be loaded
         without a rebuild -- so these invariants are not guaranteed by the
@@ -442,14 +452,6 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         when tracing (the shared potential test-suite builds instances inside
         `jax.jit`).
         """
-        expected_keys = lm_keys(self.l_max, self.symmetry)
-        if self.lm_keys != expected_keys:
-            msg = (
-                f"lm_keys must match lm_keys(l_max, symmetry). "
-                f"Got {self.lm_keys}, expected {expected_keys}."
-            )
-            raise ValueError(msg)
-
         t0 = u.Q(0.0, "Gyr")
         r_knots = self.r_knots(t0)
         if r_knots.ndim != 1:

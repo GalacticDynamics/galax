@@ -54,7 +54,6 @@ def _hernquist_potential() -> MultipoleProfilePotential:
         rho_amplitude=u.Q(coeffs["rho_amplitude"], "Msun / kpc3"),
         rho_alpha=u.Q(coeffs["rho_alpha"], ""),
         l_max=0,
-        lm_keys=keys,
         symmetry="spherical",
         units="galactic",
     )
@@ -316,7 +315,6 @@ def _raw_fields(pot) -> dict:
         "rho_amplitude": pot.rho_amplitude(t0),
         "rho_alpha": pot.rho_alpha(t0),
         "l_max": pot.l_max,
-        "lm_keys": pot.lm_keys,
         "symmetry": pot.symmetry,
         "units": pot.units,
     }
@@ -365,28 +363,6 @@ def test_check_init_rejects_inconsistent_coefficients(label, mutate, match) -> N
 
     with pytest.raises(ValueError, match=match):
         MultipoleProfilePotential(**{**fields, **mutate(fields)})
-
-
-def test_check_init_rejects_mismatched_lm_keys() -> None:
-    """lm_keys must match lm_keys(l_max, symmetry)."""
-    # Create a valid potential first
-    pot = _hernquist_potential()
-    # Try to construct one with mismatched lm_keys
-    wrong_keys = ((0, 0), (2, 0))  # Not valid for l_max=0
-    with pytest.raises(ValueError, match="lm_keys must match"):
-        MultipoleProfilePotential(
-            r_knots=pot.r_knots,
-            phi_lm=pot.phi_lm,
-            dphi_lm=pot.dphi_lm,
-            rho_residual_lm=pot.rho_residual_lm,
-            drho_residual_lm=pot.drho_residual_lm,
-            rho_amplitude=pot.rho_amplitude,
-            rho_alpha=pot.rho_alpha,
-            l_max=0,
-            lm_keys=wrong_keys,
-            symmetry="spherical",
-            units="galactic",
-        )
 
 
 def _flattened_density(xyz, t):

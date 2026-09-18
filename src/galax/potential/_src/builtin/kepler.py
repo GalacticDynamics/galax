@@ -30,6 +30,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import r_spherical
 
 
@@ -51,6 +52,11 @@ class KeplerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
+
+    @property
+    def symmetry(self) -> Symmetry:
+        """`Symmetry.SPHERICAL`: the density depends only on $r$."""
+        return Symmetry.SPHERICAL
 
     @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units

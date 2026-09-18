@@ -24,6 +24,8 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax.coordinates as gc
+import galax.dynamics as gd
 import galax.potential as gp
 
 
@@ -91,3 +93,31 @@ def test_eval_batch(benchmark, n: int) -> None:
     jitted = jax.jit(_gradient)
     jax.block_until_ready(jitted(pot, xyz, t))
     benchmark(lambda: jax.block_until_ready(jitted(pot, xyz, t)))
+
+
+def _orbit(pot, w0, ts):
+    return gd.evaluate_orbit(pot, w0, ts)
+
+
+@pytest.mark.parametrize("n", [1, 1_000])
+@pytest.mark.benchmark(group="multipole_profile_orbit")
+def test_orbit(benchmark, n: int) -> None:
+    """Orbit integration: the per-*call* regime the batch benchmarks miss.
+
+    Work that is loop-invariant but sits inside the solver's scan body costs
+    nothing measurable in `test_eval_batch` -- it amortizes over the batch --
+    yet is paid once per integration step here. `gd.evaluate_orbit` is used
+    rather than `gd.compute_orbit` because XLA hoists that loop-invariant work
+    out of the latter's graph, which would make this benchmark blind to it.
+    """
+    pot = _pot(8, 128)
+    q = jnp.asarray([8.0, 0.0, 0.1])
+    p = jnp.asarray([0.0, 0.22, 0.02])
+    if n > 1:  # spread the ensemble so the steppers do not all move in lockstep
+        k1, k2 = jax.random.split(jax.random.PRNGKey(0))
+        q = q + 0.1 * jax.random.normal(k1, (n, 3))
+        p = p + 0.001 * jax.random.normal(k2, (n, 3))
+    w0 = gc.PhaseSpacePosition(q=u.Q(q, "kpc"), p=u.Q(p, "kpc/Myr"))
+    ts = u.Q(jnp.linspace(0.0, 2000.0, 2001), "Myr")
+    jax.block_until_ready(_orbit(pot, w0, ts))
+    benchmark(lambda: jax.block_until_ready(_orbit(pot, w0, ts)))

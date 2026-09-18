@@ -233,8 +233,12 @@ def _from_density(
         )
     )
 
+    # `build_expansion` takes `rho_fn` as a jit static argument, so jax hashes
+    # it. An equinox bound method (e.g. `some_pot._density`) closes over
+    # array-valued parameters and is unhashable, raising "Non-hashable static
+    # arguments are not supported". Wrapping makes any callable acceptable.
     coeffs = build_expansion(
-        rho,
+        lambda xyz, tt: rho(xyz, tt),
         r_knots,
         l_max,
         keys,

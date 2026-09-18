@@ -90,8 +90,13 @@ def solve_poisson_lm(
         exp_in = alpha_in + l + 3.0
         safe_in = jnp.where(jnp.abs(exp_in) > _SLOPE_TOL, exp_in, _SLOPE_TOL)
         dI_in = A_in * jnp.exp(exp_in * log_r[0]) / safe_in
+        # The clamp keeps the division finite under jit, but a clamped
+        # denominator no longer represents the integral: at exp_in = 1e-9 the
+        # true tail is ~1e3 times what `_SLOPE_TOL` yields. Inside the clamped
+        # window the tail is therefore dropped, not scaled -- the same
+        # conservative treatment as just across the exp_in <= 0 boundary.
         dI_in = jnp.where(
-            (jnp.abs(rho_col[0]) > _ACTIVE_TOL * scale) & (exp_in > 0.0),
+            (jnp.abs(rho_col[0]) > _ACTIVE_TOL * scale) & (exp_in > _SLOPE_TOL),
             dI_in,
             0.0,
         )
@@ -109,7 +114,10 @@ def solve_poisson_lm(
         denom = l - alpha_out - 2.0
         safe_out = jnp.where(jnp.abs(denom) > _SLOPE_TOL, denom, _SLOPE_TOL)
         dI_out = rho_col[-1] * jnp.exp((2.0 - l) * log_r[-1]) / safe_out
-        dI_out = jnp.where(active_out & (alpha_out < l - 2.0), dI_out, 0.0)
+        # Same reasoning as the inner tail: `denom` in (0, _SLOPE_TOL] passes
+        # the convergence test but is clamped in the division, so drop the
+        # tail there rather than under-weight it by an arbitrary factor.
+        dI_out = jnp.where(active_out & (denom > _SLOPE_TOL), dI_out, 0.0)
         I_out = (
             jnp.concatenate(
                 [

@@ -163,6 +163,28 @@ def test_from_density_accepts_a_plain_callable() -> None:
     assert jnp.isclose(got, exp, rtol=1e-3, atol=u.Q(0.0, exp.unit))
 
 
+def test_from_density_accepts_a_bound_density_method() -> None:
+    """`rho_fn` is a jit static argument, so it must not need to be hashable.
+
+    An equinox bound method closes over array-valued parameters and is
+    unhashable, which used to raise "Non-hashable static arguments are not
+    supported" -- `from_potential` escaped only by wrapping in a lambda.
+    """
+    hern = _reference()
+    pot = MultipoleProfilePotential.from_density(
+        hern._density,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e4, "kpc"),
+        n_r=256,
+        l_max=0,
+        symmetry="spherical",
+        units=hern.units,
+    )
+    x = u.Q([1.0, 2.0, 3.0], "kpc")
+    got, exp = pot.potential(x, t=0), hern.potential(x, t=0)
+    assert jnp.isclose(got, exp, rtol=1e-3, atol=u.Q(0.0, exp.unit))
+
+
 def test_from_density_defaults_angular_resolution_from_l_max() -> None:
     def rho(xyz, t):
         return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))

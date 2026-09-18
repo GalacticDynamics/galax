@@ -97,6 +97,28 @@ def test_outer_tail_applies_to_negative_modes() -> None:
     assert jnp.allclose(neg, -pos, rtol=1e-14)
 
 
+def test_inner_tail_is_dropped_inside_the_clamped_slope_window() -> None:
+    """A clamped denominator must zero the tail, not scale it arbitrarily.
+
+    For l = 0 the inner tail carries a 1/(alpha_in + 3) factor. At
+    alpha_in = -3 + 1e-9 that denominator is clamped to `_SLOPE_TOL` = 1e-6,
+    so the tail came out ~1e3 times too small -- silently wrong rather than
+    conservatively zero. It is now dropped, matching the treatment just
+    across the convergence boundary at alpha_in <= -3.
+    """
+    r = jnp.exp(jnp.linspace(jnp.log(1e-2), jnp.log(3e2), 128))
+    l = jnp.asarray([0.0])
+
+    # Inside the clamped window: exp_in = alpha_in + 3 = 1e-9.
+    inside = solve_poisson_lm(r, (r**-2.999999999)[:, None], l, jnp.asarray(1.0))
+    # Just across the convergence boundary, where the tail is already zero.
+    across = solve_poisson_lm(r, (r**-3.000000001)[:, None], l, jnp.asarray(1.0))
+
+    # Continuous across the boundary: both drop the tail, so Phi agrees to
+    # the difference between the two densities themselves.
+    assert jnp.allclose(inside, across, rtol=1e-6)
+
+
 def test_outer_tail_is_load_bearing() -> None:
     """Guard against a gate that disables the tail for every mode.
 

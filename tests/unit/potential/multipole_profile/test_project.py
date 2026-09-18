@@ -36,9 +36,47 @@ def test_lm_keys_spherical_is_monopole_only() -> None:
     assert lm_keys(8, "spherical") == ((0, 0),)
 
 
-def test_lm_keys_axisymmetric_is_even_l_m_zero() -> None:
-    """Azimuthal symmetry kills m != 0; equatorial symmetry kills odd l."""
-    assert lm_keys(5, "axisymmetric") == ((0, 0), (2, 0), (4, 0))
+def test_lm_keys_axisymmetric_is_every_l_with_m_zero() -> None:
+    """Azimuthal symmetry kills m != 0 and nothing else -- odd l is kept."""
+    assert lm_keys(5, "axisymmetric") == (
+        (0, 0),
+        (1, 0),
+        (2, 0),
+        (3, 0),
+        (4, 0),
+        (5, 0),
+    )
+
+
+def test_axisymmetric_retains_odd_l_of_a_z_offset_density() -> None:
+    """An exactly axisymmetric density offset in z has real odd-l power.
+
+    Axisymmetry constrains rotation about z, not z -> -z. Restricting to even
+    l (as upstream ``bfeax`` does) silently discards that power: here the
+    (1, 0) mode is 27% of the monopole.
+    """
+
+    def rho(xyz, t):
+        R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
+        z = xyz[..., 2]
+        return jnp.exp(-jnp.sqrt(R2 + 1.0)) * jnp.exp(-(((z - 2.0) / 3.0) ** 2))
+
+    l_max = 4
+    keys = lm_keys(l_max, "axisymmetric")
+    assert keys == ((0, 0), (1, 0), (2, 0), (3, 0), (4, 0))
+
+    # Converged quadrature, so this measures the mode set and not the rule.
+    got = project_density(
+        rho, jnp.asarray([1.0]), l_max, keys, 60, 61, jnp.asarray(0.0)
+    )
+    rho_lm = dict(zip(keys, got[0], strict=True))
+
+    assert jnp.isclose(rho_lm[(0, 0)], 0.6298936286502026, rtol=1e-10)
+    assert jnp.isclose(rho_lm[(1, 0)], 0.17199367509517, rtol=1e-10)
+    assert jnp.isclose(rho_lm[(3, 0)], 0.015176113051951181, rtol=1e-10)
+    # The dropped modes are not negligible: (1, 0) is 27% of the monopole.
+    assert rho_lm[(1, 0)] / rho_lm[(0, 0)] > 0.25
+    assert rho_lm[(3, 0)] / rho_lm[(0, 0)] > 0.02
 
 
 def test_lm_keys_triaxial_is_even_l_even_nonneg_m() -> None:

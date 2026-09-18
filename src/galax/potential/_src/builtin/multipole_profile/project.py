@@ -36,9 +36,12 @@ def lm_keys(l_max: int, symmetry: str | None = None, /) -> tuple[tuple[int, int]
 
     - ``None``: every mode, :math:`-l \le m \le l`.
     - ``"spherical"``: ``(0, 0)`` only.
-    - ``"axisymmetric"``: azimuthal symmetry kills :math:`m \ne 0`; equatorial
-      symmetry kills odd :math:`l`, since
-      :math:`Y_{l0}(\pi - \theta) = (-1)^l Y_{l0}(\theta)`.
+    - ``"axisymmetric"``: invariance under rotation about :math:`z` kills
+      :math:`m \ne 0` and nothing else. Every :math:`l` with :math:`m = 0` is
+      retained, odd :math:`l` included: axisymmetry says nothing about
+      :math:`z \to -z`, so a density offset or lopsided along the axis keeps
+      its odd-:math:`l` power. Callers who *also* have equatorial symmetry
+      want ``"triaxial"`` (even :math:`l`, even :math:`m \ge 0`).
     - ``"triaxial"``: octant symmetry. :math:`x \to -x` kills odd-:math:`m`
       cosine terms, :math:`y \to -y` kills every sine term (:math:`m < 0`),
       and :math:`z \to -z` requires :math:`l + m` even — together, even
@@ -53,7 +56,10 @@ def lm_keys(l_max: int, symmetry: str | None = None, /) -> tuple[tuple[int, int]
     if symmetry == "spherical":
         return ((0, 0),)
     if symmetry == "axisymmetric":
-        return tuple((l, 0) for l in range(0, l_max + 1, 2))
+        # NB: upstream ``bfeax`` restricts this to even ``l``, conflating
+        # axisymmetry with equatorial symmetry and silently dropping the
+        # odd-``l`` power of any z-offset density. We keep every ``l``.
+        return tuple((l, 0) for l in range(l_max + 1))
     if symmetry == "triaxial":
         return tuple((l, m) for l in range(0, l_max + 1, 2) for m in range(0, l + 1, 2))
     msg = f"Unknown symmetry {symmetry!r}. Use one of {SYMMETRIES} or None."

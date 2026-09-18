@@ -97,8 +97,9 @@ def subtract_inner_cusp(
     where :math:`r_0` is the innermost knot, so ``amplitude`` is just
     :math:`\rho_{lm}(r_0)`. The slope is a log-log finite difference over the
     innermost three knots. Modes negligible at ``r_min`` relative to the
-    global coefficient scale get a zero background rather than a slope fitted
-    to numerical noise.
+    global coefficient scale, and modes that change sign within that window,
+    get a zero background rather than a slope fitted to numerical noise or to
+    a spurious crossing; the residual then carries the mode in full.
     """
     log_ratio = jnp.log(r_knots / r_knots[0])
     global_scale = jnp.max(jnp.abs(rho_lm))
@@ -110,7 +111,20 @@ def subtract_inner_cusp(
     )
     amplitude = rho_lm[0, :]
 
-    valid = jnp.abs(rho_lm[0, :]) > _CUSP_TOL * global_scale
+    # `alpha` is a slope of log|rho_lm|, so a zero crossing inside the
+    # three-knot window turns a decaying mode into a large *positive* fitted
+    # slope and the background then diverges outward (alpha ~ +30 observed,
+    # background ~1e50, catastrophic cancellation in residual + background).
+    # A magnitude gate on rho_lm[0] alone cannot see this, so require the
+    # window not to change sign before accepting any background at all.
+    same_sign = jnp.all(
+        jnp.sign(rho_lm[:3, :]) == jnp.sign(rho_lm[0, :])[None, :], axis=0
+    )
+    valid = (jnp.abs(rho_lm[0, :]) > _CUSP_TOL * global_scale) & same_sign
+    # Second line of defence: a physical inner logarithmic slope sits well
+    # inside +/-3 (r^-2 isothermal and r^-1 NFW cusps at one end, an analytic
+    # core at the other), so clip rather than trust a noisy three-point fit.
+    alpha = jnp.clip(alpha, -3.0, 3.0)
     alpha = jnp.where(valid, alpha, 0.0)
     amplitude = jnp.where(valid, amplitude, 0.0)
 

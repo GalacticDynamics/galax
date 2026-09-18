@@ -8,6 +8,7 @@ from collections.abc import Callable
 from jaxtyping import Array, Float
 from typing import Any, final
 
+import jax
 from equinox import field
 
 import quaxed.numpy as jnp
@@ -417,11 +418,62 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
     from_potential = classmethod(_from_potential)
 
     def __check_init__(self) -> None:
-        """Validate that lm_keys matches the symmetry."""
+        """Validate the mode list, the coefficient shapes and the radial grid.
+
+        ``__init__`` is public -- coefficients computed elsewhere can be loaded
+        without a rebuild -- so these invariants are not guaranteed by the
+        constructors. Without them an inconsistent instance is accepted here
+        and fails much later inside ``searchsorted``, ``log`` or a broadcast,
+        where the cause is far from the symptom.
+
+        Shapes are static even under tracing, so those checks hold everywhere.
+        The radial-grid *value* checks need concrete arrays and are skipped
+        when tracing (the shared potential test-suite builds instances inside
+        `jax.jit`).
+        """
         expected_keys = lm_keys(self.l_max, self.symmetry)
         if self.lm_keys != expected_keys:
             msg = (
                 f"lm_keys must match lm_keys(l_max, symmetry). "
                 f"Got {self.lm_keys}, expected {expected_keys}."
             )
+            raise ValueError(msg)
+
+        t0 = u.Q(0.0, "Gyr")
+        r_knots = self.r_knots(t0)
+        if r_knots.ndim != 1:
+            msg = f"r_knots must be 1-D, got shape {r_knots.shape}."
+            raise ValueError(msg)
+        n_r, n_modes = r_knots.shape[0], len(self.lm_keys)
+        if n_r < 4:
+            msg = (
+                f"r_knots must have at least 4 entries, got {n_r}; the boundary "
+                "slopes are fitted over the innermost and outermost three."
+            )
+            raise ValueError(msg)
+
+        for name, expected in (
+            ("phi_lm", (n_r, n_modes)),
+            ("dphi_lm", (n_r, n_modes)),
+            ("rho_residual_lm", (n_r, n_modes)),
+            ("drho_residual_lm", (n_r, n_modes)),
+            ("rho_amplitude", (n_modes,)),
+            ("rho_alpha", (n_modes,)),
+        ):
+            got = getattr(self, name)(t0).shape
+            if got != expected:
+                msg = (
+                    f"{name} must have shape {expected} for a grid of {n_r} "
+                    f"knots and {n_modes} modes, got {got}."
+                )
+                raise ValueError(msg)
+
+        if isinstance(r_knots.value, jax.core.Tracer):
+            return
+        rv = r_knots.value
+        if not bool(jnp.all(rv > 0)):
+            msg = "r_knots must be strictly positive; the grid is log-spaced."
+            raise ValueError(msg)
+        if not bool(jnp.all(jnp.diff(rv) > 0)):
+            msg = "r_knots must be strictly increasing."
             raise ValueError(msg)

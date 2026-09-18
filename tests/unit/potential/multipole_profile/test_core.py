@@ -303,6 +303,69 @@ def test_from_density_rejects_r_min_greater_or_equal_to_r_max() -> None:
         )
 
 
+def _raw_fields(pot) -> dict:
+    """Decompose a built potential into the raw arguments `__init__` takes."""
+    t0 = u.Q(0.0, "Gyr")
+    return {
+        "r_knots": pot.r_knots(t0),
+        "phi_lm": pot.phi_lm(t0),
+        "dphi_lm": pot.dphi_lm(t0),
+        "rho_residual_lm": pot.rho_residual_lm(t0),
+        "drho_residual_lm": pot.drho_residual_lm(t0),
+        "rho_amplitude": pot.rho_amplitude(t0),
+        "rho_alpha": pot.rho_alpha(t0),
+        "l_max": pot.l_max,
+        "lm_keys": pot.lm_keys,
+        "symmetry": pot.symmetry,
+        "units": pot.units,
+    }
+
+
+@pytest.mark.parametrize(
+    ("label", "mutate", "match"),
+    [
+        (
+            "truncated phi_lm",
+            lambda f: {"phi_lm": f["phi_lm"][:-1]},
+            "phi_lm must have shape",
+        ),
+        (
+            "short rho_alpha",
+            lambda f: {"rho_alpha": f["rho_alpha"][:-1]},
+            "rho_alpha must have shape",
+        ),
+        (
+            "too few knots",
+            lambda f: {"r_knots": f["r_knots"][:2]},
+            "at least 4 entries",
+        ),
+        (
+            "negative knot",
+            lambda f: {"r_knots": f["r_knots"].at[0].set(u.Q(-1.0, "kpc"))},
+            "strictly positive",
+        ),
+        (
+            "unsorted knots",
+            lambda f: {"r_knots": f["r_knots"][::-1]},
+            "strictly increasing",
+        ),
+    ],
+)
+def test_check_init_rejects_inconsistent_coefficients(label, mutate, match) -> None:
+    """`__init__` is public, so its invariants must be enforced there.
+
+    Coefficients computed elsewhere can be loaded without a rebuild. Without
+    these checks an inconsistent instance is accepted and fails much later
+    inside `searchsorted`, `log` or a broadcast, far from the cause.
+    """
+    good = _hernquist_potential()
+    fields = _raw_fields(good)
+    assert isinstance(MultipoleProfilePotential(**fields), MultipoleProfilePotential)
+
+    with pytest.raises(ValueError, match=match):
+        MultipoleProfilePotential(**{**fields, **mutate(fields)})
+
+
 def test_check_init_rejects_mismatched_lm_keys() -> None:
     """lm_keys must match lm_keys(l_max, symmetry)."""
     # Create a valid potential first

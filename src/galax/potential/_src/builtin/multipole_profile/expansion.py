@@ -2,8 +2,8 @@ r"""Evaluation of a multipole profile expansion.
 
 Function-first, matching `galax.potential._src.builtin.zhao`: the numerics
 take a flat ``gt.Params`` dict, and the potential classes build that dict from
-their own parameters. Sub-projects 3 and 4 reuse these functions and the mixin
-rather than inheriting from a concrete class.
+their own parameters, so the numerics can be reused without inheriting from a
+concrete potential class.
 
 ``p`` carries ``r_knots``, ``phi_lm``, ``dphi_lm``, ``rho_residual_lm``,
 ``drho_residual_lm``, ``rho_alpha`` and ``rho_amplitude``, each already
@@ -76,10 +76,9 @@ def expansion_density(
 class MultipoleProfileMixin(eqx.Module):
     """Supply ``_potential``/``_density`` from ``_params``, ``l_max``, ``lm_keys``.
 
-    A mixin rather than a base class so the transform wrapper of sub-project 4
-    can combine it with `AbstractTransformedPotential` without putting a
-    second `AbstractPotential` in its MRO. Mirrors the existing
-    `LaplacianFromDensityMixin` pattern.
+    A mixin rather than a base class so that a wrapper can combine it with
+    another potential class without putting a second `AbstractPotential` in
+    its MRO. Mirrors the existing `LaplacianFromDensityMixin` pattern.
     """
 
     #: The maximum multipole order.

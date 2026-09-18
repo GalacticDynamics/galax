@@ -41,10 +41,9 @@ class AbstractMultipoleProfilePotential(MultipoleProfileMixin, AbstractSinglePot
     caller to supply time-dependent ones. Building an expansion *on* a time
     grid is https://github.com/GalacticDynamics/galax/issues/849
 
-    Subclasses differ only in where ``_density`` comes from: this one
-    reconstructs it from the stored :math:`\rho_{lm}` profiles, while a
-    subclass with a closed-form density overrides it with the exact
-    expression.
+    ``_density`` is reconstructed from the stored :math:`\rho_{lm}`
+    profiles, so it is consistent with the expansion itself rather than with
+    whatever density the expansion was built from.
     """
 
     r_knots: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -146,7 +145,8 @@ def _from_density(
     The expansion is defined only on ``[r_min, r_max]``. Outside this range,
     cubic Hermite extrapolation in log :math:`r` is used, with no analytic
     tail. Results degrade rapidly outside the bracket and can change sign
-    or grow unbounded. See the class docstring for details.
+    or grow unbounded, and at exactly :math:`r = 0` the gradient is NaN. See
+    the class docstring for details.
 
     Parameters
     ----------
@@ -328,7 +328,8 @@ def _from_potential(
     The expansion is defined only on ``[r_min, r_max]``. Outside this range,
     cubic Hermite extrapolation in log :math:`r` is used, with no analytic
     tail. Results degrade rapidly outside the bracket and can change sign
-    or grow unbounded. See the class docstring for details.
+    or grow unbounded, and at exactly :math:`r = 0` the gradient is NaN. See
+    the class docstring for details.
 
     Parameters
     ----------
@@ -346,8 +347,7 @@ def _from_potential(
     symmetry : str or None, optional
         Symmetry assumption ("spherical", "axisymmetric", "triaxial", or None).
     t : Quantity, optional
-        Time at which to evaluate the density. Defaults to the potential's
-        default time.
+        Time at which to evaluate the density. Defaults to 0 Gyr.
 
     Returns
     -------
@@ -402,6 +402,18 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
     evaluate, including any region an orbit integrator may explore. A proper
     fix (continuing the analytic :math:`r^{-(l+1)}` / :math:`r^l` tail) is
     tracked separately.
+
+    **Limitation: the gradient is NaN at the origin.** At exactly
+    :math:`\vec{x} = 0` the radial direction is undefined, so the harmonics
+    are evaluated on a zero vector and :math:`\log r` underflows: the
+    potential and density come back finite but meaningless (a monopole
+    Hernquist expansion gives :math:`\Phi \approx -2 \times 10^4` against a
+    true :math:`-0.45`) and the gradient comes back **NaN**, where an
+    analytic potential returns :math:`0`. This is worse than the
+    extrapolation above, because a single NaN propagates through an entire
+    vmapped batch of orbits, not just the one that reached the origin. Keep
+    the origin out of the evaluation set. Tracked with the analytic tail at
+    https://github.com/GalacticDynamics/galax/issues/850
 
     See Also
     --------

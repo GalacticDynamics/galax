@@ -4,6 +4,7 @@ import galax.potential as gp
 
 expected_all = [
     # Modules
+    "harmonic",
     "io",
     "params",
     "plot",

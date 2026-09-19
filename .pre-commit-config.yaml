@@ -33,6 +33,9 @@ repos:
       - id: mixed-line-ending
       - id: name-tests-test
         args: ["--pytest-test-first"]
+        # Generators for vendored reference data live beside the data they
+        # produce; they are run by hand, not collected by pytest.
+        exclude: ^tests/functional/reference/.*/generate\.py$
       - id: no-commit-to-branch
         args: ["--branch", "main", "--pattern", "^versions/.*"]
         always_run: true

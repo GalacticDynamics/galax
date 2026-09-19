@@ -8,6 +8,8 @@ expected_all = [
     "params",
     "plot",
     "scf",
+    # symmetry
+    "Symmetry",
     # base
     "AbstractPotential",
     # core

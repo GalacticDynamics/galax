@@ -45,10 +45,8 @@ class HernquistPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @property
-    def symmetry(self) -> Symmetry:
-        """`Symmetry.SPHERICAL`: the density depends only on $r$."""
-        return Symmetry.SPHERICAL
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

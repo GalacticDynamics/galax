@@ -44,10 +44,8 @@ class JaffePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale length.")  # type: ignore[assignment]
 
-    @property
-    def symmetry(self) -> Symmetry:
-        """`Symmetry.SPHERICAL`: the density depends only on $r$."""
-        return Symmetry.SPHERICAL
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

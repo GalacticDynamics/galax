@@ -53,10 +53,8 @@ class KeplerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    @property
-    def symmetry(self) -> Symmetry:
-        """`Symmetry.SPHERICAL`: the density depends only on $r$."""
-        return Symmetry.SPHERICAL
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
 
     @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units

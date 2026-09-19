@@ -84,3 +84,25 @@ def test_length_3_quantity_is_still_a_position() -> None:
     pot = SPHERICAL_POTS[1]
     xyz = u.Q([8.0, 0.0, 0.0], "kpc")
     assert jnp.all(pot.potential(xyz, T) == pot.potential(XYZ, T))
+
+
+def test_symmetry_may_be_declared_as_a_plain_string() -> None:
+    """A `StrEnum` exists so the plain string works; the gate must honour that.
+
+    Declaring `symmetry = "spherical"` is the natural thing to write, and an
+    identity check would reject it while reporting `declares symmetry
+    'spherical'` -- refusing a spherical potential for not being spherical.
+    """
+
+    class StrDeclared(gp.KeplerPotential):
+        symmetry = "spherical"
+
+    pot = StrDeclared(m_tot=u.Q(1e12, "Msun"), units="galactic")
+    radial = cx.vecs.RadialPos(r=u.Q(8.0, "kpc"))
+
+    assert pot.symmetry == gp.Symmetry.SPHERICAL
+    assert jnp.isclose(
+        pot.potential(radial, t=0),
+        pot.potential(u.Q([8.0, 0.0, 0.0], "kpc"), t=0),
+        atol=u.Q(0.0, "kpc2 / Myr2"),
+    )

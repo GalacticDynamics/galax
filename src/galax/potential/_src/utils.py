@@ -132,7 +132,7 @@ def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
 # ==============================================================================
 
 
-@ft.cache
+@ft.lru_cache(maxsize=128)
 def gauss_legendre_nodes(
     order: int, interval: tuple[float, float] = (0.0, 1.0), /
 ) -> tuple[Shaped[Array, "O"], Shaped[Array, "O"]]:
@@ -710,7 +710,7 @@ def parse_pot_to_xyz_t(
 
     """
     if isinstance(q, cxv.RadialPos):
-        if pot.symmetry is not Symmetry.SPHERICAL:
+        if pot.symmetry != Symmetry.SPHERICAL:
             msg = (
                 f"{type(pot).__name__} declares symmetry '{pot.symmetry}': a "
                 "RadialPos is ambiguous, since turning a radius into a "

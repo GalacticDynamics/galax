@@ -10,6 +10,8 @@ __all__ = [
     "AbstractPotential",
     "AbstractSinglePotential",
     "AbstractCompositePotential",
+    # symmetry
+    "Symmetry",
     # composite
     "CompositePotential",
     # builtin
@@ -141,6 +143,7 @@ with install_import_hook("galax.potential"):
         gNFWPotential,
     )
     from ._src.composite import CompositePotential
+    from ._src.symmetry import Symmetry
     from ._src.xfm import (
         AbstractTransformedPotential,
         FlattenedInThePotential,

@@ -24,6 +24,7 @@ import galax.potential.custom_types as gt
 from . import api
 from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
 from .plot import PlotPotentialDescriptor
+from .symmetry import Symmetry
 from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars
@@ -52,6 +53,33 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
 
     constants: eqx.AbstractVar[ImmutableMap[str, u.AbstractQuantity]]
     """The constants used by the potential."""
+
+    @property
+    def symmetry(self) -> Symmetry:
+        """The symmetry this potential asserts about itself.
+
+        Defaults to `Symmetry.NONE` -- no symmetry asserted. Subclasses
+        override this to declare more, which lets callers pass inputs that are
+        only well defined under that symmetry (e.g. a
+        `coordinax.vecs.RadialPos`).
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.MiyamotoNagaiPotential(m_tot=u.Q(1e12, "Msun"),
+        ...     a=u.Q(5, "kpc"), b=u.Q(1, "kpc"), units="galactic")
+        >>> pot.symmetry
+        <Symmetry.NONE: 'none'>
+
+        >>> pot = gp.HernquistPotential(m_tot=u.Q(1e12, "Msun"),
+        ...                             r_s=u.Q(5, "kpc"), units="galactic")
+        >>> pot.symmetry
+        <Symmetry.SPHERICAL: 'spherical'>
+
+        """
+        return Symmetry.NONE
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""

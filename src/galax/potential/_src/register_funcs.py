@@ -17,7 +17,7 @@ import unxt as u
 import galax.potential.custom_types as gt
 from . import api
 from .base import AbstractPotential
-from .utils import parse_to_xyz_t
+from .utils import parse_pot_to_xyz_t
 from galax.coordinates._src.shape import batched_shape
 from galax.potential._src.shape import expand_arr_dims, expand_batch_dims
 
@@ -41,7 +41,7 @@ def potential(
     be in the unit system of the potential.
 
     """
-    xyz, t = parse_to_xyz_t(None, xyz, t)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, xyz, t)
     return pot._potential(xyz, t)  # noqa: SLF001
 
 
@@ -70,7 +70,7 @@ def potential(
     pot: AbstractPotential, q: Any, t: Any, /
 ) -> Real[u.Quantity["specific energy"], "*#batch"]:
     """Compute the potential energy at the given position(s)."""
-    xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, ustrip=pot.units)
     phi = pot._potential(xyz, t)  # noqa: SLF001
     return u.Q(phi, pot.units["specific energy"])
 
@@ -94,7 +94,7 @@ def gradient(
     be in the unit system of the potential.
 
     """
-    xyz, t = parse_to_xyz_t(None, xyz, t, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, xyz, t, dtype=float)
     return pot._gradient(xyz, t)  # noqa: SLF001
 
 
@@ -117,7 +117,7 @@ def gradient(
     pot: AbstractPotential, xyz: u.AbstractQuantity, /, *, t: u.AbstractQuantity
 ) -> Real[u.Quantity["acceleration"], "*#batch 3"]:
     """Compute from a q + t object."""
-    xyz, t = parse_to_xyz_t(None, xyz, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, xyz, t, ustrip=pot.units, dtype=float)
     grad = pot._gradient(xyz, t)  # noqa: SLF001
     return u.Q.from_(grad, pot.units["acceleration"])
 
@@ -128,7 +128,7 @@ def gradient(
     pot: AbstractPotential, q: u.AbstractQuantity, t: u.AbstractQuantity, /
 ) -> Real[u.Quantity["acceleration"], "*#batch 3"]:
     """Compute the potential energy at the given position(s)."""
-    xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, ustrip=pot.units, dtype=float)
     grad = pot._gradient(xyz, t)  # noqa: SLF001
     return u.Q.from_(grad, pot.units["acceleration"])
 
@@ -142,7 +142,7 @@ def gradient(
     pot: AbstractPotential, tq: Any, /, *, t: Any = None
 ) -> cx.vecs.CartesianAcc3D:
     """Compute from a q + t object."""
-    xyz, t = parse_to_xyz_t(None, tq, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, tq, t, ustrip=pot.units, dtype=float)
     grad = pot._gradient(xyz, t)  # noqa: SLF001
     return cx.vecs.CartesianAcc3D.from_(grad, pot.units["acceleration"])
 
@@ -150,7 +150,7 @@ def gradient(
 @dispatch
 def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3D:
     """Compute the potential energy at the given position(s)."""
-    xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, ustrip=pot.units, dtype=float)
     grad = pot._gradient(xyz, t)  # noqa: SLF001
     return cx.vecs.CartesianAcc3D.from_(grad, pot.units["acceleration"])
 
@@ -174,7 +174,7 @@ def laplacian(
     be in the unit system of the potential.
 
     """
-    xyz, t = parse_to_xyz_t(None, xyz, t, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, xyz, t, dtype=float)
     return pot._laplacian(xyz, t)  # noqa: SLF001
 
 
@@ -195,7 +195,7 @@ def laplacian(
     pot: AbstractPotential, tq: Any, /, *, t: Any = None
 ) -> Real[u.Quantity["frequency drift"], "*#batch"]:
     """Compute from a q + t object."""
-    xyz, t = parse_to_xyz_t(None, tq, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, tq, t, dtype=float, ustrip=pot.units)
     lapl = pot._laplacian(xyz, t)  # noqa: SLF001
     return u.Q(lapl, pot.units["frequency drift"])
 
@@ -205,7 +205,7 @@ def laplacian(
     pot: AbstractPotential, q: Any, t: Any, /
 ) -> Real[u.Quantity["frequency drift"], "*#batch"]:
     """Compute the laplacian energy at the given position(s)."""
-    xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, dtype=float, ustrip=pot.units)
     lapl = pot._laplacian(xyz, t)  # noqa: SLF001
     return u.Q(lapl, pot.units["frequency drift"])
 
@@ -229,7 +229,7 @@ def density(
     be in the unit system of the potential.
 
     """
-    xyz, t = parse_to_xyz_t(None, xyz, t, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, xyz, t, dtype=float)
     return pot._density(xyz, t)  # noqa: SLF001
 
 
@@ -250,7 +250,7 @@ def density(
     pot: AbstractPotential, tq: Any, /, *, t: Any = None
 ) -> Real[u.Quantity["mass density"], "*#batch"]:
     """Compute from a q + t object."""
-    xyz, t = parse_to_xyz_t(None, tq, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, tq, t, dtype=float, ustrip=pot.units)
     rho = pot._density(xyz, t)  # noqa: SLF001
     return u.Q(rho, pot.units["mass density"])
 
@@ -260,7 +260,7 @@ def density(
     pot: AbstractPotential, q: Any, t: Any, /
 ) -> Real[u.Quantity["mass density"], "*#batch"]:
     """Compute the density at the given position(s)."""
-    xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, dtype=float, ustrip=pot.units)
     rho = pot._density(xyz, t)  # noqa: SLF001
     return u.Q(rho, pot.units["mass density"])
 
@@ -284,7 +284,7 @@ def hessian(
     be in the unit system of the potential.
 
     """
-    xyz, t = parse_to_xyz_t(None, xyz, t, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, xyz, t, dtype=float)
     return pot._hessian(xyz, t)  # noqa: SLF001
 
 
@@ -305,7 +305,7 @@ def hessian(
     pot: AbstractPotential, tq: Any, /, *, t: Any = None
 ) -> Real[u.Quantity["frequency drift"], "*#batch 3 3"]:
     """Compute from a q + t object."""
-    xyz, t = parse_to_xyz_t(None, tq, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, tq, t, dtype=float, ustrip=pot.units)
     phi = pot._hessian(xyz, t)  # noqa: SLF001
     return u.Q(phi, pot.units["frequency drift"])
 
@@ -315,7 +315,7 @@ def hessian(
     pot: AbstractPotential, q: Any, t: Any, /
 ) -> Real[u.Quantity["frequency drift"], "*#batch 3 3"]:
     """Compute the potential energy at the given position(s)."""
-    xyz, t = parse_to_xyz_t(None, q, t, dtype=float, ustrip=pot.units)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, dtype=float, ustrip=pot.units)
     phi = pot._hessian(xyz, t)  # noqa: SLF001
     return u.Q(phi, pot.units["frequency drift"])
 
@@ -387,7 +387,7 @@ def local_circular_velocity(
     pot: AbstractPotential, q: Any, t: Any, /
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Estimate the circular velocity at the given position."""
-    xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, dtype=float)
     r = jnp.linalg.vector_norm(xyz, axis=-1)
     dPhi_dxyz = pot.gradient(xyz, t)
     dPhi_dr = jnp.sum(dPhi_dxyz * xyz / r[..., None], axis=-1)
@@ -415,7 +415,7 @@ def local_circular_velocity(
 @dispatch
 @ft.partial(jax.jit)
 def dpotential_dr(pot: AbstractPotential, q: Any, t: Any, /) -> gt.BBtSz0 | gt.BBtQuSz0:
-    xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, dtype=float)
     r_hat = cx.vecs.normalize_vector(xyz)
     grad = api.gradient(pot, xyz, t)
     dphi_dr = jnp.sum(grad * r_hat, axis=-1)
@@ -444,7 +444,7 @@ def dpotential_dr(
 def d2potential_dr2(
     pot: AbstractPotential, q: Any, t: Any, /
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
-    xyz, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, dtype=float)
     rhat = cx.vecs.normalize_vector(xyz)
     # TODO: benchmark this vs the hessian approach commented out below
     # d2phi_dr2 = jnp.sum(jax.grad(pot.dpotential_dr)(xyz, t) * rhat)  # noqa: ERA001, E501
@@ -476,8 +476,8 @@ def spherical_mass_enclosed(
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Compute from `jax.Array`."""
     # Parse inputs
-    q, t = parse_to_xyz_t(None, q, t, dtype=float)  # TODO: frame
-    xyz, t = parse_to_xyz_t(None, q, t, ustrip=pot.units)
+    q, t = parse_pot_to_xyz_t(pot, q, t, dtype=float)
+    xyz, t = parse_pot_to_xyz_t(pot, q, t, ustrip=pot.units)
     # Compute mass
     r2 = jnp.sum(jnp.square(xyz), axis=-1)
     dPhi_dr = api.dpotential_dr(pot, xyz, t)

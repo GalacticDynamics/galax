@@ -6,7 +6,7 @@ import functools as ft
 
 from collections.abc import Callable
 from jaxtyping import Array, Bool, Shaped
-from typing import Any, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import equinox as eqx
 import jax
@@ -24,6 +24,10 @@ from unxt.quantity import AllowValue, BareQuantity
 
 import galax.coordinates as gc
 import galax.potential.custom_types as gt
+from .symmetry import Symmetry
+
+if TYPE_CHECKING:
+    from .base import AbstractPotential
 
 OptUSys: TypeAlias = u.AbstractUnitSystem | None
 
@@ -128,38 +132,84 @@ def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
 # ==============================================================================
 
 
-class GaussLegendreIntegrator(eqx.Module):
-    """Gauss-Legendre quadrature integrator."""
+@ft.cache
+def gauss_legendre_nodes(
+    order: int, interval: tuple[float, float] = (0.0, 1.0), /
+) -> tuple[Shaped[Array, "O"], Shaped[Array, "O"]]:
+    """Gauss-Legendre nodes & weights, mapped onto ``interval``.
 
-    x: Shaped[Array, "O"]
-    w: Shaped[Array, "O"]
+    The nodes and weights are constants, so they are cached: computing them
+    (`numpy.polynomial.legendre.leggauss`) costs ~0.6 ms at order 50, which is
+    a significant fraction of the construction time of a potential that
+    integrates.
 
-    @classmethod
-    def for_order(cls, order: int, /) -> "GaussLegendreIntegrator":
-        """Build the integrator for the interval [0, 1].
+    Examples
+    --------
+    >>> from galax.potential._src.utils import gauss_legendre_nodes
 
-        See :func:`numpy.polynomial.legendre.leggauss` for details on
-        ``order``.
-        """
-        x_, w_ = np.polynomial.legendre.leggauss(order)
-        x, w = jnp.asarray(x_, dtype=float), jnp.asarray(w_, dtype=float)
-        # Interval change from [-1, 1] to [0, 1]
-        x = 0.5 * (x + 1)
-        w = 0.5 * w
-        return cls(x, w)
+    >>> x, w = gauss_legendre_nodes(3, (-1.0, 1.0))
+    >>> x
+    Array([-0.77459667,  0.        ,  0.77459667], dtype=float64)
+    >>> w
+    Array([0.55555556, 0.88888889, 0.55555556], dtype=float64)
 
-    @ft.partial(jax.jit, static_argnums=(1,))
-    def __call__(
-        self,
-        f: Callable[
-            [Shaped[Array, "N *#batch"]],
-            Shaped[Array, "N *batch"] | Shaped[u.Quantity["dimensionless"], "N *batch"],
-        ],
-        /,
-    ) -> Shaped[Array, "*batch"] | Shaped[u.Quantity["dimensionless"], "*batch"]:
-        y = f(self.x)
-        w = self.w.reshape(self.w.shape + (1,) * (y.ndim - 1))
-        return jnp.sum(y * w, axis=0)
+    The reference interval is exact: the affine map is skipped entirely, since
+    e.g. ``(x + 1) - 1`` perturbs every node by an ulp.
+
+    >>> import numpy as np
+    >>> np.array_equal(x, np.polynomial.legendre.leggauss(3)[0])
+    True
+
+    """
+    x, w = np.polynomial.legendre.leggauss(order)
+
+    # The affine map is not value-neutral, so the identity case is skipped.
+    a, b = interval
+    if (a, b) != (-1.0, 1.0):
+        half = 0.5 * (b - a)
+        x, w = half * (x + 1) + a, half * w
+
+    # These are constants and this function is cached, so they must not capture
+    # whatever jit trace happens to call it first.
+    with jax.ensure_compile_time_eval():
+        return jnp.asarray(x, dtype=float), jnp.asarray(w, dtype=float)
+
+
+def gauss_legendre(
+    f: Callable[
+        [Shaped[Array, "N"]],
+        Shaped[Array, "N *batch"] | Shaped[u.AbstractQuantity, "N *batch"],
+    ],
+    order: int,
+    /,
+    *,
+    interval: tuple[float, float] = (0.0, 1.0),
+) -> Shaped[Array, "*batch"] | Shaped[u.AbstractQuantity, "*batch"]:
+    """Integrate ``f`` over ``interval`` by Gauss-Legendre quadrature.
+
+    ``f`` maps the ``(N,)`` nodes to ``(N, *batch)``; the sum is over the node
+    axis, giving ``(*batch,)``.
+
+    This is deliberately not `jax.jit`-ed: ``f`` would have to be static, and a
+    freshly-built closure -- which is what every caller passes -- then misses
+    the cache on every call. Callers jit their own enclosing function instead.
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> from galax.potential._src.utils import gauss_legendre
+
+    >>> gauss_legendre(lambda x: x**2, 10).round(12)
+    Array(0.33333333, dtype=float64)
+
+    >>> gauss_legendre(jnp.sin, 10, interval=(0.0, jnp.pi)).round(12)
+    Array(2., dtype=float64)
+
+    """
+    x, w = gauss_legendre_nodes(order, (float(interval[0]), float(interval[1])))
+    y = f(x)
+    w = w.reshape(w.shape + (1,) * (y.ndim - 1))
+    return jnp.sum(y * w, axis=0)
 
 
 # ==============================================================================
@@ -618,6 +668,62 @@ def parse_to_xyz_t(
     return parse_to_xyz_t(
         None, wt.q, jnp.asarray(wt.t, dtype=dtype), dtype=dtype, ustrip=ustrip
     )
+
+
+def parse_pot_to_xyz_t(
+    pot: "AbstractPotential", q: Any, /, *args: Any, **kwargs: Any
+) -> tuple[Any, Any]:
+    """`parse_to_xyz_t`, with the potential supplying the parsing context.
+
+    Most inputs mean the same thing for every potential and are passed
+    straight through. A `coordinax.vecs.RadialPos` is the exception: a radius
+    only determines a position if the potential is spherically symmetric, so
+    it is resolved here, where `AbstractPotential.symmetry` is known.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.potential as gp
+    >>> from galax.potential._src.utils import parse_pot_to_xyz_t
+
+    >>> r = cx.vecs.RadialPos(r=u.Q(8.0, "kpc"))
+    >>> t = u.Q(0, "Gyr")
+
+    >>> pot = gp.HernquistPotential(m_tot=u.Q(1e12, "Msun"), r_s=u.Q(5, "kpc"),
+    ...                             units="galactic")
+    >>> parse_pot_to_xyz_t(pot, r, t)
+    (BareQuantity([8., 0., 0.], 'kpc'), Q(0, 'Gyr'))
+
+    A radius is ambiguous for anything else:
+
+    >>> pot = gp.MiyamotoNagaiPotential(m_tot=u.Q(1e12, "Msun"), a=u.Q(5, "kpc"),
+    ...                                 b=u.Q(1, "kpc"), units="galactic")
+    >>> try:
+    ...     parse_pot_to_xyz_t(pot, r, t)
+    ... except TypeError as e:
+    ...     print(e)
+    MiyamotoNagaiPotential declares symmetry 'none': a RadialPos is ambiguous,
+    since turning a radius into a position requires choosing a direction. Only
+    'spherical' symmetry makes that choice irrelevant. Pass a 3D position
+    instead, e.g. coordinax.vecs.SphericalPos.
+
+    """
+    if isinstance(q, cxv.RadialPos):
+        if pot.symmetry is not Symmetry.SPHERICAL:
+            msg = (
+                f"{type(pot).__name__} declares symmetry '{pot.symmetry}': a "
+                "RadialPos is ambiguous, since turning a radius into a "
+                "position requires choosing a direction. Only "
+                f"'{Symmetry.SPHERICAL}' symmetry makes that choice "
+                "irrelevant. Pass a 3D position instead, e.g. "
+                "coordinax.vecs.SphericalPos."
+            )
+            raise TypeError(msg)
+        q = q.vconvert(cx.CartesianPos3D)
+
+    # TODO: frame
+    return parse_to_xyz_t(None, q, *args, **kwargs)  # type: ignore[no-any-return]
 
 
 # ============================================================================

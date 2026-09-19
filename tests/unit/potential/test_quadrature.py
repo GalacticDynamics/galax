@@ -13,13 +13,22 @@ from galax.potential._src.utils import gauss_legendre, gauss_legendre_nodes
 ORDER = 50
 
 
-def test_reference_interval_is_exact() -> None:
-    """``[-1, 1]`` must skip the affine map, which is not value-neutral."""
-    x, w = gauss_legendre_nodes(ORDER, (-1.0, 1.0))
+@pytest.mark.parametrize("interval", [(-1.0, 1.0), (-1, 1)])
+def test_reference_interval_is_exact(interval: tuple[float, float]) -> None:
+    """``[-1, 1]`` must skip the affine map, which is not value-neutral.
+
+    Parametrized over the ``float`` and ``int`` spellings: the guard compares
+    tuples, and Python compares those element-wise and numerically, so
+    ``(-1, 1)`` takes the same branch and hashes to the same cache entry.
+    """
+    x, w = gauss_legendre_nodes(ORDER, interval)
     x_ref, w_ref = np.polynomial.legendre.leggauss(ORDER)
 
     assert np.array_equal(np.asarray(x), x_ref)
     assert np.array_equal(np.asarray(w), w_ref)
+    assert gauss_legendre_nodes(ORDER, interval) is gauss_legendre_nodes(
+        ORDER, (-1.0, 1.0)
+    )
 
 
 def test_unit_interval_is_pinned() -> None:

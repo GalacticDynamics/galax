@@ -34,13 +34,15 @@ class Symmetry(enum.StrEnum):
     >>> gp.Symmetry(None) is gp.Symmetry.NONE
     True
 
-    An unknown string is an error:
+    An unknown string is an error naming the valid values. Note that
+    "axisymmetric" is not one of them -- see the note on Agama below:
 
     >>> try:
     ...     gp.Symmetry("axisymmetric")
     ... except ValueError as e:
     ...     print(e)
-    'axisymmetric' is not a valid Symmetry
+    Unknown symmetry 'axisymmetric'. Use one of ('none', 'spherical',
+    'zrotation', 'zrotation_zreflection', 'plane_reflection') or None.
 
     Notes
     -----
@@ -89,5 +91,16 @@ class Symmetry(enum.StrEnum):
     """Invariant under reflection about all three principal planes."""
 
     @classmethod
-    def _missing_(cls, value: object) -> "Symmetry | None":
-        return cls.NONE if value is None else None
+    def _missing_(cls, value: object) -> "Symmetry":
+        """Accept `None` as an alias for `NONE`; reject anything else.
+
+        The members are the vocabulary a caller passing a plain string has to
+        guess at, and the obvious guesses -- ``"axisymmetric"``,
+        ``"triaxial"`` -- are Agama's words, not these. So name the valid
+        values rather than leaving `enum`'s bare "is not a valid Symmetry".
+        """
+        if value is None:
+            return cls.NONE
+        names = tuple(s.value for s in cls)
+        msg = f"Unknown symmetry {value!r}. Use one of {names} or None."
+        raise ValueError(msg)

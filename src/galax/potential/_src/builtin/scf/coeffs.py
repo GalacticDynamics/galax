@@ -14,10 +14,8 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 from .bfe import phi_nl
-from galax.potential._src.builtin.multipole import (
-    iter_Ylm,
-    scaled_radius_and_direction,
-)
+from galax.potential._src.builtin.multipole import scaled_radius_and_direction
+from galax.potential._src.harmonic.ylm import iter_Ylm
 
 
 @ft.partial(jax.jit, static_argnames=("nmax", "lmax", "compute_var"))

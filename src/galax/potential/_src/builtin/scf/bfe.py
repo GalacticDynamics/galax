@@ -21,9 +21,9 @@ import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.builtin.multipole import (
-    iter_Ylm,
     scaled_radius_and_direction,
 )
+from galax.potential._src.harmonic.ylm import iter_Ylm
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 

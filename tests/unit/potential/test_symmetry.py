@@ -44,8 +44,11 @@ def test_none_is_an_alias() -> None:
 
 @pytest.mark.parametrize("value", ["axisymmetric", "triaxial", "NONE", ""])
 def test_unknown_value_raises(value: str) -> None:
-    with pytest.raises(ValueError, match="is not a valid Symmetry"):
+    # The message names the valid values: "axisymmetric" and "triaxial" are
+    # the natural guesses, and they are Agama's vocabulary, not this one.
+    with pytest.raises(ValueError, match="Unknown symmetry") as excinfo:
         gp.Symmetry(value)
+    assert "spherical" in str(excinfo.value)
 
 
 # ============================================================================
@@ -106,3 +109,35 @@ def test_symmetry_may_be_declared_as_a_plain_string() -> None:
         pot.potential(u.Q([8.0, 0.0, 0.0], "kpc"), t=0),
         atol=u.Q(0.0, "kpc2 / Myr2"),
     )
+
+
+def test_misspelled_symmetry_is_reported_as_invalid_not_ambiguous() -> None:
+    """A bad declaration must not masquerade as a non-spherical potential.
+
+    `symmetry` is a plain class attribute, so unlike a `ParameterField` there
+    is no converter to catch a typo. Comparing the raw value means a
+    misspelling merely tests unequal, and the caller is told a `RadialPos` is
+    *ambiguous* for their potential -- sending them to find a direction to
+    pass, when the real fault is the spelling. Validate instead.
+    """
+
+    class Misspelled(gp.KeplerPotential):
+        symmetry = "sphericl"
+
+    pot = Misspelled(m_tot=u.Q(1e12, "Msun"), units="galactic")
+
+    with pytest.raises(ValueError, match="Unknown symmetry 'sphericl'") as e:
+        pot.potential(cx.vecs.RadialPos(r=u.Q(8.0, "kpc")), t=0)
+    assert "spherical" in str(e.value)  # the message names the valid values
+
+
+def test_none_declaration_is_normalized_in_the_ambiguity_message() -> None:
+    """`None` is a documented alias, so it must report as `none`, not `None`."""
+
+    class NoneDeclared(gp.KeplerPotential):
+        symmetry = None
+
+    pot = NoneDeclared(m_tot=u.Q(1e12, "Msun"), units="galactic")
+
+    with pytest.raises(TypeError, match="declares symmetry 'none'"):
+        pot.potential(cx.vecs.RadialPos(r=u.Q(8.0, "kpc")), t=0)

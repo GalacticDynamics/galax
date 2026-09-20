@@ -11,11 +11,9 @@ import unxt as u
 
 import galax.potential as gp
 from galax.interop.optional_deps import GSL_ENABLED, OptDeps
-from galax.potential._src.builtin.multipole import (
-    iter_Ylm,
-    scaled_radius_and_direction,
-)
+from galax.potential._src.builtin.multipole import scaled_radius_and_direction
 from galax.potential._src.builtin.scf.bfe import phi_nl, rho_nl
+from galax.potential._src.harmonic.ylm import iter_Ylm
 
 
 def _monopole(m_tot: float = 1e12, r_s: float = 10.0) -> gp.SCFPotential:

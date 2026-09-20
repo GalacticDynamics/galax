@@ -1,0 +1,26 @@
+# Codecov configuration. https://docs.codecov.com/docs/codecov-yaml
+#
+# Coverage is uploaded from five jobs: four legs of the `checks` matrix in
+# ci.yml (3.12 and 3.14 on Linux, 3.14 on macOS and Windows -- the 3.12
+# macOS and Windows legs are excluded there) plus `check_interop`.
+#
+# Codecov evaluates as soon as the first upload lands, so it compares a
+# one-upload HEAD against a five-upload BASE, sees most of the suite missing,
+# and posts a red `codecov/project` status for a coverage drop that is not
+# real. It corrects itself once the remaining uploads arrive -- codecov's own
+# comment says "HEAD has 4 uploads less than BASE" while it is wrong -- but
+# the PR shows a spurious failure for most of the run. That happened four
+# times across #852 and #859.
+#
+# Waiting for all five removes the false signal. The cost is that a leg which
+# dies before uploading leaves the status pending rather than failing; that is
+# acceptable here because `main` is not branch-protected, so no codecov status
+# gates a merge, and the CI Pass job already aggregates the jobs themselves.
+#
+# Keep this in step with the number of ci.yml jobs that run `codecov-action`.
+codecov:
+  notify:
+    after_n_builds: 5
+
+comment:
+  after_n_builds: 5

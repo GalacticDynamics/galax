@@ -123,12 +123,21 @@ def solve_poisson_lm(
         # -- inner tail (0 -> r_min), rho_lm ~ A_in r^alpha_in --------------
         log_rho_in = jnp.log(jnp.abs(rho_col[:3]) + _LOG_FLOOR)
         alpha_in = jnp.mean(jnp.diff(log_rho_in) / jnp.diff(log_r[:3]))
-        A_in = (
-            jnp.sign(rho_col[0]) * jnp.abs(rho_col[0]) * jnp.exp(-alpha_in * log_r[0])
-        )
         exp_in = alpha_in + l + 3.0
         safe_in = jnp.where(jnp.abs(exp_in) > _SLOPE_TOL, exp_in, _SLOPE_TOL)
-        dI_in = A_in * jnp.exp(exp_in * log_r[0]) / safe_in
+        # The amplitude never appears on its own. Writing the tail as
+        # `A_in r_min^exp_in` with `A_in = rho_0 r_min^-alpha_in` would form
+        # `exp(-alpha_in log r_min)` first, and `alpha_in` is a three-point
+        # slope of a mode that may be pure round-off -- 400+ is routine, so
+        # that intermediate overflows to `inf` and `inf * exp(-large)` gives
+        # `nan`, poisoning the column and then, through `fit_log_spline`, the
+        # whole build. The powers cancel exactly,
+        #     A_in r_min^(alpha_in + l + 3) = rho_0 r_min^(l + 3) ,
+        # so forming the product directly keeps the exponent bounded by
+        # (l + 3) times half the grid's log range, the same bound the
+        # recentering above already guarantees. This is also what the outer
+        # tail below does.
+        dI_in = rho_col[0] * jnp.exp((l + 3.0) * log_r[0]) / safe_in
         # The clamp keeps the division finite under jit, but a clamped
         # denominator no longer represents the integral: at exp_in = 1e-9 the
         # true tail is ~1e3 times what `_SLOPE_TOL` yields. Inside the clamped

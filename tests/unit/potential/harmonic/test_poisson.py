@@ -202,3 +202,35 @@ def test_solve_poisson_lm_is_equivariant_under_rescaling_r() -> None:
     c = jnp.log(1e6)
     scaled = solve_poisson_lm(r * jnp.exp(c), rho, jnp.asarray([l]), jnp.asarray(G))
     assert jnp.allclose(scaled, base * jnp.exp(2.0 * c), rtol=1e-12)
+
+
+def test_inner_tail_survives_a_huge_fitted_slope() -> None:
+    """A round-off mode must not take the whole build down.
+
+    REGRESSION: the inner tail was formed as ``A_in * r_min**exp_in`` with
+    ``A_in = rho_0 * r_min**-alpha_in``, which builds
+    ``exp(-alpha_in * log r_min)`` as an intermediate. ``alpha_in`` is a
+    three-point slope, and on a mode that is pure round-off it is routinely
+    in the hundreds -- measured +420 to +459 on ordinary flattened-NFW builds
+    (l_max = 8, r in [1, 50] kpc, n_r = 1024, axis ratios 0.9 and 0.6) -- so
+    with the grid centred, ``-alpha_in * log r_min`` exceeded 709 and that
+    intermediate overflowed to ``inf``. ``inf * exp(-large)`` is ``nan``,
+    both boundary gates pass, and `fit_log_spline` then failed on the whole
+    matrix: one negligible mode killed every mode.
+
+    The sign matters: a steeply *falling* first three points give a large
+    negative slope, which underflows to zero harmlessly. It is the *rising*
+    case that overflows, which is what a round-off mode produces.
+    """
+    r = jnp.exp(jnp.linspace(jnp.log(1.0), jnp.log(50.0), 1024))
+    # Rising across the first three knots -> large positive fitted slope.
+    rho = jnp.full_like(r, 1e-18).at[0].set(1e-24).at[1].set(1e-22).at[2].set(1e-20)
+
+    log_r = jnp.log(r)
+    alpha = float(jnp.mean(jnp.diff(jnp.log(jnp.abs(rho[:3]))) / jnp.diff(log_r[:3])))
+    # The old form overflowed once `-alpha * (log r_min - log r_mid)` > 709.
+    half_range = 0.5 * float(log_r[-1] - log_r[0])
+    assert alpha * half_range > 709.0, f"slope {alpha} is not extreme enough to bite"
+
+    got = solve_poisson_lm(r, rho[:, None], jnp.asarray([8.0]), jnp.asarray(1.0))
+    assert jnp.all(jnp.isfinite(got)), "one round-off mode must not poison the column"

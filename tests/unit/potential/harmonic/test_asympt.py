@@ -170,7 +170,7 @@ def test_kepler_monopole_is_exact() -> None:
     got = eval_log_spline_asympt(log_r, values, derivs, coefs, jnp.log(rq))[:, 0]
     assert jnp.allclose(got, -1.0 / rq, rtol=1e-11, atol=0.0)
     assert abs(float(coefs[0, 1, 0]) + 1.0) < 1e-10
-    assert float(coefs[0, 3, 0]) == 0.0  # Q
+    assert coefs.shape[1] == 3, "no Q row without `cored_monopole`"
 
 
 # ---------------------------------------------------------------------------
@@ -330,7 +330,8 @@ def test_the_q_term_carries_a_cored_inner_monopole() -> None:
     def err(derivs, **kw):
         coefs = asymptotic_coeffs(log_r, values, derivs, jnp.asarray([0.0]), **kw)
         got = eval_log_spline_asympt(log_r, values, derivs, coefs, jnp.log(rq))[:, 0]
-        return float(coefs[0, 3, 0]), np.abs(np.asarray(got / expect - 1.0)).max()
+        q = float(coefs[0, 3, 0]) if coefs.shape[1] == 4 else 0.0
+        return q, np.abs(np.asarray(got / expect - 1.0)).max()
 
     spline = fit_log_spline(log_r, values)
     q_exact, err_exact = err(exact, cored_monopole=True)
@@ -435,8 +436,8 @@ def test_tail_is_finite_at_the_origin() -> None:
     ]
     assert jnp.all(jnp.isfinite(got))
 
-    v, s, B, Q = coefs[0][:, 0]
-    assert jnp.isclose(got[0], values[0, 0] - B / s - Q, rtol=1e-12)
+    _v, s, B = coefs[0][:3, 0]
+    assert jnp.isclose(got[0], values[0, 0] - B / s, rtol=1e-12)
 
     grad = jax.grad(
         lambda lq: eval_log_spline_asympt(log_r, values, derivs, coefs, lq).sum()
@@ -482,7 +483,7 @@ def test_refining_the_grid_never_makes_the_inner_tail_worse() -> None:
         derivs = fit_log_spline(log_r, values)
         coefs = asymptotic_coeffs(log_r, values, derivs, jnp.asarray([0.0]))
 
-        assert float(coefs[0, 3, 0]) == 0.0, "the Q branch must not be reached"
+        assert coefs.shape[1] == 3, "the Q branch must not be reached"
 
         rq = jnp.asarray([R_MIN * 0.5])
         got = eval_log_spline_asympt(log_r, values, derivs, coefs, jnp.log(rq))[0, 0]

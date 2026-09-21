@@ -417,7 +417,7 @@ def asymptotic_coeffs(
     /,
     *,
     cored_monopole: bool = False,
-) -> Float[Array, "2 4 *rest"]:
+) -> Float[Array, "2 rows *rest"]:
     r"""Fit the inward and outward power-law continuations of each mode.
 
     ``values`` and ``derivs`` are the knot values and :math:`\log r`
@@ -504,7 +504,12 @@ def asymptotic_coeffs(
         # The amplitude follows from the C1 constraint itself, never from
         # the fit, so the join holds whatever `s` and `Q` came out as.
         B = D1 - v * P1 - (2.0 - v) * Q
-        out.append(jnp.stack([v, s, B, Q]))
+        # The `Q` row is carried only when it can be non-zero. Its presence
+        # is what tells `eval_log_spline_asympt` whether to evaluate the
+        # term, so the two cannot disagree: a caller who opts in gets four
+        # rows and the term is honoured, and one who does not cannot
+        # accidentally pay for an `exp` against a structural zero.
+        out.append(jnp.stack([v, s, B, Q] if cored_monopole else [v, s, B]))
     return jnp.stack(out)  # type: ignore[no-any-return]
 
 
@@ -512,7 +517,7 @@ def eval_log_spline_asympt(
     log_r: Float[Array, "n_r"],
     values: Float[Array, "n_r *rest"],
     derivs: Float[Array, "n_r *rest"],
-    coefs: Float[Array, "2 4 *rest"],
+    coefs: Float[Array, "2 rows *rest"],
     log_rq: Float[Array, "*batch"],
     /,
 ) -> Array:
@@ -558,7 +563,7 @@ def eval_log_spline_asympt(
 
     def tail(P1: Array, side: Array, ln_x: Array, *, q_term: bool) -> Array:
         """One side's continuation. ``q_term`` is static, so it is free."""
-        v, s, B, Q = side
+        v, s, B = side[0], side[1], side[2]
         # Keep every exponent below the `exp` overflow threshold, so no term
         # is an inf or a `0 * inf`.
         largest = jnp.maximum(jnp.abs(v), jnp.abs(s))
@@ -568,7 +573,7 @@ def eval_log_spline_asympt(
 
         out = P1 * jnp.exp(v * ln_x) + B * _pow_diff(s, v, ln_x)
         if q_term:
-            out = out + Q * (jnp.exp(2.0 * ln_x) - jnp.exp(v * ln_x))
+            out = out + side[3] * (jnp.exp(2.0 * ln_x) - jnp.exp(v * ln_x))
         return out  # type: ignore[no-any-return]
 
     core = eval_log_spline(log_r, values, derivs, jnp.clip(log_rq, log_r[0], log_r[-1]))
@@ -577,8 +582,12 @@ def eval_log_spline_asympt(
     # multiplying by it. That drops an `exp` per mode per point from the
     # evaluation path, and removes the only reason the outward clamp would
     # have to account for an exponent of 2.
+    # Four rows means `asymptotic_coeffs` was asked for the cored-monopole
+    # fit, so `Q` may be live; three means it is structurally absent and the
+    # term is not worth an `exp`. The shape is static, so this is free.
+    has_q = coefs.shape[1] == 4
     inner = tail(
-        values[0], coefs[0], rs(jnp.minimum(log_rq - log_r[0], 0.0)), q_term=True
+        values[0], coefs[0], rs(jnp.minimum(log_rq - log_r[0], 0.0)), q_term=has_q
     )
     outer = tail(
         values[-1], coefs[1], rs(jnp.maximum(log_rq - log_r[-1], 0.0)), q_term=False

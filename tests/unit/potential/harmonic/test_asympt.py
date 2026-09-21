@@ -160,8 +160,10 @@ def test_kepler_monopole_is_exact() -> None:
     rq = jnp.asarray([R_MAX * f for f in (2.0, 5.0, 10.0)])
     got = eval_log_spline_asympt(log_r, values, derivs, coefs, jnp.log(rq))[:, 0]
     assert jnp.allclose(got, -1.0 / rq, rtol=4.0 * EPS, atol=0.0)
+    # Only B exists to check: the default build carries no Q row, and JAX
+    # clamps an out-of-range index rather than raising, so asserting on
+    # `coefs[1, 3, 0]` would silently re-read B and could never fail.
     assert float(coefs[1, 2, 0]) == 0.0  # B, the x^s amplitude
-    assert float(coefs[1, 3, 0]) == 0.0  # Q, the x^2 amplitude
 
     # Inward the fit does run, and lands on the guard slope s = -1. Its
     # accuracy is set by how well two adjacent knots pin a slope, ~1e-13
@@ -411,13 +413,15 @@ def test_outward_slope_is_not_clipped_against_the_monopole() -> None:
     ), "the outward fit must be independent of the monopole"
 
 
-def _plummer_modes():
+def _plummer_modes(*, cored_monopole: bool = False):
     """Build a monopole + l=2 pair on a log grid, with tail coefficients."""
     log_r = jnp.log(jnp.geomspace(0.05, 20.0, 64))
     r = jnp.exp(log_r)
     values = jnp.stack([-1.0 / jnp.sqrt(1 + r**2), 0.1 * r**2 / (1 + r**2) ** 2.5], -1)
     derivs = fit_log_spline(log_r, values)
-    coefs = asymptotic_coeffs(log_r, values, derivs, jnp.asarray([0.0, 2.0]))
+    coefs = asymptotic_coeffs(
+        log_r, values, derivs, jnp.asarray([0.0, 2.0]), cored_monopole=cored_monopole
+    )
     return log_r, values, derivs, coefs
 
 
@@ -445,21 +449,31 @@ def test_tail_is_finite_at_the_origin() -> None:
     assert jnp.all(jnp.isfinite(grad)), "a nan here poisons a whole vmapped batch"
 
 
-def test_tail_is_finite_arbitrarily_far_outside_the_grid() -> None:
+@pytest.mark.parametrize("cored_monopole", [False, True])
+def test_tail_is_finite_arbitrarily_far_outside_the_grid(cored_monopole) -> None:
     """The outward ``Q (x^2 - x^v)`` term must not overflow.
 
-    REGRESSION: ``Q`` is identically zero outward, but the ``x^2`` beside it
+    REGRESSION: ``Q`` is structurally zero outward, but the ``x^2`` beside it
     was still evaluated, so ``0 * inf`` gave `nan` past ``r/r_max ~ 1e154``.
+
+    Parametrized because the default build now carries no ``Q`` row at all,
+    so it cannot reach the code this is meant to guard -- only the
+    ``cored_monopole=True`` build takes ``q_term=True`` inward.
     """
-    log_r, values, derivs, coefs = _plummer_modes()
+    log_r, values, derivs, coefs = _plummer_modes(cored_monopole=cored_monopole)
+    assert coefs.shape[1] == (4 if cored_monopole else 3)
+
     far = log_r[-1] + jnp.log(jnp.asarray([1e10, 1e100, 1e200]))
     got = eval_log_spline_asympt(log_r, values, derivs, coefs, far)
     assert jnp.all(jnp.isfinite(got))
-    assert jnp.all(
-        jnp.isfinite(
-            eval_log_spline_asympt(log_r, values, derivs, coefs, jnp.asarray([jnp.inf]))
+    for edge in (jnp.inf, -jnp.inf):
+        assert jnp.all(
+            jnp.isfinite(
+                eval_log_spline_asympt(
+                    log_r, values, derivs, coefs, jnp.asarray([edge])
+                )
+            )
         )
-    )
 
 
 def test_refining_the_grid_never_makes_the_inner_tail_worse() -> None:
@@ -491,3 +505,33 @@ def test_refining_the_grid_never_makes_the_inner_tail_worse() -> None:
 
     assert all(b <= a for a, b in itertools.pairwise(errs)), errs
     assert errs[-1] < 2e-5, errs
+
+
+def test_the_fitted_slope_is_differentiable_through_the_root_find() -> None:
+    """`_polish` exists so the bisected ``s`` carries a derivative.
+
+    Bisection is a `fori_loop` over `jnp.where`, whose output has zero
+    gradient with respect to the data -- the root is selected, never
+    computed. `_polish` adds ``(r - stop_gradient(r)) / stop_gradient(dr)``,
+    which is identically 0 in value and carries the implicit-function
+    derivative ``-(dR/dtheta)/(dR/ds)`` in its tangent.
+
+    It therefore reads as a no-op and is exactly the kind of line that gets
+    "simplified" away. This pins it: remove `_polish` and the autodiff figure
+    below collapses to 0 while the finite difference does not.
+    """
+    log_r = jnp.log(jnp.geomspace(0.05, 20.0, 64))
+    r = jnp.exp(log_r)
+
+    def fitted_s(scale):
+        values = (-scale / jnp.sqrt(1 + r**2))[:, None]
+        derivs = fit_log_spline(log_r, values)
+        return asymptotic_coeffs(log_r, values, derivs, jnp.asarray([0.0]))[0, 1, 0]
+
+    one = jnp.asarray(1.0)
+    auto = float(jax.grad(fitted_s)(one))
+    h = 1e-6
+    fd = float((fitted_s(one + h) - fitted_s(one - h)) / (2 * h))
+
+    assert auto != 0.0, "the root find must not be gradient-blind"
+    assert abs(auto - fd) < 1e-4 * max(abs(fd), 1.0), (auto, fd)

@@ -2,11 +2,16 @@ r"""Asymptotic power-law continuation of the multipole coefficient profiles.
 
 Outside ``[r_min, r_max]`` the cubic Hermite spline of `spline` has nothing to
 say: continuing its edge cubic in :math:`\log r` is unbounded and wrong by
-construction. Measured on a Hernquist expansion with ``r_max = 300 kpc``, the
-edge-cubic continuation reaches :math:`+1.97\times 10^{-2}` at :math:`r = 700`
-where the truth is :math:`-6.34\times 10^{-3}` -- a sign flip -- and the
-reconstructed density is :math:`\sim 5\times 10^5` times too large at
-:math:`2 r_\max`. This module replaces that with the physical continuation,
+construction. Close to the boundary it is respectable -- it reads the same
+knot derivatives the tail does -- but it degrades without limit. On a
+Hernquist monopole over ``[0.05, 20]`` the edge cubic's relative error runs
+:math:`9.2\times 10^{-3}`, :math:`0.13`, :math:`1.43` at 2, 5 and
+:math:`10 r_\max`, against :math:`1.0\times 10^{-2}`, :math:`1.8\times 10^{-2}`,
+:math:`2.3\times 10^{-2}` for the continuation, and somewhere in that range it
+changes sign -- a repulsive force from a bound system.
+(`test_the_edge_cubic_really_does_change_sign` pins that; the table is
+`test_end_to_end_beats_the_edge_cubic`.) This module replaces it with the
+physical continuation,
 
 .. math::
 
@@ -430,11 +435,14 @@ def asymptotic_coeffs(
     stay off for spline-derived derivatives**: see `_inner_monopole_q` for the
     measurements. Pass it only with boundary derivatives known to be accurate
     to better than the fit's own :math:`O(h^4)` residual -- analytic ones, in
-    practice. With it off, ``Q`` is identically zero and the three-parameter
-    form is used, which converges monotonically in every configuration tested.
+    practice. With it off the three-parameter form is used -- there is no
+    ``Q`` row at all, rather than a zero one -- and it converges monotonically
+    in every configuration tested.
 
-    Returns ``(v, s, B, Q)`` for the inner and outer side, to be handed to
-    `eval_log_spline_asympt`. The tail is evaluated as
+    Returns ``(v, s, B)`` per side -- or ``(v, s, B, Q)`` when
+    ``cored_monopole`` is set -- to be handed to `eval_log_spline_asympt`,
+    which reads the presence of the ``Q`` row off the shape. The tail is
+    evaluated as
 
     .. math::
 
@@ -545,8 +553,10 @@ def eval_log_spline_asympt(
     physical reaches it; inside that range the clamped and exact results
     agree.
 
-    At :math:`r = 0` the returned value is the tail's limit
-    :math:`W = P_1 - B/s - Q` when :math:`s > 0`. When :math:`s < 0` -- a
+    At :math:`r = 0` the returned value is the *monopole's* limit
+    :math:`W = P_1 - B/s - Q` when :math:`s > 0` (for :math:`l > 0`,
+    :math:`v = l > 0` so every term carries :math:`x^v \to 0` and the limit
+    is simply 0). When :math:`s < 0` -- a
     Kepler monopole, say -- :math:`x^s` diverges and the true limit is
     :math:`-\infty`; the clamp returns a large finite number instead, whose
     magnitude is an artifact of the bound and whose gradient is 0 rather than
@@ -577,14 +587,11 @@ def eval_log_spline_asympt(
         return out  # type: ignore[no-any-return]
 
     core = eval_log_spline(log_r, values, derivs, jnp.clip(log_rq, log_r[0], log_r[-1]))
-    # `asymptotic_coeffs` only ever fits Q on the inward side -- outward it is
-    # structurally zero -- so the outward tail omits the term rather than
-    # multiplying by it. That drops an `exp` per mode per point from the
-    # evaluation path, and removes the only reason the outward clamp would
-    # have to account for an exponent of 2.
-    # Four rows means `asymptotic_coeffs` was asked for the cored-monopole
-    # fit, so `Q` may be live; three means it is structurally absent and the
-    # term is not worth an `exp`. The shape is static, so this is free.
+    # Q is fitted on the inward side only, and only when asked for: four rows
+    # means it may be live, three that it is structurally absent. Either way
+    # the outward tail omits the term rather than multiplying by a zero,
+    # which saves an `exp` per mode per point. The shape is static, so the
+    # decision is free, and the two functions cannot disagree about it.
     has_q = coefs.shape[1] == 4
     inner = tail(
         values[0], coefs[0], rs(jnp.minimum(log_rq - log_r[0], 0.0)), q_term=has_q

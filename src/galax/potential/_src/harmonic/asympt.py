@@ -53,7 +53,7 @@ Where this departs from ``agama``
   instead snaps :math:`s` to :math:`v` inside
   :math:`|A+1| < \sqrt{\epsilon}` precisely to dodge that cancellation.
 * :math:`s` is found by bisection on a residual that is provably monotone
-  (see `_slope_and_scale`) rather than through the Lambert :math:`W` function.
+  (see `_slope`) rather than through the Lambert :math:`W` function.
 * The coefficient of the :math:`x^s` term is rewritten so that the boundary
   value *and* derivative are reproduced to round-off by construction rather
   than as an outcome of the algebra; see `asymptotic_coeffs`.

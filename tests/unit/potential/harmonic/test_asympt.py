@@ -516,15 +516,21 @@ def test_the_fitted_slope_is_differentiable_through_the_root_find() -> None:
     which is identically 0 in value and carries the implicit-function
     derivative ``-(dR/dtheta)/(dR/ds)`` in its tangent.
 
-    It therefore reads as a no-op and is exactly the kind of line that gets
-    "simplified" away. This pins it: remove `_polish` and the autodiff figure
-    below collapses to 0 while the finite difference does not.
+    It therefore reads as ``s - 0`` and is exactly the kind of line that gets
+    "simplified" away, so this pins both halves: that the gradient exists,
+    and that it is the *right* gradient.
+
+    The perturbed parameter has to be one the root actually depends on. An
+    overall amplitude will not do: the residual is homogeneous of degree one
+    in it, so ``s`` is amplitude-invariant (it agrees to 11 digits either
+    side of a 1e-6 step) and both autodiff and finite differences return
+    round-off. Perturbing the Plummer scale instead moves the root properly.
     """
     log_r = jnp.log(jnp.geomspace(0.05, 20.0, 64))
     r = jnp.exp(log_r)
 
-    def fitted_s(scale):
-        values = (-scale / jnp.sqrt(1 + r**2))[:, None]
+    def fitted_s(a):
+        values = (-1.0 / jnp.sqrt(a + r**2))[:, None]
         derivs = fit_log_spline(log_r, values)
         return asymptotic_coeffs(log_r, values, derivs, jnp.asarray([0.0]))[0, 1, 0]
 
@@ -533,5 +539,7 @@ def test_the_fitted_slope_is_differentiable_through_the_root_find() -> None:
     h = 1e-6
     fd = float((fitted_s(one + h) - fitted_s(one - h)) / (2 * h))
 
+    # ~7.0e-3; the point is that it is a real derivative, not round-off.
+    assert abs(fd) > 1e-4, f"the probe must actually move the root, got {fd}"
     assert auto != 0.0, "the root find must not be gradient-blind"
-    assert abs(auto - fd) < 1e-4 * max(abs(fd), 1.0), (auto, fd)
+    assert abs(auto - fd) < 1e-3 * abs(fd), (auto, fd)

@@ -1,5 +1,6 @@
 """Tests for the asymptotic power-law continuation of the radial profiles."""
 
+import itertools
 import math
 
 import jax
@@ -310,9 +311,12 @@ def test_the_q_term_carries_a_cored_inner_monopole() -> None:
     accurate boundary derivatives the fit takes the four-parameter branch on
     a Plummer monopole and gains five orders of magnitude inward.
 
-    It is rejected, and the three-parameter form used, on boundary
-    derivatives that cannot support four parameters -- the density-sign
-    acceptance test doing its job.
+    The branch is opt-in (``cored_monopole=True``) and must stay off for
+    spline-derived derivatives, where it latches onto a bracket endpoint and
+    makes refinement *worse* -- see `_inner_monopole_q`. So this checks both
+    halves: opted in with exact derivatives it fires and wins five orders;
+    opted in with spline derivatives the density-sign test still rejects it;
+    and by default it is not reached at all.
     """
     phi_of_r = PROFILES["plummer"][0]
     r = radial_grid(N_R, jnp.asarray(R_MIN), jnp.asarray(R_MAX))
@@ -323,18 +327,23 @@ def test_the_q_term_carries_a_cored_inner_monopole() -> None:
     rq = jnp.asarray([R_MIN * f for f in (0.5, 0.2, 0.1)])
     expect = phi_of_r(rq)
 
-    def err(derivs):
-        coefs = asymptotic_coeffs(log_r, values, derivs, jnp.asarray([0.0]))
+    def err(derivs, **kw):
+        coefs = asymptotic_coeffs(log_r, values, derivs, jnp.asarray([0.0]), **kw)
         got = eval_log_spline_asympt(log_r, values, derivs, coefs, jnp.log(rq))[:, 0]
         return float(coefs[0, 3, 0]), np.abs(np.asarray(got / expect - 1.0)).max()
 
-    q_exact, err_exact = err(exact)
-    q_spline, err_spline = err(fit_log_spline(log_r, values))
+    spline = fit_log_spline(log_r, values)
+    q_exact, err_exact = err(exact, cored_monopole=True)
+    q_spline, err_spline = err(spline, cored_monopole=True)
 
     assert q_exact > 0.0  # positive: a positive central density
     assert err_exact < 1e-9
     assert q_spline == 0.0  # rejected, three-parameter form instead
     assert err_spline < 1e-3
+
+    # Off by default, so neither input can reach the branch at all.
+    assert err(exact)[0] == 0.0
+    assert err(spline)[0] == 0.0
 
 
 @pytest.mark.parametrize("p", [-0.9, -0.5, -0.2])
@@ -450,3 +459,34 @@ def test_tail_is_finite_arbitrarily_far_outside_the_grid() -> None:
             eval_log_spline_asympt(log_r, values, derivs, coefs, jnp.asarray([jnp.inf]))
         )
     )
+
+
+def test_refining_the_grid_never_makes_the_inner_tail_worse() -> None:
+    """Refinement must improve the answer, monotonically.
+
+    REGRESSION: the four-parameter inward fit used to be taken by default.
+    Its acceptance gate compares an O(h^4) residual against an O(1) scale, so
+    past a certain resolution the whole bracket passed and bisection latched
+    onto an endpoint -- ``s = 8`` (no root) or the spurious exact root
+    ``s = 2``. Measured on this exact configuration, the relative error at
+    ``r_min / 2`` went 1.1e-5, 1.1e-5, **1.0e-3**, 3.0e-4 across
+    n_r = 1024...8192: a 92x degradation from one refinement, and not even
+    monotone in the wrong direction. It is opt-in now (`cored_monopole`).
+    """
+    phi_of_r = PROFILES["nfw"][0]
+    errs = []
+    for n_r in (1024, 2048, 4096, 8192):
+        r = radial_grid(n_r, jnp.asarray(R_MIN), jnp.asarray(R_MAX))
+        log_r = jnp.log(r)
+        values = phi_of_r(r)[:, None]
+        derivs = fit_log_spline(log_r, values)
+        coefs = asymptotic_coeffs(log_r, values, derivs, jnp.asarray([0.0]))
+
+        assert float(coefs[0, 3, 0]) == 0.0, "the Q branch must not be reached"
+
+        rq = jnp.asarray([R_MIN * 0.5])
+        got = eval_log_spline_asympt(log_r, values, derivs, coefs, jnp.log(rq))[0, 0]
+        errs.append(abs(float(got / phi_of_r(rq)[0] - 1.0)))
+
+    assert all(b <= a for a, b in itertools.pairwise(errs)), errs
+    assert errs[-1] < 2e-5, errs

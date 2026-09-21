@@ -314,6 +314,50 @@ def _inner_monopole_q(
 ) -> tuple[Float[Array, "*s"], Float[Array, "*s"], Bool[Array, "*s"]]:
     r"""Four-parameter inward monopole fit, giving the :math:`Q x^2` term.
 
+    .. warning::
+
+        Opt-in only, via ``asymptotic_coeffs(..., cored_monopole=True)``, and
+        **not** safe on spline-derived boundary derivatives. Two properties
+        conspire against it there:
+
+        1. :math:`s = 2` is an *exact* root of the residual for arbitrary
+           data -- identically zero, not merely small. `_Q_BRACKET` nudges
+           its endpoint by :math:`3\sqrt{\epsilon}` to avoid it; that is not
+           enough once (2) applies.
+        2. The acceptance gate compares a residual that is
+           :math:`O(h^4)` against a scale that is :math:`O(1)`, so as the
+           grid refines the whole bracket eventually passes and bisection
+           drops onto whichever endpoint it walked to.
+
+        The result is that refinement makes the answer *worse*. On an NFW
+        monopole over ``[0.05, 20]`` with closed-form knots, the relative
+        error at :math:`r_\min/2`:
+
+        ======  =========  =============  ==========
+        ``n_r``  ``s``      ``|Q|/|P1|``  rel. error
+        ======  =========  =============  ==========
+        1024     0.96734    0             1.1e-5
+        2048     0.96738    0             1.1e-5
+        4096     8.00000    7.2e-3        1.0e-3
+        8192     2.00000    7.2e+03       3.0e-4
+        ======  =========  =============  ==========
+
+        -- a 92x degradation from one refinement, non-monotone, with the fit
+        pinned at a bracket endpoint rather than an interior root. Across 147
+        realistic monopole builds the fit was accepted 41 times and *never
+        once* with :math:`s` strictly interior.
+
+        Requiring a sign change in the bracket does not rescue it, because
+        :math:`s = 2` is a genuine root. A gate that would work has to be
+        dimensionless -- the residual small relative to its own range over
+        the bracket, not to ``scale`` -- and must additionally bound
+        :math:`|den|` away from zero so :math:`U` and :math:`Q` stay
+        conditioned. Until then the three-parameter form is used, which
+        converged monotonically in every configuration tested.
+
+        Contrast `_slope`, whose gates are relative and whose residual is
+        provably monotone with a unique root; it needs no such caveat.
+
     Only the inward monopole carries :math:`Q`: for :math:`v = 0` the
     continuation can afford a fourth parameter, fitting
     :math:`W + U x^s + Q x^2` to the value *and* derivative at both boundary
@@ -364,13 +408,15 @@ def _inner_monopole_q(
     return s, Q, accept
 
 
-@ft.partial(jax.jit)
+@ft.partial(jax.jit, static_argnames=("cored_monopole",))
 def asymptotic_coeffs(
     log_r: Float[Array, "n_r"],
     values: Float[Array, "n_r *rest"],
     derivs: Float[Array, "n_r *rest"],
     l_per_mode: Float[Array, "*rest"],
     /,
+    *,
+    cored_monopole: bool = False,
 ) -> Float[Array, "2 4 *rest"]:
     r"""Fit the inward and outward power-law continuations of each mode.
 
@@ -378,6 +424,14 @@ def asymptotic_coeffs(
     derivatives of `fit_log_spline`; only the two knots at each end are used.
     ``l_per_mode`` carries :math:`l` as a float per trailing entry, matching
     `solve_poisson_lm`.
+
+    ``cored_monopole`` opts in to the four-parameter inward monopole fit, the
+    one that carries the :math:`Q x^2` term. It is **off by default and must
+    stay off for spline-derived derivatives**: see `_inner_monopole_q` for the
+    measurements. Pass it only with boundary derivatives known to be accurate
+    to better than the fit's own :math:`O(h^4)` residual -- analytic ones, in
+    practice. With it off, ``Q`` is identically zero and the three-parameter
+    form is used, which converges monotonically in every configuration tested.
 
     Returns ``(v, s, B, Q)`` for the inner and outer side, to be handed to
     `eval_log_spline_asympt`. The tail is evaluated as
@@ -443,7 +497,7 @@ def asymptotic_coeffs(
         else:
             s = fitted
         Q = jnp.zeros_like(s)
-        if j == 0:  # the Q term exists only for the inward monopole
+        if j == 0 and cored_monopole:  # inward monopole only, and opt-in
             s_q, q, accept = _inner_monopole_q(P1, D1, P2, D2, h)
             use = accept & is_mono
             s, Q = jnp.where(use, s_q, s), jnp.where(use, q, Q)

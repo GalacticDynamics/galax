@@ -37,7 +37,6 @@ set by the inner cusp, and is ~9 orders of magnitude larger than
 
 __all__: tuple[str, ...] = ()
 
-import functools as ft
 
 from jaxtyping import Array, Float
 
@@ -48,11 +47,14 @@ import quaxed.numpy as jnp
 import galax.potential.custom_types as gt
 
 _LOG_FLOOR: float = 1e-300
-"""Floor added inside ``log|rho|`` so an identically-zero mode is finite.
+"""Smallest density this module will treat as non-zero.
 
-Well above the smallest normal double (~2.2e-308), so ``log`` of it is an
-ordinary number (~-690) rather than ``-inf``, and far below any density a
-unit system produces, so it never perturbs a real value.
+Used twice: as a floor inside ``log|rho|`` so an identically-zero mode gives
+an ordinary number (~-690) rather than ``-inf``, and as a floor on ``scale``
+so the relative gate below cannot divide by zero for an all-zero column.
+
+Well above the smallest normal double (~2.2e-308), and far below any density
+a unit system produces, so it never perturbs a real value.
 """
 
 _SLOPE_TOL: float = 1e-6
@@ -74,7 +76,7 @@ inner cusp and would reject every mode at the outer boundary.
 """
 
 
-@ft.partial(jax.jit)
+@jax.jit
 def solve_poisson_lm(
     r_knots: Float[Array, "n_r"],
     rho_lm: Float[Array, "n_r n_modes"],

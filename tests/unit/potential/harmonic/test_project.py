@@ -204,17 +204,6 @@ def test_real_ylm_is_finite_and_differentiable_on_the_z_axis() -> None:
     assert jnp.isfinite(grad)
 
 
-def _spheroid_density(alpha, beta, gamma, q_y=1.0, q_z=1.0):
-    """Build an alpha/beta/gamma spheroid, optionally flattened."""
-
-    def rho(xyz, t):
-        x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
-        rt = jnp.sqrt(x**2 + (y / q_y) ** 2 + (z / q_z) ** 2)
-        return rt ** (-gamma) * (1.0 + rt**alpha) ** ((gamma - beta) / alpha)
-
-    return rho
-
-
 def test_default_angular_resolution_oversamples() -> None:
     """`n_theta = 2 l_max + 2`, `n_phi = 4 l_max + 2` -- ~2x Nyquist.
 
@@ -235,7 +224,11 @@ def test_angular_grid_vectors_are_unit_and_weights_sum_to_4pi() -> None:
 
 def test_harmonic_coeffs_monopole_of_a_spherical_profile() -> None:
     """For spherical rho, rho_00(r) = sqrt(4 pi) rho(r), since Y_00 = 1/sqrt(4 pi)."""
-    rho = _spheroid_density(1.0, 3.0, 1.0)
+
+    def rho(xyz, t):  # a spherical NFW, alpha/beta/gamma = 1/3/1
+        rt = jnp.linalg.norm(xyz, axis=-1)
+        return rt**-1.0 * (1.0 + rt) ** -2.0
+
     r = jnp.asarray([0.1, 1.0, 10.0])
     got = harmonic_coeffs(rho, r, 0, ((0, 0),), 2, 1, jnp.asarray(0.0))
     xyz = jnp.stack([r, jnp.zeros_like(r), jnp.zeros_like(r)], axis=-1)
@@ -279,9 +272,8 @@ def test_harmonic_coeffs_recovers_a_single_mode(target: tuple[int, int]) -> None
     mode-minor one the coefficients are stored in. An off-by-one in any of
     those leaks power into a neighbouring mode.
 
-    The ``m = -2`` case is the one that pins the sqrt(2) convention and the
-    sign of the sine terms, since it is the only entry whose closed form is
-    not symmetric under ``y -> -y``.
+    The ``m < 0`` entries pin the sqrt(2) convention and the sign of the
+    sine terms: theirs are the closed forms odd under ``y -> -y``.
     """
     l_max = 4
     keys = lm_keys(l_max, None)

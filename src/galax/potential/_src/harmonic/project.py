@@ -139,8 +139,9 @@ def default_angular_resolution(l_max: int, /) -> tuple[int, int]:
     one-off projection at build time and nothing at evaluation, since the
     retained mode count is unchanged.
 
-    Pass ``n_theta`` / ``n_phi`` explicitly to `MultipoleProfilePotential`'s
-    constructors to trade build cost against residual aliasing deliberately.
+    `harmonic_coeffs` takes ``n_theta`` / ``n_phi`` directly, so a caller can
+    trade build cost against residual aliasing deliberately rather than
+    taking this default.
     """
     return 2 * l_max + 2, 4 * l_max + 2
 

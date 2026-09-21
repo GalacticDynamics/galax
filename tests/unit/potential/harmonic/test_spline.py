@@ -21,7 +21,7 @@ def test_radial_grid_endpoints_and_log_spacing() -> None:
 
 
 def test_spline_helpers_reproduce_the_cubic_spline() -> None:
-    """`approx_df` + `CubicHermiteSpline` == `CubicSpline(bc_type="not-a-knot")`.
+    """`approx_df` + `eval_log_spline` == `CubicSpline(bc_type="not-a-knot")`.
 
     Verified exact (0.0) during design; this pins it against `interpax`
     changes, since a refactor there is expected.

@@ -8,7 +8,8 @@ while retaining C2 accuracy. Evaluation then applies the cubic Hermite basis
 directly to those arrays.
 
 This module's single job is that representation: laying out the knots, fitting
-the derivatives, and evaluating. The pipeline that *uses* it lives in `build`.
+the derivatives, and evaluating. It carries no harmonic content and is tested
+as the generic utility it is.
 """
 
 __all__: tuple[str, ...] = ()

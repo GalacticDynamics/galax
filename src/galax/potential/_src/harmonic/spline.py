@@ -24,8 +24,14 @@ import galax.potential.custom_types as gt
 
 
 def radial_grid(n_r: int, r_min: gt.Sz0, r_max: gt.Sz0, /) -> Float[Array, "n_r"]:
-    """Return ``n_r`` log-uniformly spaced radii on ``[r_min, r_max]``."""
-    return jnp.exp(jnp.linspace(jnp.log(r_min), jnp.log(r_max), n_r))  # type: ignore[no-any-return]
+    """Return ``n_r`` log-uniformly spaced radii on ``[r_min, r_max]``.
+
+    `jnp.geomspace` rather than ``exp(linspace(log, log))``: it pins the
+    endpoints to ``r_min`` and ``r_max`` exactly instead of routing them
+    through a log/exp round trip, and both boundaries are read directly --
+    by the Poisson tail fits and by `asymptotic_coeffs`.
+    """
+    return jnp.geomspace(r_min, r_max, n_r)  # type: ignore[no-any-return]
 
 
 def fit_log_spline(

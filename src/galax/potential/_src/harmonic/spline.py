@@ -14,16 +14,6 @@ import interpax
 
 import quaxed.numpy as jnp
 
-import galax.potential.custom_types as gt
-
-
-def radial_grid(n_r: int, r_min: gt.Sz0, r_max: gt.Sz0, /) -> Float[Array, "n_r"]:
-    """Return ``n_r`` log-uniformly spaced radii on ``[r_min, r_max]``.
-
-    `jnp.geomspace` pins both endpoints exactly; the boundary fits read them.
-    """
-    return jnp.geomspace(r_min, r_max, n_r)  # type: ignore[no-any-return]
-
 
 def fit_log_spline(
     log_r: Float[Array, "n_r"], values: Float[Array, "n_r *rest"], /

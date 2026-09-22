@@ -7,20 +7,7 @@ import pytest
 
 import quaxed.numpy as jnp
 
-from galax.potential._src.harmonic.spline import (
-    eval_log_spline,
-    fit_log_spline,
-    radial_grid,
-)
-
-
-def test_radial_grid_endpoints_and_log_spacing() -> None:
-    r = radial_grid(65, jnp.asarray(1e-2), jnp.asarray(1e2))
-    assert r.shape == (65,)
-    assert jnp.isclose(r[0], 1e-2, rtol=1e-14)
-    assert jnp.isclose(r[-1], 1e2, rtol=1e-14)
-    dlog = jnp.diff(jnp.log(r))
-    assert jnp.allclose(dlog, dlog[0], rtol=1e-12)
+from galax.potential._src.harmonic.spline import eval_log_spline, fit_log_spline
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,7 @@
 """Tests for the radial spline representation."""
 
 import interpax
+import pytest
 
 import quaxed.numpy as jnp
 
@@ -42,3 +43,22 @@ def test_spline_interpolates_its_knots_exactly() -> None:
     y = (x**3 - x)[:, None]
     got = eval_log_spline(x, y, fit_log_spline(x, y), x)
     assert jnp.allclose(got, y, rtol=0.0, atol=1e-12)
+
+
+@pytest.mark.parametrize("rest", [(), (2,), (2, 3)])
+def test_scalar_query_matches_the_batched_path(rest: tuple[int, ...]) -> None:
+    """A scalar ``log_rq`` must agree with the same query batched.
+
+    This is the hot path -- `eval_log_spline` runs inside a `diffrax` scan
+    body, one query at a time -- and it is the only path where the basis
+    factors are rank-0, so the trailing-axis reshape is what differs.
+    """
+    x = jnp.linspace(0.0, 1.0, 17)
+    y = jnp.sin(3.0 * x).reshape((17, *(1,) * len(rest))) * jnp.ones(rest)
+    derivs = fit_log_spline(x, y)
+
+    got = eval_log_spline(x, y, derivs, jnp.asarray(0.371))
+    expect = eval_log_spline(x, y, derivs, jnp.asarray([0.371]))[0]
+
+    assert got.shape == rest
+    assert jnp.array_equal(got, expect)

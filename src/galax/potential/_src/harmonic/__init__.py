@@ -3,6 +3,8 @@
 __all__ = [
     "angular_grid",
     "default_angular_resolution",
+    "eval_log_spline",
+    "fit_log_spline",
     "harmonic_coeffs",
     "lm_keys",
     "real_ylm",
@@ -17,3 +19,4 @@ from .project import (
     lm_keys,
     real_ylm,
 )
+from .spline import eval_log_spline, fit_log_spline

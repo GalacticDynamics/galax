@@ -27,6 +27,9 @@ SQRT2: float = math.sqrt(2.0)
 """Real-harmonic normalization for ``m != 0``."""
 
 
+# TODO: revisit as a `plum` dispatched function on `Symmetry` once
+# https://github.com/beartype/plum/issues/290 lands -- that would replace the
+# `match` below with one implementation per member.
 def lm_keys(
     l_max: int, symmetry: Symmetry | str | None = None, /
 ) -> tuple[tuple[int, int], ...]:
@@ -43,8 +46,8 @@ def lm_keys(
     `Symmetry.NONE` under `jax.jit`, making the build depend on whether the
     caller traced.
     """
-    # `Symmetry(None)` works via `_missing_`, but is not typed as such.
-    match Symmetry(Symmetry.NONE if symmetry is None else symmetry):
+    # `_missing_` maps `None` to `NONE`; `EnumMeta.__call__` is typed `str`.
+    match Symmetry(symmetry):  # type: ignore[arg-type]
         case Symmetry.NONE:
             return tuple((l, m) for l in range(l_max + 1) for m in range(-l, l + 1))
         case Symmetry.SPHERICAL:

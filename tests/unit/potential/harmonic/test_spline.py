@@ -1,5 +1,7 @@
 """Tests for the radial spline representation."""
 
+from jaxtyping import Array, Float
+
 import interpax
 import pytest
 
@@ -21,15 +23,23 @@ def test_radial_grid_endpoints_and_log_spacing() -> None:
     assert jnp.allclose(dlog, dlog[0], rtol=1e-12)
 
 
-def test_spline_helpers_reproduce_the_cubic_spline() -> None:
+@pytest.mark.parametrize(
+    "x",
+    [jnp.linspace(0.0, 1.0, 17), jnp.geomspace(0.05, 1.0, 17)],
+    ids=["uniform", "log-spaced"],
+)
+def test_spline_helpers_reproduce_the_cubic_spline(x: Float[Array, "n_r"]) -> None:
     """`approx_df` + `eval_log_spline` == `CubicSpline(bc_type="not-a-knot")`.
 
     Pins the equality against `interpax` changes, since a refactor is
     expected there.
+
+    Both spacings are checked: `eval_log_spline` locates its interval with
+    `searchsorted` rather than by division, so nothing assumes uniform knots,
+    and log-spaced is the production case.
     """
-    x = jnp.linspace(0.0, 1.0, 17)
     y = jnp.stack([jnp.sin(3.0 * x), jnp.cos(2.0 * x)], axis=-1)
-    xq = jnp.linspace(0.0, 1.0, 51)
+    xq = jnp.linspace(x[0], x[-1], 51)
 
     got = eval_log_spline(x, y, fit_log_spline(x, y), xq)
     expect = interpax.CubicSpline(x, y, axis=0, bc_type="not-a-knot", check=False)(xq)

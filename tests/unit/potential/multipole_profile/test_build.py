@@ -10,7 +10,6 @@ from galax.potential._src.harmonic import (
     default_angular_resolution,
     eval_log_spline,
     lm_keys,
-    radial_grid,
 )
 
 
@@ -20,7 +19,7 @@ def test_subtract_inner_cusp_removes_a_pure_power_law() -> None:
     The amplitude is `rho_lm` at the innermost knot, so the background is
     `amplitude * (r / r_knots[0]) ** alpha`.
     """
-    r = radial_grid(128, jnp.asarray(1e-3), jnp.asarray(1e3))
+    r = jnp.geomspace(1e-3, 1e3, 128)
     rho_lm = (3.0 * r**-1.5)[:, None]
     residual, alpha, amplitude = subtract_inner_cusp(r, rho_lm)
 
@@ -31,7 +30,7 @@ def test_subtract_inner_cusp_removes_a_pure_power_law() -> None:
 
 def test_subtract_inner_cusp_zeroes_negligible_modes() -> None:
     """Modes negligible at `r_min` get no background, per the 1e-6 gate."""
-    r = radial_grid(64, jnp.asarray(1e-2), jnp.asarray(1e2))
+    r = jnp.geomspace(1e-2, 1e2, 64)
     big = 1.0 / r
     tiny = jnp.full_like(r, 1e-12) * big[0]
     rho_lm = jnp.stack([big, tiny], axis=-1)
@@ -56,7 +55,7 @@ def test_subtract_inner_cusp_declines_a_sign_changing_mode() -> None:
     the alpha clip sufficient on its own -- clipped to +3 the background still
     reaches ~1e8 times the mode. Only the sign check rejects it.
     """
-    r = radial_grid(64, jnp.asarray(1e-2), jnp.asarray(1e2))
+    r = jnp.geomspace(1e-2, 1e2, 64)
     clean = 1.0 / r
     # Sign flips between knots 0 and 1, with |rho_lm[0]| small but above the
     # magnitude gate -- the configuration that makes `alpha` blow up.
@@ -78,7 +77,7 @@ def test_subtract_inner_cusp_declines_a_sign_changing_mode() -> None:
 
 def test_subtract_inner_cusp_clips_an_extreme_fitted_slope() -> None:
     """Even a same-sign fit is clipped to a physically plausible slope."""
-    r = radial_grid(64, jnp.asarray(1e-2), jnp.asarray(1e2))
+    r = jnp.geomspace(1e-2, 1e2, 64)
     rho_lm = (r**-8.0)[:, None]
     _, alpha, _ = subtract_inner_cusp(r, rho_lm)
     assert alpha[0] == -3.0
@@ -97,7 +96,7 @@ def test_build_expansion_reconstructs_a_cuspy_density() -> None:
 
     keys = lm_keys(0, "spherical")
     n_theta, n_phi = default_angular_resolution(0)
-    r = radial_grid(128, jnp.asarray(1e-2), jnp.asarray(3e2))
+    r = jnp.geomspace(1e-2, 3e2, 128)
     coeffs = build_expansion(
         rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
     )
@@ -121,7 +120,7 @@ def test_build_expansion_returns_consistent_shapes() -> None:
 
     keys = lm_keys(4, "plane_reflection")
     n_theta, n_phi = default_angular_resolution(4)
-    r = radial_grid(32, jnp.asarray(1e-2), jnp.asarray(1e2))
+    r = jnp.geomspace(1e-2, 1e2, 32)
     coeffs = build_expansion(
         rho, r, 4, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
     )

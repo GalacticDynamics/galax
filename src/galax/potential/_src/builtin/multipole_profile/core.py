@@ -23,7 +23,6 @@ from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.harmonic import (
     default_angular_resolution,
     lm_keys,
-    radial_grid,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.constant import ConstantParameter
@@ -344,7 +343,7 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             msg = f"r_min must be < r_max (got r_min={r_min_val}, r_max={r_max_val})"
             raise ValueError(msg)
 
-        r_knots = radial_grid(n_r, jnp.asarray(r_min_val), jnp.asarray(r_max_val))
+        r_knots = jnp.geomspace(r_min_val, r_max_val, n_r)
         t_ = jnp.asarray(
             u.ustrip(
                 usys["time"],

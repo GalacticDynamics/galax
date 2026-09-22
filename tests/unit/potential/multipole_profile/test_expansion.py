@@ -12,7 +12,6 @@ from galax.potential._src.builtin.multipole_profile.expansion import (
 from galax.potential._src.harmonic import (
     default_angular_resolution,
     lm_keys,
-    radial_grid,
 )
 
 
@@ -25,7 +24,7 @@ def _hernquist_params(n_r: int = 256):
 
     keys = lm_keys(0, "spherical")
     n_theta, n_phi = default_angular_resolution(0)
-    r = radial_grid(n_r, jnp.asarray(1e-3), jnp.asarray(1e3))
+    r = jnp.geomspace(1e-3, 1e3, n_r)
     p = build_expansion(
         rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
     )
@@ -65,7 +64,7 @@ def test_gradient_is_finite_on_the_z_axis() -> None:
 
     keys = lm_keys(4, None)
     n_theta, n_phi = default_angular_resolution(4)
-    r = radial_grid(64, jnp.asarray(1e-2), jnp.asarray(1e2))
+    r = jnp.geomspace(1e-2, 1e2, 64)
     p = {
         **build_expansion(
             rho, r, 4, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)

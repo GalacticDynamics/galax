@@ -17,7 +17,6 @@ from galax.potential._src.builtin.multipole_profile.core import (
 from galax.potential._src.harmonic import (
     default_angular_resolution,
     lm_keys,
-    radial_grid,
 )
 
 G_GALACTIC = 4.498502265137816e-12
@@ -40,7 +39,7 @@ def _hernquist_potential() -> MultipoleProfilePotential:
 
     keys = lm_keys(0, "spherical")
     n_theta, n_phi = default_angular_resolution(0)
-    r = radial_grid(256, jnp.asarray(1e-2), jnp.asarray(1e4))
+    r = jnp.geomspace(1e-2, 1e4, 256)
     coeffs = build_expansion(
         rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(G_GALACTIC)
     )
@@ -403,7 +402,7 @@ def test_from_density_uses_n_theta_and_n_phi_as_given() -> None:
     n_theta, n_phi = 5, 15  # distinct, and neither is the l_max=2 default
     l_max, n_r = 2, 32
     keys = lm_keys(l_max, None)
-    r = radial_grid(n_r, jnp.asarray(1e-2), jnp.asarray(1e2))
+    r = jnp.geomspace(1e-2, 1e2, n_r)
     args = (_flattened_density, r, l_max, keys)
     # `from_density`'s own G, so the comparison isolates the quadrature.
     g = jnp.asarray(default_constants["G"].decompose(u.unitsystem("galactic")).value)

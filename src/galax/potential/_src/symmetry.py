@@ -92,12 +92,10 @@ class Symmetry(enum.StrEnum):
 
     @classmethod
     def _missing_(cls, value: object) -> "Symmetry":
-        """Accept `None` as an alias for `NONE`; reject anything else.
+        """Accept `None` as an alias for `NONE`, and name the valid values.
 
-        The members are the vocabulary a caller passing a plain string has to
-        guess at, and the obvious guesses -- ``"axisymmetric"``,
-        ``"triaxial"`` -- are Agama's words, not these. So name the valid
-        values rather than leaving `enum`'s bare "is not a valid Symmetry".
+        The likely guesses -- ``"axisymmetric"``, ``"triaxial"`` -- are
+        Agama's words, not these; see the correspondence table above.
         """
         if value is None:
             return cls.NONE

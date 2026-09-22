@@ -78,7 +78,7 @@ def test_radial_matches_cartesian(pot: gp.AbstractPotential, method: str) -> Non
 @pytest.mark.parametrize("method", ["potential", "density", "gradient", "hessian"])
 def test_radial_on_nonspherical_raises(method: str) -> None:
     """A radius is ambiguous without spherical symmetry."""
-    with pytest.raises(TypeError, match="RadialPos is ambiguous"):
+    with pytest.raises(TypeError, match="RadialPos needs 'spherical'"):
         getattr(MIYAMOTO_NAGAI, method)(R, T)
 
 

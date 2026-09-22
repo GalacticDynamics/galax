@@ -703,10 +703,8 @@ def parse_pot_to_xyz_t(
     ...     parse_pot_to_xyz_t(pot, r, t)
     ... except TypeError as e:
     ...     print(e)
-    MiyamotoNagaiPotential declares symmetry 'none': a RadialPos is ambiguous,
-    since turning a radius into a position requires choosing a direction. Only
-    'spherical' symmetry makes that choice irrelevant. Pass a 3D position
-    instead, e.g. coordinax.vecs.SphericalPos.
+    MiyamotoNagaiPotential declares symmetry 'none'; a RadialPos needs
+    'spherical'. Pass a 3D position instead, e.g. coordinax.vecs.SphericalPos.
 
     """
     if isinstance(q, cxv.RadialPos):
@@ -719,12 +717,9 @@ def parse_pot_to_xyz_t(
         symmetry = Symmetry(pot.symmetry)
         if symmetry != Symmetry.SPHERICAL:
             msg = (
-                f"{type(pot).__name__} declares symmetry '{symmetry}': a "
-                "RadialPos is ambiguous, since turning a radius into a "
-                "position requires choosing a direction. Only "
-                f"'{Symmetry.SPHERICAL}' symmetry makes that choice "
-                "irrelevant. Pass a 3D position instead, e.g. "
-                "coordinax.vecs.SphericalPos."
+                f"{type(pot).__name__} declares symmetry '{symmetry}'; a "
+                f"RadialPos needs '{Symmetry.SPHERICAL}'. Pass a 3D position "
+                "instead, e.g. coordinax.vecs.SphericalPos."
             )
             raise TypeError(msg)
         q = q.vconvert(cx.CartesianPos3D)

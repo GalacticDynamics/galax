@@ -21,11 +21,7 @@ from galax.potential._src.harmonic.project import (
     harmonic_coeffs,
     lm_keys,
 )
-from galax.potential._src.harmonic.spline import (
-    eval_log_spline,
-    fit_log_spline,
-    radial_grid,
-)
+from galax.potential._src.harmonic.spline import eval_log_spline, fit_log_spline
 from galax.potential._src.symmetry import Symmetry
 
 R_MIN, R_MAX, N_R = 0.05, 20.0, 128
@@ -50,7 +46,7 @@ def _potential(name, m=1e12):
 
 def _splined(phi_of_r, n_r=N_R):
     """Knots, values and splined derivatives of a closed-form monopole."""
-    r = radial_grid(n_r, jnp.asarray(R_MIN), jnp.asarray(R_MAX))
+    r = jnp.geomspace(R_MIN, R_MAX, n_r)
     log_r = jnp.log(r)
     values = phi_of_r(r)[:, None]
     return log_r, values, fit_log_spline(log_r, values)
@@ -60,7 +56,7 @@ def _expansion(pot):
     """Run the whole build: density -> rho_lm -> Phi_lm -> spline -> tails."""
     keys = lm_keys(0, Symmetry.SPHERICAL)
     n_theta, n_phi = default_angular_resolution(0)
-    r = radial_grid(N_R, jnp.asarray(R_MIN), jnp.asarray(R_MAX))
+    r = jnp.geomspace(R_MIN, R_MAX, N_R)
     log_r = jnp.log(r)
     rho_lm = harmonic_coeffs(
         # Not inlinable: `harmonic_coeffs` takes `rho_fn` as a static
@@ -149,7 +145,7 @@ def test_kepler_monopole_is_exact() -> None:
     origin and is identically zero on every grid node, so the projection sees
     nothing at all.
     """
-    r = radial_grid(N_R, jnp.asarray(R_MIN), jnp.asarray(R_MAX))
+    r = jnp.geomspace(R_MIN, R_MAX, N_R)
     log_r = jnp.log(r)
     values = (-1.0 / r)[:, None]
     derivs = (1.0 / r)[:, None]  # dPhi/dln r, exact
@@ -321,7 +317,7 @@ def test_the_q_term_carries_a_cored_inner_monopole() -> None:
     and by default it is not reached at all.
     """
     phi_of_r = PROFILES["plummer"][0]
-    r = radial_grid(N_R, jnp.asarray(R_MIN), jnp.asarray(R_MAX))
+    r = jnp.geomspace(R_MIN, R_MAX, N_R)
     log_r = jnp.log(r)
     values = phi_of_r(r)[:, None]
     exact = (jax.vmap(jax.grad(phi_of_r))(r) * r)[:, None]
@@ -491,7 +487,7 @@ def test_refining_the_grid_never_makes_the_inner_tail_worse() -> None:
     phi_of_r = PROFILES["nfw"][0]
     errs = []
     for n_r in (1024, 2048, 4096, 8192):
-        r = radial_grid(n_r, jnp.asarray(R_MIN), jnp.asarray(R_MAX))
+        r = jnp.geomspace(R_MIN, R_MAX, n_r)
         log_r = jnp.log(r)
         values = phi_of_r(r)[:, None]
         derivs = fit_log_spline(log_r, values)

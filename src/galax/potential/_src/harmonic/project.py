@@ -12,7 +12,7 @@ import math
 
 from collections.abc import Callable
 from jaxtyping import Array, Float
-from typing import cast
+from typing import assert_never, cast
 
 import jax
 
@@ -60,7 +60,8 @@ def lm_keys(
             return tuple(
                 (l, m) for l in range(0, l_max + 1, 2) for m in range(0, l + 1, 2)
             )
-    raise AssertionError  # pragma: no cover  # exhaustive over `Symmetry`
+        case _ as never:  # pragma: no cover
+            assert_never(never)
 
 
 def real_ylm(

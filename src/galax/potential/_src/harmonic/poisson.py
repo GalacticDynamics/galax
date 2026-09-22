@@ -98,7 +98,20 @@ def solve_poisson_lm(
     scan is not a runtime optimization over `vmap` -- only over the unrolled
     loop. The gap is ~1 ms inside a ~1500 ms one-off build compile, which is
     not worth the churn of changing it.
+
+    Raises
+    ------
+    ValueError
+        If ``r_knots`` has fewer than 3 entries.
     """
+    # Three knots is what the boundary slope fits need. A short grid does not
+    # fail on its own: static slicing clamps, so `rho_col[:3]` quietly becomes
+    # a 2-point fit and `n_r == 1` returns a meaningless zero. `n_r` is a
+    # shape, so this is checked at trace time and costs nothing at runtime.
+    if (n_r := r_knots.shape[0]) < 3:
+        msg = f"solve_poisson_lm needs at least 3 radial knots, got {n_r}."
+        raise ValueError(msg)
+
     # Work in x = r / r_c, with r_c the log-midpoint of the grid. Every
     # exponent below is then bounded by (l + 2) times *half* the grid's log
     # range instead of (l + 2) |log r|, which is what otherwise overflows:

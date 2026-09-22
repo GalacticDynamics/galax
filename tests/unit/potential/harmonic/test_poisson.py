@@ -234,3 +234,19 @@ def test_inner_tail_survives_a_huge_fitted_slope() -> None:
 
     got = solve_poisson_lm(r, rho[:, None], jnp.asarray([8.0]), jnp.asarray(1.0))
     assert jnp.all(jnp.isfinite(got)), "one round-off mode must not poison the column"
+
+
+@pytest.mark.parametrize("n_r", [1, 2])
+def test_too_few_radial_knots_is_rejected(n_r: int) -> None:
+    """A grid too short for the boundary slope fits must fail loudly.
+
+    It does not fail on its own. JAX's static slicing clamps rather than
+    raising, so ``rho_col[:3]`` on a 2-knot grid silently degrades to a
+    2-point slope fit, and a 1-knot grid returns ``-0.0`` -- a meaningless
+    answer that no exception marks as one.
+    """
+    r = jnp.exp(jnp.linspace(jnp.log(1.0), jnp.log(10.0), n_r))
+    rho = jnp.ones((n_r, 1))
+
+    with pytest.raises(ValueError, match="at least 3 radial knots"):
+        solve_poisson_lm(r, rho, jnp.asarray([0.0]), jnp.asarray(1.0))

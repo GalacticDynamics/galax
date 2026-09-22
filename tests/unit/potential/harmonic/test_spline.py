@@ -23,8 +23,8 @@ def test_radial_grid_endpoints_and_log_spacing() -> None:
 def test_spline_helpers_reproduce_the_cubic_spline() -> None:
     """`approx_df` + `eval_log_spline` == `CubicSpline(bc_type="not-a-knot")`.
 
-    Verified exact (0.0) during design; this pins it against `interpax`
-    changes, since a refactor there is expected.
+    Pins the equality against `interpax` changes, since a refactor is
+    expected there.
     """
     x = jnp.linspace(0.0, 1.0, 17)
     y = jnp.stack([jnp.sin(3.0 * x), jnp.cos(2.0 * x)], axis=-1)
@@ -34,11 +34,11 @@ def test_spline_helpers_reproduce_the_cubic_spline() -> None:
     expect = interpax.CubicSpline(x, y, axis=0, bc_type="not-a-knot", check=False)(xq)
 
     assert got.shape == (51, 2)
-    assert jnp.allclose(got, expect, atol=1e-14)
+    assert jnp.allclose(got, expect, rtol=0.0, atol=1e-14)
 
 
 def test_spline_interpolates_its_knots_exactly() -> None:
     x = jnp.linspace(-1.0, 2.0, 21)
     y = (x**3 - x)[:, None]
     got = eval_log_spline(x, y, fit_log_spline(x, y), x)
-    assert jnp.allclose(got, y, atol=1e-12)
+    assert jnp.allclose(got, y, rtol=0.0, atol=1e-12)

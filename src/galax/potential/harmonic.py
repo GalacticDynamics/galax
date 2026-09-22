@@ -9,7 +9,6 @@ __all__ = [
     "fit_log_spline",
     "harmonic_coeffs",
     "lm_keys",
-    "radial_grid",
     "real_ylm",
     "solve_poisson_lm",
 ]
@@ -23,7 +22,6 @@ from ._src.harmonic import (
     fit_log_spline,
     harmonic_coeffs,
     lm_keys,
-    radial_grid,
     real_ylm,
     solve_poisson_lm,
 )

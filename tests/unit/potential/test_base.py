@@ -414,6 +414,7 @@ class TestNoTime:
             q.value,
             cq,
             cx.vecs.KinematicSpace(length=cq),
+            cx.Coordinate({"length": cq}, frame=gc.frames.simulation_frame),
             gc.PhaseSpacePosition(q=q, p=u.Q([0.0, 0, 0], "km/s")),
         ):
             with pytest.raises(TypeError, match="depends on time"):

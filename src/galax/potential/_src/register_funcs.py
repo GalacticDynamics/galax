@@ -33,7 +33,7 @@ from galax.potential._src.shape import expand_arr_dims, expand_batch_dims
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def potential(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0 | None, /
 ) -> gt.BBtSz0:
     """Compute the potential energy at the given position(s).
 
@@ -49,7 +49,7 @@ def potential(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def potential(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0 | None = None
 ) -> gt.BBtSz0:
     return api.potential(pot, xyz, t)
 
@@ -86,7 +86,7 @@ def potential(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def gradient(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0 | None, /
 ) -> gt.BBtSz3:
     """Compute the gradient at the given position(s).
 
@@ -102,7 +102,7 @@ def gradient(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def gradient(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0 | None = None
 ) -> gt.BBtSz3:
     return api.gradient(pot, xyz, t)
 
@@ -114,7 +114,11 @@ def gradient(
 @dispatch
 @ft.partial(jax.jit, inline=True)
 def gradient(
-    pot: AbstractPotential, xyz: u.AbstractQuantity, /, *, t: u.AbstractQuantity
+    pot: AbstractPotential,
+    xyz: u.AbstractQuantity,
+    /,
+    *,
+    t: u.AbstractQuantity | None = None,
 ) -> Real[u.Quantity["acceleration"], "*#batch 3"]:
     """Compute from a q + t object."""
     xyz, t = parse_pot_to_xyz_t(pot, xyz, t, ustrip=pot.units, dtype=float)
@@ -166,7 +170,7 @@ def gradient(pot: AbstractPotential, q: Any, t: Any, /) -> cx.vecs.CartesianAcc3
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def laplacian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0 | None, /
 ) -> gt.BBtSz0:
     """Compute the laplacian at the given position(s).
 
@@ -182,7 +186,7 @@ def laplacian(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def laplacian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0 | None = None
 ) -> gt.BBtSz0:
     return api.laplacian(pot, xyz, t)
 
@@ -221,7 +225,7 @@ def laplacian(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def density(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0 | None, /
 ) -> gt.BBtSz0:
     """Compute the density at the given position(s).
 
@@ -237,7 +241,7 @@ def density(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def density(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0 | None = None
 ) -> gt.BBtSz0:
     return api.density(pot, xyz, t)
 
@@ -276,7 +280,7 @@ def density(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def hessian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0, /
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, t: gt.BBtLikeSz0 | None, /
 ) -> gt.BBtSz33:
     """Compute the hessian at the given position(s).
 
@@ -292,7 +296,7 @@ def hessian(
 @dispatch  # special-case Array input to not return Quantity
 @ft.partial(jax.jit, inline=True)
 def hessian(
-    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0
+    pot: AbstractPotential, xyz: gt.XYZArrayLike, /, *, t: gt.BBtLikeSz0 | None = None
 ) -> gt.BBtSz33:
     return api.hessian(pot, xyz, t)
 

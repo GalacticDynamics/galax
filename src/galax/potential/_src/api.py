@@ -71,6 +71,11 @@ def potential(*args: Any, **kwargs: Any) -> Any:
     >>> pot.potential(xyz, t=t)
     Array([-1.20227527, -0.5126519 ], dtype=float64)
 
+    The time is optional and defaults to ``t=0``:
+
+    >>> pot.potential(xyz)
+    Array([-1.20227527, -0.5126519 ], dtype=float64)
+
     - A `unxt.Quantity`, which is interpreted as a
       `coordinax.vecs.CartesianPos3D` position:
 
@@ -80,6 +85,9 @@ def potential(*args: Any, **kwargs: Any) -> Any:
     Q(-1.20227527, 'kpc2 / Myr2')
 
     >>> pot.potential(xyz, t=t)
+    Q(-1.20227527, 'kpc2 / Myr2')
+
+    >>> pot.potential(xyz)
     Q(-1.20227527, 'kpc2 / Myr2')
 
     - `coordinax.vecs.AbstractPos3D`:

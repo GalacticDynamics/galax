@@ -239,6 +239,12 @@ def parse_to_xyz_t(
     (Array([1., 0., 0.], dtype=float64),
      Array(0., dtype=float64))
 
+    ``t=None`` is the default time, ``t=0``:
+
+    >>> parse_to_xyz_t(None, xyz, None, dtype=float)
+    (Array([1., 0., 0.], dtype=float64),
+     Array(0., dtype=float64))
+
     - `jax.Array`:
 
     >>> xyz = jnp.array([1, 0, 0])
@@ -266,6 +272,9 @@ def parse_to_xyz_t(
     >>> parse_to_xyz_t(None, q, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
      Array(1000., dtype=float64, weak_type=True))
+
+    >>> parse_to_xyz_t(None, q, None)
+    (Q([1, 0, 0], 'kpc'), Q(0., 'Myr'))
 
     >>> tq = u.Q([0, 1, 0, 0], "kpc")
     >>> parse_to_xyz_t(None, tq)
@@ -359,16 +368,19 @@ def parse_to_xyz_t(
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
     xyz: gt.XYZArrayLike,
-    t: gt.BBtLikeSz0,  # TODO: consider also "*#batch 1"
+    t: gt.BBtLikeSz0 | None,  # TODO: consider also "*#batch 1"
     /,
     *,
     dtype: Any = None,
     ustrip: OptUSys = None,  # noqa: ARG001
 ) -> tuple[gt.BBtSz3, gt.BBtSz0]:
-    """Parse input arguments to position & time."""
+    """Parse input arguments to position & time.
+
+    ``t=None`` means the default time, ``t=0``.
+    """
     # Process the input arguments into arrays
     xyz = jnp.asarray(xyz, dtype=dtype)
-    t = jnp.asarray(t, dtype=dtype)
+    t = jnp.asarray(0.0 if t is None else t, dtype=dtype)
 
     # The coordinates are assumed to be in the simulation frame and may need to
     # be transformed to the target frame.
@@ -418,20 +430,25 @@ def parse_to_xyz_t(
 
 @coord_dispatcher.multi(
     (cxf.AbstractReferenceFrame | None, gt.BBtQuSz3, gt.BBtQuSz0),
-    (cxf.AbstractReferenceFrame | None, gt.BBtQuSz3, gt.BBtSz0 | float | int),
+    (cxf.AbstractReferenceFrame | None, gt.BBtQuSz3, gt.BBtSz0 | float | int | None),
 )
 def parse_to_xyz_t(
     to_frame: cxf.AbstractReferenceFrame | None,
     xyz: gt.BBtQorVSz3,
-    t: gt.BBtQorVSz0 | float | int,
+    t: gt.BBtQorVSz0 | float | int | None,
     /,
     *,
     dtype: Any = None,
     ustrip: OptUSys = None,
 ) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0]:
-    """Parse input arguments to position & time."""
+    """Parse input arguments to position & time.
+
+    ``t=None`` means the default time, ``t=0``.
+    """
     xyz = jnp.asarray(xyz, dtype=dtype)
-    t = jnp.asarray(t, dtype=dtype)
+    # A Quantity so that a Quantity position keeps a Quantity time. The unit is
+    # immaterial for zero.
+    t = jnp.asarray(u.Q(0.0, "Myr") if t is None else t, dtype=dtype)
 
     if ustrip is not None:
         xyz = u.ustrip(AllowValue, ustrip["length"], xyz)
@@ -558,9 +575,8 @@ def parse_to_xyz_t(
     """Parse input arguments to position & time."""
     q = space["length"]
 
-    # Case 1: 3D position requires time
+    # Case 1: 3D position, `t=None` is the default time
     if isinstance(q, cx.vecs.AbstractPos3D):
-        t = eqx.error_if(t, t is None, "t is required")
         return parse_to_xyz_t(to_frame, q, t, dtype=dtype, ustrip=ustrip)
 
     # Case 2: 4D position, time must be equal or None

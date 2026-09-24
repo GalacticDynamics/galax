@@ -8,11 +8,13 @@ import equinox as eqx
 import jax
 import pytest
 
+import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
+import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
 import galax.potential.custom_types as gt
@@ -200,6 +202,37 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         assert orbits.shape == (2, len(ts))
         assert jnp.allclose(orbits.t, ts, atol=u.Q(1e-16, "Myr"))
 
+    # =========================================================================
+
+    @pytest.mark.parametrize(
+        "func",
+        [
+            gp.potential,
+            gp.gradient,
+            gp.laplacian,
+            gp.density,
+            gp.hessian,
+            gp.acceleration,
+            gp.tidal_tensor,
+            gp.local_circular_velocity,
+            gp.dpotential_dr,
+            gp.d2potential_dr2,
+        ],
+    )
+    def test_default_time(
+        self, func: Any, pot: gp.AbstractPotential, x: gt.QuSz3
+    ) -> None:
+        """Omitting the time is the same as passing ``t=0``."""
+        # Quantity
+        got, exp = func(pot, x), func(pot, x, u.Q(0.0, "Myr"))
+        assert type(got) is type(exp)
+        assert got.unit == exp.unit
+        assert jnp.allclose(got.value, exp.value, equal_nan=True)
+        # Array
+        got, exp = func(pot, x.value), func(pot, x.value, 0)
+        assert type(got) is type(exp)
+        assert jnp.allclose(got, exp, equal_nan=True)
+
 
 ##############################################################################
 
@@ -307,4 +340,62 @@ class TestAbstractPotential(AbstractPotential_Test):
         )
         assert jnp.allclose(
             pot.tidal_tensor(x, t=0), expect, atol=u.Q(1e-8, expect.unit)
+        )
+
+
+##############################################################################
+
+
+class TestDefaultTimeDependent:
+    """The default time for a time-dependent potential."""
+
+    @pytest.fixture(scope="class")
+    def pot(self) -> gp.AbstractPotential:
+        m_tot = gpp.LinearParameter(
+            slope=u.Q(1e10, "Msun / Myr"),
+            point_time=u.Q(0, "Myr"),
+            point_value=u.Q(1e12, "Msun"),
+        )
+        return gp.KeplerPotential(m_tot=m_tot, units="galactic")
+
+    @pytest.fixture(scope="class")
+    def q(self) -> gt.QuSz3:
+        return u.Q([8.0, 0.0, 0.0], "kpc")
+
+    def test_default_is_zero(self, pot: gp.AbstractPotential, q: gt.QuSz3) -> None:
+        """Omitting the time is ``t=0``, not some other time."""
+        assert jnp.array_equal(pot.potential(q), pot.potential(q, u.Q(0, "Gyr")))
+        assert not jnp.allclose(
+            pot.potential(q).value, pot.potential(q, u.Q(10, "Myr")).value
+        )
+
+    def test_default_positions(self, pot: gp.AbstractPotential, q: gt.QuSz3) -> None:
+        """Positions without a time use the default time."""
+        exp = pot.potential(q, u.Q(0, "Myr"))
+        cq = cx.CartesianPos3D.from_(q)
+        for pos in (
+            cq,
+            cx.vecs.KinematicSpace(length=cq),
+            cx.Coordinate({"length": cq}, frame=gc.frames.simulation_frame),
+            gc.PhaseSpacePosition(q=q, p=u.Q([0.0, 0, 0], "km/s")),
+        ):
+            assert jnp.allclose(pot.potential(pos).value, exp.value), type(pos)
+
+    def test_own_time_wins(self, pot: gp.AbstractPotential, q: gt.QuSz3) -> None:
+        """Inputs that carry a time use it rather than the default."""
+        t = u.Q(10, "Myr")
+        exp = pot.potential(q, t)
+        cq = cx.CartesianPos3D.from_(q)
+        for pos in (
+            cx.FourVector(q=cq, t=t),
+            gc.PhaseSpaceCoordinate(q=q, p=u.Q([0.0, 0, 0], "km/s"), t=t),
+        ):
+            assert jnp.allclose(pot.potential(pos).value, exp.value), type(pos)
+
+    def test_jit(self, pot: gp.AbstractPotential, q: gt.QuSz3) -> None:
+        """The default time works under `jax.jit`."""
+        got = jax.jit(gp.gradient)(pot, q)
+        assert jnp.allclose(got.value, pot.gradient(q, t=u.Q(0, "Myr")).value)
+        assert jnp.allclose(
+            jax.jit(gp.gradient)(pot, q.value), pot.gradient(q.value, 0.0)
         )

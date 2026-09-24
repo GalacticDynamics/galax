@@ -744,16 +744,28 @@ def parse_pot_to_xyz_t(
     # No time was given, nor carried by `q`. That is only meaningful if the
     # potential does not depend on time, in which case any time will do.
     if t is None:
-        if pot.is_time_dependent:
-            msg = (
-                f"{type(pot).__name__} depends on time, so a time is required. "
-                "Pass `t`."
-            )
+        from .base import _any_nonzero, _time_dependence
+
+        msg = (
+            f"{type(pot).__name__} depends on time, so a time is required. " "Pass `t`."
+        )
+        by_type, rates = _time_dependence(pot)
+        if by_type:
             raise TypeError(msg)
         # Match the requested dtype, else the position's float precision.
         dtype = kwargs.get("dtype")
         dtype = jnp.result_type(xyz.dtype, float) if dtype is None else dtype
         t = jnp.zeros((), dtype=dtype)
+        # A rate -- e.g. a boost velocity -- is time-dependent only if nonzero.
+        if rates:
+            moving = _any_nonzero(rates)
+            try:
+                is_moving = bool(moving)
+            except jax.errors.ConcretizationTypeError:  # traced: check at run time
+                t = eqx.error_if(t, moving, msg)
+            else:
+                if is_moving:
+                    raise TypeError(msg)
         if kwargs.get("ustrip") is None and u.quantity.is_any_quantity(xyz):
             t = u.Q(t, pot.units["time"])
 

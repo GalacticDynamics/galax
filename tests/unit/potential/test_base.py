@@ -222,7 +222,9 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
     def test_no_time(self, func: Any, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Omitting the time is allowed only for a time-independent potential."""
         if pot.is_time_dependent:
-            with pytest.raises(TypeError, match="depends on time"):
+            # A `TypeError`, or -- for a rate only known at run time, e.g. inside
+            # a jitted function -- a runtime error with the same message.
+            with pytest.raises(Exception, match="depends on time"):
                 func(pot, x)
             return
 
@@ -403,6 +405,71 @@ class TestNoTime:
             path_t, u.Q(jnp.zeros((10, 3)), "kpc"), units=static.units
         )
         assert gp.TranslatedPotential(static, translation=delta).is_time_dependent
+
+    def test_rates(self, static: gp.AbstractPotential, q: gt.QuSz3) -> None:
+        """A moving frame or rotating bar is time-dependent only if it moves."""
+        exp = static.potential(q, u.Q(3.7, "Gyr"))
+
+        # Zero rates are time-independent, eagerly and under `jax.jit`.
+        rot = cx.ops.GalileanRotation.from_euler("z", u.Q(30, "deg"))
+        zero = cx.ops.GalileanBoost.from_([0, 0, 0], "km/s")
+        for op in (
+            cx.ops.GalileanOperator(rotation=rot),  # has a zero boost
+            zero,
+            gc.ops.ConstantRotationZOperator(Omega_z=u.Q(0.0, "deg / Myr")),
+        ):
+            pot = gp.TransformedPotential(static, op)
+            assert not pot.is_time_dependent
+            got = pot.potential(q)
+            assert jnp.allclose(got.value, pot.potential(q, u.Q(3.7, "Gyr")).value)
+            jax.jit(gp.gradient)(pot, q)
+
+        # Nonzero rates are time-dependent: a `TypeError` eagerly, and a
+        # runtime error when the rate is traced.
+        for op in (
+            cx.ops.GalileanBoost.from_([10, 0, 0], "km/s"),
+            cx.ops.GalileanOperator(
+                rotation=rot, velocity=cx.ops.GalileanBoost.from_([1, 0, 0], "km/s")
+            ),
+            gc.ops.ConstantRotationZOperator(Omega_z=u.Q(10.0, "deg / Myr")),
+        ):
+            pot = gp.TransformedPotential(static, op)
+            assert pot.is_time_dependent
+            with pytest.raises(TypeError, match="depends on time"):
+                pot.potential(q)
+            with pytest.raises(Exception, match="depends on time"):
+                jax.block_until_ready(jax.jit(gp.gradient)(pot, q))
+        assert jnp.allclose(exp.value, static.potential(q).value)
+
+    def test_rates_in_components(self, static: gp.AbstractPotential) -> None:
+        """A component's rates count, however it is wrapped."""
+        bar = ft.partial(
+            gp.MonariEtAl2016BarPotential,
+            alpha=0.01,
+            R0=u.Q(8, "kpc"),
+            v0=u.Q(220, "km/s"),
+            Rb=u.Q(3.5, "kpc"),
+            phi_b=u.Q(25, "deg"),
+            units="galactic",
+        )
+        q = u.Q([3.0, 1, 0], "kpc")
+        rotating = bar(Omega=u.Q(52.2, "km/(s kpc)"))
+        for pot in (
+            rotating,
+            gp.CompositePotential(bar=rotating),
+            rotating + static,
+            gp.TransformedPotential(rotating, cx.ops.Identity()),
+        ):
+            assert pot.is_time_dependent, type(pot)
+            with pytest.raises(TypeError, match="depends on time"):
+                pot.potential(q)
+
+        still = bar(Omega=u.Q(0.0, "km/(s kpc)"))
+        pot = gp.CompositePotential(bar=still)
+        assert not pot.is_time_dependent
+        assert jnp.allclose(
+            pot.potential(q).value, pot.potential(q, u.Q(50, "Myr")).value
+        )
 
     def test_time_dependent_requires_time(
         self, tdep: gp.AbstractPotential, q: gt.QuSz3

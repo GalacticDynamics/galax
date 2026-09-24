@@ -11,7 +11,7 @@ __all__ = [
 import functools as ft
 from dataclasses import KW_ONLY
 
-from typing import final
+from typing import Any, final
 
 import jax
 
@@ -110,10 +110,9 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
         doc="Bar pattern speed.",
     )
 
-    @property
-    def is_time_dependent(self) -> bool:
-        """The bar rotates, at ``Omega``: its angle is ``phi_b + Omega t``."""
-        return True
+    def _time_rates(self) -> tuple[Any, ...]:
+        """Return the pattern speed: the bar's angle is ``phi_b + Omega t``."""
+        return (self.Omega,)
 
     @ft.partial(jax.jit)
     @vectorize_method(signature="(3),()->()")

@@ -45,17 +45,41 @@ DimT = u.dimension("time")
 ##############################################################################
 
 
-_TIME_DEPENDENT_OPS = (cxo.GalileanBoost, gc.ops.ConstantRotationZOperator)
+_MOVING_FRAMES = (cxo.GalileanBoost, gc.ops.ConstantRotationZOperator)
 
 
 def _is_time_node(x: Any, /) -> bool:
-    return isinstance(x, (AbstractParameter, *_TIME_DEPENDENT_OPS))
+    return isinstance(x, (AbstractPotential, AbstractParameter, *_MOVING_FRAMES))
 
 
-def _is_time_dependent_node(x: Any, /) -> bool:
-    if isinstance(x, AbstractParameter):
-        return not isinstance(x, ConstantParameter)
-    return isinstance(x, _TIME_DEPENDENT_OPS)
+def _time_dependence(pot: "AbstractPotential", /) -> tuple[bool, list[Any]]:
+    """How ``pot`` depends on time: ``(by type, rates)``.
+
+    "By type" is a non-constant parameter anywhere in ``pot``, including its
+    component potentials: that is known without looking at any values, so it
+    is known at trace time. "Rates" are quantities -- a boost velocity, a
+    frame's or a bar's pattern speed -- that make ``pot`` time-dependent only
+    if they are nonzero, which is a value.
+    """
+    by_type, rates = False, list(pot._time_rates())  # noqa: SLF001
+    for x in jax.tree.leaves(pot, is_leaf=lambda x: x is not pot and _is_time_node(x)):
+        if isinstance(x, AbstractPotential):
+            sub_by_type, sub_rates = _time_dependence(x)
+            by_type |= sub_by_type
+            rates += sub_rates
+        elif isinstance(x, AbstractParameter):
+            by_type |= not isinstance(x, ConstantParameter)
+        elif isinstance(x, cxo.GalileanBoost):
+            rates.append(x.velocity)
+        elif isinstance(x, gc.ops.ConstantRotationZOperator):
+            rates.append(x.Omega_z)
+    return by_type, rates
+
+
+def _any_nonzero(rates: list[Any], /) -> Any:
+    """Whether any rate is nonzero, as a boolean array (possibly traced)."""
+    leaves = jax.tree.leaves(rates)
+    return jnp.any(jnp.stack([jnp.any(jnp.asarray(x) != 0) for x in leaves]))
 
 
 class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
@@ -100,22 +124,29 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
 
     @property
     def is_time_dependent(self) -> bool:
-        """Whether this potential may depend on time.
+        """Whether this potential depends on time.
 
         A time-independent potential can be evaluated without a time, e.g.
         ``pot.potential(xyz)``; a time-dependent one requires ``t``.
 
-        The default searches the potential -- including any component or base
-        potentials -- for a parameter that is not a `ConstantParameter`, or a
-        time-dependent coordinate operator (a `coordinax.ops.GalileanBoost` or
-        a `galax.coordinates.ops.ConstantRotationZOperator`). This is decided
-        from types alone, so it is free under `jax.jit`. It is conservative: a
-        custom parameter that ignores time still counts as time-dependent.
-        Subclasses whose ``_potential`` uses ``t`` directly must override it.
+        A potential -- including any component or base potential -- depends on
+        time if it has a parameter that is not a `ConstantParameter`, or a
+        nonzero rate: the velocity of a `coordinax.ops.GalileanBoost`, the
+        ``Omega_z`` of a `galax.coordinates.ops.ConstantRotationZOperator`, or
+        whatever a subclass's ``_time_rates`` returns. A zero rate, e.g. the
+        default boost of a rotation-only `coordinax.ops.GalileanOperator`, is
+        time-independent. Under `jax.jit` a rate's value is unknown, so a
+        potential with any rate counts as time-dependent here; evaluating it
+        without a time still works, and fails at run time if the rate is
+        nonzero.
+
+        It is conservative: a custom parameter that ignores time still counts
+        as time-dependent.
 
         Examples
         --------
         >>> import unxt as u
+        >>> import coordinax as cx
         >>> import galax.potential as gp
 
         >>> pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
@@ -127,19 +158,41 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
         >>> m_tot = gp.params.LinearParameter(
         ...     slope=u.Q(1e9, "Msun / Myr"), point_time=u.Q(0, "Myr"),
         ...     point_value=u.Q(1e12, "Msun"))
-        >>> pot = gp.KeplerPotential(m_tot=m_tot, units="galactic")
-        >>> pot.is_time_dependent
+        >>> tpot = gp.KeplerPotential(m_tot=m_tot, units="galactic")
+        >>> tpot.is_time_dependent
         True
         >>> try:
-        ...     pot.potential(u.Q([8.0, 0, 0], "kpc"))
+        ...     tpot.potential(u.Q([8.0, 0, 0], "kpc"))
         ... except TypeError as e:
         ...     print(e)
         KeplerPotential depends on time, so a time is required. Pass `t`.
 
+        A moving frame depends on time; a rotated one does not:
+
+        >>> boost = cx.ops.GalileanBoost.from_([10, 0, 0], "km/s")
+        >>> gp.TransformedPotential(pot, boost).is_time_dependent
+        True
+        >>> rot = cx.ops.GalileanOperator(
+        ...     rotation=cx.ops.GalileanRotation.from_euler("z", u.Q(30, "deg")))
+        >>> gp.TransformedPotential(pot, rot).is_time_dependent
+        False
+
         """
-        return any(
-            map(_is_time_dependent_node, jax.tree.leaves(self, is_leaf=_is_time_node))
-        )
+        by_type, rates = _time_dependence(self)
+        if by_type or not rates:
+            return by_type
+        try:
+            return bool(_any_nonzero(rates))
+        except jax.errors.ConcretizationTypeError:  # traced: value unknown
+            return True
+
+    def _time_rates(self) -> tuple[Any, ...]:
+        """Rates that make this potential time-dependent when nonzero.
+
+        A subclass whose ``_potential`` uses ``t`` directly -- not only through
+        its parameters -- overrides this, e.g. to return a pattern speed.
+        """
+        return ()
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""

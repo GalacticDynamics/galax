@@ -22,6 +22,13 @@ import galax.potential.params as gpp
 from .io.test_gala import GalaIOMixin
 from galax.potential._src.base import default_constants
 
+# Omitting the time of a time-dependent potential raises a `TypeError` when that
+# is known at trace time. Otherwise -- a rate traced inside a jitted function --
+# `equinox.error_if` fails at run time, which JAX surfaces as a
+# `jax.errors.JaxRuntimeError` (a `RuntimeError`), or as a `ValueError` ("INTERNAL:
+# CpuCallback error") when it propagates out of a user's `jax.jit`.
+NO_TIME_ERRORS = (TypeError, RuntimeError, ValueError)
+
 
 class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
     """Test the `galax.potential.AbstractPotential` class."""
@@ -224,7 +231,7 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         if pot.is_time_dependent:
             # A `TypeError`, or -- for a rate only known at run time, e.g. inside
             # a jitted function -- a runtime error with the same message.
-            with pytest.raises(Exception, match="depends on time"):
+            with pytest.raises(NO_TIME_ERRORS, match="depends on time"):
                 func(pot, x)
             return
 
@@ -437,7 +444,7 @@ class TestNoTime:
             assert pot.is_time_dependent
             with pytest.raises(TypeError, match="depends on time"):
                 pot.potential(q)
-            with pytest.raises(Exception, match="depends on time"):
+            with pytest.raises(NO_TIME_ERRORS, match="depends on time"):
                 jax.block_until_ready(jax.jit(gp.gradient)(pot, q))
         assert jnp.allclose(exp.value, static.potential(q).value)
 

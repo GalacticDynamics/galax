@@ -373,7 +373,7 @@ def parse_to_xyz_t(
     *,
     dtype: Any = None,
     ustrip: OptUSys = None,  # noqa: ARG001
-) -> tuple[gt.BBtSz3, gt.BBtSz0]:
+) -> tuple[gt.BBtSz3, gt.BBtSz0 | None]:
     """Parse input arguments to position & time.
 
     ``t=None`` (no time) is passed through.
@@ -440,7 +440,7 @@ def parse_to_xyz_t(
     *,
     dtype: Any = None,
     ustrip: OptUSys = None,
-) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0]:
+) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0 | None]:
     """Parse input arguments to position & time.
 
     ``t=None`` (no time) is passed through.
@@ -506,7 +506,7 @@ def parse_to_xyz_t(
     *,
     dtype: Any = None,
     ustrip: OptUSys = None,
-) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0]:
+) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0 | None]:
     """Parse input arguments to position & time."""
     xyz = convert(q.vconvert(cx.CartesianPos3D), BareQuantity)
     return parse_to_xyz_t(to_frame, xyz, t, dtype=dtype, ustrip=ustrip)
@@ -569,7 +569,7 @@ def parse_to_xyz_t(
     *,
     dtype: Any = None,
     ustrip: OptUSys = None,
-) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0]:
+) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0 | None]:
     """Parse input arguments to position & time."""
     q = space["length"]
 
@@ -612,7 +612,7 @@ def parse_to_xyz_t(
     *,
     dtype: Any = None,
     ustrip: OptUSys = None,
-) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0]:
+) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0 | None]:
     """Parse input arguments to position & time."""
     # Transform to the frame
     # TODO: think about the transformation of the time
@@ -631,7 +631,7 @@ def parse_to_xyz_t(
     *,
     dtype: Any = None,
     ustrip: OptUSys = None,
-) -> tuple[gt.BBtQuSz3, gt.BBtQuSz0]:
+) -> tuple[gt.BBtQuSz3, gt.BBtQuSz0 | None]:
     """Parse input arguments to position & time."""
     # Transform to the frame
     # TODO: think about the transformation of the time
@@ -750,7 +750,8 @@ def parse_pot_to_xyz_t(
                 "Pass `t`."
             )
             raise TypeError(msg)
-        t = jnp.zeros((), dtype=float)
+        dtype = kwargs.get("dtype")
+        t = jnp.zeros((), dtype=float if dtype is None else dtype)
         if kwargs.get("ustrip") is None and u.quantity.is_any_quantity(xyz):
             t = u.Q(t, pot.units["time"])
 

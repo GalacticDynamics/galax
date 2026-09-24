@@ -456,3 +456,11 @@ class TestNoTime:
         assert jnp.allclose(got.value, static.gradient(q, u.Q(0, "Myr")).value)
         got = jax.jit(gp.gradient)(static, q.value)
         assert jnp.allclose(got, static.gradient(q.value, 0.0))
+
+    def test_placeholder_dtype(self, static: gp.AbstractPotential) -> None:
+        """The placeholder time follows the requested ``dtype``."""
+        from galax.potential._src.utils import parse_pot_to_xyz_t
+
+        xyz = jnp.ones(3, dtype=jnp.float32)
+        _, t = parse_pot_to_xyz_t(static, xyz, None, dtype=jnp.float32)
+        assert t.dtype == jnp.float32

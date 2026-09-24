@@ -38,8 +38,8 @@ So ``n_r`` should rise with ``l_max``: the same accuracy costs roughly twice
 the knots for every four levels. A rule that integrates :math:`r^{l+2}`
 exactly and interpolates only :math:`\rho` removes the :math:`l` dependence,
 but is worse where it matters most -- on a Hernquist monopole it is 4.5x
-*less* accurate than the trapezoid, because real :math:`\rho_{lm}` curve in
-log-log while the rule assumes they do not.
+*less* accurate than the trapezoid, because real :math:`\rho_{lm}` profiles
+curve in log-log while the rule assumes they do not.
 
 Outer-tail sign
 ---------------

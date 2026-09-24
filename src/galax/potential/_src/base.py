@@ -15,11 +15,13 @@ from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
 from plum import dispatch
 
+import coordinax.ops as cxo
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
+import galax.coordinates as gc
 import galax.potential.custom_types as gt
 from . import api
 from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
@@ -27,6 +29,8 @@ from .plot import PlotPotentialDescriptor
 from .symmetry import Symmetry
 from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.attr import ParametersAttribute
+from galax.potential._src.params.base import AbstractParameter
+from galax.potential._src.params.constant import ConstantParameter
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.potential.dataclasses import ModuleMeta
 
@@ -39,6 +43,19 @@ DimT = u.dimension("time")
 
 
 ##############################################################################
+
+
+_TIME_DEPENDENT_OPS = (cxo.GalileanBoost, gc.ops.ConstantRotationZOperator)
+
+
+def _is_time_node(x: Any, /) -> bool:
+    return isinstance(x, (AbstractParameter, *_TIME_DEPENDENT_OPS))
+
+
+def _is_time_dependent_node(x: Any, /) -> bool:
+    if isinstance(x, AbstractParameter):
+        return not isinstance(x, ConstantParameter)
+    return isinstance(x, _TIME_DEPENDENT_OPS)
 
 
 class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
@@ -80,6 +97,49 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
 
         """
         return Symmetry.NONE
+
+    @property
+    def is_time_dependent(self) -> bool:
+        """Whether this potential may depend on time.
+
+        A time-independent potential can be evaluated without a time, e.g.
+        ``pot.potential(xyz)``; a time-dependent one requires ``t``.
+
+        The default searches the potential -- including any component or base
+        potentials -- for a parameter that is not a `ConstantParameter`, or a
+        time-dependent coordinate operator (a `coordinax.ops.GalileanBoost` or
+        a `galax.coordinates.ops.ConstantRotationZOperator`). This is decided
+        from types alone, so it is free under `jax.jit`. It is conservative: a
+        custom parameter that ignores time still counts as time-dependent.
+        Subclasses whose ``_potential`` uses ``t`` directly must override it.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+        >>> pot.is_time_dependent
+        False
+        >>> pot.potential(u.Q([8.0, 0, 0], "kpc"))
+        Q(-0.56231277, 'kpc2 / Myr2')
+
+        >>> m_tot = gp.params.LinearParameter(
+        ...     slope=u.Q(1e9, "Msun / Myr"), point_time=u.Q(0, "Myr"),
+        ...     point_value=u.Q(1e12, "Msun"))
+        >>> pot = gp.KeplerPotential(m_tot=m_tot, units="galactic")
+        >>> pot.is_time_dependent
+        True
+        >>> try:
+        ...     pot.potential(u.Q([8.0, 0, 0], "kpc"))
+        ... except TypeError as e:
+        ...     print(e)
+        KeplerPotential depends on time, so a time is required. Pass `t`.
+
+        """
+        return any(
+            map(_is_time_dependent_node, jax.tree.leaves(self, is_leaf=_is_time_node))
+        )
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""

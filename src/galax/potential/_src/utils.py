@@ -239,11 +239,11 @@ def parse_to_xyz_t(
     (Array([1., 0., 0.], dtype=float64),
      Array(0., dtype=float64))
 
-    ``t=None`` is the default time, ``t=0``:
+    ``t=None`` -- no time -- is passed through. Whether a time is needed is
+    up to the potential; see `parse_pot_to_xyz_t`.
 
     >>> parse_to_xyz_t(None, xyz, None, dtype=float)
-    (Array([1., 0., 0.], dtype=float64),
-     Array(0., dtype=float64))
+    (Array([1., 0., 0.], dtype=float64), None)
 
     - `jax.Array`:
 
@@ -274,7 +274,7 @@ def parse_to_xyz_t(
      Array(1000., dtype=float64, weak_type=True))
 
     >>> parse_to_xyz_t(None, q, None)
-    (Q([1, 0, 0], 'kpc'), Q(0., 'Myr'))
+    (Q([1, 0, 0], 'kpc'), None)
 
     >>> tq = u.Q([0, 1, 0, 0], "kpc")
     >>> parse_to_xyz_t(None, tq)
@@ -376,11 +376,11 @@ def parse_to_xyz_t(
 ) -> tuple[gt.BBtSz3, gt.BBtSz0]:
     """Parse input arguments to position & time.
 
-    ``t=None`` means the default time, ``t=0``.
+    ``t=None`` (no time) is passed through.
     """
     # Process the input arguments into arrays
     xyz = jnp.asarray(xyz, dtype=dtype)
-    t = jnp.asarray(0.0 if t is None else t, dtype=dtype)
+    t = None if t is None else jnp.asarray(t, dtype=dtype)
 
     # The coordinates are assumed to be in the simulation frame and may need to
     # be transformed to the target frame.
@@ -443,16 +443,14 @@ def parse_to_xyz_t(
 ) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0]:
     """Parse input arguments to position & time.
 
-    ``t=None`` means the default time, ``t=0``.
+    ``t=None`` (no time) is passed through.
     """
     xyz = jnp.asarray(xyz, dtype=dtype)
-    # A Quantity so that a Quantity position keeps a Quantity time. The unit is
-    # immaterial for zero.
-    t = jnp.asarray(u.Q(0.0, "Myr") if t is None else t, dtype=dtype)
+    t = None if t is None else jnp.asarray(t, dtype=dtype)
 
     if ustrip is not None:
         xyz = u.ustrip(AllowValue, ustrip["length"], xyz)
-        t = u.ustrip(AllowValue, ustrip["time"], t)
+        t = None if t is None else u.ustrip(AllowValue, ustrip["time"], t)
 
     # The coordinates are assumed to be in the simulation frame and may need to
     # be transformed to the target frame.
@@ -575,7 +573,7 @@ def parse_to_xyz_t(
     """Parse input arguments to position & time."""
     q = space["length"]
 
-    # Case 1: 3D position, `t=None` is the default time
+    # Case 1: 3D position, `t=None` (no time) is passed through
     if isinstance(q, cx.vecs.AbstractPos3D):
         return parse_to_xyz_t(to_frame, q, t, dtype=dtype, ustrip=ustrip)
 
@@ -741,7 +739,22 @@ def parse_pot_to_xyz_t(
         q = q.vconvert(cx.CartesianPos3D)
 
     # TODO: frame
-    return parse_to_xyz_t(None, q, *args, **kwargs)  # type: ignore[no-any-return]
+    xyz, t = parse_to_xyz_t(None, q, *args, **kwargs)
+
+    # No time was given, nor carried by `q`. That is only meaningful if the
+    # potential does not depend on time, in which case any time will do.
+    if t is None:
+        if pot.is_time_dependent:
+            msg = (
+                f"{type(pot).__name__} depends on time, so a time is required. "
+                "Pass `t`."
+            )
+            raise TypeError(msg)
+        t = jnp.zeros((), dtype=float)
+        if kwargs.get("ustrip") is None and u.quantity.is_any_quantity(xyz):
+            t = u.Q(t, pot.units["time"])
+
+    return xyz, t
 
 
 # ============================================================================

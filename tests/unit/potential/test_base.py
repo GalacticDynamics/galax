@@ -219,17 +219,21 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
             gp.d2potential_dr2,
         ],
     )
-    def test_default_time(
-        self, func: Any, pot: gp.AbstractPotential, x: gt.QuSz3
-    ) -> None:
-        """Omitting the time is the same as passing ``t=0``."""
+    def test_no_time(self, func: Any, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
+        """Omitting the time is allowed only for a time-independent potential."""
+        if pot.is_time_dependent:
+            with pytest.raises(TypeError, match="depends on time"):
+                func(pot, x)
+            return
+
+        # Time-independent, so any time gives the same result.
         # Quantity
-        got, exp = func(pot, x), func(pot, x, u.Q(0.0, "Myr"))
+        got, exp = func(pot, x), func(pot, x, u.Q(3.7, "Gyr"))
         assert type(got) is type(exp)
         assert got.unit == exp.unit
         assert jnp.allclose(got.value, exp.value, equal_nan=True)
         # Array
-        got, exp = func(pot, x.value), func(pot, x.value, 0)
+        got, exp = func(pot, x.value), func(pot, x.value, 3.7)
         assert type(got) is type(exp)
         assert jnp.allclose(got, exp, equal_nan=True)
 
@@ -346,11 +350,15 @@ class TestAbstractPotential(AbstractPotential_Test):
 ##############################################################################
 
 
-class TestDefaultTimeDependent:
-    """The default time for a time-dependent potential."""
+class TestNoTime:
+    """Evaluating a potential without a time."""
 
     @pytest.fixture(scope="class")
-    def pot(self) -> gp.AbstractPotential:
+    def static(self) -> gp.AbstractPotential:
+        return gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+
+    @pytest.fixture(scope="class")
+    def tdep(self) -> gp.AbstractPotential:
         m_tot = gpp.LinearParameter(
             slope=u.Q(1e10, "Msun / Myr"),
             point_time=u.Q(0, "Myr"),
@@ -362,40 +370,89 @@ class TestDefaultTimeDependent:
     def q(self) -> gt.QuSz3:
         return u.Q([8.0, 0.0, 0.0], "kpc")
 
-    def test_default_is_zero(self, pot: gp.AbstractPotential, q: gt.QuSz3) -> None:
-        """Omitting the time is ``t=0``, not some other time."""
-        assert jnp.array_equal(pot.potential(q), pot.potential(q, u.Q(0, "Gyr")))
-        assert not jnp.allclose(
-            pot.potential(q).value, pot.potential(q, u.Q(10, "Myr")).value
-        )
+    def test_is_time_dependent(
+        self, static: gp.AbstractPotential, tdep: gp.AbstractPotential
+    ) -> None:
+        """Time dependence is found in parameters, components, and operators."""
+        assert not static.is_time_dependent
+        assert tdep.is_time_dependent
 
-    def test_default_positions(self, pot: gp.AbstractPotential, q: gt.QuSz3) -> None:
-        """Positions without a time use the default time."""
-        exp = pot.potential(q, u.Q(0, "Myr"))
+        # Composite: time-dependent if any component is.
+        assert not gp.CompositePotential(a=static, b=static).is_time_dependent
+        assert gp.CompositePotential(a=static, b=tdep).is_time_dependent
+
+        # Transformed: time-independent operators ...
+        rot = cx.ops.GalileanRotation.from_euler("z", u.Q(10, "deg"))
+        shift = cx.ops.GalileanSpatialTranslation.from_([1, 0, 0], "kpc")
+        for op in (rot, shift, rot | shift):
+            assert not gp.TransformedPotential(static, op).is_time_dependent
+        assert gp.TransformedPotential(tdep, rot).is_time_dependent
+        # ... and time-dependent ones, also when nested in another operator.
+        boost = cx.ops.GalileanBoost.from_([1, 0, 0], "km/s")
+        spin = gc.ops.ConstantRotationZOperator(Omega_z=u.Q(10, "deg / Myr"))
+        galilean = cx.ops.GalileanOperator(
+            translation=cx.ops.GalileanTranslation.from_([0, 1, 0, 0], "kpc"),
+            velocity=boost,
+        )
+        for op in (boost, spin, galilean, rot | boost):
+            assert gp.TransformedPotential(static, op).is_time_dependent
+
+        # Translated by a time-dependent translation.
+        path_t = u.Q(jnp.linspace(0, 1, 10), "Gyr")
+        delta = gpp.TimeDependentTranslationParameter.from_(
+            path_t, u.Q(jnp.zeros((10, 3)), "kpc"), units=static.units
+        )
+        assert gp.TranslatedPotential(static, translation=delta).is_time_dependent
+
+    def test_time_dependent_requires_time(
+        self, tdep: gp.AbstractPotential, q: gt.QuSz3
+    ) -> None:
+        """A time-dependent potential cannot be evaluated without a time."""
         cq = cx.CartesianPos3D.from_(q)
         for pos in (
+            q,
+            q.value,
             cq,
             cx.vecs.KinematicSpace(length=cq),
-            cx.Coordinate({"length": cq}, frame=gc.frames.simulation_frame),
             gc.PhaseSpacePosition(q=q, p=u.Q([0.0, 0, 0], "km/s")),
         ):
-            assert jnp.allclose(pot.potential(pos).value, exp.value), type(pos)
+            with pytest.raises(TypeError, match="depends on time"):
+                tdep.potential(pos)
+        # `t=None` is the same as omitting it.
+        with pytest.raises(TypeError, match="depends on time"):
+            tdep.potential(q, None)
 
-    def test_own_time_wins(self, pot: gp.AbstractPotential, q: gt.QuSz3) -> None:
-        """Inputs that carry a time use it rather than the default."""
+        # Under `jax.jit` it fails at trace time.
+        with pytest.raises(TypeError, match="depends on time"):
+            jax.jit(gp.gradient)(tdep, q)
+
+    def test_own_time(self, tdep: gp.AbstractPotential, q: gt.QuSz3) -> None:
+        """Inputs that carry a time use it."""
         t = u.Q(10, "Myr")
-        exp = pot.potential(q, t)
+        exp = tdep.potential(q, t)
         cq = cx.CartesianPos3D.from_(q)
         for pos in (
             cx.FourVector(q=cq, t=t),
             gc.PhaseSpaceCoordinate(q=q, p=u.Q([0.0, 0, 0], "km/s"), t=t),
         ):
-            assert jnp.allclose(pot.potential(pos).value, exp.value), type(pos)
+            assert jnp.allclose(tdep.potential(pos).value, exp.value), type(pos)
 
-    def test_jit(self, pot: gp.AbstractPotential, q: gt.QuSz3) -> None:
-        """The default time works under `jax.jit`."""
-        got = jax.jit(gp.gradient)(pot, q)
-        assert jnp.allclose(got.value, pot.gradient(q, t=u.Q(0, "Myr")).value)
-        assert jnp.allclose(
-            jax.jit(gp.gradient)(pot, q.value), pot.gradient(q.value, 0.0)
-        )
+    def test_time_independent(self, static: gp.AbstractPotential, q: gt.QuSz3) -> None:
+        """A time-independent potential can be evaluated without a time."""
+        exp = static.potential(q, u.Q(3.7, "Gyr"))
+        cq = cx.CartesianPos3D.from_(q)
+        for pos in (
+            q,
+            cq,
+            cx.vecs.KinematicSpace(length=cq),
+            cx.Coordinate({"length": cq}, frame=gc.frames.simulation_frame),
+            gc.PhaseSpacePosition(q=q, p=u.Q([0.0, 0, 0], "km/s")),
+        ):
+            assert jnp.allclose(static.potential(pos).value, exp.value), type(pos)
+        assert jnp.allclose(static.potential(q, None).value, exp.value)
+
+        # Also under `jax.jit`.
+        got = jax.jit(gp.gradient)(static, q)
+        assert jnp.allclose(got.value, static.gradient(q, u.Q(0, "Myr")).value)
+        got = jax.jit(gp.gradient)(static, q.value)
+        assert jnp.allclose(got, static.gradient(q.value, 0.0))

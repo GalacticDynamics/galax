@@ -110,6 +110,11 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
         doc="Bar pattern speed.",
     )
 
+    @property
+    def is_time_dependent(self) -> bool:
+        """The bar rotates, at ``Omega``: its angle is ``phi_b + Omega t``."""
+        return True
+
     @ft.partial(jax.jit)
     @vectorize_method(signature="(3),()->()")
     def _potential(self, xyz: gt.QuSz3 | gt.Sz3, t: gt.QuSz0 | gt.Sz0) -> gt.Sz0:

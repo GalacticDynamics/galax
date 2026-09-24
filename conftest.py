@@ -79,8 +79,7 @@ rst_docs = Sybil(  # TODO: deprecate
         rest.PythonCodeBlockParser(),
         rest.SkipParser(),
     ],
-    patterns=["*.rst", "*.py"],
-    document_types={".py": NamespacePackageDocument},
+    patterns=["*.rst"],  # `.py` is collected by `python` above
 )
 
 pytest_collect_file = SybilCollection((docs, python, rst_docs)).pytest()

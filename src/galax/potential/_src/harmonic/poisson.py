@@ -18,6 +18,29 @@ per-mode scale, while the outer one requires only
 :math:`\rho_{lm}(r_\max) \neq 0`. See "Outer-tail sign" for why the inner
 threshold is not reused at the outer boundary.
 
+Choosing ``n_r``
+----------------
+The interior rule is the trapezoid in :math:`r`, which samples the
+:math:`r^{l+2}` factor rather than integrating it, so its error grows with
+:math:`l` while :math:`\rho` stays fixed. Measured against the closed form
+for :math:`\rho = r^{-1.5}`, interior knots only:
+
+======= ========= ========= =========
+l       n_r=256   n_r=512   n_r=1024
+======= ========= ========= =========
+2       1.8e-3    4.4e-4    1.1e-4
+4       5.2e-3    1.3e-3    3.2e-4
+8       1.8e-2    4.5e-3    1.1e-3
+12      3.8e-2    9.6e-3    2.4e-3
+======= ========= ========= =========
+
+So ``n_r`` should rise with ``l_max``: the same accuracy costs roughly twice
+the knots for every four levels. A rule that integrates :math:`r^{l+2}`
+exactly and interpolates only :math:`\rho` removes the :math:`l` dependence,
+but is worse where it matters most -- on a Hernquist monopole it is 4.5x
+*less* accurate than the trapezoid, because real :math:`\rho_{lm}` profiles
+curve in log-log while the rule assumes they do not.
+
 Outer-tail sign
 ---------------
 The outer-tail gate tests :math:`\rho_{lm}(r_\max) \neq 0`, not
@@ -125,14 +148,22 @@ def solve_poisson_lm(
     # exactly e^(2c), so one factor restores the answer at the end.
     log_rc = 0.5 * (jnp.log(r_knots[0]) + jnp.log(r_knots[-1]))
     log_r = jnp.log(r_knots) - log_rc
-    dr = jnp.diff(jnp.exp(log_r))
+    # Powers of x are the same for every mode, so they are formed once here
+    # rather than inside the scan. Every power the body needs follows from
+    # these and `xl` by multiplication, leaving one transcendental per mode
+    # instead of four, under the same bound the recentering guarantees.
+    x = jnp.exp(log_r)
+    x2 = x * x
+    dr = jnp.diff(x)
 
     def one_mode(
         _: None, xs: tuple[Float[Array, "n_r"], Float[Array, ""]]
     ) -> tuple[None, Float[Array, "n_r"]]:
         rho_col, l = xs
-        f_in = rho_col * jnp.exp((l + 2.0) * log_r)
-        f_out = rho_col * jnp.exp((1.0 - l) * log_r)
+        # Named for x, not r: `log_r` is already centred, so this is x^l.
+        xl = jnp.exp(l * log_r)  # the only exp per mode
+        f_in = rho_col * xl * x2  # rho x^(l+2)
+        f_out = rho_col * x / xl  # rho x^(1-l)
         scale = jnp.max(jnp.abs(rho_col)) + _LOG_FLOOR
 
         # -- inner tail (0 -> r_min), rho_lm ~ A_in r^alpha_in --------------
@@ -152,7 +183,7 @@ def solve_poisson_lm(
         # (l + 3) times half the grid's log range, the same bound the
         # recentering above already guarantees. This is also what the outer
         # tail below does.
-        dI_in = rho_col[0] * jnp.exp((l + 3.0) * log_r[0]) / safe_in
+        dI_in = rho_col[0] * xl[0] * x2[0] * x[0] / safe_in
         # The clamp keeps the division finite under jit, but a clamped
         # denominator no longer represents the integral: at exp_in = 1e-9 the
         # true tail is ~1e3 times what `_SLOPE_TOL` yields. Inside the clamped
@@ -176,7 +207,7 @@ def solve_poisson_lm(
         active_out = jnp.abs(rho_col[-1]) > 0.0
         denom = l - alpha_out - 2.0
         safe_out = jnp.where(jnp.abs(denom) > _SLOPE_TOL, denom, _SLOPE_TOL)
-        dI_out = rho_col[-1] * jnp.exp((2.0 - l) * log_r[-1]) / safe_out
+        dI_out = rho_col[-1] * x2[-1] / xl[-1] / safe_out
         # Same reasoning as the inner tail: `denom` in (0, _SLOPE_TOL] passes
         # the convergence test but is clamped in the division, so drop the
         # tail there rather than under-weight it by an arbitrary factor.
@@ -191,13 +222,7 @@ def solve_poisson_lm(
             + dI_out
         )
 
-        phi_col = (
-            -4.0
-            * jnp.pi
-            * G
-            / (2.0 * l + 1.0)
-            * (jnp.exp(-(l + 1.0) * log_r) * I_in + jnp.exp(l * log_r) * I_out)
-        )
+        phi_col = -4.0 * jnp.pi * G / (2.0 * l + 1.0) * (I_in / (xl * x) + xl * I_out)
         return None, phi_col
 
     _, phi_T = jax.lax.scan(one_mode, None, (rho_lm.T, l_per_mode))

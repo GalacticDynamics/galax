@@ -459,9 +459,15 @@ class TestNoTime:
         assert jnp.allclose(got, static.gradient(q.value, 0.0))
 
     def test_placeholder_dtype(self, static: gp.AbstractPotential) -> None:
-        """The placeholder time follows the requested ``dtype``."""
+        """The placeholder time follows the requested ``dtype``, else the position's."""
         from galax.potential._src.utils import parse_pot_to_xyz_t
 
         xyz = jnp.ones(3, dtype=jnp.float32)
         _, t = parse_pot_to_xyz_t(static, xyz, None, dtype=jnp.float32)
         assert t.dtype == jnp.float32
+        _, t = parse_pot_to_xyz_t(static, xyz, None)
+        assert t.dtype == jnp.float32
+        _, t = parse_pot_to_xyz_t(static, u.Q(xyz, "kpc"), None)
+        assert t.dtype == jnp.float32
+        _, t = parse_pot_to_xyz_t(static, jnp.ones(3, dtype=int), None)
+        assert t.dtype == jnp.result_type(float)

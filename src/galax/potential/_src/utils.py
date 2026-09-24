@@ -750,8 +750,10 @@ def parse_pot_to_xyz_t(
                 "Pass `t`."
             )
             raise TypeError(msg)
+        # Match the requested dtype, else the position's float precision.
         dtype = kwargs.get("dtype")
-        t = jnp.zeros((), dtype=float if dtype is None else dtype)
+        dtype = jnp.result_type(xyz.dtype, float) if dtype is None else dtype
+        t = jnp.zeros((), dtype=dtype)
         if kwargs.get("ustrip") is None and u.quantity.is_any_quantity(xyz):
             t = u.Q(t, pot.units["time"])
 

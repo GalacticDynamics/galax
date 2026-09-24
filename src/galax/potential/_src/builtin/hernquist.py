@@ -4,6 +4,7 @@ __all__ = ["HernquistPotential", "TriaxialHernquistPotential"]
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -14,16 +15,20 @@ import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
-from galax.potential._src.utils import r_spherical
+from galax.potential._src.symmetry import Symmetry
+from galax.potential._src.utils import r_spherical, safe_sqrt
 
 
 @final
-class HernquistPotential(AbstractSinglePotential):
+class HernquistPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     """Hernquist Potential."""
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -40,28 +45,51 @@ class HernquistPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
+
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
+
+
+# ============================================
+
+
+@ft.partial(jax.jit)
+def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
+    r"""Density profile for the Kepler potential."""
+    s = r / p["r_s"]
+    rho0 = p["m_tot"] / (2 * jnp.pi * p["r_s"] ** 3)
+    return rho0 / (s * (1 + s) ** 3)  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
+    r"""Specific potential energy."""
+    return -p["G"] * p["m_tot"] / (r + p["r_s"])
+
+
+##############################################################################
 
 
 @final
@@ -104,10 +132,10 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     >>> pot = gp.TriaxialHernquistPotential(m_tot=1e12, r_s=8, q1=1, q2=0.5,
     ...                                     units="galactic")
 
-    >>> q = u.Quantity([1, 0, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = u.Q([1, 0, 0], "kpc")
+    >>> t = u.Q(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity(Array(-0.49983357, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.49983357, 'kpc2 / Myr2')
     """
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
@@ -119,13 +147,13 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
 
     # TODO: move to a triaxial wrapper
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""),
+        default=u.Q(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the y direction divided by ``c``.",
     )
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Quantity(1.0, ""),
+        default=u.Q(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the z direction divided by ``c``.",
     )
@@ -139,11 +167,11 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         u1 = self.units["dimensionless"]
         q1, q2 = self.q1(t, ustrip=u1), self.q2(t, ustrip=u1)
-        rprime = jnp.sqrt(
+        rprime = safe_sqrt(
             xyz[..., 0] ** 2 + (xyz[..., 1] / q1) ** 2 + (xyz[..., 2] / q2) ** 2
         )
 
@@ -152,21 +180,4 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return potential(params, rprime)
-
-
-# ============================================
-
-
-@ft.partial(jax.jit)
-def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
-    r"""Density profile for the Kepler potential."""
-    s = r / p["r_s"]
-    rho0 = p["m_tot"] / (2 * jnp.pi * p["r_s"] ** 3)
-    return rho0 / (s * (1 + s) ** 3)
-
-
-@ft.partial(jax.jit)
-def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
-    r"""Specific potential energy."""
-    return -p["G"] * p["m_tot"] / (r + p["r_s"])
+        return potential(params, rprime)  # type: ignore[no-any-return]

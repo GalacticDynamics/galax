@@ -4,7 +4,7 @@ This class adds time-dependent translations to a potential.
 It is NOT careful about the implied changes to velocity, etc.
 """
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()
 
 
 from collections.abc import Callable
@@ -14,7 +14,7 @@ import equinox as eqx
 
 from coordinax.ops import AbstractOperator
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 
 
 @final

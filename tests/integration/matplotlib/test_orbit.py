@@ -1,5 +1,6 @@
 """Test the `galax.dynamics.orbit` package contents."""
 
+import matplotlib.pyplot as plt
 import pytest
 from matplotlib.figure import Figure
 
@@ -15,27 +16,34 @@ import galax.potential as gp
 @pytest.fixture
 def potential() -> gp.KeplerPotential:
     """Kepler potential fixture."""
-    return gp.KeplerPotential(m_tot=u.Quantity(1e12, "Msun"), units="galactic")
+    return gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
 
 
 @pytest.fixture
 def w0() -> gc.PhaseSpacePosition:
     """Phase space position fixture."""
     return gc.PhaseSpacePosition(
-        q=u.Quantity([8.0, 0.0, 0.5], "kpc"),
-        p=u.Quantity([0.0, 220.0, 0.0], "km/s"),
+        q=u.Q([8.0, 0.0, 0.5], "kpc"),
+        p=u.Q([0.0, 220.0, 0.0], "km/s"),
     )
 
 
 @pytest.fixture
 def orbit(potential: gp.AbstractPotential, w0: gc.PhaseSpacePosition) -> gd.Orbit:
     """Orbit fixture."""
-    ts = u.Quantity(jnp.linspace(0.0, 70, 1000), "Myr")
+    ts = u.Q(jnp.linspace(0.0, 70, 1000), "Myr")
     orb: gd.Orbit = gd.evaluate_orbit(potential, w0, ts)
     return orb
 
 
 # =============================================================================
+
+
+@pytest.mark.mpl_image_compare(deterministic=True)
+def test_orbit_plot_all_components(orbit: gd.Orbit) -> Figure:
+    """Test plotting all components of an orbit in a Kepler potential."""
+    axes = orbit.plot()
+    return axes[0].figure
 
 
 @pytest.mark.mpl_image_compare(deterministic=True)
@@ -63,6 +71,14 @@ def test_orbit_plot_scatter(orbit: gd.Orbit) -> Figure:
 
 
 @pytest.mark.mpl_image_compare(deterministic=True)
+def test_orbit_plot_time(orbit: gd.Orbit) -> Figure:
+    """Test plotting an orbit in a Kepler potential."""
+    ax = orbit.plot(x="t", y="y")
+
+    return ax.figure
+
+
+@pytest.mark.mpl_image_compare(deterministic=True)
 def test_orbit_plot_time_color(orbit: gd.Orbit) -> Figure:
     """Test plotting an orbit in a Kepler potential."""
     ax = orbit.plot(x="x", y="y", plot_function="scatter", c="orbit.t")
@@ -70,7 +86,28 @@ def test_orbit_plot_time_color(orbit: gd.Orbit) -> Figure:
     return ax.figure
 
 
+##############################################################################
+# Expected failures
+
+
 def test_orbit_no_attribute(orbit: gd.Orbit) -> None:
     """Test failed plot."""
     with pytest.raises(AttributeError):
         orbit.plot(x="z", y="not_an_attribute")
+
+
+def test_orbit_only_one_component(orbit: gd.Orbit) -> None:
+    """Test failed plot."""
+    with pytest.raises(ValueError, match="Both x and y"):
+        orbit.plot(x="z")
+
+    with pytest.raises(ValueError, match="Both x and y"):
+        orbit.plot(y="z")
+
+
+def test_orbit_wrong_size_axes(orbit: gd.Orbit) -> None:
+    """Test failed plot."""
+    fig, axes = plt.subplots(1, 2)
+    with pytest.raises(ValueError, match="Number of matplotlib axes"):
+        orbit.plot(axes=axes)
+    plt.close(fig)

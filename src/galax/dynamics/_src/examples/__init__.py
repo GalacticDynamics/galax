@@ -1,3 +1,3 @@
 """System-specific dynamics."""
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()

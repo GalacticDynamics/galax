@@ -1,6 +1,7 @@
 """Tests for `galax.potential._src.utils` package."""
 
 from dataclasses import replace
+
 from typing import Any
 
 import pytest

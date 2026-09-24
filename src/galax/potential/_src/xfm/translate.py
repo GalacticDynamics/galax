@@ -3,26 +3,26 @@
 __all__ = ["TranslatedPotential", "TimeDependentTranslationParameter"]
 
 import functools as ft
-from collections.abc import Callable
 from dataclasses import KW_ONLY
+
+from collections.abc import Callable
+from jaxtyping import Array, Real
 from typing import Any, final
 
 import equinox as eqx
 import interpax
 import jax
-from jaxtyping import Array, Real
 from plum import dispatch
 
 import unxt as u
-from unxt._src.units.api import AstropyUnits
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import AbstractTransformedPotential
-from galax.dynamics._src.utils import cond_reverse
 from galax.potential._src.base import AbstractPotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import cond_reverse
 
 
 @final
@@ -47,32 +47,32 @@ class TranslatedPotential(AbstractTransformedPotential):
     We will compare the potential at a specific position before and after
     translation.
 
-    >>> xyz = u.Quantity([10.0, 0.0, 0.0], "kpc")
+    >>> xyz = u.Q([10.0, 0.0, 0.0], "kpc")
     >>> t = 0.0
 
     For reference, the potential at the specific position is:
 
     >>> pot.potential(xyz, t)
-    Quantity(Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.44985022, 'kpc2 / Myr2')
 
     Now we will translate the potential by 1 kpc in the y-direction:
 
-    >>> delta = u.Quantity([0.0, 1.0, 0.0], "kpc")
+    >>> delta = u.Q([0.0, 1.0, 0.0], "kpc")
     >>> pot_delta = gp.TranslatedPotential(pot, translation=delta)
     >>> pot_delta.potential(xyz, t)
-    Quantity(Array(-0.44761769, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.44761769, 'kpc2 / Myr2')
 
     To show that the translation is along the y-axis, we can translate the
     position by the same amount:
 
     >>> pot.potential(xyz - delta, t)
-    Quantity(Array(-0.44761769, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.44761769, 'kpc2 / Myr2')
 
     We can make a time-dependent translation. This one is very simple, but of
     course it could be more complicated, like the trajectory of an orbit.
 
-    >>> path_t = u.Quantity(jnp.linspace(0, 1, 200), "Gyr")
-    >>> trajectory = u.Quantity(
+    >>> path_t = u.Q(jnp.linspace(0, 1, 200), "Gyr")
+    >>> trajectory = u.Q(
     ...     jnp.stack([path_t.ustrip("Myr"),
     ...                jnp.zeros(path_t.shape),
     ...                jnp.zeros(path_t.shape)], axis=-1),
@@ -84,10 +84,10 @@ class TranslatedPotential(AbstractTransformedPotential):
     ...                                     translation=delta)
 
     >>> pot_tdelta.potential(xyz, t)
-    Quantity(Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.44985022, 'kpc2 / Myr2')
 
-    >>> pot_tdelta.potential(xyz, u.Quantity(100, "Myr"))
-    Quantity(Array(-0.04998336, dtype=float64), unit='kpc2 / Myr2')
+    >>> pot_tdelta.potential(xyz, u.Q(100, "Myr"))
+    Q(-0.04998336, 'kpc2 / Myr2')
 
     """
 
@@ -130,19 +130,19 @@ class TimeDependentTranslationParameter(AbstractParameter):
     We will compare the potential at a specific position before and after
     translation.
 
-    >>> xyz = u.Quantity([10.0, 0.0, 0.0], "kpc")
+    >>> xyz = u.Q([10.0, 0.0, 0.0], "kpc")
     >>> t = 0.0
 
     For reference, the potential at the specific position is:
 
     >>> pot.potential(xyz, t)
-    Quantity(Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.44985022, 'kpc2 / Myr2')
 
     We can make a time-dependent translation. This one is very simple, but of
     course it could be more complicated, like the trajectory of an orbit.
 
-    >>> path_t = u.Quantity(jnp.linspace(0, 1, 200), "Gyr")
-    >>> trajectory = u.Quantity(
+    >>> path_t = u.Q(jnp.linspace(0, 1, 200), "Gyr")
+    >>> trajectory = u.Q(
     ...     jnp.stack([path_t.ustrip("Myr"),
     ...                jnp.zeros(path_t.shape),
     ...                jnp.zeros(path_t.shape)], axis=-1),
@@ -154,10 +154,10 @@ class TimeDependentTranslationParameter(AbstractParameter):
     ...                                     translation=delta)
 
     >>> pot_tdelta.potential(xyz, t)
-    Quantity(Array(-0.44985022, dtype=float64), unit='kpc2 / Myr2')
+    Q(-0.44985022, 'kpc2 / Myr2')
 
-    >>> pot_tdelta.potential(xyz, u.Quantity(100, "Myr"))
-    Quantity(Array(-0.04998336, dtype=float64), unit='kpc2 / Myr2')
+    >>> pot_tdelta.potential(xyz, u.Q(100, "Myr"))
+    Q(-0.04998336, 'kpc2 / Myr2')
 
     """
 
@@ -172,11 +172,11 @@ class TimeDependentTranslationParameter(AbstractParameter):
         self,
         t: gt.BBtQorVSz0,
         *,
-        ustrip: AstropyUnits | None = None,
+        ustrip: u.AbstractUnit | None = None,
         **_: Any,
     ) -> gt.BBtQuSz3:
         t = u.ustrip(u.quantity.AllowValue, self.units["time"], t)
-        out = u.Quantity.from_(self.translation(t), self.units["length"])
+        out = u.Q.from_(self.translation(t), self.units["length"])
         return out if ustrip is None else u.ustrip(AllowValue, ustrip, out)
 
     # ---------------------------------

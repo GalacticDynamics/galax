@@ -11,6 +11,7 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -20,22 +21,25 @@ import quaxed.numpy as jnp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import (
     density as nfw_density,
     mass_enclosed as nfw_mass_enclosed,
     potential as nfw_potential,
 )
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
-from galax.potential._src.builtin.kepler import point_mass_potential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
+from galax.potential._src.builtin import kepler
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
 
 @final
-class HardCutoffNFWPotential(AbstractSinglePotential):
+class HardCutoffNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Sharply Truncated NFW Potential.
 
     Unlike a standard NFW potential this potential is sharply truncated at a
@@ -128,18 +132,18 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
 
         Evaluating at the truncation radius:
 
-        >>> q = u.Quantity([20, 0, 0], "kpc")
-        >>> t = u.Quantity(0, "Gyr")
+        >>> q = u.Q([20, 0, 0], "kpc")
+        >>> t = u.Q(0, "Gyr")
         >>> pot._mass_enclosed(q, t)
         Array(2.75869289e+10, dtype=float64)
 
         Evaluating at a radius larger than the truncation radius:
-        >>> q = u.Quantity([25, 0, 0], "kpc")
+        >>> q = u.Q([25, 0, 0], "kpc")
         >>> pot._mass_enclosed(q, t)
         Array(2.75869289e+10, dtype=float64)
 
         Evaluating at a radius smaller than the truncation radius:
-        >>> q = u.Quantity([10, 0, 0], "kpc")
+        >>> q = u.Q([10, 0, 0], "kpc")
         >>> pot._mass_enclosed(q, t)
         Array(1.10825624e+10, dtype=float64)
 
@@ -152,21 +156,21 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
             "r_t": self.r_t(t, ustrip=self.units["length"]),
         }
-        return mass_enclosed(params, r)
+        return mass_enclosed(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.Sz3, t: gt.Sz0, /
     ) -> gt.Sz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
@@ -174,7 +178,7 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
             "r_t": self.r_t(t, ustrip=self.units["length"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -199,38 +203,38 @@ class HardCutoffNFWPotential(AbstractSinglePotential):
         >>> pot = gp.HardCutoffNFWPotential(m=1e11, r_s=15, r_t=20, units="galactic")
 
         Evaluating at the truncation radius:
-        >>> q = u.Quantity([20, 0, 0], "kpc")
-        >>> t = u.Quantity(0, "Gyr")
+        >>> q = u.Q([20, 0, 0], "kpc")
+        >>> t = u.Q(0, "Gyr")
         >>> pot.density(q, t)
-        Quantity(Array(324806.00630999, dtype=float64), unit='solMass / kpc3')
+        Q(324806.00630999, 'solMass / kpc3')
 
         Evaluating at a radius larger than the truncation radius:
-        >>> q = u.Quantity([25, 0, 0], "kpc")
+        >>> q = u.Q([25, 0, 0], "kpc")
         >>> pot.density(q, t)
-        Quantity(Array(0., dtype=float64), unit='solMass / kpc3')
+        Q(0., 'solMass / kpc3')
 
         Evaluating at a radius smaller than the truncation radius:
-        >>> q = u.Quantity([10, 0, 0], "kpc")
+        >>> q = u.Q([10, 0, 0], "kpc")
         >>> pot.density(q, t)
-        Quantity(Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
+        Q(1273239.54473516, 'solMass / kpc3')
 
         For comparison, here's a standard NFW potential:
 
         >>> nfw = gp.NFWPotential(m=1e11, r_s=15, units="galactic")
         >>> nfw.density(q, t)
-        Quantity(Array(1273239.54473516, dtype=float64), unit='solMass / kpc3')
+        Q(1273239.54473516, 'solMass / kpc3')
 
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
             "r_t": self.r_t(t, ustrip=self.units["length"]),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -279,7 +283,8 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     """
     r_t = p["r_t"]
-    return nfw_mass_enclosed(p, jnp.where(r <= r_t, r, r_t))
+    _result = nfw_mass_enclosed(p, jnp.where(r <= r_t, r, r_t))
+    return _result  # type: ignore[no-any-return]
 
 
 # -------------------------------------------------------------------
@@ -294,7 +299,7 @@ def _inner_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     """
     nfw = nfw_potential(p, r)
     constant = p["G"] * p["m"] / (p["r_s"] + p["r_t"])
-    return nfw + constant
+    return nfw + constant  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -308,7 +313,7 @@ def _outer_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     enclosed within the truncation radius $r_t$.
     """
     m_tot = nfw_mass_enclosed(p, p["r_t"])
-    return point_mass_potential(p["G"], m_tot, r)
+    return kepler.point_mass_potential(p["G"], m_tot, r)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -332,4 +337,5 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
       r_s$
 
     """
-    return jnp.where(r <= p["r_t"], _inner_potential(p, r), _outer_potential(p, r))
+    _result = jnp.where(r <= p["r_t"], _inner_potential(p, r), _outer_potential(p, r))
+    return _result  # type: ignore[no-any-return]

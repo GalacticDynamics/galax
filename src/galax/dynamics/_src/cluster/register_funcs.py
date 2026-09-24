@@ -1,6 +1,6 @@
 """Cluster functions."""
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()
 
 import functools as ft
 
@@ -13,8 +13,8 @@ import coordinax.frames as cxf
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .api import L1L2LagrangePoints
 from .radius import tidal_radius_king1962
@@ -56,7 +56,12 @@ def lagrange_points(
 
 @dispatch
 def lagrange_points(
-    pot: gp.AbstractPotential, space: cx.Space, /, *, mass: gt.QuSz0, t: gt.QuSz0
+    pot: gp.AbstractPotential,
+    space: cx.KinematicSpace,
+    /,
+    *,
+    mass: gt.QuSz0,
+    t: gt.QuSz0,
 ) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, space["length"], space["speed"], mass=mass, t=t)

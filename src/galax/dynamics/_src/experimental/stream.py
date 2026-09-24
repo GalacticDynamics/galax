@@ -3,25 +3,25 @@
 __all__ = ["StreamSimulator"]
 
 import functools as ft
+
 from collections.abc import Mapping
+from jaxtyping import Array, PRNGKeyArray, Real
 from typing import Any, TypeAlias, final
-from typing_extensions import Unpack
 
 import diffrax as dfx
 import jax
 import jax.random as jr
 from jax.tree_util import register_dataclass
-from jaxtyping import Array, PRNGKeyArray, Real
 from plum import dispatch
 
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 from dataclassish.converters import dataclass
 
-import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
+import galax.dynamics.loop_strategies as lstrat
 import galax.potential as gp
-import galax.utils.loop_strategies as lstrat
 from .df import AbstractKinematicDF, Fardal2015DF
 from .integrate import integrate_orbit
 
@@ -65,7 +65,7 @@ class StreamICs:
 
 ICSScanIn: TypeAlias = tuple[gt.Sz0, gdt.Qarr, gdt.Parr, gt.Sz0]  # t, x, v, Msat
 ICSScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]  # x/v_l1, x/v_l2
-ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, Unpack[ICSScanOut]]
+ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, *ICSScanOut]
 
 
 # TODO: put images in the docstring
@@ -224,11 +224,13 @@ class StreamSimulator:
         # Scan over the release times/xs/vs/ms to generate the stream particle's
         # initial conditions.
         _, all_states = jax.lax.scan(
-            scan_fn, init_carry, (release_times, prog_xs, prog_vs, Msat)
+            scan_fn,  # type: ignore[arg-type]
+            init_carry,
+            (release_times, prog_xs, prog_vs, Msat),
         )
         return StreamICs(
             release_times,
-            prog_mass=Msat,
+            prog_mass=Msat,  # type: ignore[arg-type]
             qp_lead=all_states[0:2],
             qp_trail=all_states[2:4],
         )
@@ -328,7 +330,7 @@ def run(
 
 
 StreamScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]
-StreamCarry: TypeAlias = tuple[int, Unpack[StreamScanOut]]
+StreamCarry: TypeAlias = tuple[int, *StreamScanOut]
 
 
 @StreamSimulator.run.dispatch

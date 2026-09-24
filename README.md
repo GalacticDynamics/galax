@@ -33,14 +33,12 @@ import galax.dynamics as gd
 import galax.potential as gp
 
 w = gc.PhaseSpaceCoordinate(
-    q=u.Quantity([8, 0, 0], "kpc"),
-    p=u.Quantity([0, 220, 0], "km/s"),
-    t=u.Quantity(0, "Myr"),
+    t=u.Q(0, "Myr"), q=u.Q([8, 0, 0], "kpc"), p=u.Q([0, 220, 0], "km/s")
 )
 
 pot = gp.MilkyWayPotential()
 
-orbit = gd.evaluate_orbit(pot, w, u.Quantity(jnp.linspace(0, 1, 100), "Gyr"))
+orbit = gd.evaluate_orbit(pot, w, u.Q(jnp.linspace(0, 1, 100), "Gyr"))
 print(orbit)
 # Orbit(
 #     q=<CartesianPos3D: (x, y, z) [kpc]
@@ -51,7 +49,7 @@ print(orbit)
 #         [[ 0.     0.225  0.   ]
 #          ...
 #          [ 0.018  0.23   0.   ]]>,
-#     t=Quantity(Array([0., ..., 1000.], dtype=float64), unit='Myr')
+#     t=Q([0., ..., 1000.], 'Myr')
 # )
 
 orbit_sph = orbit.vconvert(cx.vecs.LonLatSphericalPos)

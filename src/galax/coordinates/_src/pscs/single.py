@@ -4,8 +4,8 @@ __all__ = ["PhaseSpaceCoordinate"]
 
 import functools as ft
 from dataclasses import KW_ONLY
-from typing import Any, ClassVar, final
-from typing_extensions import override
+
+from typing import Any, ClassVar, final, override
 
 import equinox as eqx
 from plum import dispatch
@@ -15,13 +15,13 @@ import quaxed.numpy as jnp
 import unxt as u
 from dataclassish.converters import Unless
 
-import galax._custom_types as gt
+import galax.coordinates.custom_types as gt
 from .base import AbstractPhaseSpaceCoordinate, ComponentShapeTuple
 from .base_composite import AbstractCompositePhaseSpaceCoordinate
 from .base_single import AbstractBasicPhaseSpaceCoordinate
 from galax.coordinates._src.base import AbstractPhaseSpaceObject
 from galax.coordinates._src.frames import SimulationFrame, simulation_frame
-from galax.utils._shape import batched_shape, vector_batched_shape
+from galax.coordinates._src.shape import batched_shape, vector_batched_shape
 
 
 @final
@@ -65,17 +65,11 @@ class PhaseSpaceCoordinate(AbstractBasicPhaseSpaceCoordinate):
     :class:`~coordinax.CartesianPos3D` or
     :class:`~coordinax.CartesianVel3D`, respectively.  For example,
 
-    >>> t = u.Quantity(7, "s")
-    >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "m"),
-    ...                           p=u.Quantity([4, 5, 6], "m/s"),
-    ...                           t=t)
+    >>> t = u.Q(7, "s")
+    >>> w = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"), p=u.Q([4, 5, 6], "m/s"), t=t)
     >>> w
-    PhaseSpaceCoordinate(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity(7, unit='s'),
-      frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                          t=Q(7, 's'), frame=SimulationFrame() )
 
     This can be done more explicitly:
 
@@ -89,8 +83,8 @@ class PhaseSpaceCoordinate(AbstractBasicPhaseSpaceCoordinate):
     When using the explicit constructors, the inputs can be any
     `coordinax.AbstractPos3D` and `coordinax.AbstractVel3D` types:
 
-    >>> q = cx.SphericalPos(r=u.Quantity(1, "m"), theta=u.Quantity(2, "deg"),
-    ...                     phi=u.Quantity(3, "deg"))
+    >>> q = cx.SphericalPos(r=u.Q(1, "m"), theta=u.Q(2, "deg"),
+    ...                     phi=u.Q(3, "deg"))
     >>> w3 = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
     >>> isinstance(w3.q, cx.SphericalPos)
     True
@@ -101,12 +95,8 @@ class PhaseSpaceCoordinate(AbstractBasicPhaseSpaceCoordinate):
 
     >>> w4 = w3.vconvert(cx.SphericalPos, cx.CartesianVel3D)
     >>> w4
-    PhaseSpaceCoordinate(
-      q=SphericalPos( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity(7, unit='s'),
-      frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=SphericalPos(...), p=CartesianVel3D(...),
+                          t=Q(7, 's'), frame=SimulationFrame() )
 
     """
 
@@ -179,22 +169,18 @@ def from_(
     >>> import galax.coordinates as gc
 
 
-    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Quantity([1, 2, 3], "kpc"),
-    ...                               p=u.Quantity([4, 5, 6], "km/s"),
-    ...                               t=u.Quantity(7, "Myr"))
-    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Quantity([10, 20, 30], "kpc"),
-    ...                               p=u.Quantity([40, 50, 60], "km/s"),
-    ...                               t=u.Quantity(7, "Myr"))
+    >>> wt1 = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "kpc"),
+    ...                               p=u.Q([4, 5, 6], "km/s"),
+    ...                               t=u.Q(7, "Myr"))
+    >>> wt2 = gc.PhaseSpaceCoordinate(q=u.Q([10, 20, 30], "kpc"),
+    ...                               p=u.Q([40, 50, 60], "km/s"),
+    ...                               t=u.Q(7, "Myr"))
 
     >>> cwt = gc.CompositePhaseSpaceCoordinate(wt1=wt1, wt2=wt2)
 
     >>> gc.PhaseSpaceCoordinate.from_(cwt)
-    PhaseSpaceCoordinate(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity([7, 7], unit='Myr'),
-      frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                          t=Q([7, 7], 'Myr'), frame=SimulationFrame() )
 
     """
     return cls(q=obj.q, p=obj.p, t=obj.t)
@@ -203,7 +189,7 @@ def from_(
 @AbstractPhaseSpaceObject.from_.dispatch
 def from_(
     cls: type[PhaseSpaceCoordinate],
-    data: cx.Space,
+    data: cx.KinematicSpace,
     frame: cx.frames.AbstractReferenceFrame,
     /,
 ) -> PhaseSpaceCoordinate:
@@ -214,16 +200,12 @@ def from_(
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
 
-    >>> data = cx.Space(length=cx.FourVector.from_([0, 1, 2, 3], "kpc"),
+    >>> data = cx.KinematicSpace(length=cx.FourVector.from_([0, 1, 2, 3], "kpc"),
     ...                 speed=cx.CartesianVel3D.from_([4, 5, 6], "km/s"))
 
     >>> gc.PhaseSpaceCoordinate.from_(data, gc.frames.simulation_frame)
-    PhaseSpaceCoordinate(
-      q=CartesianPos3D( ... ),
-      p=CartesianVel3D( ... ),
-      t=Quantity(0., unit='kpc s / km'),
-      frame=SimulationFrame()
-    )
+    PhaseSpaceCoordinate( q=CartesianPos3D(...), p=CartesianVel3D(...),
+                          t=Q(0., 'kpc s / km'), frame=SimulationFrame() )
 
     """
     q4 = data["length"]

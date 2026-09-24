@@ -11,6 +11,7 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -20,16 +21,20 @@ import quaxed.numpy as jnp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import r_spherical
 
 
 @final
-class PlummerPotential(AbstractSinglePotential):
+class PlummerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Plummer Potential.
 
     The Plummer potential is a simple model for a spherical distribution of
@@ -60,32 +65,35 @@ class PlummerPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
+
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=ul),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=ul),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -104,7 +112,7 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     """
     rho0 = 3 * p["m_tot"] / (4 * jnp.pi * p["r_s"] ** 3)
-    return rho0 / jnp.power(1 + (r / p["r_s"]) ** 2, 2.5)
+    return rho0 / jnp.power(1 + (r / p["r_s"]) ** 2, 2.5)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -114,7 +122,8 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $$ M(<r) = \frac{M_{tot} r^3}{(r^2 + r_s^2)^{3/2}} $$
 
     """
-    return p["m_tot"] * r**3 / jnp.power(r**2 + p["r_s"] ** 2, 1.5)
+    _result = p["m_tot"] * r**3 / jnp.power(r**2 + p["r_s"] ** 2, 1.5)
+    return _result  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -127,4 +136,5 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $r_s$ is the scale length.
 
     """
-    return -p["G"] * p["m_tot"] / jnp.sqrt(r**2 + p["r_s"] ** 2)
+    _result = -p["G"] * p["m_tot"] / jnp.sqrt(r**2 + p["r_s"] ** 2)
+    return _result  # type: ignore[no-any-return]

@@ -3,6 +3,7 @@
 __all__ = ["HamiltonianField"]
 
 import functools as ft
+
 from typing import Any, final
 
 import diffrax as dfx
@@ -10,15 +11,15 @@ import jax
 
 import unxt as u
 
-import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
 from galax.dynamics._src.utils import parse_to_t_y
 
 
 @final
-class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-arg]
+class HamiltonianField(AbstractOrbitField):
     r"""Dynamics field for Hamiltonian EoM.
 
     This is for Hamilton's equations for motion for a particle in a potential.
@@ -75,10 +76,10 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
 
     >>> solver = gd.OrbitSolver()  # defaults to Dopri8
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([[8, 0, 9], [9, 0, 3]], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"),
-    ...     t=u.Quantity(0, "Gyr"))
-    >>> t1 = u.Quantity(1, "Gyr")
+    ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"),
+    ...     t=u.Q(0, "Gyr"))
+    >>> t1 = u.Q(1, "Gyr")
     >>> soln = solver.solve(field, w0, t1)
     >>> soln
     Solution( t0=f64[], t1=f64[], ts=f64[1],
@@ -94,8 +95,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [[ 0.225 -0.068  0.253]
              [-0.439 -0.002 -0.146]]>,
-        t=Quantity['time'](1000., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(1000., 'Myr'), frame=SimulationFrame() )
     (2,)
 
     The ``__call__`` is very flexible and can be called with many different
@@ -134,9 +134,9 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
 
     - `unxt.Quantity` (assumed to be in Cartesian coordinates).
 
-    >>> t = u.Quantity(0, "Gyr")
-    >>> q = u.Quantity([8., 0, 0], "kpc")
-    >>> p = u.Quantity([0, 220, 0], "km/s")
+    >>> t = u.Q(0, "Gyr")
+    >>> q = u.Q([8., 0, 0], "kpc")
+    >>> p = u.Q([0, 220, 0], "km/s")
 
     >>> field(t, (q, p))
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
@@ -171,14 +171,14 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
-    - `coordinax.vecs.Space`:
+    - `coordinax.vecs.KinematicSpace`:
 
-    >>> space = cx.Space(length=tq, speed=p)
+    >>> space = cx.KinematicSpace(length=tq, speed=p)
     >>> field(space)
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
-    >>> space = cx.Space(length=q, speed=p)
+    >>> space = cx.KinematicSpace(length=q, speed=p)
     >>> field(t, space)
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
@@ -190,7 +190,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
-    >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
+    >>> coord = cx.Coordinate(cx.KinematicSpace(length=tq, speed=p),
     ...                       frame=gc.frames.SimulationFrame())
     >>> field(coord)
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
@@ -200,7 +200,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
      Array([-0.00702891, -0.        , -0.      ], dtype=float64))
 
-    >>> coord = cx.Coordinate(cx.Space(length=tq, speed=p),
+    >>> coord = cx.Coordinate(cx.KinematicSpace(length=tq, speed=p),
     ...                       frame=gc.frames.SimulationFrame())
     >>> field(coord)
     (Array([0.         , 0.22499668, 0.        ], dtype=float64),
@@ -229,7 +229,7 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     #: Potential.
     potential: gp.AbstractPotential
 
-    @property
+    @property  # type: ignore[misc]
     def units(self) -> u.AbstractUnitSystem:
         return self.potential.units
 
@@ -237,28 +237,34 @@ class HamiltonianField(AbstractOrbitField, strict=True):  # type: ignore[call-ar
     # Symplectic integration terms
     # TODO: enable full gamut of inputs
 
-    @jax.jit  # type: ignore[misc]
+    @jax.jit
     def dx_dt(self, t: Any, v_xyz: gdt.BBtParr, args: Any, /) -> gdt.BBtParr:  # noqa: ARG002
         """Call with time, position quantity arrays."""
         return v_xyz
 
-    @jax.jit  # type: ignore[misc]
+    @jax.jit
     def dv_dt(self, t: gt.BBtSz0, xyz: gdt.BBtQarr, _: Any, /) -> gdt.BtAarr:
         """Call with time, velocity quantity arrays."""
-        return -self.potential._gradient(xyz, t)  # noqa: SLF001
+        grad = self.potential._gradient(xyz, t)  # noqa: SLF001
+        return -grad  # type: ignore[no-any-return]
 
 
 # ===============================================
 # Terms dispatches
 
 
-@AbstractOrbitField.terms.dispatch  # type: ignore[misc]
+@AbstractOrbitField.terms.dispatch
 def terms(
     self: HamiltonianField,
     _: dfx.SemiImplicitEuler,
     /,
 ) -> tuple[dfx.ODETerm, dfx.ODETerm]:
     r"""Return the AbstractTerm terms for the SemiImplicitEuler solver.
+
+    See also `galax.dynamics.experimental.Leapfrog`, another symplectic solver,
+    for which the analogous dispatch is registered in
+    `galax.dynamics._src.experimental.leapfrog` (to avoid this core module
+    importing the experimental package).
 
     Examples
     --------
@@ -281,10 +287,10 @@ def terms(
     >>> dynamics_solver = gd.OrbitSolver(solver,
     ...                                     stepsize_controller=dfx.ConstantStepSize())
     >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Quantity([8., 0, 0], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"),
-    ...     t=u.Quantity(0, "Gyr"))
-    >>> t1 = u.Quantity(200, "Myr")
+    ...     q=u.Q([8., 0, 0], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"),
+    ...     t=u.Q(0, "Gyr"))
+    >>> t1 = u.Q(200, "Myr")
 
     >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
     >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
@@ -294,8 +300,7 @@ def terms(
             [7.091 3.504 0.   ]>,
         p=<CartesianVel3D: (x, y, z) [kpc / Myr]
             [-0.111  0.199  0. ]>,
-        t=Quantity['time'](200., unit='Myr'),
-        frame=SimulationFrame())
+        t=Q(200., 'Myr'), frame=SimulationFrame() )
 
     """
     return (dfx.ODETerm(self.dx_dt), dfx.ODETerm(self.dv_dt))

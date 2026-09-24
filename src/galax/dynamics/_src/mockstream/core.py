@@ -2,10 +2,10 @@
 
 __all__ = ["MockStream"]
 
+from jaxtyping import Array, Shaped
 from typing import final
 
 import jax.tree as jtu
-from jaxtyping import Array, Shaped
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -79,6 +79,6 @@ class MockStream(gc.AbstractCompositePhaseSpaceCoordinate):
         ]
 
     @property
-    def frame(self) -> cx.frames.AbstractReferenceFrame:
+    def frame(self) -> cx.frames.AbstractReferenceFrame:  # type: ignore[override]
         """The reference frame of the phase-space position."""
         return self._frame

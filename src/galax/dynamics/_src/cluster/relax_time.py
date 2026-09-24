@@ -19,8 +19,8 @@ __all__ = [
 ]
 
 import functools as ft
-from typing import Annotated as Antd, Any, NoReturn, TypeAlias, TypeVar, cast, final
-from typing_extensions import Doc
+
+from typing import Any, NoReturn, TypeAlias, cast, final
 
 import equinox as eqx
 import jax
@@ -29,20 +29,21 @@ from plum import dispatch
 import quaxed.numpy as jnp
 from unxt.quantity import is_any_quantity
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 
 BBtAorQSz0: TypeAlias = gt.BBtSz0 | gt.BBtQuSz0
-T = TypeVar("T", bound=gt.BBtSz0 | gt.BBtQuSz0)
 
 
-def _check_types_match(obj: T, comparator: object, /, name: str) -> T:
+def _check_types_match[T: (gt.BBtSz0 | gt.BBtQuSz0)](
+    obj: T, comparator: object, /, name: str
+) -> T:
     out = eqx.error_if(
         obj,
         (is_any_quantity(obj) and not is_any_quantity(comparator))
         or (not is_any_quantity(obj) and is_any_quantity(comparator)),
         f"{name} must be of type {'Quantity' if is_any_quantity(obj) else 'Array'}",
     )
-    return cast(T, out)
+    return cast("T", out)
 
 
 #####################################################################
@@ -96,14 +97,14 @@ class SpitzerHart1971(AbstractRelaxationTimeMethod):
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.42, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.42, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> trh = gdc.relaxation_time(gdc.relax_time.SpitzerHart1971, M, r_hm,
     ...     m_avg=m_avg, gamma=0.11, G=G)
-    >>> print(trh)
-    Quantity['time'](176.21612725, unit='Myr')
+    >>> trh
+    Q(176.21612725, 'Myr')
 
     """
 
@@ -132,14 +133,14 @@ def relaxation_time(
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.42, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.42, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> trh = gdc.relaxation_time(gdc.relax_time.SpitzerHart1971, M, r_hm,
     ...     m_avg=m_avg, gamma=0.11, G=G)
-    >>> print(trh)
-    Quantity['time'](176.21612725, unit='Myr')
+    >>> trh
+    Q(176.21612725, 'Myr')
 
     """
     return relaxation_time_spitzer_hart_1971(M, r_hm, m_avg=m_avg, **kw)
@@ -150,13 +151,13 @@ def relaxation_time(
 
 @ft.partial(jax.jit)
 def relaxation_time_spitzer_hart_1971(
-    M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
-    r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
+    M: BBtAorQSz0,
+    r_hm: BBtAorQSz0,
     /,
     *,
-    m_avg: Antd[float, Doc("mean stellar mass.")] = 0.42,
-    gamma: Antd[float, Doc("Coulomb logarithm term.")] = 0.11,
-    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
+    m_avg: float = 0.42,
+    gamma: float = 0.11,
+    G: float = 0.00449,
 ) -> BBtAorQSz0:
     r"""Compute relaxation time using Spitzer and Hart (1971) formula.
 
@@ -174,19 +175,33 @@ def relaxation_time_spitzer_hart_1971(
     - $\ln(\gamma N)$ is the Coulomb logarithm. For equal-mass clusters (Giersz
       & Heggie 1994) $\gamma \sim 0.11$.
 
+    Parameters
+    ----------
+    M : BBtAorQSz0
+        Mass of the cluster.
+    r_hm : BBtAorQSz0
+        Half-mass radius of the cluster.
+    m_avg : float, optional
+        Mean stellar mass. Default is 0.42 (Chabrier 2005 IMF between 0.08 and
+        100 $M_{\odot}$).
+    gamma : float, optional
+        Coulomb logarithm term. Default is 0.11 (Giersz & Heggie 1994).
+    G : float, optional
+        Gravitational constant.
+
     Examples
     --------
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.42, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.42, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> trh = gdc.relax_time.relaxation_time_spitzer_hart_1971(
     ...     M, r_hm, m_avg=m_avg, gamma=0.11, G=G)
-    >>> print(trh)
-    Quantity['time'](176.21612725, unit='Myr')
+    >>> trh
+    Q(176.21612725, 'Myr')
 
     """
     N = M / m_avg
@@ -267,13 +282,13 @@ def _relaxation_time_spitzer1987(
 
 @ft.partial(jax.jit)
 def half_mass_relaxation_time_spitzer1987(
-    M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
-    r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
-    m_avg: Antd[BBtAorQSz0, Doc("average stellar mass")],
+    M: BBtAorQSz0,
+    r_hm: BBtAorQSz0,
+    m_avg: BBtAorQSz0,
     /,
     *,
-    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
-    lnLambda: Antd[gt.RealScalarLike, Doc("Coulomb logarithm")],
+    G: BBtAorQSz0,
+    lnLambda: gt.RealScalarLike,
 ) -> BBtAorQSz0:
     r"""Compute the cluster's relaxation time.
 
@@ -283,19 +298,32 @@ def half_mass_relaxation_time_spitzer1987(
 
         t_r = \frac{0.1 N}{\ln(0.4 N)} \frac{r_{hm}^3}{G M}
 
+    Parameters
+    ----------
+    M : BBtAorQSz0
+        Mass of the cluster.
+    r_hm : BBtAorQSz0
+        Half-mass radius of the cluster.
+    m_avg : BBtAorQSz0
+        Average stellar mass.
+    G : BBtAorQSz0
+        Gravitational constant.
+    lnLambda : RealScalarLike
+        Coulomb logarithm.
+
     Examples
     --------
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.5, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.5, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> lnLambda = 10
 
     >>> gdc.relax_time.half_mass_relaxation_time_spitzer1987(M, r_hm, m_avg, G=G, lnLambda=lnLambda).uconvert("Myr")
-    Quantity(Array(143.51613833, dtype=float64, ...), unit='Myr')
+    Q(143.51613833, 'Myr')
 
     The function also works with raw JAX arrays, in which case the
     inputs are assumed to be in compatible units:
@@ -311,13 +339,13 @@ def half_mass_relaxation_time_spitzer1987(
 
 @ft.partial(jax.jit)
 def core_relaxation_time_spitzer1987(
-    Mc: Antd[BBtAorQSz0, Doc("mass of the cluster")],
-    r_c: Antd[BBtAorQSz0, Doc("core radius of the cluster")],
-    m_avg: Antd[BBtAorQSz0, Doc("average stellar mass")],
+    Mc: BBtAorQSz0,
+    r_c: BBtAorQSz0,
+    m_avg: BBtAorQSz0,
     /,
     *,
-    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
-    lnLambda: Antd[gt.RealScalarLike, Doc("Coulomb logarithm")],
+    G: BBtAorQSz0,
+    lnLambda: gt.RealScalarLike,
 ) -> BBtAorQSz0:
     r"""Compute the cluster's relaxation time.
 
@@ -327,19 +355,32 @@ def core_relaxation_time_spitzer1987(
 
         t_r = \frac{0.2 N}{\ln(0.4 N)} \frac{r_c^3}{G M_c}
 
+    Parameters
+    ----------
+    Mc : BBtAorQSz0
+        Mass of the cluster.
+    r_c : BBtAorQSz0
+        Core radius of the cluster.
+    m_avg : BBtAorQSz0
+        Average stellar mass.
+    G : BBtAorQSz0
+        Gravitational constant.
+    lnLambda : RealScalarLike
+        Coulomb logarithm.
+
     Examples
     --------
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(2e3, "Msun")
-    >>> r_hm = u.Quantity(0.1, "pc")
-    >>> m_avg = u.Quantity(0.5, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(2e3, "Msun")
+    >>> r_hm = u.Q(0.1, "pc")
+    >>> m_avg = u.Q(0.5, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
     >>> lnLambda = 10
 
     >>> gdc.relax_time.core_relaxation_time_spitzer1987(M, r_hm, m_avg, G=G, lnLambda=lnLambda).uconvert("Myr")
-    Quantity(Array(1.43516138, dtype=float64, ...), unit='Myr')
+    Q(1.43516138, 'Myr')
 
     The function also works with raw JAX arrays, in which case the
     inputs are assumed to be in compatible units:
@@ -392,12 +433,7 @@ def relaxation_time(
 )
 @ft.partial(jax.jit)
 def relaxation_time_baumgardt1998(
-    M: Antd[BBtAorQSz0, Doc("mass of the cluster")],
-    r_hm: Antd[BBtAorQSz0, Doc("half-mass radius of the cluster")],
-    m_avg: Antd[BBtAorQSz0, Doc("average stellar mass")],
-    /,
-    *,
-    G: Antd[BBtAorQSz0, Doc("gravitational constant")],
+    M: BBtAorQSz0, r_hm: BBtAorQSz0, m_avg: BBtAorQSz0, /, *, G: BBtAorQSz0
 ) -> BBtAorQSz0:
     r"""Compute the cluster's relaxation time.
 
@@ -411,18 +447,29 @@ def relaxation_time_baumgardt1998(
     cluster, $r_{hm}$ is the half-mass radius of the cluster, $m_{avg}$ is the
     average stellar mass, and $G$ is the gravitational constant.
 
+    Parameters
+    ----------
+    M : BBtAorQSz0
+        Mass of the cluster.
+    r_hm : BBtAorQSz0
+        Half-mass radius of the cluster.
+    m_avg : BBtAorQSz0
+        Average stellar mass.
+    G : BBtAorQSz0
+        Gravitational constant.
+
     Examples
     --------
     >>> import unxt as u
     >>> import galax.dynamics.cluster as gdc
 
-    >>> M = u.Quantity(1e4, "Msun")
-    >>> r_hm = u.Quantity(2, "pc")
-    >>> m_avg = u.Quantity(0.5, "Msun")
-    >>> G = u.Quantity(0.00449, "pc3 / (Myr2 Msun)")
+    >>> M = u.Q(1e4, "Msun")
+    >>> r_hm = u.Q(2, "pc")
+    >>> m_avg = u.Q(0.5, "Msun")
+    >>> G = u.Q(0.00449, "pc3 / (Myr2 Msun)")
 
     >>> gdc.relax_time.relaxation_time_baumgardt1998(M, r_hm, m_avg, G=G).uconvert("Myr")
-    Quantity(Array(129.63033763, dtype=float64, ...), unit='Myr')
+    Q(129.63033763, 'Myr')
 
     The function also works with raw JAX arrays, in which case the
     inputs are assumed to be in compatible units:

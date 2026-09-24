@@ -9,26 +9,42 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
 import jax
 from equinox import field
-from jax.scipy.special import sph_harm_y
-from jaxtyping import Array, Float
 
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
-from galax.potential._src.base_single import AbstractSinglePotential
+import galax.potential.custom_types as gt
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
+from galax.potential._src.harmonic.ylm import iter_Ylm
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import safe_vector_norm
 
 
-class AbstractMultipolePotential(AbstractSinglePotential):
-    """Abstract Multipole Potential."""
+class AbstractMultipolePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
+    r"""Abstract Multipole Potential.
+
+    Each term :math:`r^l Y_{lm}(\theta,\phi)` ("inner") and :math:`r^{-(l+1)}
+    Y_{lm}(\theta,\phi)` ("outer") is a *solid harmonic*: an exact,
+    source-free solution of Laplace's equation, :math:`\nabla^2 \Phi = 0`,
+    for every :math:`l, m` (Binney & Tremaine 2008, *Galactic Dynamics*, 2nd
+    ed., Sec. 2.4). Since :math:`\nabla^2` is linear, any sum of such terms
+    — inner, outer, or both, as used by the concrete subclasses below — is
+    itself source-free away from the origin. So the density is exactly zero
+    everywhere these potentials are evaluated (:math:`r>0`); all of the
+    represented mass sits, formally, at :math:`r=0` (for outer/mixed terms)
+    or at infinity (for inner terms only).
+    """
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass", doc="Total mass."
@@ -38,6 +54,10 @@ class AbstractMultipolePotential(AbstractSinglePotential):
 
     _: KW_ONLY
     l_max: int = field(static=True)
+
+    @ft.partial(jax.jit, inline=True)
+    def _density(self, xyz: gt.BBtQorVSz3, _: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
+        return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)  # type: ignore[no-any-return]
 
 
 @final
@@ -65,7 +85,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        t = u.Quantity(0.0, "Gyr")
+        t = u.Q(0.0, "Gyr")
         s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
         # TODO: check shape across time.
         msg = (
@@ -78,7 +98,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
@@ -86,24 +106,21 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
         Slm = self.Slm(t, ustrip=self.units["dimensionless"])
         Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
 
-        # spherical coordinates
+        # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
-        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(xyz), r_s)
+        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), r_s)
 
         # Compute the summation over l and m
-        l_max = self.l_max
-        ls, ms = jnp.tril_indices(l_max + 1)
-
-        # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
-        def summand(l: int, m: int) -> Float[Array, "*batch"]:
-            cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            return jnp.pow(s, l) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
-
-        summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
+        terms = [
+            jnp.pow(s, l) * (Slm[l, m] * cYlm + Tlm[l, m] * sYlm)
+            for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
+        ]
+        summation = jnp.sum(jnp.stack(terms), axis=0)
         if is_scalar:
             summation = summation[0]
 
-        return self.constants["G"].value * m_tot / r_s * summation
+        _result = self.constants["G"].value * m_tot / r_s * summation
+        return _result  # type: ignore[no-any-return]
 
 
 @final
@@ -131,7 +148,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        t = u.Quantity(0.0, "Gyr")
+        t = u.Q(0.0, "Gyr")
         s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
         # TODO: check shape across time.
         msg = (
@@ -144,7 +161,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         m_tot = self.m_tot(t, ustrip=self.units["mass"])
@@ -152,24 +169,21 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
         Slm = self.Slm(t, ustrip=self.units["dimensionless"])
         Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
 
-        # spherical coordinates
+        # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
-        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(xyz), r_s)
+        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), r_s)
 
         # Compute the summation over l and m
-        l_max = self.l_max
-        ls, ms = jnp.tril_indices(l_max + 1)
-
-        # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
-        def summand(l: int, m: int) -> Float[Array, "*batch"]:
-            cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            return jnp.pow(s, -(l + 1)) * (Slm[l, m] * cPlm + Tlm[l, m] * sPlm)
-
-        summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
+        terms = [
+            jnp.pow(s, -(l + 1)) * (Slm[l, m] * cYlm + Tlm[l, m] * sYlm)
+            for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
+        ]
+        summation = jnp.sum(jnp.stack(terms), axis=0)
         if is_scalar:
             summation = summation[0]
 
-        return self.constants["G"].value * m_tot / r_s * summation
+        _result = self.constants["G"].value * m_tot / r_s * summation
+        return _result  # type: ignore[no-any-return]
 
 
 @final
@@ -208,21 +222,19 @@ class MultipolePotential(AbstractMultipolePotential):
 
     def __check_init__(self) -> None:
         shape = (self.l_max + 1, self.l_max + 1)
-        t = u.Quantity(0.0, "Gyr")
-        is_shape, it_shape = self.ISlm(t).shape, self.ITlm(t).shape
-        os_shape, ot_shape = self.OSlm(t).shape, self.OTlm(t).shape
-        # TODO: check shape across time.
+        t = u.Q(0.0, "Gyr")
+        iss, its = self.ISlm(t).shape, self.ITlm(t).shape
+        oss, ots = self.OSlm(t).shape, self.OTlm(t).shape
+        # Check shapes match expected
         msg = "I/OSlm and I/OTlm must have the shape (l_max + 1, l_max + 1)."
-        pred = jnp.any(
-            jnp.array([x != shape for x in (is_shape, it_shape, os_shape, ot_shape)])
-        )
+        pred = (iss != shape) or (its != shape) or (oss != shape) or (ots != shape)
         _ = eqx.error_if(t, pred, msg)
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         u1 = self.units["dimensionless"]
@@ -231,58 +243,64 @@ class MultipolePotential(AbstractMultipolePotential):
         ISlm, ITlm = self.ISlm(t, ustrip=u1), self.ITlm(t, ustrip=u1)
         OSlm, OTlm = self.OSlm(t, ustrip=u1), self.OTlm(t, ustrip=u1)
 
-        # spherical coordinates
+        # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
-        s, theta, phi = cartesian_to_normalized_spherical(jnp.atleast_2d(xyz), r_s)
+        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), r_s)
 
         # Compute the summation over l and m
-        l_max = self.l_max
-        ls, ms = jnp.tril_indices(l_max + 1)
-
-        # TODO: vectorize compute_Ylm over l, m, then don't need a vmap?
-        def summand(l: int, m: int) -> Float[Array, "*batch"]:
-            cPlm, sPlm = compute_Ylm(l, m, theta, phi, l_max=l_max)
-            inner = jnp.pow(s, l) * (ISlm[l, m] * cPlm + ITlm[l, m] * sPlm)
-            outer = jnp.pow(s, -l - 1) * (OSlm[l, m] * cPlm + OTlm[l, m] * sPlm)
-            return inner + outer
-
-        summation = jnp.sum(jax.vmap(summand, in_axes=(0, 0))(ls, ms), axis=0)
+        terms = [
+            jnp.pow(s, l) * (ISlm[l, m] * cYlm + ITlm[l, m] * sYlm)
+            + jnp.pow(s, -l - 1) * (OSlm[l, m] * cYlm + OTlm[l, m] * sYlm)
+            for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
+        ]
+        summation = jnp.sum(jnp.stack(terms), axis=0)
         if is_scalar:
             summation = summation[0]
 
-        return self.constants["G"].value * m_tot / r_s * summation
+        _result = self.constants["G"].value * m_tot / r_s * summation
+        return _result  # type: ignore[no-any-return]
 
 
 # ===== Helper functions =====
 
 
-def cartesian_to_normalized_spherical(
+def scaled_radius_and_direction(
     q: gt.BtSz3, r_s: gt.Sz0, /
-) -> tuple[gt.BtFloatSz0, gt.BtFloatSz0, gt.BtFloatSz0]:
-    r"""Convert Cartesian coordinates to normalized spherical coordinates.
+) -> tuple[gt.BtFloatSz0, gt.BtSz3]:
+    r"""Split Cartesian positions into :math:`r/r_s` and a unit direction.
 
     .. math::
 
-        r = \sqrt{x^2 + y^2 + z^2}
-        X = \cos(\theta) = z / r
-        \phi = \tan^{-1}\left(\frac{y}{x}\right)
+        r = \sqrt{x^2 + y^2 + z^2}, \qquad \hat{q} = q / r
 
+    The angular dependence is carried by the Cartesian unit vector rather than
+    by :math:`(\theta, \phi)`: ``atan2(y, x)`` has gradient
+    :math:`-y/(x^2+y^2)`, which is :math:`0/0` on the whole z-axis, so any
+    :math:`m \ge 1` term built from it has NaN Cartesian derivatives there.
+
+    The scaled radius uses `safe_vector_norm`, which floors ``r`` at
+    ``sqrt(finfo(dtype).tiny)`` -- around 1e-154 in float64. Without that,
+    :math:`\hat{q} = q/r` is ``0/0`` at the origin and the value itself, not
+    just its derivatives, comes back NaN.
+
+    The *direction* needs a larger floor than the radius does. The second
+    derivative of :math:`q/r` carries a :math:`1/r^3` term, and at
+    :math:`r \sim 10^{-154}` that cubes straight past the bottom of float64
+    and evaluates to ``inf``, so the hessian is NaN even though the value and
+    the gradient are finite. Flooring the direction's denominator at
+    ``tiny**(1/3)`` keeps :math:`r^3` representable.
+
+    That floor does perturb the direction for sufficiently small non-zero
+    :math:`|q|`: measured in float64, ``q / r`` is bit-identical with and
+    without it down to :math:`|q| \sim 10^{-90}` and starts to differ by
+    :math:`10^{-95}`. Both floors therefore sit some eighty orders of
+    magnitude below any physical position, but "unchanged everywhere except
+    the origin" would be too strong a claim. The returned ``s`` is unaffected
+    either way, since it is built from the ``r`` that is not floored for the
+    direction.
     """
-    r = jnp.linalg.vector_norm(q, axis=-1)
-    s = r / r_s
-    theta = jnp.acos(q[..., 2] / r)  # theta
-    phi = jnp.atan2(q[..., 1], q[..., 0])  # atan(y/x)
-    return s, theta, phi
-
-
-# TODO: vectorize such that it's signature="(l),(l),(N),(N)->(l, N)":
-def compute_Ylm(
-    l: int,
-    m: int,
-    theta: Float[Array, "*batch"],
-    phi: Float[Array, "*batch"],
-    *,
-    l_max: int,
-) -> tuple[Float[Array, "*batch"], Float[Array, "*batch"]]:
-    Ylm = sph_harm_y(jnp.atleast_1d(l), jnp.atleast_1d(m), theta, phi, n_max=l_max)
-    return Ylm.real, Ylm.imag
+    r = safe_vector_norm(q)
+    # `tiny**(2/3)` inside the square root floors `r` itself at `tiny**(1/3)`.
+    cube_safe = jnp.finfo(jnp.promote_types(q.dtype, float)).tiny ** (2 / 3)
+    r_dir = jnp.sqrt(jnp.sum(jnp.square(q), axis=-1) + cube_safe)
+    return r / r_s, q / r_dir[..., None]

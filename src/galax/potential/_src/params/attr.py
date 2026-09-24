@@ -7,6 +7,7 @@ __all__ = [
 ]
 
 from dataclasses import dataclass, field
+
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, NoReturn, final
 
@@ -31,9 +32,9 @@ class AbstractParametersAttribute:
 
     >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> pot.parameters
-    mappingproxy({'m_tot': ConstantParameter(Quantity(Array(1.e+12, dtype=float64, ...), unit='solMass'))})
+    mappingproxy({'m_tot': ConstantParameter(Q(1.e+12, 'solMass'))})
 
-    """  # noqa: E501
+    """
 
     parameters: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint
     """Class attribute name on Potential."""
@@ -75,9 +76,9 @@ class ParametersAttribute(AbstractParametersAttribute):
 
     >>> kepler = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> kepler.parameters
-    mappingproxy({'m_tot': ConstantParameter(Quantity(Array(1.e+12, dtype=float64, ...), unit='solMass'))})
+    mappingproxy({'m_tot': ConstantParameter(Q(1.e+12, 'solMass'))})
 
-    """  # noqa: E501
+    """
 
     def __get__(
         self,
@@ -119,10 +120,9 @@ class CompositeParametersAttribute(AbstractParametersAttribute):
     >>> composite = gp.CompositePotential(kepler=kepler)
     >>> composite.parameters
     mappingproxy({'kepler':
-        mappingproxy({'m_tot':
-            ConstantParameter(Quantity(Array(1.e+12, dtype=float64, ...), unit='solMass'))})})
+        mappingproxy({'m_tot': ConstantParameter(Q(1.e+12, 'solMass'))})})
 
-    """  # noqa: E501
+    """
 
     def __get__(
         self,

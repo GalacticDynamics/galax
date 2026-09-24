@@ -5,10 +5,10 @@ __all__ = ["AbstractCompositePotential", "AbstractPreCompositedPotential"]
 
 import functools as ft
 import uuid
-from collections.abc import Hashable, ItemsView, Iterator, KeysView, Mapping, ValuesView
 from dataclasses import MISSING, replace
-from typing import TYPE_CHECKING, Any, cast
-from typing_extensions import override
+
+from collections.abc import Hashable, ItemsView, Iterator, KeysView, Mapping, ValuesView
+from typing import TYPE_CHECKING, Any, cast, override
 
 import equinox as eqx
 import jax
@@ -22,14 +22,13 @@ from dataclassish.flags import FilterRepr
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import AbstractPotential, default_constants
 
 if TYPE_CHECKING:
     import galax.potential  # noqa: ICN001
 
 
-# Note: cannot have `strict=True` because of inheriting from ImmutableMap.
 class AbstractCompositePotential(AbstractPotential):
     """Base class for composite potentials."""
 
@@ -41,7 +40,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._potential(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -50,7 +49,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _gradient(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz3:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._gradient(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -59,7 +58,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _laplacian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._laplacian(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -68,7 +67,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._density(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -77,7 +76,7 @@ class AbstractCompositePotential(AbstractPotential):
     def _hessian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz33:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
-        return jnp.sum(
+        return jnp.sum(  # type: ignore[no-any-return]
             jnp.array([p._hessian(xyz, t) for p in self.values()]),  # noqa: SLF001
             axis=0,
         )
@@ -113,16 +112,16 @@ class AbstractCompositePotential(AbstractPotential):
     # Mapping Protocol
 
     def __getitem__(self, key: str) -> AbstractPotential:
-        return cast(AbstractPotential, self._data[key])
+        return self._data[key]
 
     def keys(self) -> KeysView[str]:
-        return cast(KeysView[str], self._data.keys())
+        return cast("KeysView[str]", self._data.keys())
 
     def values(self) -> ValuesView[AbstractPotential]:
-        return cast(ValuesView[AbstractPotential], self._data.values())
+        return cast("ValuesView[AbstractPotential]", self._data.values())
 
     def items(self) -> ItemsView[str, AbstractPotential]:
-        return cast(ItemsView[str, AbstractPotential], self._data.items())
+        return cast("ItemsView[str, AbstractPotential]", self._data.items())
 
     # ===========================================
     # Extending Mapping
@@ -184,9 +183,9 @@ def replace(
     ...     halo=gp.NFWPotential(m=1e12, r_s=20, units="galactic"),
     ... )
 
-    >>> new_pot = replace(pot, disk=gp.MiyamotoNagaiPotential(m_tot=u.Quantity(1e12, "Msun"), a=6.5, b=0.26, units="galactic"))
+    >>> new_pot = replace(pot, disk=gp.MiyamotoNagaiPotential(m_tot=u.Q(1e12, "Msun"), a=6.5, b=0.26, units="galactic"))
     >>> new_pot["disk"].m_tot.value
-    Quantity(Array(1.e+12, dtype=float64,...), unit='solMass')
+    Q(1.e+12, 'solMass')
 
     """  # noqa: E501
     # TODO: directly call the Mapping implementation
@@ -213,9 +212,9 @@ def replace(
     ...     halo=gp.NFWPotential(m=1e12, r_s=20, units="galactic"),
     ... )
 
-    >>> new_pot = replace(pot, {"disk": {"m_tot": u.Quantity(1e12, "Msun")}})
+    >>> new_pot = replace(pot, {"disk": {"m_tot": u.Q(1e12, "Msun")}})
     >>> new_pot["disk"].m_tot.value
-    Quantity(Array(1.e+12, dtype=float64,...), unit='solMass')
+    Q(1.e+12, 'solMass')
 
     """
     # AbstractCompositePhaseSpaceCoordinate is both a Mapping and a dataclass
@@ -241,7 +240,7 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
 
     """
 
-    _keys: tuple[str, ...] = eqx.field(init=False, repr=False, static=True)
+    _keys: tuple[str, ...] = eqx.field(repr=False, static=True)
 
     def __init__(
         self,
@@ -295,7 +294,7 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
             setattr(self, k, pot)
 
     @property
-    def _data(self) -> ImmutableMap[str, AbstractPotential]:
+    def _data(self) -> ImmutableMap[str, AbstractPotential]:  # type: ignore[override]
         """Return the parameters as an ImmutableMap."""
         return ImmutableMap({k: getattr(self, k) for k in self._keys})
 
@@ -375,7 +374,7 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
 
         """
         key = eqx.error_if(key, key not in self._keys, f"key {key} not found")
-        return cast(AbstractPotential, getattr(self, key))
+        return cast("AbstractPotential", getattr(self, key))
 
     # ===========================================
     # Wadler-Lindig API
@@ -405,7 +404,10 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
         """
         return wl.bracketed(
             begin=wl.TextDoc(f"{self.__class__.__name__}("),
-            docs=wl.named_objs(list(field_items(FilterRepr, self)), **kwargs),
+            docs=wl.named_objs(
+                list(field_items(FilterRepr, self)),  # type: ignore[call-overload]
+                **{"use_short_name": True, **kwargs},
+            ),
             sep=wl.comma,
             end=wl.TextDoc(")"),
             indent=kwargs.get("indent", 4),

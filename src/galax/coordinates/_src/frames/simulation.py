@@ -6,17 +6,16 @@ Building off of `coordinax.frames`.
 
 __all__ = ["SimulationFrame", "simulation_frame"]
 
-from typing import Any, cast, final
+from typing import final
 
 from plum import dispatch
 
 import coordinax as cx
-
-_singleton_insts: dict[type, object] = {}
+from oncequinox import SingletonModuleMeta
 
 
 @final
-class SimulationFrame(cx.frames.AbstractReferenceFrame):  # type: ignore[misc]
+class SimulationFrame(cx.frames.AbstractReferenceFrame, metaclass=SingletonModuleMeta):  # type: ignore[misc]
     """The simulation reference frame.
 
     This is a reference frame that cannot be transformed to or from.
@@ -39,15 +38,6 @@ class SimulationFrame(cx.frames.AbstractReferenceFrame):  # type: ignore[misc]
     `frame_transform_op(SimulationFrame(), ICRS())` could not be resolved...
 
     """
-
-    def __new__(cls, /, *_: Any, **__: Any) -> "SimulationFrame":
-        # Check if instance already exists
-        if cls in _singleton_insts:
-            return cast("SimulationFrame", _singleton_insts[cls])
-        # Create new instance and cache it
-        self = object.__new__(cls)
-        _singleton_insts[cls] = self
-        return self
 
 
 simulation_frame = SimulationFrame()

@@ -14,16 +14,26 @@ nox.options.sessions = ["lint", "tests", "doctests"]
 nox.options.default_venv_backend = "uv|virtualenv"
 
 
+def _xdist_args(posargs: list[str]) -> list[str]:
+    """`-n logical --dist=loadfile`, unless `--pdb`/`--trace` want a serial run."""
+    debugging = any(arg == "--trace" or arg.startswith("--pdb") for arg in posargs)
+    return [] if debugging else ["-n", "logical", "--dist=loadfile"]
+
+
 @nox.session
 def lint(session: nox.Session) -> None:
     """Run the linter."""
-    session.install("pre-commit")
+    session.install("prek")
+    # Not a real commit -- no-commit-to-branch would always fail here.
+    # Merge into any SKIP already set, rather than clobber it.
+    skip = ",".join(filter(None, [os.environ.get("SKIP"), "no-commit-to-branch"]))
     session.run(
-        "pre-commit",
+        "prek",
         "run",
         "--all-files",
         "--show-diff-on-failure",
         *session.posargs,
+        env={"SKIP": skip},
     )
 
 
@@ -41,7 +51,7 @@ def tests(session: nox.Session) -> None:
     """Run the unit and regular tests."""
     session.install("-e", ".[test]")
     os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"  # TODO: set in a better way
-    session.run("pytest", *session.posargs)
+    session.run("pytest", *_xdist_args(session.posargs), *session.posargs)
 
 
 @nox.session
@@ -49,7 +59,7 @@ def tests_all(session: nox.Session) -> None:
     """Run the unit and regular tests."""
     session.install("-e", ".[test-all]")
     os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"  # TODO: set in a better way
-    session.run("pytest", *session.posargs)
+    session.run("pytest", *_xdist_args(session.posargs), *session.posargs)
 
 
 @nox.session

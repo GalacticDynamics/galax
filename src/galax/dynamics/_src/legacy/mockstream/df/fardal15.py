@@ -4,16 +4,17 @@ __all__ = ["FardalStreamDF"]
 
 
 import functools as ft
+
+from jaxtyping import PRNGKeyArray
 from typing import final
 
 import jax
 import jax.random as jr
-from jaxtyping import PRNGKeyArray
 
 import coordinax as cx
 import quaxed.numpy as jnp
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .base import AbstractStreamDF
 from galax.dynamics._src.api import omega
@@ -59,7 +60,7 @@ class FardalStreamDF(AbstractStreamDF):
         # Random number generation
         key1, key2, key3, key4 = jr.split(key, 4)
 
-        om = omega(x, v)[..., None]
+        om = omega(x, v)[..., None]  # type: ignore[index]
 
         # r-hat
         r_hat = cx.vecs.normalize_vector(x)

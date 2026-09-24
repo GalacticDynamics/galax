@@ -10,9 +10,9 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.potential as gp
-from galax._interop.optional_deps import OptDeps
+import galax.potential.custom_types as gt
+from galax.interop.optional_deps import OptDeps
 
 parametrize_test_method_gala = pytest.mark.parametrize(
     ("method0", "method1", "atol"),
@@ -48,7 +48,7 @@ class GalaIOMixin:
         # quick test that the potential energies are the same
         got = rpot(x, 0)
         exp = pot(x, 0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-14, exp.unit))
+        assert jnp.allclose(got, exp, atol=u.Q(1e-14, exp.unit))
 
         # TODO: add more robust tests
 
@@ -79,7 +79,7 @@ class GalaIOMixin:
         assert jnp.allclose(
             jnp.ravel(galax),
             jnp.ravel(convert(gala, u.Quantity)),
-            atol=u.Quantity(atol, galax.unit),
+            atol=u.Q(atol, galax.unit),
         )
 
 
@@ -93,7 +93,7 @@ def test_offset_hernquist() -> None:
     gxpot = gp.io.convert_potential(gp.io.GalaxLibrary, gpot)
 
     assert isinstance(gxpot, gp.TransformedPotential)
-    assert gxpot.xop.translation == cx.CartesianPos3D.from_([1.0, 2, 3], "kpc")
+    assert gxpot.xop.delta_q == cx.CartesianPos3D.from_([1.0, 2, 3], "kpc")
 
     assert isinstance(gxpot.base_potential, gp.HernquistPotential)
     assert set(gxpot.units.base_units) == set(galactic._core_units)

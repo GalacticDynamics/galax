@@ -3,13 +3,14 @@
 __all__ = ["PhaseSpaceInterpolation"]
 
 import functools as ft
+
 from collections.abc import Callable
+from jaxtyping import Array, Bool, Int, PyTree, Real
 from typing import Any, cast
 
 import diffrax as dfx
 import equinox as eqx
 import jax
-from jaxtyping import Array, Bool, Int, PyTree, Real
 
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
@@ -23,21 +24,22 @@ from diffraxtra._src.interp import (  # TODO: make this public API in diffraxtra
 )
 from unxt.quantity import BareQuantity as FastQ
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 
 
 @ft.partial(jax.jit)
 def within_bounds(
     t: Real[Array, "N"], t_lower: Real[Array, ""], t_upper: Real[Array, ""]
 ) -> Bool[Array, "N"]:
-    return jnp.logical_and(jnp.greater_equal(t, t_lower), jnp.less_equal(t, t_upper))
+    _result = jnp.logical_and(jnp.greater_equal(t, t_lower), jnp.less_equal(t, t_upper))
+    return _result  # type: ignore[no-any-return]
 
 
 # TODO: move this to galax.coordinates?
 # TODO: address mypy complaints about subclassing
 # AbstractVectorizedDenseInterpolation
-class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
+class PhaseSpaceInterpolation(eqx.Module):
     """Evaluate phase-space interpolations."""
 
     #: The vectorized interpolation object.
@@ -48,7 +50,7 @@ class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
     #: The unit system for the interpolation.
     units: u.AbstractUnitSystem = eqx.field(static=True, converter=u.unitsystem)
 
-    @eqx.filter_jit  # type: ignore[misc]
+    @eqx.filter_jit
     def evaluate(self, ts: Any) -> gc.PhaseSpaceCoordinate:
         usys = self.units
         t = FastQ.from_(ts, usys["time"])
@@ -87,17 +89,12 @@ class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
         return cast(gt.Shape, self.interp.batch_shape)
 
     @property
-    def y0_shape(self) -> gt.Shape:
-        """Return the shape of the initial value."""
-        return cast(gt.Shape, self.interp.y0_shape)
-
-    @property
     def batch_ndim(self) -> int:
         """Return the number of batch dimensions."""
         return cast(int, self.interp.batch_ndim)
 
     def __call__(self, *args: Any, **kwds: Any) -> gc.PhaseSpaceCoordinate:
-        return cast(gc.PhaseSpaceCoordinate, self.evaluate(*args, **kwds))
+        return self.evaluate(*args, **kwds)
 
     @property
     def t0(self) -> BatchedRealScalar:
@@ -117,7 +114,7 @@ class PhaseSpaceInterpolation(eqx.Module):  # type: ignore[misc]
     @property
     def ts_size(self) -> Int[Array, "..."]:  # TODO: shape
         """The number of times in the interpolation."""
-        return self.interp.ts_size
+        return self.interp.ts_size  # type: ignore[no-any-return]
 
     @property
     def infos(self) -> VecDenseInfos:

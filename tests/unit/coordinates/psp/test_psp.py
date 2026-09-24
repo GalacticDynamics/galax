@@ -10,8 +10,8 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.coordinates.custom_types as gt
 from ..test_base import AbstractPhaseSpaceObject_Test, getkeys
 
 
@@ -29,8 +29,8 @@ class Test_PhaseSpacePosition(AbstractPhaseSpaceObject_Test[gc.PhaseSpacePositio
         """Return a phase-space position."""
         _, keys = getkeys(3)
 
-        q = u.Quantity(jr.normal(next(keys), (*shape, 3)), "kpc")
-        p = u.Quantity(jr.normal(next(keys), (*shape, 3)), "km/s")
+        q = u.Q(jr.normal(next(keys), (*shape, 3)), "kpc")
+        p = u.Q(jr.normal(next(keys), (*shape, 3)), "km/s")
         return w_cls(q=q, p=p, frame=gc.frames.simulation_frame)
 
     # ===============================================================

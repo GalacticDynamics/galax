@@ -13,6 +13,7 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -23,16 +24,20 @@ import quaxed.numpy as jnp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import r_spherical
 
 
 @final
-class NFWPotential(AbstractSinglePotential):
+class NFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""NFW Potential.
 
     The NFW profile is one of the most commonly used model profiles for dark
@@ -77,6 +82,9 @@ class NFWPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
+
     @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
@@ -89,14 +97,14 @@ class NFWPotential(AbstractSinglePotential):
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -111,13 +119,13 @@ class NFWPotential(AbstractSinglePotential):
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _mass_enclosed(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
@@ -134,21 +142,21 @@ class NFWPotential(AbstractSinglePotential):
 
         >>> nfw = gp.NFWPotential(m=1e11, r_s=15, units="galactic")
 
-        >>> q = u.Quantity([10, 0, 0], "kpc")
-        >>> t = u.Quantity(0, "Gyr")
+        >>> q = u.Q([10, 0, 0], "kpc")
+        >>> t = u.Q(0, "Gyr")
         >>> nfw._mass_enclosed(q, t)
         Array(1.10825624e+10, dtype=float64)
 
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
         }
-        return mass_enclosed(params, r)
+        return mass_enclosed(params, r)  # type: ignore[no-any-return]
 
     # ===========================================
     # Constructors
@@ -226,7 +234,7 @@ class NFWPotential(AbstractSinglePotential):
             rho_c = (3 * cosmo.H(0.0) ** 2 / (8 * np.pi * default_constants["G"])).to(
                 usys["mass density"]
             )
-            rho_c = u.Quantity(rho_c.value, usys["mass density"])
+            rho_c = u.Q(rho_c.value, usys["mass density"])
 
         r_vir = jnp.cbrt(M200 / (200 * rho_c) / (4.0 / 3 * jnp.pi))
         r_s = r_vir / c
@@ -262,7 +270,7 @@ def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
     Array(0., dtype=float64, weak_type=True)
 
     """
-    return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)
+    return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -283,7 +291,7 @@ def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
     Array(0., dtype=float64, weak_type=True)
 
     """
-    return 4 * jnp.pi * p["rho0"] * p["r_s"] ** 3
+    return 4 * jnp.pi * p["rho0"] * p["r_s"] ** 3  # type: ignore[no-any-return]
 
 
 # -----------------------------------------------
@@ -319,7 +327,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     """
     x = r / p["r_s"]
     m = p["m"]
-    return m * (jnp.log(1 + x) - x / (1 + x))
+    return m * (jnp.log1p(x) - x / (1 + x))  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -334,4 +342,4 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r_s = p["r_s"]
     x = r / r_s
     phi0 = -p["G"] * p["m"] / r_s
-    return phi0 * jnp.log(1 + x) / x
+    return phi0 * jnp.log1p(x) / x  # type: ignore[no-any-return]

@@ -15,8 +15,8 @@ import coordinax as cx
 import quaxed.numpy as jnp
 from unxt.quantity import BareQuantity
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 from . import api
 
 # ===================================================================
@@ -49,8 +49,8 @@ def specific_angular_momentum(
 
 @dispatch
 @ft.partial(jax.jit)
-def specific_angular_momentum(w: cx.Space, /) -> cx.vecs.Cartesian3D:
-    """Compute from `coordinax.Space`."""
+def specific_angular_momentum(w: cx.KinematicSpace, /) -> cx.vecs.Cartesian3D:
+    """Compute from `coordinax.KinematicSpace`."""
     return api.specific_angular_momentum(w["length"], w["speed"])
 
 
@@ -100,8 +100,8 @@ def omega(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtQuSz0:
 
 @dispatch
 @ft.partial(jax.jit)
-def omega(w: cx.Space, /) -> gt.BBtQuSz0:
-    """Compute from a `coordinax.Space`."""
+def omega(w: cx.KinematicSpace, /) -> gt.BBtQuSz0:
+    """Compute from a `coordinax.KinematicSpace`."""
     return api.omega(w["length"], w["speed"])
 
 

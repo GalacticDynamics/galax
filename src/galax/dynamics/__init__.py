@@ -43,11 +43,9 @@ __all__ = [
 ]
 
 
-from jaxtyping import install_import_hook
+from .setup_package import install_import_hook, load_interop_plugins
 
-from galax.setup_package import RUNTIME_TYPECHECKER
-
-with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
+with install_import_hook("galax.dynamics"):
     from diffraxtra import DiffEqSolver
 
     from . import cluster, examples, fields, integrate, mockstream, plot
@@ -75,4 +73,11 @@ with install_import_hook("galax.dynamics", RUNTIME_TYPECHECKER):
 
 
 # Cleanup
-del (install_import_hook, RUNTIME_TYPECHECKER, register_api)
+del install_import_hook, register_api
+
+# Interoperability with third-party libraries. Importing a registered module is
+# what performs its `plum` dispatch registration; entry points let separately
+# installed distributions extend `galax.dynamics` without it knowing they exist.
+load_interop_plugins("galax.dynamics.interop")
+
+del load_interop_plugins

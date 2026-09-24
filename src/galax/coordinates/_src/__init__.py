@@ -4,4 +4,4 @@ Private API.
 
 """
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()

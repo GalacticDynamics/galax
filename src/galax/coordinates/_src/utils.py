@@ -1,8 +1,10 @@
 """Utilities for phase-space coordinates. Private module."""
 
-__all__ = ["PSPVConvertOptions", "SLICE_ALL"]
+__all__ = ("PSPVConvertOptions", "SLICE_ALL", "getitem_dispatcher", "getitem")
 
-from typing import TYPE_CHECKING, Final, TypeAlias
+from typing import TYPE_CHECKING, Any, Final, TypeAlias
+
+import plum
 
 import coordinax as cx
 
@@ -20,3 +22,12 @@ else:  # need runtime for jaxtyping
 
 
 SLICE_ALL: Final = slice(None)
+
+
+getitem_dispatcher = plum.Dispatcher()
+
+
+@getitem_dispatcher.abstract
+def getitem(self: Any, index: Any, /) -> Any:
+    """Return a new object with the given slice applied."""
+    raise NotImplementedError  # pragma: no cover --- IGNORE ---

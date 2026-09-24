@@ -1,0 +1,22 @@
+"""Test the :mod:`galax.potential._src.jax` module."""
+
+from jaxtyping import Array, Float
+
+import jax.numpy as jnp
+
+from galax.potential._src.jax import vectorize_method
+
+
+def test_vectorize_method() -> None:
+    """Test the vectorize_method function."""
+
+    class A:
+        def __init__(self, x):
+            self.x = x
+
+        @vectorize_method(signature="(3)->()")
+        def func(self, y: Float[Array, "batch N"]) -> Float[Array, "batch"]:
+            return self.x + jnp.sum(y)
+
+    a = A(1)
+    assert a.func(jnp.array([1, 2, 3])) == 7

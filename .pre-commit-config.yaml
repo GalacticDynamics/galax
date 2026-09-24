@@ -33,6 +33,11 @@ repos:
       - id: mixed-line-ending
       - id: name-tests-test
         args: ["--pytest-test-first"]
+      - id: no-commit-to-branch
+        args: ["--branch", "main", "--pattern", "^versions/.*"]
+        always_run: true
+        # Restrict to pre-commit so a push (e.g. a release tag) isn't mistaken for a commit.
+        stages: [pre-commit]
       - id: trailing-whitespace
 
   - repo: https://github.com/pre-commit/pygrep-hooks
@@ -43,7 +48,7 @@ repos:
       - id: rst-inline-touching-normal
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.31.0
+    rev: 0.34.1
     hooks:
       - id: check-dependabot
       - id: check-github-workflows
@@ -83,6 +88,7 @@ repos:
           - dataclassish
           - optype
           - plum-dispatch>=2.5.7
+          - quax
 
   - repo: https://github.com/codespell-project/codespell
     rev: "v2.3.0"
@@ -91,6 +97,11 @@ repos:
         exclude: ^(notebooks|AUTHORS\.rst)$
         additional_dependencies:
           - tomli
+
+  - repo: https://github.com/ComPWA/taplo-pre-commit
+    rev: v0.9.3
+    hooks:
+      - id: taplo-format
 
   # - repo: https://github.com/abravalheri/validate-pyproject
   #   rev: "v0.23"

@@ -5,8 +5,8 @@ import pytest
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.potential as gp
+import galax.potential.custom_types as gt
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterRSMixin, ParameterVCMixin
 
@@ -35,44 +35,33 @@ class TestLogarithmicPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.LogarithmicPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(0.0685455, unit="kpc2 / Myr2")
+        exp = u.Q(0.0685455, unit="kpc2 / Myr2")
         got = pot.potential(x, t=0)
-        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.isclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/logarithmic", atol=1e-8
+    )
     def test_gradient(self, pot: gp.LogarithmicPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity([0.0033749, 0.0067498, 0.0101247], "kpc / Myr2")
-        got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        return pot.gradient(x, t=0).ustrip(pot.units["acceleration"])
 
     def test_density(self, pot: gp.LogarithmicPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(67661373.89566506, "solMass / kpc3")
+        exp = u.Q(67661373.89566506, "solMass / kpc3")
         got = pot.density(x, t=0)
-        assert jnp.isclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        assert jnp.isclose(got, exp, atol=u.Q(1e-8, exp.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/logarithmic", atol=1e-8
+    )
     def test_hessian(self, pot: gp.LogarithmicPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(
-            [
-                [0.00292491, -0.00089997, -0.00134996],
-                [-0.00089997, 0.00157495, -0.00269992],
-                [-0.00134996, -0.00269992, -0.00067498],
-            ],
-            "1/Myr2",
-        )
-        got = pot.hessian(x, t=0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        return pot.hessian(x, t=0).ustrip("1/Myr2")
 
     # ---------------------------------
     # Convenience methods
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/logarithmic", atol=1e-8
+    )
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        exp = u.Quantity(
-            [
-                [0.00164995, -0.00089997, -0.00134996],
-                [-0.00089997, 0.00029999, -0.00269992],
-                [-0.00134996, -0.00269992, -0.00194994],
-            ],
-            "1/Myr2",
-        )
-        got = pot.tidal_tensor(x, t=0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")

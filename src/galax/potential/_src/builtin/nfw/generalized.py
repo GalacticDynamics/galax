@@ -6,27 +6,36 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-import tensorflow_probability.substrates.jax as tfp
 
 import unxt as u
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import rho0_of_m
+from .hyp2f1 import Bz_from_hyp2f1
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
+from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
+DimL = u.dimension("length")
+DimT = u.dimension("time")
+
 
 @final
-class gNFWPotential(AbstractSinglePotential):
+class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Generalized NFW Potential.
 
     This potential is a generalized version of the NFW potential, which is a
@@ -82,9 +91,11 @@ class gNFWPotential(AbstractSinglePotential):
     >>> jnp.isclose(gnfw.potential(x, t), nfw.potential(x, t), atol=1e-8)
     Array(True, dtype=bool)
 
+    Both are finite at the origin, where $\\Phi(0) = -G m / r_s$:
+
     >>> x = jnp.array([0, 0, 0])
     >>> gnfw.potential(x, t), nfw.potential(x, t)
-    (Array(nan, dtype=float64), Array(nan, dtype=float64))
+    (Array(-4.49850215, dtype=float64), Array(-4.49850215, dtype=float64))
 
     The gNFW potential is a generalization of the NFW potential, so it can be
     used to model a wider range of profiles. For example, if we set $\gamma =
@@ -104,7 +115,7 @@ class gNFWPotential(AbstractSinglePotential):
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass",
-        doc=r"""Total mass.""",
+        doc="""Scale mass. This is NOT the total mass.""",
     )
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
     gamma: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -123,21 +134,21 @@ class gNFWPotential(AbstractSinglePotential):
         self, xyz: gt.Sz3, t: gt.Sz0, /
     ) -> gt.Sz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m": self.m(t, ustrip=self.units["mass"]),
             "r_s": self.r_s(t, ustrip=self.units["length"]),
             "gamma": self.gamma(t, ustrip=self.units["dimensionless"]),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.Sz3, t: gt.Sz0, /
     ) -> gt.Sz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
@@ -145,7 +156,22 @@ class gNFWPotential(AbstractSinglePotential):
             "r_s": self.r_s(t, ustrip=self.units["length"]),
             "gamma": self.gamma(t, ustrip=self.units["dimensionless"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
+
+    @vectorize_method(signature="(3),()->(3)")
+    @ft.partial(jax.jit)
+    def _gradient(  # TODO: inputs w/ units
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
+    ) -> gt.FloatSz3:
+        xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
+        t_ = u.Q.from_(t, self.units["time"])
+        params = {
+            "G": self.constants["G"].value,
+            "m": self.m(t_, ustrip=self.units["mass"]),
+            "r_s": self.r_s(t_, ustrip=self.units["length"]),
+            "gamma": self.gamma(t_, ustrip=self.units["dimensionless"]),
+        }
+        return gradient(params, xyz)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -205,62 +231,6 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     return rho0 * jnp.power(x, -p["gamma"]) * jnp.power(1 + x, p["gamma"] - 3)
 
 
-# -----------------------------------------------
-
-hyp2f1 = tfp.math.hypergeometric.hyp2f1_small_argument
-
-
-@ft.partial(jax.jit)
-def Bz_from_hyp2f1(a: gt.FloatSz0, b: gt.FloatSz0, z: gt.BBtFloatSz0) -> gt.BBtFloatSz0:
-    r"""Incomplete beta function from hypergeometric function.
-
-    $$ B_z(a, 0) = \frac{z^a}{a} \cdot {}_2F_1(a, 1 - b; a + 1; z) $$
-
-    See NIST DLMF 8.17.7 @ https://dlmf.nist.gov/8.17
-
-    Parameters
-    ----------
-    a, b
-        The parameters of the incomplete beta function.
-    z
-        The value at which to evaluate the incomplete beta function.
-        Must be in the range [0, 1].
-
-    Examples
-    --------
-    >>> import jax.numpy as jnp
-    >>> import jax.scipy.special as jsp
-
-    >>> a, b = 1.0, 2.0
-    >>> z = jnp.array(0.5)
-
-    >>> Bz_from_hyp2f1(a, b, z)
-    Array(0.375, dtype=float64)
-
-    >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
-    Array(0.375, dtype=float64)
-
-    `Bz_from_hyp2f1` works for b = 0:
-
-    >>> b = 0.0
-    >>> Bz_from_hyp2f1(a, b, z)
-    Array(0.69314718, dtype=float64)
-
-    But `jsp.beta` does not work for b = 0:
-
-    >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
-    Array(nan, dtype=float64)
-
-    We can confirm that `Bz_from_hyp2f1` is correct by comparison when $b \sim 0$:
-
-    >>> b = 1e-4
-    >>> jsp.beta(a,b) * jsp.betainc(a, b, z)
-    Array(0.69312316, dtype=float64)
-
-    """
-    return (z**a / a) * hyp2f1(a, 1 - b, a + 1, z)
-
-
 @ft.partial(jax.jit)
 def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Enclosed mass for the NFW model.
@@ -279,7 +249,8 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     """
     x = r / p["r_s"]
     z = x / (1 + x)
-    return p["m"] * Bz_from_hyp2f1(3.0 - p["gamma"], 0.0, z)
+    _result = p["m"] * Bz_from_hyp2f1(3.0 - p["gamma"], 0.0, z)
+    return _result
 
 
 # -----------------------------------------------
@@ -308,9 +279,11 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     >>> jnp.isclose(gnfw.potential(x, t), nfw.potential(x, t), atol=1e-8)
     Array(True, dtype=bool)
 
+    Both are finite at the origin, where $\\Phi(0) = -G m / r_s$:
+
     >>> x = jnp.array([0, 0, 0])
     >>> gnfw.potential(x, t), nfw.potential(x, t)
-    (Array(nan, dtype=float64), Array(nan, dtype=float64))
+    (Array(-4.49850215, dtype=float64), Array(-4.49850215, dtype=float64))
 
     The gNFW potential is a generalization of the NFW potential, so it can be
     used to model a wider range of profiles. For example, if we set
@@ -336,4 +309,36 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     z2 = 1 / (1 + r / rs)
     outer = (p["m"] / rs) * Bz_from_hyp2f1(1.0, 2.0 - p["gamma"], z2)
 
-    return -p["G"] * (inner + outer)
+    return -p["G"] * (inner + outer)  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
+    r"""Gradient of the potential for the gNFW model.
+
+    $$ \nabla \Phi(r) = G M(<r) / r^2 \hat{r} $$
+
+    where $M(<r)$ is the enclosed mass.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import galax.potential as gp
+
+    A gNFW potential matches the NFW potential when $\gamma = 1$:
+
+    >>> gnfw = gp.gNFWPotential(m=1e12, r_s=1, gamma=1, units="galactic")
+    >>> nfw = gp.NFWPotential(m=1e12, r_s=1, units="galactic")
+
+    >>> x, t = jnp.array([8, 0, 0]), 0
+    >>> gnfw.gradient(x, t)
+    Array([0.09196173, 0.        , 0.        ], dtype=float64)
+
+    >>> jnp.allclose(gnfw.gradient(x, t), nfw.gradient(x, t), atol=1e-8)
+    Array(True, dtype=bool)
+
+    """
+    r_mag = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
+    mass_enc = mass_enclosed(p, r_mag)
+    grad_mag = p["G"] * mass_enc / (r_mag**2)
+    return grad_mag * (xyz / r_mag)  # type: ignore[no-any-return]

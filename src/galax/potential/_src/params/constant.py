@@ -5,24 +5,24 @@ __all__ = [
 ]
 
 import functools as ft
+
+from jaxtyping import ArrayLike
 from typing import Any, NoReturn, final
 
 import equinox as eqx
 import jax
 import jax.core
 import quax_blocks
-from jaxtyping import ArrayLike
 from quax import ArrayValue, register
 
 import unxt as u
 from dataclassish.converters import Unless
-from unxt._src.units.api import AstropyUnits
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import AbstractParameter
 
-t0 = u.Quantity(0, "Myr")
+t0 = u.Q(0, "Myr")
 
 
 @final
@@ -34,59 +34,57 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> p = gp.params.ConstantParameter(value=u.Quantity(1., "Msun"))
+    >>> p = gp.params.ConstantParameter(value=u.Q(1., "Msun"))
     >>> p
-    ConstantParameter(Quantity(Array(1., dtype=float64, ...), unit='solMass'))
+    ConstantParameter(Q(1., 'solMass'))
 
     The parameter value is constant:
 
-    >>> p(u.Quantity(0, "Gyr"))
-    Quantity(Array(1., dtype=float64, ...), unit='solMass')
+    >>> p(u.Q(0, "Gyr"))
+    Q(1., 'solMass')
 
-    >>> p(u.Quantity(1, "Gyr")) - p(u.Quantity(2, "Gyr"))
-    Quantity(Array(0., dtype=float64, ...), unit='solMass')
+    >>> p(u.Q(1, "Gyr")) - p(u.Q(2, "Gyr"))
+    Q(0., 'solMass')
 
     ConstantParameter supports arithmetic operations with other
     ConstantParameter objects:
 
     >>> p + p
-    ConstantParameter(Quantity(Array(2., dtype=float64, ...), unit='solMass'))
+    ConstantParameter(Q(2., 'solMass'))
 
     >>> p - p
-    ConstantParameter(Quantity(Array(0., dtype=float64, ...), unit='solMass'))
+    ConstantParameter(Q(0., 'solMass'))
 
     Most arithmetic operations degrade it back to a `unxt.Quantity`:
 
-    >>> p + u.Quantity(2, "Msun")
-    Quantity(Array(3., dtype=float64, ...), unit='solMass')
+    >>> p + u.Q(2, "Msun")
+    Q(3., 'solMass')
 
-    >>> u.Quantity(2, "Msun") + p
-    Quantity(Array(3., dtype=float64, ...), unit='solMass')
+    >>> u.Q(2, "Msun") + p
+    Q(3., 'solMass')
 
-    >>> p - u.Quantity(2, "Msun")
-    Quantity(Array(-1., dtype=float64, ...), unit='solMass')
+    >>> p - u.Q(2, "Msun")
+    Q(-1., 'solMass')
 
-    >>> u.Quantity(2, "Msun") - p
-    Quantity(Array(1., dtype=float64, ...), unit='solMass')
+    >>> u.Q(2, "Msun") - p
+    Q(1., 'solMass')
 
     >>> p * 2
-    Quantity(Array(2., dtype=float64, ...), unit='solMass')
+    Q(2., 'solMass')
 
     >>> 2 * p
-    Quantity(Array(2., dtype=float64, ...), unit='solMass')
+    Q(2., 'solMass')
 
     >>> p / 2
-    Quantity(Array(0.5, dtype=float64, ...), unit='solMass')
+    Q(0.5, 'solMass')
 
     >>> 2 / p
-    Quantity(Array(2., dtype=float64, ...), unit='1 / solMass')
+    Q(2., '1 / solMass')
 
     """
 
     # TODO: link this shape to the return shape from __call__
-    value: gt.QuSzAny = eqx.field(
-        converter=Unless(u.AbstractQuantity, u.Quantity.from_)
-    )
+    value: gt.QuSzAny = eqx.field(converter=Unless(u.AbstractQuantity, u.Q.from_))
     """The time-independent value of the parameter."""
 
     def aval(self) -> jax.core.ShapedArray:
@@ -97,12 +95,12 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
         >>> import galax.potential as gp
         >>> import unxt as u
 
-        >>> p = gp.params.ConstantParameter(value=u.Quantity(1., "Msun"))
+        >>> p = gp.params.ConstantParameter(value=u.Q(1., "Msun"))
         >>> p.aval()
         ShapedArray(float64[], weak_type=True)
 
         """
-        return self.value.aval()
+        return self.value.aval()  # type: ignore[no-any-return]
 
     def materialise(self) -> NoReturn:
         """Return the dtype and shape info.
@@ -112,7 +110,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
         >>> import galax.potential as gp
         >>> import unxt as u
 
-        >>> p = gp.params.ConstantParameter(value=u.Quantity(1., "Msun"))
+        >>> p = gp.params.ConstantParameter(value=u.Q(1., "Msun"))
         >>> try:
         ...     p.materialise()
         ... except NotImplementedError as e:
@@ -128,7 +126,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
         self,
         t: gt.BBtQuSz0 = t0,  # noqa: ARG002
         *,
-        ustrip: AstropyUnits | None = None,
+        ustrip: u.AbstractUnit | None = None,
         **__: Any,
     ) -> gt.QuSzAny:
         """Return the constant parameter value.
@@ -160,9 +158,9 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
         >>> from galax.potential.params import ConstantParameter
         >>> import unxt as u
 
-        >>> p = ConstantParameter(value=u.Quantity(1, "Msun"))
+        >>> p = ConstantParameter(value=u.Q(1, "Msun"))
         >>> p
-        ConstantParameter(Quantity(Array(1, dtype=int64, ...), unit='solMass'))
+        ConstantParameter(Q(1, 'solMass'))
 
         """
         return f"{self.__class__.__name__}({self.value!r})"
@@ -172,7 +170,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
 # add_p
 
 
-@register(jax.lax.add_p)  # type: ignore[misc]
+@register(jax.lax.add_p)
 def add_p_constantparams(
     x: ConstantParameter, y: ConstantParameter, /
 ) -> ConstantParameter:
@@ -197,7 +195,7 @@ def add_p_constantparam_scalar(
 # sub_p
 
 
-@register(jax.lax.sub_p)  # type: ignore[misc]
+@register(jax.lax.sub_p)
 def sub_p_constantparams(
     x: ConstantParameter, y: ConstantParameter, /
 ) -> ConstantParameter:
@@ -222,14 +220,14 @@ def sub_p_constantparam_scalar(
 # mul_p
 
 
-@register(jax.lax.mul_p)  # type: ignore[misc]
+@register(jax.lax.mul_p)
 def mul_p_obj_constantparam(
     x: ConstantParameter, y: u.AbstractQuantity | ArrayLike, /
 ) -> u.AbstractQuantity:
     return x.value * y
 
 
-@register(jax.lax.mul_p)  # type: ignore[misc]
+@register(jax.lax.mul_p)
 def mul_p_constantparam_obj(
     x: u.AbstractQuantity | ArrayLike, y: ConstantParameter, /
 ) -> u.AbstractQuantity:

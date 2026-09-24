@@ -1,17 +1,16 @@
 """Test the `MultipoleOuterPotential` class."""
 
-from typing import Any
-from typing_extensions import override
+from jaxtyping import Array, Shaped
+from typing import Any, override
 
 import equinox as eqx
 import pytest
-from jaxtyping import Array, Shaped
 
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.potential as gp
+import galax.potential.custom_types as gt
 from ..test_core import AbstractSinglePotential_Test
 from .test_abstractmultipole import (
     MultipoleTestMixin,
@@ -19,7 +18,7 @@ from .test_abstractmultipole import (
     ParameterTlmMixin,
 )
 from .test_common import ParameterMTotMixin, ParameterRSMixin
-from galax._interop.optional_deps import GSL_ENABLED, OptDeps
+from galax.interop.optional_deps import GSL_ENABLED, OptDeps
 
 ###############################################################################
 
@@ -72,47 +71,34 @@ class TestMultipoleOuterPotential(
     # ==========================================================================
 
     def test_potential(self, pot: gp.MultipoleOuterPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(0.62939434, unit="kpc2 / Myr2")
-        assert jnp.isclose(pot.potential(x, t=0), exp, atol=u.Quantity(1e-8, exp.unit))
+        exp = u.Q(0.62939434, unit="kpc2 / Myr2")
+        assert jnp.isclose(pot.potential(x, t=0), exp, atol=u.Q(1e-8, exp.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/outermultipole", atol=1e-8
+    )
     def test_gradient(self, pot: gp.MultipoleOuterPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(
-            [-0.13487022, -0.26974043, -0.19481253], pot.units["acceleration"]
-        )
-        got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, exp, atol=u.Quantity(1e-8, exp.unit))
+        return pot.gradient(x, t=0).ustrip(pot.units["acceleration"])
 
     def test_density(self, pot: gp.MultipoleOuterPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(0, unit="solMass / kpc3")
-        assert jnp.isclose(pot.density(x, t=0), exp, atol=u.Quantity(1e-8, exp.unit))
+        exp = u.Q(0, unit="solMass / kpc3")
+        assert jnp.isclose(pot.density(x, t=0), exp, atol=u.Q(1e-8, exp.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/outermultipole", atol=1e-8
+    )
     def test_hessian(self, pot: gp.MultipoleOuterPotential, x: gt.QuSz3) -> None:
-        exp = u.Quantity(
-            [
-                [-0.08670228, 0.09633587, 0.09954706],
-                [0.09633587, 0.05780152, 0.19909413],
-                [0.09954706, 0.19909413, 0.02890076],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(pot.hessian(x, t=0), exp, atol=u.Quantity(1e-8, exp.unit))
+        return pot.hessian(x, t=0).ustrip("1/Myr2")
 
     # ---------------------------------
     # Convenience methods
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/outermultipole", atol=1e-8
+    )
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        exp = u.Quantity(
-            [
-                [-0.08670228, 0.09633587, 0.09954706],
-                [0.09633587, 0.05780152, 0.19909413],
-                [0.09954706, 0.19909413, 0.02890076],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), exp, atol=u.Quantity(1e-8, exp.unit)
-        )
+        return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")
 
     # ==========================================================================
     # Interoperability

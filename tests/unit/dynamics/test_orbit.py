@@ -1,6 +1,6 @@
 """Test :class:`~galax.dynamics._src.orbit`."""
 
-from typing_extensions import override
+from typing import override
 
 import jax.random as jr
 import pytest
@@ -9,9 +9,9 @@ from plum import convert
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.coordinates as gc
 import galax.dynamics as gd
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from ..coordinates.psc.test_base_single import AbstractBasicPhaseSpaceCoordinate_Test
 from ..coordinates.test_base import getkeys
@@ -36,11 +36,9 @@ class TestOrbit(AbstractBasicPhaseSpaceCoordinate_Test[gd.Orbit]):
         """Return a phase-space position."""
         _, subkeys = getkeys(3)
 
-        q = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "kpc")
-        p = u.Quantity(jr.normal(next(subkeys), (*shape, 3)), "km/s")
-        t = u.Quantity(
-            jr.normal(next(subkeys), shape[-1:]), unit=potential.units["time"]
-        )
+        q = u.Q(jr.normal(next(subkeys), (*shape, 3)), "kpc")
+        p = u.Q(jr.normal(next(subkeys), (*shape, 3)), "km/s")
+        t = u.Q(jr.normal(next(subkeys), shape[-1:]), unit=potential.units["time"])
         return w_cls(
             q=q,
             p=p,

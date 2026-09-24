@@ -159,3 +159,9 @@ Thumbs.db
 /scratch
 /notebooks
 /.codspeed
+
+# Local-only agent working artifacts: design notes, implementation plans and
+# progress ledgers. Never shipped -- they are process scaffolding, not
+# documentation, and must not reach the published docs or the package.
+/docs/superpowers/
+/.superpowers/

@@ -7,6 +7,9 @@ expected_all = [
     "io",
     "params",
     "plot",
+    "scf",
+    # symmetry
+    "Symmetry",
     # base
     "AbstractPotential",
     # core
@@ -31,6 +34,9 @@ expected_all = [
     "MultipoleInnerPotential",
     "MultipoleOuterPotential",
     "MultipolePotential",
+    "AxisymmetricGaussianPotential",
+    "GaussianPotential",
+    "TriaxialGaussianPotential",
     "LeeSutoTriaxialNFWPotential",
     "NFWPotential",
     "TriaxialNFWPotential",
@@ -51,6 +57,8 @@ expected_all = [
     "TriaxialHernquistPotential",
     "HardCutoffNFWPotential",
     "gNFWPotential",
+    "ZhaoPotential",
+    "SCFPotential",
     # xfm
     "AbstractTransformedPotential",
     "FlattenedInThePotential",

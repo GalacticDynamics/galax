@@ -1,18 +1,16 @@
 """Parameters on a Potential."""
 
-__all__ = [
-    "ParameterCallable",
-    "AbstractParameter",
-]
+__all__ = ("ParameterCallable", "AbstractParameter")
 
 import abc
+
 from typing import Any, Protocol, runtime_checkable
 
 import equinox as eqx
 
-from unxt._src.units.api import AstropyUnits
+import unxt as u
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 
 
 @runtime_checkable
@@ -20,7 +18,7 @@ class ParameterCallable(Protocol):
     """Protocol for a Parameter callable."""
 
     def __call__(
-        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+        self, t: gt.BBtQuSz0, *, ustrip: u.AbstractUnit | None = None, **kwargs: Any
     ) -> gt.QuSzAny | gt.SzAny:
         """Compute the parameter value at the given time(s).
 
@@ -45,7 +43,7 @@ class ParameterCallable(Protocol):
 # -------------------------------------------
 
 
-class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
+class AbstractParameter(eqx.Module):
     """Abstract base class for Parameters on a Potential.
 
     Parameters are time-dependent quantities that are used to define a
@@ -56,7 +54,7 @@ class AbstractParameter(eqx.Module, strict=True):  # type: ignore[call-arg, misc
 
     @abc.abstractmethod
     def __call__(
-        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+        self, t: gt.BBtQuSz0, *, ustrip: u.AbstractUnit | None = None, **kwargs: Any
     ) -> gt.QuSzAny:
         """Compute the parameter value at the given time(s).
 

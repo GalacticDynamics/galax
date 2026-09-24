@@ -1,18 +1,18 @@
 """Test the `MultipolePotential` class."""
 
 import re
-from typing import Any
-from typing_extensions import override
+
+from jaxtyping import Array, Shaped
+from typing import Any, override
 
 import equinox as eqx
 import pytest
-from jaxtyping import Array, Shaped
 
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.potential as gp
+import galax.potential.custom_types as gt
 from ..io.test_gala import parametrize_test_method_gala
 from ..test_core import AbstractSinglePotential_Test
 from .test_abstractmultipole import (
@@ -44,10 +44,10 @@ class ParameterISlmMixin(ParameterAngularCoefficientsMixin):
         ISlm = jnp.zeros((l_max + 1, l_max + 1))
         ISlm = ISlm.at[1, :].set(5.0)
 
-        fields["ISlm"] = u.Quantity(ISlm, "")
+        fields["ISlm"] = u.Q(ISlm, "")
         pot = pot_cls(**fields)
         assert isinstance(pot.ISlm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.ISlm.value, u.Quantity(ISlm, ""))
+        assert jnp.allclose(pot.ISlm.value, u.Q(ISlm, ""))
 
     def test_ISlm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -57,7 +57,7 @@ class ParameterISlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["ISlm"] = ISlm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.ISlm(t=u.Quantity(0, "Myr")), ISlm)
+        assert jnp.allclose(pot.ISlm(t=u.Q(0, "Myr")), ISlm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_ISlm_userfunc(self, pot_cls, fields):
@@ -68,7 +68,7 @@ class ParameterISlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["ISlm"] = lambda t: ISlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.ISlm(t=u.Quantity(0, "Myr")), ISlm)
+        assert jnp.allclose(pot.ISlm(t=u.Q(0, "Myr")), ISlm)
 
 
 class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
@@ -89,11 +89,11 @@ class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
         ITlm = jnp.zeros((l_max + 1, l_max + 1))
         ITlm = ITlm.at[1, :].set(5.0)
 
-        fields["ITlm"] = u.Quantity(ITlm, "")
+        fields["ITlm"] = u.Q(ITlm, "")
         fields["l_max"] = l_max
         pot = pot_cls(**fields)
         assert isinstance(pot.ITlm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.ITlm.value, u.Quantity(ITlm, ""))
+        assert jnp.allclose(pot.ITlm.value, u.Q(ITlm, ""))
 
     def test_ITlm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -103,7 +103,7 @@ class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["ITlm"] = ITlm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.ITlm(t=u.Quantity(0, "Myr")), ITlm)
+        assert jnp.allclose(pot.ITlm(t=u.Q(0, "Myr")), ITlm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_ITlm_userfunc(self, pot_cls, fields):
@@ -114,7 +114,7 @@ class ParameterITlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["ITlm"] = lambda t: ITlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.ITlm(t=u.Quantity(0, "Myr")), ITlm)
+        assert jnp.allclose(pot.ITlm(t=u.Q(0, "Myr")), ITlm)
 
 
 class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
@@ -137,10 +137,10 @@ class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
         OSlm = jnp.zeros((l_max + 1, l_max + 1))
         OSlm = OSlm.at[1, :].set(5.0)
 
-        fields["OSlm"] = u.Quantity(OSlm, "")
+        fields["OSlm"] = u.Q(OSlm, "")
         pot = pot_cls(**fields)
         assert isinstance(pot.OSlm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.OSlm.value, u.Quantity(OSlm, ""))
+        assert jnp.allclose(pot.OSlm.value, u.Q(OSlm, ""))
 
     def test_OSlm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -150,7 +150,7 @@ class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["OSlm"] = OSlm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.OSlm(t=u.Quantity(0, "Myr")), OSlm)
+        assert jnp.allclose(pot.OSlm(t=u.Q(0, "Myr")), OSlm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_OSlm_userfunc(self, pot_cls, fields):
@@ -161,7 +161,7 @@ class ParameterOSlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["OSlm"] = lambda t: OSlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.OSlm(t=u.Quantity(0, "Myr")), OSlm)
+        assert jnp.allclose(pot.OSlm(t=u.Q(0, "Myr")), OSlm)
 
 
 class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
@@ -182,11 +182,11 @@ class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
         OTlm = jnp.zeros((l_max + 1, l_max + 1))
         OTlm = OTlm.at[1, :].set(5.0)
 
-        fields["OTlm"] = u.Quantity(OTlm, "")
+        fields["OTlm"] = u.Q(OTlm, "")
         fields["l_max"] = l_max
         pot = pot_cls(**fields)
         assert isinstance(pot.OTlm, gp.params.ConstantParameter)
-        assert jnp.allclose(pot.OTlm.value, u.Quantity(OTlm, ""))
+        assert jnp.allclose(pot.OTlm.value, u.Q(OTlm, ""))
 
     def test_OTlm_constant(self, pot_cls, fields):
         """Test the mass parameter."""
@@ -196,7 +196,7 @@ class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["OTlm"] = OTlm
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.OTlm(t=u.Quantity(0, "Myr")), OTlm)
+        assert jnp.allclose(pot.OTlm(t=u.Q(0, "Myr")), OTlm)
 
     @pytest.mark.xfail(reason="TODO: user function doesn't have units")
     def test_OTlm_userfunc(self, pot_cls, fields):
@@ -207,7 +207,7 @@ class ParameterOTlmMixin(ParameterAngularCoefficientsMixin):
 
         fields["OTlm"] = lambda t: OTlm * jnp.exp(-jnp.abs(t))
         pot = pot_cls(**fields)
-        assert jnp.allclose(pot.OTlm(t=u.Quantity(0, "Myr")), OTlm)
+        assert jnp.allclose(pot.OTlm(t=u.Q(0, "Myr")), OTlm)
 
 
 ###############################################################################
@@ -261,59 +261,42 @@ class TestMultipolePotential(
         """Test the `MultipoleInnerPotential.__check_init__` method."""
         fields_["ISlm"] = fields_["ISlm"][::2]  # make it the wrong shape
         match = re.escape("I/OSlm and I/OTlm must have the shape")
-        with pytest.raises(eqx.EquinoxRuntimeError, match=match):
+        with pytest.raises(eqx.EquinoxTracetimeError, match=match):
             pot_cls(**fields_)
 
     # ==========================================================================
 
     def test_potential(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(33.59908611, unit="kpc2 / Myr2")
-        assert jnp.isclose(
-            pot.potential(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        expect = u.Q(33.59908611, unit="kpc2 / Myr2")
+        assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/multipole", atol=1e-8
+    )
     def test_gradient(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
-            [-0.13487022, -0.26974043, 10.79508472], pot.units["acceleration"]
-        )
-        got = pot.gradient(x, t=0)
-        assert jnp.allclose(got, expect, atol=u.Quantity(1e-8, expect.unit))
+        return pot.gradient(x, t=0).ustrip(pot.units["acceleration"])
 
     def test_density(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(4.73805126e-05, pot.units["mass density"])
-        assert jnp.isclose(
-            pot.density(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        # Exactly zero: both r^l Y_lm and r^{-(l+1)} Y_lm are solid harmonics
+        # (source-free) for every l, m. See `AbstractMultipolePotential._density`.
+        expect = u.Q(0, pot.units["mass density"])
+        assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/multipole", atol=1e-8
+    )
     def test_hessian(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
-        expect = u.Quantity(
-            [
-                [-0.08670228, 0.09633587, 0.09954706],
-                [0.09633587, 0.05780152, 0.19909413],
-                [0.09954706, 0.19909413, 0.02890076],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(
-            pot.hessian(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        return pot.hessian(x, t=0).ustrip("1/Myr2")
 
     # ---------------------------------
     # Convenience methods
 
+    @pytest.mark.array_compare(
+        file_format="text", reference_dir="reference/multipole", atol=1e-8
+    )
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
-        expect = u.Quantity(
-            [
-                [-0.08670228, 0.09633587, 0.09954706],
-                [0.09633587, 0.05780152, 0.19909413],
-                [0.09954706, 0.19909413, 0.02890076],
-            ],
-            "1/Myr2",
-        )
-        assert jnp.allclose(
-            pot.tidal_tensor(x, t=0), expect, atol=u.Quantity(1e-8, expect.unit)
-        )
+        return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")
 
     # ==========================================================================
     # Interoperability
@@ -335,3 +318,145 @@ class TestMultipolePotential(
         atol: float,
     ) -> None:
         super().test_method_gala(pot, method0, method1, x, atol)
+
+
+###############################################################################
+# Regression: batched evaluation must match per-position evaluation.
+#
+# The angular basis used to pass length-1 `l`/`m` arrays to
+# `jax.scipy.special.sph_harm_y` against a length-N `theta`, which silently
+# returned wrong values at every batch index but 0 for any `l > 0` term.
+# Every other Multipole fixture here evaluates a single position, so nothing
+# caught it. `spexial` now takes `l`/`m` as static ints, which is what makes
+# the pairing impossible; this stays as the end-to-end statement of it.
+
+
+def _lm_coeffs(
+    l_max: int,
+) -> tuple[Shaped[Array, "{l_max}+1 {l_max}+1"], Shaped[Array, "{l_max}+1 {l_max}+1"]]:
+    """Build ``Slm``/``Tlm`` with non-zero entries at ``m >= 1``.
+
+    Requires ``l_max >= 2``: the coefficients set below reach ``(2, 2)``, which
+    is what puts a non-zero ``m >= 1`` term into the expansion.
+    """
+    Slm = jnp.zeros((l_max + 1, l_max + 1))
+    Slm = Slm.at[1, 0].set(0.4).at[1, 1].set(0.3).at[2, 2].set(0.15)
+    Tlm = jnp.zeros((l_max + 1, l_max + 1))
+    Tlm = Tlm.at[1, 1].set(0.25).at[2, 1].set(-0.2)
+    return Slm, Tlm
+
+
+_BATCH_XYZ = u.Q(
+    [[1.3, -2.1, 0.7], [4.0, 3.0, -5.0], [-1.5, 2.5, 3.5], [0.2, 0.6, -0.1]], "kpc"
+)
+
+
+@pytest.mark.parametrize(
+    "pot",
+    [
+        gp.MultipoleInnerPotential(
+            m_tot=u.Q(1e12, "Msun"),
+            r_s=u.Q(10.0, "kpc"),
+            Slm=_lm_coeffs(2)[0],
+            Tlm=_lm_coeffs(2)[1],
+            l_max=2,
+            units="galactic",
+        ),
+        gp.MultipoleOuterPotential(
+            m_tot=u.Q(1e12, "Msun"),
+            r_s=u.Q(10.0, "kpc"),
+            Slm=_lm_coeffs(2)[0],
+            Tlm=_lm_coeffs(2)[1],
+            l_max=2,
+            units="galactic",
+        ),
+        gp.MultipolePotential(
+            m_tot=u.Q(1e12, "Msun"),
+            r_s=u.Q(10.0, "kpc"),
+            ISlm=_lm_coeffs(2)[0],
+            ITlm=_lm_coeffs(2)[1],
+            OSlm=_lm_coeffs(2)[0],
+            OTlm=_lm_coeffs(2)[1],
+            l_max=2,
+            units="galactic",
+        ),
+    ],
+    ids=["inner", "outer", "both"],
+)
+def test_batched_matches_per_position(pot: gp.AbstractPotential) -> None:
+    """Evaluate a batch of positions and each position alone; require equality."""
+    t = u.Q(0.0, "Gyr")
+    batched = pot.potential(_BATCH_XYZ, t)
+    one_at_a_time = jnp.stack([pot.potential(xyz, t) for xyz in _BATCH_XYZ])
+
+    # The two paths agree exactly (max relative difference 0.0) in float64, but
+    # requiring bit-identity would over-specify the contract: XLA may fuse the
+    # batched and scalar paths differently, and more so on an accelerator. The
+    # regression this guards against is ~1e-1 relative, so 1e-8 keeps seven
+    # orders of detection margin while staying robust. Do not tighten.
+    assert jnp.allclose(
+        batched, one_at_a_time, rtol=1e-8, atol=u.Q(1e-10, batched.unit)
+    )
+
+
+###############################################################################
+# The angular basis: smoothness on the z-axis.
+#
+# The harmonics used to go through `theta = acos(z/r)`, `phi = atan2(y, x)`.
+# Neither angle is differentiable at a pole: `acos` has derivative
+# `-1 / sqrt(1 - (z/r)**2)`, an infinity there, and `atan2` has gradient
+# `(-y, x) / (x**2 + y**2)`, i.e. `0/0` wherever `x = y = 0`. Autodiff through
+# either returns NaN, so the Cartesian gradient and hessian of *every* term
+# were NaN on the entire z-axis -- `m = 0` included, not only `m >= 1`.
+# `spexial.sph_harm_y_cart_all_terms` evaluates
+#
+#     Y_l^m = N_lm * p_l^m(z/r) * ((x + i y) / r)**m
+#
+# which is polynomial in `x` and `y` and so has no z-axis singularity. The
+# test below pins the value it gives there against a central difference; for
+# `m = 1` that derivative is non-zero, so "smooth on the axis" is a claim with
+# something to check rather than a zero that any broken implementation passes.
+#
+# The harmonics themselves -- the Condon-Shortley phase against `lpmv`, the
+# high-`m` seed overflow, the batched table against the per-pair function --
+# are now `spexial`'s to test, and it does, including regression tests that
+# assert the upstream `jax.scipy.special.sph_harm_y` defects directly. What
+# is checked here is that *these potentials* are assembled correctly from
+# them.
+
+
+def test_on_axis_gradient_is_correct() -> None:
+    """Check the z-axis gradient is correct, not merely finite.
+
+    The potential has non-zero ``m >= 1`` coefficients, so before the Cartesian
+    reformulation every component here was NaN. Comparing against a central
+    difference whose ``x``/``y`` samples straddle the axis from off-axis points
+    checks the value, not just that something finite came out.
+    """
+    Slm, Tlm = _lm_coeffs(2)
+    pot = gp.MultipoleInnerPotential(
+        m_tot=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        Slm=Slm,
+        Tlm=Tlm,
+        l_max=2,
+        units="galactic",
+    )
+    on_axis = u.Q([0.0, 0.0, 5.0], "kpc")
+
+    grad = pot.gradient(on_axis, t=0).ustrip(pot.units["acceleration"])
+
+    h = 1e-5  # small enough that O(h^2) truncation sits far below `rtol`
+    expect = jnp.stack(
+        [
+            (
+                pot.potential(on_axis + u.Q(step, "kpc"), t=0)
+                - pot.potential(on_axis - u.Q(step, "kpc"), t=0)
+            ).ustrip(pot.units["specific energy"])
+            / (2 * h)
+            for step in jnp.eye(3) * h
+        ]
+    )
+
+    # NaN compares unequal, so this subsumes an `isfinite` check.
+    assert jnp.allclose(grad, expect, rtol=1e-6, atol=1e-12)

@@ -10,6 +10,8 @@ __all__ = ["AbstractSolver", "SolveState", "integrate_field"]
 import abc
 import functools as ft
 from dataclasses import fields
+
+from jaxtyping import Array, PyTree, Real
 from typing import Any, TypeAlias
 
 import diffrax as dfx
@@ -17,14 +19,13 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jaxtyping import Array, PyTree, Real
 
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 from .fields import AbstractField
 
 USys: TypeAlias = u.AbstractUnitSystem
@@ -36,7 +37,7 @@ DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], 
 # SolveState
 
 
-class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
+class SolveState(eqx.Module):
     """State of the solver.
 
     This is used as the return value for `galax.dynamics.AbstractSolver.init`
@@ -96,7 +97,7 @@ class SolveState(eqx.Module, strict=True):  # type: ignore[misc, call-arg]
 # Abstract Solver
 
 
-class AbstractSolver(dfxtra.AbstractDiffEqSolver, strict=True):  # type: ignore[call-arg,misc]
+class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
     """ABC for solvers.
 
     Notes
@@ -254,13 +255,13 @@ def _parse_t0_t1(
         return t0, t1
 
     def t0_t1_are_different() -> tuple[gt.Sz0, gt.Sz0]:
-        return t0, t1
+        return t0, t1  # type: ignore[return-value]
 
     t0, t1 = jax.lax.cond(t0 != t1, t0_t1_are_different, t0_t1_are_same)
-    return t0, t1
+    return t0, t1  # type: ignore[return-value]
 
 
-@ft.partial(eqx.filter_jit)
+@eqx.filter_jit
 def integrate_field(
     field: AbstractField,
     y0: PyTree[Array],
@@ -365,8 +366,8 @@ def integrate_field(
 
     - From `unxt.Quantity`:
 
-    >>> y0 = (u.Quantity([8., 0, 0], "kpc"), u.Quantity([0, 220, 0], "km/s"))
-    >>> ts = u.Quantity(jnp.linspace(0, 1, 100), "Gyr")
+    >>> y0 = (u.Q([8., 0, 0], "kpc"), u.Q([0, 220, 0], "km/s"))
+    >>> ts = u.Q(jnp.linspace(0, 1, 100), "Gyr")
 
     >>> soln = gd.integrate_field(field, y0, ts)
     >>> soln
@@ -393,8 +394,8 @@ def integrate_field(
 
     >>> import galax.coordinates as gc
 
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Quantity([8, 0, 0], "kpc"),
-    ...     p=u.Quantity([0, 220, 0], "km/s"), t=u.Quantity(0, "Gyr"))
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8, 0, 0], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"), t=u.Q(0, "Gyr"))
 
     >>> soln = gd.integrate_field(field, w0, ts)
     >>> soln
@@ -425,7 +426,7 @@ def integrate_field(
         else solver
     )
     # Parse t0, y0. Important for Quantities
-    _, y0 = field.parse_inputs(ts[0], y0, ustrip=True)  # Parse inputs
+    _, y0 = field.parse_inputs(ts[0], y0, ustrip=True)
 
     # Make SaveAt
     u_t = field.units["time"]

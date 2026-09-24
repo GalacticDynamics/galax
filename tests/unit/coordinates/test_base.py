@@ -1,21 +1,19 @@
 """Test `galax.coordinates.AbstractPhaseSpaceObject`."""
 
 from abc import ABCMeta, abstractmethod
-from typing import Generic, TypeVar
+
+from jaxtyping import PRNGKeyArray
 
 import jax.random as jr
 import optype as op
 import pytest
-from jaxtyping import PRNGKeyArray
 
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
 import galax.coordinates as gc
-
-CT = TypeVar("CT", bound=gc.AbstractPhaseSpaceObject)
+import galax.coordinates.custom_types as gt
 
 
 def getkeys(
@@ -27,7 +25,7 @@ def getkeys(
     return newkey, iter(subkeys)
 
 
-class AbstractPhaseSpaceObject_Test(Generic[CT], metaclass=ABCMeta):
+class AbstractPhaseSpaceObject_Test[CT: gc.AbstractPhaseSpaceObject](metaclass=ABCMeta):
     """Abstract base class for testing `galax.coordinates.AbstractPhaseSpaceObject`."""
 
     #################################################################
@@ -95,7 +93,7 @@ class AbstractPhaseSpaceObject_Test(Generic[CT], metaclass=ABCMeta):
 
     def test_data_keys(self, w: CT) -> None:
         """Test :attr:`~galax.coordinates.PhaseSpacePosition.data`."""
-        assert isinstance(w.data, cx.Space)
+        assert isinstance(w.data, cx.KinematicSpace)
         assert "length" in w.data
         assert "speed" in w.data
 
@@ -181,7 +179,7 @@ class AbstractPhaseSpaceObject_Test(Generic[CT], metaclass=ABCMeta):
         """Test method ``kinetic_energy``."""
         ke = w.kinetic_energy()
         assert ke.shape == w.shape  # confirm relation to shape and components
-        assert jnp.all(ke >= u.Quantity(0, "km2/s2"))
+        assert jnp.all(ke >= u.Q(0, "km2/s2"))
         # TODO: more tests
 
     def test_angular_momentum(self, w: CT) -> None:

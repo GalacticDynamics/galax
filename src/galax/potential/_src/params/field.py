@@ -7,6 +7,7 @@ __all__ = ["ParameterField"]
 from dataclasses import KW_ONLY, is_dataclass
 from inspect import isclass, isfunction
 from textwrap import dedent
+
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,8 +17,8 @@ from typing import (
     get_args,
     get_type_hints,
     overload,
+    override,
 )
-from typing_extensions import Doc, override
 
 from astropy.units import PhysicalType as Dimension, Quantity as AstropyQuantity
 
@@ -30,7 +31,7 @@ from unxt.quantity import AbstractQuantity
 from .base import AbstractParameter, ParameterCallable
 from .constant import ConstantParameter
 from .core import CustomParameter
-from galax.utils.dataclasses import Sentinel, sentineled
+from galax.potential.dataclasses import Sentinel, sentineled
 
 if TYPE_CHECKING:
     from galax.potential import AbstractPotential
@@ -71,7 +72,7 @@ def converter_parameter(value: Any) -> AbstractParameter:
     else:
         # `Quantity.from_`` handles errors if the value cannot be
         # converted to a Quantity.
-        out = ConstantParameter(u.Quantity.from_(value))
+        out = ConstantParameter(u.Q.from_(value))
 
     return out
 
@@ -108,7 +109,7 @@ class ParameterField:
 
     The simplest example is a constant mass:
 
-    >>> potential = KeplerPotential(mass=u.Quantity(1e12, "Msun"), units="galactic")
+    >>> potential = KeplerPotential(mass=u.Q(1e12, "Msun"), units="galactic")
     >>> potential
     KeplerPotential(
       units=LTMAUnitSystem( length=Unit("kpc"), ...),
@@ -141,13 +142,6 @@ class ParameterField:
     def __set_name__(self, owner: "type[AbstractPotential]", name: str) -> None:
         """Set the name of the parameter."""
         object.__setattr__(self, "name", name)
-
-        # Try to get the documentation from the annotation
-        ann = owner.__annotations__[name]  # Get the annotation from the class
-        if isannotated(ann):
-            for arg in get_args(ann)[1:]:
-                if isinstance(arg, Doc):
-                    object.__setattr__(self, "doc", arg.documentation)
 
     @property
     @override
@@ -188,7 +182,7 @@ class ParameterField:
             return self
 
         # Get from instance
-        return cast(AbstractParameter, instance.__dict__[self.name])
+        return cast("AbstractParameter", instance.__dict__[self.name])
 
     # -----------------------------
 
@@ -223,7 +217,7 @@ class ParameterField:
             v = CustomParameter(func=value)
         else:
             unit = potential.units[self.dimensions]
-            v = ConstantParameter(u.Quantity.from_(value, unit))
+            v = ConstantParameter(u.Q.from_(value, unit))
 
         # Set
         potential.__dict__[self.name] = v

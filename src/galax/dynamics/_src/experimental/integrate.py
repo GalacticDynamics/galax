@@ -3,24 +3,24 @@
 __all__: list[str] = ["integrate_orbit"]
 
 import functools as ft
+
+from jaxtyping import Array, Real
 from typing import Any, TypeAlias
 
 import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.extend as jex
-from jaxtyping import Array, Real
 from plum import dispatch
 
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 
-import galax._custom_types as gt
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
+import galax.dynamics.loop_strategies as lstrat
 import galax.potential as gp
-import galax.utils.loop_strategies as lstrat
 from galax.dynamics._src.orbit.field_base import AbstractOrbitField
-from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
 
 BQParr: TypeAlias = tuple[Real[gdt.Qarr, "B"], Real[gdt.Parr, "B"]]
 
@@ -138,7 +138,7 @@ def parse_t0_t1_saveat(
             t0=False, t1=False, ts=ts if not dense else None, dense=dense, steps=False
         )
 
-    return t0, t1, saver
+    return t0, t1, saver  # type: ignore[return-value]
 
 
 # =============================================================================
@@ -250,7 +250,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     Loop strategies can be used to control the integration. For example, to
     automatically determine the best loop strategy:
 
-    >>> import galax.utils.loop_strategies as lstrat
+    >>> import galax.dynamics.loop_strategies as lstrat
 
     >>> orbit = gd.experimental.integrate_orbit(lstrat.Determine,
     ...     pot, xv0, t0=0, t1=10, saveat=saveat)
@@ -376,6 +376,11 @@ def integrate_orbit(
         evaluation of the solution.
 
     """
+    # Note: this is needed to prevent a circular import
+    from galax.dynamics._src.orbit.field_hamiltonian import (
+        HamiltonianField,
+    )
+
     field = pot if isinstance(pot, AbstractOrbitField) else HamiltonianField(pot)
     terms = field.terms(solver)
 
@@ -477,7 +482,7 @@ def integrate_orbit(
     actually faster, at the expense of only being able to solve for a single
     batch axis, but at the gain of being able to batch over the `saveat`. If you
     want to speed compare against raw `diffrax.diffeqsolve`, you can use the
-    `galax.utils.loop_strategies.NoLoop` loop strategy.
+    `galax.dynamics.loop_strategies.NoLoop` loop strategy.
 
     """
 
@@ -551,7 +556,7 @@ def integrate_orbit(
     actually faster, at the expense of only being able to solve for a single
     batch axis, but at the gain of being able to batch over the `saveat`. If you
     want to speed compare against raw `diffrax.diffeqsolve`, you can use the
-    `galax.utils.loop_strategies.NoLoop` loop strategy.
+    `galax.dynamics.loop_strategies.NoLoop` loop strategy.
 
     """
     integrator = lambda qp0, saveat: integrate_orbit(

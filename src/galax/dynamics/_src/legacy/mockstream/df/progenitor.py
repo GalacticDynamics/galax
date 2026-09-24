@@ -9,7 +9,7 @@ import equinox as eqx
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 
 
 @runtime_checkable
@@ -27,7 +27,7 @@ class ProgenitorMassCallable(Protocol):
         ...
 
 
-class ConstantMassProtenitor(eqx.Module):  # type: ignore[misc]
+class ConstantMassProtenitor(eqx.Module):
     """Progenitor mass callable that returns a constant mass.
 
     Parameters

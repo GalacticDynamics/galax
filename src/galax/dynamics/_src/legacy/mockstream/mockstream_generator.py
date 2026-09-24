@@ -4,33 +4,34 @@ __all__ = ["MockStreamGenerator"]
 
 import functools as ft
 from dataclasses import KW_ONLY
+
+from jaxtyping import PRNGKeyArray
 from typing import TypeAlias, cast, final
 
 import equinox as eqx
 import jax
 import jax.extend as jex
-from jaxtyping import PRNGKeyArray
 
 import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import BareQuantity as FastQ
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 from .df import AbstractStreamDF, ProgenitorMassCallable
 from galax.dynamics._src.legacy.funcs import default_integrator, evaluate_orbit
 from galax.dynamics._src.legacy.integrator import Integrator
 from galax.dynamics._src.mockstream.arm import MockStreamArm
 from galax.dynamics._src.mockstream.core import MockStream
 from galax.dynamics._src.orbit import Orbit
-from galax.dynamics._src.utils import cond_reverse
 from galax.potential import AbstractPotential
+from galax.potential._src.utils import cond_reverse
 
 Carry: TypeAlias = tuple[gt.IntSz0, gt.SzN, gt.SzN]
 
 
 @final
-class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
+class MockStreamGenerator(eqx.Module):
     """Generate a mock stellar stream in the specified external potential."""
 
     df: AbstractStreamDF
@@ -54,7 +55,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     @property
     def units(self) -> u.AbstractUnitSystem:
         """Units of the potential."""
-        return cast(u.AbstractUnitSystem, self.potential.units)
+        return cast("u.AbstractUnitSystem", self.potential.units)
 
     # ==========================================================================
 
@@ -63,7 +64,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
     ) -> Orbit:
         """Integrate the progenitor orbit."""
         return cast(
-            Orbit,
+            "Orbit",
             evaluate_orbit(
                 self.potential, w0, ts, integrator=self.progenitor_integrator
             ),
@@ -84,7 +85,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
         """
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)
-        t_f = ts[-1] + u.Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
+        t_f = ts[-1] + u.Q(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         def one_pt_intg(
             carry: Carry, _: gt.IntSz0
@@ -103,7 +104,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
             def integ_ics(ics: gt.Sz6) -> gt.SzN:
                 # TODO: only return the final state
-                return evaluate_orbit(
+                return evaluate_orbit(  # type: ignore[no-any-return]
                     self.potential, ics, tstep, integrator=self.stream_integrator
                 ).w(units=self.units)[-1]
 
@@ -116,7 +117,11 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         carry_init = (0, w0_lead[0, :], w0_trail[0, :])
         pt_ids = jnp.arange(len(w0_lead))
-        lead_arm_w, trail_arm_w = jax.lax.scan(one_pt_intg, carry_init, pt_ids)[1]
+        lead_arm_w, trail_arm_w = jax.lax.scan(
+            one_pt_intg,  # type: ignore[arg-type]
+            carry_init,
+            pt_ids,
+        )[1]
 
         return lead_arm_w, trail_arm_w
 
@@ -131,7 +136,7 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
 
         Better for GPU usage.
         """
-        t_f = ts[-1] + u.Quantity(1e-3, ts.unit)  # TODO: not bump in the final time.
+        t_f = ts[-1] + u.Q(1e-3, ts.unit)  # TODO: not bump in the final time.
 
         @ft.partial(jax.jit, inline=True)
         def one_pt_intg(
@@ -218,8 +223,8 @@ class MockStreamGenerator(eqx.Module):  # type: ignore[misc]
             w0 = gc.PhaseSpaceCoordinate(q=prog_w0.q, p=prog_w0.p, t=ts[0])
         else:
             w0 = gc.PhaseSpaceCoordinate(
-                q=u.Quantity(prog_w0[0:3], self.units["length"]),
-                p=u.Quantity(prog_w0[3:6], self.units["speed"]),
+                q=u.Q(prog_w0[0:3], self.units["length"]),
+                p=u.Q(prog_w0[3:6], self.units["speed"]),
                 t=u.uconvert(self.potential.units["time"], ts[0]),
             )
         w0 = eqx.error_if(w0, w0.ndim > 0, "prog_w0 must be scalar")

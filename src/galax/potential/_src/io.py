@@ -15,8 +15,7 @@ __all__ = [
 ]
 
 
-from typing import Annotated as Ann, Any, Never, final
-from typing_extensions import Doc
+from typing import Any, Never, final
 
 from plum import dispatch
 
@@ -89,13 +88,19 @@ class GalpyLibrary(AbstractInteroperableLibrary):
 
 @dispatch.abstract
 def convert_potential(
-    to_: Ann[
-        AbstractInteroperableLibrary | Any,
-        Doc("The type (or library) to which to convert the potential"),
-    ],
-    from_: Ann[Any, Doc("The potential object to be converted")],
-    /,
-    **_: Ann[Any, Doc("extra arguments used in the conversion process")],
+    to_: AbstractInteroperableLibrary | Any, from_: Any, /, **_: Any
 ) -> object:
+    """Convert a potential to another library's potential type.
+
+    Parameters
+    ----------
+    to_ : AbstractInteroperableLibrary | Any
+        The type (or library) to which to convert the potential.
+    from_ : Any
+        The potential object to be converted.
+    **_ : Any
+        extra arguments used in the conversion process.
+
+    """
     msg = f"cannot convert {from_} to {to_}"  # pragma: no cover
     raise NotImplementedError(msg)  # pragma: no cover

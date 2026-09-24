@@ -5,22 +5,28 @@ __all__ = [
     "PowerLawCutoffPotential",
     # functions
     "potential",
+    "density",
 ]
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
 import jax
 
+import quaxed.numpy as jnp
 import quaxed.scipy.special as jsp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
@@ -28,16 +34,21 @@ from galax.potential._src.utils import r_spherical
 
 @ft.partial(jax.jit)
 def _safe_gamma_inc(a: gt.SzN, x: gt.SzN) -> gt.SzN:
-    return jsp.gammainc(a, x) * jsp.gamma(a)
+    return jsp.gammainc(a, x) * jsp.gamma(a)  # type: ignore[no-any-return]
 
 
 @final
-class PowerLawCutoffPotential(AbstractSinglePotential):
+class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""A spherical power-law density profile with an exponential cutoff.
+
+    This model (matching Gala's ``PowerLawCutoffPotential``) is *defined* by
+    the density below, with the potential obtained by directly integrating
+    Poisson's equation; it is not tied to a specific named paper.
 
     .. math::
 
-        \rho(r) = \frac{G M}{2\pi \Gamma((3-\alpha)/2) r_c^3} \left(\frac{r_c}{r}\right)^\alpha \exp{-(r / r_c)^2}
+        \rho(r) = \frac{M}{2\pi \Gamma((3-\alpha)/2) r_c^3}
+            \left(\frac{r_c}{r}\right)^\alpha \exp{-(r / r_c)^2}
 
     Parameters
     ----------
@@ -47,7 +58,7 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
         Power law index. Must satisfy: ``0 <= alpha < 3``.
     r_c : :class:`~unxt.Quantity`[length]
         Cutoff radius.
-    """  # noqa: E501
+    """
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
     """Total mass of the potential."""
@@ -70,7 +81,7 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
         # Parse inputs
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
@@ -78,7 +89,21 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
             "alpha": self.alpha(t, ustrip=self.units["dimensionless"]),
             "r_c": self.r_c(t, ustrip=ul),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
+
+    @ft.partial(jax.jit)
+    def _density(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
+        # Parse inputs
+        ul = self.units["length"]
+        r = r_spherical(xyz, ul)
+        t = u.Q.from_(t, self.units["time"])
+
+        params = {
+            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
+            "alpha": self.alpha(t, ustrip=self.units["dimensionless"]),
+            "r_c": self.r_c(t, ustrip=ul),
+        }
+        return density(params, r)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -88,15 +113,45 @@ class PowerLawCutoffPotential(AbstractSinglePotential):
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Potential for the power-law cutoff density profile.
 
-    $$ \Phi(r) = -\frac{G M}{2\pi \Gamma\left(\frac{3 - \alpha}{2}\right) r_c^3}
-    \left(\frac{r_c}{r}\right)^\alpha
-    \exp\left[-\left(\frac{r}{r_c}\right)^2\right] $$
+    Following Gala's implementation, we compute the potential and subtract
+    the asymptotic value to enforce Phi(infinity) = 0.
     """
-    a = p["alpha"] / 2
+    alpha_half = p["alpha"] / 2
     s2 = (r / p["r_c"]) ** 2
     GM = p["G"] * p["m_tot"]
 
-    return GM * (
-        (a - 1.5) * _safe_gamma_inc(1.5 - a, s2) / (r * jsp.gamma(2.5 - a))
-        + _safe_gamma_inc(1 - a, s2) / (p["r_c"] * jsp.gamma(1.5 - a))
+    # Compute potential terms
+    gamma_arg = 1.5 - alpha_half
+    term1 = (
+        GM
+        * _safe_gamma_inc(gamma_arg, s2)
+        * (alpha_half - 1.5)
+        / (r * jsp.gamma(2.5 - alpha_half))
     )
+    term2 = GM * _safe_gamma_inc(1 - alpha_half, s2) / (p["r_c"] * jsp.gamma(gamma_arg))
+
+    # Subtract asymptotic value to enforce Phi(infinity) = 0
+    # Only needed when gamma_arg > 0 (i.e., alpha < 3)
+    phi_infinity = jax.lax.cond(
+        gamma_arg > 0,
+        lambda: GM * jsp.gamma(1 - alpha_half) / (p["r_c"] * jsp.gamma(gamma_arg)),
+        lambda: 0.0,
+    )
+
+    return term1 + term2 - phi_infinity  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
+    r"""Density for the power-law cutoff profile that defines this model.
+
+    $$
+    \rho(r) = \frac{M}{2\pi \Gamma((3-\alpha)/2) r_c^3}
+        \left(\frac{r_c}{r}\right)^\alpha \exp{-(r / r_c)^2}
+    $$
+
+    """
+    alpha, r_c, m_tot = p["alpha"], p["r_c"], p["m_tot"]
+    norm = m_tot / (2 * jnp.pi * jsp.gamma(1.5 - alpha / 2) * r_c**3)
+    _result = norm * (r_c / r) ** alpha * jnp.exp(-((r / r_c) ** 2))
+    return _result  # type: ignore[no-any-return]

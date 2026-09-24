@@ -1,12 +1,11 @@
 """Type hints for `galax.dynamics`."""
 
-__all__: list[str] = []
-
-from typing import TypeAlias
+__all__: tuple[str, ...] = ()
 
 from jaxtyping import Real
+from typing import TypeAlias
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 
 # ---------------------------
 # Q

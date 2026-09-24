@@ -1,16 +1,17 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = [
+__all__ = (
     # class
     "KeplerPotential",
     # functions
     "density",
     "potential",
     "point_mass_potential",
-]
+)
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -21,16 +22,20 @@ import quaxed.numpy as jnp
 import unxt as u
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import r_spherical
 
 
 @final
-class KeplerPotential(AbstractSinglePotential):
+class KeplerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""The Kepler potential for a point mass.
 
     .. math::
@@ -48,28 +53,31 @@ class KeplerPotential(AbstractSinglePotential):
         default=default_constants, converter=ImmutableMap
     )
 
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
+
     @ft.partial(jax.jit)
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {"m_tot": self.m_tot(t, ustrip=self.units["mass"])}
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
 
 # ============================================
@@ -91,7 +99,7 @@ def point_mass_potential(G: gt.Sz0, m: gt.Sz0, r: gt.Sz0, /) -> gt.Sz0:
 # TODO: with units
 @ft.partial(jax.jit)
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
-    r"""Specific potential energy.
+    r"""Kepler potential specific potential energy.
 
     $$ \Phi(r) = -\frac{G m_{tot}}{r} $$
 
@@ -99,7 +107,7 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
     from the center of the potential.
 
     """
-    return point_mass_potential(p["G"], p["m_tot"], r)
+    return point_mass_potential(p["G"], p["m_tot"], r)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -117,4 +125,5 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
         jnp.greater(r, jnp.zeros_like(r)),
         jnp.equal(p["m_tot"], jnp.zeros_like(p["m_tot"])),
     )
-    return qlax.select(pred, jnp.zeros_like(r), jnp.full_like(r, fill_value=jnp.inf))
+    _result = qlax.select(pred, jnp.zeros_like(r), jnp.full_like(r, fill_value=jnp.inf))
+    return _result  # type: ignore[no-any-return]

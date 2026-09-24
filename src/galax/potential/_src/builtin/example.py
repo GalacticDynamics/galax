@@ -7,6 +7,7 @@ __all__ = [
 
 import functools as ft
 from dataclasses import KW_ONLY
+
 from typing import final
 
 import equinox as eqx
@@ -17,7 +18,7 @@ import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
@@ -39,7 +40,7 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.HarmonicOscillatorPotential(omega=u.Quantity(1, "1 / Myr"),
+    >>> pot = gp.HarmonicOscillatorPotential(omega=u.Q(1, "1 / Myr"),
     ...                                      units="galactic")
     >>> pot
     HarmonicOscillatorPotential(
@@ -48,14 +49,14 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
       omega=ConstantParameter(value=Quantity(weak_i64[], unit='1 / Myr'))
     )
 
-    >>> q = u.Quantity([1.0, 0, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = u.Q([1.0, 0, 0], "kpc")
+    >>> t = u.Q(0, "Gyr")
 
     >>> pot.potential(q, t)
-    Quantity(Array(0.5, dtype=float64), unit='kpc2 / Myr2')
+    Q(0.5, 'kpc2 / Myr2')
 
     >>> pot.density(q, t)
-    Quantity(Array(1.76897707e+10, dtype=float64), unit='solMass / kpc3')
+    Q(1.76897707e+10, 'solMass / kpc3')
 
     """
 
@@ -74,25 +75,27 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         # \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
         omega = self.omega(t, ustrip=self.units["frequency"])
 
-        return 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(omega) * xyz), axis=-1)
+        _result = 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(omega) * xyz), axis=-1)
+        return _result  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, _: gt.BBtQorVSz3, t: gt.BtQuSz0 | gt.BtSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         omega = jnp.atleast_1d(self.omega(t, ustrip=self.units["frequency"]))
 
-        # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i \omega_i^2
+        # TODO: fix this - not valid for arbitrary ndim
+        # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i^N \omega_i^2 / N
         denom = 4 * jnp.pi * self.constants["G"].value
-        return jnp.sum(omega**2, axis=-1) / denom
+        return jnp.sum(omega**2, axis=-1) / denom  # type: ignore[no-any-return]
 
 
 # -------------------------------------------------------------------
@@ -117,8 +120,8 @@ class HenonHeilesPotential(AbstractSinglePotential):
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> pot = gp.HenonHeilesPotential(coeff=u.Quantity(1, "1 / kpc"),
-    ...                               timescale=u.Quantity(1, "Myr"),
+    >>> pot = gp.HenonHeilesPotential(coeff=u.Q(1, "1 / kpc"),
+    ...                               timescale=u.Q(1, "Myr"),
     ...                               units="galactic")
     >>> pot
     HenonHeilesPotential(
@@ -128,10 +131,10 @@ class HenonHeilesPotential(AbstractSinglePotential):
       timescale=ConstantParameter(...)
     )
 
-    >>> q = u.Quantity([1.0, 0, 0], "kpc")
-    >>> t = u.Quantity(0, "Gyr")
+    >>> q = u.Q([1.0, 0, 0], "kpc")
+    >>> t = u.Q(0, "Gyr")
     >>> pot.potential(q, t)
-    Quantity(Array(0.5, dtype=float64), unit='kpc2 / Myr2')
+    Q(0.5, 'kpc2 / Myr2')
 
     """
 
@@ -161,7 +164,7 @@ class HenonHeilesPotential(AbstractSinglePotential):
     ) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         ts2 = self.timescale(t, ustrip=self.units["time"]) ** 2
@@ -169,4 +172,5 @@ class HenonHeilesPotential(AbstractSinglePotential):
 
         x2, y = xyz[..., 0] ** 2, xyz[..., 1]
         R2 = x2 + y**2
-        return (R2 / 2 + coeff * (x2 * y - y**3 / 3.0)) / ts2
+        _result = (R2 / 2 + coeff * (x2 * y - y**3 / 3.0)) / ts2
+        return _result  # type: ignore[no-any-return]

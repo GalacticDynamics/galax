@@ -5,8 +5,9 @@ __all__ = [
 ]
 
 import functools as ft
-from collections.abc import Callable
 from dataclasses import KW_ONLY
+
+from collections.abc import Callable
 from typing import final
 
 import equinox as eqx
@@ -15,7 +16,7 @@ import jax
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 
 
@@ -72,7 +73,8 @@ class UniformAcceleration(gp.AbstractSinglePotential):
             t = u.ustrip(AllowValue, self.units["time"], t)
 
         grad = jax.jacfwd(self.velocity_func)(t)
-        return u.ustrip(AllowValue, self.units["acceleration"], grad)
+        _result = u.ustrip(AllowValue, self.units["acceleration"], grad)
+        return _result  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _hessian(
@@ -82,4 +84,4 @@ class UniformAcceleration(gp.AbstractSinglePotential):
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
         hess_op = jax.jacfwd(self._gradient, argnums=0)
-        return hess_op(xyz, t)
+        return hess_op(xyz, t)  # type: ignore[no-any-return]

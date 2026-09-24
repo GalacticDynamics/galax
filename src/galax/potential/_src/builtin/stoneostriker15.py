@@ -9,14 +9,17 @@ import jax
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax._custom_types as gt
-from galax.potential._src.base_single import AbstractSinglePotential
+import galax.potential.custom_types as gt
+from galax.potential._src.base_single import (
+    AbstractSinglePotential,
+    LaplacianFromDensityMixin,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import r_spherical
 
 
-class StoneOstriker15Potential(AbstractSinglePotential):
+class StoneOstriker15Potential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Potential from Stone and Ostriker 2015.
 
     http://dx.doi.org/10.1088/2041-8205/806/2/L28.
@@ -63,21 +66,21 @@ class StoneOstriker15Potential(AbstractSinglePotential):
         # Parse inputs
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
             "r_h": self.r_h(t, ustrip=ul),
             "r_c": self.r_c(t, ustrip=ul),
         }
-        return density(params, r)
+        return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:
         # Parse inputs
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
-        t = u.Quantity.from_(t, self.units["time"])
+        t = u.Q.from_(t, self.units["time"])
 
         params = {
             "G": self.constants["G"].value,
@@ -85,7 +88,7 @@ class StoneOstriker15Potential(AbstractSinglePotential):
             "r_h": self.r_h(t, ustrip=ul),
             "r_c": self.r_c(t, ustrip=ul),
         }
-        return potential(params, r)
+        return potential(params, r)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -102,7 +105,7 @@ def rhoc_of_mtot(p: gt.Params, /) -> gt.FloatSz0:
     """
     r_c, r_h = p["r_c"], p["r_h"]
     rho_c = p["m_tot"] * (r_h + r_c) / (2 * jnp.pi**2 * r_c**2 * r_h**2)
-    return rho_c
+    return rho_c  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -119,7 +122,7 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     rho_c = rhoc_of_mtot(p)
     core_term = 1 + (r / p["r_c"]) ** 2
     halo_term = 1 + (r / p["r_h"]) ** 2
-    return rho_c / (core_term * halo_term)
+    return rho_c / (core_term * halo_term)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -134,7 +137,7 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r_c, r_h = p["r_c"], p["r_h"]
     A = 2 * p["m_tot"] / (jnp.pi * (r_h - r_c))
     atan_term = r_h * jnp.atan2(r, r_h) - r_c * jnp.atan2(r, r_c)
-    return A * atan_term
+    return A * atan_term  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -144,4 +147,4 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     A = -2 * p["G"] * p["m_tot"] / (jnp.pi * (r_h - r_c))
     atan_term = (r_h * jnp.atan2(r, r_h) - r_c * jnp.atan2(r, r_c)) / r
     log_term = 0.5 * jnp.log((r**2 + r_h**2) / (r**2 + r_c**2))
-    return A * (atan_term + log_term)
+    return A * (atan_term + log_term)  # type: ignore[no-any-return]

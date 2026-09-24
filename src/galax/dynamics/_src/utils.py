@@ -7,17 +7,15 @@ This is private API.
 __all__ = [
     "parse_saveat",
     "parse_to_t_y",
-    "cond_reverse",
 ]
 
 from dataclasses import replace
-from typing import Any, TypeAlias, TypeVar, cast
+
+from jaxtyping import ArrayLike
+from typing import Any, TypeAlias
 
 import diffrax as dfx
 import equinox as eqx
-import jax
-import optype as op
-from jaxtyping import Array, ArrayLike, Bool
 from plum import convert, dispatch
 
 import coordinax.frames as cxf
@@ -26,8 +24,8 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 from . import custom_types as gdt
 from galax.potential._src.utils import coord_dispatcher, speed_of_light
 
@@ -105,10 +103,10 @@ def parse_saveat(
 
     >>> units = u.unitsystem("galactic")
 
-    >>> parse_saveat(units, u.Quantity(0.5, "Myr"), dense=True)
+    >>> parse_saveat(units, u.Q(0.5, "Myr"), dense=True)
     SaveAt(subs=SubSaveAt(ts=weak_f64[1]), dense=True)
 
-    >>> parse_saveat(units, u.Quantity([0, 1, 2, 3], "Myr"), dense=True)
+    >>> parse_saveat(units, u.Q([0, 1, 2, 3], "Myr"), dense=True)
     SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
 
     """
@@ -134,6 +132,7 @@ def parse_to_t_y(
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
     >>> import coordinax as cx
+    >>> import coordinax.vecs as cxv
     >>> import galax.coordinates as gc
     >>> from galax.dynamics._src.utils import parse_to_t_y
 
@@ -183,9 +182,9 @@ def parse_to_t_y(
 
     - `unxt.AbstractQuantity`:
 
-    >>> xyz = u.Quantity([1, 0, 0], "kpc")
-    >>> v_xyz = u.Quantity([0, 1, 0], "km / s")
-    >>> t = u.Quantity(1, "Gyr")
+    >>> xyz = u.Q([1, 0, 0], "kpc")
+    >>> v_xyz = u.Q([0, 1, 0], "km / s")
+    >>> t = u.Q(1, "Gyr")
 
     >>> parse_to_t_y(None, t, (xyz, v_xyz), ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
@@ -195,19 +194,19 @@ def parse_to_t_y(
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> txyz = u.Quantity([0, 1, 0, 0], "kpc")
+    >>> txyz = u.Q([0, 1, 0, 0], "kpc")
     >>> parse_to_t_y(None, (txyz, v_xyz), ustrip=usys)
     (Array(0., dtype=float64),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> parse_to_t_y(None, u.Quantity(0, "Gyr"), (txyz, v_xyz), ustrip=usys)
+    >>> parse_to_t_y(None, u.Q(0, "Gyr"), (txyz, v_xyz), ustrip=usys)
     (Array(0., dtype=float64),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
     - `coordinax.vecs.AbstractVector`:
 
-    >>> q = cx.vecs.CartesianPos3D.from_(xyz)
-    >>> p = cx.vecs.CartesianVel3D.from_(v_xyz)
+    >>> q = cxv.CartesianPos3D.from_(xyz)
+    >>> p = cxv.CartesianVel3D.from_(v_xyz)
 
     >>> parse_to_t_y(None, t, (q, p), ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
@@ -217,7 +216,7 @@ def parse_to_t_y(
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> qt = cx.vecs.FourVector(q=q, t=t)
+    >>> qt = cxv.FourVector(q=q, t=t)
     >>> parse_to_t_y(None, (qt, p), ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
@@ -226,14 +225,14 @@ def parse_to_t_y(
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    - `coordinax.vecs.Space`:
+    - `coordinax.vecs.KinematicSpace`:
 
-    >>> space = cx.vecs.Space(length=q, speed=p)
+    >>> space = cxv.KinematicSpace(length=q, speed=p)
     >>> parse_to_t_y(None, t, space, ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> space = cx.vecs.Space(length=qt, speed=p)
+    >>> space = cxv.KinematicSpace(length=qt, speed=p)
     >>> parse_to_t_y(None, space, ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
@@ -244,14 +243,14 @@ def parse_to_t_y(
 
     - `coordinax.frames.AbstractCoordinate`:
 
-    >>> coord = cx.frames.Coordinate(cx.vecs.Space(length=q, speed=p),
-    ...                              frame=gc.frames.simulation_frame)
+    >>> coord = cx.Coordinate(cxv.KinematicSpace(length=q, speed=p),
+    ...                       frame=gc.frames.simulation_frame)
     >>> parse_to_t_y(None, t, coord, ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
 
-    >>> coord = cx.frames.Coordinate(cx.vecs.Space(length=qt, speed=p),
-    ...                              frame=gc.frames.simulation_frame)
+    >>> coord = cx.Coordinate(cxv.KinematicSpace(length=qt, speed=p),
+    ...                       frame=gc.frames.simulation_frame)
     >>> parse_to_t_y(None, coord, ustrip=usys)
     (Array(1000., dtype=float64, weak_type=True),
      (Array([1., 0., 0.], dtype=float64), Array([0. , 0.00102271, 0. ], dtype=float64)))
@@ -461,7 +460,7 @@ def parse_to_t_y(
 
 @coord_dispatcher
 def parse_to_t_y(
-    to_frame: OptRefFrame, t: Any, qp: cxv.Space, /, *, ustrip: UnitSystem
+    to_frame: OptRefFrame, t: Any, qp: cxv.KinematicSpace, /, *, ustrip: UnitSystem
 ) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
     q, p = qp["length"], qp["speed"]
     t = eqx.error_if(
@@ -474,7 +473,7 @@ def parse_to_t_y(
 
 @coord_dispatcher
 def parse_to_t_y(
-    to_frame: OptRefFrame, qp: cxv.Space, /, *, ustrip: UnitSystem
+    to_frame: OptRefFrame, qp: cxv.KinematicSpace, /, *, ustrip: UnitSystem
 ) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
     q, p = qp["length"], qp["speed"]
     return parse_to_t_y(to_frame, None, (q, p), ustrip=ustrip)
@@ -535,20 +534,3 @@ def parse_to_t_y(
 
 
 #####################################################################
-
-
-T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)
-
-
-def _identity(x: T) -> T:
-    return x
-
-
-def _reverse(x: op.CanGetitem[Any, T]) -> T:
-    return x[::-1]
-
-
-def cond_reverse(pred: Bool[Array, ""], x: T) -> T:
-    """Reverse `x` if `pred` is True."""
-    return cast(T, jax.lax.cond(pred, _reverse, _identity, x))

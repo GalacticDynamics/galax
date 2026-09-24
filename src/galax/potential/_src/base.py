@@ -2,8 +2,10 @@ __all__ = ["AbstractPotential"]
 
 import abc
 import functools as ft
-from collections.abc import Mapping
 from dataclasses import KW_ONLY, fields, replace
+
+from collections.abc import Mapping
+from jaxtyping import Array
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 
@@ -11,7 +13,6 @@ import equinox as eqx
 import jax
 from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
-from jaxtyping import Array
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -19,20 +20,20 @@ import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from . import api
 from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
 from .plot import PlotPotentialDescriptor
+from .symmetry import Symmetry
+from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.attr import ParametersAttribute
 from galax.potential._src.params.utils import all_parameters, all_vars
-from galax.utils._jax import vectorize_method
-from galax.utils.dataclasses import ModuleMeta
-from galax.utils.defaults import DEFAULT_TIME
+from galax.potential.dataclasses import ModuleMeta
 
 if TYPE_CHECKING:
     import galax.dynamics  # noqa: ICN001
 
-default_constants = ImmutableMap({"G": u.Quantity.from_(_CONST_G)})
+default_constants = ImmutableMap({"G": u.Q.from_(_CONST_G)})
 DimL = u.dimension("length")
 DimT = u.dimension("time")
 
@@ -40,7 +41,7 @@ DimT = u.dimension("time")
 ##############################################################################
 
 
-class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type: ignore[misc]
+class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
     """Abstract Potential Class."""
 
     parameters: ClassVar = ParametersAttribute(MappingProxyType({}))
@@ -52,6 +53,33 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
 
     constants: eqx.AbstractVar[ImmutableMap[str, u.AbstractQuantity]]
     """The constants used by the potential."""
+
+    @property
+    def symmetry(self) -> Symmetry:
+        """The symmetry this potential asserts about itself.
+
+        Defaults to `Symmetry.NONE` -- no symmetry asserted. Subclasses
+        override this to declare more, which lets callers pass inputs that are
+        only well defined under that symmetry (e.g. a
+        `coordinax.vecs.RadialPos`).
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.MiyamotoNagaiPotential(m_tot=u.Q(1e12, "Msun"),
+        ...     a=u.Q(5, "kpc"), b=u.Q(1, "kpc"), units="galactic")
+        >>> pot.symmetry
+        <Symmetry.NONE: 'none'>
+
+        >>> pot = gp.HernquistPotential(m_tot=u.Q(1e12, "Msun"),
+        ...                             r_s=u.Q(5, "kpc"), units="galactic")
+        >>> pot.symmetry
+        <Symmetry.SPHERICAL: 'spherical'>
+
+        """
+        return Symmetry.NONE
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""
@@ -111,9 +139,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # Potential energy
 
     @abc.abstractmethod
-    def _potential(
-        self, q: gt.BBtQorVSz3, t: gt.BBtQorVSz0 = DEFAULT_TIME, /
-    ) -> gt.BBtQorVSz0:
+    def _potential(self, q: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtQorVSz0:
         """Compute the potential energy at the given position(s).
 
         This method MUST be implemented by subclasses.
@@ -126,10 +152,9 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         q : Quantity[float, (3,), 'length']
             The Cartesian position at which to compute the value of the
             potential. The units are the same as the potential's unit system.
-        t : Quantity[float, (), 'time'], optional
+        t : Quantity[float, (), 'time']
             The time at which to compute the value of the potential.
             The units are the same as the potential's unit system.
-            Defaults to 0 if not provided.
 
         Returns
         -------
@@ -173,13 +198,13 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @vectorize_method(signature="(3),()->(3)")
     @ft.partial(jax.jit)
     def _gradient(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 = DEFAULT_TIME, /
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0, /
     ) -> gt.FloatSz3:
         """See ``gradient``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
         grad_op = jax.grad(self._potential)
-        return grad_op(xyz, t)
+        return grad_op(xyz, t)  # type: ignore[no-any-return]
 
     def gradient(self, *args: Any, **kwargs: Any) -> Any:
         """Compute the gradient of the potential at the given position(s).
@@ -194,13 +219,13 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @vectorize_method(signature="(3),()->()")
     @ft.partial(jax.jit)
     def _laplacian(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, /, t: gt.QuSz0 | gt.Sz0 = DEFAULT_TIME
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, /, t: gt.QuSz0 | gt.Sz0
     ) -> gt.FloatSz0:
         """See ``laplacian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
         hess_op = jax.hessian(self._potential, argnums=0)
-        return jnp.trace(hess_op(xyz, t))
+        return jnp.trace(hess_op(xyz, t))  # type: ignore[no-any-return]
 
     def laplacian(self, *args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
         """Compute the laplacian of the potential at the given position(s).
@@ -213,13 +238,12 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     # Density
 
     @ft.partial(jax.jit)
-    def _density(
-        self, q: gt.BBtQuSz3, t: gt.BBtQuSz0 | gt.QuSz0 = DEFAULT_TIME, /
-    ) -> gt.BBtFloatSz0:
+    def _density(self, q: gt.BBtQuSz3, t: gt.BBtQuSz0 | gt.QuSz0, /) -> gt.BBtFloatSz0:
         """See ``density``."""
         # Note: trace(jacobian(gradient)) is faster than trace(hessian(energy))
         laplacian = self._laplacian(q, t)
-        return laplacian / (4 * jnp.pi * self.constants["G"].value)
+        _result = laplacian / (4 * jnp.pi * self.constants["G"].value)
+        return _result  # type: ignore[no-any-return]
 
     def density(self, *args: Any, **kwargs: Any) -> gt.BBtFloatSz0 | gt.BBtFloatQuSz0:
         """Compute the density at the given position(s).
@@ -234,13 +258,13 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
     @vectorize_method(signature="(3),()->(3,3)")
     @ft.partial(jax.jit)
     def _hessian(
-        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0 = DEFAULT_TIME, /
+        self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
     ) -> gt.Sz33:
         """See ``hessian``."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
         t = u.ustrip(AllowValue, self.units[DimT], t)
         hess_op = jax.hessian(self._potential)
-        return hess_op(xyz, t)
+        return hess_op(xyz, t)  # type: ignore[no-any-return]
 
     def hessian(self, *args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
         """Compute the hessian of the potential at the given position(s).
@@ -281,11 +305,11 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         >>> import galax.potential as gp
 
         >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-        >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8.0, 0.0, 0.0], "kpc"),
-        ...                             p=u.Quantity([0.0, 0.0, 0.0], "km/s"),
-        ...                             t=u.Quantity(0.0, "Gyr"))
+        >>> w = gc.PhaseSpaceCoordinate(q=u.Q([8.0, 0.0, 0.0], "kpc"),
+        ...                             p=u.Q([0.0, 0.0, 0.0], "km/s"),
+        ...                             t=u.Q(0.0, "Gyr"))
         >>> pot.local_circular_velocity(w)
-        Quantity(Array(0.74987517, dtype=float64), unit='kpc / Myr')
+        Q(0.74987517, 'kpc / Myr')
 
         """
         return api.local_circular_velocity(self, *args, **kwargs)
@@ -474,7 +498,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta, strict=True):  # type:
         --------
         .. invisible-code-block: python
 
-            from galax._interop.optional_deps import OptDeps
+            from galax.interop.optional_deps import OptDeps
 
         .. skip: start if(not OptDeps.GALA.installed, reason="requires gala")
 

@@ -4,23 +4,11 @@ This is private API.
 
 """
 
-__all__ = [
-    # Base
-    "AbstractPhaseSpaceCoordinate",
-    "ComponentShapeTuple",
-    # Single
-    "AbstractBasicPhaseSpaceCoordinate",
-    "PhaseSpaceCoordinate",
-    # Composite
-    "AbstractCompositePhaseSpaceCoordinate",
-    "CompositePhaseSpaceCoordinate",
-]
-
-from .base import AbstractPhaseSpaceCoordinate, ComponentShapeTuple
-from .base_composite import AbstractCompositePhaseSpaceCoordinate
-from .base_single import AbstractBasicPhaseSpaceCoordinate
-from .composite import CompositePhaseSpaceCoordinate
-from .single import PhaseSpaceCoordinate
+from .base import *
+from .base_composite import *
+from .base_single import *
+from .composite import *
+from .single import *
 
 # Register by import
 # isort: split

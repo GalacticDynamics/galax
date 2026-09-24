@@ -3,18 +3,19 @@
 __all__ = ["MassSolver"]
 
 from dataclasses import KW_ONLY
-from typing import Any
+
+from jaxtyping import PyTree
+from typing import Any, override
 
 import diffrax as dfx
 import equinox as eqx
 import optimistix as optx
-from jaxtyping import PyTree
 from plum import dispatch
 
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.dynamics.custom_types as gt
 from .dmdt import (
     AbstractMassRateField,
     CustomMassRateField,
@@ -26,7 +27,7 @@ from galax.dynamics._src.solver import AbstractSolver, SolveState
 from galax.dynamics._src.utils import parse_saveat
 
 
-class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
+class MassSolver(AbstractSolver):
     """Solver for mass history.
 
     Examples
@@ -38,8 +39,8 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
     >>> mass_solver = gd.cluster.MassSolver()
 
     >>> mass_field = lambda t, Mc, args: -2e5 / (t + 1)
-    >>> Mc0 = u.Quantity(1e6, "Msun")
-    >>> t0, t1 = u.Quantity(0, "Gyr"), u.Quantity(1, "Gyr")
+    >>> Mc0 = u.Q(1e6, "Msun")
+    >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> saveat = jnp.linspace(t0, t1, 10)
     >>> mass_soln = mass_solver.solve(mass_field, Mc0, t0, t1, saveat=saveat)
     >>> mass_soln.ys
@@ -65,7 +66,7 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     #: Event. Can override the `event` argument when calling `DiffEqSolver`
     event: dfx.Event | None = dfx.Event(
-        cond_fn=MassBelowThreshold(u.Quantity(0.0, "Msun")),
+        cond_fn=MassBelowThreshold(u.Q(0.0, "Msun")),
         root_finder=optx.Newton(1e-5, 1e-5, optx.rms_norm),
     )
 
@@ -80,8 +81,9 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 
     # -----------------------
 
+    @override
     @dispatch.abstract
-    def init(self: "MassSolver", dm_dt: Any, y0: Any, t0: Any, args: Any, /) -> Any:
+    def init(self: "MassSolver", dm_dt: Any, y0: Any, t0: Any, args: Any, /) -> Any:  # type: ignore[override]
         # See dispatches below
         raise NotImplementedError  # pragma: no cover
 
@@ -99,8 +101,9 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
         step_kwargs.setdefault("made_jump", False)
         return self._step_impl_scalar(dm_dt, state, t1_, args, step_kwargs)
 
+    @override
     @dispatch.abstract
-    def run(
+    def run(  # type: ignore[override]
         self, dm_dt: Any, state: SolveState, t1: Any, args: PyTree, /, **solver_kw: Any
     ) -> SolveState:
         """Run from the state."""
@@ -126,7 +129,7 @@ class MassSolver(AbstractSolver, strict=True):  # type: ignore[call-arg]
 # Init Dispatches
 
 
-@MassSolver.init.dispatch  # type: ignore[misc]
+@MassSolver.init.dispatch
 def init(
     self: MassSolver,
     field: AbstractMassRateField,
@@ -145,7 +148,7 @@ def init(
 # Run Dispatches
 
 
-@MassSolver.run.dispatch  # type: ignore[misc]
+@MassSolver.run.dispatch
 def run(
     self: MassSolver,
     field: AbstractMassRateField,
@@ -178,8 +181,8 @@ def run(
 default_saveat = dfx.SaveAt(t1=True)
 
 
-@MassSolver.solve.dispatch  # type: ignore[misc]
-@eqx.filter_jit  # type: ignore[misc]
+@MassSolver.solve.dispatch
+@eqx.filter_jit
 def solve(
     self: MassSolver,
     field: AbstractMassRateField | MassVectorField,

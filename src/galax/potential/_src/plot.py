@@ -5,7 +5,7 @@ BSD 3-Clause License. The original code can be found at
 https:://github.com/nstarman/bound-class. See the license in the LICENSE files.
 """
 
-__all__: list[str] = []
+__all__: tuple[str, ...] = ()
 
 from typing import Any
 
@@ -13,7 +13,7 @@ from plum import PromisedType, dispatch
 
 from plotting_backends import AbstractPlottingBackend, MatplotlibBackend
 
-from galax.utils._boundinstance import BndTo, InstanceDescriptor
+from galax._boundinstance import BndTo, InstanceDescriptor
 
 ProxyAbstractPotential = PromisedType("AbstractPotential")
 

@@ -4,18 +4,19 @@ __all__ = ["AbstractStreamDF"]
 
 import abc
 import functools as ft
+
+from jaxtyping import PRNGKeyArray
 from typing import TypeAlias
 
 import equinox as eqx
 import jax
-from jaxtyping import PRNGKeyArray
 from plum import convert
 
 import coordinax as cx
 import unxt as u
 
-import galax._custom_types as gt
 import galax.coordinates as gc
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .progenitor import ConstantMassProtenitor, ProgenitorMassCallable
 from galax.dynamics._src.mockstream.arm import MockStreamArm
@@ -24,7 +25,7 @@ from galax.dynamics._src.orbit import Orbit
 Carry: TypeAlias = tuple[gt.QuSz3, gt.QuSz3, gt.QuSz3, gt.QuSz3]
 
 
-class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
+class AbstractStreamDF(eqx.Module):
     """Abstract base class of Stream Distribution Functions."""
 
     @ft.partial(jax.jit)
@@ -66,24 +67,22 @@ class AbstractStreamDF(eqx.Module, strict=True):  # type: ignore[call-arg, misc]
 
         >>> df = gd.FardalStreamDF()
         >>> pot = gp.MilkyWayPotential()
-        >>> w = gc.PhaseSpaceCoordinate(q=u.Quantity([8.3, 0, 0], "kpc"),
-        ...                             p=u.Quantity([0, 220, 0], "km/s"),
-        ...                             t=u.Quantity(0, "Gyr"))
-        >>> prog_orbit = pot.compute_orbit(w, t=u.Quantity([0, 1, 2], "Gyr"))
+        >>> w = gc.PhaseSpaceCoordinate(q=u.Q([8.3, 0, 0], "kpc"),
+        ...                             p=u.Q([0, 220, 0], "km/s"),
+        ...                             t=u.Q(0, "Gyr"))
+        >>> prog_orbit = pot.compute_orbit(w, t=u.Q([0, 1, 2], "Gyr"))
         >>> stream_ic = df.sample(jr.key(0), pot, prog_orbit,
-        ...                       prog_mass=u.Quantity(1e4, "Msun"))
+        ...                       prog_mass=u.Q(1e4, "Msun"))
         >>> stream_ic
         CompositePhaseSpaceCoordinate({'lead': MockStreamArm(
-            q=CartesianPos3D( ... ),
-            p=CartesianVel3D( ... ),
-            t=Quantity...,
-            release_time=Quantity...,
+            q=CartesianPos3D(...), p=CartesianVel3D(...),
+            t=Q([   0., 1000., 2000.], 'Myr'),
+            release_time=Q([   0., 1000., 2000.], 'Myr'),
             frame=SimulationFrame() ),
           'trail': MockStreamArm(
-            q=CartesianPos3D( ... ),
-            p=CartesianVel3D( ... ),
-            t=Quantity...,
-            release_time=Quantity...,
+            q=CartesianPos3D(...), p=CartesianVel3D(...),
+            t=Q([   0., 1000., 2000.], 'Myr'),
+            release_time=Q([   0., 1000., 2000.], 'Myr'),
             frame=SimulationFrame()
         )})
 

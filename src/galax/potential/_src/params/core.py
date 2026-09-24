@@ -6,6 +6,7 @@ __all__ = [
 ]
 
 import functools as ft
+
 from typing import Any, final
 
 import equinox as eqx
@@ -13,13 +14,12 @@ import jax
 import jax.core
 
 import unxt as u
-from unxt._src.units.api import AstropyUnits
 from unxt.quantity import AllowValue
 
-import galax._custom_types as gt
+import galax.potential.custom_types as gt
 from .base import AbstractParameter, ParameterCallable
 
-t0 = u.Quantity(0, "Myr")
+t0 = u.Q(0, "Myr")
 
 
 class LinearParameter(AbstractParameter):
@@ -42,25 +42,42 @@ class LinearParameter(AbstractParameter):
 
     Examples
     --------
-    >>> from galax.potential.params import LinearParameter
+    >>> import coordinax.vecs as cxv
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
     >>> import unxt as u
     >>> import quaxed.numpy as jnp
 
-    >>> lp = LinearParameter(slope=u.Quantity(-1, "Msun/yr"),
-    ...                      point_time=u.Quantity(0, "Myr"),
-    ...                      point_value=u.Quantity(1e9, "Msun"))
+    >>> lp = gp.params.LinearParameter(slope=u.Q(-1e3, "Msun/yr"),
+    ...     point_time=u.Q(0, "Myr"), point_value=u.Q(1e12, "Msun"))
 
-    >>> lp(u.Quantity(0, "Gyr")).uconvert("Msun")
-    Quantity(Array(1.e+09, dtype=float64), unit='solMass')
+    >>> lp(u.Q(0, "Gyr")).uconvert("Msun")
+    Q(1.e+12, 'solMass')
 
-    >>> jnp.round(lp(u.Quantity(1.0, "Gyr")), 3)
-    Quantity(Array(0., dtype=float64, ...), unit='Gyr solMass / yr')
+    >>> jnp.round(lp(u.Q(1.0, "Gyr")), 3)
+    Q(0., 'Gyr solMass / yr')
+
+    Now let's show it in a potential:
+
+    >>> pot = gp.KeplerPotential(m_tot=lp, units="galactic")
+
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([5.0, 0.0, 0.0], "kpc"),
+    ...                              p=u.Q([0.0, 1_000.0, 0.0], "km/s"),
+    ...                              t=u.Q(0.0, "Myr"))
+    >>> savets = u.Q(jnp.linspace(0, 1, 10), "Gyr")
+    >>> orbit = gd.compute_orbit(pot, w0, savets)
+    >>> orbit.q.vconvert(cxv.CylindricalPos).rho.round(3)
+    Distance(
+        [ 5.   ,  7.159,  6.654, 10.295, 12.194, 11.337, 19.999, 24.589, 30.147,
+         40.37 ], 'kpc'
+    )
 
     """
 
-    slope: gt.QuSzAny = eqx.field(converter=u.Quantity.from_)
+    slope: gt.QuSzAny = eqx.field(converter=u.Q.from_)
     point_time: gt.BBtQuSz0 = eqx.field(converter=u.Quantity["time"].from_)
-    point_value: gt.QuSzAny = eqx.field(converter=u.Quantity.from_)
+    point_value: gt.QuSzAny = eqx.field(converter=u.Q.from_)
 
     def __check_init__(self) -> None:
         """Check the initialization of the class."""
@@ -68,7 +85,7 @@ class LinearParameter(AbstractParameter):
 
     @ft.partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
-        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **_: Any
+        self, t: gt.BBtQuSz0, *, ustrip: u.AbstractUnit | None = None, **_: Any
     ) -> gt.QuSzAny | gt.SzAny:
         """Return the parameter value.
 
@@ -87,15 +104,15 @@ class LinearParameter(AbstractParameter):
         >>> import unxt as u
         >>> import quaxed.numpy as jnp
 
-        >>> lp = LinearParameter(slope=u.Quantity(-1, "Msun/yr"),
-        ...                      point_time=u.Quantity(0, "Myr"),
-        ...                      point_value=u.Quantity(1e9, "Msun"))
+        >>> lp = LinearParameter(slope=u.Q(-1, "Msun/yr"),
+        ...                      point_time=u.Q(0, "Myr"),
+        ...                      point_value=u.Q(1e9, "Msun"))
 
-        >>> lp(u.Quantity(0, "Gyr")).uconvert("Msun")
-        Quantity(Array(1.e+09, dtype=float64), unit='solMass')
+        >>> lp(u.Q(0, "Gyr")).uconvert("Msun")
+        Q(1.e+09, 'solMass')
 
-        >>> jnp.round(lp(u.Quantity(1, "Gyr")), 3)
-        Quantity(Array(0., dtype=float64), unit='Gyr solMass / yr')
+        >>> jnp.round(lp(u.Q(1, "Gyr")), 3)
+        Q(0., 'Gyr solMass / yr')
 
         """
         out = self.slope * (t - self.point_time) + self.point_value
@@ -122,11 +139,11 @@ class CustomParameter(AbstractParameter):
     >>> import unxt as u
 
     >>> def func(t: u.Quantity["time"]) -> u.Quantity["mass"]:
-    ...     return u.Quantity(1e9, "Msun/Gyr") * t
+    ...     return u.Q(1e9, "Msun/Gyr") * t
 
     >>> up = CustomParameter(func=func)
-    >>> up(u.Quantity(1e3, "Myr"))
-    Quantity(Array(1.e+12, dtype=float64, ...), unit='Myr solMass / Gyr')
+    >>> up(u.Q(1e3, "Myr"))
+    Q(1.e+12, 'Myr solMass / Gyr')
 
     """
 
@@ -134,7 +151,7 @@ class CustomParameter(AbstractParameter):
 
     @ft.partial(jax.jit, static_argnames=("ustrip",))
     def __call__(
-        self, t: gt.BBtQuSz0, *, ustrip: AstropyUnits | None = None, **kwargs: Any
+        self, t: gt.BBtQuSz0, *, ustrip: u.AbstractUnit | None = None, **kwargs: Any
     ) -> gt.QuSzAny | gt.SzAny:
         out = self.func(t, **kwargs)
         return out if ustrip is None else u.ustrip(AllowValue, ustrip, out)

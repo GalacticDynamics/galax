@@ -5,10 +5,13 @@ __all__ = [
     "io",
     "params",
     "plot",
+    "scf",
     # ABCs
     "AbstractPotential",
     "AbstractSinglePotential",
     "AbstractCompositePotential",
+    # symmetry
+    "Symmetry",
     # composite
     "CompositePotential",
     # builtin
@@ -27,6 +30,9 @@ __all__ = [
     "MultipoleInnerPotential",
     "MultipoleOuterPotential",
     "MultipolePotential",
+    "AxisymmetricGaussianPotential",
+    "GaussianPotential",
+    "TriaxialGaussianPotential",
     "LeeSutoTriaxialNFWPotential",
     "NFWPotential",
     "TriaxialNFWPotential",
@@ -43,6 +49,8 @@ __all__ = [
     "TriaxialHernquistPotential",
     "HardCutoffNFWPotential",
     "gNFWPotential",
+    "ZhaoPotential",
+    "SCFPotential",
     # Pre-composited
     "AbstractPreCompositedPotential",
     "BovyMWPotential2014",
@@ -69,12 +77,10 @@ __all__ = [
     "d2potential_dr2",
 ]
 
-from jaxtyping import install_import_hook
+from .setup_package import install_import_hook, load_interop_plugins
 
-from galax.setup_package import RUNTIME_TYPECHECKER
-
-with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
-    from . import io, params, plot
+with install_import_hook("galax.potential"):
+    from . import io, params, plot, scf
     from ._src.api import (
         acceleration,
         d2potential_dr2,
@@ -96,8 +102,10 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
     from ._src.base_single import AbstractSinglePotential
     from ._src.builtin import (
         AbstractMultipolePotential,
+        AxisymmetricGaussianPotential,
         BovyMWPotential2014,
         BurkertPotential,
+        GaussianPotential,
         HardCutoffNFWPotential,
         HarmonicOscillatorPotential,
         HenonHeilesPotential,
@@ -125,13 +133,17 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
         PlummerPotential,
         PowerLawCutoffPotential,
         SatohPotential,
+        SCFPotential,
         StoneOstriker15Potential,
+        TriaxialGaussianPotential,
         TriaxialHernquistPotential,
         TriaxialNFWPotential,
         Vogelsberger08TriaxialNFWPotential,
+        ZhaoPotential,
         gNFWPotential,
     )
     from ._src.composite import CompositePotential
+    from ._src.symmetry import Symmetry
     from ._src.xfm import (
         AbstractTransformedPotential,
         FlattenedInThePotential,
@@ -146,4 +158,11 @@ with install_import_hook("galax.potential", RUNTIME_TYPECHECKER):
 
 
 # Cleanup
-del install_import_hook, RUNTIME_TYPECHECKER, register_funcs
+del install_import_hook, register_funcs
+
+# Interoperability with third-party libraries. Importing a registered module is
+# what performs its `plum` dispatch registration; entry points let separately
+# installed distributions extend `galax.potential` without it knowing they exist.
+load_interop_plugins("galax.potential.interop")
+
+del load_interop_plugins

@@ -5,9 +5,10 @@ take a flat ``gt.Params`` dict, and the potential classes build that dict from
 their own parameters, so the numerics can be reused without inheriting from a
 concrete potential class.
 
-``p`` carries ``r_knots``, ``phi_lm``, ``dphi_lm``, ``rho_residual_lm``,
-``drho_residual_lm``, ``rho_alpha`` and ``rho_amplitude``, each already
-stripped to the potential's unit system.
+``p`` carries ``r_knots``, ``phi_lm``, ``dphi_lm``, ``phi_asympt_powers``,
+``phi_asympt_scales``, ``rho_residual_lm``, ``drho_residual_lm``,
+``rho_alpha`` and ``rho_amplitude``, each already stripped to the
+potential's unit system. `build_expansion` returns exactly these.
 """
 
 __all__: tuple[str, ...] = ()

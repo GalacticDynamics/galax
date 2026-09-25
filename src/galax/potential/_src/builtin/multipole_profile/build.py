@@ -28,6 +28,7 @@ from collections.abc import Callable
 from jaxtyping import Array, Float
 
 import jax
+import numpy as np
 
 import quaxed.numpy as jnp
 
@@ -39,7 +40,21 @@ from galax.potential._src.harmonic import (
     solve_poisson_lm,
 )
 
-_LOG_FLOOR: float = 1e-300
+
+def _log_floor(x: Float[Array, "..."], /) -> float:
+    r"""Smallest coefficient magnitude treated as non-zero inside ``log``.
+
+    Sized from the working dtype: a float64 constant such as ``1e-300``
+    underflows to *exactly zero* in float32 -- which is what a caller gets,
+    since `galax` does not enable x64 on import -- so the floor stops
+    flooring and an identically-zero mode takes ``log(0) = -inf``.
+
+    TODO: share this with the identical helper in `harmonic.poisson` once
+    this branch rebases onto a `main` that carries it (#870).
+    """
+    return 16.0 * float(np.finfo(x.dtype).tiny)
+
+
 """Floor added inside ``log|rho|`` so an identically-zero mode stays finite.
 
 Well above the smallest normal double (~2.2e-308), so its log is an ordinary
@@ -81,7 +96,7 @@ def subtract_inner_cusp(
     log_ratio = jnp.log(r_knots / r_knots[0])
     global_scale = jnp.max(jnp.abs(rho_lm))
 
-    log_inner = jnp.log(jnp.abs(rho_lm[:3, :]) + _LOG_FLOOR)
+    log_inner = jnp.log(jnp.abs(rho_lm[:3, :]) + _log_floor(rho_lm))
     alpha = jnp.mean(
         jnp.diff(log_inner, axis=0) / jnp.diff(jnp.log(r_knots[:3]))[:, None],
         axis=0,
@@ -123,8 +138,9 @@ def build_expansion(
 ) -> dict[str, Array]:
     r"""Project, solve, and fit — the whole build in one jitted call.
 
-    Returns the six coefficient arrays that `MultipoleProfilePotential`
-    stores as parameters.
+    Returns the coefficient arrays `MultipoleProfilePotential` stores as
+    parameters. `expansion`'s module docstring lists the keys; keeping the
+    count out of this sentence keeps the two from drifting apart.
     """
     log_r = jnp.log(r_knots)
     l_per_mode = jnp.asarray([float(l) for l, _ in keys])

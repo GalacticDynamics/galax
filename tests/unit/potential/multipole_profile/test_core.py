@@ -476,3 +476,35 @@ def test_from_density_rejects_a_nonsensical_resolution(kwargs, match) -> None:
             units="galactic",
             **kwargs,
         )
+
+
+@pytest.mark.parametrize(
+    ("r_min_kpc", "r_max_kpc"),
+    [
+        (float("nan"), 1e2),
+        (1e-2, float("nan")),
+        (float("inf"), 1e2),
+        (1e-2, float("inf")),
+    ],
+)
+def test_from_density_rejects_a_non_finite_bracket(r_min_kpc, r_max_kpc) -> None:
+    """A non-finite bracket slips past both ordering guards.
+
+    Every comparison against a ``nan`` is `False`, so ``nan <= 0.0`` and
+    ``r_min >= nan`` both pass, and ``geomspace`` then returns an all-``nan``
+    grid -- the opaque, far-from-the-cause failure the other two guards exist
+    to prevent.
+    """
+
+    def rho(xyz, t):
+        return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    with pytest.raises(ValueError, match="must be finite"):
+        MultipoleProfilePotential.from_density(
+            rho,
+            r_min=u.Q(r_min_kpc, "kpc"),
+            r_max=u.Q(r_max_kpc, "kpc"),
+            n_r=32,
+            l_max=0,
+            units="galactic",
+        )

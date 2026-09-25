@@ -2,6 +2,7 @@
 
 __all__ = ["AbstractMultipoleProfilePotential", "MultipoleProfilePotential"]
 
+import math
 from dataclasses import KW_ONLY
 
 from collections.abc import Callable
@@ -144,6 +145,27 @@ def _check_time_independent(pot: AbstractPotential, /) -> None:
             "expansion built at a single time. See "
             "https://github.com/GalacticDynamics/galax/issues/849"
         )
+        raise ValueError(msg)
+
+
+def _validate_bracket(r_min: float, r_max: float, /) -> None:
+    """Reject a radial bracket the log-spaced grid cannot represent.
+
+    Each failure is caught here, where the message can name the argument,
+    rather than later as an opaque `JaxRuntimeError` from inside the jitted
+    build.
+    """
+    # Every comparison below is False against a `nan`, so a non-finite bracket
+    # would pass both remaining guards and reach `geomspace`, which returns an
+    # all-`nan` grid -- exactly the opaque failure they exist to stop.
+    if not (math.isfinite(r_min) and math.isfinite(r_max)):
+        msg = f"r_min and r_max must be finite (got r_min={r_min}, r_max={r_max})"
+        raise ValueError(msg)
+    if r_min <= 0.0:
+        msg = f"r_min must be > 0 (got {r_min}); the radial grid is log-spaced"
+        raise ValueError(msg)
+    if r_min >= r_max:
+        msg = f"r_min must be < r_max (got r_min={r_min}, r_max={r_max})"
         raise ValueError(msg)
 
 
@@ -333,15 +355,7 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         # reports that requirement at the point it is violated.
         r_min_val = float(to_len(r_min))
         r_max_val = float(to_len(r_max))
-        # The grid is log-spaced, so a non-positive bracket feeds `log` a zero or
-        # negative and surfaces much later as an opaque JaxRuntimeError from deep
-        # inside the jitted build. Reject it here, where the message can say why.
-        if r_min_val <= 0.0:
-            msg = f"r_min must be > 0 (got {r_min_val}); the radial grid is log-spaced"
-            raise ValueError(msg)
-        if r_min_val >= r_max_val:
-            msg = f"r_min must be < r_max (got r_min={r_min_val}, r_max={r_max_val})"
-            raise ValueError(msg)
+        _validate_bracket(r_min_val, r_max_val)
 
         r_knots = jnp.geomspace(r_min_val, r_max_val, n_r)
         t_ = jnp.asarray(

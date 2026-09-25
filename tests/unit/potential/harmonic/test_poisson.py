@@ -1,10 +1,15 @@
 """Tests for the radial Poisson solve."""
 
+import jax
 import pytest
 
 import quaxed.numpy as jnp
 
-from galax.potential._src.harmonic.poisson import solve_poisson_lm
+from galax.potential._src.harmonic.poisson import (
+    _active_tol,
+    _log_floor,
+    solve_poisson_lm,
+)
 
 
 @pytest.mark.parametrize("l", [1, 2, 3, 4, 6])
@@ -250,3 +255,45 @@ def test_too_few_radial_knots_is_rejected(n_r: int) -> None:
 
     with pytest.raises(ValueError, match="at least 3 radial knots"):
         solve_poisson_lm(r, rho, jnp.asarray([0.0]), jnp.asarray(1.0))
+
+
+def test_zero_mode_gradient_is_finite_in_float32() -> None:
+    """An identically-zero mode must not poison the gradient in float32.
+
+    REGRESSION: the floor inside ``log|rho|`` was ``1e-300``, a float64
+    constant that underflows to *exactly zero* in float32 -- which is what a
+    caller gets, since `galax` does not enable x64 on import. The floor then
+    floored nothing, ``log(0)`` gave ``-inf``, and the value survived only
+    because the gates masked it while the gradient came back ``nan``. Six of
+    them, on one zero column. Zero columns are routine for ``l >= 1``.
+    """
+    r = jnp.geomspace(1e-2, 1e2, 64).astype(jnp.float32)
+    live = (1.0 / (r * (1.0 + r) ** 3)).astype(jnp.float32)
+    rho = jnp.stack([live, jnp.zeros_like(live)], axis=-1)
+    l_per_mode = jnp.asarray([0.0, 2.0], dtype=jnp.float32)
+
+    def loss(rho_lm):
+        return jnp.sum(
+            solve_poisson_lm(r, rho_lm, l_per_mode, jnp.asarray(1.0, dtype=jnp.float32))
+            ** 2
+        )
+
+    grad = jax.grad(loss)(rho)
+
+    assert grad.dtype == jnp.float32
+    assert jnp.all(jnp.isfinite(grad)), f"{int(jnp.sum(jnp.isnan(grad)))} nan in grad"
+
+
+def test_thresholds_follow_the_working_dtype() -> None:
+    """Both float64 constants underflow or vanish at float32 precision."""
+    f64 = jnp.zeros((), dtype=jnp.float64)
+    f32 = jnp.zeros((), dtype=jnp.float32)
+
+    # The floor must stay a normal number in both, not underflow to zero.
+    assert _log_floor(f32) > 0.0
+    assert _log_floor(f64) > 0.0
+    assert _log_floor(f32) > _log_floor(f64)
+
+    # The relative gate must stay above round-off, not sink beneath it.
+    assert _active_tol(f32) > float(jnp.finfo(jnp.float32).eps)
+    assert _active_tol(f64) > float(jnp.finfo(jnp.float64).eps)

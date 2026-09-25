@@ -13,7 +13,7 @@ Truncating the grid at ``r_min`` and ``r_max`` biases both integrals. The
 power-law slope of :math:`\rho_{lm}` is estimated at each boundary from three
 grid points and an analytic tail appended. Both tails are guarded for
 convergence, but the two boundary-value gates deliberately differ: the inner
-one requires :math:`|\rho_{lm}(r_\min)|` to exceed ``_ACTIVE_TOL`` times the
+one requires :math:`|\rho_{lm}(r_\min)|` to exceed ``_active_tol`` times the
 per-mode scale, while the outer one requires only
 :math:`\rho_{lm}(r_\max) \neq 0`. See "Outer-tail sign" for why the inner
 threshold is not reused at the outer boundary.
@@ -64,21 +64,32 @@ __all__: tuple[str, ...] = ()
 from jaxtyping import Array, Float
 
 import jax
+import numpy as np
 
 import quaxed.numpy as jnp
 
 import galax.potential.custom_types as gt
 
-_LOG_FLOOR: float = 1e-300
-"""Smallest density this module will treat as non-zero.
 
-Used twice: as a floor inside ``log|rho|`` so an identically-zero mode gives
-an ordinary number (~-690) rather than ``-inf``, and as a floor on ``scale``
-so the relative gate below cannot divide by zero for an all-zero column.
+def _log_floor(x: Float[Array, "..."], /) -> float:
+    r"""Smallest density this module will treat as non-zero.
 
-Well above the smallest normal double (~2.2e-308), and far below any density
-a unit system produces, so it never perturbs a real value.
-"""
+    Used twice: as a floor inside ``log|rho|`` so an identically-zero mode
+    gives an ordinary number rather than ``-inf``, and as a floor on
+    ``scale`` so the relative gate cannot divide by zero for an all-zero
+    column.
+
+    Sized from the working dtype, not fixed. A float64 constant such as
+    ``1e-300`` underflows to *exactly zero* in float32 -- which is what a
+    caller gets, since `galax` does not enable x64 on import -- so the floor
+    silently stops flooring and an identically-zero mode, routine for
+    :math:`l \ge 1`, takes ``log(0)`` and poisons the gradient.
+
+    Sixteen times the smallest normal keeps it clear of denormals while
+    staying far below any density a unit system produces.
+    """
+    return 16.0 * float(np.finfo(x.dtype).tiny)
+
 
 _SLOPE_TOL: float = 1e-6
 """Floor on the magnitude of a tail's exponent denominator.
@@ -89,14 +100,21 @@ finite under ``jit``; the tail is then *dropped* rather than scaled, since a
 clamped denominator no longer represents the integral (see `solve_poisson_lm`).
 """
 
-_ACTIVE_TOL: float = 1e-8
-"""Relative threshold for a non-negligible *inner* boundary value.
 
-Applies to the inner tail only -- the outer tail gates on
-:math:`\\rho_{lm}(r_\\max) \\neq 0` instead, because this threshold is taken
-against the per-mode maximum over the whole radial range, which is set by the
-inner cusp and would reject every mode at the outer boundary.
-"""
+def _active_tol(x: Float[Array, "..."], /) -> float:
+    r"""Relative threshold for a non-negligible *inner* boundary value.
+
+    ``sqrt(eps)``, which is where the fixed ``1e-8`` came from: that is
+    ``sqrt(eps)`` in float64. Taken from the working dtype instead, since in
+    float32 ``1e-8`` is 0.08 eps -- below round-off, so the gate degenerates
+    from "negligible" to "exactly zero".
+
+    Applies to the inner tail only -- the outer tail gates on
+    :math:`\rho_{lm}(r_\max) \neq 0` instead, because this threshold is taken
+    against the per-mode maximum over the whole radial range, which is set by
+    the inner cusp and would reject every mode at the outer boundary.
+    """
+    return float(np.sqrt(np.finfo(x.dtype).eps))
 
 
 @jax.jit
@@ -164,10 +182,11 @@ def solve_poisson_lm(
         xl = jnp.exp(l * log_r)  # the only exp per mode
         f_in = rho_col * xl * x2  # rho x^(l+2)
         f_out = rho_col * x / xl  # rho x^(1-l)
-        scale = jnp.max(jnp.abs(rho_col)) + _LOG_FLOOR
+        floor = _log_floor(rho_col)
+        scale = jnp.max(jnp.abs(rho_col)) + floor
 
         # -- inner tail (0 -> r_min), rho_lm ~ A_in r^alpha_in --------------
-        log_rho_in = jnp.log(jnp.abs(rho_col[:3]) + _LOG_FLOOR)
+        log_rho_in = jnp.log(jnp.abs(rho_col[:3]) + floor)
         alpha_in = jnp.mean(jnp.diff(log_rho_in) / jnp.diff(log_r[:3]))
         exp_in = alpha_in + l + 3.0
         safe_in = jnp.where(jnp.abs(exp_in) > _SLOPE_TOL, exp_in, _SLOPE_TOL)
@@ -190,7 +209,8 @@ def solve_poisson_lm(
         # window the tail is therefore dropped, not scaled -- the same
         # conservative treatment as just across the exp_in <= 0 boundary.
         dI_in = jnp.where(
-            (jnp.abs(rho_col[0]) > _ACTIVE_TOL * scale) & (exp_in > _SLOPE_TOL),
+            (jnp.abs(rho_col[0]) > _active_tol(rho_col) * scale)
+            & (exp_in > _SLOPE_TOL),
             dI_in,
             0.0,
         )
@@ -202,7 +222,7 @@ def solve_poisson_lm(
         )
 
         # -- outer tail (r_max -> inf), rho_lm ~ A_out r^alpha_out ----------
-        log_rho_out = jnp.log(jnp.abs(rho_col[-3:]) + _LOG_FLOOR)
+        log_rho_out = jnp.log(jnp.abs(rho_col[-3:]) + floor)
         alpha_out = jnp.mean(jnp.diff(log_rho_out) / jnp.diff(log_r[-3:]))
         active_out = jnp.abs(rho_col[-1]) > 0.0
         denom = l - alpha_out - 2.0

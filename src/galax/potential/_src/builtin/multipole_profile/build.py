@@ -55,13 +55,6 @@ def _log_floor(x: Float[Array, "..."], /) -> float:
     return 16.0 * float(np.finfo(x.dtype).tiny)
 
 
-"""Floor added inside ``log|rho|`` so an identically-zero mode stays finite.
-
-Well above the smallest normal double (~2.2e-308), so its log is an ordinary
-number rather than ``-inf``, and far below any density a unit system
-produces, so it never perturbs a real value.
-"""
-
 _CUSP_TOL: float = 1e-6
 """Relative gate on the cusp background, against a *global* scale.
 

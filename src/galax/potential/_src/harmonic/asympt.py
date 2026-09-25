@@ -2,61 +2,37 @@ r"""Asymptotic power-law continuation of the multipole coefficient profiles.
 
 Outside ``[r_min, r_max]`` the cubic Hermite spline of `spline` has nothing to
 say: continuing its edge cubic in :math:`\log r` is unbounded and wrong by
-construction. Close to the boundary it is respectable -- it reads the same
-knot derivatives the tail does -- but it degrades without limit. On a
-Hernquist monopole over ``[0.05, 20]`` the edge cubic's relative error runs
-:math:`9.2\times 10^{-3}`, :math:`0.13`, :math:`1.43` at 2, 5 and
-:math:`10 r_\max`, against :math:`1.0\times 10^{-2}`, :math:`1.8\times 10^{-2}`,
-:math:`2.3\times 10^{-2}` for the continuation, and somewhere in that range it
-changes sign -- a repulsive force from a bound system.
-(`test_the_edge_cubic_really_does_change_sign` pins that; the table is
-`test_end_to_end_beats_the_edge_cubic`.) This module replaces it with the
-physical continuation,
+construction, and somewhere out there it changes sign -- a repulsive force
+from a bound system. On a Hernquist monopole over ``[0.05, 20]``, relative
+error against the closed form:
+
+=============== ========== ========== ==========
+                2 r_max    5 r_max    10 r_max
+=============== ========== ========== ==========
+edge cubic      9.2e-3     1.3e-1     1.4e+0
+continuation    1.0e-2     1.8e-2     2.3e-2
+=============== ========== ========== ==========
+
+(`test_end_to_end_beats_the_edge_cubic` pins the table,
+`test_the_edge_cubic_really_does_change_sign` the sign flip.) This module
+replaces it with the physical continuation,
 
 .. math::
 
     \Phi_{lm}(r) = W (r/r_1)^v + U (r/r_1)^s + Q (r/r_1)^2 ,
 
-following ``agama``'s ``computeExtrapolationCoefs`` / ``initAsympt`` /
-``PowerLawMultipole`` in ``src/potential_multipole.cpp``. Here :math:`r_1` is
-the boundary node, :math:`v = l` inward and :math:`v = -l-1` outward -- the
-two source-free solid-harmonic solutions, so :math:`W (r/r_1)^v` is what
-survives when there is no mass beyond the boundary -- :math:`s` is set by the
-asymptotic power-law slope of the density, :math:`\rho \sim r^{s-2}`, and
+following ``agama``'s ``PowerLawMultipole`` in ``src/potential_multipole.cpp``.
+:math:`r_1` is the boundary node, :math:`v = l` inward and :math:`v = -l-1`
+outward -- the two source-free solid-harmonic solutions, so :math:`W (r/r_1)^v`
+is what survives when there is no mass beyond the boundary -- :math:`s` is set
+by the asymptotic slope of the density, :math:`\rho \sim r^{s-2}`, and
 :math:`Q (r/r_1)^2` is the uniform-density piece.
 
-Why it lives here and not in `spline`
--------------------------------------
-The continuation needs :math:`l`, and a spline evaluator has no business
-knowing about spherical harmonics: `eval_log_spline` is a generic
-knots-and-derivatives evaluator, reused and tested as such. It also needs a
-root find, which must happen *once at build time* -- `eval_log_spline` is
-called from inside a `diffrax` scan body, so folding a root find into it would
-re-solve on every integration step. Hence two functions: `asymptotic_coeffs`
-fits the continuation at build time, `eval_log_spline_asympt` evaluates the
-spline and its two tails. Inside the knots the latter delegates to
-`eval_log_spline` unchanged, so interior values stay bit-identical.
-
-Where this departs from ``agama``
----------------------------------
-* The degenerate :math:`s = v` case -- ``agama``'s
-  :math:`W (r/r_1)^v + U (r/r_1)^v \ln(r/r_1)`, which is the *generic* outer
-  monopole of an :math:`r^{-3}` halo such as NFW -- is not a separate branch
-  here. Writing the two power laws as the divided difference
-
-  .. math::
-
-      \frac{x^s - x^v}{s - v} \xrightarrow{s \to v} x^v \ln x
-
-  makes the limit analytic, so one expression covers both cases and there is
-  no branch to get wrong and no cancellation near the degeneracy. ``agama``
-  instead snaps :math:`s` to :math:`v` inside
-  :math:`|A+1| < \sqrt{\epsilon}` precisely to dodge that cancellation.
-* :math:`s` is found by bisection on a residual that is provably monotone
-  (see `_slope`) rather than through the Lambert :math:`W` function.
-* The coefficient of the :math:`x^s` term is rewritten so that the boundary
-  value *and* derivative are reproduced to round-off by construction rather
-  than as an outcome of the algebra; see `asymptotic_coeffs`.
+The degenerate :math:`s = v` case, which is the *generic* outer monopole of an
+:math:`r^{-3}` halo such as NFW, is not a separate branch: writing the two
+power laws as the divided difference :math:`(x^s - x^v)/(s - v)`, whose
+:math:`s \to v` limit is :math:`x^v \ln x`, makes one expression cover both
+with no branch to get wrong and no cancellation near the degeneracy.
 """
 
 __all__: tuple[str, ...] = ()
@@ -67,6 +43,7 @@ from collections.abc import Callable
 from jaxtyping import Array, Bool, Float
 
 import jax
+import numpy as np
 
 import quaxed.numpy as jnp
 
@@ -74,43 +51,63 @@ from .spline import eval_log_spline
 
 _Fn = Callable[[Float[Array, "*s"]], Float[Array, "*s"]]
 
-_SERIES_TOL: float = 1e-2
-r"""Switch to the series form of :math:`(e^z-1)/z` below this ``|z|``.
+_SERIES_TOL_F64: float = 1e-2
+"""Series/quotient seam at float64. See `_series_tol`."""
 
-Needed at all because the quotient is :math:`0/0` at :math:`z = 0` and so not
-differentiable there. Away from zero the quotient loses about
-:math:`\epsilon/|z|` to cancellation -- in the value and in the derivatives
-alike, since differentiating
-:math:`(e^{aL} - e^{bL})/(a-b)` gives :math:`(a^2 e^{aL} - b^2 e^{bL})/(a-b)`,
-the same single subtraction rather than a worse one. Measured against a
-50-digit reference, the second derivative (which `hessian` and
-`tidal_tensor` read) comes back at
 
-======== ================= ==============
-``|z|``  quotient rel. err :math:`\epsilon/|z|`
-======== ================= ==============
-1e-2     1.3e-14           2.2e-14
-1e-4     2.9e-12           2.2e-12
-1e-6     2.1e-11           2.2e-10
-======== ================= ==============
+def _series_tol(x: Float[Array, "..."], /) -> float:
+    r"""Switch to the series form of :math:`(e^z-1)/z` below this ``|z|``.
 
-so the seam only has to be far enough from zero that :math:`\epsilon/|z|` is
-still small. At :math:`10^{-2}` the quotient side costs ~1e-14 relative and
-the series side, truncating at :math:`z^7/40320`, costs ~1e-16 -- both
-comfortably inside the quadrature error of anything that calls this.
-"""
+    The quotient is :math:`0/0` at :math:`z = 0`, and away from it loses about
+    :math:`\epsilon/|z|` to cancellation -- in the derivatives as much as the
+    value, since differentiating keeps the same single subtraction. The series
+    carries terms through :math:`z^6/5040`, so its first omitted term is
+    :math:`z^7/40320`. Balancing the two puts the seam at
+    :math:`z^9 \propto \epsilon`, hence the ninth root.
+
+    Sized from the working dtype, since `galax` does not enable x64 on import.
+    Measured relative error either side of the seam:
+
+    ======== ================= ================= =================
+    dtype    seam              quotient there    series there
+    ======== ================= ================= =================
+    float64  1.0e-2            1.1e-14           2.2e-16
+    float32  9.3e-2            4.5e-7            5.4e-9
+    ======== ================= ================= =================
+
+    float64 is unchanged: the ratio is 1 there, so the seam is exactly
+    ``_SERIES_TOL_F64``.
+    """
+    ratio = float(np.finfo(x.dtype).eps) / float(np.finfo(np.float64).eps)
+    return float(_SERIES_TOL_F64 * ratio ** (1.0 / 9.0))
+
 
 _SAFETY: float = 100.0
 """Round-off guard, in units of the working epsilon. Matches ``agama``."""
 
-_LN_HUGE: float = 700.0
-r"""Largest ``|exponent * ln x|`` allowed into `jnp.exp`.
+_LN_HUGE_FRAC: float = 0.985
+"""Fraction of the overflow exponent that `_ln_huge` allows through."""
 
-Just under ``log(DBL_MAX) = 709.78``. `eval_log_spline_asympt` clamps
-:math:`L` so no term can reach an ``inf`` -- and so that :math:`r = 0`, which
-arrives as :math:`L = -\infty`, cannot turn the monopole's :math:`v = 0`
-into an indeterminate :math:`0 \times \infty`.
+_MIN_EXPONENT: float = 2.0
+r"""Floor on the exponent magnitude the clamp is sized against.
+
+The ``Q`` term carries :math:`x^2`, so 2 is the smallest exponent that can
+appear. The floor is unconditional because it is also what keeps the divisor
+non-zero: a mode with :math:`v = s = 0` would otherwise divide by zero, the
+bounds would come out as :math:`\pm\infty`, and the clamp would silently
+stop clamping -- precisely when it is needed, since :math:`r = 0` arrives as
+:math:`L = -\infty` and :math:`0 \times -\infty` is a `nan`.
 """
+
+
+def _ln_huge(x: Float[Array, "..."], /) -> float:
+    r"""Largest ``|exponent * ln x|`` that cannot overflow `jnp.exp`.
+
+    Taken from the working dtype, not fixed: the limit is ~709.8 in float64
+    but ~88.7 in float32, and `galax` does not enable x64 on import.
+    """
+    return _LN_HUGE_FRAC * float(np.log(np.finfo(x.dtype).max))
+
 
 _N_BISECT: int = 60
 """Bisection steps. A bracket of width 9 shrinks to ``8e-18``, below eps."""
@@ -136,12 +133,17 @@ degrades to a bounded tail rather than a divergent one. The third entry is
 the fallback slope -- ``agama``'s, an :math:`r^{-4}` falloff.
 """
 
-_Q_BRACKET: tuple[float, float] = (2.0 + 3.0 * 1.4901161193847656e-08, 8.0)
-r"""Bracket for the four-parameter inner-monopole slope, from ``agama``.
 
-:math:`s = 2` is always a root of that residual -- it is the :math:`Q` term
-itself -- so the lower end is nudged off it by :math:`3\sqrt{\epsilon}`.
-"""
+def _q_bracket(x: Float[Array, "..."], /) -> tuple[float, float]:
+    r"""Bracket for the four-parameter inner-monopole slope, from ``agama``.
+
+    :math:`s = 2` is always a root of that residual -- it is the :math:`Q`
+    term itself -- so the lower end is nudged off it by
+    :math:`3\sqrt{\epsilon}`. Taken from the working dtype: in float32 the
+    float64 nudge, 4.5e-8, is smaller than half the spacing at 2.0 (1.2e-7)
+    and rounds straight back onto the root it is there to avoid.
+    """
+    return 2.0 + 3.0 * float(np.sqrt(np.finfo(x.dtype).eps)), 8.0
 
 
 def _pow_diff(
@@ -156,7 +158,7 @@ def _pow_diff(
     the unselected one cannot poison a gradient with a `nan`.
     """
     z = (a - b) * ln_x
-    small = jnp.abs(z) < _SERIES_TOL
+    small = jnp.abs(z) < _series_tol(z)
     series = 1.0 + z * (
         0.5 + z * (1 / 6 + z * (1 / 24 + z * (1 / 120 + z * (1 / 720 + z / 5040))))
     )
@@ -205,23 +207,17 @@ def _polish(
 ) -> Float[Array, "*s"]:
     r"""Re-attach the implicit derivative to a detached bisection root.
 
-    Bisection is a tree of comparisons and carries no derivative information:
-    differentiating it gives zero. The correction below is *identically zero*
-    in value -- ``r - stop_gradient(r)`` -- so the bisection result is
-    returned bit-for-bit, while its derivative is
-    :math:`-(\partial R/\partial\theta)/(\partial R/\partial s)`, exactly
-    the implicit-function derivative an `optimistix` root find would supply.
-    Three lines and no second solve. Writing it value-neutrally, rather than
-    as a plain Newton step, keeps the returned root exactly the one the
-    bracketing established: a real step would move it by the residual's own
-    noise floor, which is not an improvement once bisection has already
-    converged, and would leave the reported root depending on the arithmetic
-    of the correction rather than on the sign changes that found it.
+    Bisection is a tree of comparisons, so differentiating it gives zero. The
+    correction is *identically zero in value* -- ``r - stop_gradient(r)`` --
+    so the root comes back bit-for-bit, while its derivative becomes
+    :math:`-(\partial R/\partial\theta)/(\partial R/\partial s)`, the
+    implicit-function derivative a root-find would supply. Value-neutral
+    rather than a real Newton step, so the reported root stays the one the
+    sign changes found rather than one the correction's arithmetic moved.
 
-    ``bracketed`` says whether the interval actually holds a sign change.
-    Where it does not, the returned value is a clamped endpoint whose true
-    sensitivity to the data is zero, and re-attaching an implicit derivative
-    there would invent one -- so the term is dropped.
+    Where ``bracketed`` is `False` the value is a clamped endpoint whose true
+    sensitivity to the data is zero, so the term is dropped rather than
+    inventing one.
     """
     s = jax.lax.stop_gradient(s)
     r, dr = jax.jvp(fn, (s,), (jnp.ones_like(s),))
@@ -326,7 +322,7 @@ def _inner_monopole_q(
         conspire against it there:
 
         1. :math:`s = 2` is an *exact* root of the residual for arbitrary
-           data -- identically zero, not merely small. `_Q_BRACKET` nudges
+           data -- identically zero, not merely small. `_q_bracket` nudges
            its endpoint by :math:`3\sqrt{\epsilon}` to avoid it; that is not
            enough once (2) applies.
         2. The acceptance gate compares a residual that is
@@ -352,16 +348,12 @@ def _inner_monopole_q(
         realistic monopole builds the fit was accepted 41 times and *never
         once* with :math:`s` strictly interior.
 
-        Requiring a sign change in the bracket does not rescue it, because
-        :math:`s = 2` is a genuine root. A gate that would work has to be
-        dimensionless -- the residual small relative to its own range over
-        the bracket, not to ``scale`` -- and must additionally bound
-        :math:`|den|` away from zero so :math:`U` and :math:`Q` stay
-        conditioned. Until then the three-parameter form is used, which
-        converged monotonically in every configuration tested.
-
-        Contrast `_slope`, whose gates are relative and whose residual is
-        provably monotone with a unique root; it needs no such caveat.
+        Requiring a sign change does not rescue it, because :math:`s = 2` is
+        a genuine root. A workable gate would have to be dimensionless --
+        residual small against its own range over the bracket, not against
+        ``scale`` -- and bound :math:`|den|` away from zero. Until then the
+        three-parameter form is used, which converged monotonically in every
+        configuration tested.
 
     Only the inward monopole carries :math:`Q`: for :math:`v = 0` the
     continuation can afford a fourth parameter, fitting
@@ -389,7 +381,7 @@ def _inner_monopole_q(
             + (D1 * ratio - d2) * (ratio * rsm1 - 1.0) / s
         )
 
-    s = _solve(residual, _Q_BRACKET, P1)
+    s = _solve(residual, _q_bracket(P1), P1)
 
     rsm1 = jnp.exp((s - 1.0) * h)
     den = rsm1 - ratio
@@ -512,11 +504,11 @@ def asymptotic_coeffs(
         # The amplitude follows from the C1 constraint itself, never from
         # the fit, so the join holds whatever `s` and `Q` came out as.
         B = D1 - v * P1 - (2.0 - v) * Q
-        # The `Q` row is carried only when it can be non-zero. Its presence
-        # is what tells `eval_log_spline_asympt` whether to evaluate the
-        # term, so the two cannot disagree: a caller who opts in gets four
-        # rows and the term is honoured, and one who does not cannot
-        # accidentally pay for an `exp` against a structural zero.
+        # The `Q` row is carried whenever the caller opts in -- not only when
+        # some mode's fit was accepted, which is not known per-column here.
+        # Its presence is what tells `eval_log_spline_asympt` to evaluate the
+        # term, so the two cannot disagree; a caller who does not opt in
+        # cannot pay for an `exp` against a row that is structurally absent.
         out.append(jnp.stack([v, s, B, Q] if cored_monopole else [v, s, B]))
     return jnp.stack(out)  # type: ignore[no-any-return]
 
@@ -576,10 +568,9 @@ def eval_log_spline_asympt(
         v, s, B = side[0], side[1], side[2]
         # Keep every exponent below the `exp` overflow threshold, so no term
         # is an inf or a `0 * inf`.
-        largest = jnp.maximum(jnp.abs(v), jnp.abs(s))
-        if q_term:
-            largest = jnp.maximum(largest, 2.0)
-        ln_x = jnp.clip(ln_x, -_LN_HUGE / largest, _LN_HUGE / largest)
+        largest = jnp.maximum(jnp.maximum(jnp.abs(v), jnp.abs(s)), _MIN_EXPONENT)
+        lim = _ln_huge(ln_x) / largest
+        ln_x = jnp.clip(ln_x, -lim, lim)
 
         out = P1 * jnp.exp(v * ln_x) + B * _pow_diff(s, v, ln_x)
         if q_term:

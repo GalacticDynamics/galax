@@ -12,6 +12,8 @@ import quaxed.numpy as jnp
 import galax.potential as gp
 from galax.potential._src.harmonic.asympt import (
     _pow_diff,
+    _q_bracket,
+    _series_tol,
     asymptotic_coeffs,
     eval_log_spline_asympt,
 )
@@ -539,3 +541,83 @@ def test_the_fitted_slope_is_differentiable_through_the_root_find() -> None:
     assert abs(fd) > 1e-4, f"the probe must actually move the root, got {fd}"
     assert auto != 0.0, "the root find must not be gradient-blind"
     assert abs(auto - fd) < 1e-3 * abs(fd), (auto, fd)
+
+
+def test_tail_is_finite_when_both_fitted_exponents_vanish() -> None:
+    """``v == s == 0`` must not disable the clamp that protects ``r = 0``.
+
+    REGRESSION: the clamp divides by ``max(|v|, |s|)``, and the floor that
+    keeps that non-zero was applied only on the ``q_term`` path. Once the
+    four-parameter monopole fit became opt-in, the default path lost it: the
+    divisor went to zero, the bounds came out as +-inf, and the clamp stopped
+    clamping -- exactly where it is needed, since ``r = 0`` arrives as
+    ``ln x = -inf`` and ``0 * -inf`` is a `nan`.
+    """
+    log_r = jnp.log(jnp.geomspace(1e-2, 1e2, 32))
+    values = jnp.ones((32, 1))
+    derivs = fit_log_spline(log_r, values)
+    coefs = jnp.zeros((2, 3, 1))  # v = s = B = 0 on both sides
+
+    log_rq = jnp.asarray([-jnp.inf, jnp.log(1e-3), 0.0])
+    got = eval_log_spline_asympt(log_r, values, derivs, coefs, log_rq)
+
+    assert jnp.all(jnp.isfinite(got)), f"r = 0 gave {got}"
+
+
+def test_clamp_is_sized_to_the_working_dtype() -> None:
+    """The overflow bound must follow the dtype, not assume float64.
+
+    `galax` does not enable x64 on import, so float32 is what a caller gets
+    by default, and ``exp`` overflows there at ~88.7 rather than ~709.8. A
+    fixed float64 bound let a float32 run reach ``inf`` through the very
+    clamp meant to prevent it.
+    """
+    log_r = jnp.log(jnp.geomspace(1e-2, 1e2, 32)).astype(jnp.float32)
+    values = jnp.ones((32, 1), dtype=jnp.float32)
+    derivs = fit_log_spline(log_r, values)
+    # Steep, distinct exponents with unit amplitude: the clamp is then what
+    # decides the largest `exp`. `s != v` keeps `_pow_diff` off its series
+    # branch, which multiplies by `ln x` again and so cannot be bounded by
+    # clamping the exponent alone.
+    coefs = jnp.asarray(
+        [[[60.0], [40.0], [1.0]], [[60.0], [40.0], [1.0]]], dtype=jnp.float32
+    )
+
+    log_rq = jnp.asarray([-jnp.inf, jnp.log(1e-30), jnp.log(1e30)], dtype=jnp.float32)
+    got = eval_log_spline_asympt(log_r, values, derivs, coefs, log_rq)
+
+    assert got.dtype == jnp.float32
+    assert jnp.all(jnp.isfinite(got)), f"float32 overflowed: {got}"
+
+
+@pytest.mark.parametrize("dtype", [jnp.float64, jnp.float32])
+def test_q_bracket_clears_the_degenerate_root(dtype) -> None:
+    """The nudge off ``s = 2`` must survive the working dtype.
+
+    REGRESSION: the offset was the float64 ``3 sqrt(eps)``, 4.5e-8. In
+    float32 the spacing at 2.0 is 2.4e-7, so the nudge fell inside half a
+    ULP and the lower bound rounded straight back onto the root it exists
+    to avoid.
+    """
+    lo, hi = _q_bracket(jnp.zeros((), dtype=dtype))
+
+    assert dtype(lo) > dtype(2.0), f"{dtype.__name__} lower bound collapsed to 2.0"
+    assert hi == 8.0
+
+
+def test_series_seam_follows_the_dtype() -> None:
+    """The series/quotient seam must be sized from the working dtype.
+
+    ``(e^z - 1)/z`` loses ``eps/|z|`` to cancellation, so the seam that keeps
+    both branches accurate moves with ``eps``. A float64 seam used in float32
+    puts the crossover in the wrong place and picks the worse branch: at
+    ``z = 1e-1`` the quotient costs 4.5e-7 against the series' 5.4e-9.
+
+    float64 is pinned exactly, so this cannot drift for existing callers.
+    """
+    f64 = _series_tol(jnp.zeros((), dtype=jnp.float64))
+    f32 = _series_tol(jnp.zeros((), dtype=jnp.float32))
+
+    assert f64 == 1e-2
+    assert f32 > f64, "float32 seam must widen, not inherit float64's"
+    assert f32 < 0.5, "and stay inside the measured series-wins region"

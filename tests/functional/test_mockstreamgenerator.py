@@ -70,7 +70,11 @@ def test_first_deriv() -> None:
         },
     }
 
-    ts = u.Q(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
+    # The first derivative is exactly zero -- the loss is ``|x - stop_gradient(x)|^2``
+    # at ``x`` -- whatever the stream's length, so a short stream checks the same
+    # thing. At 10_000 steps this test alone peaked at ~11 GB, which, alongside
+    # the other xdist workers, ran CI runners out of memory.
+    ts = u.Q(jnp.linspace(0.0, 4.0, 1_000), "Gyr")
     w0 = gc.PhaseSpacePosition(
         q=u.Q([30.0, 10, 20], "kpc"), p=u.Q([10.0, -150, -20], "km / s")
     )

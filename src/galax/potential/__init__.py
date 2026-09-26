@@ -3,6 +3,7 @@
 __all__ = [
     # Modules
     "io",
+    "multipole_profile",
     "params",
     "plot",
     "scf",
@@ -27,9 +28,11 @@ __all__ = [
     "LMJ09LogarithmicPotential",
     "LogarithmicPotential",
     "AbstractMultipolePotential",
+    "AbstractMultipoleProfilePotential",
     "MultipoleInnerPotential",
     "MultipoleOuterPotential",
     "MultipolePotential",
+    "MultipoleProfilePotential",
     "AxisymmetricGaussianPotential",
     "GaussianPotential",
     "TriaxialGaussianPotential",
@@ -80,7 +83,7 @@ __all__ = [
 from .setup_package import install_import_hook, load_interop_plugins
 
 with install_import_hook("galax.potential"):
-    from . import io, params, plot, scf
+    from . import io, multipole_profile, params, plot, scf
     from ._src.api import (
         acceleration,
         d2potential_dr2,
@@ -102,6 +105,7 @@ with install_import_hook("galax.potential"):
     from ._src.base_single import AbstractSinglePotential
     from ._src.builtin import (
         AbstractMultipolePotential,
+        AbstractMultipoleProfilePotential,
         AxisymmetricGaussianPotential,
         BovyMWPotential2014,
         BurkertPotential,
@@ -128,6 +132,7 @@ with install_import_hook("galax.potential"):
         MultipoleInnerPotential,
         MultipoleOuterPotential,
         MultipolePotential,
+        MultipoleProfilePotential,
         NFWPotential,
         NullPotential,
         PlummerPotential,

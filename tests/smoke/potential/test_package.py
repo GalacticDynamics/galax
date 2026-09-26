@@ -5,6 +5,7 @@ import galax.potential as gp
 expected_all = [
     # Modules
     "io",
+    "multipole_profile",
     "params",
     "plot",
     "scf",
@@ -31,9 +32,11 @@ expected_all = [
     "LMJ09LogarithmicPotential",
     "LogarithmicPotential",
     "AbstractMultipolePotential",
+    "AbstractMultipoleProfilePotential",
     "MultipoleInnerPotential",
     "MultipoleOuterPotential",
     "MultipolePotential",
+    "MultipoleProfilePotential",
     "AxisymmetricGaussianPotential",
     "GaussianPotential",
     "TriaxialGaussianPotential",

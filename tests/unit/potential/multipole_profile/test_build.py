@@ -1,7 +1,10 @@
 """Tests for the multipole profile build pipeline."""
 
 import quaxed.numpy as jnp
+import unxt as u
 
+from galax.potential import MultipoleProfilePotential
+from galax.potential._src.base import default_constants
 from galax.potential._src.builtin.multipole_profile.build import (
     build_expansion,
     subtract_inner_cusp,
@@ -11,6 +14,14 @@ from galax.potential._src.harmonic import (
     eval_log_spline,
     lm_keys,
 )
+
+_G_GALACTIC = float(default_constants["G"].decompose(u.unitsystem("galactic")).value)
+
+
+def _hernquist_density(xyz, t):
+    """Hernquist with M = a = 1: Phi = -G/(1+r)."""
+    r = jnp.sqrt(jnp.sum(xyz**2, axis=-1))
+    return 1.0 / (2.0 * jnp.pi) / r / (1.0 + r) ** 3
 
 
 def test_subtract_inner_cusp_removes_a_pure_power_law() -> None:
@@ -132,3 +143,36 @@ def test_build_expansion_returns_consistent_shapes() -> None:
     assert coeffs["drho_residual_lm"].shape == (32, n_modes)
     assert coeffs["rho_alpha"].shape == (n_modes,)
     assert coeffs["rho_amplitude"].shape == (n_modes,)
+
+
+def test_refining_n_r_actually_improves_the_potential() -> None:
+    """``n_r`` must buy accuracy, at the interior quadrature's second order.
+
+    REGRESSION: the Poisson solve models the mass outside ``[r_min, r_max]``
+    as one power law fitted at the boundary, and that model's error does not
+    shrink with ``n_r``. Solving on the caller's grid therefore put a floor
+    under everything -- 128 to 2048 knots moved the error only 1.2e-3 to
+    6.8e-4, so the one knob a user has did almost nothing. `build_expansion`
+    now solves on a padded grid and keeps the requested range, which puts the
+    tail model below the quadrature.
+    """
+    errs = []
+    for n_r in (128, 256, 512):
+        pot = MultipoleProfilePotential.from_density(
+            _hernquist_density,
+            r_min=u.Q(0.05, "kpc"),
+            r_max=u.Q(20.0, "kpc"),
+            n_r=n_r,
+            l_max=0,
+            symmetry="spherical",
+            units="galactic",
+        )
+        rq = jnp.geomspace(0.06, 18.0, 24)
+        x = u.Q(jnp.stack([rq, jnp.zeros_like(rq), jnp.zeros_like(rq)], -1), "kpc")
+        got = pot.potential(x, t=u.Q(0.0, "Gyr")).ustrip("kpc2/Myr2")
+        want = -_G_GALACTIC / (1.0 + rq)
+        errs.append(float(jnp.max(jnp.abs((got - want) / want))))
+
+    ratios = [errs[i] / errs[i + 1] for i in range(len(errs) - 1)]
+    assert errs[0] < 1e-3, errs
+    assert all(3.5 < q < 4.5 for q in ratios), f"not second order: {ratios} from {errs}"

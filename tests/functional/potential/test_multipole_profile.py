@@ -283,11 +283,13 @@ def test_potential_and_gradient_are_sane_at_the_exact_origin(_analytic) -> None:
     was the worse of the two extrapolation defects. That test asked whoever
     fixed it to state the new behaviour deliberately; this is that statement.
 
-    At exactly :math:`\vec{x} = 0` the direction is still undefined and
-    :math:`\log r` still underflows to :math:`-\infty`, but
-    `eval_log_spline_asympt` evaluates the inner tail on a clamped
+    At exactly :math:`\vec{x} = 0` the direction is still undefined, but
+    :math:`\log r` does not underflow: `safe_vector_norm` floors :math:`r` at
+    :math:`\sqrt{\mathrm{tiny}}`, so :math:`\log r` is a large finite
+    negative (-354 in float64) rather than :math:`-\infty`.
+    `eval_log_spline_asympt` then evaluates the inner tail on a clamped
     :math:`L = \min(\log r - \log r_\min, 0)`, so the branch is finite for
-    every query radius. The monopole tail tends to a finite central value:
+    every query radius either way. The monopole tail tends to a finite central value:
     :math:`\Phi(0) = -0.4530` against a true :math:`-0.4499` (0.69%), where
     the bare edge cubic gave :math:`\approx -2 \times 10^4`. The gradient
     comes back exactly zero, which is also the analytic answer.

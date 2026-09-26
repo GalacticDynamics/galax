@@ -372,6 +372,16 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
                 u.Q.from_(u.Q(0.0, "Gyr") if t is None else t, usys["time"]),
             )
         )
+        # The build happens at a single time. `harmonic_coeffs` broadcasts `t`
+        # against the angular grid, so an array `t` does not fail -- it
+        # silently averages the expansion over those times and hands it back
+        # as though it were one. Time-grid construction is #849.
+        if t_.ndim != 0:
+            msg = (
+                f"t must be a scalar (got shape {t_.shape}); the expansion is "
+                "built at a single time"
+            )
+            raise ValueError(msg)
 
         # `build_expansion` takes `rho_fn` as a jit static argument, so jax hashes
         # it. An equinox bound method (e.g. `some_pot._density`) closes over

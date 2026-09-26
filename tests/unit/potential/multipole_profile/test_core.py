@@ -536,3 +536,29 @@ def test_from_density_rejects_a_non_scalar_bracket() -> None:
             l_max=0,
             units="galactic",
         )
+
+
+def test_from_density_rejects_an_array_time() -> None:
+    """An array ``t`` silently averaged the expansion over those times.
+
+    `harmonic_coeffs` broadcasts ``t`` against the angular grid, so a
+    non-scalar time does not raise -- it returns a time-*averaged* expansion
+    presented as a single-time potential. For a density whose amplitude
+    doubles between ``t = 0`` and ``t = 1 Gyr``, ``t = [0, 1]`` gave exactly
+    the mean of the two builds. Wrong values, silently, which is worse than
+    the shape error it looks like it should produce.
+    """
+
+    def rho(xyz, t):
+        return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    with pytest.raises(ValueError, match="t must be a scalar"):
+        MultipoleProfilePotential.from_density(
+            rho,
+            r_min=u.Q(1e-2, "kpc"),
+            r_max=u.Q(1e2, "kpc"),
+            n_r=16,
+            l_max=0,
+            units="galactic",
+            t=u.Q(jnp.asarray([0.0, 1.0]), "Gyr"),
+        )

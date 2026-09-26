@@ -651,3 +651,35 @@ def test_the_outward_tail_keeps_decaying_in_float32() -> None:
     # Strictly decaying in magnitude -- a plateau repeats the clamped value.
     mag = jnp.abs(got)
     assert jnp.all(mag[1:] < mag[:-1]), f"tail plateaued: {got}"
+
+
+def test_the_fit_and_continuation_work_end_to_end_in_float32() -> None:
+    """Fit and evaluate a real monopole in the dtype a caller actually gets.
+
+    `galax` does not enable x64 on import, so float32 is the default, and
+    every other test here runs under the suite's x64 setting. This one pins
+    the whole path -- `asymptotic_coeffs` then `eval_log_spline_asympt` --
+    at float32 against the closed form, so a float64-only constant cannot
+    slip back in unnoticed.
+
+    Accuracy, not just finiteness: three of this module's defects were wrong
+    *values* in float32 rather than crashes.
+    """
+    log_r = jnp.log(jnp.geomspace(0.05, 20.0, 128)).astype(jnp.float32)
+    r = jnp.exp(log_r)
+    values = (-1.0 / (1.0 + r)).astype(jnp.float32)[:, None]  # Hernquist, M=a=1
+    derivs = fit_log_spline(log_r, values)
+
+    coefs = asymptotic_coeffs(
+        log_r, values, derivs, jnp.asarray([0.0], dtype=jnp.float32)
+    )
+    assert coefs.dtype == jnp.float32
+    assert jnp.all(jnp.isfinite(coefs))
+    # v = l = 0 inward, v = -l-1 = -1 outward: the source-free solutions.
+    assert coefs[0, 0, 0] == 0.0
+    assert coefs[1, 0, 0] == -1.0
+
+    rq = jnp.asarray([1e-3, 40.0, 200.0], dtype=jnp.float32)  # in, near, far
+    got = eval_log_spline_asympt(log_r, values, derivs, coefs, jnp.log(rq)).ravel()
+
+    assert jnp.allclose(got, -1.0 / (1.0 + rq), rtol=5e-3), got

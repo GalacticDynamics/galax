@@ -528,22 +528,29 @@ def eval_log_spline_asympt(
     `asymptotic_coeffs`. ``coefs`` must come from the same ``values`` and
     ``derivs``.
 
-    Both tails are evaluated on a clamped :math:`L`, so every branch of the
-    select is finite for every query radius and no `nan` leaks into a
-    gradient. The clamp bounds :math:`L` in *magnitude*, not only in sign:
-    bounding the sign alone still lets :math:`r = 0` reach the tail as
-    :math:`L = -\infty`, where the monopole's :math:`v = 0` makes
-    :math:`v L` an indeterminate :math:`0 \times \infty` and the whole mode
-    comes back `nan`.
+    The tail is evaluated on a clamped :math:`L`, so it is finite for every
+    query radius and no `nan` leaks into a gradient. The clamp bounds
+    :math:`L` in *magnitude*, not only in sign: bounding the sign alone still
+    lets :math:`r = 0` reach the tail as :math:`L = -\infty`, where the
+    monopole's :math:`v = 0` makes :math:`v L` an indeterminate
+    :math:`0 \times \infty` and the whole mode comes back `nan`.
 
-    What the clamp guarantees is finiteness, not fidelity. It is set by the
-    *largest* exponent in the mode, so once it binds it also truncates the
-    smaller ones -- which outward is the slowest-decaying, dominant term --
-    and the result goes to a constant plateau instead of continuing to decay.
-    That only happens beyond :math:`|L| \ge 700/\max(|v|, |s|)`, i.e. past
-    :math:`r/r_\max \sim 10^{23}` at :math:`l_\max = 12`, so nothing
-    physical reaches it; inside that range the clamped and exact results
-    agree.
+    What the clamp guarantees is finiteness, not fidelity: once it binds, the
+    result goes to a constant plateau instead of continuing to decay. It is
+    sized by the exponents that can actually *grow* -- :math:`\exp(eL)`
+    overflows only where :math:`eL > 0`, so inward it is the most negative
+    exponent and outward the most positive -- with a floor at
+    :math:`\pm2` for the :math:`Q` term's :math:`x^2`. Outward every exponent
+    is negative, so the floor sets the bound: :math:`|L| \le` half the
+    dtype's overflow exponent, i.e. past :math:`r/r_\max \sim 10^{18}` in
+    float32 and :math:`10^{151}` in float64. Nothing physical reaches either;
+    inside that range the clamped and exact results agree.
+
+    Sizing it by :math:`\max(|v|, |s|)` instead would bound :math:`L` by
+    :math:`\ln_{\mathrm{huge}}/(l+1)`, which in float32 binds at
+    :math:`r/r_\max = 831` for :math:`l = 12` -- well inside the physical
+    range, and pinned against by
+    `test_the_outward_tail_keeps_decaying_in_float32`.
 
     At :math:`r = 0` the returned value is the *monopole's* limit
     :math:`W = P_1 - B/s - Q` when :math:`s > 0` (for :math:`l > 0`,

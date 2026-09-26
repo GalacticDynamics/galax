@@ -563,33 +563,37 @@ def eval_log_spline_asympt(
     def rs(a: Array) -> Array:
         return a.reshape((*a.shape, *trailing))
 
-    def tail(P1: Array, side: Array, ln_x: Array, *, q_term: bool) -> Array:
-        """One side's continuation. ``q_term`` is static, so it is free."""
-        v, s, B = side[0], side[1], side[2]
-        # Keep every exponent below the `exp` overflow threshold, so no term
-        # is an inf or a `0 * inf`.
-        largest = jnp.maximum(jnp.maximum(jnp.abs(v), jnp.abs(s)), _MIN_EXPONENT)
-        lim = _ln_huge(ln_x) / largest
-        ln_x = jnp.clip(ln_x, -lim, lim)
-
-        out = P1 * jnp.exp(v * ln_x) + B * _pow_diff(s, v, ln_x)
-        if q_term:
-            out = out + side[3] * (jnp.exp(2.0 * ln_x) - jnp.exp(v * ln_x))
-        return out  # type: ignore[no-any-return]
-
     core = eval_log_spline(log_r, values, derivs, jnp.clip(log_rq, log_r[0], log_r[-1]))
-    # Q is fitted on the inward side only, and only when asked for: four rows
-    # means it may be live, three that it is structurally absent. Either way
-    # the outward tail omits the term rather than multiplying by a zero,
-    # which saves an `exp` per mode per point. The shape is static, so the
-    # decision is free, and the two functions cannot disagree about it.
-    has_q = coefs.shape[1] == 4
-    inner = tail(
-        values[0], coefs[0], rs(jnp.minimum(log_rq - log_r[0], 0.0)), q_term=has_q
+
+    # One tail, not two. Selecting the side's coefficients and then running
+    # the continuation once is identical to evaluating both tails and
+    # selecting the result, and skips a whole side's exponentials -- 63-77%
+    # of the two-tail cost per scalar query, which is the shape this runs at
+    # inside a `diffrax` scan body.
+    inward = log_rq < log_r[0]
+    m = rs(inward)
+    # At most one of the two is non-zero, so the sum is that side's ln x, and
+    # it is exactly 0 inside the grid where the select discards it anyway.
+    ln_x = rs(
+        jnp.minimum(log_rq - log_r[0], 0.0) + jnp.maximum(log_rq - log_r[-1], 0.0)
     )
-    outer = tail(
-        values[-1], coefs[1], rs(jnp.maximum(log_rq - log_r[-1], 0.0)), q_term=False
-    )
-    return jnp.where(  # type: ignore[no-any-return]
-        rs(log_rq < log_r[0]), inner, jnp.where(rs(log_rq > log_r[-1]), outer, core)
-    )
+    P1 = jnp.where(m, values[0], values[-1])
+    v, s, B = (jnp.where(m, coefs[0][i], coefs[1][i]) for i in range(3))
+
+    # Size the clamp by the exponents that can actually grow. `exp(e L)`
+    # overflows only where `e L > 0`: inward `L <= 0`, so the danger is the
+    # most *negative* exponent; outward `L >= 0`, so it is the most positive.
+    # Using `|e|` instead bounds `L` by `_ln_huge / (l + 1)`, which in float32
+    # binds at `r / r_max = 831` for l = 12 -- the tail stops decaying and
+    # becomes a plateau that can exceed the monopole. The `_MIN_EXPONENT`
+    # floor stays: it keeps the divisor non-zero when `v == s == 0`, and it
+    # is what bounds the `x^2` of the `Q` term.
+    grows = jnp.where(m, -jnp.minimum(v, s), jnp.maximum(v, s))
+    lim = _ln_huge(ln_x) / jnp.maximum(grows, _MIN_EXPONENT)
+    ln_x = jnp.clip(ln_x, -lim, lim)
+
+    tail = P1 * jnp.exp(v * ln_x) + B * _pow_diff(s, v, ln_x)
+    if coefs.shape[1] == 4:  # Q is fitted inward only; the outward row is 0
+        Q = jnp.where(m, coefs[0][3], coefs[1][3])
+        tail = tail + Q * (jnp.exp(2.0 * ln_x) - jnp.exp(v * ln_x))
+    return jnp.where(rs(inward | (log_rq > log_r[-1])), tail, core)  # type: ignore[no-any-return]

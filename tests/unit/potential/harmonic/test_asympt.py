@@ -621,3 +621,33 @@ def test_series_seam_follows_the_dtype() -> None:
     assert f64 == 1e-2
     assert f32 > f64, "float32 seam must widen, not inherit float64's"
     assert f32 < 0.5, "and stay inside the measured series-wins region"
+
+
+def test_the_outward_tail_keeps_decaying_in_float32() -> None:
+    """The clamp must be sized by the exponents that can actually grow.
+
+    REGRESSION: it divided by ``max(|v|, |s|)``, but ``exp(e L)`` overflows
+    only where ``e L > 0`` -- and outward ``L >= 0`` while every exponent is
+    negative, so nothing there can overflow. Using ``|v|`` bounded ``L`` by
+    ``_ln_huge / (l + 1)``, which in float32 binds at ``r / r_max = 831`` for
+    ``l = 12``: the tail stopped decaying and became a plateau that exceeded
+    the monopole by three orders of magnitude further out. float64 hid it,
+    and float64 is not what a caller gets.
+    """
+    log_r = jnp.log(jnp.geomspace(1e-2, 1e2, 64)).astype(jnp.float32)
+    values = (1.0 / (1.0 + jnp.exp(log_r))).astype(jnp.float32)[:, None]
+    derivs = fit_log_spline(log_r, values)
+    # An l = 12 outward tail: v = -l-1, with a fitted s and amplitude.
+    coefs = jnp.asarray(
+        [[[0.0], [1.0], [0.0]], [[-13.0], [-0.955], [-0.0441]]], dtype=jnp.float32
+    )
+
+    ratios = jnp.asarray([1e3, 1e4, 1e5, 1e7], dtype=jnp.float32)
+    got = eval_log_spline_asympt(
+        log_r, values, derivs, coefs, jnp.log(ratios) + log_r[-1]
+    ).ravel()
+
+    assert jnp.all(jnp.isfinite(got))
+    # Strictly decaying in magnitude -- a plateau repeats the clamped value.
+    mag = jnp.abs(got)
+    assert jnp.all(mag[1:] < mag[:-1]), f"tail plateaued: {got}"

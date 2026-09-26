@@ -5,10 +5,11 @@ take a flat ``gt.Params`` dict, and the potential classes build that dict from
 their own parameters, so the numerics can be reused without inheriting from a
 concrete potential class.
 
-``p`` carries ``r_knots``, ``phi_lm``, ``dphi_lm``, ``phi_asympt_powers``,
-``phi_asympt_scales``, ``rho_residual_lm``, ``drho_residual_lm``,
-``rho_alpha`` and ``rho_amplitude``, each already stripped to the
-potential's unit system. `build_expansion` returns exactly these.
+``p`` carries ``r_knots`` plus the eight arrays `build_expansion` returns:
+``phi_lm``, ``dphi_lm``, ``phi_asympt_powers``, ``phi_asympt_scales``,
+``rho_residual_lm``, ``drho_residual_lm``, ``rho_alpha`` and
+``rho_amplitude``, each already stripped to the potential's unit system.
+The grid itself is the caller's, so it is not part of what the build returns.
 """
 
 __all__: tuple[str, ...] = ()

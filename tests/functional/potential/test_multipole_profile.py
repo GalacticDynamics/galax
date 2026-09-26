@@ -223,9 +223,9 @@ def test_outer_tail_stays_bounded_and_signed() -> None:
 
     The bound here is 0.05, loose enough not to trip on quadrature noise and
     tight enough that any regression to the edge cubic (0.73 by
-    :math:`1.7 r_\max`) fails it. Accuracy is capped by the spline's natural
-    end condition, tracked at
-    https://github.com/GalacticDynamics/galax/issues/858
+    :math:`1.7 r_\max`) fails it. What is left is the power-law fit itself:
+    `fit_log_spline` is not-a-knot, so the boundary derivative the
+    continuation reads is not an artefact of the end condition.
     """
     ref = gp.HernquistPotential(
         m_tot=u.Q(1e12, "Msun"),

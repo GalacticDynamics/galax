@@ -513,3 +513,26 @@ def test_from_density_rejects_a_non_finite_bracket(r_min_kpc, r_max_kpc) -> None
             l_max=0,
             units="galactic",
         )
+
+
+def test_from_density_rejects_a_non_scalar_bracket() -> None:
+    """A non-scalar bracket must name the argument, not leak a `TypeError`.
+
+    ``r_min`` / ``r_max`` are build-time configuration and go through
+    ``float(...)``, which reports only "Only scalar arrays can be converted
+    to Python scalars" -- true, but it does not say which of the two, nor
+    that they were meant to be scalars in the first place.
+    """
+
+    def rho(xyz, t):
+        return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    with pytest.raises(ValueError, match="must be scalars"):
+        MultipoleProfilePotential.from_density(
+            rho,
+            r_min=u.Q(jnp.asarray([1e-2, 2e-2]), "kpc"),
+            r_max=u.Q(1e2, "kpc"),
+            n_r=32,
+            l_max=0,
+            units="galactic",
+        )

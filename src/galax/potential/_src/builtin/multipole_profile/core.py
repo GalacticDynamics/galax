@@ -190,9 +190,10 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
     the bare edge cubic was 2.5% and then wrong by a factor of 16 -- with the
     wrong sign past :math:`1.9 r_\max`. Inside the grid the result is
     bit-identical to the spline alone, so the continuation costs interior
-    accuracy nothing. Accuracy outside is still capped by the spline's
-    natural end condition, tracked at
-    https://github.com/GalacticDynamics/galax/issues/858
+    accuracy nothing. What remains outside is the fit itself -- a single power
+    law per mode -- not the spline: `fit_log_spline` uses a not-a-knot end
+    condition, which reproduces the boundary derivative the continuation
+    reads to ~1e-8 rather than imposing a zero second derivative there.
 
     **Limitation: the density is not continued.** Only :math:`\Phi` gets the
     asymptotic tail. ``_density`` outside the grid is still the edge cubic on
@@ -353,8 +354,15 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         # grid bracket is build-time configuration and is required to be concrete
         # (as are `n_r`, `l_max` and `symmetry`), so forcing the conversion here
         # reports that requirement at the point it is violated.
-        r_min_val = float(to_len(r_min))
-        r_max_val = float(to_len(r_max))
+        try:
+            r_min_val = float(to_len(r_min))
+            r_max_val = float(to_len(r_max))
+        except TypeError as exc:  # a non-scalar reaches `float` as a bare error
+            msg = (
+                "r_min and r_max must be scalars, not arrays "
+                f"(got r_min={r_min!r}, r_max={r_max!r})"
+            )
+            raise ValueError(msg) from exc
         _validate_bracket(r_min_val, r_max_val)
 
         r_knots = jnp.geomspace(r_min_val, r_max_val, n_r)

@@ -19,8 +19,13 @@ from galax.potential._src.harmonic import (
     lm_keys,
 )
 
-G_GALACTIC = 4.498502265137816e-12
-"""G in kpc^3 / (Msun Myr^2)."""
+G_GALACTIC = float(default_constants["G"].decompose(u.unitsystem("galactic")).value)
+"""G in kpc^3 / (Msun Myr^2), from the same constant the potentials use.
+
+Derived rather than written out: the literal it replaced had already drifted
+from `default_constants` by 2.5e-8 relative, which is a systematic error
+sitting inside the tolerance of every analytic comparison below.
+"""
 
 HERNQUIST = {"m_tot": u.Q(1e12, "Msun"), "r_s": u.Q(10.0, "kpc")}
 

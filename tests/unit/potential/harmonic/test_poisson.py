@@ -27,7 +27,7 @@ def test_solve_poisson_lm_matches_the_analytic_power_law(l: int) -> None:
     the :math:`l`-dependence, the :math:`4 \pi G / (2l + 1)` prefactor and
     both boundary tails at once: a power law is exactly what the three-point
     tail fit is meant to reproduce, so any error here is the interior
-    quadrature, which `test_..._converges_at_second_order` pins separately.
+    quadrature, which `test_..._converges_at_fourth_order` pins separately.
     """
     p, G = -1.5, 1.3
     assert p + l + 3 > 0  # the inner integral converges at the origin
@@ -42,13 +42,14 @@ def test_solve_poisson_lm_matches_the_analytic_power_law(l: int) -> None:
     assert jnp.allclose(got[interior], expect[interior], rtol=1e-3)
 
 
-def test_solve_poisson_lm_converges_at_second_order() -> None:
-    """The interior quadrature is the trapezoid rule, so error ~ h^2.
+def test_solve_poisson_lm_converges_at_fourth_order() -> None:
+    """The interior quadrature is cubic-Hermite in log r, so error ~ h^4.
 
-    Measured against the closed form above: halving the step must quarter the
-    error. A first-order slip (a mis-centred weight, an off-by-one in the
-    cumulative sums) would show up here as a ratio near 2, while still
-    passing a loose fixed tolerance.
+    Measured against the closed form above: halving the step must cut the
+    error by sixteen. The band is wide enough to survive round-off at the
+    finest step but far from the trapezoid's ratio of 4, so dropping the
+    endpoint-slope correction -- or applying it with the wrong sign or
+    spacing -- fails here while still passing a loose fixed tolerance.
     """
     p, G, l = -1.5, 1.0, 2.0
     errs = []
@@ -60,7 +61,7 @@ def test_solve_poisson_lm_converges_at_second_order() -> None:
         errs.append(float(jnp.max(jnp.abs(got[interior, 0] / expect[interior] - 1.0))))
 
     ratios = [errs[i] / errs[i + 1] for i in range(len(errs) - 1)]
-    assert all(3.5 < q < 4.5 for q in ratios), f"not second order: {ratios}"
+    assert all(12.0 < q < 20.0 for q in ratios), f"not fourth order: {ratios}"
 
 
 def test_solve_poisson_lm_monopole_is_the_hernquist_potential() -> None:
@@ -255,6 +256,38 @@ def test_too_few_radial_knots_is_rejected(n_r: int) -> None:
 
     with pytest.raises(ValueError, match="at least 3 radial knots"):
         solve_poisson_lm(r, rho, jnp.asarray([0.0]), jnp.asarray(1.0))
+
+
+def test_interior_quadrature_is_accurate_in_float32() -> None:
+    """The working dtype users actually get, not the one the suite forces.
+
+    `galax` defaults to float32, while ``pyproject.toml`` turns on x64 for
+    tests -- so every other check here runs in a precision the library does
+    not use by default. Float32 *inputs* are not enough to test that:
+    internal literals promote back to x64, and the solve silently returns
+    float64. `jax.enable_x64(False)` is what actually pins the arithmetic,
+    and the dtype assertion below is what keeps this test honest.
+
+    A wide bracket holds the boundary tails well under the interior error, so
+    this measures the quadrature. The trapezoid this replaced gives 1.1e-3 on
+    the same grid, three orders above the bound here, while the Hermite rule
+    sits on its float32 round-off floor of a few times ``eps``.
+    """
+    with jax.enable_x64(False):  # noqa: FBT003
+        r = jnp.geomspace(1e-4, 1e4, 256).astype(jnp.float32)
+        rho = (1.0 / (2.0 * jnp.pi) / (r * (1.0 + r) ** 3)).astype(jnp.float32)
+        got = solve_poisson_lm(r, rho[:, None], jnp.asarray([0.0]), jnp.asarray(1.0))[
+            :, 0
+        ]
+
+        assert got.dtype == jnp.float32  # no silent promotion to x64
+        expect = -1.0 / (1.0 + r)
+        interior = (r > 1e-2) & (r < 1e2)
+        err = jnp.max(
+            jnp.abs(got[interior] - expect[interior]) / jnp.abs(expect[interior])
+        )
+
+    assert float(err) < 1e-6, f"float32 interior error {float(err):.2e}"
 
 
 def test_zero_mode_gradient_is_finite_in_float32() -> None:

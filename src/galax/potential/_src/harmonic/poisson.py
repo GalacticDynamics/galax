@@ -20,26 +20,46 @@ threshold is not reused at the outer boundary.
 
 Choosing ``n_r``
 ----------------
-The interior rule is the trapezoid in :math:`r`, which samples the
-:math:`r^{l+2}` factor rather than integrating it, so its error grows with
-:math:`l` while :math:`\rho` stays fixed. Measured against the closed form
-for :math:`\rho = r^{-1.5}`, interior knots only:
+The interior rule is cubic-Hermite quadrature in :math:`\log r`: the
+trapezoid plus the endpoint-slope correction that makes it exact for cubics,
+taking its slopes from the same not-a-knot fit the profiles are stored with.
+Error is :math:`O(h^4)`. It still samples the :math:`r^{l+2}` factor rather
+than integrating it, so the error grows with :math:`l` while :math:`\rho`
+stays fixed. Measured against the closed form for :math:`\rho = r^{-1.5}`,
+interior knots only:
 
 ======= ========= ========= =========
 l       n_r=256   n_r=512   n_r=1024
 ======= ========= ========= =========
-2       1.8e-3    4.4e-4    1.1e-4
-4       5.2e-3    1.3e-3    3.2e-4
-8       1.8e-2    4.5e-3    1.1e-3
-12      3.8e-2    9.6e-3    2.4e-3
+2       5.7e-7    3.6e-8    2.2e-9
+4       5.2e-6    3.3e-7    2.1e-8
+8       5.9e-5    3.9e-6    2.5e-7
+12      2.5e-4    1.8e-5    1.1e-6
 ======= ========= ========= =========
 
-So ``n_r`` should rise with ``l_max``: the same accuracy costs roughly twice
-the knots for every four levels. A rule that integrates :math:`r^{l+2}`
-exactly and interpolates only :math:`\rho` removes the :math:`l` dependence,
-but is worse where it matters most -- on a Hernquist monopole it is 4.5x
-*less* accurate than the trapezoid, because real :math:`\rho_{lm}` profiles
-curve in log-log while the rule assumes they do not.
+So ``n_r`` should still rise with ``l_max``, but far more slowly than under a
+second-order rule: one halving of the step buys a factor of sixteen, which
+covers roughly eight levels of :math:`l`.
+
+In float32 -- which is `galax`'s default, while the test suite forces x64 --
+the rule reaches its round-off floor of a few times ``eps``, about 3e-7 on
+the monopole above, at ``n_r`` near 256; refining past that buys nothing.
+The second-order rule it replaces never got close enough to the floor for it
+to matter, so this ceiling is new. At ``n_r=256`` the same measurement is
+1.1e-3 under the trapezoid against 3.2e-7 here.
+
+Two alternatives were measured and rejected. Integrating :math:`r^{l+2}`
+exactly while interpolating only :math:`\rho` removes the :math:`l`
+dependence but is 4.5x *less* accurate on a Hernquist monopole, because real
+:math:`\rho_{lm}` profiles curve in log-log while that rule assumes they do
+not. The plain trapezoid in :math:`r` is :math:`O(h^2)`: on a Hernquist
+monopole over a wide bracket it gives 6.8e-5 at ``n_r=1024`` where this rule
+gives 1.5e-10.
+
+Sampling :math:`\rho_{lm}` *inside* each interval -- Gauss-Legendre nodes
+rather than knots alone -- reaches 3.5e-16 with four nodes on 128 intervals,
+but needs the density evaluated off the knot grid, which only the caller can
+do.
 
 Outer-tail sign
 ---------------
@@ -69,6 +89,7 @@ import numpy as np
 import quaxed.numpy as jnp
 
 import galax.potential.custom_types as gt
+from .spline import fit_log_spline
 
 
 def _log_floor(x: Float[Array, "..."], /) -> float:
@@ -133,12 +154,12 @@ def solve_poisson_lm(
     :math:`(l_\max+1)^2` XLA subgraphs, which dominates trace and compile time
     at :math:`l_\max = 8`.
 
-    A `jax.vmap` of the same body is bit-identical and in fact somewhat faster
-    at runtime (measured: 81 modes at ``n_r=512``, 1.64 ms -> 0.68 ms; 289
-    modes, 6.58 ms -> 3.72 ms) with comparable trace and compile time, so the
+    A `jax.vmap` of the same body is bit-identical and somewhat faster at
+    runtime (measured: 81 modes at ``n_r=512``, 2.44 ms -> 1.99 ms; 289
+    modes, 7.22 ms -> 4.35 ms) with comparable trace and compile time, so the
     scan is not a runtime optimization over `vmap` -- only over the unrolled
-    loop. The gap is ~1 ms inside a ~1500 ms one-off build compile, which is
-    not worth the churn of changing it.
+    loop. The gap is a few ms inside a one-off build compile, which is not
+    worth the churn of changing it.
 
     Raises
     ------
@@ -172,16 +193,44 @@ def solve_poisson_lm(
     # instead of four, under the same bound the recentering guarantees.
     x = jnp.exp(log_r)
     x2 = x * x
-    dr = jnp.diff(x)
+    du = jnp.diff(log_r)
+    du2_12 = du * du / 12.0
+
+    # One batched not-a-knot fit for every mode, hoisted out of the scan: the
+    # integrands differ per mode only by a power of x, which differentiates
+    # exactly, so d(rho x^k)/d(log x) = x^k (drho + k rho). Fitting rho once
+    # here instead of each integrand inside the body turns two tridiagonal
+    # solves per mode into one solve for all of them -- 32 ms -> 1.8 ms at 81
+    # modes, n_r=512 -- and differentiates the smooth profile rather than the
+    # steep integrand.
+    drho_lm = fit_log_spline(log_r, rho_lm)
 
     def one_mode(
-        _: None, xs: tuple[Float[Array, "n_r"], Float[Array, ""]]
+        _: None,
+        xs: tuple[Float[Array, "n_r"], Float[Array, "n_r"], Float[Array, ""]],
     ) -> tuple[None, Float[Array, "n_r"]]:
-        rho_col, l = xs
+        rho_col, drho_col, l = xs
         # Named for x, not r: `log_r` is already centred, so this is x^l.
         xl = jnp.exp(l * log_r)  # the only exp per mode
-        f_in = rho_col * xl * x2  # rho x^(l+2)
-        f_out = rho_col * x / xl  # rho x^(1-l)
+        # Integrands for d(log x), not dx: the dx -> x d(log x) Jacobian is
+        # folded in, so these carry one more power of x than the dr form.
+        x_in = xl * x2 * x  # x^(l+3)
+        x_out = x2 / xl  # x^(2-l)
+        g_in = rho_col * x_in
+        g_out = rho_col * x_out
+        # d(rho x^k)/d(log x), exact in the power, splined in rho.
+        d_in = x_in * (drho_col + (l + 3.0) * rho_col)
+        d_out = x_out * (drho_col + (2.0 - l) * rho_col)
+
+        def panels(g: Float[Array, "n_r"], d: Float[Array, "n_r"], /) -> Array:
+            """Per-interval integral of ``g`` against d(log x).
+
+            The trapezoid plus the endpoint-slope correction that makes it
+            exact for cubics.
+            """
+            out: Array = 0.5 * (g[:-1] + g[1:]) * du - du2_12 * (d[1:] - d[:-1])
+            return out
+
         floor = _log_floor(rho_col)
         scale = jnp.max(jnp.abs(rho_col)) + floor
 
@@ -214,12 +263,7 @@ def solve_poisson_lm(
             dI_in,
             0.0,
         )
-        I_in = (
-            jnp.concatenate(
-                [jnp.zeros(1), jnp.cumsum(0.5 * (f_in[:-1] + f_in[1:]) * dr)]
-            )
-            + dI_in
-        )
+        I_in = jnp.concat([jnp.zeros(1), jnp.cumsum(panels(g_in, d_in))]) + dI_in
 
         # -- outer tail (r_max -> inf), rho_lm ~ A_out r^alpha_out ----------
         log_rho_out = jnp.log(jnp.abs(rho_col[-3:]) + floor)
@@ -233,17 +277,12 @@ def solve_poisson_lm(
         # tail there rather than under-weight it by an arbitrary factor.
         dI_out = jnp.where(active_out & (denom > _SLOPE_TOL), dI_out, 0.0)
         I_out = (
-            jnp.concatenate(
-                [
-                    jnp.cumsum((0.5 * (f_out[:-1] + f_out[1:]) * dr)[::-1])[::-1],
-                    jnp.zeros(1),
-                ]
-            )
+            jnp.concat([jnp.cumsum(panels(g_out, d_out)[::-1])[::-1], jnp.zeros(1)])
             + dI_out
         )
 
         phi_col = -4.0 * jnp.pi * G / (2.0 * l + 1.0) * (I_in / (xl * x) + xl * I_out)
         return None, phi_col
 
-    _, phi_T = jax.lax.scan(one_mode, None, (rho_lm.T, l_per_mode))
+    _, phi_T = jax.lax.scan(one_mode, None, (rho_lm.T, drho_lm.T, l_per_mode))
     return phi_T.T * jnp.exp(2.0 * log_rc)  # type: ignore[no-any-return]

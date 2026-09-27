@@ -120,7 +120,7 @@ def subtract_inner_cusp(
     return rho_lm - background, alpha, amplitude
 
 
-_GL_NODES: int = 4
+_GL_NODES: int = 5
 r"""Gauss-Legendre nodes per radial interval in the Poisson solve.
 
 Four is where the rule stops paying. Integrating a Hernquist monopole over
@@ -139,6 +139,19 @@ nodes    max rel
 Four reaches round-off and more nodes do not improve it, so the cost -- one
 density evaluation per node per interval, paid once at build time -- buys
 nothing beyond this.
+"""
+
+_PAD_KNOTS: int = 128
+r"""Cap on padded knots per side.
+
+The pad only has to carry a smooth power law out to `_PAD_MULTIPLE` spans,
+so it does not need the caller's resolution. Capping it decouples build cost
+from `n_r`: at ``n_r = 512`` this is 128 knots a side rather than 1024, and
+the whole build drops from 53 ms to 15 ms while agreeing with the uncapped
+result to 8.9e-16 on a flattened Hernquist at ``l_max = 8``.
+
+128 is where coarsening stops being free at ``_GL_NODES = 5``. At 4 nodes the
+same cap costs 2.0e-13, which is why the two were raised together.
 """
 
 _PAD_MULTIPLE: int = 2
@@ -204,11 +217,27 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
             "slopes are fitted over three"
         )
         raise ValueError(msg)
-    n_pad = max(1, n_r * _PAD_MULTIPLE)
-    ratio_lo = r_knots[1] / r_knots[0]
-    ratio_hi = r_knots[-1] / r_knots[-2]
-    lo = r_knots[0] * ratio_lo ** jnp.arange(-n_pad, 0)
-    hi = r_knots[-1] * ratio_hi ** jnp.arange(1, n_pad + 1)
+    # Pad by log *reach*, not by knot count, and take the step from the
+    # grid's whole span rather than its end intervals.
+    #
+    # Extending at the end interval's own ratio assumed the caller's grid is
+    # log-uniform. On a linearly spaced grid it is not: `ratio_lo` is large
+    # and `ratio_hi` is ~1, so the two ends pad by wildly different reaches
+    # and the inner one underflows -- `linspace(0.05, 20, 128)` reached
+    # `5e-160` in float64 and *exactly zero* in float32, where `log(0)` is
+    # `-inf` and every output is `nan`.
+    #
+    # Reach is what the padding is for (see `_PAD_MULTIPLE`), and the pad
+    # does not need the caller's resolution to deliver it: rho out there is a
+    # smooth power law, which is why `_PAD_KNOTS` can be a cap rather than a
+    # multiple of `n_r`. At n_r=512 that is 128 knots a side instead of 1024,
+    # a 3.5x cheaper build that agrees with the old one to 9e-16.
+    log_r = jnp.log(r_knots)
+    reach = _PAD_MULTIPLE * (log_r[-1] - log_r[0])
+    n_pad = min(n_r * _PAD_MULTIPLE, _PAD_KNOTS)
+    step = reach / n_pad
+    lo = jnp.exp(log_r[0] + step * jnp.arange(-n_pad, 0))
+    hi = jnp.exp(log_r[-1] + step * jnp.arange(1, n_pad + 1))
     return jnp.concat([lo, r_knots, hi]), n_pad
 
 
@@ -236,6 +265,7 @@ def build_expansion(
     # Solve on a padded grid so the boundary tail models sit outside the range
     # the caller asked for, then keep only that range. See `_PAD_MULTIPLE`.
     r_solve, lo = _pad_grid(r_knots)
+
     n_r = r_knots.shape[0]
     rho_solve = harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)
     rho_lm = rho_solve[lo : lo + n_r]

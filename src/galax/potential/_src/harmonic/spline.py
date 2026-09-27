@@ -92,7 +92,7 @@ def eval_log_spline_quintic(
     than cubics.
 
     This is worth having only because the second derivatives are *free*.
-    `solve_poisson_lm` gets :math:`\Phi_{lm}`, :math:`d\Phi_{lm}/d\log r` and
+    `solve_poisson_profiles` gets :math:`\Phi_{lm}`, :math:`d\Phi_{lm}/d\log r` and
     :math:`d^2\Phi_{lm}/d\log r^2` from the same two radial integrals -- see
     its docstring -- so nothing extra is computed to feed this. Fitting a
     quintic *spline* instead, from values alone, would cost a solve and give

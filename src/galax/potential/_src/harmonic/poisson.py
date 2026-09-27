@@ -155,7 +155,12 @@ def gl_log_nodes(
     recompute them internally and still agree with a caller that used this
     helper to place its density samples.
     """
-    nodes, weights = np.polynomial.legendre.leggauss(k)
+    # Cast to the caller's dtype: `leggauss` returns float64, and under
+    # x64 that silently promotes a float32 `log_r` all the way through the
+    # solve -- a dtype the caller did not ask for, at twice the cost.
+    nodes, weights = (
+        jnp.asarray(a, dtype=log_r.dtype) for a in np.polynomial.legendre.leggauss(k)
+    )
     lo, hi = log_r[:-1, None], log_r[1:, None]
     half = 0.5 * (hi - lo)
     return 0.5 * (lo + hi) + half * nodes, half * weights

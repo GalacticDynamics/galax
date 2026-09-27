@@ -192,7 +192,11 @@ def solve_poisson_profiles(
     Raises
     ------
     ValueError
-        If ``r_knots`` has fewer than 3 entries.
+        If ``r_knots`` has fewer than 3 entries, or if ``rho_gl`` is given
+        and its shape is not ``(n_r - 1, k, n_modes)``. Both are checked at
+        trace time, since both are shape errors; the second matters because
+        a mismatched ``rho_gl`` broadcasts rather than failing, and would
+        otherwise return finite numbers from the wrong integrals.
     """
     # Three knots is what the boundary slope fits need. A short grid does not
     # fail on its own: static slicing clamps, so `rho_col[:3]` quietly becomes

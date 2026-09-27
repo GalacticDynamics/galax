@@ -209,7 +209,7 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     ratio_hi = r_knots[-1] / r_knots[-2]
     lo = r_knots[0] * ratio_lo ** jnp.arange(-n_pad, 0)
     hi = r_knots[-1] * ratio_hi ** jnp.arange(1, n_pad + 1)
-    return jnp.concatenate([lo, r_knots, hi]), n_pad
+    return jnp.concat([lo, r_knots, hi]), n_pad
 
 
 @ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))

@@ -57,10 +57,12 @@ def expansion_potential(
 
     Outside ``[r_knots[0], r_knots[-1]]`` each mode continues as the power law
     fitted by `asymptotic_coeffs`, joined to the spline in value and slope.
-    Inside the grid this is bit-identical to the spline alone.
+    Inside the grid the continuation is inactive and this is the interpolant
+    alone -- the quintic one, since ``d2phi_lm`` is always passed: the modes
+    match in value, slope *and* curvature at every knot.
     """
     log_r, Y = _log_r_and_ylm(xyz, l_max, keys)
-    coefs = jnp.concatenate([p["phi_asympt_powers"], p["phi_asympt_scales"]], axis=1)
+    coefs = jnp.concat([p["phi_asympt_powers"], p["phi_asympt_scales"]], axis=1)
     phi_lm = eval_log_spline_asympt(
         jnp.log(p["r_knots"]),
         p["phi_lm"],

@@ -524,10 +524,11 @@ def eval_log_spline_asympt(
 ) -> Array:
     r"""Evaluate the splined modes with power-law continuation outside the knots.
 
-    Inside ``[log_r[0], log_r[-1]]`` this is `eval_log_spline` unchanged and
-    bit-identical; outside it is the asymptotic form fitted by
-    `asymptotic_coeffs`. ``coefs`` must come from the same ``values`` and
-    ``derivs``.
+    Inside ``[log_r[0], log_r[-1]]`` this is the interpolant alone, bit-identical
+    to calling it directly: `eval_log_spline` when ``derivs2`` is omitted, and
+    `eval_log_spline_quintic` when it is given. Outside, it is the asymptotic
+    form fitted by `asymptotic_coeffs`. ``coefs`` must come from the same
+    ``values`` and ``derivs``.
 
     The tail is evaluated on a clamped :math:`L`, so it is finite for every
     query radius and no `nan` leaks into a gradient. The clamp bounds

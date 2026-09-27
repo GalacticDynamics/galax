@@ -217,3 +217,85 @@ def test_build_expansion_rejects_an_undersized_grid(n_r) -> None:
             jnp.asarray(0.0),
             jnp.asarray(1.0),
         )
+
+
+def test_the_build_reaches_machine_precision_on_a_closed_form() -> None:
+    """The whole pipeline, against a closed form, at the level agama reaches.
+
+    This is the end-to-end guard on the three things that have to hold at
+    once, since any one of them alone caps the result:
+
+    - the radial quadrature samples the density *inside* each interval, so it
+      is not limited by reconstructing rho between knots;
+    - the profiles are interpolated with the quintic basis, using the exact
+      derivatives the solve returns -- the cubic basis caps at ~5e-8 however
+      good the integrals are;
+    - the grid is padded far enough that the boundary power-law model is not
+      the floor.
+
+    Reference: ``agama`` reproduces this same closed form to 9.7e-16 inside
+    the grid with 128 radial points (measured offline; agama is deliberately
+    not a test dependency). At ``n_r=256`` this reaches 4.1e-15 and at 512
+    8.7e-16, so the bound below is loose by an order and pins the regime
+    rather than the digits.
+    """
+    keys = lm_keys(0, "spherical")
+    r_knots = jnp.geomspace(0.05, 20.0, 256)
+    p = {
+        **build_expansion(
+            _hernquist_density,
+            r_knots,
+            0,
+            keys,
+            8,
+            8,
+            jnp.asarray(0.0),
+            jnp.asarray(_G_GALACTIC),
+        ),
+        "r_knots": r_knots,
+    }
+    rq = jnp.geomspace(0.06, 18.0, 64)
+    x = jnp.stack([rq, jnp.zeros_like(rq), jnp.zeros_like(rq)], -1)
+    got = expansion_potential(p, x, 0, keys)
+    want = -_G_GALACTIC / (1.0 + rq)
+
+    err = float(jnp.max(jnp.abs((got - want) / want)))
+    assert err < 1e-13, f"max rel {err:.2e}"
+
+
+def test_the_solve_returns_the_derivatives_it_claims() -> None:
+    """``dphi_lm`` and ``d2phi_lm`` must be the derivatives, not a fit.
+
+    They come out of the same two radial integrals as ``phi_lm``, which is
+    what makes the quintic basis free. If either were quietly replaced by a
+    spline fit of ``phi_lm`` the potential would still look right -- the
+    quintic would just silently fall back to cubic accuracy -- so this
+    compares against the closed form's own log-derivatives instead.
+
+    Hernquist monopole: ``Phi = -G/(1+r)``, so in ``u = log r``,
+    ``dPhi/du = G r/(1+r)^2`` and ``d2Phi/du2 = G r (1-r)/(1+r)^3``. The
+    stored modes are ``Phi_lm``, which for ``l=0`` is ``Phi * sqrt(4 pi)``.
+    """
+    keys = lm_keys(0, "spherical")
+    r = jnp.geomspace(0.05, 20.0, 256)
+    p = build_expansion(
+        _hernquist_density,
+        r,
+        0,
+        keys,
+        8,
+        8,
+        jnp.asarray(0.0),
+        jnp.asarray(_G_GALACTIC),
+    )
+
+    y00 = 1.0 / jnp.sqrt(4.0 * jnp.pi)
+    interior = slice(8, -8)
+    for key, want in (
+        ("dphi_lm", _G_GALACTIC * r / (1.0 + r) ** 2),
+        ("d2phi_lm", _G_GALACTIC * r * (1.0 - r) / (1.0 + r) ** 3),
+    ):
+        got = p[key][:, 0] * y00
+        scale = jnp.max(jnp.abs(want))
+        err = float(jnp.max(jnp.abs(got[interior] - want[interior])) / scale)
+        assert err < 1e-10, f"{key}: {err:.2e}"

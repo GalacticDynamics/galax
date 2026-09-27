@@ -37,7 +37,10 @@ from galax.potential._src.harmonic import (
     asymptotic_coeffs,
     fit_log_spline,
     harmonic_coeffs,
-    solve_poisson_lm,
+)
+from galax.potential._src.harmonic.poisson import (
+    gl_log_nodes,
+    solve_poisson_profiles,
 )
 
 
@@ -117,45 +120,64 @@ def subtract_inner_cusp(
     return rho_lm - background, alpha, amplitude
 
 
-_PAD_MULTIPLE: int = 1
+_GL_NODES: int = 4
+r"""Gauss-Legendre nodes per radial interval in the Poisson solve.
+
+Four is where the rule stops paying. Integrating a Hernquist monopole over
+``[0.05, 20]`` on 128 intervals, against the closed form at the knots:
+
+======= ==========
+nodes    max rel
+======= ==========
+1        4.3e-5
+2        1.3e-9
+3        2.2e-14
+4        3.5e-16
+8        3.5e-16
+======= ==========
+
+Four reaches round-off and more nodes do not improve it, so the cost -- one
+density evaluation per node per interval, paid once at build time -- buys
+nothing beyond this.
+"""
+
+_PAD_MULTIPLE: int = 2
 r"""Knots added beyond each end of the grid, as ``n_r * _PAD_MULTIPLE``.
 
 The Poisson solve models the mass outside ``[r_min, r_max]`` as a single
 power law fitted at the boundary. That model cannot represent a profile with
 curvature there, and -- unlike the interior quadrature -- its error does not
-improve with ``n_r``. On a Hernquist monopole over ``[0.05, 20]`` it is
-2.9e-2 on the tail integral at every resolution, which put a hard floor
-under :math:`\Phi`: refining from ``n_r = 128`` to ``2048`` moved the error
-only 1.2e-3 to 6.8e-4, so asking for more knots bought almost nothing.
+improve with ``n_r``. Unpadded, refining from ``n_r = 128`` to ``2048`` moved
+the Hernquist monopole error only 1.2e-3 to 6.8e-4: the floor, not the
+resolution, was the answer.
 
-Fitting the slope better does not help. The local three-point slope the
-solve already uses beats both the true asymptotic slope (4.8e-2) and a wider
-two-point baseline (1.2e-1) -- the power-law *form* is the limit. The fix is
-to put the boundary where the model is not asked to carry the answer: solve
-on a padded grid and keep only the range the caller asked for.
+Fitting the slope better does not help. The local three-point slope the solve
+already uses beats both the true asymptotic slope and a wider two-point
+baseline -- the power-law *form* is the limit. The fix is to put the boundary
+where the model is not asked to carry the answer: solve on a padded grid and
+keep only the range the caller asked for.
 
-How far to pad is set by what it has to beat. Padding by ``n_r`` at each end
-doubles the log range and reaches the plateau; 150% and 300% are
-indistinguishable from it. Measured against the closed form on that
-monopole, over ``[0.06, 18]``:
+How far to pad is set by what it has to beat, so it has moved twice as the
+rest of the solve improved. Against the closed form over ``[0.06, 18]``:
 
-======= ========== ========== ==========
-``n_r``  pad 50%    pad 100%   ratio
-======= ========== ========== ==========
-128      1.6e-7     7.3e-9
-256      1.6e-7     5.2e-10    14.1
-512      1.6e-7     3.6e-11    14.4
-======= ========== ========== ==========
+========== ============ ============ ============
+padding     trapezoid    +Hermite     +GL, quintic
+========== ============ ============ ============
+50%         2.9e-5       1.6e-7       1.6e-7
+100%        2.9e-5       3.6e-11      1.9e-11
+200%        --           3.6e-11      4.1e-15
+400%        --           --           4.1e-15
+========== ============ ============ ============
 
-At 50% the tail is still the floor -- the error does not move with ``n_r`` at
-all. At 100% it drops below the interior quadrature, which then converges at
-its own fourth order, so ``n_r`` is a real knob again.
+Each column is at the resolution where that configuration stops improving
+(``n_r = 512``, 256 for the last). 50% was the plateau while the interior
+rule was the trapezoid, because the quadrature swamped the tail; raising the
+rule to fourth order made 100% worth paying for, and sampling the density at
+Gauss-Legendre nodes moved it again to 200%. 300% and 600% measure the same
+as 200%, so this is the plateau and not another step along it.
 
-Note 50% *was* the plateau when the interior rule was the trapezoid: at
-second order the quadrature error swamped the tail, and 100% measured no
-better than 50%. Raising the interior rule to fourth order moved the
-bottleneck onto the padding and made the extra range worth paying for. The
-cost is one-off, at build time.
+The cost is one-off, at build time: the solve grid is ``5 * n_r`` knots and
+each carries `_GL_NODES` density evaluations.
 """
 
 
@@ -217,8 +239,29 @@ def build_expansion(
     n_r = r_knots.shape[0]
     rho_solve = harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)
     rho_lm = rho_solve[lo : lo + n_r]
-    phi_lm = solve_poisson_lm(r_solve, rho_solve, l_per_mode, G)[lo : lo + n_r]
-    dphi_lm = fit_log_spline(log_r, phi_lm)
+
+    # Sample the density *inside* each interval as well, at Gauss-Legendre
+    # nodes, so the radial integrals are quadrature rather than interpolation.
+    # This is the one thing only the builder can do: `solve_poisson_lm` is
+    # handed an array and cannot ask for more of it, so on knots alone it is
+    # capped by how well a rule reconstructs rho between them. `rho_fn` can be
+    # called anywhere, and four nodes per interval is enough to integrate a
+    # smooth profile to round-off.
+    log_gl, _ = gl_log_nodes(jnp.log(r_solve), _GL_NODES)
+    rho_gl = harmonic_coeffs(
+        rho_fn, jnp.exp(log_gl).reshape(-1), l_max, keys, n_theta, n_phi, t
+    ).reshape(log_gl.shape[0], _GL_NODES, -1)
+
+    # The solve returns the first and second log-derivatives alongside the
+    # profile. Both fall out of the two radial integrals it already formed,
+    # so they cost nothing and are exact where a spline fit of `phi_lm` is
+    # only as good as the fit -- which is what lets `expansion_potential`
+    # interpolate with the quintic basis.
+    phi_all, dphi_all, d2phi_all = solve_poisson_profiles(
+        r_solve, rho_solve, l_per_mode, G, rho_gl
+    )
+    sl = slice(lo, lo + n_r)
+    phi_lm, dphi_lm, d2phi_lm = phi_all[sl], dphi_all[sl], d2phi_all[sl]
     residual, alpha, amplitude = subtract_inner_cusp(r_knots, rho_lm)
 
     # `(v, s, B)` per side: `v`/`s` are exponents and `B` scales a potential,
@@ -232,6 +275,7 @@ def build_expansion(
     return {
         "phi_lm": phi_lm,
         "dphi_lm": dphi_lm,
+        "d2phi_lm": d2phi_lm,
         "phi_asympt_powers": powers,
         "phi_asympt_scales": scales,
         "rho_residual_lm": residual,

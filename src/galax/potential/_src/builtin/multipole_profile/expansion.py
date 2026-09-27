@@ -5,10 +5,12 @@ take a flat ``gt.Params`` dict, and the potential classes build that dict from
 their own parameters, so the numerics can be reused without inheriting from a
 concrete potential class.
 
-``p`` carries ``r_knots`` plus the eight arrays `build_expansion` returns:
-``phi_lm``, ``dphi_lm``, ``phi_asympt_powers``, ``phi_asympt_scales``,
-``rho_residual_lm``, ``drho_residual_lm``, ``rho_alpha`` and
-``rho_amplitude``, each already stripped to the potential's unit system.
+``p`` carries ``r_knots`` plus the nine arrays `build_expansion` returns:
+``phi_lm``, ``dphi_lm``, ``d2phi_lm``, ``phi_asympt_powers``,
+``phi_asympt_scales``, ``rho_residual_lm``, ``drho_residual_lm``,
+``rho_alpha`` and ``rho_amplitude``, each already stripped to the potential's
+unit system. ``d2phi_lm`` is what lets the potential interpolate with the
+quintic basis rather than the cubic; the solve returns it for free.
 The grid itself is the caller's, so it is not part of what the build returns.
 """
 
@@ -60,7 +62,12 @@ def expansion_potential(
     log_r, Y = _log_r_and_ylm(xyz, l_max, keys)
     coefs = jnp.concatenate([p["phi_asympt_powers"], p["phi_asympt_scales"]], axis=1)
     phi_lm = eval_log_spline_asympt(
-        jnp.log(p["r_knots"]), p["phi_lm"], p["dphi_lm"], coefs, log_r
+        jnp.log(p["r_knots"]),
+        p["phi_lm"],
+        p["dphi_lm"],
+        coefs,
+        log_r,
+        p["d2phi_lm"],
     )
     return jnp.sum(phi_lm * Y, axis=-1)  # type: ignore[no-any-return]
 

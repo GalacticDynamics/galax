@@ -82,6 +82,7 @@ __all__: tuple[str, ...] = ()
 
 
 from jaxtyping import Array, Float
+from typing import Any
 
 import jax
 import numpy as np
@@ -160,13 +161,18 @@ def gl_log_nodes(
 
 
 @jax.jit
-def solve_poisson_lm(
+def solve_poisson_profiles(
     r_knots: Float[Array, "n_r"],
     rho_lm: Float[Array, "n_r n_modes"],
     l_per_mode: Float[Array, "n_modes"],
     G: gt.Sz0,
     /,
-) -> Float[Array, "n_r n_modes"]:
+    rho_gl: Float[Array, "n_r-1 k n_modes"] | None = None,
+) -> tuple[
+    Float[Array, "n_r n_modes"],
+    Float[Array, "n_r n_modes"],
+    Float[Array, "n_r n_modes"],
+]:
     r"""Solve the radial Poisson equation for every mode.
 
     ``l_per_mode`` carries :math:`l` as a float per column of ``rho_lm``, in
@@ -216,6 +222,16 @@ def solve_poisson_lm(
     x2 = x * x
     du = jnp.diff(log_r)
     du2_12 = du * du / 12.0
+    # Gauss-Legendre sampling, when the caller supplied it. The nodes are
+    # recomputed here on the recentred `log_r`; `gl_log_nodes` is affine, so
+    # these are the caller's nodes shifted by `log_rc`, which is exactly the
+    # shift `x` already carries. Weights are interval widths and so are
+    # unaffected by the shift.
+    if rho_gl is not None:
+        log_gl, w_gl = gl_log_nodes(log_r, rho_gl.shape[1])
+        e1 = jnp.exp(log_gl)
+        e2 = e1 * e1
+        e3 = e2 * e1
 
     # One batched not-a-knot fit for every mode, hoisted out of the scan: the
     # integrands differ per mode only by a power of x, which differentiates
@@ -228,9 +244,9 @@ def solve_poisson_lm(
 
     def one_mode(
         _: None,
-        xs: tuple[Float[Array, "n_r"], Float[Array, "n_r"], Float[Array, ""]],
-    ) -> tuple[None, Float[Array, "n_r"]]:
-        rho_col, drho_col, l = xs
+        xs: tuple[Float[Array, "n_r"], Float[Array, "n_r"], Any, Float[Array, ""]],
+    ) -> tuple[None, tuple[Array, Array, Array]]:
+        rho_col, drho_col, rho_gl_col, l = xs
         # Named for x, not r: `log_r` is already centred, so this is x^l.
         xl = jnp.exp(l * log_r)  # the only exp per mode
         # Integrands for d(log x), not dx: the dx -> x d(log x) Jacobian is
@@ -251,6 +267,18 @@ def solve_poisson_lm(
             """
             out: Array = 0.5 * (g[:-1] + g[1:]) * du - du2_12 * (d[1:] - d[:-1])
             return out
+
+        if rho_gl is not None:
+            # Exact for anything the k-point rule integrates, which for a
+            # smooth profile is machine precision -- the interpolation error
+            # the Hermite rule carries is gone, because rho is *sampled*
+            # inside the interval rather than reconstructed across it.
+            xl_gl = jnp.exp(l * log_gl)
+            p_in = jnp.sum(w_gl * rho_gl_col * xl_gl * e3, axis=1)
+            p_out = jnp.sum(w_gl * rho_gl_col * e2 / xl_gl, axis=1)
+        else:
+            p_in = panels(g_in, d_in)
+            p_out = panels(g_out, d_out)
 
         floor = _log_floor(rho_col)
         scale = jnp.max(jnp.abs(rho_col)) + floor
@@ -284,7 +312,7 @@ def solve_poisson_lm(
             dI_in,
             0.0,
         )
-        I_in = jnp.concat([jnp.zeros(1), jnp.cumsum(panels(g_in, d_in))]) + dI_in
+        I_in = jnp.concat([jnp.zeros(1), jnp.cumsum(p_in)]) + dI_in
 
         # -- outer tail (r_max -> inf), rho_lm ~ A_out r^alpha_out ----------
         log_rho_out = jnp.log(jnp.abs(rho_col[-3:]) + floor)
@@ -297,13 +325,49 @@ def solve_poisson_lm(
         # the convergence test but is clamped in the division, so drop the
         # tail there rather than under-weight it by an arbitrary factor.
         dI_out = jnp.where(active_out & (denom > _SLOPE_TOL), dI_out, 0.0)
-        I_out = (
-            jnp.concat([jnp.cumsum(panels(g_out, d_out)[::-1])[::-1], jnp.zeros(1)])
-            + dI_out
+        I_out = jnp.concat([jnp.cumsum(p_out[::-1])[::-1], jnp.zeros(1)]) + dI_out
+
+        # The two integrals carry the derivatives too. Differentiating
+        #     Phi = pref (x^-(l+1) I_in + x^l I_out)
+        # in log x, the dI/d(log x) terms are +rho x^2 and -rho x^2 and cancel
+        # exactly, so dPhi needs no new quadrature; the second derivative
+        # keeps one surviving rho x^2, which is just Poisson's equation.
+        pref = -4.0 * jnp.pi * G / (2.0 * l + 1.0)
+        a_in = I_in / (xl * x)
+        a_out = xl * I_out
+        phi_col = pref * (a_in + a_out)
+        dphi_col = pref * (-(l + 1.0) * a_in + l * a_out)
+        d2phi_col = pref * ((l + 1.0) ** 2 * a_in + l * l * a_out) + (
+            4.0 * jnp.pi * G * rho_col * x2
         )
+        return None, (phi_col, dphi_col, d2phi_col)
 
-        phi_col = -4.0 * jnp.pi * G / (2.0 * l + 1.0) * (I_in / (xl * x) + xl * I_out)
-        return None, phi_col
+    gl_T = (
+        jnp.zeros((l_per_mode.size, 0, 0))
+        if rho_gl is None
+        else jnp.moveaxis(rho_gl, -1, 0)
+    )
+    _, cols = jax.lax.scan(one_mode, None, (rho_lm.T, drho_lm.T, gl_T, l_per_mode))
+    # Every profile scales the same way under the recentring: Phi picks up
+    # exp(2 log_rc), and d/d(log x) = d/d(log r) leaves that factor alone.
+    scale = jnp.exp(2.0 * log_rc)
+    phi, dphi, d2phi = (c.T * scale for c in cols)
+    return phi, dphi, d2phi
 
-    _, phi_T = jax.lax.scan(one_mode, None, (rho_lm.T, drho_lm.T, l_per_mode))
-    return phi_T.T * jnp.exp(2.0 * log_rc)  # type: ignore[no-any-return]
+
+@jax.jit
+def solve_poisson_lm(
+    r_knots: Float[Array, "n_r"],
+    rho_lm: Float[Array, "n_r n_modes"],
+    l_per_mode: Float[Array, "n_modes"],
+    G: gt.Sz0,
+    /,
+) -> Float[Array, "n_r n_modes"]:
+    r""":math:`\Phi_{lm}` alone, for callers that do not need the derivatives.
+
+    See `solve_poisson_profiles`, which this delegates to unchanged.
+    """
+    phi: Float[Array, "n_r n_modes"] = solve_poisson_profiles(
+        r_knots, rho_lm, l_per_mode, G
+    )[0]
+    return phi

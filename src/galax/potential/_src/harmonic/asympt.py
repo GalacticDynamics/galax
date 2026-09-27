@@ -47,7 +47,7 @@ import numpy as np
 
 import quaxed.numpy as jnp
 
-from .spline import eval_log_spline
+from .spline import eval_log_spline, eval_log_spline_quintic
 
 _Fn = Callable[[Float[Array, "*s"]], Float[Array, "*s"]]
 
@@ -520,6 +520,7 @@ def eval_log_spline_asympt(
     coefs: Float[Array, "2 rows *rest"],
     log_rq: Float[Array, "*batch"],
     /,
+    derivs2: Float[Array, "n_r *rest"] | None = None,
 ) -> Array:
     r"""Evaluate the splined modes with power-law continuation outside the knots.
 
@@ -570,7 +571,17 @@ def eval_log_spline_asympt(
     def rs(a: Array) -> Array:
         return a.reshape((*a.shape, *trailing))
 
-    core = eval_log_spline(log_r, values, derivs, jnp.clip(log_rq, log_r[0], log_r[-1]))
+    # Quintic inside the grid when the caller has exact second derivatives --
+    # `solve_poisson_profiles` returns them for free -- and cubic otherwise.
+    # Only the in-grid core changes: the tails below are the fitted power law
+    # either way, and a quintic run off the end of the grid would diverge
+    # faster than the cubic it replaces, which is why the query is clamped.
+    clipped = jnp.clip(log_rq, log_r[0], log_r[-1])
+    core = (
+        eval_log_spline(log_r, values, derivs, clipped)
+        if derivs2 is None
+        else eval_log_spline_quintic(log_r, values, derivs, derivs2, clipped)
+    )
 
     # One tail, not two. Selecting the side's coefficients and then running
     # the continuation once is identical to evaluating both tails and

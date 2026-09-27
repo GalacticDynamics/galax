@@ -1,6 +1,7 @@
 """Tests for expansion evaluation."""
 
 import jax
+import pytest
 
 import quaxed.numpy as jnp
 
@@ -83,3 +84,43 @@ def test_expansion_potential_is_jittable() -> None:
     p, keys = _hernquist_params(n_r=32)
     jitted = jax.jit(expansion_potential, static_argnums=(2, 3))
     assert jnp.isfinite(jitted(p, jnp.asarray([1.0, 2.0, 3.0]), 0, keys))
+
+
+@pytest.mark.parametrize("l_max", [0, 2, 4, 8])
+def test_the_expansion_is_finite_at_the_origin(l_max: int) -> None:
+    """Value, density and gradient must all stay finite at ``xyz == 0``.
+
+    `_log_r_and_ylm` forms ``uvec = xyz / safe_vector_norm(xyz)``, and at the
+    origin that really is the zero vector -- ``safe_vector_norm`` floors the
+    norm at ``sqrt(tiny)``, so the division underflows to zero rather than
+    blowing up. A zero vector is not a direction, which looks like it should
+    poison the harmonics.
+
+    It does not: `real_ylm` evaluates Cartesian recurrences that are
+    polynomial in the components, so it never divides by the direction's
+    norm and a zero input gives finite values. That is a property of
+    `real_ylm`, not something the caller arranges, so it is pinned here --
+    the gradient especially, since `jax.grad` through an underflowed norm is
+    where a `0/0` would surface first.
+    """
+    keys = lm_keys(l_max, "none")
+
+    def rho(xyz, t):
+        r = jnp.linalg.norm(xyz, axis=-1)
+        safe = jnp.where(r > 0, r, 1e-30)
+        return 1.0 / (2.0 * jnp.pi) / (safe * (1.0 + safe) ** 3)
+
+    r_knots = jnp.geomspace(0.05, 20.0, 64)
+    p = {
+        **build_expansion(
+            rho, r_knots, l_max, keys, 12, 12, jnp.asarray(0.0), jnp.asarray(1.0)
+        ),
+        "r_knots": r_knots,
+    }
+    origin = jnp.zeros((1, 3))
+
+    assert jnp.all(jnp.isfinite(expansion_potential(p, origin, l_max, keys)))
+    assert jnp.all(jnp.isfinite(expansion_density(p, origin, l_max, keys)))
+
+    grad = jax.grad(lambda x: expansion_potential(p, x[None], l_max, keys)[0])
+    assert jnp.all(jnp.isfinite(grad(jnp.zeros(3))))

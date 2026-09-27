@@ -392,3 +392,35 @@ def test_gl_log_nodes_integrates_a_known_function_exactly() -> None:
     got = jnp.sum(weights * nodes**7)
     want = (b**8 - a**8) / 8.0
     assert jnp.allclose(got, want, rtol=1e-13), (got, want)
+
+
+@pytest.mark.parametrize(
+    ("mangle", "label"),
+    [
+        (lambda g: g[:1], "interval axis collapsed to 1"),
+        (lambda g: g[:-1], "one interval short"),
+        (lambda g: g[:, :, :0], "no modes"),
+    ],
+)
+def test_solve_poisson_rejects_a_mismatched_gauss_legendre_array(mangle, label) -> None:
+    """A wrong-shaped ``rho_gl`` must fail loudly, not broadcast.
+
+    This is the dangerous shape error: with the interval axis collapsed to 1,
+    ``rho_gl`` broadcasts against the ``(n_r - 1, k)`` weights instead of
+    failing, and the solve returns *finite, plausible* numbers computed from
+    the wrong integrals. Nothing downstream would notice.
+
+    Shapes are static, so the check is made at trace time and costs nothing
+    at runtime -- the same treatment as the ``n_r >= 3`` guard above.
+    """
+    r = jnp.geomspace(1e-3, 1e3, 64)
+    rho = (1.0 / (2.0 * jnp.pi) / (r * (1.0 + r) ** 3))[:, None]
+    log_gl, _ = gl_log_nodes(jnp.log(r), 4)
+    r_gl = jnp.exp(log_gl)
+    rho_gl = (1.0 / (2.0 * jnp.pi) / (r_gl * (1.0 + r_gl) ** 3))[:, :, None]
+
+    args = (r, rho, jnp.asarray([0.0]), jnp.asarray(1.0))
+    solve_poisson_profiles(*args, rho_gl)  # the correct shape is accepted
+
+    with pytest.raises(ValueError, match="rho_gl must have shape"):
+        solve_poisson_profiles(*args, mangle(rho_gl))

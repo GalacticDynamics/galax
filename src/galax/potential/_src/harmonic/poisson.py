@@ -201,6 +201,20 @@ def solve_poisson_profiles(
         msg = f"solve_poisson_lm needs at least 3 radial knots, got {n_r}."
         raise ValueError(msg)
 
+    # Shapes are static, so this is a trace-time check that costs nothing at
+    # runtime -- and it has to be explicit, because the failure it catches is
+    # silent. A `rho_gl` whose interval axis is 1 broadcasts against the
+    # `(n_r-1, k)` weights instead of failing, and the solve returns finite,
+    # plausible numbers computed from the wrong integrals.
+    if rho_gl is not None:
+        want = (n_r - 1, rho_gl.shape[1], rho_lm.shape[1])
+        if rho_gl.shape != want:
+            msg = (
+                f"rho_gl must have shape (n_r - 1, k, n_modes) = {want} to "
+                f"match r_knots and rho_lm, got {rho_gl.shape}."
+            )
+            raise ValueError(msg)
+
     # Work in x = r / r_c, with r_c the log-midpoint of the grid. Every
     # exponent below is then bounded by (l + 2) times *half* the grid's log
     # range instead of (l + 2) |log r|, which is what otherwise overflows:

@@ -3,7 +3,8 @@ r"""Evaluation of a multipole profile expansion.
 Function-first, matching `galax.potential._src.builtin.zhao`: the numerics
 take a flat ``gt.Params`` dict, and the potential classes build that dict from
 their own parameters, so the numerics can be reused without inheriting from a
-concrete potential class.
+concrete potential class. Nothing here imports a potential class, and the
+mixin that adapts these to one lives with that class, not here.
 
 ``p`` carries ``r_knots`` plus the nine arrays `build_expansion` returns:
 ``phi_lm``, ``dphi_lm``, ``d2phi_lm``, ``phi_asympt_powers``,
@@ -16,21 +17,16 @@ The grid itself is the caller's, so it is not part of what the build returns.
 
 __all__: tuple[str, ...] = ()
 
-import abc
 import functools as ft
 
 from jaxtyping import Array, Float
 
-import equinox as eqx
 import jax
 import numpy as np
 
 import quaxed.numpy as jnp
-import unxt as u
-from unxt.quantity import AllowValue
 
 import galax.potential.custom_types as gt
-from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.harmonic import (
     eval_log_spline,
     eval_log_spline_asympt,
@@ -144,49 +140,3 @@ def expansion_density(
     lim = _ln_huge(z)
     background = jnp.sign(amp) * jnp.exp(jnp.clip(log_amp + z, -lim, lim))
     return jnp.sum((residual + background) * Y, axis=-1)  # type: ignore[no-any-return]
-
-
-class MultipoleProfileMixin(AbstractSinglePotential):
-    """Supply ``_potential``/``_density`` from ``_params``, ``l_max``, ``lm_keys``.
-
-    Carries the shared evaluation implementation but none of the field
-    declarations, so a potential that stores its expansion differently can
-    reuse the numerics by supplying ``_params``, ``l_max`` and ``lm_keys``.
-    Mix it in ahead of the concrete class so that its ``_potential`` and
-    ``_density`` win over `AbstractPotential`'s abstract stubs, the same way
-    `LaplacianFromDensityMixin` is used.
-    """
-
-    #: The maximum multipole order.
-    l_max: eqx.AbstractVar[int]
-
-    @property
-    @abc.abstractmethod
-    def lm_keys(self) -> tuple[tuple[int, int], ...]:
-        """The (l, m) mode keys, in the order the coefficient columns use."""
-        ...
-
-    @abc.abstractmethod
-    def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:
-        """Build the parameter dictionary from the potential's fields."""
-        ...
-
-    @ft.partial(jax.jit)
-    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        return expansion_potential(  # type: ignore[no-any-return]
-            self._params(t),
-            xyz,
-            self.l_max,
-            self.lm_keys,
-        )
-
-    @ft.partial(jax.jit)
-    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        return expansion_density(  # type: ignore[no-any-return]
-            self._params(t),
-            xyz,
-            self.l_max,
-            self.lm_keys,
-        )

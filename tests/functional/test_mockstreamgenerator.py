@@ -84,8 +84,21 @@ def test_first_deriv() -> None:
     return jnp.asarray(jtu.tree_flatten(first_deriv)[0])
 
 
-@pytest.mark.slow
-@pytest.mark.array_compare(file_format="text", reference_dir="reference")
+# NOTE: `rtol` is deliberately far looser than `pytest-arraydiff`'s 1e-7
+# default. These values come from `jax.jacfwd` twice through an adaptive Dopri8
+# (`PIDController(rtol=atol=1e-7)`), whose step sequence is chosen by the primal
+# and is not itself differentiated, so the second derivative inherits an error
+# much larger than the integrator's own tolerance. Measured on this pipeline:
+# tightening the solver to 1e-8 or 1e-9 shifts these values by ~2e-3 relative,
+# i.e. the quantity is only converged to ~3 significant figures at the default
+# solver tolerance. A platform that reorders floating-point ops enough to pick a
+# different step sequence lands within that same ~2e-3 band (macOS arm64 differed
+# from the old reference by 1e-3), so anything tighter than 1e-2 fails on a
+# perfectly healthy build. `atol` covers the entries that are zero up to
+# round-off; without it they would have to match to 1% of ~1e-16.
+@pytest.mark.array_compare(
+    file_format="text", reference_dir="reference", rtol=1e-2, atol=1e-12
+)
 def test_second_deriv() -> None:
     # Inputs
     params = {
@@ -100,7 +113,13 @@ def test_second_deriv() -> None:
         },
     }
 
-    ts = u.Q(jnp.linspace(0.0, 4.0, 10_000), "Gyr")
+    # Unlike `test_first_deriv` these values are not identically zero, so the
+    # stream length is baked into the reference. The loss is a sum over release
+    # times, so they are linear in `len(ts)` to ~2e-3: 10_000 buys no coverage
+    # over 100, only cost (~700s vs ~25s, plus the memory blowup that made the
+    # first-derivative test shrink). Regenerate `reference/test_second_deriv.txt`
+    # if this count changes.
+    ts = u.Q(jnp.linspace(0.0, 4.0, 100), "Gyr")
     w0 = gc.PhaseSpacePosition(
         q=u.Q([30.0, 10, 20], "kpc"), p=u.Q([10.0, -150, -20], "km / s")
     )

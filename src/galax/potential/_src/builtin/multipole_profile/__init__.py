@@ -1,6 +1,6 @@
 """Multipole profile expansion. Private API.
 
-The potential class that consumes these lives in `.core`.
+See the public API in `galax.potential` and `galax.potential.multipole_profile`.
 
 The projection, Poisson and spline primitives this builds on live in
 `galax.potential._src.harmonic`; only the potential layer is here.
@@ -15,10 +15,13 @@ This contrasts with ``real_ylm``, which returns shape ``(n_modes, *batch)``
 """
 
 __all__ = [
+    "AbstractMultipoleProfilePotential",
+    "MultipoleProfilePotential",
     "build_expansion",
     "expansion_density",
     "expansion_potential",
 ]
 
 from .build import build_expansion
+from .core import AbstractMultipoleProfilePotential, MultipoleProfilePotential
 from .expansion import expansion_density, expansion_potential

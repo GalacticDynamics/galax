@@ -111,12 +111,20 @@ def expansion_density(
     law, :math:`\mathrm{amplitude} (r/r_0)^\alpha`.
     """
     log_r, Y = _log_r_and_ylm(xyz, l_max, keys)
-    log_r0 = jnp.log(p["r_knots"][0])
+    log_knots = jnp.log(p["r_knots"])
+    log_r0 = log_knots[0]
+    # Clamp the query, as the cusp term below is clamped. `eval_log_spline`
+    # continues the edge cubic with an unbounded local coordinate, so `s**3`
+    # overflows far outside the knots: this returned `nan` from r = 1e20 in
+    # float32 and 1e300 in float64. Saturating costs nothing real -- the
+    # density outside the knots is already documented as meaningless, and it
+    # is not continued the way the potential is -- and it is the difference
+    # between one absurd radius and a whole vmapped batch coming back `nan`.
     residual = eval_log_spline(
-        jnp.log(p["r_knots"]),
+        log_knots,
         p["rho_residual_lm"],
         p["drho_residual_lm"],
-        log_r,
+        jnp.clip(log_r, log_knots[0], log_knots[-1]),
     )
     # `exp` overflows at ~88 in float32, which `galax` runs by default, and a
     # steep cusp reaches that at radii a caller can actually pass: an `r^-2`

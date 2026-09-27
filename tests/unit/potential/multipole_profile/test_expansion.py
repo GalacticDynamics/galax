@@ -124,3 +124,67 @@ def test_the_expansion_is_finite_at_the_origin(l_max: int) -> None:
 
     grad = jax.grad(lambda x: expansion_potential(p, x[None], l_max, keys)[0])
     assert jnp.all(jnp.isfinite(grad(jnp.zeros(3))))
+
+
+@pytest.mark.parametrize("log10_r", [20.0, 38.0, 150.0, 300.0])
+def test_the_density_is_finite_far_outside_the_knots(log10_r: float) -> None:
+    """One absurd radius must not return `nan`.
+
+    REGRESSION: the analytic cusp term was clamped but the residual spline
+    was not, and `eval_log_spline` continues the edge cubic with an
+    *unbounded* local coordinate -- so `s**3` overflowed and the density came
+    back `nan` from ``r = 1e20`` in float32 and ``1e300`` in float64. The
+    clamp on the cusp was there specifically to stop a single bad radius
+    poisoning a vmapped batch, and the residual walked straight around it.
+
+    Saturating costs nothing real: unlike the potential, the density is not
+    continued outside the knots, and its value there is already documented as
+    meaningless.
+    """
+    p, keys = _hernquist_params(n_r=64)
+    xyz = jnp.asarray([[10.0**log10_r, 0.0, 0.0]])
+
+    got = expansion_density(p, xyz, 0, keys)
+    assert jnp.all(jnp.isfinite(got)), got
+
+
+@pytest.mark.parametrize("amplitude", [1e3, 1e-3])
+def test_the_density_cusp_clamp_holds_in_float32(amplitude: float) -> None:
+    """The clamp exists for float32, so it has to be tested in float32.
+
+    ``exp`` overflows at ~88 in float32, which is what `galax` runs by
+    default, while ``pyproject.toml`` forces x64 for the suite -- so every
+    other test here exercises this code in a precision where the clamp is
+    nearly unreachable. That gap is not hypothetical: the original test used
+    an ``r^-2`` cusp whose ``|z|`` peaks at 85.6, just under the float32
+    limit, so test and code shared a blind spot and the clamp was wrong three
+    times before it was right.
+
+    Both amplitudes matter, because the two ways to get this wrong fail on
+    different sides. Bounding ``z`` alone survives ``|amp| < 1`` and
+    overflows for ``|amp| > 1``; bounding ``z`` by ``ln_huge - log|amp|`` is
+    *looser* than ``ln_huge`` exactly when ``|amp| < 1``. Only clamping the
+    whole ``log|amp| + z`` handles both.
+
+    The coefficients are built once under the suite's x64 and then cast, so
+    only the evaluation runs in float32. Building inside the block instead
+    re-traces the projection, which asks for float64 explicitly and trips
+    ``filterwarnings = ["error"]`` -- a real wart, but not this test's
+    subject.
+    """
+    p, keys = _hernquist_params(n_r=64)
+    p32 = {
+        k: (v.astype(jnp.float32) if hasattr(v, "astype") else v) for k, v in p.items()
+    }
+    p32["rho_amplitude"] = jnp.full_like(p32["rho_amplitude"], amplitude)
+
+    # The origin and far outside the grid: where the exponent is largest in
+    # each direction.
+    rq = jnp.asarray([0.0, 1e-12, 1.0, 1e12, 1e20], dtype=jnp.float32)
+    xyz = jnp.stack([rq, jnp.zeros_like(rq), jnp.zeros_like(rq)], -1)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = expansion_density(p32, xyz, 0, keys)
+        assert got.dtype == jnp.float32  # no silent promotion to x64
+
+    assert jnp.all(jnp.isfinite(got)), got

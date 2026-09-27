@@ -123,22 +123,35 @@ def subtract_inner_cusp(
 _GL_NODES: int = 5
 r"""Gauss-Legendre nodes per radial interval in the Poisson solve.
 
-Four is where the rule stops paying. Integrating a Hernquist monopole over
-``[0.05, 20]`` on 128 intervals, against the closed form at the knots:
+Four reaches round-off on the *monopole*, which is what an earlier table here
+measured and why this was 4. It is not enough at higher :math:`l`: the
+integrand carries :math:`x^{l+3}`, so the rule has a higher-degree function
+to integrate as :math:`l` grows, and the node count has to follow.
 
-======= ==========
-nodes    max rel
-======= ==========
-1        4.3e-5
-2        1.3e-9
-3        2.2e-14
-4        3.5e-16
-8        3.5e-16
-======= ==========
+Against the closed form for :math:`\rho = r^{-1.5}` at ``n_r = 128``, padded
+(the outer integral needs :math:`l > 0.5` to converge, so the monopole is not
+in this table):
 
-Four reaches round-off and more nodes do not improve it, so the cost -- one
-density evaluation per node per interval, paid once at build time -- buys
-nothing beyond this.
+======= ========= ========= ========= =========
+nodes    l=2       l=4       l=8       l=12
+======= ========= ========= ========= =========
+3        9.6e-11   1.3e-09   2.0e-08   9.0e-08
+4        1.2e-14   3.8e-13   1.6e-11   1.3e-10
+5        4.4e-16   5.6e-16   8.8e-15   1.4e-13
+6        4.4e-16   6.7e-16   1.6e-15   2.4e-15
+======= ========= ========= ========= =========
+
+Five is where it stops paying for the :math:`l` a caller is likely to ask
+for: it is at round-off through :math:`l = 4` and within a factor of ten of
+it at :math:`l = 8`, where four leaves 1.6e-11. Six buys another two orders
+at :math:`l = 12` alone, which is not worth 20% more density evaluations.
+
+On a Hernquist monopole the whole build measures 2.7e-13 at every one of
+these -- the boundary tail, not the quadrature, is what binds there -- so
+this constant is tuned on the high-:math:`l` columns.
+
+Cost is one density evaluation per node per interval, paid once at build
+time, and `_PAD_KNOTS` caps the number of intervals it applies to.
 """
 
 _PAD_KNOTS: int = 128
@@ -147,11 +160,13 @@ r"""Cap on padded knots per side.
 The pad only has to carry a smooth power law out to `_PAD_MULTIPLE` spans,
 so it does not need the caller's resolution. Capping it decouples build cost
 from `n_r`: at ``n_r = 512`` this is 128 knots a side rather than 1024, and
-the whole build drops from 53 ms to 15 ms while agreeing with the uncapped
-result to 8.9e-16 on a flattened Hernquist at ``l_max = 8``.
+the padded grid goes from 2560 knots to 768. Measured at ``l_max = 8``,
+``n_r = 512``, the whole build drops from 60.7 ms to 18.1 ms -- 3.4x -- and
+the Hernquist monopole at that resolution is *better*, 8.7e-16 against
+5.9e-16, since the coarser pad also shortens the sums it accumulates.
 
-128 is where coarsening stops being free at ``_GL_NODES = 5``. At 4 nodes the
-same cap costs 2.0e-13, which is why the two were raised together.
+The cap and `_GL_NODES` were raised together: coarsening the pad puts more
+weight on each interval's rule, which is what five nodes pay for.
 """
 
 _PAD_MULTIPLE: int = 2
@@ -231,7 +246,7 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     # does not need the caller's resolution to deliver it: rho out there is a
     # smooth power law, which is why `_PAD_KNOTS` can be a cap rather than a
     # multiple of `n_r`. At n_r=512 that is 128 knots a side instead of 1024,
-    # a 3.5x cheaper build that agrees with the old one to 9e-16.
+    # a 3.4x cheaper build that matches the old one to round-off.
     log_r = jnp.log(r_knots)
     reach = _PAD_MULTIPLE * (log_r[-1] - log_r[0])
     n_pad = min(n_r * _PAD_MULTIPLE, _PAD_KNOTS)

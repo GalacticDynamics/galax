@@ -400,6 +400,8 @@ def test_gl_log_nodes_integrates_a_known_function_exactly() -> None:
         (lambda g: g[:1], "interval axis collapsed to 1"),
         (lambda g: g[:-1], "one interval short"),
         (lambda g: g[:, :, :0], "no modes"),
+        (lambda g: g[:, :, 0], "2-D"),
+        (lambda g: g.reshape(-1), "1-D"),
     ],
 )
 def test_solve_poisson_rejects_a_mismatched_gauss_legendre_array(mangle, label) -> None:
@@ -422,5 +424,5 @@ def test_solve_poisson_rejects_a_mismatched_gauss_legendre_array(mangle, label) 
     args = (r, rho, jnp.asarray([0.0]), jnp.asarray(1.0))
     solve_poisson_profiles(*args, rho_gl)  # the correct shape is accepted
 
-    with pytest.raises(ValueError, match="rho_gl must have shape"):
+    with pytest.raises(ValueError, match="rho_gl must"):
         solve_poisson_profiles(*args, mangle(rho_gl))

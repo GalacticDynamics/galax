@@ -212,6 +212,15 @@ def solve_poisson_profiles(
     # `(n_r-1, k)` weights instead of failing, and the solve returns finite,
     # plausible numbers computed from the wrong integrals.
     if rho_gl is not None:
+        # `rho_gl.shape[1]` is read to name `k` in the message below, so rank
+        # is checked first -- otherwise a 1-D array dies with `IndexError:
+        # tuple index out of range` from inside the guard meant to explain it.
+        if rho_gl.ndim != 3:
+            msg = (
+                "rho_gl must be 3-D with shape (n_r - 1, k, n_modes), got "
+                f"{rho_gl.ndim}-D with shape {rho_gl.shape}."
+            )
+            raise ValueError(msg)
         want = (n_r - 1, rho_gl.shape[1], rho_lm.shape[1])
         if rho_gl.shape != want:
             msg = (

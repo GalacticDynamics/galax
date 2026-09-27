@@ -138,6 +138,27 @@ def _active_tol(x: Float[Array, "..."], /) -> float:
     return float(np.sqrt(np.finfo(x.dtype).eps))
 
 
+def gl_log_nodes(
+    log_r: Float[Array, "n_r"], k: int, /
+) -> tuple[Float[Array, "n_r-1 k"], Float[Array, "n_r-1 k"]]:
+    r"""Gauss-Legendre nodes and weights for :math:`\int \cdot\, d(\log r)`.
+
+    One ``k``-point rule per interval, so the caller can sample a density
+    *between* knots. ``k`` is static: the Legendre abscissae come from `numpy`
+    at trace time.
+
+    Node positions are affine in ``log_r``, so evaluating this on raw
+    :math:`\log r` and on the recentred :math:`\log x` gives the same nodes
+    shifted by the same constant -- which is why `solve_poisson_lm` can
+    recompute them internally and still agree with a caller that used this
+    helper to place its density samples.
+    """
+    nodes, weights = np.polynomial.legendre.leggauss(k)
+    lo, hi = log_r[:-1, None], log_r[1:, None]
+    half = 0.5 * (hi - lo)
+    return 0.5 * (lo + hi) + half * nodes, half * weights
+
+
 @jax.jit
 def solve_poisson_lm(
     r_knots: Float[Array, "n_r"],

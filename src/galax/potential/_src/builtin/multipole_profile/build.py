@@ -117,8 +117,8 @@ def subtract_inner_cusp(
     return rho_lm - background, alpha, amplitude
 
 
-_PAD_DIVISOR: int = 2
-r"""Knots added beyond each end of the grid, as ``n_r // _PAD_DIVISOR``.
+_PAD_MULTIPLE: int = 1
+r"""Knots added beyond each end of the grid, as ``n_r * _PAD_MULTIPLE``.
 
 The Poisson solve models the mass outside ``[r_min, r_max]`` as a single
 power law fitted at the boundary. That model cannot represent a profile with
@@ -132,25 +132,30 @@ Fitting the slope better does not help. The local three-point slope the
 solve already uses beats both the true asymptotic slope (4.8e-2) and a wider
 two-point baseline (1.2e-1) -- the power-law *form* is the limit. The fix is
 to put the boundary where the model is not asked to carry the answer: solve
-on a padded grid, keep only the range the caller asked for, and the floor
-drops below the interior quadrature, which then converges at its own second
-order.
+on a padded grid and keep only the range the caller asked for.
 
-Measured against the closed form on that monopole, padded:
+How far to pad is set by what it has to beat. Padding by ``n_r`` at each end
+doubles the log range and reaches the plateau; 150% and 300% are
+indistinguishable from it. Measured against the closed form on that
+monopole, over ``[0.06, 18]``:
 
-======= ============== =======
-``n_r``  max rel err    ratio
-======= ============== =======
-128      4.6e-4
-256      1.2e-4         4.03
-512      2.9e-5         4.01
-1024     7.2e-6         3.99
-======= ============== =======
+======= ========== ========== ==========
+``n_r``  pad 50%    pad 100%   ratio
+======= ========== ========== ==========
+128      1.6e-7     7.3e-9
+256      1.6e-7     5.2e-10    14.1
+512      1.6e-7     3.6e-11    14.4
+======= ========== ========== ==========
 
-Half the knot count at each end extends the log range by 50%, which reaches
-the plateau: 100% gives 2.86e-5 against 2.87e-5 at ``n_r = 512``, while 25%
-leaves a third of the gain unclaimed at 3.8e-5. The cost is one-off, at
-build time.
+At 50% the tail is still the floor -- the error does not move with ``n_r`` at
+all. At 100% it drops below the interior quadrature, which then converges at
+its own fourth order, so ``n_r`` is a real knob again.
+
+Note 50% *was* the plateau when the interior rule was the trapezoid: at
+second order the quadrature error swamped the tail, and 100% measured no
+better than 50%. Raising the interior rule to fourth order moved the
+bottleneck onto the padding and made the extra range worth paying for. The
+cost is one-off, at build time.
 """
 
 
@@ -177,7 +182,7 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
             "slopes are fitted over three"
         )
         raise ValueError(msg)
-    n_pad = max(1, n_r // _PAD_DIVISOR)
+    n_pad = max(1, n_r * _PAD_MULTIPLE)
     ratio_lo = r_knots[1] / r_knots[0]
     ratio_hi = r_knots[-1] / r_knots[-2]
     lo = r_knots[0] * ratio_lo ** jnp.arange(-n_pad, 0)
@@ -207,7 +212,7 @@ def build_expansion(
     l_per_mode = jnp.asarray([float(l) for l, _ in keys])
 
     # Solve on a padded grid so the boundary tail models sit outside the range
-    # the caller asked for, then keep only that range. See `_PAD_DIVISOR`.
+    # the caller asked for, then keep only that range. See `_PAD_MULTIPLE`.
     r_solve, lo = _pad_grid(r_knots)
     n_r = r_knots.shape[0]
     rho_solve = harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)

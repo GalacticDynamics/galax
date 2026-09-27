@@ -119,7 +119,8 @@ _SLOPE_TOL: float = 1e-6
 The tail integrals divide by an exponent that passes through zero as the
 fitted slope crosses the convergence boundary. Clamping keeps the division
 finite under ``jit``; the tail is then *dropped* rather than scaled, since a
-clamped denominator no longer represents the integral (see `solve_poisson_lm`).
+clamped denominator no longer represents the integral (see
+`solve_poisson_profiles`).
 """
 
 
@@ -150,7 +151,7 @@ def gl_log_nodes(
 
     Node positions are affine in ``log_r``, so evaluating this on raw
     :math:`\log r` and on the recentred :math:`\log x` gives the same nodes
-    shifted by the same constant -- which is why `solve_poisson_lm` can
+    shifted by the same constant -- which is why `solve_poisson_profiles` can
     recompute them internally and still agree with a caller that used this
     helper to place its density samples.
     """
@@ -198,7 +199,7 @@ def solve_poisson_profiles(
     # a 2-point fit and `n_r == 1` returns a meaningless zero. `n_r` is a
     # shape, so this is checked at trace time and costs nothing at runtime.
     if (n_r := r_knots.shape[0]) < 3:
-        msg = f"solve_poisson_lm needs at least 3 radial knots, got {n_r}."
+        msg = f"The radial Poisson solve needs at least 3 radial knots, got {n_r}."
         raise ValueError(msg)
 
     # Shapes are static, so this is a trace-time check that costs nothing at

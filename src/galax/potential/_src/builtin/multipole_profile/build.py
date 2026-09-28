@@ -221,8 +221,8 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     n_r = r_knots.shape[0]
     # Four knots, matching `MultipoleProfilePotential.from_density`: the
     # boundary slopes are fitted over three. This has to be checked *before*
-    # padding, because padding defeats the `n_r >= 3` guard inside
-    # `solve_poisson_lm` -- a single knot pads to three and sails through it.
+    # padding, because padding defeats the `n_r >= 3` guard inside the
+    # radial solve -- a single knot pads to three and sails through it.
     # It also has to be checked at all: `r_knots[1]` on a one-knot grid is out
     # of bounds, and JAX clamps rather than raising, so the ratio comes out as
     # 1 and every padded knot lands on top of the original.
@@ -287,11 +287,11 @@ def build_expansion(
 
     # Sample the density *inside* each interval as well, at Gauss-Legendre
     # nodes, so the radial integrals are quadrature rather than interpolation.
-    # This is the one thing only the builder can do: `solve_poisson_lm` is
-    # handed an array and cannot ask for more of it, so on knots alone it is
-    # capped by how well a rule reconstructs rho between them. `rho_fn` can be
-    # called anywhere, and four nodes per interval is enough to integrate a
-    # smooth profile to round-off.
+    # This is the one thing only the builder can do: `solve_poisson_profiles`
+    # is handed an array and cannot ask for more of it, so on knots alone it
+    # is capped by how well a rule reconstructs rho between them. `rho_fn` can
+    # be called anywhere; `_GL_NODES` nodes per interval is what that costs,
+    # and its docstring is where the count is justified.
     log_gl, _ = gl_log_nodes(jnp.log(r_solve), _GL_NODES)
     rho_gl = harmonic_coeffs(
         rho_fn, jnp.exp(log_gl).reshape(-1), l_max, keys, n_theta, n_phi, t

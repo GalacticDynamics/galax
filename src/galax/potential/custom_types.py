@@ -18,8 +18,6 @@ __all__: tuple[str, ...] = ()
 from jaxtyping import Array, ArrayLike, Float, Real, ScalarLike
 from typing import TypeAlias
 
-import astropy.units as apyu
-
 import unxt as u
 
 from galax.coordinates.custom_types import (
@@ -31,7 +29,6 @@ from galax.coordinates.custom_types import (
     SzN as SzN,
 )
 
-Unit: TypeAlias = apyu.Unit | apyu.UnitBase | apyu.CompositeUnit
 Sz0: TypeAlias = Real[Array, ""]
 BtSz0: TypeAlias = Real[Sz0, "*batch"]
 BBtSz0: TypeAlias = Real[Sz0, "*#batch"]

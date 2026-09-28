@@ -150,6 +150,23 @@ wheels = [
 ]
 
 [[package]]
+name = "boundinstance"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8d/7a/c3fe99e17c4165f331a77d27a9f827cee98504a423d0ea1c3e3e8e1c6900/boundinstance-0.1.0.tar.gz", hash = "sha256:9f030f259854de019ff79a434936e94c4eb7a879cb441fcdd9d18ff1b251a87a", size = 114926, upload-time = "2026-09-28T20:32:15.456Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f3/f7/8620a6fd695608ef5bb642305424d26e302eddc1cba81bf24ec8a7d93e66/boundinstance-0.1.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:73e36c2b868893461cb91a6e22994071cc9b93012f0f51abdd4c438a3fc8aeee", size = 62855, upload-time = "2026-09-28T20:32:04.258Z" },
+    { url = "https://files.pythonhosted.org/packages/15/a9/49b3bafb248886e49e1a2f892f948877270c722e41c2f43895b5d36485c3/boundinstance-0.1.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:1f9b115fe945a3ea878c98a4b796a6157282af100da90c031f69296cfb497b53", size = 78329, upload-time = "2026-09-28T20:32:05.724Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/08/c5f21a302619a8e8197662eebec692e2c422ba7842ef96a06c30362528b1/boundinstance-0.1.0-cp312-cp312-win_amd64.whl", hash = "sha256:0b7f02bf9b6f00276b2d45dff5467e256d32a8c8efbfb167db124aec43528a8b", size = 35507, upload-time = "2026-09-28T20:32:06.845Z" },
+    { url = "https://files.pythonhosted.org/packages/47/18/a8a85396135c8329e9876a2bd85b96d8da80896f9007695262f88e1e9c91/boundinstance-0.1.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:5bc03cb90621496d298531d337b7272bbca660573ff2b1f3a67999d233025b82", size = 61963, upload-time = "2026-09-28T20:32:08.085Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/ac/83ba93c05b128cfbeead9c90d2e297c9d173b3634bcbbb00b9f3f02aaee2/boundinstance-0.1.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ce4da3f22ed2a56fdbf36a2b3211a92b8bf9b1f259e3b1e376baddf5db396295", size = 77554, upload-time = "2026-09-28T20:32:09.387Z" },
+    { url = "https://files.pythonhosted.org/packages/61/aa/ff7fbf7ec1fae0bf40df231e8702e1f9f0d995c9f5b7f45e4aedd30d55f2/boundinstance-0.1.0-cp313-cp313-win_amd64.whl", hash = "sha256:997e3ebbf3e25ea8e8524dfd4e50cdbdb07c78acee1fd925ba08ff6a9fb55dee", size = 35467, upload-time = "2026-09-28T20:32:10.833Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/32/97f486d4cda0587961d7df735559ccaf8cbced960ae9c571016078b6a8fd/boundinstance-0.1.0-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:83da1aebd558d9d74784e8e2800b32465b5ee9570a94deae39c8dfd29a61fa8a", size = 61732, upload-time = "2026-09-28T20:32:11.964Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/f0/0467d96a5a4aa1f89fa7bf5631beb72e143365cf225c39e4a3bc89ba9bb3/boundinstance-0.1.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:38e8bd74cd8fd2043b78746fb4c4090349f892dde086a8eb41986a4c56be2cbf", size = 76925, upload-time = "2026-09-28T20:32:13.256Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/93/7dce68e0b6cf8a5dee70b2e3ba5bc8de766ca08e2153d7ca6897a172e35b/boundinstance-0.1.0-cp314-cp314-win_amd64.whl", hash = "sha256:7791967013c098d65df18bff52ece3bfbf139d597de083eab571bcfdb2d27959", size = 35243, upload-time = "2026-09-28T20:32:14.392Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2025.11.12"
 source = { registry = "https://pypi.org/simple" }
@@ -835,6 +852,7 @@ source = { editable = "." }
 dependencies = [
     { name = "astropy" },
     { name = "beartype" },
+    { name = "boundinstance" },
     { name = "coordinax" },
     { name = "dataclassish" },
     { name = "diffrax" },
@@ -959,6 +977,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.22.9" },
+    { name = "boundinstance", specifier = ">=0.1" },
     { name = "coordinax", specifier = ">=0.23.3,<0.24" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
@@ -1927,9 +1946,9 @@ resolution-markers = [
     "python_full_version < '3.13'",
 ]
 dependencies = [
-    { name = "beartype" },
-    { name = "rich" },
-    { name = "typing-extensions" },
+    { name = "beartype", marker = "python_full_version < '3.14'" },
+    { name = "rich", marker = "python_full_version < '3.14'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.14'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5e/cf/2f2b0dd84edbb2951a845ba98d29f651bbbd467039c368fcfa22904905cd/plum_dispatch-2.8.0.tar.gz", hash = "sha256:453fc7bc67d2a39492c834b00c94d816871d148b5a0a5d3f49e2bbf2391e2619", size = 241272, upload-time = "2026-03-17T21:24:41.338Z" }
 wheels = [
@@ -1950,9 +1969,9 @@ resolution-markers = [
     "python_full_version >= '3.14'",
 ]
 dependencies = [
-    { name = "beartype" },
-    { name = "rich" },
-    { name = "typing-extensions" },
+    { name = "beartype", marker = "python_full_version >= '3.14'" },
+    { name = "rich", marker = "python_full_version >= '3.14'" },
+    { name = "typing-extensions", marker = "python_full_version >= '3.14'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1b/b7/84146ae5ff6c40d11357acdb36aafe3db7e104de01c1026d8e1b0ce3e7f1/plum_dispatch-2.9.0.tar.gz", hash = "sha256:fb45c5b2dd4dadd57def51bcf321dfa3a258df5c725f43adea7e7f6db3b79b52", size = 244502, upload-time = "2026-04-28T08:38:34.442Z" }
 wheels = [

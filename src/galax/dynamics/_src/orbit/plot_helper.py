@@ -9,18 +9,17 @@ __all__ = ["plot_components"]
 
 from typing import Any
 
+from boundinstance import InstanceDescriptor
 from plum import PromisedType, dispatch
 
 from plotting_backends import AbstractPlottingBackend, MatplotlibBackend
-
-from galax._boundinstance import BndTo, InstanceDescriptor
 
 ProxyAbstractOrbit = PromisedType("AbstractOrbit")
 
 # --------------------------------------------------
 
 
-class PlotOrbitDescriptor(InstanceDescriptor[BndTo]):
+class PlotOrbitDescriptor[BndTo](InstanceDescriptor[BndTo]):
     """Descriptor for plotting functions."""
 
     def plot(

@@ -85,6 +85,10 @@ repos:
         files: src
         exclude: ^(src/galax/__init__\.py|src/galax/.*?/__init__\.py)$
         additional_dependencies:
+          # `boundinstance` supplies `InstanceDescriptor`, which two plotting
+          # descriptors subclass. Without it here the hook's isolated env sees
+          # `Any` and reports "Class cannot subclass value of type Any".
+          - boundinstance
           - dataclassish
           - optype
           - plum-dispatch>=2.5.7

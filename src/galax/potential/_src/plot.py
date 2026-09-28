@@ -9,11 +9,10 @@ __all__: tuple[str, ...] = ()
 
 from typing import Any
 
+from boundinstance import InstanceDescriptor
 from plum import PromisedType, dispatch
 
 from plotting_backends import AbstractPlottingBackend, MatplotlibBackend
-
-from galax._boundinstance import BndTo, InstanceDescriptor
 
 ProxyAbstractPotential = PromisedType("AbstractPotential")
 
@@ -21,7 +20,7 @@ ProxyAbstractPotential = PromisedType("AbstractPotential")
 # --------------------------------------------------
 
 
-class PlotPotentialDescriptor(InstanceDescriptor[BndTo]):
+class PlotPotentialDescriptor[BndTo](InstanceDescriptor[BndTo]):
     """Descriptor for plotting functions."""
 
     def potential_contours(

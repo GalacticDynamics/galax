@@ -74,3 +74,65 @@ def eval_log_spline(
         + rs(h01) * values[idx + 1]
         + rs(h11 * h) * derivs[idx + 1]
     )
+
+
+def eval_log_spline_quintic(
+    log_r: Float[Array, "n_r"],
+    values: Float[Array, "n_r *rest"],
+    derivs: Float[Array, "n_r *rest"],
+    derivs2: Float[Array, "n_r *rest"],
+    log_rq: Float[Array, "*batch"],
+    /,
+) -> Float[Array, "..."]:
+    r"""`eval_log_spline`, but matching the second derivative too.
+
+    The quintic Hermite basis: one degree-5 polynomial per interval agreeing
+    with the knot value, first and second log-derivative at both ends, so the
+    result is :math:`C^2` and exact for quintics in :math:`\log r` rather
+    than cubics.
+
+    This is worth having only because the second derivatives are *free*.
+    `solve_poisson_profiles` gets :math:`\Phi_{lm}`, :math:`d\Phi_{lm}/d\log r` and
+    :math:`d^2\Phi_{lm}/d\log r^2` from the same two radial integrals -- see
+    its docstring -- so nothing extra is computed to feed this. Fitting a
+    quintic *spline* instead, from values alone, would cost a solve and give
+    no more accuracy than the exact derivatives already carry.
+
+    On a Hernquist monopole over ``[0.05, 20]`` with 128 knots, interpolating
+    the exact profile: 5.3e-8 for the cubic basis against 2.8e-13 here.
+
+    Outside the knot range the edge quintic continues, as in `eval_log_spline`
+    -- the interval index is clamped, the local coordinate is not. A quintic
+    diverges faster than a cubic once past the end, which is why
+    `eval_log_spline_asympt` clamps the query before calling this and uses the
+    fitted power law beyond the grid instead.
+    """
+    idx = jnp.clip(jnp.searchsorted(log_r, log_rq, side="right") - 1, 0, log_r.size - 2)
+    h = log_r[idx + 1] - log_r[idx]
+    s = (log_rq - log_r[idx]) / h
+
+    s2 = s * s
+    s3 = s2 * s
+    s4 = s3 * s
+    s5 = s4 * s
+    h00 = 1.0 - 10.0 * s3 + 15.0 * s4 - 6.0 * s5
+    h10 = s - 6.0 * s3 + 8.0 * s4 - 3.0 * s5
+    h20 = 0.5 * s2 - 1.5 * s3 + 1.5 * s4 - 0.5 * s5
+    h01 = 10.0 * s3 - 15.0 * s4 + 6.0 * s5
+    h11 = -4.0 * s3 + 7.0 * s4 - 3.0 * s5
+    h21 = 0.5 * s3 - s4 + 0.5 * s5
+
+    trailing = (1,) * (values.ndim - 1)
+
+    def rs(a: Array) -> Array:
+        return a.reshape((*a.shape, *trailing))
+
+    h2 = h * h
+    return (
+        rs(h00) * values[idx]
+        + rs(h10 * h) * derivs[idx]
+        + rs(h20 * h2) * derivs2[idx]
+        + rs(h01) * values[idx + 1]
+        + rs(h11 * h) * derivs[idx + 1]
+        + rs(h21 * h2) * derivs2[idx + 1]
+    )

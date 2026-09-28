@@ -8,7 +8,9 @@ import quaxed.numpy as jnp
 from galax.potential._src.harmonic.poisson import (
     _active_tol,
     _log_floor,
+    gl_log_nodes,
     solve_poisson_lm,
+    solve_poisson_profiles,
 )
 
 
@@ -330,3 +332,148 @@ def test_thresholds_follow_the_working_dtype() -> None:
     # The relative gate must stay above round-off, not sink beneath it.
     assert _active_tol(f32) > float(jnp.finfo(jnp.float32).eps)
     assert _active_tol(f64) > float(jnp.finfo(jnp.float64).eps)
+
+
+def test_gauss_legendre_sampling_beats_the_knot_only_rule() -> None:
+    """Sampling rho between knots removes the interpolation error entirely.
+
+    On knots alone the solve can only be as good as the rule that
+    reconstructs rho across each interval -- fourth order, and that is an
+    information limit, not an implementation one. Given the density *at*
+    Gauss-Legendre nodes it is doing quadrature instead, and for a smooth
+    profile a four-point rule is exact to round-off.
+
+    Both calls use the same knots, the same tails and the same assembly, so
+    the gap below is the interior rule and nothing else.
+    """
+    r = jnp.geomspace(1e-4, 1e4, 128)
+    rho = 1.0 / (2.0 * jnp.pi) / (r * (1.0 + r) ** 3)
+    l_per_mode, G = jnp.asarray([0.0]), jnp.asarray(1.0)
+
+    knots_only = solve_poisson_profiles(r, rho[:, None], l_per_mode, G)[0][:, 0]
+
+    log_gl, _ = gl_log_nodes(jnp.log(r), 4)
+    r_gl = jnp.exp(log_gl)
+    rho_gl = (1.0 / (2.0 * jnp.pi) / (r_gl * (1.0 + r_gl) ** 3))[:, :, None]
+    sampled = solve_poisson_profiles(r, rho[:, None], l_per_mode, G, rho_gl)[0][:, 0]
+
+    expect = -1.0 / (1.0 + r)
+    interior = (r > 1e-2) & (r < 1e2)
+
+    def rel(got):
+        return float(
+            jnp.max(
+                jnp.abs(got[interior] - expect[interior]) / jnp.abs(expect[interior])
+            )
+        )
+
+    e_knots, e_gl = rel(knots_only), rel(sampled)
+    assert e_knots < 1e-5, e_knots  # the Hermite rule, for orientation
+    assert e_gl < 1e-9, e_gl
+    assert e_gl < e_knots / 1000.0, f"knots {e_knots:.2e} -> gl {e_gl:.2e}"
+
+
+def test_gl_log_nodes_integrates_a_known_function_exactly() -> None:
+    """The nodes and weights are a quadrature rule for d(log r), not for dr.
+
+    A Jacobian slip here would be nearly invisible in the solve -- it would
+    look like a slightly wrong density -- so it is pinned directly.
+
+    The integrand is a degree-7 polynomial in ``u = log r``, which a
+    four-point Gauss-Legendre rule integrates *exactly*, so this asserts at
+    round-off rather than against a tolerance. (``exp(3u)`` would not do:
+    Gauss-Legendre is spectrally accurate on it, not exact.)
+    """
+    log_r = jnp.log(jnp.geomspace(0.1, 10.0, 17))
+    nodes, weights = gl_log_nodes(log_r, 4)
+    assert nodes.shape == weights.shape == (16, 4)
+
+    a, b = log_r[0], log_r[-1]
+    got = jnp.sum(weights * nodes**7)
+    want = (b**8 - a**8) / 8.0
+    assert jnp.allclose(got, want, rtol=1e-13), (got, want)
+
+
+@pytest.mark.parametrize(
+    ("mangle", "label"),
+    [
+        (lambda g: g[:1], "interval axis collapsed to 1"),
+        (lambda g: g[:-1], "one interval short"),
+        (lambda g: g[:, :, :0], "no modes"),
+        (lambda g: g[:, :, 0], "2-D"),
+        (lambda g: g.reshape(-1), "1-D"),
+    ],
+)
+def test_solve_poisson_rejects_a_mismatched_gauss_legendre_array(mangle, label) -> None:
+    """A wrong-shaped ``rho_gl`` must fail loudly, not broadcast.
+
+    This is the dangerous shape error: with the interval axis collapsed to 1,
+    ``rho_gl`` broadcasts against the ``(n_r - 1, k)`` weights instead of
+    failing, and the solve returns *finite, plausible* numbers computed from
+    the wrong integrals. Nothing downstream would notice.
+
+    Shapes are static, so the check is made at trace time and costs nothing
+    at runtime -- the same treatment as the ``n_r >= 3`` guard above.
+    """
+    r = jnp.geomspace(1e-3, 1e3, 64)
+    rho = (1.0 / (2.0 * jnp.pi) / (r * (1.0 + r) ** 3))[:, None]
+    log_gl, _ = gl_log_nodes(jnp.log(r), 4)
+    r_gl = jnp.exp(log_gl)
+    rho_gl = (1.0 / (2.0 * jnp.pi) / (r_gl * (1.0 + r_gl) ** 3))[:, :, None]
+
+    args = (r, rho, jnp.asarray([0.0]), jnp.asarray(1.0))
+    solve_poisson_profiles(*args, rho_gl)  # the correct shape is accepted
+
+    with pytest.raises(ValueError, match="rho_gl must"):
+        solve_poisson_profiles(*args, mangle(rho_gl))
+
+
+def test_the_knot_only_path_does_not_allocate_a_matrix_per_mode() -> None:
+    """The non-GL path must stay O(n_r), not O(n_r^2).
+
+    REGRESSION: scaling each panel endpoint to the end of its own interval
+    was written as an ``(n_r - 1, n_r)`` broadcast whose two diagonals were
+    then extracted -- ``n`` values taken from an ``n**2`` array, per mode,
+    per direction. At ``n_r = 2560`` that is 52 MB a time, and the solve took
+    2.5 s where it now takes 47 ms.
+
+    Nothing about the *answer* changed, which is why no accuracy test caught
+    it, and `build_expansion` always supplies Gauss-Legendre samples so it
+    never reached this branch at all. `solve_poisson_lm` is public and does.
+
+    The compiled size is the durable check: an O(n^2) intermediate shows up
+    as a quadratic jump in peak buffer size, while the O(n) form grows
+    linearly. Compare the two grids rather than asserting an absolute, so
+    this survives XLA changing its mind about fusion.
+    """
+    p, G = -1.5, 1.0
+
+    def peak_bytes(n_r: int) -> int:
+        r = jnp.geomspace(1e-3, 1e3, n_r)
+        rho = (r**p)[:, None]
+        compiled = (
+            jax.jit(solve_poisson_profiles)
+            .lower(r, rho, jnp.asarray([8.0]), jnp.asarray(G))
+            .compile()
+        )
+        return compiled.memory_analysis().temp_size_in_bytes
+
+    small, large = peak_bytes(256), peak_bytes(1024)
+    # Four times the knots: linear would be ~4x, quadratic ~16x.
+    assert large < 8 * small, (small, large)
+
+
+def test_solve_poisson_rejects_an_empty_gauss_legendre_axis() -> None:
+    """``k = 0`` must be named, not left to `leggauss`.
+
+    A ``(n_r - 1, 0, n_modes)`` array has the right rank and the right first
+    and last axes, so it passes the shape guard, then reaches `leggauss` and
+    dies with "deg must be a positive integer" -- which names neither
+    ``rho_gl`` nor the caller that supplied it.
+    """
+    r = jnp.geomspace(1e-3, 1e3, 64)
+    rho = (r**-1.5)[:, None]
+    args = (r, rho, jnp.asarray([2.0]), jnp.asarray(1.0))
+
+    with pytest.raises(ValueError, match="at least one Gauss-Legendre node"):
+        solve_poisson_profiles(*args, jnp.zeros((63, 0, 1)))

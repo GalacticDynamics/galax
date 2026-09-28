@@ -20,6 +20,14 @@ from .miyamotonagai import *
 from .mn3 import *
 from .monari2016 import *
 from .multipole import *
+
+# Not `import *`: `multipole_profile.__all__` also carries the projection,
+# Poisson, build and evaluation functions, which are not potentials. They stay
+# reachable through the public `galax.potential.multipole_profile`.
+from .multipole_profile import (
+    AbstractMultipoleProfilePotential as AbstractMultipoleProfilePotential,
+    MultipoleProfilePotential as MultipoleProfilePotential,
+)
 from .nfw import *
 from .null import *
 from .plummer import *

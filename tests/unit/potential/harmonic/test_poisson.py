@@ -461,3 +461,19 @@ def test_the_knot_only_path_does_not_allocate_a_matrix_per_mode() -> None:
     small, large = peak_bytes(256), peak_bytes(1024)
     # Four times the knots: linear would be ~4x, quadratic ~16x.
     assert large < 8 * small, (small, large)
+
+
+def test_solve_poisson_rejects_an_empty_gauss_legendre_axis() -> None:
+    """``k = 0`` must be named, not left to `leggauss`.
+
+    A ``(n_r - 1, 0, n_modes)`` array has the right rank and the right first
+    and last axes, so it passes the shape guard, then reaches `leggauss` and
+    dies with "deg must be a positive integer" -- which names neither
+    ``rho_gl`` nor the caller that supplied it.
+    """
+    r = jnp.geomspace(1e-3, 1e3, 64)
+    rho = (r**-1.5)[:, None]
+    args = (r, rho, jnp.asarray([2.0]), jnp.asarray(1.0))
+
+    with pytest.raises(ValueError, match="at least one Gauss-Legendre node"):
+        solve_poisson_profiles(*args, jnp.zeros((63, 0, 1)))

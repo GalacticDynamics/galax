@@ -271,6 +271,14 @@ def solve_poisson_profiles(
                 f"{rho_gl.ndim}-D with shape {rho_gl.shape}."
             )
             raise ValueError(msg)
+        if rho_gl.shape[1] < 1:
+            # Otherwise this reaches `leggauss` and dies with "deg must be a
+            # positive integer", which names neither `rho_gl` nor the caller.
+            msg = (
+                "rho_gl must have at least one Gauss-Legendre node per "
+                f"interval, got shape {rho_gl.shape}."
+            )
+            raise ValueError(msg)
         want = (n_r - 1, rho_gl.shape[1], rho_lm.shape[1])
         if rho_gl.shape != want:
             msg = (

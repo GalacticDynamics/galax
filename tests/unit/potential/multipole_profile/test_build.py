@@ -140,12 +140,22 @@ def test_build_expansion_returns_consistent_shapes() -> None:
     )
 
     n_modes = len(keys)
-    assert coeffs["phi_lm"].shape == (32, n_modes)
-    assert coeffs["dphi_lm"].shape == (32, n_modes)
-    assert coeffs["rho_residual_lm"].shape == (32, n_modes)
-    assert coeffs["drho_residual_lm"].shape == (32, n_modes)
-    assert coeffs["rho_alpha"].shape == (n_modes,)
-    assert coeffs["rho_amplitude"].shape == (n_modes,)
+    expect = {
+        "phi_lm": (32, n_modes),
+        "dphi_lm": (32, n_modes),
+        "d2phi_lm": (32, n_modes),
+        "phi_asympt_powers": (2, 2, n_modes),
+        "phi_asympt_scales": (2, 1, n_modes),
+        "rho_residual_lm": (32, n_modes),
+        "drho_residual_lm": (32, n_modes),
+        "rho_alpha": (n_modes,),
+        "rho_amplitude": (n_modes,),
+    }
+    # Compare the key *sets* first, so adding a return value without adding it
+    # here fails loudly. `d2phi_lm` was added and this test kept passing on
+    # the six keys it already knew about, which is how the gap arose.
+    assert set(coeffs) == set(expect)
+    assert {k: v.shape for k, v in coeffs.items()} == expect
 
 
 def test_refining_n_r_actually_improves_the_potential() -> None:

@@ -17,6 +17,7 @@ from galax.potential._src.harmonic import (
     eval_log_spline,
     lm_keys,
 )
+from galax.potential._src.utils import safe_vector_norm
 
 _G_GALACTIC = float(default_constants["G"].decompose(u.unitsystem("galactic")).value)
 
@@ -415,3 +416,81 @@ def test_a_very_wide_bracket_stays_finite_in_float32(r_min, r_max) -> None:
 
     for name, arr in built.items():
         assert jnp.all(jnp.isfinite(arr)), (name, arr)
+
+
+@pytest.mark.filterwarnings("ignore:Explicitly requested dtype")
+@pytest.mark.parametrize(
+    ("gamma", "rtol"), [(1.0, 1e-5), (1.9, 1e-5), (2.5, 1e-5), (2.9, 0.2)]
+)
+def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> None:
+    """A density the *pad* cannot represent must not zero the whole build.
+
+    REGRESSION: padding evaluates ``rho_fn`` `_PAD_MULTIPLE` spans outside
+    the requested bracket, so a cusp ``rho ~ r**-gamma`` is sampled at
+    ``r_min * exp(-reach)`` where the density overflows once
+    ``gamma * reach`` clears the dtype's exponent. `_pad_grid`'s reach cap
+    does not help -- it is sized so the solver's own ``x**2`` stays finite
+    and knows nothing about ``rho_fn``'s slope.
+
+    One unrepresentable sample took out everything: the projection turns
+    ``inf`` into ``nan`` for ``l >= 1``, and `fit_log_spline` solves one
+    system per mode over the whole padded grid, so a single bad row reached
+    every radius and every mode. Measured at ``gamma = 2.5``, ``l_max = 8``
+    over ``[1e-4, 1e4]``: **41472 non-finite out of 41472** in float32, none
+    in float64.
+
+    ``gamma`` up to 3 is physical (finite mass), and 2.5 is mainstream --
+    steep Dehnen and generalized-NFW models sit here. So this is an ordinary
+    density silently returning `nan` in `galax`'s default dtype, not an
+    exotic input.
+
+    The values are checked too, not just finiteness. Dropping a pad sample
+    usually costs nothing -- the density there is huge but its ``x**(l+3)``
+    weight is negligible -- and float32 tracks float64 to round-off through
+    ``gamma = 2.5``:
+
+    ======= ==========
+    gamma    max rel
+    ======= ==========
+    1.0      1.7e-7
+    1.9      1.2e-7
+    2.5      1.2e-6
+    2.9      1.1e-1
+    ======= ==========
+
+    It is not free at the steep end: by ``gamma = 2.9`` enough of the inner
+    pad is dropped to cost 11%, hence the looser bound there. That is a
+    bounded, one-sided loss of *tail* accuracy rather than a `nan`, which is
+    the trade this module takes everywhere else -- but sampling `rho_fn`
+    many decades out is the real problem, and extrapolating the density into
+    the pad analytically instead would avoid it.
+    """
+    keys = lm_keys(8, "none")
+    n_theta, n_phi = default_angular_resolution(8)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
+
+    def build():
+        # Built inside whichever dtype context is active: a grid made under
+        # x64 and passed into a float32 build is a different test.
+        r_knots = jnp.geomspace(1e-4, 1e4, 256)
+        return build_expansion(
+            rho, r_knots, 8, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = build()["phi_lm"]
+        assert got.dtype == jnp.float32
+        assert jnp.all(jnp.isfinite(got)), (
+            gamma,
+            int(jnp.sum(~jnp.isfinite(got))),
+            got.size,
+        )
+        f32 = jnp.asarray(got, dtype=float)
+
+    # ...and it must be the right answer, not merely a finite one.
+    ref = jnp.asarray(build()["phi_lm"], dtype=float)
+    scale = jnp.max(jnp.abs(ref))
+    assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < rtol

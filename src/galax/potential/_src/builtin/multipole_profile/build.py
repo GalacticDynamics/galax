@@ -285,6 +285,35 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     return jnp.concat([lo, r_knots, hi]), n_pad
 
 
+def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
+    r"""Zero any density sample the working dtype could not represent.
+
+    Padding evaluates the caller's ``rho_fn`` far outside the bracket it was
+    asked about -- by ``_PAD_MULTIPLE`` spans on each side. An inner cusp
+    :math:`\rho \sim r^{-\gamma}` therefore reaches
+    :math:`r_\min e^{-\mathrm{reach}}`, where the *density* overflows once
+    :math:`\gamma \times \mathrm{reach}` clears the dtype's exponent. The
+    reach cap in `_pad_grid` does not help: it is sized so the solver's own
+    :math:`x^2` stays finite, and knows nothing about ``rho_fn``'s slope.
+
+    Without this, one unrepresentable sample took out the whole build. The
+    projection turns ``inf`` into ``inf`` at :math:`l = 0` and ``nan`` above
+    it, and `fit_log_spline` solves one system per mode across the entire
+    padded grid, so a single bad row poisons every radius and every mode --
+    silently, since `jit` raises nothing. A Dehnen :math:`\gamma = 2.5`
+    cusp over ``[1e-4, 1e4]`` at ``l_max = 8`` produced 41472 non-finite
+    values out of 41472 in float32, and none in float64.
+
+    Zeroing costs what it should: the pad exists to keep the boundary
+    power-law model away from the caller's range, so a dropped pad sample
+    weakens that tail slightly. It does not touch the requested bracket,
+    where every sample is representable by construction. That is the trade
+    `_PAD_MULTIPLE` already states -- degrade, rather than return nothing.
+    """
+    out: Float[Array, "..."] = jnp.where(jnp.isfinite(rho), rho, 0.0)
+    return out
+
+
 @ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))
 def build_expansion(
     rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]],
@@ -311,7 +340,9 @@ def build_expansion(
     r_solve, lo = _pad_grid(r_knots)
 
     n_r = r_knots.shape[0]
-    rho_solve = harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)
+    rho_solve = _drop_nonfinite(
+        harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)
+    )
     rho_lm = rho_solve[lo : lo + n_r]
 
     # Sample the density *inside* each interval as well, at Gauss-Legendre
@@ -322,9 +353,11 @@ def build_expansion(
     # be called anywhere; `_GL_NODES` nodes per interval is what that costs,
     # and its docstring is where the count is justified.
     log_gl, _ = gl_log_nodes(jnp.log(r_solve), _GL_NODES)
-    rho_gl = harmonic_coeffs(
-        rho_fn, jnp.exp(log_gl).reshape(-1), l_max, keys, n_theta, n_phi, t
-    ).reshape(log_gl.shape[0], _GL_NODES, -1)
+    rho_gl = _drop_nonfinite(
+        harmonic_coeffs(
+            rho_fn, jnp.exp(log_gl).reshape(-1), l_max, keys, n_theta, n_phi, t
+        ).reshape(log_gl.shape[0], _GL_NODES, -1)
+    )
 
     # The solve returns the first and second log-derivatives alongside the
     # profile. Both fall out of the two radial integrals it already formed,

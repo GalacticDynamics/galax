@@ -124,6 +124,50 @@ clamped denominator no longer represents the integral (see
 """
 
 
+def _scaled_prefix(
+    mult: Float[Array, "n-1"], term: Float[Array, "n-1"], first: Float[Array, ""], /
+) -> Float[Array, "n"]:
+    r"""``y_i = mult_i y_{i-1} + term_i``, with ``y_0 = first``.
+
+    The Green's-function solution needs :math:`I/x^{l+1}` and :math:`x^l I`,
+    never :math:`I` itself -- and only :math:`I` has a dynamic-range problem.
+    On the padded grid at :math:`l = 8`, :math:`I_\mathrm{in}` reaches
+    :math:`e^{104}`, past float32's :math:`e^{88.7}`, while
+    :math:`I_\mathrm{in}/x^{l+1}` sits at :math:`e^{-2.7}`: the overflow is
+    an artifact of forming the prefix sum before dividing it, not of the
+    answer.
+
+    Carrying the scaled quantity instead turns the prefix sum into this
+    recurrence, where ``mult`` is :math:`(x_{i-1}/x_i)^{l+1} \le 1` and
+    ``term`` is the panel already divided by :math:`x_i^{l+1}`, which is
+    :math:`O(\rho x^2)`. Nothing large is ever formed.
+
+    The failure it removes was silent: the overflow landed in the padded
+    region and was sliced off, so values looked right while ``cumsum``'s
+    reverse rule turned the ``inf`` into ``nan`` cotangents that reached the
+    interior. Gradients were `nan` for :math:`l \ge 5` in float32 on an
+    ordinary ``[0.05, 20]`` grid.
+
+    `jax.lax.associative_scan` keeps this at ``cumsum``'s cost -- measured
+    0.46 ms against 0.46 ms at 768 knots and 81 modes, 1.06 against 1.00 at
+    2560 -- because a first-order linear recurrence composes:
+    :math:`(A_2, b_2) \circ (A_1, b_1) = (A_2 A_1,\, A_2 b_1 + b_2)`.
+    """
+
+    def compose(
+        lo: tuple[Array, Array], hi: tuple[Array, Array], /
+    ) -> tuple[Array, Array]:
+        a_lo, b_lo = lo
+        a_hi, b_hi = hi
+        return a_hi * a_lo, a_hi * b_lo + b_hi
+
+    _, scanned = jax.lax.associative_scan(compose, (mult, term))
+    out: Float[Array, "n"] = jnp.concat(
+        [first[None], first * jnp.cumprod(mult) + scanned]
+    )
+    return out
+
+
 def _active_tol(x: Float[Array, "..."], /) -> float:
     r"""Relative threshold for a non-negligible *inner* boundary value.
 
@@ -249,8 +293,9 @@ def solve_poisson_profiles(
     log_r = jnp.log(r_knots) - log_rc
     # Powers of x are the same for every mode, so they are formed once here
     # rather than inside the scan. Every power the body needs follows from
-    # these and `xl` by multiplication, leaving one transcendental per mode
-    # instead of four, under the same bound the recentering guarantees.
+    # these by multiplication. Powers involving `l` are formed as scaled
+    # exponentials inside the body instead -- see `_scaled_prefix` for why
+    # the unscaled ones cannot be formed at all.
     x = jnp.exp(log_r)
     x2 = x * x
     du = jnp.diff(log_r)
@@ -262,9 +307,6 @@ def solve_poisson_profiles(
     # unaffected by the shift.
     if rho_gl is not None:
         log_gl, w_gl = gl_log_nodes(log_r, rho_gl.shape[1])
-        e1 = jnp.exp(log_gl)
-        e2 = e1 * e1
-        e3 = e2 * e1
 
     # One batched not-a-knot fit for every mode, hoisted out of the scan: the
     # integrands differ per mode only by a power of x, which differentiates
@@ -281,24 +323,32 @@ def solve_poisson_profiles(
     ) -> tuple[None, tuple[Array, Array, Array]]:
         rho_col, drho_col, rho_gl_col, l = xs
         # Named for x, not r: `log_r` is already centred, so this is x^l.
-        xl = jnp.exp(l * log_r)  # the only exp per mode
         # Integrands for d(log x), not dx: the dx -> x d(log x) Jacobian is
         # folded in, so these carry one more power of x than the dr form.
-        x_in = xl * x2 * x  # x^(l+3)
-        x_out = x2 / xl  # x^(2-l)
-        g_in = rho_col * x_in
-        g_out = rho_col * x_out
+        # Everything below is scaled: the *unscaled* I_in reaches log 104 at
+        # l=8 on the padded grid, past float32's 88.7, while the quantity it
+        # feeds -- I_in / x^(l+1) -- sits at log -2.7. See `_scaled_prefix`.
+        # `du_in`/`du_out` are the log-distance from each knot to the right
+        # and left end of its interval, both <= 0, so every exponent here is
+        # bounded above by 2 log x.
+        g_in = rho_col * x2  # rho x^2, after the x^(l+1) is divided out
+        g_out = rho_col * x2
         # d(rho x^k)/d(log x), exact in the power, splined in rho.
-        d_in = x_in * (drho_col + (l + 3.0) * rho_col)
-        d_out = x_out * (drho_col + (2.0 - l) * rho_col)
+        d_in = x2 * (drho_col + (l + 3.0) * rho_col)
+        d_out = x2 * (drho_col + (2.0 - l) * rho_col)
 
-        def panels(g: Float[Array, "n_r"], d: Float[Array, "n_r"], /) -> Array:
+        def panels(
+            g: Float[Array, "n_r"], d: Float[Array, "n_r"], sc: Array, /
+        ) -> Array:
             """Per-interval integral of ``g`` against d(log x).
 
             The trapezoid plus the endpoint-slope correction that makes it
             exact for cubics.
             """
-            out: Array = 0.5 * (g[:-1] + g[1:]) * du - du2_12 * (d[1:] - d[:-1])
+            lo, hi = jnp.diagonal(sc[:, :-1]), jnp.diagonal(sc[:, 1:])
+            out: Array = 0.5 * (g[:-1] * lo + g[1:] * hi) * du - du2_12 * (
+                d[1:] * hi - d[:-1] * lo
+            )
             return out
 
         if rho_gl is not None:
@@ -306,12 +356,27 @@ def solve_poisson_profiles(
             # smooth profile is machine precision -- the interpolation error
             # the Hermite rule carries is gone, because rho is *sampled*
             # inside the interval rather than reconstructed across it.
-            xl_gl = jnp.exp(l * log_gl)
-            p_in = jnp.sum(w_gl * rho_gl_col * xl_gl * e3, axis=1)
-            p_out = jnp.sum(w_gl * rho_gl_col * e2 / xl_gl, axis=1)
+            # (l+1)(log x_node - log x_right) <= 0 and l(log x_left -
+            # log x_node) <= 0, so both exponents are bounded by 2 log x.
+            p_in = jnp.sum(
+                w_gl
+                * rho_gl_col
+                * jnp.exp((l + 1.0) * (log_gl - log_r[1:, None]) + 2.0 * log_gl),
+                axis=1,
+            )
+            p_out = jnp.sum(
+                w_gl
+                * rho_gl_col
+                * jnp.exp(l * (log_r[:-1, None] - log_gl) + 2.0 * log_gl),
+                axis=1,
+            )
         else:
-            p_in = panels(g_in, d_in)
-            p_out = panels(g_out, d_out)
+            # The knot-only rule scales the same way: weight each endpoint
+            # by its own distance to the end the recurrence divides by.
+            s_in = jnp.exp((l + 1.0) * (log_r - log_r[1:, None]))
+            s_out = jnp.exp(l * (log_r[:-1, None] - log_r))
+            p_in = panels(g_in, d_in, s_in)
+            p_out = panels(g_out, d_out, s_out)
 
         floor = _log_floor(rho_col)
         scale = jnp.max(jnp.abs(rho_col)) + floor
@@ -333,7 +398,7 @@ def solve_poisson_profiles(
         # (l + 3) times half the grid's log range, the same bound the
         # recentering above already guarantees. This is also what the outer
         # tail below does.
-        dI_in = rho_col[0] * xl[0] * x2[0] * x[0] / safe_in
+        dI_in = rho_col[0] * x2[0] / safe_in  # already / x_0^(l+1)
         # The clamp keeps the division finite under jit, but a clamped
         # denominator no longer represents the integral: at exp_in = 1e-9 the
         # true tail is ~1e3 times what `_SLOPE_TOL` yields. Inside the clamped
@@ -345,7 +410,7 @@ def solve_poisson_profiles(
             dI_in,
             0.0,
         )
-        I_in = jnp.concat([jnp.zeros(1), jnp.cumsum(p_in)]) + dI_in
+        a_in = _scaled_prefix(jnp.exp(-(l + 1.0) * du), p_in, dI_in)
 
         # -- outer tail (r_max -> inf), rho_lm ~ A_out r^alpha_out ----------
         log_rho_out = jnp.log(jnp.abs(rho_col[-3:]) + floor)
@@ -353,12 +418,12 @@ def solve_poisson_profiles(
         active_out = jnp.abs(rho_col[-1]) > 0.0
         denom = l - alpha_out - 2.0
         safe_out = jnp.where(jnp.abs(denom) > _SLOPE_TOL, denom, _SLOPE_TOL)
-        dI_out = rho_col[-1] * x2[-1] / xl[-1] / safe_out
+        dI_out = rho_col[-1] * x2[-1] / safe_out  # already * x_-1^l
         # Same reasoning as the inner tail: `denom` in (0, _SLOPE_TOL] passes
         # the convergence test but is clamped in the division, so drop the
         # tail there rather than under-weight it by an arbitrary factor.
         dI_out = jnp.where(active_out & (denom > _SLOPE_TOL), dI_out, 0.0)
-        I_out = jnp.concat([jnp.cumsum(p_out[::-1])[::-1], jnp.zeros(1)]) + dI_out
+        a_out = _scaled_prefix(jnp.exp(-l * du)[::-1], p_out[::-1], dI_out)[::-1]
 
         # The two integrals carry the derivatives too. Differentiating
         #     Phi = pref (x^-(l+1) I_in + x^l I_out)
@@ -366,8 +431,6 @@ def solve_poisson_profiles(
         # exactly, so dPhi needs no new quadrature; the second derivative
         # keeps one surviving rho x^2, which is just Poisson's equation.
         pref = -4.0 * jnp.pi * G / (2.0 * l + 1.0)
-        a_in = I_in / (xl * x)
-        a_out = xl * I_out
         phi_col = pref * (a_in + a_out)
         dphi_col = pref * (-(l + 1.0) * a_in + l * a_out)
         d2phi_col = pref * ((l + 1.0) ** 2 * a_in + l * l * a_out) + (

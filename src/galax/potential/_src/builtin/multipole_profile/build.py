@@ -120,6 +120,9 @@ def subtract_inner_cusp(
     return rho_lm - background, alpha, amplitude
 
 
+_LN_HUGE_FRAC: float = 0.985
+"""Fraction of the dtype's overflow exponent the padded grid may use."""
+
 _GL_NODES: int = 5
 r"""Gauss-Legendre nodes per radial interval in the Poisson solve.
 
@@ -250,8 +253,22 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     log_r = jnp.log(r_knots)
     reach = _PAD_MULTIPLE * (log_r[-1] - log_r[0])
     n_pad = min(n_r * _PAD_MULTIPLE, _PAD_KNOTS)
+    # Cap the reach by what the dtype can exponentiate. The largest power
+    # the solve forms is x^2 about the padded grid's log-midpoint, so the
+    # padded span must satisfy `span_padded <= budget` where `budget` is the
+    # overflow exponent -- everything with an `l` in it is carried in scaled
+    # form (see `harmonic.poisson._scaled_prefix`) and is bounded by this.
+    #
+    # A caller asking for `[1e-6, 1e6]` already spans 27.6 e-folds; two spans
+    # either side would be 138, well past float32's 87.4, and the build came
+    # back `nan`. Capping degrades gracefully instead: the pad stops growing,
+    # so such a caller gets less tail accuracy rather than no answer. In
+    # float64 the budget is 699 and nothing physical comes close.
+    budget = _LN_HUGE_FRAC * float(np.log(np.finfo(r_knots.dtype).max))
+    span = log_r[-1] - log_r[0]
+    reach = jnp.minimum(reach, 0.5 * jnp.maximum(budget - span, 0.0))
     step = reach / n_pad
-    lo = jnp.exp(log_r[0] + step * jnp.arange(-n_pad, 0))
+    lo = jnp.exp(log_r[0] - step * jnp.arange(n_pad, 0, -1))
     hi = jnp.exp(log_r[-1] + step * jnp.arange(1, n_pad + 1))
     return jnp.concat([lo, r_knots, hi]), n_pad
 

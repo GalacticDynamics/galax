@@ -1,5 +1,6 @@
 """Tests for the multipole profile build pipeline."""
 
+import jax
 import pytest
 
 import quaxed.numpy as jnp
@@ -299,3 +300,108 @@ def test_the_solve_returns_the_derivatives_it_claims() -> None:
         scale = jnp.max(jnp.abs(want))
         err = float(jnp.max(jnp.abs(got[interior] - want[interior])) / scale)
         assert err < 1e-10, f"{key}: {err:.2e}"
+
+
+# `galax`'s projection asks for float64 explicitly, so running the builder
+# under `enable_x64(False)` emits JAX's truncation warning, which
+# `filterwarnings = ["error"]` turns into a failure. That wart is real and
+# worth fixing, but it is not what these two tests are about.
+@pytest.mark.filterwarnings("ignore:Explicitly requested dtype")
+@pytest.mark.parametrize("l_max", [4, 6, 8, 12])
+def test_gradients_are_finite_in_float32_at_high_l(l_max: int) -> None:
+    """Gradients, in the dtype `galax` actually runs, at the l a caller asks for.
+
+    REGRESSION: the radial solve formed ``I_in = cumsum(rho x^(l+3))`` and
+    only then divided by ``x^(l+1)``. On the padded grid at ``l=8`` that
+    intermediate reaches ``e^104``, past float32's ``e^88.7``, while the
+    quotient it feeds sits at ``e^-2.7`` -- the overflow was an artifact of
+    the factorization, not of the answer.
+
+    The forward pass hid it: the overflow landed in the padded region and was
+    sliced off, so values stayed correct while ``cumsum``'s reverse rule
+    turned the ``inf`` into ``nan`` cotangents that reached the interior.
+    Gradients were `nan` from ``l_max = 5`` on an ordinary ``[0.05, 20]``
+    grid, and the suite could not see it because ``pyproject`` forces x64.
+
+    So this asserts on the *gradient*, not the value, and runs under
+    `jax.enable_x64(False)`.
+    """
+    keys = lm_keys(l_max, "none")
+    n_theta, n_phi = default_angular_resolution(l_max)
+
+    def total(mass):
+        def rho(xyz, t):
+            r = jnp.linalg.norm(xyz, axis=-1)
+            safe = jnp.where(r > 0, r, 1e-20)
+            return mass / (2.0 * jnp.pi) / (safe * (1.0 + safe) ** 3)
+
+        built = build_expansion(
+            rho,
+            jnp.geomspace(0.05, 20.0, 64),
+            l_max,
+            keys,
+            n_theta,
+            n_phi,
+            jnp.asarray(0.0),
+            jnp.asarray(1.0),
+        )
+        return jnp.sum(jnp.abs(built["phi_lm"]))
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        value = total(2.0)
+        grad = jax.grad(total)(2.0)
+
+    assert jnp.isfinite(value), value
+    assert jnp.isfinite(grad), grad
+
+
+@pytest.mark.filterwarnings("ignore:Explicitly requested dtype")
+@pytest.mark.parametrize(("r_min", "r_max"), [(1e-3, 1e3), (1e-6, 1e6), (1e-10, 1e10)])
+def test_a_very_wide_bracket_stays_finite_in_float32(r_min, r_max) -> None:
+    """Padding must not push the grid out of the dtype's range.
+
+    REGRESSION: the pad extended a fixed two spans either side, so a caller
+    asking for ``[1e-6, 1e6]`` -- already 27.6 e-folds -- got a 138 e-fold
+    padded grid, where float32's 87.4 budget is long gone and every output
+    was `nan`.
+
+    The reach is now capped by what the dtype can exponentiate, which
+    degrades gracefully: a bracket this wide gets less tail accuracy rather
+    than no answer at all. Ordinary brackets are nowhere near the cap and are
+    unaffected, which the accuracy tests above pin.
+
+    The density here is written to survive the padded range, which is the
+    caller's job: padding evaluates ``rho_fn`` well outside the requested
+    bracket, and the unguarded ``1/(2 pi) / r / (1 + r)**3`` used elsewhere in
+    this file overflows float32 at ``r ~ 1e19`` on its own, before the solve
+    sees it. That is a real trap but a different one, and pinning it here
+    would test the density rather than the padding.
+    """
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        # The same Hernquist profile, formed in logs so it is finite at any
+        # radius: `(1 + r) ** 3` alone overflows float32 by `r ~ 1e13`.
+        r = jnp.sqrt(jnp.sum(xyz**2, axis=-1))
+        safe = jnp.where(r > 0, r, jnp.finfo(r.dtype).tiny)
+        return jnp.exp(-jnp.log(2.0 * jnp.pi) - jnp.log(safe) - 3.0 * jnp.log1p(safe))
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        # Retrace under this config: `build_expansion` is jitted, and a cache
+        # entry left by an earlier x64 test in this file is reused otherwise,
+        # so the float32 path never actually runs and the test passes alone
+        # while failing in the file.
+        built = build_expansion(
+            rho,
+            jnp.geomspace(r_min, r_max, 64),
+            0,
+            keys,
+            n_theta,
+            n_phi,
+            jnp.asarray(0.0),
+            jnp.asarray(_G_GALACTIC),
+        )
+
+    for name, arr in built.items():
+        assert jnp.all(jnp.isfinite(arr)), (name, arr)

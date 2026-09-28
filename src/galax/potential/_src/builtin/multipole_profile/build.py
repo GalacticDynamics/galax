@@ -207,8 +207,20 @@ rule to fourth order made 100% worth paying for, and sampling the density at
 Gauss-Legendre nodes moved it again to 200%. 300% and 600% measure the same
 as 200%, so this is the plateau and not another step along it.
 
-The cost is one-off, at build time: the solve grid is ``5 * n_r`` knots and
-each carries `_GL_NODES` density evaluations.
+The cost is one-off, at build time. The solve grid is
+``n_r + 2 * min(n_r * _PAD_MULTIPLE, _PAD_KNOTS)`` knots, each carrying
+`_GL_NODES` density evaluations -- so the padding stops growing with ``n_r``
+once the cap binds, and the grid tends to ``n_r + 256`` rather than
+``5 * n_r``:
+
+======= ========== ==========
+``n_r``  padded     uncapped
+======= ========== ==========
+64       320        320
+256      512        1280
+512      768        2560
+2048     2304       10240
+======= ========== ==========
 """
 
 

@@ -7,7 +7,6 @@ import pytest
 import unxt as u
 
 from galax.potential._src.params.core import ParameterCallable
-from galax.potential.custom_types import Unit
 from galax.potential.params import AbstractParameter, ConstantParameter, CustomParameter
 
 T = TypeVar("T", bound=AbstractParameter)
@@ -21,13 +20,13 @@ class TestAbstractParameter(Generic[T]):
         return AbstractParameter
 
     @pytest.fixture(scope="class")
-    def field_unit(self) -> Unit:
+    def field_unit(self) -> u.AbstractUnit:
         return u.unit("km")
 
     @pytest.fixture(scope="class")
-    def param(self, param_cls: type[T], field_unit: Unit) -> T:
+    def param(self, param_cls: type[T], field_unit: u.AbstractUnit) -> T:
         class TestParameter(param_cls):
-            unit: Unit
+            unit: u.AbstractUnit
 
             def __call__(self, t: Any, **kwargs: Any) -> Any:
                 return t
@@ -64,7 +63,9 @@ class TestConstantParameter(TestAbstractParameter[ConstantParameter]):
         return u.Q(1.0, field_unit)
 
     @pytest.fixture(scope="class")
-    def param(self, param_cls: type[T], field_unit: Unit, field_value: float) -> T:
+    def param(
+        self, param_cls: type[T], field_unit: u.AbstractUnit, field_value: float
+    ) -> T:
         return param_cls(u.Q.from_(field_value, unit=field_unit))
 
     # ===============================================================
@@ -118,7 +119,10 @@ class TestCustomParameter(TestAbstractParameter[CustomParameter]):
 
     @pytest.fixture(scope="class")
     def param(
-        self, param_cls: type[T], field_unit: Unit, field_func: ParameterCallable
+        self,
+        param_cls: type[T],
+        field_unit: u.AbstractUnit,
+        field_func: ParameterCallable,
     ) -> T:
         return param_cls(field_func)
 

@@ -339,14 +339,19 @@ def solve_poisson_profiles(
         d_out = x2 * (drho_col + (2.0 - l) * rho_col)
 
         def panels(
-            g: Float[Array, "n_r"], d: Float[Array, "n_r"], sc: Array, /
+            g: Float[Array, "n_r"],
+            d: Float[Array, "n_r"],
+            lo: Array,
+            hi: Array,
+            /,
         ) -> Array:
             """Per-interval integral of ``g`` against d(log x).
 
             The trapezoid plus the endpoint-slope correction that makes it
-            exact for cubics.
+            exact for cubics. ``lo`` and ``hi`` scale each endpoint to the
+            end of its own interval that the recurrence divides by, so they
+            are per-interval vectors, not a matrix to take a diagonal of.
             """
-            lo, hi = jnp.diagonal(sc[:, :-1]), jnp.diagonal(sc[:, 1:])
             out: Array = 0.5 * (g[:-1] * lo + g[1:] * hi) * du - du2_12 * (
                 d[1:] * hi - d[:-1] * lo
             )
@@ -372,12 +377,16 @@ def solve_poisson_profiles(
                 axis=1,
             )
         else:
-            # The knot-only rule scales the same way: weight each endpoint
-            # by its own distance to the end the recurrence divides by.
-            s_in = jnp.exp((l + 1.0) * (log_r - log_r[1:, None]))
-            s_out = jnp.exp(l * (log_r[:-1, None] - log_r))
-            p_in = panels(g_in, d_in, s_in)
-            p_out = panels(g_out, d_out, s_out)
+            # The knot-only rule scales the same way, and the scalings are
+            # one-dimensional: the inner recurrence divides by the interval's
+            # right end, so its left endpoint picks up exp(-(l+1) du) and its
+            # right endpoint picks up 1; the outer divides by the left end,
+            # so the roles swap with exponent l. Forming these as (n_r-1, n_r)
+            # broadcasts and taking diagonals cost 52 MB per direction per
+            # mode at n_r = 2560, for n values.
+            ones = jnp.ones_like(du)
+            p_in = panels(g_in, d_in, jnp.exp(-(l + 1.0) * du), ones)
+            p_out = panels(g_out, d_out, ones, jnp.exp(-l * du))
 
         floor = _log_floor(rho_col)
         scale = jnp.max(jnp.abs(rho_col)) + floor

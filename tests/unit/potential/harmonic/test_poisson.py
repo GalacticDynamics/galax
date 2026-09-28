@@ -426,3 +426,38 @@ def test_solve_poisson_rejects_a_mismatched_gauss_legendre_array(mangle, label) 
 
     with pytest.raises(ValueError, match="rho_gl must"):
         solve_poisson_profiles(*args, mangle(rho_gl))
+
+
+def test_the_knot_only_path_does_not_allocate_a_matrix_per_mode() -> None:
+    """The non-GL path must stay O(n_r), not O(n_r^2).
+
+    REGRESSION: scaling each panel endpoint to the end of its own interval
+    was written as an ``(n_r - 1, n_r)`` broadcast whose two diagonals were
+    then extracted -- ``n`` values taken from an ``n**2`` array, per mode,
+    per direction. At ``n_r = 2560`` that is 52 MB a time, and the solve took
+    2.5 s where it now takes 47 ms.
+
+    Nothing about the *answer* changed, which is why no accuracy test caught
+    it, and `build_expansion` always supplies Gauss-Legendre samples so it
+    never reached this branch at all. `solve_poisson_lm` is public and does.
+
+    The compiled size is the durable check: an O(n^2) intermediate shows up
+    as a quadratic jump in peak buffer size, while the O(n) form grows
+    linearly. Compare the two grids rather than asserting an absolute, so
+    this survives XLA changing its mind about fusion.
+    """
+    p, G = -1.5, 1.0
+
+    def peak_bytes(n_r: int) -> int:
+        r = jnp.geomspace(1e-3, 1e3, n_r)
+        rho = (r**p)[:, None]
+        compiled = (
+            jax.jit(solve_poisson_profiles)
+            .lower(r, rho, jnp.asarray([8.0]), jnp.asarray(G))
+            .compile()
+        )
+        return compiled.memory_analysis().temp_size_in_bytes
+
+    small, large = peak_bytes(256), peak_bytes(1024)
+    # Four times the knots: linear would be ~4x, quadratic ~16x.
+    assert large < 8 * small, (small, large)

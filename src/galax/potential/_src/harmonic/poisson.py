@@ -161,10 +161,11 @@ def _scaled_prefix(
         a_hi, b_hi = hi
         return a_hi * a_lo, a_hi * b_lo + b_hi
 
-    _, scanned = jax.lax.associative_scan(compose, (mult, term))
-    out: Float[Array, "n"] = jnp.concat(
-        [first[None], first * jnp.cumprod(mult) + scanned]
-    )
+    # The scan's first component *is* the prefix product of `mult`, which is
+    # what carries `first` forward -- taking it from here rather than a second
+    # `cumprod` is the difference between one scan and two.
+    prefix_mult, scanned = jax.lax.associative_scan(compose, (mult, term))
+    out: Float[Array, "n"] = jnp.concat([first[None], first * prefix_mult + scanned])
     return out
 
 

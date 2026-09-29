@@ -123,6 +123,14 @@ def subtract_inner_cusp(
 _LN_HUGE_FRAC: float = 0.985
 """Fraction of the dtype's overflow exponent the padded grid may use."""
 
+_MIN_SLOPE: float = 1e-3
+"""Floor on the density's fitted log-log slope when sizing the pad.
+
+Only guards the division in `_density_reach`. A flat envelope needs no cap,
+and this turns that into a reach far beyond any the other limits allow
+rather than into a divide-by-zero.
+"""
+
 _GL_NODES: int = 5
 r"""Gauss-Legendre nodes per radial interval in the Poisson solve.
 
@@ -224,7 +232,62 @@ once the cap binds, and the grid tends to ``n_r + 256`` rather than
 """
 
 
-def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], int]:
+def _check_enough_knots(n_r: int, /) -> None:
+    """Reject a grid too small for the three-knot boundary fits.
+
+    Four knots, matching `MultipoleProfilePotential.from_density`: the
+    boundary slopes are fitted over three. This has to be checked *before*
+    padding, because padding defeats the ``n_r >= 3`` guard inside the radial
+    solve -- a single knot pads to three and sails through it -- and before
+    the end-knot probe in `build_expansion`, which slices three from each end.
+
+    It also has to be checked at all: ``r_knots[1]`` on a one-knot grid is out
+    of bounds, and JAX clamps rather than raising, so the ratio comes out as 1
+    and every padded knot lands on top of the original.
+    """
+    if n_r < 4:
+        msg = (
+            f"r_knots must have at least 4 entries (got {n_r}); the boundary "
+            "slopes are fitted over three"
+        )
+        raise ValueError(msg)
+
+
+def _density_reach(
+    log_env: Float[Array, "3"],
+    log_r3: Float[Array, "3"],
+    budget: float,
+    direction: float,
+    /,
+) -> Float[Array, ""]:
+    r"""Log-reach the density's own slope leaves representable.
+
+    ``log_env`` is :math:`\log \max_{lm} |\rho_{lm}|` at three knots at one
+    end of the grid, boundary knot *first*, and ``log_r3`` their radii.
+    ``direction`` is :math:`-1` for the inner pad and :math:`+1` for the
+    outer. The envelope is continued as a power law and the reach returned is
+    where it would reach ``budget``.
+
+    Only the direction that *raises* the density is capped. Padding by
+    :math:`R` moves :math:`\log r` by :math:`d R`, so
+    :math:`\log\rho` moves by :math:`\alpha d R`: an inner cusp
+    (:math:`\alpha < 0`, :math:`d = -1`) climbs and can overflow, while the
+    same cusp padded outward falls and cannot. `_MIN_SLOPE` both floors the
+    division and turns every non-growing case into a reach large enough that
+    the other limits bind first.
+    """
+    slope = jnp.mean(jnp.diff(log_env) / jnp.diff(log_r3))
+    growth = jnp.maximum(slope * direction, _MIN_SLOPE)
+    reach: Float[Array, ""] = jnp.maximum(budget - log_env[0], 0.0) / growth
+    return reach
+
+
+def _pad_grid(
+    r_knots: Float[Array, "n_r"],
+    reach_in: Float[Array, ""],
+    reach_out: Float[Array, ""],
+    /,
+) -> tuple[Float[Array, "n_pad"], int]:
     """Extend ``r_knots`` at both ends, continuing its own spacing.
 
     Returns the padded grid and the index at which the original knots start,
@@ -232,21 +295,13 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     is taken from the shape, which is static under `jax.jit`; the spacing is
     read from the values, so a grid that is not log-uniform still continues
     smoothly from each end.
+
+    ``reach_in`` and ``reach_out`` cap each side by what the *density* can
+    represent there; see `_density_reach`. Both sides keep the same knot
+    count, so only the step differs and the slice index is unchanged.
     """
     n_r = r_knots.shape[0]
-    # Four knots, matching `MultipoleProfilePotential.from_density`: the
-    # boundary slopes are fitted over three. This has to be checked *before*
-    # padding, because padding defeats the `n_r >= 3` guard inside the
-    # radial solve -- a single knot pads to three and sails through it.
-    # It also has to be checked at all: `r_knots[1]` on a one-knot grid is out
-    # of bounds, and JAX clamps rather than raising, so the ratio comes out as
-    # 1 and every padded knot lands on top of the original.
-    if n_r < 4:
-        msg = (
-            f"r_knots must have at least 4 entries (got {n_r}); the boundary "
-            "slopes are fitted over three"
-        )
-        raise ValueError(msg)
+    _check_enough_knots(n_r)
     # Pad by log *reach*, not by knot count, and take the step from the
     # grid's whole span rather than its end intervals.
     #
@@ -279,22 +334,33 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     budget = _LN_HUGE_FRAC * float(np.log(np.finfo(r_knots.dtype).max))
     span = log_r[-1] - log_r[0]
     reach = jnp.minimum(reach, 0.5 * jnp.maximum(budget - span, 0.0))
-    step = reach / n_pad
-    lo = jnp.exp(log_r[0] - step * jnp.arange(n_pad, 0, -1))
-    hi = jnp.exp(log_r[-1] + step * jnp.arange(1, n_pad + 1))
+    # ...and by what the density itself stays representable across. The cap
+    # above is sized for the solver's own `x^2` and knows nothing about
+    # `rho_fn`'s slope, so a steep cusp overflowed the pad it did not bound:
+    # a Dehnen `gamma = 2.9` over `[1e-4, 1e4]` lost 11% of the monopole in
+    # float32, because `_drop_nonfinite` zeroed the innermost 51 pad knots
+    # and zeroing `rho[0]` also switches off the analytic inner tail that
+    # would have covered `[0, r_pad]`. Padding less far is the graceful
+    # trade -- the same one the `x^2` cap already makes.
+    step_lo = jnp.minimum(reach, reach_in) / n_pad
+    step_hi = jnp.minimum(reach, reach_out) / n_pad
+    lo = jnp.exp(log_r[0] - step_lo * jnp.arange(n_pad, 0, -1))
+    hi = jnp.exp(log_r[-1] + step_hi * jnp.arange(1, n_pad + 1))
     return jnp.concat([lo, r_knots, hi]), n_pad
 
 
 def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     r"""Zero any density sample the working dtype could not represent.
 
-    Padding evaluates the caller's ``rho_fn`` far outside the bracket it was
-    asked about -- by ``_PAD_MULTIPLE`` spans on each side. An inner cusp
-    :math:`\rho \sim r^{-\gamma}` therefore reaches
-    :math:`r_\min e^{-\mathrm{reach}}`, where the *density* overflows once
-    :math:`\gamma \times \mathrm{reach}` clears the dtype's exponent. The
-    reach cap in `_pad_grid` does not help: it is sized so the solver's own
-    :math:`x^2` stays finite, and knows nothing about ``rho_fn``'s slope.
+    Padding evaluates the caller's ``rho_fn`` outside the bracket it was
+    asked about, so an inner cusp :math:`\rho \sim r^{-\gamma}` is sampled
+    where the *density* can overflow, once
+    :math:`\gamma \times \mathrm{reach}` clears the dtype's exponent.
+
+    `_density_reach` now bounds the reach by exactly that product, so this is
+    a second line of defence rather than the first: the slope it caps with is
+    a three-knot fit at the boundary, which a density with structure between
+    there and the pad edge can still outrun.
 
     Without this, one unrepresentable sample took out the whole build. The
     projection turns ``inf`` into ``inf`` at :math:`l = 0` and ``nan`` above
@@ -304,11 +370,12 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     cusp over ``[1e-4, 1e4]`` at ``l_max = 8`` produced 41472 non-finite
     values out of 41472 in float32, and none in float64.
 
-    Zeroing costs what it should: the pad exists to keep the boundary
-    power-law model away from the caller's range, so a dropped pad sample
-    weakens that tail slightly. It does not touch the requested bracket,
-    where every sample is representable by construction. That is the trade
-    `_PAD_MULTIPLE` already states -- degrade, rather than return nothing.
+    Zeroing is not free, which is why it is no longer the primary guard: a
+    zeroed ``rho[0]`` also switches off the solve's analytic inner tail,
+    which is gated on that sample being non-negligible, so the loss is the
+    dropped band *plus* everything inside it. At :math:`\gamma = 2.9` that
+    was 11% of the monopole. It does not touch the requested bracket, where
+    every sample is representable by construction.
     """
     out: Float[Array, "..."] = jnp.where(jnp.isfinite(rho), rho, 0.0)
     return out
@@ -332,12 +399,33 @@ def build_expansion(
     parameters. `expansion`'s module docstring lists the keys; keeping the
     count out of this sentence keeps the two from drifting apart.
     """
+    _check_enough_knots(r_knots.shape[0])
     log_r = jnp.log(r_knots)
     l_per_mode = jnp.asarray([float(l) for l, _ in keys])
 
+    # How far the pad may reach is limited by the density, not only by the
+    # solver's arithmetic. Probe the three knots at each end -- the same
+    # three the cusp fit and the solve's tail fits already use -- and
+    # continue their envelope as a power law to find where it would overflow.
+    # Six knots of projection, against the padded grid's several hundred.
+    probe = harmonic_coeffs(
+        rho_fn,
+        jnp.concat([r_knots[:3], r_knots[-3:]]),
+        l_max,
+        keys,
+        n_theta,
+        n_phi,
+        t,
+    )
+    env = jnp.max(jnp.abs(probe), axis=1)
+    log_env = jnp.log(env + _log_floor(env))
+    rho_budget = _LN_HUGE_FRAC * float(np.log(np.finfo(env.dtype).max))
+    reach_in = _density_reach(log_env[:3], log_r[:3], rho_budget, -1.0)
+    reach_out = _density_reach(log_env[3:][::-1], log_r[-3:][::-1], rho_budget, 1.0)
+
     # Solve on a padded grid so the boundary tail models sit outside the range
     # the caller asked for, then keep only that range. See `_PAD_MULTIPLE`.
-    r_solve, lo = _pad_grid(r_knots)
+    r_solve, lo = _pad_grid(r_knots, reach_in, reach_out)
 
     n_r = r_knots.shape[0]
     rho_solve = _drop_nonfinite(

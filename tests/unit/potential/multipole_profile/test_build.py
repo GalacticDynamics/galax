@@ -9,6 +9,7 @@ import unxt as u
 from galax.potential._src.base import default_constants
 from galax.potential._src.builtin.multipole_profile import expansion_potential
 from galax.potential._src.builtin.multipole_profile.build import (
+    _density_reach,
     build_expansion,
     subtract_inner_cusp,
 )
@@ -420,7 +421,7 @@ def test_a_very_wide_bracket_stays_finite_in_float32(r_min, r_max) -> None:
 
 @pytest.mark.filterwarnings("ignore:Explicitly requested dtype")
 @pytest.mark.parametrize(
-    ("gamma", "rtol"), [(1.0, 1e-5), (1.9, 1e-5), (2.5, 1e-5), (2.9, 0.2)]
+    ("gamma", "rtol"), [(1.0, 1e-5), (1.9, 1e-5), (2.5, 1e-5), (2.9, 1e-4)]
 )
 def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> None:
     """A density the *pad* cannot represent must not zero the whole build.
@@ -428,9 +429,9 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> No
     REGRESSION: padding evaluates ``rho_fn`` `_PAD_MULTIPLE` spans outside
     the requested bracket, so a cusp ``rho ~ r**-gamma`` is sampled at
     ``r_min * exp(-reach)`` where the density overflows once
-    ``gamma * reach`` clears the dtype's exponent. `_pad_grid`'s reach cap
-    does not help -- it is sized so the solver's own ``x**2`` stays finite
-    and knows nothing about ``rho_fn``'s slope.
+    ``gamma * reach`` clears the dtype's exponent. `_pad_grid` now caps the
+    reach by `_density_reach` as well as by the solver's own ``x**2``
+    budget, so the pad stops where the density stops being representable.
 
     One unrepresentable sample took out everything: the projection turns
     ``inf`` into ``nan`` for ``l >= 1``, and `fit_log_spline` solves one
@@ -444,26 +445,33 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> No
     density silently returning `nan` in `galax`'s default dtype, not an
     exotic input.
 
-    The values are checked too, not just finiteness. Dropping a pad sample
-    usually costs nothing -- the density there is huge but its ``x**(l+3)``
-    weight is negligible -- and float32 tracks float64 to round-off through
-    ``gamma = 2.5``:
+    The values are checked too, not just finiteness. The pad is now sized by
+    what the density can represent across it (`_density_reach`), so no sample
+    overflows and none is dropped:
 
-    ======= ==========
-    gamma    max rel
-    ======= ==========
-    1.0      1.7e-7
-    1.9      1.2e-7
-    2.5      1.2e-6
-    2.9      1.1e-1
-    ======= ==========
+    ======= ========== ==========
+    gamma    before     after
+    ======= ========== ==========
+    1.0      1.7e-7     1.8e-7
+    1.9      1.2e-7     1.2e-7
+    2.5      1.2e-6     2.3e-7
+    2.9      1.1e-1     3.8e-5
+    ======= ========== ==========
 
-    It is not free at the steep end: by ``gamma = 2.9`` enough of the inner
-    pad is dropped to cost 11%, hence the looser bound there. That is a
-    bounded, one-sided loss of *tail* accuracy rather than a `nan`, which is
-    the trade this module takes everywhere else -- but sampling `rho_fn`
-    many decades out is the real problem, and extrapolating the density into
-    the pad analytically instead would avoid it.
+    The "before" column is what zeroing the unrepresentable samples cost.
+    It was harmless through ``gamma = 2.5`` -- the density at the inner pad
+    is huge but its ``x**(l+3)`` weight is negligible -- and 11% by 2.9,
+    where the innermost 51 pad knots were dropped. Zeroing ``rho[0]`` also
+    switched off the solve's analytic inner tail, which is gated on it, so
+    the band ``[0, r_pad]`` was lost as well; for ``rho ~ r**-2.9`` the
+    monopole integrand is ``r**-0.9`` and that band carries ~12% of the
+    enclosed mass, which is the error observed.
+
+    Capping the reach trades pad *depth* for representability, so the steep
+    case gets a slightly shorter tail rather than a wrong answer. The cap
+    binds only when it must: at ``gamma = 2.9`` in float32 it allows 20.5
+    e-folds against the 36.8 requested, and for Hernquist, ``gamma = 1.0``,
+    or anything in float64 it does not bind at all.
     """
     keys = lm_keys(8, "none")
     n_theta, n_phi = default_angular_resolution(8)
@@ -494,3 +502,43 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> No
     ref = jnp.asarray(build()["phi_lm"], dtype=float)
     scale = jnp.max(jnp.abs(ref))
     assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < rtol
+
+
+@pytest.mark.parametrize(
+    ("slope", "direction", "capped"),
+    [
+        (-2.9, -1.0, True),  # inner cusp, padded inward: climbs
+        (-2.9, +1.0, False),  # same cusp, padded outward: falls
+        (+2.0, +1.0, True),  # growing outward, padded outward: climbs
+        (+2.0, -1.0, False),  # growing outward, padded inward: falls
+    ],
+)
+def test_density_reach_caps_only_the_growing_direction(
+    slope: float, direction: float, capped: bool
+) -> None:
+    """Only the side where padding *raises* the density may be capped.
+
+    REGRESSION: an earlier version used ``abs(slope)`` as the growth rate,
+    which caps whichever side it is asked about. That is wrong on the outer
+    pad of any ordinary halo: `rho ~ r**-4` out there *falls* as the pad
+    extends, so it can never overflow, yet an ``abs`` cap would shorten the
+    outer pad and quietly cost tail accuracy on every build. No end-to-end
+    accuracy test catches it, because the outer tail is small.
+
+    Padding by ``R`` moves ``log r`` by ``direction * R``, so ``log rho``
+    moves by ``slope * direction * R``; only a positive product can reach
+    the overflow budget.
+    """
+    log_r3 = jnp.log(jnp.asarray([1.0, 1.1, 1.21]))
+    log_env = jnp.asarray([0.0, slope * float(log_r3[1]), slope * float(log_r3[2])])
+    budget = 80.0
+
+    reach = float(_density_reach(log_env, log_r3, budget, direction))
+
+    if capped:
+        # Finite and set by the slope: budget / |slope|, since log_env[0] = 0.
+        assert reach == pytest.approx(budget / abs(slope), rel=1e-6)
+    else:
+        # Not capped in any practical sense -- floored by `_MIN_SLOPE`, so
+        # far beyond the `x**2` budget that binds first.
+        assert reach > 1e4

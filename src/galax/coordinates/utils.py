@@ -6,6 +6,7 @@ into `_src`. Not exported from `galax.coordinates` itself -- import the module
 explicitly.
 """
 
-__all__ = ["batched_shape", "vector_batched_shape"]
+__all__ = ["batched_shape", "getitem", "vector_batched_shape"]
 
 from ._src.shape import batched_shape, vector_batched_shape
+from ._src.utils import getitem

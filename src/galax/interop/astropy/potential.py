@@ -14,7 +14,7 @@ from unxt.quantity import BareQuantity as FastQ
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
-from galax.potential._src.utils import coord_dispatcher
+from galax.potential.utils import coord_dispatcher
 
 # =============================================================================
 

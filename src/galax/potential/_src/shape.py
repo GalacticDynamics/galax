@@ -6,11 +6,15 @@ here rather than in `coordinates` alongside `batched_shape`.
 
 __all__: tuple[str, ...] = ()
 
+from jaxtyping import Array, Shaped
+from typing import TypeAlias
+
+import quax
 from quax import quaxify
 
 import quaxed.numpy as jnp
 
-from galax.coordinates.shape import ArrayAnyShape
+ArrayAnyShape: TypeAlias = Shaped[Array | quax.ArrayValue, "..."]
 
 
 @quaxify

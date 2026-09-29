@@ -5,6 +5,6 @@
 reaching into `_src`.
 """
 
-__all__ = ["ArrayAnyShape", "batched_shape", "vector_batched_shape"]
+__all__ = ["batched_shape", "vector_batched_shape"]
 
-from ._src.shape import ArrayAnyShape, batched_shape, vector_batched_shape
+from ._src.shape import batched_shape, vector_batched_shape

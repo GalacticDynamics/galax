@@ -313,11 +313,6 @@ def test_the_solve_returns_the_derivatives_it_claims() -> None:
         assert err < 1e-10, f"{key}: {err:.2e}"
 
 
-# `galax`'s projection asks for float64 explicitly, so running the builder
-# under `enable_x64(False)` emits JAX's truncation warning, which
-# `filterwarnings = ["error"]` turns into a failure. That wart is real and
-# worth fixing, but it is not what these two tests are about.
-@pytest.mark.filterwarnings("ignore:Explicitly requested dtype")
 @pytest.mark.parametrize("l_max", [4, 6, 8, 12])
 def test_gradients_are_finite_in_float32_at_high_l(l_max: int) -> None:
     """Gradients, in the dtype `galax` actually runs, at the l a caller asks for.
@@ -366,7 +361,6 @@ def test_gradients_are_finite_in_float32_at_high_l(l_max: int) -> None:
     assert jnp.isfinite(grad), grad
 
 
-@pytest.mark.filterwarnings("ignore:Explicitly requested dtype")
 @pytest.mark.parametrize(("r_min", "r_max"), [(1e-3, 1e3), (1e-6, 1e6), (1e-10, 1e10)])
 def test_a_very_wide_bracket_stays_finite_in_float32(r_min, r_max) -> None:
     """Padding must not push the grid out of the dtype's range.
@@ -418,7 +412,6 @@ def test_a_very_wide_bracket_stays_finite_in_float32(r_min, r_max) -> None:
         assert jnp.all(jnp.isfinite(arr)), (name, arr)
 
 
-@pytest.mark.filterwarnings("ignore:Explicitly requested dtype")
 @pytest.mark.parametrize(
     ("gamma", "rtol"), [(1.0, 1e-5), (1.9, 1e-5), (2.5, 1e-5), (2.9, 0.2)]
 )

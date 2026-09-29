@@ -611,7 +611,6 @@ def test_density_is_finite_in_float32_for_a_steep_cusp(scale) -> None:
     assert jnp.all(jnp.isfinite(got)), f"non-finite density: {got}"
 
 
-@pytest.mark.filterwarnings("ignore:Explicitly requested dtype")
 @pytest.mark.parametrize(
     ("r_min", "r_max", "expect_warning"),
     [(0.05, 20.0, False), (1e-3, 1e3, False), (1e-6, 1e6, True)],

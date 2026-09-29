@@ -80,9 +80,11 @@ class MultipoleProfileMixin(AbstractSinglePotential):
         but the radial half is taken forward-mode over the single scalar
         ``log r`` instead of in reverse through the spline's gather.
 
-        `test_gradient_matches_autodiff` keeps the two paths pinned together,
-        and `_laplacian`/`_hessian` still differentiate *this*, which `jvp`
-        and `vjp` both support.
+        `test_gradient_matches_autodiff` keeps the two paths pinned together.
+
+        `_laplacian` and `_hessian` are unaffected: both differentiate
+        ``_potential`` directly (`jax.hessian` in `AbstractPotential`), not
+        this method, so second derivatives do not route through here.
         """
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         return expansion_gradient(  # type: ignore[no-any-return]

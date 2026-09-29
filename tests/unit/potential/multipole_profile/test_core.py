@@ -677,9 +677,21 @@ def test_gradient_matches_autodiff(l_max: int, symmetry: str) -> None:
     The z-axis is included deliberately: the harmonics are evaluated from the
     Cartesian direction precisely so the derivative exists there, and a
     ``(theta, phi)`` form would give ``0/0`` for every ``m >= 1``.
+
+    The source must be **aspherical**. An earlier version of this test built
+    the expansion from a Hernquist sphere, whose projection is pure monopole,
+    so every ``Phi_lm`` with ``l > 0`` was machine-zero and the whole
+    angular term -- the `jax.vjp` and the tangential projection -- was
+    multiplied by nothing. Deleting that term outright still passed all six
+    cases. A triaxial source gives the higher-``l`` coefficients real
+    amplitude, and the same mutation then fails.
     """
-    src = gp.HernquistPotential(
-        m_tot=u.Q(1e12, "Msun"), r_s=u.Q(10.0, "kpc"), units="galactic"
+    src = gp.TriaxialNFWPotential(
+        m=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        q1=1.0,
+        q2=0.8,
+        units="galactic",
     )
     pot = gp.MultipoleProfilePotential.from_potential(
         src,

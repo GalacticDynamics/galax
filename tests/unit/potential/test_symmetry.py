@@ -45,7 +45,7 @@ def test_none_is_an_alias() -> None:
 @pytest.mark.parametrize("value", ["axisymmetric", "triaxial", "NONE", ""])
 def test_unknown_value_raises(value: str) -> None:
     # The message names the valid values: "axisymmetric" and "triaxial" are
-    # the natural guesses, and they are Agama's vocabulary, not this one.
+    # the natural guesses, and neither is this vocabulary's word for anything.
     with pytest.raises(ValueError, match="Unknown symmetry") as excinfo:
         gp.Symmetry(value)
     assert "spherical" in str(excinfo.value)

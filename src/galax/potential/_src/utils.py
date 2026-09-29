@@ -191,7 +191,7 @@ def gauss_legendre_nodes(
     True
 
     """
-    return _nodes_for_dtype(order, interval, jax.dtypes.canonicalize_dtype(float))
+    return _nodes_for_dtype(order, interval, canonicalize_dtype(float))
 
 
 def gauss_legendre(

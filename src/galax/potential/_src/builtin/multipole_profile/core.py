@@ -308,6 +308,18 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
     analytic answer. The *density* has no such tail and is still meaningless
     at the origin.
 
+    **Attribution.** This machinery follows ``agama`` closely, and the
+    asymptotic continuation is a direct port of its ``PowerLawMultipole``
+    and ``computeExtrapolationCoefs`` (``src/potential_multipole.cpp``).
+    Please cite Vasiliev, E. 2019, MNRAS, 482, 1525 (`arXiv:1802.08239
+    <https://arxiv.org/abs/1802.08239>`_) alongside ``galax`` if you use
+    it. The radial Poisson solve is *not* a port, and the quadrature, the
+    padded grid and the merged continuation all differ deliberately, so
+    results are not bit-compatible with ``agama``. See the Agama section of
+    the documentation's Citation and Attribution page for the full
+    correspondence and the license note; the license itself is reproduced
+    in ``licences/Agama.txt``.
+
     See Also
     --------
     galax.potential.MultipolePotential : the analytic constant-coefficient

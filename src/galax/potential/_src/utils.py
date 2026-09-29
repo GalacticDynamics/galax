@@ -133,6 +133,36 @@ def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
 
 
 @ft.lru_cache(maxsize=128)
+def _nodes_for_dtype(
+    order: int, interval: tuple[float, float], dtype: Any, /
+) -> tuple[Shaped[Array, "O"], Shaped[Array, "O"]]:
+    """Build nodes and weights, cached on the working dtype as well.
+
+    The dtype has to be part of the key. Without it the first caller fixed it
+    for every later one: under x64 the entry held float64 arrays, and a
+    float32 caller got float64 back -- while the same call at an uncached
+    order correctly gave float32. Same function, same config, two dtypes,
+    decided by call order. That is what made float32 tests pass alone and
+    fail in a file, since JAX then warns about truncation and
+    ``filterwarnings = ["error"]`` turns the warning into a failure.
+
+    Keying on it costs one extra `leggauss` per order per dtype, and there
+    are only two dtypes.
+    """
+    x, w = np.polynomial.legendre.leggauss(order)
+
+    # The affine map is not value-neutral, so the identity case is skipped.
+    a, b = interval
+    if (a, b) != (-1.0, 1.0):
+        half = 0.5 * (b - a)
+        x, w = half * (x + 1) + a, half * w
+
+    # These are constants, so they must not capture whatever jit trace
+    # happens to call for them first.
+    with jax.ensure_compile_time_eval():
+        return jnp.asarray(x, dtype=dtype), jnp.asarray(w, dtype=dtype)
+
+
 def gauss_legendre_nodes(
     order: int, interval: tuple[float, float] = (0.0, 1.0), /
 ) -> tuple[Shaped[Array, "O"], Shaped[Array, "O"]]:
@@ -161,18 +191,7 @@ def gauss_legendre_nodes(
     True
 
     """
-    x, w = np.polynomial.legendre.leggauss(order)
-
-    # The affine map is not value-neutral, so the identity case is skipped.
-    a, b = interval
-    if (a, b) != (-1.0, 1.0):
-        half = 0.5 * (b - a)
-        x, w = half * (x + 1) + a, half * w
-
-    # These are constants and this function is cached, so they must not capture
-    # whatever jit trace happens to call it first.
-    with jax.ensure_compile_time_eval():
-        return jnp.asarray(x, dtype=float), jnp.asarray(w, dtype=float)
+    return _nodes_for_dtype(order, interval, jax.dtypes.canonicalize_dtype(float))
 
 
 def gauss_legendre(

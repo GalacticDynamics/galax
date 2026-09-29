@@ -4,12 +4,15 @@ from dataclasses import replace
 
 from typing import Any
 
+import jax
 import pytest
 from jax import Array
 
+import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
+from galax.potential._src.utils import gauss_legendre_nodes
 
 
 class FieldUnitSystemMixin:
@@ -52,3 +55,35 @@ class FieldUnitSystemMixin:
 
         with pytest.raises(KeyError, match="invalid_value"):
             pot_cls(**fields_unitless, units="invalid_value")
+
+
+@pytest.mark.parametrize("order", [3, 8, 16])
+def test_gauss_legendre_nodes_follow_the_caller_dtype(order: int) -> None:
+    """The cache must not decide the dtype for later callers.
+
+    REGRESSION: the `lru_cache` was keyed on ``(order, interval)`` and held
+    the *JAX* arrays, so ``dtype=float`` resolved against whatever
+    ``jax_enable_x64`` the first caller happened to have. Under x64 the entry
+    was float64, and a float32 caller got float64 back -- while the same call
+    at an uncached order correctly gave float32. Same function, same config,
+    two dtypes, decided by call order.
+
+    That is why float32 tests elsewhere passed alone and failed in a file:
+    earlier tests primed the cache under the suite's forced x64, and the
+    float64 nodes then tripped JAX's truncation warning, which
+    ``filterwarnings = ["error"]`` turns into a failure.
+
+    Each case primes the cache under x64 *first*, so a regression reproduces
+    rather than passing by luck on a cold cache.
+    """
+    primed, _ = gauss_legendre_nodes(order, (-1.0, 1.0))
+    assert primed.dtype == jnp.float64  # the suite forces x64
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        cached, w = gauss_legendre_nodes(order, (-1.0, 1.0))
+        assert cached.dtype == jnp.float32, "cache handed back the x64 dtype"
+        assert w.dtype == jnp.float32
+
+    # ...and the x64 caller is unaffected: same entry, not a recomputed one.
+    again, _ = gauss_legendre_nodes(order, (-1.0, 1.0))
+    assert again is primed

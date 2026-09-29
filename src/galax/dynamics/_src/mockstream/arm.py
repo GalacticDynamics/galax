@@ -13,7 +13,7 @@ import unxt as u
 
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
-from galax.coordinates._src.shape import batched_shape, vector_batched_shape
+from galax.coordinates.shape import batched_shape, vector_batched_shape
 
 
 @final

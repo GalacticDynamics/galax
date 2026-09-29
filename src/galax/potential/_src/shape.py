@@ -10,7 +10,7 @@ from quax import quaxify
 
 import quaxed.numpy as jnp
 
-from galax.coordinates._src.shape import ArrayAnyShape
+from galax.coordinates.shape import ArrayAnyShape
 
 
 @quaxify

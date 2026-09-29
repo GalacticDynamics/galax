@@ -7,6 +7,7 @@ __all__ = [
     # Modules
     "ops",
     "frames",
+    "shape",
     # Base
     "AbstractPhaseSpaceObject",
     # Coordinates
@@ -26,7 +27,7 @@ __all__ = [
 from .setup_package import install_import_hook, load_interop_plugins
 
 with install_import_hook("galax.coordinates"):
-    from . import frames, ops
+    from . import frames, ops, shape
     from ._src.base import AbstractPhaseSpaceObject
     from ._src.interp import PhaseSpaceObjectInterpolant
     from ._src.pscs import (

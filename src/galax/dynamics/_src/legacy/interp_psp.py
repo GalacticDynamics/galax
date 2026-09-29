@@ -17,9 +17,9 @@ from unxt.quantity import BareQuantity as FastQ
 
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
-from galax.coordinates._src.frames import SimulationFrame
-from galax.coordinates._src.pscs.base import ComponentShapeTuple
-from galax.coordinates._src.shape import batched_shape, vector_batched_shape
+from galax.coordinates import ComponentShapeTuple
+from galax.coordinates.frames import SimulationFrame
+from galax.coordinates.shape import batched_shape, vector_batched_shape
 from galax.dynamics._src.orbit import PhaseSpaceInterpolation
 
 

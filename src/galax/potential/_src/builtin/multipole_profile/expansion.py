@@ -70,6 +70,73 @@ def expansion_potential(
     return jnp.sum(phi_lm * Y, axis=-1)  # type: ignore[no-any-return]
 
 
+@ft.partial(jax.jit, static_argnums=(2, 3))
+def expansion_gradient(
+    p: gt.Params, xyz: gt.BtSz3, l_max: int, keys: tuple[tuple[int, int], ...], /
+) -> Float[Array, "*batch 3"]:
+    r""":math:`\nabla \Phi`, without taping the whole expansion.
+
+    .. math::
+
+        \nabla \Phi = \sum_{lm} \left[
+            \Phi'_{lm}(\log r)\, Y_{lm}\, \frac{\vec{x}}{r^2}
+            + \frac{\Phi_{lm}}{r}
+              \left(\mathbb{1} - \hat{u}\hat{u}^T\right) \nabla_{\!u} Y_{lm}
+        \right]
+
+    the two chain rules being :math:`\partial \log r / \partial \vec{x} =
+    \vec{x}/r^2` and :math:`\partial \hat{u}_i / \partial x_j = (\delta_{ij}
+    - \hat{u}_i \hat{u}_j)/r`.
+
+    Reverse-mode over `expansion_potential` is correct but pays for the shape
+    it differentiates through. :math:`\log r` is *one scalar per position*,
+    so the radial derivative is a single forward tangent; asking for it in
+    reverse instead pushes an ``(n_modes,)`` cotangent back through the
+    spline's gather, and the scatter-add that undoes that gather is what the
+    2.5x is mostly made of. So the radial half is taken with `jax.jvp` and
+    only the angular half -- which genuinely has ``n_modes`` outputs against
+    three inputs -- stays in reverse, as one `jax.vjp` whose cotangent is
+    :math:`\Phi_{lm}`.
+
+    Both halves are still `jax`'s own derivatives of the same code
+    `expansion_potential` evaluates, so there is no second implementation of
+    the harmonics or of the spline to drift. What changes is only *which*
+    mode of differentiation each half is asked for.
+    """
+    r = safe_vector_norm(xyz)
+    log_r = jnp.log(r)
+    uvec = xyz / r[..., None]
+
+    coefs = jnp.concat([p["phi_asympt_powers"], p["phi_asympt_scales"]], axis=1)
+    log_knots = jnp.log(p["r_knots"])
+
+    def radial(a: Float[Array, "*batch"]) -> Float[Array, "*batch n_modes"]:
+        out: Float[Array, "*batch n_modes"] = eval_log_spline_asympt(
+            log_knots, p["phi_lm"], p["dphi_lm"], coefs, a, p["d2phi_lm"]
+        )
+        return out
+
+    phi_lm, dphi_dlogr = jax.jvp(radial, (log_r,), (jnp.ones_like(log_r),))
+
+    def angular(u: gt.BtSz3) -> Float[Array, "*batch n_modes"]:
+        out: Float[Array, "*batch n_modes"] = jnp.moveaxis(
+            real_ylm(l_max, keys, u), 0, -1
+        )
+        return out
+
+    ylm, pullback = jax.vjp(angular, uvec)
+    (dY,) = pullback(phi_lm)
+
+    radial_term = jnp.sum(dphi_dlogr * ylm, axis=-1)
+    # Project out the radial component: `uvec` is normalized, so only the
+    # tangential part of `dY` survives the chain rule through it. Dropping
+    # this double-counts the radial direction.
+    tangential = dY - jnp.sum(dY * uvec, axis=-1, keepdims=True) * uvec
+
+    out = radial_term[..., None] * xyz / r[..., None] ** 2 + tangential / r[..., None]
+    return out  # type: ignore[no-any-return]
+
+
 def _ln_huge(x: Float[Array, "..."], /) -> float:
     r"""Largest ``|argument to jnp.exp|`` that cannot overflow in this dtype.
 

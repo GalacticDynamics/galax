@@ -1,6 +1,6 @@
 """Shape utilities. Private API.
 
-Implementation. The public entry point is `galax.coordinates.shape`, which is
+Implementation. The entry point is `galax.coordinates.utils`, which is
 what `potential` and `dynamics` import from; within `coordinates` itself the
 private path is used directly.
 """
@@ -76,7 +76,7 @@ def batched_shape(
     Standard imports:
 
         >>> import quaxed.numpy as jnp
-        >>> from galax.coordinates.shape import batched_shape
+        >>> from galax.coordinates.utils import batched_shape
 
     Expecting a scalar:
 

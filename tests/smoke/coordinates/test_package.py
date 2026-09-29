@@ -8,7 +8,6 @@ def test_all() -> None:
     assert set(gc.__all__) == {
         "ops",
         "frames",
-        "shape",
         # Base
         "AbstractPhaseSpaceObject",
         # Coordinates

@@ -23,7 +23,12 @@ from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
-from .build import _LN_HUGE_FRAC, _PAD_MULTIPLE, build_expansion
+from .build import (
+    _LN_HUGE_FRAC,
+    _PAD_MULTIPLE,
+    _PROBE_LEVELS,
+    build_expansion,
+)
 from .expansion import expansion_density, expansion_gradient, expansion_potential
 from galax.potential._src.base import AbstractPotential, default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
@@ -252,6 +257,43 @@ def _validate_bracket(r_min: float, r_max: float, /) -> None:
         raise ValueError(msg)
 
 
+def _warn_if_density_capped_the_pad(
+    reach: Float[Array, "2"], asked: Float[Array, ""], /
+) -> None:
+    """Say so when the caller's density, not the dtype, shortened the pad.
+
+    `_probe_reaches` keeps the deepest pad depth whose density comes back
+    finite. When that is short of what `_PAD_MULTIPLE` asked for, the
+    boundary power-law model carries more of the answer than intended --
+    the same silent accuracy loss `_warn_if_padding_is_capped` reports for
+    the solver's own range, and the companion warning issue #880 asked for.
+
+    Checked here rather than inside the build: the depth is chosen from
+    traced values, so only the concrete arrays coming back out can be
+    compared against what was requested.
+    """
+    asked_f = float(asked)
+    if asked_f <= 0.0:
+        return
+    # A whole ladder step short, so rounding at the chosen level never fires.
+    floor = asked_f * (1.0 - 0.5 / _PROBE_LEVELS)
+    short = [
+        f"{name} {got:.1f}"
+        for name, got in (("inward", float(reach[0])), ("outward", float(reach[1])))
+        if got < floor
+    ]
+    if short:
+        msg = (
+            f"the density is not finite across the full padded range, so the "
+            f"pad was shortened ({', '.join(short)} e-folds against "
+            f"{asked_f:.1f} asked for). The boundary power-law model "
+            f"therefore contributes more than it otherwise would. This is "
+            f"usually a steep inner cusp in float32; enabling x64 or "
+            f"narrowing the bracket will lengthen it."
+        )
+        warnings.warn(msg, RuntimeWarning, stacklevel=3)
+
+
 def _warn_if_padding_is_capped(r_min: float, r_max: float, /) -> None:
     """Say so when the dtype will not carry the full padded reach.
 
@@ -274,6 +316,12 @@ def _warn_if_padding_is_capped(r_min: float, r_max: float, /) -> None:
     In float64 the budget is 699 e-folds and nothing physical comes close --
     this fires only in float32, which is `galax`'s default, for brackets
     wider than roughly twelve decades.
+
+    This covers the solver's *own* arithmetic only. The pad is also cut back
+    when the caller's density cannot be evaluated across it (see
+    `_probe_reaches`), which binds far more often and for ordinary brackets;
+    `_warn_if_density_capped_the_pad` reports that one, after the build,
+    because only the build knows how far the probe got.
     """
     span = math.log(r_max / r_min)
     dtype = jnp.zeros(()).dtype  # the working float dtype, x64 or not
@@ -560,6 +608,8 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             t_,
             jnp.asarray(consts["G"].decompose(usys).value),
         )
+
+        _warn_if_density_capped_the_pad(coeffs["pad_reach"], coeffs["pad_reach_asked"])
 
         return cls(
             r_knots=u.Q(r_knots, usys["length"]),

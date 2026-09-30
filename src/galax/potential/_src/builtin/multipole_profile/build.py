@@ -513,4 +513,10 @@ def build_expansion(
         "drho_residual_lm": fit_log_spline(log_r, residual),
         "rho_alpha": alpha,
         "rho_amplitude": amplitude,
+        # Not a coefficient: how deep the pad actually went, against what was
+        # asked for. `MultipoleProfilePotential.from_density` reads it to warn
+        # when the caller's density cut the pad short, which it cannot know
+        # any other way -- the choice is made here, from traced values.
+        "pad_reach": jnp.stack([reach_in, reach_out]),
+        "pad_reach_asked": _requested_reach(log_r),
     }

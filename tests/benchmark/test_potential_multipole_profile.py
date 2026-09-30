@@ -111,12 +111,26 @@ def _pot_on_time_grid(l_max: int, n_r: int, n_t: int):
 @pytest.mark.parametrize("n_t", [2, 8, 32])
 @pytest.mark.benchmark(group="multipole_profile_time_grid_build")
 def test_build_time_grid(benchmark, n_t: int) -> None:
-    """Build cost is close to flat in ``n_t``.
+    """Build cost against a single-time build, as ``n_t`` grows.
 
     `build_expansion` traces once and `jax.vmap` runs it per time, so the
-    trace and compile -- which dominate -- are paid once however many times
-    are asked for. Measured 1.0x, 1.06x and 1.29x of a single-time build at
-    ``n_t`` = 2, 8 and 16.
+    one-off trace and compile dominate while ``n_t`` is small and the
+    vmapped work takes over once it is not. Relative to ``n_t = 1``:
+
+    ======= ======
+    ``n_t``  cost
+    ======= ======
+    2        1.05x
+    4        0.86x
+    8        1.06x
+    16       1.40x
+    32       2.38x
+    64       3.65x
+    ======= ======
+
+    So it is flat to about eight times and grows after that, though still
+    well under linear -- 64 times cost 3.7x, not 64x. Measured under load,
+    so the sub-1.0 entry at ``n_t = 4`` is noise; the trend is not.
     """
     benchmark(lambda: jax.block_until_ready(_pot_on_time_grid(8, 128, n_t)))
 

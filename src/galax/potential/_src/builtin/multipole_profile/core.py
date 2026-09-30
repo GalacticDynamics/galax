@@ -475,9 +475,12 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             expanded. Outside ``[t[0], t[-1]]`` the expansion is *clamped* to
             the boundary time rather than extrapolated.
 
-            Build cost is close to flat in ``n_t``: the build traces once and
-            `jax.vmap` runs it per time, so 16 times cost 1.3x one rather
-            than 16x. Evaluation is where a time grid is paid for -- at
+            The build traces once and `jax.vmap` runs it per time, so cost
+            is flat to about eight times (1.05x at two, 1.06x at eight) and
+            grows after that as the vmapped work overtakes the one-off
+            trace -- 1.4x at 16, 2.4x at 32, 3.7x at 64. Still well under
+            linear, but not free. Evaluation is where a time grid is paid
+            for -- at
             :math:`10^5` positions ~2.3x a constant expansion, independent of
             ``n_t``. At the small per-step batches an orbit integrator uses it
             is much less: 0.46 ms against 0.46 at a single position, 0.75

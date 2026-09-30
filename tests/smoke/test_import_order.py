@@ -33,6 +33,35 @@ def test_portion_imports_alone(portion: str) -> None:
     assert proc.returncode == 0, proc.stderr
 
 
+# `coordinates` -> `potential` -> `dynamics`: each portion may import the ones
+# below it, never the ones above.
+ABOVE = {
+    "coordinates": ["potential", "dynamics"],
+    "potential": ["dynamics"],
+}
+
+
+@pytest.mark.parametrize(
+    ("portion", "higher"), [(p, h) for p, hs in ABOVE.items() for h in hs]
+)
+def test_portion_does_not_import_upward(portion: str, higher: str) -> None:
+    """Importing a portion must not drag in one above it in the hierarchy.
+
+    An upward import is a hard dependency in the wrong direction, which blocks
+    splitting the portions into separate distributions. It is also how the
+    tracer-leak regression above became possible: the edge only has to exist
+    for a deferred import to fire at an arbitrary moment.
+    """
+    proc = run(f"""
+        import sys
+        import galax.{portion}
+        assert "galax.{higher}" not in sys.modules, (
+            "galax.{portion} imported galax.{higher}"
+        )
+    """)
+    assert proc.returncode == 0, proc.stderr
+
+
 def test_jit_then_late_potential_import() -> None:
     """A jitted call before `galax.potential` is imported must not leak a tracer.
 

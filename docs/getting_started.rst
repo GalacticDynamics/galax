@@ -120,15 +120,15 @@ internally.
 
 Now with a potential model defined and a set of initial conditions, we are set
 to compute an orbit! To do this, we use the numerical integration system defined
-in :mod:`galax.integrate`, but do so using the convenience interface available
-on any Potential object through the
-:func:`~galax.potential.AbstractPotential.evaluate_orbit` method::
+in :mod:`galax.dynamics.integrate`, via the
+:func:`~galax.dynamics.evaluate_orbit` function, which takes the potential as
+its first argument::
 
     >>> import galax.dynamics as gd
     >>> t = jnp.arange(0.0, 2.0, step=1/1000) # Gyr
     >>> orbit = gd.evaluate_orbit(mw, psp.w(units=mw.units), t=t)
 
-By default, this method uses Leapfrog integration , which is a fast, symplectic
+By default, this uses Leapfrog integration, which is a fast, symplectic
 integration scheme. The returned object is an instance of the
 :class:`~galax.dynamics.Orbit` class, which is similar to the
 :class:`~galax.coordinates.PhaseSpacePosition` but represents a collection of

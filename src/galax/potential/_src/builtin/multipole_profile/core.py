@@ -272,10 +272,13 @@ def _warn_if_density_capped_the_pad(
     traced values, so only the concrete arrays coming back out can be
     compared against what was requested.
     """
-    asked_f = float(asked)
-    if asked_f <= 0.0:
-        return
     # A whole ladder step short, so rounding at the chosen level never fires.
+    # `asked` is never negative (`_requested_reach` takes a minimum of two
+    # non-negative terms), and at exactly zero -- a bracket so wide the dtype
+    # cannot pad it at all -- this floor is zero too, so no reach is below it
+    # and nothing warns. That is the right answer there: the pad was not
+    # shortened by the density, it was never available.
+    asked_f = float(asked)
     floor = asked_f * (1.0 - 0.5 / _PROBE_LEVELS)
     short = [
         f"{name} {got:.1f}"

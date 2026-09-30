@@ -35,7 +35,7 @@ class Symmetry(enum.StrEnum):
     True
 
     An unknown string is an error naming the valid values. Note that
-    "axisymmetric" is not one of them -- see the note on Agama below:
+    "axisymmetric" is not one of them -- see the note below:
 
     >>> try:
     ...     gp.Symmetry("axisymmetric")
@@ -46,24 +46,11 @@ class Symmetry(enum.StrEnum):
 
     Notes
     -----
-    **Correspondence with Agama.** Agama's ``SymmetryType`` (``src/coord.h``)
-    uses some of the same words for different things, so translating between
-    the two needs care:
-
-    ================================ =======================================
-    `Symmetry`                       Agama ``SymmetryType``
-    ================================ =======================================
-    `Symmetry.ZROTATION`             ``ST_ZROTATION``
-    `Symmetry.ZROTATION_ZREFLECTION` ~ ``ST_AXISYMMETRIC``
-    `Symmetry.PLANE_REFLECTION`      ``ST_TRIAXIAL``
-    `Symmetry.SPHERICAL`             ~ ``ST_SPHERICAL``
-    ================================ =======================================
-
-    In particular Agama defines ``ST_AXISYMMETRIC = ST_TRIAXIAL |
-    ST_ZROTATION``, so its "axisymmetric" *includes* the three plane
-    reflections, while our `Symmetry.ZROTATION` asserts nothing beyond
-    invariance under rotation about z. This is why there is no member spelled
-    "axisymmetric".
+    **Why no "axisymmetric".** Elsewhere, "axisymmetric" often means
+    invariance under z-rotation *and* the three plane reflections --
+    `Symmetry.PLANE_REFLECTION` here, not `Symmetry.ZROTATION`. To avoid
+    that ambiguity, this vocabulary spells z-rotation and z-reflection out
+    as separate members instead of using the word.
 
     **Future.** These are composable bits -- z-rotation, z-reflection, and the
     three plane reflections are independent -- so this is expected to become a
@@ -94,8 +81,8 @@ class Symmetry(enum.StrEnum):
     def _missing_(cls, value: object) -> "Symmetry":
         """Accept `None` as an alias for `NONE`, and name the valid values.
 
-        The likely guesses -- ``"axisymmetric"``, ``"triaxial"`` -- are
-        Agama's words, not these; see the correspondence table above.
+        The likely guesses -- ``"axisymmetric"``, ``"triaxial"`` -- are not
+        this vocabulary's words; see the note above.
         """
         if value is None:
             return cls.NONE

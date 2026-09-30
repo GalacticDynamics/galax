@@ -4,16 +4,40 @@ NOTE: pytest-codspeed 4.2.0's walltime instrument under-reports absolute
 numbers by roughly the `iter_per_round` factor; relative comparisons between
 runs remain valid. See the note in `test_potential_scf.py`.
 
-MEASUREMENT: Gradient-via-autodiff cost relative to potential evaluation,
-measured with explicit warm-up and jax.block_until_ready on every call
-(20 reps each):
-- n=1: potential 0.124 ms, gradient 0.106 ms → 0.86x (dispatch-overhead)
-- n=1000: potential 0.207 ms, gradient 0.244 ms → 1.18x (dispatch-overhead)
-- n=100000: potential 2.606 ms, gradient 6.453 ms → 2.48x (computation-cost)
+MEASUREMENT: gradient cost relative to potential evaluation, l_max=8, float64,
+with warm-up and jax.block_until_ready on every call. The two gradient paths
+are timed interleaved in one process and reduced with `min`, because this is a
+shared machine and a median under contention moved by 50% between runs:
 
-Only n=1e5 reflects actual computation cost; smaller n are dispatch-overhead
-artifacts. At 2.48x for l_max=8, reverse-mode autodiff acceptably replaces the
-~155 lines of hand-coded force computation the analytic route would need.
+===== ========== ============== ============== =========
+n      potential  reverse-mode   `_gradient`    speedup
+===== ========== ============== ============== =========
+1000   0.17 ms    0.40 ms 2.36x  0.33 ms 1.94x  1.21x
+1e5    6.05 ms    14.77 ms 2.44x 11.64 ms 1.93x 1.27x
+===== ========== ============== ============== =========
+
+`MultipoleProfileMixin._gradient` replaced `AbstractPotential`'s `jax.grad`
+default with the chain rule written out; see `expansion_gradient`. It takes
+the ratio from ~2.4x to ~1.9x of a forward evaluation.
+
+Where it shows up is the orbit integration below, which is what the gradient
+cost is actually *for* -- n=1000, 2001 steps: 1145.6 ms reverse-mode against
+876.1 ms, a 1.31x speedup. n=1 is unchanged at 42.2 vs 42.4 ms, since that
+regime is dispatch-bound and not computation-bound.
+
+The saving is structural rather than arithmetic. Reverse mode over the whole
+expansion pushes an (n_modes,) cotangent back through the radial spline's
+gather, and undoing that gather with a scatter-add is most of the cost: the
+radial and angular halves cost only +0.97 ms and +0.79 ms of autodiff overhead
+on their own, against +7.16 ms for the two composed. Since log r is one scalar
+per position, the radial half is taken forward-mode instead. The angular half
+genuinely has n_modes outputs against three inputs and stays in reverse.
+
+Note this is *not* the ~155 lines of hand-coded force computation the analytic
+route was assumed to need. The harmonic derivatives are ~10% of the gradient's
+cost, so hand-writing them would buy little; both halves here remain `jax`'s
+own derivatives of the same code the potential evaluates, with nothing to
+drift. `test_gradient_matches_autodiff` pins them together.
 """
 
 from collections.abc import Callable

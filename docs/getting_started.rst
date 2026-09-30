@@ -37,8 +37,9 @@ the mass distribution, and (2) the initial conditions of the star's orbit.
 
 Mass models in :mod:`galax` are specified using Python classes that represent
 standard gravitational potential models. For example, most of the standard,
-parametrized gravitational potential models introduced in :cite:`Binney2008` are
-available as classes in the :mod:`galax.potential` module. The standard Milky
+parametrized gravitational potential models introduced in Binney & Tremaine,
+*Galactic Dynamics* (2nd ed., Princeton University Press, 2008) are available
+as classes in the :mod:`galax.potential` module. The standard Milky
 Way model recommended for use in :mod:`galax` is the
 :class:`~galax.potential.MilkyWayPotential`, which is a pre-defined,
 multi-component mass model with parameters set to fiducial values that match the
@@ -220,10 +221,3 @@ The two places to learn more are the tutorials and the user guide:
 * The :ref:`galax-user-guide` contains more exhaustive descriptions of all of the
   functions and classes available in ``galax``, and should be treated more like
   reference material.
-
-
-Bibliography
-============
-
-.. bibliography::
-    :cited:

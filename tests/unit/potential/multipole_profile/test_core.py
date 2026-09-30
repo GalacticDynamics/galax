@@ -660,3 +660,61 @@ def test_from_density_warns_when_the_padding_is_capped(
         warnings.simplefilter("always")
         build(True)  # noqa: FBT003
     assert not [w for w in caught64 if issubclass(w.category, RuntimeWarning)]
+
+
+@pytest.mark.parametrize("l_max", [0, 4, 8])
+@pytest.mark.parametrize("symmetry", ["none", "plane_reflection"])
+def test_gradient_matches_autodiff(l_max: int, symmetry: str) -> None:
+    """The analytic gradient and `jax.grad` must not drift apart.
+
+    `MultipoleProfileMixin._gradient` overrides `AbstractPotential`'s
+    `jax.grad` default with the chain rule written out (`expansion_gradient`),
+    to avoid pushing an ``(n_modes,)`` cotangent back through the spline's
+    gather. Both are `jax`'s own derivatives of the same code, so this pins
+    them together permanently rather than checking the override once.
+
+    The z-axis is included deliberately: the harmonics are evaluated from the
+    Cartesian direction precisely so the derivative exists there, and a
+    ``(theta, phi)`` form would give ``0/0`` for every ``m >= 1``.
+
+    The source must be **aspherical**. An earlier version of this test built
+    the expansion from a Hernquist sphere, whose projection is pure monopole,
+    so every ``Phi_lm`` with ``l > 0`` was machine-zero and the whole
+    angular term -- the `jax.vjp` and the tangential projection -- was
+    multiplied by nothing. Deleting that term outright still passed all six
+    cases. A triaxial source gives the higher-``l`` coefficients real
+    amplitude, and the same mutation then fails.
+    """
+    src = gp.TriaxialNFWPotential(
+        m=u.Q(1e12, "Msun"),
+        r_s=u.Q(10.0, "kpc"),
+        q1=1.0,
+        q2=0.8,
+        units="galactic",
+    )
+    pot = gp.MultipoleProfilePotential.from_potential(
+        src,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e3, "kpc"),
+        n_r=128,
+        l_max=l_max,
+        symmetry=symmetry,
+    )
+    t = u.Q(0.0, "Gyr")
+
+    xyz = jnp.concat(
+        [
+            jax.random.normal(jax.random.key(0), (16, 3)) * 8.0,
+            # on-axis, and both signs of z
+            jnp.asarray([[0.0, 0.0, 4.0], [0.0, 0.0, -2.5]]),
+        ]
+    )
+
+    got = u.ustrip(u.unit("kpc/Myr2"), pot.gradient(u.Q(xyz, "kpc"), t))
+
+    zero = jnp.asarray(0.0)
+    ref = jax.vmap(jax.grad(lambda a: pot._potential(a, zero)))(xyz)
+
+    assert jnp.all(jnp.isfinite(got)), got
+    scale = jnp.max(jnp.abs(ref))
+    assert float(jnp.max(jnp.abs(got - ref)) / scale) < 1e-11

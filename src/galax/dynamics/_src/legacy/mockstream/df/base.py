@@ -70,7 +70,7 @@ class AbstractStreamDF(eqx.Module):
         >>> w = gc.PhaseSpaceCoordinate(q=u.Q([8.3, 0, 0], "kpc"),
         ...                             p=u.Q([0, 220, 0], "km/s"),
         ...                             t=u.Q(0, "Gyr"))
-        >>> prog_orbit = pot.compute_orbit(w, t=u.Q([0, 1, 2], "Gyr"))
+        >>> prog_orbit = gd.compute_orbit(pot, w, u.Q([0, 1, 2], "Gyr"))
         >>> stream_ic = df.sample(jr.key(0), pot, prog_orbit,
         ...                       prog_mass=u.Q(1e4, "Msun"))
         >>> stream_ic

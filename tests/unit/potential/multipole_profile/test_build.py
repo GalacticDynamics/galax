@@ -484,11 +484,26 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(
     monopole integrand is ``r**-0.9`` and that band carries ~12% of the
     enclosed mass, which is the error observed.
 
-    Capping the reach trades pad *depth* for representability, so the steep
-    case gets a slightly shorter tail rather than a wrong answer. The cap
-    binds only when it must: at ``gamma = 2.9`` in float32 it allows 20.5
-    e-folds against the 36.8 requested, and for Hernquist, ``gamma = 1.0``,
-    or anything in float64 it does not bind at all.
+    Shortening the pad trades *depth* for representability, so the steep
+    case gets a shorter tail rather than a wrong answer, and it happens only
+    when it must. Inner reach allowed against what was asked for, over this
+    bracket:
+
+    ================= ======== ======== ========
+    density            dtype    asked    allowed
+    ================= ======== ======== ========
+    gamma = 2.9        float32   34.49    17.24
+    gamma = 2.5        float32   34.49    21.55
+    gamma = 1.0        float32   34.49    34.49
+    Hernquist          float32   34.49    34.49
+    any of the above   float64   36.84    36.84
+    ================= ======== ======== ========
+
+    The two "asked" columns differ because `_requested_reach` caps
+    ``_PAD_MULTIPLE * span`` -- 36.84 here -- by what the dtype can
+    exponentiate for the solve's own ``x**2``. That clips it to 34.49 in
+    float32 and not at all in float64, *before* the density ladder is
+    consulted. The outer side is never shortened for a decaying profile.
     """
     keys = lm_keys(8, "none")
     n_theta, n_phi = default_angular_resolution(8)

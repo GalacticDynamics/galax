@@ -370,25 +370,12 @@ def _pad_grid(
     log_r = jnp.log(r_knots)
     reach = _requested_reach(log_r)
     n_pad = min(n_r * _PAD_MULTIPLE, _PAD_KNOTS)
-    # Cap the reach by what the dtype can exponentiate. The largest power
-    # the solve forms is x^2 about the padded grid's log-midpoint, so the
-    # padded span must satisfy `span_padded <= budget` where `budget` is the
-    # overflow exponent -- everything with an `l` in it is carried in scaled
-    # form (see `harmonic.poisson._scaled_prefix`) and is bounded by this.
-    #
-    # A caller asking for `[1e-6, 1e6]` already spans 27.6 e-folds; two spans
-    # either side would be 138, well past float32's 87.4, and the build came
-    # back `nan`. Capping degrades gracefully instead: the pad stops growing,
-    # so such a caller gets less tail accuracy rather than no answer. In
-    # float64 the budget is 699 and nothing physical comes close.
-    # ...and by what the density itself stays representable across. The cap
-    # above is sized for the solver's own `x^2` and knows nothing about
-    # `rho_fn`'s slope, so a steep cusp overflowed the pad it did not bound:
-    # a Dehnen `gamma = 2.9` over `[1e-4, 1e4]` lost 11% of the monopole in
-    # float32, because `_drop_nonfinite` zeroed the innermost 51 pad knots
-    # and zeroing `rho[0]` also switches off the analytic inner tail that
-    # would have covered `[0, r_pad]`. Padding less far is the graceful
-    # trade -- the same one the `x^2` cap already makes.
+    # Two independent limits, each owning its own rationale: `reach` is what
+    # the *solve's* arithmetic can carry (`_requested_reach`), and
+    # `reach_in`/`reach_out` are what the *caller's density* survives being
+    # evaluated across (`_probe_reaches`). Whichever is shorter wins, per
+    # side. Both degrade gracefully: a shorter pad means the boundary
+    # power-law model carries more of the answer, not that the build fails.
     step_lo = jnp.minimum(reach, reach_in) / n_pad
     step_hi = jnp.minimum(reach, reach_out) / n_pad
     lo = jnp.exp(log_r[0] - step_lo * jnp.arange(n_pad, 0, -1))

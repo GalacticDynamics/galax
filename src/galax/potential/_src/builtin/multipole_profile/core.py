@@ -24,13 +24,14 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from .build import _LN_HUGE_FRAC, _PAD_MULTIPLE, build_expansion
-from .expansion import expansion_density, expansion_potential
+from .expansion import expansion_density, expansion_gradient, expansion_potential
 from galax.potential._src.base import AbstractPotential, default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.harmonic import (
     default_angular_resolution,
     lm_keys,
 )
+from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.constant import ConstantParameter
 from galax.potential._src.params.field import ParameterField
@@ -64,6 +65,29 @@ class MultipoleProfileMixin(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         return expansion_potential(  # type: ignore[no-any-return]
+            self._params(t),
+            xyz,
+            self.l_max,
+            self.lm_keys,
+        )
+
+    @vectorize_method(signature="(3),()->(3)")
+    @ft.partial(jax.jit)
+    def _gradient(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz3:
+        """Analytic chain rule rather than `AbstractPotential`'s `jax.grad`.
+
+        See `expansion_gradient`: same derivatives, same code differentiated,
+        but the radial half is taken forward-mode over the single scalar
+        ``log r`` instead of in reverse through the spline's gather.
+
+        `test_gradient_matches_autodiff` keeps the two paths pinned together.
+
+        `_laplacian` and `_hessian` are unaffected: both differentiate
+        ``_potential`` directly (`jax.hessian` in `AbstractPotential`), not
+        this method, so second derivatives do not route through here.
+        """
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        return expansion_gradient(  # type: ignore[no-any-return]
             self._params(t),
             xyz,
             self.l_max,
@@ -307,6 +331,18 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
     :math:`-0.4499`) and :math:`\nabla\Phi(0)` is exactly zero, which is the
     analytic answer. The *density* has no such tail and is still meaningless
     at the origin.
+
+    **Attribution.** This machinery follows ``agama`` closely, and the
+    asymptotic continuation is a direct port of its ``PowerLawMultipole``
+    and ``computeExtrapolationCoefs`` (``src/potential_multipole.cpp``).
+    Please cite Vasiliev, E. 2019, MNRAS, 482, 1525 (`arXiv:1802.08239
+    <https://arxiv.org/abs/1802.08239>`_) alongside ``galax`` if you use
+    it. The radial Poisson solve is *not* a port, and the quadrature, the
+    padded grid and the merged continuation all differ deliberately, so
+    results are not bit-compatible with ``agama``. See the Agama section of
+    the documentation's Citation and Attribution page for the full
+    correspondence and the license note; the license itself is reproduced
+    in ``licences/Agama.txt``.
 
     See Also
     --------

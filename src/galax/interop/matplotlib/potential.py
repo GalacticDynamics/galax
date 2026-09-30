@@ -16,7 +16,7 @@ import quaxed.numpy as jnp
 import unxt as u
 from plotting_backends import MatplotlibBackend
 
-from galax.potential._src.base import AbstractPotential
+from galax.potential import AbstractPotential
 
 
 def _get_figure(

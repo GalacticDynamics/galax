@@ -25,7 +25,7 @@ from galax.dynamics._src.mockstream.arm import MockStreamArm
 from galax.dynamics._src.mockstream.core import MockStream
 from galax.dynamics._src.orbit import Orbit
 from galax.potential import AbstractPotential
-from galax.potential._src.utils import cond_reverse
+from galax.potential.utils import cond_reverse
 
 Carry: TypeAlias = tuple[gt.IntSz0, gt.SzN, gt.SzN]
 

@@ -1,7 +1,8 @@
 """Shape utilities. Private API.
 
-`coordinates` is the lowest portion that uses these, so they live here and
-`potential` / `dynamics` import them from here.
+Implementation. The entry point is `galax.coordinates.utils`, which is
+what `potential` and `dynamics` import from; within `coordinates` itself the
+private path is used directly.
 """
 
 __all__: tuple[str, ...] = ()
@@ -75,7 +76,7 @@ def batched_shape(
     Standard imports:
 
         >>> import quaxed.numpy as jnp
-        >>> from galax.coordinates._src.shape import batched_shape
+        >>> from galax.coordinates.utils import batched_shape
 
     Expecting a scalar:
 

@@ -17,8 +17,7 @@ import quaxed.numpy as jnp
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
 from .plot_helper import PlotOrbitDescriptor
-from galax.coordinates._src.shape import batched_shape, vector_batched_shape
-from galax.coordinates._src.utils import getitem
+from galax.coordinates.utils import batched_shape, getitem, vector_batched_shape
 
 
 class AbstractOrbit(gc.AbstractBasicPhaseSpaceCoordinate):

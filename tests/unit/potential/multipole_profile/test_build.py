@@ -153,10 +153,16 @@ def test_build_expansion_returns_consistent_shapes() -> None:
         "drho_residual_lm": (32, n_modes),
         "rho_alpha": (n_modes,),
         "rho_amplitude": (n_modes,),
+        # Not coefficients: how deep the pad went and how deep it asked to
+        # go, which `from_density` reads to warn when the caller's density
+        # cut it short. The constructor does not receive them.
+        "pad_reach": (2,),
+        "pad_reach_asked": (),
     }
     # Compare the key *sets* first, so adding a return value without adding it
     # here fails loudly. `d2phi_lm` was added and this test kept passing on
-    # the six keys it already knew about, which is how the gap arose.
+    # the six keys it already knew about, which is how the gap arose -- and
+    # it caught `pad_reach` the same way.
     assert set(coeffs) == set(expect)
     assert {k: v.shape for k, v in coeffs.items()} == expect
 

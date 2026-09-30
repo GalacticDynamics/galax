@@ -9,8 +9,6 @@ import unxt as u
 from galax.potential._src.base import default_constants
 from galax.potential._src.builtin.multipole_profile import expansion_potential
 from galax.potential._src.builtin.multipole_profile.build import (
-    _probe_reaches,
-    _requested_reach,
     build_expansion,
     subtract_inner_cusp,
 )
@@ -153,16 +151,10 @@ def test_build_expansion_returns_consistent_shapes() -> None:
         "drho_residual_lm": (32, n_modes),
         "rho_alpha": (n_modes,),
         "rho_amplitude": (n_modes,),
-        # Not coefficients: how deep the pad went and how deep it asked to
-        # go, which `from_density` reads to warn when the caller's density
-        # cut it short. The constructor does not receive them.
-        "pad_reach": (2,),
-        "pad_reach_asked": (),
     }
     # Compare the key *sets* first, so adding a return value without adding it
     # here fails loudly. `d2phi_lm` was added and this test kept passing on
-    # the six keys it already knew about, which is how the gap arose -- and
-    # it caught `pad_reach` the same way.
+    # the six keys it already knew about, which is how the gap arose.
     assert set(coeffs) == set(expect)
     assert {k: v.shape for k, v in coeffs.items()} == expect
 
@@ -446,9 +438,9 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(
     REGRESSION: padding evaluates ``rho_fn`` `_PAD_MULTIPLE` spans outside
     the requested bracket, so a cusp ``rho ~ r**-gamma`` is sampled at
     ``r_min * exp(-reach)`` where the density overflows once
-    ``gamma * reach`` clears the dtype's exponent. `_pad_grid` now caps the
-    reach by `_probe_reaches` as well as by the solver's own ``x**2``
-    budget, so the pad stops where the density stops being representable.
+    ``gamma * reach`` clears the dtype's exponent. Those samples are zeroed,
+    and the radial solve anchors its inner tail above them, so the band they
+    should have carried is covered analytically instead of lost.
 
     One unrepresentable sample took out everything: the projection turns
     ``inf`` into ``nan`` for ``l >= 1``, and `fit_log_spline` solves one
@@ -484,26 +476,19 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(
     monopole integrand is ``r**-0.9`` and that band carries ~12% of the
     enclosed mass, which is the error observed.
 
-    Shortening the pad trades *depth* for representability, so the steep
-    case gets a shorter tail rather than a wrong answer, and it happens only
-    when it must. Inner reach allowed against what was asked for, over this
-    bracket:
+    The pad is *not* shortened to avoid this. Doing so was tried and measured
+    worse -- it costs every caller tail accuracy to dodge an overflow the
+    anchored tail already absorbs. Errors against a float64 build:
 
-    ================= ======== ======== ========
-    density            dtype    asked    allowed
-    ================= ======== ======== ========
-    gamma = 2.9        float32   34.49    17.24
-    gamma = 2.5        float32   34.49    21.55
-    gamma = 1.0        float32   34.49    34.49
-    Hernquist          float32   34.49    34.49
-    any of the above   float64   36.84    36.84
-    ================= ======== ======== ========
+    ======= ==========
+    gamma    max rel
+    ======= ==========
+    1.0      1.9e-07
+    1.9      1.2e-07
+    2.5      9.9e-08
+    2.9      4.9e-06
+    ======= ==========
 
-    The two "asked" columns differ because `_requested_reach` caps
-    ``_PAD_MULTIPLE * span`` -- 36.84 here -- by what the dtype can
-    exponentiate for the solve's own ``x**2``. That clips it to 34.49 in
-    float32 and not at all in float64, *before* the density ladder is
-    consulted. The outer side is never shortened for a decaying profile.
     """
     keys = lm_keys(8, "none")
     n_theta, n_phi = default_angular_resolution(8)
@@ -534,76 +519,3 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(
     ref = jnp.asarray(build()["phi_lm"], dtype=float)
     scale = jnp.max(jnp.abs(ref))
     assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < rtol
-
-
-def _probe(rho, rmin=1e-4, rmax=1e4, n_r=64, l_max=0):
-    """Run the pad-depth ladder for ``rho``; return (reach_in, reach_out, asked)."""
-    keys = lm_keys(l_max, "spherical")
-    n_theta, n_phi = default_angular_resolution(l_max)
-    log_r = jnp.log(jnp.geomspace(rmin, rmax, n_r))
-    reach = _requested_reach(log_r)
-    got = _probe_reaches(
-        rho, log_r, reach, l_max, keys, n_theta, n_phi, jnp.asarray(0.0)
-    )
-    return float(got[0]), float(got[1]), float(reach)
-
-
-def test_the_probe_ladder_keeps_the_full_reach_for_a_benign_density() -> None:
-    """Nothing overflows, so nothing should be given up."""
-
-    def rho(xyz, t):
-        r = safe_vector_norm(xyz)
-        return 1.0 / (r * (1.0 + r) ** 3)
-
-    with jax.enable_x64(False):  # noqa: FBT003
-        r_in, r_out, reach = _probe(rho)
-
-    assert r_in == pytest.approx(reach, rel=1e-6)
-    assert r_out == pytest.approx(reach, rel=1e-6)
-
-
-@pytest.mark.parametrize("mass", [1.0, 1e-2, 1e-6])
-def test_the_probe_ladder_shortens_the_pad_whatever_the_normalisation(mass) -> None:
-    """A steep cusp must be cut back, whatever prefactor it carries.
-
-    REGRESSION: the first version of this cap bounded ``rho_lm`` -- the
-    projected coefficient -- against the dtype's maximum. What actually
-    overflows is whatever intermediate the caller's expression forms, here
-    ``mass / r**2.9`` once ``r**2.9`` underflows to zero. That radius depends
-    on ``mass``, so a coefficient bound is normalisation-dependent: it passed
-    at ``mass = 1`` by coincidence (float32's min normal and max are
-    near-reciprocal, so ``1/r**2.9`` lands just inside the budget) and let
-    the full reach through for anything smaller, returning the 11% error it
-    was meant to remove.
-
-    Probing asks the density instead of modelling it, so all three are cut.
-    """
-
-    def rho(xyz, t):
-        r = safe_vector_norm(xyz)
-        return mass / (r**2.9 * (1.0 + r) ** 1.1)
-
-    with jax.enable_x64(False):  # noqa: FBT003
-        r_in, r_out, reach = _probe(rho)
-
-    assert r_in < reach, (mass, r_in, reach)
-    # A decaying profile never overflows outward, so that side is untouched.
-    assert r_out == pytest.approx(reach, rel=1e-6)
-
-
-def test_the_probe_ladder_collapses_the_pad_when_nothing_is_representable() -> None:
-    """If even the shallowest level overflows, the pad goes to zero.
-
-    Better than carrying knots whose density is `inf`: the solve's analytic
-    tail then covers everything outside the caller's bracket, which is the
-    unpadded behaviour rather than a broken one.
-    """
-
-    def rho(xyz, t):
-        r = safe_vector_norm(xyz)
-        return jnp.exp(1.0 / r**2) / (1.0 + r) ** 4
-
-    with jax.enable_x64(False):  # noqa: FBT003
-        r_in, _, _ = _probe(rho, rmin=1e-2, rmax=20.0)
-
-    assert r_in == pytest.approx(0.0, abs=1e-12)

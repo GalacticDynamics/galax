@@ -477,3 +477,54 @@ def test_solve_poisson_rejects_an_empty_gauss_legendre_axis() -> None:
 
     with pytest.raises(ValueError, match="at least one Gauss-Legendre node"):
         solve_poisson_profiles(*args, jnp.zeros((63, 0, 1)))
+
+
+@pytest.mark.parametrize("l", [0.0, 2.0, 4.0, 8.0])
+def test_the_inner_tail_is_exact_when_anchored_above_dropped_samples(l) -> None:
+    r"""Anchoring above a zeroed band must still integrate ``[0, r_i0]`` exactly.
+
+    A pure power law is the case where the tail model is the truth rather
+    than an approximation: for :math:`\rho = A r^\alpha`,
+
+    .. math::
+
+        \Phi_l(r) = \frac{-4\pi G A r^{\alpha+2}}{2l+1}
+                    \left(\frac{1}{\alpha+l+3} - \frac{1}{\alpha+2-l}\right)
+
+    exactly, provided both integrals converge (:math:`\alpha > -l-3` and
+    :math:`\alpha < l-2`). So zeroing the inner knots and anchoring the tail
+    above them must reproduce the same answer as not zeroing at all -- the
+    analytic tail covers exactly what was discarded.
+
+    REGRESSION (the margin): `fit_log_spline` is a *global* tridiagonal
+    solve, so a zero-to-real step perturbs the fitted derivative for several
+    knots around it, decaying by roughly the solve's Green's function (0.27
+    per knot). Panel ``i0`` reads that derivative, so anchoring right at the
+    step integrates a corrupted slope: measured 6.4e-4 there against 5.0e-8
+    eight knots above, on this very case. `_ANCHOR_MARGIN` is what moves the
+    anchor clear of it, and without it this test fails by four orders.
+    """
+    alpha, amp, n_r, drop = -2.5, 1.0, 512, 64
+    r = jnp.geomspace(1e-6, 1e6, n_r)
+    rho = (amp * r**alpha)[:, None]
+    l_arr = jnp.asarray([l])
+
+    zeroed = jnp.where(jnp.arange(n_r)[:, None] < drop, 0.0, rho)
+    phi, _, _ = solve_poisson_profiles(
+        r, zeroed, l_arr, jnp.asarray(1.0), None, jnp.asarray([float(drop)])
+    )
+
+    # Compare well above the anchor, where the answer is the closed form.
+    lo = drop + 24
+    rr = r[lo:]
+    want = (
+        -4.0
+        * jnp.pi
+        * amp
+        * rr ** (alpha + 2.0)
+        / (2.0 * l + 1.0)
+        * (1.0 / (alpha + l + 3.0) - 1.0 / (alpha + 2.0 - l))
+    )
+    got = phi[lo:, 0]
+    err = float(jnp.max(jnp.abs(got - want)) / jnp.max(jnp.abs(want)))
+    assert err < 1e-4, (l, err)

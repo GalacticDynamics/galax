@@ -92,6 +92,15 @@ import quaxed.numpy as jnp
 import galax.potential.custom_types as gt
 from .spline import fit_log_spline
 
+_ANCHOR_MARGIN: int = 8
+"""Knots between the last untrustworthy density sample and the tail's anchor.
+
+`fit_log_spline` is a global solve, so a zeroed band leaves a perturbed
+derivative around its edge that decays by ~0.27 per knot. Anchoring inside
+that region integrates a corrupted slope; eight knots puts the anchor where
+the step is no longer the dominant error. See `solve_poisson_profiles`.
+"""
+
 
 def _log_floor(x: Float[Array, "..."], /) -> float:
     r"""Smallest density this module will treat as non-zero.
@@ -219,6 +228,7 @@ def solve_poisson_profiles(
     G: gt.Sz0,
     /,
     rho_gl: Float[Array, "n_r-1 k n_modes"] | None = None,
+    first_ok: Float[Array, "n_modes"] | None = None,
 ) -> tuple[
     Float[Array, "n_r n_modes"],
     Float[Array, "n_r n_modes"],
@@ -328,9 +338,16 @@ def solve_poisson_profiles(
 
     def one_mode(
         _: None,
-        xs: tuple[Float[Array, "n_r"], Float[Array, "n_r"], Any, Float[Array, ""]],
+        xs: tuple[
+            Float[Array, "n_r"],
+            Float[Array, "n_r"],
+            Any,
+            Float[Array, ""],
+            Float[Array, ""],
+        ],
     ) -> tuple[None, tuple[Array, Array, Array]]:
-        rho_col, drho_col, rho_gl_col, l = xs
+        rho_col, drho_col, rho_gl_col, l, i0f = xs
+        i0 = i0f.astype(jnp.int32)
         # Named for x, not r: `log_r` is already centred, so this is x^l.
         # Integrands for d(log x), not dx: the dx -> x d(log x) Jacobian is
         # folded in, so these carry one more power of x than the dr form.
@@ -400,8 +417,38 @@ def solve_poisson_profiles(
         scale = jnp.max(jnp.abs(rho_col)) + floor
 
         # -- inner tail (0 -> r_min), rho_lm ~ A_in r^alpha_in --------------
-        log_rho_in = jnp.log(jnp.abs(rho_col[:3]) + floor)
-        alpha_in = jnp.mean(jnp.diff(log_rho_in) / jnp.diff(log_r[:3]))
+        # Anchor the tail at the first trustworthy knot, not at index 0.
+        #
+        # The pad is sampled from the caller's density, and where that density
+        # is not representable those samples are zeroed (`_drop_nonfinite`).
+        # Anchoring at index 0 regardless then fails twice over: the slope is
+        # fitted to zeros, and the gate below sees `rho[0] == 0` and drops the
+        # tail entirely -- so the band it should have covered is lost on top
+        # of the zeroed samples. That compounding is what cost 11% of the
+        # monopole on a steep cusp, and up to 100% when the unrepresentable
+        # band sat mid-pad rather than at its edge.
+        #
+        # `i0` is the index just past the deepest untrustworthy sample, so
+        # everything from there up is real. The tail then models `[0, r_i0]`
+        # as the power law fitted at `i0`, which is the same model it always
+        # used, just started where the data begins.
+        #
+        # The margin is not optional. `drho_lm` comes from `fit_log_spline`,
+        # a *global* tridiagonal solve, so the zero-to-real step at the
+        # boundary perturbs the fitted derivative for several knots either
+        # side of it, decaying by the solve's Green's function (~0.27 per
+        # knot). Panel `i0` reads `d[i0]`, so anchoring right at the step
+        # integrates a corrupted slope. Measured on a pure power law with
+        # the closed form known, zeroing 64 knots and moving the anchor:
+        # 6.4e-4 at the step, 2.0e-4 at +1, 6.0e-5 at +2, 5.7e-6 at +4 and
+        # 5.0e-8 at +8, against 7.8e-9 with nothing zeroed at all. Eight
+        # knots is where the step stops being the error.
+        i0 = jnp.where(i0 > 0, i0 + _ANCHOR_MARGIN, 0)
+        i0 = jnp.minimum(i0, log_r.shape[0] - 3)
+        tri = i0 + jnp.arange(3)
+        log_r_in = log_r[tri]
+        log_rho_in = jnp.log(jnp.abs(rho_col[tri]) + floor)
+        alpha_in = jnp.mean(jnp.diff(log_rho_in) / jnp.diff(log_r_in))
         exp_in = alpha_in + l + 3.0
         safe_in = jnp.where(jnp.abs(exp_in) > _SLOPE_TOL, exp_in, _SLOPE_TOL)
         # The amplitude never appears on its own. Writing the tail as
@@ -416,19 +463,36 @@ def solve_poisson_profiles(
         # (l + 3) times half the grid's log range, the same bound the
         # recentering above already guarantees. This is also what the outer
         # tail below does.
-        dI_in = rho_col[0] * x2[0] / safe_in  # already / x_0^(l+1)
+        dI_in = rho_col[i0] * x2[i0] / safe_in  # already / x_i0^(l+1)
         # The clamp keeps the division finite under jit, but a clamped
         # denominator no longer represents the integral: at exp_in = 1e-9 the
         # true tail is ~1e3 times what `_SLOPE_TOL` yields. Inside the clamped
         # window the tail is therefore dropped, not scaled -- the same
         # conservative treatment as just across the exp_in <= 0 boundary.
         dI_in = jnp.where(
-            (jnp.abs(rho_col[0]) > _active_tol(rho_col) * scale)
+            (jnp.abs(rho_col[i0]) > _active_tol(rho_col) * scale)
             & (exp_in > _SLOPE_TOL),
             dI_in,
             0.0,
         )
-        a_in = _scaled_prefix(jnp.exp(-(l + 1.0) * du), p_in, dI_in)
+        # Feed the tail in at `i0` rather than seeding index 0, and drop every
+        # panel at or below it. `_scaled_prefix`'s `term[j]` lands in `y[j+1]`,
+        # so `term[i0-1]` is the one that carries `y[i0]`.
+        #
+        # Injecting rather than seeding keeps the scaling local: the seed would
+        # have to be divided back through the prefix product of `mult`, which
+        # is `(x_i0/x_0)^(l+1)` and overflows for exactly the deep `i0` this
+        # exists to handle. The panel is already in `x_i0^(l+1)` units.
+        #
+        # The dropped panels are not merely zero-valued: `p_in[i0-1]` spans
+        # `[i0-1, i0]`, from a zeroed sample to a real one, so the rule would
+        # read a spurious step there.
+        panel_idx = jnp.arange(p_in.shape[0])
+        p_in = jnp.where(panel_idx < i0, 0.0, p_in)
+        p_in = p_in + dI_in * (panel_idx == i0 - 1)
+        a_in = _scaled_prefix(
+            jnp.exp(-(l + 1.0) * du), p_in, jnp.where(i0 == 0, dI_in, 0.0)
+        )
 
         # -- outer tail (r_max -> inf), rho_lm ~ A_out r^alpha_out ----------
         log_rho_out = jnp.log(jnp.abs(rho_col[-3:]) + floor)
@@ -461,7 +525,14 @@ def solve_poisson_profiles(
         if rho_gl is None
         else jnp.moveaxis(rho_gl, -1, 0)
     )
-    _, cols = jax.lax.scan(one_mode, None, (rho_lm.T, drho_lm.T, gl_T, l_per_mode))
+    # Index from which each mode's density is trustworthy; 0 when all of it
+    # is. Anchors the inner tail -- see `one_mode`.
+    ok0 = (
+        jnp.zeros_like(l_per_mode)
+        if first_ok is None
+        else jnp.clip(first_ok, 0, rho_lm.shape[0] - 3).astype(l_per_mode.dtype)
+    )
+    _, cols = jax.lax.scan(one_mode, None, (rho_lm.T, drho_lm.T, gl_T, l_per_mode, ok0))
     # Every profile scales the same way under the recentring: Phi picks up
     # exp(2 log_rc), and d/d(log x) = d/d(log r) leaves that factor alone.
     scale = jnp.exp(2.0 * log_rc)

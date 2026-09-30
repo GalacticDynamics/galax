@@ -21,7 +21,6 @@ from galax.potential._src.harmonic import (
     default_angular_resolution,
     lm_keys,
 )
-from galax.potential._src.utils import safe_vector_norm
 
 G_GALACTIC = float(default_constants["G"].decompose(u.unitsystem("galactic")).value)
 """G in kpc^3 / (Msun Myr^2), from the same constant the potentials use.
@@ -719,43 +718,3 @@ def test_gradient_matches_autodiff(l_max: int, symmetry: str) -> None:
     assert jnp.all(jnp.isfinite(got)), got
     scale = jnp.max(jnp.abs(ref))
     assert float(jnp.max(jnp.abs(got - ref)) / scale) < 1e-11
-
-
-@pytest.mark.parametrize(
-    ("gamma", "mass", "expect_warning"),
-    [(2.9, 1e-4, True), (1.0, 1.0, False)],
-)
-def test_warns_when_the_density_shortens_the_pad(gamma, mass, expect_warning) -> None:
-    """A pad cut short by the *density* must not be silent.
-
-    `_warn_if_padding_is_capped` reports the solver's own range limit, but
-    the pad is also cut back when the caller's density cannot be evaluated
-    across it -- which binds far more often, and for ordinary brackets. That
-    is a real accuracy loss (the boundary power law carries more of the
-    answer), and nothing in the returned arrays says it happened. Issue #880
-    asked for this companion warning.
-
-    Run in float32 deliberately: that is `galax`'s default dtype and the one
-    a steep cusp overflows in. Under the suite's forced x64 the same density
-    is representable across the whole pad, nothing is cut, and there would be
-    nothing to warn about.
-    """
-
-    def rho(xyz, t):
-        r = safe_vector_norm(xyz)
-        return mass / (r**gamma * (1.0 + r) ** (4.0 - gamma))
-
-    with jax.enable_x64(False), warnings.catch_warnings(record=True) as caught:  # noqa: FBT003
-        warnings.simplefilter("always")
-        MultipoleProfilePotential.from_density(
-            rho,
-            r_min=u.Q(1e-4, "kpc"),
-            r_max=u.Q(1e4, "kpc"),
-            n_r=64,
-            l_max=0,
-            symmetry="spherical",
-            units="galactic",
-        )
-
-    fired = [w for w in caught if "pad was shortened" in str(w.message)]
-    assert bool(fired) is expect_warning, [str(w.message) for w in caught]

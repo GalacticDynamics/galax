@@ -454,40 +454,38 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(
     density silently returning `nan` in `galax`'s default dtype, not an
     exotic input.
 
-    The values are checked too, not just finiteness. The pad is now sized by
-    what the density can actually represent (`_probe_reaches`), so no sample
-    overflows and none is dropped:
+    The values are checked too, not just finiteness. Unrepresentable samples
+    *are* zeroed -- the pad is not shortened to dodge them, which was tried
+    and measured worse, costing every caller tail accuracy to avoid an
+    overflow the anchored tail already absorbs. What makes zeroing cheap is
+    that the solve anchors its inner tail above the dropped band, so
+    ``[0, r_pad]`` is still integrated analytically.
 
-    ======= ========== ==========
-    gamma    before     after
-    ======= ========== ==========
-    1.0      1.7e-7     1.8e-7
-    1.9      1.2e-7     1.2e-7
-    2.5      1.2e-6     2.3e-7
-    2.9      1.1e-1     3.8e-5
-    ======= ========== ==========
+    Zeroing alone used to cost 11% at ``gamma = 2.9``: the innermost 51 pad
+    knots were dropped, and a zeroed ``rho[0]`` *also* failed the gate on
+    that tail, so the band went too. For ``rho ~ r**-2.9`` the monopole
+    integrand is ``r**-0.9`` and that band carries ~12% of the enclosed
+    mass, which is the error that was observed.
 
-    The "before" column is what zeroing the unrepresentable samples cost.
-    It was harmless through ``gamma = 2.5`` -- the density at the inner pad
-    is huge but its ``x**(l+3)`` weight is negligible -- and 11% by 2.9,
-    where the innermost 51 pad knots were dropped. Zeroing ``rho[0]`` also
-    switched off the solve's analytic inner tail, which is gated on it, so
-    the band ``[0, r_pad]`` was lost as well; for ``rho ~ r**-2.9`` the
-    monopole integrand is ``r**-0.9`` and that band carries ~12% of the
-    enclosed mass, which is the error observed.
+    Against a float64 build, over the cases below:
 
-    The pad is *not* shortened to avoid this. Doing so was tried and measured
-    worse -- it costs every caller tail accuracy to dodge an overflow the
-    anchored tail already absorbs. Errors against a float64 build:
+    ======= ======== ==========
+    gamma    mass     max rel
+    ======= ======== ==========
+    1.0      1        1.9e-07
+    1.9      1        1.2e-07
+    2.5      1        9.9e-08
+    2.9      1        4.9e-06
+    2.9      1e-2     4.7e-06
+    2.9      1e-4     4.7e-06
+    2.9      1e-6     4.9e-06
+    ======= ======== ==========
 
-    ======= ==========
-    gamma    max rel
-    ======= ==========
-    1.0      1.9e-07
-    1.9      1.2e-07
-    2.5      9.9e-08
-    2.9      4.9e-06
-    ======= ==========
+    The mass column matters: an earlier fix bounded the projected
+    coefficient against the dtype maximum, which is normalisation-dependent
+    -- it passed at ``mass = 1`` by coincidence and returned the full 11%
+    for anything smaller. Anchoring the tail does not care what the density
+    is scaled by.
 
     """
     keys = lm_keys(8, "none")

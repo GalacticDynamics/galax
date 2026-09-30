@@ -230,8 +230,7 @@ def _check_enough_knots(n_r: int, /) -> None:
     Four knots, matching `MultipoleProfilePotential.from_density`: the
     boundary slopes are fitted over three. This has to be checked *before*
     padding, because padding defeats the ``n_r >= 3`` guard inside the radial
-    solve -- a single knot pads to three and sails through it -- and before
-    the end-knot probe in `build_expansion`, which slices three from each end.
+    solve -- a single knot pads to three and sails through it.
 
     It also has to be checked at all: ``r_knots[1]`` on a one-knot grid is out
     of bounds, and JAX clamps rather than raising, so the ratio comes out as 1
@@ -384,10 +383,9 @@ def build_expansion(
     # instead of silently lost. See `solve_poisson_profiles`.
     #
     # The deepest bad index, not the first good one: an unrepresentable band
-    # can sit mid-pad rather than at its inner edge -- the probe ladder
-    # decides on each level's endpoint and cannot see a feature narrower than
-    # the gap between levels -- and everything below such a band is suspect
-    # even where it samples finite.
+    # can sit mid-pad rather than at its inner edge -- a density need not be
+    # monotonic in log r -- and everything below such a band is suspect even
+    # where it happens to sample finite.
     bad = ~jnp.isfinite(rho_raw)
     idx = jnp.arange(r_solve.shape[0])[:, None]
     first_ok = jnp.max(jnp.where(bad, idx + 1, 0), axis=0)

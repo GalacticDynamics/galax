@@ -39,6 +39,7 @@ from galax.potential._src.harmonic import (
     harmonic_coeffs,
 )
 from galax.potential._src.harmonic.poisson import (
+    _ANCHOR_MARGIN,
     gl_log_nodes,
     solve_poisson_profiles,
 )
@@ -392,7 +393,17 @@ def build_expansion(
     # Never discard the caller's own range: if their density is not finite
     # inside the bracket they asked for, there is nothing the pad can do and
     # anchoring there would throw away real interior data.
-    first_ok = jnp.minimum(first_ok, lo)
+    #
+    # The clamp has to leave room for `_ANCHOR_MARGIN`, which the solve adds
+    # *after* this. Clamping to `lo` alone bounds the wrong quantity: the
+    # effective anchor is `first_ok + _ANCHOR_MARGIN`, so it reached `lo + 8`
+    # and the innermost retained knots -- below the anchor, with their panels
+    # zeroed and the seed zero -- came back with no inner integral at all.
+    # Representable interior data, discarded by the guard meant to protect
+    # it. It needs a cusp steep enough to overflow nearly the whole pad
+    # (`M = 1e25` over `[1e-4, 1e4]` reaches pad knot 124 of 128), which is
+    # why nothing caught it sooner.
+    first_ok = jnp.minimum(first_ok, max(lo - _ANCHOR_MARGIN, 0))
 
     rho_solve = _drop_nonfinite(rho_raw)
     rho_lm = rho_solve[lo : lo + n_r]

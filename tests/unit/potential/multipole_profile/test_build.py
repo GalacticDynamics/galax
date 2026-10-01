@@ -517,3 +517,51 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(
     ref = jnp.asarray(build()["phi_lm"], dtype=float)
     scale = jnp.max(jnp.abs(ref))
     assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < rtol
+
+
+def test_a_cusp_that_overflows_almost_the_whole_pad_keeps_its_interior() -> None:
+    """The anchor must never land inside the range the caller asked for.
+
+    REGRESSION: `build_expansion` clamps the anchor to ``lo``, the first
+    retained knot, so that an unrepresentable band can never cost interior
+    data. But `solve_poisson_profiles` adds `_ANCHOR_MARGIN` *after* that, so
+    the effective anchor was ``lo + 8``. Every retained knot below it had its
+    panels zeroed and the seed zero, so it came back with no inner-integral
+    contribution at all -- representable interior data discarded by the guard
+    written to protect it.
+
+    It needs a cusp steep enough to overflow nearly the whole pad while
+    staying finite inside the bracket: ``M = 1e25`` over ``[1e-4, 1e4]``
+    reaches pad knot 124 of 128, where ``gamma = 2.9`` at unit mass reaches
+    only 51. That is why the existing cases never found it.
+
+    Measured float32 against float64: 9.0e-01 before the clamp accounted for
+    the margin, 1.1e-03 after. The residual is honest degradation -- with
+    almost the whole pad unrepresentable the boundary model carries the
+    answer -- not the catastrophic loss of an unseeded recurrence.
+    """
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1e25 / (r**2.9 * (1.0 + r) ** 1.1)
+
+    def build():
+        r_knots = jnp.geomspace(1e-4, 1e4, 256)
+        return build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = build()
+        assert jnp.all(jnp.isfinite(got)), got
+        f32 = jnp.asarray(got, dtype=float)
+
+    ref = jnp.asarray(build(), dtype=float)
+    scale = jnp.max(jnp.abs(ref))
+
+    # The innermost retained knots are the ones the anchor used to swallow.
+    inner = float(jnp.max(jnp.abs(f32[:8] - ref[:8])) / scale)
+    assert inner < 1e-2, inner
+    assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < 1e-2

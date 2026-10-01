@@ -17,6 +17,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "astropy>=7.0.0",
   "galax>0.0.3",
   "galax.interop.astropy>0.0.3",
   "galpy>=1.8",

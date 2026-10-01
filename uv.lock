@@ -13,6 +13,7 @@ members = [
     "galax-interop-astropy",
     "galax-interop-gala",
     "galax-interop-galpy",
+    "galax-interop-matplotlib",
 ]
 
 [[package]]
@@ -925,6 +926,7 @@ dev = [
     { name = "galax-interop-astropy" },
     { name = "galax-interop-gala" },
     { name = "galax-interop-galpy" },
+    { name = "galax-interop-matplotlib" },
     { name = "ipykernel" },
     { name = "myst-parser" },
     { name = "nox" },
@@ -954,6 +956,7 @@ test = [
     { name = "galax-interop-astropy" },
     { name = "galax-interop-gala" },
     { name = "galax-interop-galpy" },
+    { name = "galax-interop-matplotlib" },
     { name = "nox" },
     { name = "prek" },
     { name = "pytest" },
@@ -969,6 +972,7 @@ test-all = [
     { name = "galax-interop-astropy" },
     { name = "galax-interop-gala" },
     { name = "galax-interop-galpy" },
+    { name = "galax-interop-matplotlib" },
     { name = "nox" },
     { name = "prek" },
     { name = "pytest" },
@@ -1040,6 +1044,7 @@ dev = [
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "galax-interop-gala", editable = "packages/galax.interop.gala" },
     { name = "galax-interop-galpy", editable = "packages/galax.interop.galpy" },
+    { name = "galax-interop-matplotlib", editable = "packages/galax.interop.matplotlib" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "myst-parser", specifier = ">=4.0" },
     { name = "nox", specifier = ">=2024.10.9" },
@@ -1069,6 +1074,7 @@ test = [
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "galax-interop-gala", editable = "packages/galax.interop.gala" },
     { name = "galax-interop-galpy", editable = "packages/galax.interop.galpy" },
+    { name = "galax-interop-matplotlib", editable = "packages/galax.interop.matplotlib" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "prek", specifier = ">=0.5.3" },
     { name = "pytest", specifier = ">=8.3" },
@@ -1084,6 +1090,7 @@ test-all = [
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "galax-interop-gala", editable = "packages/galax.interop.gala" },
     { name = "galax-interop-galpy", editable = "packages/galax.interop.galpy" },
+    { name = "galax-interop-matplotlib", editable = "packages/galax.interop.matplotlib" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "prek", specifier = ">=0.5.3" },
     { name = "pytest", specifier = ">=8.3" },
@@ -1160,6 +1167,29 @@ requires-dist = [
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "galpy", specifier = ">=1.8" },
     { name = "optional-dependencies", specifier = ">=0.4.0" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "unxt", specifier = ">=1.11.2,<2" },
+]
+
+[[package]]
+name = "galax-interop-matplotlib"
+source = { editable = "packages/galax.interop.matplotlib" }
+dependencies = [
+    { name = "galax" },
+    { name = "matplotlib" },
+    { name = "optional-dependencies" },
+    { name = "plotting-backends" },
+    { name = "plum" },
+    { name = "unxt" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "galax", editable = "." },
+    { name = "matplotlib", specifier = ">=3.8" },
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
+    { name = "plotting-backends", specifier = ">=0.1" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
     { name = "unxt", specifier = ">=1.11.2,<2" },

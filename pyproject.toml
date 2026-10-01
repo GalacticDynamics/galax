@@ -86,10 +86,8 @@ Homepage = "https://github.com/GalacticDynamics/galax"
 # does not drag in potential-level interop. A plugin whose third-party target
 # is not installed is skipped by the loader.
 [project.entry-points."galax.potential.interop"]
-matplotlib = "galax.interop.matplotlib.potential"
 
 [project.entry-points."galax.dynamics.interop"]
-matplotlib = "galax.interop.matplotlib.orbit"
 
 
 [build-system]
@@ -103,6 +101,7 @@ members = ["packages/*"]
 "galax.interop.astropy" = { workspace = true }
 "galax.interop.gala" = { workspace = true }
 "galax.interop.galpy" = { workspace = true }
+"galax.interop.matplotlib" = { workspace = true }
 
 
 [dependency-groups]
@@ -132,6 +131,7 @@ test = [
   "galax.interop.astropy",
   "galax.interop.gala",
   "galax.interop.galpy",
+  "galax.interop.matplotlib",
   "nox>=2024.10.9",
   "prek>=0.5.3",
   "pytest-arraydiff>=0.6.1",
@@ -214,6 +214,7 @@ mypy_path = [
   "packages/galax.interop.astropy/src",
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",
+  "packages/galax.interop.matplotlib/src",
 ]
 namespace_packages = true
 

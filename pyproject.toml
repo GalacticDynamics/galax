@@ -85,11 +85,7 @@ Homepage = "https://github.com/GalacticDynamics/galax"
 # registration. Groups are per-portion so that importing `galax.coordinates`
 # does not drag in potential-level interop. A plugin whose third-party target
 # is not installed is skipped by the loader.
-[project.entry-points."galax.coordinates.interop"]
-gala = "galax.interop.gala.coordinates"
-
 [project.entry-points."galax.potential.interop"]
-gala = "galax.interop.gala.potential"
 galpy = "galax.interop.galpy.potential"
 matplotlib = "galax.interop.matplotlib.potential"
 
@@ -106,6 +102,7 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 "galax.interop.astropy" = { workspace = true }
+"galax.interop.gala" = { workspace = true }
 
 
 [dependency-groups]
@@ -133,6 +130,7 @@ test = [
   # root depends on it. Until `galax` depends on the interop distributions
   # itself, this keeps their entry points registered for the test suite.
   "galax.interop.astropy",
+  "galax.interop.gala",
   "nox>=2024.10.9",
   "prek>=0.5.3",
   "pytest-arraydiff>=0.6.1",
@@ -210,7 +208,11 @@ python_version = "3.12"
 # `galax.potential._src.base` and losing every cross-module type.
 explicit_package_bases = true
 # Each distribution under `packages/` is its own source root.
-mypy_path = ["src", "packages/galax.interop.astropy/src"]
+mypy_path = [
+  "src",
+  "packages/galax.interop.astropy/src",
+  "packages/galax.interop.gala/src",
+]
 namespace_packages = true
 
 disallow_incomplete_defs = true

@@ -11,6 +11,7 @@ resolution-markers = [
 members = [
     "galax",
     "galax-interop-astropy",
+    "galax-interop-gala",
 ]
 
 [[package]]
@@ -921,6 +922,7 @@ dev = [
     { name = "cz-conventional-gitmoji" },
     { name = "furo" },
     { name = "galax-interop-astropy" },
+    { name = "galax-interop-gala" },
     { name = "ipykernel" },
     { name = "myst-parser" },
     { name = "nox" },
@@ -948,6 +950,7 @@ docs = [
 ]
 test = [
     { name = "galax-interop-astropy" },
+    { name = "galax-interop-gala" },
     { name = "nox" },
     { name = "prek" },
     { name = "pytest" },
@@ -961,6 +964,7 @@ test = [
 ]
 test-all = [
     { name = "galax-interop-astropy" },
+    { name = "galax-interop-gala" },
     { name = "nox" },
     { name = "prek" },
     { name = "pytest" },
@@ -1030,6 +1034,7 @@ dev = [
     { name = "cz-conventional-gitmoji", specifier = ">=0.6.1" },
     { name = "furo", specifier = ">=2024.8.6" },
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
+    { name = "galax-interop-gala", editable = "packages/galax.interop.gala" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "myst-parser", specifier = ">=4.0" },
     { name = "nox", specifier = ">=2024.10.9" },
@@ -1057,6 +1062,7 @@ docs = [
 ]
 test = [
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
+    { name = "galax-interop-gala", editable = "packages/galax.interop.gala" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "prek", specifier = ">=0.5.3" },
     { name = "pytest", specifier = ">=8.3" },
@@ -1070,6 +1076,7 @@ test = [
 ]
 test-all = [
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
+    { name = "galax-interop-gala", editable = "packages/galax.interop.gala" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "prek", specifier = ">=0.5.3" },
     { name = "pytest", specifier = ">=8.3" },
@@ -1099,6 +1106,29 @@ dependencies = [
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
     { name = "galax", editable = "." },
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "unxt", specifier = ">=1.11.2,<2" },
+]
+
+[[package]]
+name = "galax-interop-gala"
+source = { editable = "packages/galax.interop.gala" }
+dependencies = [
+    { name = "gala" },
+    { name = "galax" },
+    { name = "galax-interop-astropy" },
+    { name = "optional-dependencies" },
+    { name = "plum" },
+    { name = "unxt" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "gala", specifier = ">=1.10" },
+    { name = "galax", editable = "." },
+    { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },

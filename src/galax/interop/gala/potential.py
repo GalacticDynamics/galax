@@ -23,7 +23,7 @@ import unxt as u
 
 import galax.potential as gp
 import galax.potential.io as gpio
-from galax.interop.optional_deps import OptDeps
+from galax.interop.gala.optional_deps import OptDeps
 
 ##############################################################################
 # Hook into general dispatcher
@@ -278,7 +278,7 @@ if OptDeps.GALA.installed:
 
         .. invisible-code-block: python
 
-            from galax.interop.optional_deps import OptDeps
+            from galax.interop.gala.optional_deps import OptDeps
             skip = not OptDeps.GALA.installed
 
         .. skip: start if(skip, reason="requires gala")
@@ -312,7 +312,7 @@ if OptDeps.GALA.installed:
 
         .. invisible-code-block: python
 
-            from galax.interop.optional_deps import OptDeps
+            from galax.interop.gala.optional_deps import OptDeps
             skip = not OptDeps.GALA.installed
 
         .. skip: start if(skip, reason="requires gala")
@@ -994,7 +994,7 @@ def gala_to_galax(
     --------
     .. invisible-code-block: python
 
-        from galax.interop.optional_deps import GSL_ENABLED
+        from galax.interop.gala.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1030,7 +1030,7 @@ def galax_to_gala(pot: gp.PowerLawCutoffPotential, /) -> galap.PowerLawCutoffPot
     --------
     .. invisible-code-block: python
 
-        from galax.interop.optional_deps import GSL_ENABLED
+        from galax.interop.gala.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1599,7 +1599,7 @@ def gala_to_galax(pot: galap.BovyMWPotential2014, /) -> gp.BovyMWPotential2014:
     --------
     .. invisible-code-block: python
 
-        from galax.interop.optional_deps import GSL_ENABLED
+        from galax.interop.gala.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1633,7 +1633,7 @@ def galax_to_gala(pot: gp.BovyMWPotential2014, /) -> galap.BovyMWPotential2014:
     --------
     .. invisible-code-block: python
 
-        from galax.interop.optional_deps import GSL_ENABLED
+        from galax.interop.gala.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 

@@ -16,7 +16,7 @@ from .test_common import (
     ParameterShapeQ3Mixin,
     ParameterVCMixin,
 )
-from galax.interop.optional_deps import OptDeps
+from galax.interop.gala.optional_deps import OptDeps
 
 
 class ParameterPhiMixin(ParameterFieldMixin):

@@ -12,7 +12,7 @@ import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..builtin.test_common import ParameterMTotMixin, ParameterRSMixin
 from ..test_core import AbstractSinglePotential_Test
-from galax.interop.optional_deps import GSL_ENABLED, OptDeps
+from galax.interop.gala.optional_deps import GSL_ENABLED, OptDeps
 
 
 class TestSCFPotential(

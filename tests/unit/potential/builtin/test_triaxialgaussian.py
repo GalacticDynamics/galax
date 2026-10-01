@@ -17,7 +17,7 @@ from .test_common import (
     ParameterShapeQ2Mixin,
     assert_gaussian_matches_galpy,
 )
-from galax.interop.optional_deps import OptDeps
+from galax.interop.galpy.optional_deps import OptDeps
 
 
 class TestTriaxialGaussianPotential(

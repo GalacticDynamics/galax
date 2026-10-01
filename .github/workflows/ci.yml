@@ -56,8 +56,13 @@ jobs:
         with:
           python-version-file: ".python-version"
       - name: Install the project
-        # The entry-point assertions need every interop distribution installed;
-        # a plain sync installs only the astropy one.
+        # Every extra, deliberately. `tests/smoke/test_interop_registration.py
+        # ::test_entry_point_is_registered` asserts all eight entry points
+        # across all four interop distributions, and a plain sync installs only
+        # the astropy one -- five of those cases would fail. Do not narrow this
+        # to `--group test` and then make the test skip absent distributions:
+        # that restores the exact hole it exists to close, since a dropped
+        # entry point raises no error, the interop just silently stops working.
         run: uv sync --extra all --group test
       - name: Run smoke test
         run: uv run pytest tests/smoke -ra

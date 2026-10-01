@@ -129,7 +129,7 @@ if not OptDeps.ASTROPY.installed:
 if not OptDeps.GALA.installed:
     collect_ignore_glob.append("packages/galax.interop.gala/src/galax/interop/gala/*")
 if not OptDeps.GALPY.installed:
-    collect_ignore_glob.append("src/galax/interop/galpy/*")
+    collect_ignore_glob.append("packages/galax.interop.galpy/src/galax/interop/galpy/*")
 
 
 def pytest_report_header(config: Any) -> str:  # noqa: D103, ARG001

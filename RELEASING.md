@@ -18,9 +18,16 @@ alone — but the usual case is a coordinated release of all of them.
 
 1. Check `main` is green.
 2. Push the coordinator tag: `git tag v0.1.0 && git push origin v0.1.0`.
-3. `create-package-tags.yml` creates each `<prefix>-v0.1.0` tag and pushes it.
-4. Each package's CD workflow builds and publishes on its own tag.
+3. `create-package-tags.yml` creates each `<prefix>-v0.1.0` tag and pushes it,
+   then dispatches each `cd-<prefix>.yml` with `gh workflow run`. Tags pushed
+   with `GITHUB_TOKEN` do not trigger `on: push: tags:`, so the dispatch is what
+   starts the builds.
+4. Each dispatched run builds and inspects its package. Publishing is not yet
+   enabled (see "What does not work yet").
 5. Publish the GitHub release for the coordinator tag.
+
+`workflow_dispatch` only works for a workflow file that exists on the default
+branch, so a pre-merge dry run of the fan-out from a branch will not work.
 
 ## Single-package release
 

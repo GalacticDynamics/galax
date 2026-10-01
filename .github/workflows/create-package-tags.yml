@@ -36,7 +36,9 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_VAR#refs/tags/}"
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+          # Same version forms `validate_tag.py` accepts, anchored at both ends, so
+          # the fan-out cannot admit a version the direct push path forbids.
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+|\.post[0-9]+|\.dev[0-9]+)?$ ]]; then
             echo "::error::$TAG is not a coordinator release tag"
             exit 1
           fi

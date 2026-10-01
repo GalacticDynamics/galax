@@ -124,7 +124,10 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install the project
-        run: uv sync --group test
+        # `packages/` is collected below, and each interop smoke test imports its
+        # own distribution at module scope; without the workspace members that is
+        # a collection error. The tests skip when the wrapped library is absent.
+        run: uv sync --all-packages --group test
 
       - name: Test package
         run: >-

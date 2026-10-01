@@ -52,3 +52,25 @@ jobs:
             git push origin "${prefix}-v${VERSION}"
           done
         shell: bash
+
+      # Tags pushed with GITHUB_TOKEN do not trigger `on: push: tags:`
+      # workflows, so each package's CD run has to be started explicitly.
+      # Deliberately simple: the per-package workflows only build, so there is
+      # no idempotency check against re-dispatching an already-running or
+      # already-published tag. Add one (as coordinax's dispatch-package-cd
+      # composite action does) when publishing is enabled.
+      - name: Dispatch each package's CD workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Through `env`, never `${{ }}` inside `run` -- see above.
+          GITHUB_REF_VAR: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_VAR#refs/tags/}"
+          VERSION="${TAG#v}"
+          for pkg in packages/*/; do
+            name=$(basename "$pkg")              # galax.interop.gala
+            prefix="${name//./-}"                # galax-interop-gala
+            gh workflow run "cd-${prefix}.yml" --ref "${prefix}-v${VERSION}"
+          done
+        shell: bash

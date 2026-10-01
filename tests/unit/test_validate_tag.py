@@ -41,6 +41,12 @@ def test_accepts_its_own_tag(tag: str, package: str) -> None:
         # Malformed.
         ("galax-interop-gala-0.1.0", "galax.interop.gala"),
         ("galax-interop-gala-vabc", "galax.interop.gala"),
+        # A valid prefix and version with extra text around it: only anchoring
+        # at both ends rejects these.
+        ("galax-interop-gala-v0.1.0-extra", "galax.interop.gala"),
+        ("prefix-galax-interop-gala-v0.1.0", "galax.interop.gala"),
+        # `$` alone matches before a trailing newline; only `fullmatch` rejects.
+        ("galax-interop-gala-v0.1.0\n", "galax.interop.gala"),
     ],
 )
 def test_rejects_anything_else(tag: str, package: str) -> None:

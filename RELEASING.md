@@ -34,6 +34,25 @@ git push origin galax-interop-gala-v0.1.1
 `validate_tag.py` refuses a tag that does not belong to the package being built,
 so a mistyped prefix fails the build rather than publishing a wrong version.
 
+## What does not work yet
+
+- **The per-package CD workflows build; they do not publish.** Publishing needs
+  ten trusted publishers (five distributions, each on PyPI and TestPyPI), which
+  only the repository owner can create. That is deliberately out of scope for
+  the split itself.
+- **The coordinator fan-out's dispatch step is untested.** Tags pushed with
+  `GITHUB_TOKEN` do not trigger `on: push: tags:` workflows, so
+  `create-package-tags.yml` dispatches each package's CD workflow explicitly
+  with `gh workflow run`. That cannot be exercised without pushing a real tag.
+  Do the first coordinated release with one package first and verify its CD run
+  actually starts before relying on the fan-out for all four.
+- **A dispatched run skips `validate_tag.py`.** The validation step is gated on
+  `github.event_name == 'push'`, so only a direct per-package tag push is
+  validated; the fan-out path is not.
+- **The dispatch has no idempotency check**, so re-running it re-dispatches
+  every package. Harmless while the workflows only build; add one when
+  publishing is enabled.
+
 ## Trusted publishers
 
 **Each distribution needs its own trusted publisher on both PyPI and TestPyPI,

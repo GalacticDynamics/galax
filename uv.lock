@@ -7,6 +7,12 @@ resolution-markers = [
     "python_full_version < '3.13'",
 ]
 
+[manifest]
+members = [
+    "galax",
+    "galax-interop-astropy",
+]
+
 [[package]]
 name = "absl-py"
 version = "2.3.1"
@@ -914,6 +920,7 @@ plot-matplotlib = [
 dev = [
     { name = "cz-conventional-gitmoji" },
     { name = "furo" },
+    { name = "galax-interop-astropy" },
     { name = "ipykernel" },
     { name = "myst-parser" },
     { name = "nox" },
@@ -940,6 +947,7 @@ docs = [
     { name = "sphinx-copybutton" },
 ]
 test = [
+    { name = "galax-interop-astropy" },
     { name = "nox" },
     { name = "prek" },
     { name = "pytest" },
@@ -952,6 +960,7 @@ test = [
     { name = "tfp-nightly", extra = ["jax"] },
 ]
 test-all = [
+    { name = "galax-interop-astropy" },
     { name = "nox" },
     { name = "prek" },
     { name = "pytest" },
@@ -1020,6 +1029,7 @@ provides-extras = ["all", "interop-all", "interop-astropy", "interop-gala", "int
 dev = [
     { name = "cz-conventional-gitmoji", specifier = ">=0.6.1" },
     { name = "furo", specifier = ">=2024.8.6" },
+    { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "myst-parser", specifier = ">=4.0" },
     { name = "nox", specifier = ">=2024.10.9" },
@@ -1046,6 +1056,7 @@ docs = [
     { name = "sphinx-copybutton", specifier = ">=0.5.2" },
 ]
 test = [
+    { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "prek", specifier = ">=0.5.3" },
     { name = "pytest", specifier = ">=8.3" },
@@ -1058,6 +1069,7 @@ test = [
     { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.26.0.dev20260601" },
 ]
 test-all = [
+    { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "prek", specifier = ">=0.5.3" },
     { name = "pytest", specifier = ">=8.3" },
@@ -1071,6 +1083,27 @@ test-all = [
     { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.26.0.dev20260601" },
 ]
 test-mpl = [{ name = "pytest-mpl", specifier = ">=0.17.0" }]
+
+[[package]]
+name = "galax-interop-astropy"
+source = { editable = "packages/galax.interop.astropy" }
+dependencies = [
+    { name = "astropy" },
+    { name = "galax" },
+    { name = "optional-dependencies" },
+    { name = "plum" },
+    { name = "unxt" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "astropy", specifier = ">=7.0.0" },
+    { name = "galax", editable = "." },
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "unxt", specifier = ">=1.11.2,<2" },
+]
 
 [[package]]
 name = "galpy"

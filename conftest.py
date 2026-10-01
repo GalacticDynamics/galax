@@ -123,7 +123,9 @@ collect_ignore_glob = [
     ".superpowers/*",
 ]
 if not OptDeps.ASTROPY.installed:
-    collect_ignore_glob.append("src/galax/interop/astropy/*")
+    collect_ignore_glob.append(
+        "packages/galax.interop.astropy/src/galax/interop/astropy/*"
+    )
 if not OptDeps.GALA.installed:
     collect_ignore_glob.append("src/galax/interop/gala/*")
 if not OptDeps.GALPY.installed:

@@ -8,7 +8,28 @@
 set -euo pipefail
 
 WHEELS=$(mktemp -d)
-trap 'rm -rf "$WHEELS"' EXIT
+
+# hatchling's version-file hook writes `_version.py` into each package's source
+# tree, and those gitignored files back the editable dev install. Building as
+# 999.0.0 (below) would leave `galax.interop.<lib>.__version__` reading 999.0.0
+# after every run, so put them back on exit.
+VERSION_FILES=()
+for p in packages/*/; do
+  lib=$(basename "$p"); lib=${lib#galax.interop.}
+  VERSION_FILES+=("${p}src/galax/interop/${lib}/_version.py")
+done
+BACKUP=$(mktemp -d)
+for f in "${VERSION_FILES[@]}"; do
+  if [[ -e "$f" ]]; then cp -p "$f" "$BACKUP/$(echo "$f" | tr / _)"; fi
+done
+restore_version_files() {
+  for f in "${VERSION_FILES[@]}"; do
+    saved="$BACKUP/$(echo "$f" | tr / _)"
+    if [[ -e "$saved" ]]; then cp -p "$saved" "$f"; else rm -f "$f"; fi
+  done
+  rm -rf "$WHEELS" "$BACKUP"
+}
+trap restore_version_files EXIT
 
 # Build every distribution as 999.0.0, a final release above anything published.
 # This does three jobs at once: a published PyPI version can never satisfy an
@@ -34,6 +55,15 @@ for p in . packages/*/; do
   norm="${name//./_}"
   ls "$WHEELS/${norm}"-*.whl    >/dev/null || { echo "no wheel for $name"; exit 1; }
   ls "$WHEELS/${norm}"-*.tar.gz >/dev/null || { echo "no sdist for $name"; exit 1; }
+done
+
+echo "== every wheel actually contains its source =="
+# `uv build` builds each wheel *from* its sdist, so an sdist that omits its source
+# gives an empty wheel. Shapes 1 and 2 only import galax, astropy and gala; this
+# covers galpy and matplotlib too.
+for whl in "$WHEELS"/*.whl; do
+  unzip -Z1 "$whl" | grep -E '^galax/.*\.py$' | grep -v '/_version\.py$' >/dev/null \
+    || { echo "$(basename "$whl") contains no galax source (only _version.py, or nothing)"; exit 1; }
 done
 
 echo "== shape 1: bare \`pip install galax\` =="

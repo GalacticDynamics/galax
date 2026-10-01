@@ -36,7 +36,7 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Validate git tag
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           # Through `env`, never `${{ }}` inside `run`: a tag name is supplied
           # by anyone who can push one, and `${{ }}` is substituted before bash

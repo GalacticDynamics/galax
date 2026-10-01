@@ -66,6 +66,15 @@ for whl in "$WHEELS"/*.whl; do
     || { echo "$(basename "$whl") contains no galax source (only _version.py, or nothing)"; exit 1; }
 done
 
+echo "== the root wheel ships no galax/interop/ =="
+# Every `galax>0.0.3` floor in packages/ assumes the first post-split root
+# release has no interop tree. A root wheel that still shipped it would let
+# `galax` and `galax.interop.*` write the same files, which is what the strict
+# floor exists to prevent.
+if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/interop/' >/dev/null; then
+  echo "the root galax wheel still contains galax/interop/ files"; exit 1
+fi
+
 echo "== shape 1: bare \`pip install galax\` =="
 # Install the freshly built root wheel *by path*, so a published PyPI version
 # cannot satisfy it; --find-links resolves its inter-distribution pins from the

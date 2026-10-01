@@ -1,6 +1,6 @@
 """Doctest configuration."""
 
-import importlib
+import importlib.util
 from doctest import ELLIPSIS, NORMALIZE_WHITESPACE
 from pathlib import Path
 
@@ -122,14 +122,20 @@ collect_ignore_glob = [
     "docs/superpowers/*",
     ".superpowers/*",
 ]
-if not OptDeps.ASTROPY.installed:
-    collect_ignore_glob.append(
-        "packages/galax.interop.astropy/src/galax/interop/astropy/*"
+# A package's own tests (and its doctests) import its own distribution at module
+# scope, so none of it can be collected unless that distribution is installed
+# *and* the library it wraps is usable. Both are checked: a plain `uv sync`
+# installs matplotlib itself (a test dependency) without the
+# `galax.interop.matplotlib` distribution. `*` crosses `/` in pytest's matcher,
+# so one pattern covers a package's `src/` and `tests/` trees.
+collect_ignore_glob.extend(
+    f"packages/galax.interop.{lib}/*"
+    for lib in ("astropy", "gala", "galpy", "matplotlib")
+    if not (
+        OptDeps[lib.upper()].installed
+        and importlib.util.find_spec(f"galax.interop.{lib}")
     )
-if not OptDeps.GALA.installed:
-    collect_ignore_glob.append("packages/galax.interop.gala/src/galax/interop/gala/*")
-if not OptDeps.GALPY.installed:
-    collect_ignore_glob.append("packages/galax.interop.galpy/src/galax/interop/galpy/*")
+)
 
 
 def pytest_report_header(config: Any) -> str:  # noqa: D103, ARG001

@@ -6,16 +6,21 @@ Sybil derives a module name by walking up until a directory lacks
 there is more than one root.
 """
 
-import sys
+import importlib.util
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parents[2]))
-import conftest
-from conftest import _module_name_for
-
 ROOT = Path(__file__).parents[2]
+
+# Load the root conftest by location: putting the repo root on `sys.path` would
+# make `docs`, `packages`, `src`, ... importable as top-level names.
+_spec = importlib.util.spec_from_file_location(
+    "galax_root_conftest", ROOT / "conftest.py"
+)
+conftest = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(conftest)
+_module_name_for = conftest._module_name_for
 
 
 @pytest.mark.parametrize(

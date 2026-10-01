@@ -53,9 +53,11 @@ so a mistyped prefix fails the build rather than publishing a wrong version.
   with `gh workflow run`. That cannot be exercised without pushing a real tag.
   Do the first coordinated release with one package first and verify its CD run
   actually starts before relying on the fan-out for all four.
-- **A dispatched run skips `validate_tag.py`.** The validation step is gated on
-  `github.event_name == 'push'`, so only a direct per-package tag push is
-  validated; the fan-out path is not.
+- **Dispatched runs are validated only when dispatched on a tag ref.** The
+  validation step is gated on `startsWith(github.ref, 'refs/tags/')`, so both a
+  direct per-package tag push and the coordinator's
+  `gh workflow run --ref <tag>` are validated; a manual dispatch on a branch ref
+  is not.
 - **The dispatch has no idempotency check**, so re-running it re-dispatches
   every package. Harmless while the workflows only build; add one when
   publishing is enabled.

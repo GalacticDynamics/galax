@@ -371,6 +371,9 @@ ignore = [
   "S101",   # asserts are the point: correctness gate + x64 sanity check
   "T20",    # a CLI script reporting results via print is the point
 ]
+"scripts/**" = [
+  "T20", # CLI scripts report results via print; that is the point
+]
 "docs/conf.py" = [
   "A001",   # Variable `copyright` is shadowing a Python builtin
   "INP001", # implicit namespace package

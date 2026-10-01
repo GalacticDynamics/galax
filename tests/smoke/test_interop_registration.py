@@ -7,7 +7,6 @@ deliberately behavioural.
 
 import subprocess
 import sys
-import warnings
 from importlib.metadata import entry_points
 
 import pytest
@@ -34,20 +33,6 @@ def test_every_entry_point_loads() -> None:
     for group in GROUPS:
         for ep in entry_points(group=group):
             assert ep.load() is not None, f"{group}:{ep.name} failed to load"
-
-
-def test_loading_all_plugins_raises_no_redefinition_warning() -> None:
-    """Review Focus 3: four distributions registering into shared dispatchers.
-
-    Two packages claiming the same plum signature raises
-    `MethodRedefinitionWarning`, which `filterwarnings = ["error"]` turns into a
-    hard failure at an arbitrary later call. Load everything and look.
-    """
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        for group in GROUPS:
-            for ep in entry_points(group=group):
-                ep.load()
 
 
 # Run in a fresh interpreter. `plum`'s default dispatcher does not warn on
@@ -85,11 +70,12 @@ for dispatcher in (plum.dispatch, coord_dispatcher):
 
 
 def test_fresh_process_registration_redefines_no_galax_method() -> None:
-    """The in-process check above can be vacuous; this one cannot.
+    """No two distributions may claim the same galax dispatch signature.
 
-    By the time pytest runs, `galax` has already imported every plugin, so
-    `ep.load()` is a no-op that re-runs no registration. A fresh interpreter with
-    redefinition warnings enabled performs each registration for the first time.
+    This must run in a fresh interpreter. By the time pytest runs, `galax` has
+    already imported every plugin, so `ep.load()` here would re-run no
+    registration; a fresh process performs each one for the first time with
+    redefinition warnings enabled.
     """
     result = subprocess.run(  # noqa: S603
         [sys.executable, "-c", _FRESH_PROCESS_PROBE],
@@ -100,14 +86,30 @@ def test_fresh_process_registration_redefines_no_galax_method() -> None:
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.parametrize(
-    ("group", "name"),
-    [
-        ("galax.coordinates.interop", "astropy"),
-        ("galax.potential.interop", "astropy"),
-        ("galax.dynamics.interop", "astropy"),
-    ],
-)
-def test_astropy_registers_on_a_default_install(group: str, name: str) -> None:
-    """Astropy interop is required, so it is present without any extra."""
-    assert name in {ep.name for ep in entry_points(group=group)}
+# (group, name, target module): every entry point declared by the four packages'
+# own pyprojects. The dev environment syncs `--all-extras`, so all are present.
+# Asserting the target as well as the name catches a copy-paste that registers
+# e.g. matplotlib's dynamics entry point at its `.potential` module.
+EXPECTED = [
+    ("galax.coordinates.interop", "astropy", "galax.interop.astropy.coordinates"),
+    ("galax.potential.interop", "astropy", "galax.interop.astropy.potential"),
+    ("galax.dynamics.interop", "astropy", "galax.interop.astropy.dynamics"),
+    ("galax.coordinates.interop", "gala", "galax.interop.gala.coordinates"),
+    ("galax.potential.interop", "gala", "galax.interop.gala.potential"),
+    ("galax.potential.interop", "galpy", "galax.interop.galpy.potential"),
+    ("galax.potential.interop", "matplotlib", "galax.interop.matplotlib.potential"),
+    ("galax.dynamics.interop", "matplotlib", "galax.interop.matplotlib.orbit"),
+]
+
+
+@pytest.mark.parametrize(("group", "name", "value"), EXPECTED)
+def test_entry_point_is_registered(group: str, name: str, value: str) -> None:
+    """Each interop package's entry points are present and aim at the right module.
+
+    Without this a group stays non-empty on astropy alone, so dropping gala's,
+    galpy's or matplotlib's entry point would pass every other test here. Whether
+    astropy registers on a bare install, with no extras, is shown only by
+    `scripts/check_install_shapes.sh`; this suite runs with every extra installed.
+    """
+    registered = {ep.name: ep.value for ep in entry_points(group=group)}
+    assert registered.get(name) == value, f"{group}: {name} -> {registered.get(name)}"

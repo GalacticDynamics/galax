@@ -157,6 +157,19 @@ test-mpl = ["pytest-mpl>=0.17.0"]
 metadata.allow-direct-references = true
 version.source = "vcs"
 
+# Only plain `v*` tags version `galax`. Per-package tags (e.g.
+# `galax-interop-astropy-v0.1.0`) also match setuptools-scm's default glob and
+# would otherwise become the root's version.
+version.raw-options.scm.git.describe_command = [
+  "git",
+  "describe",
+  "--dirty",
+  "--tags",
+  "--long",
+  "--match",
+  "v[0-9]*",
+]
+
 # `src/galax` is a PEP 420 namespace directory with no `__init__.py`, so the
 # package cannot be auto-detected and must be named explicitly. There is no
 # version-file hook: a namespace directory must not hold a module owned by one
@@ -197,7 +210,7 @@ python_version = "3.12"
 # `galax.potential._src.base` and losing every cross-module type.
 explicit_package_bases = true
 # Each distribution under `packages/` is its own source root.
-mypy_path = "src:packages/galax.interop.astropy/src"
+mypy_path = ["src", "packages/galax.interop.astropy/src"]
 namespace_packages = true
 
 disallow_incomplete_defs = true
@@ -309,7 +322,7 @@ markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
 minversion = "8.0"
-testpaths = ["docs", "src/galax", "tests/"]
+testpaths = ["docs", "packages", "src/galax", "tests/"]
 xfail_strict = true
 env = ["JAX_ENABLE_X64=True"]
 

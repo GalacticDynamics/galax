@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from optional_deps import OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -16,7 +17,6 @@ from .test_common import (
     ParameterShapeQ3Mixin,
     ParameterVCMixin,
 )
-from galax.interop.gala.optional_deps import OptDeps
 
 
 class ParameterPhiMixin(ParameterFieldMixin):

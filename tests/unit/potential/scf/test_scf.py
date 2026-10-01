@@ -5,12 +5,12 @@ import numpy as np
 import pytest
 import scipy.special as sps
 from astropy.constants import G as _APY_G
+from optional_deps import GSL_ENABLED, OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from galax.interop.gala.optional_deps import GSL_ENABLED, OptDeps
 from galax.potential._src.builtin.multipole import scaled_radius_and_direction
 from galax.potential._src.builtin.scf.bfe import phi_nl, rho_nl
 from galax.potential._src.harmonic.ylm import iter_Ylm

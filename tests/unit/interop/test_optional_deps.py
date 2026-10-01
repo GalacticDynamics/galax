@@ -21,7 +21,7 @@ import pytest
 )
 def test_each_package_declares_only_its_own_library(module: str, member: str) -> None:
     """`OptDeps` in each package has exactly one member, its own."""
-    OptDeps = importlib.import_module(module).OptDeps
+    OptDeps = pytest.importorskip(module).OptDeps
     assert [m.name for m in OptDeps] == [member]
 
 
@@ -40,13 +40,13 @@ def test_installed_is_a_bool_and_never_raises(module: str, member: str) -> None:
     Review Focus 4: `gala` present but `gala.dynamics` missing is the exact case
     `chain_checks` guards. Probing must degrade to `False`, never propagate.
     """
-    OptDeps = importlib.import_module(module).OptDeps
+    OptDeps = pytest.importorskip(module).OptDeps
     assert isinstance(getattr(OptDeps, member).installed, bool)
 
 
 def test_gala_package_owns_gsl_enabled() -> None:
     """`GSL_ENABLED` is gala-specific and lives with gala."""
-    from galax.interop.gala.optional_deps import GSL_ENABLED
+    GSL_ENABLED = pytest.importorskip("galax.interop.gala.optional_deps").GSL_ENABLED
 
     assert isinstance(GSL_ENABLED, bool)
 

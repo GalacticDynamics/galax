@@ -5,6 +5,7 @@ from typing import Any, override
 
 import equinox as eqx
 import pytest
+from optional_deps import GSL_ENABLED, OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -18,7 +19,6 @@ from .test_abstractmultipole import (
     ParameterTlmMixin,
 )
 from .test_common import ParameterMTotMixin, ParameterRSMixin
-from galax.interop.gala.optional_deps import GSL_ENABLED, OptDeps
 
 ###############################################################################
 

@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from optional_deps import OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -9,7 +10,6 @@ import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMTotMixin, ParameterRSMixin
-from galax.interop.gala.optional_deps import OptDeps
 
 
 class TestKuzminPotential(

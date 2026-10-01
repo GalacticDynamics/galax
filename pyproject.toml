@@ -324,6 +324,9 @@ markers = [
 ]
 minversion = "8.0"
 testpaths = ["docs", "packages", "src/galax", "tests/"]
+# Makes `tests/optional_deps.py` importable as `optional_deps` under
+# `--import-mode=importlib`, which adds nothing to `sys.path` itself.
+pythonpath = ["tests"]
 xfail_strict = true
 env = ["JAX_ENABLE_X64=True"]
 

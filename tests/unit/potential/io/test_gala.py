@@ -4,6 +4,7 @@ from typing import ClassVar
 
 import astropy.units as apyu
 import pytest
+from optional_deps import OptDeps
 from plum import convert
 
 import coordinax as cx
@@ -12,7 +13,6 @@ import unxt as u
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
-from galax.interop.gala.optional_deps import OptDeps
 
 parametrize_test_method_gala = pytest.mark.parametrize(
     ("method0", "method1", "atol"),

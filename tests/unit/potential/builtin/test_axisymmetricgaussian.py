@@ -3,6 +3,7 @@
 from typing import Any, ClassVar
 
 import pytest
+from optional_deps import OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -16,7 +17,6 @@ from .test_common import (
     ParameterShapeQ2Mixin,
     assert_gaussian_matches_galpy,
 )
-from galax.interop.galpy.optional_deps import OptDeps
 
 
 class TestAxisymmetricGaussianPotential(

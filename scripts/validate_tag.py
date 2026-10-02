@@ -16,7 +16,7 @@ import sys
 VERSION = r"\d+\.\d+\.\d+(?:(?:a|b|rc)\d+|\.post\d+|\.dev\d+)?"
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], /) -> int:
     """Return 0 if `argv[1]` is a release tag for the package `argv[2]`."""
     if len(argv) != 3:
         print(f"usage: {argv[0]} <tag> <package-name>", file=sys.stderr)

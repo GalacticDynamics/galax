@@ -23,7 +23,7 @@ _SRC_ROOTS = tuple(
 )
 
 
-def _module_name_for(path: Path) -> str | None:
+def _module_name_for(path: Path, /) -> str | None:
     """Return the true dotted module name for `path`, or `None` if foreign.
 
     Resolves against the source roots rather than walking up looking for

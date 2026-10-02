@@ -28,7 +28,7 @@ def run(code: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _imported_modules(node: ast.AST) -> list[str]:
+def _imported_modules(node: ast.AST, /) -> list[str]:
     """Return the module names an `import` / `from ... import` pulls in."""
     if isinstance(node, ast.Import):
         return [alias.name for alias in node.names]
@@ -37,7 +37,7 @@ def _imported_modules(node: ast.AST) -> list[str]:
     return []
 
 
-def _within(name: str, packages: tuple[str, ...]) -> bool:
+def _within(name: str, packages: tuple[str, ...], /) -> bool:
     """Whether `name` is one of `packages` or a submodule of one.
 
     Not `str.startswith`, which would also match a sibling like

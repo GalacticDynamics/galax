@@ -1,4 +1,18 @@
-"""Optional dependency check for the gala interop."""
+"""Version and build probes for the gala interop.
+
+Unlike the other three interop distributions, this module earns its place.
+`gala>=1.10` is a required dependency, so `OptDeps.GALA.installed` alone would
+be a constant `True` -- but two things here are genuinely conditional:
+
+- **Version gating.** `potential.py` compares `OptDeps.GALA` against
+  `Version("1.8.2")` and `Version("1.11")` to pick between gala APIs.
+- **`GSL_ENABLED`.** gala can be installed without `_cconfig`, so this cannot
+  be inferred from the dependency pin.
+
+`.installed` is also not quite redundant: the probe is
+`chain_checks(get_version("gala"), is_installed("gala.dynamics"))`, which
+catches a half-built gala that a version pin does not.
+"""
 
 __all__ = ["GSL_ENABLED", "OptDeps"]
 

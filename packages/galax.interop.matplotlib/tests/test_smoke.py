@@ -2,8 +2,6 @@
 
 from importlib.metadata import entry_points
 
-from galax.interop.matplotlib.optional_deps import OptDeps
-
 
 def test_declares_its_entry_points() -> None:
     """Note the two groups point at *different* modules."""
@@ -19,7 +17,3 @@ def test_declares_its_entry_points() -> None:
 def test_does_not_extend_coordinates() -> None:
     eps = {ep.name for ep in entry_points(group="galax.coordinates.interop")}
     assert "matplotlib" not in eps
-
-
-def test_optional_dep_probe_is_a_bool() -> None:
-    assert isinstance(OptDeps.MATPLOTLIB.installed, bool)

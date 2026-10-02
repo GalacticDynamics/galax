@@ -2,8 +2,6 @@
 
 from importlib.metadata import entry_points
 
-from galax.interop.galpy.optional_deps import OptDeps
-
 
 def test_declares_its_entry_point() -> None:
     eps = {ep.name: ep.value for ep in entry_points(group="galax.potential.interop")}
@@ -15,7 +13,3 @@ def test_declares_no_other_groups() -> None:
     for group in ("galax.coordinates.interop", "galax.dynamics.interop"):
         eps = {ep.name for ep in entry_points(group=group)}
         assert "galpy" not in eps
-
-
-def test_optional_dep_probe_is_a_bool() -> None:
-    assert isinstance(OptDeps.GALPY.installed, bool)

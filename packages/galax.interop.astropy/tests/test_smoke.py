@@ -26,6 +26,11 @@ def test_registration_actually_happened() -> None:
 
     An entry point that loads but registers nothing produces silence, so
     checking the module imported is not evidence the interop works.
+
+    The load-bearing assertion is that the result is a *unxt* quantity rather
+    than an astropy one: that is what shows the astropy inputs were converted
+    into galax's own types and evaluated, not merely passed through. Checking
+    only that something non-`None` came back would pass on a pass-through.
     """
     pot = gp.HernquistPotential(
         m_tot=u.Q(1e12, "Msun"), r_s=u.Q(10, "kpc"), units="galactic"
@@ -33,4 +38,15 @@ def test_registration_actually_happened() -> None:
     got = pot.potential(
         apyu.Quantity([8.0, 0.0, 0.0], "kpc"), apyu.Quantity(0.0, "Gyr")
     )
-    assert got is not None
+
+    assert isinstance(got, u.quantity.AbstractQuantity)
+    assert not isinstance(got, apyu.Quantity)
+
+    # Converted into the potential's own unit system, not left in the input's.
+    assert u.dimension_of(got) == u.dimension("specific energy")
+    assert got.unit == pot.units["specific energy"]
+
+    # A Hernquist well is finite and negative everywhere outside the origin,
+    # so this also catches a conversion that silently produced nan.
+    assert got.shape == ()
+    assert float(got.value) < 0

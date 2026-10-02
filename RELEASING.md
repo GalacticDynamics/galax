@@ -82,14 +82,29 @@ the tag exists — so verify one end to end on TestPyPI before tagging the rest.
 Changes that need to appear in the release notes, because nothing in the code
 can signpost them:
 
-- **`galax.interop.optional_deps` was removed.** Each interop distribution now
-  declares its own check: `galax.interop.astropy.optional_deps`,
-  `galax.interop.gala.optional_deps` (also exports `GSL_ENABLED`),
-  `galax.interop.galpy.optional_deps`, `galax.interop.matplotlib.optional_deps`.
-  The `OptDeps` name and its member names are unchanged, so only the import
-  moves. A signposting stub was deliberately not left behind: `galax/interop/`
-  is a namespace directory shared by five distributions and may hold no module
-  of its own.
+- **`galax.interop.optional_deps` was removed, and not replaced four times
+  over.** Every interop distribution _requires_ the library it wraps, so an "is
+  it installed" probe inside one is a constant `True`. Only
+  `galax.interop.gala.optional_deps` survives, and it answers the two questions
+  a dependency pin cannot:
+
+  ```python
+  from galax.interop.gala.optional_deps import GALA_VERSION, GSL_ENABLED
+  ```
+
+  `GSL_ENABLED` because gala builds optionally against GSL, and `GALA_VERSION`
+  because some conversions are gated on gala 1.8.2 and 1.11. There is **no**
+  `galax.interop.{astropy,galpy,matplotlib}.optional_deps` -- importing one
+  raises `ModuleNotFoundError`. Code that only asked whether the library was
+  installed can drop the check entirely.
+
+  Note `OptDeps` is gone as a name: use `GALA_VERSION` directly rather than
+  `OptDeps.GALA`.
+
+  A signposting stub was deliberately not left at the old path either:
+  `galax/interop/` is a namespace directory shared by five distributions and may
+  hold no module of its own.
+
 - **`galax[interop-astropy]` is now redundant** — `galax.interop.astropy` is a
   required dependency of `galax`. The extra is kept as a no-op alias.
 

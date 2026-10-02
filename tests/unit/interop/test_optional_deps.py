@@ -21,12 +21,23 @@ def test_gala_reports_the_two_facts_a_pin_cannot_express() -> None:
     """Whether gala was built against GSL, and which version it is.
 
     Not *whether* gala is installed: `gala>=1.10` is a required dependency of
-    that distribution, so that question has a constant answer.
-    """
-    from galax.interop.gala.optional_deps import GALA_VERSION, GSL_ENABLED
+    *that distribution*, so inside it the question has a constant answer.
 
-    assert isinstance(GSL_ENABLED, bool)
-    assert Version("1.10") <= GALA_VERSION
+    This file lives in the shared `tests/unit/` tree, which is always
+    collected -- `conftest.py`'s `collect_ignore_glob` drops
+    `packages/galax.interop.gala/*` when the distribution is absent, but not
+    this. The `checks` CI job installs only the required astropy member, so
+    the import has to be skippable. A function-scope `from ... import` would
+    collect cleanly and then fail at run time, which is exactly how this was
+    missed once already.
+    """
+    optional_deps = pytest.importorskip(
+        "galax.interop.gala.optional_deps",
+        reason="requires the galax.interop.gala distribution",
+    )
+
+    assert isinstance(optional_deps.GSL_ENABLED, bool)
+    assert Version("1.10") <= optional_deps.GALA_VERSION
 
 
 @pytest.mark.parametrize("lib", ["astropy", "galpy", "matplotlib"])

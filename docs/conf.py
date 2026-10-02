@@ -28,6 +28,9 @@ exclude_patterns = [
 ]
 
 html_theme = "furo"
+html_static_path = ["_static"]
+html_favicon = "_static/favicon.png"  # made by _static/make_logo.py
+html_logo = "_static/favicon.png"
 
 myst_enable_extensions = [
     "colon_fence",

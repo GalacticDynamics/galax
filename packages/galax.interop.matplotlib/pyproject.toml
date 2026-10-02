@@ -21,7 +21,6 @@ dependencies = [
   "astropy>=7.0.0",
   "galax>0.0.3",
   "matplotlib>=3.8",
-  "optional-dependencies>=0.4.0",
   "plotting_backends>=0.1",
   "plum>=2.8.0; python_version < '3.14'",
   "plum>=2.9.0; python_version >= '3.14'",

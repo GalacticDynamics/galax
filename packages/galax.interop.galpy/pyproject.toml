@@ -21,7 +21,6 @@ dependencies = [
   "galax>0.0.3",
   "galax.interop.astropy>0.0.3",
   "galpy>=1.8",
-  "optional-dependencies>=0.4.0",
   "plum>=2.8.0; python_version < '3.14'",
   "plum>=2.9.0; python_version >= '3.14'",
   "unxt>=1.11.2,<2",

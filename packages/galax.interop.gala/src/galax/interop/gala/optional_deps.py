@@ -1,36 +1,30 @@
-"""Version and build probes for the gala interop.
+"""Build facts about the installed gala.
 
-Unlike the other three interop distributions, this module earns its place.
-`gala>=1.10` is a required dependency, so `OptDeps.GALA.installed` alone would
-be a constant `True` -- but two things here are genuinely conditional:
+`gala>=1.10` is a required dependency of this distribution, and the root test
+suite skips this whole tree when the distribution is not importable, so
+*whether* gala is installed is never the question here. Two things about it
+still are:
 
-- **Version gating.** `potential.py` compares `OptDeps.GALA` against
-  `Version("1.8.2")` and `Version("1.11")` to pick between gala APIs.
-- **`GSL_ENABLED`.** gala can be installed without `_cconfig`, so this cannot
-  be inferred from the dependency pin.
+- **`GSL_ENABLED`** -- gala builds optionally against GSL, and several
+  conversions exist only in the GSL build. No version or dependency pin can
+  express this; it has to be read from `gala._cconfig`, which some builds omit.
+- **`GALA_VERSION`** -- a few conversions changed shape across gala releases
+  and are gated on 1.8.2 and 1.11.
 
-`.installed` is also not quite redundant: the probe is
-`chain_checks(get_version("gala"), is_installed("gala.dynamics"))`, which
-catches a half-built gala that a version pin does not.
+Neither needs an optional-dependency enum, which is why this distribution does
+not depend on `optional-dependencies`.
 """
 
-__all__ = ["GSL_ENABLED", "OptDeps"]
+__all__ = ["GALA_VERSION", "GSL_ENABLED"]
 
-from optional_dependencies import OptionalDependencyEnum
-from optional_dependencies.utils import chain_checks, get_version, is_installed
+from importlib.metadata import version
 
+from packaging.version import Version
 
-class OptDeps(OptionalDependencyEnum):  # type: ignore[misc]
-    """Optional dependencies for ``galax.interop.gala``."""
-
-    # `gala` can be importable while `gala.dynamics` is not, in a partial or
-    # half-built install. Chaining the checks makes `.installed` answer `False`
-    # rather than letting the inner ImportError escape at probe time.
-    GALA = chain_checks(get_version("gala"), is_installed("gala.dynamics"))
-
+GALA_VERSION = Version(version("gala"))
 
 GSL_ENABLED: bool
-if OptDeps.GALA.installed:
+try:
     from gala._cconfig import GSL_ENABLED
-else:
+except ImportError:  # a gala built without GSL ships no `_cconfig`
     GSL_ENABLED = False

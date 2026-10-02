@@ -1,10 +1,10 @@
-"""The gala interop distribution registers itself, and degrades without gala."""
+"""The gala interop distribution registers itself and reports its build facts."""
 
 from importlib.metadata import entry_points
 
-import pytest
+from packaging.version import Version
 
-from galax.interop.gala.optional_deps import GSL_ENABLED, OptDeps
+from galax.interop.gala.optional_deps import GALA_VERSION, GSL_ENABLED
 
 
 def test_declares_its_entry_points() -> None:
@@ -17,14 +17,17 @@ def test_declares_its_entry_points() -> None:
         assert eps.get("gala") == value, f"{group} missing gala entry point"
 
 
-def test_gsl_enabled_is_a_bool_either_way() -> None:
-    """`GSL_ENABLED` answers `False` without gala rather than raising."""
+def test_build_facts_are_usable() -> None:
+    """The two things a dependency pin cannot express.
+
+    `gala>=1.10` is required here, so whether gala is installed is not in
+    question. Whether it was *built against GSL* is, and so is its exact
+    version -- several conversions are gated on 1.8.2 and 1.11.
+    """
     assert isinstance(GSL_ENABLED, bool)
-    if not OptDeps.GALA.installed:
-        assert GSL_ENABLED is False
+    assert Version("1.10") <= GALA_VERSION
 
 
-@pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
 def test_registration_actually_happened() -> None:
     """Assert converted behaviour, not import."""
     import gala.potential as galap

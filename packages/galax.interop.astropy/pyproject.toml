@@ -21,7 +21,6 @@ dependencies = [
   # Strictly greater: galax 0.0.3 itself ships `galax/interop/astropy/`, so
   # pairing it with this distribution would write the same files twice.
   "galax>0.0.3",
-  "optional-dependencies>=0.4.0",
   "plum>=2.8.0; python_version < '3.14'",
   "plum>=2.9.0; python_version >= '3.14'",
   "unxt>=1.11.2,<2",

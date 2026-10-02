@@ -47,7 +47,6 @@ dependencies = [
   "jaxtyping>=0.3.3",
   "oncequinox>=0.1.0",
   "optimistix>=0.0.11",
-  "optional-dependencies>=0.4.0",
   "optype>=0.14.0",
   "packaging>=24.1",
   "plotting_backends>=0.1",
@@ -122,6 +121,11 @@ docs = [
 # Test dependencies
 test-all = [{ include-group = "test" }, { include-group = "test-mpl" }]
 test = [
+  # Test-only since the interop split: `src/` does not import it. Its
+  # consumers are `conftest.py` and `tests/_support/optional_deps.py`,
+  # which probe the wrapped libraries to decide what to collect and skip.
+  # `galax.interop.gala` declares it itself, being the one shipped user.
+  "optional-dependencies>=0.4.0",
   "nox>=2024.10.9",
   "prek>=0.5.3",
   "pytest-arraydiff>=0.6.1",

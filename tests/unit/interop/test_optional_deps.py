@@ -14,32 +14,19 @@ real work -- version gating and `GSL_ENABLED` -- so only gala's remains.
 import importlib
 
 import pytest
+from packaging.version import Version
 
 
-def test_gala_declares_only_its_own_library() -> None:
-    """`OptDeps` has exactly one member, its own."""
-    from galax.interop.gala.optional_deps import OptDeps
+def test_gala_reports_the_two_facts_a_pin_cannot_express() -> None:
+    """Whether gala was built against GSL, and which version it is.
 
-    assert [m.name for m in OptDeps] == ["GALA"]
-
-
-def test_installed_is_a_bool_and_never_raises() -> None:
-    """`.installed` answers for a half-built gala rather than raising.
-
-    `gala` present but `gala.dynamics` missing is the exact case `chain_checks`
-    guards, and the one a dependency pin cannot express. Probing must degrade to
-    `False`, never propagate.
+    Not *whether* gala is installed: `gala>=1.10` is a required dependency of
+    that distribution, so that question has a constant answer.
     """
-    from galax.interop.gala.optional_deps import OptDeps
-
-    assert isinstance(OptDeps.GALA.installed, bool)
-
-
-def test_gala_package_owns_gsl_enabled() -> None:
-    """`GSL_ENABLED` is gala-specific and cannot be inferred from the pin."""
-    from galax.interop.gala.optional_deps import GSL_ENABLED
+    from galax.interop.gala.optional_deps import GALA_VERSION, GSL_ENABLED
 
     assert isinstance(GSL_ENABLED, bool)
+    assert Version("1.10") <= GALA_VERSION
 
 
 @pytest.mark.parametrize("lib", ["astropy", "galpy", "matplotlib"])

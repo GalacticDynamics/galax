@@ -30,7 +30,8 @@ from matplotlib.patches import Circle, Polygon
 
 TEAL, PURPLE, NIGHT = "#66a19a", "#7738eb", "#030a23"
 RADIUS = 0.6  # of the dark disk
-GAP = 0.022  # the clear gap that sets the ring off from the disk it crosses
+GAP = 0.033  # the clear gap along a swoosh's inner edge, where it crosses the disk
+WEDGE = 0.008  # how fast the gap on its outer side opens, per degree
 # The painted galaxy's radius, measured from the GalacticDynamics logo. It lies
 # over everything else: a dark margin of disk rings it, which each swoosh
 # crosses before it dives under it, and the gap along the swoosh ends at it.
@@ -41,16 +42,20 @@ PAINT = 0.5
 # and ends in a point under the galaxy.
 SWOOSH = np.array(
     [
-        (-2, 0.48, 0.48),
-        (2, 0.465, 0.51),
-        (8, 0.47, 0.54),
-        (14, 0.49, 0.58),
-        (17, 0.505, 0.6),
-        (20, 0.52, 0.625),
-        (22, 0.53, 0.646),
-        (25, 0.545, 0.695),
-        (28, 0.57, 0.747),
-        (31, 0.60, 0.807),
+        (4, 0.47, 0.47),
+        (8, 0.47, 0.515),
+        (10, 0.475, 0.523),
+        (12, 0.48, 0.526),
+        (14, 0.485, 0.532),
+        (16, 0.49, 0.558),
+        (18, 0.495, 0.584),
+        (20, 0.5, 0.615),
+        (22, 0.503, 0.65),
+        (24, 0.506, 0.68),
+        (26, 0.535, 0.71),
+        (28, 0.563, 0.747),
+        (30, 0.587, 0.78),
+        (32, 0.617, 0.823),
         (34, 0.643, 0.853),
         (37, 0.685, 0.897),
         (40, 0.717, 0.928),
@@ -69,6 +74,7 @@ SWOOSH = np.array(
         (80, 0.615, 0.615),
     ]
 )
+TURNS = (0, 178)  # the two swooshes: the org logo's are not quite opposite
 WIND = 0.12  # the outer arms fall inwards this much per radian anticlockwise
 
 
@@ -163,7 +169,8 @@ def galaxy(ax: plt.Axes, rng: np.random.Generator) -> None:
     polar coordinates: circular bands of cyan and blue out to r = 0.2, a dark
     lane, then thin tapered arms that fall inwards as they run anticlockwise.
     """
-    clip = Circle((0, 0), PAINT, transform=ax.transData)
+    # The strokes stop a little inside the dark ground's edge, as the org's do.
+    clip = Circle((0, 0), PAINT - 0.02, transform=ax.transData)
     # The galaxy's dark ground, which hides the point of each swoosh.
     ax.add_patch(Circle((0, 0), PAINT, color=NIGHT, lw=0))
     # Outer arms, between r = 0.22 and the edge, outermost first. Four arms
@@ -222,7 +229,7 @@ def draw(ax: plt.Axes, rng: np.random.Generator) -> None:
     ax.add_patch(Circle((0, 0), RADIUS, color=NIGHT, lw=0))
     # The ring crosses the disk's rim and runs under the galaxy. `gaps` cuts
     # the clear gap along its inner edge.
-    for turn in (0, 180):
+    for turn in TURNS:
         ax.add_patch(Polygon(swoosh(turn), color=NIGHT, lw=0))
     galaxy(ax, rng)
 
@@ -249,23 +256,25 @@ def gaps(ax: plt.Axes) -> None:
 
     Outside the disk, that is the hollow between the swoosh and the disk,
     which hides the bracket's end. Where the swoosh crosses the disk's rim, a
-    band GAP wide runs up its inner edge, and a wedge opens from its outer edge
-    to the rim; both end at the galaxy lying over them. At its far end the
-    swoosh merges into the disk.
+    band GAP wide runs up its inner edge, ending at the galaxy that lies over
+    it, and a wedge opens along its outer edge out to the rim. At its far end
+    the swoosh merges into the disk.
     """
     lw = 2 * GAP * ax.figure.get_figwidth() * 72 / 2  # in points; the axes span 2
     phi = np.linspace(SWOOSH[0, 0], SWOOSH[-1, 0], 400)
     r_in, r_out = edges(phi)
+    # The wedge opens along the outer edge from where that edge is at r = 0.52,
+    # just clear of the galaxy, out to the rim.
     hook = phi < 30  # where the swoosh comes in across the rim
-    # The wedge: from where the outer edge crosses the rim, back to a point on
-    # it at r = 0.515, and out to the rim a little before.
-    a_rim = np.interp(RADIUS, r_out[hook], phi[hook])
-    a_tip = np.interp(0.515, r_out[hook], phi[hook])
-    along = (phi >= a_tip) & (phi <= a_rim + 3)
-    wedge_phi = np.append(phi[along], a_rim - 4)
-    wedge_r = np.append(r_out[along], RADIUS + 0.02)
+    a_tip = np.interp(0.52, r_out[hook], phi[hook])
+    a_rim = np.interp(RADIUS + 0.02, r_out[hook], phi[hook])
+    along = (phi >= a_tip) & (phi <= a_rim)
+    wedge_phi = np.concatenate([phi[along], phi[along][::-1]])
+    # Stopped at the rim: beyond it is background, and a bracket to keep whole.
+    opening = np.minimum(r_out + WEDGE * (phi - a_tip), RADIUS + 0.002)
+    wedge_r = np.concatenate([r_out[along], opening[along][::-1]])
     r = np.concatenate([np.maximum(r_in, RADIUS), np.full_like(r_in, RADIUS)])
-    for turn in (0, 180):
+    for turn in TURNS:
         rad = np.deg2rad(np.concatenate([phi, phi[::-1]]) + turn)
         hollow = np.column_stack([r * np.cos(rad), r * np.sin(rad)])
         ax.add_patch(Polygon(hollow, color="white", lw=0))

@@ -30,7 +30,7 @@ from matplotlib.patches import Circle, Ellipse, Polygon
 
 TEAL, PURPLE, NIGHT = "#66a19a", "#7738eb", "#030a23"
 RADIUS = 0.6  # of the dark disk
-GAP = 0.022  # the clear gap that sets the ring apart from what it crosses
+GAP = 0.022  # the clear gap that sets the ring off from the disk it crosses
 # The painted galaxy: an ellipse (width, height, tilt in degrees), measured
 # from the GalacticDynamics logo. A dark margin of disk rings it, which each
 # swoosh crosses before it dives under the paint.
@@ -38,7 +38,7 @@ PAINT = (1.06, 0.94, 40)
 # One swoosh of the ring, traced from the GalacticDynamics logo: at each polar
 # angle (degrees), the radii of its inner and outer edges. The other swoosh is
 # the same shape turned half a circle. Each crosses in front of the disk's rim
-# and ends in a point under the galaxy.
+# and ends in a point, merging into the dark.
 SWOOSH = np.array(
     [
         (14, 0.52, 0.52),
@@ -186,8 +186,8 @@ def draw(ax: plt.Axes, rng: np.random.Generator) -> None:
     bracket(ax, 1, PURPLE)
 
     ax.add_patch(Circle((0, 0), RADIUS, color=NIGHT, lw=0))
-    # The ring crosses the disk's rim and dives under the galaxy. `gaps` cuts
-    # the clear gaps that set each apart.
+    # The ring crosses the disk's rim and runs under the galaxy. `gaps` cuts
+    # the clear gap along its inner edge.
     for turn in (0, 180):
         ax.add_patch(Polygon(swoosh(turn), color=NIGHT, lw=0))
     galaxy(ax, rng)
@@ -211,36 +211,22 @@ def draw(ax: plt.Axes, rng: np.random.Generator) -> None:
 
 
 def gaps(ax: plt.Axes) -> None:
-    """Draw, in white on black, what is cut out round each swoosh.
+    """Draw, in white on black, what is cut out along each swoosh's inner edge.
 
-    That is a gap along the half of it that crosses the disk's rim and a
-    bracket; the hollow between it and the disk, which hides the bracket's end;
-    and a gap round the galaxy where the swoosh dives under it. The swoosh's
-    other end merges into the disk.
+    Outside the disk, that is the hollow between the swoosh and the disk,
+    which hides the bracket's end. Where the swoosh crosses into the disk, it
+    is a band GAP wide, tapering away by its point, where the swoosh merges
+    into the dark.
     """
-    lw = 2 * GAP * ax.figure.get_figwidth() * 72 / 2  # in points; the axes span 2
     angle, inner, _ = SWOOSH.T
-    phi = np.linspace(angle[0], angle[-1], 200)
+    phi = np.linspace(angle[0], angle[-1], 400)
     r_in = np.interp(phi, angle, inner)
-    r = np.concatenate([np.maximum(r_in, RADIUS), np.full_like(r_in, RADIUS)])
+    width = GAP * np.clip((phi - angle[0]) / 10, 0, 1) * (phi < 50)
+    r = np.concatenate([r_in, np.minimum(RADIUS, r_in - width)[::-1]])
     for turn in (0, 180):
         rad = np.deg2rad(np.concatenate([phi, phi[::-1]]) + turn)
-        hollow = np.column_stack([r * np.cos(rad), r * np.sin(rad)])
-        ax.add_patch(Polygon(hollow, color="white", lw=0))
-        outline = swoosh(turn)
-        near = outline.copy()  # the hooked half: what lies over the disk
-        near[np.hypot(*outline.T) > RADIUS + GAP] = np.nan  # nan breaks the line
-        ax.plot(*near.T, color="white", lw=lw, solid_capstyle="round")
-        # Above the line, which matplotlib draws over patches by default.
-        body = Polygon(outline, color="black", lw=0, zorder=3)
-        ax.add_patch(body)
-        edge = Ellipse(
-            (0, 0), *PAINT[:2], angle=PAINT[2], fill=False, ec="white", lw=lw, zorder=4
-        )
-        ax.add_patch(edge)
-        edge.set_clip_path(body)
-    # The galaxy lies over all of it.
-    ax.add_patch(Ellipse((0, 0), *PAINT[:2], angle=PAINT[2], color="black", zorder=5))
+        cut = np.column_stack([r * np.cos(rad), r * np.sin(rad)])
+        ax.add_patch(Polygon(cut, color="white", lw=0))
 
 
 def render(size: int, paint: Callable[[plt.Axes], None], background: str) -> np.ndarray:

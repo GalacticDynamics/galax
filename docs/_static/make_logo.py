@@ -31,21 +31,25 @@ from matplotlib.patches import Circle, Polygon
 TEAL, PURPLE, NIGHT = "#66a19a", "#7738eb", "#030a23"
 RADIUS = 0.6  # of the dark disk
 GAP = 0.022  # the clear gap that sets the ring off from the disk it crosses
-# The painted galaxy's radius, measured from the GalacticDynamics logo. A dark
-# margin of disk rings it, which each swoosh crosses before it dives under it.
-PAINT = 0.52
+# The painted galaxy's radius, measured from the GalacticDynamics logo. It lies
+# over everything else: a dark margin of disk rings it, which each swoosh
+# crosses before it dives under it, and the gap along the swoosh ends at it.
+PAINT = 0.5
 # One swoosh of the ring, traced from the GalacticDynamics logo: at each polar
 # angle (degrees), the radii of its inner and outer edges. The other swoosh is
 # the same shape turned half a circle. Each crosses in front of the disk's rim
-# and ends in a point, merging into the dark.
+# and ends in a point under the galaxy.
 SWOOSH = np.array(
     [
-        (14, 0.52, 0.52),
-        (17, 0.51, 0.565),
-        (20, 0.512, 0.612),
-        (22, 0.515, 0.646),
-        (25, 0.525, 0.695),
-        (28, 0.561, 0.747),
+        (-2, 0.48, 0.48),
+        (2, 0.465, 0.51),
+        (8, 0.47, 0.54),
+        (14, 0.49, 0.58),
+        (17, 0.505, 0.6),
+        (20, 0.52, 0.625),
+        (22, 0.53, 0.646),
+        (25, 0.545, 0.695),
+        (28, 0.57, 0.747),
         (31, 0.60, 0.807),
         (34, 0.643, 0.853),
         (37, 0.685, 0.897),
@@ -68,13 +72,29 @@ SWOOSH = np.array(
 WIND = 0.12  # the outer arms fall inwards this much per radian anticlockwise
 
 
+def edges(phi: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Return a swoosh's inner and outer radii at polar angles ``phi`` (degrees).
+
+    The traced points are joined smoothly: interpolated on a fine grid, then
+    blurred over a couple of degrees, so the edges have no corners.
+    """
+    angle, inner, outer = SWOOSH.T
+    fine = np.linspace(angle[0], angle[-1], 1000)
+    kernel = np.exp(-0.5 * (np.arange(-60, 61) / 24) ** 2)  # sigma ~ 2 degrees
+    kernel /= kernel.sum()
+
+    def smooth(r: np.ndarray) -> np.ndarray:
+        r = np.convolve(np.pad(np.interp(fine, angle, r), 60, mode="edge"), kernel)
+        return np.interp(phi, fine, r[120:-120])
+
+    return smooth(inner), smooth(outer)
+
+
 def swoosh(turn: float) -> np.ndarray:
     """Return the outline of one swoosh of the ring, turned by ``turn`` degrees."""
-    angle, inner, outer = SWOOSH.T
-    phi = np.linspace(angle[0], angle[-1], 200)
-    r = np.concatenate(
-        [np.interp(phi, angle, outer)[::-1], np.interp(phi, angle, inner)]
-    )
+    phi = np.linspace(SWOOSH[0, 0], SWOOSH[-1, 0], 300)
+    r_in, r_out = edges(phi)
+    r = np.concatenate([r_out[::-1], r_in])
     phi = np.deg2rad(np.concatenate([phi[::-1], phi]) + turn)
     return np.column_stack([r * np.cos(phi), r * np.sin(phi)])
 
@@ -225,22 +245,40 @@ def draw(ax: plt.Axes, rng: np.random.Generator) -> None:
 
 
 def gaps(ax: plt.Axes) -> None:
-    """Draw, in white on black, what is cut out along each swoosh's inner edge.
+    """Draw, in white on black, what is cut out round each swoosh.
 
     Outside the disk, that is the hollow between the swoosh and the disk,
-    which hides the bracket's end. Where the swoosh crosses into the disk, it
-    is a band GAP wide, tapering away by its point, where the swoosh merges
-    into the dark.
+    which hides the bracket's end. Where the swoosh crosses the disk's rim, a
+    band GAP wide runs up its inner edge, and a wedge opens from its outer edge
+    to the rim; both end at the galaxy lying over them. At its far end the
+    swoosh merges into the disk.
     """
-    angle, inner, _ = SWOOSH.T
-    phi = np.linspace(angle[0], angle[-1], 400)
-    r_in = np.interp(phi, angle, inner)
-    width = GAP * np.clip((phi - angle[0]) / 10, 0, 1) * (phi < 50)
-    r = np.concatenate([r_in, np.minimum(RADIUS, r_in - width)[::-1]])
+    lw = 2 * GAP * ax.figure.get_figwidth() * 72 / 2  # in points; the axes span 2
+    phi = np.linspace(SWOOSH[0, 0], SWOOSH[-1, 0], 400)
+    r_in, r_out = edges(phi)
+    hook = phi < 30  # where the swoosh comes in across the rim
+    # The wedge: from where the outer edge crosses the rim, back to a point on
+    # it at r = 0.515, and out to the rim a little before.
+    a_rim = np.interp(RADIUS, r_out[hook], phi[hook])
+    a_tip = np.interp(0.515, r_out[hook], phi[hook])
+    along = (phi >= a_tip) & (phi <= a_rim + 3)
+    wedge_phi = np.append(phi[along], a_rim - 4)
+    wedge_r = np.append(r_out[along], RADIUS + 0.02)
+    r = np.concatenate([np.maximum(r_in, RADIUS), np.full_like(r_in, RADIUS)])
     for turn in (0, 180):
         rad = np.deg2rad(np.concatenate([phi, phi[::-1]]) + turn)
-        cut = np.column_stack([r * np.cos(rad), r * np.sin(rad)])
-        ax.add_patch(Polygon(cut, color="white", lw=0))
+        hollow = np.column_stack([r * np.cos(rad), r * np.sin(rad)])
+        ax.add_patch(Polygon(hollow, color="white", lw=0))
+        rad = np.deg2rad(wedge_phi + turn)
+        wedge = np.column_stack([wedge_r * np.cos(rad), wedge_r * np.sin(rad)])
+        ax.add_patch(Polygon(wedge, color="white", lw=0))
+        rad = np.deg2rad(phi + turn)
+        edge = np.column_stack([r_in * np.cos(rad), r_in * np.sin(rad)])
+        edge[(r_in > RADIUS + GAP) | (phi > 50)] = np.nan  # over the disk only
+        ax.plot(*edge.T, color="white", lw=lw, solid_capstyle="butt")
+        # Above the line, which matplotlib draws over patches by default.
+        ax.add_patch(Polygon(swoosh(turn), color="black", lw=0, zorder=3))
+    ax.add_patch(Circle((0, 0), PAINT, color="black", lw=0, zorder=4))
 
 
 def render(size: int, paint: Callable[[plt.Axes], None], background: str) -> np.ndarray:

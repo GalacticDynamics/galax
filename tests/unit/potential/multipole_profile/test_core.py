@@ -21,6 +21,7 @@ from galax.potential._src.harmonic import (
     default_angular_resolution,
     lm_keys,
 )
+from galax.potential._src.utils import safe_vector_norm
 
 G_GALACTIC = float(default_constants["G"].decompose(u.unitsystem("galactic")).value)
 """G in kpc^3 / (Msun Myr^2), from the same constant the potentials use.
@@ -231,11 +232,12 @@ def test_from_density_rejects_an_unknown_symmetry() -> None:
 
 
 def test_from_potential_rejects_time_dependent_parameters() -> None:
-    """A built expansion cannot track a time-varying source.
+    """A *single-time* expansion cannot track a time-varying source.
 
     Better to refuse than to hand back a potential silently inconsistent with
-    its own density. Lifting this needs
-    https://github.com/GalacticDynamics/galax/issues/849
+    its own density. The refusal is now conditional on the build being at a
+    single time: `test_a_time_varying_source_builds_on_a_time_grid` covers the
+    1-D ``t`` case, which is how such a source is tracked.
     """
     hern = gp.HernquistPotential(
         m_tot=gpp.LinearParameter(
@@ -246,7 +248,7 @@ def test_from_potential_rejects_time_dependent_parameters() -> None:
         r_s=u.Q(10.0, "kpc"),
         units="galactic",
     )
-    with pytest.raises(ValueError, match="time-dependent"):
+    with pytest.raises(ValueError, match="vary with time"):
         MultipoleProfilePotential.from_potential(
             hern, r_min=u.Q(1e-2, "kpc"), r_max=u.Q(1e3, "kpc"), n_r=32, l_max=0
         )
@@ -544,21 +546,65 @@ def test_from_density_rejects_a_non_scalar_bracket() -> None:
         )
 
 
-def test_from_density_rejects_an_array_time() -> None:
-    """An array ``t`` silently averaged the expansion over those times.
+def test_an_array_time_builds_a_grid_and_does_not_average() -> None:
+    """An array ``t`` must build one expansion per time, not average them.
 
-    `harmonic_coeffs` broadcasts ``t`` against the angular grid, so a
-    non-scalar time does not raise -- it returns a time-*averaged* expansion
-    presented as a single-time potential. For a density whose amplitude
-    doubles between ``t = 0`` and ``t = 1 Gyr``, ``t = [0, 1]`` gave exactly
-    the mean of the two builds. Wrong values, silently, which is worse than
-    the shape error it looks like it should produce.
+    REGRESSION: `harmonic_coeffs` broadcasts ``t`` against the angular grid,
+    so a non-scalar time never raised on its own -- it returned a
+    time-*averaged* expansion presented as a single-time potential. For a
+    density whose amplitude doubles between ``t = 0`` and ``t = 1 Gyr``,
+    ``t = [0, 1]`` gave exactly the mean of the two builds: wrong values,
+    silently.
+
+    An array ``t`` now builds a grid, so the failure mode this guards is no
+    longer "it raises" but "it returns the mean". Both endpoints are checked
+    against their own single-time builds, and the midpoint is checked to be
+    the mean -- which for a linear-in-``t`` amplitude it genuinely is, so
+    asserting the endpoints is what distinguishes a grid from an average.
+    """
+
+    def rho(xyz, t):
+        return (1.0 + t) * jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+    kw = {
+        "r_min": u.Q(1e-2, "kpc"),
+        "r_max": u.Q(1e2, "kpc"),
+        "n_r": 32,
+        "l_max": 0,
+        "symmetry": "spherical",
+        "units": "galactic",
+    }
+    ts = u.Q(jnp.asarray([0.0, 1000.0]), "Myr")
+    grid = MultipoleProfilePotential.from_density(rho, t=ts, **kw)
+    assert isinstance(grid.phi_lm, gpp.TimeInterpolatedParameter)
+
+    xyz = u.Q(jnp.asarray([2.0, 1.0, 0.5]), "kpc")
+
+    def phi(pot, tv):
+        return float(u.ustrip(u.unit("kpc2/Myr2"), pot.potential(xyz, u.Q(tv, "Myr"))))
+
+    ends = [
+        phi(MultipoleProfilePotential.from_density(rho, t=u.Q(tv, "Myr"), **kw), tv)
+        for tv in (0.0, 1000.0)
+    ]
+    # Each endpoint is its own build, not the mean of the two.
+    assert phi(grid, 0.0) == pytest.approx(ends[0], rel=1e-10)
+    assert phi(grid, 1000.0) == pytest.approx(ends[1], rel=1e-10)
+    # ...and they are far enough apart that averaging would be visible.
+    assert abs(ends[1] - ends[0]) / abs(ends[0]) > 0.5
+
+
+def test_from_density_rejects_a_multidimensional_time() -> None:
+    """A 2-D ``t`` still has no meaning and must not reach the build.
+
+    The silent-averaging hazard above is why this cannot simply be passed
+    through to `harmonic_coeffs`.
     """
 
     def rho(xyz, t):
         return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
 
-    with pytest.raises(ValueError, match="t must be a scalar"):
+    with pytest.raises(ValueError, match="must be a scalar or 1-D"):
         MultipoleProfilePotential.from_density(
             rho,
             r_min=u.Q(1e-2, "kpc"),
@@ -566,7 +612,7 @@ def test_from_density_rejects_an_array_time() -> None:
             n_r=16,
             l_max=0,
             units="galactic",
-            t=u.Q(jnp.asarray([0.0, 1.0]), "Gyr"),
+            t=u.Q(jnp.zeros((2, 2)), "Gyr"),
         )
 
 
@@ -660,6 +706,170 @@ def test_from_density_warns_when_the_padding_is_capped(
         warnings.simplefilter("always")
         build(True)  # noqa: FBT003
     assert not [w for w in caught64 if issubclass(w.category, RuntimeWarning)]
+
+
+def _growing_hernquist(xyz, t):
+    """Hernquist of fixed mass whose scale radius grows linearly in time.
+
+    ``rho0 = 1e12 / rs**3`` keeps ``M = 2 pi rho0 rs**3`` constant, so the
+    closed form ``Phi = -G M / (r + rs)`` is exact at every time and the only
+    thing varying is the shape. ``t`` arrives in the unit system's time unit
+    (Myr for "galactic"), not in Gyr.
+    """
+    r = safe_vector_norm(xyz)
+    rs = 1.0 + 0.01 * t
+    return 1e12 / ((r / rs) * (1.0 + r / rs) ** 3) / rs**3
+
+
+def _hernquist_phi(r, rs):
+    """``-G M / (r + rs)`` for the density above."""
+    return -G_GALACTIC * 2.0 * jnp.pi * 1e12 / (r + rs)
+
+
+def test_time_grid_build_matches_the_closed_form_at_each_knot() -> None:
+    """A time-grid expansion must reproduce the analytic potential in time.
+
+    The density is a Hernquist of *constant mass* whose scale radius grows,
+    so `_hernquist_phi` is exact at every time and this pins the whole
+    time-grid path -- the `vmap` over `t`, the per-coefficient
+    `TimeInterpolatedParameter`, and the interpolation -- against physics
+    rather than against another `galax` build.
+    """
+    ts = u.Q(jnp.linspace(0.0, 400.0, 5), "Myr")
+    pot = gp.MultipoleProfilePotential.from_density(
+        _growing_hernquist,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e4, "kpc"),
+        n_r=256,
+        l_max=0,
+        symmetry="spherical",
+        t=ts,
+        units="galactic",
+    )
+    assert isinstance(pot.phi_lm, gpp.TimeInterpolatedParameter)
+
+    xyz = u.Q(jnp.asarray([3.0, 1.0, 2.0]), "kpc")
+    r = jnp.linalg.vector_norm(u.ustrip(u.unit("kpc"), xyz))
+
+    for tv in (0.0, 100.0, 200.0, 400.0):
+        got = u.ustrip(u.unit("kpc2/Myr2"), pot.potential(xyz, u.Q(tv, "Myr")))
+        want = _hernquist_phi(r, 1.0 + 0.01 * tv)
+        assert abs(float(got - want) / float(want)) < 1e-4, (tv, got, want)
+
+
+def test_time_grid_interpolates_between_knots() -> None:
+    """Between knots the answer must be close to the closed form, not merely finite.
+
+    A knot-only check would pass even if the interpolation returned the
+    nearest knot, so this samples deliberately off-knot.
+    """
+    ts = u.Q(jnp.linspace(0.0, 400.0, 9), "Myr")
+    pot = gp.MultipoleProfilePotential.from_density(
+        _growing_hernquist,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e4, "kpc"),
+        n_r=256,
+        l_max=0,
+        symmetry="spherical",
+        t=ts,
+        units="galactic",
+    )
+    xyz = u.Q(jnp.asarray([3.0, 1.0, 2.0]), "kpc")
+    r = jnp.linalg.vector_norm(u.ustrip(u.unit("kpc"), xyz))
+
+    for tv in (37.0, 162.5, 333.3):  # none of these is a knot
+        got = u.ustrip(u.unit("kpc2/Myr2"), pot.potential(xyz, u.Q(tv, "Myr")))
+        want = _hernquist_phi(r, 1.0 + 0.01 * tv)
+        assert abs(float(got - want) / float(want)) < 1e-3, (tv, got, want)
+
+
+def test_time_grid_clamps_outside_the_grid() -> None:
+    """Outside ``[t_0, t_-1]`` the expansion saturates; it does not extrapolate.
+
+    Continuing the edge cubic in time would invent structure the tabulation
+    knows nothing about, and for a coefficient that diverges fast. See
+    `TimeInterpolatedParameter`.
+    """
+    ts = u.Q(jnp.linspace(0.0, 400.0, 5), "Myr")
+    pot = gp.MultipoleProfilePotential.from_density(
+        _growing_hernquist,
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e4, "kpc"),
+        n_r=64,
+        l_max=0,
+        symmetry="spherical",
+        t=ts,
+        units="galactic",
+    )
+    xyz = u.Q(jnp.asarray([3.0, 1.0, 2.0]), "kpc")
+
+    def phi(tv):
+        return u.ustrip(u.unit("kpc2/Myr2"), pot.potential(xyz, u.Q(tv, "Myr")))
+
+    assert phi(-5000.0) == pytest.approx(float(phi(0.0)), rel=1e-12)
+    assert phi(9999.0) == pytest.approx(float(phi(400.0)), rel=1e-12)
+
+
+@pytest.mark.parametrize(
+    ("t", "match"),
+    [
+        (jnp.zeros((2, 2)), "must be a scalar or 1-D"),
+        (jnp.asarray([1.0]), "at least 2 entries"),
+    ],
+)
+def test_time_grid_rejects_a_malformed_time(t, match: str) -> None:
+    """A 2-D ``t`` has no meaning, and one time cannot be interpolated.
+
+    Both have to be caught here: `harmonic_coeffs` broadcasts ``t`` against
+    the angular grid, so a bad ``t`` reaching the build would silently
+    average the expansion over those times instead of failing.
+    """
+    with pytest.raises(ValueError, match=match):
+        gp.MultipoleProfilePotential.from_density(
+            _growing_hernquist,
+            r_min=u.Q(1e-2, "kpc"),
+            r_max=u.Q(1e3, "kpc"),
+            n_r=16,
+            l_max=0,
+            symmetry="spherical",
+            t=u.Q(t, "Myr"),
+            units="galactic",
+        )
+
+
+def test_a_time_varying_source_builds_on_a_time_grid() -> None:
+    """A source whose own parameters vary is what the time grid is *for*.
+
+    `_check_time_independent` rejects such a source for a single-time build,
+    because one expansion cannot track it and returning one anyway would give
+    a potential inconsistent with its own density. On a grid it is tracked,
+    so the check is conditional and this is the case it allows through.
+    """
+    lp = gpp.LinearParameter(
+        slope=u.Q(-1e8, "Msun/Myr"),
+        point_time=u.Q(0, "Myr"),
+        point_value=u.Q(1e12, "Msun"),
+    )
+    src = gp.HernquistPotential(m_tot=lp, r_s=u.Q(10.0, "kpc"), units="galactic")
+    kw = {
+        "r_min": u.Q(1e-2, "kpc"),
+        "r_max": u.Q(1e3, "kpc"),
+        "n_r": 64,
+        "l_max": 0,
+        "symmetry": "spherical",
+    }
+
+    with pytest.raises(ValueError, match="vary with time"):
+        gp.MultipoleProfilePotential.from_potential(src, t=u.Q(0.0, "Myr"), **kw)
+
+    pot = gp.MultipoleProfilePotential.from_potential(
+        src, t=u.Q(jnp.linspace(0.0, 1000.0, 5), "Myr"), **kw
+    )
+    xyz = u.Q(jnp.asarray([5.0, 0.0, 0.0]), "kpc")
+    for tv in (0.0, 250.0, 500.0, 1000.0):
+        got = u.ustrip(u.unit("kpc2/Myr2"), pot.potential(xyz, u.Q(tv, "Myr")))
+        want = u.ustrip(u.unit("kpc2/Myr2"), src.potential(xyz, u.Q(tv, "Myr")))
+        assert abs(float(got - want) / float(want)) < 1e-6, (tv, got, want)
 
 
 @pytest.mark.parametrize("l_max", [0, 4, 8])

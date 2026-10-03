@@ -26,16 +26,19 @@ mpl.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import to_rgb
-from matplotlib.patches import Circle, Polygon
-from matplotlib.path import Path as MplPath
+from matplotlib.patches import Circle, Ellipse, Polygon
 
 TEAL, PURPLE, NIGHT = "#66a19a", "#7738eb", "#030a23"
 RADIUS = 0.6  # of the dark disk
-GAP = 0.022  # the clear gap that sets the ring off from what lies under it
+GAP = 0.022  # the clear gap that sets the ring apart from what it crosses
+# The painted galaxy: an ellipse (width, height, tilt in degrees), measured
+# from the GalacticDynamics logo. A dark margin of disk rings it, which each
+# swoosh crosses before it dives under the paint.
+PAINT = (1.06, 0.94, 40)
 # One swoosh of the ring, traced from the GalacticDynamics logo: at each polar
 # angle (degrees), the radii of its inner and outer edges. The other swoosh is
-# the same shape turned half a circle. Each comes down in front of the disk's
-# rim and ends in a point inside it.
+# the same shape turned half a circle. Each crosses in front of the disk's rim
+# and ends in a point under the galaxy.
 SWOOSH = np.array(
     [
         (14, 0.52, 0.52),
@@ -66,19 +69,10 @@ SWOOSH = np.array(
 WIND = 0.28  # log-spiral rate: r falls by exp(-WIND) per radian anticlockwise
 
 
-def swoosh(turn: float, upto: float | None = None, grow: float = 0.0) -> np.ndarray:
-    """Return the outline of one swoosh of the ring, turned by ``turn`` degrees.
-
-    It runs clockwise: from the outer edge's far end, round the point, and back
-    along the inner edge. ``upto`` stops it at that angle, leaving the outline
-    open. ``grow`` widens it by that much on every side, the point included.
-    """
+def swoosh(turn: float) -> np.ndarray:
+    """Return the outline of one swoosh of the ring, turned by ``turn`` degrees."""
     angle, inner, outer = SWOOSH.T
-    if grow:  # stretch the point past its end too
-        tip = angle[0] - np.rad2deg(grow / inner[0])
-        angle, inner, outer = np.insert(SWOOSH, 0, (tip, inner[0], inner[0]), 0).T
-        inner, outer = inner - grow, outer + grow
-    phi = np.linspace(angle[0], angle[-1] if upto is None else upto, 200)
+    phi = np.linspace(angle[0], angle[-1], 200)
     r = np.concatenate(
         [np.interp(phi, angle, outer)[::-1], np.interp(phi, angle, inner)]
     )
@@ -101,7 +95,7 @@ def bracket(ax: plt.Axes, sign: int, colour: str) -> None:
 
 def stroke(
     ax: plt.Axes,
-    clip: MplPath,
+    clip: Ellipse,
     theta0: float,
     r0: float,
     sweep: float,
@@ -125,7 +119,7 @@ def stroke(
     outline = np.concatenate([line + w * normal, (line - w * normal)[::-1]])
     poly = Polygon(outline, color=colour, alpha=alpha, lw=0)
     ax.add_patch(poly)
-    poly.set_clip_path(clip, ax.transData)
+    poly.set_clip_path(clip)
 
 
 def arm_colour(r: float, theta: float, rng: np.random.Generator) -> str:
@@ -145,14 +139,9 @@ def arm_colour(r: float, theta: float, rng: np.random.Generator) -> str:
 
 def galaxy(ax: plt.Axes, rng: np.random.Generator) -> None:
     """Paint the spiral galaxy on the disk: arms of strokes, and a core."""
-    # The strokes stay inside the disk's rim and clear of the ring: each
-    # swoosh, its gap and a strip of dark disk are held out of them.
-    rim = 0.05
-    t = np.linspace(0, 2 * np.pi, 200)
-    disk = (RADIUS - rim) * np.column_stack([np.cos(t), np.sin(t)])  # anticlockwise
-    clip = MplPath.make_compound_path(
-        MplPath(disk), *(MplPath(swoosh(turn, grow=GAP + rim)) for turn in (0, 180))
-    )
+    clip = Ellipse((0, 0), *PAINT[:2], angle=PAINT[2], transform=ax.transData)
+    # The galaxy's dark ground, which hides the point of each swoosh.
+    ax.add_patch(Ellipse((0, 0), *PAINT[:2], angle=PAINT[2], color=NIGHT, lw=0))
     ax.add_patch(Circle((0, 0), 0.2, color="#1d3fa8", lw=0))
     # Each arm is a log spiral, theta = phase - ln(r / 0.1) / WIND. Its strokes
     # start on it, a little scattered, and follow it inwards: long, thin and
@@ -197,6 +186,10 @@ def draw(ax: plt.Axes, rng: np.random.Generator) -> None:
     bracket(ax, 1, PURPLE)
 
     ax.add_patch(Circle((0, 0), RADIUS, color=NIGHT, lw=0))
+    # The ring crosses the disk's rim and dives under the galaxy. `gaps` cuts
+    # the clear gaps that set each apart.
+    for turn in (0, 180):
+        ax.add_patch(Polygon(swoosh(turn), color=NIGHT, lw=0))
     galaxy(ax, rng)
 
     # Stars in the dark margin, sparkles, and two planets.
@@ -216,35 +209,38 @@ def draw(ax: plt.Axes, rng: np.random.Generator) -> None:
     ax.add_patch(Circle((-0.49, 0.16), 0.035, color="#a77ff0", lw=0))
     ax.add_patch(Circle((0.18, -0.44), 0.028, color="#4f9fe0", lw=0))
 
-    # The ring, in front. `gaps` cuts the clear gap round it.
-    for turn in (0, 180):
-        ax.add_patch(Polygon(swoosh(turn), color=NIGHT, lw=0))
-
 
 def gaps(ax: plt.Axes) -> None:
     """Draw, in white on black, what is cut out round each swoosh.
 
-    That is a gap along the half that lies over the disk and a bracket, and
-    the hollow between the swoosh and the disk, which hides the bracket's end.
-    The swoosh's other end merges into the disk.
+    That is a gap along the half of it that crosses the disk's rim and a
+    bracket; the hollow between it and the disk, which hides the bracket's end;
+    and a gap round the galaxy where the swoosh dives under it. The swoosh's
+    other end merges into the disk.
     """
-    points_per_unit = ax.figure.get_figwidth() * 72 / 2  # the axes span 2
+    lw = 2 * GAP * ax.figure.get_figwidth() * 72 / 2  # in points; the axes span 2
     angle, inner, _ = SWOOSH.T
     phi = np.linspace(angle[0], angle[-1], 200)
     r_in = np.interp(phi, angle, inner)
-    r = np.concatenate([r_in, np.minimum(r_in, RADIUS)[::-1]])
+    r = np.concatenate([np.maximum(r_in, RADIUS), np.full_like(r_in, RADIUS)])
     for turn in (0, 180):
-        ax.plot(
-            *swoosh(turn, upto=60).T,
-            color="white",
-            lw=2 * GAP * points_per_unit,
-            solid_capstyle="round",
-        )
         rad = np.deg2rad(np.concatenate([phi, phi[::-1]]) + turn)
         hollow = np.column_stack([r * np.cos(rad), r * np.sin(rad)])
         ax.add_patch(Polygon(hollow, color="white", lw=0))
+        outline = swoosh(turn)
+        near = outline.copy()  # the hooked half: what lies over the disk
+        near[np.hypot(*outline.T) > RADIUS + GAP] = np.nan  # nan breaks the line
+        ax.plot(*near.T, color="white", lw=lw, solid_capstyle="round")
         # Above the line, which matplotlib draws over patches by default.
-        ax.add_patch(Polygon(swoosh(turn), color="black", lw=0, zorder=3))
+        body = Polygon(outline, color="black", lw=0, zorder=3)
+        ax.add_patch(body)
+        edge = Ellipse(
+            (0, 0), *PAINT[:2], angle=PAINT[2], fill=False, ec="white", lw=lw, zorder=4
+        )
+        ax.add_patch(edge)
+        edge.set_clip_path(body)
+    # The galaxy lies over all of it.
+    ax.add_patch(Ellipse((0, 0), *PAINT[:2], angle=PAINT[2], color="black", zorder=5))
 
 
 def render(size: int, paint: Callable[[plt.Axes], None], background: str) -> np.ndarray:

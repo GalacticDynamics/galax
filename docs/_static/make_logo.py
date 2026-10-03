@@ -5,19 +5,17 @@
 """Draw the galax logo: the GalacticDynamics mark.
 
 A painted spiral galaxy on a dark disk, circled by a ring and set between code
-brackets. Every shape is drawn in data units, so a larger image is the same
-picture, and the brush strokes come from a fixed seed, so every run draws the
-same logo. Re-run it for a larger image::
+brackets. The disk, ring and brackets are outlines traced from the org's logo;
+the galaxy is painted over them, its brush strokes from a fixed seed, so every
+run draws the same logo. Everything is in data units, so a larger image is the
+same picture. Re-run it for a larger image::
 
     uv run docs/_static/make_logo.py                    # favicon.png, 512 px
     uv run docs/_static/make_logo.py --size 2048 big.png
 """
 
 import argparse
-import itertools
 from pathlib import Path
-
-from collections.abc import Callable
 
 import matplotlib as mpl
 
@@ -30,92 +28,83 @@ from matplotlib.patches import Circle, Polygon
 
 TEAL, PURPLE, NIGHT = "#66a19a", "#7738eb", "#030a23"
 RADIUS = 0.6  # of the dark disk
-GAP = 0.033  # the clear gap along a swoosh's inner edge, where it crosses the disk
-WEDGE = 0.008  # how fast the gap on its outer side opens, per degree
-# The painted galaxy's radius, measured from the GalacticDynamics logo. It lies
-# over everything else: a dark margin of disk rings it, which each swoosh
-# crosses before it dives under it, and the gap along the swoosh ends at it.
+# The painted galaxy's radius, measured from the GalacticDynamics logo: a dark
+# margin of the disk rings it.
 PAINT = 0.5
-# One swoosh of the ring, traced from the GalacticDynamics logo: at each polar
-# angle (degrees), the radii of its inner and outer edges. The other swoosh is
-# the same shape turned half a circle. Each crosses in front of the disk's rim
-# and ends in a point under the galaxy.
-SWOOSH = np.array(
-    [
-        (4, 0.47, 0.47),
-        (8, 0.47, 0.515),
-        (10, 0.475, 0.523),
-        (12, 0.48, 0.526),
-        (14, 0.485, 0.532),
-        (16, 0.49, 0.558),
-        (18, 0.495, 0.584),
-        (20, 0.5, 0.615),
-        (22, 0.503, 0.65),
-        (24, 0.506, 0.68),
-        (26, 0.535, 0.71),
-        (28, 0.563, 0.747),
-        (30, 0.587, 0.78),
-        (32, 0.617, 0.823),
-        (34, 0.643, 0.853),
-        (37, 0.685, 0.897),
-        (40, 0.717, 0.928),
-        (43, 0.74, 0.947),
-        (46, 0.751, 0.952),
-        (49, 0.752, 0.947),
-        (52, 0.744, 0.933),
-        (55, 0.735, 0.906),
-        (58, 0.722, 0.875),
-        (61, 0.707, 0.839),
-        (64, 0.692, 0.804),
-        (67, 0.676, 0.767),
-        (70, 0.659, 0.732),
-        (73, 0.644, 0.698),
-        (76, 0.63, 0.666),
-        (80, 0.615, 0.615),
-    ]
-)
-TURNS = (0, 178)  # the two swooshes: the org logo's are not quite opposite
 WIND = 0.12  # the outer arms fall inwards this much per radian anticlockwise
+# The flat shapes, traced from the GalacticDynamics logo: the edge of each at
+# half intensity, simplified to within 0.0008 (0.005 for the straight-sided
+# brackets). Points are x,y in [-1, 1] x [-1, 1]. DISK is the dark disk with the
+# two swooshes of its ring, the gaps where the ring crosses the rim already
+# cut; the brackets are what shows of each, reaching a little under the disk so
+# no seam shows where they meet.
+DISK = """
+0.456,0.737 0.460,0.738 0.536,0.738 0.572,0.732 0.585,0.728 0.611,0.718
+0.629,0.708 0.645,0.698 0.657,0.687 0.673,0.671 0.684,0.655 0.694,0.639
+0.700,0.623 0.705,0.605 0.710,0.578 0.710,0.530 0.704,0.493 0.691,0.447
+0.685,0.429 0.684,0.420 0.680,0.416 0.656,0.356 0.649,0.343 0.646,0.334
+0.624,0.293 0.609,0.266 0.592,0.240 0.590,0.233 0.583,0.225 0.512,0.126
+0.511,0.122 0.514,0.108 0.514,0.090 0.516,0.083 0.520,0.082 0.567,0.152
+0.572,0.156 0.577,0.152 0.584,0.124 0.593,0.067 0.593,0.049 0.596,0.017
+0.596,-0.008 0.594,-0.017 0.593,-0.053 0.584,-0.106 0.575,-0.143 0.562,-0.188
+0.551,-0.215 0.539,-0.243 0.510,-0.297 0.488,-0.331 0.467,-0.359 0.445,-0.386
+0.407,-0.426 0.380,-0.449 0.350,-0.473 0.316,-0.496 0.275,-0.520 0.230,-0.542
+0.191,-0.557 0.138,-0.573 0.115,-0.578 0.060,-0.586 0.051,-0.586 0.042,-0.588
+0.026,-0.588 0.017,-0.590 -0.024,-0.590 -0.033,-0.588 -0.056,-0.588 -0.065,-0.586
+-0.074,-0.586 -0.101,-0.583 -0.150,-0.573 -0.206,-0.557 -0.252,-0.538 -0.291,-0.518
+-0.344,-0.486 -0.383,-0.457 -0.396,-0.445 -0.406,-0.438 -0.443,-0.400 -0.480,-0.355
+-0.498,-0.327 -0.502,-0.318 -0.510,-0.306 -0.500,-0.272 -0.488,-0.242 -0.467,-0.199
+-0.451,-0.174 -0.451,-0.168 -0.457,-0.154 -0.460,-0.150 -0.464,-0.150 -0.480,-0.168
+-0.494,-0.190 -0.508,-0.218 -0.527,-0.263 -0.532,-0.279 -0.544,-0.309 -0.560,-0.365
+-0.563,-0.382 -0.564,-0.395 -0.568,-0.414 -0.568,-0.454 -0.567,-0.463 -0.564,-0.479
+-0.557,-0.498 -0.551,-0.514 -0.538,-0.534 -0.526,-0.550 -0.510,-0.564 -0.492,-0.578
+-0.476,-0.587 -0.430,-0.606 -0.407,-0.613 -0.387,-0.617 -0.376,-0.620 -0.367,-0.621
+-0.351,-0.624 -0.335,-0.624 -0.325,-0.627 -0.316,-0.626 -0.309,-0.627 -0.254,-0.627
+-0.225,-0.624 -0.213,-0.624 -0.181,-0.619 -0.120,-0.605 -0.118,-0.605 -0.116,-0.609
+-0.150,-0.632 -0.186,-0.652 -0.227,-0.672 -0.273,-0.691 -0.298,-0.699 -0.310,-0.702
+-0.319,-0.706 -0.339,-0.712 -0.346,-0.713 -0.351,-0.716 -0.360,-0.717 -0.367,-0.720
+-0.375,-0.720 -0.383,-0.724 -0.391,-0.724 -0.399,-0.727 -0.417,-0.731 -0.430,-0.731
+-0.440,-0.734 -0.464,-0.735 -0.472,-0.738 -0.544,-0.738 -0.552,-0.735 -0.569,-0.734
+-0.595,-0.728 -0.625,-0.716 -0.636,-0.711 -0.665,-0.692 -0.683,-0.673 -0.701,-0.648
+-0.714,-0.619 -0.721,-0.596 -0.721,-0.586 -0.724,-0.577 -0.724,-0.566 -0.726,-0.557
+-0.726,-0.527 -0.724,-0.518 -0.724,-0.505 -0.722,-0.496 -0.721,-0.482 -0.717,-0.473
+-0.717,-0.464 -0.710,-0.439 -0.707,-0.430 -0.706,-0.423 -0.703,-0.418 -0.690,-0.381
+-0.673,-0.340 -0.645,-0.284 -0.616,-0.234 -0.615,-0.229 -0.605,-0.217 -0.600,-0.206
+-0.580,-0.179 -0.575,-0.170 -0.514,-0.090 -0.511,-0.085 -0.510,-0.074 -0.512,-0.061
+-0.515,-0.051 -0.519,-0.048 -0.589,-0.136 -0.593,-0.140 -0.599,-0.138 -0.600,-0.124
+-0.603,-0.115 -0.604,-0.097 -0.607,-0.088 -0.607,-0.078 -0.608,-0.070 -0.607,-0.061
+-0.610,-0.053 -0.610,0.044 -0.607,0.054 -0.608,0.060 -0.607,0.074 -0.604,0.085
+-0.603,0.097 -0.600,0.106 -0.599,0.115 -0.597,0.122 -0.596,0.129 -0.593,0.138
+-0.589,0.154 -0.582,0.176 -0.578,0.192 -0.564,0.225 -0.537,0.279 -0.531,0.288
+-0.523,0.302 -0.516,0.311 -0.501,0.336 -0.490,0.350 -0.458,0.388 -0.430,0.417
+-0.408,0.438 -0.373,0.465 -0.339,0.489 -0.296,0.515 -0.264,0.531 -0.229,0.546
+-0.193,0.559 -0.136,0.575 -0.102,0.581 -0.060,0.586 -0.047,0.586 -0.038,0.588
+0.031,0.588 0.095,0.581 0.140,0.571 0.191,0.555 0.218,0.545 0.268,0.522
+0.289,0.511 0.335,0.482 0.380,0.447 0.402,0.427 0.409,0.418 0.431,0.397
+0.463,0.357 0.483,0.329 0.492,0.313 0.492,0.307 0.489,0.300 0.468,0.258
+0.449,0.225 0.449,0.220 0.456,0.204 0.458,0.202 0.462,0.201 0.473,0.215
+0.487,0.238 0.509,0.281 0.536,0.352 0.550,0.402 0.553,0.425 0.553,0.466
+0.549,0.491 0.542,0.509 0.535,0.523 0.520,0.545 0.503,0.561 0.490,0.571
+0.472,0.583 0.458,0.590 0.424,0.604 0.410,0.608 0.380,0.616 0.344,0.622
+0.335,0.622 0.310,0.626 0.246,0.626 0.238,0.624 0.207,0.622 0.168,0.617
+0.115,0.606 0.113,0.609 0.115,0.612 0.127,0.621 0.182,0.652 0.213,0.666
+0.282,0.694 0.312,0.705 0.375,0.723 0.423,0.733
+"""
+LEFT = """
+-0.573,0.555 -0.536,0.545 -0.507,0.518 -0.484,0.455 -0.488,0.411 -0.522,0.348
+-0.790,-0.001 -0.618,-0.226 -0.576,-0.171 -0.569,-0.174 -0.674,-0.365 -0.722,-0.530
+-0.726,-0.520 -0.709,-0.423 -0.984,-0.063 -0.986,0.054 -0.637,0.514 -0.609,0.542
+"""
+RIGHT = """
+0.678,0.427 0.959,0.067 0.975,0.024 0.975,-0.024 0.962,-0.061 0.933,-0.104
+0.605,-0.529 0.574,-0.550 0.542,-0.558 0.510,-0.545 0.482,-0.516 0.463,-0.470
+0.465,-0.411 0.493,-0.357 0.767,-0.003 0.583,0.234
+"""
 
 
-def edges(phi: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Return a swoosh's inner and outer radii at polar angles ``phi`` (degrees).
-
-    The traced points are joined smoothly: interpolated on a fine grid, then
-    blurred over a couple of degrees, so the edges have no corners.
-    """
-    angle, inner, outer = SWOOSH.T
-    fine = np.linspace(angle[0], angle[-1], 1000)
-    kernel = np.exp(-0.5 * (np.arange(-60, 61) / 24) ** 2)  # sigma ~ 2 degrees
-    kernel /= kernel.sum()
-
-    def smooth(r: np.ndarray) -> np.ndarray:
-        r = np.convolve(np.pad(np.interp(fine, angle, r), 60, mode="edge"), kernel)
-        return np.interp(phi, fine, r[120:-120])
-
-    return smooth(inner), smooth(outer)
-
-
-def swoosh(turn: float) -> np.ndarray:
-    """Return the outline of one swoosh of the ring, turned by ``turn`` degrees."""
-    phi = np.linspace(SWOOSH[0, 0], SWOOSH[-1, 0], 300)
-    r_in, r_out = edges(phi)
-    r = np.concatenate([r_out[::-1], r_in])
-    phi = np.deg2rad(np.concatenate([phi[::-1], phi]) + turn)
-    return np.column_stack([r * np.cos(phi), r * np.sin(phi)])
-
-
-def bracket(ax: plt.Axes, sign: int, colour: str) -> None:
-    """Draw a thick round-ended < (``sign`` -1) or > (+1)."""
-    pts = np.array([[0.557, 0.458], [0.9, 0.0], [0.557, -0.458]]) * [sign, 1]
-    half = 0.094  # half the stroke width
-    for p, q in itertools.pairwise(pts):
-        n = np.array([-(q - p)[1], (q - p)[0]]) / np.linalg.norm(q - p) * half
-        ax.add_patch(
-            Polygon([p + n, q + n, q - n, p - n], color=colour, lw=0, zorder=0)
-        )
-    for p in pts:
-        ax.add_patch(Circle(p, half, color=colour, lw=0, zorder=0))
+def outline(points: str) -> np.ndarray:
+    """Parse one of the traced outlines into an (n, 2) array."""
+    return np.array([p.split(",") for p in points.split()], dtype=float)
 
 
 def stroke(
@@ -169,10 +158,8 @@ def galaxy(ax: plt.Axes, rng: np.random.Generator) -> None:
     polar coordinates: circular bands of cyan and blue out to r = 0.2, a dark
     lane, then thin tapered arms that fall inwards as they run anticlockwise.
     """
-    # The strokes stop a little inside the dark ground's edge, as the org's do.
+    # The strokes stop a little short of PAINT, as the org's do.
     clip = Circle((0, 0), PAINT - 0.02, transform=ax.transData)
-    # The galaxy's dark ground, which hides the point of each swoosh.
-    ax.add_patch(Circle((0, 0), PAINT, color=NIGHT, lw=0))
     # Outer arms, between r = 0.22 and the edge, outermost first. Four arms
     # wind in, theta = phase + (0.5 - r) / WIND; each stroke starts near one.
     for r0 in np.sort(rng.uniform(0.3, PAINT + 0.04, 60))[::-1]:
@@ -223,21 +210,20 @@ def sparkle(ax: plt.Axes, xy: tuple[float, float], size: float, colour: str) -> 
 
 def draw(ax: plt.Axes, rng: np.random.Generator) -> None:
     """Draw the logo on ``ax``, in the square [-1, 1] x [-1, 1]."""
-    bracket(ax, -1, TEAL)
-    bracket(ax, 1, PURPLE)
-
-    ax.add_patch(Circle((0, 0), RADIUS, color=NIGHT, lw=0))
-    # The ring crosses the disk's rim and runs under the galaxy. `gaps` cuts
-    # the clear gap along its inner edge.
-    for turn in TURNS:
-        ax.add_patch(Polygon(swoosh(turn), color=NIGHT, lw=0))
+    ax.add_patch(Polygon(outline(LEFT), color=TEAL, lw=0))
+    ax.add_patch(Polygon(outline(RIGHT), color=PURPLE, lw=0))
+    disk = Polygon(outline(DISK), color=NIGHT, lw=0)
+    ax.add_patch(disk)
     galaxy(ax, rng)
 
-    # Stars in the dark margin, sparkles, and two planets.
+    # Stars in the dark margin, sparkles, and two planets: on the disk only, so
+    # none floats in a gap.
     phi, rho = rng.uniform(0, 2 * np.pi, 45), rng.uniform(0.45, RADIUS - 0.03, 45)
     for x, y in zip(rho * np.cos(phi), rho * np.sin(phi), strict=True):
         colour = rng.choice(["white", "white", "#9ff8ff", "#d7a8ef"])
-        ax.add_patch(Circle((x, y), rng.uniform(0.004, 0.009), color=colour, lw=0))
+        star = Circle((x, y), rng.uniform(0.004, 0.009), color=colour, lw=0)
+        ax.add_patch(star)
+        star.set_clip_path(disk)
     for xy, size, colour in (
         ((-0.36, 0.39), 0.035, "white"),
         ((-0.43, 0.29), 0.035, "#7fe0b0"),
@@ -249,59 +235,6 @@ def draw(ax: plt.Axes, rng: np.random.Generator) -> None:
         sparkle(ax, xy, size, colour)
     ax.add_patch(Circle((-0.49, 0.16), 0.035, color="#a77ff0", lw=0))
     ax.add_patch(Circle((0.18, -0.44), 0.028, color="#4f9fe0", lw=0))
-
-
-def gaps(ax: plt.Axes) -> None:
-    """Draw, in white on black, what is cut out round each swoosh.
-
-    Outside the disk, that is the hollow between the swoosh and the disk,
-    which hides the bracket's end. Where the swoosh crosses the disk's rim, a
-    band GAP wide runs up its inner edge, ending at the galaxy that lies over
-    it, and a wedge opens along its outer edge out to the rim. At its far end
-    the swoosh merges into the disk.
-    """
-    lw = 2 * GAP * ax.figure.get_figwidth() * 72 / 2  # in points; the axes span 2
-    phi = np.linspace(SWOOSH[0, 0], SWOOSH[-1, 0], 400)
-    r_in, r_out = edges(phi)
-    # The wedge opens along the outer edge from where that edge is at r = 0.52,
-    # just clear of the galaxy, out to the rim.
-    hook = phi < 30  # where the swoosh comes in across the rim
-    a_tip = np.interp(0.52, r_out[hook], phi[hook])
-    a_rim = np.interp(RADIUS + 0.02, r_out[hook], phi[hook])
-    along = (phi >= a_tip) & (phi <= a_rim)
-    wedge_phi = np.concatenate([phi[along], phi[along][::-1]])
-    # Stopped at the rim: beyond it is background, and a bracket to keep whole.
-    opening = np.minimum(r_out + WEDGE * (phi - a_tip), RADIUS + 0.002)
-    wedge_r = np.concatenate([r_out[along], opening[along][::-1]])
-    r = np.concatenate([np.maximum(r_in, RADIUS), np.full_like(r_in, RADIUS)])
-    for turn in TURNS:
-        rad = np.deg2rad(np.concatenate([phi, phi[::-1]]) + turn)
-        hollow = np.column_stack([r * np.cos(rad), r * np.sin(rad)])
-        ax.add_patch(Polygon(hollow, color="white", lw=0))
-        rad = np.deg2rad(wedge_phi + turn)
-        wedge = np.column_stack([wedge_r * np.cos(rad), wedge_r * np.sin(rad)])
-        ax.add_patch(Polygon(wedge, color="white", lw=0))
-        rad = np.deg2rad(phi + turn)
-        edge = np.column_stack([r_in * np.cos(rad), r_in * np.sin(rad)])
-        edge[(r_in > RADIUS + GAP) | (phi > 50)] = np.nan  # over the disk only
-        ax.plot(*edge.T, color="white", lw=lw, solid_capstyle="butt")
-        # Above the line, which matplotlib draws over patches by default.
-        ax.add_patch(Polygon(swoosh(turn), color="black", lw=0, zorder=3))
-    ax.add_patch(Circle((0, 0), PAINT, color="black", lw=0, zorder=4))
-
-
-def render(size: int, paint: Callable[[plt.Axes], None], background: str) -> np.ndarray:
-    """Return ``paint`` drawn on [-1, 1] x [-1, 1] as an RGBA array in [0, 1]."""
-    dpi = 100
-    fig = plt.figure(figsize=(size / dpi, size / dpi), dpi=dpi, facecolor=background)
-    ax = fig.add_axes((0, 0, 1, 1))
-    ax.set(xlim=(-1, 1), ylim=(-1, 1), aspect="equal")
-    ax.axis("off")
-    paint(ax)
-    fig.canvas.draw()
-    image = np.asarray(fig.canvas.buffer_rgba()) / 255
-    plt.close(fig)
-    return image
 
 
 def main() -> None:
@@ -317,11 +250,14 @@ def main() -> None:
     parser.add_argument("--size", type=int, default=512, help="pixels per side")
     args = parser.parse_args()
 
-    rng = np.random.default_rng(201030)
-    image = render(args.size, lambda ax: draw(ax, rng), background="none")
-    # The gaps are cut out, so they show whatever the logo sits on.
-    image[..., 3] *= 1 - render(args.size, gaps, background="black")[..., 0]
-    plt.imsave(args.out, image)
+    dpi = 100
+    fig = plt.figure(figsize=(args.size / dpi, args.size / dpi), dpi=dpi)
+    ax = fig.add_axes((0, 0, 1, 1))
+    ax.set(xlim=(-1, 1), ylim=(-1, 1), aspect="equal")
+    ax.axis("off")
+    draw(ax, np.random.default_rng(201030))
+    fig.savefig(args.out, transparent=True)
+    plt.close(fig)
 
 
 if __name__ == "__main__":

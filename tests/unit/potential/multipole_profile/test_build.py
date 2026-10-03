@@ -413,17 +413,34 @@ def test_a_very_wide_bracket_stays_finite_in_float32(r_min, r_max) -> None:
 
 
 @pytest.mark.parametrize(
-    ("gamma", "rtol"), [(1.0, 1e-5), (1.9, 1e-5), (2.5, 1e-5), (2.9, 0.2)]
+    ("gamma", "mass", "rtol"),
+    [
+        (1.0, 1.0, 1e-5),
+        (1.9, 1.0, 1e-5),
+        (2.5, 1.0, 1e-5),
+        (2.9, 1.0, 1e-4),
+        # The same cusp, rescaled. A cap that bounds `rho_lm` against the
+        # dtype passes at `mass = 1` by coincidence -- float32's min normal
+        # and max are near-reciprocal, so `1/r**2.9` lands just inside the
+        # budget -- and fails for any smaller prefactor, because what
+        # overflows is `mass / r**2.9` once `r**2.9` underflows to zero.
+        # These three were 0.111 under such a cap.
+        (2.9, 1e-2, 1e-4),
+        (2.9, 1e-4, 1e-4),
+        (2.9, 1e-6, 1e-4),
+    ],
 )
-def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> None:
+def test_a_steep_cusp_survives_the_padded_sampling_in_float32(
+    gamma, mass, rtol
+) -> None:
     """A density the *pad* cannot represent must not zero the whole build.
 
     REGRESSION: padding evaluates ``rho_fn`` `_PAD_MULTIPLE` spans outside
     the requested bracket, so a cusp ``rho ~ r**-gamma`` is sampled at
     ``r_min * exp(-reach)`` where the density overflows once
-    ``gamma * reach`` clears the dtype's exponent. `_pad_grid`'s reach cap
-    does not help -- it is sized so the solver's own ``x**2`` stays finite
-    and knows nothing about ``rho_fn``'s slope.
+    ``gamma * reach`` clears the dtype's exponent. Those samples are zeroed,
+    and the radial solve anchors its inner tail above them, so the band they
+    should have carried is covered analytically instead of lost.
 
     One unrepresentable sample took out everything: the projection turns
     ``inf`` into ``nan`` for ``l >= 1``, and `fit_log_spline` solves one
@@ -437,33 +454,46 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> No
     density silently returning `nan` in `galax`'s default dtype, not an
     exotic input.
 
-    The values are checked too, not just finiteness. Dropping a pad sample
-    usually costs nothing -- the density there is huge but its ``x**(l+3)``
-    weight is negligible -- and float32 tracks float64 to round-off through
-    ``gamma = 2.5``:
+    The values are checked too, not just finiteness. Unrepresentable samples
+    *are* zeroed -- the pad is not shortened to dodge them, which was tried
+    and measured worse, costing every caller tail accuracy to avoid an
+    overflow the anchored tail already absorbs. What makes zeroing cheap is
+    that the solve anchors its inner tail above the dropped band, so
+    ``[0, r_pad]`` is still integrated analytically.
 
-    ======= ==========
-    gamma    max rel
-    ======= ==========
-    1.0      1.7e-7
-    1.9      1.2e-7
-    2.5      1.2e-6
-    2.9      1.1e-1
-    ======= ==========
+    Zeroing alone used to cost 11% at ``gamma = 2.9``: the innermost 51 pad
+    knots were dropped, and a zeroed ``rho[0]`` *also* failed the gate on
+    that tail, so the band went too. For ``rho ~ r**-2.9`` the monopole
+    integrand is ``r**-0.9`` and that band carries ~12% of the enclosed
+    mass, which is the error that was observed.
 
-    It is not free at the steep end: by ``gamma = 2.9`` enough of the inner
-    pad is dropped to cost 11%, hence the looser bound there. That is a
-    bounded, one-sided loss of *tail* accuracy rather than a `nan`, which is
-    the trade this module takes everywhere else -- but sampling `rho_fn`
-    many decades out is the real problem, and extrapolating the density into
-    the pad analytically instead would avoid it.
+    Against a float64 build, over the cases below:
+
+    ======= ======== ==========
+    gamma    mass     max rel
+    ======= ======== ==========
+    1.0      1        1.9e-07
+    1.9      1        1.2e-07
+    2.5      1        9.9e-08
+    2.9      1        4.9e-06
+    2.9      1e-2     4.7e-06
+    2.9      1e-4     4.7e-06
+    2.9      1e-6     4.9e-06
+    ======= ======== ==========
+
+    The mass column matters: an earlier fix bounded the projected
+    coefficient against the dtype maximum, which is normalisation-dependent
+    -- it passed at ``mass = 1`` by coincidence and returned the full 11%
+    for anything smaller. Anchoring the tail does not care what the density
+    is scaled by.
+
     """
     keys = lm_keys(8, "none")
     n_theta, n_phi = default_angular_resolution(8)
 
     def rho(xyz, t):
         r = safe_vector_norm(xyz)
-        return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
+        return mass / (r**gamma * (1.0 + r) ** (4.0 - gamma))
 
     def build():
         # Built inside whichever dtype context is active: a grid made under
@@ -487,3 +517,51 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> No
     ref = jnp.asarray(build()["phi_lm"], dtype=float)
     scale = jnp.max(jnp.abs(ref))
     assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < rtol
+
+
+def test_a_cusp_that_overflows_almost_the_whole_pad_keeps_its_interior() -> None:
+    """The anchor must never land inside the range the caller asked for.
+
+    REGRESSION: `build_expansion` clamps the anchor to ``lo``, the first
+    retained knot, so that an unrepresentable band can never cost interior
+    data. But `solve_poisson_profiles` adds `_ANCHOR_MARGIN` *after* that, so
+    the effective anchor was ``lo + 8``. Every retained knot below it had its
+    panels zeroed and the seed zero, so it came back with no inner-integral
+    contribution at all -- representable interior data discarded by the guard
+    written to protect it.
+
+    It needs a cusp steep enough to overflow nearly the whole pad while
+    staying finite inside the bracket: ``M = 1e25`` over ``[1e-4, 1e4]``
+    reaches pad knot 124 of 128, where ``gamma = 2.9`` at unit mass reaches
+    only 51. That is why the existing cases never found it.
+
+    Measured float32 against float64: 9.0e-01 before the clamp accounted for
+    the margin, 1.1e-03 after. The residual is honest degradation -- with
+    almost the whole pad unrepresentable the boundary model carries the
+    answer -- not the catastrophic loss of an unseeded recurrence.
+    """
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1e25 / (r**2.9 * (1.0 + r) ** 1.1)
+
+    def build():
+        r_knots = jnp.geomspace(1e-4, 1e4, 256)
+        return build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = build()
+        assert jnp.all(jnp.isfinite(got)), got
+        f32 = jnp.asarray(got, dtype=float)
+
+    ref = jnp.asarray(build(), dtype=float)
+    scale = jnp.max(jnp.abs(ref))
+
+    # The innermost retained knots are the ones the anchor used to swallow.
+    inner = float(jnp.max(jnp.abs(f32[:8] - ref[:8])) / scale)
+    assert inner < 1e-2, inner
+    assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < 1e-2

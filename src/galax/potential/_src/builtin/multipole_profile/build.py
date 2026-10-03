@@ -39,6 +39,7 @@ from galax.potential._src.harmonic import (
     harmonic_coeffs,
 )
 from galax.potential._src.harmonic.poisson import (
+    _ANCHOR_MARGIN,
     gl_log_nodes,
     solve_poisson_profiles,
 )
@@ -224,6 +225,56 @@ once the cap binds, and the grid tends to ``n_r + 256`` rather than
 """
 
 
+def _check_enough_knots(n_r: int, /) -> None:
+    """Reject a grid too small for the three-knot boundary fits.
+
+    Four knots, matching `MultipoleProfilePotential.from_density`: the
+    boundary slopes are fitted over three. This has to be checked *before*
+    padding, because padding defeats the ``n_r >= 3`` guard inside the radial
+    solve -- a single knot pads to three and sails through it.
+
+    It also has to be checked at all: ``r_knots[1]`` on a one-knot grid is out
+    of bounds, and JAX clamps rather than raising, so the ratio comes out as 1
+    and every padded knot lands on top of the original.
+    """
+    if n_r < 4:
+        msg = (
+            f"r_knots must have at least 4 entries (got {n_r}); the boundary "
+            "slopes are fitted over three"
+        )
+        raise ValueError(msg)
+
+
+def _requested_reach(log_r: Float[Array, "n_r"], /) -> Float[Array, ""]:
+    """Pad reach asked for by `_PAD_MULTIPLE`, capped by the solver's own range.
+
+    The largest power the solve forms is :math:`x^2` about the padded grid's
+    log-midpoint, so the padded span must fit the dtype's overflow exponent;
+    everything carrying an :math:`l` is held in scaled form (see
+    `harmonic.poisson._scaled_prefix`) and is bounded by this.
+
+    A caller asking for ``[1e-6, 1e6]`` already spans 27.6 e-folds; two spans
+    either side would be 138, past float32's 87.4, and the build came back
+    `nan`. Capping degrades gracefully: the pad stops growing, so such a
+    caller gets less tail accuracy rather than no answer. In float64 the
+    budget is 699 and nothing physical comes close.
+
+    This bounds `galax`'s *own* arithmetic only, and is deliberately the only
+    thing that sets the reach. Whether the caller's density survives being
+    evaluated that far out is a separate question, answered by zeroing what
+    cannot be represented and anchoring the radial solve's inner tail above
+    it -- see `solve_poisson_profiles`. Shortening the pad instead was tried
+    and measured worse: it costs every caller tail accuracy to avoid an
+    overflow the tail already handles.
+    """
+    span = log_r[-1] - log_r[0]
+    budget = _LN_HUGE_FRAC * float(np.log(np.finfo(log_r.dtype).max))
+    reach: Float[Array, ""] = jnp.minimum(
+        _PAD_MULTIPLE * span, 0.5 * jnp.maximum(budget - span, 0.0)
+    )
+    return reach
+
+
 def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], int]:
     """Extend ``r_knots`` at both ends, continuing its own spacing.
 
@@ -232,21 +283,15 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     is taken from the shape, which is static under `jax.jit`; the spacing is
     read from the values, so a grid that is not log-uniform still continues
     smoothly from each end.
+
+    How far it reaches is `_requested_reach`, which bounds the solve's own
+    arithmetic. It deliberately does *not* consult the caller's density:
+    where that density is unrepresentable the samples are zeroed and the
+    radial solve anchors its inner tail above them, which costs far less
+    than shortening the pad for everyone. See `solve_poisson_profiles`.
     """
     n_r = r_knots.shape[0]
-    # Four knots, matching `MultipoleProfilePotential.from_density`: the
-    # boundary slopes are fitted over three. This has to be checked *before*
-    # padding, because padding defeats the `n_r >= 3` guard inside the
-    # radial solve -- a single knot pads to three and sails through it.
-    # It also has to be checked at all: `r_knots[1]` on a one-knot grid is out
-    # of bounds, and JAX clamps rather than raising, so the ratio comes out as
-    # 1 and every padded knot lands on top of the original.
-    if n_r < 4:
-        msg = (
-            f"r_knots must have at least 4 entries (got {n_r}); the boundary "
-            "slopes are fitted over three"
-        )
-        raise ValueError(msg)
+    _check_enough_knots(n_r)
     # Pad by log *reach*, not by knot count, and take the step from the
     # grid's whole span rather than its end intervals.
     #
@@ -263,22 +308,8 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     # multiple of `n_r`. At n_r=512 that is 128 knots a side instead of 1024,
     # a 3.4x cheaper build that matches the old one to round-off.
     log_r = jnp.log(r_knots)
-    reach = _PAD_MULTIPLE * (log_r[-1] - log_r[0])
+    reach = _requested_reach(log_r)
     n_pad = min(n_r * _PAD_MULTIPLE, _PAD_KNOTS)
-    # Cap the reach by what the dtype can exponentiate. The largest power
-    # the solve forms is x^2 about the padded grid's log-midpoint, so the
-    # padded span must satisfy `span_padded <= budget` where `budget` is the
-    # overflow exponent -- everything with an `l` in it is carried in scaled
-    # form (see `harmonic.poisson._scaled_prefix`) and is bounded by this.
-    #
-    # A caller asking for `[1e-6, 1e6]` already spans 27.6 e-folds; two spans
-    # either side would be 138, well past float32's 87.4, and the build came
-    # back `nan`. Capping degrades gracefully instead: the pad stops growing,
-    # so such a caller gets less tail accuracy rather than no answer. In
-    # float64 the budget is 699 and nothing physical comes close.
-    budget = _LN_HUGE_FRAC * float(np.log(np.finfo(r_knots.dtype).max))
-    span = log_r[-1] - log_r[0]
-    reach = jnp.minimum(reach, 0.5 * jnp.maximum(budget - span, 0.0))
     step = reach / n_pad
     lo = jnp.exp(log_r[0] - step * jnp.arange(n_pad, 0, -1))
     hi = jnp.exp(log_r[-1] + step * jnp.arange(1, n_pad + 1))
@@ -288,13 +319,16 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
 def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     r"""Zero any density sample the working dtype could not represent.
 
-    Padding evaluates the caller's ``rho_fn`` far outside the bracket it was
-    asked about -- by ``_PAD_MULTIPLE`` spans on each side. An inner cusp
-    :math:`\rho \sim r^{-\gamma}` therefore reaches
-    :math:`r_\min e^{-\mathrm{reach}}`, where the *density* overflows once
-    :math:`\gamma \times \mathrm{reach}` clears the dtype's exponent. The
-    reach cap in `_pad_grid` does not help: it is sized so the solver's own
-    :math:`x^2` stays finite, and knows nothing about ``rho_fn``'s slope.
+    Padding evaluates the caller's ``rho_fn`` outside the bracket it was
+    asked about, so an inner cusp :math:`\rho \sim r^{-\gamma}` is sampled
+    where the *density* can overflow, once
+    :math:`\gamma \times \mathrm{reach}` clears the dtype's exponent.
+
+    Zeroing is safe because it is no longer the whole story: the radial solve
+    anchors its inner tail at the first knot above the deepest zeroed sample,
+    so the band those samples should have carried is covered analytically
+    rather than lost. Without that, zeroing `rho[0]` also switched off the
+    tail and cost 11% of the monopole; with it, ~5e-06.
 
     Without this, one unrepresentable sample took out the whole build. The
     projection turns ``inf`` into ``inf`` at :math:`l = 0` and ``nan`` above
@@ -304,11 +338,12 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     cusp over ``[1e-4, 1e4]`` at ``l_max = 8`` produced 41472 non-finite
     values out of 41472 in float32, and none in float64.
 
-    Zeroing costs what it should: the pad exists to keep the boundary
-    power-law model away from the caller's range, so a dropped pad sample
-    weakens that tail slightly. It does not touch the requested bracket,
-    where every sample is representable by construction. That is the trade
-    `_PAD_MULTIPLE` already states -- degrade, rather than return nothing.
+    Zeroing is not free, which is why it is no longer the primary guard: a
+    zeroed ``rho[0]`` also switches off the solve's analytic inner tail,
+    which is gated on that sample being non-negligible, so the loss is the
+    dropped band *plus* everything inside it. At :math:`\gamma = 2.9` that
+    was 11% of the monopole. It does not touch the requested bracket, where
+    every sample is representable by construction.
     """
     out: Float[Array, "..."] = jnp.where(jnp.isfinite(rho), rho, 0.0)
     return out
@@ -332,6 +367,7 @@ def build_expansion(
     parameters. `expansion`'s module docstring lists the keys; keeping the
     count out of this sentence keeps the two from drifting apart.
     """
+    _check_enough_knots(r_knots.shape[0])
     log_r = jnp.log(r_knots)
     l_per_mode = jnp.asarray([float(l) for l, _ in keys])
 
@@ -340,9 +376,36 @@ def build_expansion(
     r_solve, lo = _pad_grid(r_knots)
 
     n_r = r_knots.shape[0]
-    rho_solve = _drop_nonfinite(
-        harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)
-    )
+    rho_raw = harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)
+    # Where the caller's density could not be represented, per mode. The
+    # samples are zeroed below, but the solve needs to know *which* ones: its
+    # inner tail is anchored at the first knot above the deepest bad sample,
+    # so the band those samples should have carried is covered analytically
+    # instead of silently lost. See `solve_poisson_profiles`.
+    #
+    # The deepest bad index, not the first good one: an unrepresentable band
+    # can sit mid-pad rather than at its inner edge -- a density need not be
+    # monotonic in log r -- and everything below such a band is suspect even
+    # where it happens to sample finite.
+    bad = ~jnp.isfinite(rho_raw)
+    idx = jnp.arange(r_solve.shape[0])[:, None]
+    first_ok = jnp.max(jnp.where(bad, idx + 1, 0), axis=0)
+    # Never discard the caller's own range: if their density is not finite
+    # inside the bracket they asked for, there is nothing the pad can do and
+    # anchoring there would throw away real interior data.
+    #
+    # The clamp has to leave room for `_ANCHOR_MARGIN`, which the solve adds
+    # *after* this. Clamping to `lo` alone bounds the wrong quantity: the
+    # effective anchor is `first_ok + _ANCHOR_MARGIN`, so it reached `lo + 8`
+    # and the innermost retained knots -- below the anchor, with their panels
+    # zeroed and the seed zero -- came back with no inner integral at all.
+    # Representable interior data, discarded by the guard meant to protect
+    # it. It needs a cusp steep enough to overflow nearly the whole pad
+    # (`M = 1e25` over `[1e-4, 1e4]` reaches pad knot 124 of 128), which is
+    # why nothing caught it sooner.
+    first_ok = jnp.minimum(first_ok, max(lo - _ANCHOR_MARGIN, 0))
+
+    rho_solve = _drop_nonfinite(rho_raw)
     rho_lm = rho_solve[lo : lo + n_r]
 
     # Sample the density *inside* each interval as well, at Gauss-Legendre
@@ -365,7 +428,7 @@ def build_expansion(
     # only as good as the fit -- which is what lets `expansion_potential`
     # interpolate with the quintic basis.
     phi_all, dphi_all, d2phi_all = solve_poisson_profiles(
-        r_solve, rho_solve, l_per_mode, G, rho_gl
+        r_solve, rho_solve, l_per_mode, G, rho_gl, first_ok
     )
     sl = slice(lo, lo + n_r)
     phi_lm, dphi_lm, d2phi_lm = phi_all[sl], dphi_all[sl], d2phi_all[sl]

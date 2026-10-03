@@ -274,6 +274,12 @@ def _warn_if_padding_is_capped(r_min: float, r_max: float, /) -> None:
     In float64 the budget is 699 e-folds and nothing physical comes close --
     this fires only in float32, which is `galax`'s default, for brackets
     wider than roughly twelve decades.
+
+    This is the only thing that shortens the pad. A density the working dtype
+    cannot represent across the padded range does *not*: those samples are
+    zeroed and the radial solve anchors its inner tail above them, which
+    costs ~5e-06 rather than the 11% that dropping them used to. See
+    `solve_poisson_profiles`.
     """
     span = math.log(r_max / r_min)
     dtype = jnp.zeros(()).dtype  # the working float dtype, x64 or not

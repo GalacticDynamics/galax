@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import to_rgb
 from matplotlib.patches import Circle, Polygon
+from matplotlib.path import Path as MplPath
 
 TEAL, PURPLE, NIGHT = "#66a19a", "#7738eb", "#030a23"
 RADIUS = 0.6  # of the dark disk
@@ -65,13 +66,18 @@ SWOOSH = np.array(
 WIND = 0.28  # log-spiral rate: r falls by exp(-WIND) per radian anticlockwise
 
 
-def swoosh(turn: float, upto: float | None = None) -> np.ndarray:
+def swoosh(turn: float, upto: float | None = None, grow: float = 0.0) -> np.ndarray:
     """Return the outline of one swoosh of the ring, turned by ``turn`` degrees.
 
-    It runs from the outer edge's far end, round the point, and back along the
-    inner edge. ``upto`` stops it at that angle, leaving the outline open.
+    It runs clockwise: from the outer edge's far end, round the point, and back
+    along the inner edge. ``upto`` stops it at that angle, leaving the outline
+    open. ``grow`` widens it by that much on every side, the point included.
     """
     angle, inner, outer = SWOOSH.T
+    if grow:  # stretch the point past its end too
+        tip = angle[0] - np.rad2deg(grow / inner[0])
+        angle, inner, outer = np.insert(SWOOSH, 0, (tip, inner[0], inner[0]), 0).T
+        inner, outer = inner - grow, outer + grow
     phi = np.linspace(angle[0], angle[-1] if upto is None else upto, 200)
     r = np.concatenate(
         [np.interp(phi, angle, outer)[::-1], np.interp(phi, angle, inner)]
@@ -95,7 +101,7 @@ def bracket(ax: plt.Axes, sign: int, colour: str) -> None:
 
 def stroke(
     ax: plt.Axes,
-    clip: Circle,
+    clip: MplPath,
     theta0: float,
     r0: float,
     sweep: float,
@@ -119,7 +125,7 @@ def stroke(
     outline = np.concatenate([line + w * normal, (line - w * normal)[::-1]])
     poly = Polygon(outline, color=colour, alpha=alpha, lw=0)
     ax.add_patch(poly)
-    poly.set_clip_path(clip)
+    poly.set_clip_path(clip, ax.transData)
 
 
 def arm_colour(r: float, theta: float, rng: np.random.Generator) -> str:
@@ -139,7 +145,14 @@ def arm_colour(r: float, theta: float, rng: np.random.Generator) -> str:
 
 def galaxy(ax: plt.Axes, rng: np.random.Generator) -> None:
     """Paint the spiral galaxy on the disk: arms of strokes, and a core."""
-    clip = Circle((0, 0), RADIUS - 0.05, transform=ax.transData)
+    # The strokes stay inside the disk's rim and clear of the ring: each
+    # swoosh, its gap and a strip of dark disk are held out of them.
+    rim = 0.05
+    t = np.linspace(0, 2 * np.pi, 200)
+    disk = (RADIUS - rim) * np.column_stack([np.cos(t), np.sin(t)])  # anticlockwise
+    clip = MplPath.make_compound_path(
+        MplPath(disk), *(MplPath(swoosh(turn, grow=GAP + rim)) for turn in (0, 180))
+    )
     ax.add_patch(Circle((0, 0), 0.2, color="#1d3fa8", lw=0))
     # Each arm is a log spiral, theta = phase - ln(r / 0.1) / WIND. Its strokes
     # start on it, a little scattered, and follow it inwards: long, thin and

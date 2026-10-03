@@ -7,14 +7,16 @@
 A painted spiral galaxy on a dark disk, circled by a ring and set between code
 brackets. The disk, ring and brackets are outlines traced from the org's logo;
 the galaxy is painted over them, its brush strokes from a fixed seed, so every
-run draws the same logo. Everything is in data units, so a larger image is the
-same picture. Re-run it for a larger image::
+run draws the same logo. The docs use it as an SVG, sharp at any size; for a
+bitmap, name a .png and give its size::
 
-    uv run docs/_static/make_logo.py                    # favicon.png, 512 px
+    uv run docs/_static/make_logo.py                     # favicon.svg
     uv run docs/_static/make_logo.py --size 2048 big.png
 """
 
 import argparse
+import io
+import re
 from pathlib import Path
 
 import matplotlib as mpl
@@ -24,7 +26,8 @@ mpl.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import to_rgb
-from matplotlib.patches import Circle, Polygon
+from matplotlib.patches import Circle, PathPatch, Polygon
+from matplotlib.path import Path as MplPath
 
 TEAL, PURPLE, NIGHT = "#66a19a", "#7738eb", "#030a23"
 RADIUS = 0.6  # of the dark disk
@@ -107,6 +110,20 @@ def outline(points: str) -> np.ndarray:
     return np.array([p.split(",") for p in points.split()], dtype=float)
 
 
+def smooth(points: np.ndarray) -> MplPath:
+    """Return a closed Catmull-Rom curve through ``points``, as Bezier curves.
+
+    Each span is exactly one cubic Bezier, which SVG stores as is, so a stroke
+    is smooth at any size from eight points a side.
+    """
+    p0, p2, p3 = np.roll(points, 1, 0), np.roll(points, -1, 0), np.roll(points, -2, 0)
+    c1, c2 = points + (p2 - p0) / 6, p2 - (p3 - points) / 6
+    spans = np.stack([c1, c2, p2], axis=1).reshape(-1, 2)
+    verts = np.concatenate([points[:1], spans, points[:1]])
+    codes = [MplPath.MOVETO, *[MplPath.CURVE4] * len(spans), MplPath.CLOSEPOLY]
+    return MplPath(verts, codes)
+
+
 def stroke(
     ax: plt.Axes,
     clip: Circle,
@@ -124,7 +141,7 @@ def stroke(
     ``wind`` inwards per radian (0 for a circular arc), swelling to ``width``
     early and tapering to a point at both ends.
     """
-    s = np.linspace(0, 1, 80)
+    s = np.linspace(0, 1, 8)
     theta = theta0 + sweep * s
     r = r0 - wind * sweep * s
     line = np.column_stack([r * np.cos(theta), r * np.sin(theta)])
@@ -132,8 +149,9 @@ def stroke(
     normal = np.column_stack([-tangent[:, 1], tangent[:, 0]])
     normal /= np.linalg.norm(normal, axis=1, keepdims=True)
     w = 0.5 * width * np.sin(np.pi * s**0.6)[:, None]
-    outline = np.concatenate([line + w * normal, (line - w * normal)[::-1]])
-    poly = Polygon(outline, color=colour, alpha=alpha, lw=0)
+    # Both sides meet at the tips; each tip is kept once.
+    outline = np.concatenate([line + w * normal, (line - w * normal)[-2:0:-1]])
+    poly = PathPatch(smooth(outline), color=colour, alpha=alpha, lw=0)
     ax.add_patch(poly)
     poly.set_clip_path(clip)
 
@@ -244,10 +262,12 @@ def main() -> None:
         "out",
         nargs="?",
         type=Path,
-        default=Path(__file__).with_name("favicon.png"),
-        help="output file (default: favicon.png)",
+        default=Path(__file__).with_name("favicon.svg"),
+        help="output file, SVG or PNG by its extension (default: favicon.svg)",
     )
-    parser.add_argument("--size", type=int, default=512, help="pixels per side")
+    parser.add_argument(
+        "--size", type=int, default=512, help="pixels per side, for a PNG"
+    )
     args = parser.parse_args()
 
     dpi = 100
@@ -256,7 +276,19 @@ def main() -> None:
     ax.set(xlim=(-1, 1), ylim=(-1, 1), aspect="equal")
     ax.axis("off")
     draw(ax, np.random.default_rng(201030))
-    fig.savefig(args.out, transparent=True)
+    if args.out.suffix == ".svg":
+        # No timestamp and fixed element ids, so a re-run gives the same file.
+        mpl.rcParams["svg.hashsalt"] = "logo"
+        svg = io.StringIO()
+        fig.savefig(svg, format="svg", transparent=True, metadata={"Date": None})
+        # Coordinates to 0.01 pt, far finer than any screen shows, and no
+        # trailing spaces on path lines, which pre-commit would strip.
+        text = re.sub(r"-?\d+\.\d{3,}", lambda m: f"{float(m[0]):.2f}", svg.getvalue())
+        args.out.write_text(
+            "\n".join(line.rstrip() for line in text.splitlines()) + "\n"
+        )
+    else:
+        fig.savefig(args.out, transparent=True)
     plt.close(fig)
 
 

@@ -26,15 +26,14 @@ mpl.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import to_rgb
-from matplotlib.patches import Circle, Ellipse, Polygon
+from matplotlib.patches import Circle, Polygon
 
 TEAL, PURPLE, NIGHT = "#66a19a", "#7738eb", "#030a23"
 RADIUS = 0.6  # of the dark disk
 GAP = 0.022  # the clear gap that sets the ring off from the disk it crosses
-# The painted galaxy: an ellipse (width, height, tilt in degrees), measured
-# from the GalacticDynamics logo. A dark margin of disk rings it, which each
-# swoosh crosses before it dives under the paint.
-PAINT = (1.06, 0.94, 40)
+# The painted galaxy's radius, measured from the GalacticDynamics logo. A dark
+# margin of disk rings it, which each swoosh crosses before it dives under it.
+PAINT = 0.52
 # One swoosh of the ring, traced from the GalacticDynamics logo: at each polar
 # angle (degrees), the radii of its inner and outer edges. The other swoosh is
 # the same shape turned half a circle. Each crosses in front of the disk's rim
@@ -66,7 +65,7 @@ SWOOSH = np.array(
         (80, 0.615, 0.615),
     ]
 )
-WIND = 0.28  # log-spiral rate: r falls by exp(-WIND) per radian anticlockwise
+WIND = 0.12  # the outer arms fall inwards this much per radian anticlockwise
 
 
 def swoosh(turn: float) -> np.ndarray:
@@ -95,22 +94,24 @@ def bracket(ax: plt.Axes, sign: int, colour: str) -> None:
 
 def stroke(
     ax: plt.Axes,
-    clip: Ellipse,
+    clip: Circle,
     theta0: float,
     r0: float,
     sweep: float,
     width: float,
-    colour: str,
+    colour: str | tuple[float, float, float],
     alpha: float,
+    wind: float = WIND,
 ) -> None:
-    """Paint one brush stroke along the spiral, from ``r0`` inwards.
+    """Paint one brush stroke, from ``r0`` inwards along a spiral.
 
-    It runs ``sweep`` radians anticlockwise from angle ``theta0``, swelling to
-    ``width`` early and tapering to a point at both ends.
+    It runs ``sweep`` radians anticlockwise from angle ``theta0``, falling
+    ``wind`` inwards per radian (0 for a circular arc), swelling to ``width``
+    early and tapering to a point at both ends.
     """
     s = np.linspace(0, 1, 80)
     theta = theta0 + sweep * s
-    r = r0 * np.exp(-WIND * sweep * s)
+    r = r0 - wind * sweep * s
     line = np.column_stack([r * np.cos(theta), r * np.sin(theta)])
     tangent = np.gradient(line, axis=0)
     normal = np.column_stack([-tangent[:, 1], tangent[:, 0]])
@@ -122,54 +123,67 @@ def stroke(
     poly.set_clip_path(clip)
 
 
-def arm_colour(r: float, theta: float, rng: np.random.Generator) -> str:
-    """Pick a stroke colour: cyan core, blue middle, purple and green rims."""
-    if r < 0.15:
-        return rng.choice(["#6ff3fb", "#4fd6f5", "#5aa8f0"])
-    if r < 0.32:
-        return rng.choice(["#2f6be0", "#2a4fc8", "#3a5fd8", "#5a4fe0", "#3f8af0"])
-    # The outermost arm is green round the top right; the outer arms are purple
-    # down the left, and blue between.
-    if r > 0.33 and np.cos(theta - np.deg2rad(40)) > 0.4:
-        return rng.choice(["#4fc88a", "#62d9a0", "#5ed49a", "#3aa8c0"])
-    if np.cos(theta - np.deg2rad(200)) > 0.5:
-        return rng.choice(["#6a3fd0", "#8a55e8", "#7b45d6", "#a77ff0"])
-    return rng.choice(["#2f6be0", "#3f8af0", "#4b6fe0", "#6a5be0"])
+def arm_colour(theta: float, rng: np.random.Generator) -> str:
+    """Pick an outer arm's colour from its angle.
+
+    Mostly blue, purple down the left, green round the top right.
+    """
+    deg = np.rad2deg(theta) % 360
+    if 100 < deg < 280 and rng.random() < 0.75:
+        return rng.choice(["#6a3fd0", "#7b4fe0", "#8a5ce8", "#5b45c8"])
+    if (deg > 350 or deg < 85) and rng.random() < 0.75:
+        return rng.choice(["#4fc88a", "#5ed49a", "#45b58a", "#6fdca8"])
+    return rng.choice(["#3b78e6", "#4a8ef0", "#55a8f5", "#2f62d8", "#62b8f5"])
 
 
 def galaxy(ax: plt.Axes, rng: np.random.Generator) -> None:
-    """Paint the spiral galaxy on the disk: arms of strokes, and a core."""
-    clip = Ellipse((0, 0), *PAINT[:2], angle=PAINT[2], transform=ax.transData)
+    """Paint the spiral galaxy: an inner whirl, a dark lane, and outer arms.
+
+    The structure is measured from the GalacticDynamics logo, unwrapped into
+    polar coordinates: circular bands of cyan and blue out to r = 0.2, a dark
+    lane, then thin tapered arms that fall inwards as they run anticlockwise.
+    """
+    clip = Circle((0, 0), PAINT, transform=ax.transData)
     # The galaxy's dark ground, which hides the point of each swoosh.
-    ax.add_patch(Ellipse((0, 0), *PAINT[:2], angle=PAINT[2], color=NIGHT, lw=0))
-    ax.add_patch(Circle((0, 0), 0.2, color="#1d3fa8", lw=0))
-    # Each arm is a log spiral, theta = phase - ln(r / 0.1) / WIND. Its strokes
-    # start on it, a little scattered, and follow it inwards: long, thin and
-    # tapered. Outer strokes go first, so the brighter inner ones lie over them.
-    n_arms, n = 4, 130
-    arm = rng.integers(0, n_arms, n)
-    r0 = rng.uniform(0.14, 0.54, n)
-    for a, r in sorted(zip(arm, r0, strict=True), key=lambda ar: -ar[1]):
-        theta0 = 2 * np.pi * a / n_arms - np.log(r / 0.1) / WIND
-        theta0 += rng.normal(0, 0.22)
-        sweep = rng.uniform(1.4, 3.0)
-        width = rng.uniform(0.4, 1.0) * (0.02 + 0.12 * r)
-        colour = arm_colour(r * np.exp(-WIND * sweep / 3), theta0 + sweep / 3, rng)
-        stroke(ax, clip, theta0, r, sweep, width, colour, alpha=0.92)
-    # Swirling rings round the core.
-    for r in rng.uniform(0.07, 0.22, 18):
-        theta0, sweep = rng.uniform(0, 2 * np.pi), rng.uniform(2, 4)
-        colour = rng.choice(["#6ff3fb", "#4fd6f5", "#5aa8f0", "#9ff8ff"])
-        stroke(ax, clip, theta0, r, sweep, rng.uniform(0.015, 0.035), colour, 0.85)
-    # Thin pale streaks, the brush's texture.
-    for r in rng.uniform(0.15, 0.5, 40):
-        theta0, sweep = rng.uniform(0, 2 * np.pi), rng.uniform(0.8, 1.6)
-        pale = tuple(0.6 * c + 0.4 for c in to_rgb(arm_colour(r, theta0, rng)))
-        stroke(ax, clip, theta0, r, sweep, 0.006 + 0.012 * r, pale, alpha=0.5)
-    # The glowing core: many faint discs, densest at the centre.
-    for rr in np.linspace(0.19, 0.02, 25):
-        ax.add_patch(Circle((0, 0), rr, color="#9ff8ff", alpha=0.07, lw=0))
-    ax.add_patch(Circle((0, 0), 0.075, color="white", lw=0))
+    ax.add_patch(Circle((0, 0), PAINT, color=NIGHT, lw=0))
+    # Outer arms, between r = 0.22 and the edge, outermost first. Four arms
+    # wind in, theta = phase + (0.5 - r) / WIND; each stroke starts near one.
+    for r0 in np.sort(rng.uniform(0.3, PAINT + 0.04, 60))[::-1]:
+        sweep = min(rng.uniform(1.2, 2.6), (r0 - 0.22) / WIND)
+        phase = np.pi / 2 * rng.integers(4) + np.deg2rad(20)
+        theta0 = phase + (0.5 - r0) / WIND + rng.normal(0, 0.25)
+        colour = arm_colour(theta0 + sweep / 3, rng)
+        width = rng.uniform(0.015, 0.05)
+        stroke(ax, clip, theta0, r0, sweep, width, colour, alpha=0.95)
+    # Pale streaks along them, the brush's texture.
+    for r0 in rng.uniform(0.27, PAINT, 40):
+        sweep = min(rng.uniform(0.8, 1.8), (r0 - 0.24) / WIND)
+        theta0 = rng.uniform(0, 2 * np.pi)
+        pale = tuple(0.5 * c + 0.5 for c in to_rgb(arm_colour(theta0, rng)))
+        stroke(ax, clip, theta0, r0, sweep, rng.uniform(0.004, 0.01), pale, 0.8)
+    # A few dim strokes in the dark lane.
+    for r0 in rng.uniform(0.2, 0.25, 8):
+        theta0, sweep = rng.uniform(0, 2 * np.pi), rng.uniform(1, 2.5)
+        stroke(ax, clip, theta0, r0, sweep, 0.012, "#1f3a95", 0.9, wind=0.01)
+    # The inner whirl: bands winding gently in, blue outside, cyan in, over a
+    # ground that fades out into the lane.
+    for rr, alpha in ((0.21, 0.35), (0.19, 0.6), (0.17, 1)):
+        ax.add_patch(Circle((0, 0), rr, color="#2b5fd0", alpha=alpha, lw=0))
+    for r0 in np.sort(rng.uniform(0.08, 0.21, 45))[::-1]:
+        theta0, sweep = rng.uniform(0, 2 * np.pi), rng.uniform(2, 5)
+        if r0 > 0.15:
+            colour = rng.choice(["#4a8ef0", "#1d3a9a", "#5ab0f5", "#2f62d8"])
+        else:
+            colour = rng.choice(["#6ff3fb", "#4fd6f5", "#9ff8ff", "#3fa8ea"])
+        width = rng.uniform(0.008, 0.022)
+        stroke(ax, clip, theta0, r0, sweep, width, colour, 0.95, wind=0.015)
+    # The glowing core: many faint discs, densest at the centre, cyan fading
+    # into white.
+    for rr in np.linspace(0.14, 0.08, 10):
+        ax.add_patch(Circle((0, 0), rr, color="#9ff8ff", alpha=0.15, lw=0))
+    for rr in np.linspace(0.085, 0.05, 8):
+        ax.add_patch(Circle((0, 0), rr, color="white", alpha=0.3, lw=0))
+    ax.add_patch(Circle((0, 0), 0.055, color="white", lw=0))
 
 
 def sparkle(ax: plt.Axes, xy: tuple[float, float], size: float, colour: str) -> None:

@@ -86,7 +86,14 @@ uv run --isolated --no-project \
 import importlib.util
 from importlib.metadata import entry_points
 
-import galax.coordinates, galax.dynamics, galax.potential  # noqa: F401
+import astropy.units as apyu
+import numpy as np
+
+# The three core portions must all import on a bare install; `galax.coordinates`
+# and `galax.dynamics` are imported for that alone.
+import galax.coordinates
+import galax.dynamics
+import galax.potential as gp
 
 # astropy interop is a REQUIRED dependency, so it must register with no extras.
 eps = {ep.name for ep in entry_points(group="galax.potential.interop")}
@@ -94,11 +101,6 @@ assert "astropy" in eps, f"astropy interop missing from a bare install: {eps}"
 
 # Registered is not the same as working. Evaluating a potential at an astropy
 # Quantity dispatches only if the plugin really loaded; without it plum raises.
-import astropy.units as apyu
-import numpy as np
-
-import galax.potential as gp
-
 pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
 pot.potential(np.array([8.0, 0.0, 0.0]) * apyu.kpc, 0 * apyu.Myr)
 
@@ -117,7 +119,11 @@ uv run --isolated --no-project \
   python - <<'PY'
 from importlib.metadata import entry_points
 
+import gala.potential as galap
+from gala.units import galactic
+
 import galax.interop.gala.optional_deps as od
+import galax.potential as gp
 
 eps = {ep.name for ep in entry_points(group="galax.potential.interop")}
 assert "gala" in eps, f"gala interop did not register: {eps}"
@@ -125,11 +131,6 @@ assert "galpy" not in eps, "galpy must not be pulled in by the gala package"
 assert isinstance(od.GSL_ENABLED, bool)
 
 # Registered is not the same as working: do a real gala -> galax conversion.
-import gala.potential as galap
-from gala.units import galactic
-
-import galax.potential as gp
-
 converted = gp.io.convert_potential(
     gp.io.GalaxLibrary, galap.NFWPotential(m=1e12, r_s=20, units=galactic)
 )

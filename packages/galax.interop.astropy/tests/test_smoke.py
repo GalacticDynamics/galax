@@ -3,22 +3,25 @@
 from importlib.metadata import entry_points
 
 import astropy.units as apyu
+import pytest
 
 import unxt as u
 
 import galax.potential as gp
 
 
-def test_declares_its_entry_points() -> None:
+@pytest.mark.parametrize(
+    ("group", "value"),
+    [
+        ("galax.coordinates.interop", "galax.interop.astropy.coordinates"),
+        ("galax.potential.interop", "galax.interop.astropy.potential"),
+        ("galax.dynamics.interop", "galax.interop.astropy.dynamics"),
+    ],
+)
+def test_declares_its_entry_points(group: str, value: str) -> None:
     """All three groups must name this distribution's modules."""
-    expected = {
-        "galax.coordinates.interop": "galax.interop.astropy.coordinates",
-        "galax.potential.interop": "galax.interop.astropy.potential",
-        "galax.dynamics.interop": "galax.interop.astropy.dynamics",
-    }
-    for group, value in expected.items():
-        eps = {ep.name: ep.value for ep in entry_points(group=group)}
-        assert eps.get("astropy") == value, f"{group} missing astropy entry point"
+    eps = {ep.name: ep.value for ep in entry_points(group=group)}
+    assert eps.get("astropy") == value, f"{group} missing astropy entry point"
 
 
 def test_registration_actually_happened() -> None:

@@ -18,21 +18,21 @@ GROUPS = (
 )
 
 
-def test_no_group_is_empty() -> None:
+@pytest.mark.parametrize("group", GROUPS)
+def test_no_group_is_empty(group: str) -> None:
     """Every group must be populated.
 
     If the root dropped its entry points and no package picked them up, the
     groups go quietly empty.
     """
-    for group in GROUPS:
-        assert list(entry_points(group=group)), f"{group} has no entry points"
+    assert list(entry_points(group=group)), f"{group} has no entry points"
 
 
-def test_every_entry_point_loads() -> None:
+@pytest.mark.parametrize("group", GROUPS)
+def test_every_entry_point_loads(group: str) -> None:
     """`load()` imports the target module; a typo'd path fails only here."""
-    for group in GROUPS:
-        for ep in entry_points(group=group):
-            assert ep.load() is not None, f"{group}:{ep.name} failed to load"
+    for ep in entry_points(group=group):
+        assert ep.load() is not None, f"{group}:{ep.name} failed to load"
 
 
 # Run in a fresh interpreter. `plum`'s default dispatcher does not warn on

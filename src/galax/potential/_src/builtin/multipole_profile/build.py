@@ -338,12 +338,8 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     cusp over ``[1e-4, 1e4]`` at ``l_max = 8`` produced 41472 non-finite
     values out of 41472 in float32, and none in float64.
 
-    Zeroing is not free, which is why it is no longer the primary guard: a
-    zeroed ``rho[0]`` also switches off the solve's analytic inner tail,
-    which is gated on that sample being non-negligible, so the loss is the
-    dropped band *plus* everything inside it. At :math:`\gamma = 2.9` that
-    was 11% of the monopole. It does not touch the requested bracket, where
-    every sample is representable by construction.
+    It never touches the requested bracket, where every sample is
+    representable by construction.
     """
     out: Float[Array, "..."] = jnp.where(jnp.isfinite(rho), rho, 0.0)
     return out

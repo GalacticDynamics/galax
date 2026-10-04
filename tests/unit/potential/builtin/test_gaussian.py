@@ -1,6 +1,7 @@
 from typing import Any, ClassVar, override
 
 import pytest
+from optional_deps import OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -13,7 +14,6 @@ from .test_common import (
     ParameterRSMixin,
     assert_gaussian_matches_galpy,
 )
-from galax.interop.optional_deps import OptDeps
 
 ###############################################################################
 

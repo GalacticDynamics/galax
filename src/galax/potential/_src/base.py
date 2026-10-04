@@ -344,9 +344,11 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
         --------
         .. invisible-code-block: python
 
-            from galax.interop.optional_deps import OptDeps
+            import importlib.util
 
-        .. skip: start if(not OptDeps.GALA.installed, reason="requires gala")
+            HAS_GALA = importlib.util.find_spec("gala") is not None
+
+        .. skip: start if(not HAS_GALA, reason="requires gala")
 
         >>> import galax.potential as gp
         >>> pot = gp.MilkyWayPotential()

@@ -139,6 +139,8 @@ cython_debug/
 
 # setuptools_scm
 src/*/_version.py
+# per-distribution packages under packages/ generate theirs inside their leaf
+packages/*/src/**/_version.py
 
 
 # ruff

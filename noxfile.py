@@ -73,6 +73,7 @@ def doctests(session: nox.Session) -> None:
         '--doctest-glob="*.md"',
         '--doctest-glob="*.py"',
         "docs",
+        "packages",
         "src/galax",
         *session.posargs,
     )

@@ -33,6 +33,8 @@ repos:
       - id: mixed-line-ending
       - id: name-tests-test
         args: ["--pytest-test-first"]
+        # Test-support modules (optional-dependency probes), not test files.
+        exclude: ^tests/_support/
       - id: no-commit-to-branch
         args: ["--branch", "main", "--pattern", "^versions/.*"]
         always_run: true

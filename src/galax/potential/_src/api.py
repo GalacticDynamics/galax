@@ -146,12 +146,6 @@ def potential(*args: Any, **kwargs: Any) -> Any:
     are interpreted like their jax'ed counterparts `~coordinax.AbstractPos3D`
     and `~unxt.Quantity`.
 
-    .. invisible-code-block: python
-
-        from galax.interop.optional_deps import OptDeps
-
-    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
-
     >>> import numpy as np
     >>> import astropy.coordinates as apyc
     >>> import astropy.units as apyu
@@ -185,8 +179,6 @@ def potential(*args: Any, **kwargs: Any) -> Any:
     >>> q = np.array([[1, 2, 3], [4, 5, 6]])
     >>> pot.potential(q, t)
     Array([-1.20227527, -0.5126519 ], dtype=float64)
-
-    .. skip: end
 
     """
     raise NotImplementedError  # pragma: no cover
@@ -314,12 +306,6 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
     are interpreted like their jax'ed counterparts `~coordinax.AbstractPos3D`
     and `~unxt.Quantity`.
 
-    .. invisible-code-block: python
-
-        from galax.interop.optional_deps import OptDeps
-
-    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
-
     >>> import astropy.units as apyu
     >>> import astropy.coordinates as apyc
 
@@ -356,8 +342,6 @@ def gradient(*args: Any, **kwargs: Any) -> Any:
     >>> print(pot.gradient(q, t))
     [[0.08587681 0.17175361 0.25763042]
      [0.02663127 0.03328908 0.0399469 ]]
-
-    .. skip: end
 
     """
     raise NotImplementedError  # pragma: no cover
@@ -442,12 +426,6 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     counterparts `~coordinax.AbstractPos3D` and
     `~unxt.Quantity`.
 
-    .. invisible-code-block: python
-
-        from galax.interop.optional_deps import OptDeps
-
-    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
-
     >>> import astropy.units as apyu
     >>> import astropy.coordinates as apyc
 
@@ -481,8 +459,6 @@ def laplacian(*args: Any, **kwargs: Any) -> u.Quantity["1/s^2"] | Array:
     >>> q = jnp.asarray([[1, 2, 3], [4, 5, 6]])
     >>> pot.laplacian(q, t).round(4)
     Array([0., 0.], dtype=float64)
-
-    .. skip: end
 
     """
     raise NotImplementedError  # pragma: no cover
@@ -567,12 +543,6 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
     counterparts `~coordinax.AbstractPos3D` and
     `~unxt.Quantity`.
 
-    .. invisible-code-block: python
-
-        from galax.interop.optional_deps import OptDeps
-
-    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
-
     >>> import numpy as np
     >>> import astropy.coordinates as apyc
     >>> import astropy.units as apyu
@@ -606,8 +576,6 @@ def density(*args: Any, **kwargs: Any) -> u.Quantity["mass density"] | Array:
     >>> q = np.array([[1, 2, 3], [4, 5, 6]])
     >>> pot.density(q, t)
     Array([0., 0.], dtype=float64)
-
-    .. skip: end
 
     """
     raise NotImplementedError  # pragma: no cover
@@ -724,12 +692,6 @@ def hessian(*args: Any, **kwargs: Any) -> Any:
     are interpreted like their jax'ed counterparts `~coordinax.AbstractPos3D`
     and `~unxt.Quantity`.
 
-    .. invisible-code-block: python
-
-        from galax.interop.optional_deps import OptDeps
-
-    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
-
     >>> import numpy as np
     >>> import astropy.coordinates as apyc
     >>> import astropy.units as apyu
@@ -777,8 +739,6 @@ def hessian(*args: Any, **kwargs: Any) -> Any:
            [[ 0.00250749, -0.00518791, -0.00622549],
             [-0.00518791,  0.00017293, -0.00778186],
             [-0.00622549, -0.00778186, -0.00268042]]], dtype=float64)
-
-    .. skip: end
 
     """
     raise NotImplementedError  # pragma: no cover
@@ -968,12 +928,6 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
     are interpreted like their jax'ed counterparts `~coordinax.AbstractPos3D`
     and `~unxt.Quantity`.
 
-    .. invisible-code-block: python
-
-        from galax.interop.optional_deps import OptDeps
-
-    .. skip: start if(not OptDeps.ASTROPY.installed, reason="requires Astropy")
-
     >>> import numpy as np
     >>> import astropy.coordinates as apyc
     >>> import astropy.units as apyu
@@ -1010,8 +964,6 @@ def tidal_tensor(*args: Any, **kwargs: Any) -> gt.BBtQuSz33 | gt.BBtSz33:
        [-0.05520652, -0.11041304, -0.07974275]], '1 / Myr2')
 
     Again, this can be batched.
-
-    .. skip: end
 
     """
     raise NotImplementedError  # pragma: no cover

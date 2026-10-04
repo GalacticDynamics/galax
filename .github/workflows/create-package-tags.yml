@@ -1,0 +1,78 @@
+name: Create Package Tags
+
+# A shared `vX.Y.Z` tag fans out to the per-package tags, so a coordinated
+# release stays one action while each package keeps its own tag and version.
+on:
+  push:
+    tags:
+      # Same form as the root distribution's describe `--match`; the regex in
+      # the job below is the real check.
+      - "v[0-9]*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FORCE_COLOR: 3
+
+jobs:
+  create-package-tags:
+    name: Create package-specific tags
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create and push tags
+      actions: write # dispatch the package CD workflows
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Create and push a tag per package
+        env:
+          # Not `${{ }}` inside `run` -- see the note in the per-package
+          # workflows. The tag name is attacker-supplied.
+          GITHUB_REF_VAR: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_VAR#refs/tags/}"
+          # Same version forms `validate_tag.py` accepts, anchored at both ends, so
+          # the fan-out cannot admit a version the direct push path forbids.
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+|\.post[0-9]+|\.dev[0-9]+)?$ ]]; then
+            echo "::error::$TAG is not a coordinator release tag"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          for pkg in packages/*/; do
+            name=$(basename "$pkg")              # galax.interop.gala
+            prefix="${name//./-}"                # galax-interop-gala
+            git tag "${prefix}-v${VERSION}" "$GITHUB_SHA"
+            git push origin "${prefix}-v${VERSION}"
+          done
+        shell: bash
+
+      # Tags pushed with GITHUB_TOKEN do not trigger `on: push: tags:`
+      # workflows, so each package's CD run has to be started explicitly.
+      # Deliberately simple: the per-package workflows only build, so there is
+      # no idempotency check against re-dispatching an already-running or
+      # already-published tag. Add one (as coordinax's dispatch-package-cd
+      # composite action does) when publishing is enabled.
+      - name: Dispatch each package's CD workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Through `env`, never `${{ }}` inside `run` -- see above.
+          GITHUB_REF_VAR: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_VAR#refs/tags/}"
+          VERSION="${TAG#v}"
+          for pkg in packages/*/; do
+            name=$(basename "$pkg")              # galax.interop.gala
+            prefix="${name//./-}"                # galax-interop-gala
+            gh workflow run "cd-${prefix}.yml" --ref "${prefix}-v${VERSION}"
+          done
+        shell: bash

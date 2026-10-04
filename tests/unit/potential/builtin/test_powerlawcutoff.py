@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from optional_deps import GSL_ENABLED, OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -11,7 +12,6 @@ from ..io.test_gala import parametrize_test_method_gala
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMTotMixin
-from galax.interop.optional_deps import GSL_ENABLED, OptDeps
 
 
 class AlphaParameterMixin(ParameterFieldMixin):

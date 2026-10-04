@@ -5,13 +5,13 @@ from typing import Any, override
 
 import equinox as eqx
 import pytest
-from optional_deps import GSL_ENABLED, OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
+from ..optional_deps import GSL_ENABLED, OptDeps
 from ..test_core import AbstractSinglePotential_Test
 from .test_abstractmultipole import (
     MultipoleTestMixin,

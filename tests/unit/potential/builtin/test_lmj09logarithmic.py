@@ -1,13 +1,13 @@
 from typing import Any
 
 import pytest
-from optional_deps import OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
+from ..optional_deps import OptDeps
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import (

@@ -1,13 +1,13 @@
 """Tests for the `galax.potential.LM10Potential` class."""
 
 import pytest
-from optional_deps import OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
+from ..optional_deps import OptDeps
 from .test_composite import AbstractSpecialCompositePotential_Test
 
 

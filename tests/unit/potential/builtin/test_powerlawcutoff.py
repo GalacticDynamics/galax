@@ -1,7 +1,6 @@
 from typing import Any
 
 import pytest
-from optional_deps import GSL_ENABLED, OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -9,6 +8,7 @@ import unxt as u
 import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..io.test_gala import parametrize_test_method_gala
+from ..optional_deps import GSL_ENABLED, OptDeps
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMTotMixin

@@ -3,7 +3,6 @@
 from typing import Any, override
 
 import pytest
-from optional_deps import OptDeps
 from plum import convert
 
 import quaxed.numpy as jnp
@@ -11,6 +10,7 @@ import unxt as u
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
+from ..optional_deps import OptDeps
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from galax.potential._src.base import AbstractPotential

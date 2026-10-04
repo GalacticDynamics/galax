@@ -1,4 +1,4 @@
-"""Optional-dependency probes for the test suite.
+"""Optional-dependency probes for the `galax.potential` tests.
 
 Deliberately independent of `galax.interop.*`: those are optional
 distributions, so importing one to decide whether to skip a test makes the
@@ -13,12 +13,10 @@ from optional_dependencies.utils import chain_checks, get_version, is_installed
 
 
 class OptDeps(OptionalDependencyEnum):  # type: ignore[misc]
-    """Optional dependencies for the galax test suite."""
+    """Libraries the `galax.potential` tests compare against."""
 
-    ASTROPY = auto()
     GALA = chain_checks(get_version("gala"), is_installed("gala.dynamics"))
     GALPY = auto()
-    MATPLOTLIB = auto()
 
 
 # gala-specific, and needs gala itself: degrade to `False` when it is absent,

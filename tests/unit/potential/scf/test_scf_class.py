@@ -4,7 +4,6 @@ from jaxtyping import Array, Shaped
 from typing import Any, override
 
 import pytest
-from optional_deps import GSL_ENABLED, OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -12,6 +11,7 @@ import unxt as u
 import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..builtin.test_common import ParameterMTotMixin, ParameterRSMixin
+from ..optional_deps import GSL_ENABLED, OptDeps
 from ..test_core import AbstractSinglePotential_Test
 
 

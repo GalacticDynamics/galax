@@ -122,9 +122,9 @@ docs = [
 test-all = [{ include-group = "test" }, { include-group = "test-mpl" }]
 test = [
   # Test-only: `src/` does not import it. Its consumers are `conftest.py` and
-  # `tests/_support/optional_deps.py`, which probe the wrapped libraries to
-  # decide what to collect and skip. `galax.interop.gala` declares it itself,
-  # being the one shipped user.
+  # `tests/unit/potential/optional_deps.py`, which probe the wrapped libraries
+  # to decide what to collect and skip. `galax.interop.gala` declares it
+  # itself, being the one shipped user.
   "optional-dependencies>=0.4.0",
   "nox>=2024.10.9",
   "prek>=0.5.3",
@@ -328,19 +328,6 @@ markers = [
 ]
 minversion = "8.0"
 testpaths = ["docs", "packages", "src/galax", "tests/"]
-# Makes `tests/_support/optional_deps.py` importable as `optional_deps` under
-# `--import-mode=importlib`, which adds nothing to `sys.path` itself.
-#
-# Deliberately a dedicated directory holding only that module, not `tests`:
-# pointing at `tests` would put six generic names on `sys.path` (`benchmark`,
-# `functional`, `integration`, `smoke`, `unit`, `optional_deps`), any of which
-# could shadow a real package. Do not "simplify" this to `["tests"]`.
-#
-# Nor `tests/__init__.py` for a `tests.optional_deps` prefix: that changes every
-# test module's dotted name, and pytest-mpl's hash keys in
-# `packages/galax.interop.matplotlib/tests/integration/hashes.json` encode
-# exactly that name (`integration.test_potential....`).
-pythonpath = ["tests/_support"]
 xfail_strict = true
 env = ["JAX_ENABLE_X64=True"]
 

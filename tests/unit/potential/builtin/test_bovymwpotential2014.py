@@ -1,7 +1,6 @@
 """Unit tests for the `galax.potential.BovyMWPotential2014` class."""
 
 import pytest
-from optional_deps import GSL_ENABLED, OptDeps
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -9,6 +8,7 @@ import unxt as u
 import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..io.test_gala import parametrize_test_method_gala
+from ..optional_deps import GSL_ENABLED, OptDeps
 from .test_composite import AbstractSpecialCompositePotential_Test
 
 

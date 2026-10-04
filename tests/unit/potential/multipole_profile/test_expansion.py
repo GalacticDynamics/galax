@@ -10,10 +10,7 @@ from galax.potential._src.builtin.multipole_profile.expansion import (
     expansion_density,
     expansion_potential,
 )
-from galax.potential._src.harmonic import (
-    default_angular_resolution,
-    lm_keys,
-)
+from galax.potential._src.harmonic import default_angular_resolution, lm_keys
 
 
 def _hernquist_params(n_r: int = 256):

@@ -348,6 +348,8 @@ def make_mw_lmc_potential(
         'mw_acc': UniformAcceleration( ... )})
 
     """
+    # Deferred: `galax.dynamics` imports this `examples` subpackage, so a
+    # module-scope import here would be a cycle.
     from galax.dynamics import integrate_field
 
     # Check that the units of the potentials match

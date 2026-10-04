@@ -377,9 +377,7 @@ def integrate_orbit(
 
     """
     # Note: this is needed to prevent a circular import
-    from galax.dynamics._src.orbit.field_hamiltonian import (
-        HamiltonianField,
-    )
+    from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
 
     field = pot if isinstance(pot, AbstractOrbitField) else HamiltonianField(pot)
     terms = field.terms(solver)

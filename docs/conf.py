@@ -25,9 +25,13 @@ exclude_patterns = [
     ".DS_Store",
     ".env",
     ".venv",
+    "**/make_logo.py",  # makes _static/favicon.svg; a tool, not part of the site
 ]
 
 html_theme = "furo"
+html_static_path = ["_static"]
+html_favicon = "_static/favicon.svg"  # made by _static/make_logo.py
+html_logo = "_static/favicon.svg"
 
 myst_enable_extensions = [
     "colon_fence",

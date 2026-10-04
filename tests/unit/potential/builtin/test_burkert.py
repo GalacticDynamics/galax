@@ -1,7 +1,6 @@
 from typing import Any, ClassVar
 
 import pytest
-from packaging.version import Version
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -21,9 +20,7 @@ class TestBurkertPotential(
 ):
     """Test the `galax.potential.BurkertPotential` class."""
 
-    HAS_GALA_COUNTERPART: ClassVar[bool] = OptDeps.GALA.installed and (
-        Version("1.8.2") <= OptDeps.GALA
-    )
+    HAS_GALA_COUNTERPART: ClassVar[bool] = OptDeps.GALA.installed
 
     @pytest.fixture(scope="class")
     def pot_cls(self) -> type[gp.BurkertPotential]:

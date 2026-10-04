@@ -479,58 +479,6 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         """
         return 0.5 * self.p.norm(self.q) ** 2
 
-    # Deliberately not `jax.jit`-ed: the body defers `from galax.dynamics
-    # import ...` (`galax.coordinates` cannot import it at module scope without
-    # a cycle), and under `jit` that import runs inside a live trace. Any
-    # module-level state built during it then captures a tracer -- this poisoned
-    # `galax.potential`'s `default_constants` and made every later potential
-    # raise `UnexpectedTracerError`. Every `specific_angular_momentum`
-    # implementation is already jitted, so the outer jit bought nothing.
-    def angular_momentum(self) -> cx.vecs.Cartesian3D:
-        r"""Compute the angular momentum.
-
-        .. math::
-
-            \boldsymbol{{L}} = \boldsymbol{{q}} \times \boldsymbol{{p}}
-
-        See :ref:`shape-conventions` for more information about the shapes of
-        input and output objects.
-
-        Returns
-        -------
-        L : Array[float, (*batch,3)]
-            Array of angular momentum vectors in Cartesian coordinates.
-
-        Examples
-        --------
-        We assume the following imports
-
-        >>> import unxt as u
-        >>> import galax.coordinates as gc
-
-        We can compute the angular momentum of a single object
-
-        >>> q = u.Q([1., 0, 0], "au")
-        >>> p = u.Q([0, 2., 0], "au/yr")
-        >>> t = u.Q(0, "yr")
-
-        >>> wt = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
-        >>> h = wt.angular_momentum()
-        >>> print(h)
-        <Cartesian3D: (x, y, z) [AU2 / yr]
-            [0. 0. 2.]>
-
-        >>> w = gc.PhaseSpacePosition(q=q, p=p)
-        >>> h = w.angular_momentum()
-        >>> print(h)
-        <Cartesian3D: (x, y, z) [AU2 / yr]
-            [0. 0. 2.]>
-
-        """
-        from galax.dynamics import specific_angular_momentum
-
-        return specific_angular_momentum(self)
-
 
 #####################################################################
 

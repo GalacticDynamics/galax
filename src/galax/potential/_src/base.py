@@ -7,7 +7,7 @@ from dataclasses import KW_ONLY, fields, replace
 from collections.abc import Mapping
 from jaxtyping import Array
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
+from typing import Any, ClassVar
 
 import equinox as eqx
 import jax
@@ -27,11 +27,9 @@ from .plot import PlotPotentialDescriptor
 from .symmetry import Symmetry
 from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.attr import ParametersAttribute
+from galax.potential._src.params.field import ParameterField
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.potential.dataclasses import ModuleMeta
-
-if TYPE_CHECKING:
-    import galax.dynamics  # noqa: ICN001
 
 default_constants = ImmutableMap({"G": u.Q.from_(_CONST_G)})
 DimL = u.dimension("length")
@@ -95,8 +93,6 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
     # Parsing
 
     def _apply_unitsystem(self) -> None:
-        from galax.potential._src.params.field import ParameterField
-
         usys = self.units
 
         # Handle unit conversion for all fields, e.g. the parameters.
@@ -331,157 +327,6 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
 
         """
         return api.d2potential_dr2(self, *args, **kwargs)
-
-    # =========================================================================
-    # Integrating orbits
-
-    def compute_orbit(
-        self,
-        w0: Any,
-        t: Any,
-        *,
-        solver: "galax.dynamics.OrbitSolver | None" = None,
-        dense: Literal[True, False] = False,
-    ) -> "galax.dynamics.Orbit":
-        """Compute an orbit in a potential.
-
-        :class:`~galax.coordinates.PhaseSpaceCoordinate` includes a time in
-        addition to the position (and velocity) information, enabling the orbit
-        to be evaluated over a time range that is different from the initial
-        time of the position. See the Examples section of
-        :func:`~galax.dynamics.compute_orbit` for more details.
-
-        Parameters
-        ----------
-        w0 : Any
-            The phase-space coordinate from which to integrate. Integration
-            includes the time of the initial position, so be sure to set the
-            initial time to the desired value. See the `t` argument for more
-            details.
-
-            - :class:`~galax.dynamics.Coordinate`[float, (*batch,)]:
-                The full phase-space position, including position, velocity, and
-                time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
-                integrated from ``t[0]`` to ``t[1]``, returning the orbit
-                calculated at `t`.
-            - :class:`~galax.dynamics.PhaseSpacePosition`[float, (*batch,)]:
-                The full phase-space position and velocity, without time. `w0`
-                will be integrated from ``t[0]`` to ``t[1]``, returning the
-                orbit calculated at all `t`.
-            - Array[float, (*batch, 6)]:
-                A :class:`~galax.coordinates.PhaseSpacePosition` will be
-                constructed, interpreting the array as the  'q', 'p' (each
-                Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
-
-        t: Quantity[float, (time,)]
-            Array of times at which to compute the orbit. The first element
-            should be the initial time and the last element should be the final
-            time and the array should be monotonically moving from the first to
-            final time.  See the Examples section for options when constructing
-            this argument.
-
-            .. note::
-
-                This is NOT the timesteps to use for integration, which are
-                controlled by the `integrator`; the default integrator
-                :class:`~galax.integrator.Integrator` uses adaptive timesteps.
-
-        solver : :class:`~galax.dynamics.OrbitSolver`, keyword-only
-            The solver to use.  If `None`, the default solver
-            :class:`~galax.dynamics.OrbitSolver` is used.
-
-        dense: bool, optional keyword-only
-            If `True`, return a dense (interpolated) orbit.  If `False`, return
-            the orbit at the requested times.  Default is `False`.
-
-        See Also
-        --------
-        galax.dynamics.compute_orbit
-            The function for which this method is a wrapper. It has more details
-            and examples.
-
-        """
-        from galax.dynamics import compute_orbit
-
-        return cast(
-            "galax.dynamics.Orbit",
-            compute_orbit(self, w0, t, solver=solver, dense=dense),
-        )
-
-    # TODO: deprecate
-    def evaluate_orbit(
-        self,
-        w0: Any,
-        t: Any,
-        *,
-        integrator: "galax.dynamics.integrate.Integrator | None" = None,
-        dense: Literal[True, False] = False,
-    ) -> "galax.dynamics.Orbit":
-        """Compute an orbit in a potential.
-
-        :class:`~galax.coordinates.PhaseSpacePosition` includes a time in
-        addition to the position (and velocity) information, enabling the orbit
-        to be evaluated over a time range that is different from the initial
-        time of the position. See the Examples section of
-        :func:`~galax.dynamics.evaluate_orbit` for more details.
-
-        Parameters
-        ----------
-        w0 : Any
-            The phase-space position (includes velocity and time) from which to
-            integrate. Integration includes the time of the initial position, so
-            be sure to set the initial time to the desired value. See the `t`
-            argument for more details.
-
-            - :class:`~galax.dynamics.PhaseSpacePosition`[float, (*batch,)]:
-                The full phase-space position, including position, velocity, and
-                time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
-                integrated from ``t[0]`` to ``t[1]``, returning the orbit
-                calculated at `t`. If ``w0.t`` is `None`, the initial time is
-                assumed to be ``t[0]``.
-            - Array[float, (*batch, 6)]:
-                A :class:`~galax.coordinates.PhaseSpacePosition` will be
-                constructed, interpreting the array as the  'q', 'p' (each
-                Array[float, (*batch, 3)]) arguments, with 't' set to ``t[0]``.
-        t: Quantity[float, (time,)]
-            Array of times at which to compute the orbit. The first element
-            should be the initial time and the last element should be the final
-            time and the array should be monotonically moving from the first to
-            final time.  See the Examples section for options when constructing
-            this argument.
-
-            .. note::
-
-                This is NOT the timesteps to use for integration, which are
-                controlled by the `integrator`; the default integrator
-                :class:`~galax.integrator.Integrator` uses adaptive timesteps.
-
-        integrator : :class:`~galax.integrate.Integrator`, keyword-only
-            Integrator to use.  If `None`, the default integrator
-            :class:`~galax.integrator.Integrator` is used.
-
-        dense: bool, optional keyword-only
-            If `True`, return a dense (interpolated) orbit.  If `False`, return
-            the orbit at the requested times.  Default is `False`.
-
-
-        Returns
-        -------
-        orbit : :class:`~galax.dynamics.Orbit`
-            The integrated orbit evaluated at the given times.
-
-        See Also
-        --------
-        galax.dynamics.evaluate_orbit
-            The function for which this method is a wrapper. It has more details
-            and examples.
-        """
-        from galax.dynamics import evaluate_orbit
-
-        return cast(
-            "galax.dynamics.Orbit",
-            evaluate_orbit(self, w0, t, integrator=integrator, dense=dense),
-        )
 
     # =========================================================================
     # Interoperability

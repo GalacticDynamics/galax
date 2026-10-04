@@ -86,6 +86,8 @@ class GalaIOMixin:
 @pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
 def test_offset_hernquist() -> None:
     """Test gala potential with an offset Hernquist potential."""
+    # Deferred: gala is optional, and this module is collected by the CI job
+    # that installs no extras.
     from gala.potential import HernquistPotential as GalaHernquistPotential
     from gala.units import galactic
 

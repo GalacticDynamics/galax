@@ -14,6 +14,7 @@ import unxt as u
 
 import galax.coordinates as gc
 import galax.coordinates.custom_types as gt
+import galax.dynamics as gd
 
 
 def getkeys(
@@ -183,7 +184,7 @@ class AbstractPhaseSpaceObject_Test[CT: gc.AbstractPhaseSpaceObject](metaclass=A
         # TODO: more tests
 
     def test_angular_momentum(self, w: CT) -> None:
-        """Test method ``angular_momentum``."""
-        h = w.angular_momentum()
+        """Test `galax.dynamics.specific_angular_momentum` on a phase-space object."""
+        h = gd.specific_angular_momentum(w)
         assert h.shape == w.q.shape
         assert isinstance(h, cx.vecs.Cartesian3D)

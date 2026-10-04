@@ -260,7 +260,9 @@ def galax_to_gala(pot: gp.CompositePotential, /) -> galap.CompositePotential:
 # Builtin potentials
 
 
-if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
+# The `gala>=1.10` floor (pyproject.toml) is above the 1.8.2 at which
+# `BurkertPotential` arrived, so only installation is in question here.
+if OptDeps.GALA.installed:
 
     @dispatch
     def gala_to_galax(
@@ -276,11 +278,10 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 
         .. invisible-code-block: python
 
-            from packaging.version import Version
             from galax.interop.optional_deps import OptDeps
-            skip = not OptDeps.GALA.installed or OptDeps.GALA < Version("1.8.2")
+            skip = not OptDeps.GALA.installed
 
-        .. skip: start if(skip, reason="Requires Gala v1.8.2+")
+        .. skip: start if(skip, reason="requires gala")
 
         >>> pot = galap.BurkertPotential(rho=4, r0=20, units=galactic)
         >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
@@ -311,11 +312,10 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
 
         .. invisible-code-block: python
 
-            from packaging.version import Version
             from galax.interop.optional_deps import OptDeps
-            skip = not OptDeps.GALA.installed or OptDeps.GALA < Version("1.8.2")
+            skip = not OptDeps.GALA.installed
 
-        .. skip: start if(skip, reason="Requires Gala v1.8.2+")
+        .. skip: start if(skip, reason="requires gala")
 
         >>> pot = gp.BurkertPotential(m=1e11, r_s=20, units="galactic")
         >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)

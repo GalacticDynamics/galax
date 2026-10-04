@@ -25,6 +25,7 @@ exclude_patterns = [
     ".DS_Store",
     ".env",
     ".venv",
+    "**/make_logo.py",  # makes _static/favicon.svg; a tool, not part of the site
 ]
 
 html_theme = "furo"

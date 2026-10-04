@@ -228,6 +228,8 @@ class NFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         """
         usys = u.unitsystem(units)
         if rho_c is None:
+            # Deferred: `astropy.cosmology` costs ~0.7s to import, and only
+            # this one branch needs it.
             from astropy.cosmology import default_cosmology
 
             cosmo = default_cosmology.get()

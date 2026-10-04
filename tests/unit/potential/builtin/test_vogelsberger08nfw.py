@@ -11,11 +11,7 @@ import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import (
-    ParameterMMixin,
-    ParameterRSMixin,
-    ParameterShapeQ1Mixin,
-)
+from .test_common import ParameterMMixin, ParameterRSMixin, ParameterShapeQ1Mixin
 
 
 class ShapeTransitionRadiusParameterMixin(ParameterFieldMixin):

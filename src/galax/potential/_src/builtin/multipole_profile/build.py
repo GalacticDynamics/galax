@@ -38,10 +38,7 @@ from galax.potential._src.harmonic import (
     fit_log_spline,
     harmonic_coeffs,
 )
-from galax.potential._src.harmonic.poisson import (
-    gl_log_nodes,
-    solve_poisson_profiles,
-)
+from galax.potential._src.harmonic.poisson import gl_log_nodes, solve_poisson_profiles
 
 
 def _log_floor(x: Float[Array, "..."], /) -> float:

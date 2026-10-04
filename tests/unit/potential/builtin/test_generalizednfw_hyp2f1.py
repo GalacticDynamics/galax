@@ -27,10 +27,7 @@ import quaxed.numpy as jnp
 
 import galax.potential as gp
 from galax.potential._src.builtin.nfw.generalized import mass_enclosed
-from galax.potential._src.builtin.nfw.hyp2f1 import (
-    Bz_from_hyp2f1,
-    _Bz_from_hyp2f1_impl,
-)
+from galax.potential._src.builtin.nfw.hyp2f1 import Bz_from_hyp2f1, _Bz_from_hyp2f1_impl
 
 GAMMAS = [0.0, 0.5, 1.0, 1.5, 1.99]
 LARGE_RADII = [9.0, 9.1, 20.0, 100.0, 1000.0]  # z = r/(r+r_s) >= 0.9

@@ -17,10 +17,7 @@ from galax.potential._src.builtin.multipole_profile.core import (
     AbstractMultipoleProfilePotential,
     MultipoleProfilePotential,
 )
-from galax.potential._src.harmonic import (
-    default_angular_resolution,
-    lm_keys,
-)
+from galax.potential._src.harmonic import default_angular_resolution, lm_keys
 
 G_GALACTIC = float(default_constants["G"].decompose(u.unitsystem("galactic")).value)
 """G in kpc^3 / (Msun Myr^2), from the same constant the potentials use.

@@ -127,6 +127,7 @@ class AbstractCompositePotential(AbstractPotential):
     # Extending Mapping
 
     def __or__(self, other: Any) -> "galax.potential.CompositePotential":
+        # Deferred: `composite` imports this module.
         from .composite import CompositePotential
 
         if not isinstance(other, AbstractPotential):
@@ -142,6 +143,7 @@ class AbstractCompositePotential(AbstractPotential):
         )
 
     def __ror__(self, other: Any) -> "galax.potential.CompositePotential":
+        # Deferred: `composite` imports this module.
         from .composite import CompositePotential
 
         if not isinstance(other, AbstractPotential):

@@ -52,7 +52,7 @@ def test_build_facts_are_usable() -> None:
 
     `gala>=1.10` is required here, so whether gala is installed is not in
     question. Whether it was *built against GSL* is, and so is its exact
-    version -- several conversions are gated on 1.8.2 and 1.11.
+    version -- the MilkyWayPotential conversion is gated on 1.11.
     """
     assert isinstance(GSL_ENABLED, bool)
     assert Version("1.10") <= GALA_VERSION

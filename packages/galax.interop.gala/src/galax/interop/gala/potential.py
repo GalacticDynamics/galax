@@ -292,7 +292,8 @@ def gala_to_galax(
     )
     return _apply_xop(_get_xop(gala), pot)
 
-@dispatch  # type: ignore[misc]
+
+@dispatch
 def galax_to_gala(pot: gp.BurkertPotential, /) -> galap.BurkertPotential:
     """Convert a `galax.potential.BurkertPotential` to a `gala.potential.BurkertPotential`.
 
@@ -313,6 +314,7 @@ def galax_to_gala(pot: gp.BurkertPotential, /) -> galap.BurkertPotential:
         r0=convert(pot.r_s(0), APYQuantity),
         units=_galax_to_gala_units(pot.units),
     )
+
 
 # ---------------------------
 # Harmonic oscillator potentials

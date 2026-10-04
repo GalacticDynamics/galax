@@ -9,7 +9,7 @@ still are:
   conversions exist only in the GSL build. No version or dependency pin can
   express this; it has to be read from `gala._cconfig`, which some builds omit.
 - **`GALA_VERSION`** -- a few conversions changed shape across gala releases
-  and are gated on 1.8.2 and 1.11.
+  and are gated on 1.11.
 
 Neither needs an optional-dependency enum, which is why this distribution does
 not depend on `optional-dependencies`.

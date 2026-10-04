@@ -19,7 +19,7 @@ GROUPS = (
 
 
 def test_no_group_is_empty() -> None:
-    """After the split, every group must still be populated.
+    """Every group must be populated.
 
     If the root dropped its entry points and no package picked them up, the
     groups go quietly empty.
@@ -37,8 +37,8 @@ def test_every_entry_point_loads() -> None:
 
 # Run in a fresh interpreter. `plum`'s default dispatcher does not warn on
 # redefinition (`warn_redefinition=False`), so a second plugin claiming a
-# signature silently *replaces* the first -- the worst kind of collision. Turn
-# the warning on and make it an error, but only for galax-sourced methods:
+# signature silently *replaces* the first. Turn the warning on and make it an
+# error, but only for galax-sourced methods:
 # third-party libraries (e.g. unxt) legitimately redefine each other's.
 # Registration is lazy, so every function's `.methods` is read to force it.
 _FRESH_PROCESS_PROBE = f"""

@@ -262,8 +262,7 @@ def galax_to_gala(pot: gp.CompositePotential, /) -> galap.CompositePotential:
 
 # `gala` is a required dependency of this distribution, and the root suite
 # collect-ignores this tree when the distribution is absent, so these
-# conversions register unconditionally. The `gala>=1.10` floor is also
-# above the 1.8.2 at which `BurkertPotential` arrived.
+# conversions register unconditionally.
 @dispatch
 def gala_to_galax(
     gala: galap.BurkertPotential, /

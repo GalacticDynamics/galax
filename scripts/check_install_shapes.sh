@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Verify the two install shapes the split must get right:
-#   1. a bare `galax` keeps working exactly as before (criterion 5)
-#   2. a single interop package installs on its own (criterion 8, driver 1)
+# Verify the two install shapes that matter:
+#   1. a bare `pip install galax` gives a working core plus the astropy interop
+#   2. a single interop package installs on its own
 #
 # Both need a clean environment: the dev venv has every extra installed, so it
 # cannot tell a required dependency from an optional one.
@@ -36,7 +36,7 @@ trap restore_version_files EXIT
 # install by name (so we cannot test the wrong artifact), the `>0.0.3` pins between
 # distributions resolve from the local build, and no `--prerelease=allow` is
 # needed -- which would also let the resolver pick pre-release *third-party*
-# versions (it picked beartype 0.23.0rc2, which breaks `import galax`).
+# versions, and a pre-release dependency can break `import galax` outright.
 export SETUPTOOLS_SCM_PRETEND_VERSION=999.0.0
 
 echo "== building wheels and sdists =="

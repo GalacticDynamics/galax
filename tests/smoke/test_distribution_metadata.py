@@ -1,4 +1,7 @@
-"""`pip install galax` must keep meaning what it meant before the split."""
+"""`pip install galax` installs the core portions and the astropy interop.
+
+gala, galpy and matplotlib stay optional, behind extras.
+"""
 
 from importlib.metadata import metadata, requires
 
@@ -17,8 +20,8 @@ def _required_names() -> set[str]:
 def test_astropy_interop_is_required_not_an_extra() -> None:
     """Demoting it would silently stop astropy conversions registering.
 
-    Review Focus 1: a missing entry point produces no error at all, so this
-    must be pinned by metadata as well as by behaviour.
+    A missing entry point produces no error at all, so this must be pinned by
+    metadata as well as by behaviour.
     """
     assert "galax-interop-astropy" in _required_names()
 
@@ -27,7 +30,7 @@ def test_astropy_interop_is_required_not_an_extra() -> None:
     "name", ["galax-interop-gala", "galax-interop-galpy", "galax-interop-matplotlib"]
 )
 def test_heavy_interop_stays_optional(name: str) -> None:
-    """gala, galpy and matplotlib were extras before the split and stay extras."""
+    """gala, galpy and matplotlib are extras, not required dependencies."""
     assert name not in _required_names()
 
 
@@ -43,7 +46,7 @@ def test_heavy_interop_stays_optional(name: str) -> None:
         "plot-matplotlib",
     ],
 )
-def test_every_pre_split_extra_still_exists(extra: str) -> None:
+def test_every_published_extra_still_exists(extra: str) -> None:
     """Removing an extra breaks `pip install galax[...]` for existing users."""
     provided = metadata("galax").get_all("Provides-Extra") or []
     assert extra in provided

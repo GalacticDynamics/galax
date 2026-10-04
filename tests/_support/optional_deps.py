@@ -3,8 +3,7 @@
 Deliberately independent of `galax.interop.*`: those are optional
 distributions, so importing one to decide whether to skip a test makes the
 test suite fail to collect when it is absent. Probe the foreign libraries
-directly, as the pre-split `galax.interop.optional_deps` effectively did by
-shipping inside the root wheel.
+directly instead.
 """
 
 __all__ = ["GSL_ENABLED", "OptDeps"]

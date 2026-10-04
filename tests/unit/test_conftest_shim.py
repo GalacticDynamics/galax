@@ -46,7 +46,7 @@ def test_resolves_against_every_source_root(
 ) -> None:
     # `_SRC_ROOTS` globs `packages/*/src` at import, which only finds
     # directories that exist. Inject the roots the glob would find, so these
-    # cases hold before (and independently of) any distribution being created.
+    # cases hold independently of which distributions are present.
     roots = tuple(
         ROOT / "packages" / d / "src"
         for d in ("galax.interop.gala", "galax.interop.astropy")

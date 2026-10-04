@@ -93,7 +93,7 @@ can signpost them:
   ```
 
   `GSL_ENABLED` because gala builds optionally against GSL, and `GALA_VERSION`
-  because some conversions are gated on gala 1.8.2 and 1.11. There is **no**
+  because some conversions are gated on gala 1.11. There is **no**
   `galax.interop.{astropy,galpy,matplotlib}.optional_deps` -- importing one
   raises `ModuleNotFoundError`. Code that only asked whether the library was
   installed can drop the check entirely.

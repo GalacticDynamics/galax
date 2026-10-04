@@ -72,8 +72,6 @@ search_parent_directories = true
 
 # The version-file hook is safe here, unlike at the repo root: this path is a
 # leaf owned outright by this distribution, not a shared namespace directory.
-# (Set through the hook rather than `raw-options.version_file`, which
-# setuptools-scm rejects without a `relative_to`.)
 [tool.hatch.build.hooks.vcs]
 version-file = "src/galax/interop/astropy/_version.py"
 

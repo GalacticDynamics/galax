@@ -1,9 +1,8 @@
 """Portions must be usable without importing the others first.
 
-`galax` is a PEP 420 namespace package, so `import galax.coordinates` no longer
-drags in `galax.potential` and `galax.dynamics` the way the old
-`galax/__init__.py` did. That makes lazy, out-of-order portion imports ordinary
-user code, and it must stay safe.
+`galax` is a PEP 420 namespace package, so `import galax.coordinates` does not
+drag in `galax.potential` or `galax.dynamics`. Lazy, out-of-order portion
+imports are therefore ordinary user code, and must stay safe.
 
 These run in a subprocess: the import order *is* the thing under test, and the
 pytest session has already imported everything.

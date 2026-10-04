@@ -71,8 +71,8 @@ interop-all = [
   "galax[interop-gala]",
   "galax[interop-galpy]",
 ]
-# Redundant since the split: `galax.interop.astropy` is a required dependency.
-# Kept as a no-op alias so `galax[interop-astropy]` does not break.
+# `galax.interop.astropy` is a required dependency, so this extra adds
+# nothing. Kept as a no-op alias so `galax[interop-astropy]` does not break.
 interop-astropy = ["galax.interop.astropy>0.0.3"]
 interop-gala = ["galax.interop.gala>0.0.3"]
 interop-galpy = ["galax.interop.galpy>0.0.3"]
@@ -121,10 +121,10 @@ docs = [
 # Test dependencies
 test-all = [{ include-group = "test" }, { include-group = "test-mpl" }]
 test = [
-  # Test-only since the interop split: `src/` does not import it. Its
-  # consumers are `conftest.py` and `tests/_support/optional_deps.py`,
-  # which probe the wrapped libraries to decide what to collect and skip.
-  # `galax.interop.gala` declares it itself, being the one shipped user.
+  # Test-only: `src/` does not import it. Its consumers are `conftest.py` and
+  # `tests/_support/optional_deps.py`, which probe the wrapped libraries to
+  # decide what to collect and skip. `galax.interop.gala` declares it itself,
+  # being the one shipped user.
   "optional-dependencies>=0.4.0",
   "nox>=2024.10.9",
   "prek>=0.5.3",
@@ -333,11 +333,8 @@ testpaths = ["docs", "packages", "src/galax", "tests/"]
 #
 # Deliberately a dedicated directory holding only that module, not `tests`:
 # pointing at `tests` would put six generic names on `sys.path` (`benchmark`,
-# `functional`, `integration`, `smoke`, `unit`, `optional_deps`), and this repo
-# has already been bitten by exactly that -- `src/galax/interop/` landing on
-# `sys.path` made `from galpy.util import conversion` resolve `galpy` to the
-# sibling `galax/interop/galpy/` package and fail at collection. Do not
-# "simplify" this to `["tests"]`.
+# `functional`, `integration`, `smoke`, `unit`, `optional_deps`), any of which
+# could shadow a real package. Do not "simplify" this to `["tests"]`.
 #
 # Nor `tests/__init__.py` for a `tests.optional_deps` prefix: that changes every
 # test module's dotted name, and pytest-mpl's hash keys in

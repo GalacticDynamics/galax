@@ -1,14 +1,11 @@
 """Only the gala interop distribution needs an optional-dependency module.
 
-The shared four-member `galax.interop.optional_deps.OptDeps` could not survive
-the split: `galax/interop/` is a namespace directory shared by five
-distributions, and none of them may own a module sitting loose in it.
+Every interop distribution *requires* the library it wraps, so an "is it
+installed" probe inside one is a constant `True`. Only gala's module answers
+something a dependency pin cannot -- the GSL build flag and the exact version.
 
-Dissolving it per library initially produced four modules, one each. Three were
-dead on arrival: every interop distribution *requires* the library it wraps, so
-`OptDeps.<LIB>.installed` is a constant `True` inside it, and astropy's, galpy's
-and matplotlib's modules had no consumer but their own tests. Only gala's does
-real work -- version gating and `GSL_ENABLED` -- so only gala's remains.
+`galax/interop/` is a namespace directory shared by five distributions, so none
+of them may own a module sitting loose in it.
 """
 
 import importlib
@@ -28,8 +25,7 @@ def test_gala_reports_the_two_facts_a_pin_cannot_express() -> None:
     `packages/galax.interop.gala/*` when the distribution is absent, but not
     this. The `checks` CI job installs only the required astropy member, so
     the import has to be skippable. A function-scope `from ... import` would
-    collect cleanly and then fail at run time, which is exactly how this was
-    missed once already.
+    collect cleanly and then fail at run time.
     """
     optional_deps = pytest.importorskip(
         "galax.interop.gala.optional_deps",
@@ -45,8 +41,7 @@ def test_the_other_packages_have_no_optional_deps_module(lib: str) -> None:
     """They require the library they wrap, so the probe would be a constant.
 
     Asserted rather than merely omitted: re-adding one for symmetry is the
-    tempting mistake, and it is how the three dead modules got there the first
-    time.
+    tempting mistake.
     """
     with pytest.raises(ModuleNotFoundError):
         importlib.import_module(f"galax.interop.{lib}.optional_deps")

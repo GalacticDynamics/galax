@@ -5,9 +5,6 @@ of them ships an `__init__.py` there, the directory becomes a regular package an
 every other distribution's contribution disappears. If one ships a loose module
 there, two distributions can claim the same path and the installed result depends
 on install order.
-
-This is the rule that retired `galax/_version.py` and forced the per-library
-`optional_deps` split. It had no test.
 """
 
 import pathlib

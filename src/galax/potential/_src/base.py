@@ -27,6 +27,7 @@ from .plot import PlotPotentialDescriptor
 from .symmetry import Symmetry
 from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.attr import ParametersAttribute
+from galax.potential._src.params.field import ParameterField
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.potential.dataclasses import ModuleMeta
 
@@ -92,8 +93,6 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
     # Parsing
 
     def _apply_unitsystem(self) -> None:
-        from galax.potential._src.params.field import ParameterField
-
         usys = self.units
 
         # Handle unit conversion for all fields, e.g. the parameters.

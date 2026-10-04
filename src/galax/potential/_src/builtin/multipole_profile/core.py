@@ -27,10 +27,7 @@ from .build import _LN_HUGE_FRAC, _PAD_MULTIPLE, build_expansion
 from .expansion import expansion_density, expansion_gradient, expansion_potential
 from galax.potential._src.base import AbstractPotential, default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
-from galax.potential._src.harmonic import (
-    default_angular_resolution,
-    lm_keys,
-)
+from galax.potential._src.harmonic import default_angular_resolution, lm_keys
 from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.constant import ConstantParameter

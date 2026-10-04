@@ -405,6 +405,8 @@ def assert_gaussian_matches_galpy(
     `galax`'s ``m_tot`` are the *total* mass for any ``b, c`` (``q1, q2``), so
     we can map ``amp = m_tot`` directly.
     """
+    # Deferred: galpy is optional, and this module is collected by the CI job
+    # that installs no extras.
     from galpy.potential import (
         TriaxialGaussianPotential as GalpyGaussianPotential,
         evaluateDensities,

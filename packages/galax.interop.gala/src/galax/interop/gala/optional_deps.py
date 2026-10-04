@@ -24,19 +24,8 @@ from packaging.version import Version
 GALA_VERSION = Version(version("gala"))
 
 
-def _gsl_enabled() -> bool:
-    """Whether the installed gala was built against GSL.
-
-    A function rather than a bare module-level `try`, so the no-GSL branch is
-    reachable from a test. CI's gala is built with GSL, so that branch would
-    otherwise never execute and would have to be excluded from coverage --
-    which is the wrong trade for a configuration that really exists.
-    """
-    try:
-        from gala._cconfig import GSL_ENABLED
-    except ImportError:  # a gala built without GSL ships no `_cconfig`
-        return False
-    return bool(GSL_ENABLED)
-
-
-GSL_ENABLED: bool = _gsl_enabled()
+GSL_ENABLED: bool
+try:
+    from gala._cconfig import GSL_ENABLED
+except ImportError:  # pragma: no cover - a gala without GSL ships no `_cconfig`
+    GSL_ENABLED = False

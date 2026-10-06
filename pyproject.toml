@@ -297,9 +297,7 @@ addopts = [
   # default "prepend" mode pytest derives a module name by walking up to the
   # first directory without an `__init__.py` and puts that directory on
   # sys.path -- which makes the leaf of a namespace package shadow a real
-  # library. Matches `coordinax` and `unxt`. NB: deliberately *not*
-  # `consider_namespace_packages`, which renames test modules and breaks
-  # pytest-mpl's hash lookups.
+  # library. Matches `coordinax` and `unxt`.
   "--import-mode=importlib",
   "--showlocals",
   "--strict-config",
@@ -326,6 +324,16 @@ markers = [
   "serial",
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
+# Without this, pytest names a module by walking up to the first directory
+# without an `__init__.py`. `galax/interop/` is a namespace directory, so that
+# walk stops inside it and names
+# `packages/galax.interop.gala/src/galax/interop/gala/potential.py` as
+# `gala.potential` -- registering galax's own module under the name of the
+# library it wraps. That module then imports `galax.potential`, whose entry
+# points import the real module, and the half-built impostor is what
+# `import gala.potential` returns. Whether it bites depends on collection
+# order, so it surfaces as flaky `AttributeError`s on `gala.potential`.
+consider_namespace_packages = true
 minversion = "8.0"
 testpaths = ["docs", "packages", "src/galax", "tests/"]
 xfail_strict = true

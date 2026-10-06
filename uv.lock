@@ -428,7 +428,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.24.0"
+version = "0.24.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -450,9 +450,9 @@ dependencies = [
     { name = "xmmutablemap" },
     { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/89/f2/8564d8d367b47a4dd5b6ab6273a052059e7781bd642bd5cb192c7acbf04c/coordinax-0.24.0.tar.gz", hash = "sha256:0d0cf1f4ea807129bc4194834a736206cfa89d825510947c7f9a025b28fdc3e9", size = 729217, upload-time = "2026-10-06T17:19:04.912Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/62/b6b7ca9a8981c3c8fe4f3caff4bc543d057ae050c712886f83d9bb4c3c3b/coordinax-0.24.1.tar.gz", hash = "sha256:fd16f5821e41ce78b1b98b58bd2e9185b209fd07d8f02551746ee7f0519e6ce5", size = 729782, upload-time = "2026-10-06T21:41:08.834Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/fb/b542d17b9987b8aaffd24574ea66e501ee1028394e9d570f5adb5b2ae329/coordinax-0.24.0-py3-none-any.whl", hash = "sha256:fad1e28f9e1e18018f516d0f00950f17e0b95a9dfc62a860c2d0ac1113f7b6b5", size = 195476, upload-time = "2026-10-06T17:19:03.246Z" },
+    { url = "https://files.pythonhosted.org/packages/23/d6/c1acc6b434e254a0698ce29b96047a9654229e4b68710da4377322cafa81/coordinax-0.24.1-py3-none-any.whl", hash = "sha256:f25bbd87ed19b00cf6e754a1785ccd8a9dcee7bf2dc55c1d63abde5970af3ca2", size = 195563, upload-time = "2026-10-06T21:41:07.365Z" },
 ]
 
 [[package]]
@@ -986,7 +986,7 @@ requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
     { name = "beartype", specifier = ">=0.22.9" },
     { name = "boundinstance", specifier = ">=0.1" },
-    { name = "coordinax", specifier = ">=0.24,<0.25" },
+    { name = "coordinax", specifier = ">=0.24.1,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
     { name = "diffraxtra", specifier = ">=1.5.2" },

@@ -11,8 +11,8 @@ import unxt as u
 import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..builtin.test_common import ParameterMTotMixin, ParameterRSMixin
+from ..optional_deps import GSL_ENABLED, OptDeps
 from ..test_core import AbstractSinglePotential_Test
-from galax.interop.optional_deps import GSL_ENABLED, OptDeps
 
 
 class TestSCFPotential(

@@ -23,7 +23,7 @@ import unxt as u
 
 import galax.potential as gp
 import galax.potential.io as gpio
-from galax.interop.optional_deps import OptDeps
+from galax.interop.gala.optional_deps import GALA_VERSION
 
 ##############################################################################
 # Hook into general dispatcher
@@ -260,77 +260,60 @@ def galax_to_gala(pot: gp.CompositePotential, /) -> galap.CompositePotential:
 # Builtin potentials
 
 
-# The `gala>=1.10` floor (pyproject.toml) is above the 1.8.2 at which
-# `BurkertPotential` arrived, so only installation is in question here.
-if OptDeps.GALA.installed:
+# `gala` is a required dependency of this distribution, and the root suite
+# collect-ignores this tree when the distribution is absent, so these
+# conversions register unconditionally.
+@dispatch
+def gala_to_galax(
+    gala: galap.BurkertPotential, /
+) -> gp.BurkertPotential | gp.TransformedPotential:
+    """Convert a `gala.potential.BurkertPotential` to a galax.potential.BurkertPotential.
 
-    @dispatch
-    def gala_to_galax(
-        gala: galap.BurkertPotential, /
-    ) -> gp.BurkertPotential | gp.TransformedPotential:
-        """Convert a `gala.potential.BurkertPotential` to a galax.potential.BurkertPotential.
+    Examples
+    --------
+    >>> import gala.potential as galap
+    >>> from gala.units import galactic
+    >>> import galax.potential as gp
 
-        Examples
-        --------
-        >>> import gala.potential as galap
-        >>> from gala.units import galactic
-        >>> import galax.potential as gp
+    >>> pot = galap.BurkertPotential(rho=4, r0=20, units=galactic)
+    >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
+    BurkertPotential(
+    units=LTMAUnitSystem( length=Unit("kpc"), ...),
+    constants=ImmutableMap({'G': ...}),
+    m=ConstantParameter(...),
+    r_s=ConstantParameter(...)
+    )
 
-        .. invisible-code-block: python
+    """  # noqa: E501
+    params = gala.parameters
+    pot = gp.BurkertPotential.from_central_density(
+        rho_0=params["rho"], r_s=params["r0"], units=gala.units
+    )
+    return _apply_xop(_get_xop(gala), pot)
 
-            from galax.interop.optional_deps import OptDeps
-            skip = not OptDeps.GALA.installed
 
-        .. skip: start if(skip, reason="requires gala")
+@dispatch
+def galax_to_gala(pot: gp.BurkertPotential, /) -> galap.BurkertPotential:
+    """Convert a `galax.potential.BurkertPotential` to a `gala.potential.BurkertPotential`.
 
-        >>> pot = galap.BurkertPotential(rho=4, r0=20, units=galactic)
-        >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
-        BurkertPotential(
-        units=LTMAUnitSystem( length=Unit("kpc"), ...),
-        constants=ImmutableMap({'G': ...}),
-        m=ConstantParameter(...),
-        r_s=ConstantParameter(...)
-        )
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
 
-        .. skip: end
+    >>> pot = gp.BurkertPotential(m=1e11, r_s=20, units="galactic")
+    >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
+    <BurkertPotential: rho=7.82e+06 solMass / kpc3, r0=20.00 kpc (kpc,Myr,solMass,rad)>
 
-        """  # noqa: E501
-        params = gala.parameters
-        pot = gp.BurkertPotential.from_central_density(
-            rho_0=params["rho"], r_s=params["r0"], units=gala.units
-        )
-        return _apply_xop(_get_xop(gala), pot)
+    """  # noqa: E501
+    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
 
-    @dispatch  # type: ignore[misc]
-    def galax_to_gala(pot: gp.BurkertPotential, /) -> galap.BurkertPotential:
-        """Convert a `galax.potential.BurkertPotential` to a `gala.potential.BurkertPotential`.
+    return galap.BurkertPotential(
+        rho=convert(pot.rho0(0), APYQuantity),
+        r0=convert(pot.r_s(0), APYQuantity),
+        units=_galax_to_gala_units(pot.units),
+    )
 
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import galax.potential as gp
-
-        .. invisible-code-block: python
-
-            from galax.interop.optional_deps import OptDeps
-            skip = not OptDeps.GALA.installed
-
-        .. skip: start if(skip, reason="requires gala")
-
-        >>> pot = gp.BurkertPotential(m=1e11, r_s=20, units="galactic")
-        >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
-        <BurkertPotential: rho=7.82e+06 solMass / kpc3, r0=20.00 kpc (kpc,Myr,solMass,rad)>
-
-        .. skip: end
-
-        """  # noqa: E501
-        _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
-
-        return galap.BurkertPotential(
-            rho=convert(pot.rho0(0), APYQuantity),
-            r0=convert(pot.r_s(0), APYQuantity),
-            units=_galax_to_gala_units(pot.units),
-        )
 
 # ---------------------------
 # Harmonic oscillator potentials
@@ -994,7 +977,7 @@ def gala_to_galax(
     --------
     .. invisible-code-block: python
 
-        from galax.interop.optional_deps import GSL_ENABLED
+        from galax.interop.gala.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1030,7 +1013,7 @@ def galax_to_gala(pot: gp.PowerLawCutoffPotential, /) -> galap.PowerLawCutoffPot
     --------
     .. invisible-code-block: python
 
-        from galax.interop.optional_deps import GSL_ENABLED
+        from galax.interop.gala.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1395,78 +1378,6 @@ def gala_to_galax(
     >>> from gala.units import galactic
     >>> import galax.potential as gp
 
-    >>> gpot = galap.NFWPotential(m=1e12, r_s=20, units=galactic)
-    >>> gp.io.convert_potential(gp.io.GalaxLibrary, gpot)
-    NFWPotential(
-      units=LTMAUnitSystem( length=Unit("kpc"), ...),
-      constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter(...),
-      r_s=ConstantParameter(...)
-    )
-
-    """
-    params = gala.parameters
-    pot = gp.NFWPotential(m=params["m"], r_s=params["r_s"], units=gala.units)
-    return _apply_xop(_get_xop(gala), pot)
-
-
-@dispatch
-def gala_to_galax(
-    pot: galap.LeeSutoTriaxialNFWPotential, /
-) -> gp.LeeSutoTriaxialNFWPotential:
-    """Convert a :class:`gala.potential.LeeSutoTriaxialNFWPotential` to a :class:`galax.potential.LeeSutoTriaxialNFWPotential`.
-
-    Examples
-    --------
-    >>> import gala.potential as galap
-    >>> from gala.units import galactic
-    >>> import galax.potential as gp
-
-    >>> gpot = galap.LeeSutoTriaxialNFWPotential(
-    ...     v_c=220, r_s=20, a=1, b=0.9, c=0.8, units=galactic )
-    >>> gp.io.convert_potential(gp.io.GalaxLibrary, gpot)
-    LeeSutoTriaxialNFWPotential(
-      units=LTMAUnitSystem( length=Unit("kpc"), ...),
-      constants=ImmutableMap({'G': ...}),
-      m=ConstantParameter(...),
-      r_s=ConstantParameter(...),
-      a1=ConstantParameter(...),
-      a2=ConstantParameter(...),
-      a3=ConstantParameter(...)
-    )
-
-    """  # noqa: E501
-    units = pot.units
-    params = pot.parameters
-    G = u.Q(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
-
-    return gp.LeeSutoTriaxialNFWPotential(
-        m=params["v_c"] ** 2 * params["r_s"] / G,
-        r_s=params["r_s"],
-        a1=params["a"],
-        a2=params["b"],
-        a3=params["c"],
-        units=units,
-        constants={"G": G},
-    )
-
-
-# -----------------------------------------------------------------------------
-# NFW potentials
-
-
-@dispatch
-def gala_to_galax(
-    gala: galap.NFWPotential, /
-) -> gp.NFWPotential | gp.TransformedPotential:
-    """Convert a Gala NFWPotential to a Galax potential.
-
-    Examples
-    --------
-    >>> import gala.potential as galap
-    >>> from gala.units import galactic
-    >>> import galax.potential as gp
-
     >>> pot = galap.NFWPotential(m=1e12, r_s=20, units=galactic)
     >>> gp.io.convert_potential(gp.io.GalaxLibrary, pot)
     NFWPotential(
@@ -1599,7 +1510,7 @@ def gala_to_galax(pot: galap.BovyMWPotential2014, /) -> gp.BovyMWPotential2014:
     --------
     .. invisible-code-block: python
 
-        from galax.interop.optional_deps import GSL_ENABLED
+        from galax.interop.gala.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1633,7 +1544,7 @@ def galax_to_gala(pot: gp.BovyMWPotential2014, /) -> galap.BovyMWPotential2014:
     --------
     .. invisible-code-block: python
 
-        from galax.interop.optional_deps import GSL_ENABLED
+        from galax.interop.gala.optional_deps import GSL_ENABLED
 
     .. skip: start if(not GSL_ENABLED, reason="requires GSL")
 
@@ -1802,7 +1713,7 @@ def galax_to_gala(pot: gp.MilkyWayPotential, /) -> galap.MilkyWayPotential:
     }
     # gala>=1.11 merges MilkyWayPotential{,2022} behind a `version` argument. Without
     # it gala warns and, in a future release, will default to the 2022 model.
-    if OptDeps.GALA.installed and Version("1.11") <= OptDeps.GALA:
+    if Version("1.11") <= GALA_VERSION:
         kwargs["version"] = "v1"
 
     return galap.MilkyWayPotential(**kwargs)

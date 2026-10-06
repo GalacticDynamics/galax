@@ -7,8 +7,8 @@ import unxt as u
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
+from ..optional_deps import OptDeps
 from .test_composite import AbstractSpecialCompositePotential_Test
-from galax.interop.optional_deps import OptDeps
 
 
 class TestLM10Potential(AbstractSpecialCompositePotential_Test):

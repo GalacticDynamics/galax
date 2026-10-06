@@ -1,0 +1,87 @@
+[project]
+authors = [
+  { name = "galax Devs", email = "nstarman@users.noreply.github.com" },
+  { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Typing :: Typed",
+]
+dependencies = [
+  "astropy>=7.0.0",
+  "gala>=1.10",
+  "packaging>=24.1",
+  # Strictly greater: galax 0.0.3 itself ships `galax/interop/` content, so
+  # pairing it with this distribution would write the same files twice.
+  "galax>0.0.3",
+  "galax.interop.astropy>0.0.3",
+  "plum>=2.8.0; python_version < '3.14'",
+  "plum>=2.9.0; python_version >= '3.14'",
+  "unxt>=1.11.2,<2",
+]
+description = "Gala interoperability for galax"
+dynamic = ["version"]
+license = "MIT"
+name = "galax.interop.gala"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[project.urls]
+"Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
+Homepage = "https://github.com/GalacticDynamics/galax"
+
+# Loading an entry point imports the module, which performs the plum dispatch
+# registrations as an import side effect. The consuming portion calls
+# `load_interop_plugins("galax.<portion>.interop")`; it never names this package.
+[project.entry-points."galax.coordinates.interop"]
+gala = "galax.interop.gala.coordinates"
+
+[project.entry-points."galax.potential.interop"]
+gala = "galax.interop.gala.potential"
+
+# `galax` is the workspace root, so resolve it locally instead of from PyPI.
+[tool.uv.sources]
+galax = { workspace = true }
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatch-vcs", "hatchling"]
+
+[tool.hatch.build.targets.wheel]
+# `galax` and `galax/interop` are shared namespace directories; this package
+# owns only the leaf. Named explicitly because a namespace directory cannot be
+# auto-detected.
+packages = ["src/galax"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+root = "../.."
+search_parent_directories = true
+
+# The version-file hook is safe here, unlike at the repo root: this path is a
+# leaf owned outright by this distribution, not a shared namespace directory.
+[tool.hatch.build.hooks.vcs]
+version-file = "src/galax/interop/gala/_version.py"
+
+[tool.hatch.version.raw-options.scm.git]
+describe_command = [
+  "git",
+  "describe",
+  "--dirty",
+  "--tags",
+  "--long",
+  "--match",
+  "galax-interop-gala-v*",
+]

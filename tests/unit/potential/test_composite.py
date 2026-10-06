@@ -84,7 +84,7 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
         pot = pot_cls(**pot_map, units="galactic")
         assert pot.units == u.unitsystems.galactic
 
-        with pytest.raises(KeyError, match="invalid_value"):
+        with pytest.raises(ValueError, match="invalid_value"):
             pot_cls(**pot_map, units="invalid_value")
 
     # ==========================================================================
@@ -279,7 +279,7 @@ class TestCompositePotential(AbstractCompositePotential_Test):
         pot = pot_cls(**potmap, units=units)
         assert pot.units == u.unitsystems.galactic
 
-        with pytest.raises(KeyError, match="invalid_value"):
+        with pytest.raises(ValueError, match="invalid_value"):
             pot_cls(**pot_map, units="invalid_value")
 
     # ==========================================================================

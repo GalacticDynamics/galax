@@ -53,7 +53,7 @@ class TriaxialInThePotential(AbstractTransformedPotential):
     >>> t = u.Q(0, "Gyr")
 
     >>> opot.potential(x, t) == xpot.potential(x, t)
-    Array(True, dtype=bool)
+    Q(True, '')
 
     >>> opot.potential(y, t)
     Q(-4.49850215, 'kpc2 / Myr2')
@@ -62,7 +62,7 @@ class TriaxialInThePotential(AbstractTransformedPotential):
     Q(-8.9970043, 'kpc2 / Myr2')
 
     >>> opot.potential(y / 2, t) == xpot.potential(y, t)
-    Array(True, dtype=bool)
+    Q(True, '')
 
     """
 

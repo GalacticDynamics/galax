@@ -51,7 +51,7 @@ class FlattenedInThePotential(AbstractTransformedPotential):
     >>> t = u.Q(0, "Gyr")
 
     >>> opot.potential(x1, t) == xpot.potential(x1, t)
-    Array(True, dtype=bool)
+    Q(True, '')
 
     >>> opot.potential(x2, t)
     Q(-0.40895474, 'kpc2 / Myr2')
@@ -60,7 +60,7 @@ class FlattenedInThePotential(AbstractTransformedPotential):
     Q(-0.42842878, 'kpc2 / Myr2')
 
     >>> opot.potential(x2 / 2.0, t) == xpot.potential(x2, t)
-    Array(True, dtype=bool)
+    Q(True, '')
 
     """
 

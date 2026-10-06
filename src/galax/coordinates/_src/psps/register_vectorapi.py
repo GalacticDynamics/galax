@@ -178,7 +178,7 @@ def call(
 
     >>> psp2 = replace(psp)
     >>> op(psp2).q.x == newpsp.q.x
-    Array(True, dtype=bool)
+    Q(True, '')
 
     """
     # Shifting the position and time

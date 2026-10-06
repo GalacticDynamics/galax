@@ -345,7 +345,7 @@ def call(
     >>> newpsp.q.x
     Q(0.70710678, 'm')
     >>> newpsp.q.norm()
-    BareQuantity(1., 'm')
+    Q(1., 'm')
 
     >>> newpsp.p.x
     Q(0.70710678, 'm / s')

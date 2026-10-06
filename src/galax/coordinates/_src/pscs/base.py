@@ -15,7 +15,7 @@ from plum import convert, dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity as FastQ
+from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates.custom_types as gt
 from galax.coordinates._src.base import AbstractPhaseSpaceObject

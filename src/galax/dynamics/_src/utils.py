@@ -325,8 +325,8 @@ def parse_to_t_y(
     ustrip: UnitSystem,
 ) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
     t = eqx.error_if(t, t is None, "t is None, q does not contain a time")
-    q = u.ustrip(ustrip["length"], convert(qp[0], u.Quantity))  # TODO: BareQuantity
-    p = u.ustrip(ustrip["speed"], convert(qp[1], u.Quantity))  # TODO: BareQuantity
+    q = u.ustrip(ustrip["length"], convert(qp[0], u.Quantity))
+    p = u.ustrip(ustrip["speed"], convert(qp[1], u.Quantity))
     return parse_to_t_y(to_frame, t, (q, p), ustrip=ustrip)
 
 

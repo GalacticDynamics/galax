@@ -28,9 +28,9 @@ classifiers = [
 ]
 dependencies = [
   "astropy>=7.0.0",
-  "beartype>=0.22.9",        # TODO: figure out why 0.22.0 breaks things
+  "beartype>=0.22.9",      # TODO: figure out why 0.22.0 breaks things
   "boundinstance>=0.1",
-  "coordinax>=0.23.3,<0.24",
+  "coordinax>=0.24,<0.25",
   "dataclassish>=0.8.0",
   "diffrax>=0.7",
   "diffraxtra>=1.5.2",
@@ -56,7 +56,7 @@ dependencies = [
   "quaxed>=0.10.5",
   "spexial>=0.2.1",
   "typing-extensions>=4.13.2",
-  "unxt>=1.11.2,<2",
+  "unxt>=2.0.5,<3",
   "wadler_lindig>=0.1.7",
   "xmmutablemap>=0.2.1",
   "zeroth>=1.2.0",
@@ -481,7 +481,7 @@ sections = { typing = [
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
-[tool.unxt]
+[tool.unxts.unxt]
 quantity.repr.include_params = false
 quantity.repr.named_unit = false
 quantity.repr.short_arrays = "compact"

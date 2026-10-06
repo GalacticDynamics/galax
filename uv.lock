@@ -428,7 +428,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.23.3"
+version = "0.24.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -439,6 +439,7 @@ dependencies = [
     { name = "jaxlib" },
     { name = "jaxtyping" },
     { name = "optional-dependencies" },
+    { name = "optype" },
     { name = "plum" },
     { name = "quax" },
     { name = "quax-blocks" },
@@ -447,10 +448,11 @@ dependencies = [
     { name = "unxt" },
     { name = "wadler-lindig" },
     { name = "xmmutablemap" },
+    { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/00/99c32e07b37624384d5515f2d4cbdf9f1ff46ee6746cd402f6883fb2df94/coordinax-0.23.3.tar.gz", hash = "sha256:48eb3f63a5bd7475039e9562c22c51318435e4a8e3c0d29192137f00e66f94e5", size = 757498, upload-time = "2026-05-09T20:21:02.189Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/f2/8564d8d367b47a4dd5b6ab6273a052059e7781bd642bd5cb192c7acbf04c/coordinax-0.24.0.tar.gz", hash = "sha256:0d0cf1f4ea807129bc4194834a736206cfa89d825510947c7f9a025b28fdc3e9", size = 729217, upload-time = "2026-10-06T17:19:04.912Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/b2/6e655239636458e9ff363e0c1a3caddefaddea2990ed8f32f82e156bd664/coordinax-0.23.3-py3-none-any.whl", hash = "sha256:115d411963f907728ae25528c69e490937657aa9e787e130c0c97458df5ab8dd", size = 195043, upload-time = "2026-05-09T20:21:00.35Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/fb/b542d17b9987b8aaffd24574ea66e501ee1028394e9d570f5adb5b2ae329/coordinax-0.24.0-py3-none-any.whl", hash = "sha256:fad1e28f9e1e18018f516d0f00950f17e0b95a9dfc62a860c2d0ac1113f7b6b5", size = 195476, upload-time = "2026-10-06T17:19:03.246Z" },
 ]
 
 [[package]]
@@ -983,7 +985,7 @@ requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
     { name = "beartype", specifier = ">=0.22.9" },
     { name = "boundinstance", specifier = ">=0.1" },
-    { name = "coordinax", specifier = ">=0.23.3,<0.24" },
+    { name = "coordinax", specifier = ">=0.24,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
@@ -1017,7 +1019,7 @@ requires-dist = [
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "spexial", specifier = ">=0.2.1" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
-    { name = "unxt", specifier = ">=1.11.2,<2" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
     { name = "xmmutablemap", specifier = ">=0.2.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
@@ -1099,7 +1101,7 @@ requires-dist = [
     { name = "galax", editable = "." },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "unxt", specifier = ">=1.11.2,<2" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
 ]
 
 [[package]]
@@ -1124,7 +1126,7 @@ requires-dist = [
     { name = "packaging", specifier = ">=24.1" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "unxt", specifier = ">=1.11.2,<2" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
 ]
 
 [[package]]
@@ -1147,7 +1149,7 @@ requires-dist = [
     { name = "galpy", specifier = ">=1.8" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "unxt", specifier = ">=1.11.2,<2" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
 ]
 
 [[package]]
@@ -1170,7 +1172,7 @@ requires-dist = [
     { name = "plotting-backends", specifier = ">=0.1" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "unxt", specifier = ">=1.11.2,<2" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
 ]
 
 [[package]]
@@ -2440,21 +2442,22 @@ wheels = [
 
 [[package]]
 name = "quax-blocks"
-version = "0.4.1"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax" },
     { name = "jaxlib" },
     { name = "jaxtyping" },
     { name = "optype" },
+    { name = "packaging" },
     { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
     { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
     { name = "quax" },
     { name = "quaxed" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2f/e2/435c5e18e41bfa4c4fe93911111cd2517c7f3a309519a30b885411260ed8/quax_blocks-0.4.1.tar.gz", hash = "sha256:d41cb943fe53a8098cd3a4671088f77f1e02050e16f637c55dd845e926bb2d2a", size = 71821, upload-time = "2026-05-05T04:52:24.191Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/40/a9197e785f32ab31037266f4834d44d36f1ea8676f52f1af00a719c802df/quax_blocks-0.5.0.tar.gz", hash = "sha256:874effa5777aaf48a8bc1a2ef5397d93131ac3f00166b69da5d1d5f7e71232ae", size = 138091, upload-time = "2026-07-31T22:50:02.793Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/21/efd636c4243aaaff94ad175ee9726a343f690686c098e4b507f96e9c5329/quax_blocks-0.4.1-py3-none-any.whl", hash = "sha256:7931cae95556b47f6eb3a2331493b62222ed7a4724c46120b1c80d9dafde027d", size = 16204, upload-time = "2026-05-05T04:52:22.865Z" },
+    { url = "https://files.pythonhosted.org/packages/00/e2/f8e50cc72cf5e92d7056d70d396dbee01172133bd081d6d85026c56916c8/quax_blocks-0.5.0-py3-none-any.whl", hash = "sha256:03e9deba2d6c6b51be47108ec52e4b991b7f466529aadab4abddf6fa68be2d60", size = 24809, upload-time = "2026-07-31T22:50:01.726Z" },
 ]
 
 [[package]]
@@ -2846,7 +2849,7 @@ wheels = [
 
 [[package]]
 name = "unxt"
-version = "1.11.4"
+version = "2.0.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -2857,6 +2860,7 @@ dependencies = [
     { name = "jaxlib" },
     { name = "jaxtyping" },
     { name = "optional-dependencies" },
+    { name = "packaging" },
     { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
     { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
     { name = "quax" },
@@ -2864,13 +2868,12 @@ dependencies = [
     { name = "quaxed" },
     { name = "traitlets" },
     { name = "unxt-api" },
+    { name = "unxts-api" },
     { name = "wadler-lindig" },
-    { name = "xmmutablemap" },
-    { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7b/74/5c7e1172257b8882d3bee17ca5ff18d61f6d4beafe85f79df46118f6edc6/unxt-1.11.4.tar.gz", hash = "sha256:118af7a495d813b5de13d677bcbd3336dbccc28838492d7b65bb7d836f55dbf9", size = 1066483, upload-time = "2026-06-29T13:17:32.485Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/0c/3fb689976a32c81e6e6aa956ea629e6834f43a719a59b1b844d20636c540/unxt-2.0.5.tar.gz", hash = "sha256:90207e8d20caa8119e349886df226aa42793a12891bc13c8a407cc3c4fbf1565", size = 729062, upload-time = "2026-10-04T02:49:10.255Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/52/f4215ba3879bbc540762f3b5ad07763a28887c1659e1be232cca3dc3bebc/unxt-1.11.4-py3-none-any.whl", hash = "sha256:66c43508919fecd43aff0e328d42bcae6871f5fbdd4499e1e6b2a7a83759ec5e", size = 94210, upload-time = "2026-06-29T13:17:31.072Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/5b/c812d96cabd06a222bf782dbd0edaaa33383aa51e2a199df5a9cbf774608/unxt-2.0.5-py3-none-any.whl", hash = "sha256:8e93841d5fd61d17f298d8aedf9ce5727b0bb96b87ab3032f1e2ef98846f5404", size = 120577, upload-time = "2026-10-04T02:49:08.649Z" },
 ]
 
 [[package]]

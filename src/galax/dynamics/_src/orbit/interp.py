@@ -22,7 +22,7 @@ from diffraxtra._src.interp import (  # TODO: make this public API in diffraxtra
     RealScalarLike,
     VecDenseInfos,
 )
-from unxt.quantity import BareQuantity as FastQ
+from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt

@@ -11,11 +11,9 @@ import galax.potential as gp
 
 @pytest.fixture
 def interpolant() -> gd.orbit.PhaseSpaceInterpolation:
-    """A dense Kepler orbit's interpolant."""
+    """Return a dense Kepler orbit's interpolant."""
     pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
-    w0 = gc.PhaseSpacePosition(
-        q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0.0, 220, 0], "km/s")
-    )
+    w0 = gc.PhaseSpacePosition(q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0.0, 220, 0], "km/s"))
     orbit = gd.evaluate_orbit(pot, w0, u.Q([0.0, 100.0], "Myr"), dense=True)
     return orbit.interpolant
 

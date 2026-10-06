@@ -1,9 +1,9 @@
 """A parameter function's return annotation must record its dimension."""
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import unxt as u
-from unxts.parametric import ParametricQuantity
 
 import galax.potential as gp
 
@@ -19,7 +19,7 @@ def test_parametric_annotation_is_accepted() -> None:
 
 
 def test_bare_quantity_annotation_is_rejected() -> None:
-    """unxt v2's `Quantity` is not parametric, so it records no dimension.
+    """Unxt v2's `Quantity` is not parametric, so it records no dimension.
 
     Accepting it would mean silently skipping the check that a parameter
     function returns what the field declares, so it is an error that names

@@ -8,6 +8,7 @@ from typing import Any
 import equinox as eqx
 import gala.potential as galap
 import numpy as np
+import unxts.interop.gala  # noqa: F401  # registers the unit-system conversions
 from astropy.units import Quantity as APYQuantity
 from gala.units import (
     DimensionlessUnitSystem as GalaDimensionlessUnitSystem,
@@ -130,11 +131,9 @@ def _apply_xop[PT: gp.AbstractPotential](
 
 def _galax_to_gala_units(units: u.AbstractUnitSystem, /) -> GalaUnitSystem:
     """Convert a Galax unit system to a Gala unit system."""
-    # Galax potentials naturally convert Gala unit systems, but Gala potentials
-    # do not convert Galax unit systems. This function is used for that purpose.
     if isinstance(units, u.unitsystems.DimensionlessUnitSystem):
         return gala_dimensionless
-    return GalaUnitSystem(units)
+    return convert(units, GalaUnitSystem)
 
 
 def _error_if_not_all_constant_parameters(
@@ -160,9 +159,7 @@ def _check_gala_units(gala: GalaUnitSystem, /) -> u.AbstractUnitSystem:
         isinstance(gala, GalaDimensionlessUnitSystem),
         "Galax does not support converting dimensionless units.",
     )
-    # unxt v2 does not convert a gala `UnitSystem` on its own, so unpack it
-    # into the units it holds.
-    return u.unitsystem(*gala)
+    return convert(gala, u.AbstractUnitSystem)
 
 
 # -----------------------------------------------------------------------------

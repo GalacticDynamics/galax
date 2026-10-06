@@ -22,7 +22,7 @@ from diffraxtra._src.interp import (  # TODO: make this public API in diffraxtra
     RealScalarLike,
     VecDenseInfos,
 )
-from unxt.quantity import Quantity as FastQ
+from unxt.quantity import AllowValue, Quantity as FastQ
 
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
@@ -59,7 +59,11 @@ class PhaseSpaceInterpolation(eqx.Module):
         tval = u.ustrip(usys["time"], t)
         tval = eqx.error_if(
             tval,
-            jnp.logical_not(jnp.all(within_bounds(tval, self.t0, self.t1))),
+            u.ustrip(
+                AllowValue,
+                "",
+                jnp.logical_not(jnp.all(within_bounds(tval, self.t0, self.t1))),
+            ),
             "Time out of bounds.",
         )
 

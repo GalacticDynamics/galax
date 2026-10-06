@@ -1117,6 +1117,7 @@ dependencies = [
     { name = "packaging" },
     { name = "plum" },
     { name = "unxt" },
+    { name = "unxts-interop-gala" },
 ]
 
 [package.metadata]
@@ -1129,6 +1130,7 @@ requires-dist = [
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
+    { name = "unxts-interop-gala", specifier = ">=2.0,<3" },
 ]
 
 [[package]]
@@ -2901,6 +2903,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a7/57/0ba96217d877cf2eb4002045650d9521d1d0d5cc91e1226fc9877a1ed675/unxts_api-2.0.0.tar.gz", hash = "sha256:b5bdb90a0836099e788549d65a95d979281dd5fb2d06164620cc983aeb1cd6c4", size = 12570, upload-time = "2026-07-24T18:05:26.804Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d6/2d/41ac3d8e5f98aafabe5ce1790418d13b8e743fa75d50ac0c5513507c114f/unxts_api-2.0.0-py3-none-any.whl", hash = "sha256:a4b6729fbfcb2f8536302ea676352d1866eaeb6a916a843afaeaa18c65b66bbd", size = 5934, upload-time = "2026-07-24T18:05:25.729Z" },
+]
+
+[[package]]
+name = "unxts-interop-gala"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "astropy" },
+    { name = "gala", marker = "sys_platform != 'win32'" },
+    { name = "unxt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c3/86/a1b4b2adbef5525064519669c004b2bc06566656e22717785a8c104028b1/unxts_interop_gala-2.0.0.tar.gz", hash = "sha256:08521ed686b3452c6e6016e068f9a0ac9cf4f3a77573edc89baa79c5098ff31e", size = 6685, upload-time = "2026-07-24T18:08:13.415Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/59/42/1995340145fb9e19eda6135f77a83e5c435650401547fd6e50d0eee40055/unxts_interop_gala-2.0.0-py3-none-any.whl", hash = "sha256:a3dea23ff7af1291343dfc332e4b01b9c27113cfd7294a01af51b31b0aca96fa", size = 5064, upload-time = "2026-07-24T18:08:12.108Z" },
 ]
 
 [[package]]

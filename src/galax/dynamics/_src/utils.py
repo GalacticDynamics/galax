@@ -344,8 +344,12 @@ def parse_to_t_y(
     t = eqx.error_if(
         t,
         tref is not None
-        and jnp.logical_not(
-            jnp.array_equal(t, u.ustrip(AllowValue, ustrip["time"], tref))
+        and u.ustrip(
+            AllowValue,
+            "",
+            jnp.logical_not(
+                jnp.array_equal(t, u.ustrip(AllowValue, ustrip["time"], tref))
+            ),
         ),
         "q.t != tref",
     )
@@ -397,7 +401,8 @@ def parse_to_t_y(
         tref = u.ustrip(AllowValue, ustrip["time"], tref)
         t = eqx.error_if(
             t,
-            tref is not None and u.ustrip("", jnp.logical_not(jnp.array_equal(t, tref))),
+            tref is not None
+            and u.ustrip(AllowValue, "", jnp.logical_not(jnp.array_equal(t, tref))),
             "tx[..., 0] != tref",
         )
     return parse_to_t_y(to_frame, t, (x, v), ustrip=ustrip)
@@ -518,8 +523,12 @@ def parse_to_t_y(
     t = eqx.error_if(
         t,
         tref is not None
-        and jnp.logical_not(
-            jnp.array_equal(t, u.ustrip(AllowValue, ustrip["time"], tref))
+        and u.ustrip(
+            AllowValue,
+            "",
+            jnp.logical_not(
+                jnp.array_equal(t, u.ustrip(AllowValue, ustrip["time"], tref))
+            ),
         ),
         "wt.t != tref",
     )

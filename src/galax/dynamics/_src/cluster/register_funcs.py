@@ -92,7 +92,7 @@ def lagrange_points(
     """Compute the lagrange points of a cluster in a host potential."""
     t = eqx.error_if(
         wt.t,
-        t is not None and jnp.logical_not(jnp.array_equal(wt.t, t)),
+        t is not None and u.ustrip("", jnp.logical_not(jnp.array_equal(wt.t, t))),
         "t must be None or equal to the time of the phase space coordinate.",
     )
     return lagrange_points(pot, wt.q, wt.p, mass=mass, t=t.squeeze())

@@ -441,7 +441,7 @@ def parse_to_xyz_t(
     t, xyz = txyz[..., 0], txyz[..., 1:4]
     t = eqx.error_if(
         t,
-        t_ref is not None and jnp.logical_not(jnp.array_equal(t_ref, t)),
+        t_ref is not None and u.ustrip("", jnp.logical_not(jnp.array_equal(t_ref, t))),
         "t != txyz[..., 0], None",
     )
     return parse_to_xyz_t(to_frame, xyz, t, dtype=dtype, ustrip=ustrip)
@@ -512,7 +512,7 @@ def parse_to_xyz_t(
     t = ct / speed_of_light
     t = eqx.error_if(
         t,
-        tref is not None and jnp.logical_not(jnp.array_equal(tref, t)),
+        tref is not None and u.ustrip("", jnp.logical_not(jnp.array_equal(tref, t))),
         "t != txyz[..., 0], None",
     )
     return parse_to_xyz_t(to_frame, xyz, t, dtype=dtype, ustrip=ustrip)
@@ -560,7 +560,7 @@ def parse_to_xyz_t(
     t = q4.t
     t = eqx.error_if(
         t,
-        tref is not None and jnp.logical_not(jnp.array_equal(tref, t)),
+        tref is not None and u.ustrip("", jnp.logical_not(jnp.array_equal(tref, t))),
         "t != q4.t, None",
     )
     return parse_to_xyz_t(to_frame, q4.q, t, dtype=dtype, ustrip=ustrip)
@@ -678,7 +678,7 @@ def parse_to_xyz_t(
     # Parse `t`
     t = eqx.error_if(
         jnp.asarray(wt.t, dtype=dtype),
-        t is not None and jnp.logical_not(jnp.array_equal(wt.t, t)),
+        t is not None and u.ustrip("", jnp.logical_not(jnp.array_equal(wt.t, t))),
         "t != wt.t, None",
     )
     # Re-dispatch on the data

@@ -406,9 +406,9 @@ def test_outward_slope_is_not_clipped_against_the_monopole() -> None:
 
     together = asymptotic_coeffs(log_r, values, derivs, jnp.asarray([0.0, 2.0]))
     alone = asymptotic_coeffs(log_r, values[:, 1:], derivs[:, 1:], jnp.asarray([2.0]))
-    assert jnp.isclose(together[1, 1, 1], alone[1, 1, 0], rtol=1e-12), (
-        "the outward fit must be independent of the monopole"
-    )
+    assert jnp.isclose(
+        together[1, 1, 1], alone[1, 1, 0], rtol=1e-12
+    ), "the outward fit must be independent of the monopole"
 
 
 def _plummer_modes(*, cored_monopole: bool = False):

@@ -28,7 +28,7 @@ classifiers = [
 ]
 dependencies = [
   "astropy>=7.0.0",
-  "beartype>=0.22.9",      # TODO: figure out why 0.22.0 breaks things
+  "beartype>=0.22.9",        # TODO: figure out why 0.22.0 breaks things
   "boundinstance>=0.1",
   "coordinax>=0.24.1,<0.25",
   "dataclassish>=0.8.0",

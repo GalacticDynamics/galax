@@ -181,9 +181,9 @@ def test_real_ylm_matches_the_standard_convention() -> None:
             expect = c.real
         else:
             expect = math.sqrt(2) * (-1) ** abs(m) * (c.real if m > 0 else c.imag)
-        assert np.isclose(got[i], expect, rtol=1e-12, atol=1e-14), (
-            f"(l, m) = ({l}, {m}): got {got[i]}, standard is {expect}"
-        )
+        assert np.isclose(
+            got[i], expect, rtol=1e-12, atol=1e-14
+        ), f"(l, m) = ({l}, {m}): got {got[i]}, standard is {expect}"
 
 
 def test_real_ylm_is_finite_and_differentiable_on_the_z_axis() -> None:

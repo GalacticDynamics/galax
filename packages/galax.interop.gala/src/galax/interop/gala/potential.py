@@ -1068,7 +1068,10 @@ def gala_to_galax(
     """
     params = gala.parameters
     pot = gp.SatohPotential(
-        m_tot=params["m"], a=params["a"], b=params["b"], units=_check_gala_units(gala.units)
+        m_tot=params["m"],
+        a=params["a"],
+        b=params["b"],
+        units=_check_gala_units(gala.units),
     )
     return _apply_xop(_get_xop(gala), pot)
 
@@ -1125,7 +1128,10 @@ def gala_to_galax(
     """  # noqa: E501
     params = gala.parameters
     pot = gp.StoneOstriker15Potential(
-        m_tot=params["m"], r_c=params["r_c"], r_h=params["r_h"], units=_check_gala_units(gala.units)
+        m_tot=params["m"],
+        r_c=params["r_c"],
+        r_h=params["r_h"],
+        units=_check_gala_units(gala.units),
     )
     return _apply_xop(_get_xop(gala), pot)
 

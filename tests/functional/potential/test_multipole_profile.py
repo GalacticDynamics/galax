@@ -322,9 +322,9 @@ def test_potential_and_gradient_are_sane_at_the_exact_origin(_analytic) -> None:
 
     grad = pot.gradient(origin, t=0).value
     assert jnp.all(jnp.isfinite(grad)), f"the origin must not produce NaN, got {grad}"
-    assert jnp.allclose(
-        grad, 0.0
-    ), f"expected a zero gradient at the centre, got {grad}"
+    assert jnp.allclose(grad, 0.0), (
+        f"expected a zero gradient at the centre, got {grad}"
+    )
     assert jnp.all(jnp.isfinite(ref.gradient(origin, t=0).value))
 
 

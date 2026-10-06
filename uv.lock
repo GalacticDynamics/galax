@@ -886,6 +886,7 @@ dependencies = [
     { name = "spexial" },
     { name = "typing-extensions" },
     { name = "unxt" },
+    { name = "unxts-parametric" },
     { name = "wadler-lindig" },
     { name = "xmmutablemap" },
     { name = "zeroth" },
@@ -1020,6 +1021,7 @@ requires-dist = [
     { name = "spexial", specifier = ">=0.2.1" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
+    { name = "unxts-parametric", specifier = ">=2.0,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
     { name = "xmmutablemap", specifier = ">=0.2.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
@@ -2899,6 +2901,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a7/57/0ba96217d877cf2eb4002045650d9521d1d0d5cc91e1226fc9877a1ed675/unxts_api-2.0.0.tar.gz", hash = "sha256:b5bdb90a0836099e788549d65a95d979281dd5fb2d06164620cc983aeb1cd6c4", size = 12570, upload-time = "2026-07-24T18:05:26.804Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d6/2d/41ac3d8e5f98aafabe5ce1790418d13b8e743fa75d50ac0c5513507c114f/unxts_api-2.0.0-py3-none-any.whl", hash = "sha256:a4b6729fbfcb2f8536302ea676352d1866eaeb6a916a843afaeaa18c65b66bbd", size = 5934, upload-time = "2026-07-24T18:05:25.729Z" },
+]
+
+[[package]]
+name = "unxts-parametric"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
+    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "unxt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bd/bb/3b1ee3b62ff9e24ae33d9f3cc44589b4aa606e6e65d2ea18584048db3779/unxts_parametric-2.0.0.tar.gz", hash = "sha256:0b715a4675ef5e4b26afc85a90ed68ec5cf9a06009ae97f950f48dca4b34befc", size = 21099, upload-time = "2026-07-24T18:14:39.637Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2e/ab/d08fe5623da4b7797db1b094ec0599b6e672cd72729faf3e0e719a43046c/unxts_parametric-2.0.0-py3-none-any.whl", hash = "sha256:28783a58315c58ab551a7ebaa94f04f2f8e2f504b324c0f8f0ccd7e9bf488ca9", size = 14851, upload-time = "2026-07-24T18:14:38.563Z" },
 ]
 
 [[package]]

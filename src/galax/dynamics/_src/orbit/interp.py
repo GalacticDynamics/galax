@@ -81,17 +81,17 @@ class PhaseSpaceInterpolation(eqx.Module):
     @property
     def scalar_interpolation(self) -> dfx.DenseInterpolation:
         """Return the scalar interpolation for the phase-space position."""
-        return cast(dfx.DenseInterpolation, self.interp.scalar_interpolation)
+        return cast("dfx.DenseInterpolation", self.interp.scalar_interpolation)
 
     @property
     def batch_shape(self) -> gt.Shape:
         """Return the batch shape of the interpolation."""
-        return cast(gt.Shape, self.interp.batch_shape)
+        return cast("gt.Shape", self.interp.batch_shape)
 
     @property
     def batch_ndim(self) -> int:
         """Return the number of batch dimensions."""
-        return cast(int, self.interp.batch_ndim)
+        return cast("int", self.interp.batch_ndim)
 
     def __call__(self, *args: Any, **kwds: Any) -> gc.PhaseSpaceCoordinate:
         return self.evaluate(*args, **kwds)

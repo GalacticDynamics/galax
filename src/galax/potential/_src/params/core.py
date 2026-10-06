@@ -137,8 +137,9 @@ class CustomParameter(AbstractParameter):
     --------
     >>> from galax.potential.params import CustomParameter
     >>> import unxt as u
+    >>> from unxts.parametric import ParametricQuantity
 
-    >>> def func(t: u.Quantity["time"]) -> u.Quantity["mass"]:
+    >>> def func(t: u.Quantity["time"]) -> ParametricQuantity["mass"]:
     ...     return u.Q(1e9, "Msun/Gyr") * t
 
     >>> up = CustomParameter(func=func)

@@ -188,8 +188,7 @@ class SCFPotential(AbstractSinglePotential):
         t_shape = self.Tnlm(u.Q(0.0, "Gyr")).shape
         if s_shape != t_shape:
             msg = (
-                "Snlm and Tnlm must have the same shape. "
-                f"Got {s_shape} and {t_shape}."
+                f"Snlm and Tnlm must have the same shape. Got {s_shape} and {t_shape}."
             )
             raise ValueError(msg)
         if len(s_shape) != 3 or s_shape[1] != s_shape[2]:

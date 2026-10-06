@@ -213,8 +213,7 @@ class ParameterField:
             v = value
         elif callable(value):
             dims = _get_dimensions_from_return_annotation(value)
-            if dims is not None:  # `None` -> the annotation named no dimension
-                self._check_dimensions(potential, dims)
+            self._check_dimensions(potential, dims)  # Check the unit is compatible
             v = CustomParameter(func=value)
         else:
             unit = potential.units[self.dimensions]
@@ -227,9 +226,7 @@ class ParameterField:
 # -------------------------------------------
 
 
-def _get_dimensions_from_return_annotation(
-    func: ParameterCallable, /
-) -> Dimension | None:
+def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimension:
     """Get the dimensions from the return annotation of a Parameter function.
 
     Parameters
@@ -239,20 +236,15 @@ def _get_dimensions_from_return_annotation(
 
     Returns
     -------
-    Dimension | None
-        The dimensions from the return annotation, or `None` when the
-        annotation names a quantity that records no dimension.
+    Dimension
+        The dimensions from the return annotation of the function.
 
     Examples
     --------
-    `unxt.Quantity` records no dimension -- unxt v2 made it non-parametric and
-    moved the parametric class to `unxts.parametric` -- so there is nothing to
-    check the parameter against:
-
-    >>> import unxt as u
-    >>> def func(t: u.Quantity["time"]) -> u.Quantity["mass"]: pass
-    >>> print(_get_dimensions_from_return_annotation(func))
-    None
+    >>> from unxts.parametric import ParametricQuantity as PQ
+    >>> def func(t: PQ["time"]) -> PQ["mass"]: pass
+    >>> _get_dimensions_from_return_annotation(func)
+    PhysicalType('mass')
 
     >>> import astropy.units as u
     >>> def func(t: u.Quantity["time"]) -> u.Quantity["mass"]: pass
@@ -276,12 +268,20 @@ def _get_dimensions_from_return_annotation(
 
     ann = type_hints["return"]
 
-    # `unxt.Quantity`. Only a parametric quantity records its dimension:
-    # unxt v2 made the default `Quantity` non-parametric, and moved the
-    # parametric one to `unxts.parametric`. `None` means the annotation named a
-    # quantity but not which dimension, so there is nothing to check against.
+    # Only a parametric quantity records its dimension. unxt v2 made the
+    # default `Quantity` non-parametric and moved the parametric one to
+    # `unxts.parametric`, so a bare `unxt.Quantity[...]` annotation carries
+    # nothing to check the parameter against.
     if isclass(ann) and issubclass(ann, AbstractQuantity):
-        return getattr(ann, "type_parameter", None)
+        dims = getattr(ann, "type_parameter", None)
+        if dims is None:
+            msg = (
+                "Parameter function return annotation must record its "
+                "dimension: annotate it `ParametricQuantity[...]` from "
+                "`unxts.parametric`, not `unxt.Quantity[...]`."
+            )
+            raise TypeError(msg)
+        return dims
 
     # Astropy compatibility
     if isannotated(ann):

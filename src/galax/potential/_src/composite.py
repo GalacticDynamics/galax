@@ -108,4 +108,4 @@ class CompositePotential(
         self._apply_unitsystem()
 
     def __repr__(self) -> str:  # TODO: not need this hack
-        return cast(str, ImmutableMap.__repr__(self))
+        return cast("str", ImmutableMap.__repr__(self))

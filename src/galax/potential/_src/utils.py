@@ -783,4 +783,7 @@ def _reverse[T](x: op.CanGetitem[Any, T]) -> T:
 
 def cond_reverse[T](pred: Bool[Array, ""], x: T) -> T:
     """Reverse `x` if `pred` is True."""
+    # A comparison of two quantities is itself a dimensionless quantity under
+    # unxt 2, and `jax.lax.cond` only takes a bare array.
+    pred = u.ustrip(AllowValue, "", pred)
     return cast("T", jax.lax.cond(pred, _reverse, _identity, x))

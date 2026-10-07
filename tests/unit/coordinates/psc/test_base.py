@@ -128,7 +128,7 @@ class AbstractPhaseSpaceCoordinate_Test(
         self, w: gc.AbstractPhaseSpaceCoordinate, pot: gp.AbstractPotential
     ) -> None:
         """Test method ``potential``."""
-        pe = w.potential_energy(pot)
+        pe = gp.potential_energy(pot, w)
         assert pe.shape == w.shape  # confirm relation to shape and components
         assert jnp.all(pe <= u.Q(0, "km2/s2"))
         # definitional
@@ -141,7 +141,7 @@ class AbstractPhaseSpaceCoordinate_Test(
         self, w: gc.AbstractPhaseSpaceCoordinate, pot: gp.AbstractPotential
     ) -> None:
         """Test :meth:`~galax.coordinates.PhaseSpacePosition.energy`."""
-        pe = w.total_energy(pot)
+        pe = gp.total_energy(pot, w)
         assert pe.shape == w.shape  # confirm relation to shape and components
         # definitional
         assert jnp.allclose(

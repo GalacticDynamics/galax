@@ -14,6 +14,7 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax.coordinates as gc
 import galax.potential.custom_types as gt
 from . import api
 from .base import AbstractPotential
@@ -499,3 +500,17 @@ def spherical_mass_enclosed(
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Compute from `jax.Array`."""
     return api.spherical_mass_enclosed(pot, q, t)
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def potential_energy(
+    pot: AbstractPotential, w: gc.AbstractPhaseSpaceCoordinate, /
+) -> Any:
+    return pot.potential(w.q, t=w.t)
+
+
+@dispatch
+@ft.partial(jax.jit, inline=True)
+def total_energy(pot: AbstractPotential, w: gc.AbstractPhaseSpaceCoordinate, /) -> Any:
+    return w.kinetic_energy() + api.potential_energy(pot, w)

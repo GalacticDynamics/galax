@@ -138,6 +138,25 @@ can signpost them:
 - **`galax[interop-astropy]` is now redundant** — `galax.interop.astropy` is a
   required dependency of `galax`. The extra is kept as a no-op alias.
 
+- **`w.potential_energy(pot)` and `w.total_energy(pot)` moved to
+  `galax.potential` as functions.** They take a coordinate _and_ a potential, so
+  they belonged on neither object; and as methods on a `galax.coordinates` type
+  they forced that distribution's documentation to import `galax.potential`,
+  which the split makes a dependency inversion.
+
+  ```python
+  # before
+  w.potential_energy(pot)
+  w.total_energy(pot)
+
+  # now
+  gp.potential_energy(pot, w)
+  gp.total_energy(pot, w)
+  ```
+
+  There is no method form: these are plum-dispatched functions, so a third-party
+  coordinate type can extend them. `w.kinetic_energy()` is unchanged.
+
 ## Version floors
 
 Distributions pin each other with floors only (`galax>0.0.3`), no upper bounds.

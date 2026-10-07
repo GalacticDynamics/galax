@@ -78,6 +78,8 @@ expected_all = [
     "acceleration",
     "tidal_tensor",
     "local_circular_velocity",
+    "potential_energy",
+    "total_energy",
     "spherical_mass_enclosed",
     "dpotential_dr",
     "d2potential_dr2",

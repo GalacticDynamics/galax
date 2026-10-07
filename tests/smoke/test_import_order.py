@@ -121,7 +121,7 @@ def test_jit_then_late_potential_import() -> None:
         g = pot.constants["G"]
         assert type(g.value).__name__ != "DynamicJaxprTracer", type(g.value)
 
-        w.potential_energy(pot)
+        gp.potential_energy(pot, w)
     """)
     assert proc.returncode == 0, proc.stderr
     assert "UnexpectedTracerError" not in proc.stderr

@@ -77,6 +77,8 @@ __all__ = [
     "tidal_tensor",
     "local_circular_velocity",
     "spherical_mass_enclosed",
+    "potential_energy",
+    "total_energy",
     "dpotential_dr",
     "d2potential_dr2",
 ]
@@ -95,8 +97,10 @@ with install_import_hook("galax.potential"):
         laplacian,
         local_circular_velocity,
         potential,
+        potential_energy,
         spherical_mass_enclosed,
         tidal_tensor,
+        total_energy,
     )
     from ._src.base import AbstractPotential
     from ._src.base_multi import (

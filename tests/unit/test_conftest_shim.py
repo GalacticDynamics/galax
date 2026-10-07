@@ -28,7 +28,10 @@ _module_name_for = conftest._module_name_for
     [
         # The root src/ tree
         ("src/galax/potential/_src/api.py", "galax.potential._src.api"),
-        ("src/galax/coordinates/__init__.py", "galax.coordinates"),
+        (
+            "packages/galax.coordinates/src/galax/coordinates/__init__.py",
+            "galax.coordinates",
+        ),
         # A packages/ tree: the dotted directory name must not leak into the
         # module name, and the walk must not stop at `interop`.
         (
@@ -49,7 +52,7 @@ def test_resolves_against_every_source_root(
     # cases hold independently of which distributions are present.
     roots = tuple(
         ROOT / "packages" / d / "src"
-        for d in ("galax.interop.gala", "galax.interop.astropy")
+        for d in ("galax.coordinates", "galax.interop.gala", "galax.interop.astropy")
     )
     monkeypatch.setattr(conftest, "_SRC_ROOTS", (*conftest._SRC_ROOTS, *roots))
     assert _module_name_for(ROOT / path) == expected

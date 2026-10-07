@@ -196,6 +196,7 @@ report.exclude_also = [
 ]
 run.source = [
   "src",
+  "packages/galax.coordinates/src",
   "packages/galax.interop.astropy/src",
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",

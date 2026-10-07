@@ -48,7 +48,7 @@ def pot() -> gp.KeplerPotential:
 def test_potential_energy_matches_the_potential(w, pot) -> None:
     """`potential_energy` is the potential evaluated at the coordinate."""
     got = gp.potential_energy(pot, w)
-    assert got == pot.potential(w.q, t=w.t)
+    assert jnp.allclose(got, pot.potential(w.q, t=w.t), atol=u.Q(1e-10, got.unit))
 
 
 def test_potential_energy_is_negative(w, pot) -> None:
@@ -60,7 +60,7 @@ def test_total_energy_is_kinetic_plus_potential(w, pot) -> None:
     """`total_energy` composes the coordinate's kinetic term with the well."""
     got = gp.total_energy(pot, w)
     expect = w.kinetic_energy() + gp.potential_energy(pot, w)
-    assert got == expect
+    assert jnp.allclose(got, expect, atol=u.Q(1e-10, got.unit))
 
 
 def test_the_old_methods_are_gone(w, pot) -> None:

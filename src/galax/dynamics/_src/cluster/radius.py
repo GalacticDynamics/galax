@@ -26,7 +26,7 @@ from plum import dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AllowValue, BareQuantity
+from unxt.quantity import AllowValue, Quantity
 
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
@@ -160,7 +160,7 @@ def tidal_radius_king1962_pointmass(
     if isinstance(rperi, cx.vecs.AbstractPos3D):
         x = rperi
     else:
-        x = BareQuantity(jnp.zeros((*rperi.shape, 3)), rperi.unit)
+        x = Quantity(jnp.zeros((*rperi.shape, 3)), rperi.unit)
         x = x.at[..., 0].set(rperi)
 
     r = jnp.linalg.vector_norm(x, axis=-1)

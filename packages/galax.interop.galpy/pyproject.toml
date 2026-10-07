@@ -23,7 +23,7 @@ dependencies = [
   "galpy>=1.8",
   "plum>=2.8.0; python_version < '3.14'",
   "plum>=2.9.0; python_version >= '3.14'",
-  "unxt>=1.11.2,<2",
+  "unxt>=2.0.5,<3",
 ]
 description = "Galpy interoperability for galax"
 dynamic = ["version"]

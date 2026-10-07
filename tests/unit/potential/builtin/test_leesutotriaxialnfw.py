@@ -1,6 +1,7 @@
 from typing import Any, override
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -31,7 +32,7 @@ class ShapeA1ParameterMixin(ParameterFieldMixin):
     def test_a1_userfunc(self, pot_cls, fields):
         """Test the `a1` parameter."""
 
-        def cos_a1(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_a1(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Q(jnp.abs(jnp.cos(t.ustrip("Myr"))) + 1.2, "")
 
         fields["a1"] = cos_a1
@@ -59,7 +60,7 @@ class ShapeA2ParameterMixin(ParameterFieldMixin):
     def test_a2_userfunc(self, pot_cls, fields):
         """Test the `a2` parameter."""
 
-        def cos_a2(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_a2(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Q(jnp.abs(jnp.cos(t.ustrip("Myr"))) / 2 + 1.1, "")
 
         fields["a1"] = u.Q(2, "")
@@ -87,7 +88,7 @@ class ShapeA3ParameterMixin(ParameterFieldMixin):
     def test_a3_userfunc(self, pot_cls, fields):
         """Test the `a3` parameter."""
 
-        def cos_a3(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_a3(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Q(jnp.abs(jnp.cos(t.ustrip("Myr"))) + 0.1, "")
 
         fields["a1"] = u.Q(1.3, "")

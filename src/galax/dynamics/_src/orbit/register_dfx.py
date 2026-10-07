@@ -12,7 +12,7 @@ import diffrax as dfx
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity as FastQ
+from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates as gc
 from .interp import PhaseSpaceInterpolation

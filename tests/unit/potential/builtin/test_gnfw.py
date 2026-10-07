@@ -1,6 +1,7 @@
 from typing import Any, ClassVar, override
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -29,7 +30,7 @@ class GammaParameterMixin(ParameterFieldMixin):
         assert pot.gamma(t=u.Q(0, "Myr")) == u.Q(0.5, "")
 
     def test_gamma_userfunc(self, pot_cls, fields):
-        def cos_gamma(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_gamma(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Q(0.5 * jnp.cos(t.ustrip("Myr")), "")
 
         fields["gamma"] = cos_gamma

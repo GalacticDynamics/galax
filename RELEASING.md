@@ -82,6 +82,36 @@ the tag exists — so verify one end to end on TestPyPI before tagging the rest.
 Changes that need to appear in the release notes, because nothing in the code
 can signpost them:
 
+- **A parameter function's return annotation must now record its dimension.**
+  unxt v2 made `Quantity` non-parametric and moved the parametric class to the
+  separate `unxts.parametric` distribution, so `u.Quantity["mass"]` no longer
+  carries `"mass"` anywhere galax can read it. `ParameterField` used that
+  annotation to check a user-supplied parameter function returns what the field
+  declares, so:
+
+  ```python
+  # before
+  def m_of_t(t: u.Quantity["time"]) -> u.Quantity["mass"]: ...
+
+
+  # now
+  from unxts.parametric import ParametricQuantity
+
+
+  def m_of_t(t: ParametricQuantity["time"]) -> ParametricQuantity["mass"]: ...
+  ```
+
+  The old spelling raises `TypeError` naming the fix. This is deliberately a
+  hard error rather than a deprecation: the only alternative was to accept the
+  annotation and silently stop checking, which would let a parameter function
+  return the wrong dimension unnoticed. A loud break at import of the first
+  wrong annotation is cheaper than a quiet one at analysis time.
+
+  Annotations that are not read for their dimension are unaffected -- ordinary
+  return types like `-> u.Quantity["1/s^2"]` need no change, since nothing
+  inspects them. Astropy-annotated parameter functions are also unaffected and
+  still checked.
+
 - **`galax.interop.optional_deps` was removed, and not replaced four times
   over.** Every interop distribution _requires_ the library it wraps, so an "is
   it installed" probe inside one is a constant `True`. Only

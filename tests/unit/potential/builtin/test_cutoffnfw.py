@@ -1,6 +1,7 @@
 from typing import Any, ClassVar, override
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -47,7 +48,7 @@ class ParameterRTMixin(ParameterFieldMixin):
     ):
         """Test the scale radius parameter."""
 
-        def cos_scalelength(t: u.Quantity["time"]) -> u.Quantity["length"]:
+        def cos_scalelength(t: u.Quantity["time"]) -> ParametricQuantity["length"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "kpc")
 
         fields["r_t"] = cos_scalelength

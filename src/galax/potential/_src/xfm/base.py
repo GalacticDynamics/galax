@@ -20,11 +20,11 @@ class AbstractTransformedPotential(AbstractPotential):
     @property
     def units(self) -> u.AbstractUnitSystem:
         """The unit system of the potential."""
-        return cast(u.AbstractUnitSystem, self.base_potential.units)
+        return cast("u.AbstractUnitSystem", self.base_potential.units)
 
     @property
     def constants(self) -> ImmutableMap[str, u.AbstractQuantity]:
         """The constants of the potential."""
         return cast(
-            ImmutableMap[str, u.AbstractQuantity], self.base_potential.constants
+            "ImmutableMap[str, u.AbstractQuantity]", self.base_potential.constants
         )

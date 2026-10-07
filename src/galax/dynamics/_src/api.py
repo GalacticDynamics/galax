@@ -104,19 +104,19 @@ def omega(x: Any, v: Any, /) -> gt.BBtQuSz0:
     >>> q = cx.CartesianPos3D.from_(x)
     >>> p = cx.CartesianVel3D.from_(v)
     >>> omega(q, p)
-    BareQuantity(1., '1 / s')
+    Q(1., '1 / s')
 
     >>> space = cx.KinematicSpace(length=q, speed=p)
     >>> omega(space)
-    BareQuantity(1., '1 / s')
+    Q(1., '1 / s')
 
     >>> w = cx.frames.Coordinate(space, frame=gc.frames.simulation_frame)
     >>> omega(w)
-    BareQuantity(1., '1 / s')
+    Q(1., '1 / s')
 
     >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(0, "yr"))
     >>> omega(w)
-    BareQuantity(1., '1 / s')
+    Q(1., '1 / s')
 
     """
     raise NotImplementedError  # pragma: no cover

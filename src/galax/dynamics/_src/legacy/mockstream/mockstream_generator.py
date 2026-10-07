@@ -14,7 +14,7 @@ import jax.extend as jex
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import BareQuantity as FastQ
+from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt

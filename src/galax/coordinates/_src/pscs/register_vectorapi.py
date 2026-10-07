@@ -192,7 +192,7 @@ def call(
 
     >>> psp2 = replace(psp, t=u.Q(1, "Gyr"))
     >>> op(psp2).q.x == newpsp.q.x
-    Array(True, dtype=bool)
+    Q(True, '')
 
     """
     # Shifting the coordinate and time
@@ -242,7 +242,7 @@ def call(
 
     >>> psp2 = replace(psp, t=u.Q(1, "Gyr"))
     >>> op(psp2).q.x == newpsp.q.x
-    Array(True, dtype=bool)
+    Q(True, '')
 
     But the time translation is not.
 
@@ -345,7 +345,7 @@ def call(
     >>> newpsp.q.x
     Q(0.70710678, 'm')
     >>> newpsp.q.norm()
-    BareQuantity(1., 'm')
+    Q(1., 'm')
 
     >>> newpsp.p.x
     Q(0.70710678, 'm / s')

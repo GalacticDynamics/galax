@@ -109,7 +109,7 @@ def real_ylm(
         else:
             cs = SQRT2 if abs(m) % 2 == 0 else -SQRT2
             out.append(cs * (cY if m > 0 else sY))
-    return cast(Float[Array, "n_modes *batch"], jnp.stack(out))
+    return cast('Float[Array, "n_modes *batch"]', jnp.stack(out))
 
 
 def default_angular_resolution(l_max: int, /) -> tuple[int, int]:
@@ -211,7 +211,7 @@ def harmonic_coeffs(
     def at_radius(r: Float[Array, ""]) -> Float[Array, "n_modes"]:
         rho = rho_fn(r * uvec, t)  # (n_theta, n_phi)
         return cast(
-            Float[Array, "n_modes"], jnp.einsum("kij,ij,ij->k", Y, rho, weights)
+            'Float[Array, "n_modes"]', jnp.einsum("kij,ij,ij->k", Y, rho, weights)
         )
 
     return jax.vmap(at_radius)(r_knots)

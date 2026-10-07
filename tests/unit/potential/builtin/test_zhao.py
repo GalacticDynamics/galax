@@ -3,6 +3,7 @@ from typing import Any, ClassVar
 import jax
 import numpy as np
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -32,7 +33,7 @@ class AlphaParameterMixin(ParameterFieldMixin):
     def test_alpha_userfunc(self, pot_cls, fields):
         """Test the `alpha` parameter."""
 
-        def cos_alpha(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_alpha(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Quantity(0.5 * jnp.cos(t.ustrip("Myr")) ** 2 + 0.5, "")
 
         fields["alpha"] = cos_alpha
@@ -58,7 +59,7 @@ class BetaParameterMixin(ParameterFieldMixin):
     def test_beta_userfunc(self, pot_cls, fields):
         """Test the `beta` parameter."""
 
-        def cos_beta(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_beta(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Quantity(jnp.cos(t.ustrip("Myr")) + 4.2, "")
 
         fields["beta"] = cos_beta
@@ -84,7 +85,7 @@ class GammaParameterMixin(ParameterFieldMixin):
     def test_gamma_userfunc(self, pot_cls, fields):
         """Test the `gamma` parameter."""
 
-        def cos_gamma(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_gamma(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Quantity(0.5 * jnp.cos(t.ustrip("Myr")) + 1.5, "")
 
         fields["gamma"] = cos_gamma

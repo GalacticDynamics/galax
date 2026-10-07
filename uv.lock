@@ -10,6 +10,7 @@ resolution-markers = [
 [manifest]
 members = [
     "galax",
+    "galax-coordinates",
     "galax-interop-astropy",
     "galax-interop-gala",
     "galax-interop-galpy",
@@ -1086,6 +1087,43 @@ test-all = [
     { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.26.0.dev20260601" },
 ]
 test-mpl = [{ name = "pytest-mpl", specifier = ">=0.17.0" }]
+
+[[package]]
+name = "galax-coordinates"
+source = { editable = "packages/galax.coordinates" }
+dependencies = [
+    { name = "coordinax" },
+    { name = "dataclassish" },
+    { name = "equinox" },
+    { name = "jax" },
+    { name = "jaxtyping" },
+    { name = "oncequinox" },
+    { name = "plum" },
+    { name = "quax" },
+    { name = "quaxed" },
+    { name = "unxt" },
+    { name = "wadler-lindig" },
+    { name = "xmmutablemap" },
+    { name = "zeroth" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coordinax", specifier = ">=0.24.1,<0.25" },
+    { name = "dataclassish", specifier = ">=0.8.0" },
+    { name = "equinox", specifier = ">=0.13.8" },
+    { name = "jax", specifier = ">=0.7.2" },
+    { name = "jaxtyping", specifier = ">=0.3.3" },
+    { name = "oncequinox", specifier = ">=0.1.0" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "quax", specifier = ">=0.4.3" },
+    { name = "quaxed", specifier = ">=0.10.5" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+    { name = "wadler-lindig", specifier = ">=0.1.7" },
+    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "zeroth", specifier = ">=1.2.0" },
+]
 
 [[package]]
 name = "galax-interop-astropy"

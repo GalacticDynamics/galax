@@ -212,6 +212,7 @@ explicit_package_bases = true
 # Each distribution under `packages/` is its own source root.
 mypy_path = [
   "src",
+  "packages/galax.coordinates/src",
   "packages/galax.interop.astropy/src",
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",

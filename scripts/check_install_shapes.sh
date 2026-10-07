@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Verify the two install shapes that matter:
+# Verify the install shapes that matter:
 #   1. a bare `pip install galax` gives a working core plus the astropy interop
 #   2. a single interop package installs on its own
+#   3. `galax.coordinates` installs on its own, without the heavier portions
 #
 # Both need a clean environment: the dev venv has every extra installed, so it
 # cannot tell a required dependency from an optional one.
@@ -15,8 +16,9 @@ WHEELS=$(mktemp -d)
 # after every run, so put them back on exit.
 VERSION_FILES=()
 for p in packages/*/; do
-  lib=$(basename "$p"); lib=${lib#galax.interop.}
-  VERSION_FILES+=("${p}src/galax/interop/${lib}/_version.py")
+  # galax.interop.gala -> galax/interop/gala; galax.coordinates -> galax/coordinates
+  leaf=$(basename "$p")
+  VERSION_FILES+=("${p}src/${leaf//.//}/_version.py")
 done
 BACKUP=$(mktemp -d)
 for f in "${VERSION_FILES[@]}"; do
@@ -73,6 +75,13 @@ echo "== the root wheel ships no galax/interop/ =="
 # floor exists to prevent.
 if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/interop/' >/dev/null; then
   echo "the root galax wheel still contains galax/interop/ files"; exit 1
+fi
+
+echo "== the root wheel ships no galax/coordinates/ =="
+# `galax.coordinates` owns that leaf now. A root wheel still carrying it would
+# let two distributions write the same files.
+if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/coordinates/' >/dev/null; then
+  echo "the root galax wheel still contains galax/coordinates/ files"; exit 1
 fi
 
 echo "== shape 1: bare \`pip install galax\` =="
@@ -136,6 +145,30 @@ converted = gp.io.convert_potential(
 )
 assert isinstance(converted, gp.NFWPotential), type(converted)
 print("subset install OK")
+PY
+
+echo "== shape 3: \`galax.coordinates\` alone =="
+# The leaf must install without dragging in the potential or dynamics stacks.
+# Installed by path so a published version cannot satisfy it.
+uv run --isolated --no-project \
+  --find-links "$WHEELS" \
+  --with "$(echo "$WHEELS"/galax_coordinates-*.whl)" \
+  python - <<'PY'
+import importlib.util
+
+import unxt as u
+
+import galax.coordinates as gc
+
+# Registered is not the same as working: build a coordinate and read it back.
+w = gc.PhaseSpacePosition(q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0.0, 220, 0], "km/s"))
+assert w.q.shape == (), w.q.shape
+
+# and the heavier portions must NOT have come along
+for absent in ("galax.potential", "galax.dynamics", "diffrax", "optimistix"):
+    assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
+
+print("coordinates-only install OK")
 PY
 
 echo "all install shapes OK"

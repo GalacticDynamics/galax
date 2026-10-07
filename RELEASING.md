@@ -9,6 +9,7 @@ alone — but the usual case is a coordinated release of all of them.
 | distribution               | tag prefix                   | directory                           |
 | -------------------------- | ---------------------------- | ----------------------------------- |
 | `galax`                    | `v`                          | repository root                     |
+| `galax.coordinates`        | `galax-coordinates-v`        | `packages/galax.coordinates`        |
 | `galax.interop.astropy`    | `galax-interop-astropy-v`    | `packages/galax.interop.astropy`    |
 | `galax.interop.gala`       | `galax-interop-gala-v`       | `packages/galax.interop.gala`       |
 | `galax.interop.galpy`      | `galax-interop-galpy-v`      | `packages/galax.interop.galpy`      |
@@ -44,15 +45,15 @@ so a mistyped prefix fails the build rather than publishing a wrong version.
 ## What does not work yet
 
 - **The per-package CD workflows build; they do not publish.** Publishing needs
-  ten trusted publishers (five distributions, each on PyPI and TestPyPI), which
-  only the repository owner can create. That is deliberately out of scope for
-  the split itself.
+  twelve trusted publishers (six distributions, each on PyPI and TestPyPI),
+  which only the repository owner can create. That is deliberately out of scope
+  for the split itself.
 - **The coordinator fan-out's dispatch step is untested.** Tags pushed with
   `GITHUB_TOKEN` do not trigger `on: push: tags:` workflows, so
   `create-package-tags.yml` dispatches each package's CD workflow explicitly
   with `gh workflow run`. That cannot be exercised without pushing a real tag.
   Do the first coordinated release with one package first and verify its CD run
-  actually starts before relying on the fan-out for all four.
+  actually starts before relying on the fan-out for all of them.
 - **Dispatched runs are validated only when dispatched on a tag ref.** The
   validation step is gated on `startsWith(github.ref, 'refs/tags/')`, so both a
   direct per-package tag push and the coordinator's
@@ -65,13 +66,15 @@ so a mistyped prefix fails the build rather than publishing a wrong version.
 ## Trusted publishers
 
 **Each distribution needs its own trusted publisher on both PyPI and TestPyPI,
-keyed to its own workflow filename.** Ten configurations. A publisher registered
-against the wrong filename fails with `invalid-publisher` at publish time, after
-the tag exists — so verify one end to end on TestPyPI before tagging the rest.
+keyed to its own workflow filename.** Twelve configurations. A publisher
+registered against the wrong filename fails with `invalid-publisher` at publish
+time, after the tag exists — so verify one end to end on TestPyPI before tagging
+the rest.
 
 | distribution               | workflow filename                 |
 | -------------------------- | --------------------------------- |
 | `galax`                    | `cd.yml`                          |
+| `galax.coordinates`        | `cd-galax-coordinates.yml`        |
 | `galax.interop.astropy`    | `cd-galax-interop-astropy.yml`    |
 | `galax.interop.gala`       | `cd-galax-interop-gala.yml`       |
 | `galax.interop.galpy`      | `cd-galax-interop-galpy.yml`      |

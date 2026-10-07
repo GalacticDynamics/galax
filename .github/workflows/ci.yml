@@ -133,10 +133,11 @@ jobs:
       - name: Install the project
         run: uv sync --group test
 
-      # A plain sync installs only the workspace member the root requires,
-      # `galax.interop.astropy`, so only its tree is collected here. The other
-      # three members' trees are covered by `check_interop`, which syncs every
-      # extra. Collecting them here would fail at import.
+      # A plain sync installs only the workspace members the root requires,
+      # `galax.coordinates` and `galax.interop.astropy`, so only their trees
+      # are collected here. The other three members' trees are covered by
+      # `check_interop`, which syncs every extra. Collecting them here would
+      # fail at import.
       - name: Test package
         run: >-
           uv run pytest src packages/galax.coordinates

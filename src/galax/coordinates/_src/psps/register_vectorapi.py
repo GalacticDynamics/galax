@@ -178,7 +178,7 @@ def call(
 
     >>> psp2 = replace(psp)
     >>> op(psp2).q.x == newpsp.q.x
-    Array(True, dtype=bool)
+    Q(True, '')
 
     """
     # Shifting the position and time
@@ -223,7 +223,7 @@ def call(self: cxo.GalileanRotation, psp: PhaseSpacePosition, /) -> PhaseSpacePo
     >>> newpsp.q.x
     Q(0.70710678, 'm')
     >>> newpsp.q.norm()
-    BareQuantity(1., 'm')
+    Q(1., 'm')
 
     >>> newpsp.p.x
     Q(0.70710678, 'm / s')

@@ -426,7 +426,7 @@ def integrate_field(
         else solver
     )
     # Parse t0, y0. Important for Quantities
-    _, y0 = field.parse_inputs(ts[0], y0, ustrip=True)  # type: ignore[misc]
+    _, y0 = field.parse_inputs(ts[0], y0, ustrip=True)
 
     # Make SaveAt
     u_t = field.units["time"]

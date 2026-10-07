@@ -14,7 +14,7 @@ import equinox as eqx
 from plum import dispatch
 
 import quaxed.numpy as jnp
-from unxt.quantity import AbstractQuantity, BareQuantity as FastQ
+from unxt.quantity import AbstractQuantity, Quantity as FastQ
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc

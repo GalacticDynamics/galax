@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -32,7 +33,7 @@ class AlphaParameterMixin(ParameterFieldMixin):
     def test_alpha_userfunc(self, pot_cls, fields):
         """Test the `alpha` parameter."""
 
-        def cos_alpha(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_alpha(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "")
 
         fields["alpha"] = cos_alpha
@@ -58,7 +59,7 @@ class RCParameterMixin(ParameterFieldMixin):
     def test_r_c_userfunc(self, pot_cls, fields):
         """Test the `r_c` parameter."""
 
-        def cos_r_c(t: u.Quantity["time"]) -> u.Quantity["length"]:
+        def cos_r_c(t: u.Quantity["time"]) -> ParametricQuantity["length"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "kpc")
 
         fields["r_c"] = cos_r_c

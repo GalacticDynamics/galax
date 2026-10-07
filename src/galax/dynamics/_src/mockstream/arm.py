@@ -91,7 +91,7 @@ def _psc_getitem_time_index(wt: MockStreamArm, index: Any) -> Any:
             raise IndexError(msg)
     elif isinstance(index, HasShape):
         if wt.t.ndim == 1:  # Sz1
-            return cast(HasShape, jnp.asarray([True]))
+            return cast("HasShape", jnp.asarray([True]))
         if len(index.shape) >= wt.t.ndim:
             msg = f"Index {index} has too many dimensions for time array of shape {wt.t.shape}"  # noqa: E501
             raise IndexError(msg)

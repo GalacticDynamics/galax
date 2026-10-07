@@ -253,7 +253,7 @@ class HamiltonianField(AbstractOrbitField):
 # Terms dispatches
 
 
-@AbstractOrbitField.terms.dispatch  # type: ignore[misc,union-attr]
+@AbstractOrbitField.terms.dispatch
 def terms(
     self: HamiltonianField,
     _: dfx.SemiImplicitEuler,

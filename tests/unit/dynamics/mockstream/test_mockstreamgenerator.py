@@ -91,11 +91,11 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
 
         # Test that the positions and momenta are finite
         allfinite = lambda x: all(
-            jtu.flatten(jtu.map(lambda x: jnp.isfinite(x).all(), x))[0]
+            jtu.flatten(jtu.map(lambda x: jnp.all(jnp.isfinite(x)), x))[0]
         )
         assert allfinite(mock.q)
         assert allfinite(mock.p)
-        assert jnp.isfinite(mock.t).all()
+        assert jnp.all(jnp.isfinite(mock.t))
 
 
 class TestFardalMockStreamGenerator(MockStreamGeneratorBase_Test):

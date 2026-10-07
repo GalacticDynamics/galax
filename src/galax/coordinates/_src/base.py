@@ -18,7 +18,7 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from dataclassish import field_items, replace
-from unxt.quantity import AbstractQuantity, BareQuantity as FastQ
+from unxt.quantity import AbstractQuantity, Quantity as FastQ
 
 import galax.coordinates.custom_types as gt
 from .utils import SLICE_ALL, PSPVConvertOptions, getitem
@@ -365,14 +365,14 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
         >>> wt = gc.PhaseSpaceCoordinate(t=u.Q(0, "Gyr"),
         ...     q=u.Q([1, 2, 3], "kpc"), p=u.Q([4, 5, 6], "km/s"))
         >>> wt._qp(units=u.unitsystem("galactic"))
-        (BareQuantity([1, 2, 3], 'kpc'),
-         BareQuantity([0.00409085, 0.00511356, 0.00613627], 'kpc / Myr'))
+        (Q([1, 2, 3], 'kpc'),
+         Q([0.00409085, 0.00511356, 0.00613627], 'kpc / Myr'))
 
         >>> w = gc.PhaseSpacePosition(q=u.Q([1, 2, 3], "kpc"),
         ...                           p=u.Q([4, 5, 6], "km/s"))
         >>> w._qp(units=u.unitsystem("galactic"))
-        (BareQuantity([1, 2, 3], 'kpc'),
-         BareQuantity([0.00409085, 0.00511356, 0.00613627], 'kpc / Myr'))
+        (Q([1, 2, 3], 'kpc'),
+         Q([0.00409085, 0.00511356, 0.00613627], 'kpc / Myr'))
 
         """
         batch, comps = self._shape_tuple

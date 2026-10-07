@@ -29,7 +29,7 @@ classifiers = [
 dependencies = [
   "astropy>=7.0.0",
   "beartype>=0.22.9",                      # TODO: figure out why 0.22.0 breaks things
-  "coordinax>=0.23.3,<0.24",
+  "coordinax>=0.24.1,<0.25",
   "dataclassish>=0.8.0",
   "diffrax>=0.7",
   "diffraxtra>=1.5.2",
@@ -51,7 +51,8 @@ dependencies = [
   "quaxed>=0.10.5",
   "tfp-nightly[jax]>=0.25.0",
   "typing-extensions>=4.13.2",
-  "unxt>=1.11.2,<2",
+  "unxt>=2.0.5,<3",
+  "unxts.parametric>=2.0,<3",
   "wadler_lindig>=0.1.7",
   "xmmutablemap>=0.2.1",
   "zeroth>=1.2.0",
@@ -67,7 +68,11 @@ interop-all = [
   "galax[interop-galpy]",
 ]
 interop-astropy = ["astropy>=6.1"]
-interop-gala = ["gala>=1.10", "galax[interop-astropy]"]
+interop-gala = [
+  "gala>=1.10",
+  "galax[interop-astropy]",
+  "unxts.interop.gala>=2.0,<3",
+]
 interop-galpy = ["galax[interop-astropy]", "galpy >= 1.8"]
 # TODO: agama
 plot-all = ["galax[plot-matplotlib]"]
@@ -425,7 +430,7 @@ sections = { typing = [
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
-[tool.unxt]
+[tool.unxts.unxt]
 quantity.repr.include_params = false
 quantity.repr.named_unit = false
 quantity.repr.short_arrays = "compact"

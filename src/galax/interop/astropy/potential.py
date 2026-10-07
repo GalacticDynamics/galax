@@ -10,7 +10,7 @@ from astropy.units import Quantity as APYQuantity
 from plum import convert, dispatch
 
 import coordinax as cx
-from unxt.quantity import BareQuantity as FastQ
+from unxt.quantity import Quantity as FastQ
 
 import galax.potential as gp
 import galax.potential.custom_types as gt

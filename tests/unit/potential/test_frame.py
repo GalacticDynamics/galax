@@ -2,6 +2,8 @@
 
 from dataclasses import replace
 
+from unxts.parametric import ParametricQuantity
+
 import quaxed.numpy as jnp
 import unxt as u
 
@@ -17,7 +19,7 @@ def test_bar_means_of_rotation() -> None:
 
     Omega_z_angv = u.Q(220.0, "deg/Myr")
 
-    def alpha_func(t: u.Quantity) -> u.Quantity["deg"]:
+    def alpha_func(t: u.Quantity) -> ParametricQuantity["deg"]:
         return Omega_z_angv * t
 
     # Hard-coded means of rotation

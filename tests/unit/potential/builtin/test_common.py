@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -41,7 +42,7 @@ class ParameterMTotMixin(ParameterFieldMixin):
     def test_m_tot_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
 
-        def cos_mass(t: u.Quantity["time"]) -> u.Quantity["mass"]:
+        def cos_mass(t: u.Quantity["time"]) -> ParametricQuantity["mass"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "Msun")
 
         fields["m_tot"] = cos_mass
@@ -77,7 +78,7 @@ class ParameterMMixin(ParameterFieldMixin):
     def test_m_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
 
-        def cos_mass(t: u.Quantity["time"]) -> u.Quantity["mass"]:
+        def cos_mass(t: u.Quantity["time"]) -> ParametricQuantity["mass"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "Msun")
 
         fields["m"] = cos_mass
@@ -123,7 +124,7 @@ class ParameterRSMixin(ParameterFieldMixin):
     ):
         """Test the scale radius parameter."""
 
-        def cos_scalelength(t: u.Quantity["time"]) -> u.Quantity["length"]:
+        def cos_scalelength(t: u.Quantity["time"]) -> ParametricQuantity["length"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "kpc")
 
         fields["r_s"] = cos_scalelength
@@ -153,7 +154,7 @@ class ParameterShapeQ1Mixin(ParameterFieldMixin):
     def test_q1_userfunc(self, pot_cls, fields):
         """Test the q1 parameter."""
 
-        def cos_q1(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_q1(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "")
 
         fields["q1"] = cos_q1
@@ -179,7 +180,7 @@ class ParameterShapeQ2Mixin(ParameterFieldMixin):
     def test_q2_userfunc(self, pot_cls, fields):
         """Test the q2 parameter."""
 
-        def cos_q2(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_q2(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "")
 
         fields["q2"] = cos_q2
@@ -205,7 +206,7 @@ class ParameterShapeQ3Mixin(ParameterFieldMixin):
     def test_q3_userfunc(self, pot_cls, fields):
         """Test the q3 parameter."""
 
-        def cos_q3(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_q3(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "")
 
         fields["q3"] = cos_q3
@@ -234,7 +235,7 @@ class ParameterShapeAMixin(ParameterFieldMixin):
     def test_a_userfunc(self, pot_cls, fields):
         """Test the `a` parameter."""
 
-        def cos_a(t: u.Quantity["time"]) -> u.Quantity["length"]:
+        def cos_a(t: u.Quantity["time"]) -> ParametricQuantity["length"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "kpc")
 
         fields["a"] = cos_a
@@ -260,7 +261,7 @@ class ParameterShapeBMixin(ParameterFieldMixin):
     def test_b_userfunc(self, pot_cls, fields):
         """Test the `b` parameter."""
 
-        def cos_b(t: u.Quantity["time"]) -> u.Quantity["length"]:
+        def cos_b(t: u.Quantity["time"]) -> ParametricQuantity["length"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "kpc")
 
         fields["b"] = cos_b
@@ -286,7 +287,7 @@ class ParameterShapeCMixin(ParameterFieldMixin):
     def test_c_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
 
-        def cos_c(t: u.Quantity["time"]) -> u.Quantity["length"]:
+        def cos_c(t: u.Quantity["time"]) -> ParametricQuantity["length"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "kpc")
 
         fields["c"] = cos_c
@@ -312,7 +313,7 @@ class ParameterShapeHRMixin(ParameterFieldMixin):
     def test_h_R_userfunc(self, pot_cls, fields):
         """Test the `h_R` parameter."""
 
-        def cos_h_R(t: u.Quantity["time"]) -> u.Quantity["length"]:
+        def cos_h_R(t: u.Quantity["time"]) -> ParametricQuantity["length"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "kpc")
 
         fields["h_R"] = cos_h_R
@@ -338,7 +339,7 @@ class ParameterShapeHZMixin(ParameterFieldMixin):
     def test_h_z_userfunc(self, pot_cls, fields):
         """Test the `h_z` parameter."""
 
-        def cos_h_z(t: u.Quantity["time"]) -> u.Quantity["length"]:
+        def cos_h_z(t: u.Quantity["time"]) -> ParametricQuantity["length"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "kpc")
 
         fields["h_z"] = cos_h_z
@@ -374,7 +375,7 @@ class ParameterVCMixin(ParameterFieldMixin):
     def test_v_c_userfunc(self, pot_cls, fields):
         """Test the mass parameter."""
 
-        def cos_v_c(t: u.Quantity["time"]) -> u.Quantity["speed"]:
+        def cos_v_c(t: u.Quantity["time"]) -> ParametricQuantity["speed"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "km/s")
 
         fields["v_c"] = cos_v_c

@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -35,7 +36,7 @@ class AlphaParameterMixin(ParameterFieldMixin):
     def test_alpha_userfunc(self, pot_cls, fields):
         """Test the `alpha` parameter."""
 
-        def cos_alpha(t: u.Quantity["time"]) -> u.Quantity["angle"]:
+        def cos_alpha(t: u.Quantity["time"]) -> ParametricQuantity["angle"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "deg")
 
         fields["alpha"] = cos_alpha

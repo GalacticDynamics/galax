@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from plum import dispatch
 
+import unxt as u
 from plotting_backends import MatplotlibBackend
 from unxt.quantity import AbstractQuantity
 
@@ -84,7 +85,15 @@ def plot_components(
         if isinstance(plot_function, PlotFunctionCallable)
         else getattr(ax, plot_function)
     )
-    _ = plot_fn(x_data, y_data, **kwargs, label="orbit")
+    # Strip to bare arrays: unxt 2 refuses to coerce a quantity into one
+    # implicitly, and matplotlib does exactly that. The units are not lost --
+    # they go to the axis labels below, in the same unit stripped here.
+    _ = plot_fn(
+        u.ustrip(x_data.unit, x_data),
+        u.ustrip(y_data.unit, y_data),
+        **kwargs,
+        label="orbit",
+    )
 
     # labels
     ax.set_xlabel(f"{x} [{x_data.unit}]")

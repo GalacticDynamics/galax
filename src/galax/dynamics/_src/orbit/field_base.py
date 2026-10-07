@@ -33,7 +33,7 @@ class AbstractOrbitField(AbstractField):
         raise NotImplementedError  # pragma: no cover
 
     @override
-    @AbstractField.parse_inputs.dispatch  # type: ignore[misc,override,union-attr]
+    @AbstractField.parse_inputs.dispatch  # type: ignore[override]
     def parse_inputs(
         self: "AbstractOrbitField", *args: Any, ustrip: bool = True, **kwargs: Any
     ) -> tuple[Array, PyTree[Array]]:

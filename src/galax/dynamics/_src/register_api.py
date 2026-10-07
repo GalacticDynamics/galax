@@ -13,7 +13,7 @@ from plum import convert, dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
-from unxt.quantity import BareQuantity
+from unxt.quantity import Quantity
 
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
@@ -41,8 +41,8 @@ def specific_angular_momentum(
     x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /
 ) -> cx.vecs.Cartesian3D:
     """Compute from `coordinax.vecs.AbstractVector`s."""
-    v = convert(cx.vconvert(cx.CartesianVel3D, v, x), BareQuantity)
-    x = convert(cx.vconvert(cx.CartesianPos3D, x), BareQuantity)
+    v = convert(cx.vconvert(cx.CartesianVel3D, v, x), Quantity)
+    x = convert(cx.vconvert(cx.CartesianPos3D, x), Quantity)
     h = api.specific_angular_momentum(x, v)
     return cx.vecs.Cartesian3D(x=h[..., 0], y=h[..., 1], z=h[..., 2])
 
@@ -93,8 +93,8 @@ def omega(
 def omega(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtQuSz0:
     """Compute from `coordinax.vecs.AbstractVector`s."""
     # TODO: more directly using the vectors
-    v = convert(cx.vconvert(cx.CartesianVel3D, v, x), BareQuantity)
-    x = convert(cx.vconvert(cx.CartesianPos3D, x), BareQuantity)
+    v = convert(cx.vconvert(cx.CartesianVel3D, v, x), Quantity)
+    x = convert(cx.vconvert(cx.CartesianPos3D, x), Quantity)
     return api.omega(x, v)
 
 

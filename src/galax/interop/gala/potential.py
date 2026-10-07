@@ -5,6 +5,7 @@ __all__ = ["gala_to_galax", "galax_to_gala"]
 
 import equinox as eqx
 import gala.potential as galap
+import unxts.interop.gala  # noqa: F401  # registers the unit-system conversions
 from astropy.units import Quantity as APYQuantity
 from gala.units import (
     DimensionlessUnitSystem as GalaDimensionlessUnitSystem,
@@ -127,11 +128,9 @@ def _apply_xop[PT: gp.AbstractPotential](
 
 def _galax_to_gala_units(units: u.AbstractUnitSystem, /) -> GalaUnitSystem:
     """Convert a Galax unit system to a Gala unit system."""
-    # Galax potentials naturally convert Gala unit systems, but Gala potentials
-    # do not convert Galax unit systems. This function is used for that purpose.
     if isinstance(units, u.unitsystems.DimensionlessUnitSystem):
         return gala_dimensionless
-    return GalaUnitSystem(units)
+    return convert(units, GalaUnitSystem)
 
 
 def _error_if_not_all_constant_parameters(
@@ -151,12 +150,13 @@ def _error_if_not_all_constant_parameters(
 
 
 # TODO: check if `galax` handles this internally
-def _check_gala_units(gala: GalaUnitSystem, /) -> GalaUnitSystem:
-    return eqx.error_if(
+def _check_gala_units(gala: GalaUnitSystem, /) -> u.AbstractUnitSystem:
+    gala = eqx.error_if(
         gala,
         isinstance(gala, GalaDimensionlessUnitSystem),
         "Galax does not support converting dimensionless units.",
     )
+    return convert(gala, u.AbstractUnitSystem)
 
 
 # -----------------------------------------------------------------------------
@@ -293,7 +293,7 @@ if OptDeps.GALA.installed and (Version("1.8.2") <= OptDeps.GALA):
         """  # noqa: E501
         params = gala.parameters
         pot = gp.BurkertPotential.from_central_density(
-            rho_0=params["rho"], r_s=params["r0"], units=gala.units
+            rho_0=params["rho"], r_s=params["r0"], units=_check_gala_units(gala.units)
         )
         return _apply_xop(_get_xop(gala), pot)
 
@@ -710,7 +710,7 @@ def gala_to_galax(
         b=params["b"],
         c=params["c"],
         alpha=params["alpha"],
-        units=gala.units,
+        units=_check_gala_units(gala.units),
     )
     return _apply_xop(_get_xop(gala), pot)
 
@@ -895,7 +895,7 @@ def gala_to_galax(pot: galap.NullPotential, /) -> gp.NullPotential:
     )
 
     """
-    return gp.NullPotential(units=pot.units)
+    return gp.NullPotential(units=_check_gala_units(pot.units))
 
 
 @dispatch
@@ -1082,7 +1082,10 @@ def gala_to_galax(
     """
     params = gala.parameters
     pot = gp.SatohPotential(
-        m_tot=params["m"], a=params["a"], b=params["b"], units=gala.units
+        m_tot=params["m"],
+        a=params["a"],
+        b=params["b"],
+        units=_check_gala_units(gala.units),
     )
     return _apply_xop(_get_xop(gala), pot)
 
@@ -1139,7 +1142,10 @@ def gala_to_galax(
     """  # noqa: E501
     params = gala.parameters
     pot = gp.StoneOstriker15Potential(
-        m_tot=params["m"], r_c=params["r_c"], r_h=params["r_h"], units=gala.units
+        m_tot=params["m"],
+        r_c=params["r_c"],
+        r_h=params["r_h"],
+        units=_check_gala_units(gala.units),
     )
     return _apply_xop(_get_xop(gala), pot)
 
@@ -1215,11 +1221,11 @@ def gala_to_galax(
             q2=params["q2"],
             q3=params["q3"],
             phi=params["phi"],
-            units=gala.units,
+            units=_check_gala_units(gala.units),
         )
     else:
         pot = gp.LogarithmicPotential(
-            v_c=params["v_c"], r_s=params["r_h"], units=gala.units
+            v_c=params["v_c"], r_s=params["r_h"], units=_check_gala_units(gala.units)
         )
 
     return _apply_xop(_get_xop(gala), pot)
@@ -1312,7 +1318,7 @@ def gala_to_galax(
         l_max=l_max,
         Slm=Slm,
         Tlm=Tlm,
-        units=gala.units,
+        units=_check_gala_units(gala.units),
     )
     return _apply_xop(_get_xop(gala), pot)
 
@@ -1369,7 +1375,9 @@ def gala_to_galax(
 
     """
     params = gala.parameters
-    pot = gp.NFWPotential(m=params["m"], r_s=params["r_s"], units=gala.units)
+    pot = gp.NFWPotential(
+        m=params["m"], r_s=params["r_s"], units=_check_gala_units(gala.units)
+    )
     return _apply_xop(_get_xop(gala), pot)
 
 
@@ -1399,7 +1407,7 @@ def gala_to_galax(
     )
 
     """  # noqa: E501
-    units = pot.units
+    units = _check_gala_units(pot.units)
     params = pot.parameters
     G = u.Q(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
 
@@ -1497,7 +1505,7 @@ def gala_to_galax(
     )
 
     """  # noqa: E501
-    units = pot.units
+    units = _check_gala_units(pot.units)
     params = pot.parameters
     G = u.Q(pot.G, units["length"] ** 3 / units["time"] ** 2 / units["mass"])
 

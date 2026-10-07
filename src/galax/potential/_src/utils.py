@@ -19,14 +19,14 @@ import coordinax.frames as cxf
 import coordinax.vecs as cxv
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AllowValue, BareQuantity
+from unxt.quantity import AllowValue, Quantity
 
 import galax.coordinates as gc
 import galax.potential.custom_types as gt
 
 OptUSys: TypeAlias = u.AbstractUnitSystem | None
 
-speed_of_light = u.quantity.BareQuantity(299_792_458, "m/s")
+speed_of_light = u.quantity.Quantity(299_792_458, "m/s")
 
 
 def parse_dtypes(dtype2: np.dtype, dtype1: Any, /) -> np.dtype | None:
@@ -190,7 +190,7 @@ def parse_to_xyz_t(
 
     >>> q = cx.vecs.CartesianPos3D.from_([1, 0, 0], "kpc")
     >>> parse_to_xyz_t(None, q, t)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     >>> parse_to_xyz_t(None, q, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -198,16 +198,16 @@ def parse_to_xyz_t(
 
     >>> tq = cx.vecs.FourVector(q=q, t=t)
     >>> parse_to_xyz_t(None, tq)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     >>> parse_to_xyz_t(None, tq, t)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     - `coordinax.KinematicSpace` objects:
 
     >>> space = cx.KinematicSpace(length=q)
     >>> parse_to_xyz_t(None, space, t)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     >>> parse_to_xyz_t(None, space, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -215,17 +215,17 @@ def parse_to_xyz_t(
 
     >>> space = cx.KinematicSpace(length=tq)
     >>> parse_to_xyz_t(None, space)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     >>> parse_to_xyz_t(None, space, t)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     - `coordinax.AbstractCoordinate` objects:
 
     >>> coord = cx.Coordinate(cx.KinematicSpace(length=q),
     ...                       frame=gc.frames.simulation_frame)
     >>> parse_to_xyz_t(None, coord, t)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     >>> parse_to_xyz_t(None, coord, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -234,17 +234,17 @@ def parse_to_xyz_t(
     >>> coord = cx.Coordinate(cx.KinematicSpace(length=tq),
     ...                       frame=gc.frames.simulation_frame)
     >>> parse_to_xyz_t(None, coord)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     >>> parse_to_xyz_t(None, coord, t)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     - `galax.coordinates.PhaseSpacePosition` objects:
 
     >>> p = cx.vecs.CartesianVel3D.from_([0, 0, 0], "km/s")
     >>> w = gc.PhaseSpacePosition(q=q, p=p)
     >>> parse_to_xyz_t(None, w, t)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     >>> parse_to_xyz_t(None, w, t, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
@@ -255,14 +255,14 @@ def parse_to_xyz_t(
     >>> wt = gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
 
     >>> parse_to_xyz_t(None, wt)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     >>> parse_to_xyz_t(None, wt, ustrip=u.unitsystems.galactic)
     (Array([1, 0, 0], dtype=int64),
      Array(1000., dtype=float64, weak_type=True))
 
     >>> parse_to_xyz_t(None, wt, t)
-    (BareQuantity([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
+    (Q([1, 0, 0], 'kpc'), Q(1, 'Gyr'))
 
     """
 
@@ -322,7 +322,8 @@ def parse_to_xyz_t(
     t, xyz = txyz[..., 0], txyz[..., 1:4]
     t = eqx.error_if(
         t,
-        t_ref is not None and jnp.logical_not(jnp.array_equal(t_ref, t)),
+        t_ref is not None
+        and u.ustrip(AllowValue, "", jnp.logical_not(jnp.array_equal(t_ref, t))),
         "t != txyz[..., 0], None",
     )
     return parse_to_xyz_t(to_frame, xyz, t, dtype=dtype, ustrip=ustrip)
@@ -388,7 +389,8 @@ def parse_to_xyz_t(
     t = ct / speed_of_light
     t = eqx.error_if(
         t,
-        tref is not None and jnp.logical_not(jnp.array_equal(tref, t)),
+        tref is not None
+        and u.ustrip(AllowValue, "", jnp.logical_not(jnp.array_equal(tref, t))),
         "t != txyz[..., 0], None",
     )
     return parse_to_xyz_t(to_frame, xyz, t, dtype=dtype, ustrip=ustrip)
@@ -405,7 +407,7 @@ def parse_to_xyz_t(
     ustrip: OptUSys = None,
 ) -> tuple[gt.BBtQorVSz3, gt.BBtQorVSz0]:
     """Parse input arguments to position & time."""
-    xyz = convert(q.vconvert(cx.CartesianPos3D), BareQuantity)
+    xyz = convert(q.vconvert(cx.CartesianPos3D), Quantity)
     return parse_to_xyz_t(to_frame, xyz, t, dtype=dtype, ustrip=ustrip)
 
 
@@ -436,7 +438,8 @@ def parse_to_xyz_t(
     t = q4.t
     t = eqx.error_if(
         t,
-        tref is not None and jnp.logical_not(jnp.array_equal(tref, t)),
+        tref is not None
+        and u.ustrip(AllowValue, "", jnp.logical_not(jnp.array_equal(tref, t))),
         "t != q4.t, None",
     )
     return parse_to_xyz_t(to_frame, q4.q, t, dtype=dtype, ustrip=ustrip)
@@ -555,7 +558,8 @@ def parse_to_xyz_t(
     # Parse `t`
     t = eqx.error_if(
         jnp.asarray(wt.t, dtype=dtype),
-        t is not None and jnp.logical_not(jnp.array_equal(wt.t, t)),
+        t is not None
+        and u.ustrip(AllowValue, "", jnp.logical_not(jnp.array_equal(wt.t, t))),
         "t != wt.t, None",
     )
     # Re-dispatch on the data
@@ -598,4 +602,7 @@ def _reverse[T](x: op.CanGetitem[Any, T]) -> T:
 
 def cond_reverse[T](pred: Bool[Array, ""], x: T) -> T:
     """Reverse `x` if `pred` is True."""
+    # A comparison of two quantities is itself a dimensionless quantity under
+    # unxt 2, and `jax.lax.cond` only takes a bare array.
+    pred = u.ustrip(AllowValue, "", pred)
     return cast("T", jax.lax.cond(pred, _reverse, _identity, x))

@@ -129,7 +129,7 @@ class MassSolver(AbstractSolver):
 # Init Dispatches
 
 
-@MassSolver.init.dispatch  # type: ignore[misc,union-attr]
+@MassSolver.init.dispatch
 def init(
     self: MassSolver,
     field: AbstractMassRateField,
@@ -148,7 +148,7 @@ def init(
 # Run Dispatches
 
 
-@MassSolver.run.dispatch  # type: ignore[misc,union-attr]
+@MassSolver.run.dispatch
 def run(
     self: MassSolver,
     field: AbstractMassRateField,
@@ -181,7 +181,7 @@ def run(
 default_saveat = dfx.SaveAt(t1=True)
 
 
-@MassSolver.solve.dispatch  # type: ignore[misc,union-attr]
+@MassSolver.solve.dispatch
 @eqx.filter_jit
 def solve(
     self: MassSolver,

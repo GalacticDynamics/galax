@@ -241,8 +241,8 @@ def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimens
 
     Examples
     --------
-    >>> import unxt as u
-    >>> def func(t: u.Quantity["time"]) -> u.Quantity["mass"]: pass
+    >>> from unxts.parametric import ParametricQuantity as PQ
+    >>> def func(t: PQ["time"]) -> PQ["mass"]: pass
     >>> _get_dimensions_from_return_annotation(func)
     PhysicalType('mass')
 
@@ -268,15 +268,23 @@ def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimens
 
     ann = type_hints["return"]
 
-    # Get the dimensions from the return annotation
-    dims: Dimension | None = None
-
-    # `unxt.Quantity`
+    # Only a parametric quantity records its dimension. unxt v2 made the
+    # default `Quantity` non-parametric and moved the parametric one to
+    # `unxts.parametric`, so a bare `unxt.Quantity[...]` annotation carries
+    # nothing to check the parameter against.
     if isclass(ann) and issubclass(ann, AbstractQuantity):
-        dims = ann.type_parameter
+        dims = getattr(ann, "type_parameter", None)
+        if dims is None:
+            msg = (
+                "Parameter function return annotation must record its "
+                "dimension: annotate it `ParametricQuantity[...]` from "
+                "`unxts.parametric`, not `unxt.Quantity[...]`."
+            )
+            raise TypeError(msg)
+        return dims
 
     # Astropy compatibility
-    elif isannotated(ann):
+    if isannotated(ann):
         args = get_args(ann)
 
         if (
@@ -284,10 +292,7 @@ def _get_dimensions_from_return_annotation(func: ParameterCallable, /) -> Dimens
             and issubclass(args[0], AstropyQuantity)
             and isinstance(args[1], Dimension)
         ):
-            dims = args[1]
+            return args[1]
 
-    if dims is None:
-        msg = "Parameter function return annotation must be a Quantity"
-        raise TypeError(msg)
-
-    return dims
+    msg = "Parameter function return annotation must be a Quantity"
+    raise TypeError(msg)

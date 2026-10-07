@@ -2,10 +2,9 @@
 
 __all__ = ["MockStreamArm"]
 
-from typing import Any, ClassVar, Protocol, cast, final, runtime_checkable
+from typing import ClassVar, final
 
 import equinox as eqx
-from plum import dispatch
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -63,36 +62,3 @@ class MockStreamArm(gc.AbstractBasicPhaseSpaceCoordinate):
         tbatch, _ = batched_shape(self.t, expect_ndim=0)
         batch_shape = jnp.broadcast_shapes(qbatch, pbatch, tbatch)
         return batch_shape, gc.ComponentShapeTuple(q=qshape, p=pshape, t=1)
-
-
-#####################################################################
-
-# =========================================================
-# `__getitem__`
-
-
-@runtime_checkable
-class HasShape(Protocol):
-    """Protocol for an object with a shape attribute."""
-
-    shape: gt.Shape
-
-
-@dispatch
-def _psc_getitem_time_index(wt: MockStreamArm, index: Any) -> Any:
-    """Get the time index from an index."""
-    if isinstance(index, tuple):
-        if len(index) == 0:  # slice is an empty tuple
-            return slice(None)
-        if wt.t.ndim == 1:  # slicing a Sz1
-            return slice(None)
-        if len(index) >= wt.t.ndim:
-            msg = f"Index {index} has too many dimensions for time array of shape {wt.t.shape}"  # noqa: E501
-            raise IndexError(msg)
-    elif isinstance(index, HasShape):
-        if wt.t.ndim == 1:  # Sz1
-            return cast("HasShape", jnp.asarray([True]))
-        if len(index.shape) >= wt.t.ndim:
-            msg = f"Index {index} has too many dimensions for time array of shape {wt.t.shape}"  # noqa: E501
-            raise IndexError(msg)
-    return index

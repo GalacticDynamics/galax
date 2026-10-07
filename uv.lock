@@ -15,6 +15,7 @@ members = [
     "galax-interop-gala",
     "galax-interop-galpy",
     "galax-interop-matplotlib",
+    "galax-potential",
 ]
 
 [[package]]
@@ -1217,6 +1218,65 @@ requires-dist = [
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
+]
+
+[[package]]
+name = "galax-potential"
+source = { editable = "packages/galax.potential" }
+dependencies = [
+    { name = "astropy" },
+    { name = "boundinstance" },
+    { name = "coordinax" },
+    { name = "dataclassish" },
+    { name = "equinox" },
+    { name = "galax-coordinates" },
+    { name = "interpax" },
+    { name = "is-annotated" },
+    { name = "jax" },
+    { name = "jaxtyping" },
+    { name = "numpy" },
+    { name = "optype" },
+    { name = "plotting-backends" },
+    { name = "plum" },
+    { name = "quax" },
+    { name = "quax-blocks" },
+    { name = "quaxed" },
+    { name = "spexial" },
+    { name = "typing-extensions" },
+    { name = "unxt" },
+    { name = "unxts-parametric" },
+    { name = "wadler-lindig" },
+    { name = "xmmutablemap" },
+    { name = "zeroth" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "astropy", specifier = ">=7.0.0" },
+    { name = "boundinstance", specifier = ">=0.1" },
+    { name = "coordinax", specifier = ">=0.24.1,<0.25" },
+    { name = "dataclassish", specifier = ">=0.8.0" },
+    { name = "equinox", specifier = ">=0.13.8" },
+    { name = "galax-coordinates", editable = "packages/galax.coordinates" },
+    { name = "interpax", specifier = ">=0.3.11" },
+    { name = "is-annotated", specifier = ">=1.0" },
+    { name = "jax", specifier = ">=0.7.2" },
+    { name = "jaxtyping", specifier = ">=0.3.3" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "optype", specifier = ">=0.14.0" },
+    { name = "plotting-backends", specifier = ">=0.1" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "quax", specifier = ">=0.4.3" },
+    { name = "quax-blocks", specifier = ">=0.5" },
+    { name = "quaxed", specifier = ">=0.10.5" },
+    { name = "spexial", specifier = ">=0.2.1" },
+    { name = "typing-extensions", specifier = ">=4.13.2" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+    { name = "unxts-parametric", specifier = ">=2.0,<3" },
+    { name = "wadler-lindig", specifier = ">=0.1.7" },
+    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "zeroth", specifier = ">=1.2.0" },
 ]
 
 [[package]]

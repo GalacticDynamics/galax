@@ -113,3 +113,16 @@ def test_entry_point_is_registered(group: str, name: str, value: str) -> None:
     """
     registered = {ep.name: ep.value for ep in entry_points(group=group)}
     assert registered.get(name) == value, f"{group}: {name} -> {registered.get(name)}"
+
+
+def test_coordinates_group_survives_the_split() -> None:
+    """`galax.coordinates` owns the group its own distribution consumes.
+
+    The loader moved with the portion. A group that silently empties produces no
+    error -- the conversions just stop existing -- so assert it is populated and
+    that every entry point still loads.
+    """
+    eps = list(entry_points(group="galax.coordinates.interop"))
+    assert eps, "galax.coordinates.interop has no entry points"
+    for ep in eps:
+        assert ep.load() is not None, f"{ep.name} failed to load"

@@ -139,9 +139,10 @@ jobs:
       # extra. Collecting them here would fail at import.
       - name: Test package
         run: >-
-          uv run pytest src packages/galax.interop.astropy docs tests/unit
-          tests/functional -ra --cov --cov-report=xml --cov-report=term
-          --durations=20 --arraydiff -m"not slow" -n logical --dist=loadfile
+          uv run pytest src packages/galax.coordinates
+          packages/galax.interop.astropy docs tests/unit tests/functional -ra
+          --cov --cov-report=xml --cov-report=term --durations=20 --arraydiff
+          -m"not slow" -n logical --dist=loadfile
 
       - name: Upload coverage report
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1

@@ -35,6 +35,7 @@ dependencies = [
   "diffrax>=0.7",
   "diffraxtra>=1.5.2",
   "equinox>=0.13.8",
+  "galax.coordinates",
   # Required, not an extra: `astropy` is already a required dependency, so this
   # interop's entry point registers on every install today. Demoting it would
   # silently stop astropy conversions from registering -- a missing entry point
@@ -95,6 +96,7 @@ requires = ["hatch-vcs", "hatchling"]
 members = ["packages/*"]
 
 [tool.uv.sources]
+"galax.coordinates" = { workspace = true }
 "galax.interop.astropy" = { workspace = true }
 "galax.interop.gala" = { workspace = true }
 "galax.interop.galpy" = { workspace = true }

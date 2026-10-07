@@ -72,10 +72,11 @@ NFW halo at :math:`l_\max = 8` that would be 6 of the 15 retained modes,
 worth 40-47% in those :math:`\Phi_{lm}` near :math:`r_\max` and 1.7% in
 :math:`|a|` at :math:`r = 250` with :math:`r_\max = 300`.
 
-Note the inner gate's ``1e-8 * scale`` threshold is deliberately *not*
-mirrored here: ``scale`` is the per-mode maximum over the whole radial range,
-set by the inner cusp, and is ~9 orders of magnitude larger than
-:math:`\rho_{lm}(r_\max)` -- reusing it disables the outer tail entirely.
+Note the inner gate's ``1e-8 * scale_in`` threshold is deliberately *not*
+mirrored here. That normaliser is the maximum over the band the inner tail
+describes, which for a cusp is set by its innermost samples and is ~9 orders
+of magnitude larger than :math:`\rho_{lm}(r_\max)` -- reusing it would
+disable the outer tail entirely.
 """
 
 __all__: tuple[str, ...] = ()
@@ -107,7 +108,7 @@ def _log_floor(x: Float[Array, "..."], /) -> float:
 
     Used twice: as a floor inside ``log|rho|`` so an identically-zero mode
     gives an ordinary number rather than ``-inf``, and as a floor on
-    ``scale`` so the relative gate cannot divide by zero for an all-zero
+    ``scale_in`` so the relative gate cannot divide by zero for an all-zero
     column.
 
     Sized from the working dtype, not fixed. A float64 constant such as
@@ -414,7 +415,6 @@ def solve_poisson_profiles(
             p_out = panels(g_out, d_out, ones, jnp.exp(-l * du))
 
         floor = _log_floor(rho_col)
-        scale = jnp.max(jnp.abs(rho_col)) + floor
 
         # -- inner tail (0 -> r_min), rho_lm ~ A_in r^alpha_in --------------
         # Anchor the tail at the first trustworthy knot, not at index 0.
@@ -448,6 +448,34 @@ def solve_poisson_profiles(
         tri = i0 + jnp.arange(3)
         log_r_in = log_r[tri]
         log_rho_in = jnp.log(jnp.abs(rho_col[tri]) + floor)
+        slopes_in = jnp.diff(log_rho_in) / jnp.diff(log_r_in)
+        # Only anchor when the three-knot fit is self-consistent enough for
+        # the tail to mean anything. The tail goes as `1/exp_in`, so a slope
+        # error `d_alpha` is a relative error `d_alpha / exp_in`, and the two
+        # pairwise slopes disagreeing *is* the fit's own estimate of
+        # `d_alpha`. Rejecting above 1 means "drop it when it would be wrong
+        # by more than itself" -- a statement about acceptable error, not a
+        # tuned constant. On a Dehnen `gamma = 2.9` the ratio is 9.3 at
+        # `n_r = 5`, where the innermost three knots span four decades and are
+        # nothing like a power law, and below 5e-3 for every `n_r >= 8`: the
+        # threshold sits in a gap three orders wide, so its value does not
+        # matter.
+        #
+        # The fallback is `i0 = 0`, not merely dropping the tail, because
+        # anchoring also zeroes every panel below the anchor -- including
+        # panels over density that is perfectly good. Keeping those and losing
+        # only the tail is what `main` did, and its error is bounded; keeping
+        # a bad tail is not (`exp_in = 0.017` at `n_r = 5` amplifies it 58x,
+        # for 430% error).
+        i0 = jnp.where(
+            jnp.abs(slopes_in[1] - slopes_in[0])
+            < jnp.abs(jnp.mean(slopes_in) + l + 3.0),
+            i0,
+            0,
+        )
+        tri = i0 + jnp.arange(3)
+        log_r_in = log_r[tri]
+        log_rho_in = jnp.log(jnp.abs(rho_col[tri]) + floor)
         alpha_in = jnp.mean(jnp.diff(log_rho_in) / jnp.diff(log_r_in))
         exp_in = alpha_in + l + 3.0
         safe_in = jnp.where(jnp.abs(exp_in) > _SLOPE_TOL, exp_in, _SLOPE_TOL)
@@ -469,8 +497,22 @@ def solve_poisson_profiles(
         # true tail is ~1e3 times what `_SLOPE_TOL` yields. Inside the clamped
         # window the tail is therefore dropped, not scaled -- the same
         # conservative treatment as just across the exp_in <= 0 boundary.
+        # Normalise by the band the tail describes, not the whole column.
+        # `scale` is the deepest retained sample, which for a cusp is the
+        # largest; `rho_col[i0]` sits `_ANCHOR_MARGIN` knots above it, smaller
+        # by `exp(-alpha * margin * step)`. Once that ratio falls below
+        # `sqrt(eps)` the gate rejects and the tail is dropped -- the exact
+        # failure the anchor exists to prevent, re-created by its own margin.
+        # Before anchoring these were the same point, so the gate could never
+        # fire and this normaliser was never wrong.
+        scale_in = (
+            jnp.max(
+                jnp.where(jnp.arange(rho_col.shape[0]) >= i0, jnp.abs(rho_col), 0.0)
+            )
+            + floor
+        )
         dI_in = jnp.where(
-            (jnp.abs(rho_col[i0]) > _active_tol(rho_col) * scale)
+            (jnp.abs(rho_col[i0]) > _active_tol(rho_col) * scale_in)
             & (exp_in > _SLOPE_TOL),
             dI_in,
             0.0,

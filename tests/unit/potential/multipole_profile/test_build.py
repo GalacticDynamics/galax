@@ -565,3 +565,58 @@ def test_a_cusp_that_overflows_almost_the_whole_pad_keeps_its_interior() -> None
     inner = float(jnp.max(jnp.abs(f32[:8] - ref[:8])) / scale)
     assert inner < 1e-2, inner
     assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < 1e-2
+
+
+@pytest.mark.parametrize("n_r", [4, 5, 8, 16, 32, 50, 52, 64, 256])
+def test_a_steep_cusp_is_no_worse_than_an_unanchored_solve_at_any_n_r(n_r) -> None:
+    r"""Anchoring must never cost accuracy, at any resolution.
+
+    REGRESSION: the tail's activity gate is normalised by ``max|rho_col|``
+    over the whole column. Anchoring moved the quantity being gated from
+    ``rho_col[0]`` to ``rho_col[i0]`` but left that normaliser alone -- and
+    before anchoring those were the same point for an inner cusp, so the gate
+    could never fire and nothing was wrong. With an anchor the normaliser
+    sits at the deepest retained sample, ``_ANCHOR_MARGIN`` knots below the
+    gated one, so for a cusp of slope :math:`\alpha` the ratio is
+    ``exp(-alpha * margin * step)``. Once that falls under ``sqrt(eps)`` the
+    gate rejects, the tail is dropped, and the anchor's own margin re-creates
+    the failure the anchor exists to prevent.
+
+    It is resolution-dependent because ``step`` shrinks as ``n_r`` grows: on
+    this density the cutoff is ``n_r = 51``. Below it the error was 1.5x to
+    8x *worse* than not anchoring at all -- up to 90% against the closed form
+    -- while every test in this file sat at ``n_r >= 256``, comfortably above
+    it. The margin there is only 5.6x, so this was never specific to coarse
+    grids; a steeper cusp or a larger margin would reach it anyway.
+
+    The bound is the unanchored solve. Anchoring may do far better -- it does,
+    by four orders, for every ``n_r >= 16`` -- but it must never do worse, and
+    at ``n_r <= 5`` the three-knot fit is not a power law so it correctly
+    declines to anchor and matches the old behaviour exactly.
+    """
+    gamma = 2.9
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
+
+    # Dehnen has a closed form: M = 4 pi / (3 - gamma), G = 1, scale radius 1.
+    mass = 4.0 * jnp.pi / (3.0 - gamma)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        r_knots = jnp.geomspace(1e-4, 1e4, n_r)
+        got = build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+        assert jnp.all(jnp.isfinite(got)), got
+        phi = jnp.asarray(got, dtype=float) / jnp.sqrt(4.0 * jnp.pi)
+
+    r = jnp.asarray(r_knots, dtype=float)
+    exact = -(mass / (2.0 - gamma)) * (1.0 - (r / (r + 1.0)) ** (2.0 - gamma))
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+
+    # What an unanchored solve gives here, measured on `main`: ~0.11 at every
+    # resolution. Anchoring must not exceed it.
+    assert err < 0.12, (n_r, err)

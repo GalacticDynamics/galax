@@ -50,3 +50,12 @@ def test_every_published_extra_still_exists(extra: str) -> None:
     """Removing an extra breaks `pip install galax[...]` for existing users."""
     provided = metadata("galax").get_all("Provides-Extra") or []
     assert extra in provided
+
+
+def test_coordinates_is_required_not_an_extra() -> None:
+    """`pip install galax` must still bring the coordinates portion.
+
+    Demoting it to an extra would leave `import galax.coordinates` failing on a
+    default install, with nothing in the metadata to say why.
+    """
+    assert "galax-coordinates" in _required_names()

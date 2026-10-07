@@ -1,0 +1,81 @@
+[project]
+authors = [
+  { name = "galax Devs", email = "nstarman@users.noreply.github.com" },
+  { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Typing :: Typed",
+]
+# No `galax` dependency, and none on any sibling portion: `galax.coordinates` is
+# the root of the import graph. Packaging is what enforces that, which is the
+# point of carving it out first.
+dependencies = [
+  "coordinax>=0.24.1,<0.25",
+  "dataclassish>=0.8.0",
+  "equinox>=0.13.8",
+  "jax>=0.7.2",
+  "jaxtyping>=0.3.3",
+  "oncequinox>=0.1.0",
+  "plum>=2.8.0; python_version < '3.14'",
+  "plum>=2.9.0; python_version >= '3.14'",
+  "quax>=0.4.3",
+  "quaxed>=0.10.5",
+  "unxt>=2.0.5,<3",
+  "wadler_lindig>=0.1.7",
+  "xmmutablemap>=0.2.1",
+  "zeroth>=1.2.0",
+]
+description = "Coordinate and phase-space types for galax"
+dynamic = ["version"]
+license = "MIT"
+name = "galax.coordinates"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[project.urls]
+"Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
+Homepage = "https://github.com/GalacticDynamics/galax"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatch-vcs", "hatchling"]
+
+[tool.hatch.build.targets.wheel]
+# `galax` is a shared namespace directory; this package owns only the
+# `coordinates` leaf. Named explicitly because a namespace directory cannot be
+# auto-detected.
+packages = ["src/galax"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+root = "../.."
+search_parent_directories = true
+
+# The version-file hook is safe here, unlike at the repo root: this path is a
+# leaf owned outright by this distribution, not a shared namespace directory.
+[tool.hatch.build.hooks.vcs]
+version-file = "src/galax/coordinates/_version.py"
+
+[tool.hatch.version.raw-options.scm.git]
+describe_command = [
+  "git",
+  "describe",
+  "--dirty",
+  "--tags",
+  "--long",
+  "--match",
+  "galax-coordinates-v[0-9]*",
+]

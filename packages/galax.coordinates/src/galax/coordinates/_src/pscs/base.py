@@ -2,7 +2,6 @@
 
 __all__ = ["AbstractPhaseSpaceCoordinate", "ComponentShapeTuple"]
 
-import functools as ft
 from abc import abstractmethod
 
 from typing import TYPE_CHECKING, Any, NamedTuple, cast, override
@@ -175,105 +174,6 @@ class AbstractPhaseSpaceCoordinate(AbstractPhaseSpaceObject):
         p = jnp.broadcast_to(convert(cart.p, FastQ), (*batch, comps.p))
         t = jnp.broadcast_to(self.t.ustrip(usys["time"])[..., None], (*batch, comps.t))
         return jnp.concat((t, q.value, p.value), axis=-1)  # type: ignore[no-any-return]
-
-    # ==========================================================================
-    # Dynamical quantities
-
-    def potential_energy(
-        self, potential: "AbstractPotential"
-    ) -> u.Quantity["specific energy"]:
-        r"""Return the specific potential energy.
-
-        .. math::
-
-            E_\Phi = \Phi(\boldsymbol{q})
-
-        Parameters
-        ----------
-        potential : `galax.potential.AbstractPotential`
-            The potential object to compute the energy from.
-
-        Returns
-        -------
-        E : Array[float, (*batch,)]
-            The specific potential energy.
-
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import coordinax as cx
-        >>> import galax.coordinates as gc
-        >>> import galax.potential as gp
-
-        We can construct a phase-space position:
-
-        >>> q = cx.CartesianPos3D(
-        ...     x=u.Q(1, "kpc"),
-        ...     y=u.Q([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
-        ...     z=u.Q(2, "kpc"))
-        >>> p = cx.CartesianVel3D(
-        ...     x=u.Q(0, "km/s"),
-        ...     y=u.Q([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
-        ...     z=u.Q(0, "km/s"))
-        >>> w = gc.PhaseSpaceCoordinate(q, p, t=u.Q(0, "Myr"))
-
-        We can compute the kinetic energy:
-
-        >>> pot = gp.MilkyWayPotential()
-        >>> w.potential_energy(pot)
-        Q([[-0.21269748, -0.20605366, -0.19774121, -0.18914474],
-           [-0.21269748, -0.20605366, -0.19774121, -0.18914474]], 'kpc2 / Myr2')
-
-        """
-        return potential.potential(self.q, t=self.t)
-
-    @ft.partial(jax.jit, inline=True)
-    def total_energy(self, potential: "AbstractPotential") -> gt.BtFloatQuSz0:
-        r"""Return the specific total energy.
-
-        .. math::
-
-            E_K = \frac{1}{2} \\, |\boldsymbol{v}|^2
-            E_\Phi = \Phi(\boldsymbol{q})
-            E = E_K + E_\Phi
-
-        Parameters
-        ----------
-        potential : `galax.potential.AbstractPotential`
-            The potential object to compute the energy from.
-
-        Returns
-        -------
-        E : Array[float, (*batch,)]
-            The kinetic energy.
-
-        Examples
-        --------
-        >>> import unxt as u
-        >>> import coordinax as cx
-        >>> import galax.coordinates as gc
-        >>> import galax.potential as gp
-
-        We can construct a phase-space position:
-
-        >>> q = cx.CartesianPos3D(
-        ...     x=u.Q(1, "kpc"),
-        ...     y=u.Q([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
-        ...     z=u.Q(2, "kpc"))
-        >>> p = cx.CartesianVel3D(
-        ...     x=u.Q(0, "km/s"),
-        ...     y=u.Q([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
-        ...     z=u.Q(0, "km/s"))
-        >>> w = gc.PhaseSpaceCoordinate(q, p, t=u.Q(0, "Myr"))
-
-        We can compute the kinetic energy:
-
-        >>> pot = gp.MilkyWayPotential()
-        >>> w.total_energy(pot)
-        Q( [[...], [...]], 'km2 / s2' )
-
-        """
-        return self.kinetic_energy() + self.potential_energy(potential)
 
 
 #####################################################################

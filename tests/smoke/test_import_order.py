@@ -121,7 +121,7 @@ def test_jit_then_late_potential_import() -> None:
         g = pot.constants["G"]
         assert type(g.value).__name__ != "DynamicJaxprTracer", type(g.value)
 
-        w.potential_energy(pot)
+        gp.potential_energy(pot, w)
     """)
     assert proc.returncode == 0, proc.stderr
     assert "UnexpectedTracerError" not in proc.stderr
@@ -139,15 +139,26 @@ def test_no_deferred_upward_imports() -> None:
     import that has not fired yet leaves no trace there, so
     `test_portion_does_not_import_upward` passes on an edge that still exists.
     """
-    src = pathlib.Path(__file__).parents[2] / "src" / "galax"
+    root = pathlib.Path(__file__).parents[2]
+    # Every tree that contributes to the `galax` namespace; `packages/*/src` is
+    # globbed so portions moving out of `src/` stay covered.
+    src_roots = [root / "src", *sorted(root.glob("packages/*/src"))]
     offenders: list[str] = []
 
     for portion, higher in ABOVE.items():
         banned = tuple(f"galax.{h}" for h in higher)
-        for path in sorted((src / portion).rglob("*.py")):
+        # `rglob` on a missing directory yields nothing and raises nothing, so
+        # a portion that is not found must fail here rather than scan 0 files.
+        files = sorted(
+            path
+            for src in src_roots
+            for path in (src / "galax" / portion).rglob("*.py")
+        )
+        assert files, f"portion {portion!r} not found under any of {src_roots}"
+        for path in files:
             tree = ast.parse(path.read_text(), filename=str(path))
             offenders += [
-                f"{path.relative_to(src)}:{node.lineno} "
+                f"{path.relative_to(root)}:{node.lineno} "
                 f"in {func.name}(): imports {name}"
                 for func in ast.walk(tree)
                 if isinstance(func, ast.FunctionDef | ast.AsyncFunctionDef)

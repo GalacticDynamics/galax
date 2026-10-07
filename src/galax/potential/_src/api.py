@@ -12,6 +12,8 @@ __all__ = [
     "spherical_mass_enclosed",
     "dpotential_dr",
     "d2potential_dr2",
+    "potential_energy",
+    "total_energy",
 ]
 
 from jaxtyping import Array
@@ -1203,6 +1205,73 @@ def spherical_mass_enclosed(*args: Any, **kwargs: Any) -> gt.BtQuSz0:
     >>> t = jnp.asarray(0)
     >>> gp.spherical_mass_enclosed(pot, x, t)
     Array(9.99105233e+10, dtype=float64)
+
+    """
+    raise NotImplementedError  # pragma: no cover
+
+
+@dispatch.abstract
+def potential_energy(*args: Any, **kwargs: Any) -> Any:
+    r"""Return the specific potential energy of a coordinate in a potential.
+
+    .. math::
+
+        E_\Phi = \Phi(\boldsymbol{q})
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+
+    >>> q = cx.CartesianPos3D(
+    ...     x=u.Q(1, "kpc"),
+    ...     y=u.Q([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
+    ...     z=u.Q(2, "kpc"))
+    >>> p = cx.CartesianVel3D(
+    ...     x=u.Q(0, "km/s"),
+    ...     y=u.Q([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+    ...     z=u.Q(0, "km/s"))
+    >>> w = gc.PhaseSpaceCoordinate(q, p, t=u.Q(0, "Myr"))
+
+    >>> pot = gp.MilkyWayPotential()
+    >>> gp.potential_energy(pot, w)
+    Q([[-0.21269748, -0.20605366, -0.19774121, -0.18914474],
+       [-0.21269748, -0.20605366, -0.19774121, -0.18914474]], 'kpc2 / Myr2')
+
+    """
+    raise NotImplementedError  # pragma: no cover
+
+
+@dispatch.abstract
+def total_energy(*args: Any, **kwargs: Any) -> Any:
+    r"""Return the specific total energy of a coordinate in a potential.
+
+    .. math::
+
+        E = \frac{1}{2}v^2 + \Phi(\boldsymbol{q})
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import coordinax as cx
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+
+    >>> q = cx.CartesianPos3D(
+    ...     x=u.Q(1, "kpc"),
+    ...     y=u.Q([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "kpc"),
+    ...     z=u.Q(2, "kpc"))
+    >>> p = cx.CartesianVel3D(
+    ...     x=u.Q(0, "km/s"),
+    ...     y=u.Q([[1.0, 2, 3, 4], [1.0, 2, 3, 4]], "km/s"),
+    ...     z=u.Q(0, "km/s"))
+    >>> w = gc.PhaseSpaceCoordinate(q, p, t=u.Q(0, "Myr"))
+
+    >>> pot = gp.MilkyWayPotential()
+    >>> gp.total_energy(pot, w)
+    Q( [[...], [...]], 'km2 / s2' )
 
     """
     raise NotImplementedError  # pragma: no cover

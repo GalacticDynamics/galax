@@ -133,15 +133,18 @@ jobs:
       - name: Install the project
         run: uv sync --group test
 
-      # A plain sync installs only the workspace member the root requires,
-      # `galax.interop.astropy`, so only its tree is collected here. The other
-      # three members' trees are covered by `check_interop`, which syncs every
-      # extra. Collecting them here would fail at import.
+      # `packages` whole, not an enumeration. A plain sync installs only the
+      # members the root requires, and `conftest.py`'s `collect_ignore_glob`
+      # already drops each `packages/galax.interop.<lib>/*` tree whose library
+      # or distribution is missing -- so naming members individually buys
+      # nothing and costs a hand-edit per portion. Forgetting that edit drops a
+      # portion's doctests from every leg of this matrix and fails nothing,
+      # which is the silence this repo keeps paying for.
       - name: Test package
         run: >-
-          uv run pytest src packages/galax.interop.astropy docs tests/unit
-          tests/functional -ra --cov --cov-report=xml --cov-report=term
-          --durations=20 --arraydiff -m"not slow" -n logical --dist=loadfile
+          uv run pytest src packages docs tests/unit tests/functional -ra --cov
+          --cov-report=xml --cov-report=term --durations=20 --arraydiff -m"not
+          slow" -n logical --dist=loadfile
 
       - name: Upload coverage report
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1

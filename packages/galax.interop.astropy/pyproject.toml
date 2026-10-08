@@ -18,9 +18,13 @@ classifiers = [
 ]
 dependencies = [
   "astropy>=7.0.0",
-  # Strictly greater: galax 0.0.3 itself ships `galax/interop/astropy/`, so
-  # pairing it with this distribution would write the same files twice.
-  "galax>0.0.3",
+  # No floor on the portion pins: those names are still unclaimed on PyPI and
+  # get one at the first coordinated release. The old `galax>0.0.3` floor
+  # existed because galax 0.0.3 itself shipped `galax/interop/astropy/`; the
+  # root ships no modules at all now, so that hazard went with it.
+  "galax.coordinates",
+  "galax.dynamics",
+  "galax.potential",
   "plum>=2.8.0; python_version < '3.14'",
   "plum>=2.9.0; python_version >= '3.14'",
   "unxt>=2.0.5,<3",
@@ -48,9 +52,12 @@ astropy = "galax.interop.astropy.potential"
 [project.entry-points."galax.dynamics.interop"]
 astropy = "galax.interop.astropy.dynamics"
 
-# `galax` is the workspace root, so resolve it locally instead of from PyPI.
+# Workspace members, so resolve them locally instead of from PyPI, where the
+# names are still unclaimed.
 [tool.uv.sources]
-galax = { workspace = true }
+"galax.coordinates" = { workspace = true }
+"galax.dynamics" = { workspace = true }
+"galax.potential" = { workspace = true }
 
 [build-system]
 build-backend = "hatchling.build"

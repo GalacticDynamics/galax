@@ -1187,7 +1187,9 @@ name = "galax-interop-astropy"
 source = { editable = "packages/galax.interop.astropy" }
 dependencies = [
     { name = "astropy" },
-    { name = "galax" },
+    { name = "galax-coordinates" },
+    { name = "galax-dynamics" },
+    { name = "galax-potential" },
     { name = "plum" },
     { name = "unxt" },
 ]
@@ -1195,7 +1197,9 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
-    { name = "galax", editable = "." },
+    { name = "galax-coordinates", editable = "packages/galax.coordinates" },
+    { name = "galax-dynamics", editable = "packages/galax.dynamics" },
+    { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
@@ -1258,7 +1262,8 @@ name = "galax-interop-matplotlib"
 source = { editable = "packages/galax.interop.matplotlib" }
 dependencies = [
     { name = "astropy" },
-    { name = "galax" },
+    { name = "galax-dynamics" },
+    { name = "galax-potential" },
     { name = "matplotlib" },
     { name = "plotting-backends" },
     { name = "plum" },
@@ -1268,7 +1273,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
-    { name = "galax", editable = "." },
+    { name = "galax-dynamics", editable = "packages/galax.dynamics" },
+    { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "matplotlib", specifier = ">=3.8" },
     { name = "plotting-backends", specifier = ">=0.1" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },

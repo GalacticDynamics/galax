@@ -39,7 +39,8 @@ Homepage = "https://github.com/GalacticDynamics/galax"
 [project.entry-points."galax.potential.interop"]
 galpy = "galax.interop.galpy.potential"
 
-# `galax` is the workspace root, so resolve it locally instead of from PyPI.
+# A workspace member, so resolve it locally instead of from PyPI, where the
+# name is still unclaimed.
 [tool.uv.sources]
 "galax.potential" = { workspace = true }
 

@@ -59,3 +59,13 @@ def test_coordinates_is_required_not_an_extra() -> None:
     default install, with nothing in the metadata to say why.
     """
     assert "galax-coordinates" in _required_names()
+
+
+def test_potential_is_required_not_an_extra() -> None:
+    """`pip install galax` must still bring the potential portion.
+
+    Same reasoning as the coordinates portion above: demoting it to an extra
+    would leave `import galax.potential` failing on a default install, with
+    nothing in the metadata to say why.
+    """
+    assert "galax-potential" in _required_names()

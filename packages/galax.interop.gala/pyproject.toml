@@ -20,9 +20,11 @@ dependencies = [
   "astropy>=7.0.0",
   "gala>=1.10",
   "packaging>=24.1",
-  # Strictly greater: galax 0.0.3 itself ships `galax/interop/` content, so
-  # pairing it with this distribution would write the same files twice.
   "galax.coordinates",
+  # Strictly greater: galax 0.0.3 itself ships `galax/interop/` content, so
+  # pairing it with this distribution would write the same files twice. The
+  # portion pins carry no floor because those names are still unclaimed on
+  # PyPI; they get one at the first coordinated release.
   "galax.interop.astropy>0.0.3",
   "galax.potential",
   "plum>=2.8.0; python_version < '3.14'",
@@ -50,7 +52,8 @@ gala = "galax.interop.gala.coordinates"
 [project.entry-points."galax.potential.interop"]
 gala = "galax.interop.gala.potential"
 
-# `galax` is the workspace root, so resolve it locally instead of from PyPI.
+# Workspace members, so resolve them locally instead of from PyPI, where the
+# names are still unclaimed.
 [tool.uv.sources]
 "galax.coordinates" = { workspace = true }
 "galax.potential" = { workspace = true }

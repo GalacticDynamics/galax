@@ -82,7 +82,9 @@ class TestMultipoleInnerPotential(
         assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MultipoleInnerPotential, x: gt.QuSz3) -> None:
-        exp = u.Q(2.89194575e-05, unit="solMass / kpc3")
+        # Exactly zero: r^l Y_lm is a solid harmonic (source-free) for every
+        # l, m. See `AbstractMultipolePotential._density`.
+        exp = u.Q(0, unit="solMass / kpc3")
         got = pot.density(x, t=0)
 
         assert jnp.isclose(got, exp, atol=u.Q(1e-8, exp.unit))

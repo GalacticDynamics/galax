@@ -127,3 +127,16 @@ class MultipoleTestMixin:
             inner_pot.potential(x, t=0)
 
         init_potential_evaluate()
+
+    def test_potential_density_correspondence(
+        self, pot: gp.AbstractPotential, x: gt.QuSz3
+    ) -> None:
+        # Multipole potentials are exact solid harmonics, so the density is
+        # exactly zero everywhere (see `AbstractMultipolePotential._density`).
+        # `pot.hessian` computes the "true" side via autodiff as a
+        # near-perfect cancellation of nonzero terms, which can leave
+        # float64 roundoff noise a little above the base test's tight
+        # `atol=1e-15`. Use a slightly looser tolerance here.
+        lhs = jnp.trace(pot.hessian(x, 0))
+        rhs = 4 * jnp.pi * pot.constants["G"] * pot.density(x, 0)
+        assert jnp.isclose(lhs, rhs, atol=u.Q(1e-14, pot.units["frequency drift"]))

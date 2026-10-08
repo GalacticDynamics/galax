@@ -276,7 +276,9 @@ class TestMultipolePotential(
         assert jnp.allclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     def test_density(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:
-        expect = u.Q(4.73805126e-05, pot.units["mass density"])
+        # Exactly zero: both r^l Y_lm and r^{-(l+1)} Y_lm are solid harmonics
+        # (source-free) for every l, m. See `AbstractMultipolePotential._density`.
+        expect = u.Q(0, pot.units["mass density"])
         assert jnp.isclose(pot.density(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
     def test_hessian(self, pot: gp.MultipolePotential, x: gt.QuSz3) -> None:

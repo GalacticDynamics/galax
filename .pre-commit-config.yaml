@@ -84,7 +84,12 @@ repos:
     rev: "v1.14.1"
     hooks:
       - id: mypy
-        files: src
+        # Anchored at the distribution source roots. The previous `files: src`
+        # matched these paths too -- it is an unanchored regex, so "src" matched
+        # inside `packages/<dist>/src/...` -- but with no top-level `src/` left
+        # it read as dead config and was reported as such twice. Both patterns
+        # check the same 188 files; this one says so.
+        files: ^packages/[^/]+/src/
         additional_dependencies:
           # `boundinstance` supplies `InstanceDescriptor`, which two plotting
           # descriptors subclass. Without it here the hook's isolated env sees

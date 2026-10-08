@@ -14,6 +14,7 @@ alone — but the usual case is a coordinated release of all of them.
 | `galax.interop.gala`       | `galax-interop-gala-v`       | `packages/galax.interop.gala`       |
 | `galax.interop.galpy`      | `galax-interop-galpy-v`      | `packages/galax.interop.galpy`      |
 | `galax.interop.matplotlib` | `galax-interop-matplotlib-v` | `packages/galax.interop.matplotlib` |
+| `galax.potential`          | `galax-potential-v`          | `packages/galax.potential`          |
 
 ## Coordinated release
 
@@ -66,7 +67,7 @@ so a mistyped prefix fails the build rather than publishing a wrong version.
 ## Trusted publishers
 
 **Each distribution needs its own trusted publisher on both PyPI and TestPyPI,
-keyed to its own workflow filename.** Twelve configurations. A publisher
+keyed to its own workflow filename.** Fourteen configurations. A publisher
 registered against the wrong filename fails with `invalid-publisher` at publish
 time, after the tag exists — so verify one end to end on TestPyPI before tagging
 the rest.
@@ -79,6 +80,7 @@ the rest.
 | `galax.interop.gala`       | `cd-galax-interop-gala.yml`       |
 | `galax.interop.galpy`      | `cd-galax-interop-galpy.yml`      |
 | `galax.interop.matplotlib` | `cd-galax-interop-matplotlib.yml` |
+| `galax.potential`          | `cd-galax-potential.yml`          |
 
 ## Migration notes for users
 

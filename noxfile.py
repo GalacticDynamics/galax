@@ -74,7 +74,6 @@ def doctests(session: nox.Session) -> None:
         '--doctest-glob="*.py"',
         "docs",
         "packages",
-        "src/galax",
         *session.posargs,
     )
 

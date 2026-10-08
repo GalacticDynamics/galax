@@ -3,7 +3,7 @@
 gala, galpy and matplotlib stay optional, behind extras.
 """
 
-from importlib.metadata import metadata, requires
+from importlib.metadata import PackageNotFoundError, metadata, requires
 
 import pytest
 
@@ -59,6 +59,56 @@ def test_coordinates_is_required_not_an_extra() -> None:
     default install, with nothing in the metadata to say why.
     """
     assert "galax-coordinates" in _required_names()
+
+
+def test_dynamics_is_required_not_an_extra() -> None:
+    """`pip install galax` must still bring the dynamics portion.
+
+    Same reasoning as the two portions below: demoting it to an extra would
+    leave `import galax.dynamics` failing on a default install, with nothing in
+    the metadata to say why.
+    """
+    assert "galax-dynamics" in _required_names()
+
+
+def test_no_distribution_depends_on_the_root() -> None:
+    """Phase 2's end state, and the one claim nothing else checks.
+
+    Every portion and interop must depend on the portions it uses, never on
+    `galax` itself. A single `galax` requirement anywhere here recreates the
+    `galax` <-> `galax.interop.astropy` cycle that phase 2 dissolved, and
+    metadata is the only place that shows it -- the install shapes would still
+    pass, because the root resolves fine.
+
+    Skips a distribution that is not installed, so this holds on a bare install
+    as well as under `--all-extras`.
+    """
+    offenders = {}
+    for dist in (
+        "galax.coordinates",
+        "galax.potential",
+        "galax.dynamics",
+        "galax.interop.astropy",
+        "galax.interop.gala",
+        "galax.interop.galpy",
+        "galax.interop.matplotlib",
+    ):
+        try:
+            reqs = requires(dist) or []
+        except PackageNotFoundError:
+            continue
+        named = {
+            r.split(";")[0]
+            .split(">")[0]
+            .split("[")[0]
+            .strip()
+            .lower()
+            .replace("_", "-")
+            for r in reqs
+        }
+        if "galax" in named:
+            offenders[dist] = sorted(n for n in named if n.startswith("galax"))
+    assert not offenders, f"these depend on the root distribution: {offenders}"
 
 
 def test_potential_is_required_not_an_extra() -> None:

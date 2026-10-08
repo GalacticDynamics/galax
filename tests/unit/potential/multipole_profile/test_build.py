@@ -567,6 +567,77 @@ def test_a_cusp_that_overflows_almost_the_whole_pad_keeps_its_interior() -> None
     assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < 1e-2
 
 
+def test_a_nonfinite_outer_pad_leaves_the_inner_pad_alone() -> None:
+    """A bad sample above the bracket must not anchor the tail below it.
+
+    REGRESSION: `first_ok` scanned the whole padded grid for the deepest
+    non-finite sample. "Everything below a bad band is suspect" is an
+    argument about the *inner* pad -- the band the inner tail replaces -- and
+    it does not reach past `lo`. A single non-finite sample in the *outer*
+    pad was read as one in the inner pad, and since `first_ok` is clamped to
+    ``lo - _ANCHOR_MARGIN``, it drove the anchor to ``lo`` and discarded the
+    entire inner pad of finite, real density: exactly the unpadded
+    configuration `_PAD_MULTIPLE` exists to avoid.
+
+    The outer pad reaches ``r ~ 1e10`` on an ordinary bracket, so this needs
+    no exotic density -- any ``rho_fn`` whose intermediates overflow out
+    there returns ``nan``. Here it is forced explicitly, well above
+    ``r_max``, so the mechanism is the only thing under test.
+
+    Measured in float64 against the Hernquist closed form: 6.1e-05 while the
+    scan ran over the whole grid, 1.0e-10 once restricted to the inner pad --
+    which is what an unanchored solve gives, since nothing in the inner pad
+    is bad and there is nothing to anchor.
+    """
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        val = _hernquist_density(xyz, t)
+        return jnp.where(r > 1e5, jnp.nan, val)
+
+    r_knots = jnp.geomspace(1e-2, 1e2, 128)
+    phi = build_expansion(
+        rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+    )["phi_lm"][:, 0] / jnp.sqrt(4 * jnp.pi)
+
+    exact = -1.0 / (1.0 + r_knots)
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+    assert err < 1e-8, err
+
+
+def test_a_nonfinite_band_mid_pad_anchors_above_it() -> None:
+    """The anchor follows the *deepest* bad sample, not the first good one.
+
+    A density need not be monotonic in log r, so an unrepresentable band can
+    sit in the middle of the inner pad with finite samples below it. Reading
+    the first good index puts the anchor at 0 -- no anchoring at all -- and
+    leaves the zeroed band mid-pad for `fit_log_spline` to interpolate
+    across, which it cannot. Everything below such a band is suspect even
+    where it happens to sample finite.
+
+    Measured in float64 against the Hernquist closed form: 7.5e-11 anchoring
+    above the band, 8.1e-08 anchoring at the first good sample.
+    """
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        # Inside the inner pad, which for this grid spans [9.4e-07, 1e-02].
+        return jnp.where((r > 1e-5) & (r < 3e-5), jnp.nan, _hernquist_density(xyz, t))
+
+    r_knots = jnp.geomspace(1e-2, 1e2, 128)
+    phi = build_expansion(
+        rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+    )["phi_lm"][:, 0] / jnp.sqrt(4 * jnp.pi)
+
+    exact = -1.0 / (1.0 + r_knots)
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+    assert err < 1e-9, err
+
+
 # Measured on `main` (an unanchored solve), float32, bracket [1e-4, 1e4],
 # max relative error against the Dehnen closed form. Anchoring must never do
 # worse than these, and should usually do far better.

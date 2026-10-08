@@ -383,8 +383,18 @@ def build_expansion(
     # can sit mid-pad rather than at its inner edge -- a density need not be
     # monotonic in log r -- and everything below such a band is suspect even
     # where it happens to sample finite.
-    bad = ~jnp.isfinite(rho_raw)
+    #
+    # Restricted to the *inner* pad. "Everything below is suspect" is an
+    # argument about the band the inner tail replaces, and it does not reach
+    # past `lo`: a bad sample in the outer pad says nothing about the data
+    # below it. Scanning the whole grid read one as the other, and since the
+    # clamp below caps `first_ok` at `lo - _ANCHOR_MARGIN`, a single
+    # non-finite sample out at `r ~ 1e10` -- routine for any `rho_fn` whose
+    # intermediates overflow there, which is why the pad is padded -- drove
+    # the anchor to `lo` and discarded the entire inner pad of finite, real
+    # density. 6e-05 against `main`'s 1e-10 on a Hernquist monopole.
     idx = jnp.arange(r_solve.shape[0])[:, None]
+    bad = ~jnp.isfinite(rho_raw) & (idx < lo)
     first_ok = jnp.max(jnp.where(bad, idx + 1, 0), axis=0)
     # Never discard the caller's own range: if their density is not finite
     # inside the bracket they asked for, there is nothing the pad can do and

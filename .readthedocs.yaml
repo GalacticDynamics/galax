@@ -1,18 +1,32 @@
 # Read the Docs configuration file
-# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+# See https://docs.readthedocs.com/platform/stable/config-file/v2.html for details
 
 version: 2
 
 build:
-  os: ubuntu-22.04
+  os: ubuntu-24.04
   tools:
     python: "3.12"
+
 sphinx:
   configuration: docs/conf.py
 
+# `uv`, not pip, and `groups`, not `extra_requirements`. Both halves are
+# load-bearing; the previous `method: pip` + `extra_requirements: [docs]` was
+# broken twice over.
+#
+# pip cannot install this project at all. The root requires `galax.coordinates`,
+# `galax.potential` and `galax.interop.astropy`, none of which are published --
+# resolution ends in "No matching distribution found for galax-coordinates".
+# `[tool.uv.sources]` maps them to workspace members, but that is a uv-only
+# mechanism which pip does not read. `uv sync` resolves them from the workspace.
+#
+# And `galax` provides no `docs` extra: those dependencies live in
+# `[dependency-groups]`. pip only warns about an unknown extra, so the build
+# installed no sphinx, no furo and no myst-parser either.
 python:
   install:
-    - method: pip
-      path: .
-      extra_requirements:
+    - method: uv
+      command: sync
+      groups:
         - docs

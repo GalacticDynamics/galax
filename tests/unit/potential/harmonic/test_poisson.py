@@ -479,6 +479,35 @@ def test_solve_poisson_rejects_an_empty_gauss_legendre_axis() -> None:
         solve_poisson_profiles(*args, jnp.zeros((63, 0, 1)))
 
 
+def test_an_out_of_range_anchor_falls_back_instead_of_sliding() -> None:
+    """``first_ok`` past the grid must disable anchoring, not clamp inward.
+
+    `first_ok` is this function's own public parameter, so a caller may hand
+    it any value; `build_expansion` clamps well below the grid, which is why
+    no build-level test reaches here.
+
+    Clipping an out-of-range anchor to ``n - 3`` slides it to the *outer*
+    edge, zeroes every panel, and replaces the whole inner integral with a
+    power law fitted at ``r_max`` -- 25% error on a Hernquist monopole where
+    falling back gives 2.3e-08. There is no inner band left to model, so the
+    answer is not to anchor at all.
+    """
+    n_r = 512
+    r = jnp.geomspace(1e-6, 1e6, n_r)
+    rho = (r**-2.5)[:, None]
+    l_arr = jnp.asarray([0.0])
+
+    def solve(first_ok: float):
+        got, _, _ = solve_poisson_profiles(
+            r, rho, l_arr, jnp.asarray(1.0), None, jnp.asarray([first_ok])
+        )
+        return got
+
+    want = solve(0.0)
+    for first_ok in (float(n_r), 1e6):
+        assert jnp.array_equal(solve(first_ok), want), first_ok
+
+
 @pytest.mark.parametrize("l", [0.0, 2.0, 4.0, 8.0])
 def test_the_inner_tail_is_exact_when_anchored_above_dropped_samples(l) -> None:
     r"""Anchoring above a zeroed band must still integrate ``[0, r_i0]`` exactly.

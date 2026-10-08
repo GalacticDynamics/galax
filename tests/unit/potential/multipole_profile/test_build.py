@@ -638,6 +638,10 @@ def test_a_nonfinite_band_mid_pad_anchors_above_it() -> None:
     assert err < 1e-9, err
 
 
+_F32_EPS = float(jnp.finfo(jnp.float32).eps)
+"""Round-off floor for the never-worse bound; see the assertion that uses it."""
+
+
 # Measured on `main` (an unanchored solve) at 7260498c, float32, max relative
 # error against the Dehnen closed form, keyed by (r_min, r_max, gamma, n_r).
 # Anchoring must never do worse than these, and should usually do far better.
@@ -766,7 +770,16 @@ def test_anchoring_is_never_worse_than_an_unanchored_solve(
     # was pure slack -- it let a gate loosened by a whole nat through at
     # (1e-4, 1e4, 2.5, 7), where the error doubles to 2.7e-06 against a 1.3e-06
     # row. 1.5x still leaves every row its measured headroom.
-    assert err < 1.5 * _UNANCHORED[(r_min, r_max, gamma, n_r)], (
+    #
+    # Floored at a few float32 ulps, because a ratio between two round-off
+    # numbers measures the platform, not the solve. Five of these rows sit
+    # under it -- (1e-3, 1e3, 2.5, 5) is 4.1e-08, a third of an ulp -- and the
+    # first CI run after the 3x allowance came down failed there on macOS at
+    # 1.193e-07, which is 1.00 ulp exactly. The floor clears every row a
+    # mutation has to beat, so it costs no sensitivity: the (2.5, 7) case
+    # above stays bounded at 1.9e-06, well above it.
+    bound = max(1.5 * _UNANCHORED[(r_min, r_max, gamma, n_r)], 5.0 * _F32_EPS)
+    assert err < bound, (
         r_min,
         r_max,
         gamma,

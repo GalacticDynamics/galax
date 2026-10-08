@@ -186,6 +186,20 @@ version.raw-options.scm.git.describe_command = [
 build.targets.wheel.bypass-selection = true
 
 
+# `check-wheel-contents` runs inside `build-and-inspect-python-package` in
+# `cd.yml`, and it fails an empty wheel: W007 "Wheel library is empty" and W008
+# "Wheel is empty". Both are accurate observations of the intended state -- the
+# root is a metadata-only distribution whose three portions live in `packages/*`.
+# Scoped to these two codes so every other wheel check still applies.
+#
+# Note this file is the config `check-wheel-contents` finds from the repository
+# root, so the ignore is in effect for the per-package CD workflows too. Those
+# wheels are never empty, and `check_install_shapes.sh` asserts each one carries
+# non-`_version` source -- a stronger, more specific guard than W007/W008.
+[tool.check-wheel-contents]
+ignore = ["W007", "W008"]
+
+
 [tool.codespell]
 ignore-words-list = "Hart,numer" # Hart: dynamics/_src/cluster/relax_time.py; numer: numerator abbreviation
 

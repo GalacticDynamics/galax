@@ -502,3 +502,16 @@ def test_on_axis_gradient_is_correct() -> None:
 
     # NaN compares unequal, so this subsumes an `isfinite` check.
     assert jnp.allclose(grad, expect, rtol=1e-6, atol=1e-12)
+
+
+def test_scaled_radius_and_direction_hessian_finite_at_origin() -> None:
+    """The direction's second derivative must not overflow at ``r = 0``."""
+    import jax
+
+    from galax.potential._src.builtin.multipole import scaled_radius_and_direction
+
+    def f(q: Array) -> Array:
+        s, uvec = scaled_radius_and_direction(q[None], 1.0)
+        return jnp.sum(s) + jnp.sum(uvec)
+
+    assert jnp.all(jnp.isfinite(jax.hessian(f)(jnp.zeros(3))))

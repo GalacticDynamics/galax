@@ -42,10 +42,7 @@ class LinearParameter(AbstractParameter):
 
     Examples
     --------
-    >>> import coordinax.vecs as cxv
-    >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
     >>> import unxt as u
     >>> import quaxed.numpy as jnp
 
@@ -58,20 +55,9 @@ class LinearParameter(AbstractParameter):
     >>> jnp.round(lp(u.Q(1.0, "Gyr")), 3)
     Q(0., 'Gyr solMass / yr')
 
-    Now let's show it in a potential:
+    The parameter can then be used as a potential's field:
 
     >>> pot = gp.KeplerPotential(m_tot=lp, units="galactic")
-
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([5.0, 0.0, 0.0], "kpc"),
-    ...                              p=u.Q([0.0, 1_000.0, 0.0], "km/s"),
-    ...                              t=u.Q(0.0, "Myr"))
-    >>> savets = u.Q(jnp.linspace(0, 1, 10), "Gyr")
-    >>> orbit = gd.compute_orbit(pot, w0, savets)
-    >>> orbit.q.vconvert(cxv.CylindricalPos).rho.round(3)
-    Distance(
-        [ 5.   ,  7.159,  6.654, 10.295, 12.194, 11.337, 19.999, 24.589, 30.147,
-         40.37 ], 'kpc'
-    )
 
     """
 

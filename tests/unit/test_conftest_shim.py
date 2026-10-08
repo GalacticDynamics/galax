@@ -27,7 +27,7 @@ _module_name_for = conftest._module_name_for
     ("path", "expected"),
     [
         # The root src/ tree
-        ("src/galax/potential/_src/api.py", "galax.potential._src.api"),
+        ("src/galax/dynamics/_src/api.py", "galax.dynamics._src.api"),
         (
             "packages/galax.coordinates/src/galax/coordinates/__init__.py",
             "galax.coordinates",

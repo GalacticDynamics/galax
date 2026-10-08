@@ -18,8 +18,8 @@ classifiers = [
 ]
 dependencies = [
   "astropy>=7.0.0",
-  "galax>0.0.3",
   "galax.interop.astropy>0.0.3",
+  "galax.potential",
   "galpy>=1.8",
   "plum>=2.8.0; python_version < '3.14'",
   "plum>=2.9.0; python_version >= '3.14'",
@@ -39,9 +39,10 @@ Homepage = "https://github.com/GalacticDynamics/galax"
 [project.entry-points."galax.potential.interop"]
 galpy = "galax.interop.galpy.potential"
 
-# `galax` is the workspace root, so resolve it locally instead of from PyPI.
+# A workspace member, so resolve it locally instead of from PyPI, where the
+# name is still unclaimed.
 [tool.uv.sources]
-galax = { workspace = true }
+"galax.potential" = { workspace = true }
 
 [build-system]
 build-backend = "hatchling.build"

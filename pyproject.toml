@@ -41,6 +41,7 @@ dependencies = [
   # silently stop astropy conversions from registering -- a missing entry point
   # produces no error.
   "galax.interop.astropy>0.0.3",
+  "galax.potential",
   "interpax>=0.3.11",
   "is-annotated>=1.0",
   "jax>=0.7.2",
@@ -101,6 +102,7 @@ members = ["packages/*"]
 "galax.interop.gala" = { workspace = true }
 "galax.interop.galpy" = { workspace = true }
 "galax.interop.matplotlib" = { workspace = true }
+"galax.potential" = { workspace = true }
 
 
 [dependency-groups]
@@ -201,6 +203,7 @@ run.source = [
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",
   "packages/galax.interop.matplotlib/src",
+  "packages/galax.potential/src",
 ]
 
 
@@ -220,6 +223,7 @@ mypy_path = [
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",
   "packages/galax.interop.matplotlib/src",
+  "packages/galax.potential/src",
 ]
 namespace_packages = true
 

@@ -3,6 +3,7 @@
 #   1. a bare `pip install galax` gives a working core plus the astropy interop
 #   2. a single interop package installs on its own
 #   3. `galax.coordinates` installs on its own, without the heavier portions
+#   4. `galax.potential` installs with coordinates but without dynamics
 #
 # Both need a clean environment: the dev venv has every extra installed, so it
 # cannot tell a required dependency from an optional one.
@@ -82,6 +83,13 @@ echo "== the root wheel ships no galax/coordinates/ =="
 # let two distributions write the same files.
 if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/coordinates/' >/dev/null; then
   echo "the root galax wheel still contains galax/coordinates/ files"; exit 1
+fi
+
+echo "== the root wheel ships no galax/potential/ =="
+# `galax.potential` owns that leaf now. A root wheel still carrying it would
+# let two distributions write the same files.
+if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/potential/' >/dev/null; then
+  echo "the root galax wheel still contains galax/potential/ files"; exit 1
 fi
 
 echo "== shape 1: bare \`pip install galax\` =="
@@ -169,6 +177,44 @@ for absent in ("galax.potential", "galax.dynamics", "diffrax", "optimistix"):
     assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
 
 print("coordinates-only install OK")
+PY
+
+echo "== shape 4: \`galax.potential\` alone =="
+# The portion must install with `galax.coordinates` but without the dynamics
+# stack. Installed by path so a published version cannot satisfy it.
+uv run --isolated --no-project \
+  --find-links "$WHEELS" \
+  --with "$(echo "$WHEELS"/galax_potential-*.whl)" \
+  python - <<'PY'
+import importlib.util
+
+import unxt as u
+
+import galax.potential as gp
+
+# `astropy` is a required dependency, not an extra: `_src/base.py` imports `G`
+# at module scope, so the import above would already have failed without it.
+# Evaluate a potential to show the portion actually works.
+pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+pe = pot.potential(u.Q([8.0, 0, 0], "kpc"), t=u.Q(0, "Myr"))
+# Assert on the unit string, not `physical_type`: astropy reports that as
+# "dose of ionizing radiation/specific energy", which is a surprising thing to
+# hard-code and an easy way to write a test that never passes.
+assert str(pe.unit) == "kpc2 / Myr2", pe.unit
+assert float(pe.value) < 0, pe  # a Kepler well is negative outside the origin
+
+# `galax.coordinates` came along, because this portion declares it.
+import galax.coordinates  # noqa: F401
+
+# The annotation contract from #912 names `unxts.parametric` in its error
+# message, so a user following that message needs it present.
+assert importlib.util.find_spec("unxts.parametric") is not None
+
+# and the dynamics stack must NOT have come along
+for absent in ("galax.dynamics", "diffrax", "optimistix"):
+    assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
+
+print("potential-only install OK")
 PY
 
 echo "all install shapes OK"

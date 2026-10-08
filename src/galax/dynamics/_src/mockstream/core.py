@@ -40,7 +40,10 @@ class MockStream(gc.AbstractCompositePhaseSpaceCoordinate):
         # is possible in `NoFrame`.
         allpsps = {k: psp.to_frame(theframe) for k, psp in allpsps.items()}
 
-        super().__init__(psps, **kwargs)
+        # `allpsps`, not `psps` and `kwargs`: those are the untransformed
+        # inputs, so passing them discarded the normalization just computed.
+        # `allpsps` already merges both.
+        super().__init__(allpsps)
 
         # TODO: check up on the shapes
 

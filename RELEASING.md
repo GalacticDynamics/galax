@@ -10,6 +10,7 @@ alone — but the usual case is a coordinated release of all of them.
 | -------------------------- | ---------------------------- | ----------------------------------- |
 | `galax`                    | `v`                          | repository root                     |
 | `galax.coordinates`        | `galax-coordinates-v`        | `packages/galax.coordinates`        |
+| `galax.dynamics`           | `galax-dynamics-v`           | `packages/galax.dynamics`           |
 | `galax.interop.astropy`    | `galax-interop-astropy-v`    | `packages/galax.interop.astropy`    |
 | `galax.interop.gala`       | `galax-interop-gala-v`       | `packages/galax.interop.gala`       |
 | `galax.interop.galpy`      | `galax-interop-galpy-v`      | `packages/galax.interop.galpy`      |
@@ -67,7 +68,7 @@ so a mistyped prefix fails the build rather than publishing a wrong version.
 ## Trusted publishers
 
 **Each distribution needs its own trusted publisher on both PyPI and TestPyPI,
-keyed to its own workflow filename.** Fourteen configurations. A publisher
+keyed to its own workflow filename.** Sixteen configurations. A publisher
 registered against the wrong filename fails with `invalid-publisher` at publish
 time, after the tag exists — so verify one end to end on TestPyPI before tagging
 the rest.
@@ -76,6 +77,7 @@ the rest.
 | -------------------------- | --------------------------------- |
 | `galax`                    | `cd.yml`                          |
 | `galax.coordinates`        | `cd-galax-coordinates.yml`        |
+| `galax.dynamics`           | `cd-galax-dynamics.yml`           |
 | `galax.interop.astropy`    | `cd-galax-interop-astropy.yml`    |
 | `galax.interop.gala`       | `cd-galax-interop-gala.yml`       |
 | `galax.interop.galpy`      | `cd-galax-interop-galpy.yml`      |

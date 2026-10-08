@@ -36,6 +36,7 @@ dependencies = [
   "diffraxtra>=1.5.2",
   "equinox>=0.13.8",
   "galax.coordinates",
+  "galax.dynamics",
   # Required, not an extra: `astropy` is already a required dependency, so this
   # interop's entry point registers on every install today. Demoting it would
   # silently stop astropy conversions from registering -- a missing entry point
@@ -98,6 +99,7 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 "galax.coordinates" = { workspace = true }
+"galax.dynamics" = { workspace = true }
 "galax.interop.astropy" = { workspace = true }
 "galax.interop.gala" = { workspace = true }
 "galax.interop.galpy" = { workspace = true }
@@ -197,8 +199,8 @@ report.exclude_also = [
   '@abstractmethod',
 ]
 run.source = [
-  "src",
   "packages/galax.coordinates/src",
+  "packages/galax.dynamics/src",
   "packages/galax.interop.astropy/src",
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",
@@ -217,8 +219,8 @@ python_version = "3.12"
 explicit_package_bases = true
 # Each distribution under `packages/` is its own source root.
 mypy_path = [
-  "src",
   "packages/galax.coordinates/src",
+  "packages/galax.dynamics/src",
   "packages/galax.interop.astropy/src",
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",

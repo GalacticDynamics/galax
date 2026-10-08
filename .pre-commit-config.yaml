@@ -85,7 +85,6 @@ repos:
     hooks:
       - id: mypy
         files: src
-        exclude: ^(src/galax/__init__\.py|src/galax/.*?/__init__\.py)$
         additional_dependencies:
           # `boundinstance` supplies `InstanceDescriptor`, which two plotting
           # descriptors subclass. Without it here the hook's isolated env sees

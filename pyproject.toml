@@ -192,10 +192,13 @@ build.targets.wheel.bypass-selection = true
 # root is a metadata-only distribution whose three portions live in `packages/*`.
 # Scoped to these two codes so every other wheel check still applies.
 #
-# Note this file is the config `check-wheel-contents` finds from the repository
-# root, so the ignore is in effect for the per-package CD workflows too. Those
-# wheels are never empty, and `check_install_shapes.sh` asserts each one carries
-# non-`_version` source -- a stronger, more specific guard than W007/W008.
+# This exemption does NOT reach the per-package CD workflows, which is worth
+# stating because it is not obvious. `build-and-inspect-python-package` runs the
+# check with `working-directory: ${{ inputs.path }}`, and `check-wheel-contents`
+# does not search parent directories for configuration -- run from
+# `packages/galax.dynamics`, it reports W007/W008 on this very wheel. So an
+# accidentally empty portion wheel still fails its own CD, and this ignore
+# applies only to the root build, which runs from here.
 [tool.check-wheel-contents]
 ignore = ["W007", "W008"]
 

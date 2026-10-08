@@ -203,6 +203,7 @@ run.source = [
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",
   "packages/galax.interop.matplotlib/src",
+  "packages/galax.potential/src",
 ]
 
 

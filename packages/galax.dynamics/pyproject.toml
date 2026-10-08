@@ -1,0 +1,98 @@
+[project]
+authors = [
+  { name = "galax Devs", email = "nstarman@users.noreply.github.com" },
+  { name = "Nathaniel Starkman", email = "nstarman@users.noreply.github.com" },
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Typing :: Typed",
+]
+# Two galax dependencies, both downward: this portion sits at the top of the
+# import graph. Not `galax` -- depending on the root would recreate the very
+# cycle this PR dissolves.
+#
+# `numpy` is imported at module scope by `_src/orbit/base.py` and
+# `_src/solver.py` but is declared nowhere in the repository root, so this floor
+# is DERIVED, not copied: 1.26 is the oldest release supporting Python 3.12,
+# this project's `requires-python` floor. Tracked repo-wide in #920.
+dependencies = [
+  "boundinstance>=0.1",
+  "coordinax>=0.24.1,<0.25",
+  "dataclassish>=0.8.0",
+  "diffrax>=0.7",
+  "diffraxtra>=1.5.2",
+  "equinox>=0.13.8",
+  "galax.coordinates",
+  "galax.potential",
+  "interpax>=0.3.11",
+  "jax>=0.7.2",
+  "jaxtyping>=0.3.3",
+  "numpy>=1.26",
+  "optimistix>=0.0.11",
+  "plotting_backends>=0.1",
+  "plum>=2.8.0; python_version < '3.14'",
+  "plum>=2.9.0; python_version >= '3.14'",
+  "quaxed>=0.10.5",
+  "unxt>=2.0.5,<3",
+  "xmmutablemap>=0.2.1",
+  "zeroth>=1.2.0",
+]
+description = "Orbit integration and stellar dynamics for galax"
+dynamic = ["version"]
+license = "MIT"
+name = "galax.dynamics"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[project.urls]
+"Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
+Homepage = "https://github.com/GalacticDynamics/galax"
+
+# Workspace members, so resolve them locally instead of from PyPI, where the
+# names are still unclaimed.
+[tool.uv.sources]
+"galax.coordinates" = { workspace = true }
+"galax.potential" = { workspace = true }
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatch-vcs", "hatchling"]
+
+[tool.hatch.build.targets.wheel]
+# `galax` is a shared namespace directory; this package owns only the
+# `dynamics` leaf. Named explicitly because a namespace directory cannot be
+# auto-detected.
+packages = ["src/galax"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+root = "../.."
+search_parent_directories = true
+
+# The version-file hook is safe here, unlike at the repo root: this path is a
+# leaf owned outright by this distribution, not a shared namespace directory.
+[tool.hatch.build.hooks.vcs]
+version-file = "src/galax/dynamics/_version.py"
+
+[tool.hatch.version.raw-options.scm.git]
+describe_command = [
+  "git",
+  "describe",
+  "--dirty",
+  "--tags",
+  "--long",
+  "--match",
+  "galax-dynamics-v[0-9]*",
+]

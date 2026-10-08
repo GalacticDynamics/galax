@@ -11,6 +11,7 @@ resolution-markers = [
 members = [
     "galax",
     "galax-coordinates",
+    "galax-dynamics",
     "galax-interop-astropy",
     "galax-interop-gala",
     "galax-interop-galpy",
@@ -1126,6 +1127,55 @@ requires-dist = [
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
+    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "zeroth", specifier = ">=1.2.0" },
+]
+
+[[package]]
+name = "galax-dynamics"
+source = { editable = "packages/galax.dynamics" }
+dependencies = [
+    { name = "boundinstance" },
+    { name = "coordinax" },
+    { name = "dataclassish" },
+    { name = "diffrax" },
+    { name = "diffraxtra" },
+    { name = "equinox" },
+    { name = "galax-coordinates" },
+    { name = "galax-potential" },
+    { name = "interpax" },
+    { name = "jax" },
+    { name = "jaxtyping" },
+    { name = "numpy" },
+    { name = "optimistix" },
+    { name = "plotting-backends" },
+    { name = "plum" },
+    { name = "quaxed" },
+    { name = "unxt" },
+    { name = "xmmutablemap" },
+    { name = "zeroth" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boundinstance", specifier = ">=0.1" },
+    { name = "coordinax", specifier = ">=0.24.1,<0.25" },
+    { name = "dataclassish", specifier = ">=0.8.0" },
+    { name = "diffrax", specifier = ">=0.7" },
+    { name = "diffraxtra", specifier = ">=1.5.2" },
+    { name = "equinox", specifier = ">=0.13.8" },
+    { name = "galax-coordinates", editable = "packages/galax.coordinates" },
+    { name = "galax-potential", editable = "packages/galax.potential" },
+    { name = "interpax", specifier = ">=0.3.11" },
+    { name = "jax", specifier = ">=0.7.2" },
+    { name = "jaxtyping", specifier = ">=0.3.3" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "optimistix", specifier = ">=0.0.11" },
+    { name = "plotting-backends", specifier = ">=0.1" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "quaxed", specifier = ">=0.10.5" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
     { name = "xmmutablemap", specifier = ">=0.2.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
 ]

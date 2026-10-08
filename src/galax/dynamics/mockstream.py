@@ -14,7 +14,7 @@ __all__ = [
 
 from .setup_package import install_import_hook
 
-with install_import_hook("galax.dynamics.dynamics"):
+with install_import_hook("galax.dynamics.mockstream"):
     from ._src.legacy.mockstream import MockStreamGenerator
     from ._src.legacy.mockstream.df import (
         AbstractStreamDF,

@@ -6,7 +6,6 @@ from dataclasses import replace
 from typing import TypeVar
 
 import jax.random as jr
-import pytest
 from plum import convert
 
 import coordinax as cx
@@ -16,16 +15,9 @@ from dataclassish import replace
 
 import galax.coordinates as gc
 import galax.coordinates.custom_types as gt
-import galax.potential as gp
 from ..test_base import AbstractPhaseSpaceObject_Test, getkeys
 
 WT = TypeVar("WT", bound=gc.AbstractPhaseSpaceCoordinate)
-
-
-potentials = [
-    gp.KeplerPotential(m_tot=1e12, units="galactic"),
-    gp.MilkyWayPotential(),
-]
 
 
 class AbstractPhaseSpaceCoordinate_Test(
@@ -120,32 +112,3 @@ class AbstractPhaseSpaceCoordinate_Test(
         assert w2.q.x.unit == "AU"
         assert w2.p.x.unit == "AU/yr"
         assert w2.t.unit == "yr"
-
-    # ------------------------------
-
-    @pytest.mark.parametrize("pot", potentials, ids=lambda p: type(p).__name__)
-    def test_potential_energy(
-        self, w: gc.AbstractPhaseSpaceCoordinate, pot: gp.AbstractPotential
-    ) -> None:
-        """Test method ``potential``."""
-        pe = w.potential_energy(pot)
-        assert pe.shape == w.shape  # confirm relation to shape and components
-        assert jnp.all(pe <= u.Q(0, "km2/s2"))
-        # definitional
-        assert jnp.allclose(pe, pot.potential(w.q, t=0), atol=u.Q(1e-10, pe.unit))
-
-    # ------------------------------
-
-    @pytest.mark.parametrize("pot", potentials, ids=lambda p: type(p).__name__)
-    def test_total_energy(
-        self, w: gc.AbstractPhaseSpaceCoordinate, pot: gp.AbstractPotential
-    ) -> None:
-        """Test :meth:`~galax.coordinates.PhaseSpacePosition.energy`."""
-        pe = w.total_energy(pot)
-        assert pe.shape == w.shape  # confirm relation to shape and components
-        # definitional
-        assert jnp.allclose(
-            pe,
-            w.kinetic_energy() + pot.potential(w.q, t=0),
-            atol=u.Q(1e-10, pe.unit),
-        )

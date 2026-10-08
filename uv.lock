@@ -7,6 +7,17 @@ resolution-markers = [
     "python_full_version < '3.13'",
 ]
 
+[manifest]
+members = [
+    "galax",
+    "galax-coordinates",
+    "galax-interop-astropy",
+    "galax-interop-gala",
+    "galax-interop-galpy",
+    "galax-interop-matplotlib",
+    "galax-potential",
+]
+
 [[package]]
 name = "absl-py"
 version = "2.3.1"
@@ -419,7 +430,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.23.3"
+version = "0.24.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -430,6 +441,7 @@ dependencies = [
     { name = "jaxlib" },
     { name = "jaxtyping" },
     { name = "optional-dependencies" },
+    { name = "optype" },
     { name = "plum" },
     { name = "quax" },
     { name = "quax-blocks" },
@@ -438,10 +450,11 @@ dependencies = [
     { name = "unxt" },
     { name = "wadler-lindig" },
     { name = "xmmutablemap" },
+    { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/00/99c32e07b37624384d5515f2d4cbdf9f1ff46ee6746cd402f6883fb2df94/coordinax-0.23.3.tar.gz", hash = "sha256:48eb3f63a5bd7475039e9562c22c51318435e4a8e3c0d29192137f00e66f94e5", size = 757498, upload-time = "2026-05-09T20:21:02.189Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/62/b6b7ca9a8981c3c8fe4f3caff4bc543d057ae050c712886f83d9bb4c3c3b/coordinax-0.24.1.tar.gz", hash = "sha256:fd16f5821e41ce78b1b98b58bd2e9185b209fd07d8f02551746ee7f0519e6ce5", size = 729782, upload-time = "2026-10-06T21:41:08.834Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/b2/6e655239636458e9ff363e0c1a3caddefaddea2990ed8f32f82e156bd664/coordinax-0.23.3-py3-none-any.whl", hash = "sha256:115d411963f907728ae25528c69e490937657aa9e787e130c0c97458df5ab8dd", size = 195043, upload-time = "2026-05-09T20:21:00.35Z" },
+    { url = "https://files.pythonhosted.org/packages/23/d6/c1acc6b434e254a0698ce29b96047a9654229e4b68710da4377322cafa81/coordinax-0.24.1-py3-none-any.whl", hash = "sha256:f25bbd87ed19b00cf6e754a1785ccd8a9dcee7bf2dc55c1d63abde5970af3ca2", size = 195563, upload-time = "2026-10-06T21:41:07.365Z" },
 ]
 
 [[package]]
@@ -858,6 +871,9 @@ dependencies = [
     { name = "diffrax" },
     { name = "diffraxtra" },
     { name = "equinox" },
+    { name = "galax-coordinates" },
+    { name = "galax-interop-astropy" },
+    { name = "galax-potential" },
     { name = "interpax" },
     { name = "is-annotated" },
     { name = "jax" },
@@ -865,7 +881,6 @@ dependencies = [
     { name = "jaxtyping" },
     { name = "oncequinox" },
     { name = "optimistix" },
-    { name = "optional-dependencies" },
     { name = "optype" },
     { name = "packaging" },
     { name = "plotting-backends" },
@@ -875,6 +890,7 @@ dependencies = [
     { name = "spexial" },
     { name = "typing-extensions" },
     { name = "unxt" },
+    { name = "unxts-parametric" },
     { name = "wadler-lindig" },
     { name = "xmmutablemap" },
     { name = "zeroth" },
@@ -882,32 +898,30 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
-    { name = "astropy" },
-    { name = "gala" },
-    { name = "galpy" },
-    { name = "matplotlib" },
+    { name = "galax-interop-astropy" },
+    { name = "galax-interop-gala" },
+    { name = "galax-interop-galpy" },
+    { name = "galax-interop-matplotlib" },
 ]
 interop-all = [
-    { name = "astropy" },
-    { name = "gala" },
-    { name = "galpy" },
+    { name = "galax-interop-astropy" },
+    { name = "galax-interop-gala" },
+    { name = "galax-interop-galpy" },
 ]
 interop-astropy = [
-    { name = "astropy" },
+    { name = "galax-interop-astropy" },
 ]
 interop-gala = [
-    { name = "astropy" },
-    { name = "gala" },
+    { name = "galax-interop-gala" },
 ]
 interop-galpy = [
-    { name = "astropy" },
-    { name = "galpy" },
+    { name = "galax-interop-galpy" },
 ]
 plot-all = [
-    { name = "matplotlib" },
+    { name = "galax-interop-matplotlib" },
 ]
 plot-matplotlib = [
-    { name = "matplotlib" },
+    { name = "galax-interop-matplotlib" },
 ]
 
 [package.dev-dependencies]
@@ -917,6 +931,7 @@ dev = [
     { name = "ipykernel" },
     { name = "myst-parser" },
     { name = "nox" },
+    { name = "optional-dependencies" },
     { name = "prek" },
     { name = "pytest" },
     { name = "pytest-arraydiff" },
@@ -941,6 +956,7 @@ docs = [
 ]
 test = [
     { name = "nox" },
+    { name = "optional-dependencies" },
     { name = "prek" },
     { name = "pytest" },
     { name = "pytest-arraydiff" },
@@ -953,6 +969,7 @@ test = [
 ]
 test-all = [
     { name = "nox" },
+    { name = "optional-dependencies" },
     { name = "prek" },
     { name = "pytest" },
     { name = "pytest-arraydiff" },
@@ -971,35 +988,35 @@ test-mpl = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
-    { name = "astropy", marker = "extra == 'all'", specifier = ">=6.1" },
-    { name = "astropy", marker = "extra == 'interop-all'", specifier = ">=6.1" },
-    { name = "astropy", marker = "extra == 'interop-astropy'", specifier = ">=6.1" },
-    { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
-    { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.22.9" },
     { name = "boundinstance", specifier = ">=0.1" },
-    { name = "coordinax", specifier = ">=0.23.3,<0.24" },
+    { name = "coordinax", specifier = ">=0.24.1,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
     { name = "equinox", specifier = ">=0.13.8" },
-    { name = "gala", marker = "extra == 'all'", specifier = ">=1.10" },
-    { name = "gala", marker = "extra == 'interop-all'", specifier = ">=1.10" },
-    { name = "gala", marker = "extra == 'interop-gala'", specifier = ">=1.10" },
-    { name = "galpy", marker = "extra == 'all'", specifier = ">=1.8" },
-    { name = "galpy", marker = "extra == 'interop-all'", specifier = ">=1.8" },
-    { name = "galpy", marker = "extra == 'interop-galpy'", specifier = ">=1.8" },
+    { name = "galax-coordinates", editable = "packages/galax.coordinates" },
+    { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
+    { name = "galax-interop-astropy", marker = "extra == 'all'", editable = "packages/galax.interop.astropy" },
+    { name = "galax-interop-astropy", marker = "extra == 'interop-all'", editable = "packages/galax.interop.astropy" },
+    { name = "galax-interop-astropy", marker = "extra == 'interop-astropy'", editable = "packages/galax.interop.astropy" },
+    { name = "galax-interop-gala", marker = "extra == 'all'", editable = "packages/galax.interop.gala" },
+    { name = "galax-interop-gala", marker = "extra == 'interop-all'", editable = "packages/galax.interop.gala" },
+    { name = "galax-interop-gala", marker = "extra == 'interop-gala'", editable = "packages/galax.interop.gala" },
+    { name = "galax-interop-galpy", marker = "extra == 'all'", editable = "packages/galax.interop.galpy" },
+    { name = "galax-interop-galpy", marker = "extra == 'interop-all'", editable = "packages/galax.interop.galpy" },
+    { name = "galax-interop-galpy", marker = "extra == 'interop-galpy'", editable = "packages/galax.interop.galpy" },
+    { name = "galax-interop-matplotlib", marker = "extra == 'all'", editable = "packages/galax.interop.matplotlib" },
+    { name = "galax-interop-matplotlib", marker = "extra == 'plot-all'", editable = "packages/galax.interop.matplotlib" },
+    { name = "galax-interop-matplotlib", marker = "extra == 'plot-matplotlib'", editable = "packages/galax.interop.matplotlib" },
+    { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "interpax", specifier = ">=0.3.11" },
     { name = "is-annotated", specifier = ">=1.0" },
     { name = "jax", specifier = ">=0.7.2" },
     { name = "jaxlib", specifier = ">=0.7.2" },
     { name = "jaxtyping", specifier = ">=0.3.3" },
-    { name = "matplotlib", marker = "extra == 'all'", specifier = ">=3.8" },
-    { name = "matplotlib", marker = "extra == 'plot-all'", specifier = ">=3.8" },
-    { name = "matplotlib", marker = "extra == 'plot-matplotlib'", specifier = ">=3.8" },
     { name = "oncequinox", specifier = ">=0.1.0" },
     { name = "optimistix", specifier = ">=0.0.11" },
-    { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "optype", specifier = ">=0.14.0" },
     { name = "packaging", specifier = ">=24.1" },
     { name = "plotting-backends", specifier = ">=0.1" },
@@ -1009,7 +1026,8 @@ requires-dist = [
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "spexial", specifier = ">=0.2.1" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
-    { name = "unxt", specifier = ">=1.11.2,<2" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+    { name = "unxts-parametric", specifier = ">=2.0,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
     { name = "xmmutablemap", specifier = ">=0.2.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
@@ -1023,6 +1041,7 @@ dev = [
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "myst-parser", specifier = ">=4.0" },
     { name = "nox", specifier = ">=2024.10.9" },
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "prek", specifier = ">=0.5.3" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-arraydiff", specifier = ">=0.6.1" },
@@ -1047,6 +1066,7 @@ docs = [
 ]
 test = [
     { name = "nox", specifier = ">=2024.10.9" },
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "prek", specifier = ">=0.5.3" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-arraydiff", specifier = ">=0.6.1" },
@@ -1059,6 +1079,7 @@ test = [
 ]
 test-all = [
     { name = "nox", specifier = ">=2024.10.9" },
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "prek", specifier = ">=0.5.3" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-arraydiff", specifier = ">=0.6.1" },
@@ -1071,6 +1092,196 @@ test-all = [
     { name = "tfp-nightly", extras = ["jax"], specifier = ">=0.26.0.dev20260601" },
 ]
 test-mpl = [{ name = "pytest-mpl", specifier = ">=0.17.0" }]
+
+[[package]]
+name = "galax-coordinates"
+source = { editable = "packages/galax.coordinates" }
+dependencies = [
+    { name = "coordinax" },
+    { name = "dataclassish" },
+    { name = "equinox" },
+    { name = "jax" },
+    { name = "jaxtyping" },
+    { name = "oncequinox" },
+    { name = "plum" },
+    { name = "quax" },
+    { name = "quaxed" },
+    { name = "unxt" },
+    { name = "wadler-lindig" },
+    { name = "xmmutablemap" },
+    { name = "zeroth" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coordinax", specifier = ">=0.24.1,<0.25" },
+    { name = "dataclassish", specifier = ">=0.8.0" },
+    { name = "equinox", specifier = ">=0.13.8" },
+    { name = "jax", specifier = ">=0.7.2" },
+    { name = "jaxtyping", specifier = ">=0.3.3" },
+    { name = "oncequinox", specifier = ">=0.1.0" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "quax", specifier = ">=0.4.3" },
+    { name = "quaxed", specifier = ">=0.10.5" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+    { name = "wadler-lindig", specifier = ">=0.1.7" },
+    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "zeroth", specifier = ">=1.2.0" },
+]
+
+[[package]]
+name = "galax-interop-astropy"
+source = { editable = "packages/galax.interop.astropy" }
+dependencies = [
+    { name = "astropy" },
+    { name = "galax" },
+    { name = "plum" },
+    { name = "unxt" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "astropy", specifier = ">=7.0.0" },
+    { name = "galax", editable = "." },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+]
+
+[[package]]
+name = "galax-interop-gala"
+source = { editable = "packages/galax.interop.gala" }
+dependencies = [
+    { name = "astropy" },
+    { name = "gala" },
+    { name = "galax-coordinates" },
+    { name = "galax-interop-astropy" },
+    { name = "galax-potential" },
+    { name = "packaging" },
+    { name = "plum" },
+    { name = "unxt" },
+    { name = "unxts-interop-gala" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "astropy", specifier = ">=7.0.0" },
+    { name = "gala", specifier = ">=1.10" },
+    { name = "galax-coordinates", editable = "packages/galax.coordinates" },
+    { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
+    { name = "galax-potential", editable = "packages/galax.potential" },
+    { name = "packaging", specifier = ">=24.1" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+    { name = "unxts-interop-gala", specifier = ">=2.0,<3" },
+]
+
+[[package]]
+name = "galax-interop-galpy"
+source = { editable = "packages/galax.interop.galpy" }
+dependencies = [
+    { name = "astropy" },
+    { name = "galax-interop-astropy" },
+    { name = "galax-potential" },
+    { name = "galpy" },
+    { name = "plum" },
+    { name = "unxt" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "astropy", specifier = ">=7.0.0" },
+    { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
+    { name = "galax-potential", editable = "packages/galax.potential" },
+    { name = "galpy", specifier = ">=1.8" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+]
+
+[[package]]
+name = "galax-interop-matplotlib"
+source = { editable = "packages/galax.interop.matplotlib" }
+dependencies = [
+    { name = "astropy" },
+    { name = "galax" },
+    { name = "matplotlib" },
+    { name = "plotting-backends" },
+    { name = "plum" },
+    { name = "unxt" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "astropy", specifier = ">=7.0.0" },
+    { name = "galax", editable = "." },
+    { name = "matplotlib", specifier = ">=3.8" },
+    { name = "plotting-backends", specifier = ">=0.1" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+]
+
+[[package]]
+name = "galax-potential"
+source = { editable = "packages/galax.potential" }
+dependencies = [
+    { name = "astropy" },
+    { name = "boundinstance" },
+    { name = "coordinax" },
+    { name = "dataclassish" },
+    { name = "equinox" },
+    { name = "galax-coordinates" },
+    { name = "interpax" },
+    { name = "is-annotated" },
+    { name = "jax" },
+    { name = "jaxtyping" },
+    { name = "numpy" },
+    { name = "optype" },
+    { name = "plotting-backends" },
+    { name = "plum" },
+    { name = "quax" },
+    { name = "quax-blocks" },
+    { name = "quaxed" },
+    { name = "spexial" },
+    { name = "typing-extensions" },
+    { name = "unxt" },
+    { name = "unxts-parametric" },
+    { name = "wadler-lindig" },
+    { name = "xmmutablemap" },
+    { name = "zeroth" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "astropy", specifier = ">=7.0.0" },
+    { name = "boundinstance", specifier = ">=0.1" },
+    { name = "coordinax", specifier = ">=0.24.1,<0.25" },
+    { name = "dataclassish", specifier = ">=0.8.0" },
+    { name = "equinox", specifier = ">=0.13.8" },
+    { name = "galax-coordinates", editable = "packages/galax.coordinates" },
+    { name = "interpax", specifier = ">=0.3.11" },
+    { name = "is-annotated", specifier = ">=1.0" },
+    { name = "jax", specifier = ">=0.7.2" },
+    { name = "jaxtyping", specifier = ">=0.3.3" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "optype", specifier = ">=0.14.0" },
+    { name = "plotting-backends", specifier = ">=0.1" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "quax", specifier = ">=0.4.3" },
+    { name = "quax-blocks", specifier = ">=0.5" },
+    { name = "quaxed", specifier = ">=0.10.5" },
+    { name = "spexial", specifier = ">=0.2.1" },
+    { name = "typing-extensions", specifier = ">=4.13.2" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+    { name = "unxts-parametric", specifier = ">=2.0,<3" },
+    { name = "wadler-lindig", specifier = ">=0.1.7" },
+    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "zeroth", specifier = ">=1.2.0" },
+]
 
 [[package]]
 name = "galpy"
@@ -2339,21 +2550,22 @@ wheels = [
 
 [[package]]
 name = "quax-blocks"
-version = "0.4.1"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax" },
     { name = "jaxlib" },
     { name = "jaxtyping" },
     { name = "optype" },
+    { name = "packaging" },
     { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
     { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
     { name = "quax" },
     { name = "quaxed" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2f/e2/435c5e18e41bfa4c4fe93911111cd2517c7f3a309519a30b885411260ed8/quax_blocks-0.4.1.tar.gz", hash = "sha256:d41cb943fe53a8098cd3a4671088f77f1e02050e16f637c55dd845e926bb2d2a", size = 71821, upload-time = "2026-05-05T04:52:24.191Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/40/a9197e785f32ab31037266f4834d44d36f1ea8676f52f1af00a719c802df/quax_blocks-0.5.0.tar.gz", hash = "sha256:874effa5777aaf48a8bc1a2ef5397d93131ac3f00166b69da5d1d5f7e71232ae", size = 138091, upload-time = "2026-07-31T22:50:02.793Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/21/efd636c4243aaaff94ad175ee9726a343f690686c098e4b507f96e9c5329/quax_blocks-0.4.1-py3-none-any.whl", hash = "sha256:7931cae95556b47f6eb3a2331493b62222ed7a4724c46120b1c80d9dafde027d", size = 16204, upload-time = "2026-05-05T04:52:22.865Z" },
+    { url = "https://files.pythonhosted.org/packages/00/e2/f8e50cc72cf5e92d7056d70d396dbee01172133bd081d6d85026c56916c8/quax_blocks-0.5.0-py3-none-any.whl", hash = "sha256:03e9deba2d6c6b51be47108ec52e4b991b7f466529aadab4abddf6fa68be2d60", size = 24809, upload-time = "2026-07-31T22:50:01.726Z" },
 ]
 
 [[package]]
@@ -2745,7 +2957,7 @@ wheels = [
 
 [[package]]
 name = "unxt"
-version = "1.11.4"
+version = "2.0.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -2756,6 +2968,7 @@ dependencies = [
     { name = "jaxlib" },
     { name = "jaxtyping" },
     { name = "optional-dependencies" },
+    { name = "packaging" },
     { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
     { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
     { name = "quax" },
@@ -2763,13 +2976,12 @@ dependencies = [
     { name = "quaxed" },
     { name = "traitlets" },
     { name = "unxt-api" },
+    { name = "unxts-api" },
     { name = "wadler-lindig" },
-    { name = "xmmutablemap" },
-    { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7b/74/5c7e1172257b8882d3bee17ca5ff18d61f6d4beafe85f79df46118f6edc6/unxt-1.11.4.tar.gz", hash = "sha256:118af7a495d813b5de13d677bcbd3336dbccc28838492d7b65bb7d836f55dbf9", size = 1066483, upload-time = "2026-06-29T13:17:32.485Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/0c/3fb689976a32c81e6e6aa956ea629e6834f43a719a59b1b844d20636c540/unxt-2.0.5.tar.gz", hash = "sha256:90207e8d20caa8119e349886df226aa42793a12891bc13c8a407cc3c4fbf1565", size = 729062, upload-time = "2026-10-04T02:49:10.255Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/52/f4215ba3879bbc540762f3b5ad07763a28887c1659e1be232cca3dc3bebc/unxt-1.11.4-py3-none-any.whl", hash = "sha256:66c43508919fecd43aff0e328d42bcae6871f5fbdd4499e1e6b2a7a83759ec5e", size = 94210, upload-time = "2026-06-29T13:17:31.072Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/5b/c812d96cabd06a222bf782dbd0edaaa33383aa51e2a199df5a9cbf774608/unxt-2.0.5-py3-none-any.whl", hash = "sha256:8e93841d5fd61d17f298d8aedf9ce5727b0bb96b87ab3032f1e2ef98846f5404", size = 120577, upload-time = "2026-10-04T02:49:08.649Z" },
 ]
 
 [[package]]
@@ -2795,6 +3007,34 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a7/57/0ba96217d877cf2eb4002045650d9521d1d0d5cc91e1226fc9877a1ed675/unxts_api-2.0.0.tar.gz", hash = "sha256:b5bdb90a0836099e788549d65a95d979281dd5fb2d06164620cc983aeb1cd6c4", size = 12570, upload-time = "2026-07-24T18:05:26.804Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d6/2d/41ac3d8e5f98aafabe5ce1790418d13b8e743fa75d50ac0c5513507c114f/unxts_api-2.0.0-py3-none-any.whl", hash = "sha256:a4b6729fbfcb2f8536302ea676352d1866eaeb6a916a843afaeaa18c65b66bbd", size = 5934, upload-time = "2026-07-24T18:05:25.729Z" },
+]
+
+[[package]]
+name = "unxts-interop-gala"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "astropy" },
+    { name = "gala", marker = "sys_platform != 'win32'" },
+    { name = "unxt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c3/86/a1b4b2adbef5525064519669c004b2bc06566656e22717785a8c104028b1/unxts_interop_gala-2.0.0.tar.gz", hash = "sha256:08521ed686b3452c6e6016e068f9a0ac9cf4f3a77573edc89baa79c5098ff31e", size = 6685, upload-time = "2026-07-24T18:08:13.415Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/59/42/1995340145fb9e19eda6135f77a83e5c435650401547fd6e50d0eee40055/unxts_interop_gala-2.0.0-py3-none-any.whl", hash = "sha256:a3dea23ff7af1291343dfc332e4b01b9c27113cfd7294a01af51b31b0aca96fa", size = 5064, upload-time = "2026-07-24T18:08:12.108Z" },
+]
+
+[[package]]
+name = "unxts-parametric"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
+    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "unxt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bd/bb/3b1ee3b62ff9e24ae33d9f3cc44589b4aa606e6e65d2ea18584048db3779/unxts_parametric-2.0.0.tar.gz", hash = "sha256:0b715a4675ef5e4b26afc85a90ed68ec5cf9a06009ae97f950f48dca4b34befc", size = 21099, upload-time = "2026-07-24T18:14:39.637Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2e/ab/d08fe5623da4b7797db1b094ec0599b6e672cd72729faf3e0e719a43046c/unxts_parametric-2.0.0-py3-none-any.whl", hash = "sha256:28783a58315c58ab551a7ebaa94f04f2f8e2f504b324c0f8f0ccd7e9bf488ca9", size = 14851, upload-time = "2026-07-24T18:14:38.563Z" },
 ]
 
 [[package]]

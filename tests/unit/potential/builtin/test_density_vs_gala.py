@@ -17,7 +17,7 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from galax.interop.optional_deps import GSL_ENABLED, OptDeps
+from ..optional_deps import GSL_ENABLED, OptDeps
 
 X = u.Q([3.5, 2.0, 1.0], "kpc")  # generic off-axis evaluation point
 

@@ -1,12 +1,14 @@
 from typing import Any
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
+from ..optional_deps import OptDeps
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import (
@@ -16,7 +18,6 @@ from .test_common import (
     ParameterShapeQ3Mixin,
     ParameterVCMixin,
 )
-from galax.interop.optional_deps import OptDeps
 
 
 class ParameterPhiMixin(ParameterFieldMixin):
@@ -46,7 +47,7 @@ class ParameterPhiMixin(ParameterFieldMixin):
     def test_phi_userfunc(self, pot_cls, fields):
         """Test the phi parameter."""
 
-        def cos_phi(t: u.Quantity["time"]) -> u.Quantity["angle"]:
+        def cos_phi(t: u.Quantity["time"]) -> ParametricQuantity["angle"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "deg")
 
         fields["phi"] = cos_phi

@@ -1,9 +1,8 @@
 """Portions must be usable without importing the others first.
 
-`galax` is a PEP 420 namespace package, so `import galax.coordinates` no longer
-drags in `galax.potential` and `galax.dynamics` the way the old
-`galax/__init__.py` did. That makes lazy, out-of-order portion imports ordinary
-user code, and it must stay safe.
+`galax` is a PEP 420 namespace package, so `import galax.coordinates` does not
+drag in `galax.potential` or `galax.dynamics`. Lazy, out-of-order portion
+imports are therefore ordinary user code, and must stay safe.
 
 These run in a subprocess: the import order *is* the thing under test, and the
 pytest session has already imported everything.
@@ -28,7 +27,7 @@ def run(code: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _imported_modules(node: ast.AST) -> list[str]:
+def _imported_modules(node: ast.AST, /) -> list[str]:
     """Return the module names an `import` / `from ... import` pulls in."""
     if isinstance(node, ast.Import):
         return [alias.name for alias in node.names]
@@ -37,7 +36,7 @@ def _imported_modules(node: ast.AST) -> list[str]:
     return []
 
 
-def _within(name: str, packages: tuple[str, ...]) -> bool:
+def _within(name: str, packages: tuple[str, ...], /) -> bool:
     """Whether `name` is one of `packages` or a submodule of one.
 
     Not `str.startswith`, which would also match a sibling like
@@ -122,7 +121,7 @@ def test_jit_then_late_potential_import() -> None:
         g = pot.constants["G"]
         assert type(g.value).__name__ != "DynamicJaxprTracer", type(g.value)
 
-        w.potential_energy(pot)
+        gp.potential_energy(pot, w)
     """)
     assert proc.returncode == 0, proc.stderr
     assert "UnexpectedTracerError" not in proc.stderr
@@ -140,15 +139,26 @@ def test_no_deferred_upward_imports() -> None:
     import that has not fired yet leaves no trace there, so
     `test_portion_does_not_import_upward` passes on an edge that still exists.
     """
-    src = pathlib.Path(__file__).parents[2] / "src" / "galax"
+    root = pathlib.Path(__file__).parents[2]
+    # Every tree that contributes to the `galax` namespace; `packages/*/src` is
+    # globbed so portions moving out of `src/` stay covered.
+    src_roots = [root / "src", *sorted(root.glob("packages/*/src"))]
     offenders: list[str] = []
 
     for portion, higher in ABOVE.items():
         banned = tuple(f"galax.{h}" for h in higher)
-        for path in sorted((src / portion).rglob("*.py")):
+        # `rglob` on a missing directory yields nothing and raises nothing, so
+        # a portion that is not found must fail here rather than scan 0 files.
+        files = sorted(
+            path
+            for src in src_roots
+            for path in (src / "galax" / portion).rglob("*.py")
+        )
+        assert files, f"portion {portion!r} not found under any of {src_roots}"
+        for path in files:
             tree = ast.parse(path.read_text(), filename=str(path))
             offenders += [
-                f"{path.relative_to(src)}:{node.lineno} "
+                f"{path.relative_to(root)}:{node.lineno} "
                 f"in {func.name}(): imports {name}"
                 for func in ast.walk(tree)
                 if isinstance(func, ast.FunctionDef | ast.AsyncFunctionDef)

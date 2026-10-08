@@ -39,7 +39,7 @@ class TestNullPotential(AbstractSinglePotential_Test):
         pot = pot_cls(**fields_unitless, units="galactic")
         assert pot.units == usx.galactic
 
-        with pytest.raises(KeyError, match="invalid_value"):
+        with pytest.raises(ValueError, match="invalid_value"):
             pot_cls(**fields_unitless, units="invalid_value")
 
     # ==========================================================================

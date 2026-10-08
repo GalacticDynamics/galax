@@ -56,9 +56,37 @@ jobs:
         with:
           python-version-file: ".python-version"
       - name: Install the project
-        run: uv sync --group test
+        # Every extra, deliberately. `tests/smoke/test_interop_registration.py
+        # ::test_entry_point_is_registered` asserts all eight entry points
+        # across all four interop distributions, and a plain sync installs only
+        # the astropy one -- five of those cases would fail. Do not narrow this
+        # to `--group test` and then make the test skip absent distributions:
+        # that restores the exact hole it exists to close, since a dropped
+        # entry point raises no error, the interop just silently stops working.
+        run: uv sync --extra all --group test
       - name: Run smoke test
         run: uv run pytest tests/smoke -ra
+
+  install-shapes:
+    name: Install shapes
+    runs-on: ubuntu-latest
+    needs: [smoke]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # hatch-vcs needs tags to compute versions for the built wheels.
+          fetch-depth: 0
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: "Set up Python"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: ".python-version"
+      - name: Check the bare and subset install shapes
+        run: ./scripts/check_install_shapes.sh
 
   checks:
     name: Check Python ${{ matrix.python-version }} on ${{ matrix.runs-on }}
@@ -105,9 +133,16 @@ jobs:
       - name: Install the project
         run: uv sync --group test
 
+      # `packages` whole, not an enumeration. A plain sync installs only the
+      # members the root requires, and `conftest.py`'s `collect_ignore_glob`
+      # already drops each `packages/galax.interop.<lib>/*` tree whose library
+      # or distribution is missing -- so naming members individually buys
+      # nothing and costs a hand-edit per portion. Forgetting that edit drops a
+      # portion's doctests from every leg of this matrix and fails nothing,
+      # which is the silence this repo keeps paying for.
       - name: Test package
         run: >-
-          uv run pytest src docs tests/unit tests/functional -ra --cov
+          uv run pytest src packages docs tests/unit tests/functional -ra --cov
           --cov-report=xml --cov-report=term --durations=20 --arraydiff -m"not
           slow" -n logical --dist=loadfile
 
@@ -143,10 +178,10 @@ jobs:
 
       - name: Test package
         run: >-
-          uv run pytest tests/integration src docs tests/unit tests/functional
-          -ra --durations=20 --cov --cov-report=xml --cov-report=term
-          --arraydiff -m"not slow" --mpl --mpl-hash-library=hashes.json
-          --mpl-deterministic -n logical --dist=loadfile
+          uv run pytest src packages docs tests/unit tests/functional -ra
+          --durations=20 --cov --cov-report=xml --cov-report=term --arraydiff
+          -m"not slow" --mpl --mpl-hash-library=hashes.json --mpl-deterministic
+          -n logical --dist=loadfile
 
       - name: Upload coverage report
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -201,7 +236,7 @@ jobs:
     name: CI Pass
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
-    needs: [pre-commit, smoke, checks, check_interop, benchmark]
+    needs: [pre-commit, smoke, install-shapes, checks, check_interop, benchmark]
     steps:
       - name: All required jobs passed
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0

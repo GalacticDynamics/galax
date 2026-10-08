@@ -1,6 +1,6 @@
 """Doctest configuration."""
 
-import importlib
+import importlib.util
 from doctest import ELLIPSIS, NORMALIZE_WHITESPACE
 from pathlib import Path
 
@@ -15,7 +15,32 @@ from sybil.sybil import SybilCollection
 from optional_dependencies import OptionalDependencyEnum, auto
 from optional_dependencies.utils import chain_checks, get_version, is_installed
 
-_SRC = (Path(__file__).parent / "src").resolve()
+_ROOT = Path(__file__).parent
+# Every tree that contributes to the `galax` namespace. `packages/*/src` is
+# globbed rather than listed so adding a distribution needs no conftest edit.
+_SRC_ROOTS = tuple(
+    p.resolve() for p in [_ROOT / "src", *sorted(_ROOT.glob("packages/*/src"))]
+)
+
+
+def _module_name_for(path: Path, /) -> str | None:
+    """Return the true dotted module name for `path`, or `None` if foreign.
+
+    Resolves against the source roots rather than walking up looking for
+    `__init__.py`: `galax/` and `galax/interop/` are namespace directories, so
+    that walk stops too deep and drops the leading parts of the name.
+    """
+    path = Path(path).resolve()
+    for root in _SRC_ROOTS:
+        try:
+            relative = path.relative_to(root)
+        except ValueError:
+            continue
+        parts = relative.parts[:-1]
+        if relative.name != "__init__.py":
+            parts += (relative.stem,)
+        return ".".join(parts)
+    return None
 
 
 class NamespacePackageDocument(PythonDocStringDocument):
@@ -25,7 +50,7 @@ class NamespacePackageDocument(PythonDocStringDocument):
     until it finds a directory without `__init__.py`. `src/galax` is a PEP 420
     namespace directory, so that walk stops one level too deep and yields
     `potential._src.api` instead of `galax.potential._src.api`. Resolving the
-    path against `src/` instead gives the true dotted name.
+    path against the source roots instead gives the true dotted name.
 
     Sybil does not support namespace packages: simplistix/sybil#59 was closed
     unfixed with "pull request to fix would be welcome". Until that lands, this
@@ -37,19 +62,13 @@ class NamespacePackageDocument(PythonDocStringDocument):
     """
 
     def import_document(self, example: Example) -> None:
-        """Import the document's source file, resolving names against `src/`."""
-        path = Path(self.path).resolve()
-        try:
-            relative = path.relative_to(_SRC)
-        except ValueError:  # outside src/ -- let Sybil do its usual thing
+        """Import the document's source file, resolving names against the roots."""
+        name = _module_name_for(Path(self.path))
+        if name is None:  # outside every source root -- Sybil's usual behaviour
             super().import_document(example)
             return
 
-        parts = relative.parts[:-1]
-        if relative.name != "__init__.py":
-            parts += (relative.stem,)
-
-        module = importlib.import_module(".".join(parts))
+        module = importlib.import_module(name)
         self.namespace.update(module.__dict__)
         self.pop_evaluator(self.import_document)
         raise NotEvaluated
@@ -103,12 +122,20 @@ collect_ignore_glob = [
     "docs/superpowers/*",
     ".superpowers/*",
 ]
-if not OptDeps.ASTROPY.installed:
-    collect_ignore_glob.append("src/galax/interop/astropy/*")
-if not OptDeps.GALA.installed:
-    collect_ignore_glob.append("src/galax/interop/gala/*")
-if not OptDeps.GALPY.installed:
-    collect_ignore_glob.append("src/galax/interop/galpy/*")
+# A package's own tests (and its doctests) import its own distribution at module
+# scope, so none of it can be collected unless that distribution is installed
+# *and* the library it wraps is usable. Both are checked: a plain `uv sync`
+# installs matplotlib itself (a test dependency) without the
+# `galax.interop.matplotlib` distribution. `*` crosses `/` in pytest's matcher,
+# so one pattern covers a package's `src/` and `tests/` trees.
+collect_ignore_glob.extend(
+    f"packages/galax.interop.{lib}/*"
+    for lib in ("astropy", "gala", "galpy", "matplotlib")
+    if not (
+        OptDeps[lib.upper()].installed
+        and importlib.util.find_spec(f"galax.interop.{lib}")
+    )
+)
 
 
 def pytest_report_header(config: Any) -> str:  # noqa: D103, ARG001

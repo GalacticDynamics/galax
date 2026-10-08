@@ -3,6 +3,7 @@
 from typing import Any, ClassVar
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -32,7 +33,7 @@ class ShapeTransitionRadiusParameterMixin(ParameterFieldMixin):
     def test_a_r_userfunc(self, pot_cls, fields):
         """Test the `a_r` parameter."""
 
-        def cos_a_r(t: u.Quantity["time"]) -> u.Quantity[""]:
+        def cos_a_r(t: u.Quantity["time"]) -> ParametricQuantity[""]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "")
 
         fields["a_r"] = cos_a_r

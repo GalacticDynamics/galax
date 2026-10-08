@@ -3,6 +3,7 @@
 from typing import Any, ClassVar
 
 import pytest
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -31,7 +32,7 @@ class ParameterCoeffMixin(ParameterFieldMixin):
     def test_coeff_userfunc(self, pot_cls, fields):
         """Test the `coeff` parameter."""
 
-        def cos_coeff(t: u.Quantity["time"]) -> u.Quantity["wavenumber"]:
+        def cos_coeff(t: u.Quantity["time"]) -> ParametricQuantity["wavenumber"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "1/kpc")
 
         fields["coeff"] = cos_coeff
@@ -60,7 +61,7 @@ class ParameterTimeScaleMixin(ParameterFieldMixin):
     def test_timescale_userfunc(self, pot_cls, fields):
         """Test the `timescale` parameter."""
 
-        def func(t: u.Quantity["time"]) -> u.Quantity["time"]:
+        def func(t: u.Quantity["time"]) -> ParametricQuantity["time"]:
             return u.Q.from_(t * 1.2, "Myr")
 
         fields["timescale"] = func

@@ -1,0 +1,178 @@
+""":mod:`galax.potential`."""
+
+__all__ = [
+    # Modules
+    "io",
+    "harmonic",
+    "multipole_profile",
+    "params",
+    "plot",
+    "scf",
+    # ABCs
+    "AbstractPotential",
+    "AbstractSinglePotential",
+    "AbstractCompositePotential",
+    # symmetry
+    "Symmetry",
+    # composite
+    "CompositePotential",
+    # builtin
+    "LongMuraliBarPotential",
+    "MonariEtAl2016BarPotential",
+    "KuzminPotential",
+    "MiyamotoNagaiPotential",
+    "MN3ExponentialPotential",
+    "MN3Sech2Potential",
+    "HarmonicOscillatorPotential",
+    "HenonHeilesPotential",
+    "SatohPotential",
+    "LMJ09LogarithmicPotential",
+    "LogarithmicPotential",
+    "AbstractMultipolePotential",
+    "AbstractMultipoleProfilePotential",
+    "MultipoleInnerPotential",
+    "MultipoleOuterPotential",
+    "MultipolePotential",
+    "MultipoleProfilePotential",
+    "AxisymmetricGaussianPotential",
+    "GaussianPotential",
+    "TriaxialGaussianPotential",
+    "LeeSutoTriaxialNFWPotential",
+    "NFWPotential",
+    "TriaxialNFWPotential",
+    "Vogelsberger08TriaxialNFWPotential",
+    "NullPotential",
+    "BurkertPotential",
+    "HernquistPotential",
+    "IsochronePotential",
+    "JaffePotential",
+    "KeplerPotential",
+    "PlummerPotential",
+    "PowerLawCutoffPotential",
+    "StoneOstriker15Potential",
+    "TriaxialHernquistPotential",
+    "HardCutoffNFWPotential",
+    "gNFWPotential",
+    "ZhaoPotential",
+    "SCFPotential",
+    # Pre-composited
+    "AbstractPreCompositedPotential",
+    "BovyMWPotential2014",
+    "LM10Potential",
+    "MilkyWayPotential",
+    "MilkyWayPotential2022",
+    # xfm
+    "AbstractTransformedPotential",
+    "FlattenedInThePotential",
+    "TransformedPotential",
+    "TriaxialInThePotential",
+    "TranslatedPotential",
+    # funcs
+    "potential",
+    "gradient",
+    "laplacian",
+    "density",
+    "hessian",
+    "acceleration",
+    "tidal_tensor",
+    "local_circular_velocity",
+    "spherical_mass_enclosed",
+    "potential_energy",
+    "total_energy",
+    "dpotential_dr",
+    "d2potential_dr2",
+]
+
+from .setup_package import install_import_hook, load_interop_plugins
+
+with install_import_hook("galax.potential"):
+    from . import harmonic, io, multipole_profile, params, plot, scf
+    from ._src.api import (
+        acceleration,
+        d2potential_dr2,
+        density,
+        dpotential_dr,
+        gradient,
+        hessian,
+        laplacian,
+        local_circular_velocity,
+        potential,
+        potential_energy,
+        spherical_mass_enclosed,
+        tidal_tensor,
+        total_energy,
+    )
+    from ._src.base import AbstractPotential
+    from ._src.base_multi import (
+        AbstractCompositePotential,
+        AbstractPreCompositedPotential,
+    )
+    from ._src.base_single import AbstractSinglePotential
+    from ._src.builtin import (
+        AbstractMultipolePotential,
+        AbstractMultipoleProfilePotential,
+        AxisymmetricGaussianPotential,
+        BovyMWPotential2014,
+        BurkertPotential,
+        GaussianPotential,
+        HardCutoffNFWPotential,
+        HarmonicOscillatorPotential,
+        HenonHeilesPotential,
+        HernquistPotential,
+        IsochronePotential,
+        JaffePotential,
+        KeplerPotential,
+        KuzminPotential,
+        LeeSutoTriaxialNFWPotential,
+        LM10Potential,
+        LMJ09LogarithmicPotential,
+        LogarithmicPotential,
+        LongMuraliBarPotential,
+        MilkyWayPotential,
+        MilkyWayPotential2022,
+        MiyamotoNagaiPotential,
+        MN3ExponentialPotential,
+        MN3Sech2Potential,
+        MonariEtAl2016BarPotential,
+        MultipoleInnerPotential,
+        MultipoleOuterPotential,
+        MultipolePotential,
+        MultipoleProfilePotential,
+        NFWPotential,
+        NullPotential,
+        PlummerPotential,
+        PowerLawCutoffPotential,
+        SatohPotential,
+        SCFPotential,
+        StoneOstriker15Potential,
+        TriaxialGaussianPotential,
+        TriaxialHernquistPotential,
+        TriaxialNFWPotential,
+        Vogelsberger08TriaxialNFWPotential,
+        ZhaoPotential,
+        gNFWPotential,
+    )
+    from ._src.composite import CompositePotential
+    from ._src.symmetry import Symmetry
+    from ._src.xfm import (
+        AbstractTransformedPotential,
+        FlattenedInThePotential,
+        TransformedPotential,
+        TranslatedPotential,
+        TriaxialInThePotential,
+    )
+
+    # Register functions by module import
+    # isort: split
+    from ._src import register_funcs
+
+
+# Cleanup
+del install_import_hook, register_funcs
+
+# Interoperability with third-party libraries. Importing a registered module is
+# what performs its `plum` dispatch registration; entry points let separately
+# installed distributions extend `galax.potential` without it knowing they exist.
+load_interop_plugins("galax.potential.interop")
+
+del load_interop_plugins

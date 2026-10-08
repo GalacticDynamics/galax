@@ -10,7 +10,7 @@ import jax
 from plum import dispatch
 
 import quaxed.numpy as jnp
-from unxt.quantity import BareQuantity as FastQ
+from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt

@@ -29,7 +29,7 @@ import jax.numpy as jnp
 
 import unxt as u
 from dataclassish.converters import Unless
-from unxt.quantity import AllowValue, BareQuantity as FastQ
+from unxt.quantity import AllowValue, Quantity as FastQ
 
 from .api import relaxation_time, tidal_radius
 from .radius import AbstractTidalRadiusMethod, King1962

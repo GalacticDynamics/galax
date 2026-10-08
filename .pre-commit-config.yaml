@@ -33,6 +33,8 @@ repos:
       - id: mixed-line-ending
       - id: name-tests-test
         args: ["--pytest-test-first"]
+        # Test-support module (optional-dependency probes), not a test file.
+        exclude: ^tests/unit/potential/optional_deps\.py$
       - id: no-commit-to-branch
         args: ["--branch", "main", "--pattern", "^versions/.*"]
         always_run: true
@@ -48,7 +50,7 @@ repos:
       - id: rst-inline-touching-normal
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.34.1
+    rev: 0.38.2
     hooks:
       - id: check-dependabot
       - id: check-github-workflows

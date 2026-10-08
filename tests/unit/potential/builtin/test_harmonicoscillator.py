@@ -4,15 +4,16 @@ from typing import Any, override
 
 import pytest
 from plum import convert
+from unxts.parametric import ParametricQuantity
 
 import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
 import galax.potential.custom_types as gt
+from ..optional_deps import OptDeps
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
-from galax.interop.optional_deps import OptDeps
 from galax.potential._src.base import AbstractPotential
 
 
@@ -34,7 +35,7 @@ class ParameterOmegaMixin(ParameterFieldMixin):
     def test_omega_userfunc(self, pot_cls, fields):
         """Test the `omega` parameter."""
 
-        def cos_omega(t: u.Quantity["time"]) -> u.Quantity["frequency"]:
+        def cos_omega(t: u.Quantity["time"]) -> ParametricQuantity["frequency"]:
             return u.Q(10 * jnp.cos(t.ustrip("Myr")), "Hz")
 
         fields["omega"] = cos_omega

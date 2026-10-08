@@ -28,13 +28,20 @@ classifiers = [
 ]
 dependencies = [
   "astropy>=7.0.0",
-  "beartype>=0.22.9",                      # TODO: figure out why 0.22.0 breaks things
+  "beartype>=0.22.9",        # TODO: figure out why 0.22.0 breaks things
   "boundinstance>=0.1",
-  "coordinax>=0.23.3,<0.24",
+  "coordinax>=0.24.1,<0.25",
   "dataclassish>=0.8.0",
   "diffrax>=0.7",
   "diffraxtra>=1.5.2",
   "equinox>=0.13.8",
+  "galax.coordinates",
+  # Required, not an extra: `astropy` is already a required dependency, so this
+  # interop's entry point registers on every install today. Demoting it would
+  # silently stop astropy conversions from registering -- a missing entry point
+  # produces no error.
+  "galax.interop.astropy>0.0.3",
+  "galax.potential",
   "interpax>=0.3.11",
   "is-annotated>=1.0",
   "jax>=0.7.2",
@@ -42,7 +49,6 @@ dependencies = [
   "jaxtyping>=0.3.3",
   "oncequinox>=0.1.0",
   "optimistix>=0.0.11",
-  "optional-dependencies>=0.4.0",
   "optype>=0.14.0",
   "packaging>=24.1",
   "plotting_backends>=0.1",
@@ -52,7 +58,8 @@ dependencies = [
   "quaxed>=0.10.5",
   "spexial>=0.2.1",
   "typing-extensions>=4.13.2",
-  "unxt>=1.11.2,<2",
+  "unxt>=2.0.5,<3",
+  "unxts.parametric>=2.0,<3",
   "wadler_lindig>=0.1.7",
   "xmmutablemap>=0.2.1",
   "zeroth>=1.2.0",
@@ -67,12 +74,14 @@ interop-all = [
   "galax[interop-gala]",
   "galax[interop-galpy]",
 ]
-interop-astropy = ["astropy>=6.1"]
-interop-gala = ["gala>=1.10", "galax[interop-astropy]"]
-interop-galpy = ["galax[interop-astropy]", "galpy >= 1.8"]
+# `galax.interop.astropy` is a required dependency, so this extra adds
+# nothing. Kept as a no-op alias so `galax[interop-astropy]` does not break.
+interop-astropy = ["galax.interop.astropy>0.0.3"]
+interop-gala = ["galax.interop.gala>0.0.3"]
+interop-galpy = ["galax.interop.galpy>0.0.3"]
 # TODO: agama
 plot-all = ["galax[plot-matplotlib]"]
-plot-matplotlib = ["matplotlib>=3.8"]
+plot-matplotlib = ["galax.interop.matplotlib>0.0.3"]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/GalacticDynamics/galax/issues"
@@ -80,29 +89,20 @@ Changelog = "https://github.com/GalacticDynamics/galax/releases"
 Discussions = "https://github.com/GalacticDynamics/galax/discussions"
 Homepage = "https://github.com/GalacticDynamics/galax"
 
-# Interoperability plugins. Each portion loads its own group at the end of its
-# `__init__`; importing a registered module performs its `plum` dispatch
-# registration. Groups are per-portion so that importing `galax.coordinates`
-# does not drag in potential-level interop. A plugin whose third-party target
-# is not installed is skipped by the loader.
-[project.entry-points."galax.coordinates.interop"]
-astropy = "galax.interop.astropy.coordinates"
-gala = "galax.interop.gala.coordinates"
-
-[project.entry-points."galax.potential.interop"]
-astropy = "galax.interop.astropy.potential"
-gala = "galax.interop.gala.potential"
-galpy = "galax.interop.galpy.potential"
-matplotlib = "galax.interop.matplotlib.potential"
-
-[project.entry-points."galax.dynamics.interop"]
-astropy = "galax.interop.astropy.dynamics"
-matplotlib = "galax.interop.matplotlib.orbit"
-
-
 [build-system]
 build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling"]
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+"galax.coordinates" = { workspace = true }
+"galax.interop.astropy" = { workspace = true }
+"galax.interop.gala" = { workspace = true }
+"galax.interop.galpy" = { workspace = true }
+"galax.interop.matplotlib" = { workspace = true }
+"galax.potential" = { workspace = true }
 
 
 [dependency-groups]
@@ -126,6 +126,11 @@ docs = [
 # Test dependencies
 test-all = [{ include-group = "test" }, { include-group = "test-mpl" }]
 test = [
+  # Test-only: `src/` does not import it. Its consumers are `conftest.py` and
+  # `tests/unit/potential/optional_deps.py`, which probe the wrapped libraries
+  # to decide what to collect and skip. `galax.interop.gala` declares it
+  # itself, being the one shipped user.
+  "optional-dependencies>=0.4.0",
   "nox>=2024.10.9",
   "prek>=0.5.3",
   "pytest-arraydiff>=0.6.1",
@@ -149,6 +154,19 @@ test-mpl = ["pytest-mpl>=0.17.0"]
 [tool.hatch]
 metadata.allow-direct-references = true
 version.source = "vcs"
+
+# Only plain `v*` tags version `galax`. Per-package tags (e.g.
+# `galax-interop-astropy-v0.1.0`) also match setuptools-scm's default glob and
+# would otherwise become the root's version.
+version.raw-options.scm.git.describe_command = [
+  "git",
+  "describe",
+  "--dirty",
+  "--tags",
+  "--long",
+  "--match",
+  "v[0-9]*",
+]
 
 # `src/galax` is a PEP 420 namespace directory with no `__init__.py`, so the
 # package cannot be auto-detected and must be named explicitly. There is no
@@ -178,7 +196,15 @@ report.exclude_also = [
   '@abc.abstractmethod',
   '@abstractmethod',
 ]
-run.source = ["galax"]
+run.source = [
+  "src",
+  "packages/galax.coordinates/src",
+  "packages/galax.interop.astropy/src",
+  "packages/galax.interop.gala/src",
+  "packages/galax.interop.galpy/src",
+  "packages/galax.interop.matplotlib/src",
+  "packages/galax.potential/src",
+]
 
 
 [tool.mypy]
@@ -189,7 +215,16 @@ python_version = "3.12"
 # without `__init__.py`, naming this module `potential._src.base` rather than
 # `galax.potential._src.base` and losing every cross-module type.
 explicit_package_bases = true
-mypy_path = "src"
+# Each distribution under `packages/` is its own source root.
+mypy_path = [
+  "src",
+  "packages/galax.coordinates/src",
+  "packages/galax.interop.astropy/src",
+  "packages/galax.interop.gala/src",
+  "packages/galax.interop.galpy/src",
+  "packages/galax.interop.matplotlib/src",
+  "packages/galax.potential/src",
+]
 namespace_packages = true
 
 disallow_incomplete_defs = true
@@ -241,7 +276,7 @@ module = [
 
 
 [tool.pylint]
-ignore-paths = [".*/_version.py"]
+ignore-paths = [".*/_version\\.py"]
 messages_control.disable = [
   "design",
   "fixme",
@@ -271,9 +306,7 @@ addopts = [
   # default "prepend" mode pytest derives a module name by walking up to the
   # first directory without an `__init__.py` and puts that directory on
   # sys.path -- which makes the leaf of a namespace package shadow a real
-  # library. Matches `coordinax` and `unxt`. NB: deliberately *not*
-  # `consider_namespace_packages`, which renames test modules and breaks
-  # pytest-mpl's hash lookups.
+  # library. Matches `coordinax` and `unxt`.
   "--import-mode=importlib",
   "--showlocals",
   "--strict-config",
@@ -300,8 +333,18 @@ markers = [
   "serial",
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
+# Without this, pytest names a module by walking up to the first directory
+# without an `__init__.py`. `galax/interop/` is a namespace directory, so that
+# walk stops inside it and names
+# `packages/galax.interop.gala/src/galax/interop/gala/potential.py` as
+# `gala.potential` -- registering galax's own module under the name of the
+# library it wraps. That module then imports `galax.potential`, whose entry
+# points import the real module, and the half-built impostor is what
+# `import gala.potential` returns. Whether it bites depends on collection
+# order, so it surfaces as flaky `AttributeError`s on `gala.potential`.
+consider_namespace_packages = true
 minversion = "8.0"
-testpaths = ["docs", "src/galax", "tests/"]
+testpaths = ["docs", "packages", "src/galax", "tests/"]
 xfail_strict = true
 env = ["JAX_ENABLE_X64=True"]
 
@@ -349,6 +392,9 @@ ignore = [
   "S101",   # asserts are the point: correctness gate + x64 sanity check
   "T20",    # a CLI script reporting results via print is the point
 ]
+"scripts/**" = [
+  "T20", # CLI scripts report results via print; that is the point
+]
 "docs/conf.py" = [
   "A001",   # Variable `copyright` is shadowing a Python builtin
   "INP001", # implicit namespace package
@@ -356,16 +402,16 @@ ignore = [
 # `galax` and `galax.interop` are PEP 420 namespace directories, so any
 # loose module in them is correctly "part of an implicit namespace
 # package". That is the intent, not a mistake.
-"src/galax/interop/*.py" = ["INP001"]
+"{src,packages/*/src}/galax/interop/*.py" = ["INP001"]
 # Each interop portion is named after the library it wraps, so e.g.
 # `galax.interop.astropy.coordinates` importing `astropy.coordinates` looks
 # like a self-import. It isn't: these are absolute imports resolving to the
 # third-party package. Safe because `--import-mode=importlib` keeps
 # `src/galax/interop` off sys.path, so the portion never shadows the library.
-"src/galax/interop/*/*.py" = ["PLW0406"]
+"{src,packages/*/src}/galax/interop/*/*.py" = ["PLW0406"]
 "notebooks/**" = ["ANN", "D103", "FBT", "T201"]
 "noxfile.py" = ["ERA001", "T20"]
-"tests/**" = [
+"{tests,packages/*/tests}/**" = [
   "ANN",
   "ARG001",
   "ARG002",
@@ -444,7 +490,7 @@ sections = { typing = [
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
-[tool.unxt]
+[tool.unxts.unxt]
 quantity.repr.include_params = false
 quantity.repr.named_unit = false
 quantity.repr.short_arrays = "compact"

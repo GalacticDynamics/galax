@@ -18,9 +18,7 @@ from optional_dependencies.utils import chain_checks, get_version, is_installed
 _ROOT = Path(__file__).parent
 # Every tree that contributes to the `galax` namespace. `packages/*/src` is
 # globbed rather than listed so adding a distribution needs no conftest edit.
-_SRC_ROOTS = tuple(
-    p.resolve() for p in [_ROOT / "src", *sorted(_ROOT.glob("packages/*/src"))]
-)
+_SRC_ROOTS = tuple(p.resolve() for p in sorted(_ROOT.glob("packages/*/src")))
 
 
 def _module_name_for(path: Path, /) -> str | None:
@@ -47,7 +45,8 @@ class NamespacePackageDocument(PythonDocStringDocument):
     """Import doctested modules by their true name under a namespace package.
 
     `sybil.python.import_path` derives a module name by walking up from the file
-    until it finds a directory without `__init__.py`. `src/galax` is a PEP 420
+    until it finds a directory without `__init__.py`. Each portion's
+    `packages/<dist>/src/galax` is a PEP 420
     namespace directory, so that walk stops one level too deep and yields
     `potential._src.api` instead of `galax.potential._src.api`. Resolving the
     path against the source roots instead gives the true dotted name.

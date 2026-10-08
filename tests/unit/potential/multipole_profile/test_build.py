@@ -638,69 +638,106 @@ def test_a_nonfinite_band_mid_pad_anchors_above_it() -> None:
     assert err < 1e-9, err
 
 
-# Measured on `main` (an unanchored solve), float32, bracket [1e-4, 1e4],
-# max relative error against the Dehnen closed form. Anchoring must never do
-# worse than these, and should usually do far better.
+# Measured on `main` (an unanchored solve) at 7260498c, float32, max relative
+# error against the Dehnen closed form, keyed by (r_min, r_max, gamma, n_r).
+# Anchoring must never do worse than these, and should usually do far better.
+#
+# The bracket is in the key because it is the axis that discriminates: the
+# anchor is `_ANCHOR_MARGIN` knots above the bad band, and how much density
+# that skips depends on the pad's step, which is the bracket's log span over
+# the pad's knot count. A table pinned to one bracket cannot see it, and the
+# first version of this test was pinned to [1e-4, 1e4]. The rows below the
+# first block are the brackets where that cost up to 3378x. Adding a bracket
+# means adding rows; the table is the case list.
 _UNANCHORED = {
-    (1.0, 4): 1.6e-03,
-    (1.0, 5): 7.4e-05,
-    (1.0, 6): 2.6e-05,
-    (1.0, 7): 8.3e-06,
-    (1.0, 8): 9.5e-07,
-    (1.0, 16): 9.5e-07,
-    (1.0, 64): 9.5e-07,
-    (2.5, 4): 3.6e-06,
-    (2.5, 5): 1.5e-06,
-    (2.5, 6): 1.5e-06,
-    (2.5, 7): 1.3e-06,
-    (2.5, 8): 1.3e-06,
-    (2.5, 16): 1.3e-06,
-    (2.5, 64): 1.3e-06,
-    (2.7, 4): 6.9e-04,
-    (2.7, 5): 7.3e-04,
-    (2.7, 6): 6.4e-04,
-    (2.7, 7): 7.0e-04,
-    (2.7, 8): 7.2e-04,
-    (2.7, 16): 7.1e-04,
-    (2.7, 64): 6.8e-04,
-    (2.9, 4): 1.1e-01,
-    (2.9, 5): 1.1e-01,
-    (2.9, 6): 1.1e-01,
-    (2.9, 7): 1.2e-01,
-    (2.9, 8): 1.2e-01,
-    (2.9, 16): 1.2e-01,
-    (2.9, 64): 1.2e-01,
+    (1e-4, 1e4, 1.0, 4): 1.6e-03,
+    (1e-4, 1e4, 1.0, 5): 7.4e-05,
+    (1e-4, 1e4, 1.0, 6): 2.6e-05,
+    (1e-4, 1e4, 1.0, 7): 8.3e-06,
+    (1e-4, 1e4, 1.0, 8): 8.9e-07,
+    (1e-4, 1e4, 1.0, 16): 1.5e-07,
+    (1e-4, 1e4, 1.0, 64): 1.5e-07,
+    (1e-4, 1e4, 2.5, 4): 3.7e-06,
+    (1e-4, 1e4, 2.5, 5): 1.5e-06,
+    (1e-4, 1e4, 2.5, 6): 1.5e-06,
+    (1e-4, 1e4, 2.5, 7): 1.3e-06,
+    (1e-4, 1e4, 2.5, 8): 1.3e-06,
+    (1e-4, 1e4, 2.5, 16): 1.3e-06,
+    (1e-4, 1e4, 2.5, 64): 1.3e-06,
+    (1e-4, 1e4, 2.7, 4): 6.9e-04,
+    (1e-4, 1e4, 2.7, 5): 7.3e-04,
+    (1e-4, 1e4, 2.7, 6): 6.4e-04,
+    (1e-4, 1e4, 2.7, 7): 7.0e-04,
+    (1e-4, 1e4, 2.7, 8): 7.2e-04,
+    (1e-4, 1e4, 2.7, 16): 7.1e-04,
+    (1e-4, 1e4, 2.7, 64): 6.8e-04,
+    (1e-4, 1e4, 2.9, 4): 1.1e-01,
+    (1e-4, 1e4, 2.9, 5): 1.1e-01,
+    (1e-4, 1e4, 2.9, 6): 1.1e-01,
+    (1e-4, 1e4, 2.9, 7): 1.2e-01,
+    (1e-4, 1e4, 2.9, 8): 1.2e-01,
+    (1e-4, 1e4, 2.9, 16): 1.2e-01,
+    (1e-4, 1e4, 2.9, 64): 1.2e-01,
+    (1e-5, 1e5, 2.5, 5): 3.8e-06,
+    (1e-5, 1e5, 2.5, 6): 4.8e-06,
+    (1e-5, 1e5, 2.5, 7): 4.6e-06,
+    (1e-5, 1e5, 2.7, 5): 1.6e-03,
+    (1e-5, 1e5, 2.7, 6): 1.5e-03,
+    (1e-5, 1e5, 2.7, 7): 1.3e-03,
+    (1e-6, 1e6, 2.5, 5): 1.3e-05,
+    (1e-6, 1e6, 2.5, 6): 1.6e-05,
+    (1e-6, 1e6, 2.5, 7): 1.3e-05,
+    (1e-6, 1e6, 2.7, 5): 3.0e-03,
+    (1e-6, 1e6, 2.7, 6): 2.9e-03,
+    (1e-6, 1e6, 2.7, 7): 2.8e-03,
+    (1e-4, 1e2, 2.5, 5): 8.8e-07,
+    (1e-4, 1e2, 2.5, 6): 1.7e-06,
+    (1e-4, 1e2, 2.5, 7): 1.3e-06,
+    (1e-4, 1e2, 2.7, 5): 6.9e-04,
+    (1e-4, 1e2, 2.7, 6): 6.5e-04,
+    (1e-4, 1e2, 2.7, 7): 7.1e-04,
+    (1e-3, 1e3, 2.5, 5): 4.1e-08,
+    (1e-3, 1e3, 2.5, 6): 4.0e-08,
+    (1e-3, 1e3, 2.5, 7): 2.8e-07,
+    (1e-3, 1e3, 2.7, 5): 3.7e-04,
+    (1e-3, 1e3, 2.7, 6): 3.3e-04,
+    (1e-3, 1e3, 2.7, 7): 3.5e-04,
 }
 
 
-@pytest.mark.parametrize("gamma", [1.0, 2.5, 2.7, 2.9])
-@pytest.mark.parametrize("n_r", [4, 5, 6, 7, 8, 16, 64])
-def test_anchoring_is_never_worse_than_an_unanchored_solve(gamma, n_r) -> None:
-    r"""Anchoring must not cost accuracy at any resolution or cusp slope.
+@pytest.mark.parametrize(("r_min", "r_max", "gamma", "n_r"), _UNANCHORED)
+def test_anchoring_is_never_worse_than_an_unanchored_solve(
+    r_min, r_max, gamma, n_r
+) -> None:
+    r"""Anchoring must not cost accuracy at any resolution, cusp or bracket.
 
-    REGRESSION, twice over. The tail's activity gate was normalised by
-    ``max|rho_col|`` over the whole column while testing ``rho_col[i0]``;
-    before anchoring those were the same point for a cusp, so the gate could
-    never fire. With an anchor it rejected once the ratio fell under
-    ``sqrt(eps)``, dropping the tail -- the failure anchoring exists to
-    prevent, re-created by its own margin, and resolution-dependent because
-    the ratio is ``exp(-alpha * margin * step)``.
+    REGRESSION, three times over, each one a guard bounding the wrong thing.
 
-    Then the fix for *that* exposed a second one: the self-consistency bound
-    on the slope fit was set at 1.0 on the argument that the ratio ``is`` the
-    tail's relative error, so 1.0 means "wrong by more than itself". That
-    reasoning is wrong -- see `_FIT_TOL` -- and 1.0 was 99458x worse than not
-    anchoring at ``gamma = 2.5, n_r = 5``.
+    First the tail's activity gate was normalised by ``max|rho_col|`` over
+    the whole column while testing ``rho_col[i0]``; before anchoring those
+    were the same point for a cusp, so the gate could never fire. With an
+    anchor it rejected once the ratio fell under ``sqrt(eps)``, dropping the
+    tail -- the failure anchoring exists to prevent, re-created by its own
+    margin.
 
-    The grid matters as much as the bound. Both defects lived at resolutions
-    the previous version of this test skipped: it ran ``n_r`` in
-    ``[4, 5, 8, 16, ...]`` and the worst failure was at 6 and 7, and it ran
-    only ``gamma = 2.9`` while the 99458x case was at 2.5. ``n_r`` is now
-    contiguous from 4 to 8 and ``gamma`` is swept, because a parameter sampled
-    around its failure is not swept.
+    Then the fix for *that* exposed a bound on the slope fit's
+    self-consistency, set first at 1.0 and then at 0.1 by measurement. Both
+    bounded the fit's error *relative to the tail*, which does not reach the
+    answer on its own: what reaches it is that error times how much larger
+    the modelled band is than the band actually lost, and that factor is set
+    by the grid, which the ratio never sees. 1.0 cost 99458x at
+    ``gamma = 2.5, n_r = 5``; 0.1 cost 3378x at ``gamma = 2.5, n_r = 6`` over
+    [1e-5, 1e5]. The gate is now the break-even test between the two, with no
+    constant to tune.
 
-    The bound is `_UNANCHORED`, measured on `main`, with a 3x allowance for
-    arithmetic reordering -- not a flat constant, which would have let the
+    The sweep matters as much as the rule. Each defect lived where the
+    previous version of this test did not look: at ``n_r`` 6 and 7 when it
+    ran ``[4, 5, 8, 16, ...]``, at ``gamma = 2.5`` when it swept only 2.9,
+    and at every bracket but one when it was pinned to [1e-4, 1e4]. A
+    parameter sampled around its failure is not swept.
+
+    The bound is `_UNANCHORED` with a 3x allowance for arithmetic
+    reordering -- not a flat constant, which would have let the
     1.5e-06 -> 1.5e-01 case through at any threshold loose enough to pass
     ``gamma = 2.9`` at all.
     """
@@ -714,7 +751,7 @@ def test_anchoring_is_never_worse_than_an_unanchored_solve(gamma, n_r) -> None:
     mass = 4.0 * jnp.pi / (3.0 - gamma)
 
     with jax.enable_x64(False):  # noqa: FBT003
-        r_knots = jnp.geomspace(1e-4, 1e4, n_r)
+        r_knots = jnp.geomspace(r_min, r_max, n_r)
         got = build_expansion(
             rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
         )["phi_lm"][:, 0]
@@ -725,26 +762,34 @@ def test_anchoring_is_never_worse_than_an_unanchored_solve(gamma, n_r) -> None:
     exact = -(mass / (2.0 - gamma)) * (1.0 - (r / (r + 1.0)) ** (2.0 - gamma))
     err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
 
-    assert err < 3.0 * _UNANCHORED[(gamma, n_r)], (gamma, n_r, err)
+    assert err < 3.0 * _UNANCHORED[(r_min, r_max, gamma, n_r)], (
+        r_min,
+        r_max,
+        gamma,
+        n_r,
+        err,
+    )
 
 
 def test_anchoring_rescues_a_near_divergent_cusp() -> None:
-    r"""`_FIT_TOL` must stay loose enough to anchor where it matters most.
+    r"""The anchoring gate must stay loose enough to fire where it matters.
 
     Every other test here bounds anchoring from *above* -- it must not be
-    worse than an unanchored solve. That cannot pin `_FIT_TOL` from below,
-    because tightening it only ever falls back to the unanchored answer,
-    which those tests permit. So the bound would drift tighter unnoticed,
+    worse than an unanchored solve. That cannot pin the gate from below,
+    because any tightening of it only ever falls back to the unanchored
+    answer, which those tests permit. So the gate could drift shut unnoticed,
     silently giving up the cases anchoring exists for.
 
     This is the case that discriminates. At :math:`\gamma = 2.99` -- just
     inside the finite-mass limit, where almost all the mass is in the cusp --
-    an unanchored float32 build is 81% wrong. Anchoring rescues it to 2.7%,
-    but only at ``_FIT_TOL >= 0.1``: at 0.01 the fit is judged untrustworthy,
-    the solve declines to anchor, and the answer goes back to 8.1e-01.
+    an unanchored float32 build is 81% wrong, because the cusp is exactly
+    what overflows and gets zeroed. Anchoring rescues it to 2.7%.
 
-    That is why `_FIT_TOL` is 0.1 and not something smaller, even though
-    0.01 is equally free of regressions across the rest of the sweep.
+    It is also the case every *constant* threshold on the slope fit's
+    self-consistency had to trade against: 0.01 was free of regressions
+    everywhere else in the sweep and lost this rescue, while 0.1 kept it and
+    cost 3378x elsewhere. Nothing in between did both. The break-even gate
+    does, which is the point of it.
     """
     gamma, n_r = 2.99, 8
     keys = lm_keys(0, "spherical")

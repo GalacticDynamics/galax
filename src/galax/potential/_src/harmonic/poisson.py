@@ -93,52 +93,28 @@ import quaxed.numpy as jnp
 import galax.potential.custom_types as gt
 from .spline import fit_log_spline
 
-_FIT_TOL: float = 0.1
-r"""How far the inner tail's three-knot slope fit may disagree with itself.
-
-The fit's two pairwise slopes disagreeing is its own estimate of the error in
-``alpha_in``; this bounds that against :math:`\alpha + l + 3`, the exponent
-the tail integral converges with. Above the bound the fit is not describing a
-power law and the tail is not worth having, so the solve declines to anchor.
-
-**Chosen by measurement, not derived.** The obvious argument -- that the tail
-goes as :math:`1/\exp_{in}`, so the ratio *is* the tail's relative error, so
-1.0 means "wrong by more than itself" -- is wrong, and was shipped once. It
-bounds the tail's error *relative to the tail*, while what reaches the answer
-is its absolute size: a small ``exp_in`` inflates the tail by ~58x, so even a
-50% relative error adds something enormous. Bounding the relative error is
-blind to exactly the failure it is meant to catch.
-
-Measured instead, over Dehnen :math:`\gamma` in
-{1.0, 1.9, 2.5, 2.7, 2.9, 2.99} and ``n_r`` from 4 to 256, as the worst
-accuracy ratio against an unanchored solve:
-
-======== ================= =============
-bound     worst regression  best gain
-======== ================= =============
-1.0       99458x            7.2e5x
-0.1       2.2x              7.2e5x
-0.01      2.2x              7.2e5x
-0.001     2.2x              2.6e4x
-======== ================= =============
-
-So 1.0 is catastrophic, anything at or below 0.1 is safe, and 0.1 is the
-largest safe value -- below it the :math:`\gamma = 2.99` build at ``n_r = 8``
-stops being rescued (8.1e-1 against 2.7e-2). The 2.2x is a 1.3e-06 case
-becoming 2.7e-06 and is not worth tuning for.
-
-The accepted and rejected populations are separated by about 1.4 orders
-(ratios below 5e-3 against 0.12 and up), not the three the first attempt
-claimed from two measured points on one density.
-"""
-
 _ANCHOR_MARGIN: int = 8
-"""Knots between the last untrustworthy density sample and the tail's anchor.
+r"""Knots between the last untrustworthy density sample and the tail's anchor.
 
 `fit_log_spline` is a global solve, so a zeroed band leaves a perturbed
 derivative around its edge that decays by ~0.27 per knot. Anchoring inside
 that region integrates a corrupted slope; eight knots puts the anchor where
 the step is no longer the dominant error. See `solve_poisson_profiles`.
+
+A count of knots is the right unit for the *perturbation*, which decays per
+knot however the grid is spaced. It is the wrong unit for the margin's
+*cost*: the knots it skips are good density, and what the tail must then
+model in their place is a log range, not a count. The pad's step is
+``reach / min(2 n_r, _PAD_KNOTS)``, so on a coarse grid eight knots is an
+enormous distance -- 9.3 decades at ``n_r = 6`` -- and the band
+:math:`[0, r_{i_0}]` the tail replaces is
+:math:`\exp(\exp_{in} \cdot \Delta\log r)` times the band actually lost.
+That factor reached 3.3e4, which is how a 3% slope error became a 3378x
+regression. `solve_poisson_profiles`' anchoring gate is what weighs it.
+
+Anchoring needs ``_ANCHOR_MARGIN < min(2 n_r, _PAD_KNOTS)`` to have any
+effect at all, since `build_expansion` clamps the anchor to ``lo``: at
+``n_r = 4`` the inner pad is exactly eight knots and anchoring is inert.
 """
 
 
@@ -499,17 +475,42 @@ def solve_poisson_profiles(
         log_r_in = log_r[tri]
         log_rho_in = jnp.log(jnp.abs(rho_col[tri]) + floor)
         slopes_in = jnp.diff(log_rho_in) / jnp.diff(log_r_in)
-        # Only anchor when the three-knot fit is self-consistent enough for
-        # the tail to mean anything. The tail goes as `1/exp_in`, so a slope
-        # error `d_alpha` is a relative error `d_alpha / exp_in`, and the two
+        # Anchor only when doing so beats not doing so. Both sides are
+        # known here, so this is a break-even test rather than a threshold.
+        #
+        # Cost: the tail is `rho_i0 r_i0^(l+3) / exp_in`, so a slope error
+        # `d_alpha` is a relative error `d_alpha / exp_in`, and the two
         # pairwise slopes disagreeing *is* the fit's own estimate of
-        # `d_alpha`. Rejecting above 1 means "drop it when it would be wrong
-        # by more than itself" -- a statement about acceptable error, not a
-        # tuned constant. On a Dehnen `gamma = 2.9` the ratio is 9.3 at
-        # `n_r = 5`, where the innermost three knots span four decades and are
-        # nothing like a power law, and below 5e-3 for every `n_r >= 8`: the
-        # threshold sits in a gap three orders wide, so its value does not
-        # matter.
+        # `d_alpha`. Call that `R`.
+        #
+        # Benefit: not anchoring loses `[0, r_first_ok]` outright, while
+        # anchoring models the larger `[0, r_i0]` -- larger by
+        # `exp(exp_in * span)` for `rho ~ r^alpha`, since the integral goes
+        # as `r^exp_in`. So the error anchoring introduces, measured against
+        # the error it removes, is `R * exp(exp_in * span)`, and anchoring is
+        # worth it exactly when that is below 1. Taken in logs so the
+        # exponential cannot overflow before the comparison.
+        #
+        # Measured against an unanchored solve over 462 builds (Dehnen gamma
+        # in {1.0, 1.9, 2.5, 2.7, 2.9, 2.99}, `n_r` 4 to 64, seven brackets
+        # from [1e-1, 1e1] to [1e-6, 1e6]): of the 190 that reach this test,
+        # the rule makes the accuracy-optimal choice on every one. The
+        # populations it must separate do overlap, but only within [0.5, 1.7]
+        # of break-even, where by construction either choice is free.
+        #
+        # Bounding `R` alone against a constant is what this replaced, and it
+        # cannot work: `R` does not see `span`, so the same fit quality is
+        # worth having on a fine grid and catastrophic on a coarse one. At
+        # 0.1 that cost 3378x on `gamma = 2.5`, `n_r = 6` over [1e-5, 1e5]
+        # (1.6e-02 against an unanchored 4.8e-06), and no value of the
+        # constant removed every regression while keeping the `gamma = 2.99`
+        # rescue -- the two populations overlap completely in `R`.
+        #
+        # `exp_cand <= 0` is a divergent tail, rejected here rather than
+        # downstream: the convergence gate below zeroes `dI_in` but cannot
+        # un-zero the panels, which would discard the band and put nothing in
+        # its place. `nan` slopes, from an out-of-range `tri`, fail every
+        # comparison and land in the same fallback.
         #
         # The fallback is `i0 = 0`, not merely dropping the tail, because
         # anchoring also zeroes every panel below the anchor -- including
@@ -517,9 +518,16 @@ def solve_poisson_profiles(
         # only the tail is what `main` did, and its error is bounded; keeping
         # a bad tail is not (`exp_in = 0.017` at `n_r = 5` amplifies it 58x,
         # for 430% error).
+        exp_cand = jnp.mean(slopes_in) + l + 3.0
+        span = log_r[i0] - log_r[jnp.maximum(i0 - _ANCHOR_MARGIN, 0)]
         i0 = jnp.where(
-            jnp.abs(slopes_in[1] - slopes_in[0])
-            < _FIT_TOL * jnp.abs(jnp.mean(slopes_in) + l + 3.0),
+            (exp_cand > 0.0)
+            & (
+                jnp.log(jnp.abs(slopes_in[1] - slopes_in[0]))
+                - jnp.log(exp_cand)
+                + exp_cand * span
+                < 0.0
+            ),
             i0,
             0,
         )
@@ -547,14 +555,19 @@ def solve_poisson_profiles(
         # true tail is ~1e3 times what `_SLOPE_TOL` yields. Inside the clamped
         # window the tail is therefore dropped, not scaled -- the same
         # conservative treatment as just across the exp_in <= 0 boundary.
-        # Normalise by the band the tail describes, not the whole column.
-        # `scale` is the deepest retained sample, which for a cusp is the
-        # largest; `rho_col[i0]` sits `_ANCHOR_MARGIN` knots above it, smaller
-        # by `exp(-alpha * margin * step)`. Once that ratio falls below
-        # `sqrt(eps)` the gate rejects and the tail is dropped -- the exact
-        # failure the anchor exists to prevent, re-created by its own margin.
-        # Before anchoring these were the same point, so the gate could never
-        # fire and this normaliser was never wrong.
+        # Normalise by the retained column, not the whole one. The whole
+        # column's maximum is its deepest sample, which for a cusp is the
+        # largest by far; `rho_col[i0]` sits `_ANCHOR_MARGIN` knots above it,
+        # smaller by `exp(-alpha * margin * step)`. Once that ratio falls
+        # below `sqrt(eps)` the gate rejects and the tail is dropped -- the
+        # exact failure the anchor exists to prevent, re-created by its own
+        # margin. Before anchoring, `i0` was always 0 and the two were the
+        # same quantity, so the gate could never fire this way.
+        #
+        # This is the activity test -- "is there any density here at all" --
+        # not a test on the modelled band, so the retained column is the
+        # right reference and it is strictly more permissive than the whole
+        # one. What bounds the *modelled* band is the anchoring test above.
         scale_in = (
             jnp.max(
                 jnp.where(jnp.arange(rho_col.shape[0]) >= i0, jnp.abs(rho_col), 0.0)

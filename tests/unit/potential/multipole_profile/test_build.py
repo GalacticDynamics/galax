@@ -567,34 +567,72 @@ def test_a_cusp_that_overflows_almost_the_whole_pad_keeps_its_interior() -> None
     assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < 1e-2
 
 
-@pytest.mark.parametrize("n_r", [4, 5, 8, 16, 32, 50, 52, 64, 256])
-def test_a_steep_cusp_is_no_worse_than_an_unanchored_solve_at_any_n_r(n_r) -> None:
-    r"""Anchoring must never cost accuracy, at any resolution.
+# Measured on `main` (an unanchored solve), float32, bracket [1e-4, 1e4],
+# max relative error against the Dehnen closed form. Anchoring must never do
+# worse than these, and should usually do far better.
+_UNANCHORED = {
+    (1.0, 4): 1.6e-03,
+    (1.0, 5): 7.4e-05,
+    (1.0, 6): 2.6e-05,
+    (1.0, 7): 8.3e-06,
+    (1.0, 8): 9.5e-07,
+    (1.0, 16): 9.5e-07,
+    (1.0, 64): 9.5e-07,
+    (2.5, 4): 3.6e-06,
+    (2.5, 5): 1.5e-06,
+    (2.5, 6): 1.5e-06,
+    (2.5, 7): 1.3e-06,
+    (2.5, 8): 1.3e-06,
+    (2.5, 16): 1.3e-06,
+    (2.5, 64): 1.3e-06,
+    (2.7, 4): 6.9e-04,
+    (2.7, 5): 7.3e-04,
+    (2.7, 6): 6.4e-04,
+    (2.7, 7): 7.0e-04,
+    (2.7, 8): 7.2e-04,
+    (2.7, 16): 7.1e-04,
+    (2.7, 64): 6.8e-04,
+    (2.9, 4): 1.1e-01,
+    (2.9, 5): 1.1e-01,
+    (2.9, 6): 1.1e-01,
+    (2.9, 7): 1.2e-01,
+    (2.9, 8): 1.2e-01,
+    (2.9, 16): 1.2e-01,
+    (2.9, 64): 1.2e-01,
+}
 
-    REGRESSION: the tail's activity gate is normalised by ``max|rho_col|``
-    over the whole column. Anchoring moved the quantity being gated from
-    ``rho_col[0]`` to ``rho_col[i0]`` but left that normaliser alone -- and
-    before anchoring those were the same point for an inner cusp, so the gate
-    could never fire and nothing was wrong. With an anchor the normaliser
-    sits at the deepest retained sample, ``_ANCHOR_MARGIN`` knots below the
-    gated one, so for a cusp of slope :math:`\alpha` the ratio is
-    ``exp(-alpha * margin * step)``. Once that falls under ``sqrt(eps)`` the
-    gate rejects, the tail is dropped, and the anchor's own margin re-creates
-    the failure the anchor exists to prevent.
 
-    It is resolution-dependent because ``step`` shrinks as ``n_r`` grows: on
-    this density the cutoff is ``n_r = 51``. Below it the error was 1.5x to
-    8x *worse* than not anchoring at all -- up to 90% against the closed form
-    -- while every test in this file sat at ``n_r >= 256``, comfortably above
-    it. The margin there is only 5.6x, so this was never specific to coarse
-    grids; a steeper cusp or a larger margin would reach it anyway.
+@pytest.mark.parametrize("gamma", [1.0, 2.5, 2.7, 2.9])
+@pytest.mark.parametrize("n_r", [4, 5, 6, 7, 8, 16, 64])
+def test_anchoring_is_never_worse_than_an_unanchored_solve(gamma, n_r) -> None:
+    r"""Anchoring must not cost accuracy at any resolution or cusp slope.
 
-    The bound is the unanchored solve. Anchoring may do far better -- it does,
-    by four orders, for every ``n_r >= 16`` -- but it must never do worse, and
-    at ``n_r <= 5`` the three-knot fit is not a power law so it correctly
-    declines to anchor and matches the old behaviour exactly.
+    REGRESSION, twice over. The tail's activity gate was normalised by
+    ``max|rho_col|`` over the whole column while testing ``rho_col[i0]``;
+    before anchoring those were the same point for a cusp, so the gate could
+    never fire. With an anchor it rejected once the ratio fell under
+    ``sqrt(eps)``, dropping the tail -- the failure anchoring exists to
+    prevent, re-created by its own margin, and resolution-dependent because
+    the ratio is ``exp(-alpha * margin * step)``.
+
+    Then the fix for *that* exposed a second one: the self-consistency bound
+    on the slope fit was set at 1.0 on the argument that the ratio ``is`` the
+    tail's relative error, so 1.0 means "wrong by more than itself". That
+    reasoning is wrong -- see `_FIT_TOL` -- and 1.0 was 99458x worse than not
+    anchoring at ``gamma = 2.5, n_r = 5``.
+
+    The grid matters as much as the bound. Both defects lived at resolutions
+    the previous version of this test skipped: it ran ``n_r`` in
+    ``[4, 5, 8, 16, ...]`` and the worst failure was at 6 and 7, and it ran
+    only ``gamma = 2.9`` while the 99458x case was at 2.5. ``n_r`` is now
+    contiguous from 4 to 8 and ``gamma`` is swept, because a parameter sampled
+    around its failure is not swept.
+
+    The bound is `_UNANCHORED`, measured on `main`, with a 3x allowance for
+    arithmetic reordering -- not a flat constant, which would have let the
+    1.5e-06 -> 1.5e-01 case through at any threshold loose enough to pass
+    ``gamma = 2.9`` at all.
     """
-    gamma = 2.9
     keys = lm_keys(0, "spherical")
     n_theta, n_phi = default_angular_resolution(0)
 
@@ -602,7 +640,6 @@ def test_a_steep_cusp_is_no_worse_than_an_unanchored_solve_at_any_n_r(n_r) -> No
         r = safe_vector_norm(xyz)
         return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
 
-    # Dehnen has a closed form: M = 4 pi / (3 - gamma), G = 1, scale radius 1.
     mass = 4.0 * jnp.pi / (3.0 - gamma)
 
     with jax.enable_x64(False):  # noqa: FBT003
@@ -617,6 +654,47 @@ def test_a_steep_cusp_is_no_worse_than_an_unanchored_solve_at_any_n_r(n_r) -> No
     exact = -(mass / (2.0 - gamma)) * (1.0 - (r / (r + 1.0)) ** (2.0 - gamma))
     err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
 
-    # What an unanchored solve gives here, measured on `main`: ~0.11 at every
-    # resolution. Anchoring must not exceed it.
-    assert err < 0.12, (n_r, err)
+    assert err < 3.0 * _UNANCHORED[(gamma, n_r)], (gamma, n_r, err)
+
+
+def test_anchoring_rescues_a_near_divergent_cusp() -> None:
+    r"""`_FIT_TOL` must stay loose enough to anchor where it matters most.
+
+    Every other test here bounds anchoring from *above* -- it must not be
+    worse than an unanchored solve. That cannot pin `_FIT_TOL` from below,
+    because tightening it only ever falls back to the unanchored answer,
+    which those tests permit. So the bound would drift tighter unnoticed,
+    silently giving up the cases anchoring exists for.
+
+    This is the case that discriminates. At :math:`\gamma = 2.99` -- just
+    inside the finite-mass limit, where almost all the mass is in the cusp --
+    an unanchored float32 build is 81% wrong. Anchoring rescues it to 2.7%,
+    but only at ``_FIT_TOL >= 0.1``: at 0.01 the fit is judged untrustworthy,
+    the solve declines to anchor, and the answer goes back to 8.1e-01.
+
+    That is why `_FIT_TOL` is 0.1 and not something smaller, even though
+    0.01 is equally free of regressions across the rest of the sweep.
+    """
+    gamma, n_r = 2.99, 8
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
+
+    mass = 4.0 * jnp.pi / (3.0 - gamma)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        r_knots = jnp.geomspace(1e-4, 1e4, n_r)
+        got = build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+        phi = jnp.asarray(got, dtype=float) / jnp.sqrt(4.0 * jnp.pi)
+
+    r = jnp.asarray(r_knots, dtype=float)
+    exact = -(mass / (2.0 - gamma)) * (1.0 - (r / (r + 1.0)) ** (2.0 - gamma))
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+
+    # Unanchored is 8.1e-01 here; anchoring reaches 2.7e-02.
+    assert err < 1e-1, err

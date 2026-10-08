@@ -93,6 +93,45 @@ import quaxed.numpy as jnp
 import galax.potential.custom_types as gt
 from .spline import fit_log_spline
 
+_FIT_TOL: float = 0.1
+r"""How far the inner tail's three-knot slope fit may disagree with itself.
+
+The fit's two pairwise slopes disagreeing is its own estimate of the error in
+``alpha_in``; this bounds that against :math:`\alpha + l + 3`, the exponent
+the tail integral converges with. Above the bound the fit is not describing a
+power law and the tail is not worth having, so the solve declines to anchor.
+
+**Chosen by measurement, not derived.** The obvious argument -- that the tail
+goes as :math:`1/\exp_{in}`, so the ratio *is* the tail's relative error, so
+1.0 means "wrong by more than itself" -- is wrong, and was shipped once. It
+bounds the tail's error *relative to the tail*, while what reaches the answer
+is its absolute size: a small ``exp_in`` inflates the tail by ~58x, so even a
+50% relative error adds something enormous. Bounding the relative error is
+blind to exactly the failure it is meant to catch.
+
+Measured instead, over Dehnen :math:`\gamma` in
+{1.0, 1.9, 2.5, 2.7, 2.9, 2.99} and ``n_r`` from 4 to 256, as the worst
+accuracy ratio against an unanchored solve:
+
+======== ================= =============
+bound     worst regression  best gain
+======== ================= =============
+1.0       99458x            7.2e5x
+0.1       2.2x              7.2e5x
+0.01      2.2x              7.2e5x
+0.001     2.2x              2.6e4x
+======== ================= =============
+
+So 1.0 is catastrophic, anything at or below 0.1 is safe, and 0.1 is the
+largest safe value -- below it the :math:`\gamma = 2.99` build at ``n_r = 8``
+stops being rescued (8.1e-1 against 2.7e-2). The 2.2x is a 1.3e-06 case
+becoming 2.7e-06 and is not worth tuning for.
+
+The accepted and rejected populations are separated by about 1.4 orders
+(ratios below 5e-3 against 0.12 and up), not the three the first attempt
+claimed from two measured points on one density.
+"""
+
 _ANCHOR_MARGIN: int = 8
 """Knots between the last untrustworthy density sample and the tail's anchor.
 
@@ -444,7 +483,18 @@ def solve_poisson_profiles(
         # 5.0e-8 at +8, against 7.8e-9 with nothing zeroed at all. Eight
         # knots is where the step stops being the error.
         i0 = jnp.where(i0 > 0, i0 + _ANCHOR_MARGIN, 0)
-        i0 = jnp.minimum(i0, log_r.shape[0] - 3)
+        # An anchor past the data is not an anchor to be slid inward: there is
+        # no inner band left to model, so the answer is not to anchor at all.
+        # Clipping to `n - 3` instead slides it to the outer edge, zeroes every
+        # panel, and replaces the whole integral with a power law fitted at
+        # `r_max` -- 25% error on a Hernquist monopole, where falling back
+        # gives 2.3e-08. The clip is worse than its own absence, because
+        # without it the out-of-range `tri` makes the slopes `nan`, and `nan`
+        # fails the self-consistency test below, which falls back correctly.
+        #
+        # Unreachable from `build_expansion`, which clamps well below this.
+        # This is the solver's own public parameter, so it is guarded here.
+        i0 = jnp.where(i0 <= log_r.shape[0] - 3, i0, 0)
         tri = i0 + jnp.arange(3)
         log_r_in = log_r[tri]
         log_rho_in = jnp.log(jnp.abs(rho_col[tri]) + floor)
@@ -469,7 +519,7 @@ def solve_poisson_profiles(
         # for 430% error).
         i0 = jnp.where(
             jnp.abs(slopes_in[1] - slopes_in[0])
-            < jnp.abs(jnp.mean(slopes_in) + l + 3.0),
+            < _FIT_TOL * jnp.abs(jnp.mean(slopes_in) + l + 3.0),
             i0,
             0,
         )

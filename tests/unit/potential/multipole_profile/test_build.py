@@ -788,8 +788,13 @@ def test_anchoring_is_never_worse_than_an_unanchored_solve(
     )
 
 
-def test_a_cored_cusp_under_the_overflow_radius_degrades_no_further() -> None:
-    r"""Pin the one case anchoring is *worse* on, so it cannot grow.
+@pytest.mark.parametrize(
+    ("rc_over_r_overflow", "ceiling"), [(0.1, 2.0), (0.3, 3.0), (1.0, 3.0), (3.0, 1e-1)]
+)
+def test_a_core_at_the_overflow_radius_degrades_no_further(
+    rc_over_r_overflow, ceiling
+) -> None:
+    r"""Pin the resonance where anchoring is *worse*, so it cannot grow.
 
     The anchoring gate reads the slope fit at the anchor and above it. The
     band the tail extrapolates across lies entirely *below* the anchor and
@@ -798,30 +803,44 @@ def test_a_cored_cusp_under_the_overflow_radius_degrades_no_further() -> None:
     something else below it passes the gate with ``|s1 - s0|`` at round-off:
     maximal confidence drawn from an absence of data.
 
-    This is such a density -- a cusp with its core hidden under the overflow
-    radius, put there by a large prefactor. Anchoring extrapolates
-    :math:`r^{-\gamma}` to the origin and over-counts; an unanchored solve
-    drops the band and under-counts. Measured float32 against float64:
-    **1.12 anchored, 2.6e-01 unanchored**, a 4.4x regression.
+    The worst such density puts its *core* at the overflow radius. Above it
+    the profile is a pure cusp and the fit is perfect; below it the slope
+    goes to zero and the extrapolated :math:`r^{-\gamma}` over-counts the
+    inner mass without bound. An unanchored solve drops the band instead and
+    under-counts, which is bounded by the band's true mass.
+
+    It is a narrow resonance, and that is the point of parametrizing over it.
+    Measured float32 against float64 at :math:`\gamma = 2.95`, this branch
+    against an unanchored build:
+
+    ======================= ============ ============ =======
+    ``rc`` / overflow radius  anchored     unanchored   ratio
+    ======================= ============ ============ =======
+    0.1                       1.1e-01      1.3e-02      8.4x
+    0.3                       2.1e-01      1.3e-02      16x
+    1.0                       1.4e+00      1.2e-02      119x
+    3.0                       identical    identical    1.0
+    ======================= ============ ============ =======
+
+    At 3x and beyond nothing overflows, so nothing anchors and the two builds
+    agree to the bit. At 1.0 a usable 1.2% answer becomes a 143% one.
 
     No gate on the retained samples can fix this, because the evidence is
-    gone. What this test is for is that the 4.4x stays 4.4x. Both answers are
-    already useless here, and float64 never reaches it, so this is a bound on
-    a known limit rather than a correctness requirement.
-
-    `galax`'s own `safe_vector_norm` does not trigger it: its offset is
-    ``finfo(dtype).tiny``, so the float32 core sits inside the overflow band
-    where it is unobservable, which is why
-    `test_a_steep_cusp_survives_the_padded_sampling_in_float32` reaches 4.9e-06.
+    gone. This test exists so the resonance cannot deepen unnoticed, and so
+    the 3.0 row cannot start anchoring.
     """
-    gamma, mass_scale, core, n_r = 2.9, 6.8e29, 1e-4, 32
+    gamma, beta, alpha, rs, amp, n_r = 2.95, 5.0, 1.0, 50.0, 1e17, 8
+    r_overflow = (float(jnp.finfo(jnp.float32).max) / amp) ** (-1.0 / gamma)
+    rc = r_overflow * rc_over_r_overflow
+
     keys = lm_keys(0, "spherical")
     n_theta, n_phi = default_angular_resolution(0)
 
     def rho(xyz, t):
         r = safe_vector_norm(xyz)
-        return mass_scale / (
-            (r**2 + core**2) ** (gamma / 2.0) * (1.0 + r) ** (4.0 - gamma)
+        m = jnp.sqrt(r**2 + rc**2)
+        return (
+            amp * m ** (-gamma) * (1.0 + (m / rs) ** alpha) ** (-(beta - gamma) / alpha)
         )
 
     def build(r_knots):
@@ -829,15 +848,15 @@ def test_a_cored_cusp_under_the_overflow_radius_degrades_no_further() -> None:
             rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
         )["phi_lm"][:, 0]
 
-    ref = jnp.asarray(build(jnp.geomspace(1e-1, 1e2, n_r)), dtype=float)
+    ref = jnp.asarray(build(jnp.geomspace(1e-3, 1e2, n_r)), dtype=float)
 
     with jax.enable_x64(False):  # noqa: FBT003
-        got = build(jnp.geomspace(1e-1, 1e2, n_r))
+        got = build(jnp.geomspace(1e-3, 1e2, n_r))
         assert jnp.all(jnp.isfinite(got)), got
         f32 = jnp.asarray(got, dtype=float)
 
     err = float(jnp.max(jnp.abs(f32 - ref)) / jnp.max(jnp.abs(ref)))
-    assert err < 2.0, err
+    assert err < ceiling, (rc_over_r_overflow, err)
 
 
 def test_a_second_rescue_pins_the_gate_from_below() -> None:
@@ -923,3 +942,97 @@ def test_anchoring_rescues_a_near_divergent_cusp() -> None:
 
     # Unanchored is 8.1e-01 here; anchoring reaches 2.7e-02.
     assert err < 1e-1, err
+
+
+# A randomly generated family of broken power laws, with their measured
+# float32 error. The generator is `prop/build_sweep.py`'s `case()`: inner
+# slope `gamma`, outer `beta`, break sharpness `alpha` and radius `rs`, an
+# optional core `rc`, and an amplitude spanning 1e-6 to 1e30 -- the amplitude
+# is what moves the float32 overflow radius, and therefore how much of the
+# pad gets zeroed and where the tail has to be anchored.
+#
+# These are a net, not a theorem. Every other test here fixes the density and
+# varies the grid; this one varies the density, because the one case where
+# anchoring loses was found by hand-picking a shape (a core hidden under the
+# overflow radius) rather than by any grid. Over 291 such densities run
+# through `build_expansion` on this branch and on an unanchored build, three
+# regressed past 1.5x -- worst 4.21x -- and all three were cored. 167 improved
+# by more than 2x, best 1.4e4x. So the hand-picked 4.4x really is near the
+# family's ceiling, and the ceiling only exists where a core hides.
+#
+# Bounds are 2x the measured value, rounded up. A failure here means the
+# family's behaviour moved, which is worth a look even when the new number is
+# better -- retune the row deliberately rather than loosening the bound.
+_FAMILY = {
+    (2.773, 3.225, 2.729, 32.3, 5.299e-08, 2.389e19, 32, -2.662, 4.471, 0): 1.7e-01,
+    (2.829, 5.846, 0.575, 95.09, 6.492e-12, 7.818e11, 7, -3.256, 1.927, 0): 2e-01,
+    (2.155, 3.904, 1.498, 0.7139, 5.128e-10, 7.447e19, 8, -1.528, 2.970, 0): 1.4e-06,
+    (2.848, 5.840, 1.432, 57.66, 1.326e-08, 1.731e21, 5, -3.759, 2.931, 0): 5.4e-01,
+    (2.850, 4.953, 2.737, 0.1427, 1.445e-11, 1.238e13, 12, -5.051, 4.821, 0): 2.8e-01,
+    (2.507, 5.046, 2.293, 3.3, 4.566e-09, 2.177e08, 32, -5.746, 2.065, 0): 7.8e-07,
+    (2.780, 5.528, 0.781, 2.601, 3.48e-06, 5.419e17, 8, -1.193, 3.329, 0): 4.8e-07,
+    (2.387, 5.178, 1.612, 0.3256, 2.327e-12, 2.486e24, 8, -4.062, 3.740, 0): 9e-02,
+    (2.168, 3.834, 1.817, 0.1355, 8.201e-06, 2.011e13, 128, -2.046, 5.367, 0): 6.4e-07,
+    (2.824, 3.065, 2.382, 17.46, 0, 1.204e09, 64, -5.929, 4.142, 4): 2.7e-05,
+    (2.766, 3.847, 2.463, 31.08, 0, 5.845e08, 64, -5.971, 2.158, 0): 1.9e-06,
+    (2.585, 5.926, 2.277, 81.07, 0, 5.973e12, 6, -5.582, 3.195, 0): 2.6e-06,
+    (2.719, 5.065, 2.370, 0.06005, 0, 2.357e26, 64, -3.785, 4.880, 4): 2e-05,
+    (2.836, 3.147, 2.796, 2.795, 0, 2.946e14, 128, -3.180, 4.686, 0): 2e-06,
+    (2.017, 4.551, 0.718, 13.97, 0, 5.565e28, 64, -4.485, 1.639, 4): 3.3e-05,
+    (2.778, 3.170, 1.288, 2.511, 0, 328, 128, -1.596, 4.805, 0): 1.6e-06,
+    (2.545, 3.332, 2.821, 21.79, 0, 2.111e15, 8, -2.532, 2.534, 0): 1.5e-06,
+    (2.789, 4.810, 1.324, 55.79, 0, 3.317e12, 7, -1.173, 3.877, 0): 1.7e-05,
+    (1.665, 3.944, 1.196, 0.1046, 3.548e-07, 8.431e13, 12, -2.037, 4.111, 4): 6.5e-07,
+    (2.963, 3.773, 0.901, 2.819, 0, 1.925e-05, 6, -3.669, 5.586, 0): 8.7e-01,
+    (0.741, 5.905, 1.038, 4.865, 0, 2.929e25, 5, -5.342, 5.225, 2): 7.1e-07,
+    (1.302, 5.266, 0.563, 0.3081, 0, 0.02655, 8, -2.711, 3.141, 4): 3.2e-07,
+    (1.804, 5.625, 1.361, 2.297, 8.12e-09, 4.87e12, 12, -1.454, 1.755, 2): 3.2e-07,
+    (2.475, 4.563, 2.315, 0.08048, 0, 1.182e07, 5, -4.270, 5.741, 0): 4.9e-05,
+    (1.946, 4.309, 2.695, 0.4432, 5.7e-12, 3.019e09, 6, -1.245, 2.255, 0): 1.7e-07,
+}
+
+
+@pytest.mark.parametrize(
+    ("gamma", "beta", "alpha", "rs", "rc", "amp", "n_r", "lo_e", "hi_e", "l_max"),
+    _FAMILY,
+)
+def test_a_random_density_family_stays_within_its_measured_error(
+    gamma, beta, alpha, rs, rc, amp, n_r, lo_e, hi_e, l_max
+) -> None:
+    """Float32 must not drift on a family of densities nobody hand-picked."""
+    sym = "spherical" if l_max == 0 else "zrotation_zreflection"
+    keys = lm_keys(l_max, sym)
+    n_theta, n_phi = default_angular_resolution(l_max)
+    q = 1.0 if l_max == 0 else 0.8
+
+    def rho(xyz, t):
+        r = safe_vector_norm(
+            jnp.stack([xyz[..., 0], xyz[..., 1], xyz[..., 2] / q], axis=-1)
+        )
+        m = jnp.sqrt(r**2 + rc**2)
+        return (
+            amp * m ** (-gamma) * (1.0 + (m / rs) ** alpha) ** (-(beta - gamma) / alpha)
+        )
+
+    def build(r_knots):
+        return build_expansion(
+            rho,
+            r_knots,
+            l_max,
+            keys,
+            n_theta,
+            n_phi,
+            jnp.asarray(0.0),
+            jnp.asarray(1.0),
+        )["phi_lm"]
+
+    ref = jnp.asarray(build(jnp.geomspace(10.0**lo_e, 10.0**hi_e, n_r)), dtype=float)
+    assert jnp.all(jnp.isfinite(ref)), "float64 reference is not finite"
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = build(jnp.geomspace(10.0**lo_e, 10.0**hi_e, n_r))
+        assert jnp.all(jnp.isfinite(got)), got
+        f32 = jnp.asarray(got, dtype=float)
+
+    err = float(jnp.max(jnp.abs(f32 - ref)) / jnp.max(jnp.abs(ref)))
+    assert err < _FAMILY[(gamma, beta, alpha, rs, rc, amp, n_r, lo_e, hi_e, l_max)], err

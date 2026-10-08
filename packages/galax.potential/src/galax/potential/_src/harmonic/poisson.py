@@ -536,13 +536,20 @@ def solve_poisson_profiles(
         # validity where it is actually used. A density that is a clean power
         # law above the overflow radius and something else below it passes
         # with `|s1 - s0|` at round-off, which is maximal confidence drawn
-        # from an absence of data. Measured on a cored cusp whose core sits
-        # under that radius (gamma = 2.9, `M = 6.8e29`, core 1e-4, over
-        # [1e-1, 1e2]): 1.12 relative against an unanchored 2.6e-01, a 4.4x
-        # regression. It is bounded -- both answers are already useless there,
-        # and float64 never reaches it -- but it is a real limit, not a bug to
-        # be gated away: no test on the retained samples can validate an
-        # extrapolation into discarded ones.
+        # from an absence of data.
+        #
+        # The worst such density puts its *core* at the overflow radius, and
+        # it is a narrow resonance. At `gamma = 2.95`, measured against an
+        # unanchored build, with `rc` in units of the overflow radius:
+        # 0.1 -> 8.4x, 0.3 -> 16x, 1.0 -> 119x, 3.0 -> nothing overflows and
+        # the two agree to the bit. At the peak a usable 1.2e-02 becomes 1.4.
+        #
+        # The asymmetry is the point: an unanchored solve drops the band and
+        # under-counts, bounded by the band's true mass, while extrapolating
+        # a cusp across a core over-counts without bound. No test on the
+        # retained samples can tell the two apart, because the evidence is
+        # exactly what was discarded. `_FAMILY` and the resonance test in
+        # `test_build.py` pin it so it cannot deepen unnoticed.
         #
         # The fallback is `i0 = 0`, not merely dropping the tail, because
         # anchoring also zeroes every panel below the anchor -- including

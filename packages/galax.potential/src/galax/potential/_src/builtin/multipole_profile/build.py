@@ -336,11 +336,12 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     power law fitted to the knots just above the anchor, and nothing below
     the anchor survives to check it against. Where the density is a power law
     through the zeroed band -- a cusp, the case this exists for -- the model
-    is the truth. Where it is not, the fit reports perfect confidence from an
-    absence of data and the tail over- or under-counts the inner mass. See
-    the anchoring gate in `solve_poisson_profiles` for the measured size of
-    that failure. Neither is good there; it is a reason to distrust float32
-    on such a profile, not a reason to prefer one treatment.
+    is the truth. Where it is not -- a core under the overflow radius is the
+    case to worry about -- the fit reports perfect confidence from an absence
+    of data and the extrapolated cusp over-counts the inner mass. Worst
+    measured is 119x an unanchored build, turning a usable 1.2e-02 into 1.4,
+    and it is a narrow resonance in how close the core sits to that radius.
+    See the anchoring gate in `solve_poisson_profiles`.
 
     Without this, one unrepresentable sample took out the whole build. The
     projection turns ``inf`` into ``inf`` at :math:`l = 0` and ``nan`` above

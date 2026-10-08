@@ -1,4 +1,4 @@
-""":mod:`galax.dynamics.solve`."""
+""":mod:`galax.dynamics.orbit`."""
 
 __all__ = [
     "compute_orbit",

@@ -28,7 +28,11 @@ PORTIONS: tuple[ModuleType, ...] = (gc, gp, gd)
 
 def _hook_targets(path: pathlib.Path, /) -> Iterator[str]:
     """Yield the literal target of every `install_import_hook(...)` call."""
-    for node in ast.walk(ast.parse(path.read_text())):
+    # Explicit utf-8 and `filename`: `read_text()` would decode with the
+    # platform default, which on the Windows leg of the matrix is not utf-8,
+    # and a nameless `ast.parse` reports a syntax error as "<unknown>".
+    source = path.read_text(encoding="utf-8")
+    for node in ast.walk(ast.parse(source, filename=str(path))):
         if (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)

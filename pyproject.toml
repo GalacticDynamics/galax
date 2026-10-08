@@ -192,13 +192,23 @@ build.targets.wheel.bypass-selection = true
 # root is a metadata-only distribution whose three portions live in `packages/*`.
 # Scoped to these two codes so every other wheel check still applies.
 #
-# This exemption does NOT reach the per-package CD workflows, which is worth
-# stating because it is not obvious. `build-and-inspect-python-package` runs the
-# check with `working-directory: ${{ inputs.path }}`, and `check-wheel-contents`
-# does not search parent directories for configuration -- run from
-# `packages/galax.dynamics`, it reports W007/W008 on this very wheel. So an
-# accidentally empty portion wheel still fails its own CD, and this ignore
-# applies only to the root build, which runs from here.
+# This exemption does NOT reach the per-package CD workflows, but the mechanism
+# is subtler than it looks. `build-and-inspect-python-package` runs the check
+# with `working-directory: ${{ inputs.path }}`, and `check-wheel-contents` DOES
+# walk parent directories -- `Configuration.find_default` iterates
+# `(cwd, *cwd.resolve().parents)`. What saves us is that it short-circuits at the
+# first ancestor holding any candidate config file: finding a `pyproject.toml`
+# without a `[tool.check-wheel-contents]` section, it returns no configuration
+# rather than continuing upward. Every `packages/*/` has its own
+# `pyproject.toml`, so each shadows this one.
+#
+# Measured, not assumed: on the same empty wheel, `OK` from the repository root
+# and `W007`/`W008` from `packages/galax.dynamics`. So an accidentally empty
+# portion wheel still fails its own CD.
+#
+# The dependence is on that shadowing, not on the absence of an upward search:
+# a build run from a directory with no config file of its own WOULD inherit this
+# exemption.
 [tool.check-wheel-contents]
 ignore = ["W007", "W008"]
 

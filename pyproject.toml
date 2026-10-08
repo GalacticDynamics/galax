@@ -49,7 +49,6 @@ dependencies = [
   "plum>=2.9.0; python_version >= '3.14'",
   "quax>=0.4.3",
   "quaxed>=0.10.5",
-  "tfp-nightly[jax]>=0.25.0",
   "typing-extensions>=4.13.2",
   "unxt>=2.0.5,<3",
   "unxts.parametric>=2.0,<3",
@@ -290,7 +289,6 @@ filterwarnings = [
   "ignore:In a future version of Gala, the current MilkyWayPotential",                               # from gala>=1.11
   "ignore:The MilkyWayPotential2022 class will be deprecated soon",                                  # from gala>=1.11
   "ignore:unhashable type:FutureWarning",                                                            # TODO: from diffrax
-  "ignore:jax\\.interpreters\\.xla\\.pytype_aval_mappings is deprecated:DeprecationWarning",         # from tensorflow-probability[jax]
 ]
 log_cli_level = "INFO"
 markers = [

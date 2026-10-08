@@ -17,7 +17,6 @@ from typing import Any, TypeAlias
 import diffrax as dfx
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 import numpy as np
 
 import diffraxtra as dfxtra

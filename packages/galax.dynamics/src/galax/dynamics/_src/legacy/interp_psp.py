@@ -8,7 +8,6 @@ from typing import ClassVar, final
 
 import diffrax as dfx
 import equinox as eqx
-import jax.numpy as jnp
 
 import coordinax as cx
 import quaxed.numpy as jnp

@@ -170,12 +170,20 @@ version.raw-options.scm.git.describe_command = [
   "v[0-9]*",
 ]
 
-# `src/galax` is a PEP 420 namespace directory with no `__init__.py`, so the
-# package cannot be auto-detected and must be named explicitly. There is no
-# version-file hook: a namespace directory must not hold a module owned by one
-# distribution, so `galax.__version__` no longer exists. Use
+# The root ships **no modules**: all three portions live in `packages/*` and
+# contribute the `galax` namespace directory themselves. `bypass-selection` is
+# how hatchling builds a metadata-only wheel; without it the build fails with
+# "Unable to determine which files to ship".
+#
+# There is still no version-file hook, for the original reason: a namespace
+# directory must not hold a module owned by one distribution, so
+# `galax.__version__` does not exist. Use
 # `importlib.metadata.version("galax")`.
-build.targets.wheel.packages = ["src/galax"]
+#
+# This covers the WHEEL only. `bypass-selection` has no effect on sdist file
+# selection, so the root sdist still collects the project tree, `packages/`
+# included. That predates this change and is tracked separately.
+build.targets.wheel.bypass-selection = true
 
 
 [tool.codespell]
@@ -346,7 +354,7 @@ markers = [
 # order, so it surfaces as flaky `AttributeError`s on `gala.potential`.
 consider_namespace_packages = true
 minversion = "8.0"
-testpaths = ["docs", "packages", "src/galax", "tests/"]
+testpaths = ["docs", "packages", "tests/"]
 xfail_strict = true
 env = ["JAX_ENABLE_X64=True"]
 

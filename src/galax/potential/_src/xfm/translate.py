@@ -211,6 +211,7 @@ class TimeDependentTranslationParameter(AbstractParameter):
         units: u.AbstractUnitSystem | None = None,
     ) -> "TimeDependentTranslationParameter":
         usys = units if units is not None else u.unitsystem(t.unit, xyz.unit)
-        return cls.from_(
-            t.ustrip(usys["time"]), xyz.ustrip(usys["length"]), units=units
-        )
+        # `usys`, not `units`: when `units` is None the stripping above has
+        # already committed to `usys`, so forwarding None would store a
+        # dimensionless system alongside values measured in `usys`.
+        return cls.from_(t.ustrip(usys["time"]), xyz.ustrip(usys["length"]), units=usys)

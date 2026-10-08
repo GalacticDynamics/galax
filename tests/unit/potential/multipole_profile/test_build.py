@@ -625,7 +625,8 @@ def test_a_nonfinite_band_mid_pad_anchors_above_it() -> None:
 
     def rho(xyz, t):
         r = safe_vector_norm(xyz)
-        # Inside the inner pad, which for this grid spans [9.4e-07, 1e-02].
+        # Inside the inner pad, which for this grid spans [1.0e-10, 8.7e-03]:
+        # `_pad_grid` reaches by log span, not by knot count.
         return jnp.where((r > 1e-5) & (r < 3e-5), jnp.nan, _hernquist_density(xyz, t))
 
     r_knots = jnp.geomspace(1e-2, 1e2, 128)

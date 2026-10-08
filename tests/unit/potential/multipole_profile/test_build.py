@@ -762,13 +762,109 @@ def test_anchoring_is_never_worse_than_an_unanchored_solve(
     exact = -(mass / (2.0 - gamma)) * (1.0 - (r / (r + 1.0)) ** (2.0 - gamma))
     err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
 
-    assert err < 3.0 * _UNANCHORED[(r_min, r_max, gamma, n_r)], (
+    # 1.5x, not 3x. The worst row runs at 0.998 of its tabulated value, so 3x
+    # was pure slack -- it let a gate loosened by a whole nat through at
+    # (1e-4, 1e4, 2.5, 7), where the error doubles to 2.7e-06 against a 1.3e-06
+    # row. 1.5x still leaves every row its measured headroom.
+    assert err < 1.5 * _UNANCHORED[(r_min, r_max, gamma, n_r)], (
         r_min,
         r_max,
         gamma,
         n_r,
         err,
     )
+
+
+def test_a_cored_cusp_under_the_overflow_radius_degrades_no_further() -> None:
+    r"""Pin the one case anchoring is *worse* on, so it cannot grow.
+
+    The anchoring gate reads the slope fit at the anchor and above it. The
+    band the tail extrapolates across lies entirely *below* the anchor and
+    holds no sample -- it is by construction the band that was zeroed. So a
+    density that is a clean power law above the float32 overflow radius and
+    something else below it passes the gate with ``|s1 - s0|`` at round-off:
+    maximal confidence drawn from an absence of data.
+
+    This is such a density -- a cusp with its core hidden under the overflow
+    radius, put there by a large prefactor. Anchoring extrapolates
+    :math:`r^{-\gamma}` to the origin and over-counts; an unanchored solve
+    drops the band and under-counts. Measured float32 against float64:
+    **1.12 anchored, 2.6e-01 unanchored**, a 4.4x regression.
+
+    No gate on the retained samples can fix this, because the evidence is
+    gone. What this test is for is that the 4.4x stays 4.4x. Both answers are
+    already useless here, and float64 never reaches it, so this is a bound on
+    a known limit rather than a correctness requirement.
+
+    `galax`'s own `safe_vector_norm` does not trigger it: its offset is
+    ``finfo(dtype).tiny``, so the float32 core sits inside the overflow band
+    where it is unobservable, which is why
+    `test_a_steep_cusp_survives_the_padded_sampling_in_float32` reaches 4.9e-06.
+    """
+    gamma, mass_scale, core, n_r = 2.9, 6.8e29, 1e-4, 32
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return mass_scale / (
+            (r**2 + core**2) ** (gamma / 2.0) * (1.0 + r) ** (4.0 - gamma)
+        )
+
+    def build(r_knots):
+        return build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+
+    ref = jnp.asarray(build(jnp.geomspace(1e-1, 1e2, n_r)), dtype=float)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = build(jnp.geomspace(1e-1, 1e2, n_r))
+        assert jnp.all(jnp.isfinite(got)), got
+        f32 = jnp.asarray(got, dtype=float)
+
+    err = float(jnp.max(jnp.abs(f32 - ref)) / jnp.max(jnp.abs(ref)))
+    assert err < 2.0, err
+
+
+def test_a_second_rescue_pins_the_gate_from_below() -> None:
+    r"""A second lower-edge pin, a nat away from the first.
+
+    `_UNANCHORED` structurally cannot catch a gate that has been tightened: it
+    bounds from *above* against the unanchored value, which is exactly what a
+    tightened gate returns. So the only thing holding the gate open is the
+    rescue tests, and with one of them the break-even point could drift by
+    2.9 nats before anything failed -- enough to give up most of what
+    anchoring buys.
+
+    This case sits at a different `exp_in * span` from the
+    :math:`\gamma = 2.99` one, so the two together bracket the gate far more
+    tightly than either alone.
+    Measured float32 against the Dehnen closed form: 5.8e-02 anchored,
+    1.7e-01 unanchored.
+    """
+    gamma, n_r = 2.9, 6
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
+
+    mass = 4.0 * jnp.pi / (3.0 - gamma)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        r_knots = jnp.geomspace(1e-6, 1e6, n_r)
+        got = build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+        assert jnp.all(jnp.isfinite(got)), got
+        phi = jnp.asarray(got, dtype=float) / jnp.sqrt(4.0 * jnp.pi)
+
+    r = jnp.asarray(r_knots, dtype=float)
+    exact = -(mass / (2.0 - gamma)) * (1.0 - (r / (r + 1.0)) ** (2.0 - gamma))
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+    assert err < 1e-1, err
 
 
 def test_anchoring_rescues_a_near_divergent_cusp() -> None:

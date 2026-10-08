@@ -508,6 +508,10 @@ def test_an_out_of_range_anchor_falls_back_instead_of_sliding() -> None:
         assert jnp.array_equal(solve(first_ok), want), first_ok
 
 
+_MARGIN_BOUND = {0.0: 1e-6, 2.0: 1e-6, 4.0: 1e-5, 8.0: 1e-4}
+"""Per-`l` bounds for the test below; see the comment on the assertion."""
+
+
 @pytest.mark.parametrize("l", [0.0, 2.0, 4.0, 8.0])
 def test_the_inner_tail_is_exact_when_anchored_above_dropped_samples(l) -> None:
     r"""Anchoring above a zeroed band must still integrate ``[0, r_i0]`` exactly.
@@ -556,4 +560,10 @@ def test_the_inner_tail_is_exact_when_anchored_above_dropped_samples(l) -> None:
     )
     got = phi[lo:, 0]
     err = float(jnp.max(jnp.abs(got - want)) / jnp.max(jnp.abs(want)))
-    assert err < 1e-4, (l, err)
+    # Per `l`, because a shared bound pins almost nothing. At `l = 8` the
+    # answer is quadrature-limited at 6.2e-05 whatever the margin is (6.165e-05
+    # at margin 8, 4, 2 and 0 alike), so a bound loose enough for `l = 8` lets
+    # the margin go to 4 unnoticed -- which it did. Only `l = 0` and `l = 2`
+    # discriminate: 4.0e-08 and 4.0e-07 here against 4.1e-06 and 1.9e-06 at
+    # margin 4.
+    assert err < _MARGIN_BOUND[l], (l, err)

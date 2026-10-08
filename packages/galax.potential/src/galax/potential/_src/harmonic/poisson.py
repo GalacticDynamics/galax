@@ -494,9 +494,21 @@ def solve_poisson_profiles(
         # Measured against an unanchored solve over 462 builds (Dehnen gamma
         # in {1.0, 1.9, 2.5, 2.7, 2.9, 2.99}, `n_r` 4 to 64, seven brackets
         # from [1e-1, 1e1] to [1e-6, 1e6]): of the 190 that reach this test,
-        # the rule makes the accuracy-optimal choice on every one. The
-        # populations it must separate do overlap, but only within [0.5, 1.7]
-        # of break-even, where by construction either choice is free.
+        # the rule chooses the more accurate side on 187, and the three it
+        # gets wrong cost 1.36x, 1.23x and 1.19x. All three sit within
+        # [0.5, 1.7] of break-even, where the two sides are close by
+        # construction -- but "close" is not "free", and two of the three are
+        # declined gains rather than accepted losses, because the benefit term
+        # below is understated.
+        #
+        # Understated because not anchoring leaves a *spurious* contribution
+        # in as well as losing the band: `drho_lm` is a global spline fit, so
+        # the zeroed knots carry non-zero fitted derivative and panel
+        # `first_ok - 1` straddles a zero-to-real step (see the panel-dropping
+        # comment below). Anchoring removes that too, and it is not counted
+        # here, so the rule errs toward declining. That is the safer
+        # direction, and it is why this is written as a one-sided test rather
+        # than a two-sided one.
         #
         # Bounding `R` alone against a constant is what this replaced, and it
         # cannot work: `R` does not see `span`, so the same fit quality is
@@ -509,8 +521,28 @@ def solve_poisson_profiles(
         # `exp_cand <= 0` is a divergent tail, rejected here rather than
         # downstream: the convergence gate below zeroes `dI_in` but cannot
         # un-zero the panels, which would discard the band and put nothing in
-        # its place. `nan` slopes, from an out-of-range `tri`, fail every
-        # comparison and land in the same fallback.
+        # its place. The clause is explicit rather than load-bearing --
+        # `jnp.log` already sends a negative `exp_cand` to `nan` and a zero
+        # one to `-inf`, either of which fails the comparison -- but the
+        # condition it states is the reason the comparison is safe, so it is
+        # written down rather than left to be rediscovered. `nan` slopes, from
+        # an out-of-range `tri`, land in the same fallback the same way.
+        #
+        # What this test CANNOT see: `slopes_in` is read at `i0` and above,
+        # while the band the tail extrapolates across, `[0, r_i0]`, lies
+        # entirely below it and holds no sample at all -- it is by
+        # construction the band that was zeroed. So the fit's own
+        # self-consistency bounds the model's *local* quality, never its
+        # validity where it is actually used. A density that is a clean power
+        # law above the overflow radius and something else below it passes
+        # with `|s1 - s0|` at round-off, which is maximal confidence drawn
+        # from an absence of data. Measured on a cored cusp whose core sits
+        # under that radius (gamma = 2.9, `M = 6.8e29`, core 1e-4, over
+        # [1e-1, 1e2]): 1.12 relative against an unanchored 2.6e-01, a 4.4x
+        # regression. It is bounded -- both answers are already useless there,
+        # and float64 never reaches it -- but it is a real limit, not a bug to
+        # be gated away: no test on the retained samples can validate an
+        # extrapolation into discarded ones.
         #
         # The fallback is `i0 = 0`, not merely dropping the tail, because
         # anchoring also zeroes every panel below the anchor -- including

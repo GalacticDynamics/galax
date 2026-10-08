@@ -265,7 +265,9 @@ def _requested_reach(log_r: Float[Array, "n_r"], /) -> Float[Array, ""]:
     cannot be represented and anchoring the radial solve's inner tail above
     it -- see `solve_poisson_profiles`. Shortening the pad instead was tried
     and measured worse: it costs every caller tail accuracy to avoid an
-    overflow the tail already handles.
+    overflow the tail models. Models rather than handles -- the tail assumes
+    the dropped band is the same power law as the knots above it, which is
+    what a cusp is and what a cored profile is not.
     """
     span = log_r[-1] - log_r[0]
     budget = _LN_HUGE_FRAC * float(np.log(np.finfo(log_r.dtype).max))
@@ -324,11 +326,21 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     where the *density* can overflow, once
     :math:`\gamma \times \mathrm{reach}` clears the dtype's exponent.
 
-    Zeroing is safe because it is no longer the whole story: the radial solve
-    anchors its inner tail at the first knot above the deepest zeroed sample,
-    so the band those samples should have carried is covered analytically
-    rather than lost. Without that, zeroing `rho[0]` also switched off the
-    tail and cost 11% of the monopole; with it, ~5e-06.
+    Zeroing is survivable because it is no longer the whole story: the radial
+    solve anchors its inner tail at the first knot above the deepest zeroed
+    sample, so the band those samples should have carried is modelled
+    analytically rather than lost. Without that, zeroing `rho[0]` also
+    switched off the tail and cost 11% of the monopole; with it, ~5e-06.
+
+    *Modelled*, not recovered, and the distinction has teeth: the model is a
+    power law fitted to the knots just above the anchor, and nothing below
+    the anchor survives to check it against. Where the density is a power law
+    through the zeroed band -- a cusp, the case this exists for -- the model
+    is the truth. Where it is not, the fit reports perfect confidence from an
+    absence of data and the tail over- or under-counts the inner mass. See
+    the anchoring gate in `solve_poisson_profiles` for the measured size of
+    that failure. Neither is good there; it is a reason to distrust float32
+    on such a profile, not a reason to prefer one treatment.
 
     Without this, one unrepresentable sample took out the whole build. The
     projection turns ``inf`` into ``inf`` at :math:`l = 0` and ``nan`` above

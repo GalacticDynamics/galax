@@ -151,6 +151,7 @@ because a parameter is just a callable of time with typed fields.
     >>> import functools as ft
     >>> import equinox as eqx
     >>> import jax
+    >>> from unxt.quantity import AllowValue
     >>> from galax.potential.params import AbstractParameter
 
     >>> class ExponentialParameter(AbstractParameter):
@@ -163,11 +164,19 @@ because a parameter is just a callable of time with typed fields.
     ...     def __call__(self, t, *, ustrip=None, **_):
     ...         out = self.m0 * jnp.exp(
     ...             u.ustrip("Gyr", t) / u.ustrip("Gyr", self.t_grow))
-    ...         return out if ustrip is None else u.ustrip(ustrip, out)
+    ...         return out if ustrip is None else u.ustrip(AllowValue, ustrip, out)
 
     >>> m_of_t = ExponentialParameter(m0=u.Q(1e12, "Msun"), t_grow=u.Q(5.0, "Gyr"))
     >>> m_of_t(u.Q(5.0, "Gyr"))
     Q(2.71828183e+12, 'solMass')
+
+``ustrip`` is part of the contract every parameter honours -- a caller can
+ask for a bare number in a unit of their choosing, and the ``AllowValue``
+overload is what lets the same line work whether ``out`` carries units or
+is already a plain array:
+
+    >>> round(float(m_of_t(u.Q(5.0, "Gyr"), ustrip=u.unit("Msun"))) / 1e12, 6)
+    2.718282
 
 The fields are ordinary :mod:`equinox` fields, so they are pytree leaves with all
 the properties ``args`` buys above -- and they are *named*, which

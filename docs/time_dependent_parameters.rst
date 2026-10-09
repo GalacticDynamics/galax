@@ -104,14 +104,27 @@ Tabulated values
 ================
 
 When the parameter is known at a set of times rather than in closed form --
-measurements, or the output of another simulation --
-:func:`~galax.potential.params.time_interpolated_parameter` interpolates between
-them with a cubic that is :math:`C^1` in time, so an integrator sees no kink
-at a knot.
+measurements, or the output of another simulation -- interpolate between
+them. The grid and the table are *data*, so they go in ``args`` exactly like
+anything else; nothing about this case is special.
+
+:mod:`interpax` provides the interpolators, and which one you want is your
+choice rather than :mod:`galax`'s. A cubic is the usual answer because it is
+:math:`C^1`, so an integrator sees no kink at a knot:
+
+    >>> import interpax
+
+    >>> def tabulated(t, ts, values):
+    ...     tq = u.ustrip("Gyr", t)
+    ...     grid, table = u.ustrip("Gyr", ts), u.ustrip("Msun", values)
+    ...     return u.Q(
+    ...         interpax.interp1d(tq, grid, table, method="cubic2",
+    ...                           extrap=(table[0], table[-1])),
+    ...         "Msun")
 
     >>> ts = u.Q(jnp.asarray([0.0, 1.0, 2.0, 3.0]), "Gyr")
     >>> ms = u.Q(jnp.asarray([1.0, 1.4, 1.9, 2.1]) * 1e12, "Msun")
-    >>> m_of_t = gp.params.time_interpolated_parameter(ts, ms)
+    >>> m_of_t = gp.params.CustomParameter(func=tabulated, args=(ts, ms))
 
 On a knot it returns that knot's value:
 
@@ -123,22 +136,28 @@ and between knots it interpolates:
     >>> m_of_t(u.Q(1.5, "Gyr"))
     Q(1.6625e+12, 'solMass')
 
-**Outside the grid it clamps rather than extrapolating.** A table says nothing
-about what happens beyond its last entry, and continuing the edge cubic there
-would invent something -- for a quantity that feeds a potential, fast and
-silently:
+The ``extrap`` pair above *clamps* to the end values rather than continuing
+the edge cubic. That is a choice worth making deliberately: a table says
+nothing about what happens beyond its last entry, and an extrapolated cubic
+will invent something -- for a quantity feeding a potential, fast and
+silently.
 
     >>> m_of_t(u.Q(99.0, "Gyr"))
     Q(2.1e+12, 'solMass')
 
-``ts`` must be strictly increasing and finite; it is searched as a sorted
-grid, so an out-of-order one would return wrong values rather than failing.
+Swap ``method`` for a different rule -- ``"akima"`` or ``"monotonic"`` when
+the table should not overshoot between knots, ``"linear"`` when a kink is
+acceptable -- or drop ``extrap`` to extrapolate. Because the table travels
+in ``args`` it stays a pytree leaf throughout, so the parameter still
+serialises, still avoids a recompile per rebuild, and is still
+differentiable with respect to the tabulated values:
 
-This is a :class:`~galax.potential.params.CustomParameter` underneath, with the
-grid, the values and the fitted knot derivatives travelling in ``args``:
-
-    >>> type(m_of_t).__name__
-    'CustomParameter'
+    >>> import jax
+    >>> g = jax.grad(
+    ...     lambda v: u.ustrip("Msun",
+    ...         gp.params.CustomParameter(func=tabulated, args=(ts, v))(u.Q(1.5, "Gyr"))))
+    >>> bool(jnp.any(jnp.abs(u.ustrip("Msun", g(ms))) > 0))
+    True
 
 Writing your own
 ================

@@ -142,6 +142,11 @@ def parse_time_specification(
     >>> gdi.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q([1, 2], "Myr"))
     Q([0, 1, 3], 'Myr')
 
+    The steps accumulate from ``t0``, which only shows when it is nonzero:
+
+    >>> gdi.parse_time_specification(t0=u.Q(10, "Myr"), dt=u.Q([1, 2, 3], "Myr"))
+    Q([10, 11, 13, 16], 'Myr')
+
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
@@ -240,7 +245,10 @@ def parse_time_spec(
     unit = _parse_to_time_unit(units)
     t0 = u.Q.from_(t0, unit)
     dt = u.Q.from_(dt, unit)
-    return jnp.concat((t0[None], jnp.cumsum(t0 + dt)))
+    # `t0 + cumsum(dt)`, not `cumsum(t0 + dt)`: the latter adds `t0` to every
+    # step before accumulating, so it lands in the running total once per step.
+    # Invisible at `t0 == 0`, which is what every example used.
+    return jnp.concat((t0[None], t0 + jnp.cumsum(dt)))
 
 
 @dispatch

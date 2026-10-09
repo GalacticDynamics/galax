@@ -147,7 +147,7 @@ class OrbitSolver(AbstractSolver):
     def init(  # type: ignore[override]
         self: "OrbitSolver", field: Any, t0: Any, t1: Any, y0: Any, args: Any
     ) -> Any:
-        """Initialize the `galax.dynamics.solve.SolveState`.
+        """Initialize the `galax.dynamics.SolveState`.
 
         Examples
         --------
@@ -174,7 +174,7 @@ class OrbitSolver(AbstractSolver):
         ...     p=u.Q([0, 220, 0], "km/s"),
         ...     t=u.Q(0, "Gyr"))
 
-        Then the `galax.dynamics.solve.SolveState` can be initialized.
+        Then the `galax.dynamics.SolveState` can be initialized.
 
         >>> state = solver.init(field, w0, None)
         >>> state
@@ -559,7 +559,7 @@ class OrbitSolver(AbstractSolver):
         'w02': Solution( t0=f64[], t1=f64[], ts=f64[],
                         ys=(f64[3], f64[3]), ... )}
 
-        - `galax.dynamics.solve.SolveState` from ``.init()``:
+        - `galax.dynamics.SolveState` from ``.init()``:
 
         >>> state = solver.init(field, w0, u.Q(0, "Gyr"), None)
         >>> soln = solver.solve(field, state, t1, unbatch_time=True)

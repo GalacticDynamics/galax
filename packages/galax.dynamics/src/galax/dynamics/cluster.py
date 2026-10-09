@@ -25,7 +25,7 @@ __all__ = [
 
 from .setup_package import install_import_hook
 
-with install_import_hook("galax.dynamics.fields"):
+with install_import_hook("galax.dynamics.cluster"):
     from ._src.cluster import (
         AbstractMassRateField,
         Baumgardt1998MassLossRate,

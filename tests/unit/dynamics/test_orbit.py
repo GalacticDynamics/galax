@@ -13,8 +13,7 @@ import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
-from ..coordinates.psc.test_base_single import AbstractBasicPhaseSpaceCoordinate_Test
-from ..coordinates.test_base import getkeys
+from .test_contract import AbstractBasicPhaseSpaceCoordinate_Test, getkeys
 
 
 class TestOrbit(AbstractBasicPhaseSpaceCoordinate_Test[gd.Orbit]):

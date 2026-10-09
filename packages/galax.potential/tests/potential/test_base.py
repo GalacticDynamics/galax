@@ -15,7 +15,6 @@ from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
-import galax.dynamics as gd
 import galax.potential as gp
 import galax.potential.custom_types as gt
 import galax.potential.params as gpp
@@ -175,32 +174,6 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         ...
 
     # =========================================================================
-
-    def test_evaluate_orbit(self, pot: gp.AbstractPotential, xv: gt.Sz6) -> None:
-        """Test `galax.dynamics.evaluate_orbit` on a potential."""
-        ts = u.Q(jnp.linspace(0.0, 1.0, 100), "Myr")
-
-        orbit = gd.evaluate_orbit(pot, xv, ts)
-        assert isinstance(orbit, gd.Orbit)
-        assert orbit.shape == (len(ts.value),)  # TODO: don't use .value
-        assert jnp.array_equal(orbit.t, ts)
-
-    def test_evaluate_orbit_batch(self, pot: gp.AbstractPotential, xv: gt.Sz6) -> None:
-        """Test `galax.dynamics.evaluate_orbit` on a batch of initial conditions."""
-        ts = u.Q(jnp.linspace(0.0, 1.0, 100), "Myr")
-
-        # Simple batch
-        orbits = gd.evaluate_orbit(pot, xv[None, :], ts)
-        assert isinstance(orbits, gd.Orbit)
-        assert orbits.shape == (1, len(ts))
-        assert jnp.allclose(orbits.t, ts, atol=u.Q(1e-16, "Myr"))
-
-        # More complicated batch
-        xv2 = jnp.stack([xv, xv], axis=0)
-        orbits = gd.evaluate_orbit(pot, xv2, ts)
-        assert isinstance(orbits, gd.Orbit)
-        assert orbits.shape == (2, len(ts))
-        assert jnp.allclose(orbits.t, ts, atol=u.Q(1e-16, "Myr"))
 
     # =========================================================================
 

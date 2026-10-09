@@ -14,7 +14,6 @@ import unxt as u
 
 import galax.coordinates as gc
 import galax.coordinates.custom_types as gt
-import galax.dynamics as gd
 
 
 def getkeys(
@@ -154,7 +153,7 @@ class AbstractPhaseSpaceObject_Test[CT: gc.AbstractPhaseSpaceObject](metaclass=A
     # Further Array properties
 
     def test_full_shape(self, w: CT, shape: gt.Shape) -> None:
-        """Test :attr:`~galax.dynamics.PhaseSpacePosition.full_shape`."""
+        """Test :attr:`~galax.coordinates.PhaseSpacePosition.full_shape`."""
         # Definition
         batch_shape, component_shapes = w._shape_tuple
         assert w.full_shape == (*batch_shape, sum(component_shapes))
@@ -182,9 +181,3 @@ class AbstractPhaseSpaceObject_Test[CT: gc.AbstractPhaseSpaceObject](metaclass=A
         assert ke.shape == w.shape  # confirm relation to shape and components
         assert jnp.all(ke >= u.Q(0, "km2/s2"))
         # TODO: more tests
-
-    def test_angular_momentum(self, w: CT) -> None:
-        """Test `galax.dynamics.specific_angular_momentum` on a phase-space object."""
-        h = gd.specific_angular_momentum(w)
-        assert h.shape == w.q.shape
-        assert isinstance(h, cx.vecs.Cartesian3D)

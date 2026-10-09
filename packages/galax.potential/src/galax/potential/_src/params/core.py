@@ -117,8 +117,11 @@ class CustomParameter(AbstractParameter):
 
     Parameters
     ----------
-    func : Callable[[BBtRealQuSz0], Array[float, (*shape,)]]
-        The function to use to compute the parameter value.
+    func : Callable[..., Array[float, (*shape,)]]
+        The function to use to compute the parameter value. Called as
+        ``func(t, *args, **kwargs)``, so it takes the time first and must
+        accept whatever ``args`` and ``kwargs`` hold -- plus any keywords the
+        call site adds, for which a trailing ``**_`` is the usual answer.
     args : tuple
         Extra positional arguments passed to ``func`` after ``t``. Put any
         *data* the function needs here rather than closing over it -- see

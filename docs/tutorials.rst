@@ -9,6 +9,12 @@ functionality in :mod:`galax`. If you are interested in contributing a tutorial,
 or requesting a tutorial about material that is not covered here, please `open
 an issue on GitHub <https://github.com/GalacticDynamics/galax/issues>`_.
 
+.. toctree::
+    :maxdepth: 1
+
+    time_dependent_parameters
+
+
 .. TODO: uncomment
 .. .. The _tutorials.rst file is auto-generated in conf.py. Add new tutorials to
 .. .. the list of files in conf.py

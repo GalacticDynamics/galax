@@ -1,12 +1,17 @@
 """Test :mod:`galax.potential._src.param.core`."""
 
+import pathlib
+import tempfile
+
 from typing import Any, Generic, TypeVar
 
+import equinox as eqx
+import jax
 import pytest
 
 import unxt as u
 
-from galax.potential._src.params.core import ParameterCallable
+from galax.potential._src.params.base import ParameterCallable
 from galax.potential.params import AbstractParameter, ConstantParameter, CustomParameter
 
 T = TypeVar("T", bound=AbstractParameter)
@@ -137,3 +142,72 @@ class TestCustomParameter(TestAbstractParameter[CustomParameter]):
 
         # t = jnp.asarray([1.0, 2.0])
         # assert array_equal(param(t=t), t)
+
+
+class TestCustomParameterData:
+    """`args` and `kwargs` carry data as leaves; a closure cannot."""
+
+    @staticmethod
+    def _scaled(t, m0):
+        return m0 * u.ustrip(u.unit("Gyr"), t)
+
+    def test_data_in_args_are_pytree_leaves(self) -> None:
+        """A closure hides its arrays from JAX; `args` does not.
+
+        This is the whole reason `args` exists. `func` is a *static* field,
+        so anything captured in a closure is part of the pytree structure
+        rather than its leaves -- which costs a recompile per rebuild and,
+        worse, writes nothing on serialisation.
+        """
+        m0 = u.Q(1e9, "Msun")
+
+        def closed(t):
+            return m0 * u.ustrip(u.unit("Gyr"), t)
+
+        closure = CustomParameter(func=closed)
+        carried = CustomParameter(func=self._scaled, args=(m0,))
+
+        assert len(jax.tree_util.tree_leaves(eqx.filter(closure, eqx.is_array))) == 0
+        assert len(jax.tree_util.tree_leaves(eqx.filter(carried, eqx.is_array))) == 1
+        # Same answer either way; only visibility to JAX differs.
+        assert closure(u.Q(2.0, "Gyr")) == carried(u.Q(2.0, "Gyr"))
+
+    def test_a_carried_parameter_survives_serialisation(self) -> None:
+        """REGRESSION: a closed-over table serialised to a zero-length file."""
+        m0 = u.Q(1e9, "Msun")
+        p = CustomParameter(func=self._scaled, args=(m0,))
+
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / "p.eqx"
+            eqx.tree_serialise_leaves(path, p)
+            assert path.stat().st_size > 0
+            blank = CustomParameter(func=self._scaled, args=(u.Q(0.0, "Msun"),))
+            back = eqx.tree_deserialise_leaves(path, blank)
+
+        assert back(u.Q(2.0, "Gyr")) == p(u.Q(2.0, "Gyr"))
+
+    def test_rebuilding_over_the_same_data_does_not_retrace(self) -> None:
+        """A closure is hashed by identity, so rebuilding it recompiles."""
+        m0 = u.Q(1e9, "Msun")
+        traces = [0]
+
+        @eqx.filter_jit
+        def ev(p, t):
+            traces[0] += 1
+            return p(t)
+
+        for _ in range(3):
+            ev(CustomParameter(func=self._scaled, args=(m0,)), u.Q(2.0, "Gyr"))
+        assert traces[0] == 1
+
+    def test_call_site_keywords_override_stored_ones(self) -> None:
+        """Stored keywords are defaults, not a second hidden call site."""
+
+        def ramp(t, *, m0, rate):
+            return m0 + rate * u.ustrip(u.unit("Gyr"), t)
+
+        p = CustomParameter(
+            func=ramp, kwargs={"m0": u.Q(1e9, "Msun"), "rate": u.Q(1e9, "Msun")}
+        )
+        assert p(u.Q(2.0, "Gyr")) == u.Q(3e9, "Msun")
+        assert p(u.Q(2.0, "Gyr"), rate=u.Q(0.0, "Msun")) == u.Q(1e9, "Msun")

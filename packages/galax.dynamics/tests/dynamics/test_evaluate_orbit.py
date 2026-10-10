@@ -60,7 +60,11 @@ def ts() -> u.Quantity:
 
 
 def test_evaluate_orbit(pot, xv, ts) -> None:
-    """A single initial condition gives one orbit over the requested times."""
+    """A single initial condition gives one orbit over the requested times.
+
+    `t` is the save-times array handed back, not a recomputed one, so it
+    compares exactly -- for a batch too, where it stays shared and 1-D.
+    """
     orbit = gd.evaluate_orbit(pot, xv, ts)
     assert isinstance(orbit, gd.Orbit)
     assert orbit.shape == (len(ts),)
@@ -72,9 +76,9 @@ def test_evaluate_orbit_batch(pot, xv, ts) -> None:
     orbits = gd.evaluate_orbit(pot, xv[None, :], ts)
     assert isinstance(orbits, gd.Orbit)
     assert orbits.shape == (1, len(ts))
-    assert jnp.allclose(orbits.t, ts, atol=u.Q(1e-16, "Myr"))
+    assert jnp.array_equal(orbits.t, ts)
 
     orbits = gd.evaluate_orbit(pot, jnp.stack([xv, xv], axis=0), ts)
     assert isinstance(orbits, gd.Orbit)
     assert orbits.shape == (2, len(ts))
-    assert jnp.allclose(orbits.t, ts, atol=u.Q(1e-16, "Myr"))
+    assert jnp.array_equal(orbits.t, ts)

@@ -3,18 +3,41 @@
 gala, galpy and matplotlib stay optional, behind extras.
 """
 
+import re
 from importlib.metadata import PackageNotFoundError, metadata, requires
 
 import pytest
 
+# A requirement name runs until the first character that cannot appear in one,
+# which is where its extras, version specifiers and markers begin. Splitting on
+# ">" alone leaves the rest attached to every "<"-bounded requirement --
+# `coordinax<0.25,>=0.24.1` parsed as `coordinax<0.25,` -- so a pin changing
+# from `>` to `<` or `==` would break a lookup here rather than the dependency
+# it is about.
+_NAME = re.compile(r"[A-Za-z0-9._-]+")
+
 
 def _required_names() -> set[str]:
-    """Distribution names `galax` requires unconditionally."""
+    """Distribution names `galax` requires unconditionally, PEP 503 normalised."""
     return {
-        r.split(";")[0].split(">")[0].split("[")[0].strip().lower().replace("_", "-")
+        re.sub(r"[-_.]+", "-", m[0]).lower()
         for r in (requires("galax") or [])
         if "extra ==" not in r
+        for m in [_NAME.match(r)]
+        if m
     }
+
+
+def test_requirement_names_parse_to_bare_names() -> None:
+    """The parser itself, since the checks below are mostly negative.
+
+    `test_heavy_interop_stays_optional` asserts absence, which a parser that
+    returned nothing useful would also satisfy. This pins the output to names.
+    """
+    names = _required_names()
+    assert names, "no unconditional requirements parsed"
+    unparsed = sorted(n for n in names if not _NAME.fullmatch(n))
+    assert not unparsed, f"not bare distribution names: {unparsed}"
 
 
 def test_astropy_interop_is_required_not_an_extra() -> None:

@@ -20,6 +20,11 @@ classifiers = [
 # the root of the import graph. Packaging is what enforces that, which is the
 # point of carving it out first.
 dependencies = [
+  # Upper bound: beartype 0.23.0 (2026-10-10) raises "UnionTypeHint
+  # (typing.Union) subscripted by no subhint-unique child type hints" from
+  # `beartype.door` when `plum` compares type hints, so `import coordinax`
+  # fails outright -- no galax code is involved. Lift once upstream fixes it.
+  "beartype>=0.22.9,<0.23",
   "coordinax>=0.24.1,<0.25",
   "dataclassish>=0.8.0",
   "equinox>=0.13.8",

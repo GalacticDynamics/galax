@@ -973,10 +973,21 @@ def test_refining_the_time_grid_converges_on_a_direct_build() -> None:
 
     The source varies in *shape*, not just amplitude -- the break radius
     moves -- so a build at one time cannot stand in for another. Measured
-    maximum relative error over three field points at t = 0.61 of the span:
-    9.8e-02, 3.3e-03, 4.2e-05 at n_t = 5, 9, 17, so each refinement gains
-    well over an order. The bound below is 5x per refinement, which is loose
-    against the ~30x measured and against the 16x a cubic predicts.
+    maximum relative error at t = 0.61 of the span: 7.206e-02, 5.709e-04,
+    4.163e-05 at n_t = 5, 9, 17. The bound below is 5x per refinement,
+    loose against the 126x and 13.7x measured.
+
+    ``n_r`` is small on purpose. The radial discretization is *common mode*
+    here -- the grid build and the single-time build it is compared against
+    use the same one, so it cancels -- and the errors above are identical to
+    every digit at n_r = 32, 48 and 96. A fine radial grid buys this test
+    nothing, and it was the slowest test in the suite at 48s under coverage
+    before that was noticed.
+
+    The ``n_t`` ladder is *not* trimmed with it. Shortening it to (3, 5, 9)
+    does less work but drops the first ratio from 126x to 7.9x against a 5x
+    bound, and the saving could not be told apart from run-to-run noise --
+    a worse test for nothing.
     """
     xyz = u.Q(jnp.asarray([[2.0, 1.0, 0.5], [0.3, -0.2, 0.9]]), "kpc")
     t0, t1 = 0.0, 1000.0
@@ -992,7 +1003,7 @@ def test_refining_the_time_grid_converges_on_a_direct_build() -> None:
             rho,
             r_min=u.Q(1e-2, "kpc"),
             r_max=u.Q(1e2, "kpc"),
-            n_r=96,
+            n_r=32,
             l_max=0,
             symmetry="spherical",
             units="galactic",

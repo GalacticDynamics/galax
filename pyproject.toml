@@ -129,9 +129,9 @@ docs = [
 test-all = [{ include-group = "test" }, { include-group = "test-mpl" }]
 test = [
   # Test-only: `src/` does not import it. Its consumers are `conftest.py` and
-  # `tests/unit/potential/optional_deps.py`, which probe the wrapped libraries
-  # to decide what to collect and skip. `galax.interop.gala` declares it
-  # itself, being the one shipped user.
+  # `packages/galax.potential/tests/potential/optional_deps.py`, which probe
+  # the wrapped libraries to decide what to collect and skip.
+  # `galax.interop.gala` declares it itself, being the one shipped user.
   "optional-dependencies>=0.4.0",
   "nox>=2024.10.9",
   "prek>=0.5.3",

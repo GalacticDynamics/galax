@@ -19,7 +19,9 @@ pytest configuration states. Each absent member fails loudly --
 portion alone, which is the run this test exists to keep possible.
 
 This is the same silence `test_source_roots_cover_packages.py` guards for
-coverage and mypy.
+coverage and mypy. It is a stopgap: once CI syncs and tests each portion on its
+own (#941), that job fails on any missing member -- including the per-portion
+extras, like `pytest-mpl`, that this floor cannot see -- and this can go.
 """
 
 import pathlib
@@ -45,49 +47,10 @@ FLOOR = frozenset(
 PACKAGES = sorted(ROOT.glob("packages/*/pyproject.toml"))
 
 
-_NAME = re.compile(r"[A-Za-z0-9._-]+")
-
-
-def _normalise(name: str) -> str:
-    """Normalise a distribution or group name per PEP 503."""
-    return re.sub(r"[-_.]+", "-", name).lower()
-
-
-def _names(
-    groups: dict[str, list], name: str, _seen: frozenset[str] = frozenset()
-) -> set[str]:
-    """Return the normalised distribution names a group requires.
-
-    Requirement strings carry extras, version bounds and markers; a name runs
-    until the first character that cannot appear in one. An entry that is a
-    table is an `include-group`, naming another group in the same file, whose
-    members count as this group's -- the root `pyproject.toml` factors `dev`
-    and `test-all` that way, so a portion may reasonably do the same. Treating
-    those entries as nothing would report a group that includes the whole floor
-    as missing all of it.
-    """
-    key = _normalise(name)
-    if key in _seen:  # a cycle, which PEP 735 forbids; stop rather than recurse
-        return set()
-    out: set[str] = set()
-    for req in groups.get(name, []):
-        if isinstance(req, str):
-            if m := _NAME.match(req):
-                out.add(_normalise(m[0]))
-        elif isinstance(req, dict) and (included := req.get("include-group")):
-            out |= _names(groups, included, _seen | {key})
-    return out
-
-
-def test_include_group_members_count_as_the_group_s_own() -> None:
-    """A group factored through `include-group` is not an empty group."""
-    groups = {
-        "floor": ["pytest>=8.3", "sybil>=9.0.0"],
-        "test": [{"include-group": "floor"}, "pytest-mpl>=0.17.0"],
-        "self": [{"include-group": "self"}],
-    }
-    assert _names(groups, "test") == {"pytest", "sybil", "pytest-mpl"}
-    assert _names(groups, "self") == set()  # a cycle terminates
+def _names(reqs: list[str]) -> set[str]:
+    """Return the PEP 503-normalised distribution names in `reqs`."""
+    names = (re.split(r"[^A-Za-z0-9._-]", r, maxsplit=1)[0] for r in reqs)
+    return {re.sub(r"[-_.]+", "-", n).lower() for n in names}
 
 
 @pytest.mark.parametrize("path", PACKAGES, ids=lambda p: p.parent.name)
@@ -97,7 +60,7 @@ def test_package_declares_test_group(path: pathlib.Path) -> None:
         config = tomllib.load(f)
     groups = config.get("dependency-groups", {})
     assert "test" in groups, f"{path.parent.name} declares no `test` group"
-    missing = FLOOR - _names(groups, "test")
+    missing = FLOOR - _names(groups["test"])
     assert not missing, f"{path.parent.name} `test` group is missing: {sorted(missing)}"
 
 

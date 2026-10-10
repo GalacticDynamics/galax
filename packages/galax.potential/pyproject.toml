@@ -30,6 +30,11 @@ classifiers = [
 # resolves, and its `NumpyMathMixin` is a base class of the public
 # `ConstantParameter`. The root's omission is tracked separately.
 dependencies = [
+  # Upper bound: beartype 0.23.0 (2026-10-10) raises "UnionTypeHint
+  # (typing.Union) subscripted by no subhint-unique child type hints" from
+  # `beartype.door` when `plum` compares type hints, so `import coordinax`
+  # fails outright -- no galax code is involved. Lift once upstream fixes it.
+  "beartype>=0.22.9,<0.23",
   "astropy>=7.0.0",
   "boundinstance>=0.1",
   "coordinax>=0.24.1,<0.25",

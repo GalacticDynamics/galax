@@ -43,41 +43,49 @@ def test_subtract_inner_cusp_removes_a_pure_power_law() -> None:
     assert jnp.max(jnp.abs(residual)) < 1e-9 * jnp.max(jnp.abs(rho_lm))
 
 
-def test_subtract_inner_cusp_zeroes_negligible_modes() -> None:
-    """Modes negligible at `r_min` get no background, per the 1e-6 gate."""
+def test_subtract_inner_cusp_splits_only_the_monopole() -> None:
+    """Every mode but `l = 0` keeps its profile in the residual.
+
+    Mode 1 here is a clean, same-sign power law as large as the monopole, so
+    nothing about it is degenerate: under the magnitude-and-sign gate this
+    replaced it would have been split like any other well-behaved mode. It
+    must not be, because `alpha` and `amplitude` are interpolated in time by
+    a grid build and only the monopole is guaranteed not to pass through
+    zero -- see `test_a_time_grid_density_survives_a_sign_changing_mode`.
+    """
     r = jnp.geomspace(1e-2, 1e2, 64)
-    big = 1.0 / r
-    tiny = jnp.full_like(r, 1e-12) * big[0]
-    rho_lm = jnp.stack([big, tiny], axis=-1)
+    mono, other = 1.0 / r, 2.0 * r**-1.5
+    rho_lm = jnp.stack([mono, other], axis=-1)
 
     residual, alpha, amplitude = subtract_inner_cusp(r, rho_lm)
-    assert amplitude[1] == 0.0
+
+    # The monopole is split.
+    assert jnp.isclose(alpha[0], -1.0, rtol=1e-10)
+    assert jnp.isclose(amplitude[0], mono[0], rtol=1e-12)
+    assert jnp.max(jnp.abs(residual[:, 0])) < 1e-9 * jnp.max(jnp.abs(mono))
+
+    # The l > 0 mode is not, despite being perfectly splittable.
     assert alpha[1] == 0.0
-    assert jnp.allclose(residual[:, 1], tiny, atol=0.0)
+    assert amplitude[1] == 0.0
+    assert jnp.allclose(residual[:, 1], other, atol=0.0)
 
 
-def test_subtract_inner_cusp_declines_a_sign_changing_mode() -> None:
+def test_subtract_inner_cusp_survives_a_sign_changing_mode() -> None:
     """A zero crossing in the fitting window must not produce a background.
 
     `alpha` is fitted to log|rho_lm| over the innermost three knots, so a sign
-    change there reads as a large positive slope and the background diverges
-    outward. With the crossing adjacent to knot 0 the old fit gives
-    alpha = +69.9 and an overflowing background, wrecking `residual +
-    background` by catastrophic cancellation.
+    change there reads as a large positive slope and a background that
+    diverges outward: with the crossing adjacent to knot 0 the fit gives
+    alpha = +69.9, and even clipped to +3 the background reaches ~1e8 times
+    the mode, wrecking `residual + background` by catastrophic cancellation.
 
-    The magnitude gate on |rho_lm[0]| cannot see this: rho_lm[0] here is
-    1.1e-5 of the global scale, comfortably above the 1e-6 threshold. Nor is
-    the alpha clip sufficient on its own -- clipped to +3 the background still
-    reaches ~1e8 times the mode. Only the sign check rejects it.
+    Restricting the split to `l = 0` covers this without a sign test, because
+    a sign change is only possible in the modes that are no longer split.
     """
     r = jnp.geomspace(1e-2, 1e2, 64)
     clean = 1.0 / r
-    # Sign flips between knots 0 and 1, with |rho_lm[0]| small but above the
-    # magnitude gate -- the configuration that makes `alpha` blow up.
     crossing = clean.at[0].set(-1e-5 * clean[0])
     rho_lm = jnp.stack([clean, crossing], axis=-1)
-
-    assert jnp.abs(crossing[0]) > 1e-6 * jnp.max(jnp.abs(rho_lm))
 
     residual, alpha, amplitude = subtract_inner_cusp(r, rho_lm)
 
@@ -85,7 +93,8 @@ def test_subtract_inner_cusp_declines_a_sign_changing_mode() -> None:
     assert alpha[1] == 0.0
     # No background, so the residual carries the mode exactly.
     assert jnp.allclose(residual[:, 1], crossing, atol=0.0)
-    # The well-behaved neighbour still gets its cusp subtracted.
+    assert jnp.all(jnp.isfinite(residual))
+    # The monopole still gets its cusp subtracted.
     assert jnp.isclose(alpha[0], -1.0, rtol=1e-10)
     assert jnp.max(jnp.abs(residual[:, 0])) < 1e-9 * jnp.max(jnp.abs(clean))
 

@@ -18,9 +18,7 @@ from optional_dependencies.utils import chain_checks, get_version, is_installed
 _ROOT = Path(__file__).parent
 # Every tree that contributes to the `galax` namespace. `packages/*/src` is
 # globbed rather than listed so adding a distribution needs no conftest edit.
-_SRC_ROOTS = tuple(
-    p.resolve() for p in [_ROOT / "src", *sorted(_ROOT.glob("packages/*/src"))]
-)
+_SRC_ROOTS = tuple(p.resolve() for p in sorted(_ROOT.glob("packages/*/src")))
 
 
 def _module_name_for(path: Path, /) -> str | None:
@@ -47,7 +45,8 @@ class NamespacePackageDocument(PythonDocStringDocument):
     """Import doctested modules by their true name under a namespace package.
 
     `sybil.python.import_path` derives a module name by walking up from the file
-    until it finds a directory without `__init__.py`. `src/galax` is a PEP 420
+    until it finds a directory without `__init__.py`. Each portion's
+    `packages/<dist>/src/galax` is a PEP 420
     namespace directory, so that walk stops one level too deep and yields
     `potential._src.api` instead of `galax.potential._src.api`. Resolving the
     path against the source roots instead gives the true dotted name.
@@ -122,19 +121,33 @@ collect_ignore_glob = [
     "docs/superpowers/*",
     ".superpowers/*",
 ]
+
+
 # A package's own tests (and its doctests) import its own distribution at module
 # scope, so none of it can be collected unless that distribution is installed
 # *and* the library it wraps is usable. Both are checked: a plain `uv sync`
 # installs matplotlib itself (a test dependency) without the
 # `galax.interop.matplotlib` distribution. `*` crosses `/` in pytest's matcher,
 # so one pattern covers a package's `src/` and `tests/` trees.
+def _module_exists(name: str, /) -> bool:
+    """Whether `name` is importable, without raising on a missing parent.
+
+    `importlib.util.find_spec` imports the parent package, so a dotted name
+    whose intermediate parent is absent raises `ModuleNotFoundError` rather than
+    returning `None` -- `find_spec("galax.interop.gala")` raises outright when
+    no interop distribution is installed. That is exactly the case this is
+    asked about, so the exception is the answer "no", not an error.
+    """
+    try:
+        return importlib.util.find_spec(name) is not None
+    except ModuleNotFoundError:
+        return False
+
+
 collect_ignore_glob.extend(
     f"packages/galax.interop.{lib}/*"
     for lib in ("astropy", "gala", "galpy", "matplotlib")
-    if not (
-        OptDeps[lib.upper()].installed
-        and importlib.util.find_spec(f"galax.interop.{lib}")
-    )
+    if not (OptDeps[lib.upper()].installed and _module_exists(f"galax.interop.{lib}"))
 )
 
 

@@ -4,6 +4,7 @@
 #   2. a single interop package installs on its own
 #   3. `galax.coordinates` installs on its own, without the heavier portions
 #   4. `galax.potential` installs with coordinates but without dynamics
+#   5. `galax.dynamics` installs on its own, pulling the portions below it
 #
 # Both need a clean environment: the dev venv has every extra installed, so it
 # cannot tell a required dependency from an optional one.
@@ -60,14 +61,31 @@ for p in . packages/*/; do
   ls "$WHEELS/${norm}"-*.tar.gz >/dev/null || { echo "no sdist for $name"; exit 1; }
 done
 
-echo "== every wheel actually contains its source =="
+echo "== every package wheel actually contains its source =="
 # `uv build` builds each wheel *from* its sdist, so an sdist that omits its source
 # gives an empty wheel. Shapes 1 and 2 only import galax, astropy and gala; this
 # covers galpy and matplotlib too.
+#
+# The root is skipped deliberately: it is metadata-only, and the assertion just
+# below is its exact opposite. Package wheels are named `galax_<portion>-`, the
+# root `galax-<version>`, so the case glob distinguishes them.
 for whl in "$WHEELS"/*.whl; do
+  case "$(basename "$whl")" in
+    galax-[0-9]*) continue ;;
+  esac
   unzip -Z1 "$whl" | grep -E '^galax/.*\.py$' | grep -v '/_version\.py$' >/dev/null \
     || { echo "$(basename "$whl") contains no galax source (only _version.py, or nothing)"; exit 1; }
 done
+
+echo "== the root wheel ships no Python at all =="
+# Spec acceptance criterion 1: after phase 2 the root is metadata only. The
+# three per-portion assertions below are implied by this one, and kept because
+# each names the specific double-write that portion would cause.
+if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '\.py$' >/dev/null; then
+  echo "the root galax wheel still contains Python files:"
+  unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '\.py$'
+  exit 1
+fi
 
 echo "== the root wheel ships no galax/interop/ =="
 # Every `galax>0.0.3` floor in packages/ assumes the first post-split root
@@ -90,6 +108,13 @@ echo "== the root wheel ships no galax/potential/ =="
 # let two distributions write the same files.
 if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/potential/' >/dev/null; then
   echo "the root galax wheel still contains galax/potential/ files"; exit 1
+fi
+
+echo "== the root wheel ships no galax/dynamics/ =="
+# `galax.dynamics` owns that leaf now. A root wheel still carrying it would
+# let two distributions write the same files.
+if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/dynamics/' >/dev/null; then
+  echo "the root galax wheel still contains galax/dynamics/ files"; exit 1
 fi
 
 echo "== shape 1: bare \`pip install galax\` =="
@@ -215,6 +240,42 @@ for absent in ("galax.dynamics", "diffrax", "optimistix"):
     assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
 
 print("potential-only install OK")
+PY
+
+echo "== shape 5: \`galax.dynamics\` alone =="
+# The top of the DAG must install standalone, pulling the two portions below it
+# and nothing from the interop layer. This is the only shape that exercises the
+# solver stack, so a missing `diffrax`/`diffraxtra`/`optimistix` pin in this
+# portion's metadata fails here rather than at a user's.
+uv run --isolated --no-project \
+  --find-links "$WHEELS" \
+  --with "$(echo "$WHEELS"/galax_dynamics-*.whl)" \
+  python - <<'PY'
+import importlib.util
+
+import unxt as u
+
+# The portions below came along, because this portion declares them.
+import galax.coordinates as gc
+import galax.dynamics as gd
+import galax.potential as gp
+
+# Integrate a real orbit: importing proves nothing, and this is the only shape
+# that touches the solver stack at all.
+pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+w0 = gc.PhaseSpaceCoordinate(
+    q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0.0, 220, 0], "km/s"), t=u.Q(0.0, "Myr")
+)
+orbit = gd.compute_orbit(pot, w0, u.Q([0.0, 100.0], "Myr"))
+assert orbit.q.shape == (2,), orbit.q.shape
+
+# and the interop layer must NOT have. `galax.interop`, not a leaf below it:
+# `find_spec` imports the parent package, so a dotted name whose intermediate
+# parent is absent raises ModuleNotFoundError instead of returning None.
+for absent in ("galax.interop", "gala", "galpy", "matplotlib"):
+    assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
+
+print("dynamics-only install OK")
 PY
 
 echo "all install shapes OK"

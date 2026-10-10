@@ -10,17 +10,37 @@ alone — but the usual case is a coordinated release of all of them.
 | -------------------------- | ---------------------------- | ----------------------------------- |
 | `galax`                    | `v`                          | repository root                     |
 | `galax.coordinates`        | `galax-coordinates-v`        | `packages/galax.coordinates`        |
+| `galax.dynamics`           | `galax-dynamics-v`           | `packages/galax.dynamics`           |
 | `galax.interop.astropy`    | `galax-interop-astropy-v`    | `packages/galax.interop.astropy`    |
 | `galax.interop.gala`       | `galax-interop-gala-v`       | `packages/galax.interop.gala`       |
 | `galax.interop.galpy`      | `galax-interop-galpy-v`      | `packages/galax.interop.galpy`      |
 | `galax.interop.matplotlib` | `galax-interop-matplotlib-v` | `packages/galax.interop.matplotlib` |
 | `galax.potential`          | `galax-potential-v`          | `packages/galax.potential`          |
 
+## Release lines
+
+Two branches release independently, and they do **not** share machinery:
+
+| line     | branch            | distributions | how CD fires                  |
+| -------- | ----------------- | ------------- | ----------------------------- |
+| `v0.1.x` | `versions/v0.1.x` | one (`galax`) | publish a GitHub release      |
+| `v0.2.x` | `main`            | eight         | the coordinated fan-out below |
+
+`versions/v0.1.x` predates the namespace split: it carries only `cd.yml` and
+`ci.yml`, with no per-package CD workflows and no `create-package-tags.yml`, and
+this file does not exist on it. Everything below describes `main` only.
+
+That branch's `cd.yml` triggers on `workflow_dispatch`, `pull_request`, `push`
+to `main`, and `release: published` -- **not** on tags, and its `main` filter
+never matches a commit on it. So a `v0.1.x` release is made by tagging and then
+publishing a GitHub release, which fires `release: published` regardless of
+which branch the tag points at. Pushing the tag alone does nothing.
+
 ## Coordinated release
 
 1. Check `main` is green.
-2. Push the coordinator tag: `git tag v0.1.0 && git push origin v0.1.0`.
-3. `create-package-tags.yml` creates each `<prefix>-v0.1.0` tag and pushes it,
+2. Push the coordinator tag: `git tag v0.2.0 && git push upstream v0.2.0`.
+3. `create-package-tags.yml` creates each `<prefix>-v0.2.0` tag and pushes it,
    then dispatches each `cd-<prefix>.yml` with `gh workflow run`. Tags pushed
    with `GITHUB_TOKEN` do not trigger `on: push: tags:`, so the dispatch is what
    starts the builds.
@@ -36,9 +56,13 @@ branch, so a pre-merge dry run of the fan-out from a branch will not work.
 Push only that package's tag:
 
 ```sh
-git tag galax-interop-gala-v0.1.1
-git push origin galax-interop-gala-v0.1.1
+git tag galax-interop-gala-v0.2.1
+git push upstream galax-interop-gala-v0.2.1
 ```
+
+The remote must be the one pointing at `GalacticDynamics/galax`. In a direct
+clone that is `origin`; in a fork-based checkout `origin` is the fork, and a
+release tag pushed there builds nothing.
 
 `validate_tag.py` refuses a tag that does not belong to the package being built,
 so a mistyped prefix fails the build rather than publishing a wrong version.
@@ -46,7 +70,7 @@ so a mistyped prefix fails the build rather than publishing a wrong version.
 ## What does not work yet
 
 - **The per-package CD workflows build; they do not publish.** Publishing needs
-  twelve trusted publishers (six distributions, each on PyPI and TestPyPI),
+  sixteen trusted publishers (eight distributions, each on PyPI and TestPyPI),
   which only the repository owner can create. That is deliberately out of scope
   for the split itself.
 - **The coordinator fan-out's dispatch step is untested.** Tags pushed with
@@ -67,7 +91,7 @@ so a mistyped prefix fails the build rather than publishing a wrong version.
 ## Trusted publishers
 
 **Each distribution needs its own trusted publisher on both PyPI and TestPyPI,
-keyed to its own workflow filename.** Fourteen configurations. A publisher
+keyed to its own workflow filename.** Sixteen configurations. A publisher
 registered against the wrong filename fails with `invalid-publisher` at publish
 time, after the tag exists — so verify one end to end on TestPyPI before tagging
 the rest.
@@ -76,6 +100,7 @@ the rest.
 | -------------------------- | --------------------------------- |
 | `galax`                    | `cd.yml`                          |
 | `galax.coordinates`        | `cd-galax-coordinates.yml`        |
+| `galax.dynamics`           | `cd-galax-dynamics.yml`           |
 | `galax.interop.astropy`    | `cd-galax-interop-astropy.yml`    |
 | `galax.interop.gala`       | `cd-galax-interop-gala.yml`       |
 | `galax.interop.galpy`      | `cd-galax-interop-galpy.yml`      |

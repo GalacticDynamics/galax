@@ -26,8 +26,13 @@ _module_name_for = conftest._module_name_for
 @pytest.mark.parametrize(
     ("path", "expected"),
     [
-        # The root src/ tree
-        ("src/galax/dynamics/_src/api.py", "galax.dynamics._src.api"),
+        # A portion's nested module: the walk must not stop at the portion
+        # name. There is no root `src/` tree any more -- every source root is
+        # a `packages/*/src`.
+        (
+            "packages/galax.dynamics/src/galax/dynamics/_src/api.py",
+            "galax.dynamics._src.api",
+        ),
         (
             "packages/galax.coordinates/src/galax/coordinates/__init__.py",
             "galax.coordinates",
@@ -52,7 +57,12 @@ def test_resolves_against_every_source_root(
     # cases hold independently of which distributions are present.
     roots = tuple(
         ROOT / "packages" / d / "src"
-        for d in ("galax.coordinates", "galax.interop.gala", "galax.interop.astropy")
+        for d in (
+            "galax.coordinates",
+            "galax.dynamics",
+            "galax.interop.gala",
+            "galax.interop.astropy",
+        )
     )
     monkeypatch.setattr(conftest, "_SRC_ROOTS", (*conftest._SRC_ROOTS, *roots))
     assert _module_name_for(ROOT / path) == expected

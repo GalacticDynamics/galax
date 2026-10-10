@@ -2,14 +2,10 @@
 
 from abc import ABCMeta
 
-from typing import TypeVar
-
 import pytest
 
 import galax.coordinates as gc
 from .test_base_single import AbstractBasicPhaseSpaceCoordinate_Test
-
-WT = TypeVar("WT", bound=gc.PhaseSpaceCoordinate)
 
 
 class Test_PhaseSpaceCoordinate(

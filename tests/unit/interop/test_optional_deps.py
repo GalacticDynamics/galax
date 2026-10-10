@@ -51,7 +51,7 @@ def test_shared_module_is_gone() -> None:
     """The shared module is deleted, not stubbed.
 
     A signposting stub would itself be a loose module in `galax/interop/` --
-    exactly what `tests/smoke/test_namespace_hygiene.py` forbids. The signpost
+    exactly what `tests/repo/test_namespace_hygiene.py` forbids. The signpost
     for users lives in `RELEASING.md` and the release notes instead.
     """
     with pytest.raises(ModuleNotFoundError):

@@ -276,7 +276,7 @@ class AbstractPhaseSpaceCoordinate_Test(
         idx = jnp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
-        assert all(w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx]))
+        assert jnp.all(w[idx] == replace(w, q=w.q[idx], p=w.p[idx], t=w.t[idx]))
 
     def test_getitem_intarray(self, w: CoordT) -> None:
         """Test `~galax.coordinates.AbstractPhaseSpaceCoordinate.__getitem__`."""

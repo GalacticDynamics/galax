@@ -51,7 +51,7 @@ class Test_PhaseSpacePosition(AbstractPhaseSpaceObject_Test[gc.PhaseSpacePositio
         idx = jnp.ones(w.q.shape, dtype=bool)
         idx = idx.at[::2].set(values=False)
 
-        assert all(w[idx] == replace(w, q=w.q[idx], p=w.p[idx]))
+        assert jnp.all(w[idx] == replace(w, q=w.q[idx], p=w.p[idx]))
 
     def test_getitem_intarray(self, w: gc.PhaseSpacePosition) -> None:
         """Test `~galax.coordinates.PhaseSpacePosition.__getitem__`."""

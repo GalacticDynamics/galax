@@ -34,7 +34,7 @@ repos:
       - id: name-tests-test
         args: ["--pytest-test-first"]
         # Test-support module (optional-dependency probes), not a test file.
-        exclude: ^tests/unit/potential/optional_deps\.py$
+        exclude: ^packages/galax\.potential/tests/potential/optional_deps\.py$
       - id: no-commit-to-branch
         args: ["--branch", "main", "--pattern", "^versions/.*"]
         always_run: true

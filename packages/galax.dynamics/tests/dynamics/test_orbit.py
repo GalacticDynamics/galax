@@ -85,7 +85,10 @@ class TestOrbit(AbstractBasicPhaseSpaceCoordinate_Test[gd.Orbit]):
         tidx = Ellipsis if idx.ndim < w.ndim else idx
 
         new = w[idx]
-        assert new.shape == (int(sum(idx)), *shape[1:])
+        # One element per index, not the count of a mask: unlike the boolean
+        # case above, `sum(idx)` sums the index *values*. It happens to equal
+        # `len(idx)` for this permutation, so the wrong spelling passed here.
+        assert new.shape == (len(idx), *shape[1:])
         assert jnp.array_equal(new.q, w.q[idx])
         assert jnp.array_equal(new.p, w.p[idx])
         assert jnp.array_equal(new.t, w.t[tidx])

@@ -1,7 +1,6 @@
 """Test `galax.coordinates.AbstractPhaseSpaceCoordinate`."""
 
 from abc import ABCMeta
-from dataclasses import replace
 
 from typing import TypeVar
 

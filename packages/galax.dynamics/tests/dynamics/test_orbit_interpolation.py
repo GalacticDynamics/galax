@@ -1,5 +1,6 @@
 """The dense-interpolation wrapper around an orbit."""
 
+import equinox as eqx
 import pytest
 
 import unxt as u
@@ -33,5 +34,5 @@ def test_evaluates_inside_the_bounds(interpolant) -> None:
 
 def test_rejects_a_time_outside_the_bounds(interpolant) -> None:
     """The guard is a quantity comparison, which must be stripped for jax."""
-    with pytest.raises(Exception, match="Time out of bounds"):
+    with pytest.raises(eqx.EquinoxRuntimeError, match="Time out of bounds"):
         interpolant.evaluate(u.Q(1000.0, "Myr"))

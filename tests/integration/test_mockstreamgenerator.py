@@ -32,7 +32,7 @@ def compute_loss(
     pot = gp.MilkyWayPotential(**params, units=usys)
     mockgen = gd.MockStreamGenerator(df, pot)
     stream, _ = mockgen.run(rng, ts, w0, M_sat)
-    trail_arm, lead_arm = stream["lead"], stream["trail"]
+    lead_arm, trail_arm = stream["lead"], stream["trail"]
     # Generate "observed" stream from mock
     lead_arm_obs = jax.lax.stop_gradient(lead_arm)
     trail_arm_obs = jax.lax.stop_gradient(trail_arm)

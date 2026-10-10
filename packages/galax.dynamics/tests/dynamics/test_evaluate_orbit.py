@@ -1,8 +1,8 @@
 """`galax.dynamics.evaluate_orbit` over a range of potentials.
 
 These assertions used to live on `AbstractPotential_Test`, the contract
-inherited by 43 test classes across 42 files in `galax.potential`'s test tree,
-where they ran 86 times -- twice for each. That made the *potential* portion's
+inherited by 42 test classes across 41 files in `galax.potential`'s test tree,
+where they ran 84 times -- twice for each. That made the *potential* portion's
 tests require `galax.dynamics`, so the tree could not collect without the
 higher portion installed. It is the inversion #937 removed from the
 *coordinates* contract, which carried a `test_angular_momentum` calling
@@ -11,7 +11,7 @@ than relocated, for the same reason.
 
 They assert properties of the integration -- the returned type, its shape, and
 that the requested times come back -- not of any particular force law, so
-breadth over all 43 bought little. What it did cover is the kinds of
+breadth over all 42 bought little. What it did cover is the kinds of
 potential that reach the solver differently, which is what the parametrization
 below keeps: a simple analytic profile, a cuspy halo, a composite of several
 components, and the degenerate zero-force case.

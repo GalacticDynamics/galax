@@ -121,19 +121,33 @@ collect_ignore_glob = [
     "docs/superpowers/*",
     ".superpowers/*",
 ]
+
+
 # A package's own tests (and its doctests) import its own distribution at module
 # scope, so none of it can be collected unless that distribution is installed
 # *and* the library it wraps is usable. Both are checked: a plain `uv sync`
 # installs matplotlib itself (a test dependency) without the
 # `galax.interop.matplotlib` distribution. `*` crosses `/` in pytest's matcher,
 # so one pattern covers a package's `src/` and `tests/` trees.
+def _module_exists(name: str, /) -> bool:
+    """Whether `name` is importable, without raising on a missing parent.
+
+    `importlib.util.find_spec` imports the parent package, so a dotted name
+    whose intermediate parent is absent raises `ModuleNotFoundError` rather than
+    returning `None` -- `find_spec("galax.interop.gala")` raises outright when
+    no interop distribution is installed. That is exactly the case this is
+    asked about, so the exception is the answer "no", not an error.
+    """
+    try:
+        return importlib.util.find_spec(name) is not None
+    except ModuleNotFoundError:
+        return False
+
+
 collect_ignore_glob.extend(
     f"packages/galax.interop.{lib}/*"
     for lib in ("astropy", "gala", "galpy", "matplotlib")
-    if not (
-        OptDeps[lib.upper()].installed
-        and importlib.util.find_spec(f"galax.interop.{lib}")
-    )
+    if not (OptDeps[lib.upper()].installed and _module_exists(f"galax.interop.{lib}"))
 )
 
 

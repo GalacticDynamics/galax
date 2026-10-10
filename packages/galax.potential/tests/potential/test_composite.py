@@ -168,8 +168,7 @@ class AbstractCompositePotential_Test(AbstractPotential_Test, FieldUnitSystemMix
 
     def test_add_incorrect(self, pot: gp.CompositePotential) -> None:
         """Test the `__add__` method with incorrect inputs."""
-        # TODO: specific error
-        with pytest.raises(Exception):  # noqa: B017, PT011
+        with pytest.raises(TypeError, match="unsupported operand type"):
             _ = pot + 1
 
     def test_add_pot(self, pot: gp.CompositePotential) -> None:

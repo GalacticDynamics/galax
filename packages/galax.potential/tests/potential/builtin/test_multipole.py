@@ -256,9 +256,9 @@ class TestMultipolePotential(
     # ==========================================================================
 
     def test_check_init(
-        self, pot_cls: type[gp.MultipoleInnerPotential], fields_: dict[str, Any]
+        self, pot_cls: type[gp.MultipolePotential], fields_: dict[str, Any]
     ) -> None:
-        """Test the `MultipoleInnerPotential.__check_init__` method."""
+        """Test the `MultipolePotential.__check_init__` method."""
         fields_["ISlm"] = fields_["ISlm"][::2]  # make it the wrong shape
         match = re.escape("I/OSlm and I/OTlm must have the shape")
         with pytest.raises(eqx.EquinoxTracetimeError, match=match):

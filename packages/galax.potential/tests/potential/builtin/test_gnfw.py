@@ -70,13 +70,13 @@ class TestGNFWPotential(
 
     # ==========================================================================
     # gamma=1 reduces to the NFW potential (see class docstring), so these
-    # expected values match `tests/unit/potential/builtin/test_nfw.py`.
+    # expected values match `test_nfw.py`.
 
     def test_potential(self, pot: gp.gNFWPotential, x: gt.QuSz3) -> None:
         expect = u.Q(-1.87120528, pot.units["specific energy"])
         assert jnp.isclose(pot.potential(x, t=0), expect, atol=u.Q(1e-8, expect.unit))
 
-    # See tests/unit/potential/builtin/reference/README.md for what this
+    # See reference/README.md for what this
     # compares against and how to regenerate it.
     @pytest.mark.array_compare(
         file_format="text", reference_dir="reference/gnfw", atol=1e-8

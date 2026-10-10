@@ -20,9 +20,9 @@ Run the target test(s) with `--arraydiff-generate-path` pointed at the resolved
 directory (matching the test's `reference_dir=` kwarg), e.g.:
 
 ```console
-uv run pytest tests/unit/potential/builtin/test_gnfw.py \
+uv run pytest packages/galax.potential/tests/potential/builtin/test_gnfw.py \
   -k "test_gradient or test_hessian or test_tidal_tensor" \
-  --arraydiff-generate-path=tests/unit/potential/builtin/reference/gnfw \
+  --arraydiff-generate-path=packages/galax.potential/tests/potential/builtin/reference/gnfw \
   -o filterwarnings=
 ```
 

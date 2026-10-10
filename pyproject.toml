@@ -128,10 +128,11 @@ docs = [
 # Test dependencies
 test-all = [{ include-group = "test" }, { include-group = "test-mpl" }]
 test = [
-  # Test-only: `src/` does not import it. Its consumers are `conftest.py` and
-  # `packages/galax.potential/tests/potential/optional_deps.py`, which probe
-  # the wrapped libraries to decide what to collect and skip.
-  # `galax.interop.gala` declares it itself, being the one shipped user.
+  # Test-only: no `src/` imports it. Its consumers are the root `conftest.py`
+  # and `packages/galax.potential/tests/potential/optional_deps.py`, which
+  # probe the wrapped libraries to decide what to collect and skip. Every
+  # portion declares it as well, since that root `conftest.py` loads on any
+  # run rooted here, whatever it collects.
   "optional-dependencies>=0.4.0",
   "nox>=2024.10.9",
   "prek>=0.5.3",
@@ -141,13 +142,6 @@ test = [
   "pytest>=8.3",
   "sybil>=9.0.0",
   "pytest-env>=1.1.5",
-  # Exercises `gNFWPotential`'s tfp-backed hyp2f1 code path in CI; not a
-  # runtime dependency (it's imported lazily, only when that potential is
-  # actually used). The lower bound is kept close to the present:
-  # tfp-nightly publishes daily dev-only builds (no stable releases), so a
-  # loose bound leaves resolvers hundreds of pre-release candidates to
-  # backtrack through.
-  "tfp-nightly[jax]>=0.26.0.dev20260601",
   "pytest-xdist>=3.6.1",
 ]
 test-mpl = ["pytest-mpl>=0.17.0"]
@@ -363,7 +357,6 @@ filterwarnings = [
   "ignore:In a future version of Gala, the current MilkyWayPotential",                               # from gala>=1.11
   "ignore:The MilkyWayPotential2022 class will be deprecated soon",                                  # from gala>=1.11
   "ignore:unhashable type:FutureWarning",                                                            # TODO: from diffrax
-  "ignore:jax\\.interpreters\\.xla\\.pytype_aval_mappings is deprecated:DeprecationWarning",         # from tensorflow-probability[jax]
 ]
 log_cli_level = "INFO"
 markers = [

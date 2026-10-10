@@ -990,7 +990,7 @@ test-mpl = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
-    { name = "beartype", specifier = ">=0.22.9" },
+    { name = "beartype", specifier = ">=0.22.9,<0.23" },
     { name = "boundinstance", specifier = ">=0.1" },
     { name = "coordinax", specifier = ">=0.24.1,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
@@ -1100,6 +1100,7 @@ test-mpl = [{ name = "pytest-mpl", specifier = ">=0.17.0" }]
 name = "galax-coordinates"
 source = { editable = "packages/galax.coordinates" }
 dependencies = [
+    { name = "beartype" },
     { name = "coordinax" },
     { name = "dataclassish" },
     { name = "equinox" },
@@ -1117,6 +1118,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "beartype", specifier = ">=0.22.9,<0.23" },
     { name = "coordinax", specifier = ">=0.24.1,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "equinox", specifier = ">=0.13.8" },
@@ -1137,6 +1139,7 @@ requires-dist = [
 name = "galax-dynamics"
 source = { editable = "packages/galax.dynamics" }
 dependencies = [
+    { name = "beartype" },
     { name = "boundinstance" },
     { name = "coordinax" },
     { name = "dataclassish" },
@@ -1160,6 +1163,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "beartype", specifier = ">=0.22.9,<0.23" },
     { name = "boundinstance", specifier = ">=0.1" },
     { name = "coordinax", specifier = ">=0.24.1,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
@@ -1187,6 +1191,7 @@ name = "galax-interop-astropy"
 source = { editable = "packages/galax.interop.astropy" }
 dependencies = [
     { name = "astropy" },
+    { name = "beartype" },
     { name = "galax-coordinates" },
     { name = "galax-dynamics" },
     { name = "galax-potential" },
@@ -1197,6 +1202,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
+    { name = "beartype", specifier = ">=0.22.9,<0.23" },
     { name = "galax-coordinates", editable = "packages/galax.coordinates" },
     { name = "galax-dynamics", editable = "packages/galax.dynamics" },
     { name = "galax-potential", editable = "packages/galax.potential" },
@@ -1210,6 +1216,7 @@ name = "galax-interop-gala"
 source = { editable = "packages/galax.interop.gala" }
 dependencies = [
     { name = "astropy" },
+    { name = "beartype" },
     { name = "gala" },
     { name = "galax-coordinates" },
     { name = "galax-interop-astropy" },
@@ -1223,6 +1230,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
+    { name = "beartype", specifier = ">=0.22.9,<0.23" },
     { name = "gala", specifier = ">=1.10" },
     { name = "galax-coordinates", editable = "packages/galax.coordinates" },
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
@@ -1239,6 +1247,7 @@ name = "galax-interop-galpy"
 source = { editable = "packages/galax.interop.galpy" }
 dependencies = [
     { name = "astropy" },
+    { name = "beartype" },
     { name = "galax-interop-astropy" },
     { name = "galax-potential" },
     { name = "galpy" },
@@ -1249,6 +1258,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
+    { name = "beartype", specifier = ">=0.22.9,<0.23" },
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "galpy", specifier = ">=1.8" },
@@ -1262,6 +1272,7 @@ name = "galax-interop-matplotlib"
 source = { editable = "packages/galax.interop.matplotlib" }
 dependencies = [
     { name = "astropy" },
+    { name = "beartype" },
     { name = "galax-dynamics" },
     { name = "galax-potential" },
     { name = "matplotlib" },
@@ -1273,6 +1284,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
+    { name = "beartype", specifier = ">=0.22.9,<0.23" },
     { name = "galax-dynamics", editable = "packages/galax.dynamics" },
     { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "matplotlib", specifier = ">=3.8" },
@@ -1287,6 +1299,7 @@ name = "galax-potential"
 source = { editable = "packages/galax.potential" }
 dependencies = [
     { name = "astropy" },
+    { name = "beartype" },
     { name = "boundinstance" },
     { name = "coordinax" },
     { name = "dataclassish" },
@@ -1315,6 +1328,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "astropy", specifier = ">=7.0.0" },
+    { name = "beartype", specifier = ">=0.22.9,<0.23" },
     { name = "boundinstance", specifier = ">=0.1" },
     { name = "coordinax", specifier = ">=0.24.1,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },

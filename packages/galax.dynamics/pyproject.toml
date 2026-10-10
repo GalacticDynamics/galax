@@ -25,6 +25,11 @@ classifiers = [
 # is DERIVED, not copied: 1.26 is the oldest release supporting Python 3.12,
 # this project's `requires-python` floor. Tracked repo-wide in #920.
 dependencies = [
+  # Upper bound: beartype 0.23.0 (2026-10-10) raises "UnionTypeHint
+  # (typing.Union) subscripted by no subhint-unique child type hints" from
+  # `beartype.door` when `plum` compares type hints, so `import coordinax`
+  # fails outright -- no galax code is involved. Lift once upstream fixes it.
+  "beartype>=0.22.9,<0.23",
   "boundinstance>=0.1",
   "coordinax>=0.24.1,<0.25",
   "dataclassish>=0.8.0",

@@ -28,7 +28,11 @@ classifiers = [
 ]
 dependencies = [
   "astropy>=7.0.0",
-  "beartype>=0.22.9",        # TODO: figure out why 0.22.0 breaks things
+  # Upper bound: 0.23.0 (2026-10-10) raises "UnionTypeHint(typing.Union)
+  # subscripted by no subhint-unique child type hints" from
+  # `beartype.door` when `plum` compares type hints, so `import coordinax`
+  # fails outright -- no galax code is involved. Lift once upstream fixes it.
+  "beartype>=0.22.9,<0.23",  # TODO: figure out why 0.22.0 breaks things
   "boundinstance>=0.1",
   "coordinax>=0.24.1,<0.25",
   "dataclassish>=0.8.0",

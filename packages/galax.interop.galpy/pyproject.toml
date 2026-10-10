@@ -48,6 +48,21 @@ galpy = "galax.interop.galpy.potential"
 build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling"]
 
+[dependency-groups]
+# The root `pyproject.toml` forces most of this, not this portion's imports:
+# `--arraydiff` and `env` come from `[tool.pytest.ini_options]`, and the root
+# `conftest.py` imports `sybil` and `optional_dependencies` at module level, so
+# every run rooted at the repo loads them whatever it collects.
+test = [
+  "optional-dependencies>=0.4.0",
+  "pytest>=8.3",
+  "pytest-arraydiff>=0.6.1",
+  "pytest-cov>=5",
+  "pytest-env>=1.1.5",
+  "pytest-xdist>=3.6.1",
+  "sybil>=9.0.0",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/galax"]
 

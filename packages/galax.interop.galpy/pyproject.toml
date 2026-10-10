@@ -17,6 +17,11 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  # Upper bound: beartype 0.23.0 (2026-10-10) raises "UnionTypeHint
+  # (typing.Union) subscripted by no subhint-unique child type hints" from
+  # `beartype.door` when `plum` compares type hints, so `import coordinax`
+  # fails outright -- no galax code is involved. Lift once upstream fixes it.
+  "beartype>=0.22.9,<0.23",
   "astropy>=7.0.0",
   "galax.interop.astropy>0.0.3",
   "galax.potential",

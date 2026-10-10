@@ -413,17 +413,34 @@ def test_a_very_wide_bracket_stays_finite_in_float32(r_min, r_max) -> None:
 
 
 @pytest.mark.parametrize(
-    ("gamma", "rtol"), [(1.0, 1e-5), (1.9, 1e-5), (2.5, 1e-5), (2.9, 0.2)]
+    ("gamma", "mass", "rtol"),
+    [
+        (1.0, 1.0, 1e-5),
+        (1.9, 1.0, 1e-5),
+        (2.5, 1.0, 1e-5),
+        (2.9, 1.0, 1e-4),
+        # The same cusp, rescaled. A cap that bounds `rho_lm` against the
+        # dtype passes at `mass = 1` by coincidence -- float32's min normal
+        # and max are near-reciprocal, so `1/r**2.9` lands just inside the
+        # budget -- and fails for any smaller prefactor, because what
+        # overflows is `mass / r**2.9` once `r**2.9` underflows to zero.
+        # These three were 0.111 under such a cap.
+        (2.9, 1e-2, 1e-4),
+        (2.9, 1e-4, 1e-4),
+        (2.9, 1e-6, 1e-4),
+    ],
 )
-def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> None:
+def test_a_steep_cusp_survives_the_padded_sampling_in_float32(
+    gamma, mass, rtol
+) -> None:
     """A density the *pad* cannot represent must not zero the whole build.
 
     REGRESSION: padding evaluates ``rho_fn`` `_PAD_MULTIPLE` spans outside
     the requested bracket, so a cusp ``rho ~ r**-gamma`` is sampled at
     ``r_min * exp(-reach)`` where the density overflows once
-    ``gamma * reach`` clears the dtype's exponent. `_pad_grid`'s reach cap
-    does not help -- it is sized so the solver's own ``x**2`` stays finite
-    and knows nothing about ``rho_fn``'s slope.
+    ``gamma * reach`` clears the dtype's exponent. Those samples are zeroed,
+    and the radial solve anchors its inner tail above them, so the band they
+    should have carried is covered analytically instead of lost.
 
     One unrepresentable sample took out everything: the projection turns
     ``inf`` into ``nan`` for ``l >= 1``, and `fit_log_spline` solves one
@@ -437,33 +454,46 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> No
     density silently returning `nan` in `galax`'s default dtype, not an
     exotic input.
 
-    The values are checked too, not just finiteness. Dropping a pad sample
-    usually costs nothing -- the density there is huge but its ``x**(l+3)``
-    weight is negligible -- and float32 tracks float64 to round-off through
-    ``gamma = 2.5``:
+    The values are checked too, not just finiteness. Unrepresentable samples
+    *are* zeroed -- the pad is not shortened to dodge them, which was tried
+    and measured worse, costing every caller tail accuracy to avoid an
+    overflow the anchored tail already absorbs. What makes zeroing cheap is
+    that the solve anchors its inner tail above the dropped band, so
+    ``[0, r_pad]`` is still integrated analytically.
 
-    ======= ==========
-    gamma    max rel
-    ======= ==========
-    1.0      1.7e-7
-    1.9      1.2e-7
-    2.5      1.2e-6
-    2.9      1.1e-1
-    ======= ==========
+    Zeroing alone used to cost 11% at ``gamma = 2.9``: the innermost 51 pad
+    knots were dropped, and a zeroed ``rho[0]`` *also* failed the gate on
+    that tail, so the band went too. For ``rho ~ r**-2.9`` the monopole
+    integrand is ``r**-0.9`` and that band carries ~12% of the enclosed
+    mass, which is the error that was observed.
 
-    It is not free at the steep end: by ``gamma = 2.9`` enough of the inner
-    pad is dropped to cost 11%, hence the looser bound there. That is a
-    bounded, one-sided loss of *tail* accuracy rather than a `nan`, which is
-    the trade this module takes everywhere else -- but sampling `rho_fn`
-    many decades out is the real problem, and extrapolating the density into
-    the pad analytically instead would avoid it.
+    Against a float64 build, over the cases below:
+
+    ======= ======== ==========
+    gamma    mass     max rel
+    ======= ======== ==========
+    1.0      1        1.9e-07
+    1.9      1        1.2e-07
+    2.5      1        9.9e-08
+    2.9      1        4.9e-06
+    2.9      1e-2     4.7e-06
+    2.9      1e-4     4.7e-06
+    2.9      1e-6     4.9e-06
+    ======= ======== ==========
+
+    The mass column matters: an earlier fix bounded the projected
+    coefficient against the dtype maximum, which is normalisation-dependent
+    -- it passed at ``mass = 1`` by coincidence and returned the full 11%
+    for anything smaller. Anchoring the tail does not care what the density
+    is scaled by.
+
     """
     keys = lm_keys(8, "none")
     n_theta, n_phi = default_angular_resolution(8)
 
     def rho(xyz, t):
         r = safe_vector_norm(xyz)
-        return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
+        return mass / (r**gamma * (1.0 + r) ** (4.0 - gamma))
 
     def build():
         # Built inside whichever dtype context is active: a grid made under
@@ -487,3 +517,523 @@ def test_a_steep_cusp_survives_the_padded_sampling_in_float32(gamma, rtol) -> No
     ref = jnp.asarray(build()["phi_lm"], dtype=float)
     scale = jnp.max(jnp.abs(ref))
     assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < rtol
+
+
+def test_a_cusp_that_overflows_almost_the_whole_pad_keeps_its_interior() -> None:
+    """The anchor must never land inside the range the caller asked for.
+
+    REGRESSION: `build_expansion` clamps the anchor to ``lo``, the first
+    retained knot, so that an unrepresentable band can never cost interior
+    data. But `solve_poisson_profiles` adds `_ANCHOR_MARGIN` *after* that, so
+    the effective anchor was ``lo + 8``. Every retained knot below it had its
+    panels zeroed and the seed zero, so it came back with no inner-integral
+    contribution at all -- representable interior data discarded by the guard
+    written to protect it.
+
+    It needs a cusp steep enough to overflow nearly the whole pad while
+    staying finite inside the bracket: ``M = 1e25`` over ``[1e-4, 1e4]``
+    reaches pad knot 124 of 128, where ``gamma = 2.9`` at unit mass reaches
+    only 51. That is why the existing cases never found it.
+
+    Measured float32 against float64: 9.0e-01 before the clamp accounted for
+    the margin, 1.1e-03 after. The residual is honest degradation -- with
+    almost the whole pad unrepresentable the boundary model carries the
+    answer -- not the catastrophic loss of an unseeded recurrence.
+    """
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1e25 / (r**2.9 * (1.0 + r) ** 1.1)
+
+    def build():
+        r_knots = jnp.geomspace(1e-4, 1e4, 256)
+        return build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = build()
+        assert jnp.all(jnp.isfinite(got)), got
+        f32 = jnp.asarray(got, dtype=float)
+
+    ref = jnp.asarray(build(), dtype=float)
+    scale = jnp.max(jnp.abs(ref))
+
+    # The innermost retained knots are the ones the anchor used to swallow.
+    inner = float(jnp.max(jnp.abs(f32[:8] - ref[:8])) / scale)
+    assert inner < 1e-2, inner
+    assert float(jnp.max(jnp.abs(f32 - ref)) / scale) < 1e-2
+
+
+def test_a_nonfinite_outer_pad_leaves_the_inner_pad_alone() -> None:
+    """A bad sample above the bracket must not anchor the tail below it.
+
+    REGRESSION: `first_ok` scanned the whole padded grid for the deepest
+    non-finite sample. "Everything below a bad band is suspect" is an
+    argument about the *inner* pad -- the band the inner tail replaces -- and
+    it does not reach past `lo`. A single non-finite sample in the *outer*
+    pad was read as one in the inner pad, and since `first_ok` is clamped to
+    ``lo - _ANCHOR_MARGIN``, it drove the anchor to ``lo`` and discarded the
+    entire inner pad of finite, real density: exactly the unpadded
+    configuration `_PAD_MULTIPLE` exists to avoid.
+
+    The outer pad reaches ``r ~ 1e10`` on an ordinary bracket, so this needs
+    no exotic density -- any ``rho_fn`` whose intermediates overflow out
+    there returns ``nan``. Here it is forced explicitly, well above
+    ``r_max``, so the mechanism is the only thing under test.
+
+    Measured in float64 against the Hernquist closed form: 6.1e-05 while the
+    scan ran over the whole grid, 1.0e-10 once restricted to the inner pad --
+    which is what an unanchored solve gives, since nothing in the inner pad
+    is bad and there is nothing to anchor.
+    """
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        val = _hernquist_density(xyz, t)
+        return jnp.where(r > 1e5, jnp.nan, val)
+
+    r_knots = jnp.geomspace(1e-2, 1e2, 128)
+    phi = build_expansion(
+        rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+    )["phi_lm"][:, 0] / jnp.sqrt(4 * jnp.pi)
+
+    exact = -1.0 / (1.0 + r_knots)
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+    assert err < 1e-8, err
+
+
+def test_a_nonfinite_band_mid_pad_anchors_above_it() -> None:
+    """The anchor follows the *deepest* bad sample, not the first good one.
+
+    A density need not be monotonic in log r, so an unrepresentable band can
+    sit in the middle of the inner pad with finite samples below it. Reading
+    the first good index puts the anchor at 0 -- no anchoring at all -- and
+    leaves the zeroed band mid-pad for `fit_log_spline` to interpolate
+    across, which it cannot. Everything below such a band is suspect even
+    where it happens to sample finite.
+
+    Measured in float64 against the Hernquist closed form: 7.5e-11 anchoring
+    above the band, 8.1e-08 anchoring at the first good sample.
+    """
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        # Inside the inner pad, which for this grid spans [1.0e-10, 8.7e-03]:
+        # `_pad_grid` reaches by log span, not by knot count.
+        return jnp.where((r > 1e-5) & (r < 3e-5), jnp.nan, _hernquist_density(xyz, t))
+
+    r_knots = jnp.geomspace(1e-2, 1e2, 128)
+    phi = build_expansion(
+        rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+    )["phi_lm"][:, 0] / jnp.sqrt(4 * jnp.pi)
+
+    exact = -1.0 / (1.0 + r_knots)
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+    assert err < 1e-9, err
+
+
+_F32_EPS = float(jnp.finfo(jnp.float32).eps)
+"""Round-off floor for the never-worse bound; see the assertion that uses it."""
+
+
+# Measured on `main` (an unanchored solve) at 7260498c, float32, max relative
+# error against the Dehnen closed form, keyed by (r_min, r_max, gamma, n_r).
+# Anchoring must never do worse than these, and should usually do far better.
+#
+# The bracket is in the key because it is the axis that discriminates: the
+# anchor is `_ANCHOR_MARGIN` knots above the bad band, and how much density
+# that skips depends on the pad's step, which is the bracket's log span over
+# the pad's knot count. A table pinned to one bracket cannot see it, and the
+# first version of this test was pinned to [1e-4, 1e4]. The rows below the
+# first block are the brackets where that cost up to 3378x. Adding a bracket
+# means adding rows; the table is the case list.
+_UNANCHORED = {
+    (1e-4, 1e4, 1.0, 4): 1.6e-03,
+    (1e-4, 1e4, 1.0, 5): 7.4e-05,
+    (1e-4, 1e4, 1.0, 6): 2.6e-05,
+    (1e-4, 1e4, 1.0, 7): 8.3e-06,
+    (1e-4, 1e4, 1.0, 8): 8.9e-07,
+    (1e-4, 1e4, 1.0, 16): 1.5e-07,
+    (1e-4, 1e4, 1.0, 64): 1.5e-07,
+    (1e-4, 1e4, 2.5, 4): 3.7e-06,
+    (1e-4, 1e4, 2.5, 5): 1.5e-06,
+    (1e-4, 1e4, 2.5, 6): 1.5e-06,
+    (1e-4, 1e4, 2.5, 7): 1.3e-06,
+    (1e-4, 1e4, 2.5, 8): 1.3e-06,
+    (1e-4, 1e4, 2.5, 16): 1.3e-06,
+    (1e-4, 1e4, 2.5, 64): 1.3e-06,
+    (1e-4, 1e4, 2.7, 4): 6.9e-04,
+    (1e-4, 1e4, 2.7, 5): 7.3e-04,
+    (1e-4, 1e4, 2.7, 6): 6.4e-04,
+    (1e-4, 1e4, 2.7, 7): 7.0e-04,
+    (1e-4, 1e4, 2.7, 8): 7.2e-04,
+    (1e-4, 1e4, 2.7, 16): 7.1e-04,
+    (1e-4, 1e4, 2.7, 64): 6.8e-04,
+    (1e-4, 1e4, 2.9, 4): 1.1e-01,
+    (1e-4, 1e4, 2.9, 5): 1.1e-01,
+    (1e-4, 1e4, 2.9, 6): 1.1e-01,
+    (1e-4, 1e4, 2.9, 7): 1.2e-01,
+    (1e-4, 1e4, 2.9, 8): 1.2e-01,
+    (1e-4, 1e4, 2.9, 16): 1.2e-01,
+    (1e-4, 1e4, 2.9, 64): 1.2e-01,
+    (1e-5, 1e5, 2.5, 5): 3.8e-06,
+    (1e-5, 1e5, 2.5, 6): 4.8e-06,
+    (1e-5, 1e5, 2.5, 7): 4.6e-06,
+    (1e-5, 1e5, 2.7, 5): 1.6e-03,
+    (1e-5, 1e5, 2.7, 6): 1.5e-03,
+    (1e-5, 1e5, 2.7, 7): 1.3e-03,
+    (1e-6, 1e6, 2.5, 5): 1.3e-05,
+    (1e-6, 1e6, 2.5, 6): 1.6e-05,
+    (1e-6, 1e6, 2.5, 7): 1.3e-05,
+    (1e-6, 1e6, 2.7, 5): 3.0e-03,
+    (1e-6, 1e6, 2.7, 6): 2.9e-03,
+    (1e-6, 1e6, 2.7, 7): 2.8e-03,
+    (1e-4, 1e2, 2.5, 5): 8.8e-07,
+    (1e-4, 1e2, 2.5, 6): 1.7e-06,
+    (1e-4, 1e2, 2.5, 7): 1.3e-06,
+    (1e-4, 1e2, 2.7, 5): 6.9e-04,
+    (1e-4, 1e2, 2.7, 6): 6.5e-04,
+    (1e-4, 1e2, 2.7, 7): 7.1e-04,
+    (1e-3, 1e3, 2.5, 5): 4.1e-08,
+    (1e-3, 1e3, 2.5, 6): 4.0e-08,
+    (1e-3, 1e3, 2.5, 7): 2.8e-07,
+    (1e-3, 1e3, 2.7, 5): 3.7e-04,
+    (1e-3, 1e3, 2.7, 6): 3.3e-04,
+    (1e-3, 1e3, 2.7, 7): 3.5e-04,
+}
+
+
+@pytest.mark.parametrize(("r_min", "r_max", "gamma", "n_r"), _UNANCHORED)
+def test_anchoring_is_never_worse_than_an_unanchored_solve(
+    r_min, r_max, gamma, n_r
+) -> None:
+    r"""Anchoring must not cost accuracy at any resolution, cusp or bracket.
+
+    REGRESSION, three times over, each one a guard bounding the wrong thing.
+
+    First the tail's activity gate was normalised by ``max|rho_col|`` over
+    the whole column while testing ``rho_col[i0]``; before anchoring those
+    were the same point for a cusp, so the gate could never fire. With an
+    anchor it rejected once the ratio fell under ``sqrt(eps)``, dropping the
+    tail -- the failure anchoring exists to prevent, re-created by its own
+    margin.
+
+    Then the fix for *that* exposed a bound on the slope fit's
+    self-consistency, set first at 1.0 and then at 0.1 by measurement. Both
+    bounded the fit's error *relative to the tail*, which does not reach the
+    answer on its own: what reaches it is that error times how much larger
+    the modelled band is than the band actually lost, and that factor is set
+    by the grid, which the ratio never sees. 1.0 cost 99458x at
+    ``gamma = 2.5, n_r = 5``; 0.1 cost 3378x at ``gamma = 2.5, n_r = 6`` over
+    [1e-5, 1e5]. The gate is now the break-even test between the two, with no
+    constant to tune.
+
+    The sweep matters as much as the rule. Each defect lived where the
+    previous version of this test did not look: at ``n_r`` 6 and 7 when it
+    ran ``[4, 5, 8, 16, ...]``, at ``gamma = 2.5`` when it swept only 2.9,
+    and at every bracket but one when it was pinned to [1e-4, 1e4]. A
+    parameter sampled around its failure is not swept.
+
+    The bound is `_UNANCHORED` with a 3x allowance for arithmetic
+    reordering -- not a flat constant, which would have let the
+    1.5e-06 -> 1.5e-01 case through at any threshold loose enough to pass
+    ``gamma = 2.9`` at all.
+    """
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
+
+    mass = 4.0 * jnp.pi / (3.0 - gamma)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        r_knots = jnp.geomspace(r_min, r_max, n_r)
+        got = build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+        assert jnp.all(jnp.isfinite(got)), got
+        phi = jnp.asarray(got, dtype=float) / jnp.sqrt(4.0 * jnp.pi)
+
+    r = jnp.asarray(r_knots, dtype=float)
+    exact = -(mass / (2.0 - gamma)) * (1.0 - (r / (r + 1.0)) ** (2.0 - gamma))
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+
+    # 1.5x, not 3x. The worst row runs at 0.998 of its tabulated value, so 3x
+    # was pure slack -- it let a gate loosened by a whole nat through at
+    # (1e-4, 1e4, 2.5, 7), where the error doubles to 2.7e-06 against a 1.3e-06
+    # row. 1.5x still leaves every row its measured headroom.
+    #
+    # Floored at a few float32 ulps, because a ratio between two round-off
+    # numbers measures the platform, not the solve. Five of these rows sit
+    # under it -- (1e-3, 1e3, 2.5, 5) is 4.1e-08, a third of an ulp -- and the
+    # first CI run after the 3x allowance came down failed there on macOS at
+    # 1.193e-07, which is 1.00 ulp exactly. The floor clears every row a
+    # mutation has to beat, so it costs no sensitivity: the (2.5, 7) case
+    # above stays bounded at 1.9e-06, well above it.
+    bound = max(1.5 * _UNANCHORED[(r_min, r_max, gamma, n_r)], 5.0 * _F32_EPS)
+    assert err < bound, (
+        r_min,
+        r_max,
+        gamma,
+        n_r,
+        err,
+    )
+
+
+@pytest.mark.parametrize(
+    ("rc_over_r_overflow", "ceiling"), [(0.1, 2.0), (0.3, 3.0), (1.0, 3.0), (3.0, 1e-1)]
+)
+def test_a_core_at_the_overflow_radius_degrades_no_further(
+    rc_over_r_overflow, ceiling
+) -> None:
+    r"""Pin the resonance where anchoring is *worse*, so it cannot grow.
+
+    The anchoring gate reads the slope fit at the anchor and above it. The
+    band the tail extrapolates across lies entirely *below* the anchor and
+    holds no sample -- it is by construction the band that was zeroed. So a
+    density that is a clean power law above the float32 overflow radius and
+    something else below it passes the gate with ``|s1 - s0|`` at round-off:
+    maximal confidence drawn from an absence of data.
+
+    The worst such density puts its *core* at the overflow radius. Above it
+    the profile is a pure cusp and the fit is perfect; below it the slope
+    goes to zero and the extrapolated :math:`r^{-\gamma}` over-counts the
+    inner mass without bound. An unanchored solve drops the band instead and
+    under-counts, which is bounded by the band's true mass.
+
+    It is a narrow resonance, and that is the point of parametrizing over it.
+    Measured float32 against float64 at :math:`\gamma = 2.95`, this branch
+    against an unanchored build:
+
+    ======================= ============ ============ =======
+    ``rc`` / overflow radius  anchored     unanchored   ratio
+    ======================= ============ ============ =======
+    0.1                       1.1e-01      1.3e-02      8.4x
+    0.3                       2.1e-01      1.3e-02      16x
+    1.0                       1.4e+00      1.2e-02      119x
+    3.0                       identical    identical    1.0
+    ======================= ============ ============ =======
+
+    At 3x and beyond nothing overflows, so nothing anchors and the two builds
+    agree to the bit. At 1.0 a usable 1.2% answer becomes a 143% one.
+
+    No gate on the retained samples can fix this, because the evidence is
+    gone. This test exists so the resonance cannot deepen unnoticed, and so
+    the 3.0 row cannot start anchoring.
+    """
+    gamma, beta, alpha, rs, amp, n_r = 2.95, 5.0, 1.0, 50.0, 1e17, 8
+    r_overflow = (float(jnp.finfo(jnp.float32).max) / amp) ** (-1.0 / gamma)
+    rc = r_overflow * rc_over_r_overflow
+
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        m = jnp.sqrt(r**2 + rc**2)
+        return (
+            amp * m ** (-gamma) * (1.0 + (m / rs) ** alpha) ** (-(beta - gamma) / alpha)
+        )
+
+    def build(r_knots):
+        return build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+
+    ref = jnp.asarray(build(jnp.geomspace(1e-3, 1e2, n_r)), dtype=float)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = build(jnp.geomspace(1e-3, 1e2, n_r))
+        assert jnp.all(jnp.isfinite(got)), got
+        f32 = jnp.asarray(got, dtype=float)
+
+    err = float(jnp.max(jnp.abs(f32 - ref)) / jnp.max(jnp.abs(ref)))
+    assert err < ceiling, (rc_over_r_overflow, err)
+
+
+def test_a_second_rescue_pins_the_gate_from_below() -> None:
+    r"""A second lower-edge pin, a nat away from the first.
+
+    `_UNANCHORED` structurally cannot catch a gate that has been tightened: it
+    bounds from *above* against the unanchored value, which is exactly what a
+    tightened gate returns. So the only thing holding the gate open is the
+    rescue tests, and with one of them the break-even point could drift by
+    2.9 nats before anything failed -- enough to give up most of what
+    anchoring buys.
+
+    This case sits at a different `exp_in * span` from the
+    :math:`\gamma = 2.99` one, so the two together bracket the gate far more
+    tightly than either alone.
+    Measured float32 against the Dehnen closed form: 5.8e-02 anchored,
+    1.7e-01 unanchored.
+    """
+    gamma, n_r = 2.9, 6
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
+
+    mass = 4.0 * jnp.pi / (3.0 - gamma)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        r_knots = jnp.geomspace(1e-6, 1e6, n_r)
+        got = build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+        assert jnp.all(jnp.isfinite(got)), got
+        phi = jnp.asarray(got, dtype=float) / jnp.sqrt(4.0 * jnp.pi)
+
+    r = jnp.asarray(r_knots, dtype=float)
+    exact = -(mass / (2.0 - gamma)) * (1.0 - (r / (r + 1.0)) ** (2.0 - gamma))
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+    assert err < 1e-1, err
+
+
+def test_anchoring_rescues_a_near_divergent_cusp() -> None:
+    r"""The anchoring gate must stay loose enough to fire where it matters.
+
+    Every other test here bounds anchoring from *above* -- it must not be
+    worse than an unanchored solve. That cannot pin the gate from below,
+    because any tightening of it only ever falls back to the unanchored
+    answer, which those tests permit. So the gate could drift shut unnoticed,
+    silently giving up the cases anchoring exists for.
+
+    This is the case that discriminates. At :math:`\gamma = 2.99` -- just
+    inside the finite-mass limit, where almost all the mass is in the cusp --
+    an unanchored float32 build is 81% wrong, because the cusp is exactly
+    what overflows and gets zeroed. Anchoring rescues it to 2.7%.
+
+    It is also the case every *constant* threshold on the slope fit's
+    self-consistency had to trade against: 0.01 was free of regressions
+    everywhere else in the sweep and lost this rescue, while 0.1 kept it and
+    cost 3378x elsewhere. Nothing in between did both. The break-even gate
+    does, which is the point of it.
+    """
+    gamma, n_r = 2.99, 8
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return 1.0 / (r**gamma * (1.0 + r) ** (4.0 - gamma))
+
+    mass = 4.0 * jnp.pi / (3.0 - gamma)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        r_knots = jnp.geomspace(1e-4, 1e4, n_r)
+        got = build_expansion(
+            rho, r_knots, 0, keys, n_theta, n_phi, jnp.asarray(0.0), jnp.asarray(1.0)
+        )["phi_lm"][:, 0]
+        phi = jnp.asarray(got, dtype=float) / jnp.sqrt(4.0 * jnp.pi)
+
+    r = jnp.asarray(r_knots, dtype=float)
+    exact = -(mass / (2.0 - gamma)) * (1.0 - (r / (r + 1.0)) ** (2.0 - gamma))
+    err = float(jnp.max(jnp.abs(phi - exact)) / jnp.max(jnp.abs(exact)))
+
+    # Unanchored is 8.1e-01 here; anchoring reaches 2.7e-02.
+    assert err < 1e-1, err
+
+
+# A randomly generated family of broken power laws, with their measured
+# float32 error. The generator is `prop/build_sweep.py`'s `case()`: inner
+# slope `gamma`, outer `beta`, break sharpness `alpha` and radius `rs`, an
+# optional core `rc`, and an amplitude spanning 1e-6 to 1e30 -- the amplitude
+# is what moves the float32 overflow radius, and therefore how much of the
+# pad gets zeroed and where the tail has to be anchored.
+#
+# These are a net, not a theorem. Every other test here fixes the density and
+# varies the grid; this one varies the density, because the one case where
+# anchoring loses was found by hand-picking a shape (a core hidden under the
+# overflow radius) rather than by any grid. Over 291 such densities run
+# through `build_expansion` on this branch and on an unanchored build, three
+# regressed past 1.5x -- worst 4.21x -- and all three were cored. 167 improved
+# by more than 2x, best 1.4e4x. So the hand-picked 4.4x really is near the
+# family's ceiling, and the ceiling only exists where a core hides.
+#
+# Bounds are 2x the measured value, rounded up. A failure here means the
+# family's behaviour moved, which is worth a look even when the new number is
+# better -- retune the row deliberately rather than loosening the bound.
+_FAMILY = {
+    (2.773, 3.225, 2.729, 32.3, 5.299e-08, 2.389e19, 32, -2.662, 4.471, 0): 1.7e-01,
+    (2.829, 5.846, 0.575, 95.09, 6.492e-12, 7.818e11, 7, -3.256, 1.927, 0): 2e-01,
+    (2.155, 3.904, 1.498, 0.7139, 5.128e-10, 7.447e19, 8, -1.528, 2.970, 0): 1.4e-06,
+    (2.848, 5.840, 1.432, 57.66, 1.326e-08, 1.731e21, 5, -3.759, 2.931, 0): 5.4e-01,
+    (2.850, 4.953, 2.737, 0.1427, 1.445e-11, 1.238e13, 12, -5.051, 4.821, 0): 2.8e-01,
+    (2.507, 5.046, 2.293, 3.3, 4.566e-09, 2.177e08, 32, -5.746, 2.065, 0): 7.8e-07,
+    (2.780, 5.528, 0.781, 2.601, 3.48e-06, 5.419e17, 8, -1.193, 3.329, 0): 4.8e-07,
+    (2.387, 5.178, 1.612, 0.3256, 2.327e-12, 2.486e24, 8, -4.062, 3.740, 0): 9e-02,
+    (2.168, 3.834, 1.817, 0.1355, 8.201e-06, 2.011e13, 128, -2.046, 5.367, 0): 6.4e-07,
+    (2.824, 3.065, 2.382, 17.46, 0, 1.204e09, 64, -5.929, 4.142, 4): 2.7e-05,
+    (2.766, 3.847, 2.463, 31.08, 0, 5.845e08, 64, -5.971, 2.158, 0): 1.9e-06,
+    (2.585, 5.926, 2.277, 81.07, 0, 5.973e12, 6, -5.582, 3.195, 0): 2.6e-06,
+    (2.719, 5.065, 2.370, 0.06005, 0, 2.357e26, 64, -3.785, 4.880, 4): 2e-05,
+    (2.836, 3.147, 2.796, 2.795, 0, 2.946e14, 128, -3.180, 4.686, 0): 2e-06,
+    (2.017, 4.551, 0.718, 13.97, 0, 5.565e28, 64, -4.485, 1.639, 4): 3.3e-05,
+    (2.778, 3.170, 1.288, 2.511, 0, 328, 128, -1.596, 4.805, 0): 1.6e-06,
+    (2.545, 3.332, 2.821, 21.79, 0, 2.111e15, 8, -2.532, 2.534, 0): 1.5e-06,
+    (2.789, 4.810, 1.324, 55.79, 0, 3.317e12, 7, -1.173, 3.877, 0): 1.7e-05,
+    (1.665, 3.944, 1.196, 0.1046, 3.548e-07, 8.431e13, 12, -2.037, 4.111, 4): 6.5e-07,
+    (2.963, 3.773, 0.901, 2.819, 0, 1.925e-05, 6, -3.669, 5.586, 0): 8.7e-01,
+    (0.741, 5.905, 1.038, 4.865, 0, 2.929e25, 5, -5.342, 5.225, 2): 7.1e-07,
+    (1.302, 5.266, 0.563, 0.3081, 0, 0.02655, 8, -2.711, 3.141, 4): 3.2e-07,
+    (1.804, 5.625, 1.361, 2.297, 8.12e-09, 4.87e12, 12, -1.454, 1.755, 2): 3.2e-07,
+    (2.475, 4.563, 2.315, 0.08048, 0, 1.182e07, 5, -4.270, 5.741, 0): 4.9e-05,
+    (1.946, 4.309, 2.695, 0.4432, 5.7e-12, 3.019e09, 6, -1.245, 2.255, 0): 1.7e-07,
+}
+
+
+@pytest.mark.parametrize(
+    ("gamma", "beta", "alpha", "rs", "rc", "amp", "n_r", "lo_e", "hi_e", "l_max"),
+    _FAMILY,
+)
+def test_a_random_density_family_stays_within_its_measured_error(
+    gamma, beta, alpha, rs, rc, amp, n_r, lo_e, hi_e, l_max
+) -> None:
+    """Float32 must not drift on a family of densities nobody hand-picked."""
+    sym = "spherical" if l_max == 0 else "zrotation_zreflection"
+    keys = lm_keys(l_max, sym)
+    n_theta, n_phi = default_angular_resolution(l_max)
+    q = 1.0 if l_max == 0 else 0.8
+
+    def rho(xyz, t):
+        r = safe_vector_norm(
+            jnp.stack([xyz[..., 0], xyz[..., 1], xyz[..., 2] / q], axis=-1)
+        )
+        m = jnp.sqrt(r**2 + rc**2)
+        return (
+            amp * m ** (-gamma) * (1.0 + (m / rs) ** alpha) ** (-(beta - gamma) / alpha)
+        )
+
+    def build(r_knots):
+        return build_expansion(
+            rho,
+            r_knots,
+            l_max,
+            keys,
+            n_theta,
+            n_phi,
+            jnp.asarray(0.0),
+            jnp.asarray(1.0),
+        )["phi_lm"]
+
+    ref = jnp.asarray(build(jnp.geomspace(10.0**lo_e, 10.0**hi_e, n_r)), dtype=float)
+    assert jnp.all(jnp.isfinite(ref)), "float64 reference is not finite"
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = build(jnp.geomspace(10.0**lo_e, 10.0**hi_e, n_r))
+        assert jnp.all(jnp.isfinite(got)), got
+        f32 = jnp.asarray(got, dtype=float)
+
+    err = float(jnp.max(jnp.abs(f32 - ref)) / jnp.max(jnp.abs(ref)))
+    assert err < _FAMILY[(gamma, beta, alpha, rs, rc, amp, n_r, lo_e, hi_e, l_max)], err

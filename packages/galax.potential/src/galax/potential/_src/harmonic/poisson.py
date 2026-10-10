@@ -72,10 +72,11 @@ NFW halo at :math:`l_\max = 8` that would be 6 of the 15 retained modes,
 worth 40-47% in those :math:`\Phi_{lm}` near :math:`r_\max` and 1.7% in
 :math:`|a|` at :math:`r = 250` with :math:`r_\max = 300`.
 
-Note the inner gate's ``1e-8 * scale`` threshold is deliberately *not*
-mirrored here: ``scale`` is the per-mode maximum over the whole radial range,
-set by the inner cusp, and is ~9 orders of magnitude larger than
-:math:`\rho_{lm}(r_\max)` -- reusing it disables the outer tail entirely.
+Note the inner gate's ``1e-8 * scale_in`` threshold is deliberately *not*
+mirrored here. That normaliser is the maximum over the band the inner tail
+describes, which for a cusp is set by its innermost samples and is ~9 orders
+of magnitude larger than :math:`\rho_{lm}(r_\max)` -- reusing it would
+disable the outer tail entirely.
 """
 
 __all__: tuple[str, ...] = ()
@@ -92,13 +93,37 @@ import quaxed.numpy as jnp
 import galax.potential.custom_types as gt
 from .spline import fit_log_spline
 
+_ANCHOR_MARGIN: int = 8
+r"""Knots between the last untrustworthy density sample and the tail's anchor.
+
+`fit_log_spline` is a global solve, so a zeroed band leaves a perturbed
+derivative around its edge that decays by ~0.27 per knot. Anchoring inside
+that region integrates a corrupted slope; eight knots puts the anchor where
+the step is no longer the dominant error. See `solve_poisson_profiles`.
+
+A count of knots is the right unit for the *perturbation*, which decays per
+knot however the grid is spaced. It is the wrong unit for the margin's
+*cost*: the knots it skips are good density, and what the tail must then
+model in their place is a log range, not a count. The pad's step is
+``reach / min(2 n_r, _PAD_KNOTS)``, so on a coarse grid eight knots is an
+enormous distance -- 9.3 decades at ``n_r = 6`` -- and the band
+:math:`[0, r_{i_0}]` the tail replaces is
+:math:`\exp(\exp_{in} \cdot \Delta\log r)` times the band actually lost.
+That factor reached 3.3e4, which is how a 3% slope error became a 3378x
+regression. `solve_poisson_profiles`' anchoring gate is what weighs it.
+
+Anchoring needs ``_ANCHOR_MARGIN < min(2 n_r, _PAD_KNOTS)`` to have any
+effect at all, since `build_expansion` clamps the anchor to ``lo``: at
+``n_r = 4`` the inner pad is exactly eight knots and anchoring is inert.
+"""
+
 
 def _log_floor(x: Float[Array, "..."], /) -> float:
     r"""Smallest density this module will treat as non-zero.
 
     Used twice: as a floor inside ``log|rho|`` so an identically-zero mode
     gives an ordinary number rather than ``-inf``, and as a floor on
-    ``scale`` so the relative gate cannot divide by zero for an all-zero
+    ``scale_in`` so the relative gate cannot divide by zero for an all-zero
     column.
 
     Sized from the working dtype, not fixed. A float64 constant such as
@@ -219,6 +244,7 @@ def solve_poisson_profiles(
     G: gt.Sz0,
     /,
     rho_gl: Float[Array, "n_r-1 k n_modes"] | None = None,
+    first_ok: Float[Array, "n_modes"] | None = None,
 ) -> tuple[
     Float[Array, "n_r n_modes"],
     Float[Array, "n_r n_modes"],
@@ -328,9 +354,16 @@ def solve_poisson_profiles(
 
     def one_mode(
         _: None,
-        xs: tuple[Float[Array, "n_r"], Float[Array, "n_r"], Any, Float[Array, ""]],
+        xs: tuple[
+            Float[Array, "n_r"],
+            Float[Array, "n_r"],
+            Any,
+            Float[Array, ""],
+            Float[Array, ""],
+        ],
     ) -> tuple[None, tuple[Array, Array, Array]]:
-        rho_col, drho_col, rho_gl_col, l = xs
+        rho_col, drho_col, rho_gl_col, l, i0f = xs
+        i0 = i0f.astype(jnp.int32)
         # Named for x, not r: `log_r` is already centred, so this is x^l.
         # Integrands for d(log x), not dx: the dx -> x d(log x) Jacobian is
         # folded in, so these carry one more power of x than the dr form.
@@ -397,11 +430,150 @@ def solve_poisson_profiles(
             p_out = panels(g_out, d_out, ones, jnp.exp(-l * du))
 
         floor = _log_floor(rho_col)
-        scale = jnp.max(jnp.abs(rho_col)) + floor
 
         # -- inner tail (0 -> r_min), rho_lm ~ A_in r^alpha_in --------------
-        log_rho_in = jnp.log(jnp.abs(rho_col[:3]) + floor)
-        alpha_in = jnp.mean(jnp.diff(log_rho_in) / jnp.diff(log_r[:3]))
+        # Anchor the tail at the first trustworthy knot, not at index 0.
+        #
+        # The pad is sampled from the caller's density, and where that density
+        # is not representable those samples are zeroed (`_drop_nonfinite`).
+        # Anchoring at index 0 regardless then fails twice over: the slope is
+        # fitted to zeros, and the gate below sees `rho[0] == 0` and drops the
+        # tail entirely -- so the band it should have covered is lost on top
+        # of the zeroed samples. That compounding is what cost 11% of the
+        # monopole on a steep cusp, and up to 100% when the unrepresentable
+        # band sat mid-pad rather than at its edge.
+        #
+        # `i0` is the index just past the deepest untrustworthy sample, so
+        # everything from there up is real. The tail then models `[0, r_i0]`
+        # as the power law fitted at `i0`, which is the same model it always
+        # used, just started where the data begins.
+        #
+        # The margin is not optional. `drho_lm` comes from `fit_log_spline`,
+        # a *global* tridiagonal solve, so the zero-to-real step at the
+        # boundary perturbs the fitted derivative for several knots either
+        # side of it, decaying by the solve's Green's function (~0.27 per
+        # knot). Panel `i0` reads `d[i0]`, so anchoring right at the step
+        # integrates a corrupted slope. Measured on a pure power law with
+        # the closed form known, zeroing 64 knots and moving the anchor:
+        # 6.4e-4 at the step, 2.0e-4 at +1, 6.0e-5 at +2, 5.7e-6 at +4 and
+        # 5.0e-8 at +8, against 7.8e-9 with nothing zeroed at all. Eight
+        # knots is where the step stops being the error.
+        i0 = jnp.where(i0 > 0, i0 + _ANCHOR_MARGIN, 0)
+        # An anchor past the data is not an anchor to be slid inward: there is
+        # no inner band left to model, so the answer is not to anchor at all.
+        # Clipping to `n - 3` instead slides it to the outer edge, zeroes every
+        # panel, and replaces the whole integral with a power law fitted at
+        # `r_max` -- 25% error on a Hernquist monopole, where falling back
+        # gives 2.3e-08. The clip is worse than its own absence, because
+        # without it the out-of-range `tri` makes the slopes `nan`, and `nan`
+        # fails the self-consistency test below, which falls back correctly.
+        #
+        # Unreachable from `build_expansion`, which clamps well below this.
+        # This is the solver's own public parameter, so it is guarded here.
+        i0 = jnp.where(i0 <= log_r.shape[0] - 3, i0, 0)
+        tri = i0 + jnp.arange(3)
+        log_r_in = log_r[tri]
+        log_rho_in = jnp.log(jnp.abs(rho_col[tri]) + floor)
+        slopes_in = jnp.diff(log_rho_in) / jnp.diff(log_r_in)
+        # Anchor only when doing so beats not doing so. Both sides are
+        # known here, so this is a break-even test rather than a threshold.
+        #
+        # Cost: the tail is `rho_i0 r_i0^(l+3) / exp_in`, so a slope error
+        # `d_alpha` is a relative error `d_alpha / exp_in`, and the two
+        # pairwise slopes disagreeing *is* the fit's own estimate of
+        # `d_alpha`. Call that `R`.
+        #
+        # Benefit: not anchoring loses `[0, r_first_ok]` outright, while
+        # anchoring models the larger `[0, r_i0]` -- larger by
+        # `exp(exp_in * span)` for `rho ~ r^alpha`, since the integral goes
+        # as `r^exp_in`. So the error anchoring introduces, measured against
+        # the error it removes, is `R * exp(exp_in * span)`, and anchoring is
+        # worth it exactly when that is below 1. Taken in logs so the
+        # exponential cannot overflow before the comparison.
+        #
+        # Measured against an unanchored solve over 462 builds (Dehnen gamma
+        # in {1.0, 1.9, 2.5, 2.7, 2.9, 2.99}, `n_r` 4 to 64, seven brackets
+        # from [1e-1, 1e1] to [1e-6, 1e6]): of the 190 that reach this test,
+        # the rule chooses the more accurate side on 187, and the three it
+        # gets wrong cost 1.36x, 1.23x and 1.19x. All three sit within
+        # [0.5, 1.7] of break-even, where the two sides are close by
+        # construction -- but "close" is not "free", and two of the three are
+        # declined gains rather than accepted losses, because the benefit term
+        # below is understated.
+        #
+        # Understated because not anchoring leaves a *spurious* contribution
+        # in as well as losing the band: `drho_lm` is a global spline fit, so
+        # the zeroed knots carry non-zero fitted derivative and panel
+        # `first_ok - 1` straddles a zero-to-real step (see the panel-dropping
+        # comment below). Anchoring removes that too, and it is not counted
+        # here, so the rule errs toward declining. That is the safer
+        # direction, and it is why this is written as a one-sided test rather
+        # than a two-sided one.
+        #
+        # Bounding `R` alone against a constant is what this replaced, and it
+        # cannot work: `R` does not see `span`, so the same fit quality is
+        # worth having on a fine grid and catastrophic on a coarse one. At
+        # 0.1 that cost 3378x on `gamma = 2.5`, `n_r = 6` over [1e-5, 1e5]
+        # (1.6e-02 against an unanchored 4.8e-06), and no value of the
+        # constant removed every regression while keeping the `gamma = 2.99`
+        # rescue -- the two populations overlap completely in `R`.
+        #
+        # `exp_cand <= 0` is a divergent tail, rejected here rather than
+        # downstream: the convergence gate below zeroes `dI_in` but cannot
+        # un-zero the panels, which would discard the band and put nothing in
+        # its place. The clause is explicit rather than load-bearing --
+        # `jnp.log` already sends a negative `exp_cand` to `nan` and a zero
+        # one to `-inf`, either of which fails the comparison -- but the
+        # condition it states is the reason the comparison is safe, so it is
+        # written down rather than left to be rediscovered. `nan` slopes, from
+        # an out-of-range `tri`, land in the same fallback the same way.
+        #
+        # What this test CANNOT see: `slopes_in` is read at `i0` and above,
+        # while the band the tail extrapolates across, `[0, r_i0]`, lies
+        # entirely below it and holds no sample at all -- it is by
+        # construction the band that was zeroed. So the fit's own
+        # self-consistency bounds the model's *local* quality, never its
+        # validity where it is actually used. A density that is a clean power
+        # law above the overflow radius and something else below it passes
+        # with `|s1 - s0|` at round-off, which is maximal confidence drawn
+        # from an absence of data.
+        #
+        # The worst such density puts its *core* at the overflow radius, and
+        # it is a narrow resonance. At `gamma = 2.95`, measured against an
+        # unanchored build, with `rc` in units of the overflow radius:
+        # 0.1 -> 8.4x, 0.3 -> 16x, 1.0 -> 119x, 3.0 -> nothing overflows and
+        # the two agree to the bit. At the peak a usable 1.2e-02 becomes 1.4.
+        #
+        # The asymmetry is the point: an unanchored solve drops the band and
+        # under-counts, bounded by the band's true mass, while extrapolating
+        # a cusp across a core over-counts without bound. No test on the
+        # retained samples can tell the two apart, because the evidence is
+        # exactly what was discarded. `_FAMILY` and the resonance test in
+        # `test_build.py` pin it so it cannot deepen unnoticed.
+        #
+        # The fallback is `i0 = 0`, not merely dropping the tail, because
+        # anchoring also zeroes every panel below the anchor -- including
+        # panels over density that is perfectly good. Keeping those and losing
+        # only the tail is what `main` did, and its error is bounded; keeping
+        # a bad tail is not (`exp_in = 0.017` at `n_r = 5` amplifies it 58x,
+        # for 430% error).
+        exp_cand = jnp.mean(slopes_in) + l + 3.0
+        span = log_r[i0] - log_r[jnp.maximum(i0 - _ANCHOR_MARGIN, 0)]
+        i0 = jnp.where(
+            (exp_cand > 0.0)
+            & (
+                jnp.log(jnp.abs(slopes_in[1] - slopes_in[0]))
+                - jnp.log(exp_cand)
+                + exp_cand * span
+                < 0.0
+            ),
+            i0,
+            0,
+        )
+        tri = i0 + jnp.arange(3)
+        log_r_in = log_r[tri]
+        log_rho_in = jnp.log(jnp.abs(rho_col[tri]) + floor)
+        alpha_in = jnp.mean(jnp.diff(log_rho_in) / jnp.diff(log_r_in))
         exp_in = alpha_in + l + 3.0
         safe_in = jnp.where(jnp.abs(exp_in) > _SLOPE_TOL, exp_in, _SLOPE_TOL)
         # The amplitude never appears on its own. Writing the tail as
@@ -416,19 +588,55 @@ def solve_poisson_profiles(
         # (l + 3) times half the grid's log range, the same bound the
         # recentering above already guarantees. This is also what the outer
         # tail below does.
-        dI_in = rho_col[0] * x2[0] / safe_in  # already / x_0^(l+1)
+        dI_in = rho_col[i0] * x2[i0] / safe_in  # already / x_i0^(l+1)
         # The clamp keeps the division finite under jit, but a clamped
         # denominator no longer represents the integral: at exp_in = 1e-9 the
         # true tail is ~1e3 times what `_SLOPE_TOL` yields. Inside the clamped
         # window the tail is therefore dropped, not scaled -- the same
         # conservative treatment as just across the exp_in <= 0 boundary.
+        # Normalise by the retained column, not the whole one. The whole
+        # column's maximum is its deepest sample, which for a cusp is the
+        # largest by far; `rho_col[i0]` sits `_ANCHOR_MARGIN` knots above it,
+        # smaller by `exp(-alpha * margin * step)`. Once that ratio falls
+        # below `sqrt(eps)` the gate rejects and the tail is dropped -- the
+        # exact failure the anchor exists to prevent, re-created by its own
+        # margin. Before anchoring, `i0` was always 0 and the two were the
+        # same quantity, so the gate could never fire this way.
+        #
+        # This is the activity test -- "is there any density here at all" --
+        # not a test on the modelled band, so the retained column is the
+        # right reference and it is strictly more permissive than the whole
+        # one. What bounds the *modelled* band is the anchoring test above.
+        scale_in = (
+            jnp.max(
+                jnp.where(jnp.arange(rho_col.shape[0]) >= i0, jnp.abs(rho_col), 0.0)
+            )
+            + floor
+        )
         dI_in = jnp.where(
-            (jnp.abs(rho_col[0]) > _active_tol(rho_col) * scale)
+            (jnp.abs(rho_col[i0]) > _active_tol(rho_col) * scale_in)
             & (exp_in > _SLOPE_TOL),
             dI_in,
             0.0,
         )
-        a_in = _scaled_prefix(jnp.exp(-(l + 1.0) * du), p_in, dI_in)
+        # Feed the tail in at `i0` rather than seeding index 0, and drop every
+        # panel at or below it. `_scaled_prefix`'s `term[j]` lands in `y[j+1]`,
+        # so `term[i0-1]` is the one that carries `y[i0]`.
+        #
+        # Injecting rather than seeding keeps the scaling local: the seed would
+        # have to be divided back through the prefix product of `mult`, which
+        # is `(x_i0/x_0)^(l+1)` and overflows for exactly the deep `i0` this
+        # exists to handle. The panel is already in `x_i0^(l+1)` units.
+        #
+        # The dropped panels are not merely zero-valued: `p_in[i0-1]` spans
+        # `[i0-1, i0]`, from a zeroed sample to a real one, so the rule would
+        # read a spurious step there.
+        panel_idx = jnp.arange(p_in.shape[0])
+        p_in = jnp.where(panel_idx < i0, 0.0, p_in)
+        p_in = p_in + dI_in * (panel_idx == i0 - 1)
+        a_in = _scaled_prefix(
+            jnp.exp(-(l + 1.0) * du), p_in, jnp.where(i0 == 0, dI_in, 0.0)
+        )
 
         # -- outer tail (r_max -> inf), rho_lm ~ A_out r^alpha_out ----------
         log_rho_out = jnp.log(jnp.abs(rho_col[-3:]) + floor)
@@ -461,7 +669,14 @@ def solve_poisson_profiles(
         if rho_gl is None
         else jnp.moveaxis(rho_gl, -1, 0)
     )
-    _, cols = jax.lax.scan(one_mode, None, (rho_lm.T, drho_lm.T, gl_T, l_per_mode))
+    # Index from which each mode's density is trustworthy; 0 when all of it
+    # is. Anchors the inner tail -- see `one_mode`.
+    ok0 = (
+        jnp.zeros_like(l_per_mode)
+        if first_ok is None
+        else jnp.clip(first_ok, 0, rho_lm.shape[0] - 3).astype(l_per_mode.dtype)
+    )
+    _, cols = jax.lax.scan(one_mode, None, (rho_lm.T, drho_lm.T, gl_T, l_per_mode, ok0))
     # Every profile scales the same way under the recentring: Phi picks up
     # exp(2 log_rc), and d/d(log x) = d/d(log r) leaves that factor alone.
     scale = jnp.exp(2.0 * log_rc)

@@ -42,7 +42,7 @@ jobs:
 
   # Where there's smoke, there's fire!
   smoke:
-    name: Smoke tests
+    name: Smoke & repo tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -56,7 +56,7 @@ jobs:
         with:
           python-version-file: ".python-version"
       - name: Install the project
-        # Every extra, deliberately. `tests/smoke/test_interop_registration.py
+        # Every extra, deliberately. `tests/repo/test_interop_registration.py
         # ::test_entry_point_is_registered` asserts all eight entry points
         # across all four interop distributions, and a plain sync installs only
         # the astropy one -- five of those cases would fail. Do not narrow this
@@ -64,8 +64,8 @@ jobs:
         # that restores the exact hole it exists to close, since a dropped
         # entry point raises no error, the interop just silently stops working.
         run: uv sync --extra all --group test
-      - name: Run smoke test
-        run: uv run pytest tests/smoke -ra
+      - name: Run smoke and repo tests
+        run: uv run pytest tests/smoke tests/repo -ra
 
   install-shapes:
     name: Install shapes
@@ -142,7 +142,7 @@ jobs:
       # which is the silence this repo keeps paying for.
       - name: Test package
         run: >-
-          uv run pytest packages docs tests/unit tests/functional -ra --cov
+          uv run pytest packages docs tests/unit tests/integration -ra --cov
           --cov-report=xml --cov-report=term --durations=20 --arraydiff -m"not
           slow" -n logical --dist=loadfile
 
@@ -178,7 +178,7 @@ jobs:
 
       - name: Test package
         run: >-
-          uv run pytest packages docs tests/unit tests/functional -ra
+          uv run pytest packages docs tests/unit tests/integration -ra
           --durations=20 --cov --cov-report=xml --cov-report=term --arraydiff
           -m"not slow" --mpl --mpl-hash-library=hashes.json --mpl-deterministic
           -n logical --dist=loadfile

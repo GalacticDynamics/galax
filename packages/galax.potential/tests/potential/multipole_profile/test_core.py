@@ -1141,3 +1141,64 @@ def test_a_constant_multipole_keeps_every_other_potential_s_shapes() -> None:
     comp = CompositePotential(a=mp, b=other)
     assert jnp.shape(comp.potential(xyz1, t7).value) == ()
     assert jnp.shape(comp.potential(xyz7, t0).value) == (7,)
+
+
+def _sign_flipping_density(xyz, t):
+    """Return a density whose flattening sweeps oblate -> spherical -> prolate.
+
+    The `l = 2` content changes sign as `q` crosses 1, which is what used to
+    flip the cusp split's magnitude-and-sign gate between grid times.
+    """
+    q = 0.7 + 0.6 * (t / 1000.0)
+    m = safe_vector_norm(jnp.stack([xyz[..., 0], xyz[..., 1], xyz[..., 2] / q], -1))
+    return jnp.exp(-m) / (m + 1e-3)
+
+
+def test_a_time_grid_density_survives_a_sign_changing_mode() -> None:
+    """`density()` between grid knots must not be qualitatively worse than on them.
+
+    REGRESSION: `subtract_inner_cusp` used to split every mode that passed a
+    magnitude-and-sign gate. The gate is a *step* function of the source, and
+    a grid build interpolates `rho_alpha` and `rho_amplitude` in time across
+    it, so between two knots the residual no longer matched the background it
+    was formed against. The error here was 3.6e+04 between knots against
+    4.0e-01 on them -- a factor of 89,000 -- while `potential()`, which does
+    not use the split, stayed correct and hid it.
+
+    The bound is a *ratio* rather than an absolute tolerance on purpose: an
+    `l_max = 2` expansion of this profile is only good to tens of percent at
+    the best of times, and what broke was not the accuracy but the
+    interpolation.
+    """
+    ts = jnp.linspace(0.0, 1000.0, 9)
+    pot = MultipoleProfilePotential.from_density(
+        _sign_flipping_density,
+        t=u.Q(ts, "Myr"),
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e2, "kpc"),
+        n_r=64,
+        l_max=2,
+        symmetry="plane_reflection",
+        units="galactic",
+    )
+    xyz = [[0.05, 0.02, 0.01], [0.3, 0.1, 0.05], [1.0, 0.5, 0.2], [3.0, 1.0, 0.5]]
+
+    def worst(times):
+        out = 0.0
+        for tv in times:
+            for p in xyz:
+                want = float(_sign_flipping_density(jnp.asarray(p), tv))
+                got = float(
+                    u.ustrip(
+                        "Msun/kpc3",
+                        pot.density(u.Q(jnp.asarray(p), "kpc"), u.Q(tv, "Myr")),
+                    )
+                )
+                out = max(out, abs(got - want) / abs(want))
+        return out
+
+    on_knot = worst([float(t) for t in ts[1:-1]])
+    between = worst([62.5, 187.5, 437.5, 562.5, 812.5])
+
+    assert on_knot < 1.0, on_knot
+    assert between < 2.0 * on_knot, (between, on_knot)

@@ -395,8 +395,8 @@ def assert_gaussian_matches_galpy(
     pot: gp.AbstractSinglePotential,
     x: gt.QuSz3,
     *,
-    atol_pot: float = 1e-2,
-    rtol_dens: float = 1e-4,
+    rtol_pot: float = 1e-11,
+    rtol_dens: float = 1e-11,
 ) -> None:
     """Cross-check potential energy & density against galpy's Gaussian potential.
 
@@ -432,10 +432,20 @@ def assert_gaussian_matches_galpy(
     z = xyz[2]
     phi = np.arctan2(xyz[1].value, xyz[0].value) * apyu.rad
 
+    # `quantity=False`: whether galpy returns a float or an astropy `Quantity`
+    # follows `astropy-units` in the reader's `~/.galpyrc`, so without it this
+    # comparison is environment-dependent. Values are physical either way.
+    #
+    # `atol=0`: `np.isclose` adds its defaults to what you pass, and both
+    # (`rtol=1e-5`, `atol=1e-8`) swamp a bound this tight.
+    #
+    # 1e-11: both sides are closed forms of the same profile and agree to
+    # ~1e-15 under x64 -- four orders of headroom, and still catches a wrong
+    # normalisation or axis ratio, which move these by 1e-3.
     galax_pot = convert(pot.potential(x, t=0), apyu.Quantity).to_value("km2 / s2")
-    galpy_val = evaluatePotentials(galpy_pot, R, z, phi=phi)
-    assert np.isclose(galax_pot, galpy_val, atol=atol_pot)
+    galpy_val = evaluatePotentials(galpy_pot, R, z, phi=phi, quantity=False)
+    assert np.isclose(galax_pot, galpy_val, rtol=rtol_pot, atol=0.0)
 
     galax_dens = convert(pot.density(x, t=0), apyu.Quantity).to_value("Msun / pc3")
-    galpy_dens = evaluateDensities(galpy_pot, R, z, phi=phi)
-    assert np.isclose(galax_dens, galpy_dens, rtol=rtol_dens)
+    galpy_dens = evaluateDensities(galpy_pot, R, z, phi=phi, quantity=False)
+    assert np.isclose(galax_dens, galpy_dens, rtol=rtol_dens, atol=0.0)

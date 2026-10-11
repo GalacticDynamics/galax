@@ -15,7 +15,6 @@ from typing import Any, final
 import equinox as eqx
 import jax
 import jax.core
-import numpy as np
 from equinox import field
 
 import quaxed.numpy as jnp
@@ -24,12 +23,13 @@ from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
-from .build import _LN_HUGE_FRAC, _PAD_MULTIPLE, build_expansion
+from .build import _PAD_MULTIPLE, build_expansion
 from .expansion import expansion_density, expansion_gradient, expansion_potential
 from .interp import time_interpolated_parameter
 from galax.potential._src.base import AbstractPotential, default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.harmonic import default_angular_resolution, lm_keys
+from galax.potential._src.harmonic.asympt import _ln_huge
 from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.constant import ConstantParameter
@@ -347,7 +347,7 @@ def _warn_if_padding_is_capped(r_min: float, r_max: float, /) -> None:
     """
     span = math.log(r_max / r_min)
     dtype = jnp.zeros(()).dtype  # the working float dtype, x64 or not
-    budget = _LN_HUGE_FRAC * float(np.log(np.finfo(dtype).max))
+    budget = _ln_huge(jnp.zeros((), dtype=dtype))
     if _PAD_MULTIPLE * span > 0.5 * max(budget - span, 0.0):
         msg = (
             f"[{r_min:g}, {r_max:g}] spans {span:.0f} e-folds, which {dtype} "

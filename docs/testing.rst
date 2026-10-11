@@ -48,10 +48,12 @@ Comparison libraries
 
 Parts of the suite cross-check :mod:`galax` against other dynamics packages.
 ``gala`` and ``galpy`` are declared optional dependencies, so they arrive with
-the interop extras:
+the ``interop-all`` extra:
 ::
 
-    uv sync --extra all --group test-all
+    uv sync --extra interop-all --group test-all
+
+(``--extra all`` works too, and additionally pulls the plotting extras.)
 
 Tests needing them are skipped when they are absent, so a bare checkout still
 passes -- a green run does **not** mean they were exercised.

@@ -395,8 +395,8 @@ def assert_gaussian_matches_galpy(
     pot: gp.AbstractSinglePotential,
     x: gt.QuSz3,
     *,
-    atol_pot: float = 1e-2,
-    rtol_dens: float = 1e-4,
+    rtol_pot: float = 1e-11,
+    rtol_dens: float = 1e-11,
 ) -> None:
     """Cross-check potential energy & density against galpy's Gaussian potential.
 
@@ -440,10 +440,25 @@ def assert_gaussian_matches_galpy(
     # reconcile `km2 / s2` with a dimensionless tolerance, while CI stays
     # green. The values are in physical units either way; only the wrapper
     # differs, and this pins it.
+    #
+    # `atol=0` on both, so the stated `rtol` is the only bar. `np.isclose`
+    # otherwise *adds* its own defaults to whatever is passed, and either one
+    # swamps a tolerance this tight: the previous absolute bound of 1e-2 on
+    # the potential was itself dwarfed by the default `rtol=1e-5`, which on a
+    # ~1e6 km2/s2 potential allows ~11.5 -- nine orders above the error being
+    # measured -- and the default `atol=1e-8` would likewise dominate a
+    # density of ~0.5.
+    #
+    # Both sides are closed forms of the same analytic profile, so under the
+    # x64 the suite enables they agree to a few ulps: the worst of the three
+    # cases is 1.2e-15 on the potential and 3.6e-16 on the density. 1e-11
+    # keeps about four orders of headroom over that while still catching
+    # anything structural -- a wrong normalisation or a mishandled axis ratio
+    # moves these by 1e-3 or more.
     galax_pot = convert(pot.potential(x, t=0), apyu.Quantity).to_value("km2 / s2")
     galpy_val = evaluatePotentials(galpy_pot, R, z, phi=phi, quantity=False)
-    assert np.isclose(galax_pot, galpy_val, atol=atol_pot)
+    assert np.isclose(galax_pot, galpy_val, rtol=rtol_pot, atol=0.0)
 
     galax_dens = convert(pot.density(x, t=0), apyu.Quantity).to_value("Msun / pc3")
     galpy_dens = evaluateDensities(galpy_pot, R, z, phi=phi, quantity=False)
-    assert np.isclose(galax_dens, galpy_dens, rtol=rtol_dens)
+    assert np.isclose(galax_dens, galpy_dens, rtol=rtol_dens, atol=0.0)

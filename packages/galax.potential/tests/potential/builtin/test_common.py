@@ -432,10 +432,18 @@ def assert_gaussian_matches_galpy(
     z = xyz[2]
     phi = np.arctan2(xyz[1].value, xyz[0].value) * apyu.rad
 
+    # Ask galpy for plain floats. Whether it returns a float or an astropy
+    # `Quantity` is a *user* setting rather than a property of the call --
+    # `astropy-units` in `~/.galpyrc` -- so the comparison below is otherwise
+    # environment-dependent. It defaults to off, but on a machine where it is
+    # on these assertions raise `UnitConversionError`, astropy refusing to
+    # reconcile `km2 / s2` with a dimensionless tolerance, while CI stays
+    # green. The values are in physical units either way; only the wrapper
+    # differs, and this pins it.
     galax_pot = convert(pot.potential(x, t=0), apyu.Quantity).to_value("km2 / s2")
-    galpy_val = evaluatePotentials(galpy_pot, R, z, phi=phi)
+    galpy_val = evaluatePotentials(galpy_pot, R, z, phi=phi, quantity=False)
     assert np.isclose(galax_pot, galpy_val, atol=atol_pot)
 
     galax_dens = convert(pot.density(x, t=0), apyu.Quantity).to_value("Msun / pc3")
-    galpy_dens = evaluateDensities(galpy_pot, R, z, phi=phi)
+    galpy_dens = evaluateDensities(galpy_pot, R, z, phi=phi, quantity=False)
     assert np.isclose(galax_dens, galpy_dens, rtol=rtol_dens)

@@ -39,6 +39,7 @@ from galax.potential._src.harmonic import (
 )
 from galax.potential._src.harmonic.asympt import _ln_huge
 from galax.potential._src.harmonic.poisson import (
+    _ANCHOR_MARGIN,
     _log_floor,
     gl_log_nodes,
     solve_poisson_profiles,
@@ -250,6 +251,12 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     is taken from the shape, which is static under `jax.jit`; the spacing is
     read from the values, so a grid that is not log-uniform still continues
     smoothly from each end.
+
+    How far it reaches is `_requested_reach`, which bounds the solve's own
+    arithmetic. It deliberately does *not* consult the caller's density:
+    where that density is unrepresentable the samples are zeroed and the
+    radial solve anchors its inner tail above them, which costs far less
+    than shortening the pad for everyone. See `solve_poisson_profiles`.
     """
     n_r = r_knots.shape[0]
     _check_enough_knots(n_r)
@@ -279,13 +286,27 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
 def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     r"""Zero any density sample the working dtype could not represent.
 
-    Padding evaluates the caller's ``rho_fn`` far outside the bracket it was
-    asked about -- by ``_PAD_MULTIPLE`` spans on each side. An inner cusp
-    :math:`\rho \sim r^{-\gamma}` therefore reaches
-    :math:`r_\min e^{-\mathrm{reach}}`, where the *density* overflows once
-    :math:`\gamma \times \mathrm{reach}` clears the dtype's exponent. The
-    reach cap in `_pad_grid` does not help: it is sized so the solver's own
-    :math:`x^2` stays finite, and knows nothing about ``rho_fn``'s slope.
+    Padding evaluates the caller's ``rho_fn`` outside the bracket it was
+    asked about, so an inner cusp :math:`\rho \sim r^{-\gamma}` is sampled
+    where the *density* can overflow, once
+    :math:`\gamma \times \mathrm{reach}` clears the dtype's exponent.
+
+    Zeroing is survivable because it is no longer the whole story: the radial
+    solve anchors its inner tail at the first knot above the deepest zeroed
+    sample, so the band those samples should have carried is modelled
+    analytically rather than lost. Without that, zeroing `rho[0]` also
+    switched off the tail and cost 11% of the monopole; with it, ~5e-06.
+
+    *Modelled*, not recovered, and the distinction has teeth: the model is a
+    power law fitted to the knots just above the anchor, and nothing below
+    the anchor survives to check it against. Where the density is a power law
+    through the zeroed band -- a cusp, the case this exists for -- the model
+    is the truth. Where it is not -- a core under the overflow radius is the
+    case to worry about -- the fit reports perfect confidence from an absence
+    of data and the extrapolated cusp over-counts the inner mass. Worst
+    measured is 119x an unanchored build, turning a usable 1.2e-02 into 1.4,
+    and it is a narrow resonance in how close the core sits to that radius.
+    See the anchoring gate in `solve_poisson_profiles`.
 
     Without this, one unrepresentable sample took out the whole build. The
     projection turns ``inf`` into ``inf`` at :math:`l = 0` and ``nan`` above
@@ -295,11 +316,8 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     cusp over ``[1e-4, 1e4]`` at ``l_max = 8`` produced 41472 non-finite
     values out of 41472 in float32, and none in float64.
 
-    Zeroing costs what it should: the pad exists to keep the boundary
-    power-law model away from the caller's range, so a dropped pad sample
-    weakens that tail slightly. It does not touch the requested bracket,
-    where every sample is representable by construction. That is the trade
-    `_PAD_MULTIPLE` already states -- degrade, rather than return nothing.
+    It never touches the requested bracket, where every sample is
+    representable by construction.
     """
     out: Float[Array, "..."] = jnp.where(jnp.isfinite(rho), rho, 0.0)
     return out
@@ -323,6 +341,7 @@ def build_expansion(
     parameters. `expansion`'s module docstring lists the keys; keeping the
     count out of this sentence keeps the two from drifting apart.
     """
+    _check_enough_knots(r_knots.shape[0])
     log_r = jnp.log(r_knots)
     l_per_mode = jnp.asarray([float(l) for l, _ in keys])
 
@@ -331,9 +350,36 @@ def build_expansion(
     r_solve, lo = _pad_grid(r_knots)
 
     n_r = r_knots.shape[0]
-    rho_solve = _drop_nonfinite(
-        harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)
-    )
+    rho_raw = harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)
+    # Where the caller's density could not be represented, per mode. The
+    # samples are zeroed below, but the solve needs to know *which* ones: its
+    # inner tail is anchored at the first knot above the deepest bad sample,
+    # so the band those samples should have carried is covered analytically
+    # instead of silently lost. See `solve_poisson_profiles`.
+    #
+    # The deepest bad index, not the first good one: an unrepresentable band
+    # can sit mid-pad rather than at its inner edge -- a density need not be
+    # monotonic in log r -- and everything below such a band is suspect even
+    # where it happens to sample finite.
+    #
+    # Restricted to the *inner* pad. "Everything below is suspect" is an
+    # argument about the band the inner tail replaces and does not reach past
+    # `lo`: a bad sample in the outer pad -- routine for any `rho_fn` whose
+    # intermediates overflow far out -- says nothing about the data below it.
+    idx = jnp.arange(r_solve.shape[0])[:, None]
+    bad = ~jnp.isfinite(rho_raw) & (idx < lo)
+    first_ok = jnp.max(jnp.where(bad, idx + 1, 0), axis=0)
+    # Never discard the caller's own range: if their density is not finite
+    # inside the bracket they asked for, there is nothing the pad can do and
+    # anchoring there would throw away real interior data.
+    #
+    # The clamp leaves room for `_ANCHOR_MARGIN`, which the solve adds
+    # *after* this: the effective anchor is `first_ok + _ANCHOR_MARGIN`, so
+    # clamping to `lo` alone would put it past `lo` and zero the panels over
+    # representable interior data.
+    first_ok = jnp.minimum(first_ok, max(lo - _ANCHOR_MARGIN, 0))
+
+    rho_solve = _drop_nonfinite(rho_raw)
     rho_lm = rho_solve[lo : lo + n_r]
 
     # Sample the density *inside* each interval as well, at Gauss-Legendre
@@ -356,7 +402,7 @@ def build_expansion(
     # only as good as the fit -- which is what lets `expansion_potential`
     # interpolate with the quintic basis.
     phi_all, dphi_all, d2phi_all = solve_poisson_profiles(
-        r_solve, rho_solve, l_per_mode, G, rho_gl
+        r_solve, rho_solve, l_per_mode, G, rho_gl, first_ok
     )
     sl = slice(lo, lo + n_r)
     phi_lm, dphi_lm, d2phi_lm = phi_all[sl], dphi_all[sl], d2phi_all[sl]

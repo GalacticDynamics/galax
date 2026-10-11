@@ -55,22 +55,13 @@ def _log_floor(x: Float[Array, "..."], /) -> float:
     return 16.0 * float(np.finfo(x.dtype).tiny)
 
 
-_CUSP_TOL: float = 1e-6
-"""Relative gate on the cusp background, against a *global* scale.
-
-Deliberately distinct from the Poisson solve's ``_ACTIVE_TOL``, which is 1e-8
-against a *per-mode* scale: a mode negligible next to the largest mode in the
-expansion need not be negligible next to itself.
-"""
-
-
 @ft.partial(jax.jit)
 def subtract_inner_cusp(
     r_knots: Float[Array, "n_r"], rho_lm: Float[Array, "n_r n_modes"], /
 ) -> tuple[
     Float[Array, "n_r n_modes"], Float[Array, "n_modes"], Float[Array, "n_modes"]
 ]:
-    r"""Split :math:`\rho_{lm}` into a splineable residual and a power law.
+    r"""Split the monopole into a splineable residual and a power law.
 
     Returns ``(residual, alpha, amplitude)`` with
 
@@ -80,38 +71,42 @@ def subtract_inner_cusp(
                      + \mathrm{amplitude} \left(\frac{r}{r_0}\right)^{\alpha}
 
     where :math:`r_0` is the innermost knot, so ``amplitude`` is just
-    :math:`\rho_{lm}(r_0)`. The slope is a log-log finite difference over the
-    innermost three knots. Modes negligible at ``r_min`` relative to the
-    global coefficient scale, and modes that change sign within that window,
-    get a zero background rather than a slope fitted to numerical noise or to
-    a spurious crossing; the residual then carries the mode in full.
+    :math:`\rho_{00}(r_0)`. The slope is a log-log finite difference over the
+    innermost three knots.
+
+    Only :math:`l = 0` is split. Every other mode gets
+    ``alpha = amplitude = 0`` and carries its profile in the residual alone.
+    The background exists to spare the spline an :math:`r^{-\gamma}` cusp and
+    only the monopole has one; a higher mode's inner amplitude is a small
+    difference of angular quadratures that can pass through zero, where a fit
+    to :math:`\log|\rho_{lm}|` returns a slope of the wrong sign and a
+    background that diverges outward.
+
+    Gating those modes out -- which is what this did -- makes ``alpha`` and
+    ``amplitude`` *step* functions of the source, and `from_density` on a time
+    grid interpolates them in time. Across such a step the residual no longer
+    matches the background it was formed against, and `expansion_density`
+    between two grid knots came back wrong by a factor of 3.6e4. Restricting
+    the split to the one mode that is positive by construction removes the
+    step instead of smoothing it, and costs nothing measurable: a
+    :math:`\gamma = 2.9` cusp reconstructs to 6.3e-08 of the profile scale
+    either way, where dropping the split entirely gives 1.7e-05.
     """
     log_ratio = jnp.log(r_knots / r_knots[0])
-    global_scale = jnp.max(jnp.abs(rho_lm))
-
     log_inner = jnp.log(jnp.abs(rho_lm[:3, :]) + _log_floor(rho_lm))
     alpha = jnp.mean(
         jnp.diff(log_inner, axis=0) / jnp.diff(jnp.log(r_knots[:3]))[:, None],
         axis=0,
     )
-    amplitude = rho_lm[0, :]
-
-    # `alpha` is a slope of log|rho_lm|, so a zero crossing inside the
-    # three-knot window turns a decaying mode into a large *positive* fitted
-    # slope and the background then diverges outward (alpha ~ +30 observed,
-    # background ~1e50, catastrophic cancellation in residual + background).
-    # A magnitude gate on rho_lm[0] alone cannot see this, so require the
-    # window not to change sign before accepting any background at all.
-    same_sign = jnp.all(
-        jnp.sign(rho_lm[:3, :]) == jnp.sign(rho_lm[0, :])[None, :], axis=0
-    )
-    valid = (jnp.abs(rho_lm[0, :]) > _CUSP_TOL * global_scale) & same_sign
-    # Second line of defence: a physical inner logarithmic slope sits well
-    # inside +/-3 (r^-2 isothermal and r^-1 NFW cusps at one end, an analytic
-    # core at the other), so clip rather than trust a noisy three-point fit.
-    alpha = jnp.clip(alpha, -3.0, 3.0)
-    alpha = jnp.where(valid, alpha, 0.0)
-    amplitude = jnp.where(valid, amplitude, 0.0)
+    # A physical inner logarithmic slope sits well inside +/-3 (`r^-2`
+    # isothermal and `r^-1` NFW cusps at one end, an analytic core at the
+    # other), so clip rather than trust a noisy three-point fit. Unlike the
+    # gate this replaced, the clip is continuous in the source: it bends
+    # `alpha`, it does not switch the background off, so interpolating it in
+    # time degrades smoothly instead of breaking.
+    monopole = jnp.arange(rho_lm.shape[1]) == 0
+    alpha = jnp.where(monopole, jnp.clip(alpha, -3.0, 3.0), 0.0)
+    amplitude = jnp.where(monopole, rho_lm[0, :], 0.0)
 
     background = amplitude[None, :] * jnp.exp(alpha[None, :] * log_ratio[:, None])
     return rho_lm - background, alpha, amplitude

@@ -20,6 +20,77 @@ def _linear(slope: float = 2.0):
     return time_interpolated_parameter(TS, values), slope
 
 
+CUBIC_TS = u.Q(jnp.asarray([0.0, 1.0, 2.0, 3.0, 4.0]), "Gyr")
+"""A five-knot grid, so the not-a-knot end conditions have interior knots."""
+
+
+def _cubic_exact(t):
+    """Return a cubic in ``t``, which the interpolant must reproduce exactly."""
+    return 1.0 + 2.0 * t - 0.5 * t**2 + 0.25 * t**3
+
+
+def _cubic_deriv(t):
+    """``d/dt`` of `_cubic_exact`, for the gradient check."""
+    return 2.0 - 1.0 * t + 0.75 * t**2
+
+
+def _cubic():
+    """Build a parameter tabulating `_cubic_exact` on `CUBIC_TS`."""
+    tv = u.ustrip(u.unit("Gyr"), CUBIC_TS)
+    return time_interpolated_parameter(CUBIC_TS, u.Q(_cubic_exact(tv), "Msun"))
+
+
+def _linear_between_knots(tv: float) -> float:
+    """Return what a line between the bracketing knots would give at ``tv``."""
+    grid = u.ustrip(u.unit("Gyr"), CUBIC_TS)
+    i = int(jnp.searchsorted(grid, tv)) - 1
+    lo, hi = float(grid[i]), float(grid[i + 1])
+    f_lo, f_hi = float(_cubic_exact(lo)), float(_cubic_exact(hi))
+    return f_lo + (f_hi - f_lo) * (tv - lo) / (hi - lo)
+
+
+def test_reproduces_a_cubic_exactly_where_a_line_would_not() -> None:
+    """The interpolant is cubic, and this is the test that can tell.
+
+    Every other value assertion in this module tabulates a straight line,
+    which cubic Hermite and plain linear interpolation reproduce *equally*
+    well -- so none of them can distinguish the two, and swapping the basis
+    for `jnp.interp` would keep them all green.
+
+    A not-a-knot cubic spline through samples of a cubic polynomial
+    reproduces that polynomial exactly, so the bar here is machine precision
+    while a line between the same knots is off by percent.
+    """
+    p = _cubic()
+    for tv in (0.5, 1.5, 2.5, 3.5):
+        got = float(u.ustrip(u.unit("Msun"), p(u.Q(tv, "Gyr"))))
+        want = float(_cubic_exact(tv))
+        assert got == pytest.approx(want, rel=1e-12), tv
+
+        # ...and the same query is visibly wrong under linear interpolation,
+        # so the assertion above is actually discriminating.
+        line = _linear_between_knots(tv)
+        assert abs(line - want) / abs(want) > 1e-2, (tv, line, want)
+
+
+def test_the_gradient_of_a_cubic_is_the_analytic_derivative() -> None:
+    """`jax.grad` through the interpolant, on data a line cannot fake.
+
+    The existing gradient test uses a linear table, where the answer is the
+    slope everywhere -- which linear interpolation also gives. On a cubic the
+    derivative varies between knots, so this pins the basis and not just the
+    plumbing.
+    """
+    p = _cubic()
+
+    def f(tv):
+        return u.ustrip(u.unit("Msun"), p(u.Q(tv, "Gyr")))
+
+    for tv in (0.5, 1.5, 2.5, 3.5):
+        got = float(jax.grad(f)(jnp.asarray(tv)))
+        assert got == pytest.approx(float(_cubic_deriv(tv)), rel=1e-8), tv
+
+
 def test_returns_the_tabulated_value_at_a_knot() -> None:
     """On a knot the interpolant must return that knot's value exactly."""
     p, slope = _linear()

@@ -601,17 +601,46 @@ def test_an_array_time_builds_a_grid_and_does_not_average() -> None:
     assert abs(ends[1] - ends[0]) / abs(ends[0]) > 0.5
 
 
-def test_from_density_rejects_a_multidimensional_time() -> None:
-    """A 2-D ``t`` still has no meaning and must not reach the build.
+@pytest.mark.parametrize(
+    ("t", "match"),
+    [
+        pytest.param(
+            u.Q(jnp.zeros((2, 2)), "Gyr"),
+            "must be a scalar or 1-D",
+            id="two-dimensional",
+        ),
+        pytest.param(
+            u.Q(jnp.asarray([0.0]), "Gyr"),
+            "at least 2 entries to interpolate between .*pass a scalar",
+            id="single-entry-grid",
+        ),
+    ],
+)
+def test_from_density_rejects_a_malformed_build_time(t, match: str) -> None:
+    """A ``t`` that is neither a scalar nor a usable grid must not reach the build.
 
-    The silent-averaging hazard above is why this cannot simply be passed
-    through to `harmonic_coeffs`.
+    The 2-D case is the silent-averaging hazard: `harmonic_coeffs` broadcasts
+    ``t`` against the angular grid, so it would not fail -- it would average
+    the expansion over those times and return it as though it were one.
+
+    The length-1 case is the other end. It cannot be interpolated, and it is
+    not the same request as a scalar: a caller who wrapped a single time in
+    an array wants to be told so rather than handed a grid build with one
+    knot.
+
+    The match is deliberately specific. Deleting `_check_build_times`' guard
+    does not make a length-1 grid succeed -- `time_interpolated_parameter`
+    refuses it too -- so a loose match passes either way, which is why the
+    mutation survived the suite before. What the guard actually buys is the
+    *better* failure: it names ``t``, suggests a scalar, and fires before the
+    vmapped build runs, where the downstream one names ``ts`` (an argument the
+    caller never passed) and only after paying for the build.
     """
 
     def rho(xyz, t):
         return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
 
-    with pytest.raises(ValueError, match="must be a scalar or 1-D"):
+    with pytest.raises(ValueError, match=match):
         MultipoleProfilePotential.from_density(
             rho,
             r_min=u.Q(1e-2, "kpc"),
@@ -619,7 +648,7 @@ def test_from_density_rejects_a_multidimensional_time() -> None:
             n_r=16,
             l_max=0,
             units="galactic",
-            t=u.Q(jnp.zeros((2, 2)), "Gyr"),
+            t=t,
         )
 
 

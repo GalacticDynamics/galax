@@ -477,3 +477,93 @@ def test_solve_poisson_rejects_an_empty_gauss_legendre_axis() -> None:
 
     with pytest.raises(ValueError, match="at least one Gauss-Legendre node"):
         solve_poisson_profiles(*args, jnp.zeros((63, 0, 1)))
+
+
+def test_an_out_of_range_anchor_falls_back_instead_of_sliding() -> None:
+    """``first_ok`` past the grid must disable anchoring, not clamp inward.
+
+    `first_ok` is this function's own public parameter, so a caller may hand
+    it any value; `build_expansion` clamps well below the grid, which is why
+    no build-level test reaches here.
+
+    Clipping an out-of-range anchor to ``n - 3`` slides it to the *outer*
+    edge, zeroes every panel, and replaces the whole inner integral with a
+    power law fitted at ``r_max`` -- 25% error on a Hernquist monopole where
+    falling back gives 2.3e-08. There is no inner band left to model, so the
+    answer is not to anchor at all.
+    """
+    n_r = 512
+    r = jnp.geomspace(1e-6, 1e6, n_r)
+    rho = (r**-2.5)[:, None]
+    l_arr = jnp.asarray([0.0])
+
+    def solve(first_ok: float):
+        got, _, _ = solve_poisson_profiles(
+            r, rho, l_arr, jnp.asarray(1.0), None, jnp.asarray([first_ok])
+        )
+        return got
+
+    want = solve(0.0)
+    for first_ok in (float(n_r), 1e6):
+        assert jnp.array_equal(solve(first_ok), want), first_ok
+
+
+_MARGIN_BOUND = {0.0: 1e-6, 2.0: 1e-6, 4.0: 1e-5, 8.0: 1e-4}
+"""Per-`l` bounds for the test below; see the comment on the assertion."""
+
+
+@pytest.mark.parametrize("l", [0.0, 2.0, 4.0, 8.0])
+def test_the_inner_tail_is_exact_when_anchored_above_dropped_samples(l) -> None:
+    r"""Anchoring above a zeroed band must still integrate ``[0, r_i0]`` exactly.
+
+    A pure power law is the case where the tail model is the truth rather
+    than an approximation: for :math:`\rho = A r^\alpha`,
+
+    .. math::
+
+        \Phi_l(r) = \frac{-4\pi G A r^{\alpha+2}}{2l+1}
+                    \left(\frac{1}{\alpha+l+3} - \frac{1}{\alpha+2-l}\right)
+
+    exactly, provided both integrals converge (:math:`\alpha > -l-3` and
+    :math:`\alpha < l-2`). So zeroing the inner knots and anchoring the tail
+    above them must reproduce the same answer as not zeroing at all -- the
+    analytic tail covers exactly what was discarded.
+
+    REGRESSION (the margin): `fit_log_spline` is a *global* tridiagonal
+    solve, so a zero-to-real step perturbs the fitted derivative for several
+    knots around it, decaying by roughly the solve's Green's function (0.27
+    per knot). Panel ``i0`` reads that derivative, so anchoring right at the
+    step integrates a corrupted slope: measured 6.4e-4 there against 5.0e-8
+    eight knots above, on this very case. `_ANCHOR_MARGIN` is what moves the
+    anchor clear of it, and without it this test fails by four orders.
+    """
+    alpha, amp, n_r, drop = -2.5, 1.0, 512, 64
+    r = jnp.geomspace(1e-6, 1e6, n_r)
+    rho = (amp * r**alpha)[:, None]
+    l_arr = jnp.asarray([l])
+
+    zeroed = jnp.where(jnp.arange(n_r)[:, None] < drop, 0.0, rho)
+    phi, _, _ = solve_poisson_profiles(
+        r, zeroed, l_arr, jnp.asarray(1.0), None, jnp.asarray([float(drop)])
+    )
+
+    # Compare well above the anchor, where the answer is the closed form.
+    lo = drop + 24
+    rr = r[lo:]
+    want = (
+        -4.0
+        * jnp.pi
+        * amp
+        * rr ** (alpha + 2.0)
+        / (2.0 * l + 1.0)
+        * (1.0 / (alpha + l + 3.0) - 1.0 / (alpha + 2.0 - l))
+    )
+    got = phi[lo:, 0]
+    err = float(jnp.max(jnp.abs(got - want)) / jnp.max(jnp.abs(want)))
+    # Per `l`, because a shared bound pins almost nothing. At `l = 8` the
+    # answer is quadrature-limited at 6.2e-05 whatever the margin is (6.165e-05
+    # at margin 8, 4, 2 and 0 alike), so a bound loose enough for `l = 8` lets
+    # the margin go to 4 unnoticed -- which it did. Only `l = 0` and `l = 2`
+    # discriminate: 4.0e-08 and 4.0e-07 here against 4.1e-06 and 1.9e-06 at
+    # margin 4.
+    assert err < _MARGIN_BOUND[l], (l, err)

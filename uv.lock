@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -393,7 +393,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.24.1"
+version = "0.24.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -415,9 +415,9 @@ dependencies = [
     { name = "xmmutablemap" },
     { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/38/62/b6b7ca9a8981c3c8fe4f3caff4bc543d057ae050c712886f83d9bb4c3c3b/coordinax-0.24.1.tar.gz", hash = "sha256:fd16f5821e41ce78b1b98b58bd2e9185b209fd07d8f02551746ee7f0519e6ce5", size = 729782, upload-time = "2026-10-06T21:41:08.834Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a5/31/5cfadf65d9d6c4eb103cf97b7649789a68a3311503bcbaec2f0f6cfc600e/coordinax-0.24.2.tar.gz", hash = "sha256:319448c79e2ddd62eb88e75a211470307ea857f34d761db27df4670dfcacd1be", size = 729836, upload-time = "2026-10-11T00:25:20.198Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/d6/c1acc6b434e254a0698ce29b96047a9654229e4b68710da4377322cafa81/coordinax-0.24.1-py3-none-any.whl", hash = "sha256:f25bbd87ed19b00cf6e754a1785ccd8a9dcee7bf2dc55c1d63abde5970af3ca2", size = 195563, upload-time = "2026-10-06T21:41:07.365Z" },
+    { url = "https://files.pythonhosted.org/packages/35/b9/48e53284c5e6f0d6a66c7662dee4ca9630787d4f73c97d98f6eacc605e28/coordinax-0.24.2-py3-none-any.whl", hash = "sha256:1b16cf655a1bf5573c6c217a85db3c69a4c17cb7b812412310afb094eb232e8b", size = 195398, upload-time = "2026-10-11T00:25:18.5Z" },
 ]
 
 [[package]]
@@ -915,7 +915,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.22.9" },
-    { name = "coordinax", specifier = ">=0.24.1,<0.25" },
+    { name = "coordinax", specifier = ">=0.24.2,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
     { name = "diffraxtra", specifier = ">=1.5.2" },

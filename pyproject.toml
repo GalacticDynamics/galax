@@ -80,7 +80,9 @@ interop-all = [
 interop-astropy = ["galax.interop.astropy>0.0.3"]
 interop-gala = ["galax.interop.gala>0.0.3"]
 interop-galpy = ["galax.interop.galpy>0.0.3"]
-# TODO: agama
+# No agama extra: it has no wheels and its build is interactive, so it
+# cannot be resolved as a dependency. `docs/testing.rst` has the recipe
+# for building it by hand for local comparison tests.
 plot-all = ["galax[plot-matplotlib]"]
 plot-matplotlib = ["galax.interop.matplotlib>0.0.3"]
 

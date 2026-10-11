@@ -20,6 +20,24 @@ from galax.potential._src.params.core import CustomParameter
 _Q = Unless(u.AbstractQuantity, u.Q.from_)
 
 
+def _as_quantity(x: Any, name: str, example: str) -> Any:
+    """Coerce ``x`` to a `unxt.Quantity`, naming it if it carries no units.
+
+    Named, because the converter's own failure for the common wrong input --
+    a bare array or list -- is `TypeError: from_() missing 1 required
+    keyword-only argument: 'unit'`, which names neither the argument nor what
+    it wanted.
+    """
+    try:
+        return _Q(x)
+    except TypeError as exc:
+        msg = (
+            f"{name} must carry units (got {type(x).__name__}); "
+            f"pass e.g. u.Q(..., {example!r}) rather than a bare array"
+        )
+        raise TypeError(msg) from exc
+
+
 def _interpolate(
     t: gt.BBtQuSz0,
     ts: gt.QuSzAny,
@@ -126,21 +144,6 @@ def time_interpolated_parameter(ts: Any, values: Any, /) -> CustomParameter:
     Q(3.e+12, 'solMass')
 
     """
-
-    # Named, because the converter's own failure for the common wrong input --
-    # a bare array or list -- is `TypeError: from_() missing 1 required
-    # keyword-only argument: 'unit'`, which names neither the argument nor
-    # what it wanted.
-    def _as_quantity(x: Any, name: str, example: str) -> Any:
-        try:
-            return _Q(x)
-        except TypeError as exc:
-            msg = (
-                f"{name} must carry units (got {type(x).__name__}); "
-                f"pass e.g. u.Q(..., {example!r}) rather than a bare array"
-            )
-            raise TypeError(msg) from exc
-
     ts_ = _as_quantity(ts, "ts", "Gyr")
     values_ = _as_quantity(values, "values", "Msun")
     if ts_.ndim != 1:

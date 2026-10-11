@@ -432,29 +432,16 @@ def assert_gaussian_matches_galpy(
     z = xyz[2]
     phi = np.arctan2(xyz[1].value, xyz[0].value) * apyu.rad
 
-    # Ask galpy for plain floats. Whether it returns a float or an astropy
-    # `Quantity` is a *user* setting rather than a property of the call --
-    # `astropy-units` in `~/.galpyrc` -- so the comparison below is otherwise
-    # environment-dependent. It defaults to off, but on a machine where it is
-    # on these assertions raise `UnitConversionError`, astropy refusing to
-    # reconcile `km2 / s2` with a dimensionless tolerance, while CI stays
-    # green. The values are in physical units either way; only the wrapper
-    # differs, and this pins it.
+    # `quantity=False`: whether galpy returns a float or an astropy `Quantity`
+    # follows `astropy-units` in the reader's `~/.galpyrc`, so without it this
+    # comparison is environment-dependent. Values are physical either way.
     #
-    # `atol=0` on both, so the stated `rtol` is the only bar. `np.isclose`
-    # otherwise *adds* its own defaults to whatever is passed, and either one
-    # swamps a tolerance this tight: the previous absolute bound of 1e-2 on
-    # the potential was itself dwarfed by the default `rtol=1e-5`, which on a
-    # ~1e6 km2/s2 potential allows ~11.5 -- nine orders above the error being
-    # measured -- and the default `atol=1e-8` would likewise dominate a
-    # density of ~0.5.
+    # `atol=0`: `np.isclose` adds its defaults to what you pass, and both
+    # (`rtol=1e-5`, `atol=1e-8`) swamp a bound this tight.
     #
-    # Both sides are closed forms of the same analytic profile, so under the
-    # x64 the suite enables they agree to a few ulps: the worst of the three
-    # cases is 1.2e-15 on the potential and 3.6e-16 on the density. 1e-11
-    # keeps about four orders of headroom over that while still catching
-    # anything structural -- a wrong normalisation or a mishandled axis ratio
-    # moves these by 1e-3 or more.
+    # 1e-11: both sides are closed forms of the same profile and agree to
+    # ~1e-15 under x64 -- four orders of headroom, and still catches a wrong
+    # normalisation or axis ratio, which move these by 1e-3.
     galax_pot = convert(pot.potential(x, t=0), apyu.Quantity).to_value("km2 / s2")
     galpy_val = evaluatePotentials(galpy_pot, R, z, phi=phi, quantity=False)
     assert np.isclose(galax_pot, galpy_val, rtol=rtol_pot, atol=0.0)

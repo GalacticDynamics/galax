@@ -28,7 +28,6 @@ from collections.abc import Callable
 from jaxtyping import Array, Float
 
 import jax
-import numpy as np
 
 import quaxed.numpy as jnp
 
@@ -38,21 +37,12 @@ from galax.potential._src.harmonic import (
     fit_log_spline,
     harmonic_coeffs,
 )
-from galax.potential._src.harmonic.poisson import gl_log_nodes, solve_poisson_profiles
-
-
-def _log_floor(x: Float[Array, "..."], /) -> float:
-    r"""Smallest coefficient magnitude treated as non-zero inside ``log``.
-
-    Sized from the working dtype: a float64 constant such as ``1e-300``
-    underflows to *exactly zero* in float32 -- which is what a caller gets,
-    since `galax` does not enable x64 on import -- so the floor stops
-    flooring and an identically-zero mode takes ``log(0) = -inf``.
-
-    TODO: share this with the identical helper in `harmonic.poisson` once
-    this branch rebases onto a `main` that carries it (#870).
-    """
-    return 16.0 * float(np.finfo(x.dtype).tiny)
+from galax.potential._src.harmonic.asympt import _ln_huge
+from galax.potential._src.harmonic.poisson import (
+    _log_floor,
+    gl_log_nodes,
+    solve_poisson_profiles,
+)
 
 
 @ft.partial(jax.jit)
@@ -111,9 +101,6 @@ def subtract_inner_cusp(
     background = amplitude[None, :] * jnp.exp(alpha[None, :] * log_ratio[:, None])
     return rho_lm - background, alpha, amplitude
 
-
-_LN_HUGE_FRAC: float = 0.985
-"""Fraction of the dtype's overflow exponent the padded grid may use."""
 
 _GL_NODES: int = 5
 r"""Gauss-Legendre nodes per radial interval in the Poisson solve.
@@ -268,7 +255,7 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     # back `nan`. Capping degrades gracefully instead: the pad stops growing,
     # so such a caller gets less tail accuracy rather than no answer. In
     # float64 the budget is 699 and nothing physical comes close.
-    budget = _LN_HUGE_FRAC * float(np.log(np.finfo(r_knots.dtype).max))
+    budget = _ln_huge(r_knots)
     span = log_r[-1] - log_r[0]
     reach = jnp.minimum(reach, 0.5 * jnp.maximum(budget - span, 0.0))
     step = reach / n_pad

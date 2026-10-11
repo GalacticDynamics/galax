@@ -121,7 +121,8 @@ jobs:
         # previous portion's group installed.
         run: |
           failed=()
-          for pkg in $(ls packages); do
+          for dir in packages/*/; do
+            pkg=$(basename "$dir")
             echo "::group::$pkg"
             uv sync --no-default-groups --locked --package "$pkg" --group test &&
               uv run --no-sync pytest "packages/$pkg" -m"not slow" \

@@ -1,4 +1,4 @@
-"""Testing :mod:`galax.dynamics` module."""
+"""Testing :mod:`galax.coordinates` module."""
 
 import galax.coordinates as gc
 

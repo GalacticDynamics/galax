@@ -4,7 +4,7 @@ import galax.dynamics as gd
 
 
 def test_all() -> None:
-    """Test the `galax.potential` API."""
+    """Test the `galax.dynamics` API."""
     assert set(gd.__all__) == {
         # Modules
         "cluster",

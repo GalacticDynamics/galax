@@ -93,33 +93,17 @@ jobs:
       - name: Check the bare and subset install shapes
         run: ./scripts/check_install_shapes.sh
 
-  # The matrix is read from `packages/`, not written out, so a new portion is
-  # tested alone from its first PR -- forgetting a hand-written entry would
-  # fail nothing, since the whole-repo jobs below still collect it.
-  list-packages:
-    name: List packages
-    runs-on: ubuntu-latest
-    outputs:
-      packages: ${{ steps.list.outputs.packages }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - id: list
-        run:
-          echo "packages=$(ls packages | jq -Rnc '[inputs]')" >>
-          "$GITHUB_OUTPUT"
-
   # Each portion synced with only its own `test` group, none of its siblings'.
   # The whole-repo jobs sync the root group, a superset of every portion's, so
   # a dependency a portion uses but does not declare passes there and fails
-  # only here.
-  package:
-    name: Test ${{ matrix.package }} alone
+  # only here. One job looping over `packages/`, not a matrix: a leg per portion
+  # would hold seven runner slots, and concurrent PRs already queue on those.
+  # The loop still finishes inside the slowest `checks` leg. Reading the list
+  # from `packages/` means a new portion is tested alone from its first PR.
+  packages:
+    name: Test each package alone
     runs-on: ubuntu-latest
-    needs: [smoke, list-packages]
-    strategy:
-      fail-fast: false
-      matrix:
-        package: ${{ fromJSON(needs.list-packages.outputs.packages) }}
+    needs: [smoke]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv
@@ -131,14 +115,24 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version-file: ".python-version"
-      - name: Install the package
-        run: >-
-          uv sync --no-default-groups --locked --package ${{ matrix.package }}
-          --group test
-      - name: Test package
-        run: >-
-          uv run --no-sync pytest packages/${{ matrix.package }} -m"not slow" -n
-          logical --dist=loadfile
+      - name: Test each package alone
+        # Every portion runs even after one fails, so a single push reports
+        # them all. `uv sync` is exact: each iteration removes what the
+        # previous portion's group installed.
+        run: |
+          failed=()
+          for pkg in $(ls packages); do
+            echo "::group::$pkg"
+            uv sync --no-default-groups --locked --package "$pkg" --group test &&
+              uv run --no-sync pytest "packages/$pkg" -m"not slow" \
+                -n logical --dist=loadfile ||
+              failed+=("$pkg")
+            echo "::endgroup::"
+          done
+          if (( ${#failed[@]} )); then
+            echo "::error::Failed when tested alone: ${failed[*]}"
+            exit 1
+          fi
 
   checks:
     name: Check Python ${{ matrix.python-version }} on ${{ matrix.runs-on }}
@@ -293,7 +287,7 @@ jobs:
         pre-commit,
         smoke,
         install-shapes,
-        package,
+        packages,
         checks,
         check_interop,
         benchmark,

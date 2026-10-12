@@ -207,14 +207,11 @@ once the cap binds, and the grid tends to ``n_r + 256`` rather than
 def _check_enough_knots(n_r: int, /) -> None:
     """Reject a grid too small for the three-knot boundary fits.
 
-    Four knots, matching `MultipoleProfilePotential.from_density`: the
-    boundary slopes are fitted over three. This has to be checked *before*
-    padding, because padding defeats the ``n_r >= 3`` guard inside the radial
-    solve -- a single knot pads to three and sails through it.
-
-    It also has to be checked at all: ``r_knots[1]`` on a one-knot grid is out
-    of bounds, and JAX clamps rather than raising, so the ratio comes out as 1
-    and every padded knot lands on top of the original.
+    Checked before padding, which defeats the ``n_r >= 3`` guard inside the
+    radial solve: a single knot pads to three and sails through it. And
+    checked at all because ``r_knots[1]`` on a one-knot grid is out of
+    bounds, where JAX clamps rather than raising, so the ratio comes out as 1
+    and every padded knot lands on the original.
     """
     if n_r < 4:
         msg = (
@@ -225,28 +222,18 @@ def _check_enough_knots(n_r: int, /) -> None:
 
 
 def _requested_reach(log_r: Float[Array, "n_r"], /) -> Float[Array, ""]:
-    """Pad reach asked for by `_PAD_MULTIPLE`, capped by the solver's own range.
+    """Pad reach asked for by `_PAD_MULTIPLE`, capped to what the dtype holds.
 
     The largest power the solve forms is :math:`x^2` about the padded grid's
     log-midpoint, so the padded span must fit the dtype's overflow exponent;
     everything carrying an :math:`l` is held in scaled form (see
     `harmonic.poisson._scaled_prefix`) and is bounded by this.
 
-    A caller asking for ``[1e-6, 1e6]`` already spans 27.6 e-folds; two spans
-    either side would be 138, past float32's 87.4, and the build came back
-    `nan`. Capping degrades gracefully: the pad stops growing, so such a
-    caller gets less tail accuracy rather than no answer. In float64 the
-    budget is 699 and nothing physical comes close.
-
-    This bounds `galax`'s *own* arithmetic only, and is deliberately the only
-    thing that sets the reach. Whether the caller's density survives being
-    evaluated that far out is a separate question, answered by zeroing what
-    cannot be represented and anchoring the radial solve's inner tail above
-    it -- see `solve_poisson_profiles`. Shortening the pad instead was tried
-    and measured worse: it costs every caller tail accuracy to avoid an
-    overflow the tail models. Models rather than handles -- the tail assumes
-    the dropped band is the same power law as the knots above it, which is
-    what a cusp is and what a cored profile is not.
+    The cap binds in float32, where the budget is 87.4: ``[1e-6, 1e6]`` spans
+    27.6 e-folds and two spans a side would be 138. Capping degrades
+    gracefully -- the pad stops growing, so such a caller gets less tail
+    accuracy rather than `nan`. In float64 the budget is 699 and nothing
+    physical comes close.
     """
     span = log_r[-1] - log_r[0]
     budget = _ln_huge(log_r)
@@ -289,9 +276,8 @@ def _pad_grid(r_knots: Float[Array, "n_r"], /) -> tuple[Float[Array, "n_pad"], i
     # multiple of `n_r`. At n_r=512 that is 128 knots a side instead of 1024,
     # a 3.4x cheaper build that matches the old one to round-off.
     log_r = jnp.log(r_knots)
-    reach = _requested_reach(log_r)
     n_pad = min(n_r * _PAD_MULTIPLE, _PAD_KNOTS)
-    step = reach / n_pad
+    step = _requested_reach(log_r) / n_pad
     lo = jnp.exp(log_r[0] - step * jnp.arange(n_pad, 0, -1))
     hi = jnp.exp(log_r[-1] + step * jnp.arange(1, n_pad + 1))
     return jnp.concat([lo, r_knots, hi]), n_pad
@@ -355,7 +341,6 @@ def build_expansion(
     parameters. `expansion`'s module docstring lists the keys; keeping the
     count out of this sentence keeps the two from drifting apart.
     """
-    _check_enough_knots(r_knots.shape[0])
     log_r = jnp.log(r_knots)
     l_per_mode = jnp.asarray([float(l) for l, _ in keys])
 

@@ -607,9 +607,11 @@ def solve_poisson_profiles(
         # is `(x_i0/x_0)^(l+1)` and overflows for exactly the deep `i0` this
         # exists to handle. The panel is already in `x_i0^(l+1)` units.
         #
-        # The dropped panels are not merely zero-valued: `p_in[i0-1]` spans
-        # `[i0-1, i0]`, from a zeroed sample to a real one, so the rule would
-        # read a spurious step there.
+        # Every panel below the anchor goes because `dI_in` replaces them: it
+        # carries the whole of `[0, r_i0]`, so anything left under `i0` would
+        # be counted twice. That sweep also removes panel `first_ok - 1`, the
+        # one that straddles the zero-to-real step -- `p_in[i0-1]` itself does
+        # not, since the margin puts both its samples above `first_ok`.
         panel_idx = jnp.arange(p_in.shape[0])
         p_in = jnp.where(panel_idx < i0, 0.0, p_in)
         p_in = p_in + dI_in * (panel_idx == i0 - 1)

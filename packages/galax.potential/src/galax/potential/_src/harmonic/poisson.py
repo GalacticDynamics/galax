@@ -277,10 +277,11 @@ def solve_poisson_profiles(
         a mismatched ``rho_gl`` broadcasts rather than failing, and would
         otherwise return finite numbers from the wrong integrals.
     """
-    # Three knots is what the boundary slope fits need. A short grid does not
-    # fail on its own: static slicing clamps, so `rho_col[:3]` quietly becomes
-    # a 2-point fit and `n_r == 1` returns a meaningless zero. `n_r` is a
-    # shape, so this is checked at trace time and costs nothing at runtime.
+    # Three knots is what the boundary slope fits need -- `rho_col[tri]`
+    # inward, `rho_col[-3:]` outward. A short grid does not fail on its own:
+    # static slicing clamps, so two knots give a silently 2-point fit and one
+    # gives `nan`. `n_r` is a shape, so this is checked at trace time and
+    # costs nothing at runtime.
     if (n_r := r_knots.shape[0]) < 3:
         msg = f"The radial Poisson solve needs at least 3 radial knots, got {n_r}."
         raise ValueError(msg)
@@ -573,14 +574,15 @@ def solve_poisson_profiles(
         # true tail is ~1e3 times what `_SLOPE_TOL` yields. Inside the clamped
         # window the tail is therefore dropped, not scaled -- the same
         # conservative treatment as just across the exp_in <= 0 boundary.
-        # Normalise by the retained column, not the whole one. The whole
-        # column's maximum is its deepest sample, which for a cusp is the
-        # largest by far; `rho_col[i0]` sits `_ANCHOR_MARGIN` knots above it,
-        # smaller by `exp(-alpha * margin * step)`. Once that ratio falls
-        # below `sqrt(eps)` the gate rejects and the tail is dropped -- the
-        # exact failure the anchor exists to prevent, re-created by its own
-        # margin. Before anchoring, `i0` was always 0 and the two were the
-        # same quantity, so the gate could never fire this way.
+        # Normalise by the retained column, not the whole one. Zeroing leaves
+        # the whole column's maximum at `first_ok`, its deepest surviving
+        # sample, which for a cusp is the largest by far; `rho_col[i0]` sits
+        # `_ANCHOR_MARGIN` knots above that, smaller by
+        # `exp(-alpha * margin * step)`. Once the ratio falls below
+        # `sqrt(eps)` the gate rejects and the tail is dropped -- the exact
+        # failure the anchor exists to prevent, re-created by its own margin.
+        # Before anchoring, `i0` was always 0 and the two were the same
+        # quantity, so the gate could never fire this way.
         #
         # This is the activity test -- "is there any density here at all" --
         # not a test on the modelled band, so the retained column is the

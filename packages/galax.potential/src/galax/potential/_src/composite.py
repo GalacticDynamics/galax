@@ -5,8 +5,9 @@ __all__ = ["CompositePotential"]
 
 from dataclasses import KW_ONLY
 
+from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any, ClassVar, TypeAlias, cast, final
+from typing import Any, ClassVar, TypeAlias, final
 
 import equinox as eqx
 
@@ -30,9 +31,9 @@ class UnitsOptionEnum(eqx.Enumeration):  # type: ignore[misc]
 
 
 @final
-class CompositePotential(
+class CompositePotential(  # type: ignore[misc]
     AbstractCompositePotential,
-    ImmutableMap[str, AbstractPotential],  # type: ignore[misc]
+    Mapping[str, AbstractPotential],
 ):
     """Composite Potential.
 
@@ -83,7 +84,7 @@ class CompositePotential(
         constants: Any = default_constants,
         **kwargs: AbstractPotential,
     ) -> None:
-        ImmutableMap.__init__(self, potentials, **kwargs)  # <- ImmutableMap.__init__
+        self._data = dict(potentials, **kwargs)
 
         # __post_init__ stuff:
         # Check that all potentials have the same unit system
@@ -108,4 +109,4 @@ class CompositePotential(
         self._apply_unitsystem()
 
     def __repr__(self) -> str:  # TODO: not need this hack
-        return cast("str", ImmutableMap.__repr__(self))
+        return f"{type(self).__name__}({self._data!r})"

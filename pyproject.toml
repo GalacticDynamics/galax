@@ -53,7 +53,7 @@ dependencies = [
   "unxt>=2.0.5,<3",
   "unxts.parametric>=2.0,<3",
   "wadler_lindig>=0.1.7",
-  "xmmutablemap>=0.2.1",
+  "xmmutablemap>=0.3.1",
   "zeroth>=1.2.0",
 ]
 

@@ -949,7 +949,7 @@ requires-dist = [
     { name = "unxts-interop-gala", marker = "extra == 'interop-gala'", specifier = ">=2.0,<3" },
     { name = "unxts-parametric", specifier = ">=2.0,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
-    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "xmmutablemap", specifier = ">=0.3.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
 ]
 provides-extras = ["all", "interop-all", "interop-astropy", "interop-gala", "interop-galpy", "plot-all", "plot-matplotlib"]

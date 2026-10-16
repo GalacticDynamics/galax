@@ -20,7 +20,7 @@ classifiers = [
 # the root of the import graph. Packaging is what enforces that, which is the
 # point of carving it out first.
 dependencies = [
-  "coordinax>=0.24.2,<0.25",
+  "coordinax>=0.24.3,<0.25",
   "dataclassish>=0.8.0",
   "equinox>=0.13.8",
   "jax>=0.7.2",

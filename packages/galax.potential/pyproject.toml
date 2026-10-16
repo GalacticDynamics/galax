@@ -32,7 +32,7 @@ classifiers = [
 dependencies = [
   "astropy>=7.0.0",
   "boundinstance>=0.1",
-  "coordinax>=0.24.2,<0.25",
+  "coordinax>=0.24.3,<0.25",
   "dataclassish>=0.8.0",
   "equinox>=0.13.8",
   "galax.coordinates",

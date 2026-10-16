@@ -4,10 +4,17 @@ __all__ = ["AbstractCompositePhaseSpaceCoordinate"]
 
 from abc import abstractmethod
 
-from collections.abc import Hashable, Mapping
+from collections.abc import (
+    Hashable,
+    ItemsView,
+    Iterator,
+    KeysView,
+    Mapping,
+    ValuesView,
+)
 from jaxtyping import Shaped
 from types import MappingProxyType
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 import equinox as eqx
 from plum import dispatch
@@ -16,7 +23,6 @@ import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
 from dataclassish import field_items
-from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
 import galax.coordinates.custom_types as gt
@@ -26,7 +32,7 @@ from galax.coordinates._src.utils import PSPVConvertOptions, getitem
 
 class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     AbstractPhaseSpaceCoordinate,
-    ImmutableMap[str, AbstractPhaseSpaceCoordinate],  # type: ignore[misc]
+    Mapping[str, AbstractPhaseSpaceCoordinate],
 ):
     r"""Abstract base class of composite phase-space coordinates.
 
@@ -35,9 +41,8 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
     dynamical system. It is composed of multiple phase-space coordinates, each
     of which represents a component of the system.
 
-    The input signature matches that of :class:`dict` (and
-    :class:`~xmmutablemap.ImmutableMap`), so you can pass in the components as
-    keyword arguments or as a dictionary.
+    The input signature matches that of :class:`dict`, so you can pass in the
+    components as keyword arguments or as a dictionary.
 
     The components are stored as a dictionary and can be key accessed. However,
     the composite phase-space coordinate itself acts as a single
@@ -103,7 +108,7 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
         /,
         **kwargs: AbstractPhaseSpaceCoordinate,
     ) -> None:
-        ImmutableMap.__init__(self, psps, **kwargs)  # <- ImmutableMap.__init__
+        self._data = dict(psps, **kwargs)
 
     # ==========================================================================
     # PSP API
@@ -161,11 +166,26 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
         # For length-0 components, we assume a length of 1.
         return sum([len(w) or 1 for w in self.values()])
 
+    def __contains__(self, key: Any) -> bool:
+        return key in self._data
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._data)
+
+    def keys(self) -> KeysView[str]:
+        return self._data.keys()
+
+    def values(self) -> ValuesView[AbstractPhaseSpaceCoordinate]:
+        return self._data.values()
+
+    def items(self) -> ItemsView[str, AbstractPhaseSpaceCoordinate]:
+        return self._data.items()
+
     # ===============================================================
     # Python API
 
     def __repr__(self) -> str:  # TODO: not need this hack
-        return cast("str", ImmutableMap.__repr__(self))
+        return f"{type(self).__name__}({self._data!r})"
 
     # ===============================================================
     # Collection methods

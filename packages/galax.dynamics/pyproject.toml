@@ -26,7 +26,7 @@ classifiers = [
 # this project's `requires-python` floor. Tracked repo-wide in #920.
 dependencies = [
   "boundinstance>=0.1",
-  "coordinax>=0.24.2,<0.25",
+  "coordinax>=0.24.3,<0.25",
   "dataclassish>=0.8.0",
   "diffrax>=0.7",
   "diffraxtra>=1.5.2",
@@ -43,7 +43,7 @@ dependencies = [
   "plum>=2.9.0; python_version >= '3.14'",
   "quaxed>=0.10.5",
   "unxt>=2.0.5,<3",
-  "xmmutablemap>=0.2.1",
+  "xmmutablemap>=0.3.1",
   "zeroth>=1.2.0",
 ]
 description = "Orbit integration and stellar dynamics for galax"

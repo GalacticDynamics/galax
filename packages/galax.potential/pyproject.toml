@@ -32,7 +32,7 @@ classifiers = [
 dependencies = [
   "astropy>=7.0.0",
   "boundinstance>=0.1",
-  "coordinax>=0.24.2,<0.25",
+  "coordinax>=0.24.3,<0.25",
   "dataclassish>=0.8.0",
   "equinox>=0.13.8",
   "galax.coordinates",
@@ -53,7 +53,7 @@ dependencies = [
   "unxt>=2.0.5,<3",
   "unxts.parametric>=2.0,<3",
   "wadler_lindig>=0.1.7",
-  "xmmutablemap>=0.2.1",
+  "xmmutablemap>=0.3.1",
   "zeroth>=1.2.0",
 ]
 description = "Gravitational potentials for galax"

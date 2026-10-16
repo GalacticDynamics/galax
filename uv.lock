@@ -393,7 +393,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.24.2"
+version = "0.24.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -415,9 +415,9 @@ dependencies = [
     { name = "xmmutablemap" },
     { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/31/5cfadf65d9d6c4eb103cf97b7649789a68a3311503bcbaec2f0f6cfc600e/coordinax-0.24.2.tar.gz", hash = "sha256:319448c79e2ddd62eb88e75a211470307ea857f34d761db27df4670dfcacd1be", size = 729836, upload-time = "2026-10-11T00:25:20.198Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/e9/368bb23a25fc71a45dbab647abb94abe2fd1ea1cf75b5e1a7b84ed658e99/coordinax-0.24.3.tar.gz", hash = "sha256:b0e3b4815904a3ac49e8e79b8a77d9f8fcbbb2ad551715ced216ab2e1a326b9b", size = 729911, upload-time = "2026-10-16T01:20:56.963Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/b9/48e53284c5e6f0d6a66c7662dee4ca9630787d4f73c97d98f6eacc605e28/coordinax-0.24.2-py3-none-any.whl", hash = "sha256:1b16cf655a1bf5573c6c217a85db3c69a4c17cb7b812412310afb094eb232e8b", size = 195398, upload-time = "2026-10-11T00:25:18.5Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/37/3c5f0e03c0ef69cbea3245c17cde4466328193ba9f8a32c58839c4fc7a26/coordinax-0.24.3-py3-none-any.whl", hash = "sha256:b458f0b14d709dc9f14224bfeca80f35fbd247d08079449fe0f65e603b6b0bc1", size = 195403, upload-time = "2026-10-16T01:20:55.275Z" },
 ]
 
 [[package]]
@@ -915,7 +915,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.22.9" },
-    { name = "coordinax", specifier = ">=0.24.2,<0.25" },
+    { name = "coordinax", specifier = ">=0.24.3,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
@@ -2842,15 +2842,15 @@ wheels = [
 
 [[package]]
 name = "xmmutablemap"
-version = "0.2.1"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/a6/c4043eb00f297956a5447109985f41fabb0adbbf80786a21c2949f798ba4/xmmutablemap-0.2.1.tar.gz", hash = "sha256:38a881b0fcc54352e2751628d11519d023bc6677e978483736f8f51b45c7147f", size = 97896, upload-time = "2025-10-22T01:22:00.219Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/87/9a/911df791a061581d7f489e47014b58fe4481fb18bc42fd766878c5e8b6b9/xmmutablemap-0.3.0.tar.gz", hash = "sha256:b7ef5fe4d2b9384caed8960caafe6ac1533796e63cc365530c3ab373deb93bcb", size = 175402, upload-time = "2026-10-11T00:20:03.668Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/89/4628be42c56e0063b2158a468fc0de3e21285800f8cab07f2d3be684c763/xmmutablemap-0.2.1-py3-none-any.whl", hash = "sha256:002f97986e1cc343d362e38eae62a0a51ca7b76bd3b1de0f70a8f05dbe2b8c5c", size = 7584, upload-time = "2025-10-22T01:21:58.821Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/fd/83a629140db9a35e4bdb54f85dee79ea800d425c86a99cb533dcf02adfdf/xmmutablemap-0.3.0-py3-none-any.whl", hash = "sha256:3d3d488c9cac3928750c49305fc84f61c22f3281bd30718654734312ab1b3b1f", size = 13115, upload-time = "2026-10-11T00:20:02.219Z" },
 ]
 
 [[package]]

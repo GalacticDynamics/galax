@@ -984,7 +984,7 @@ requires-dist = [
     { name = "unxt", specifier = ">=2.0.5,<3" },
     { name = "unxts-parametric", specifier = ">=2.0,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
-    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "xmmutablemap", specifier = ">=0.3.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
 ]
 provides-extras = ["all", "interop-all", "interop-astropy", "interop-gala", "interop-galpy", "plot-all", "plot-matplotlib"]
@@ -1089,7 +1089,7 @@ requires-dist = [
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
-    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "xmmutablemap", specifier = ">=0.3.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
 ]
 
@@ -1160,7 +1160,7 @@ requires-dist = [
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
-    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "xmmutablemap", specifier = ">=0.3.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
 ]
 
@@ -1432,7 +1432,7 @@ requires-dist = [
     { name = "unxt", specifier = ">=2.0.5,<3" },
     { name = "unxts-parametric", specifier = ">=2.0,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
-    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "xmmutablemap", specifier = ">=0.3.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
 ]
 

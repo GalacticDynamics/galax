@@ -32,7 +32,7 @@ dependencies = [
   "quaxed>=0.10.5",
   "unxt>=2.0.5,<3",
   "wadler_lindig>=0.1.7",
-  "xmmutablemap>=0.2.1",
+  "xmmutablemap>=0.3.1",
   "zeroth>=1.2.0",
 ]
 description = "Coordinate and phase-space types for galax"

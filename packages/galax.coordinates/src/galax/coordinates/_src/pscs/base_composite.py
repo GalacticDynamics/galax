@@ -167,6 +167,24 @@ class AbstractCompositePhaseSpaceCoordinate(  # type: ignore[misc,unused-ignore]
         return sum([len(w) or 1 for w in self.values()])
 
     def __contains__(self, key: Any) -> bool:
+        """Check if the key is a component.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.coordinates as gc
+
+        >>> w = gc.PhaseSpaceCoordinate(q=u.Q([1, 2, 3], "m"),
+        ...                             p=u.Q([4, 5, 6], "m/s"),
+        ...                             t=u.Q(7, "s"))
+        >>> cw = gc.CompositePhaseSpaceCoordinate(w1=w)
+
+        >>> "w1" in cw
+        True
+        >>> "w2" in cw
+        False
+
+        """
         return key in self._data
 
     def __iter__(self) -> Iterator[str]:

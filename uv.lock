@@ -2807,15 +2807,15 @@ wheels = [
 
 [[package]]
 name = "xmmutablemap"
-version = "0.3.0"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/87/9a/911df791a061581d7f489e47014b58fe4481fb18bc42fd766878c5e8b6b9/xmmutablemap-0.3.0.tar.gz", hash = "sha256:b7ef5fe4d2b9384caed8960caafe6ac1533796e63cc365530c3ab373deb93bcb", size = 175402, upload-time = "2026-10-11T00:20:03.668Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/92/f4/ea72d36313924c94c073e7c71af6584e10517e8be2c77ce0774f98913396/xmmutablemap-0.3.1.tar.gz", hash = "sha256:2f38060deb80ae75dc6bd150d0dac87b1e098d08301482267e579ca5b9cb4aa1", size = 176274, upload-time = "2026-10-16T01:47:12.045Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f7/fd/83a629140db9a35e4bdb54f85dee79ea800d425c86a99cb533dcf02adfdf/xmmutablemap-0.3.0-py3-none-any.whl", hash = "sha256:3d3d488c9cac3928750c49305fc84f61c22f3281bd30718654734312ab1b3b1f", size = 13115, upload-time = "2026-10-11T00:20:02.219Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/2d/fa9208602efe8a8705a6dba55e45e9fb239c07532d08501971d08ba874a5/xmmutablemap-0.3.1-py3-none-any.whl", hash = "sha256:fb5d36c699fb7b80ed2d0cf34a94d6d5f6df1076ad7773adec1cf7f5e76c32ab", size = 13744, upload-time = "2026-10-16T01:47:10.728Z" },
 ]
 
 [[package]]

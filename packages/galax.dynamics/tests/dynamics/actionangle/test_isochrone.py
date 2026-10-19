@@ -100,3 +100,69 @@ def test_isochrone_jit_vmap_no_retrace():
         out = g(jnp.stack([p[0] for p in pts]), jnp.stack([p[1] for p in pts]))
         assert out[0].shape == (5, 3)
     assert n[0] == 1
+
+
+@pytest.mark.parametrize("r", [0.7, 1.5, 3.0])
+@pytest.mark.parametrize("eps", [0.0, 1e-12, 1e-9, 1e-6])
+def test_isochrone_near_circular_finite(r, eps):
+    # circular speed: v^2 = r Phi'(r) = GM r^2 / (s (b + s)^2), s = sqrt(b^2+r^2)
+    s = np.sqrt(B**2 + r**2)
+    vc = np.sqrt(GM * r**2 / (s * (B + s) ** 2)) * (1 + eps)
+    x = jnp.array([r * 0.6, r * 0.8, 0.0])
+    v = jnp.array([-0.8 * vc, 0.6 * vc, 0.0])
+    out = _isochrone_aaf(M, B, G, x, v)
+    assert all(jnp.all(jnp.isfinite(o)) for o in out)
+    jac = jax.jacfwd(_flat, argnums=(0, 1, 2))(x, v, jnp.asarray(B))
+    assert all(jnp.all(jnp.isfinite(j)) for j in jac)
+
+
+@pytest.mark.parametrize(
+    ("x", "v"),
+    [
+        ([0.0, 0.0, 1.5], [0.3, 0.2, 0.1]),  # on the z axis
+        ([0.0, 0.0, 0.0], [0.3, 0.2, 0.1]),  # origin
+    ],
+)
+def test_isochrone_axis_and_origin_finite(x, v):
+    x, v = jnp.array(x), jnp.array(v)
+    assert all(jnp.all(jnp.isfinite(o)) for o in _isochrone_aaf(M, B, G, x, v))
+    jac = jax.jacfwd(_flat, argnums=(0, 1, 2))(x, v, jnp.asarray(B))
+    assert all(jnp.all(jnp.isfinite(j)) for j in jac)
+
+
+@pytest.mark.parametrize(
+    ("x", "v"),
+    [
+        ([1.0, 0.5, 0.4], [0.1, 0.5, -0.2]),  # generic
+        ([1.0, -0.3, 0.6], [0.2, -0.4, 0.3]),  # retrograde, inclined
+        ([1.0, 0.0, 0.5], [0.2, 0.0, 0.5]),  # polar, Lz = 0
+    ],
+)
+def test_isochrone_angles_advance_linearly(x, v):
+    """Integrate the orbit; theta(t) - theta(0) must equal Omega t (mod 2 pi)."""
+    import diffrax as dfx
+
+    x0, v0 = jnp.array(x), jnp.array(v)
+
+    def rhs(t, y, args):
+        pos = y[:3]
+        s = jnp.sqrt(B**2 + pos @ pos)
+        return jnp.concat([y[3:], -GM * pos / (s * (B + s) ** 2)])
+
+    _, th0, Om = _isochrone_aaf(M, B, G, x0, v0)
+    ts = jnp.linspace(0.0, 2 * 2 * jnp.pi / Om[0], 25)
+    sol = dfx.diffeqsolve(
+        dfx.ODETerm(rhs),
+        dfx.Dopri8(),
+        0.0,
+        ts[-1],
+        None,
+        jnp.concat([x0, v0]),
+        saveat=dfx.SaveAt(ts=ts),
+        stepsize_controller=dfx.PIDController(rtol=1e-13, atol=1e-13),
+        max_steps=100_000,
+    )
+    th = jax.vmap(lambda y: _isochrone_aaf(M, B, G, y[:3], y[3:])[1])(sol.ys)
+    dth = th - th0 - ts[:, None] * Om
+    np.testing.assert_allclose(jnp.sin(dth), 0, atol=1e-8)
+    np.testing.assert_allclose(jnp.cos(dth), 1, atol=1e-8)

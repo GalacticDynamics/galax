@@ -80,7 +80,7 @@ the natural reference. Four things make the usual ``pip install agama`` fail:
    what it wanted. Build from the unpacked sdist instead, where answers can be
    piped in.
 
-One more does not fail the build but aborts the test run: agama links
+One more does not fail the build but aborts the test run: agama links against
 Homebrew's OpenMP runtime, and galpy's wheel bundles its own. With both
 loaded the process dies with ``OMP: Error #15: Initializing libomp.dylib,
 but found libomp.dylib already initialized``. Build agama without OpenMP --

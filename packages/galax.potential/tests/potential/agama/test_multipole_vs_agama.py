@@ -3,7 +3,7 @@
 Both multipole expansions are built from one Python density callable, so a
 disagreement measures the solvers, not two model definitions. Only potential
 and gradient are compared: density and hessian are reconstructions through
-different interpolants, so there a disagreement would measure the interpolant.
+different interpolants, so a disagreement there would measure the interpolant.
 """
 
 from types import ModuleType

@@ -362,6 +362,7 @@ filterwarnings = [
 ]
 log_cli_level = "INFO"
 markers = [
+  "agama: compares against agama; skipped unless --run-agama is passed",
   "serial",
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]

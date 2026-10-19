@@ -1,10 +1,10 @@
 """Tests for the analytic isochrone action-angle core."""
 
 import jax
-import jax.numpy as jnp
 import numpy as np
 import pytest
 
+import quaxed.numpy as jnp
 import unxt as u
 
 import galax.coordinates as gc

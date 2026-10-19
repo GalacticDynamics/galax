@@ -7,10 +7,19 @@ Sec. 3.5.2, with the erratum to Eq. 3.225), as pure single-point `jax.numpy`.
 __all__ = ["_isochrone_aaf"]
 
 from jaxtyping import Array
+from typing import Any
 
+import jax
 import jax.numpy as jnp
+from plum import dispatch
 
+import unxt as u
+
+import galax.coordinates as gc
+from ._parse import parse_qpt, parse_w, wrap_result
 from ._utils import safe_sqrt
+from .result import ActionsAnglesFrequencies
+from galax.potential import IsochronePotential
 
 _HALF_PI = jnp.pi / 2
 
@@ -77,7 +86,12 @@ def _angles(GM: Array, b: Array, E: Array, xyz: Array, v: Array) -> Array:
     den = jnp.sqrt(jnp.where(dL > 0, dL, 1.0)) * jnp.where(on_axis, 0.0, sin_t)
     den = jnp.where(dL > 0, den, 0.0)
     den_ok = den > 1e-12
-    sinu = jnp.where(den_ok, Lz * cos_t / jnp.where(den_ok, den, 1.0), 1.0)
+    # undefined node (planar orbit): retrograde (Lz < 0) is -pi/2, as in gala
+    sinu = jnp.where(
+        den_ok,
+        Lz * cos_t / jnp.where(den_ok, den, 1.0),
+        jnp.where(Lz < 0, -1.0, 1.0),
+    )
     inside = jnp.abs(sinu) < 1.0
     uu = jnp.where(
         inside, jnp.arcsin(jnp.where(inside, sinu, 0.0)), jnp.sign(sinu) * _HALF_PI
@@ -137,3 +151,43 @@ def _isochrone_aaf(
         [jnp.where(bound, Jr, nan), Lz, jnp.where(bound, L - jnp.abs(Lz), nan)]
     )
     return actions, jnp.where(bound, angles, nan), jnp.where(bound, freqs, nan)
+
+
+def _aaf(
+    pot: IsochronePotential, q: Array, p: Array, t: Array
+) -> tuple[Array, Array, Array]:
+    """Unitless batched transform; ``q``, ``p`` (..., 3) and ``t`` (...)."""
+    usys = pot.units
+    batch = q.shape[:-1]
+    tq = u.Q(t, usys["time"])
+    m_tot = jnp.broadcast_to(pot.m_tot(tq, ustrip=usys["mass"]), batch)
+    b = jnp.broadcast_to(pot.r_s(tq, ustrip=usys["length"]), batch)
+    G = pot.constants["G"].ustrip(
+        usys["length"] ** 3 / (usys["mass"] * usys["time"] ** 2)
+    )
+
+    def f(m: Array, b_: Array, x: Array, v: Array) -> tuple[Array, Array, Array]:
+        return _isochrone_aaf(m, b_, G, x, v)
+
+    for _ in batch:
+        f = jax.vmap(f)
+    return f(m_tot, b, q, p)
+
+
+@dispatch
+def isochrone_actions_angles_freqs(
+    pot: IsochronePotential, q: Any, p: Any, t: Any, /
+) -> ActionsAnglesFrequencies:
+    """Actions, angles and frequencies from positions, velocities and time."""
+    q, p, t, as_quantity = parse_qpt(pot, q, p, t)
+    t = jnp.broadcast_to(t, q.shape[:-1])
+    return wrap_result(*_aaf(pot, q, p, t), pot, as_quantity)
+
+
+@dispatch
+def isochrone_actions_angles_freqs(
+    pot: IsochronePotential, w: gc.AbstractPhaseSpaceCoordinate, /
+) -> ActionsAnglesFrequencies:
+    """Actions, angles and frequencies of a phase-space coordinate or orbit."""
+    q, p, t = parse_w(pot, w)
+    return wrap_result(*_aaf(pot, q, p, t), pot, as_quantity=True)

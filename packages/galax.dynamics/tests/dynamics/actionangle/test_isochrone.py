@@ -5,7 +5,17 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
+import unxt as u
+
+import galax.coordinates as gc
+import galax.dynamics as gd
+import galax.potential as gp
+from ..optional_deps import OptDeps
 from galax.dynamics._src.actionangle.isochrone import _isochrone_aaf
+from galax.dynamics.actionangle import (
+    ActionsAnglesFrequencies,
+    isochrone_actions_angles_freqs as iaaf,
+)
 
 M, B, G = 2.3, 1.3, 1.0
 GM = G * M
@@ -166,3 +176,92 @@ def test_isochrone_angles_advance_linearly(x, v):
     dth = th - th0 - ts[:, None] * Om
     np.testing.assert_allclose(jnp.sin(dth), 0, atol=1e-8)
     np.testing.assert_allclose(jnp.cos(dth), 1, atol=1e-8)
+
+
+# =====================================================================
+# Dispatch overloads
+
+POT = gp.IsochronePotential(
+    m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
+)
+Q_ = np.array([[8.0, 0.5, 1.0], [5.0, 2.0, -0.5], [3.0, -4.0, 0.3]])  # kpc
+P_ = np.array([[10.0, 150.0, 20.0], [-60.0, 100.0, 30.0], [80.0, 90.0, -20.0]])
+P_KPC_MYR = u.ustrip("kpc/Myr", u.Q(P_, "km/s"))
+
+
+def test_overload_arrays_vs_quantity():
+    arr = iaaf(POT, jnp.asarray(Q_), jnp.asarray(P_KPC_MYR), jnp.asarray(0.0))
+    assert isinstance(arr, ActionsAnglesFrequencies)
+    assert arr.actions.shape == (3, 3)
+    assert not isinstance(arr.actions, u.AbstractQuantity)
+
+    res = iaaf(POT, u.Q(Q_, "kpc"), u.Q(P_KPC_MYR, "kpc/Myr"), u.Q(0.0, "Myr"))
+    assert res.actions.unit == u.unit("kpc2/Myr")
+    assert res.angles.unit == u.unit("rad")
+    assert res.freqs.unit == u.unit("rad/Myr")
+    np.testing.assert_allclose(res.actions.value, arr.actions, rtol=1e-12)
+
+    # any Quantity input is enough
+    mixed = iaaf(POT, u.Q(Q_, "kpc"), jnp.asarray(P_KPC_MYR), jnp.asarray(0.0))
+    assert isinstance(mixed.freqs, u.AbstractQuantity)
+
+
+def test_quantity_input_units_independent():
+    a = iaaf(POT, u.Q(Q_ * 1e3, "pc"), u.Q(P_, "km/s"), u.Q(0.0, "Myr"))
+    b = iaaf(POT, u.Q(Q_, "kpc"), u.Q(P_KPC_MYR, "kpc/Myr"), u.Q(0.0, "Myr"))
+    for x, y in zip(
+        (a.actions, a.angles, a.freqs), (b.actions, b.angles, b.freqs), strict=True
+    ):
+        np.testing.assert_allclose(x.value, y.value, rtol=1e-12)
+
+
+def test_overload_psc_and_orbit():
+    w = gc.PhaseSpaceCoordinate(q=u.Q(Q_, "kpc"), p=u.Q(P_, "km/s"), t=u.Q(0.0, "Myr"))
+    res = iaaf(POT, w)
+    assert res.actions.shape == (3, 3)
+    ref = iaaf(POT, u.Q(Q_, "kpc"), u.Q(P_, "km/s"), u.Q(0.0, "Myr"))
+    np.testing.assert_allclose(res.freqs.value, ref.freqs.value, rtol=1e-12)
+
+    orbit = gd.evaluate_orbit(POT, w, u.Q(jnp.linspace(0.0, 100.0, 5), "Myr"))
+    ores = iaaf(POT, orbit)
+    assert ores.actions.shape == (3, 5, 3)
+    # actions are conserved along the orbit
+    np.testing.assert_allclose(
+        ores.actions.value[:, 0], ores.actions.value[:, -1], rtol=1e-4
+    )
+
+
+@pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
+def test_matches_gala_isochrone_xv_to_aa():
+    import astropy.units as au
+    import gala.dynamics as gala_dyn
+    import gala.potential as galap
+    from gala.dynamics.actionangle import isochrone_xv_to_aa
+    from gala.units import galactic
+
+    gpot = galap.IsochronePotential(m=1e11 * au.Msun, b=2 * au.kpc, units=galactic)
+    rng = np.random.default_rng(5)
+    xyz = rng.normal(size=(60, 3)) * 4.0
+    v = rng.normal(size=(60, 3)) * 0.1  # kpc/Myr
+    # planar retrograde, inclined retrograde, planar prograde
+    xyz = np.concatenate([xyz, [[6.0, 0, 0], [5.0, 1, 0.5], [6.0, 0, 0]]])
+    v = np.concatenate([v, [[0, -0.15, 0], [0.01, -0.12, 0.02], [0, 0.15, 0]]])
+    # keep bound points away from exact z-turning points (gala forces psi=+pi/2)
+    phi = -float(gpot.G * 1e11) / (2.0 + np.sqrt(4.0 + (xyz**2).sum(-1)))
+    bound = 0.5 * (v**2).sum(-1) + phi < 0
+    xyz, v = xyz[bound], v[bound]
+    # exclude |v_theta| < 1e-8 (continuous vs forced psi convention)
+    s = (xyz**2).sum(-1) * v[:, 2] - xyz[:, 2] * (xyz * v).sum(-1)
+    keep = np.abs(s) > 1e-8
+    xyz, v = xyz[keep], v[keep]
+
+    res = iaaf(POT, jnp.asarray(xyz), jnp.asarray(v), jnp.asarray(0.0))
+    pos = gala_dyn.PhaseSpacePosition(xyz.T * au.kpc, v.T * au.kpc / au.Myr)
+    out = isochrone_xv_to_aa(pos, gpot)
+    act = out[0].to_value("kpc2/Myr").T
+    ang = out[1].to_value("rad").T
+    frq = out[2].to_value("rad/Myr").T
+    np.testing.assert_allclose(res.actions, act, rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(res.freqs, frq, rtol=1e-10)
+    np.testing.assert_allclose(np.sin(res.angles), np.sin(ang), atol=1e-9)
+    np.testing.assert_allclose(np.cos(res.angles), np.cos(ang), atol=1e-9)

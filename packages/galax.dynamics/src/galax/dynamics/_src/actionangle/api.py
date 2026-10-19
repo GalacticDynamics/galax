@@ -43,5 +43,17 @@ def isochrone_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
 
     - ``(pot, q, p, t)``
     - ``(pot, w)``
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> from galax.dynamics.actionangle import isochrone_actions_angles_freqs
+    >>> pot = gp.IsochronePotential(m_tot=u.Q(1e11, "Msun"),
+    ...                             r_s=u.Q(2.0, "kpc"), units="galactic")
+    >>> res = isochrone_actions_angles_freqs(
+    ...     pot, u.Q([8.0, 0, 0], "kpc"), u.Q([0.0, 150, 0], "km/s"), u.Q(0.0, "Myr"))
+    >>> res.actions.shape, str(res.angles.unit), str(res.freqs.unit)
+    ((3,), 'rad', 'rad / Myr')
     """
     raise NotImplementedError  # pragma: no cover

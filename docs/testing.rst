@@ -120,12 +120,15 @@ The agama comparisons carry the ``agama`` marker and are skipped unless
 ::
 
     PYTHONPATH=<agama build dir> UV_PROJECT_ENVIRONMENT=<agama venv> \
-        uv run --no-sync pytest --run-agama -m agama packages/galax.potential -ra
+        uv run --no-sync pytest --run-agama -m agama \
+        packages/galax.potential packages/galax.dynamics -ra
 
 With the flag they still skip, with the reason ``requires agama``, when agama
 is not importable, so check the ``-ra`` summary: a green run where they all
 skipped compared nothing. The units and precision points below are handled
-by the tests' shared fixture.
+by the tests' agama fixtures. One more applies to orbits: ``agama.orbit``
+stores trajectories as float32 unless given ``dtype="float64"``, which caps
+any comparison at ~5e-8.
 
 Three things to get right when comparing against agama:
 

@@ -68,12 +68,6 @@ class TestHarmonicOscillatorPotential(
         expect = u.Q(6.97117482e27, pot.units["specific energy"])
         assert jnp.isclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
-    @pytest.mark.skip(reason="TODO: skip until harmonic oscillator fixed")
-    def test_potential_density_correspondence(
-        self, pot: gp.AbstractPotential, x: gt.QuSz3
-    ) -> None:
-        pass
-
     @pytest.mark.array_compare(
         file_format="text", reference_dir="reference/harmonicoscillator", atol=1e-8
     )
@@ -82,7 +76,7 @@ class TestHarmonicOscillatorPotential(
 
     def test_density(self, pot: gp.HarmonicOscillatorPotential, x: gt.QuSz3) -> None:
         got = pot.density(x, t=0)
-        expect = u.Q(1.76169263e37, unit="solMass / kpc3")
+        expect = u.Q(5.28507789e37, unit="solMass / kpc3")
         assert jnp.isclose(got, expect, atol=u.Q(1e-8, expect.unit))
 
     @pytest.mark.array_compare(

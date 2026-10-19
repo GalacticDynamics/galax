@@ -82,7 +82,7 @@ interop-gala = ["galax.interop.gala>0.0.3"]
 interop-galpy = ["galax.interop.galpy>0.0.3"]
 # No agama extra: it has no wheels and its build is interactive, so it
 # cannot be resolved as a dependency. `docs/testing.rst` has the recipe
-# for building it by hand for local comparison tests.
+# for building it by hand; the comparison tests run with `--run-agama`.
 plot-all = ["galax[plot-matplotlib]"]
 plot-matplotlib = ["galax.interop.matplotlib>0.0.3"]
 

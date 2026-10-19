@@ -85,7 +85,15 @@ run the test suite, install the `test` group and run `pytest` with:
 
 ```
 uv sync --group test
-uv run pytest src docs tests
+uv run pytest packages docs tests
+```
+
+Each distribution under `packages/` declares its own `test` group, so one can be
+tested alone, e.g.:
+
+```
+uv sync --no-default-groups --package galax.coordinates --group test
+uv run --no-sync pytest packages/galax.coordinates
 ```
 
 ### Contributors

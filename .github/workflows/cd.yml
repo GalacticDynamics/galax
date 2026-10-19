@@ -11,7 +11,12 @@ on:
       - published
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Each push to main gets its own group, so merges never cancel each other
+  # and main keeps a complete CI record. All other events keep the per-ref
+  # group and still supersede older runs.
+  group: >-
+    ${{ github.workflow }}-${{ github.event_name == 'push' && github.sha ||
+    github.ref }}
   cancel-in-progress: true
 
 env:

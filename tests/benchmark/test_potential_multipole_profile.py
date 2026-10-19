@@ -119,6 +119,71 @@ def test_eval_batch(benchmark, n: int) -> None:
     benchmark(lambda: jax.block_until_ready(jitted(pot, xyz, t)))
 
 
+def _pot_on_time_grid(l_max: int, n_r: int, n_t: int):
+    """Build the same expansion at `n_t` times, interpolating between them."""
+    return gp.MultipoleProfilePotential.from_potential(
+        _source(),
+        r_min=u.Q(1e-2, "kpc"),
+        r_max=u.Q(1e4, "kpc"),
+        n_r=n_r,
+        l_max=l_max,
+        symmetry="plane_reflection",
+        t=u.Q(jnp.linspace(0.0, 1000.0, n_t), "Myr"),
+    )
+
+
+@pytest.mark.parametrize("n_t", [2, 8, 32])
+@pytest.mark.benchmark(group="multipole_profile_time_grid_build")
+def test_build_time_grid(benchmark, n_t: int) -> None:
+    """Build cost against a single-time build, as ``n_t`` grows.
+
+    `build_expansion` traces once and `jax.vmap` runs it per time, so the
+    one-off trace and compile dominate while ``n_t`` is small and the
+    vmapped work takes over once it is not. Relative to ``n_t = 1``:
+
+    ======= ======
+    ``n_t``  cost
+    ======= ======
+    2        1.05x
+    4        0.86x
+    8        1.06x
+    16       1.40x
+    32       2.38x
+    64       3.65x
+    ======= ======
+
+    So it is flat to about eight times and grows after that, though still
+    well under linear -- 64 times cost 3.7x, not 64x. Measured under load,
+    so the sub-1.0 entry at ``n_t = 4`` is noise; the trend is not.
+    """
+    benchmark(lambda: jax.block_until_ready(_pot_on_time_grid(8, 128, n_t)))
+
+
+@pytest.mark.parametrize("n", [1, 1_000, 100_000])
+@pytest.mark.benchmark(group="multipole_profile_time_grid_eval")
+def test_eval_time_grid(benchmark, n: int) -> None:
+    """Evaluation cost of a time-grid expansion, against `test_eval_batch`.
+
+    Flat in ``n_t`` -- 2, 8 and 32 times all measure the same -- so this
+    pins the per-position overhead of interpolating rather than the grid
+    size. At 1e5 positions it is ~2.3x a constant expansion; at the small
+    per-step batches an orbit integrator uses it is far less (0.46 ms
+    against 0.46 at a single position, 0.75 against 0.59 at a thousand).
+
+    The interpolation itself measures 0.1 ms, and `expansion_potential` with
+    precomputed parameters shows no penalty at all, so the cost is not the
+    interpolation and not recomputation -- two `optimization_barrier`
+    placements changed nothing. What is left is that the radial gather reads
+    a freshly computed table rather than a buffer handed straight in.
+    """
+    pot = _pot_on_time_grid(8, 128, 8)
+    xyz = u.Q(jax.random.normal(jax.random.PRNGKey(0), (n, 3)) * 5.0, "kpc")
+    t = u.Q(100.0, "Myr")
+    jitted = jax.jit(_potential)
+    jax.block_until_ready(jitted(pot, xyz, t))
+    benchmark(lambda: jax.block_until_ready(jitted(pot, xyz, t)))
+
+
 def _orbit(pot, w0, ts):
     return gd.evaluate_orbit(pot, w0, ts)
 

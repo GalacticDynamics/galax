@@ -22,7 +22,6 @@ import functools as ft
 from jaxtyping import Array, Float
 
 import jax
-import numpy as np
 
 import quaxed.numpy as jnp
 
@@ -32,6 +31,7 @@ from galax.potential._src.harmonic import (
     eval_log_spline_asympt,
     real_ylm,
 )
+from galax.potential._src.harmonic.asympt import _ln_huge
 from galax.potential._src.utils import safe_vector_norm
 
 
@@ -135,33 +135,6 @@ def expansion_gradient(
 
     out = radial_term[..., None] * xyz / r[..., None] ** 2 + tangential / r[..., None]
     return out  # type: ignore[no-any-return]
-
-
-def _ln_huge(x: Float[Array, "..."], /) -> float:
-    r"""Largest ``|argument to jnp.exp|`` that cannot overflow in this dtype.
-
-    It bounds what is passed *to* `jnp.exp`, not a power applied to some
-    base. Here that argument is ``log|amplitude| + alpha (log r - log r0)``,
-    which is why the caller clamps the sum rather than the exponent alone:
-    clamping ``alpha (log r - log r0)`` by itself still overflows once the
-    amplitude is multiplied back in. `harmonic.asympt`'s copy states the same
-    bound as ``|exponent * ln x|``, which is that module's spelling of the
-    same quantity.
-
-    ~709.8 in float64 but ~88.7 in float32, and `galax` does not enable x64
-    on import, so the bound has to come from the working dtype rather than a
-    constant.
-
-    TODO: this is the third dtype-sized limit in the package, after
-    `harmonic.poisson`'s floor and gate and `harmonic.asympt`'s own copy of
-    this one. They want a single home; importing across modules is worse,
-    since each is private to the module that defines it.
-    """
-    return _LN_HUGE_FRAC * float(np.log(np.finfo(x.dtype).max))
-
-
-_LN_HUGE_FRAC: float = 0.985
-"""Fraction of the overflow exponent `_ln_huge` allows through."""
 
 
 @ft.partial(jax.jit, static_argnums=(2, 3))

@@ -27,11 +27,6 @@ T0 = u.Q(0, "Myr")
 # 2018 value -- by 1.49e-10 relative, which every G-scaled quantity carries.
 RTOL = 2e-10
 
-# Not ours to match: galax's logarithmic potential is
-# ``v_c^2 / 2 * ln(r_s^2 + r^2)`` and agama's ``v_c^2 / 2 * ln(1 + r^2 / r_s^2)``,
-# which differ by the constant ``v_c^2 ln(r_s)``.
-LOG = {"up_to_constant": True}
-
 
 def _mn(p: gp.MiyamotoNagaiPotential) -> dict[str, Any]:
     return {
@@ -109,7 +104,7 @@ CASES = [
     pytest.param(
         gp.LogarithmicPotential(v_c=u.Q(220.0, "km / s"), r_s=8.0, units="galactic"),
         {"type": "Logarithmic", "v0": 220.0, "scaleRadius": 8.0},
-        LOG,
+        {},
         id="logarithmic",
     ),
     pytest.param(
@@ -131,7 +126,7 @@ CASES = [
             # agama's Euler angles are in radians; the first is galax's `phi`.
             "orientation": [u.ustrip("rad", u.Q(20, "deg")), 0.0, 0.0],
         },
-        LOG,
+        {},
         id="lmj09logarithmic",
     ),
     pytest.param(

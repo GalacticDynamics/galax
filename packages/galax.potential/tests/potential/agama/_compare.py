@@ -64,24 +64,16 @@ def assert_matches_agama(
     rtol: float,
     atol: float = 0.0,
     quantities: tuple[str, ...] = ("potential", "gradient", "density", "hessian"),
-    up_to_constant: bool = False,
 ) -> None:
-    """Assert each requested quantity agrees, naming the one that does not.
-
-    ``up_to_constant`` compares the potential relative to its value at the
-    first point, for models whose zero-point convention differs.
-    """
+    """Assert each requested quantity agrees, naming the one that does not."""
     x = u.Q(xyz, "kpc")
     for name in quantities:
         galax = np.asarray(
             u.ustrip(_UNITS[name], getattr(galax_pot, name)(x, t=u.Q(0, "Myr")))
         )
-        other = _agama(agama_pot, name, xyz)
-        if up_to_constant and name == "potential":
-            galax, other = galax - galax[0], other - other[0]
         np.testing.assert_allclose(
             galax,
-            other,
+            _agama(agama_pot, name, xyz),
             rtol=rtol,
             atol=atol,
             err_msg=name,

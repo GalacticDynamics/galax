@@ -44,6 +44,17 @@ def isochrone_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     - ``(pot, q, p, t)``
     - ``(pot, w)``
 
+    The batch shapes of ``q``, ``p`` (``shape[:-1]``) and ``t`` broadcast
+    together. Angles are in ``[0, 2 pi)``; unbound points give NaN (except
+    ``J_phi``). Coordinate singularities:
+
+    - Near-radial orbits (``1 - e^2 <= 1e-12``) and the origin: angles are
+      set to 0 (actions, frequencies and all gradients stay finite).
+    - Exactly planar orbits: ``theta_z`` is undefined (it is conjugate to
+      ``J_z = 0``); the value follows gala's convention.
+    - Exactly on the z axis (``R = 0``): ``theta_phi`` is arbitrary (a
+      finite fallback value).
+
     Examples
     --------
     >>> import unxt as u

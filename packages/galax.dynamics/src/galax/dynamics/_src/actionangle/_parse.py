@@ -24,6 +24,8 @@ def parse_qpt(
     ``p=None`` means positions and time only (``p`` is returned as `None`).
     The flag is True if any *given* input is a Quantity, i.e. if the result
     should carry units. Unit-less inputs are assumed to be in ``pot.units``.
+    The batch shapes of ``q``, ``p`` (``shape[:-1]``) and ``t`` are broadcast
+    together.
     """
     given = (q, t) if p is None else (q, p, t)
     as_quantity = any(isinstance(x, u.AbstractQuantity) for x in given)
@@ -33,7 +35,13 @@ def parse_qpt(
         None if p is None else jnp.asarray(u.ustrip(AllowValue, usys["speed"], p))
     )
     t_: Array = jnp.asarray(u.ustrip(AllowValue, usys["time"], t))
-    return q_, p_, t_, as_quantity
+
+    shapes = [q_.shape[:-1], t_.shape] + ([] if p_ is None else [p_.shape[:-1]])
+    batch = jnp.broadcast_shapes(*shapes)
+    q_ = jnp.broadcast_to(q_, (*batch, q_.shape[-1]))
+    if p_ is not None:
+        p_ = jnp.broadcast_to(p_, (*batch, p_.shape[-1]))
+    return q_, p_, jnp.broadcast_to(t_, batch), as_quantity
 
 
 def parse_w(
@@ -41,14 +49,14 @@ def parse_w(
 ) -> tuple[Array, Array, Array]:
     """Strip a phase-space coordinate to ``(q, p, t)`` arrays in ``pot.units``.
 
-    ``t`` is broadcast against the batch shape of ``q``.
+    The batch shapes are broadcast together.
     """
     w = w.to_frame(gc.frames.simulation_frame)
     xq: u.Quantity = convert(cx.vconvert(cx.CartesianPos3D, w.q), u.Quantity)
     vq: u.Quantity = convert(cx.vconvert(cx.CartesianVel3D, w.p, w.q), u.Quantity)
     q, p, t, _ = parse_qpt(pot, xq, vq, w.t)
     assert p is not None  # noqa: S101
-    return q, p, jnp.broadcast_to(t, q.shape[:-1])
+    return q, p, t
 
 
 def wrap_result(

@@ -4,7 +4,7 @@ Ported term by term from gala's ``isochrone_xv_to_aa`` (Binney & Tremaine 2008,
 Sec. 3.5.2, with the erratum to Eq. 3.225), as pure single-point `jax.numpy`.
 """
 
-__all__ = ["_isochrone_aaf"]
+__all__: list[str] = []
 
 from jaxtyping import Array
 from typing import Any
@@ -59,12 +59,14 @@ def _angles(GM: Array, b: Array, E: Array, xyz: Array, v: Array) -> Array:
     ey = r * vr / jnp.sqrt(-2.0 * E)
     ex = b + c - jnp.sqrt(b * b + r2)
     # eta is ill-defined (atan2(0, 0)) for circular orbits; fall back to 0
-    eta_ok = (ey * ey + ex * ex) > 1e-24
+    eta_ok = (ey * ey + ex * ex) > 1e-24 * (b + c) ** 2
     eta = jnp.arctan2(jnp.where(eta_ok, ey, 0.0), jnp.where(eta_ok, ex, 1.0))
     thetar = eta - e * c * jnp.sin(eta) / (c + b)
 
     # psi = atan2(cos(theta), -sin(theta) r^2 theta_dot / L), written without
-    # sin(theta) in a denominator.
+    # sin(theta) in a denominator. Continuous in v_theta: gala forces
+    # psi = pi/2 for |v_theta| <= 1e-10, so at a z-turning point below the
+    # plane this gives -pi/2 where gala gives +pi/2.
     cos_t = xyz[2] / r
     s = r2 * v[2] - xyz[2] * rdotv
     a1, a2 = cos_t, s / (r * L)
@@ -85,7 +87,7 @@ def _angles(GM: Array, b: Array, E: Array, xyz: Array, v: Array) -> Array:
     dL = Lvec[0] ** 2 + Lvec[1] ** 2
     den = jnp.sqrt(jnp.where(dL > 0, dL, 1.0)) * jnp.where(on_axis, 0.0, sin_t)
     den = jnp.where(dL > 0, den, 0.0)
-    den_ok = den > 1e-12
+    den_ok = den > 1e-12 * L
     # undefined node (planar orbit): retrograde (Lz < 0) is -pi/2, as in gala
     sinu = jnp.where(
         den_ok,
@@ -115,9 +117,11 @@ def _isochrone_aaf(
     Unitless. ``b`` is the isochrone scale radius. Angles are in ``[0, 2 pi)``.
     Unbound points (E >= 0) give NaN everywhere except ``J_phi``.
 
-    Exactly radial orbits (L = 0, e -> 1) and the origin are outside the
-    domain of the isochrone formulas (singular); there the actions and
-    frequencies are finite but the angles are set to 0.
+    Radial orbits (e -> 1) and the origin are outside the domain of the
+    isochrone formulas (singular). Points with ``1 - e^2 <= 1e-12``, i.e.
+    ``L^2 (c + b) <= 1e-12 GM c^2`` with ``c = GM / (-2E) - b``, are treated
+    as radial: actions and frequencies are finite, the angles are set to 0
+    and all gradients are finite.
     """
     GM = G * m_tot
     r2 = xyz @ xyz
@@ -134,9 +138,15 @@ def _isochrone_aaf(
     Jr = GM / jnp.sqrt(-2 * E) - 0.5 * (L + sq)
 
     # --- angles (regular points only)
-    regular = (r2 > 1e-24) & ((Lvec @ Lvec) > 1e-24)
-    xyz_s = jnp.where(regular, xyz, jnp.array([1.0, 0.0, 0.0]))
-    v_s = jnp.where(regular, v, jnp.array([0.0, 1.0, 0.0]))
+    # 1 - e^2 = L^2 (c + b) / (GM c^2) > 1e-12 keeps e < 1 in floating point
+    # (and excludes the origin, where L = 0). Scale-free; no division.
+    c = GM / (-2 * E) - b
+    regular = (Lvec @ Lvec) * (c + b) > 1e-12 * GM * c * c
+    # dummy: a circular orbit (e = 0) at r = c + b, so it is regular in any units
+    rd = c + b
+    zero = jnp.zeros_like(rd)
+    xyz_s = jnp.where(regular, xyz, jnp.stack([rd, zero, zero]))
+    v_s = jnp.where(regular, v, jnp.stack([zero, jnp.sqrt(GM / rd) * c / rd, zero]))
     angles = jnp.where(regular, _angles(GM, b, E, xyz_s, v_s), 0.0)
 
     # --- frequencies
@@ -180,7 +190,6 @@ def isochrone_actions_angles_freqs(
 ) -> ActionsAnglesFrequencies:
     """Actions, angles and frequencies from positions, velocities and time."""
     q, p, t, as_quantity = parse_qpt(pot, q, p, t)
-    t = jnp.broadcast_to(t, q.shape[:-1])
     return wrap_result(*_aaf(pot, q, p, t), pot, as_quantity)
 
 

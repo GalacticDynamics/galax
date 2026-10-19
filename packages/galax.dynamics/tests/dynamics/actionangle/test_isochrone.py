@@ -140,12 +140,22 @@ def test_isochrone_axis_and_origin_finite(x, v):
     assert all(jnp.all(jnp.isfinite(j)) for j in jac)
 
 
+@pytest.mark.parametrize("vt", [1e-9, 1e-10, 1e-12, 0.0])
+def test_isochrone_near_radial_finite(vt):
+    """Near-radial band (1 - e^2 tiny): values and gradients stay finite."""
+    x = jnp.array([1.0, 0.0, 0.3])
+    v = 0.4 * x + jnp.array([0.0, vt, 0.0])
+    assert all(jnp.all(jnp.isfinite(o)) for o in _isochrone_aaf(M, B, G, x, v))
+    jac = jax.jacfwd(_flat, argnums=(0, 1, 2))(x, v, jnp.asarray(B))
+    assert all(jnp.all(jnp.isfinite(j)) for j in jac)
+
+
 @pytest.mark.parametrize(
     ("x", "v"),
     [
         ([1.0, 0.5, 0.4], [0.1, 0.5, -0.2]),  # generic
         ([1.0, -0.3, 0.6], [0.2, -0.4, 0.3]),  # retrograde, inclined
-        ([1.0, 0.0, 0.5], [0.2, 0.0, 0.5]),  # polar, Lz = 0
+        ([1.0, 0.0, 0.5], [0.2, 1e-3, 0.5]),  # near-polar, small Lz > 0
     ],
 )
 def test_isochrone_angles_advance_linearly(x, v):
@@ -204,6 +214,18 @@ def test_overload_arrays_vs_quantity():
     # any Quantity input is enough
     mixed = iaaf(POT, u.Q(Q_, "kpc"), jnp.asarray(P_KPC_MYR), jnp.asarray(0.0))
     assert isinstance(mixed.freqs, u.AbstractQuantity)
+
+
+def test_overload_broadcasts_q_p_t():
+    ref = iaaf(POT, jnp.asarray(Q_[:2]), jnp.asarray(P_KPC_MYR[:2]), 0.0)
+    # q (2, 3) with p (3,): p broadcasts
+    res = iaaf(POT, jnp.asarray(Q_[:2]), jnp.asarray(P_KPC_MYR[0]), 0.0)
+    assert res.actions.shape == (2, 3)
+    np.testing.assert_allclose(res.actions[0], ref.actions[0], rtol=1e-12)
+    # single point with t (2,): q and p broadcast
+    res = iaaf(POT, jnp.asarray(Q_[0]), jnp.asarray(P_KPC_MYR[0]), jnp.zeros(2))
+    assert res.actions.shape == (2, 3)
+    np.testing.assert_allclose(res.actions[1], ref.actions[0], rtol=1e-12)
 
 
 def test_quantity_input_units_independent():

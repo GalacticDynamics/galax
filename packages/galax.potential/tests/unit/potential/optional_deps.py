@@ -6,7 +6,7 @@ test suite fail to collect when it is absent. Probe the foreign libraries
 directly instead.
 """
 
-__all__ = ["GSL_ENABLED", "OptDeps"]
+__all__ = ["AGAMA_INSTALLED", "GSL_ENABLED", "OptDeps"]
 
 from optional_dependencies import OptionalDependencyEnum, auto
 from optional_dependencies.utils import chain_checks, get_version, is_installed
@@ -26,3 +26,9 @@ if OptDeps.GALA.installed:
     from gala._cconfig import GSL_ENABLED
 else:
     GSL_ENABLED = False
+
+
+# agama is built by hand and put on `PYTHONPATH` (see docs/testing.rst), so it
+# has no distribution metadata for `auto()`/`get_version` to find. Probe
+# importability instead, without importing it.
+AGAMA_INSTALLED: bool = is_installed("agama")

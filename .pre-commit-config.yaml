@@ -33,8 +33,9 @@ repos:
       - id: mixed-line-ending
       - id: name-tests-test
         args: ["--pytest-test-first"]
-        # Test-support module (optional-dependency probes), not a test file.
-        exclude: ^packages/galax\.(potential/tests/unit/potential|dynamics/tests/dynamics)/optional_deps\.py$
+        # Test-support modules (optional-dependency probes, the agama
+        # comparison helper), not test files.
+        exclude: ^packages/galax\.(potential/tests/unit/potential/optional_deps|potential/tests/integration/agama/_compare|dynamics/tests/dynamics/optional_deps)\.py$
       - id: no-commit-to-branch
         args: ["--branch", "main", "--pattern", "^versions/.*"]
         always_run: true

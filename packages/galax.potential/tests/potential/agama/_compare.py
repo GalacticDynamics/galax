@@ -53,7 +53,10 @@ def _agama(agama_pot: Any, name: str, xyz: np.ndarray) -> np.ndarray:
         return -agama_pot.force(xyz)
     if name == "density":
         return agama_pot.density(xyz)
-    return -_sym33(agama_pot.eval(xyz, der=True))
+    if name == "hessian":
+        return -_sym33(agama_pot.eval(xyz, der=True))
+    msg = f"no agama counterpart for {name!r}"
+    raise ValueError(msg)
 
 
 def assert_matches_agama(

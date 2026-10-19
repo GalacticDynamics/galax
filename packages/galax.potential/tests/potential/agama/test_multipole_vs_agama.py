@@ -31,7 +31,6 @@ M_TOT, R_S = 1e11, 2.0  # Msun, kpc
 # extrapolation, not the solver.
 _r = np.linalg.norm(POINTS, axis=-1)
 POINTS_IN = POINTS[(_r > 2 * R_MIN) & (_r < R_MAX / 2)]
-assert len(POINTS_IN) >= 6
 
 
 def _ellipsoidal_hernquist(p: float, q: float):
@@ -68,6 +67,7 @@ def test_multipole_matches_agama(
     differing by 1.49e-10); oblate 6.0e-7 and triaxial 5.2e-7, both in the
     gradient. The tolerances pin the regime, not the digits.
     """
+    assert len(POINTS_IN) >= 6, "too few comparison points inside the grid"
     rho = _ellipsoidal_hernquist(p, q)
     galax_pot = gp.MultipoleProfilePotential.from_density(
         rho,

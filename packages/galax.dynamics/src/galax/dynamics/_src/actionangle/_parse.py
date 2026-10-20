@@ -46,7 +46,13 @@ def parse_qpt(
     p_: Array | None = (
         None if p is None else jnp.asarray(u.ustrip(AllowValue, usys["speed"], p))
     )
+    if t is None:
+        msg = "t is required (the potential may depend on time)"
+        raise ValueError(msg)
     t_: Array = jnp.asarray(u.ustrip(AllowValue, usys["time"], t))
+    # a strongly-typed float t, so int / weakly-typed t don't retrace the core
+    dtype = t_.dtype if jnp.issubdtype(t_.dtype, jnp.floating) else float
+    t_ = jnp.asarray(t_, dtype=dtype)
     for name, x in (("q", q_), ("p", p_)):
         if x is not None and x.shape[-1:] != (3,):
             msg = f"{name} must have shape (..., 3), got {x.shape}"

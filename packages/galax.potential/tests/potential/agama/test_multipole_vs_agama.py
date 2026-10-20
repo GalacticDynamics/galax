@@ -16,7 +16,7 @@ import unxt as u
 
 import galax.potential as gp
 from ..optional_deps import OptDeps
-from ._compare import POINTS, assert_matches_agama
+from ._compare import assert_matches_agama
 
 pytestmark = [
     pytest.mark.agama,
@@ -26,11 +26,6 @@ pytestmark = [
 R_MIN, R_MAX = 0.01, 300.0  # kpc
 N_R = 128
 M_TOT, R_S = 1e11, 2.0  # Msun, kpc
-
-# Strictly inside the grid: outside it both continue as power laws, which is
-# extrapolation, not the solver.
-_r = np.linalg.norm(POINTS, axis=-1)
-POINTS_IN = POINTS[(_r > 2 * R_MIN) & (_r < R_MAX / 2)]
 
 
 def _ellipsoidal_hernquist(p: float, q: float):
@@ -67,7 +62,6 @@ def test_multipole_matches_agama(
     differing by 1.49e-10); oblate 6.0e-7 and triaxial 5.2e-7, both in the
     gradient. The tolerances pin the regime, not the digits.
     """
-    assert len(POINTS_IN) >= 6, "too few comparison points inside the grid"
     rho = _ellipsoidal_hernquist(p, q)
     galax_pot = gp.MultipoleProfilePotential.from_density(
         rho,
@@ -88,25 +82,23 @@ def test_multipole_matches_agama(
         symmetry=ag_sym,
     )
     assert_matches_agama(
-        galax_pot, agama_pot, POINTS_IN, rtol=rtol, quantities=("potential", "gradient")
+        galax_pot, agama_pot, rtol=rtol, quantities=("potential", "gradient")
     )
 
 
 @pytest.mark.parametrize(
-    ("pot", "alpha", "beta", "gamma"),
+    ("pot", "beta", "gamma"),
     [
         pytest.param(
             gp.ZhaoPotential(
                 m=1e11, r_s=2.0, alpha=1.0, beta=4.0, gamma=0.5, units="galactic"
             ),
-            1.0,
             4.0,
             0.5,
             id="zhao",
         ),
         pytest.param(
             gp.gNFWPotential(m=1e11, r_s=15.0, gamma=1.3, units="galactic"),
-            1.0,
             3.0,
             1.3,
             id="gnfw",
@@ -116,7 +108,6 @@ def test_multipole_matches_agama(
 def test_double_power_law_matches_agama_spheroid(
     agama: ModuleType,
     pot: gp.AbstractPotential,
-    alpha: float,
     beta: float,
     gamma: float,
 ) -> None:
@@ -137,9 +128,9 @@ def test_double_power_law_matches_agama_spheroid(
     )
     agama_pot = agama.Potential(
         type="Spheroid",
-        densityNorm=float(rho_rs) * 2 ** ((beta - gamma) / alpha),
+        densityNorm=float(rho_rs) * 2 ** (beta - gamma),
         scaleRadius=r_s,
-        alpha=alpha,
+        alpha=1,
         beta=beta,
         gamma=gamma,
     )

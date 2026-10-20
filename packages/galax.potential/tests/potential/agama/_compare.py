@@ -35,15 +35,7 @@ _UNITS = {
 
 def _sym33(d6: np.ndarray) -> np.ndarray:
     # agama's `eval(..., der=True)` orders the 6 components (xx, yy, zz, xy, yz, zx).
-    xx, yy, zz, xy, yz, zx = np.moveaxis(d6, -1, 0)
-    return np.stack(
-        [
-            np.stack([xx, xy, zx], -1),
-            np.stack([xy, yy, yz], -1),
-            np.stack([zx, yz, zz], -1),
-        ],
-        -2,
-    )
+    return d6[..., [[0, 3, 5], [3, 1, 4], [5, 4, 2]]]
 
 
 def _agama(agama_pot: Any, name: str, xyz: np.ndarray) -> np.ndarray:
@@ -56,23 +48,18 @@ def _agama(agama_pot: Any, name: str, xyz: np.ndarray) -> np.ndarray:
             return agama_pot.density(xyz)
         case "hessian":
             return -_sym33(agama_pot.eval(xyz, der=True))
-        case _:
-            msg = f"no agama counterpart for {name!r}"
-            raise ValueError(msg)
 
 
 def assert_matches_agama(
     galax_pot: gp.AbstractPotential,
     agama_pot: Any,
-    xyz: np.ndarray = POINTS,
     *,
     rtol: float,
-    atol: float = 0.0,
     quantities: tuple[str, ...] = ("potential", "gradient", "density", "hessian"),
 ) -> None:
     """Assert each requested quantity agrees, naming the one that does not."""
-    x, t = u.Q(xyz, "kpc"), u.Q(0, "Myr")
+    x, t = u.Q(POINTS, "kpc"), u.Q(0, "Myr")
     for name in quantities:
         galax = u.ustrip(_UNITS[name], getattr(galax_pot, name)(x, t=t))
-        agama = _agama(agama_pot, name, xyz)
-        np.testing.assert_allclose(galax, agama, rtol=rtol, atol=atol, err_msg=name)
+        agama = _agama(agama_pot, name, POINTS)
+        np.testing.assert_allclose(galax, agama, rtol=rtol, err_msg=name)

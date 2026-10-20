@@ -78,7 +78,10 @@ def _angles(GM: Array, b: Array, xyz: Array, v: Array) -> Array:
     c = 2 * b * b * dE / D  # = GM / (-2E) - b > 0
 
     # --- theta_r: finite for every e in [0, 1], incl. radial orbits
-    q = jnp.clip(L2 * (c + b) / (GM * c * c), 0.0, 1.0)  # 1 - e^2
+    # `where` rather than `clip`: JAX gives `clip` the subgradient 0.5 at a tie,
+    # which would halve the gradient at q = 1 (exactly circular orbits).
+    q_raw = L2 * (c + b) / (GM * c * c)  # 1 - e^2
+    q = jnp.where(q_raw < 0, 0.0, jnp.where(q_raw > 1, 1.0, q_raw))
     circ = q >= 1
     e = jnp.where(circ, 0.0, jnp.sqrt(jnp.where(circ, 0.5, 1 - q)))
     ex = c - r2 / (b + s)  # = b + c - s = c e cos(eta), without cancellation

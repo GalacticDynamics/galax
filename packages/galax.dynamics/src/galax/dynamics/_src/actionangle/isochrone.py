@@ -1,16 +1,22 @@
 """Analytic action-angle-frequency transform for the isochrone potential.
 
-Ported term by term from gala's ``isochrone_xv_to_aa`` (Binney & Tremaine 2008,
-Sec. 3.5.2, with the erratum to Eq. 3.225), as pure single-point `jax.numpy`.
+Follows the formulae of gala's ``isochrone_xv_to_aa`` (Binney & Tremaine 2008,
+Sec. 3.5.2, with the erratum to Eq. 3.225) as pure single-point `jax.numpy`,
+with ``psi`` and ``theta_phi`` rewritten (no ``sin(theta)`` in a denominator;
+``theta_phi`` through the longitude of the ascending node) and NaN-safe guards
+(double ``where``) at every singular point.
 """
 
 __all__: list[str] = []
+
+import functools as ft
 
 from jaxtyping import Array
 from typing import Any
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from plum import dispatch
 
 import unxt as u
@@ -22,6 +28,15 @@ from .result import ActionsAnglesFrequencies
 from galax.potential import IsochronePotential
 
 _HALF_PI = jnp.pi / 2
+_TWO_PI = 2 * jnp.pi
+# Angles need c > _C_TOL b, with c = GM / (-2E) - b (c = 0 only at the origin
+# at rest), and 1 - e^2 > _Q_TOL for the orbital plane (L > 0).
+_C_TOL = 1e-30
+_Q_TOL = 1e-30
+# Stand-in for lanes outside the domain of the angle formulas (unbound, or the
+# origin at rest): a generic bound point in units of b and sqrt(GM / b).
+_X0 = np.array([1.0, 0.5, 0.3])
+_V0 = np.array([0.1, 0.4, 0.2])
 
 
 def _F(x: Array, y: Array) -> Array:
@@ -42,71 +57,82 @@ def _F(x: Array, y: Array) -> Array:
     )
 
 
-def _angles(GM: Array, b: Array, E: Array, xyz: Array, v: Array) -> Array:
-    """Angles for a regular point (r > 0, L > 0, bound with energy ``E``)."""
+def _delta_energy(GM: Array, b: Array, xyz: Array, v: Array) -> Array:
+    """``E - Phi(0) >= 0``, without the cancellation of ``E + GM / 2b``."""
     r2 = xyz @ xyz
-    r = jnp.sqrt(r2)
+    return 0.5 * (v @ v) + GM * r2 / (2 * b * (b + jnp.sqrt(b * b + r2)) ** 2)
+
+
+def _angles(GM: Array, b: Array, xyz: Array, v: Array) -> Array:
+    """Angles of a bound point with ``c > _C_TOL b``."""
+    r2 = xyz @ xyz
+    s = jnp.sqrt(b * b + r2)
     rdotv = xyz @ v
-    vr = rdotv / r
     Lvec = jnp.cross(xyz, v)
     Lz = Lvec[2]
-    L = jnp.sqrt(Lvec @ Lvec)
+    L2 = Lvec @ Lvec
+    L = safe_sqrt(L2)
 
-    c = GM / (-2 * E) - b
-    e2 = 1 - L * L * (1 + b / c) / GM / c
-    e_ok = e2 > 0  # e2 ~ 0 (or slightly < 0 by rounding) for circular orbits
-    e = jnp.where(e_ok, jnp.sqrt(jnp.where(e_ok, e2, 1.0)), 0.0)
-    ey = r * vr / jnp.sqrt(-2.0 * E)
-    ex = b + c - jnp.sqrt(b * b + r2)
+    dE = _delta_energy(GM, b, xyz, v)
+    D = GM - 2 * b * dE  # = -2 E b > 0
+    c = 2 * b * b * dE / D  # = GM / (-2E) - b > 0
+
+    # --- theta_r: finite for every e in [0, 1], incl. radial orbits
+    q = jnp.clip(L2 * (c + b) / (GM * c * c), 0.0, 1.0)  # 1 - e^2
+    circ = q >= 1
+    e = jnp.where(circ, 0.0, jnp.sqrt(jnp.where(circ, 0.5, 1 - q)))
+    ex = c - r2 / (b + s)  # = b + c - s = c e cos(eta), without cancellation
+    ey = rdotv / jnp.sqrt(D / b)  # = c e sin(eta)
     # eta is ill-defined (atan2(0, 0)) for circular orbits; fall back to 0
-    eta_ok = (ey * ey + ex * ex) > 1e-24 * (b + c) ** 2
+    eta_ok = (ex * ex + ey * ey) > 1e-24 * c * c
     eta = jnp.arctan2(jnp.where(eta_ok, ey, 0.0), jnp.where(eta_ok, ex, 1.0))
     thetar = eta - e * c * jnp.sin(eta) / (c + b)
 
+    # --- orbital plane: undefined for radial orbits (L = 0)
+    radial = q <= _Q_TOL
+    Ls = jnp.where(radial, 1.0, L)
+    qs = jnp.where(radial, 1.0, q)
+    # (a1, a2) = sin(i) (sin psi, cos psi), and sin^2(i) = L_xy^2 / L^2, so a
+    # planar orbit (inclination < 1e-10) is where psi and the node are both
+    # undefined. There psi = pi/2 (gala's convention) and the node is
+    # phi - sgn(Lz) pi/2, so theta_phi = phi + sgn(Lz) A is continuous.
+    dL = Lvec[0] ** 2 + Lvec[1] ** 2
+    planar = radial | (dL <= 1e-20 * L2)
     # psi = atan2(cos(theta), -sin(theta) r^2 theta_dot / L), written without
     # sin(theta) in a denominator. Continuous in v_theta: gala forces
     # psi = pi/2 for |v_theta| <= 1e-10, so at a z-turning point below the
     # plane this gives -pi/2 where gala gives +pi/2.
-    cos_t = xyz[2] / r
-    s = r2 * v[2] - xyz[2] * rdotv
-    a1, a2 = cos_t, s / (r * L)
-    degenerate = (a1 * a1 + a2 * a2) < 1e-20
-    psi = jnp.arctan2(jnp.where(degenerate, 1.0, a1), jnp.where(degenerate, 0.0, a2))
+    r = jnp.sqrt(jnp.where(r2 > 0, r2, 1.0))
+    a1 = xyz[2] / r
+    a2 = (r2 * v[2] - xyz[2] * rdotv) / (r * Ls)
+    psi = jnp.where(
+        planar,
+        _HALF_PI,
+        jnp.arctan2(jnp.where(planar, 1.0, a1), jnp.where(planar, 0.0, a2)),
+    )
 
-    sq = jnp.sqrt(L * L + 4 * GM * b)
+    sq = jnp.sqrt(L2 + 4 * GM * b)
     omega_ratio = 0.5 * (1 + L / sq)
-    a = jnp.sqrt((1 + e) / (1 - e))
-    ap = jnp.sqrt((1 + e + 2 * b / c) / (1 - e + 2 * b / c))
+    a = (1 + e) / jnp.sqrt(qs)  # sqrt((1 + e) / (1 - e))
+    ap = jnp.sqrt((1 + e + 2 * b / c) / (qs / (1 + e) + 2 * b / c))
     A = omega_ratio * thetar - _F(a, eta) - _F(ap, eta) * (L / sq)
-    thetat = psi + A
+    thetaz = psi + A
 
-    # sin(u) = Lz cos(theta) / (|L_xy| sin(theta)), clipped to [-1, 1]
-    dxy = xyz[0] ** 2 + xyz[1] ** 2
-    on_axis = dxy <= 0  # R = 0: phi and sin(theta) are singular
-    sin_t = jnp.sqrt(jnp.where(on_axis, 1.0, dxy)) / r
-    dL = Lvec[0] ** 2 + Lvec[1] ** 2
-    den = jnp.sqrt(jnp.where(dL > 0, dL, 1.0)) * jnp.where(on_axis, 0.0, sin_t)
-    den = jnp.where(dL > 0, den, 0.0)
-    den_ok = den > 1e-12 * L
-    # undefined node (planar orbit): retrograde (Lz < 0) is -pi/2, as in gala
-    sinu = jnp.where(
-        den_ok,
-        Lz * cos_t / jnp.where(den_ok, den, 1.0),
-        jnp.where(Lz < 0, -1.0, 1.0),
+    # theta_phi = Omega + sgn(Lz) theta_z, Omega the ascending-node longitude
+    # (defined on the z axis too). Lz = 0: Omega_phi = 0 and no theta_z term.
+    phi_ok = planar & (xyz[0] ** 2 + xyz[1] ** 2 > 0)
+    phi = jnp.arctan2(jnp.where(phi_ok, xyz[1], 0.0), jnp.where(phi_ok, xyz[0], 1.0))
+    node = jnp.where(
+        planar,
+        phi - jnp.sign(Lz) * _HALF_PI,
+        jnp.arctan2(jnp.where(planar, 0.0, Lvec[0]), jnp.where(planar, 1.0, -Lvec[1])),
     )
-    inside = jnp.abs(sinu) < 1.0
-    uu = jnp.where(
-        inside, jnp.arcsin(jnp.where(inside, sinu, 0.0)), jnp.sign(sinu) * _HALF_PI
-    )
-    uu = jnp.where(s < 0, jnp.pi - uu, uu)  # vtheta > 0
+    thetap = node + jnp.sign(Lz) * thetaz
 
-    phi = jnp.where(
-        on_axis,
-        0.0,
-        jnp.arctan2(jnp.where(on_axis, 0.0, xyz[1]), jnp.where(on_axis, 1.0, xyz[0])),
-    )
-    thetap = phi - uu + jnp.sign(Lz) * thetat
-    return jnp.mod(jnp.stack([thetar, thetap, thetat]), 2 * jnp.pi)
+    thetaz = jnp.where(radial, 0.0, thetaz)
+    thetap = jnp.where(radial, 0.0, thetap)
+    angles = jnp.mod(jnp.stack([thetar, thetap, thetaz]), _TWO_PI)
+    return jnp.where(angles >= _TWO_PI, angles - _TWO_PI, angles)  # mod rounding
 
 
 def _isochrone_aaf(
@@ -117,41 +143,36 @@ def _isochrone_aaf(
     Unitless. ``b`` is the isochrone scale radius. Angles are in ``[0, 2 pi)``.
     Unbound points (E >= 0) give NaN everywhere except ``J_phi``.
 
-    Radial orbits (e -> 1) and the origin are outside the domain of the
-    isochrone formulas (singular). Points with ``1 - e^2 <= 1e-12``, i.e.
-    ``L^2 (c + b) <= 1e-12 GM c^2`` with ``c = GM / (-2E) - b``, are treated
-    as radial: actions and frequencies are finite, the angles are set to 0
-    and all gradients are finite.
+    ``theta_r`` is defined for every bound point except the origin at rest
+    (where it is 0); ``theta_z`` and ``theta_phi`` need the orbital plane and
+    are 0 for radial orbits (``1 - e^2 <= 1e-30``, i.e. ``L ~ 0``). All
+    values and gradients of bound points are finite.
     """
     GM = G * m_tot
-    r2 = xyz @ xyz
     Lvec = jnp.cross(xyz, v)
     Lz = Lvec[2]
-    L = safe_sqrt(Lvec @ Lvec)
+    L2 = Lvec @ Lvec
+    L = safe_sqrt(L2)
 
-    E_raw = 0.5 * (v @ v) - GM / (b + jnp.sqrt(b * b + r2))
-    bound = E_raw < 0
-    E = jnp.where(bound, E_raw, -1.0)  # dummy bound value keeps grads finite
+    dE = _delta_energy(GM, b, xyz, v)
+    D = GM - 2 * b * dE  # = -2 E b
+    bound = D > 0
+    # unbound lanes: stand-in E = -GM / 4b keeps the gradients finite
+    m2E = jnp.where(bound, D, 0.5 * GM) / b  # -2E
 
     # --- actions
-    sq = jnp.sqrt(L * L + 4 * GM * b)
-    Jr = GM / jnp.sqrt(-2 * E) - 0.5 * (L + sq)
+    sq = jnp.sqrt(L2 + 4 * GM * b)
+    Jr = GM / jnp.sqrt(m2E) - 0.5 * (L + sq)
 
-    # --- angles (regular points only)
-    # 1 - e^2 = L^2 (c + b) / (GM c^2) > 1e-12 keeps e < 1 in floating point
-    # (and excludes the origin, where L = 0). Scale-free; no division.
-    c = GM / (-2 * E) - b
-    regular = (Lvec @ Lvec) * (c + b) > 1e-12 * GM * c * c
-    # dummy: a circular orbit (e = 0) at r = c + b, so it is regular in any units
-    rd = c + b
-    zero = jnp.zeros_like(rd)
-    xyz_s = jnp.where(regular, xyz, jnp.stack([rd, zero, zero]))
-    v_s = jnp.where(regular, v, jnp.stack([zero, jnp.sqrt(GM / rd) * c / rd, zero]))
-    angles = jnp.where(regular, _angles(GM, b, E, xyz_s, v_s), 0.0)
+    # --- angles: c = 2 b^2 dE / D > _C_TOL b (excludes the origin at rest)
+    regular = bound & (2 * b * dE > _C_TOL * D)
+    xyz_s = jnp.where(regular, xyz, b * _X0)
+    v_s = jnp.where(regular, v, jnp.sqrt(GM / b) * _V0)
+    angles = jnp.where(regular, _angles(GM, b, xyz_s, v_s), 0.0)
 
     # --- frequencies
     omega_ratio = 0.5 * (1 + L / sq)
-    omega_r = (-2 * E) ** 1.5 / GM
+    omega_r = m2E**1.5 / GM
     freqs = jnp.stack(
         [omega_r, jnp.sign(Lz) * omega_ratio * omega_r, omega_ratio * omega_r]
     )
@@ -163,6 +184,7 @@ def _isochrone_aaf(
     return actions, jnp.where(bound, angles, nan), jnp.where(bound, freqs, nan)
 
 
+@ft.partial(jax.jit, inline=True)
 def _aaf(
     pot: IsochronePotential, q: Array, p: Array, t: Array
 ) -> tuple[Array, Array, Array]:

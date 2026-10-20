@@ -3,7 +3,7 @@
 __all__ = ["parse_qpt", "parse_w", "wrap_result"]
 
 from jaxtyping import Array
-from typing import Any
+from typing import Any, overload
 
 from plum import convert
 
@@ -14,6 +14,18 @@ from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
 from .result import ActionsAnglesFrequencies
+
+
+@overload
+def parse_qpt(
+    pot: Any, q: Any, p: None, t: Any, /
+) -> tuple[Array, None, Array, bool]: ...
+
+
+@overload
+def parse_qpt(
+    pot: Any, q: Any, p: Any, t: Any, /
+) -> tuple[Array, Array, Array, bool]: ...
 
 
 def parse_qpt(
@@ -35,6 +47,10 @@ def parse_qpt(
         None if p is None else jnp.asarray(u.ustrip(AllowValue, usys["speed"], p))
     )
     t_: Array = jnp.asarray(u.ustrip(AllowValue, usys["time"], t))
+    for name, x in (("q", q_), ("p", p_)):
+        if x is not None and x.shape[-1:] != (3,):
+            msg = f"{name} must have shape (..., 3), got {x.shape}"
+            raise ValueError(msg)
 
     shapes = [q_.shape[:-1], t_.shape] + ([] if p_ is None else [p_.shape[:-1]])
     batch = jnp.broadcast_shapes(*shapes)
@@ -55,7 +71,6 @@ def parse_w(
     xq: u.Quantity = convert(cx.vconvert(cx.CartesianPos3D, w.q), u.Quantity)
     vq: u.Quantity = convert(cx.vconvert(cx.CartesianVel3D, w.p, w.q), u.Quantity)
     q, p, t, _ = parse_qpt(pot, xq, vq, w.t)
-    assert p is not None  # noqa: S101
     return q, p, t
 
 

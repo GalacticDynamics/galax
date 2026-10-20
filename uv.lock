@@ -977,7 +977,7 @@ requires-dist = [
     { name = "plotting-backends", specifier = ">=0.1" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "quax", specifier = ">=0.4.3" },
+    { name = "quax", specifier = ">=0.4.6" },
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "spexial", specifier = ">=0.2.1" },
     { name = "typing-extensions", specifier = ">=4.13.2" },
@@ -1085,7 +1085,7 @@ requires-dist = [
     { name = "oncequinox", specifier = ">=0.1.0" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "quax", specifier = ">=0.4.3" },
+    { name = "quax", specifier = ">=0.4.6" },
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
@@ -1424,7 +1424,7 @@ requires-dist = [
     { name = "plotting-backends", specifier = ">=0.1" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "quax", specifier = ">=0.4.3" },
+    { name = "quax", specifier = ">=0.4.6" },
     { name = "quax-blocks", specifier = ">=0.5" },
     { name = "quaxed", specifier = ">=0.10.5" },
     { name = "spexial", specifier = ">=0.2.1" },
@@ -2664,7 +2664,7 @@ wheels = [
 
 [[package]]
 name = "quax"
-version = "0.4.5"
+version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "equinox" },
@@ -2673,9 +2673,9 @@ dependencies = [
     { name = "packaging" },
     { name = "plum-dispatch" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/04/76/2f86afd710019c90b24c9a0a8634951bcb0c29ca1e343ff66df4b2c53162/quax-0.4.5.tar.gz", hash = "sha256:6d075b52ce7e44785c7bac06c28f3608d05a52f1baf7b131b06af5a3848275f4", size = 215099, upload-time = "2026-10-10T20:15:15.614Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/ca/22d024bf70badc86c9c31f37f7f5bd4afb97ff4bc82cb95c802676c4915f/quax-0.4.6.tar.gz", hash = "sha256:994f0a8ae909c33c729adca07921b78314b5fd9d71aa9b4f135e9e409a192bae", size = 216040, upload-time = "2026-10-20T01:06:18.985Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/00/db657d38107837a6bd7743bf842c1aefc77b2a205b66a3663094ebec23a7/quax-0.4.5-py3-none-any.whl", hash = "sha256:45cb9a98c431ce5bf19286ece3672a737528a1a61ae0840410e9ac5e33600c8f", size = 61860, upload-time = "2026-10-10T20:15:13.936Z" },
+    { url = "https://files.pythonhosted.org/packages/21/09/dede1ec41c0f89fd128c65e7690a9e6112e63166c424287600e8a54a45bd/quax-0.4.6-py3-none-any.whl", hash = "sha256:123dffe5fb5fe6784d9e75879da7409b8b73d691babb094c43f5945d57c830e1", size = 61767, upload-time = "2026-10-20T01:06:17.207Z" },
 ]
 
 [[package]]

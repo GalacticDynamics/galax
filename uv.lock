@@ -393,7 +393,7 @@ wheels = [
 
 [[package]]
 name = "coordinax"
-version = "0.24.2"
+version = "0.24.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -415,9 +415,9 @@ dependencies = [
     { name = "xmmutablemap" },
     { name = "zeroth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/31/5cfadf65d9d6c4eb103cf97b7649789a68a3311503bcbaec2f0f6cfc600e/coordinax-0.24.2.tar.gz", hash = "sha256:319448c79e2ddd62eb88e75a211470307ea857f34d761db27df4670dfcacd1be", size = 729836, upload-time = "2026-10-11T00:25:20.198Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/e9/368bb23a25fc71a45dbab647abb94abe2fd1ea1cf75b5e1a7b84ed658e99/coordinax-0.24.3.tar.gz", hash = "sha256:b0e3b4815904a3ac49e8e79b8a77d9f8fcbbb2ad551715ced216ab2e1a326b9b", size = 729911, upload-time = "2026-10-16T01:20:56.963Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/b9/48e53284c5e6f0d6a66c7662dee4ca9630787d4f73c97d98f6eacc605e28/coordinax-0.24.2-py3-none-any.whl", hash = "sha256:1b16cf655a1bf5573c6c217a85db3c69a4c17cb7b812412310afb094eb232e8b", size = 195398, upload-time = "2026-10-11T00:25:18.5Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/37/3c5f0e03c0ef69cbea3245c17cde4466328193ba9f8a32c58839c4fc7a26/coordinax-0.24.3-py3-none-any.whl", hash = "sha256:b458f0b14d709dc9f14224bfeca80f35fbd247d08079449fe0f65e603b6b0bc1", size = 195403, upload-time = "2026-10-16T01:20:55.275Z" },
 ]
 
 [[package]]
@@ -552,8 +552,7 @@ version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "optype" },
-    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
-    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "plum-dispatch" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/dc/67/835a8f06347fe630a030fa079028b1984ad81b7369b31dfbbfd4e2877750/dataclassish-0.9.0.tar.gz", hash = "sha256:310b0d6d00442ca93dbc9b3742a91e25e157582d10fd3e9e453d35767f5d9347", size = 73210, upload-time = "2026-03-22T14:34:52.156Z" }
@@ -650,8 +649,7 @@ dependencies = [
     { name = "diffrax" },
     { name = "equinox" },
     { name = "jaxtyping" },
-    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
-    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "plum-dispatch" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/18/96/31538b3c43318811809d98b4a1fb5d3130f5689f44abfd1fcd909428a4cc/diffraxtra-1.5.2.tar.gz", hash = "sha256:b23cae37ca16e9bcbc39ce370b1d467243f2b5b962e357e5606c6ab2d313d436", size = 74006, upload-time = "2025-08-11T14:26:29.944Z" }
@@ -915,7 +913,7 @@ requires-dist = [
     { name = "astropy", marker = "extra == 'interop-gala'", specifier = ">=6.1" },
     { name = "astropy", marker = "extra == 'interop-galpy'", specifier = ">=6.1" },
     { name = "beartype", specifier = ">=0.22.9" },
-    { name = "coordinax", specifier = ">=0.24.2,<0.25" },
+    { name = "coordinax", specifier = ">=0.24.3,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "diffrax", specifier = ">=0.7" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
@@ -951,7 +949,7 @@ requires-dist = [
     { name = "unxts-interop-gala", marker = "extra == 'interop-gala'", specifier = ">=2.0,<3" },
     { name = "unxts-parametric", specifier = ">=2.0,<3" },
     { name = "wadler-lindig", specifier = ">=0.1.7" },
-    { name = "xmmutablemap", specifier = ">=0.2.1" },
+    { name = "xmmutablemap", specifier = ">=0.3.1" },
     { name = "zeroth", specifier = ">=1.2.0" },
 ]
 provides-extras = ["all", "interop-all", "interop-astropy", "interop-gala", "interop-galpy", "plot-all", "plot-matplotlib"]
@@ -1880,35 +1878,8 @@ wheels = [
 
 [[package]]
 name = "plum-dispatch"
-version = "2.8.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version == '3.13.*'",
-    "python_full_version < '3.13'",
-]
-dependencies = [
-    { name = "beartype" },
-    { name = "rich" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5e/cf/2f2b0dd84edbb2951a845ba98d29f651bbbd467039c368fcfa22904905cd/plum_dispatch-2.8.0.tar.gz", hash = "sha256:453fc7bc67d2a39492c834b00c94d816871d148b5a0a5d3f49e2bbf2391e2619", size = 241272, upload-time = "2026-03-17T21:24:41.338Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/a3/cdb8130cc05a13c75237d2be4821f38c0b99d1a64980b6529d788a43a501/plum_dispatch-2.8.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:fca6b6dbed8c686f6f827e9c95f60334ba70ee27cccef1f44a50d42a30221748", size = 165288, upload-time = "2026-03-17T21:24:31.203Z" },
-    { url = "https://files.pythonhosted.org/packages/25/fe/b1dbbdd1864d4ca825b3b5079fca852ea5e5a4f223aa866702f751b02dba/plum_dispatch-2.8.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:599025e7bd7e16f198e5ccaad0ca51036fcbeb43eb41525a5ef705b9a25bb192", size = 194360, upload-time = "2026-03-17T21:24:32.531Z" },
-    { url = "https://files.pythonhosted.org/packages/6b/01/a8947d5c92824a6bc019696e5d9f150178736ecd8e6766db38b38e0f0fda/plum_dispatch-2.8.0-cp312-cp312-win_amd64.whl", hash = "sha256:c0e6146881b71eb6a6355d18476bed356071d1dff45a7cf4ae31f7f4bffb01b9", size = 146826, upload-time = "2026-03-17T21:24:34.076Z" },
-    { url = "https://files.pythonhosted.org/packages/68/25/380300b3468417999ca0db0522eeae1017798519fe28753e8ad110718174/plum_dispatch-2.8.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:d60c0040207495afddab3f80c498a5e8f9dab29f8d143468c51d668fe70ed291", size = 165256, upload-time = "2026-03-17T21:24:35.341Z" },
-    { url = "https://files.pythonhosted.org/packages/59/2f/94e4e62ad437996341d03471bd398f3f6bf4c5f3a1fa524ba53f02b6896d/plum_dispatch-2.8.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f88aaf08a562e7a559851679a051b32306b67fd403ed6070915a966f048a83e9", size = 193632, upload-time = "2026-03-17T21:24:37.035Z" },
-    { url = "https://files.pythonhosted.org/packages/fb/d2/772d1e3071971a30e70b78df421f51788354337a7f94957d910ba3cd8a5a/plum_dispatch-2.8.0-cp313-cp313-win_amd64.whl", hash = "sha256:53bc084b335e5071b72353830a9f2cdacd58c9e959089be5778b6d638b5062f9", size = 146931, upload-time = "2026-03-17T21:24:38.8Z" },
-    { url = "https://files.pythonhosted.org/packages/4b/7d/6d1a0a5851fb590564045471bdd6f405426ae4214cafe530ceba297e5c0d/plum_dispatch-2.8.0-py3-none-any.whl", hash = "sha256:f5dfffc46de1d8208ba281fdb0f41d6065c7341c1fde76fc83b4b78810c30c7e", size = 44547, upload-time = "2026-03-17T21:24:40.059Z" },
-]
-
-[[package]]
-name = "plum-dispatch"
 version = "2.9.0"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.14'",
-]
 dependencies = [
     { name = "beartype" },
     { name = "rich" },
@@ -2245,8 +2216,7 @@ dependencies = [
     { name = "jax" },
     { name = "jaxtyping" },
     { name = "packaging" },
-    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
-    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "plum-dispatch" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e3/7c/b43f62a8246364704ba9335c94ad278c784879017076d5e04572e7eb91fc/quax-0.4.3.tar.gz", hash = "sha256:962f907f9aa8d41a09330e060897af6e6f10d47fc9ff15de163ccfa550f6eed3", size = 203771, upload-time = "2026-08-04T21:14:00.316Z" }
 wheels = [
@@ -2263,8 +2233,7 @@ dependencies = [
     { name = "jaxtyping" },
     { name = "optype" },
     { name = "packaging" },
-    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
-    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "plum-dispatch" },
     { name = "quax" },
     { name = "quaxed" },
 ]
@@ -2282,8 +2251,7 @@ dependencies = [
     { name = "jax" },
     { name = "jaxtyping" },
     { name = "optype" },
-    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
-    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "plum-dispatch" },
     { name = "quax" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/8c/9f/7fdd817ee42e53f7249eecc2bc6f93156a8846d05e2d69e5540a63630747/quaxed-0.10.5.tar.gz", hash = "sha256:97c8b96b46ae832afb83f9e845397738dcbacd61c165bbe9f6542b3bf6892593", size = 170089, upload-time = "2026-05-04T19:12:29.856Z" }
@@ -2636,8 +2604,7 @@ dependencies = [
     { name = "jaxtyping" },
     { name = "optional-dependencies" },
     { name = "packaging" },
-    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
-    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "plum-dispatch" },
     { name = "quax" },
     { name = "quax-blocks" },
     { name = "quaxed" },
@@ -2668,8 +2635,7 @@ name = "unxts-api"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
-    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "plum-dispatch" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a7/57/0ba96217d877cf2eb4002045650d9521d1d0d5cc91e1226fc9877a1ed675/unxts_api-2.0.0.tar.gz", hash = "sha256:b5bdb90a0836099e788549d65a95d979281dd5fb2d06164620cc983aeb1cd6c4", size = 12570, upload-time = "2026-07-24T18:05:26.804Z" }
 wheels = [
@@ -2695,8 +2661,7 @@ name = "unxts-parametric"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "plum-dispatch", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
-    { name = "plum-dispatch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "plum-dispatch" },
     { name = "unxt" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/bd/bb/3b1ee3b62ff9e24ae33d9f3cc44589b4aa606e6e65d2ea18584048db3779/unxts_parametric-2.0.0.tar.gz", hash = "sha256:0b715a4675ef5e4b26afc85a90ed68ec5cf9a06009ae97f950f48dca4b34befc", size = 21099, upload-time = "2026-07-24T18:14:39.637Z" }
@@ -2842,15 +2807,15 @@ wheels = [
 
 [[package]]
 name = "xmmutablemap"
-version = "0.2.1"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/a6/c4043eb00f297956a5447109985f41fabb0adbbf80786a21c2949f798ba4/xmmutablemap-0.2.1.tar.gz", hash = "sha256:38a881b0fcc54352e2751628d11519d023bc6677e978483736f8f51b45c7147f", size = 97896, upload-time = "2025-10-22T01:22:00.219Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/92/f4/ea72d36313924c94c073e7c71af6584e10517e8be2c77ce0774f98913396/xmmutablemap-0.3.1.tar.gz", hash = "sha256:2f38060deb80ae75dc6bd150d0dac87b1e098d08301482267e579ca5b9cb4aa1", size = 176274, upload-time = "2026-10-16T01:47:12.045Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/89/4628be42c56e0063b2158a468fc0de3e21285800f8cab07f2d3be684c763/xmmutablemap-0.2.1-py3-none-any.whl", hash = "sha256:002f97986e1cc343d362e38eae62a0a51ca7b76bd3b1de0f70a8f05dbe2b8c5c", size = 7584, upload-time = "2025-10-22T01:21:58.821Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/2d/fa9208602efe8a8705a6dba55e45e9fb239c07532d08501971d08ba874a5/xmmutablemap-0.3.1-py3-none-any.whl", hash = "sha256:fb5d36c699fb7b80ed2d0cf34a94d6d5f6df1076ad7773adec1cf7f5e76c32ab", size = 13744, upload-time = "2026-10-16T01:47:10.728Z" },
 ]
 
 [[package]]

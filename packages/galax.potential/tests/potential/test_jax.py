@@ -2,7 +2,7 @@
 
 from jaxtyping import Array, Float
 
-import jax.numpy as jnp
+import quaxed.numpy as jnp
 
 from galax.potential._src.jax import vectorize_method
 

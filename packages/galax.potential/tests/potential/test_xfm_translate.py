@@ -1,8 +1,8 @@
 """Tests for `galax.potential`'s translation transforms."""
 
-import jax.numpy as jnp
 import pytest
 
+import quaxed.numpy as jnp
 import unxt as u
 import unxt.unitsystems as usys
 

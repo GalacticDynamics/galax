@@ -30,7 +30,7 @@ dependencies = [
   "astropy>=7.0.0",
   "beartype>=0.22.9",        # TODO: figure out why 0.22.0 breaks things
   "boundinstance>=0.1",
-  "coordinax>=0.24.2,<0.25",
+  "coordinax>=0.24.3,<0.25",
   "dataclassish>=0.8.0",
   "diffrax>=0.7",
   "diffraxtra>=1.5.2",
@@ -55,14 +55,14 @@ dependencies = [
   "plotting_backends>=0.1",
   "plum>=2.8.0; python_version < '3.14'",
   "plum>=2.9.0; python_version >= '3.14'",
-  "quax>=0.4.3",
+  "quax>=0.4.6",
   "quaxed>=0.10.5",
   "spexial>=0.2.1",
   "typing-extensions>=4.13.2",
   "unxt>=2.0.5,<3",
   "unxts.parametric>=2.0,<3",
   "wadler_lindig>=0.1.7",
-  "xmmutablemap>=0.2.1",
+  "xmmutablemap>=0.3.1",
   "zeroth>=1.2.0",
 ]
 
@@ -131,7 +131,7 @@ docs = [
 test-all = [{ include-group = "test" }, { include-group = "test-mpl" }]
 test = [
   # Test-only: no `src/` imports it. Its consumers are the root `conftest.py`
-  # and `packages/galax.potential/tests/potential/optional_deps.py`, which
+  # and `packages/galax.potential/tests/unit/potential/optional_deps.py`, which
   # probe the wrapped libraries to decide what to collect and skip. Every
   # portion declares it as well, since that root `conftest.py` loads on any
   # run rooted here, whatever it collects.

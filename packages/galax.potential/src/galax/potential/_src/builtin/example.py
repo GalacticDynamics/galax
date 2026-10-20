@@ -56,7 +56,7 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     Q(0.5, 'kpc2 / Myr2')
 
     >>> pot.density(q, t)
-    Q(1.76897707e+10, 'solMass / kpc3')
+    Q(5.30693121e+10, 'solMass / kpc3')
 
     """
 
@@ -85,15 +85,19 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
         return _result  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
-    def _density(self, _: gt.BBtQorVSz3, t: gt.BtQuSz0 | gt.BtSz0, /) -> gt.BBtFloatSz0:
+    def _density(
+        self, xyz: gt.BBtQorVSz3, t: gt.BtQuSz0 | gt.BtSz0, /
+    ) -> gt.BBtFloatSz0:
         # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        omega = jnp.atleast_1d(self.omega(t, ustrip=self.units["frequency"]))
-
-        # TODO: fix this - not valid for arbitrary ndim
-        # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i^N \omega_i^2 / N
+        # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i^N \omega_i^2
+        # A scalar omega is broadcast over all N axes, as in the potential.
+        omega = jnp.broadcast_to(
+            self.omega(t, ustrip=self.units["frequency"]), xyz.shape
+        )
         denom = 4 * jnp.pi * self.constants["G"].value
         return jnp.sum(omega**2, axis=-1) / denom  # type: ignore[no-any-return]
 

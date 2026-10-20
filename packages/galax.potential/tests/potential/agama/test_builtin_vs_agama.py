@@ -54,8 +54,6 @@ def _hernquist(p: gp.HernquistPotential) -> dict[str, Any]:
     }
 
 
-HARMONIC = {"type": "Harmonic", "Omega": u.ustrip("km / (s kpc)", u.Q(0.05, "1 / Myr"))}
-
 _MW = gp.MilkyWayPotential()
 _MW2022 = gp.MilkyWayPotential2022()
 
@@ -131,21 +129,9 @@ CASES = [
     ),
     pytest.param(
         gp.HarmonicOscillatorPotential(omega=u.Q(0.05, "1 / Myr"), units="galactic"),
-        HARMONIC,
-        {"quantities": ("potential", "gradient", "hessian")},
+        {"type": "Harmonic", "Omega": u.ustrip("km / (s kpc)", u.Q(0.05, "1 / Myr"))},
+        {},
         id="harmonic",
-    ),
-    pytest.param(
-        gp.HarmonicOscillatorPotential(omega=u.Q(0.05, "1 / Myr"), units="galactic"),
-        HARMONIC,
-        {"quantities": ("density",)},
-        id="harmonic-density",
-        marks=pytest.mark.xfail(
-            reason="galax bug: `HarmonicOscillatorPotential._density` returns "
-            "omega^2 / (4 pi G), but a scalar omega acts on all three axes, so "
-            "the Laplacian is 3 omega^2 (the `TODO: fix this` in example.py)",
-            strict=True,
-        ),
     ),
     pytest.param(
         gp.KeplerPotential(m_tot=1e11, units="galactic"),

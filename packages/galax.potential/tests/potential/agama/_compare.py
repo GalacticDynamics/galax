@@ -71,15 +71,8 @@ def assert_matches_agama(
     quantities: tuple[str, ...] = ("potential", "gradient", "density", "hessian"),
 ) -> None:
     """Assert each requested quantity agrees, naming the one that does not."""
-    x = u.Q(xyz, "kpc")
+    x, t = u.Q(xyz, "kpc"), u.Q(0, "Myr")
     for name in quantities:
-        galax = np.asarray(
-            u.ustrip(_UNITS[name], getattr(galax_pot, name)(x, t=u.Q(0, "Myr")))
-        )
-        np.testing.assert_allclose(
-            galax,
-            _agama(agama_pot, name, xyz),
-            rtol=rtol,
-            atol=atol,
-            err_msg=name,
-        )
+        galax = u.ustrip(_UNITS[name], getattr(galax_pot, name)(x, t=t))
+        agama = _agama(agama_pot, name, xyz)
+        np.testing.assert_allclose(galax, agama, rtol=rtol, atol=atol, err_msg=name)

@@ -2,6 +2,7 @@
 
 __all__ = [
     # Modules
+    "actionangle",
     "cluster",
     "fields",
     "mockstream",
@@ -48,7 +49,7 @@ from .setup_package import install_import_hook, load_interop_plugins
 with install_import_hook("galax.dynamics"):
     from diffraxtra import DiffEqSolver
 
-    from . import cluster, examples, fields, integrate, mockstream, plot
+    from . import actionangle, cluster, examples, fields, integrate, mockstream, plot
     from ._src.api import omega, specific_angular_momentum
     from ._src.cluster import lagrange_points, tidal_radius
     from ._src.parsetime import parse_time_specification

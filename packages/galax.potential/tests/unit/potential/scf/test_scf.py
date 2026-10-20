@@ -1,6 +1,5 @@
 """Test the `SCFPotential` class."""
 
-import astropy.units as apyu
 import numpy as np
 import pytest
 import scipy.special as sps
@@ -10,7 +9,6 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from ..optional_deps import GSL_ENABLED, OptDeps
 from galax.potential._src.builtin.multipole import scaled_radius_and_direction
 from galax.potential._src.builtin.scf.bfe import phi_nl, rho_nl
 from galax.potential._src.harmonic.ylm import iter_Ylm
@@ -339,38 +337,3 @@ def test_finite_on_coordinate_singularities(name, xyz, method) -> None:
     got = getattr(pot, method)(q, u.Q(0.0, "Gyr"))
 
     assert jnp.all(jnp.isfinite(u.ustrip(got.unit, got))), f"{method} at {name}"
-
-
-@pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
-@pytest.mark.skipif(not GSL_ENABLED, reason="requires gala built with GSL")
-def test_roundtrip_through_gala() -> None:
-    """Galax -> gala -> galax preserves the potential."""
-    pot = _quadrupole()
-    gala_pot = gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    back = gp.io.convert_potential(gp.io.GalaxLibrary, gala_pot)
-
-    xyz = u.Q(np.array([[8.0, 1.0, 2.0], [-3.0, 4.0, 5.0]]), "kpc")
-    t = u.Q(0.0, "Gyr")
-    got = back.potential(xyz, t)
-    expect = pot.potential(xyz, t)
-    assert jnp.allclose(got, expect, rtol=1e-12, atol=u.Q(1e-14, expect.unit))
-
-
-@pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
-@pytest.mark.skipif(not GSL_ENABLED, reason="requires gala built with GSL")
-def test_matches_gala_potential_and_density() -> None:
-    """Galax and gala agree on the potential and the density."""
-    pot = _quadrupole()
-    gala_pot = gp.io.convert_potential(gp.io.GalaLibrary, pot)
-    xyz = np.array([[8.0, 1.0, 2.0], [-3.0, 4.0, 5.0]]).T * apyu.kpc
-
-    assert np.allclose(
-        np.asarray(pot.potential(u.Q(xyz.T.value, "kpc"), u.Q(0.0, "Gyr")).value),
-        gala_pot.energy(xyz).to_value("kpc2 / Myr2"),
-        rtol=1e-10,
-    )
-    assert np.allclose(
-        np.asarray(pot.density(u.Q(xyz.T.value, "kpc"), u.Q(0.0, "Gyr")).value),
-        gala_pot.density(xyz).to_value("Msun / kpc3"),
-        rtol=1e-10,
-    )

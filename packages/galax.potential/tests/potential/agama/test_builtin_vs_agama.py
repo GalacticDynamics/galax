@@ -12,12 +12,12 @@ import pytest
 import unxt as u
 
 import galax.potential as gp
-from ..optional_deps import AGAMA_INSTALLED
+from ..optional_deps import OptDeps
 from ._compare import assert_matches_agama
 
 pytestmark = [
     pytest.mark.agama,
-    pytest.mark.skipif(not AGAMA_INSTALLED, reason="requires agama"),
+    pytest.mark.skipif(not OptDeps.AGAMA.installed, reason="requires agama"),
 ]
 
 T0 = u.Q(0, "Myr")

@@ -1,5 +1,7 @@
 """Tests for the analytic isochrone action-angle core."""
 
+from decimal import Decimal, localcontext
+
 import jax
 import numpy as np
 import pytest
@@ -86,8 +88,8 @@ def _jacs_finite(xyz, v, b=B, m=M):
 def _assert_angles(th, ref, atol):
     """Angles equal modulo 2 pi."""
     th, ref = np.asarray(th), np.asarray(ref)
-    np.testing.assert_allclose(np.sin(th), np.sin(ref), atol=atol)
-    np.testing.assert_allclose(np.cos(th), np.cos(ref), atol=atol)
+    np.testing.assert_allclose(np.sin(th), np.sin(ref), rtol=0, atol=atol)
+    np.testing.assert_allclose(np.cos(th), np.cos(ref), rtol=0, atol=atol)
 
 
 @pytest.mark.parametrize("argnum", [0, 1, 2, 3])
@@ -115,9 +117,12 @@ def test_isochrone_grad_matches_fd(argnum, jac):
 
 def test_isochrone_unbound_lanes_nan_free_grads():
     """Unbound lanes are NaN, but their gradients are finite (zero)."""
-    x = jnp.array([[1.0, 0.5, 0.2], [1.0, 0.5, 0.2], [0.3, -1.0, 0.4]])
-    v = jnp.array([[0.3, 0.6, 0.1], [3.0, 1.0, 2.0], [0.2, 0.1, -9.0]])
-    bound = jnp.array([True, False, False])
+    # the last lane is far out: the stand-in must replace its position too
+    x = jnp.array(
+        [[1.0, 0.5, 0.2], [1.0, 0.5, 0.2], [0.3, -1.0, 0.4], [100.0, 0.0, 0.0]]
+    )
+    v = jnp.array([[0.3, 0.6, 0.1], [3.0, 1.0, 2.0], [0.2, 0.1, -9.0], [0.0, 0.3, 0.0]])
+    bound = jnp.array([True, False, False, False])
     assert jnp.array_equal(jax.vmap(_energy)(x, v) < 0, bound)
 
     def loss(x, v, m, b):
@@ -236,6 +241,11 @@ def test_isochrone_theta_phi_continuous_through_planar(sgn):
         _jacs_finite(x, v)
     for th in tilts[1:]:
         _assert_angles(th[:2], tilts[0][:2], atol=1e-9)
+    # the planar threshold (inclination 1e-10): below it theta_z is the
+    # planar (psi = pi/2) value, above it psi is the true argument
+    planar = tilts[-1][2]
+    _assert_angles(tilts[3][2], planar, atol=1e-9)  # 0.99e-10
+    assert np.abs(np.sin(tilts[2][2] - planar)) > 0.1  # 1.01e-10
 
 
 def test_isochrone_origin():
@@ -268,6 +278,60 @@ def test_isochrone_deep_core(s):
     th = _isochrone_aaf(M, B, G, s * x, jnp.zeros(3))[1]
     _assert_angles(th, [np.pi, 0.0, 0.0], atol=1e-12)
     _jacs_finite(s * x, jnp.zeros(3))
+
+
+def _actions_decimal(x, v):
+    """(J_r, J_z) to 50 digits, from the float inputs (`decimal` reference)."""
+    with localcontext() as ctx:
+        ctx.prec = 50
+        gm, b = Decimal(GM), Decimal(B)
+        x, v = [Decimal(float(t)) for t in x], [Decimal(float(t)) for t in v]
+        r2, v2 = sum(t * t for t in x), sum(t * t for t in v)
+        E = v2 / 2 - gm / (b + (b * b + r2).sqrt())
+        Lv = [x[1] * v[2] - x[2] * v[1], x[2] * v[0] - x[0] * v[2]]
+        Lv.append(x[0] * v[1] - x[1] * v[0])
+        L2 = sum(t * t for t in Lv)
+        L = L2.sqrt()
+        Jr = gm / (-2 * E).sqrt() - (L + (L2 + 4 * gm * b).sqrt()) / 2
+        return float(Jr), float(L - abs(Lv[2]))
+
+
+@pytest.mark.parametrize("s", [1e-2, 1e-4, 1e-6, 1e-8])
+def test_isochrone_deep_core_jr_precision(s):
+    """J_r ~ s^2 in the core: no cancellation of GM / sqrt(-2E) and L + sq."""
+    x, v = np.array([1.0, 0.3, 0.2]) * s, np.array([0.1, 0.2, 0.5]) * s
+    J = _isochrone_aaf(M, B, G, jnp.asarray(x), jnp.asarray(v))[0]
+    np.testing.assert_allclose(J[0], _actions_decimal(x, v)[0], rtol=1e-10)
+
+
+@pytest.mark.parametrize("inc", [1e-4, 1e-6, 1e-8, 1e-12])
+def test_isochrone_low_inclination_jz_precision(inc):
+    """J_z ~ L inc^2 / 2: no cancellation of L - |L_z|."""
+    x, v = np.array([1.0, 0.5, inc]), np.array([-0.2, 0.45, 0.0])
+    J = _isochrone_aaf(M, B, G, jnp.asarray(x), jnp.asarray(v))[0]
+    np.testing.assert_allclose(J[2], _actions_decimal(x, v)[1], rtol=1e-12)
+
+
+def test_isochrone_circular_jr_nonnegative():
+    """Rounding must not make J_r negative on exactly circular orbits."""
+    rs = np.random.default_rng(1).uniform(0.1, 10, 50)
+    J = jax.vmap(
+        lambda r, vc: _isochrone_aaf(
+            M, B, G, jnp.array([r, 0, 0.0]), jnp.array([0, vc, 0.0])
+        )[0]
+    )(jnp.asarray(rs), jnp.asarray(_vcirc(rs)))
+    assert jnp.all(J[:, 0] >= 0)
+    np.testing.assert_allclose(J[:, 0], 0, atol=1e-13)
+
+
+def test_isochrone_float32():
+    """float32 in, float32 out (with x64 enabled)."""
+    x, v = jnp.array([1.0, 0.5, 0.4], "float32"), jnp.array([0.1, 0.5, -0.2], "float32")
+    out = _isochrone_aaf(jnp.float32(M), jnp.float32(B), jnp.float32(G), x, v)
+    ref = _isochrone_aaf(M, B, G, x.astype(float), v.astype(float))
+    for o, r in zip(out, ref, strict=True):
+        assert o.dtype == jnp.float32
+        np.testing.assert_allclose(o, r, rtol=1e-4, atol=1e-5)
 
 
 def _thetar_closed_form(x, v):
@@ -398,6 +462,50 @@ def test_overload_psc_and_orbit():
     )
 
 
+def test_unit_systems_agree():
+    """No unit of mass, time or speed is hard-coded.
+
+    A non-galactic unit system (with a time-dependent mass) gives the same
+    physical result.
+    """
+    m_tot = gp.params.LinearParameter(
+        slope=u.Q(1e8, "Msun/Myr"),
+        point_time=u.Q(0, "Myr"),
+        point_value=u.Q(1e11, "Msun"),
+    )
+    q, p, t = u.Q(Q_, "kpc"), u.Q(P_, "km/s"), u.Q(1.0, "Gyr")
+    out = []
+    for units in ("galactic", "si"):
+        pot = gp.IsochronePotential(m_tot=m_tot, r_s=u.Q(2.0, "kpc"), units=units)
+        res = iaaf(pot, q, p, t)
+        out.append(
+            (
+                res.actions.ustrip("kpc2/Myr"),
+                res.angles.ustrip("rad"),
+                res.freqs.ustrip("rad/Myr"),
+            )
+        )
+    for a, b in zip(*out, strict=True):
+        np.testing.assert_allclose(a, b, rtol=1e-10)
+    # m_tot(1 Gyr) = 2e11 Msun, not 1e11
+    ref = gp.IsochronePotential(
+        m_tot=u.Q(2e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
+    )
+    np.testing.assert_allclose(
+        out[0][0], iaaf(ref, q, p, t).actions.ustrip("kpc2/Myr"), rtol=1e-12
+    )
+
+
+def test_overload_composite_psc():
+    # per-point (increasing) t: the composite concatenates and sorts by t
+    t = u.Q([0.0, 1.0, 2.0], "Myr")
+    w1 = gc.PhaseSpaceCoordinate(q=u.Q(Q_[:2], "kpc"), p=u.Q(P_[:2], "km/s"), t=t[:2])
+    w2 = gc.PhaseSpaceCoordinate(q=u.Q(Q_[2:], "kpc"), p=u.Q(P_[2:], "km/s"), t=t[2:])
+    res = iaaf(POT, gc.CompositePhaseSpaceCoordinate(w1=w1, w2=w2))
+    ref = iaaf(POT, u.Q(Q_, "kpc"), u.Q(P_, "km/s"), t)
+    np.testing.assert_allclose(res.actions.value, ref.actions.value, rtol=1e-12)
+
+
 def test_api_grads_match_fd():
     """Gradients through the public API and the potential pytree."""
     q, p = jnp.asarray(Q_[0]), jnp.asarray(P_KPC_MYR[0])
@@ -436,7 +544,14 @@ def test_api_jitted_no_retrace():
     iaaf(POT, jnp.asarray(Q_), jnp.asarray(P_KPC_MYR), 0.0)
     n = _aaf._cache_size()
     iaaf(POT, jnp.asarray(Q_) + 0.1, jnp.asarray(P_KPC_MYR) * 0.9, 1.0)
+    iaaf(POT, jnp.asarray(Q_), jnp.asarray(P_KPC_MYR), 2)  # int t
+    iaaf(POT, jnp.asarray(Q_), jnp.asarray(P_KPC_MYR), np.float64(2.0))  # strong
     assert _aaf._cache_size() == n
+
+
+def test_parse_requires_t():
+    with pytest.raises(ValueError, match="t is required"):
+        iaaf(POT, jnp.asarray(Q_), jnp.asarray(P_KPC_MYR), None)
 
 
 @pytest.mark.parametrize(
@@ -487,8 +602,7 @@ def test_matches_gala_isochrone_xv_to_aa():
     frq = out[2].to_value("rad/Myr").T
     np.testing.assert_allclose(res.actions, act, rtol=1e-10, atol=1e-12)
     np.testing.assert_allclose(res.freqs, frq, rtol=1e-10)
-    np.testing.assert_allclose(np.sin(res.angles), np.sin(ang), atol=1e-9)
-    np.testing.assert_allclose(np.cos(res.angles), np.cos(ang), atol=1e-9)
+    _assert_angles(res.angles, ang, atol=1e-9)
 
 
 @pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
@@ -510,6 +624,9 @@ def test_near_radial_matches_gala(vt):
         ang = isochrone_xv_to_aa(pos, gpot)[1].to_value("rad")[:, 0]
     _assert_angles(res.angles[0], ang[0], atol=1e-9)
     if vt > 0:
-        # the plane (L = x cross v) is conditioned by eps |x| |v| / L
+        # the plane (L = x cross v) is conditioned by eps |x| |v| / L. gala's
+        # theta_phi is noisier: it moves by ~1e-7 under 1-ulp input changes at
+        # every vt here (ours by ~eps cond), hence its extra 3e-7.
         cond = np.linalg.norm(x) * np.linalg.norm(v) / np.linalg.norm(np.cross(x, v))
-        _assert_angles(res.angles[1:], ang[1:], atol=1e-9 + 1e-15 * cond)
+        _assert_angles(res.angles[2], ang[2], atol=1e-9 + 1e-15 * cond)
+        _assert_angles(res.angles[1], ang[1], atol=3e-7 + 1e-15 * cond)

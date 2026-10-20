@@ -33,6 +33,10 @@ _TWO_PI = 2 * jnp.pi
 # at rest), and 1 - e^2 > _Q_TOL for the orbital plane (L > 0).
 _C_TOL = 1e-30
 _Q_TOL = 1e-30
+# eta = atan2(ey, ex) needs (ex, ey) = c e (cos, sin)(eta) with e > 1e-12.
+_ETA_TOL = 1e-24
+# Planar orbits: inclination < 1e-10, i.e. sin^2(i) = L_xy^2 / L^2 <= 1e-20.
+_PLANAR_TOL = 1e-20
 # Stand-in for lanes outside the domain of the angle formulas (unbound, or the
 # origin at rest): a generic bound point in units of b and sqrt(GM / b).
 _X0 = np.array([1.0, 0.5, 0.3])
@@ -87,7 +91,7 @@ def _angles(GM: Array, b: Array, xyz: Array, v: Array) -> Array:
     ex = c - r2 / (b + s)  # = b + c - s = c e cos(eta), without cancellation
     ey = rdotv / jnp.sqrt(D / b)  # = c e sin(eta)
     # eta is ill-defined (atan2(0, 0)) for circular orbits; fall back to 0
-    eta_ok = (ex * ex + ey * ey) > 1e-24 * c * c
+    eta_ok = (ex * ex + ey * ey) > _ETA_TOL * c * c
     eta = jnp.arctan2(jnp.where(eta_ok, ey, 0.0), jnp.where(eta_ok, ex, 1.0))
     thetar = eta - e * c * jnp.sin(eta) / (c + b)
 
@@ -100,7 +104,7 @@ def _angles(GM: Array, b: Array, xyz: Array, v: Array) -> Array:
     # undefined. There psi = pi/2 (gala's convention) and the node is
     # phi - sgn(Lz) pi/2, so theta_phi = phi + sgn(Lz) A is continuous.
     dL = Lvec[0] ** 2 + Lvec[1] ** 2
-    planar = radial | (dL <= 1e-20 * L2)
+    planar = radial | (dL <= _PLANAR_TOL * L2)
     # psi = atan2(cos(theta), -sin(theta) r^2 theta_dot / L), written without
     # sin(theta) in a denominator. Continuous in v_theta: gala forces
     # psi = pi/2 for |v_theta| <= 1e-10, so at a z-turning point below the
@@ -161,11 +165,26 @@ def _isochrone_aaf(
     D = GM - 2 * b * dE  # = -2 E b
     bound = D > 0
     # unbound lanes: stand-in E = -GM / 4b keeps the gradients finite
-    m2E = jnp.where(bound, D, 0.5 * GM) / b  # -2E
+    Ds = jnp.where(bound, D, 0.5 * GM)
+    m2E = Ds / b  # -2E
 
     # --- actions
+    # J_r = GM / sqrt(-2E) - (L + sq) / 2 cancels in the core (both terms ~ s0).
+    # Subtracting s0 from each: GM / sqrt(-2E) - s0 = s0 (GM - D) / (sqrt(D)
+    # (sqrt(GM) + sqrt(D))) with GM - D = 2 b dE, and sq / 2 - s0 = L^2 / (2
+    # (sq + 2 s0)). Rounding can still give J_r ~ -eps on circular orbits.
+    s0 = jnp.sqrt(GM * b)
     sq = jnp.sqrt(L2 + 4 * GM * b)
-    Jr = GM / jnp.sqrt(m2E) - 0.5 * (L + sq)
+    sD = jnp.sqrt(Ds)
+    Jr = (
+        s0 * 2 * b * dE / (sD * (jnp.sqrt(GM) + sD))
+        - 0.5 * L
+        - 0.5 * L2 / (sq + 2 * s0)
+    )
+    Jr = jnp.where(Jr < 0, 0.0, Jr)
+    # J_z = L - |L_z| = (L_x^2 + L_y^2) / (L + |L_z|), without cancellation
+    Lp = L + jnp.abs(Lz)
+    Jz = (Lvec[0] ** 2 + Lvec[1] ** 2) / jnp.where(Lp > 0, Lp, 1.0)
 
     # --- angles: c = 2 b^2 dE / D > _C_TOL b (excludes the origin at rest)
     regular = bound & (2 * b * dE > _C_TOL * D)
@@ -182,9 +201,7 @@ def _isochrone_aaf(
     )
 
     nan = jnp.nan
-    actions = jnp.stack(
-        [jnp.where(bound, Jr, nan), Lz, jnp.where(bound, L - jnp.abs(Lz), nan)]
-    )
+    actions = jnp.stack([jnp.where(bound, Jr, nan), Lz, jnp.where(bound, Jz, nan)])
     return actions, jnp.where(bound, angles, nan), jnp.where(bound, freqs, nan)
 
 

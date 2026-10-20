@@ -46,8 +46,10 @@ def isochrone_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
 
     The batch shapes of ``q``, ``p`` (``shape[:-1]``) and ``t`` broadcast
     together. Angles are in ``[0, 2 pi)``; unbound points give NaN (except
-    ``J_phi``). Values and gradients of bound points are finite. Coordinate
-    singularities:
+    ``J_phi``). Values and gradients of bound points are finite. Enable
+    64-bit floats (``jax_enable_x64``): in float32, unit systems with large
+    numbers (e.g. SI) overflow ``GM r^2`` and ``L^2`` and silently give NaN.
+    Coordinate singularities:
 
     - Radial orbits (``L = 0``, numerically ``1 - e^2 <= 1e-30``): ``theta_r``
       is correct; ``theta_z`` and ``theta_phi`` (undefined) are set to 0.

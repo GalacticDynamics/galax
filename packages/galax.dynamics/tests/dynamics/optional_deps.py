@@ -13,7 +13,8 @@ from optional_dependencies.utils import chain_checks, get_version, is_installed
 class OptDeps(OptionalDependencyEnum):  # type: ignore[misc]
     """Libraries the `galax.dynamics` tests compare against."""
 
-    GALA = chain_checks(get_version("gala"), is_installed("gala.dynamics"))
+    # Probe the submodule the tests import, so a partial gala install skips.
+    GALA = chain_checks(get_version("gala"), is_installed("gala.dynamics.actionangle"))
     GALPY = auto()
 
 

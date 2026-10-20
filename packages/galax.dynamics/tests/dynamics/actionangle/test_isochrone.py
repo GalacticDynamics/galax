@@ -429,6 +429,10 @@ def test_api_grads_match_fd():
 def test_api_jitted_no_retrace():
     from galax.dynamics._src.actionangle.isochrone import _aaf
 
+    # `_cache_size` is private jax API: skip rather than fail if it goes away.
+    if not hasattr(_aaf, "_cache_size"):
+        pytest.skip("jax no longer exposes the jit cache size")
+
     iaaf(POT, jnp.asarray(Q_), jnp.asarray(P_KPC_MYR), 0.0)
     n = _aaf._cache_size()
     iaaf(POT, jnp.asarray(Q_) + 0.1, jnp.asarray(P_KPC_MYR) * 0.9, 1.0)

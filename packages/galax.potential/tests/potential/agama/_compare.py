@@ -47,16 +47,18 @@ def _sym33(d6: np.ndarray) -> np.ndarray:
 
 
 def _agama(agama_pot: Any, name: str, xyz: np.ndarray) -> np.ndarray:
-    if name == "potential":
-        return agama_pot.potential(xyz)
-    if name == "gradient":
-        return -agama_pot.force(xyz)
-    if name == "density":
-        return agama_pot.density(xyz)
-    if name == "hessian":
-        return -_sym33(agama_pot.eval(xyz, der=True))
-    msg = f"no agama counterpart for {name!r}"
-    raise ValueError(msg)
+    match name:
+        case "potential":
+            return agama_pot.potential(xyz)
+        case "gradient":
+            return -agama_pot.force(xyz)
+        case "density":
+            return agama_pot.density(xyz)
+        case "hessian":
+            return -_sym33(agama_pot.eval(xyz, der=True))
+        case _:
+            msg = f"no agama counterpart for {name!r}"
+            raise ValueError(msg)
 
 
 def assert_matches_agama(

@@ -166,8 +166,9 @@ def _isochrone_aaf(
 
     # --- angles: c = 2 b^2 dE / D > _C_TOL b (excludes the origin at rest)
     regular = bound & (2 * b * dE > _C_TOL * D)
-    xyz_s = jnp.where(regular, xyz, b * _X0)
-    v_s = jnp.where(regular, v, jnp.sqrt(GM / b) * _V0)
+    # stand-in point cast to the input dtype, so float32 inputs stay float32
+    xyz_s = jnp.where(regular, xyz, b * jnp.asarray(_X0, dtype=xyz.dtype))
+    v_s = jnp.where(regular, v, jnp.sqrt(GM / b) * jnp.asarray(_V0, dtype=v.dtype))
     angles = jnp.where(regular, _angles(GM, b, xyz_s, v_s), 0.0)
 
     # --- frequencies

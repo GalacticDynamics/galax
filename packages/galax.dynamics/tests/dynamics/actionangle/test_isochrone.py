@@ -460,8 +460,9 @@ def test_matches_gala_isochrone_xv_to_aa():
     extra_x = [[6.0, 0, 0], [5.0, 1, 0.5], [6.0, 0, 0], [6.0, 1, 0], [6.0, 1, 0]]
     extra_v = [[0, -0.15, 0], [0.01, -0.12, 0.02], [0, 0.15, 0]]
     extra_v += [[0.01, 0.15, 0], [0.01, -0.15, 0]]
-    xyz = np.concat([xyz, extra_x])
-    v = np.concat([v, extra_v])
+    # np.concatenate, not np.concat: the numpy floor (1.26) predates np.concat
+    xyz = np.concatenate([xyz, extra_x])
+    v = np.concatenate([v, extra_v])
     phi = -float(gpot.G * 1e11) / (2.0 + np.sqrt(4.0 + (xyz**2).sum(-1)))
     bound = 0.5 * (v**2).sum(-1) + phi < 0
     xyz, v = xyz[bound], v[bound]

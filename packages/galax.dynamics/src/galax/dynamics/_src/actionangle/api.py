@@ -49,7 +49,9 @@ def isochrone_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     ``J_phi``). Values and gradients of bound points are finite. Enable
     64-bit floats (``jax_enable_x64``): in float32, unit systems with large
     numbers (e.g. SI) overflow ``GM r^2`` and ``L^2`` and silently give NaN.
-    Coordinate singularities:
+    ``J_r`` goes through ``E``: near circular orbits its absolute precision
+    is ``~ eps L`` (relative ``~ eps / delta^2``, ``delta`` the fractional
+    offset from the circular speed). Coordinate singularities:
 
     - Radial orbits (``L = 0``, numerically ``1 - e^2 <= 1e-30``): ``theta_r``
       is correct; ``theta_z`` and ``theta_phi`` (undefined) are set to 0.

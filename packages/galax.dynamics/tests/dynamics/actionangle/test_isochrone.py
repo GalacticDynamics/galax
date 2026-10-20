@@ -496,6 +496,19 @@ def test_unit_systems_agree():
     )
 
 
+def test_overload_psc_rejects_other_frames():
+    """Only simulation-frame coordinates: other frames have no transform."""
+    from plum import NotFoundLookupError
+
+    import coordinax as cx
+
+    w = gc.PhaseSpaceCoordinate(
+        q=u.Q(Q_, "kpc"), p=u.Q(P_, "km/s"), t=u.Q(0.0, "Myr"), frame=cx.frames.ICRS()
+    )
+    with pytest.raises(NotFoundLookupError):
+        iaaf(POT, w)
+
+
 def test_overload_composite_psc():
     # per-point (increasing) t: the composite concatenates and sorts by t
     t = u.Q([0.0, 1.0, 2.0], "Myr")
@@ -608,7 +621,12 @@ def test_matches_gala_isochrone_xv_to_aa():
 @pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")
 @pytest.mark.parametrize("vt", [1e-5, 1e-6, 1e-7, 1e-9, 1e-12, 0.0])
 def test_near_radial_matches_gala(vt):
-    """Near-radial orbits: all angles match gala (theta_r only when L = 0)."""
+    """Near-radial orbits: all angles match gala for vt >= 1e-7.
+
+    Below that gala's |v_theta| <= 1e-10 cutoff sets its psi, so only theta_r
+    is compared, at a z-turning point (where gala's arcsin has infinite slope
+    and adds ~5e-8 to its theta_phi, so it is avoided for vt >= 1e-7).
+    """
     import astropy.units as au
     import gala.dynamics as gala_dyn
     import gala.potential as galap
@@ -616,17 +634,15 @@ def test_near_radial_matches_gala(vt):
     from gala.units import galactic
 
     gpot = galap.IsochronePotential(m=1e11 * au.Msun, b=2 * au.kpc, units=galactic)
-    x = np.array([5.0, 0.0, 1.5])
+    full = vt >= 1e-7
+    x = np.array([5.0, 0.7 if full else 0.0, 1.5])
     v = -0.02 * x + np.array([0.0, vt, 0.0])
     res = iaaf(POT, jnp.asarray(x), jnp.asarray(v), 0.0)
     pos = gala_dyn.PhaseSpacePosition(x[:, None] * au.kpc, v[:, None] * au.kpc / au.Myr)
     with np.errstate(all="ignore"):
         ang = isochrone_xv_to_aa(pos, gpot)[1].to_value("rad")[:, 0]
     _assert_angles(res.angles[0], ang[0], atol=1e-9)
-    if vt > 0:
-        # the plane (L = x cross v) is conditioned by eps |x| |v| / L. gala's
-        # theta_phi is noisier: it moves by ~1e-7 under 1-ulp input changes at
-        # every vt here (ours by ~eps cond), hence its extra 3e-7.
+    if full:
+        # the plane (L = x cross v) is conditioned by eps |x| |v| / L
         cond = np.linalg.norm(x) * np.linalg.norm(v) / np.linalg.norm(np.cross(x, v))
-        _assert_angles(res.angles[2], ang[2], atol=1e-9 + 1e-15 * cond)
-        _assert_angles(res.angles[1], ang[1], atol=3e-7 + 1e-15 * cond)
+        _assert_angles(res.angles[1:], ang[1:], atol=1e-9 + 1e-15 * cond)

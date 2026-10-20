@@ -12,7 +12,7 @@ import pytest
 import unxt as u
 
 import galax.potential as gp
-from ..optional_deps import OptDeps
+from ...unit.potential.optional_deps import OptDeps
 from ._compare import assert_matches_agama
 
 pytestmark = [

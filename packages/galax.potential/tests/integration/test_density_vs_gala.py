@@ -1,7 +1,7 @@
 """Cross-check the analytic ``_density`` formulas added this session against gala.
 
 Most potentials already get this coverage for free from
-`GalaIOMixin.test_method_gala` (see ``../io/test_gala.py``),
+`GalaIOMixin.test_method_gala` (see ``../unit/potential/io/test_gala.py``),
 which every ``AbstractSinglePotential_Test`` subclass inherits. This module
 makes that check explicit and consolidated for the closed-form densities
 newly derived here (Poisson's equation applied to potentials that previously
@@ -17,7 +17,7 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from ..optional_deps import GSL_ENABLED, OptDeps
+from ..unit.potential.optional_deps import GSL_ENABLED, OptDeps
 
 X = u.Q([3.5, 2.0, 1.0], "kpc")  # generic off-axis evaluation point
 

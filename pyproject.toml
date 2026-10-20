@@ -131,7 +131,7 @@ docs = [
 test-all = [{ include-group = "test" }, { include-group = "test-mpl" }]
 test = [
   # Test-only: no `src/` imports it. Its consumers are the root `conftest.py`
-  # and `packages/galax.potential/tests/potential/optional_deps.py`, which
+  # and `packages/galax.potential/tests/unit/potential/optional_deps.py`, which
   # probe the wrapped libraries to decide what to collect and skip. Every
   # portion declares it as well, since that root `conftest.py` loads on any
   # run rooted here, whatever it collects.

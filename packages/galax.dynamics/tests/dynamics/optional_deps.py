@@ -6,8 +6,15 @@ directly so a missing optional distribution cannot break test collection.
 
 __all__ = ["GALA_STAECKEL", "GSL_ENABLED", "OptDeps"]
 
+from packaging.version import Version
+
 from optional_dependencies import OptionalDependencyEnum, auto
-from optional_dependencies.utils import chain_checks, get_version, is_installed
+from optional_dependencies.utils import (
+    NOT_INSTALLED,
+    chain_checks,
+    get_version,
+    is_installed,
+)
 
 
 class OptDeps(OptionalDependencyEnum):  # type: ignore[misc]
@@ -16,6 +23,10 @@ class OptDeps(OptionalDependencyEnum):  # type: ignore[misc]
     # Probe the submodule the tests import, so a partial gala install skips.
     GALA = chain_checks(get_version("gala"), is_installed("gala.dynamics.actionangle"))
     GALPY = auto()
+    # agama is built by hand and put on `PYTHONPATH` (see docs/testing.rst), so
+    # it has no distribution metadata for `auto()` to find. Probe importability
+    # instead, without importing it; the version is then unknown.
+    AGAMA = Version("0") if is_installed("agama") else NOT_INSTALLED
 
 
 # gala-specific, and needs gala itself: degrade to `False` when it is absent.

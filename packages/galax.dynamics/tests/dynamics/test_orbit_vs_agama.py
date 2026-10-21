@@ -6,6 +6,7 @@ the tolerances below, which then pin the regime rather than the digits.
 """
 
 from types import ModuleType
+from typing import Any
 
 import diffrax as dfx
 import jax
@@ -37,11 +38,13 @@ INTEGRATOR = gd.integrate.Integrator(
 )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def agama() -> ModuleType:
     """Import agama and set its units to Msun / kpc / km/s -- *not* G = 1."""
     import agama  # deferred: optional, and built by hand
 
+    # Comparing float32 galax with float64 agama measures the dtype. pytest-env
+    # sets this; fail loudly if a run overrode it.
     assert jax.config.jax_enable_x64, "agama comparisons need JAX_ENABLE_X64=True"
     agama.setUnits(mass=1, length=1, velocity=1)
     return agama
@@ -58,8 +61,9 @@ def agama() -> ModuleType:
                 "scaleRadius": 3.0,
                 "scaleHeight": 0.28,
             },
+            # 170.17 km/s is the circular speed at R = 8 kpc.
             [8.0, 0.0, 0.1],
-            [0.0, 190.0, 5.0],
+            [0.0, 170.17, 1.0],
             id="disk-near-circular",
         ),
         pytest.param(
@@ -97,19 +101,22 @@ def agama() -> ModuleType:
 def test_orbit_matches_agama(
     agama: ModuleType,
     pot: gp.AbstractPotential,
-    spec: dict,
+    spec: dict[str, Any],
     q0: list[float],
     p0: list[float],
 ) -> None:
     """Positions and velocities over 20 periods agree, and both conserve energy.
 
+    A period is agama's ``Tcirc``: that of the circular orbit at the same energy.
+
     Measured (agama 1.0.0, ``accuracy=1e-14``; galax Dopri8 at
     ``rtol=atol=1e-13``), worst over 201 samples, relative to ``|q|``/``|v|``:
-    disk 5.1e-12 / 5.2e-12, halo 2.3e-11 / 1.7e-11, triaxial 1.1e-11 /
-    1.1e-11. Energy drift: galax 7e-13 to 1.4e-12, agama 5e-15 to 6e-14.
+    disk 1.3e-12 / 7.6e-12, halo 2.3e-11 / 1.7e-11, triaxial 1.1e-11 /
+    1.1e-11. Energy drift: galax 9e-13 to 1.4e-12, agama 1e-14 to 6e-14.
+    Eccentricities: disk 8e-4, halo 0.63, triaxial 0.93.
     """
     # agama's G exceeds galax's (astropy's) by 1.49e-10, which over 20 periods
-    # shifts the phase by ~1e-8. Give agama the same G*M instead.
+    # shifts the phase by ~5e-8. Give agama the same G*M instead.
     if "mass" in spec:
         g_galax = u.ustrip("kpc km2 / (s2 Msun)", pot.constants["G"])
         spec = spec | {"mass": spec["mass"] * float(g_galax) / agama.G}

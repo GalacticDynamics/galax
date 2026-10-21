@@ -36,39 +36,47 @@ def _density(pot: gp.AbstractPotential):
 # grid, ~2e6 density calls) while galax's density matches its own Laplacian
 # to 1e-15, so the comparison would measure agama's grid.
 @pytest.mark.parametrize(
-    ("pot", "rtol"),
+    ("pot", "rtol_potential", "rtol_gradient"),
     [
         pytest.param(
-            gp.BurkertPotential(m=1e11, r_s=5.0, units="galactic"), 5e-8, id="burkert"
+            gp.BurkertPotential(m=1e11, r_s=5.0, units="galactic"),
+            2e-9,
+            5e-8,
+            id="burkert",
         ),
         pytest.param(
             gp.StoneOstriker15Potential(
                 m_tot=1e11, r_c=1.0, r_h=20.0, units="galactic"
             ),
+            2e-9,
             1e-8,
             id="stoneostriker15",
         ),
         # agama's multipole sits at ~2e-7 in the gradient here for every slope
         # and grid tried, while galax's potential matches direct quadrature of
-        # this density to 3e-15: the tolerance is agama's.
+        # this density to 3e-15: the gradient tolerance is agama's.
         pytest.param(
             gp.PowerLawCutoffPotential(
                 m_tot=1e11, alpha=1.0, r_c=10.0, units="galactic"
             ),
+            3e-8,
             1e-6,
             id="powerlawcutoff",
         ),
     ],
 )
 def test_matches_agama_poisson_solve(
-    agama: ModuleType, pot: gp.AbstractPotential, rtol: float
+    agama: ModuleType,
+    pot: gp.AbstractPotential,
+    rtol_potential: float,
+    rtol_gradient: float,
 ) -> None:
     """The analytic potential agrees with agama's multipole of its density.
 
-    Measured worst elementwise agreement (``gridSizeR=128``, agama 1.0.0):
-    burkert 4.2e-9, stoneostriker15 9.3e-10, powerlawcutoff 1.8e-7, each in
-    the gradient; the potentials agree to the 1.5e-10 by which the two
-    libraries' G differ (2.7e-9 for powerlawcutoff).
+    Measured worst elementwise agreement (``gridSizeR=128``, agama 1.0.0),
+    potential / gradient: burkert 1.7e-10 / 4.2e-9, stoneostriker15 1.5e-10 /
+    9.3e-10, powerlawcutoff 2.7e-9 / 1.8e-7. The ~1.5e-10 potential floor is
+    the two libraries' G differing by 1.49e-10.
     """
     agama_pot = agama.Potential(
         type="Multipole",
@@ -79,9 +87,8 @@ def test_matches_agama_poisson_solve(
         lmax=0,
         symmetry="s",
     )
-    assert_matches_agama(
-        pot, agama_pot, rtol=rtol, quantities=("potential", "gradient")
-    )
+    assert_matches_agama(pot, agama_pot, rtol=rtol_potential, quantities=("potential",))
+    assert_matches_agama(pot, agama_pot, rtol=rtol_gradient, quantities=("gradient",))
 
 
 def test_scf_matches_agama_basisset(agama: ModuleType) -> None:
@@ -91,9 +98,9 @@ def test_scf_matches_agama_basisset(agama: ModuleType) -> None:
     Hernquist-Ostriker basis that `SCFPotential` uses. Projecting a finite
     galax expansion onto it therefore recovers that expansion exactly, so the
     potentials agree to quadrature precision rather than to an expansion's
-    truncation error. Measured (agama 1.0.0): 1.49e-10 in both potential and
-    gradient -- exactly the two libraries' G offset -- also with the agama
-    basis enlarged to ``nmax=10, lmax=6``; at ``eta=0.5`` or ``1.5`` the
+    truncation error. galax is given agama's G, so the 1.49e-10 by which the
+    two differ does not hide that. Measured (agama 1.0.0): 2.2e-15 in the
+    potential and 1.1e-14 in the gradient; at ``eta=0.5`` or ``1.5`` the
     disagreement is O(1), so this does distinguish the basis.
     """
     nmax, lmax = 6, 4
@@ -104,7 +111,14 @@ def test_scf_matches_agama_basisset(agama: ModuleType) -> None:
     Tnlm = rng.normal(scale=0.05, size=Snlm.shape) * mask
     Tnlm[..., 0] = 0.0
     Snlm[0, 0, 0] = 1.0
-    pot = gp.SCFPotential(m_tot=1e11, r_s=3.0, Snlm=Snlm, Tnlm=Tnlm, units="galactic")
+    pot = gp.SCFPotential(
+        m_tot=1e11,
+        r_s=3.0,
+        Snlm=Snlm,
+        Tnlm=Tnlm,
+        units="galactic",
+        constants={"G": u.Q(agama.G, "kpc km2 / (s2 Msun)")},
+    )
 
     agama_pot = agama.Potential(
         type="BasisSet",
@@ -116,5 +130,5 @@ def test_scf_matches_agama_basisset(agama: ModuleType) -> None:
         symmetry="n",
     )
     assert_matches_agama(
-        pot, agama_pot, rtol=2e-10, quantities=("potential", "gradient")
+        pot, agama_pot, rtol=1e-12, quantities=("potential", "gradient")
     )

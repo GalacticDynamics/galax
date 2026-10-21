@@ -6,6 +6,7 @@ from pathlib import Path
 
 from typing import Any
 
+import pytest
 from sybil import Sybil
 from sybil.document import PythonDocStringDocument
 from sybil.example import Example, NotEvaluated
@@ -149,6 +150,28 @@ collect_ignore_glob.extend(
     for lib in ("astropy", "gala", "galpy", "matplotlib")
     if not (OptDeps[lib.upper()].installed and _module_exists(f"galax.interop.{lib}"))
 )
+
+
+# agama comparisons are opt-in. The flag owns opting in; whether agama is
+# installed is each portion's own `optional_deps` probe. Keyed on a flag rather
+# than a default `-m "not agama"`, which any other `-m` -- CI's `-m"not slow"`
+# among them -- would silently replace.
+def pytest_addoption(parser: pytest.Parser) -> None:  # noqa: D103
+    parser.addoption(
+        "--run-agama",
+        action="store_true",
+        help="run tests that compare against agama "
+        "(agama must be built by hand; see docs/testing.rst)",
+    )
+
+
+def pytest_collection_modifyitems(config: Any, items: list[Any]) -> None:  # noqa: D103
+    if config.getoption("--run-agama"):
+        return
+    skip = pytest.mark.skip(reason="compares against agama; pass --run-agama")
+    for item in items:
+        if "agama" in item.keywords:
+            item.add_marker(skip)
 
 
 def pytest_report_header(config: Any) -> str:  # noqa: D103, ARG001

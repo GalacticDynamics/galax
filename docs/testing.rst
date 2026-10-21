@@ -80,21 +80,54 @@ the natural reference. Four things make the usual ``pip install agama`` fail:
    what it wanted. Build from the unpacked sdist instead, where answers can be
    piped in.
 
+One more does not fail the build but aborts the test run: agama links against
+Homebrew's OpenMP runtime, and galpy's wheel bundles its own. With both
+loaded the process dies with ``OMP: Error #15: Initializing libomp.dylib,
+but found libomp.dylib already initialized``. Build agama without OpenMP --
+the comparisons do not need threads -- by hiding ``brew`` from ``PATH`` so
+its setup cannot find ``libomp``, and answer ``Y`` to "continue without
+OpenMP".
+
 Putting those together, from a virtual environment on a Python that has a
-linkable ``libpython``:
+linkable ``libpython`` (on macOS, a Homebrew Python):
 ::
 
     pip install numpy setuptools wheel
     pip download --no-deps --no-binary :all: --no-build-isolation agama
     tar xzf agama-*.tar.gz && cd agama-*/
-    export CPATH=<gsl-prefix>/include LIBRARY_PATH=<gsl-prefix>/lib
-    yes N | python setup.py build
+    printf 'Y\nN\nN\nN\n' | env PATH=/usr/bin:/bin \
+        CPATH=<gsl-prefix>/include LIBRARY_PATH=<gsl-prefix>/lib \
+        "$VIRTUAL_ENV/bin/python" setup.py build
 
-That leaves an importable ``agama.so`` in the build directory; put that
-directory on ``PYTHONPATH``. Answering ``N`` declines the optional downloads
-(Eigen and friends), which are not needed for potential comparisons.
+That leaves an importable ``agama`` package under ``build/lib.*``; put that
+directory on ``PYTHONPATH``. The ``Y`` continues without OpenMP and the
+``N``\ s decline the optional downloads (Eigen, CVXOPT, UNSIO), which are not
+needed for potential comparisons.
 
-Two things to get right when comparing against agama:
+The agama module is linked against the libpython it was built with, so run
+the tests from an environment on that same interpreter. With uv, a second
+environment outside the checkout keeps the project's own untouched:
+::
+
+    UV_PROJECT_ENVIRONMENT=<agama venv> uv sync --locked \
+        --python <that python> --extra interop-all --group test-all
+
+Running the agama tests
+-----------------------
+
+The agama comparisons carry the ``agama`` marker and are skipped unless
+``--run-agama`` is passed -- locally and in CI, whatever ``-m`` says:
+::
+
+    PYTHONPATH=<agama build dir> UV_PROJECT_ENVIRONMENT=<agama venv> \
+        uv run --no-sync pytest --run-agama -m agama packages/galax.potential -ra
+
+With the flag they still skip, with the reason ``requires agama``, when agama
+is not importable, so check the ``-ra`` summary: a green run where they all
+skipped compared nothing. The units and precision points below are handled
+by the tests' shared fixture.
+
+Three things to get right when comparing against agama:
 
 - **Units.** ``agama.setUnits(mass=1, length=1, velocity=1)`` does *not* give
   :math:`G = 1`; it means one solar mass, one kiloparsec and one km/s, so
@@ -104,6 +137,9 @@ Two things to get right when comparing against agama:
 - **Precision.** :mod:`galax` defaults to float32 while agama is float64, so a
   comparison that does not enable x64 measures the dtype, not the algorithm.
   For shallow cusps the float32 floor is ~1e-7, which is one ulp.
+- **G.** agama's gravitational constant exceeds astropy's (CODATA 2018) by
+  1.49e-10 relative, so closed forms agree to ~1.5e-10, not to machine
+  precision. A constant 1.49e-10 offset is this, not a formula difference.
 
 ``agama.Potential(type='Dehnen', ...)`` restricts :math:`\gamma` to
 :math:`[0, 2]`. For steeper inner slopes use ``type='Spheroid'`` with

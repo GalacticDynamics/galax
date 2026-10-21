@@ -160,7 +160,6 @@ def pytest_addoption(parser: pytest.Parser) -> None:  # noqa: D103
     parser.addoption(
         "--run-agama",
         action="store_true",
-        default=False,
         help="run tests that compare against agama "
         "(agama must be built by hand; see docs/testing.rst)",
     )

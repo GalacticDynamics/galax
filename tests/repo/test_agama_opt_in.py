@@ -9,6 +9,8 @@ marker expression.
 import importlib.util
 from pathlib import Path
 
+from types import SimpleNamespace
+
 import pytest
 
 ROOT = Path(__file__).parents[2]
@@ -22,38 +24,17 @@ conftest = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(conftest)
 
 
-class _Config:
-    def __init__(self, *, run_agama: bool) -> None:
-        self._run = run_agama
-
-    def getoption(self, name: str) -> bool:
-        assert name == "--run-agama"
-        return self._run
-
-
-class _Item:
-    def __init__(self, *keywords: str) -> None:
-        self.keywords = dict.fromkeys(keywords)
-        self.added: list[pytest.MarkDecorator] = []
-
-    def add_marker(self, marker: pytest.MarkDecorator) -> None:
-        self.added.append(marker)
-
-
-def test_agama_tests_skip_without_the_flag() -> None:
-    item = _Item("agama")
-    conftest.pytest_collection_modifyitems(_Config(run_agama=False), [item])
-    assert [m.name for m in item.added] == ["skip"]
-    assert item.added[0].kwargs["reason"] == "compares against agama; pass --run-agama"
-
-
-def test_agama_tests_run_with_the_flag() -> None:
-    item = _Item("agama")
-    conftest.pytest_collection_modifyitems(_Config(run_agama=True), [item])
-    assert item.added == []
-
-
-def test_unmarked_tests_are_never_touched() -> None:
-    item = _Item("slow")
-    conftest.pytest_collection_modifyitems(_Config(run_agama=False), [item])
-    assert item.added == []
+@pytest.mark.parametrize(
+    ("keyword", "run", "skipped"),
+    [("agama", False, True), ("agama", True, False), ("slow", False, False)],
+)
+def test_only_agama_tests_skip_and_only_without_the_flag(
+    keyword: str, run: bool, skipped: bool
+) -> None:
+    added: list[pytest.MarkDecorator] = []
+    config = SimpleNamespace(getoption=lambda _: run)
+    item = SimpleNamespace(keywords=dict.fromkeys([keyword]), add_marker=added.append)
+    conftest.pytest_collection_modifyitems(config, [item])
+    assert [m.name for m in added] == (["skip"] if skipped else [])
+    if skipped:
+        assert added[0].kwargs["reason"] == "compares against agama; pass --run-agama"

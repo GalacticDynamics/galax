@@ -10,7 +10,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-from ._helpers import SeparablePotential, kk_delta
+from ._helpers import ScaledKuzminKutuzovPotential, SeparablePotential, kk_delta
 from .optional_deps import OptDeps
 from galax.actionangle import staeckel_fudge_delta
 
@@ -241,14 +241,10 @@ def _sph(kind, units, scale):
 @pytest.mark.parametrize("units", ["galactic", PC], ids=["galactic", "pc"])
 @pytest.mark.parametrize(
     ("kind", "rmin"),
-    [("hernquist", 0.1), ("isochrone", 1e-5), ("nfw", 1e-2)],
+    [("hernquist", 0.1), ("isochrone", 1e-5), ("nfw", 1e-8)],
 )
 def test_delta_scale_free_spherical_zero(kind, rmin, units):
-    # Radii in units of r_s, so both unit systems probe the same range. The
-    # NFW Hessian is noisy in the core (float cancellation): |Delta^2| / (eps S)
-    # reaches ~70 at 1e-2 r_s, ~700 at 1e-3 r_s and ~6e4 at 1e-5 r_s. Delta is
-    # non-zero or NaN only below ~1e-3 r_s (4.5% of directions in
-    # [1e-3.5, 1e-3) r_s); starting at 1e-2 r_s is a safety margin.
+    # Radii in units of r_s, so both unit systems probe the same range.
     pot = _sph(kind, units, 10.0)
     r_s = float(u.ustrip(pot.units["length"], u.Q(10.0, "kpc")))
     r = np.geomspace(rmin, 100.0, 40) * r_s
@@ -325,6 +321,86 @@ def test_delta_kk_float32():
         delta_far = staeckel_fudge_delta(pot, far, jnp.asarray(0.0))
     np.testing.assert_allclose(delta, expect, rtol=1e-4)
     np.testing.assert_allclose(delta_far, expect, rtol=1e-3)
+
+
+@_F32
+def test_delta_float32_si():
+    """Delta is scale-free: float32 with SI lengths, where R^2 ~ 1e40 overflows.
+
+    1e6 Msun, since a galaxy's mass in kg (> 3.4e38) is itself past float32.
+    """
+    with jax.enable_x64(False):  # noqa: FBT003
+        pot = ScaledKuzminKutuzovPotential(
+            m_tot=u.Q(1e6, "Msun"), a=u.Q(3.0, "kpc"), c=u.Q(1.0, "kpc"), units="si"
+        )
+        q = u.Q(_pts().astype(jnp.float32), "kpc")
+        delta = staeckel_fudge_delta(pot, q, u.Q(jnp.float32(0), "s"))
+        assert delta.value.dtype == jnp.float32
+        expect = np.sqrt(8.0)
+    np.testing.assert_allclose(delta.ustrip("kpc"), expect, rtol=1e-4)
+
+
+class _NotAGradient(ScaledKuzminKutuzovPotential):
+    """A `_gradient` that is not a gradient: its Jacobian is not symmetric."""
+
+    def _gradient(self, xyz, t, /):
+        g = super()._gradient(xyz, t)
+        size = jnp.linalg.vector_norm(g) / jnp.linalg.vector_norm(xyz)
+        return g + 1e-4 * size * jnp.stack([jnp.zeros_like(xyz[0]), xyz[0], xyz[2]])
+
+
+def test_delta_nan_for_inconsistent_second_derivatives():
+    """Delta is NaN, not finite and wrong, where d2Phi/dRdz != d2Phi/dzdR.
+
+    That is the sign of an untrustworthy Hessian, e.g. a potential evaluated
+    near underflow, whose autodiff intermediates go subnormal.
+    """
+    pot = _NotAGradient(
+        m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), c=u.Q(1.0, "kpc"), units="galactic"
+    )
+    delta = staeckel_fudge_delta(pot, _pts(), jnp.asarray(0.0))
+    assert jnp.all(jnp.isnan(delta))
+
+
+def _every_spherical(r_s):
+    m = u.Q(1e12, "Msun")
+    kw = {"units": "galactic"}
+    return {
+        "Kepler": gp.KeplerPotential(m_tot=m, **kw),
+        "Plummer": gp.PlummerPotential(m_tot=m, r_s=r_s, **kw),
+        "Hernquist": gp.HernquistPotential(m_tot=m, r_s=r_s, **kw),
+        "Jaffe": gp.JaffePotential(m_tot=m, r_s=r_s, **kw),
+        "Isochrone": gp.IsochronePotential(m_tot=m, r_s=r_s, **kw),
+        "NFW": gp.NFWPotential(m=m, r_s=r_s, **kw),
+        "HardCutoffNFW": gp.HardCutoffNFWPotential(m=m, r_s=r_s, r_t=12.3 * r_s, **kw),
+        "Burkert": gp.BurkertPotential(m=m, r_s=r_s, **kw),
+        "gNFW0.5": gp.gNFWPotential(m=m, r_s=r_s, gamma=0.5, **kw),
+        "gNFW1.5": gp.gNFWPotential(m=m, r_s=r_s, gamma=1.5, **kw),
+        "Zhao": gp.ZhaoPotential(m=m, r_s=r_s, alpha=0.5, beta=4.0, gamma=1.0, **kw),
+        "PowerLawCutoff": gp.PowerLawCutoffPotential(m_tot=m, alpha=1.8, r_c=r_s, **kw),
+        "StoneOstriker15": gp.StoneOstriker15Potential(
+            m_tot=m, r_c=0.1 * r_s, r_h=r_s, **kw
+        ),
+        "Logarithmic": gp.LogarithmicPotential(v_c=u.Q(200, "km/s"), r_s=r_s, **kw),
+    }
+
+
+@pytest.mark.parametrize("name", _every_spherical(u.Q(10.0, "kpc")))
+def test_delta_zero_for_every_spherical_builtin(name):
+    """Delta == 0, exactly, from 1e-8 to 1e8 scale lengths in 64 directions.
+
+    This needs each potential's Hessian to a few ulp of its magnitude: NFW and
+    Burkert used to give a spurious Delta in the core, and Burkert and gNFW
+    far out.
+    """
+    pot = _every_spherical(u.Q(10.0, "kpc"))[name]
+    rng = np.random.default_rng(0)
+    d = rng.normal(size=(64, 3))
+    d /= np.linalg.norm(d, axis=1, keepdims=True)
+    r = 10.0 * np.geomspace(1e-8, 1e8, 33)
+    q = jnp.asarray((r[:, None, None] * d[None]).reshape(-1, 3))
+    delta = staeckel_fudge_delta(pot, q, jnp.asarray(0.0))
+    assert jnp.all(delta == 0), int(jnp.sum(delta != 0))
 
 
 def test_delta_output_unit_is_potential_length():

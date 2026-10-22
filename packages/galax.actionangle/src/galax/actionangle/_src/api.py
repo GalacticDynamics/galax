@@ -51,14 +51,18 @@ def staeckel_fudge_delta(*args: Any, **kwargs: Any) -> Any:
       razor-thin disc such as Kuzmin gives its one-sided value); and for a
       separable potential.
     - Δ is 0 for a spherical potential, up to round-off.
+    - Δ is also NaN, rather than finite and wrong, where the potential's
+      second derivatives are inconsistent, e.g. for one evaluated near the
+      bottom of the float range.
     - Use 64-bit floats (``jax_enable_x64``). In float32 a genuine
-      Δ ≲ 0.02 r is rounded to 0, and SI-scale coordinates overflow.
-    - Potentials whose own Hessian is imprecise (NFW, Burkert and Gaussian
-      cores; Burkert, gNFW and StoneOstriker15 far out; LeeSuto) can give a
-      spurious Δ, 0 or NaN there, and which one can change with batch size
-      or jit. A potential separable analytically but not in floating point
-      (e.g. an l ≤ 2, m = 0 interior multipole) gives an arbitrary Δ
-      instead of NaN.
+      Δ ≲ 0.02 r is rounded to 0. Δ itself is scale-free, but in float32
+      SI units a mass above ~1.7e8 Msun (3.4e38 kg) does not fit, and the
+      potential must not overflow on lengths ~1e20 m.
+    - A potential whose own Hessian is imprecise, of the built-ins only the
+      Gaussian core (r ≲ 1e-2 r_s), can give a spurious Δ, 0 or NaN there,
+      and which one can change with batch size or jit. A potential separable
+      analytically but not in floating point (e.g. an l ≤ 2, m = 0 interior
+      multipole) gives an arbitrary Δ instead of NaN.
     - Δ is not differentiable: the output is wrapped in
       `jax.lax.stop_gradient`.
     - The Staeckel fudge assumes a potential axisymmetric about the z axis
@@ -131,8 +135,9 @@ def isochrone_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     The batch shapes of ``q``, ``p`` (``shape[:-1]``) and ``t`` broadcast
     together. Angles are in ``[0, 2 pi)``; unbound points give NaN (except
     ``J_phi``). Values and gradients of bound points are finite. Enable
-    64-bit floats (``jax_enable_x64``): in float32, unit systems with large
-    numbers (e.g. SI) overflow ``GM r^2`` and ``L^2`` and silently give NaN.
+    64-bit floats (``jax_enable_x64``) for precision; the transform is
+    scale-free, so float32 works in any unit system that can hold the mass:
+    in SI, at most ~1.7e8 Msun (3.4e38 kg).
     ``J_r`` goes through ``E``: near circular orbits its absolute precision
     is ``~ eps L`` (relative ``~ eps / delta^2``, ``delta`` the fractional
     offset from the circular speed). Coordinate singularities:

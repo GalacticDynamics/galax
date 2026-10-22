@@ -34,8 +34,11 @@ def eval_params(
     -------
     dict[str, Any]
         One entry per `galax.potential.params.ParameterField` of the
-        potential, plus ``"G"`` from the potential's constants. For a
-        composite potential, a dict of these for each component.
+        potential, plus ``"G"`` from the potential's constants when it has
+        one. For a composite potential, a dict of these for each component.
+        A wrapper potential (e.g. a translated or flattened one) reports only
+        its own parameters; use ``pot.base_potential.params(t)`` for the
+        wrapped potential's.
 
     Examples
     --------
@@ -58,8 +61,10 @@ def eval_params(
         )
         for name, field in type(pot).param_objs.items()
     }
-    G = pot.constants["G"]
-    out["G"] = G.value if ustrip else G
+    # `constants` need not hold G: not every potential uses it.
+    if "G" in pot.constants:
+        G = pot.constants["G"]
+        out["G"] = G.value if ustrip else G
     return out
 
 

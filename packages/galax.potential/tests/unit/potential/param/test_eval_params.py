@@ -160,6 +160,13 @@ def test_import_has_no_cycle(module: str) -> None:
     )
 
 
+def test_missing_G_is_omitted() -> None:
+    """A potential whose ``constants`` lack ``G`` (valid) still evaluates."""
+    pot = gp.HarmonicOscillatorPotential(omega=1.0, units="galactic", constants={})
+    assert set(eval_params(pot, T0)) == set(type(pot).param_objs)
+    assert "G" not in eval_params(pot, T0, ustrip=False)
+
+
 # --- AbstractPotential.params ---
 
 

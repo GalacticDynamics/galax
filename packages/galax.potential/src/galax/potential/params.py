@@ -18,6 +18,7 @@ __all__ = [
     "eval_params",
 ]
 
+from ._src.base import eval_params
 from ._src.params import (
     AbstractParameter,
     AbstractParamObjsAttribute,
@@ -29,5 +30,4 @@ from ._src.params import (
     ParameterField,
     ParamObjsAttribute,
 )
-from ._src.params.evaluate import eval_params
 from ._src.xfm.translate import TimeDependentTranslationParameter

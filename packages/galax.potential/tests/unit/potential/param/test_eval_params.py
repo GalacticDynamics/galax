@@ -151,10 +151,15 @@ def test_composite_nested_quantities() -> None:
 
 
 @pytest.mark.parametrize(
-    "module", ["galax.potential.params", "galax.potential._src.params.evaluate"]
+    "module",
+    [
+        "galax.potential.params",
+        "galax.potential._src.base",
+        "galax.potential._src.base_multi",
+    ],
 )
 def test_import_has_no_cycle(module: str) -> None:
-    """`eval_params` imports `base`, so no entry point may import it too early."""
+    """Every module that defines or exports `eval_params` imports on its own."""
     subprocess.run(  # noqa: S603  (fixed arguments)
         [sys.executable, "-I", "-c", f"import {module}"], check=True
     )

@@ -23,7 +23,7 @@ from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
-from .base import AbstractPotential, default_constants
+from .base import AbstractPotential, default_constants, eval_params
 from .symmetry import Symmetry, common_symmetry
 
 if TYPE_CHECKING:
@@ -434,3 +434,27 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
             end=wl.TextDoc(")"),
             indent=kwargs.get("indent", 4),
         )
+
+
+##############################################################################
+
+
+@dispatch
+def eval_params(
+    pot: AbstractCompositePotential, t: Any, /, *, ustrip: bool = True
+) -> dict[str, Any]:
+    """Evaluate each component of a composite potential at time ``t``.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> from galax.potential.params import eval_params
+
+    >>> kepler = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+    >>> composite = gp.CompositePotential(kepler=kepler)
+    >>> list(eval_params(composite, 0.0))
+    ['kepler']
+
+    """
+    return {k: eval_params(p, t, ustrip=ustrip) for k, p in pot.items()}

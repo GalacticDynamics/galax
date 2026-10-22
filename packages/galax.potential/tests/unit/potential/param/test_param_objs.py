@@ -1,7 +1,6 @@
 """Test the ``param_objs`` attribute of potentials."""
 
-import jax.numpy as jnp
-
+import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp

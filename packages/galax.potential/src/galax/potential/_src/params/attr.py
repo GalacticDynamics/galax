@@ -1,9 +1,9 @@
-"""Descriptor for a Parameters attributes."""
+"""Descriptors for the ``param_objs`` attribute of potentials."""
 
 __all__ = [
-    "AbstractParametersAttribute",
-    "ParametersAttribute",
-    "CompositeParametersAttribute",
+    "AbstractParamObjsAttribute",
+    "ParamObjsAttribute",
+    "CompositeParamObjsAttribute",
 ]
 
 from dataclasses import dataclass, field
@@ -18,26 +18,26 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True, slots=True)
-class AbstractParametersAttribute:
+class AbstractParamObjsAttribute:
     """Mapping of the :class:`~galax.potential.ParameterField` values.
 
     Examples
     --------
-    The normal usage of this class is the ``parameters`` attribute of
+    The normal usage of this class is the ``param_objs`` attribute of
     :class:`~galax.potential.AbstractPotential`.
 
     >>> import galax.potential as gp
-    >>> gp.KeplerPotential.parameters
+    >>> gp.KeplerPotential.param_objs
     mappingproxy({'m_tot': ParameterField(...)})
 
     >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-    >>> pot.parameters
+    >>> pot.param_objs
     mappingproxy({'m_tot': ConstantParameter(Q(1.e+12, 'solMass'))})
 
     """
 
-    parameters: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint
-    """Class attribute name on Potential."""
+    param_objs: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint
+    """Mapping of parameter names to their `ParameterField` descriptors."""
 
     _name: str = field(init=False)
     """The name of the descriptor on the containing class."""
@@ -52,30 +52,31 @@ class AbstractParametersAttribute:
 
 @final
 @dataclass(frozen=True, slots=True)
-class ParametersAttribute(AbstractParametersAttribute):
+class ParamObjsAttribute(AbstractParamObjsAttribute):
     """Mapping of the :class:`~galax.potential.ParameterField` values.
 
     If accessed from the :class:`~galax.potential.AbstractPotential` class,
-    this returns a mapping of the :class:`~galax.potential.AbstractParameter`
-    objects themselves.  If accessed from an instance, this returns a mapping of
-    the values of the Parameters.
+    this returns a mapping of the :class:`~galax.potential.ParameterField`
+    descriptors themselves.  If accessed from an instance, this returns a
+    mapping of the instance's :class:`~galax.potential.AbstractParameter`
+    objects.
 
     This class is used to implement
-    :obj:`galax.potential.AbstractPotential.parameters`.
+    :obj:`galax.potential.AbstractPotential.param_objs`.
 
     Examples
     --------
-    The normal usage of this class is the ``parameters`` attribute of
+    The normal usage of this class is the ``param_objs`` attribute of
     :class:`~galax.potential.AbstractPotential`.
 
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> gp.KeplerPotential.parameters
+    >>> gp.KeplerPotential.param_objs
     mappingproxy({'m_tot': ParameterField(...)})
 
     >>> kepler = gp.KeplerPotential(m_tot=1e12, units="galactic")
-    >>> kepler.parameters
+    >>> kepler.param_objs
     mappingproxy({'m_tot': ConstantParameter(Q(1.e+12, 'solMass'))})
 
     """
@@ -84,41 +85,44 @@ class ParametersAttribute(AbstractParametersAttribute):
         self,
         instance: "galax.potential.AbstractPotential | None",
         owner: "type[galax.potential.AbstractPotential] | None",
-    ) -> "MappingProxyType[str, ParameterField]":
+    ) -> (
+        "MappingProxyType[str, ParameterField]"
+        " | MappingProxyType[str, galax.potential.AbstractParameter]"
+    ):
         # Called from the class
         if instance is None:
-            return self.parameters
+            return self.param_objs
         # Called from the instance
-        return MappingProxyType({n: getattr(instance, n) for n in self.parameters})
+        return MappingProxyType({n: getattr(instance, n) for n in self.param_objs})
 
 
 @final
 @dataclass(frozen=True, slots=True)
-class CompositeParametersAttribute(AbstractParametersAttribute):
+class CompositeParamObjsAttribute(AbstractParamObjsAttribute):
     """Mapping of the :class:`~galax.potential.ParameterField` values.
 
     This class is used to implement
-    :obj:`galax.potential.CompositePotential.parameters`.
+    :obj:`galax.potential.CompositePotential.param_objs`.
 
     If accessed from the :class:`~galax.potential.CompositePotential` class,
-    this returns a mapping of the :class:`~galax.potential.AbstractParameter`
-    objects themselves.  If accessed from an instance, this returns a mapping of
-    the values of the Parameters.
+    this returns a mapping of the :class:`~galax.potential.ParameterField`
+    descriptors themselves.  If accessed from an instance, this returns a
+    mapping of each component name to that component's ``param_objs``.
 
     Examples
     --------
-    The normal usage of this class is the ``parameters`` attribute of
-    :class:`~galax.potential.AbstractPotential`.
+    The normal usage of this class is the ``param_objs`` attribute of
+    :class:`~galax.potential.CompositePotential`.
 
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> gp.CompositePotential.parameters
+    >>> gp.CompositePotential.param_objs
     mappingproxy({})
 
     >>> kepler = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> composite = gp.CompositePotential(kepler=kepler)
-    >>> composite.parameters
+    >>> composite.param_objs
     mappingproxy({'kepler':
         mappingproxy({'m_tot': ConstantParameter(Q(1.e+12, 'solMass'))})})
 
@@ -128,9 +132,13 @@ class CompositeParametersAttribute(AbstractParametersAttribute):
         self,
         instance: "galax.potential.AbstractCompositePotential | None",
         owner: "type[galax.potential.AbstractCompositePotential] | None",
-    ) -> "MappingProxyType[str, ParameterField]":
+    ) -> (
+        "MappingProxyType[str, ParameterField]"
+        " | MappingProxyType[str,"
+        " MappingProxyType[str, galax.potential.AbstractParameter]]"
+    ):
         # Called from the class
         if instance is None:
-            return self.parameters
+            return self.param_objs
         # Called from the instance
-        return MappingProxyType({k: p.parameters for k, p in instance.items()})
+        return MappingProxyType({k: p.param_objs for k, p in instance.items()})

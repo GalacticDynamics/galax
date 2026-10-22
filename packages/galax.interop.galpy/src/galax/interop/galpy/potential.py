@@ -105,10 +105,10 @@ def _error_if_not_all_constant_parameters[PT: gp.AbstractPotential](pot: PT) -> 
     """Check if all parameters are constant."""
     is_time_dep = any(
         not isinstance(getattr(pot, name), gp.params.ConstantParameter)
-        for name in pot.parameters
+        for name in pot.param_objs
     )
     pot = eqx.error_if(
-        pot, is_time_dep, "Gala does not support time-dependent parameters."
+        pot, is_time_dep, "Galpy does not support time-dependent parameters."
     )
     return pot
 

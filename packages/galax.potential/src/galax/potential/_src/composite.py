@@ -17,7 +17,7 @@ from zeroth import zeroth
 
 from .base import AbstractPotential, default_constants
 from .base_multi import AbstractCompositePotential
-from .params.attr import CompositeParametersAttribute
+from .params.attr import CompositeParamObjsAttribute
 
 ArgPotential: TypeAlias = (
     dict[str, AbstractPotential] | tuple[tuple[str, AbstractPotential], ...]
@@ -66,7 +66,7 @@ class CompositePotential(  # type: ignore[misc]
 
     """
 
-    parameters: ClassVar = CompositeParametersAttribute(MappingProxyType({}))
+    param_objs: ClassVar = CompositeParamObjsAttribute(MappingProxyType({}))
 
     _data: dict[str, AbstractPotential]
     _: KW_ONLY

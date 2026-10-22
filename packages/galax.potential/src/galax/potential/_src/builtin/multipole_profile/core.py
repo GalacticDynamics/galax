@@ -288,7 +288,7 @@ def _check_time_independent(pot: AbstractPotential, /) -> None:
     """
     varying = sorted(
         name
-        for name, param in pot.parameters.items()
+        for name, param in pot.param_objs.items()
         if not isinstance(param, ConstantParameter)
     )
     if varying:

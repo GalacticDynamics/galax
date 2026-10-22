@@ -306,7 +306,7 @@ def galax_to_gala(pot: gp.BurkertPotential, /) -> galap.BurkertPotential:
     <BurkertPotential: rho=7.82e+06 solMass / kpc3, r0=20.00 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.BurkertPotential(
         rho=convert(pot.rho0(0), APYQuantity),
@@ -363,7 +363,7 @@ def galax_to_gala(
     <HarmonicOscillatorPotential: omega=[1.] 1 / Myr (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.HarmonicOscillatorPotential(
         omega=convert(pot.omega(0), APYQuantity),
@@ -417,7 +417,7 @@ def galax_to_gala(pot: gp.HernquistPotential, /) -> galap.HernquistPotential:
     <HernquistPotential: m=1.00e+11 solMass, c=20.00 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.HernquistPotential(
         m=convert(pot.m_tot(0), APYQuantity),
@@ -473,11 +473,11 @@ def galax_to_gala(pot: gp.IsochronePotential, /) -> galap.IsochronePotential:
     <IsochronePotential: m=1.00e+11 solMass, b=10.00 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     params: dict[str, APYQuantity] = {
         k: convert(getattr(pot, k)(0), APYQuantity)
-        for (k, f) in type(pot).parameters.items()
+        for (k, f) in type(pot).param_objs.items()
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
@@ -533,7 +533,7 @@ def galax_to_gala(pot: gp.JaffePotential, /) -> galap.JaffePotential:
     <JaffePotential: m=1.00e+11 solMass, c=20.00 kpc (kpc,Myr,solMass,rad)>
 
     """
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.JaffePotential(
         m=convert(pot.m_tot(0), APYQuantity),
@@ -587,11 +587,11 @@ def galax_to_gala(pot: gp.KeplerPotential, /) -> galap.KeplerPotential:
     <KeplerPotential: m=1.00e+11 solMass (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     params: dict[str, APYQuantity] = {
         k: convert(getattr(pot, k)(0), APYQuantity)
-        for (k, f) in type(pot).parameters.items()
+        for (k, f) in type(pot).param_objs.items()
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
@@ -647,11 +647,11 @@ def galax_to_gala(pot: gp.KuzminPotential, /) -> galap.KuzminPotential:
     <KuzminPotential: m=1.00e+11 solMass, a=20.00 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     params: dict[str, APYQuantity] = {
         k: convert(getattr(pot, k)(0), APYQuantity)
-        for (k, f) in type(pot).parameters.items()
+        for (k, f) in type(pot).param_objs.items()
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
@@ -716,7 +716,7 @@ def galax_to_gala(pot: gp.LongMuraliBarPotential, /) -> galap.LongMuraliBarPoten
     <LongMuraliBarPotential: m=1.00e+11 solMass, a=20.00 kpc, b=10.00 kpc, c=5.00 kpc, alpha=0.10 rad (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.LongMuraliBarPotential(
         m=convert(pot.m_tot(0), APYQuantity),
@@ -776,11 +776,11 @@ def galax_to_gala(pot: gp.MiyamotoNagaiPotential, /) -> galap.MiyamotoNagaiPoten
     <MiyamotoNagaiPotential: m=1.00e+11 solMass, a=6.50 kpc, b=0.26 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     params: dict[str, APYQuantity] = {
         k: convert(getattr(pot, k)(0), APYQuantity)
-        for (k, f) in type(pot).parameters.items()
+        for (k, f) in type(pot).param_objs.items()
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
@@ -842,11 +842,11 @@ def galax_to_gala(
     <MN3ExponentialDiskPotential: m=1.00e+11 solMass, h_R=3.00 kpc, h_z=0.20 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     params: dict[str, APYQuantity] = {
         k: convert(getattr(pot, k)(0), APYQuantity)
-        for (k, f) in type(pot).parameters.items()
+        for (k, f) in type(pot).param_objs.items()
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
@@ -949,11 +949,11 @@ def galax_to_gala(pot: gp.PlummerPotential, /) -> galap.PlummerPotential:
     >>> gp.io.convert_potential(gp.io.GalaLibrary, pot)
     <PlummerPotential: m=1.00e+11 solMass, b=10.00 kpc (kpc,Myr,solMass,rad)>
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     params: dict[str, APYQuantity] = {
         k: convert(getattr(pot, k)(0), APYQuantity)
-        for (k, f) in type(pot).parameters.items()
+        for (k, f) in type(pot).param_objs.items()
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
@@ -1026,11 +1026,11 @@ def galax_to_gala(pot: gp.PowerLawCutoffPotential, /) -> galap.PowerLawCutoffPot
 
     .. skip: end
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     params: dict[str, APYQuantity] = {
         k: convert(getattr(pot, k)(0), APYQuantity)
-        for (k, f) in type(pot).parameters.items()
+        for (k, f) in type(pot).param_objs.items()
     }
     if "m_tot" in params:
         params["m"] = params.pop("m_tot")
@@ -1090,7 +1090,7 @@ def galax_to_gala(pot: gp.SatohPotential, /) -> galap.SatohPotential:
     <SatohPotential: m=1.00e+11 solMass, a=20.00 kpc, b=10.00 kpc (kpc,Myr,solMass,rad)>
 
     """
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.SatohPotential(
         m=convert(pot.m_tot(0), APYQuantity),
@@ -1150,7 +1150,7 @@ def galax_to_gala(pot: gp.StoneOstriker15Potential, /) -> galap.StonePotential:
     <StonePotential: m=1.00e+11 solMass, r_c=20.00 kpc, r_h=10.00 kpc (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.StonePotential(
         m=convert(pot.m_tot(0), APYQuantity),
@@ -1231,7 +1231,7 @@ def galax_to_gala(pot: gp.LogarithmicPotential, /) -> galap.LogarithmicPotential
     <LogarithmicPotential: v_c=0.22 kpc / Myr, r_h=20.00 kpc, q1=1.00 , q2=1.00 , q3=1.00 , phi=0 rad (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.LogarithmicPotential(
         v_c=convert(pot.v_c(0).uconvert(pot.units), APYQuantity),
@@ -1256,7 +1256,7 @@ def galax_to_gala(pot: gp.LMJ09LogarithmicPotential, /) -> galap.LogarithmicPote
     <LogarithmicPotential: v_c=0.22 kpc / Myr, r_h=20.00 kpc, q1=1.00 , q2=1.00 , q3=1.00 , phi=0 rad (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.LogarithmicPotential(
         v_c=convert(pot.v_c(0), APYQuantity),
@@ -1416,7 +1416,7 @@ def galax_to_gala(pot: gp.NFWPotential, /) -> galap.NFWPotential:
      (kpc,Myr,solMass,rad)>
 
     """
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     return galap.NFWPotential(
         m=convert(pot.m(0), APYQuantity),
@@ -1484,7 +1484,7 @@ def galax_to_gala(
     <LeeSutoTriaxialNFWPotential: v_c=0.47 kpc / Myr, r_s=20.00 kpc, a=1.00 , b=0.90 , c=0.80  (kpc,Myr,solMass,rad)>
 
     """  # noqa: E501
-    _error_if_not_all_constant_parameters(pot, *pot.parameters.keys())
+    _error_if_not_all_constant_parameters(pot, *pot.param_objs.keys())
 
     t = u.Q(0.0, pot.units["time"])
     v_c: APYQuantity = convert(
@@ -1576,7 +1576,7 @@ def galax_to_gala(pot: gp.BovyMWPotential2014, /) -> galap.BovyMWPotential2014:
 
     return galap.BovyMWPotential2014(
         **{
-            c: {rename(k): getattr(p, k)(0) for k in p.parameters}
+            c: {rename(k): getattr(p, k)(0) for k in p.param_objs}
             for c, p in pot.items()
         }
     )
@@ -1645,7 +1645,7 @@ def galax_to_gala(pot: gp.LM10Potential, /) -> galap.LM10Potential:
 
     return galap.LM10Potential(
         **{
-            c: {rename(c, k): getattr(p, k)(0) for k in p.parameters}
+            c: {rename(c, k): getattr(p, k)(0) for k in p.param_objs}
             for c, p in pot.items()
         }
     )
@@ -1714,7 +1714,7 @@ def galax_to_gala(pot: gp.MilkyWayPotential, /) -> galap.MilkyWayPotential:
                 return k
 
     kwargs: dict[str, Any] = {
-        c: {rename(c, k): getattr(p, k)(0) for k in p.parameters}
+        c: {rename(c, k): getattr(p, k)(0) for k in p.param_objs}
         for c, p in pot.items()
     }
     # gala>=1.11 merges MilkyWayPotential{,2022} behind a `version` argument. Without
@@ -1791,7 +1791,7 @@ def galax_to_gala(pot: gp.MilkyWayPotential2022, /) -> galap.MilkyWayPotential20
         **{
             c: {
                 rename(c, k): convert(getattr(p, k)(0), APYQuantity)
-                for k in p.parameters
+                for k in p.param_objs
             }
             for c, p in pot.items()
         }

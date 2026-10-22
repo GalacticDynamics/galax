@@ -3,9 +3,9 @@ import pytest
 
 import quaxed.numpy as jnp
 import unxt as u
+from spexial import incomplete_beta
 
 import galax.potential as gp
-from galax.potential._src.builtin.nfw.hyp2f1 import Bz_from_hyp2f1
 
 check_funcs = ["potential", "gradient", "density", "hessian"]
 
@@ -71,7 +71,7 @@ def test_zhao_against_infinite_mass_correspondences(
     r_s = u.Quantity(8.1, "kpc")
     m_char = u.Quantity(5e11, "Msun")
 
-    m_enclosed = m_char * Bz_from_hyp2f1(3.0 - gamma, 0.0, 0.5)
+    m_enclosed = m_char * incomplete_beta(3.0 - gamma, 0.0, 0.5)
     zhao = gp.ZhaoPotential(
         m=m_enclosed, r_s=r_s, alpha=alpha, beta=beta, gamma=gamma, units="galactic"
     )

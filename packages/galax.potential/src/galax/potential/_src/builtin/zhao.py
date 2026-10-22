@@ -34,7 +34,13 @@ from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import r_spherical
+from galax.potential._src.utils import (
+    incomplete_beta_zw,
+    r_spherical,
+    radial_derivatives,
+    shell_d2phi_dr2,
+    with_r_derivative,
+)
 
 DimL = u.dimension("length")
 
@@ -223,6 +229,16 @@ def _r_to_chi(p: gt.Params, r: gt.BBtSz0, /) -> gt.BBtFloatSz0:
 
 
 @ft.partial(jax.jit)
+def _r_to_1mchi(p: gt.Params, r: gt.BBtSz0, /) -> gt.BBtFloatSz0:
+    r"""$1 - \chi = 1 / (u^{1/\alpha} + 1)$, without forming $1 - \chi$.
+
+    Far out $\chi$ rounds towards 1 and keeps only some of the digits of
+    $1 - \chi$; this has them all.
+    """
+    return 1.0 / (1.0 + (r / p["r_s"]) ** (1.0 / p["alpha"]))
+
+
+@ft.partial(jax.jit)
 def _mass_fraction_within_r_s(p: gt.Params, /) -> gt.FloatSz0:
     r"""$M(r_s) / M_{tot}$, i.e. Eq. 15 at $\chi = 1/2$ over Eq. 15 at $\chi = 1$.
 
@@ -290,12 +306,23 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
     """
     c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
-    chi = _r_to_chi(p, r)
-    _result = 4.0 * jnp.pi * p["alpha"] * _norm(p) * incomplete_beta(c0 - q0, q0, chi)
-    return _result  # type: ignore[no-any-return]
+    chi, chi1 = _r_to_chi(p, r), _r_to_1mchi(p, r)
+    bz = incomplete_beta_zw(c0 - q0, q0, chi, chi1)
+    return 4.0 * jnp.pi * p["alpha"] * _norm(p) * bz  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
+def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""$dM/dr = 4\pi r^2 \rho(r)$, without forming $r_s^3$ (see `density`)."""
+    alpha, beta, gamma = p["alpha"], p["beta"], p["gamma"]
+    uu = r / p["r_s"]
+    b = (beta - gamma) * alpha
+    shape = uu ** (2.0 - gamma) / (1.0 + uu ** (1.0 / alpha)) ** b
+    return 4.0 * jnp.pi * _norm(p) / p["r_s"] * shape  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+@radial_derivatives(mass_enclosed, dmass_dr)
 def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Specific potential energy of the Zhao model (Eqs. 6 and 7).
 
@@ -320,13 +347,14 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     $p_0 \leq 0$, e.g. the Jaffe model, $(\alpha,\beta,\gamma) = (1,4,2)$).
     """
     c0, p0, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
-    chi = _r_to_chi(p, r)
-    chi1 = 1.0 - chi
+    chi, chi1 = _r_to_chi(p, r), _r_to_1mchi(p, r)
 
     # Eq. 7, interior term: B(c0-q0, q0, chi) / (chi^(c0-q0) (1-chi)^q0)
-    interior = incomplete_beta(c0 - q0, q0, chi) / (chi ** (c0 - q0) * chi1**q0)
+    bz_in = incomplete_beta_zw(c0 - q0, q0, chi, chi1)
+    interior = bz_in / (chi ** (c0 - q0) * chi1**q0)
     # Eq. 7, exterior term: B(c0-p0, p0, 1-chi) / ((1-chi)^(c0-p0) chi^p0)
-    exterior = incomplete_beta(c0 - p0, p0, chi1) / (chi1 ** (c0 - p0) * chi**p0)
+    bz_ex = incomplete_beta_zw(c0 - p0, p0, chi1, chi)
+    exterior = bz_ex / (chi1 ** (c0 - p0) * chi**p0)
 
     f00 = p["alpha"] * (interior + exterior)
     # Eq. 6, with G restored (Zhao sets G = 1).
@@ -359,10 +387,20 @@ def d2potential_dr2(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     .. math::
 
         \frac{d^2\Phi}{dr^2} = 4\pi G \rho(r) - \frac{2 G M(r)}{r^3}
+            = \frac{G M'(r)}{r^2} - \frac{2 G M(r)}{r^3}
 
+    Evaluated in the second form, by `shell_d2phi_dr2`: `density` forms
+    $r_s^3$, and that and $r^3$ overflow float32 in SI units.
     """
-    interior = 2.0 * p["G"] * mass_enclosed(p, r) / r**3
-    return 4.0 * jnp.pi * p["G"] * density(p, r) - interior  # type: ignore[no-any-return]
+    return _d2phi(p, r)
+
+
+_d2phi = shell_d2phi_dr2(mass_enclosed, dmass_dr)
+
+# The jvp of `gradient` -- `jax.linearize` of it, as the Staeckel fudge takes --
+# would otherwise be autodiff of `mass_enclosed`, i.e. of the incomplete beta
+# function's series.
+dpotential_dr = with_r_derivative(dpotential_dr, d2potential_dr2)  # type: ignore[assignment]
 
 
 @ft.partial(jax.jit)

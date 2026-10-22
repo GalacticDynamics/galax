@@ -38,14 +38,8 @@ CUSPY = [
     gp.StoneOstriker15Potential(
         m_tot=M_TOT, r_h=u.Quantity(10.0, "kpc"), r_c=R_S, units="galactic"
     ),
-]
-
-# Known remaining limitation, from a *second* and independent cause: these
-# profiles are written in a form whose r-derivative is itself 0/0 at r=0 (e.g.
-# NFW's d/dr[log1p(x)/x] = [x/(1+x) - log1p(x)]/x^2). Making the radius
-# differentiable does not help; the profile formula needs a small-x series.
-# Their potential *values* at the origin are correct.
-STILL_NAN_GRADIENT = [
+    # Their autodiff r-derivative used to be 0/0 here (e.g. NFW's
+    # d/dr[log1p(x)/x]); `radial_derivatives` now gives it as G M(r) / r^2.
     gp.NFWPotential(m=M_TOT, r_s=R_S, units="galactic"),
     gp.BurkertPotential(m=M_TOT, r_s=R_S, units="galactic"),
 ]
@@ -122,15 +116,3 @@ def test_gradient_is_continuous_into_the_origin(pot: gp.AbstractPotential) -> No
     near = jnp.asarray([1e-12, 0.0, 0.0])
     assert jnp.all(jnp.isfinite(pot.gradient(near, 0.0)))
     assert jnp.isfinite(pot.potential(near, 0.0))
-
-
-@pytest.mark.parametrize("pot", STILL_NAN_GRADIENT, ids=lambda p: type(p).__name__)
-def test_profile_formula_singularity_is_a_separate_issue(
-    pot: gp.AbstractPotential,
-) -> None:
-    """Pin the known limitation so that fixing the profiles trips this test.
-
-    The potential value at the origin is correct; only the gradient is NaN.
-    """
-    assert jnp.isfinite(pot.potential(ORIGIN, 0.0))
-    assert jnp.all(jnp.isnan(pot.gradient(ORIGIN, 0.0)))

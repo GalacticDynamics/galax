@@ -3,6 +3,7 @@
 __all__: tuple[str, ...] = ()
 
 import functools as ft
+import math
 
 from collections.abc import Callable
 from jaxtyping import Array, Bool, Shaped
@@ -12,6 +13,7 @@ import equinox as eqx
 import jax
 import numpy as np
 import optype as op
+from jax.custom_derivatives import SymbolicZero
 from jax.dtypes import canonicalize_dtype
 from plum import Dispatcher, convert
 
@@ -20,6 +22,7 @@ import coordinax.frames as cxf
 import coordinax.vecs as cxv
 import quaxed.numpy as jnp
 import unxt as u
+from spexial import incomplete_beta
 from unxt.quantity import AllowValue, Quantity
 
 import galax.coordinates as gc
@@ -127,6 +130,187 @@ def r_spherical(xyz: gt.BBtQorVSz3, unit: Any) -> gt.BBtFloatSz0:
     xyz = u.ustrip(AllowValue, unit, xyz)
     r = safe_vector_norm(xyz)
     return r  # type: ignore[no-any-return]
+
+
+# ==============================================================================
+
+RadialFn: TypeAlias = Callable[[gt.Params, gt.BBtSz0], gt.BBtSz0]
+
+
+def _zero_tangent(x: Any, /) -> Any:
+    """Return a zero tangent for ``x``: `float0` for an integer or bool one."""
+    x = jnp.asarray(x)
+    if jnp.issubdtype(x.dtype, jnp.inexact):
+        return jnp.zeros_like(x)
+    return np.zeros(x.shape, dtype=jax.dtypes.float0)
+
+
+def with_r_derivative(
+    f: RadialFn,
+    df: RadialFn,
+    /,
+    contract: Callable[[Any, Any], Any] = jnp.multiply,
+) -> RadialFn:
+    """``f(p, r)`` as a `jax.custom_jvp` whose ``r``-derivative is ``df(p, r)``.
+
+    The tangent is ``contract(df(p, r), r_dot)``: a product for a scalar
+    ``r``, a dot product over the last axis when ``r`` is a position and
+    ``df`` the gradient. The ``p``-derivative is autodiff of ``f``, skipped
+    when ``p`` carries no tangent -- which is every position derivative.
+    """
+    f_jvp = jax.custom_jvp(f)
+
+    def is_zero(x: Any) -> bool:
+        # float0 is the tangent of an integer or bool primal: zero as well.
+        return isinstance(x, SymbolicZero) or (
+            getattr(x, "dtype", None) == jax.dtypes.float0
+        )
+
+    @ft.partial(f_jvp.defjvp, symbolic_zeros=True)
+    def _(primals: tuple[Any, Any], tangents: tuple[Any, Any]) -> tuple[Any, Any]:
+        (p, r), (p_dot, r_dot) = primals, tangents
+        # The wrapped function, not `f`: a higher derivative differentiates
+        # this rule, and must again reach `df` rather than autodiff of `f`.
+        out = f_jvp(p, r)
+        tangent = jnp.zeros_like(out)
+        if not all(map(is_zero, jax.tree.leaves(p_dot, is_leaf=is_zero))):
+            p_dot = jax.tree.map(
+                lambda d, x: _zero_tangent(x) if is_zero(d) else d,
+                p_dot,
+                p,
+                is_leaf=is_zero,
+            )
+            # Plain autodiff of `f`: an r-derivative taken *after* this p one
+            # does not go through `df`. The usual order (r first) does.
+            tangent = jax.jvp(lambda q: f(q, r), (p,), (p_dot,))[1]
+        if not is_zero(r_dot):
+            tangent = tangent + contract(df(p, r), r_dot)
+        return out, tangent
+
+    return f_jvp
+
+
+def shell_d2phi_dr2(mass_enclosed: RadialFn, dmass_dr: RadialFn, /) -> RadialFn:
+    r"""$\Phi'' = G M'/r^2 - 2GM/r^3$; no $r_s^3$, $r^3$ (float32 SI overflow)."""
+
+    def d2phi(p: gt.Params, r: gt.BBtSz0) -> gt.BBtSz0:
+        G = p["G"]
+        return (G * dmass_dr(p, r) / r - 2 * G * mass_enclosed(p, r) / r / r) / r
+
+    return d2phi
+
+
+def shell_dphi_dr(mass_enclosed: RadialFn, dmass_dr: RadialFn, /) -> RadialFn:
+    r"""$\Phi'(r) = G M(r) / r^2$, as a `jax.custom_jvp` with an exact derivative.
+
+    Its ``r``-derivative is $\Phi''(r) = G M'(r)/r^2 - 2 G M(r)/r^3$ rather than
+    autodiff of ``mass_enclosed``, so a gradient built on it linearizes to the
+    exact Hessian. See `radial_derivatives`, which gives a potential this as
+    its own derivative.
+    """
+    d2phi = shell_d2phi_dr2(mass_enclosed, dmass_dr)
+    return with_r_derivative(lambda p, r: p["G"] * mass_enclosed(p, r) / r / r, d2phi)
+
+
+def radial_derivatives(
+    mass_enclosed: RadialFn, dmass_dr: RadialFn, /
+) -> Callable[[RadialFn], RadialFn]:
+    r"""Give a spherical ``potential(p, r)`` cancellation-free ``r``-derivatives.
+
+    Autodiff differentiates a closed form term by term, and the terms of the
+    derivative can cancel where the closed form itself does not: NFW's
+    $\ln(1+x)/x$ is accurate, but its autodiff derivative
+    $1/(x(1+x)) - \ln(1+x)/x^2$ loses every digit as $x \to 0$. This
+    decorator replaces the ``r``-derivatives with the ones Newton's shell
+    theorem gives,
+
+    .. math::
+
+        \Phi'(r) = \frac{G M(r)}{r^2}, \qquad
+        \Phi''(r) = \frac{G M'(r)}{r^2} - \frac{2 G M(r)}{r^3},
+
+    through two nested `jax.custom_jvp`, so `jax.grad`, `jax.hessian` and
+    `jax.linearize` of anything built on ``potential`` are as accurate as
+    ``mass_enclosed`` and ``dmass_dr`` (both ``(p, r) -> array``, with
+    ``p["G"]`` the gravitational constant). ``dmass_dr`` is $4\pi r^2\rho$,
+    taken rather than $\rho$ because it needs no $r_s^3$, which overflows
+    float32 in SI units. Each division by $r$ is separate for the same reason.
+    Third derivatives are autodiff of $\Phi''$.
+    """
+    dphi = shell_dphi_dr(mass_enclosed, dmass_dr)
+
+    def decorator(potential: RadialFn) -> RadialFn:
+        return ft.wraps(potential)(with_r_derivative(potential, dphi))
+
+    return decorator
+
+
+_POLE_BAND = 1e-3
+"""Half-width of the band around ``b + m == 0`` where `incomplete_beta_zw`
+expands; `spexial`'s value, for the same reason (its ``_large_z``)."""
+
+
+def incomplete_beta_zw(
+    a: gt.Sz0, b: gt.Sz0, z: gt.BBtSz0, w: gt.BBtSz0, /
+) -> gt.BBtSz0:
+    r"""$B(a, b, z)$ from both $z$ and $w = 1 - z$, each to full precision.
+
+    `spexial.incomplete_beta` takes $z$ alone and forms $1 - z$ itself, so for
+    $z \to 1$ it gets only the digits of $1 - z$ that $z$ can hold: for NFW's
+    $z = x/(1+x)$ at $x = 10^8$, half of them. These are spexial's two series:
+    for $z \leq 1/2$ the defining one (its ``_small_z``), and above its
+    reflection about $t = 1/2$ (its ``_large_z``), evaluated from $w$:
+
+    .. math::
+
+        B(a, b, z) = B(a, b, 1/2)
+            + \sum_{m \geq 0} \frac{(1-a)_m}{m!}
+              \frac{(1/2)^{b+m} - w^{b+m}}{b+m},
+
+    with the $b + m \to 0$ term $\ln(1/(2w))$, expanded within `_POLE_BAND`
+    of the pole. The terms fall off like $2^{-m}$, so 64 reach $10^{-19}$.
+    """
+    zc = jnp.where(z <= 0.5, z, 0.5)
+    # w = 0 (z = 1) only by underflow, at r ~ 1e154 r_s or beyond: the tiny
+    # normal float keeps ln(w) finite, and the result ~ -ln(w) (b = 0) or the
+    # complete beta function (b > 0) rather than NaN.
+    tiny = jnp.finfo(jnp.result_type(w, float)).tiny
+    wc = jnp.where(w < 0.5, jnp.where(w > tiny, w, tiny), 0.5)
+    # (L1^k - L2^k) / k! for L1 = ln(1/2), L2 = ln(w), for the near-pole term;
+    # 8 of them, where spexial stops at 4: its O(s^4 L^5) truncation is ~1e-8
+    # relative at s = 1e-3 for w ~ 1e-16 (L ~ 37), and 8 bring it to ~1e-16.
+    l1, l2 = jnp.log(0.5), jnp.log(wc)
+    d = [(l1**k - l2**k) / math.factorial(k) for k in range(1, 9)]
+
+    # Both series, unrolled in Python rather than a `jax.lax.scan`: a scan
+    # step is a separate pass over the batch, so it is memory-bound and ~7x
+    # slower than the one fused loop this compiles to.
+    lower = up = pole_coeff = pole_s = jnp.zeros_like(zc)
+    z_pow, c_lo = jnp.ones_like(zc), jnp.ones_like(b)  # c_lo = (1-b)_m / m!
+    w_pow, half_pow, c_up = wc**b, 0.5**b, jnp.ones_like(a)  # c_up = (1-a)_m / m!
+    for m in range(64):
+        lower = lower + c_lo / (a + m) * z_pow
+        # At most one m is near the pole b + m = 0: its term is set aside here
+        # and expanded once below, rather than at every m.
+        s = b + m
+        near = jnp.abs(s) < _POLE_BAND
+        direct = (half_pow - w_pow) / jnp.where(near, 1.0, s)
+        up = up + c_up * jnp.where(near, 0.0, direct)
+        pole_coeff = pole_coeff + jnp.where(near, c_up, 0.0)
+        pole_s = pole_s + jnp.where(near, s, 0.0)
+        z_pow, c_lo = z_pow * zc, c_lo * (m + 1.0 - b) / (m + 1.0)
+        w_pow, half_pow, c_up = (
+            w_pow * wc,
+            half_pow * 0.5,
+            c_up * (m + 1.0 - a) / (m + 1.0),
+        )
+
+    expansion = d[-1]
+    for d_k in reversed(d[:-1]):
+        expansion = d_k + pole_s * expansion
+    b_half = incomplete_beta(a, b, jnp.asarray(0.5, dtype=zc.dtype))
+    upper = b_half + up + pole_coeff * expansion
+    return jnp.where(z <= 0.5, zc**a * lower, upper)  # type: ignore[no-any-return]
 
 
 # ==============================================================================

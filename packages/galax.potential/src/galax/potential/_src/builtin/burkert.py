@@ -32,7 +32,7 @@ from galax.potential._src.base_single import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import r_spherical
+from galax.potential._src.utils import r_spherical, radial_derivatives
 
 CONST_BURKER: Final = 3 * jnp.log(jnp.asarray(2.0)) - jnp.pi / 2
 
@@ -192,9 +192,63 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     where $m$ is the characteristic mass and $r_s$ is the scale radius.
     """
     x = r / p["r_s"]
-    factor = p["m"] / CONST_BURKER
-    _result = factor * (2 * jnp.log1p(x) + jnp.log1p(x**2) - 2 * jnp.atan(x))
-    return _result  # type: ignore[no-any-return]
+    return p["m"] / CONST_BURKER * _mass_bracket(x)  # type: ignore[no-any-return]
+
+
+# Minimax fit, highest degree first, of the bracket below over 4x^3 on
+# [0, 0.8]: mpmath.chebyfit at 60 digits, degree 20 (fit error 2e-17).
+# `scripts/fit_burkert_mass_bracket.py` regenerates it and checks the bounds.
+_BRACKET_FIT: Final = (
+    -0.0006694096021792203,
+    0.010040494048579117,
+    -0.058353840712721566,
+    0.1866881514834824,
+    -0.37130800035137984,
+    0.4746012984355624,
+    -0.375570777120145,
+    0.15940205688929185,
+    -0.0338611455923545,
+    0.035339918079129784,
+    -0.009666784574964232,
+    -0.08128476063349717,
+    0.09057637015828068,
+    4.068628654442871e-05,
+    -3.6484796805761754e-06,
+    -0.12499976905261787,
+    0.142857133099678,
+    2.524511286941352e-10,
+    -3.460926234110154e-12,
+    -0.24999999999998113,
+    0.3333333333333333,
+)
+
+
+def _mass_bracket(x: gt.Sz0, /) -> gt.FloatSz0:
+    r"""$2\ln(1+x) + \ln(1+x^2) - 2\tan^{-1}x$, to a few ulp for every $x \geq 0$.
+
+    Directly, three $\sim x$ terms cancel to $\sim 4x^3/3$. It is the integral
+    of $4s^2/((1+s)(1+s^2))$, so it is $4x^3 h(x)$ with $h$ analytic and
+    $h(0) = 1/3$. Up to $x = 0.8$, $h$ is a degree-20 polynomial fit (2 ulp
+    over the range); beyond, the direct sum cancels by less than a factor 10.
+
+    The fit replaces the Taylor series
+    $h = \sum_j x^{4j} (1/(4j+3) - x/(4j+4))$, which needs 42 terms to reach
+    $x = 0.8$. XLA copies the series into every consumer of the enclosed mass,
+    and at that length it made Burkert's Hessian ~50% slower than main's.
+    """
+    xc = jnp.where(x <= 0.8, x, 0.8)
+    c = jnp.asarray(_BRACKET_FIT, dtype=xc.dtype)
+    h = jnp.polyval(c, xc, unroll=len(_BRACKET_FIT))
+    direct = 2 * jnp.log1p(x) + jnp.log1p(x**2) - 2 * jnp.atan(x)
+    return jnp.where(x <= 0.8, 4 * xc**3 * h, direct)  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def dmass_dr(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
+    r"""$dM/dr = 4\pi r^2 \rho$, for `radial_derivatives`."""
+    x = r / p["r_s"]
+    dbracket = 4 * x**2 / ((1 + x) * (1 + x**2))
+    return p["m"] / (CONST_BURKER * p["r_s"]) * dbracket  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -209,6 +263,7 @@ def mass_total(p: gt.Params, /) -> gt.FloatSz0:
 
 
 @ft.partial(jax.jit)
+@radial_derivatives(mass_enclosed, dmass_dr)
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Potential for the Burkert potential.
 
@@ -221,15 +276,22 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $$
 
     where $m$ is the characteristic mass and $r_s$ is the scale radius.
+    Evaluated regrouped as
+
+    $$ 2 \tan^{-1}(1/x) + \ln\left(1 + \frac{2x}{1+x^2}\right)
+       + \frac{2\ln(1+x) + \ln(1+x^2) - 2\tan^{-1}x}{x}, $$
+
+    every term positive, where the form above cancels both as $x \to 0$ and
+    as $x \to \infty$.
     """
-    # Compute potential
     r_s = p["r_s"]
     x = r / r_s
-    xinv = 1 / x
     prefactor = p["G"] * p["m"] / (r_s * CONST_BURKER)
+    # atan2(1, x) = atan(1/x) for x > 0 without forming 1/x, and the last term
+    # -> 0 as x -> 0: x can underflow to 0 at the origin in float32 SI units.
+    pos = x > 0
+    x_safe = jnp.where(pos, x, 1.0)
+    bracket_over_x = jnp.where(pos, _mass_bracket(x_safe) / x_safe, 0.0)
     return -prefactor * (  # type: ignore[no-any-return]
-        jnp.pi
-        - 2 * (1 + xinv) * jnp.atan(x)
-        + 2 * (1 + xinv) * jnp.log1p(x)
-        - (1 - xinv) * jnp.log1p(x**2)
+        2 * jnp.atan2(1.0, x) + jnp.log1p(2 * x / (1 + x**2)) + bracket_over_x
     )

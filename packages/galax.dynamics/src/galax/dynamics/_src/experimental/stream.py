@@ -19,8 +19,8 @@ import quaxed.numpy as jnp
 from dataclassish.converters import dataclass
 
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics._src.loop_strategies as lstrat
 import galax.dynamics.custom_types as gt
-import galax.dynamics.loop_strategies as lstrat
 import galax.potential as gp
 from .df import AbstractKinematicDF, Fardal2015DF
 from .integrate import integrate_orbit

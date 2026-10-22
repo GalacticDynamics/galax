@@ -1,5 +1,7 @@
 """Tests for `staeckel_fudge_delta`."""
 
+import functools as ft
+
 import jax
 import numpy as np
 import pytest
@@ -221,14 +223,6 @@ _OFF_AXIS = np.array(
 )
 
 
-def test_delta_zero_for_spherical_isochrone():
-    pot = gp.IsochronePotential(
-        m_tot=u.Q(1e11, "Msun"), r_s=u.Q(3.0, "kpc"), units="galactic"
-    )
-    delta = staeckel_fudge_delta(pot, jnp.asarray(_OFF_AXIS), jnp.asarray(0.0))
-    assert jnp.all(delta == 0)
-
-
 # The same potentials without their `Symmetry.SPHERICAL` declaration, so that
 # Delta goes through eq. 9: the tests of its round-off threshold use these.
 class _UndeclaredHernquist(gp.HernquistPotential):
@@ -255,23 +249,48 @@ def _sph(kind, units, scale, *, declared=False):
     return cls(m_tot=m, r_s=r, units=units)
 
 
-@pytest.mark.parametrize("kind", ["hernquist", "isochrone", "nfw"])
-def test_delta_exactly_zero_for_declared_spherical(kind):
+def _composite(*, declared):
+    return gp.CompositePotential(
+        a=_sph("hernquist", "galactic", 3.0, declared=declared),
+        b=_sph("nfw", "galactic", 20.0, declared=declared),
+    )
+
+
+# Off-axis points, then the plane, the axis and the origin (NaN through eq. 9,
+# 0/0), then the NFW core at 1e-5 r_s, where its Hessian round-off makes the
+# eq. 9 Delta spurious.
+_SPH_PTS = np.concat(
+    [
+        _OFF_AXIS,
+        [[5.0, 2.0, 0.0], [0.0, 0.0, 2.0], [0.0, 0.0, 0.0], [8e-5, 3e-5, 5e-5]],
+    ]
+)
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        pytest.param(ft.partial(_sph, k, "galactic", 10.0), id=k)
+        for k in ("hernquist", "isochrone", "nfw")
+    ]
+    + [pytest.param(_composite, id="composite")],
+)
+def test_delta_exactly_zero_for_declared_spherical(make):
     """Exactly 0 everywhere, even where eq. 9 gives NaN or round-off.
 
-    The plane, the axis and the origin are NaN through eq. 9 (0/0), and the
-    NFW core at 1e-5 r_s is where its Hessian round-off makes Delta spurious.
+    A composite of spherical parts derives `SPHERICAL`, so it is 0 too. The
+    zeros take the broadcast batch shape of ``q`` and ``t``, and eq. 9's dtype.
     """
-    pot = _sph(kind, "galactic", 10.0, declared=True)
-    q = jnp.asarray(
-        [[5.0, 2.0, 0.0], [0.0, 0.0, 2.0], [0.0, 0.0, 0.0], [8e-5, 3e-5, 5e-5]]
-    )
-    delta = staeckel_fudge_delta(pot, q, jnp.asarray(0.0))
-    assert delta.shape == (4,)
+    pot = make(declared=True)
+    assert pot.symmetry is gp.Symmetry.SPHERICAL
+    q = jnp.asarray(_SPH_PTS)[:, None]
+    delta = staeckel_fudge_delta(pot, q, jnp.asarray([0.0, 1.0]))
+    assert delta.shape == (len(_SPH_PTS), 2)
     assert jnp.all(delta == 0)
-    assert jnp.all(
-        jnp.isnan(staeckel_fudge_delta(_sph(kind, "galactic", 10.0), q[:3], 0.0))
-    )
+    # The same potential undeclared is NaN at the plane, axis and origin.
+    general = staeckel_fudge_delta(make(declared=False), q, jnp.asarray([0.0, 1.0]))
+    assert jnp.all(jnp.isnan(general[len(_OFF_AXIS) : len(_OFF_AXIS) + 3]))
+    assert delta.dtype == general.dtype
 
 
 def test_delta_exactly_zero_skips_the_hessian():
@@ -290,28 +309,6 @@ def test_delta_exactly_zero_skips_the_hessian():
 
     assert "log" in jaxpr(_sph("nfw", "galactic", 10.0))
     assert "log" not in jaxpr(_sph("nfw", "galactic", 10.0, declared=True))
-
-
-def test_delta_exactly_zero_for_spherical_composite():
-    """A composite of spherical parts derives `SPHERICAL`, so it is 0 too."""
-    pot = gp.CompositePotential(
-        a=_sph("hernquist", "galactic", 3.0, declared=True),
-        b=_sph("nfw", "galactic", 20.0, declared=True),
-    )
-    assert pot.symmetry is gp.Symmetry.SPHERICAL
-    delta = staeckel_fudge_delta(pot, jnp.asarray(_OFF_AXIS), jnp.asarray(0.0))
-    assert jnp.all(delta == 0)
-
-
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
-def test_delta_exactly_zero_dtype_and_shape(dtype):
-    """The zeros follow the inputs' float dtype and broadcast batch shape."""
-    pot = _sph("hernquist", "galactic", 10.0, declared=True)
-    q = jnp.ones((4, 1, 3), dtype=dtype)
-    t = jnp.zeros((5,), dtype=dtype)
-    delta = staeckel_fudge_delta(pot, q, t)
-    assert delta.shape == (4, 5)
-    assert delta.dtype == dtype
 
 
 @pytest.mark.parametrize("units", ["galactic", PC], ids=["galactic", "pc"])
@@ -346,10 +343,11 @@ def test_delta_threshold_zeroes_tiny_kk_delta():
     assert jnp.all(staeckel_fudge_delta(pot, q, jnp.asarray(0.0)) == 0)
 
 
+@pytest.mark.parametrize("declared", [False, True], ids=["eq9", "declared"])
 @pytest.mark.parametrize("kind", ["hernquist", "isochrone", "nfw"])
-def test_delta_spherical_zero_float32_inputs(kind):
+def test_delta_spherical_zero_float32_inputs(kind, declared):
     """Float32 q and t under x64: the derivatives, and Delta, are float32."""
-    pot = _sph(kind, "galactic", 10.0)
+    pot = _sph(kind, "galactic", 10.0, declared=declared)
     r = jnp.geomspace(1.0, 1000.0, 40, dtype=jnp.float32)
     q = jnp.stack([r * 0.8, r * 0.3, r * 0.5], axis=-1)
     delta = staeckel_fudge_delta(pot, q, jnp.asarray(0.0, dtype=jnp.float32))
@@ -365,15 +363,16 @@ _F32 = pytest.mark.filterwarnings(
 
 
 @_F32
+@pytest.mark.parametrize("declared", [False, True], ids=["eq9", "declared"])
 @pytest.mark.parametrize("kind", ["hernquist", "isochrone", "nfw"])
-def test_delta_spherical_zero_float32(kind):
+def test_delta_spherical_zero_float32(kind, declared):
     """The spherical threshold scales with the working precision.
 
     Here with x64 off, the default a caller gets; the dtype check keeps the
     test honest.
     """
     with jax.enable_x64(False):  # noqa: FBT003
-        pot = _sph(kind, "galactic", 10.0)
+        pot = _sph(kind, "galactic", 10.0, declared=declared)
         r = jnp.geomspace(1.0, 1000.0, 40)
         q = jnp.stack([r * 0.8, r * 0.3, r * 0.5], axis=-1)
         delta = staeckel_fudge_delta(pot, q, jnp.asarray(0.0))

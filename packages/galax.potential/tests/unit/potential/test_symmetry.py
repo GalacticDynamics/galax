@@ -42,6 +42,7 @@ BUILTINS = [
     gp.JaffePotential(m_tot=M, r_s=RS, units=G),
     gp.KeplerPotential(m_tot=M, units=G),
     gp.KuzminPotential(m_tot=M, r_s=RS, units=G),
+    gp.KuzminKutuzovPotential(m_tot=M, a=RS, c=u.Q(1, "kpc"), units=G),
     gp.LM10Potential(),
     gp.LMJ09LogarithmicPotential(
         v_c=u.Q(220, "km/s"),
@@ -96,7 +97,11 @@ BUILTINS = [
     gp.MultipoleProfilePotential.from_potential(
         _HERNQUIST, l_max=0, symmetry="spherical", **_PROFILE
     ),
-    gp.MultipoleProfilePotential.from_potential(_MN, l_max=2, **_PROFILE),
+    gp.MultipoleProfilePotential.from_potential(
+        gp.TriaxialHernquistPotential(m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G),
+        l_max=2,
+        **_PROFILE,
+    ),
     gp.NFWPotential(m=M, r_s=RS, units=G),
     gp.NullPotential(),
     gp.PlummerPotential(m_tot=M, r_s=RS, units=G),
@@ -207,8 +212,65 @@ def test_undeclared_is_not_spherical(pot: gp.AbstractPotential) -> None:
     assert jnp.max(jnp.abs(phi - phi[0])) > 1e-6 * jnp.max(jnp.abs(phi))
 
 
+# Rotation about z by an angle with no special alignment, and z -> -z.
+_C, _S = jnp.cos(0.7), jnp.sin(0.7)
+_ROT_Z = jnp.asarray([[_C, -_S, 0.0], [_S, _C, 0.0], [0.0, 0.0, 1.0]])
+_FLIP_Z = jnp.diag(jnp.asarray([1.0, 1.0, -1.0]))
+_AXISYMMETRIC = [p for p in BUILTINS if p.symmetry == gp.Symmetry.ZROTATION_ZREFLECTION]
+# Declared NONE, but each is built from z-rotation invariant parts.
+_UNDERIVED = {
+    gp.BovyMWPotential2014,
+    gp.CompositePotential,
+    gp.FlattenedInThePotential,
+    gp.MilkyWayPotential,
+    gp.MilkyWayPotential2022,
+}
+
+
+def _is_invariant(pot: gp.AbstractPotential, op: jax.Array) -> bool:
+    """Whether Φ(Mx) = Φ(x) and ∇Φ(Mx) = M ∇Φ(x) on the test sphere."""
+    phi, grad = _on_sphere(pot)
+    xyz = u.Q(_XYZ.value @ op.T, "kpc")
+    phi_op = pot.potential(xyz, T).ustrip(pot.units["specific energy"])
+    grad_op = pot.gradient(xyz, T).ustrip(pot.units["acceleration"])
+    return bool(
+        jnp.allclose(phi_op, phi, rtol=1e-10, atol=0)
+        and jnp.allclose(grad_op, grad @ op.T, rtol=1e-8, atol=1e-12)
+    )
+
+
+@pytest.mark.parametrize("pot", _AXISYMMETRIC, ids=_ids)
+@pytest.mark.parametrize("op", [_ROT_Z, _FLIP_Z], ids=["rot_z", "flip_z"])
+def test_declared_zrotation_zreflection_is_invariant(
+    pot: gp.AbstractPotential, op: jax.Array
+) -> None:
+    assert _is_invariant(pot, op)
+
+
+@pytest.mark.parametrize(
+    "pot",
+    [
+        pytest.param(
+            p,
+            marks=pytest.mark.xfail(
+                type(p) in _UNDERIVED,
+                reason="does not yet derive its symmetry from its parts",
+                strict=True,
+            ),
+        )
+        for p in BUILTINS
+        if p.symmetry == gp.Symmetry.NONE
+    ],
+    ids=_ids,
+)
+def test_undeclared_is_not_zrotation_invariant(pot: gp.AbstractPotential) -> None:
+    """A potential invariant under z-rotation must declare a symmetry saying so."""
+    assert not _is_invariant(pot, _ROT_Z)
+
+
 def test_undeclared_is_none() -> None:
-    assert MIYAMOTO_NAGAI.symmetry is gp.Symmetry.NONE
+    pot = gp.TriaxialHernquistPotential(m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G)
+    assert pot.symmetry is gp.Symmetry.NONE
 
 
 # ============================================================================

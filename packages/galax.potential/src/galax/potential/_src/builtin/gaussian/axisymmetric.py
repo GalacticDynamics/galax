@@ -25,6 +25,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import gauss_legendre
 
 
@@ -92,6 +93,9 @@ class AxisymmetricGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePot
     See :func:`numpy.polynomial.legendre.leggauss` for details.
     """
     # ==========================================================================
+
+    symmetry = Symmetry.ZROTATION_ZREFLECTION
+    """`Symmetry.ZROTATION_ZREFLECTION`: the density depends on $R$ and $|z|$."""
 
     @ft.partial(jax.jit, static_argnames=("ustrip",))
     def rho0(

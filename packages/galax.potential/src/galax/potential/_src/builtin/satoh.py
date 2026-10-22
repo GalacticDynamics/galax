@@ -25,6 +25,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 
 
 @final
@@ -57,6 +58,9 @@ class SatohPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     a: AbstractParameter = ParameterField(dimensions="length", doc="Scale length")  # type: ignore[assignment]
 
     b: AbstractParameter = ParameterField(dimensions="length", doc="Scale height.")  # type: ignore[assignment]
+
+    symmetry = Symmetry.ZROTATION_ZREFLECTION
+    """`Symmetry.ZROTATION_ZREFLECTION`: the density depends on $R$ and $|z|$."""
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

@@ -30,6 +30,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 
 MN3_K_POS_DENS: Final = jnp.array(
     [
@@ -83,6 +84,9 @@ class AbstractMN3Potential(LaplacianFromDensityMixin, AbstractSinglePotential):
     constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
+
+    symmetry = Symmetry.ZROTATION_ZREFLECTION
+    """`Symmetry.ZROTATION_ZREFLECTION`: the density depends on $R$ and $|z|$."""
 
     @property
     @abc.abstractmethod

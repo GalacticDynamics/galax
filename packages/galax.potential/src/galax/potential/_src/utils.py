@@ -742,8 +742,9 @@ def parse_pot_to_xyz_t(
     ...     parse_pot_to_xyz_t(pot, r, t)
     ... except TypeError as e:
     ...     print(e)
-    MiyamotoNagaiPotential declares symmetry 'none'; a RadialPos needs
-    'spherical'. Pass a 3D position instead, e.g. coordinax.vecs.SphericalPos.
+    MiyamotoNagaiPotential declares symmetry 'zrotation_zreflection'; a
+    RadialPos needs 'spherical'. Pass a 3D position instead, e.g.
+    coordinax.vecs.SphericalPos.
 
     """
     if isinstance(q, cxv.RadialPos):

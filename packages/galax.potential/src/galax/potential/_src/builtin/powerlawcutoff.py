@@ -29,6 +29,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import r_spherical
 
 
@@ -75,6 +76,9 @@ class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential
     constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
+
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQuSz3, t: gt.BBtQuSz0, /) -> gt.BtSz0:

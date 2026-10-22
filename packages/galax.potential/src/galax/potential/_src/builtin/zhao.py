@@ -33,6 +33,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import r_spherical
 
 DimL = u.dimension("length")
@@ -83,6 +84,9 @@ class ZhaoPotential(AbstractSinglePotential):
     gamma: AbstractParameter = ParameterField(
         dimensions="dimensionless", doc="Inner slope (0 <= gamma < 3)."
     )  # type: ignore[assignment]
+
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
 
     def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:
         """Evaluate the parameters at ``t``, stripped to this unit system."""

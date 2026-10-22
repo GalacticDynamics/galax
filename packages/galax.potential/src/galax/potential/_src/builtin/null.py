@@ -17,6 +17,7 @@ from xmmutablemap import ImmutableMap
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.symmetry import Symmetry
 
 
 @final
@@ -48,6 +49,9 @@ class NullPotential(AbstractSinglePotential):
     constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
+
+    symmetry = Symmetry.SPHERICAL
+    """`Symmetry.SPHERICAL`: the density depends only on $r$."""
 
     @ft.partial(jax.jit, inline=True)
     def _potential(self, q: gt.BBtQorVSz3, _: Any, /) -> gt.BBtSz0:

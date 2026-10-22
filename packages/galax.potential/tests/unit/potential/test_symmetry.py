@@ -1,5 +1,8 @@
 """Tests for `galax.potential.Symmetry` and symmetry-aware input parsing."""
 
+import inspect
+
+import jax
 import pytest
 
 import coordinax as cx
@@ -8,15 +11,116 @@ import unxt as u
 
 import galax.potential as gp
 
-SPHERICAL_POTS = [
-    gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic"),
-    gp.HernquistPotential(m_tot=u.Q(1e12, "Msun"), r_s=u.Q(5, "kpc"), units="galactic"),
-    gp.PlummerPotential(m_tot=u.Q(1e12, "Msun"), r_s=u.Q(5, "kpc"), units="galactic"),
-    gp.NFWPotential(m=u.Q(1e12, "Msun"), r_s=u.Q(5, "kpc"), units="galactic"),
-    gp.IsochronePotential(m_tot=u.Q(1e12, "Msun"), r_s=u.Q(5, "kpc"), units="galactic"),
-    gp.JaffePotential(m_tot=u.Q(1e12, "Msun"), r_s=u.Q(5, "kpc"), units="galactic"),
-    gp.BurkertPotential(m=u.Q(1e12, "Msun"), r_s=u.Q(5, "kpc"), units="galactic"),
+G = "galactic"
+M = u.Q(1e12, "Msun")
+RS = u.Q(5, "kpc")
+_HERNQUIST = gp.HernquistPotential(m_tot=M, r_s=RS, units=G)
+_MN = gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G)
+_LM = jnp.zeros((3, 3)).at[0, 0].set(1.0).at[2, 1].set(0.3)
+_NLM = jnp.zeros((2, 3, 3)).at[0, 0, 0].set(1.0).at[1, 2, 1].set(0.3)
+_PROFILE = {"r_min": u.Q(1e-2, "kpc"), "r_max": u.Q(1e3, "kpc"), "n_r": 128}
+
+# One instance of every concrete public potential (see
+# `test_every_builtin_is_covered`). Parameters are chosen so that a class that
+# is not spherical in general is not spherical here either: no unit axis
+# ratios, no isotropic coefficients.
+BUILTINS = [
+    gp.AxisymmetricGaussianPotential(m_tot=M, r_s=RS, q2=0.7, units=G),
+    gp.BovyMWPotential2014(),
+    gp.BurkertPotential(m=M, r_s=RS, units=G),
+    gp.CompositePotential(halo=_HERNQUIST, disk=_MN),
+    gp.FlattenedInThePotential(base_potential=_HERNQUIST, q_z=0.7),
+    gp.GaussianPotential(m_tot=M, r_s=RS, units=G),
+    gp.HardCutoffNFWPotential(m=M, r_s=RS, r_t=u.Q(20, "kpc"), units=G),
+    # `omega` may be a 3-vector, so the class is not spherical in general.
+    gp.HarmonicOscillatorPotential(omega=u.Q([1.0, 2.0, 3.0], "1/Myr"), units=G),
+    gp.HenonHeilesPotential(
+        coeff=u.Q(1.0, "1/kpc"), timescale=u.Q(1.0, "Myr"), units=G
+    ),
+    _HERNQUIST,
+    gp.IsochronePotential(m_tot=M, r_s=RS, units=G),
+    gp.JaffePotential(m_tot=M, r_s=RS, units=G),
+    gp.KeplerPotential(m_tot=M, units=G),
+    gp.KuzminPotential(m_tot=M, r_s=RS, units=G),
+    gp.LM10Potential(),
+    gp.LMJ09LogarithmicPotential(
+        v_c=u.Q(220, "km/s"),
+        r_s=RS,
+        q1=1.0,
+        q2=0.8,
+        q3=0.6,
+        phi=u.Q(0.3, "rad"),
+        units=G,
+    ),
+    gp.LeeSutoTriaxialNFWPotential(m=M, r_s=RS, a1=1.0, a2=0.8, a3=0.6, units=G),
+    gp.LogarithmicPotential(v_c=u.Q(220, "km/s"), r_s=RS, units=G),
+    gp.LongMuraliBarPotential(
+        m_tot=M,
+        a=RS,
+        b=u.Q(1, "kpc"),
+        c=u.Q(1, "kpc"),
+        alpha=u.Q(0.3, "rad"),
+        units=G,
+    ),
+    gp.MN3ExponentialPotential(m_tot=M, h_R=RS, h_z=u.Q(0.3, "kpc"), units=G),
+    gp.MN3Sech2Potential(m_tot=M, h_R=RS, h_z=u.Q(0.3, "kpc"), units=G),
+    gp.MilkyWayPotential(),
+    gp.MilkyWayPotential2022(),
+    _MN,
+    gp.MonariEtAl2016BarPotential(
+        alpha=u.Q(0.01, ""),
+        R0=u.Q(8.0, "kpc"),
+        v0=u.Q(220.0, "km/s"),
+        Rb=u.Q(3.5, "kpc"),
+        phi_b=u.Q(25, "deg"),
+        Omega=u.Q(52.2, "km/(s kpc)"),
+        units=G,
+    ),
+    gp.MultipoleInnerPotential(
+        m_tot=M, r_s=RS, l_max=2, Slm=_LM, Tlm=jnp.zeros_like(_LM), units=G
+    ),
+    gp.MultipoleOuterPotential(
+        m_tot=M, r_s=RS, l_max=2, Slm=_LM, Tlm=jnp.zeros_like(_LM), units=G
+    ),
+    gp.MultipolePotential(
+        m_tot=M,
+        r_s=RS,
+        l_max=2,
+        ISlm=_LM,
+        ITlm=jnp.zeros_like(_LM),
+        OSlm=_LM,
+        OTlm=jnp.zeros_like(_LM),
+        units=G,
+    ),
+    # `symmetry` is per instance here: one of each.
+    gp.MultipoleProfilePotential.from_potential(
+        _HERNQUIST, l_max=0, symmetry="spherical", **_PROFILE
+    ),
+    gp.MultipoleProfilePotential.from_potential(_MN, l_max=2, **_PROFILE),
+    gp.NFWPotential(m=M, r_s=RS, units=G),
+    gp.NullPotential(),
+    gp.PlummerPotential(m_tot=M, r_s=RS, units=G),
+    gp.PowerLawCutoffPotential(m_tot=M, alpha=1.5, r_c=RS, units=G),
+    gp.SCFPotential(m_tot=M, r_s=RS, Snlm=_NLM, Tnlm=jnp.zeros_like(_NLM), units=G),
+    gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
+    gp.StoneOstriker15Potential(m_tot=M, r_c=u.Q(1, "kpc"), r_h=RS, units=G),
+    gp.TransformedPotential(
+        _HERNQUIST, cx.ops.GalileanSpatialTranslation(u.Q([1.0, 0, 0], "kpc"))
+    ),
+    gp.TranslatedPotential(
+        base_potential=_HERNQUIST, translation=u.Q([1.0, 0, 0], "kpc")
+    ),
+    gp.TriaxialGaussianPotential(m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G),
+    gp.TriaxialHernquistPotential(m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G),
+    gp.TriaxialInThePotential(base_potential=_HERNQUIST, y_over_x=0.8, z_over_x=0.6),
+    gp.TriaxialNFWPotential(m=M, r_s=RS, q1=0.8, q2=0.6, units=G),
+    gp.Vogelsberger08TriaxialNFWPotential(m=M, r_s=RS, q1=0.8, a_r=1.0, units=G),
+    gp.ZhaoPotential(m=M, r_s=RS, alpha=0.5, beta=4.0, gamma=1.0, units=G),
+    gp.gNFWPotential(m=M, r_s=RS, gamma=0.5, units=G),
 ]
+
+SPHERICAL_POTS = [p for p in BUILTINS if p.symmetry == gp.Symmetry.SPHERICAL]
+OTHER_POTS = [p for p in BUILTINS if p.symmetry != gp.Symmetry.SPHERICAL]
 
 MIYAMOTO_NAGAI = gp.MiyamotoNagaiPotential(
     m_tot=u.Q(1e12, "Msun"), a=u.Q(5, "kpc"), b=u.Q(1, "kpc"), units="galactic"
@@ -55,9 +159,52 @@ def test_unknown_value_raises(value: str) -> None:
 # Declarations
 
 
-@pytest.mark.parametrize("pot", SPHERICAL_POTS, ids=lambda p: type(p).__name__)
-def test_declared_spherical(pot: gp.AbstractPotential) -> None:
-    assert pot.symmetry is gp.Symmetry.SPHERICAL
+def _ids(pot: gp.AbstractPotential) -> str:
+    return type(pot).__name__
+
+
+def test_every_builtin_is_covered() -> None:
+    """A new public potential must join `BUILTINS`, so its symmetry is checked."""
+    concrete = {
+        obj
+        for name in gp.__all__
+        if inspect.isclass(obj := getattr(gp, name))
+        and issubclass(obj, gp.AbstractPotential)
+        and not inspect.isabstract(obj)
+        and not name.startswith("Abstract")
+    }
+    assert concrete - {type(p) for p in BUILTINS} == set()
+
+
+# Points on the sphere r = 3 kpc, in directions with no special alignment.
+_DIRS = jax.random.normal(jax.random.key(0), (16, 3))
+_XYZ = u.Q(3.0 * _DIRS / jnp.linalg.vector_norm(_DIRS, axis=-1, keepdims=True), "kpc")
+
+
+def _on_sphere(pot: gp.AbstractPotential) -> tuple[jax.Array, jax.Array]:
+    phi = pot.potential(_XYZ, T).ustrip(pot.units["specific energy"])
+    grad = pot.gradient(_XYZ, T).ustrip(pot.units["acceleration"])
+    return phi, grad
+
+
+@pytest.mark.parametrize("pot", SPHERICAL_POTS, ids=_ids)
+def test_declared_spherical_is_rotation_invariant(pot: gp.AbstractPotential) -> None:
+    """On a sphere, Φ is constant and ∇Φ is radial with constant magnitude."""
+    phi, grad = _on_sphere(pot)
+    rhat = _XYZ.value / 3.0
+    g_r = jnp.sum(grad * rhat, axis=-1)
+    scale = jnp.max(jnp.abs(g_r)) + 1e-300  # `NullPotential` is all zeros
+
+    assert jnp.allclose(phi, phi[0], rtol=1e-10, atol=0)
+    assert jnp.allclose(g_r, g_r[0], rtol=1e-10, atol=0)
+    assert jnp.max(jnp.abs(grad - g_r[:, None] * rhat)) <= 1e-10 * scale
+
+
+@pytest.mark.parametrize("pot", OTHER_POTS, ids=_ids)
+def test_undeclared_is_not_spherical(pot: gp.AbstractPotential) -> None:
+    """A potential that is spherical must say so: Φ varies on the sphere here."""
+    phi, _ = _on_sphere(pot)
+    assert jnp.max(jnp.abs(phi - phi[0])) > 1e-6 * jnp.max(jnp.abs(phi))
 
 
 def test_undeclared_is_none() -> None:

@@ -10,12 +10,12 @@ from typing import final
 import equinox as eqx
 import jax
 
-import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
+from .base import potential as nfw_potential
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
@@ -89,5 +89,6 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         r_s = self.r_s(t, ustrip=self.units["length"])
 
         r = self._r_tilde(xyz, t)
-        _result = -self.constants["G"].value * m * jnp.log1p(r / r_s) / r
-        return _result  # type: ignore[no-any-return]
+        # NFW's radial function of r~, whose derivatives do not cancel.
+        params = {"G": self.constants["G"].value, "m": m, "r_s": r_s}
+        return nfw_potential(params, r)  # type: ignore[no-any-return]

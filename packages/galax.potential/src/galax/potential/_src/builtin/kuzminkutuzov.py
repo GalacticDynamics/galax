@@ -70,9 +70,10 @@ class KuzminKutuzovPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
             \frac{\lambda\nu + a^2 (\lambda + \nu + 3\sqrt{\lambda\nu})}
                  {(\lambda\nu)^{3/2} (\sqrt{\lambda} + \sqrt{\nu})^3}
 
-    No roots are taken and every term is positive, so both are smooth and
-    free of cancellation everywhere for :math:`a, c > 0`, including the
-    origin, the plane, the axis and the focal points
+    The quadratic for :math:`\lambda, \nu` is never solved, and every term is
+    positive (only square roots of positive quantities are taken), so both are
+    smooth and free of cancellation everywhere for :math:`a, c > 0`,
+    including the origin, the plane, the axis and the focal points
     :math:`(R, z) = (0, \pm\Delta)`. :func:`~galax.potential.gradient` and
     :func:`~galax.potential.hessian` (by automatic differentiation) are
     finite there too. The closed-form density matters for flat models: off

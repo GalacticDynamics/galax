@@ -709,7 +709,8 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             ``pot.symmetry``, so only the modes the source allows are kept --
             e.g. ``l = 0`` alone for a spherical one. An explicit value wins,
             even one ``pot`` does not have: a stronger symmetry deliberately
-            drops modes, a weaker one keeps modes that come out ~zero.
+            drops modes, a weaker one keeps modes that come out ~zero. Pass
+            ``Symmetry.NONE`` (or ``"none"``) to keep every mode.
         t : Quantity, optional
             Time(s) at which to build the expansion. Defaults to 0 Gyr. A 1-D
             ``t`` builds the expansion on a time grid; see

@@ -108,10 +108,10 @@ class HardCutoffNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
         default=default_constants, converter=ImmutableMap
     )
 
-    # TODO: make public
     symmetry = Symmetry.SPHERICAL
     """`Symmetry.SPHERICAL`: the density depends only on $r$."""
 
+    # TODO: make public
     @ft.partial(jax.jit)
     def _mass_enclosed(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r"""Mass enclosed within a radius.

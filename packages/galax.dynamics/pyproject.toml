@@ -35,6 +35,7 @@ dependencies = [
   "galax.potential",
   "interpax>=0.3.11",
   "jax>=0.7.2",
+  "jaxmore>=0.5",
   "jaxtyping>=0.3.3",
   "numpy>=1.26",
   "optimistix>=0.0.11",

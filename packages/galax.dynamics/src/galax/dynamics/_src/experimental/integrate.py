@@ -11,13 +11,13 @@ import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.extend as jex
+import jaxmore.loop_strategies as lstrat
 from plum import dispatch
 
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 
 import galax.dynamics._src.custom_types as gdt
-import galax.dynamics._src.loop_strategies as lstrat
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from galax.dynamics._src.orbit.field_base import AbstractOrbitField

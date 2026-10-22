@@ -13,7 +13,7 @@ __all__ = [
 from .setup_package import install_import_hook
 
 with install_import_hook("galax.dynamics.loop_strategies"):
-    from ._src.loop_strategies import (
+    from jaxmore.loop_strategies import (
         AbstractLoopStrategy,
         AbstractVMap,
         Determine,

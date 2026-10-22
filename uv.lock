@@ -1183,6 +1183,7 @@ dependencies = [
     { name = "galax-potential" },
     { name = "interpax" },
     { name = "jax" },
+    { name = "jaxmore" },
     { name = "jaxtyping" },
     { name = "numpy" },
     { name = "optimistix" },
@@ -1217,6 +1218,7 @@ requires-dist = [
     { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "interpax", specifier = ">=0.3.11" },
     { name = "jax", specifier = ">=0.7.2" },
+    { name = "jaxmore", specifier = ">=0.5" },
     { name = "jaxtyping", specifier = ">=0.3.3" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "optimistix", specifier = ">=0.0.11" },
@@ -1706,6 +1708,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/04/5e7bb66dfb5115e3753ded81354c7bbda9a45f6c0e239faec391821ce974/jaxlib-0.8.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:248f1ac3acee1fe2cc81e8a668311f3ccb8f28090404391c276869cae8a95daf", size = 55065346, upload-time = "2025-10-15T23:11:28.121Z" },
     { url = "https://files.pythonhosted.org/packages/f5/a8/dba41b8f574c188ca30866562ebf06fa0558446e11565436ead5ad4d5fe4/jaxlib-0.8.0-cp314-cp314t-manylinux_2_27_aarch64.whl", hash = "sha256:a5f0656bbbb3f135a360ce0fde55bf34faf73fbc62ab887941e85f0014b3f476", size = 73276773, upload-time = "2025-10-15T23:11:31.067Z" },
     { url = "https://files.pythonhosted.org/packages/6c/82/774ff02e014ee12925388f7a77fe9beda6a8d08537666ce6259fc810b9f6/jaxlib-0.8.0-cp314-cp314t-manylinux_2_27_x86_64.whl", hash = "sha256:61cb2fde154e5a399db2880d560e3443cfa97bda9f074b545c886232ac8fe024", size = 79805953, upload-time = "2025-10-15T23:11:34.323Z" },
+]
+
+[[package]]
+name = "jaxmore"
+version = "0.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jax" },
+    { name = "jaxtyping" },
+    { name = "optional-dependencies" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/68/97/8f35ae4079937c8b1d84fdcce14595427f4e8dcf7f1386f6b8e2ec80fd72/jaxmore-0.5.0.tar.gz", hash = "sha256:69dcdcbc7aa3455edc5c6982d669d6eac58c1a79198f77bd2510812c908da9c3", size = 188701, upload-time = "2026-10-22T22:54:01.724Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/5e/8e086b490abd944c06f0d389b5a8363fd3f99a2a7cde458230aee5c68481/jaxmore-0.5.0-py3-none-any.whl", hash = "sha256:34a5361f29a7d3d99505b66249c6c68989d3a7904e620517c1dc64ca12c2e8f1", size = 48358, upload-time = "2026-10-22T22:54:00.414Z" },
 ]
 
 [[package]]

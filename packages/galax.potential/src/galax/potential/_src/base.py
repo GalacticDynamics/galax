@@ -42,7 +42,6 @@ DimT = u.dimension("time")
 class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
     """Abstract Potential Class."""
 
-    param_objs: ClassVar = ParamObjsAttribute(MappingProxyType({}))
     plot: ClassVar = PlotPotentialDescriptor()
 
     _: KW_ONLY
@@ -120,6 +119,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
 
     ###########################################################################
     # Parameters
+
+    param_objs: ClassVar = ParamObjsAttribute(MappingProxyType({}))
 
     def params(self, t: Any, /, *, ustrip: bool = True) -> dict[str, Any]:
         """Evaluate the parameters (and ``G``) at time ``t``.

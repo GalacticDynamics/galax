@@ -17,8 +17,8 @@ import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 
 import galax.dynamics._src.custom_types as gdt
+import galax.dynamics._src.loop_strategies as lstrat
 import galax.dynamics.custom_types as gt
-import galax.dynamics.loop_strategies as lstrat
 import galax.potential as gp
 from galax.dynamics._src.orbit.field_base import AbstractOrbitField
 

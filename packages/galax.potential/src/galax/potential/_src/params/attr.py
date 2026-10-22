@@ -1,4 +1,4 @@
-"""Descriptor for a Parameters attributes."""
+"""Descriptors for the ``param_objs`` attribute of potentials."""
 
 __all__ = [
     "AbstractParamObjsAttribute",
@@ -56,9 +56,10 @@ class ParamObjsAttribute(AbstractParamObjsAttribute):
     """Mapping of the :class:`~galax.potential.ParameterField` values.
 
     If accessed from the :class:`~galax.potential.AbstractPotential` class,
-    this returns a mapping of the :class:`~galax.potential.AbstractParameter`
-    objects themselves.  If accessed from an instance, this returns a mapping of
-    the values of the Parameters.
+    this returns a mapping of the :class:`~galax.potential.ParameterField`
+    descriptors themselves.  If accessed from an instance, this returns a
+    mapping of the instance's :class:`~galax.potential.AbstractParameter`
+    objects.
 
     This class is used to implement
     :obj:`galax.potential.AbstractPotential.param_objs`.
@@ -84,7 +85,10 @@ class ParamObjsAttribute(AbstractParamObjsAttribute):
         self,
         instance: "galax.potential.AbstractPotential | None",
         owner: "type[galax.potential.AbstractPotential] | None",
-    ) -> "MappingProxyType[str, ParameterField]":
+    ) -> (
+        "MappingProxyType[str, ParameterField]"
+        " | MappingProxyType[str, galax.potential.AbstractParameter]"
+    ):
         # Called from the class
         if instance is None:
             return self.param_objs
@@ -101,9 +105,9 @@ class CompositeParamObjsAttribute(AbstractParamObjsAttribute):
     :obj:`galax.potential.CompositePotential.param_objs`.
 
     If accessed from the :class:`~galax.potential.CompositePotential` class,
-    this returns a mapping of the :class:`~galax.potential.AbstractParameter`
-    objects themselves.  If accessed from an instance, this returns a mapping of
-    the values of the Parameters.
+    this returns a mapping of the :class:`~galax.potential.ParameterField`
+    descriptors themselves.  If accessed from an instance, this returns a
+    mapping of each component name to that component's ``param_objs``.
 
     Examples
     --------
@@ -128,7 +132,11 @@ class CompositeParamObjsAttribute(AbstractParamObjsAttribute):
         self,
         instance: "galax.potential.AbstractCompositePotential | None",
         owner: "type[galax.potential.AbstractCompositePotential] | None",
-    ) -> "MappingProxyType[str, ParameterField]":
+    ) -> (
+        "MappingProxyType[str, ParameterField]"
+        " | MappingProxyType[str,"
+        " MappingProxyType[str, galax.potential.AbstractParameter]]"
+    ):
         # Called from the class
         if instance is None:
             return self.param_objs

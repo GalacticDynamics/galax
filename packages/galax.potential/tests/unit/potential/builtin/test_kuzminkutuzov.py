@@ -76,6 +76,9 @@ MPMATH_FLAT_DENSITY = [
 def _sanders_delta2(pot: gp.AbstractPotential, R: float, z: float) -> jax.Array:
     """Delta^2 from Sanders (2012), eq. 9, at (x, y, z) = (R, 0, z), R > 0.
 
+    With the sign of the first-derivative terms corrected, as in galpy's
+    ``estimateDeltaStaeckel`` (flipping it fails this test by O(1)).
+
     Evaluated directly from the gradient and Hessian, independently of
     ``galax.dynamics``.
     """
@@ -262,7 +265,7 @@ class TestKuzminKutuzovPotential(
     ) -> None:
         """As c -> 0 the potential tends to the razor-thin Kuzmin disk, r_s = a.
 
-        Off the plane the difference is O(c), so c = 1e-9 a gives ~1e-9.
+        Off the plane the difference is O((c / a)^2), ~1e-18 here: rounding.
         """
         kk = gp.KuzminKutuzovPotential(
             m_tot=pot.m_tot, a=pot.a, c=u.Q(1e-9 * A, "kpc"), units=pot.units
@@ -270,9 +273,9 @@ class TestKuzminKutuzovPotential(
         kz = gp.KuzminPotential(m_tot=pot.m_tot, r_s=pot.a, units=pot.units)
         q = jnp.asarray(xyz)
         np.testing.assert_allclose(
-            kk.potential(q, t=0), kz.potential(q, t=0), rtol=1e-8
+            kk.potential(q, t=0), kz.potential(q, t=0), rtol=1e-14
         )
-        np.testing.assert_allclose(kk.gradient(q, t=0), kz.gradient(q, t=0), rtol=1e-8)
+        np.testing.assert_allclose(kk.gradient(q, t=0), kz.gradient(q, t=0), rtol=1e-13)
 
     def test_symmetry(self, pot: gp.KuzminKutuzovPotential) -> None:
         """Axisymmetric and symmetric about the plane."""

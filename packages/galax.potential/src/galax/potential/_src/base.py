@@ -119,6 +119,41 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
             object.__setattr__(self, "constants", constants)
 
     ###########################################################################
+    # Parameters
+
+    def params(self, t: Any, /, *, ustrip: bool = True) -> dict[str, Any]:
+        """Evaluate the parameters (and ``G``) at time ``t``.
+
+        See `galax.potential.params.eval_params`.
+
+        Parameters
+        ----------
+        t : Any
+            The time(s). A bare number is taken to be in the potential's time
+            unit.
+        ustrip : bool, keyword-only
+            If `True` (default), strip each value to the potential's unit
+            system and return plain arrays. If `False`, return Quantities.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+        >>> sorted(pot.params(0.0))
+        ['G', 'm_tot']
+
+        >>> pot.params(u.Q(0.0, "Gyr"), ustrip=False)["m_tot"]
+        Q(1.e+12, 'solMass')
+
+        """
+        # Deferred: `evaluate` imports this module.
+        from galax.potential._src.params.evaluate import eval_params
+
+        return eval_params(self, t, ustrip=ustrip)  # type: ignore[no-any-return]
+
+    ###########################################################################
     # Constructors
 
     @classmethod

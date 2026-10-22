@@ -54,8 +54,12 @@ def _multipole() -> gp.MultipoleProfilePotential:
 
 def _assert_dicts_close(a: dict, b: dict) -> None:
     assert set(a) == set(b)
-    for k, v in a.items():
-        assert jnp.allclose(v, b[k]), k
+    for k, x in a.items():
+        y = b[k]
+        if isinstance(x, u.AbstractQuantity):
+            assert x.unit == y.unit, k
+            x, y = x.value, y.value  # noqa: PLW2901
+        assert jnp.allclose(x, y), k
 
 
 def test_matches_hand_written_dict() -> None:
@@ -154,3 +158,31 @@ def test_import_has_no_cycle(module: str) -> None:
     subprocess.run(  # noqa: S603  (fixed arguments)
         [sys.executable, "-I", "-c", f"import {module}"], check=True
     )
+
+
+# --- AbstractPotential.params ---
+
+
+def test_method_matches_function() -> None:
+    pot = _zhao()
+    _assert_dicts_close(pot.params(T0), eval_params(pot, T0))
+    _assert_dicts_close(
+        pot.params(T0, ustrip=False), eval_params(pot, T0, ustrip=False)
+    )
+
+
+def test_ustrip_is_keyword_only() -> None:
+    with pytest.raises(TypeError):
+        _hernquist().params(T0, False)  # type: ignore[misc]  # noqa: FBT003
+
+
+def test_composite_method() -> None:
+    comp = gp.CompositePotential(kepler=_shrinking_kepler(), hernquist=_hernquist())
+    out, expected = comp.params(T0), eval_params(comp, T0)
+    assert set(out) == set(expected)
+    for name in out:
+        _assert_dicts_close(out[name], expected[name])
+
+
+def test_default_ustrip_true() -> None:
+    assert not isinstance(_hernquist().params(T0)["m_tot"], u.AbstractQuantity)

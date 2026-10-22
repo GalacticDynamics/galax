@@ -121,7 +121,8 @@ The agama comparisons carry the ``agama`` marker and are skipped unless
 
     PYTHONPATH=<agama build dir> UV_PROJECT_ENVIRONMENT=<agama venv> \
         uv run --no-sync pytest --run-agama -m agama \
-        packages/galax.potential packages/galax.dynamics -ra
+        packages/galax.potential packages/galax.dynamics \
+        packages/galax.actionangle -ra
 
 With the flag they still skip, with the reason ``requires agama``, when agama
 is not importable, so check the ``-ra`` summary: a green run where they all

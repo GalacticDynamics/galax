@@ -12,13 +12,13 @@ import unxt as u
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-from ..optional_deps import OptDeps
-from galax.dynamics._src.actionangle._parse import parse_qpt
-from galax.dynamics._src.actionangle.isochrone import _isochrone_aaf
-from galax.dynamics.actionangle import (
+from .optional_deps import OptDeps
+from galax.actionangle import (
     ActionsAnglesFrequencies,
     isochrone_actions_angles_freqs as iaaf,
 )
+from galax.actionangle._src._parse import parse_qpt
+from galax.actionangle._src.isochrone import _isochrone_aaf
 
 M, B, G = 2.3, 1.3, 1.0
 GM = G * M
@@ -549,7 +549,7 @@ def test_api_grads_match_fd():
 
 
 def test_api_jitted_no_retrace():
-    from galax.dynamics._src.actionangle.isochrone import _aaf
+    from galax.actionangle._src.isochrone import _aaf
 
     # `_cache_size` is private jax API: skip rather than fail if it goes away.
     if not hasattr(_aaf, "_cache_size"):

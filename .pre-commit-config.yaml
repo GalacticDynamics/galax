@@ -35,7 +35,7 @@ repos:
         args: ["--pytest-test-first"]
         # Test-support modules (optional-dependency probes, the agama
         # comparison helper, the action-angle test helpers), not test files.
-        exclude: ^packages/galax\.(potential/tests/unit/potential/optional_deps|potential/tests/integration/agama/_compare|dynamics/tests/dynamics/(optional_deps|actionangle/_helpers))\.py$
+        exclude: ^packages/galax\.(potential/tests/unit/potential/optional_deps|potential/tests/integration/agama/_compare|dynamics/tests/dynamics/optional_deps|actionangle/tests/actionangle/(optional_deps|_helpers))\.py$
       - id: no-commit-to-branch
         args: ["--branch", "main", "--pattern", "^versions/.*"]
         always_run: true

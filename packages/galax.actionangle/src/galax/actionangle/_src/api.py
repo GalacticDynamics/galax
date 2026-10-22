@@ -80,7 +80,7 @@ def staeckel_fudge_delta(*args: Any, **kwargs: Any) -> Any:
     --------
     >>> import unxt as u
     >>> import galax.potential as gp
-    >>> from galax.dynamics.actionangle import staeckel_fudge_delta
+    >>> from galax.actionangle import staeckel_fudge_delta
     >>> pot = gp.MiyamotoNagaiPotential(m_tot=u.Q(1e11, "Msun"),
     ...                                 a=u.Q(3.0, "kpc"), b=u.Q(0.5, "kpc"),
     ...                                 units="galactic")
@@ -154,7 +154,7 @@ def isochrone_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     --------
     >>> import unxt as u
     >>> import galax.potential as gp
-    >>> from galax.dynamics.actionangle import isochrone_actions_angles_freqs
+    >>> from galax.actionangle import isochrone_actions_angles_freqs
     >>> pot = gp.IsochronePotential(m_tot=u.Q(1e11, "Msun"),
     ...                             r_s=u.Q(2.0, "kpc"), units="galactic")
     >>> res = isochrone_actions_angles_freqs(

@@ -11,6 +11,7 @@ resolution-markers = [
 [manifest]
 members = [
     "galax",
+    "galax-actionangle",
     "galax-coordinates",
     "galax-dynamics",
     "galax-interop-astropy",
@@ -828,6 +829,7 @@ dependencies = [
     { name = "diffrax" },
     { name = "diffraxtra" },
     { name = "equinox" },
+    { name = "galax-actionangle" },
     { name = "galax-coordinates" },
     { name = "galax-dynamics" },
     { name = "galax-interop-astropy" },
@@ -953,6 +955,7 @@ requires-dist = [
     { name = "diffrax", specifier = ">=0.7" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
     { name = "equinox", specifier = ">=0.13.8" },
+    { name = "galax-actionangle", editable = "packages/galax.actionangle" },
     { name = "galax-coordinates", editable = "packages/galax.coordinates" },
     { name = "galax-dynamics", editable = "packages/galax.dynamics" },
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
@@ -1051,6 +1054,61 @@ test-all = [
     { name = "sybil", specifier = ">=9.0.0" },
 ]
 test-mpl = [{ name = "pytest-mpl", specifier = ">=0.17.0" }]
+
+[[package]]
+name = "galax-actionangle"
+source = { editable = "packages/galax.actionangle" }
+dependencies = [
+    { name = "coordinax" },
+    { name = "equinox" },
+    { name = "galax-coordinates" },
+    { name = "galax-potential" },
+    { name = "jax" },
+    { name = "jaxtyping" },
+    { name = "numpy" },
+    { name = "plum" },
+    { name = "quaxed" },
+    { name = "unxt" },
+]
+
+[package.dev-dependencies]
+test = [
+    { name = "galax-dynamics" },
+    { name = "optional-dependencies" },
+    { name = "pytest" },
+    { name = "pytest-arraydiff" },
+    { name = "pytest-cov" },
+    { name = "pytest-env" },
+    { name = "pytest-xdist" },
+    { name = "sybil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coordinax", specifier = ">=0.24.3,<0.25" },
+    { name = "equinox", specifier = ">=0.13.8" },
+    { name = "galax-coordinates", editable = "packages/galax.coordinates" },
+    { name = "galax-potential", editable = "packages/galax.potential" },
+    { name = "jax", specifier = ">=0.7.2" },
+    { name = "jaxtyping", specifier = ">=0.3.3" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "quaxed", specifier = ">=0.10.5" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+]
+
+[package.metadata.requires-dev]
+test = [
+    { name = "galax-dynamics", editable = "packages/galax.dynamics" },
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "pytest-arraydiff", specifier = ">=0.6.1" },
+    { name = "pytest-cov", specifier = ">=5" },
+    { name = "pytest-env", specifier = ">=1.1.5" },
+    { name = "pytest-xdist", specifier = ">=3.6.1" },
+    { name = "sybil", specifier = ">=9.0.0" },
+]
 
 [[package]]
 name = "galax-coordinates"

@@ -25,6 +25,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import gauss_legendre
 
 
@@ -75,6 +76,9 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     See :func:`numpy.polynomial.legendre.leggauss` for details.
     """
     # ==========================================================================
+
+    symmetry = Symmetry.PLANE_REFLECTION
+    """`Symmetry.PLANE_REFLECTION`: the potential is even in $x$, $y$ and $z$."""
 
     @ft.partial(jax.jit, static_argnames=("ustrip",))
     def rho0(

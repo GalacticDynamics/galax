@@ -20,6 +20,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import safe_vector_norm
 
 LOG2: Final = jnp.log(jnp.asarray(2.0))
@@ -88,6 +89,9 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
+
+    symmetry = Symmetry.PLANE_REFLECTION
+    """`Symmetry.PLANE_REFLECTION`: the potential is even in $x$, $y$ and $z$."""
 
     def __check_init__(self) -> None:
         t = u.Q(0.0, "Myr")

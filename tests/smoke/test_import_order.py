@@ -45,18 +45,21 @@ def _within(name: str, packages: tuple[str, ...], /) -> bool:
     return any(name == pkg or name.startswith(f"{pkg}.") for pkg in packages)
 
 
-@pytest.mark.parametrize("portion", ["coordinates", "potential", "dynamics"])
+@pytest.mark.parametrize(
+    "portion", ["coordinates", "potential", "dynamics", "actionangle"]
+)
 def test_portion_imports_alone(portion: str) -> None:
     """Each portion imports on its own, with no sibling imported first."""
     proc = run(f"import galax.{portion}")
     assert proc.returncode == 0, proc.stderr
 
 
-# `coordinates` -> `potential` -> `dynamics`: each portion may import the ones
-# below it, never the ones above.
+# `coordinates` -> `potential` -> `dynamics` -> `actionangle`: each portion may
+# import the ones below it, never the ones above.
 ABOVE = {
-    "coordinates": ["potential", "dynamics"],
-    "potential": ["dynamics"],
+    "coordinates": ["potential", "dynamics", "actionangle"],
+    "potential": ["dynamics", "actionangle"],
+    "dynamics": ["actionangle"],
 }
 
 

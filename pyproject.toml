@@ -35,6 +35,7 @@ dependencies = [
   "diffrax>=0.7",
   "diffraxtra>=1.5.2",
   "equinox>=0.13.8",
+  "galax.actionangle",
   "galax.coordinates",
   "galax.dynamics",
   # Required, not an extra: `astropy` is already a required dependency, so this
@@ -100,6 +101,7 @@ requires = ["hatch-vcs", "hatchling"]
 members = ["packages/*"]
 
 [tool.uv.sources]
+"galax.actionangle" = { workspace = true }
 "galax.coordinates" = { workspace = true }
 "galax.dynamics" = { workspace = true }
 "galax.interop.astropy" = { workspace = true }
@@ -230,6 +232,7 @@ report.exclude_also = [
   '@abstractmethod',
 ]
 run.source = [
+  "packages/galax.actionangle/src",
   "packages/galax.coordinates/src",
   "packages/galax.dynamics/src",
   "packages/galax.interop.astropy/src",
@@ -250,6 +253,7 @@ python_version = "3.12"
 explicit_package_bases = true
 # Each distribution under `packages/` is its own source root.
 mypy_path = [
+  "packages/galax.actionangle/src",
   "packages/galax.coordinates/src",
   "packages/galax.dynamics/src",
   "packages/galax.interop.astropy/src",

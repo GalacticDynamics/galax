@@ -18,8 +18,8 @@ import pytest
 import unxt as u
 
 import galax.potential as gp
-from ...dynamics.optional_deps import OptDeps
-from galax.dynamics.actionangle import isochrone_actions_angles_freqs
+from ...actionangle.optional_deps import OptDeps
+from galax.actionangle import isochrone_actions_angles_freqs
 
 pytestmark = [
     pytest.mark.agama,

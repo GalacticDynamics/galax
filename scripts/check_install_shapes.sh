@@ -5,6 +5,7 @@
 #   3. `galax.coordinates` installs on its own, without the heavier portions
 #   4. `galax.potential` installs with coordinates but without dynamics
 #   5. `galax.dynamics` installs on its own, pulling the portions below it
+#   6. `galax.actionangle` installs on its own, without dynamics
 #
 # Both need a clean environment: the dev venv has every extra installed, so it
 # cannot tell a required dependency from an optional one.
@@ -117,6 +118,13 @@ if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/dynamics/' >/dev/null;
   echo "the root galax wheel still contains galax/dynamics/ files"; exit 1
 fi
 
+echo "== the root wheel ships no galax/actionangle/ =="
+# `galax.actionangle` owns that leaf. A root wheel carrying it would let two
+# distributions write the same files.
+if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/actionangle/' >/dev/null; then
+  echo "the root galax wheel contains galax/actionangle/ files"; exit 1
+fi
+
 echo "== shape 1: bare \`pip install galax\` =="
 # Install the freshly built root wheel *by path*, so a published PyPI version
 # cannot satisfy it; --find-links resolves its inter-distribution pins from the
@@ -131,8 +139,9 @@ from importlib.metadata import entry_points
 import astropy.units as apyu
 import numpy as np
 
-# The three core portions must all import on a bare install; `galax.coordinates`
-# and `galax.dynamics` are imported for that alone.
+# The core portions must all import on a bare install; `galax.actionangle`,
+# `galax.coordinates` and `galax.dynamics` are imported for that alone.
+import galax.actionangle
 import galax.coordinates
 import galax.dynamics
 import galax.potential as gp
@@ -243,7 +252,7 @@ print("potential-only install OK")
 PY
 
 echo "== shape 5: \`galax.dynamics\` alone =="
-# The top of the DAG must install standalone, pulling the two portions below it
+# This portion must install standalone, pulling the two portions below it
 # and nothing from the interop layer. This is the only shape that exercises the
 # solver stack, so a missing `diffrax`/`diffraxtra`/`optimistix` pin in this
 # portion's metadata fails here rather than at a user's.
@@ -272,10 +281,37 @@ assert orbit.q.shape == (2,), orbit.q.shape
 # and the interop layer must NOT have. `galax.interop`, not a leaf below it:
 # `find_spec` imports the parent package, so a dotted name whose intermediate
 # parent is absent raises ModuleNotFoundError instead of returning None.
-for absent in ("galax.interop", "gala", "galpy", "matplotlib"):
+for absent in ("galax.actionangle", "galax.interop", "gala", "galpy", "matplotlib"):
     assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
 
 print("dynamics-only install OK")
+PY
+
+echo "== shape 6: \`galax.actionangle\` alone =="
+# Pulls coordinates and potential, which it declares, and neither
+# `galax.dynamics` (test-only) nor anything from the interop layer.
+uv run --isolated --no-project \
+  --find-links "$WHEELS" \
+  --with "$(echo "$WHEELS"/galax_actionangle-*.whl)" \
+  python - <<'PY'
+import importlib.util
+
+import unxt as u
+
+import galax.actionangle as gaa
+import galax.potential as gp
+
+pot = gp.IsochronePotential(m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"),
+                            units="galactic")
+res = gaa.isochrone_actions_angles_freqs(
+    pot, u.Q([8.0, 0, 1], "kpc"), u.Q([0.0, 0.15, 0.01], "kpc/Myr"), u.Q(0.0, "Myr")
+)
+assert res.actions.shape == (3,), res.actions.shape
+
+for absent in ("galax.dynamics", "galax.interop", "gala", "galpy", "matplotlib"):
+    assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
+
+print("actionangle-only install OK")
 PY
 
 echo "all install shapes OK"

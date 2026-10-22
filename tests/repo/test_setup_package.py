@@ -1,7 +1,7 @@
 """Tests for the per-portion `setup_package` helpers.
 
 Each portion ships its own copy (see the design doc), so these run against all
-three.
+of them.
 """
 
 import importlib
@@ -10,7 +10,7 @@ from typing import Any, NoReturn
 
 import pytest
 
-PORTIONS = ["coordinates", "potential", "dynamics"]
+PORTIONS = ["coordinates", "potential", "dynamics", "actionangle"]
 
 
 def fake_entry_point(missing: str) -> Any:

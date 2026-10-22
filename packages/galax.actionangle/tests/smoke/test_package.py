@@ -1,13 +1,13 @@
-"""Testing :mod:`galax.dynamics.actionangle` module."""
+"""Testing :mod:`galax.actionangle` module."""
 
 import subprocess
 import sys
 
-from galax.dynamics import actionangle
+from galax import actionangle
 
 
 def test_all() -> None:
-    """Test the `galax.dynamics.actionangle` API."""
+    """Test the `galax.actionangle` API."""
     assert set(actionangle.__all__) == {
         "ActionsAnglesFrequencies",
         "isochrone_actions_angles_freqs",
@@ -21,8 +21,8 @@ import jax.numpy as jnp
 import unxt as u
 import galax.coordinates as gc
 import galax.potential as gp
-from galax.dynamics.actionangle import isochrone_actions_angles_freqs as f
-from galax.dynamics.actionangle import staeckel_fudge_delta as fd
+from galax.actionangle import isochrone_actions_angles_freqs as f
+from galax.actionangle import staeckel_fudge_delta as fd
 
 pot = gp.IsochronePotential(m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"),
                             units="galactic")

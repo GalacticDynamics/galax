@@ -10,9 +10,9 @@ import unxt as u
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-from ..optional_deps import OptDeps
 from ._helpers import SeparablePotential, kk_delta
-from galax.dynamics.actionangle import staeckel_fudge_delta
+from .optional_deps import OptDeps
+from galax.actionangle import staeckel_fudge_delta
 
 
 def _kk(m_tot=1e11):
@@ -433,7 +433,7 @@ def test_delta_integer_q():
 
 def test_delta_jitted_no_retrace():
     """One trace across t types/units and potential parameter values."""
-    from galax.dynamics._src.actionangle.staeckel import _delta
+    from galax.actionangle._src.staeckel import _delta
 
     # `_cache_size` is private jax API: skip rather than fail if it goes away
     # (probed on a fresh jit, so an un-jitted `_delta` still fails).

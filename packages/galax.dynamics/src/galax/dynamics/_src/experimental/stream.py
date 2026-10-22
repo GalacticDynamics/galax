@@ -11,6 +11,7 @@ from typing import Any, TypeAlias, final
 import diffrax as dfx
 import jax
 import jax.random as jr
+import jaxmore.loop_strategies as lstrat
 from jax.tree_util import register_dataclass
 from plum import dispatch
 
@@ -19,7 +20,6 @@ import quaxed.numpy as jnp
 from dataclassish.converters import dataclass
 
 import galax.dynamics._src.custom_types as gdt
-import galax.dynamics._src.loop_strategies as lstrat
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .df import AbstractKinematicDF, Fardal2015DF

@@ -140,31 +140,18 @@ class KuzminKutuzovPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        ul = self.units["length"]
-        p = {
-            "G": self.constants["G"].value,
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "a": self.a(t, ustrip=ul),
-            "c": self.c(t, ustrip=ul),
-        }
+        p = self.params(t)
         return potential(p, xyz)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit, inline=True)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        ul = self.units["length"]
-        p = {
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "a": self.a(t, ustrip=ul),
-            "c": self.c(t, ustrip=ul),
-        }
+        p = self.params(t)
         return density(p, xyz)  # type: ignore[no-any-return]
 
 

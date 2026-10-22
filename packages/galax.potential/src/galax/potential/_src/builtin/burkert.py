@@ -72,38 +72,25 @@ class BurkertPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute potential
-        params = {
-            "G": self.constants["G"].value,
-            "m": self.m(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-        }
+        params = self.params(t)
         return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "m": self.m(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-        }
+        params = self.params(t)
         return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _mass(self, xyz: gt.BBtQuSz3, /, t: gt.BtQuSz0 | gt.QuSz0) -> gt.BtFloatQuSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "m": self.m(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-        }
+        params = self.params(t)
         return mass_enclosed(params, r)
 
     # -------------------------------------------------------------------

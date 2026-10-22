@@ -15,7 +15,6 @@ from typing import final
 import jax
 
 import quaxed.numpy as jnp
-import unxt as u
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base_single import (
@@ -51,25 +50,16 @@ class JaffePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "G": self.constants["G"].value,
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-        }
+        params = self.params(t)
         return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-        }
+        params = self.params(t)
         return density(params, r)  # type: ignore[no-any-return]
 
 

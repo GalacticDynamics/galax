@@ -111,16 +111,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     def _potential(  # TODO: inputs w/ units
         self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /
     ) -> gt.BBtSz0:
-        t = u.Q.from_(t, self.units["time"])
-        ul = self.units["dimensionless"]
-        params = {
-            "G": self.constants["G"].value,
-            "m": self.m(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-            "a1": self.a1(t, ustrip=ul),
-            "a2": self.a2(t, ustrip=ul),
-            "a3": self.a3(t, ustrip=ul),
-        }
+        params = self.params(t)
         return potential(params, xyz)  # type: ignore[no-any-return]
 
 

@@ -275,12 +275,21 @@ def test_delta_exactly_zero_for_declared_spherical(kind):
 
 
 def test_delta_exactly_zero_skips_the_hessian():
-    """No derivative of the potential is traced for a declared-spherical one."""
-    pot = _sph("nfw", "galactic", 10.0, declared=True)
-    jaxpr = jax.make_jaxpr(lambda q: staeckel_fudge_delta(pot, q, 0.0))(
-        jnp.ones((3, 3))
-    )
-    assert "log" not in str(jaxpr)  # the NFW potential's log(1 + r / r_s)
+    """No derivative of the potential is traced for a declared-spherical one.
+
+    The NFW potential's log(1 + r / r_s) marks it in the jaxpr: present on the
+    general path, absent on the declared-spherical one.
+    """
+
+    def jaxpr(pot):
+        return str(
+            jax.make_jaxpr(lambda q: staeckel_fudge_delta(pot, q, 0.0))(
+                jnp.ones((3, 3))
+            )
+        )
+
+    assert "log" in jaxpr(_sph("nfw", "galactic", 10.0))
+    assert "log" not in jaxpr(_sph("nfw", "galactic", 10.0, declared=True))
 
 
 def test_delta_exactly_zero_for_spherical_composite():

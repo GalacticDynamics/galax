@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -887,6 +887,7 @@ dev = [
     { name = "cz-conventional-gitmoji" },
     { name = "furo" },
     { name = "ipykernel" },
+    { name = "mpmath" },
     { name = "myst-parser" },
     { name = "nox" },
     { name = "optional-dependencies" },
@@ -912,6 +913,7 @@ docs = [
     { name = "sphinx-copybutton" },
 ]
 test = [
+    { name = "mpmath" },
     { name = "nox" },
     { name = "optional-dependencies" },
     { name = "prek" },
@@ -924,6 +926,7 @@ test = [
     { name = "sybil" },
 ]
 test-all = [
+    { name = "mpmath" },
     { name = "nox" },
     { name = "optional-dependencies" },
     { name = "prek" },
@@ -995,6 +998,7 @@ dev = [
     { name = "cz-conventional-gitmoji", specifier = ">=0.6.1" },
     { name = "furo", specifier = ">=2024.8.6" },
     { name = "ipykernel", specifier = ">=6.29.5" },
+    { name = "mpmath", specifier = ">=1.3" },
     { name = "myst-parser", specifier = ">=4.0" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "optional-dependencies", specifier = ">=0.4.0" },
@@ -1020,6 +1024,7 @@ docs = [
     { name = "sphinx-copybutton", specifier = ">=0.5.2" },
 ]
 test = [
+    { name = "mpmath", specifier = ">=1.3" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "prek", specifier = ">=0.5.3" },
@@ -1032,6 +1037,7 @@ test = [
     { name = "sybil", specifier = ">=9.0.0" },
 ]
 test-all = [
+    { name = "mpmath", specifier = ">=1.3" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "prek", specifier = ">=0.5.3" },
@@ -1399,6 +1405,7 @@ dependencies = [
 [package.dev-dependencies]
 test = [
     { name = "galax-interop-astropy" },
+    { name = "mpmath" },
     { name = "optional-dependencies" },
     { name = "pytest" },
     { name = "pytest-arraydiff" },
@@ -1440,6 +1447,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 test = [
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
+    { name = "mpmath", specifier = ">=1.3" },
     { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-arraydiff", specifier = ">=0.6.1" },
@@ -1986,6 +1994,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/53/21/783dfb51f40d2660afeb9bccf3612b99f6a803d980d2a09132b0f9d216ab/ml_dtypes-0.5.3-cp314-cp314t-macosx_10_13_universal2.whl", hash = "sha256:e12e29764a0e66a7a31e9b8bf1de5cc0423ea72979f45909acd4292de834ccd3", size = 689324, upload-time = "2025-07-29T18:39:07.567Z" },
     { url = "https://files.pythonhosted.org/packages/09/f7/a82d249c711abf411ac027b7163f285487f5e615c3e0716c61033ce996ab/ml_dtypes-0.5.3-cp314-cp314t-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:19f6c3a4f635c2fc9e2aa7d91416bd7a3d649b48350c51f7f715a09370a90d93", size = 5275917, upload-time = "2025-07-29T18:39:09.339Z" },
     { url = "https://files.pythonhosted.org/packages/7f/3c/541c4b30815ab90ebfbb51df15d0b4254f2f9f1e2b4907ab229300d5e6f2/ml_dtypes-0.5.3-cp314-cp314t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:5ab039ffb40f3dc0aeeeba84fd6c3452781b5e15bef72e2d10bcb33e4bbffc39", size = 5285284, upload-time = "2025-07-29T18:39:11.532Z" },
+]
+
+[[package]]
+name = "mpmath"
+version = "1.4.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/b0/6de8e78014ff1842a90cc9a56da6ccfb598a5390ed0257fcdb7d9680c18b/mpmath-1.4.1.tar.gz", hash = "sha256:efd6d1b75f09d69524a67609949812668b28e81ecbfe0ab449ced8c13e92642e", size = 2093211, upload-time = "2026-03-15T01:17:38.245Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/f2/abeec3db71d221ccd3cd89d206be1fabf5a3ee7178862f5fba23a59607e0/mpmath-1.4.1-py3-none-any.whl", hash = "sha256:dc4f0ea2304480d4a9a48a94c1020571558ade522b44a6912efac63a586e140f", size = 567787, upload-time = "2026-03-15T01:17:36.392Z" },
 ]
 
 [[package]]

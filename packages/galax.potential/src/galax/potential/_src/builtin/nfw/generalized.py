@@ -19,7 +19,6 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from .base import rho0_of_m
-from .hyp2f1 import Bz_from_hyp2f1
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
@@ -29,7 +28,13 @@ from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import r_spherical
+from galax.potential._src.utils import (
+    incomplete_beta_zw,
+    r_spherical,
+    radial_derivatives,
+    safe_vector_norm,
+    shell_dphi_dr,
+)
 
 DimL = u.dimension("length")
 DimT = u.dimension("time")
@@ -252,15 +257,25 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
     """
     x = r / p["r_s"]
-    z = x / (1 + x)
-    _result = p["m"] * Bz_from_hyp2f1(3.0 - p["gamma"], 0.0, z)
-    return _result
+    # z and 1 - z both exact: far out, z rounds to 1 and loses 1 - z.
+    z, w = x / (1 + x), 1 / (1 + x)
+    a = 3.0 - p["gamma"]
+    return p["m"] * incomplete_beta_zw(a, jnp.zeros_like(a), z, w)
+
+
+@ft.partial(jax.jit)
+def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""$dM/dr = 4\pi r^2 \rho = m x^{2-\gamma} (1+x)^{\gamma-3} / r_s$."""
+    x = r / p["r_s"]
+    g = p["gamma"]
+    return p["m"] / p["r_s"] * x ** (2 - g) * (1 + x) ** (g - 3)
 
 
 # -----------------------------------------------
 
 
 @ft.partial(jax.jit)
+@radial_derivatives(mass_enclosed, dmass_dr)
 def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Potential for the gNFW model.
 
@@ -309,11 +324,26 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     # Inner term from integral 0 to r
     inner = mass_enclosed(p, r) / r
 
-    # Outer term from integral r to infinity
-    z2 = 1 / (1 + r / rs)
-    outer = (p["m"] / rs) * Bz_from_hyp2f1(1.0, 2.0 - p["gamma"], z2)
+    # Outer term from integral r to infinity: B_w(1, b) for w = 1/(1+x), i.e.
+    # (1 - (1-w)^b) / b, or -ln(1-w) at b = 0. ln(1-w) = -ln(1 + 1/x) is taken
+    # directly, since 1 - w loses its digits as x -> 0.
+    b = 2.0 - p["gamma"]
+    log1mw = -jnp.log1p(rs / r)
+    safe_b = jnp.where(b == 0, jnp.ones_like(b), b)  # avoid 0/0 below
+    outer = (p["m"] / rs) * jnp.where(
+        b == 0, -log1mw, -jnp.expm1(safe_b * log1mw) / safe_b
+    )
 
     return -p["G"] * (inner + outer)  # type: ignore[no-any-return]
+
+
+dpotential_dr = shell_dphi_dr(mass_enclosed, dmass_dr)
+r"""$d\Phi/dr = G M(<r) / r^2$, whose $r$-derivative is exact.
+
+A `jax.custom_jvp` from `galax.potential._src.utils.shell_dphi_dr`: its
+derivative is $G M'(r)/r^2 - 2 G M(r)/r^3$, not autodiff of `mass_enclosed`'s
+series, so `gradient` linearizes to the exact Hessian.
+"""
 
 
 @ft.partial(jax.jit)
@@ -322,7 +352,8 @@ def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
 
     $$ \nabla \Phi(r) = G M(<r) / r^2 \hat{r} $$
 
-    where $M(<r)$ is the enclosed mass.
+    where $M(<r)$ is the enclosed mass, by `dpotential_dr`: its jvp is the
+    exact Hessian, and it is 0 rather than NaN at the origin.
 
     Examples
     --------
@@ -342,7 +373,5 @@ def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
     Array(True, dtype=bool)
 
     """
-    r_mag = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
-    mass_enc = mass_enclosed(p, r_mag)
-    grad_mag = p["G"] * mass_enc / (r_mag**2)
-    return grad_mag * (xyz / r_mag)  # type: ignore[no-any-return]
+    r = safe_vector_norm(xyz)[..., None]
+    return dpotential_dr(p, r) * (xyz / r)  # type: ignore[no-any-return]

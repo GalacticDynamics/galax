@@ -9,6 +9,7 @@ __all__ = [
 ]
 
 import functools as ft
+import math
 from dataclasses import KW_ONLY
 
 from typing import final
@@ -30,7 +31,7 @@ from galax.potential._src.base_single import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import r_spherical
+from galax.potential._src.utils import r_spherical, radial_derivatives
 
 
 @ft.partial(jax.jit)
@@ -114,6 +115,39 @@ class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential
 
 
 @ft.partial(jax.jit)
+def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
+    r"""$M(<r) = M P((3-\alpha)/2, (r/r_c)^2)$, $P$ the regularized lower gamma.
+
+    For $x = (r/r_c)^2 \leq 1$ by $P(a, x) = x^a/\Gamma(a) \sum_k
+    (-x)^k/(k!(a+k))$ (20 terms reach $1/20! \approx 10^{-19}$):
+    `jax.scipy.special.gammainc` forms $x^a e^{-x}$ as $\exp(a\ln x - x)$, which
+    multiplies the rounding of $a \ln x$ by $|a \ln x|$, ~20 ulp at $x = 10^{-16}$.
+    """
+    a = 1.5 - p["alpha"] / 2
+    x = (r / p["r_c"]) ** 2
+    xc = jnp.where(x <= 1, x, 1.0)
+    c = jnp.stack(
+        [1.0 / (float(math.factorial(k)) * (a + k)) for k in range(19, -1, -1)]
+    )
+    series = jnp.polyval(c, -xc, unroll=20)
+    small = xc**a / jsp.gamma(a) * series
+    return p["m_tot"] * jnp.where(x <= 1, small, jsp.gammainc(a, x))  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def dmass_dr(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
+    r"""$dM/dr = 4\pi r^2\rho = 2M s^{2-\alpha} e^{-s^2} / (\Gamma(a) r_c)$.
+
+    With $s = r/r_c$ and $a = (3-\alpha)/2$.
+    """
+    alpha, r_c = p["alpha"], p["r_c"]
+    s = r / r_c
+    norm = 2 * p["m_tot"] / (jsp.gamma(1.5 - alpha / 2) * r_c)
+    return norm * s ** (2 - alpha) * jnp.exp(-(s**2))  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+@radial_derivatives(mass_enclosed, dmass_dr)
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Potential for the power-law cutoff density profile.
 

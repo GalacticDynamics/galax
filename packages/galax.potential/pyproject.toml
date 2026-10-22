@@ -92,6 +92,8 @@ test = [
   # of plum. As a test-group entry the cycle is dev-only and uv resolves it
   # inside the workspace.
   "galax.interop.astropy",
+  # 50-digit references for `test_derivative_precision.py`.
+  "mpmath>=1.3",
   "optional-dependencies>=0.4.0",
   "pytest>=8.3",
   "pytest-arraydiff>=0.6.1",

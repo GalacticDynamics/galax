@@ -25,6 +25,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.utils import with_r_derivative
 
 
 @final
@@ -101,23 +102,105 @@ class LongMuraliBarPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
 # ===================================================================
 
 
-@ft.partial(jax.jit)
-def potential(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
-    r"""Specific potential energy."""
-    alpha = p["alpha"]
-    a, b, c = p["a"], p["b"], p["c"]
+def _bar_terms(p: gt.Params, xyz: gt.Sz3, /) -> tuple[gt.Sz0, ...]:
+    r"""Bar-frame $x'$, $y'$, $\zeta = \sqrt{c^2+z^2}$, $\eta$ and $T_\pm$.
 
+    $\eta^2 = y'^2 + (b + \zeta)^2$ and $T_\pm = \sqrt{(a \pm |x'|)^2 + \eta^2}$;
+    everything below is even in $x'$, so it is written for $|x'|$.
+    """
+    alpha, a, b, c = p["alpha"], p["a"], p["b"], p["c"]
     x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
     xp = x * jnp.cos(alpha) + y * jnp.sin(alpha)
     yp = -x * jnp.sin(alpha) + y * jnp.cos(alpha)
+    zeta = jnp.sqrt(c**2 + z**2)
+    eta2 = yp**2 + (b + zeta) ** 2
+    ax = jnp.abs(xp)
+    T_plus = jnp.sqrt((a + ax) ** 2 + eta2)
+    T_minus = jnp.sqrt((a - ax) ** 2 + eta2)
+    return xp, yp, zeta, eta2, ax, T_plus, T_minus
 
-    yz2 = yp**2 + (b + jnp.sqrt(c**2 + z**2)) ** 2
-    T_plus = jnp.sqrt((a + xp) ** 2 + yz2)
-    T_minus = jnp.sqrt((a - xp) ** 2 + yz2)
 
-    GM_R = p["G"] * p["m_tot"] / (2.0 * a)
-    _result = GM_R * jnp.log((xp - a + T_minus) / (xp + a + T_plus))
-    return _result  # type: ignore[no-any-return]
+def _gradient_impl(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz3:
+    r"""Gradient, in forms that do not cancel.
+
+    With $\Phi = -\frac{GM}{2a}\left[\sinh^{-1}\frac{a+x'}{\eta}
+    + \sinh^{-1}\frac{a-x'}{\eta}\right]$ (the log form, rationalized),
+
+    .. math::
+
+        \frac{\partial\Phi}{\partial x'}
+            = \frac{2 G M x'}{(T_- + T_+) T_+ T_-}, \qquad
+        \frac{1}{\eta}\frac{\partial\Phi}{\partial\eta}
+            = \frac{G M}{2\eta^2}
+              \frac{(T_- + T_+)^2 - 4x'^2}{(T_- + T_+) T_+ T_-},
+
+    where autodiff of the log takes differences of $\sim 1/r$ terms that
+    cancel to $\sim a/r^2$ far out, and to $\sim |x|/a^2$ at the centre.
+    $(T_-+T_+)^2 - 4x'^2 = (T_-+T_+-2|x'|)(T_-+T_++2|x'|)$, with
+    $T_- + T_+ - 2|x'| = \eta^2/(T_+ + |x'| + a) + (T_- - |x'| + a)$ and the
+    last term rationalized like the potential's numerator.
+    """
+    alpha, a, b = p["alpha"], p["a"], p["b"]
+    GM = p["G"] * p["m_tot"]
+    xp, yp, zeta, eta2, ax, T_plus, T_minus = _bar_terms(p, xyz)
+    T_sum, T_prod = T_minus + T_plus, T_plus * T_minus
+
+    dphi_dxp = 2 * GM * xp / (T_sum * T_prod)
+    # T_- - |x'| + a; T_- > |a - |x'|| since eta >= b + c > 0, so no 0/0.
+    minus_part = jnp.where(ax >= a, eta2 / (T_minus + ax - a), T_minus + a - ax)
+    T_sum_m2x = eta2 / (T_plus + ax + a) + minus_part
+    # (1/eta) dPhi/deta
+    k = GM / (2 * eta2) * T_sum_m2x * (T_sum + 2 * ax) / (T_sum * T_prod)
+
+    ca, sa = jnp.cos(alpha), jnp.sin(alpha)
+    z = xyz[..., 2]
+    # z / zeta, 0 on the mid-plane of a razor-thin (c = 0) bar, where it is 0/0
+    on_plane = zeta == 0
+    z_zeta = jnp.where(on_plane, 0.0, z / jnp.where(on_plane, 1.0, zeta))
+    return jnp.stack(  # type: ignore[no-any-return]
+        [
+            dphi_dxp * ca - k * yp * sa,
+            dphi_dxp * sa + k * yp * ca,
+            k * (b + zeta) * z_zeta,
+        ],
+        axis=-1,
+    )
+
+
+def _potential_impl(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
+    a = p["a"]
+    _, _, _, eta2, ax, T_plus, T_minus = _bar_terms(p, xyz)
+    # |x'| - a + T_-, rationalized where its terms cancel (|x'| < a)
+    numer = jnp.where(ax >= a, ax - a + T_minus, eta2 / (T_minus + a - ax))
+    denom = ax + a + T_plus
+    # Far out numer / denom -> 1, so take log1p of their difference, which is
+    # -2a (T_- + T_+ + 2|x'|) / (T_- + T_+): no cancellation.
+    T_sum = T_minus + T_plus
+    diff = -2 * a * (T_sum + 2 * ax) / T_sum
+    ratio = numer / denom
+    log_ratio = jnp.where(ratio > 0.5, jnp.log1p(diff / denom), jnp.log(ratio))
+    return p["G"] * p["m_tot"] / (2.0 * a) * log_ratio  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def potential(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
+    r"""Specific potential energy.
+
+    .. math::
+
+        \Phi = \frac{G M}{2a}
+            \ln\frac{x' - a + T_-}{x' + a + T_+}
+
+    Evaluated in forms that do not cancel (`_potential_impl`), with a
+    `jax.custom_jvp` whose position derivative is the analytic gradient
+    (`_gradient_impl`), so every autodiff derivative is accurate too.
+    """
+    return _potential_jvp(p, xyz)
+
+
+_potential_jvp = with_r_derivative(
+    _potential_impl, _gradient_impl, lambda g, v: jnp.sum(g * v, axis=-1)
+)
 
 
 @ft.partial(jax.jit)

@@ -33,7 +33,7 @@ from galax.potential._src.base_single import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import r_spherical
+from galax.potential._src.utils import r_spherical, radial_derivatives
 
 
 @final
@@ -328,11 +328,44 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
     """
     x = r / p["r_s"]
-    m = p["m"]
-    return m * (jnp.log1p(x) - x / (1 + x))  # type: ignore[no-any-return]
+    return p["m"] * _log1p_minus_x_over_1px(x)
+
+
+_ATANH_TAIL = tuple(1.0 / (2 * k + 1) for k in range(18, 0, -1))
+"""(atanh(w) - w) / w^3 as a polynomial in w^2, highest degree first."""
+
+
+def _log1p_minus_x_over_1px(x: gt.BBtSz0, /) -> gt.BBtSz0:
+    r"""$\ln(1+x) - x/(1+x)$, to a few ulp for every $x \geq 0$.
+
+    The direct difference is $\sim x^2/2$ from two $\sim x$ terms, so it loses
+    every digit as $x \to 0$. With $w = x/(2+x)$, $\ln(1+x) = 2\,\text{atanh}\,w$
+    and $x/(1+x) = 2w/(1+w)$, so
+
+    $$ \ln(1+x) - \frac{x}{1+x}
+       = 2 \sum_{k \geq 1} \frac{w^{2k+1}}{2k+1} + \frac{2w^2}{1+w}, $$
+
+    every term positive. Up to $x = 1$ ($w \leq 1/3$) 18 terms reach
+    $9^{-18} \approx 10^{-17}$; beyond, the direct difference cancels by at
+    most a factor 3.6.
+    """
+    w = x / (2 + x)
+    w2 = w * w
+    c = jnp.asarray(_ATANH_TAIL, dtype=w2.dtype)
+    series = jnp.polyval(c, w2, unroll=len(_ATANH_TAIL))
+    small = 2 * w * w2 * series + 2 * w2 / (1 + w)
+    return jnp.where(x <= 1, small, jnp.log1p(x) - x / (1 + x))  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
+def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""$dM/dr = 4\pi r^2 \rho = m x / (r_s (1+x)^2)$, for `radial_derivatives`."""
+    x = r / p["r_s"]
+    return p["m"] / p["r_s"] * x / (1 + x) ** 2
+
+
+@ft.partial(jax.jit)
+@radial_derivatives(mass_enclosed, dmass_dr)
 def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Potential for the NFW model.
 

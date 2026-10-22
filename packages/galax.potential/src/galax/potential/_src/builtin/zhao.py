@@ -94,40 +94,27 @@ class ZhaoPotential(AbstractSinglePotential):
     symmetry = Symmetry.SPHERICAL
     """`Symmetry.SPHERICAL`: the density depends only on $r$."""
 
-    def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:
-        """Evaluate the parameters at ``t``, stripped to this unit system."""
-        t = u.Q.from_(t, self.units["time"])
-        udim = self.units["dimensionless"]
-        return {
-            "G": self.constants["G"].value,
-            "m": self.m(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-            "alpha": self.alpha(t, ustrip=udim),
-            "beta": self.beta(t, ustrip=udim),
-            "gamma": self.gamma(t, ustrip=udim),
-        }
-
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         r = r_spherical(xyz, self.units["length"])
-        return potential(self._params(t), r)  # type: ignore[no-any-return]
+        return potential(self.params(t), r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r = r_spherical(xyz, self.units["length"])
-        return density(self._params(t), r)  # type: ignore[no-any-return]
+        return density(self.params(t), r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _gradient(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz3:
         """Analytic, from the enclosed mass; see `gradient`."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
-        return gradient(self._params(t), xyz)  # type: ignore[no-any-return]
+        return gradient(self.params(t), xyz)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _laplacian(self, xyz: gt.BBtQorVSz3, /, t: gt.BBtQorVSz0) -> gt.BBtFloatSz0:
         """Analytic, from Poisson's equation; see `laplacian`."""
         r = r_spherical(xyz, self.units["length"])
-        return laplacian(self._params(t), r)  # type: ignore[no-any-return]
+        return laplacian(self.params(t), r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _hessian(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz33:
@@ -138,7 +125,7 @@ class ZhaoPotential(AbstractSinglePotential):
         ~15%.
         """
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
-        return hessian(self._params(t), xyz)  # type: ignore[no-any-return]
+        return hessian(self.params(t), xyz)  # type: ignore[no-any-return]
 
     # ===========================================
     # Constructors

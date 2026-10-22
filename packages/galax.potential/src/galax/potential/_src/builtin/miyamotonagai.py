@@ -27,6 +27,7 @@ from galax.potential._src.base_single import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 
 
 @final
@@ -66,6 +67,9 @@ class MiyamotoNagaiPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
+
+    symmetry = Symmetry.ZROTATION_ZREFLECTION
+    """`Symmetry.ZROTATION_ZREFLECTION`: the density depends on $R$ and $|z|$."""
 
     @ft.partial(jax.jit, inline=True)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

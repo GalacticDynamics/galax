@@ -69,7 +69,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
         >>> pot = gp.MiyamotoNagaiPotential(m_tot=u.Q(1e12, "Msun"),
         ...     a=u.Q(5, "kpc"), b=u.Q(1, "kpc"), units="galactic")
         >>> pot.symmetry
-        <Symmetry.NONE: 'none'>
+        <Symmetry.ZROTATION_ZREFLECTION: 'zrotation_zreflection'>
 
         >>> pot = gp.HernquistPotential(m_tot=u.Q(1e12, "Msun"),
         ...                             r_s=u.Q(5, "kpc"), units="galactic")

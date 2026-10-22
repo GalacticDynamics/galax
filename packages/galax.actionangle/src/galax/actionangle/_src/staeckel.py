@@ -19,7 +19,7 @@ import unxt as u
 
 import galax.coordinates as gc
 from ._parse import parse_qpt, parse_w
-from galax.potential import AbstractPotential
+from galax.potential import AbstractPotential, Symmetry
 
 
 def _delta_single(pot: Any, xyz: Array, t: Array) -> Array:
@@ -93,8 +93,15 @@ def _delta_single(pot: Any, xyz: Array, t: Array) -> Array:
 def _delta(pot: Any, q: Array, t: Array) -> Array:
     """Batched ``delta`` on bare arrays in ``pot.units``; ``q`` (..., 3), ``t`` (...).
 
-    The result is a length in ``pot.units["length"]``.
+    The result is a length in ``pot.units["length"]``. A potential declaring
+    `Symmetry.SPHERICAL` is already separable in spherical coordinates, the
+    Delta = 0 limit of the spheroidal ones, so it gets exactly 0 everywhere --
+    plane, axis and origin included -- without the Hessian, whose round-off
+    eq. 9 would otherwise amplify.
     """
+    if Symmetry(pot.symmetry) == Symmetry.SPHERICAL:  # static: no retrace
+        shape = jnp.broadcast_shapes(q.shape[:-1], t.shape)
+        return jnp.zeros(shape, dtype=jnp.result_type(q, t))
     f = ft.partial(_delta_single, pot)
     for _ in t.shape:
         f = jax.vmap(f)

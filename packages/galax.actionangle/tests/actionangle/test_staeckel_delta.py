@@ -229,13 +229,80 @@ def test_delta_zero_for_spherical_isochrone():
     assert jnp.all(delta == 0)
 
 
-def _sph(kind, units, scale):
+# The same potentials without their `Symmetry.SPHERICAL` declaration, so that
+# Delta goes through eq. 9: the tests of its round-off threshold use these.
+class _UndeclaredHernquist(gp.HernquistPotential):
+    symmetry = gp.Symmetry.NONE
+
+
+class _UndeclaredNFW(gp.NFWPotential):
+    symmetry = gp.Symmetry.NONE
+
+
+class _UndeclaredIsochrone(gp.IsochronePotential):
+    symmetry = gp.Symmetry.NONE
+
+
+def _sph(kind, units, scale, *, declared=False):
     m, r = u.Q(1e12, "Msun"), u.Q(scale, "kpc")
     if kind == "hernquist":
-        return gp.HernquistPotential(m_tot=m, r_s=r, units=units)
+        cls = gp.HernquistPotential if declared else _UndeclaredHernquist
+        return cls(m_tot=m, r_s=r, units=units)
     if kind == "nfw":
-        return gp.NFWPotential(m=m, r_s=r, units=units)
-    return gp.IsochronePotential(m_tot=m, r_s=r, units=units)
+        cls = gp.NFWPotential if declared else _UndeclaredNFW
+        return cls(m=m, r_s=r, units=units)
+    cls = gp.IsochronePotential if declared else _UndeclaredIsochrone
+    return cls(m_tot=m, r_s=r, units=units)
+
+
+@pytest.mark.parametrize("kind", ["hernquist", "isochrone", "nfw"])
+def test_delta_exactly_zero_for_declared_spherical(kind):
+    """Exactly 0 everywhere, even where eq. 9 gives NaN or round-off.
+
+    The plane, the axis and the origin are NaN through eq. 9 (0/0), and the
+    NFW core at 1e-5 r_s is where its Hessian round-off makes Delta spurious.
+    """
+    pot = _sph(kind, "galactic", 10.0, declared=True)
+    q = jnp.asarray(
+        [[5.0, 2.0, 0.0], [0.0, 0.0, 2.0], [0.0, 0.0, 0.0], [8e-5, 3e-5, 5e-5]]
+    )
+    delta = staeckel_fudge_delta(pot, q, jnp.asarray(0.0))
+    assert delta.shape == (4,)
+    assert jnp.all(delta == 0)
+    assert jnp.all(
+        jnp.isnan(staeckel_fudge_delta(_sph(kind, "galactic", 10.0), q[:3], 0.0))
+    )
+
+
+def test_delta_exactly_zero_skips_the_hessian():
+    """No derivative of the potential is traced for a declared-spherical one."""
+    pot = _sph("nfw", "galactic", 10.0, declared=True)
+    jaxpr = jax.make_jaxpr(lambda q: staeckel_fudge_delta(pot, q, 0.0))(
+        jnp.ones((3, 3))
+    )
+    assert "log" not in str(jaxpr)  # the NFW potential's log(1 + r / r_s)
+
+
+def test_delta_exactly_zero_for_spherical_composite():
+    """A composite of spherical parts derives `SPHERICAL`, so it is 0 too."""
+    pot = gp.CompositePotential(
+        a=_sph("hernquist", "galactic", 3.0, declared=True),
+        b=_sph("nfw", "galactic", 20.0, declared=True),
+    )
+    assert pot.symmetry is gp.Symmetry.SPHERICAL
+    delta = staeckel_fudge_delta(pot, jnp.asarray(_OFF_AXIS), jnp.asarray(0.0))
+    assert jnp.all(delta == 0)
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_delta_exactly_zero_dtype_and_shape(dtype):
+    """The zeros follow the inputs' float dtype and broadcast batch shape."""
+    pot = _sph("hernquist", "galactic", 10.0, declared=True)
+    q = jnp.ones((4, 1, 3), dtype=dtype)
+    t = jnp.zeros((5,), dtype=dtype)
+    delta = staeckel_fudge_delta(pot, q, t)
+    assert delta.shape == (4, 5)
+    assert delta.dtype == dtype
 
 
 @pytest.mark.parametrize("units", ["galactic", PC], ids=["galactic", "pc"])

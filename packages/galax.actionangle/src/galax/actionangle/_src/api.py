@@ -46,11 +46,14 @@ def staeckel_fudge_delta(*args: Any, **kwargs: Any) -> Any:
 
     Notes
     -----
-    - Δ is NaN where it is undefined: where Δ² < 0; on the z axis (R = 0 or
-      subnormal); on the symmetry plane of a plane-symmetric potential (a
-      razor-thin disc such as Kuzmin gives its one-sided value); and for a
-      separable potential.
-    - Δ is 0 for a spherical potential, up to round-off.
+    - Δ is exactly 0 everywhere, without evaluating the Hessian, for a
+      potential declaring `galax.potential.Symmetry.SPHERICAL` (including a
+      composite of spherical parts). A spherical potential that does not
+      declare it gets 0 up to round-off, and NaN on the plane and the axis.
+    - Otherwise Δ is NaN where it is undefined: where Δ² < 0; on the z axis
+      (R = 0 or subnormal); on the symmetry plane of a plane-symmetric
+      potential (a razor-thin disc such as Kuzmin gives its one-sided value);
+      and for a separable potential.
     - Δ is also NaN, rather than finite and wrong, where the potential's
       second derivatives are inconsistent, e.g. for one evaluated near the
       bottom of the float range.
@@ -58,9 +61,10 @@ def staeckel_fudge_delta(*args: Any, **kwargs: Any) -> Any:
       Δ ≲ 0.02 r is rounded to 0. Δ itself is scale-free, but in float32
       SI units a mass above ~1.7e8 Msun (3.4e38 kg) does not fit, and the
       potential must not overflow on lengths ~1e20 m.
-    - A potential whose own Hessian is imprecise, of the built-ins only the
-      Gaussian core (r ≲ 1e-2 r_s), can give a spurious Δ, 0 or NaN there,
-      and which one can change with batch size or jit. A potential separable
+    - A potential not declaring `~galax.potential.Symmetry.SPHERICAL` whose
+      own Hessian is imprecise can give a spurious Δ, 0 or NaN there, and
+      which one can change with batch size or jit. No built-in does: the
+      last, the Gaussian core, is spherical. A potential separable
       analytically but not in floating point (e.g. an l ≤ 2, m = 0 interior
       multipole) gives an arbitrary Δ instead of NaN.
     - Δ is not differentiable: the output is wrapped in

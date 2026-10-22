@@ -259,10 +259,12 @@ def _composite(*, declared):
 # Off-axis points, then the plane, the axis and the origin (NaN through eq. 9,
 # 0/0), then the NFW core at 1e-5 r_s, where its Hessian round-off makes the
 # eq. 9 Delta spurious.
-_SPH_PTS = np.concat(
+_SPH_PTS = jnp.concat(
     [
-        _OFF_AXIS,
-        [[5.0, 2.0, 0.0], [0.0, 0.0, 2.0], [0.0, 0.0, 0.0], [8e-5, 3e-5, 5e-5]],
+        jnp.asarray(_OFF_AXIS),
+        jnp.asarray(
+            [[5.0, 2.0, 0.0], [0.0, 0.0, 2.0], [0.0, 0.0, 0.0], [8e-5, 3e-5, 5e-5]]
+        ),
     ]
 )
 

@@ -143,13 +143,8 @@ class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         self, xyz: gt.Sz3, t: gt.Sz0, /
     ) -> gt.Sz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "m": self.m(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-            "gamma": self.gamma(t, ustrip=self.units["dimensionless"]),
-        }
+        params = self.params(t)
         return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
@@ -157,14 +152,8 @@ class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         self, xyz: gt.Sz3, t: gt.Sz0, /
     ) -> gt.Sz0:
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "G": self.constants["G"].value,
-            "m": self.m(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-            "gamma": self.gamma(t, ustrip=self.units["dimensionless"]),
-        }
+        params = self.params(t)
         return potential(params, r)  # type: ignore[no-any-return]
 
     @vectorize_method(signature="(3),()->(3)")
@@ -173,13 +162,7 @@ class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /
     ) -> gt.FloatSz3:
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
-        t_ = u.Q.from_(t, self.units["time"])
-        params = {
-            "G": self.constants["G"].value,
-            "m": self.m(t_, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t_, ustrip=self.units["length"]),
-            "gamma": self.gamma(t_, ustrip=self.units["dimensionless"]),
-        }
+        params = self.params(t)
         return gradient(params, xyz)  # type: ignore[no-any-return]
 
 

@@ -66,27 +66,16 @@ class SatohPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "G": self.constants["G"].value,
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "a": self.a(t, ustrip=self.units["length"]),
-            "b": self.b(t, ustrip=self.units["length"]),
-        }
+        params = self.params(t)
         return potential(params, xyz)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "a": self.a(t, ustrip=self.units["length"]),
-            "b": self.b(t, ustrip=self.units["length"]),
-        }
+        params = self.params(t)
         return density(params, xyz)  # type: ignore[no-any-return]
 
 

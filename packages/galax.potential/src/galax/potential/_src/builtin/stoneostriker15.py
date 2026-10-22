@@ -7,7 +7,6 @@ import functools as ft
 import jax
 
 import quaxed.numpy as jnp
-import unxt as u
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base_single import (
@@ -70,13 +69,8 @@ class StoneOstriker15Potential(LaplacianFromDensityMixin, AbstractSinglePotentia
         # Parse inputs
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "r_h": self.r_h(t, ustrip=ul),
-            "r_c": self.r_c(t, ustrip=ul),
-        }
+        params = self.params(t)
         return density(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
@@ -84,14 +78,8 @@ class StoneOstriker15Potential(LaplacianFromDensityMixin, AbstractSinglePotentia
         # Parse inputs
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "G": self.constants["G"].value,
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "r_h": self.r_h(t, ustrip=ul),
-            "r_c": self.r_c(t, ustrip=ul),
-        }
+        params = self.params(t)
         return potential(params, r)  # type: ignore[no-any-return]
 
 

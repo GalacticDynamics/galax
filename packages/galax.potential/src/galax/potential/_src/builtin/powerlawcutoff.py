@@ -86,14 +86,8 @@ class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential
         # Parse inputs
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "G": self.constants["G"].value,
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "alpha": self.alpha(t, ustrip=self.units["dimensionless"]),
-            "r_c": self.r_c(t, ustrip=ul),
-        }
+        params = self.params(t)
         return potential(params, r)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
@@ -101,13 +95,8 @@ class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential
         # Parse inputs
         ul = self.units["length"]
         r = r_spherical(xyz, ul)
-        t = u.Q.from_(t, self.units["time"])
 
-        params = {
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "alpha": self.alpha(t, ustrip=self.units["dimensionless"]),
-            "r_c": self.r_c(t, ustrip=ul),
-        }
+        params = self.params(t)
         return density(params, r)  # type: ignore[no-any-return]
 
 

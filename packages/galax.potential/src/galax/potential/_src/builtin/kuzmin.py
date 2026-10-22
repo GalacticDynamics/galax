@@ -76,14 +76,9 @@ class KuzminPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute
-        params = {
-            "G": self.constants["G"].value,
-            "m_tot": self.m_tot(t, ustrip=self.units["mass"]),
-            "r_s": self.r_s(t, ustrip=self.units["length"]),
-        }
+        params = self.params(t)
         return potential(params, xyz)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit, inline=True)

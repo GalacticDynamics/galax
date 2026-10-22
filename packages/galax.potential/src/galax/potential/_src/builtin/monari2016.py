@@ -117,14 +117,7 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
         # Compute parameters
-        params = {
-            "alpha": self.alpha(t, ustrip=self.units["dimensionless"]),
-            "v0": self.v0(t, ustrip=self.units["speed"]),
-            "R0": self.R0(t, ustrip=self.units["length"]),
-            "Rb": self.Rb(t, ustrip=self.units["length"]),
-            "phi_b": self.phi_b(t, ustrip=self.units["angle"]),
-            "Omega": self.Omega(t, ustrip=self.units["frequency"]),
-        }
+        params = self.params(t)
         return potential(params, xyz, t)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
@@ -134,15 +127,7 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         t = u.ustrip(AllowValue, self.units["time"], t)
         # Compute parameters
-        params = {
-            "alpha": self.alpha(t, ustrip=self.units["dimensionless"]),
-            "v0": self.v0(t, ustrip=self.units["speed"]),
-            "R0": self.R0(t, ustrip=self.units["length"]),
-            "Rb": self.Rb(t, ustrip=self.units["length"]),
-            "phi_b": self.phi_b(t, ustrip=self.units["angle"]),
-            "Omega": self.Omega(t, ustrip=self.units["frequency"]),
-            "G": self.constants["G"].value,
-        }
+        params = self.params(t)
         return density(params, xyz, t)  # type: ignore[no-any-return]
 
 

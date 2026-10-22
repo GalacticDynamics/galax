@@ -14,14 +14,12 @@ import unxt as u
 
 import galax.potential as gp
 from ...unit.potential.optional_deps import OptDeps
-from ._compare import assert_matches_agama
+from ._compare import T0, assert_matches_agama
 
 pytestmark = [
     pytest.mark.agama,
     pytest.mark.skipif(not OptDeps.AGAMA.installed, reason="requires agama"),
 ]
-
-T0 = u.Q(0, "Myr")
 
 
 def _density(pot: gp.AbstractPotential):

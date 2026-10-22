@@ -16,7 +16,7 @@ import unxt as u
 
 import galax.potential as gp
 from ...unit.potential.optional_deps import OptDeps
-from ._compare import assert_matches_agama
+from ._compare import T0, assert_matches_agama
 
 pytestmark = [
     pytest.mark.agama,
@@ -122,10 +122,8 @@ def test_double_power_law_matches_agama_spheroid(
     Measured worst elementwise agreement (agama 1.0.0): zhao 3.0e-7, gnfw
     1.3e-7, both in the gradient.
     """
-    r_s = pot.r_s(u.Q(0, "Myr"), ustrip="kpc")
-    rho_rs = u.ustrip(
-        "Msun / kpc3", pot.density(u.Q([r_s, 0.0, 0.0], "kpc"), t=u.Q(0, "Myr"))
-    )
+    r_s = pot.r_s(T0, ustrip="kpc")
+    rho_rs = u.ustrip("Msun / kpc3", pot.density(u.Q([r_s, 0.0, 0.0], "kpc"), t=T0))
     agama_pot = agama.Potential(
         type="Spheroid",
         densityNorm=float(rho_rs) * 2 ** (beta - gamma),

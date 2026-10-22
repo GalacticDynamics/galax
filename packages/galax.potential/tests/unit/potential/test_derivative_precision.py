@@ -524,5 +524,7 @@ def test_parameter_derivative_matches_finite_difference(
     h = 1e-3 * p0
     fd = (grad(p0 + h) - grad(p0 - h)) / (2 * h)
     atol = 1e-5 * float(jnp.max(jnp.abs(fd)))
-    assert jnp.allclose(jax.jacfwd(grad)(p0), fd, rtol=1e-5, atol=atol)
-    assert jnp.allclose(jax.jacrev(grad)(p0), fd, rtol=1e-5, atol=atol)
+    # Jitted: eagerly, op by op through the incomplete beta series, Zhao and
+    # gNFW took ~20 s each.
+    assert jnp.allclose(jax.jit(jax.jacfwd(grad))(p0), fd, rtol=1e-5, atol=atol)
+    assert jnp.allclose(jax.jit(jax.jacrev(grad))(p0), fd, rtol=1e-5, atol=atol)

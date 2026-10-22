@@ -1,7 +1,9 @@
 """Staeckel fudge (Binney 2012; Sanders 2012), ported from gala.
 
 The focal distance follows gala's ``get_staeckel_fudge_delta``
-(https://github.com/adrn/gala/pull/649).
+(https://github.com/adrn/gala/pull/649). The array core is in
+`_staeckel_prolate` (prolate coordinates, integrals of motion, F(tau)) and
+`_staeckel_limits` (turning points, tangents, Taylor coefficients).
 """
 
 __all__: list[str] = []

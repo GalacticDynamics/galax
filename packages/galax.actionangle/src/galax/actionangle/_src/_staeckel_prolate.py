@@ -235,14 +235,19 @@ def _semi_tau(s: Array, lam_pos: Array) -> tuple[Array, Array, Array]:
     Returns (tau, beyond, ok): ``beyond`` marks s past the guard (or s >= 1),
     where tau is replaced by lam_pos so exp never overflows; ``ok`` is
     ``isfinite(s)``.
+
+    tau is lam_pos exp(l), l = s/(1-s), not exp(log lam_pos + l): the sum
+    rounds l to the ulp of log lam_pos, which is ~64 ulp of tau in SI (log
+    tau ~ 94) and made lam_max depend on the units. exp(l) overflows only
+    where lam_pos < exp(LOG_TAU_MAX - 709), ~1e-208.
     """
     s = jnp.asarray(s)
     ok = jnp.isfinite(s)
     inner = ok & (s < 1)
     ss = jnp.where(inner, s, 0.0)
-    logt = jnp.log(lam_pos) + ss / (1 - ss)
-    beyond = (logt > LOG_TAU_MAX) | (ok & ~inner)
-    return jnp.exp(jnp.where(beyond, jnp.log(lam_pos), logt)), beyond, ok
+    ell = ss / (1 - ss)
+    beyond = (jnp.log(lam_pos) + ell > LOG_TAU_MAX) | (ok & ~inner)
+    return lam_pos * jnp.exp(jnp.where(beyond, 0.0, ell)), beyond, ok
 
 
 def _F_semi_val(

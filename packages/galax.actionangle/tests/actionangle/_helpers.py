@@ -9,10 +9,17 @@ __all__ = [
     "ScaledKuzminKutuzovPotential",
     "SeparablePotential",
     "bisect",
-    "check_dF_limit_sites",
+    "check_circular_fwd_rev",
+    "check_grad_safety",
     "kk_delta",
+    "kk_lambda_roots_decimal",
+    "kk_nu_max_decimal",
     "kk_turning_points",
 ]
+
+import decimal
+
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -23,7 +30,17 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 import galax.potential as gp
-from galax.actionangle._src import _staeckel_prolate, _utils
+from galax.actionangle._src import (
+    _staeckel_limits as limits_mod,
+    _staeckel_prolate,
+    _utils,
+)
+from galax.actionangle._src._staeckel_limits import (
+    attach_tangents,
+    default_phi_inf,
+    find_limits,
+    taylor_coeffs,
+)
 from galax.actionangle._src._staeckel_prolate import (
     integrals_of_motion,
     make_F,
@@ -99,8 +116,52 @@ def kk_delta(pot: gp.KuzminKutuzovPotential, t: float = 0.0) -> float:
     return float(qnp.sqrt(a**2 - c**2))
 
 
+Num = float | decimal.Decimal
+
+
+def _kk_F(
+    pot: gp.KuzminKutuzovPotential,
+    w6: np.ndarray,
+    num: Callable[[float], Num],
+    sqrt: Callable[[Num], Num],
+    hypot: Callable[[Num, Num], Num],
+) -> tuple[Callable[[Num], Num], Num, Num, Num]:
+    """(F, D2, lam, nu) of a KK orbit at t=0 (see `kk_turning_points`).
+
+    In ``num`` arithmetic (float, or decimals in the caller's context);
+    ``w6`` may hold decimals, which are kept as given.
+    """
+    t = u.Q(0.0, pot.units["time"])
+    GM = num(float(pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"])))
+    c2 = num(float(pot.c(t, ustrip=pot.units["length"]))) ** 2
+    D2 = num(kk_delta(pot)) ** 2
+    x, y, z, vx, vy, vz = (
+        v if isinstance(v, decimal.Decimal) else num(float(v)) for v in np.asarray(w6)
+    )
+    R = hypot(x, y)
+    vR, Lz = (x * vx + y * vy) / R, x * vy - y * vx
+    S, dif = R * R + z * z + D2, R * R + z * z - D2
+    sqD = sqrt(dif**2 + 4 * R * R * D2)
+    # lam - D2 without cancellation (it rounds to 0 for R ~ 1e-8 |z| < Delta)
+    lmd = (sqD + dif) / 2 if dif >= 0 else 2 * D2 * R * R / (sqD - dif)
+    lam, nu = D2 + lmd, 2 * D2 * z * z / (S + sqD)
+    lamdot = (2 * R * lam * vR + 2 * z * lmd * vz) / sqD
+
+    def G(tau):
+        return GM * sqrt(tau + c2)
+
+    E = -(G(lam) - G(nu)) / (lam - nu) + (vx * vx + vy * vy + vz * vz) / 2
+    Flam = (lam - nu) ** 2 * lamdot**2 / (8 * lam)
+    K = E * lam + G(lam) - (Flam + Lz**2 * lam / 2) / lmd
+
+    def F(tau):
+        return (E * tau + G(tau) - K) * (tau - D2) - Lz**2 * tau / 2
+
+    return F, D2, lam, nu
+
+
 def kk_turning_points(
-    pot: gp.KuzminKutuzovPotential, w6: np.ndarray
+    pot: gp.KuzminKutuzovPotential, w6: np.ndarray, *, exact: bool = False
 ) -> tuple[float, float, float]:
     """Exact (lam_min, lam_max, nu_max) of a KK orbit at t=0, in numpy.
 
@@ -108,37 +169,91 @@ def kk_turning_points(
     (lam - nu), and both momenta vanish where F(tau) = (E tau + G(tau) - K)
     (tau - D2) - Lz^2 tau / 2 = 0. The separation constant K follows from
     F(lam) = (lam - nu)^2 lamdot^2 / (8 lam). Needs Lz != 0 and R > 0.
+
+    With ``exact`` the integrals and F are evaluated in 40-digit decimals
+    (at float64 tau): the roots are then right to the last ulp, where
+    float64 F's roundoff moves a near-circular orbit's lambda roots by up
+    to ~1e-2 of the extent (w ~ 1e-7 lam).
     """
-    t = u.Q(0.0, pot.units["time"])
-    GM = float(pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"]))
-    c2 = float(pot.c(t, ustrip=pot.units["length"])) ** 2
-    D2 = kk_delta(pot) ** 2
-    x, y, z, vx, vy, vz = (float(v) for v in np.asarray(w6))
-    R = np.hypot(x, y)
-    vR, Lz = (x * vx + y * vy) / R, x * vy - y * vx
-    S, dif = R * R + z * z + D2, R * R + z * z - D2
-    sqD = np.sqrt(dif**2 + 4 * R * R * D2)
-    lam, nu = 0.5 * (S + sqD), 2 * D2 * z * z / (S + sqD)
-    lamdot = (2 * R * lam * vR + 2 * z * (lam - D2) * vz) / sqD
+    num = decimal.Decimal if exact else float
+    sqrt = (lambda a: a.sqrt()) if exact else np.sqrt
+    hypot = (lambda a, b: (a * a + b * b).sqrt()) if exact else np.hypot
+    with decimal.localcontext(prec=40):
+        Fn, D2, lam, nu = _kk_F(pot, w6, num, sqrt, hypot)
 
-    def G(tau: float) -> float:
-        return GM * np.sqrt(tau + c2)
+        def F(tau) -> float:
+            return float(Fn(num(float(tau))))
 
-    E = -(G(lam) - G(nu)) / (lam - nu) + 0.5 * (vx * vx + vy * vy + vz * vz)
-    Flam = (lam - nu) ** 2 * lamdot**2 / (8 * lam)
-    K = E * lam + G(lam) - (Flam + Lz**2 * lam / 2) / (lam - D2)
+        hi = 2 * lam
+        while F(hi) >= 0:
+            hi *= 2
+        # F(lam) ~ 0 by roundoff near a turning point (or lam = D2): split the
+        # brackets at the first point above lam where F > 0
+        grid = [lam + (hi - lam) * num(g) for g in np.logspace(-14, 0, 300)]
+        mid = grid[np.argmax([F(t) > 0 for t in grid])]
+        return (
+            float(bisect(F, D2, mid)),
+            float(bisect(F, mid, hi)),
+            float(bisect(F, nu, D2)),
+        )
 
-    def F(tau: float) -> float:
-        return (E * tau + G(tau) - K) * (tau - D2) - Lz**2 * tau / 2
 
-    hi = 2 * lam
-    while F(hi) >= 0:
-        hi *= 2
-    return (
-        float(bisect(F, D2, lam)),
-        float(bisect(F, lam, hi)),
-        float(bisect(F, nu, D2)),
-    )
+def kk_lambda_roots_decimal(
+    pot: gp.KuzminKutuzovPotential, w6
+) -> tuple[decimal.Decimal, decimal.Decimal]:
+    """KK's (lam_min, lam_max) in 40-digit decimals, never rounded to float.
+
+    ``w6`` may hold decimals (a phase point off the float grid): central
+    differences of these roots at w6 +- h v, h ~ 1e-15, are the roots'
+    derivative to ~1e-15, where float roots (`kk_turning_points`) resolve
+    a near-circular orbit's to ~1e-2 at best. Bisected in decimals about
+    lam, where F = F(lam) > 0 (needs lamdot != 0).
+    """
+    with decimal.localcontext(prec=40):
+        F, D2, lam, _ = _kk_F(
+            pot,
+            w6,
+            decimal.Decimal,
+            lambda a: a.sqrt(),
+            lambda a, b: (a * a + b * b).sqrt(),
+        )
+        hi = 2 * lam
+        while F(hi) >= 0:
+            hi *= 2
+
+        def bis(a, b):
+            neg_a = F(a) < 0
+            for _ in range(160):  # 2^-160 of the bracket: past 40 digits
+                mid = (a + b) / 2
+                if (F(mid) < 0) == neg_a:
+                    a = mid
+                else:
+                    b = mid
+            return (a + b) / 2
+
+        return bis(D2, lam), bis(lam, hi)
+
+
+def kk_nu_max_decimal(pot: gp.KuzminKutuzovPotential, w6) -> decimal.Decimal:
+    """KK's nu_max in 40-digit decimals, never rounded to float.
+
+    As `kk_lambda_roots_decimal`, for the nu root: bisected on [|nu|, D2),
+    where F(|nu|) > 0 > F just below D2 (a box orbit, or L_z != 0).
+    """
+    with decimal.localcontext(prec=40):
+        F, D2, _, nu = _kk_F(
+            pot,
+            w6,
+            decimal.Decimal,
+            lambda a: a.sqrt(),
+            lambda a, b: (a * a + b * b).sqrt(),
+        )
+        a, b = nu, D2 * (1 - decimal.Decimal("1e-30"))
+        assert F(a) > 0 > F(b)
+        for _ in range(170):  # 2^-170 of the bracket: past 40 digits
+            mid = (a + b) / 2
+            a, b = (mid, b) if F(mid) > 0 else (a, mid)
+        return (a + b) / 2
 
 
 # ---------------------------------------------------------------------------
@@ -174,11 +289,21 @@ def _mn_p(p):
 
 # Gradient-safety potentials. NFW and MW2022 (NFW halo) are cuspy: their own
 # derivatives are NaN at the origin, so the core must never evaluate them there.
+def _composite():
+    """Make a small Milky-Way-like composite: a Miyamoto-Nagai disk, NFW halo.
+
+    MW2022 has six components; its lambda Taylor nest differentiated in
+    jacfwd or jacrev takes ~2.5 GB to compile.
+    """
+    return gp.CompositePotential(disk=_mn(), halo=_nfw())
+
+
 _GRAD_POTS = {
     "kk": _kk,
     "mn": _mn,
     "nfw": _nfw,
     "mw2022": gp.MilkyWayPotential2022,
+    "composite": _composite,
 }
 
 
@@ -193,6 +318,12 @@ def _phi(pot, counter=None):
 
 
 D2 = kk_delta(_kk()) ** 2  # 8
+
+
+def _vc(phi, R):
+    """Circular speed sqrt(R dPhi/dR) at z = 0, elementwise in ``R``."""
+    R = jnp.asarray(R, dtype=float)
+    return jnp.sqrt(R * jnp.vectorize(jax.grad(lambda r: phi(r, 0.0 * r)))(R))
 
 
 MN_P = jnp.asarray([1e11, 3.0, 0.3])
@@ -232,7 +363,7 @@ def _setup(pot=None, w6=None, counter=None):
 # keyed on whatever the program closes over (see `_pot_key`) and on every
 # module constant read at trace time, so a monkeypatched one gets a new program.
 _JIT_CACHE: dict = {}
-_TRACE_MODULES = (_staeckel_prolate, _utils)
+_TRACE_MODULES = (limits_mod, _staeckel_prolate, _utils)
 
 
 def _pot_key(pot):
@@ -255,23 +386,6 @@ def _cached_jit(key, make):
     return _JIT_CACHE[key]
 
 
-def _assert_fwd_rev(Jf, Jr, rows=None, lanes=None):
-    """Finite, and forward == reverse on the outputs ``rows`` of ``lanes``.
-
-    The same linear map: equal to roundoff (1e-10: c4 is a 4-deep nested
-    jvp), floored at 1e-12 of each output's largest derivative over all
-    points (an entry can be ~0 at one point).
-    """
-    assert np.all(np.isfinite(Jf)), np.argwhere(~np.isfinite(Jf))
-    assert np.all(np.isfinite(Jr)), np.argwhere(~np.isfinite(Jr))
-    rows = slice(None) if rows is None else rows
-    lanes = slice(None) if lanes is None else lanes
-    Jf_, Jr_ = Jf[lanes][:, rows], Jr[lanes][:, rows]
-    scale = np.max(np.abs(Jf_), axis=(0, 2))[:, None]
-    tol = 1e-10 * np.abs(Jf_) + 1e-12 * scale + 1e-300
-    np.testing.assert_array_less(np.abs(Jf_ - Jr_), tol)
-
-
 def _jac_both(f, w6s, *args, rows=None, lanes=None, rev_aux=False):
     """(jacfwd, jacrev, aux) of ``f(w6, *args) -> (out, aux)``, jitted, vmapped.
 
@@ -281,7 +395,10 @@ def _jac_both(f, w6s, *args, rows=None, lanes=None, rev_aux=False):
     dropped once used, so only one is alive at a time (memory).
 
     Both Jacobians must be finite everywhere and agree on the outputs
-    ``rows`` of the points ``lanes``; returns them for further checks.
+    ``rows`` of the points ``lanes``; returns them for further checks. The
+    same linear map: equal to roundoff (1e-10: c4 is a 4-deep nested jvp),
+    floored at 1e-12 of each output's largest derivative over all points
+    (an entry can be ~0 at one point).
     """
     Jf, aux = jax.jit(jax.vmap(jax.jacfwd(f, has_aux=True)))(w6s, *args)
     Jf, aux = np.asarray(Jf), jax.tree.map(np.asarray, aux)
@@ -289,9 +406,33 @@ def _jac_both(f, w6s, *args, rows=None, lanes=None, rev_aux=False):
     Jr, aux_r = jax.jit(jax.vmap(jax.jacrev(f, has_aux=True)))(w6s, *args)
     Jr, aux_r = np.asarray(Jr), jax.tree.map(np.asarray, aux_r)
     jax.clear_caches()
-    _assert_fwd_rev(Jf, Jr, rows, lanes)
+    assert np.all(np.isfinite(Jf)), np.argwhere(~np.isfinite(Jf))
+    assert np.all(np.isfinite(Jr)), np.argwhere(~np.isfinite(Jr))
+    rows = slice(None) if rows is None else rows
+    lanes = slice(None) if lanes is None else lanes
+    Jf_, Jr_ = Jf[lanes][:, rows], Jr[lanes][:, rows]
+    scale = np.max(np.abs(Jf_), axis=(0, 2))[:, None]
+    tol = 1e-10 * np.abs(Jf_) + 1e-12 * scale + 1e-300
+    np.testing.assert_array_less(np.abs(Jf_ - Jr_), tol)
     aux = (aux, aux_r) if rev_aux else aux
     return Jf, Jr, jax.tree.map(np.asarray, aux)
+
+
+def _limits_fn(pot, phi_inf="default"):
+    """Jitted, vmapped (w6, D2) -> Limits through the frozen pipeline."""
+
+    def make():
+        phi = _phi(pot)
+
+        def one(w6, d2):
+            iom = integrals_of_motion(phi, w6, d2)
+            F = make_F(phi, iom)
+            pinf = default_phi_inf(phi, iom) if phi_inf == "default" else phi_inf
+            return find_limits(F, iom, jnp.asarray(pinf))
+
+        return jax.vmap(one)
+
+    return _cached_jit(("limits", _pot_key(pot), repr(phi_inf)), make)
 
 
 def _assert_lam_between(pot, w6s, D2s, lim):
@@ -323,8 +464,14 @@ def _D2_pipeline(pot, w6s):
     return d * d
 
 
-def _sg(tree):
-    return jax.tree.map(jax.lax.stop_gradient, tree)
+def _live_limits(pot, w6, d2, *, shell=True):
+    """(limits with tangents, live Fset): frozen solve on a stop-gradient pot."""
+    phi, phiz = _phi(pot), _phi(jax.tree.map(jax.lax.stop_gradient, pot))
+    iom = integrals_of_motion(phi, w6, d2)
+    iomz = integrals_of_motion(phiz, jax.lax.stop_gradient(w6), d2)
+    F, Fz = make_F(phi, iom), make_F(phiz, iomz)
+    lim = find_limits(Fz, iomz, default_phi_inf(phiz, iomz))
+    return attach_tangents(lim, F, Fz, shell=shell), F
 
 
 def _assert_jac_close(J, fd, rtol, atol_rel):
@@ -353,16 +500,24 @@ def _near_circular_w6s(pot, e, R=CIRC_R, draw=0):
     its sign (which gala's ``F(lam_pos) < 0`` snap relied on) changes with
     the batch shape, so test both large batches and single points.
     """
-    phi = _phi(pot)
-    vc = np.asarray(
-        jax.vmap(lambda r: jnp.sqrt(r * jax.grad(lambda q: phi(q, 0.0 * q))(r)))(
-            jnp.asarray(R)
-        )
-    )
+    vc = np.asarray(_vc(_phi(pot), R))
     ang = np.random.default_rng(1).uniform(0, 2 * np.pi, (draw + 1, len(R)))[draw]
     z = 0 * R
     vR, vphi = e * vc * np.cos(ang), vc * (1 + e * np.sin(ang))
     return jnp.asarray(np.stack([R, z, z, vR, vphi, z], 1))
+
+
+def _F_rows(pot, name):
+    """Jitted (w6s, D2s, tau) -> F.<name>(tau), tau per row (cached, see above)."""
+    phi = _phi(pot)
+
+    def make():
+        def one(w, d, t):
+            return getattr(make_F(phi, integrals_of_motion(phi, w, d)), name)(t)
+
+        return jax.vmap(one)
+
+    return _cached_jit(("F", _pot_key(pot), name), make)
 
 
 def _lam_roots(pot, w6s, D2s, span=2e-2):
@@ -374,13 +529,7 @@ def _lam_roots(pot, w6s, D2s, span=2e-2):
     phi = _phi(pot)
 
     def on_F(name):  # tau (per row) -> F.<name>(tau), all rows at once
-        def make():
-            def one(w, d, t):
-                return getattr(make_F(phi, integrals_of_motion(phi, w, d)), name)(t)
-
-            return jax.vmap(one)
-
-        f = _cached_jit(("F", _pot_key(pot), name), make)
+        f = _F_rows(pot, name)
         return lambda t: np.asarray(f(w6s, D2s, jnp.asarray(t)))
 
     lam = jax.vmap(lambda w, d: integrals_of_motion(phi, w, d).lam)(w6s, D2s)
@@ -392,32 +541,144 @@ def _lam_roots(pot, w6s, D2s, span=2e-2):
     return np.where(dbl, ts, lo), np.where(dbl, ts, hi)
 
 
-def check_dF_limit_sites(name):
-    """F and F' at the tau = D2 and u = 0 limit sites and at the phase point.
+_ROWS = ("lam_min", "lam_max", "nu_max", "m", "c2", "c3", "c4", "F2", "F4")
+_PARTS = {
+    "all": _ROWS,
+    "limits": _ROWS[:3],
+    "taylor": _ROWS[3:],
+    "taylor_l": _ROWS[3:7],  # the lambda nest only (m, c2, c3, c4)
+    "taylor_n": _ROWS[7:],  # the nu nest only (F2, F4)
+}
 
-    At z = 0 the lambda-side F'(D2) limit term sits at Phi(0, sigma = 0), the
-    origin, unless kept off the axis: both modes finite, equal.
+
+def check_grad_safety(name, *, circular=False, part="all"):
+    """Limits and Taylor coefficients at special and invalid points.
+
+    At fixed Delta: generic; on the axis inside and outside the foci, and
+    moving along it; a focal point; the origin; the lambda edge (z = 0,
+    v_R = 0); the midplane with v_z != 0 (sigma = 0) and without (planar);
+    unbound; near-planar, collapsed to nu_max = 0 below D2 MINIMUM_RANGE
+    (its true tangent is not 0, but the pinned value carries none). Invalid,
+    all three limits NaN: the origin with the pipeline Delta (D2 = 0),
+    D2 < 0, D2 NaN, a NaN phase point, a subnormal D2, a D2 lost in
+    roundoff against R^2 + z^2 (1e-300 at r ~ 5), and r ~ 1e80 (F's squared
+    terms overflow).
+
+    jacfwd and jacrev are finite and equal; invalid and
+    unbound lanes leak no gradient; a generic point's limits all carry a
+    tangent, a planar nu_max none. On a cuspy potential the nu-line of an
+    R = 0 lane runs through the cusp, so F2, F4 there are huge-but-finite cusp
+    derivatives (NFW focal point ~1e43, ~1e103): finite, but not compared.
+
+    With ``circular``, the same two programs also take one batch of 310
+    exactly circular orbits (pipeline Delta; see `check_circular_fwd_rev`).
+    ``part`` differentiates the limits, the Taylor coefficients, or "all"
+    in one program (a smaller program compiles in less memory).
     """
-    phi = _phi(_GRAD_POTS[name]())
+    names = _PARTS[part]
 
-    def f(w):
-        iom = integrals_of_motion(phi, w, D2)
-        F = make_F(phi, iom)
-        d2 = jnp.asarray(D2)
-        out = jnp.stack(
-            [
-                F.dF_lam(d2),
-                F.dF_nu(d2),
-                F.dF_nu(jnp.asarray(0.0)),
-                F.F_lam(d2),
-                F.F_nu(jnp.asarray(0.0)),
-                F.F_lam(iom.lam),
-                F.F_nu(iom.absnu),
-                F.dF_lam(iom.lam),
-            ]
-        )
-        return out, out
+    def row(*ks):
+        return [names.index(k) for k in ks if k in names]
 
-    w6s = jnp.stack([_w6s(1)[0], AXIS_W6, MID_W6])
-    _, _, vals = _jac_both(f, w6s)
-    assert np.all(np.isfinite(vals))
+    pot = _GRAD_POTS[name]()
+    nan, Dl = np.nan, float(np.sqrt(D2))
+    origin = [0.0, 0.0, 0.0, 0.05, 0.02, 0.03]
+    d2_origin = float(_D2_pipeline(pot, jnp.asarray([origin]))[0])
+    assert d2_origin == 0
+    gen = [5.0, 0.0, 1.0, 0.05, 0.2, 0.03]
+    rows = [  # (w6, D2, kind)
+        (_w6s(1)[0].tolist(), D2, "generic"),
+        (MID_W6.tolist(), D2, "generic"),
+        (AXIS_W6.tolist(), D2, "bound"),  # R = 0 inside the foci, L_z = 0
+        ([0.0, 0.0, 5.0, 0.05, 0.01, 0.02], D2, "bound"),  # outside the foci
+        ([0.0, 0.0, 1.0, 0.0, 0.0, 0.02], D2, "bound"),  # along the axis
+        ([0.0, 0.0, Dl, 0.05, 0.01, 0.02], D2, "bound"),  # focal point
+        (origin, D2, "bound"),
+        ([3.0, 0.0, 0.0, 0.0, 0.12, 0.05], D2, "bound"),  # lambda edge
+        ([5.0, 0.0, 0.0, 0.05, 0.2, 0.0], D2, "planar"),
+        ([3.0, 1.0, 0.0, 0.0, 0.18, 0.0], D2, "planar"),  # y != 0
+        ([5.0, 0.0, 1e-6, 0.05, 0.2, 1e-7], D2, "planar"),  # collapsed to 0
+        ([5.0, 0.0, 1.0, 2.0, 2.0, 2.0], D2, "unbound"),
+        (origin, d2_origin, "invalid"),
+        (gen, -1.0, "invalid"),
+        (gen, nan, "invalid"),
+        ([nan, 0.0, 1.0, 0.05, 0.2, 0.03], D2, "invalid"),
+        ([5.0, 0.0, 1.0, 0.05, nan, 0.03], D2, "invalid"),
+        (gen, 5e-324, "invalid"),
+        (gen, 1e-300, "invalid"),
+        ([1e80, 0.0, 1e80, 0.05, 0.2, 0.03], D2, "invalid"),
+    ]
+    w6s = jnp.asarray([w for w, _, _ in rows])
+    d2s = jnp.asarray([d for _, d, _ in rows])
+    kind = np.array([k for _, _, k in rows])
+    n = len(rows)
+    if circular:  # one compile serves both checks (the batch size is free)
+        cw6s = _near_circular_w6s(pot, 0.0)
+        w6s = jnp.concat([w6s, cw6s])
+        d2s = jnp.concat([d2s, _D2_pipeline(pot, cw6s)])
+
+    def f(w, d2):
+        lim, F = _live_limits(pot, w, d2)
+        vals = lim._asdict()
+        if part != "limits":
+            vals |= taylor_coeffs(F, lim)._asdict()
+        out = jnp.stack([vals[k] for k in names])
+        return jnp.where(jnp.isfinite(out), out, 0.0), (out, lim)
+
+    cusp = name in ("nfw", "mw2022", "composite")
+    Jf, Jr, ((out, lim), (_, lim_r)) = _jac_both(
+        f,
+        w6s,
+        d2s,
+        rows=row(*_ROWS[:7]) if cusp else None,
+        lanes=slice(0, n),
+        rev_aux=True,
+    )
+    if circular:
+        cl = slice(n, None)
+        lf, lr = (jax.tree.map(lambda x: x[cl], x) for x in (lim, lim_r))
+        sel = row("lam_min", "lam_max", "nu_max", "c2", "c3", "c4")
+        if sel:
+            check_circular_fwd_rev(
+                Jf[cl][:, sel], Jr[cl][:, sel], out[cl][:, sel], lf, lr
+            )
+    Jf, Jr, out, planar = Jf[:n], Jr[:n], out[:n], lim.planar[:n]
+    L3 = np.stack([lim.lam_min[:n], lim.lam_max[:n], lim.nu_max[:n]], 1)
+    bound = np.isin(kind, ["generic", "bound", "planar"])
+    assert np.all(np.isfinite(L3[bound]))
+    assert np.all(np.isnan(L3[kind == "invalid"]))  # nu_max too
+    assert np.all(np.isnan(L3[kind == "unbound"][:, 1]))
+    assert np.all(planar[kind == "planar"])
+    for J in (Jf, Jr):  # invalid lanes: no gradient at all
+        np.testing.assert_array_equal(J[kind == "invalid"], 0.0)
+    # unbound: lam_max (and m) NaN, and no gradient leaks from them
+    leak = row("lam_max", "m", "c2", "c3", "c4")
+    np.testing.assert_array_equal(Jf[kind == "unbound"][:, leak], 0.0)
+    lims = row("lam_min", "lam_max", "nu_max")
+    if lims:
+        assert np.all(np.any(Jf[kind == "generic"][:, lims] != 0, axis=-1))
+        np.testing.assert_array_equal(Jf[kind == "planar"][:, lims[2]], 0.0)
+
+
+def check_circular_fwd_rev(Jf, Jr, out, lf, lr):
+    """Exactly circular orbits, one batch of 310 radii, pipeline Delta.
+
+    Every lane is finite, and nearly all are snapped shells, with the same
+    decisions in the jacfwd and the jacrev program (gala's F(lam_pos) < 0
+    clause read a roundoff-level sign that differs between the two
+    compiles), and their Jacobians agree. ``out``, ``Jf``, ``Jr`` are
+    `check_grad_safety`'s rows among (lam_min, lam_max, nu_max, c2, c3, c4).
+    """
+    for lim in (lf, lr):
+        assert np.mean(lim.snapped) > 0.99
+        for k in ("lam_min", "lam_max", "nu_max"):
+            assert np.all(np.isfinite(getattr(lim, k))), k
+    for k in ("snapped", "shell"):  # the same decisions in both programs
+        np.testing.assert_array_equal(getattr(lf, k), getattr(lr, k), err_msg=k)
+    for k in ("lam_min", "lam_max"):  # and the same values, to roundoff
+        np.testing.assert_allclose(getattr(lf, k), getattr(lr, k), rtol=1e-13)
+    assert np.all(np.isfinite(out))  # so unmasked: Jf, Jr are out's
+    scale = np.max(np.abs(Jf), axis=2, keepdims=True) + 1e-300  # per lane, output
+    # measured <= 1.1e-8 here and 2.5e-8 at e = 1e-8 (lanes near the snap
+    # width); 1e-7 leaves room for platform round-off
+    np.testing.assert_array_less(np.abs(Jf - Jr) / scale, 1e-7)

@@ -14,6 +14,7 @@ from .base import AbstractTransformedPotential
 from galax.potential._src.base import AbstractPotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry, from_invariances, invariances
 
 
 class TriaxialInThePotential(AbstractTransformedPotential):
@@ -80,6 +81,14 @@ class TriaxialInThePotential(AbstractTransformedPotential):
         dimensions="dimensionless",
         doc="ratio of the z-axis to the x-axis",
     )
+
+    @property
+    def symmetry(self) -> Symmetry:
+        """The base's plane reflections, the only symmetries axis scaling keeps."""
+        return from_invariances(
+            invariances(self.base_potential.symmetry)
+            & {"x_reflection", "y_reflection", "z_reflection"}
+        )
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

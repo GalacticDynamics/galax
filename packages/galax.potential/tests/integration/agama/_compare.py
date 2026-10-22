@@ -1,6 +1,6 @@
 """Compare a galax potential against an agama potential at fixed points."""
 
-__all__ = ["POINTS", "assert_matches_agama"]
+__all__ = ["POINTS", "T0", "assert_matches_agama"]
 
 from typing import Any
 
@@ -24,6 +24,9 @@ POINTS = np.array(
         [30.0, -25.0, 28.0],
     ]
 )
+
+# Every comparison is of static potentials, evaluated at this one time.
+T0 = u.Q(0, "Myr")
 
 _UNITS = {
     "potential": "km2 / s2",
@@ -58,7 +61,7 @@ def assert_matches_agama(
     quantities: tuple[str, ...] = ("potential", "gradient", "density", "hessian"),
 ) -> None:
     """Assert each requested quantity agrees, naming the one that does not."""
-    x, t = u.Q(POINTS, "kpc"), u.Q(0, "Myr")
+    x, t = u.Q(POINTS, "kpc"), T0
     for name in quantities:
         galax = u.ustrip(_UNITS[name], getattr(galax_pot, name)(x, t=t))
         agama = _agama(agama_pot, name, POINTS)

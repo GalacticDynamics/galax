@@ -13,14 +13,12 @@ import unxt as u
 
 import galax.potential as gp
 from ...unit.potential.optional_deps import OptDeps
-from ._compare import assert_matches_agama
+from ._compare import T0, assert_matches_agama
 
 pytestmark = [
     pytest.mark.agama,
     pytest.mark.skipif(not OptDeps.AGAMA.installed, reason="requires agama"),
 ]
-
-T0 = u.Q(0, "Myr")
 
 # Both sides are closed forms, so this would be ~1e-15 but for G: agama's
 # (4.30091727068e-6 kpc km2 / s2 / Msun) exceeds galax's -- astropy's CODATA

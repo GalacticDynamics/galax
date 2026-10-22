@@ -102,7 +102,7 @@ linkable ``libpython`` (on macOS, a Homebrew Python):
 That leaves an importable ``agama`` package under ``build/lib.*``; put that
 directory on ``PYTHONPATH``. The ``Y`` continues without OpenMP and the
 ``N``\ s decline the optional downloads (Eigen, CVXOPT, UNSIO), which are not
-needed for potential comparisons.
+needed for these comparisons.
 
 The agama module is linked against the libpython it was built with, so run
 the tests from an environment on that same interpreter. With uv, a second
@@ -120,12 +120,13 @@ The agama comparisons carry the ``agama`` marker and are skipped unless
 ::
 
     PYTHONPATH=<agama build dir> UV_PROJECT_ENVIRONMENT=<agama venv> \
-        uv run --no-sync pytest --run-agama -m agama packages/galax.potential -ra
+        uv run --no-sync pytest --run-agama -m agama \
+        packages/galax.potential packages/galax.dynamics -ra
 
 With the flag they still skip, with the reason ``requires agama``, when agama
 is not importable, so check the ``-ra`` summary: a green run where they all
 skipped compared nothing. The units and precision points below are handled
-by the tests' shared fixture.
+by the tests' agama fixtures.
 
 Three things to get right when comparing against agama:
 
@@ -136,10 +137,14 @@ Three things to get right when comparing against agama:
   ~2e5, which looks like a catastrophic disagreement rather than a units bug.
 - **Precision.** :mod:`galax` defaults to float32 while agama is float64, so a
   comparison that does not enable x64 measures the dtype, not the algorithm.
-  For shallow cusps the float32 floor is ~1e-7, which is one ulp.
+  For shallow cusps the float32 floor is ~1e-7, which is one ulp. Likewise
+  ``agama.orbit`` stores trajectories as float32 unless given
+  ``dtype="float64"``, which caps an orbit comparison at ~5e-8.
 - **G.** agama's gravitational constant exceeds astropy's (CODATA 2018) by
   1.49e-10 relative, so closed forms agree to ~1.5e-10, not to machine
   precision. A constant 1.49e-10 offset is this, not a formula difference.
+  Over many orbital periods it also drifts the phase (~5e-8 after 20), so
+  orbit comparisons give the two libraries the same :math:`GM`.
 
 ``agama.Potential(type='Dehnen', ...)`` restricts :math:`\gamma` to
 :math:`[0, 2]`. For steeper inner slopes use ``type='Spheroid'`` with

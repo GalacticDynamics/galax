@@ -80,13 +80,19 @@ class KuzminKutuzovPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     the plane :math:`\rho \propto c^2`, so a Laplacian of :math:`\Phi`
     would lose :math:`\sim (a / c)^2` to cancellation.
 
-    The model is defined for :math:`0 < c \le a` (oblate). At :math:`c = a`
-    the focal points meet at the origin and it is exactly the isochrone,
-    :math:`-G M / (a + \sqrt{r^2 + a^2})`. As :math:`c \to 0` it tends to the
-    razor-thin `~galax.potential.KuzminPotential` with ``r_s = a``. The
-    potential is symmetric under :math:`(a, R)
-    \leftrightarrow (c, z)`, so :math:`c > a` evaluates, but is not the
-    oblate model.
+    The parameters are not validated (they may depend on time):
+
+    - :math:`0 < c < a` is the oblate Kuzmin-Kutuzov model above.
+    - :math:`c = a`: the focal points meet at the origin and this is exactly
+      the isochrone, :math:`-G M / (a + \sqrt{r^2 + a^2})`.
+    - :math:`c > a` is a valid prolate model: :math:`\Phi` and :math:`\rho`
+      are finite and :math:`\rho > 0`. But :math:`\Delta^2 = a^2 - c^2 < 0`,
+      so it is not of Staeckel form in prolate spheroidal coordinates, and a
+      Staeckel-fudge focal distance does not apply.
+    - :math:`c \to 0` tends to the razor-thin `~galax.potential.KuzminPotential`
+      with ``r_s = a``. At :math:`c = 0` exactly :math:`\Phi` is that disk,
+      but the gradient is NaN on the plane :math:`z = 0`; use
+      `~galax.potential.KuzminPotential` instead.
 
     Examples
     --------
@@ -105,7 +111,7 @@ class KuzminKutuzovPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
 
     a: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="length",
-        doc=r"""Major-axis scale length; de Zeeuw's :math:`\alpha = -a^2`.
+        doc=r"""Scale length in the plane; de Zeeuw's :math:`\alpha = -a^2`.
 
     :math:`a / c = \sqrt{\alpha / \gamma}` is galpy's ``ac``. The inner
     isodensity surfaces have axis ratio roughly, not exactly, :math:`c / a`.
@@ -114,8 +120,11 @@ class KuzminKutuzovPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
 
     c: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="length",
-        doc=r"""Minor-axis scale length; de Zeeuw's :math:`\gamma = -c^2`, with
-    :math:`0 < c \le a`.""",
+        doc=r"""Scale length along :math:`z`; de Zeeuw's :math:`\gamma = -c^2`.
+
+    :math:`c < a` is oblate, :math:`c = a` the isochrone, :math:`c > a`
+    prolate. Use `~galax.potential.KuzminPotential` for :math:`c = 0`.
+    """,
     )
 
     _: KW_ONLY

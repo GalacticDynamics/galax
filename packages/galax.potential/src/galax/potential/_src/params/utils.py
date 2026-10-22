@@ -44,9 +44,10 @@ def all_parameters(
         All fields of the dataclass, including those not yet finalized in the
         class, if it's still under construction, e.g. in ``__init_subclass__``.
     """
-    # Deferred: importing `galax.potential.params` pulls in the parent
-    # `galax.potential`, whose `base` module imports this one.
-    from galax.potential.params import ParameterField
+    # Deferred, and from `_src` rather than the public `galax.potential.params`:
+    # that module imports `eval_params`, which needs the very classes whose
+    # creation (`__init_subclass__`) calls this function.
+    from galax.potential._src.params.field import ParameterField
 
     # Get all the class variables
     all_cls_vars = all_vars(obj)

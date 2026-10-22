@@ -42,6 +42,7 @@ BUILTINS = [
     gp.JaffePotential(m_tot=M, r_s=RS, units=G),
     gp.KeplerPotential(m_tot=M, units=G),
     gp.KuzminPotential(m_tot=M, r_s=RS, units=G),
+    gp.KuzminKutuzovPotential(m_tot=M, a=RS, c=u.Q(1, "kpc"), units=G),
     gp.LM10Potential(),
     gp.LMJ09LogarithmicPotential(
         v_c=u.Q(220, "km/s"),

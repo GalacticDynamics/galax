@@ -19,6 +19,10 @@ _HERNQUIST = gp.HernquistPotential(m_tot=M, r_s=RS, units=G)
 _MN = gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G)
 _LM = jnp.zeros((3, 3)).at[0, 0].set(1.0).at[2, 1].set(0.3)
 _NLM = jnp.zeros((2, 3, 3)).at[0, 0, 0].set(1.0).at[1, 2, 1].set(0.3)
+# A bar rotated in the x-y plane: no reflection or rotation symmetry at all.
+_BAR = gp.LongMuraliBarPotential(
+    m_tot=M, a=RS, b=u.Q(1, "kpc"), c=u.Q(1, "kpc"), alpha=u.Q(0.3, "rad"), units=G
+)
 _PROFILE = {"r_min": u.Q(1e-2, "kpc"), "r_max": u.Q(1e3, "kpc"), "n_r": 128}
 
 # One instance of every concrete public potential (see
@@ -56,14 +60,7 @@ BUILTINS = [
     ),
     gp.LeeSutoTriaxialNFWPotential(m=M, r_s=RS, a1=1.0, a2=0.8, a3=0.6, units=G),
     gp.LogarithmicPotential(v_c=u.Q(220, "km/s"), r_s=RS, units=G),
-    gp.LongMuraliBarPotential(
-        m_tot=M,
-        a=RS,
-        b=u.Q(1, "kpc"),
-        c=u.Q(1, "kpc"),
-        alpha=u.Q(0.3, "rad"),
-        units=G,
-    ),
+    _BAR,
     gp.MN3ExponentialPotential(m_tot=M, h_R=RS, h_z=u.Q(0.3, "kpc"), units=G),
     gp.MN3Sech2Potential(m_tot=M, h_R=RS, h_z=u.Q(0.3, "kpc"), units=G),
     gp.MilkyWayPotential(),
@@ -99,7 +96,7 @@ BUILTINS = [
         _HERNQUIST, l_max=0, symmetry="spherical", **_PROFILE
     ),
     gp.MultipoleProfilePotential.from_potential(
-        gp.TriaxialHernquistPotential(m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G),
+        _BAR,
         l_max=2,
         **_PROFILE,
     ),
@@ -250,11 +247,24 @@ def test_declared_symmetry_holds(pot: gp.AbstractPotential, inv: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "pot", [p for p in BUILTINS if p.symmetry == gp.Symmetry.NONE], ids=_ids
+    ("pot", "stronger"),
+    [
+        (p, s)
+        for p in BUILTINS
+        for s in gp.Symmetry
+        if not invariances(s) <= invariances(p.symmetry)
+    ],
+    ids=lambda x: x.value if isinstance(x, gp.Symmetry) else _ids(x),
 )
-def test_undeclared_is_not_zrotation_invariant(pot: gp.AbstractPotential) -> None:
-    """A potential invariant under z-rotation must declare a symmetry saying so."""
-    assert not _is_invariant(pot, _OPS["z_rotation"])
+def test_no_stronger_symmetry_than_declared(
+    pot: gp.AbstractPotential, stronger: gp.Symmetry
+) -> None:
+    """A potential must declare the strongest symmetry it has.
+
+    For each member the declaration does not imply, at least one of that
+    member's invariances fails here -- so a missing or too-weak flag is caught.
+    """
+    assert not all(_is_invariant(pot, _OPS[i]) for i in sorted(invariances(stronger)))
 
 
 @pytest.mark.parametrize(
@@ -269,8 +279,9 @@ def test_undeclared_is_not_zrotation_invariant(pot: gp.AbstractPotential) -> Non
                     m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G
                 ),
             ),
-            "none",
+            "plane_reflection",
         ),
+        (gp.CompositePotential(halo=_HERNQUIST, bar=_BAR), "none"),
         (
             gp.FlattenedInThePotential(base_potential=_HERNQUIST, q_z=0.7),
             "zrotation_zreflection",
@@ -298,8 +309,7 @@ def test_derived_symmetry(pot: gp.AbstractPotential, expected: str) -> None:
 
 
 def test_undeclared_is_none() -> None:
-    pot = gp.TriaxialHernquistPotential(m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G)
-    assert pot.symmetry is gp.Symmetry.NONE
+    assert _BAR.symmetry is gp.Symmetry.NONE
 
 
 # ============================================================================

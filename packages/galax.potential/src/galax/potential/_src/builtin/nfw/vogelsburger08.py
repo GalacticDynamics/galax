@@ -20,6 +20,7 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import safe_sqrt, safe_vector_norm
 
 
@@ -56,6 +57,9 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
     constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
         default=default_constants, converter=ImmutableMap
     )
+
+    symmetry = Symmetry.PLANE_REFLECTION
+    """`Symmetry.PLANE_REFLECTION`: the density is even in $x$, $y$ and $z$."""
 
     @ft.partial(jax.jit, inline=True)
     def _r_e(self, xyz: gt.BtSz3, t: gt.BBtSz0) -> gt.BtFloatSz0:

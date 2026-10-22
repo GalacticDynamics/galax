@@ -14,8 +14,11 @@ __all__ = [
     "AbstractParamObjsAttribute",
     "ParamObjsAttribute",
     "CompositeParamObjsAttribute",
+    # Evaluation
+    "eval_params",
 ]
 
+from ._src.base import eval_params
 from ._src.params import (
     AbstractParameter,
     AbstractParamObjsAttribute,

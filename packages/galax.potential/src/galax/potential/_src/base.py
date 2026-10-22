@@ -1,4 +1,4 @@
-__all__ = ["AbstractPotential"]
+__all__ = ["AbstractPotential", "eval_params"]
 
 import abc
 import functools as ft
@@ -42,7 +42,6 @@ DimT = u.dimension("time")
 class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
     """Abstract Potential Class."""
 
-    param_objs: ClassVar = ParamObjsAttribute(MappingProxyType({}))
     plot: ClassVar = PlotPotentialDescriptor()
 
     _: KW_ONLY
@@ -117,6 +116,40 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
                 {k: v.decompose(usys) for k, v in self.constants.items()}
             )
             object.__setattr__(self, "constants", constants)
+
+    ###########################################################################
+    # Parameters
+
+    param_objs: ClassVar = ParamObjsAttribute(MappingProxyType({}))
+
+    def params(self, t: Any, /, *, ustrip: bool = True) -> dict[str, Any]:
+        """Evaluate the parameters (and ``G``) at time ``t``.
+
+        See `galax.potential.params.eval_params`.
+
+        Parameters
+        ----------
+        t : Any
+            The time(s). A bare number is taken to be in the potential's time
+            unit.
+        ustrip : bool, keyword-only
+            If `True` (default), strip each value to the potential's unit
+            system and return plain arrays. If `False`, return Quantities.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+        >>> sorted(pot.params(0.0))
+        ['G', 'm_tot']
+
+        >>> pot.params(u.Q(0.0, "Gyr"), ustrip=False)["m_tot"]
+        Q(1.e+12, 'solMass')
+
+        """
+        return eval_params(self, t, ustrip=ustrip)
 
     ###########################################################################
     # Constructors
@@ -426,3 +459,62 @@ def from_(
 
     """
     return cls(**obj)
+
+
+##############################################################################
+
+
+@dispatch
+def eval_params(
+    pot: AbstractPotential, t: Any, /, *, ustrip: bool = True
+) -> dict[str, Any]:
+    """Evaluate the parameters of a potential at time ``t``.
+
+    Parameters
+    ----------
+    pot : `galax.potential.AbstractPotential`
+        The potential.
+    t : Any
+        The time(s), anything `unxt.Quantity.from_` accepts as a time. A bare
+        number is taken to be in the potential's time unit.
+    ustrip : bool, keyword-only
+        If `True` (default), strip each value to the potential's unit system
+        and return plain arrays, ready to be passed to the potential's jitted
+        functions. If `False`, return Quantities.
+
+    Returns
+    -------
+    dict[str, Any]
+        One entry per `galax.potential.params.ParameterField` of the
+        potential, plus ``"G"`` from the potential's constants when it has
+        one. For a composite potential, a dict of these for each component.
+        A wrapper potential (e.g. a translated or flattened one) reports only
+        its own parameters; use ``pot.base_potential.params(t)`` for the
+        wrapped potential's.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> from galax.potential.params import eval_params
+
+    >>> pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+    >>> sorted(eval_params(pot, 0.0))
+    ['G', 'm_tot']
+
+    >>> eval_params(pot, 0.0, ustrip=False)["m_tot"]
+    Q(1.e+12, 'solMass')
+
+    """
+    t = u.Q.from_(t, pot.units["time"])
+    out = {
+        name: getattr(pot, name)(
+            t, ustrip=pot.units[field.dimensions] if ustrip else None
+        )
+        for name, field in type(pot).param_objs.items()
+    }
+    # `constants` need not hold G: not every potential uses it.
+    if "G" in pot.constants:
+        G = pot.constants["G"]
+        out["G"] = G.value if ustrip else G
+    return out

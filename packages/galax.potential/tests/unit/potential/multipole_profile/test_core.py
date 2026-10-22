@@ -2,6 +2,7 @@
 
 import warnings
 
+import equinox as eqx
 import jax
 import pytest
 
@@ -158,6 +159,38 @@ def test_from_potential_inherits_units_and_constants() -> None:
     )
     assert pot.units == hern.units
     assert pot.constants["G"] == hern.constants["G"]
+
+
+_SMALL_BUILD = {"r_min": u.Q(1e-1, "kpc"), "r_max": u.Q(1e3, "kpc"), "n_r": 16}
+
+
+@pytest.mark.parametrize(
+    "src",
+    [_reference(), gp.MilkyWayPotential()],
+    ids=["spherical", "zrotation_zreflection"],
+)
+def test_from_potential_symmetry_defaults_to_the_source(src) -> None:
+    """The default keeps only the modes ``src.symmetry`` allows.
+
+    The build is bit-identical to passing that symmetry explicitly.
+    """
+    pot = MultipoleProfilePotential.from_potential(src, l_max=4, **_SMALL_BUILD)
+    assert pot.symmetry is src.symmetry
+    assert pot.lm_keys == lm_keys(4, src.symmetry)
+
+    explicit = MultipoleProfilePotential.from_potential(
+        src, l_max=4, symmetry=src.symmetry, **_SMALL_BUILD
+    )
+    assert eqx.tree_equal(pot, explicit)
+
+
+def test_from_potential_explicit_symmetry_wins() -> None:
+    """An explicit symmetry overrides the source's, even a weaker one."""
+    pot = MultipoleProfilePotential.from_potential(
+        _reference(), l_max=2, symmetry=Symmetry.NONE, **_SMALL_BUILD
+    )
+    assert pot.symmetry is Symmetry.NONE
+    assert pot.lm_keys == lm_keys(2, Symmetry.NONE)
 
 
 def test_from_density_accepts_a_plain_callable() -> None:

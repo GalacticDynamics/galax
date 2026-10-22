@@ -13,12 +13,96 @@ from plum import dispatch
 
 @dispatch.abstract
 def staeckel_fudge_delta(*args: Any, **kwargs: Any) -> Any:
-    """Estimate the focal distance ``delta`` of the Staeckel fudge.
+    """Estimate the focal distance Δ for the Staeckel fudge.
 
     Overloads:
 
     - ``(pot, q, t)``
     - ``(pot, w)``
+
+    Δ is the focal distance of the prolate-spheroidal coordinates the fudge
+    works in: eq. 9 of Sanders (2012), evaluated at each given point, as in
+    gala. Only positions are used, so the velocities of ``w`` are ignored.
+
+    Parameters
+    ----------
+    pot : `galax.potential.AbstractPotential`
+        The potential. The Staeckel fudge assumes it is axisymmetric about the
+        z axis.
+    q : Quantity[length] or Array, shape (..., 3)
+        Cartesian positions. A bare array is in ``pot.units``.
+    t : Quantity[time] or Array, shape (...)
+        Times, broadcast against the batch shape of ``q``. For per-point
+        times with ``q`` of shape (N, 3), use ``t`` of shape (N,): shape
+        (N, 1) broadcasts to (N, N).
+    w : `galax.coordinates.AbstractPhaseSpaceCoordinate`
+        A phase-space coordinate or orbit, e.g. a `galax.dynamics.Orbit`.
+
+    Returns
+    -------
+    Quantity[length] or Array, shape (...)
+        Δ in ``pot.units``, with the batch shape of the input. It is a
+        Quantity if any input is one, and always a Quantity for ``w``.
+
+    Notes
+    -----
+    - Δ is NaN where it is undefined: where Δ² < 0; on the z axis (R = 0 or
+      subnormal); on the symmetry plane of a plane-symmetric potential (a
+      razor-thin disc such as Kuzmin gives its one-sided value); and for a
+      separable potential.
+    - Δ is 0 for a spherical potential, up to round-off.
+    - Use 64-bit floats (``jax_enable_x64``). In float32 a genuine
+      Δ ≲ 0.02 r is rounded to 0, and SI-scale coordinates overflow.
+    - Potentials whose own Hessian is imprecise (NFW, Burkert and Gaussian
+      cores; Burkert, gNFW and StoneOstriker15 far out; LeeSuto) can give a
+      spurious Δ, 0 or NaN there, and which one can change with batch size
+      or jit. A potential separable analytically but not in floating point
+      (e.g. an l ≤ 2, m = 0 interior multipole) gives an arbitrary Δ
+      instead of NaN.
+    - Δ is not differentiable: the output is wrapped in
+      `jax.lax.stop_gradient`.
+    - The Staeckel fudge assumes a potential axisymmetric about the z axis
+      through the origin. For a non-axisymmetric or off-centre one, Δ is
+      only a heuristic, and it can be finite on z = 0.
+
+    The fudge wants one Δ per orbit, but the per-point values along an orbit
+    scatter. ``quaxed.numpy.nanmedian(staeckel_fudge_delta(pot, orbit),
+    axis=-1, keepdims=True)`` gives one Δ per orbit, skipping the NaN points
+    on the plane and the axis. Plain `jax.numpy` rejects a Quantity.
+
+    References
+    ----------
+    Sanders J. L., 2012, MNRAS, 426, 128.
+    gala's ``get_staeckel_fudge_delta``
+    (https://github.com/adrn/gala/pull/649).
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> from galax.dynamics.actionangle import staeckel_fudge_delta
+    >>> pot = gp.MiyamotoNagaiPotential(m_tot=u.Q(1e11, "Msun"),
+    ...                                 a=u.Q(3.0, "kpc"), b=u.Q(0.5, "kpc"),
+    ...                                 units="galactic")
+    >>> delta = staeckel_fudge_delta(pot, u.Q([8.0, 0, 1.0], "kpc"), u.Q(0.0, "Myr"))
+    >>> delta.shape, str(delta.unit), round(float(delta.value), 2)
+    ((), 'kpc', 3.69)
+
+    One Δ for an orbit, as the median over its points:
+
+    >>> import quaxed.numpy as jnp
+    >>> import galax.coordinates as gc
+    >>> import galax.dynamics as gd
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8.0, 0, 1.0], "kpc"),
+    ...                              p=u.Q([0.0, 200, 20], "km/s"),
+    ...                              t=u.Q(0.0, "Myr"))
+    >>> orbit = gd.evaluate_orbit(pot, w0, u.Q(jnp.linspace(0, 1000, 201), "Myr"))
+    >>> deltas = staeckel_fudge_delta(pot, orbit)
+    >>> deltas.shape
+    (201,)
+    >>> delta = jnp.nanmedian(deltas, axis=-1, keepdims=True)
+    >>> delta.shape, str(delta.unit), round(float(delta.value[0]), 1)
+    ((1,), 'kpc', 3.9)
     """
     raise NotImplementedError  # pragma: no cover
 

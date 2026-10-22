@@ -19,7 +19,8 @@ _HERNQUIST = gp.HernquistPotential(m_tot=M, r_s=RS, units=G)
 _MN = gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G)
 _LM = jnp.zeros((3, 3)).at[0, 0].set(1.0).at[2, 1].set(0.3)
 _NLM = jnp.zeros((2, 3, 3)).at[0, 0, 0].set(1.0).at[1, 2, 1].set(0.3)
-# A bar rotated in the x-y plane: no reflection or rotation symmetry at all.
+# A bar rotated in the x-y plane. It is still even in z (and in (x, y) -> (-x, -y)),
+# but no `Symmetry` member captures that alone, so it declares `NONE`.
 _BAR = gp.LongMuraliBarPotential(
     m_tot=M, a=RS, b=u.Q(1, "kpc"), c=u.Q(1, "kpc"), alpha=u.Q(0.3, "rad"), units=G
 )

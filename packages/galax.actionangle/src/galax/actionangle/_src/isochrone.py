@@ -145,6 +145,32 @@ def _angles(GM: Array, b: Array, xyz: Array, v: Array) -> Array:
 def _isochrone_aaf(
     m_tot: Array, b: Array, G: Array, xyz: Array, v: Array
 ) -> tuple[Array, Array, Array]:
+    """Actions, angles and frequencies of one point, scale-free.
+
+    `_isochrone_aaf_unit` forms ``GM r^2`` and ``L^2``, which overflow float32
+    in SI units (``r ~ 1e20 m``). So lengths are measured in ``Ls``, the power
+    of two nearest ``b``, and velocities in ``Vs``, the one nearest
+    ``sqrt(GM / b)``: every quantity is then O(1), and dividing by a power of
+    two is exact, so relations like ``x . v = 0`` that the angles of
+    near-circular orbits hang on survive the rescaling bit for bit.
+    """
+    GM = G * m_tot
+
+    def pow2_near(x: Array) -> Array:  # 1 for x <= 0: no scale to take out
+        ok = x > 0
+        return jnp.where(ok, jnp.exp2(jnp.round(jnp.log2(jnp.where(ok, x, 1.0)))), 1.0)
+
+    Ls = pow2_near(b)
+    Vs = pow2_near(jnp.sqrt(jnp.where(GM / b > 0, GM / b, 1.0)))
+    actions, angles, freqs = _isochrone_aaf_unit(
+        GM / Ls / Vs**2, b / Ls, xyz / Ls, v / Vs
+    )
+    return actions * (Ls * Vs), angles, freqs * (Vs / Ls)
+
+
+def _isochrone_aaf_unit(
+    GM: Array, b: Array, xyz: Array, v: Array
+) -> tuple[Array, Array, Array]:
     """Actions, angles and frequencies of one point in an isochrone potential.
 
     Unitless. ``b`` is the isochrone scale radius. Angles are in ``[0, 2 pi)``.
@@ -155,7 +181,6 @@ def _isochrone_aaf(
     are 0 for radial orbits (``1 - e^2 <= 1e-30``, i.e. ``L ~ 0``). All
     values and gradients of bound points are finite.
     """
-    GM = G * m_tot
     Lvec = jnp.cross(xyz, v)
     Lz = Lvec[2]
     L2 = Lvec @ Lvec

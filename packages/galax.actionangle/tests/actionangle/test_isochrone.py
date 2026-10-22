@@ -686,3 +686,59 @@ def test_near_radial_matches_gala(vt):
         # the plane (L = x cross v) is conditioned by eps |x| |v| / L
         cond = np.linalg.norm(x) * np.linalg.norm(v) / np.linalg.norm(np.cross(x, v))
         _assert_angles(res.angles[1:], ang[1:], atol=1e-9 + 1e-15 * cond)
+
+
+@pytest.mark.filterwarnings("ignore:Explicitly requested dtype float64:UserWarning")
+def test_isochrone_float32_si_matches_float64():
+    """Scale-free: float32 in SI units, where GM r^2 and L^2 would overflow.
+
+    1e6 Msun, since a galaxy's mass in kg (> 3.4e38) is itself past float32,
+    and so bound orbits of < 1 km/s. Before, J_R and J_z were NaN.
+    """
+    q, p = [[8.0, 0.0, 1.0], [3.0, 2.0, 2.0]], [[0.0, 0.6, 0.05], [-0.2, 0.4, 0.1]]
+
+    def aaf(dtype):
+        pot = gp.IsochronePotential(
+            m_tot=u.Q(1e6, "Msun"), r_s=u.Q(3.0, "kpc"), units="si"
+        )
+        out = iaaf(
+            pot,
+            u.Q(jnp.asarray(q, dtype=dtype), "kpc"),
+            u.Q(jnp.asarray(p, dtype=dtype), "km/s"),
+            u.Q(jnp.asarray(0.0, dtype=dtype), "s"),
+        )
+        return (
+            out.actions.ustrip("kpc km/s"),
+            out.angles.ustrip("rad"),
+            out.freqs.ustrip("rad/Gyr"),
+        )
+
+    expect = aaf(jnp.float64)
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = aaf(jnp.float32)
+    assert all(g.dtype == jnp.float32 for g in got)
+    assert all(np.isfinite(e).all() for e in expect)  # bound: no NaN to compare
+    for g, e in zip(got, expect, strict=True):
+        np.testing.assert_allclose(g, e, rtol=1e-4, atol=1e-5)
+
+
+def test_isochrone_rescaling_keeps_gradients():
+    """SI-sized inputs give the O(1) jacobians, scaled: the rescaling is exact."""
+    x, v = jnp.array([1.2, 0.3, -0.4]), jnp.array([0.1, 0.5, 0.2])
+    L, V = 2.0**60, 2.0**15  # b -> L b, GM -> L V^2 GM
+
+    def jr(m, b, x, v):
+        return _isochrone_aaf(m, b, G, x, v)[0][0]
+
+    small = jax.grad(jr, argnums=(2, 3))(M, B, x, v)
+    big = jax.grad(jr, argnums=(2, 3))(M * L * V**2, B * L, x * L, v * V)
+    np.testing.assert_allclose(big[0], small[0] * V, rtol=1e-13)
+    np.testing.assert_allclose(big[1], small[1] * L, rtol=1e-13)
+
+
+def test_isochrone_zero_mass_lz_finite():
+    """No mass: every point unbound, but L_z is still finite."""
+    out = _isochrone_aaf(
+        0.0, B, G, jnp.array([1.0, 0.0, 0.5]), jnp.array([0.0, 1.0, 0.0])
+    )
+    assert jnp.isfinite(out[0][1])

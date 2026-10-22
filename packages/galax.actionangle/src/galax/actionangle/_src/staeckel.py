@@ -46,31 +46,47 @@ def _delta_single(pot: Any, xyz: Array, t: Array) -> Array:
 
     # Sanders (2012) eq. 9, with the sign convention such that
     # Delta^2 = a^2 - c^2 > 0 for the Kuzmin-Kutuzov potential (as in galpy;
-    # Sanders' printed sign differs).
-    num = 3 * z * dPhi_dR - 3 * R * dPhi_dz + R * z * (d2Phi_dR2 - d2Phi_dz2)
-    # A subnormal R (or, off the axis, a tiny R near the origin) also gives
-    # NaN, as does |R| >~ 1e154 (float64), where R**2 overflows (or nearer,
-    # where the potential's derivatives underflow).
+    # Sanders' printed sign differs). Evaluated as Delta^2 / r^2, from R / r,
+    # z / r and dPhi / r: every term is then O(1) or of the Hessian's size,
+    # where R^2 itself overflows float32 in SI units (R ~ 1e20 m).
+    r = jnp.hypot(R, z)
+    R_, z_ = R / r, z / r
+    gR, gz = dPhi_dR / r, dPhi_dz / r
+    num = 3 * z_ * gR - 3 * R_ * gz + R_ * z_ * (d2Phi_dR2 - d2Phi_dz2)
     degenerate = (R == 0) | (d2Phi_dRdz == 0)  # 0/0 or x/0
-    a2_c2 = z**2 - R**2 + num / d2Phi_dRdz
+    a2_c2 = z_**2 - R_**2 + num / d2Phi_dRdz
 
     # Zero |Delta^2| < 1e3 eps S (gala's |Delta^2| < 1e-12, made unit-free),
     # with S the size of the terms of eq. 9 that cancel, so the relative error
     # is ~ eps S / (2 Delta^2). S >= r^2 for a spherical Phi with Phi' > 0, so
-    # R^2 + z^2 is omitted. Measured (not regression-guarded) spherical
-    # round-off is <~ 2 eps S (NFW: <~ 70 eps S from 1e-2 r_s out), so 1e3
-    # keeps a >= 10x margin; the tests pin the factor to (316, ~2400], the
-    # upper side set by the float32 Kuzmin-Kutuzov far points. Potentials with
-    # imprecise Hessians: see the Notes of `staeckel_fudge_delta`.
+    # R^2 + z^2 is omitted (all of it in units of r^2, like `a2_c2`). Spherical
+    # round-off is <~ 1.5 eps S for every spherical built-in from 1e-8 to 1e8
+    # scale lengths, so 1e3 keeps a wide margin; the tests pin the factor to
+    # (316, ~2400], the upper side set by the float32 Kuzmin-Kutuzov far
+    # points.
     scale = (
-        jnp.abs(3 * z * dPhi_dR)
-        + jnp.abs(3 * R * dPhi_dz)
-        + jnp.abs(R * z) * (jnp.abs(d2Phi_dR2) + jnp.abs(d2Phi_dz2))
+        jnp.abs(3 * z_ * gR)
+        + jnp.abs(3 * R_ * gz)
+        + jnp.abs(R_ * z_) * (jnp.abs(d2Phi_dR2) + jnp.abs(d2Phi_dz2))
     ) / jnp.abs(d2Phi_dRdz)
     tol = 1e3 * jnp.finfo(a2_c2.dtype).eps  # type: ignore[no-untyped-call]
     a2_c2 = jnp.where(jnp.abs(a2_c2) < tol * scale, 0.0, a2_c2)
-    bad = degenerate | (a2_c2 < 0)
-    return jax.lax.stop_gradient(jnp.where(bad, jnp.nan, jnp.sqrt(a2_c2)))
+
+    # NaN rather than a wrong value where the potential's derivatives are not
+    # to be trusted. A potential evaluated near underflow can have subnormal
+    # autodiff intermediates behind outputs that look normal (one form of
+    # Kuzmin-Kutuzov at m = 1e-290 Msun gave a gradient 1% off, and Delta 16
+    # for 2.8). What gives it away is that d2Phi/dRdz, taken along e_R then z
+    # and along e_z then R, then disagree, by ~1e14 eps of the Hessian there,
+    # against <~ 5 eps for every built-in (float32 and float64): cut at
+    # sqrt(eps). A subnormal d2Phi/dRdz has lost its relative precision outright.
+    finfo = jnp.finfo(a2_c2.dtype)  # type: ignore[no-untyped-call]
+    d2Phi_dzdR = H_ez[0] * e_R[0] + H_ez[1] * e_R[1]
+    h = jnp.max(jnp.abs(jnp.stack([gR, gz, d2Phi_dR2, d2Phi_dz2, d2Phi_dRdz])))
+    asymmetric = jnp.abs(d2Phi_dRdz - d2Phi_dzdR) > jnp.sqrt(finfo.eps) * h
+    unreliable = asymmetric | (jnp.abs(d2Phi_dRdz) < finfo.tiny)
+    bad = degenerate | (a2_c2 < 0) | unreliable
+    return jax.lax.stop_gradient(jnp.where(bad, jnp.nan, r * jnp.sqrt(a2_c2)))
 
 
 @ft.partial(jax.jit, inline=True)

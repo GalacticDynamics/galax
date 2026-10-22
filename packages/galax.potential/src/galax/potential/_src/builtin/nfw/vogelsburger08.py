@@ -59,7 +59,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
     )
 
     symmetry = Symmetry.PLANE_REFLECTION
-    """`Symmetry.PLANE_REFLECTION`: the density is even in $x$, $y$ and $z$."""
+    """`Symmetry.PLANE_REFLECTION`: the potential is even in $x$, $y$ and $z$."""
 
     @ft.partial(jax.jit, inline=True)
     def _r_e(self, xyz: gt.BtSz3, t: gt.BBtSz0) -> gt.BtFloatSz0:

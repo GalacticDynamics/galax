@@ -91,7 +91,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     )
 
     symmetry = Symmetry.PLANE_REFLECTION
-    """`Symmetry.PLANE_REFLECTION`: the density is even in $x$, $y$ and $z$."""
+    """`Symmetry.PLANE_REFLECTION`: the potential is even in $x$, $y$ and $z$."""
 
     def __check_init__(self) -> None:
         t = u.Q(0.0, "Myr")

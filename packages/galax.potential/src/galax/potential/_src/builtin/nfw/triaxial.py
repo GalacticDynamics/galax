@@ -78,7 +78,7 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     # ==========================================================================
 
     symmetry = Symmetry.PLANE_REFLECTION
-    """`Symmetry.PLANE_REFLECTION`: the density is even in $x$, $y$ and $z$."""
+    """`Symmetry.PLANE_REFLECTION`: the potential is even in $x$, $y$ and $z$."""
 
     @ft.partial(jax.jit, static_argnames=("ustrip",))
     def rho0(

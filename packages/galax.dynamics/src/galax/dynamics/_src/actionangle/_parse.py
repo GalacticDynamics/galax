@@ -16,6 +16,24 @@ import galax.coordinates as gc
 from .result import ActionsAnglesFrequencies
 
 
+def _float(x: Array) -> Array:
+    """Promote to a strongly-typed float of at least 32 bits; reject complex.
+
+    Ints and bools become the default float. Half precision (float16,
+    bfloat16) becomes float32: the round-off tolerances assume >= float32.
+    """
+    if jnp.iscomplexobj(x):
+        msg = f"complex input is not supported, got dtype {x.dtype}"
+        raise TypeError(msg)
+    dtype = (
+        jnp.promote_types(x.dtype, "float32")
+        if jnp.issubdtype(x.dtype, jnp.floating)
+        else float
+    )
+    out: Array = jnp.asarray(x, dtype=dtype)
+    return out
+
+
 @overload
 def parse_qpt(
     pot: Any, q: Any, p: None, t: Any, /
@@ -36,23 +54,31 @@ def parse_qpt(
     ``p=None`` means positions and time only (``p`` is returned as `None`).
     The flag is True if any *given* input is a Quantity, i.e. if the result
     should carry units. Unit-less inputs are assumed to be in ``pot.units``.
-    The batch shapes of ``q``, ``p`` (``shape[:-1]``) and ``t`` are broadcast
-    together.
+    Integer inputs are promoted to float, half precision to float32, and
+    complex inputs raise `TypeError`, as does a phase-space coordinate
+    passed as ``q``. The batch shapes of ``q``, ``p``
+    (``shape[:-1]``) and ``t`` are broadcast together.
     """
+    if isinstance(q, gc.AbstractPhaseSpaceCoordinate):
+        msg = (
+            "q is a phase-space coordinate: it already carries its times; "
+            "pass (pot, w)"
+        )
+        raise TypeError(msg)
     given = (q, t) if p is None else (q, p, t)
     as_quantity = any(isinstance(x, u.AbstractQuantity) for x in given)
     usys = pot.units
-    q_: Array = jnp.asarray(u.ustrip(AllowValue, usys["length"], q))
+    q_: Array = _float(jnp.asarray(u.ustrip(AllowValue, usys["length"], q)))
     p_: Array | None = (
-        None if p is None else jnp.asarray(u.ustrip(AllowValue, usys["speed"], p))
+        None
+        if p is None
+        else _float(jnp.asarray(u.ustrip(AllowValue, usys["speed"], p)))
     )
     if t is None:
         msg = "t is required (the potential may depend on time)"
         raise ValueError(msg)
-    t_: Array = jnp.asarray(u.ustrip(AllowValue, usys["time"], t))
     # a strongly-typed float t, so int / weakly-typed t don't retrace the core
-    dtype = t_.dtype if jnp.issubdtype(t_.dtype, jnp.floating) else float
-    t_ = jnp.asarray(t_, dtype=dtype)
+    t_: Array = _float(jnp.asarray(u.ustrip(AllowValue, usys["time"], t)))
     for name, x in (("q", q_), ("p", p_)):
         if x is not None and x.shape[-1:] != (3,):
             msg = f"{name} must have shape (..., 3), got {x.shape}"

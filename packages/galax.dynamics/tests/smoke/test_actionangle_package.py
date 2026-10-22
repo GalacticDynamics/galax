@@ -11,6 +11,7 @@ def test_all() -> None:
     assert set(actionangle.__all__) == {
         "ActionsAnglesFrequencies",
         "isochrone_actions_angles_freqs",
+        "staeckel_fudge_delta",
     }
     assert all(hasattr(actionangle, name) for name in actionangle.__all__)
 
@@ -18,8 +19,10 @@ def test_all() -> None:
 _FRESH = """
 import jax.numpy as jnp
 import unxt as u
+import galax.coordinates as gc
 import galax.potential as gp
 from galax.dynamics.actionangle import isochrone_actions_angles_freqs as f
+from galax.dynamics.actionangle import staeckel_fudge_delta as fd
 
 pot = gp.IsochronePotential(m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"),
                             units="galactic")
@@ -28,6 +31,9 @@ res = f(pot, q, p, jnp.asarray(0.0))
 assert res.actions.shape == res.angles.shape == res.freqs.shape == (2, 3)
 res = f(pot, u.Q(q, "kpc"), u.Q(p, "kpc/Myr"), u.Q(0.0, "Myr"))
 assert res.actions.shape == (2, 3) and str(res.angles.unit) == "rad"
+assert fd(pot, q, jnp.asarray(0.0)).shape == (2,)
+w = gc.PhaseSpaceCoordinate(q=u.Q(q, "kpc"), p=u.Q(p, "kpc/Myr"), t=u.Q(0.0, "Myr"))
+assert fd(pot, w).shape == (2,)
 """
 
 

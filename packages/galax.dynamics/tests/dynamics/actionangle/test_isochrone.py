@@ -13,6 +13,7 @@ import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
 from ..optional_deps import OptDeps
+from galax.dynamics._src.actionangle._parse import parse_qpt
 from galax.dynamics._src.actionangle.isochrone import _isochrone_aaf
 from galax.dynamics.actionangle import (
     ActionsAnglesFrequencies,
@@ -562,6 +563,18 @@ def test_api_jitted_no_retrace():
     assert _aaf._cache_size() == n
 
 
+def test_parse_integer_q_p():
+    """Integer positions and velocities are promoted to float."""
+    q, p = np.asarray([[8, 0, 1], [5, 2, -1]]), np.asarray([[0, 1, 0], [1, 1, 0]])
+    res = iaaf(POT, jnp.asarray(q), jnp.asarray(p), 0)
+    expect = iaaf(POT, jnp.asarray(q, dtype=float), jnp.asarray(p, dtype=float), 0.0)
+    for name in ("actions", "angles", "freqs"):
+        np.testing.assert_array_equal(getattr(res, name), getattr(expect, name))
+    # directly: integer q, p and t come out as float
+    q_, p_, t_, _ = parse_qpt(POT, jnp.asarray(q), jnp.asarray(p), 0)
+    assert all(jnp.issubdtype(x.dtype, jnp.floating) for x in (q_, p_, t_))
+
+
 def test_parse_requires_t():
     with pytest.raises(ValueError, match="t is required"):
         iaaf(POT, jnp.asarray(Q_), jnp.asarray(P_KPC_MYR), None)
@@ -573,6 +586,33 @@ def test_parse_requires_t():
 def test_parse_validates_shape(q, p):
     with pytest.raises(ValueError, match=r"must have shape \(\.\.\., 3\)"):
         iaaf(POT, jnp.asarray(q), jnp.asarray(p), 0.0)
+
+
+@pytest.mark.parametrize("dtype", ["float16", "bfloat16"])
+def test_parse_half_precision_promoted_to_float32(dtype):
+    """Half-precision q, p, t are parsed to float32 (shared with the fudge)."""
+    q, p = jnp.asarray(Q_, dtype=dtype), jnp.asarray(P_KPC_MYR, dtype=dtype)
+    t = jnp.zeros((), dtype)
+    assert all(x.dtype == jnp.float32 for x in parse_qpt(POT, q, p, t)[:3])
+    res = iaaf(POT, q, p, t)
+    expect = iaaf(POT, *(x.astype("float32") for x in (q, p, t)))
+    for name in ("actions", "angles", "freqs"):
+        np.testing.assert_array_equal(getattr(res, name), getattr(expect, name))
+
+
+@pytest.mark.parametrize("which", [0, 1, 2])
+def test_parse_rejects_complex(which):
+    args = [jnp.asarray(Q_), jnp.asarray(P_KPC_MYR), jnp.asarray(0.0)]
+    args[which] = args[which].astype(complex)
+    with pytest.raises(TypeError, match="complex"):
+        iaaf(POT, *args)
+
+
+def test_overload_psc_rejects_extra_p_t():
+    """``w`` carries its own velocities and times: a clear TypeError."""
+    w = gc.PhaseSpaceCoordinate(q=u.Q(Q_, "kpc"), p=u.Q(P_, "km/s"), t=u.Q(0.0, "Myr"))
+    with pytest.raises(TypeError, match="already carries its times"):
+        iaaf(POT, w, jnp.asarray(P_KPC_MYR), 0.0)
 
 
 @pytest.mark.skipif(not OptDeps.GALA.installed, reason="requires gala")

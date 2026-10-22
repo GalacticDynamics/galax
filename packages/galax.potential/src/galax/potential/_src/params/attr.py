@@ -37,7 +37,7 @@ class AbstractParamObjsAttribute:
     """
 
     param_objs: "MappingProxyType[str, ParameterField]"  # TODO: specify type hint
-    """Class attribute name on Potential."""
+    """Mapping of parameter names to their `ParameterField` descriptors."""
 
     _name: str = field(init=False)
     """The name of the descriptor on the containing class."""

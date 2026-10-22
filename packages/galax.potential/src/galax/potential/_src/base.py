@@ -81,7 +81,7 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize the subclass."""
-        # Replace the ``parameters`` attribute with a mapping of the values
+        # Replace the ``param_objs`` attribute with a mapping of the values
         paramattr = replace(
             all_vars(cls)["param_objs"],
             param_objs=MappingProxyType(all_parameters(cls)),

@@ -112,7 +112,7 @@ class CompositeParamObjsAttribute(AbstractParamObjsAttribute):
     Examples
     --------
     The normal usage of this class is the ``param_objs`` attribute of
-    :class:`~galax.potential.AbstractPotential`.
+    :class:`~galax.potential.CompositePotential`.
 
     >>> import unxt as u
     >>> import galax.potential as gp

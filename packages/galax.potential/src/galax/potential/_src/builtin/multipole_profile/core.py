@@ -705,8 +705,11 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         n_theta, n_phi : int, optional
             Angular quadrature resolution. Defaults follow `default_angular_resolution`.
         symmetry : Symmetry or str or None, optional
-            Symmetry assumption; see `Symmetry`. `None` is an alias for
-            `Symmetry.NONE`, which keeps every mode.
+            Symmetry assumption; see `Symmetry`. `None` (the default) uses
+            ``pot.symmetry``, so only the modes the source allows are kept --
+            e.g. ``l = 0`` alone for a spherical one. An explicit value wins,
+            even one ``pot`` does not have: a stronger symmetry deliberately
+            drops modes, a weaker one keeps modes that come out ~zero.
         t : Quantity, optional
             Time(s) at which to build the expansion. Defaults to 0 Gyr. A 1-D
             ``t`` builds the expansion on a time grid; see
@@ -742,7 +745,7 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             l_max=l_max,
             n_theta=n_theta,
             n_phi=n_phi,
-            symmetry=symmetry,
+            symmetry=pot.symmetry if symmetry is None else symmetry,
             t=t,
             units=pot.units,
             constants=pot.constants,

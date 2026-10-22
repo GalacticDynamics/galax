@@ -14,6 +14,7 @@ from .base import AbstractTransformedPotential
 from galax.potential._src.base import AbstractPotential
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry, from_invariances, invariances
 
 
 class FlattenedInThePotential(AbstractTransformedPotential):
@@ -72,6 +73,16 @@ class FlattenedInThePotential(AbstractTransformedPotential):
         dimensions="dimensionless",
         doc="ratio of the z-axis to the x- or y-axis (or cylindrical radius)",
     )
+
+    @property
+    def symmetry(self) -> Symmetry:
+        """The base's symmetry, less any rotation that moves the z-axis.
+
+        Scaling z keeps rotations about z and the plane reflections.
+        """
+        return from_invariances(
+            invariances(self.base_potential.symmetry) - {"rotation"}
+        )
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

@@ -24,6 +24,7 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from .base import AbstractPotential, default_constants
+from .symmetry import Symmetry, common_symmetry
 
 if TYPE_CHECKING:
     import galax.potential  # noqa: ICN001
@@ -33,6 +34,25 @@ class AbstractCompositePotential(AbstractPotential):
     """Base class for composite potentials."""
 
     _data: eqx.AbstractVar[dict[str, AbstractPotential]]
+
+    @property
+    def symmetry(self) -> Symmetry:
+        """The symmetry every component shares.
+
+        Examples
+        --------
+        >>> import unxt as u
+        >>> import galax.potential as gp
+
+        >>> pot = gp.CompositePotential(
+        ...     halo=gp.NFWPotential(m=1e12, r_s=20, units="galactic"),
+        ...     disk=gp.MiyamotoNagaiPotential(m_tot=1e11, a=3, b=0.3,
+        ...                                    units="galactic"))
+        >>> pot.symmetry
+        <Symmetry.ZROTATION_ZREFLECTION: 'zrotation_zreflection'>
+
+        """
+        return common_symmetry(p.symmetry for p in self.values())
 
     # === Potential ===
 

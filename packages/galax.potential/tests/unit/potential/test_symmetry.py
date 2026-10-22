@@ -10,6 +10,7 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
+from galax.potential._src.symmetry import invariances
 
 G = "galactic"
 M = u.Q(1e12, "Msun")
@@ -212,18 +213,17 @@ def test_undeclared_is_not_spherical(pot: gp.AbstractPotential) -> None:
     assert jnp.max(jnp.abs(phi - phi[0])) > 1e-6 * jnp.max(jnp.abs(phi))
 
 
-# Rotation about z by an angle with no special alignment, and z -> -z.
+# A generator of each invariance: rotations by angles with no special
+# alignment, and the plane reflections.
 _C, _S = jnp.cos(0.7), jnp.sin(0.7)
 _ROT_Z = jnp.asarray([[_C, -_S, 0.0], [_S, _C, 0.0], [0.0, 0.0, 1.0]])
-_FLIP_Z = jnp.diag(jnp.asarray([1.0, 1.0, -1.0]))
-_AXISYMMETRIC = [p for p in BUILTINS if p.symmetry == gp.Symmetry.ZROTATION_ZREFLECTION]
-# Declared NONE, but each is built from z-rotation invariant parts.
-_UNDERIVED = {
-    gp.BovyMWPotential2014,
-    gp.CompositePotential,
-    gp.FlattenedInThePotential,
-    gp.MilkyWayPotential,
-    gp.MilkyWayPotential2022,
+_ROT_X = jnp.asarray([[1.0, 0.0, 0.0], [0.0, _C, -_S], [0.0, _S, _C]])
+_OPS = {
+    "rotation": _ROT_X @ _ROT_Z,
+    "z_rotation": _ROT_Z,
+    "x_reflection": jnp.diag(jnp.asarray([-1.0, 1.0, 1.0])),
+    "y_reflection": jnp.diag(jnp.asarray([1.0, -1.0, 1.0])),
+    "z_reflection": jnp.diag(jnp.asarray([1.0, 1.0, -1.0])),
 }
 
 
@@ -239,33 +239,62 @@ def _is_invariant(pot: gp.AbstractPotential, op: jax.Array) -> bool:
     )
 
 
-@pytest.mark.parametrize("pot", _AXISYMMETRIC, ids=_ids)
-@pytest.mark.parametrize("op", [_ROT_Z, _FLIP_Z], ids=["rot_z", "flip_z"])
-def test_declared_zrotation_zreflection_is_invariant(
-    pot: gp.AbstractPotential, op: jax.Array
-) -> None:
-    assert _is_invariant(pot, op)
+@pytest.mark.parametrize(
+    ("pot", "inv"),
+    [(p, i) for p in BUILTINS for i in sorted(invariances(p.symmetry))],
+    ids=lambda x: x if isinstance(x, str) else _ids(x),
+)
+def test_declared_symmetry_holds(pot: gp.AbstractPotential, inv: str) -> None:
+    """Each invariance a potential declares, directly or from its parts, holds."""
+    assert _is_invariant(pot, _OPS[inv])
 
 
 @pytest.mark.parametrize(
-    "pot",
-    [
-        pytest.param(
-            p,
-            marks=pytest.mark.xfail(
-                type(p) in _UNDERIVED,
-                reason="does not yet derive its symmetry from its parts",
-                strict=True,
-            ),
-        )
-        for p in BUILTINS
-        if p.symmetry == gp.Symmetry.NONE
-    ],
-    ids=_ids,
+    "pot", [p for p in BUILTINS if p.symmetry == gp.Symmetry.NONE], ids=_ids
 )
 def test_undeclared_is_not_zrotation_invariant(pot: gp.AbstractPotential) -> None:
     """A potential invariant under z-rotation must declare a symmetry saying so."""
-    assert not _is_invariant(pot, _ROT_Z)
+    assert not _is_invariant(pot, _OPS["z_rotation"])
+
+
+@pytest.mark.parametrize(
+    ("pot", "expected"),
+    [
+        (gp.CompositePotential(halo=_HERNQUIST, disk=_MN), "zrotation_zreflection"),
+        (gp.CompositePotential(a=_HERNQUIST, b=_HERNQUIST), "spherical"),
+        (
+            gp.CompositePotential(
+                halo=_HERNQUIST,
+                bar=gp.TriaxialHernquistPotential(
+                    m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G
+                ),
+            ),
+            "none",
+        ),
+        (
+            gp.FlattenedInThePotential(base_potential=_HERNQUIST, q_z=0.7),
+            "zrotation_zreflection",
+        ),
+        (
+            gp.FlattenedInThePotential(base_potential=_MN, q_z=0.7),
+            "zrotation_zreflection",
+        ),
+        (
+            gp.TriaxialInThePotential(base_potential=_MN, y_over_x=0.8, z_over_x=0.6),
+            "plane_reflection",
+        ),
+        (
+            gp.TranslatedPotential(
+                base_potential=_HERNQUIST, translation=u.Q([1.0, 0, 0], "kpc")
+            ),
+            "none",
+        ),
+    ],
+    ids=lambda x: x if isinstance(x, str) else _ids(x),
+)
+def test_derived_symmetry(pot: gp.AbstractPotential, expected: str) -> None:
+    """Composites keep what their parts share; wrappers keep what they preserve."""
+    assert pot.symmetry is gp.Symmetry(expected)
 
 
 def test_undeclared_is_none() -> None:

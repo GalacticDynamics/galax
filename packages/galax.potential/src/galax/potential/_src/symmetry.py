@@ -3,6 +3,10 @@
 __all__ = ["Symmetry"]
 
 import enum
+import functools as ft
+import operator
+
+from collections.abc import Iterable
 
 
 class Symmetry(enum.StrEnum):
@@ -89,3 +93,76 @@ class Symmetry(enum.StrEnum):
         names = tuple(s.value for s in cls)
         msg = f"Unknown symmetry {value!r}. Use one of {names} or None."
         raise ValueError(msg)
+
+
+# The independent invariances behind each member, so that symmetries can be
+# combined: a sum of potentials keeps only the invariances its terms share. A
+# z-rotation invariant potential is a function of (R, z), so it is also
+# invariant under x -> -x and y -> -y. This is the bookkeeping a flag type
+# (see the note on `Symmetry`) would do for us.
+_INVARIANCES: dict[Symmetry, frozenset[str]] = {
+    Symmetry.NONE: frozenset(),
+    Symmetry.SPHERICAL: frozenset(
+        {"rotation", "z_rotation", "x_reflection", "y_reflection", "z_reflection"}
+    ),
+    Symmetry.ZROTATION: frozenset({"z_rotation", "x_reflection", "y_reflection"}),
+    Symmetry.ZROTATION_ZREFLECTION: frozenset(
+        {"z_rotation", "x_reflection", "y_reflection", "z_reflection"}
+    ),
+    Symmetry.PLANE_REFLECTION: frozenset(
+        {"x_reflection", "y_reflection", "z_reflection"}
+    ),
+}
+
+
+def invariances(symmetry: Symmetry | str | None, /) -> frozenset[str]:
+    """Return the invariances a symmetry asserts.
+
+    >>> from galax.potential._src.symmetry import invariances
+    >>> sorted(invariances("plane_reflection"))
+    ['x_reflection', 'y_reflection', 'z_reflection']
+
+    """
+    return _INVARIANCES[Symmetry(symmetry)]  # type: ignore[arg-type]
+
+
+def from_invariances(invs: Iterable[str], /) -> Symmetry:
+    """Return the strongest member asserting no more than ``invs``.
+
+    >>> from galax.potential._src.symmetry import from_invariances
+    >>> from_invariances({"z_rotation", "x_reflection", "y_reflection"})
+    <Symmetry.ZROTATION: 'zrotation'>
+
+    Invariances no member captures are dropped:
+
+    >>> from_invariances({"x_reflection", "y_reflection"})
+    <Symmetry.NONE: 'none'>
+
+    """
+    invs = frozenset(invs)
+    return max(
+        (s for s, i in _INVARIANCES.items() if i <= invs),
+        key=lambda s: len(_INVARIANCES[s]),
+    )
+
+
+def common_symmetry(symmetries: Iterable[Symmetry | str | None], /) -> Symmetry:
+    """Return the symmetry all of ``symmetries`` share, e.g. their sum's.
+
+    An empty collection is `Symmetry.SPHERICAL`, the symmetry of zero.
+
+    >>> from galax.potential._src.symmetry import common_symmetry
+    >>> common_symmetry(["spherical", "zrotation_zreflection"])
+    <Symmetry.ZROTATION_ZREFLECTION: 'zrotation_zreflection'>
+
+    >>> common_symmetry(["zrotation", "plane_reflection"])
+    <Symmetry.NONE: 'none'>
+
+    """
+    return from_invariances(
+        ft.reduce(
+            operator.and_,
+            map(invariances, symmetries),
+            _INVARIANCES[Symmetry.SPHERICAL],
+        )
+    )

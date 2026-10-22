@@ -13,6 +13,7 @@ from .isochrone import *
 from .jaffe import *
 from .kepler import *
 from .kuzmin import *
+from .kuzminkutuzov import *
 from .logarithmic import *
 from .longmurali import *
 from .milkyway import *

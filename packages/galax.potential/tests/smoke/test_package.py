@@ -24,6 +24,7 @@ expected_all = [
     "LongMuraliBarPotential",
     "MonariEtAl2016BarPotential",
     "KuzminPotential",
+    "KuzminKutuzovPotential",
     "MiyamotoNagaiPotential",
     "MN3ExponentialPotential",
     "MN3Sech2Potential",

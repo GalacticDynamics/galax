@@ -41,14 +41,18 @@ def _shrinking_kepler() -> gp.KeplerPotential:
     return gp.KeplerPotential(m_tot=m_tot, units="galactic")
 
 
-def _multipole() -> gp.MultipoleProfilePotential:
-    return gp.MultipoleProfilePotential.from_potential(
-        _hernquist(),
-        r_min=u.Q(1e-2, "kpc"),
-        r_max=u.Q(1e4, "kpc"),
-        n_r=64,
-        l_max=0,
-        symmetry="spherical",
+def _multipole() -> gp.MultipolePotential:
+    """Build a cheap potential with a non-parameter field (``l_max``)."""
+    lm = jnp.ones((2, 2))  # (l_max + 1, l_max + 1)
+    return gp.MultipolePotential(
+        m_tot=u.Q(1e12, "Msun"),
+        r_s=u.Q(5.0, "kpc"),
+        l_max=1,
+        ISlm=lm,
+        ITlm=jnp.zeros_like(lm),
+        OSlm=lm,
+        OTlm=jnp.zeros_like(lm),
+        units="galactic",
     )
 
 
@@ -125,12 +129,11 @@ def test_jit_with_traced_time() -> None:
 
 
 def test_excludes_non_parameter_fields() -> None:
-    """Only `ParameterField`s (and ``G``) appear, not ``l_max`` or ``symmetry``."""
+    """Only `ParameterField`s (and ``G``) appear, not ``l_max``."""
     pot = _multipole()
     out = eval_params(pot, T0)
     assert set(out) == set(type(pot).param_objs) | {"G"}
     assert "l_max" not in out
-    assert "symmetry" not in out
 
 
 def test_composite_nested() -> None:

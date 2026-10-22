@@ -19,6 +19,10 @@ from ._helpers import (
     _setup,
     _w6s,
 )
+from galax.actionangle._src import _staeckel_limits as limits
+from galax.actionangle._src._staeckel_limits import (
+    find_limits,
+)
 from galax.actionangle._src._staeckel_prolate import (
     LOG_TAU_MAX,
     integrals_of_motion,
@@ -203,6 +207,73 @@ def test_F_semi_no_overflow():
             F.F_lam(tau) / tau**2,
             rtol=1e-12,
         )
+
+
+def test_F_tolerates_nonfinite_tau():
+    """Frozen/invalid lanes may carry NaN/inf tau: no raise, no NaN gradients."""
+    w6 = _w6s(1)[0]
+    pot = _kk()
+    phi = _phi(pot)
+
+    def valid_sum(w):
+        iom = integrals_of_motion(phi, w, D2)
+        F = make_F(phi, iom)
+        tot = 0.0
+        for t in (jnp.nan, jnp.inf, -jnp.inf, -1.0):
+            R3, z3, mult3, I3c = F.lane_coords(jnp.stack([0.5 * iom.absnu, 20.0, t]))
+            tot = tot + (phi(R3, z3) * mult3 + I3c)[:2].sum()
+            t3 = jnp.asarray([t, iom.absnu * 0.5, 20.0])
+            tot = tot + F.F_lam(t3)[2] + F.F_nu(t3)[1] + F.dF_lam(t3)[2]
+            tot = tot + F.dF_nu(t3)[1] + F.d2F_lam(t3)[2]
+            tot = tot + F.F_nu_u(jnp.asarray([t, 0.3]))[1]
+            s = jnp.asarray([t, 0.5])
+            tot = tot + F.F_semi(s, iom.lam, jnp.asarray(0.0))[1]
+        return tot
+
+    for jac in (jax.jacfwd, jax.jacrev):
+        g = jac(valid_sum)(w6)
+        assert np.all(np.isfinite(g)), g
+    # and the invalid lanes themselves are flagged, not silently finite
+    _, _, F = _setup()
+    for t in (jnp.nan, jnp.inf, -1.0):
+        assert np.isnan(F.F_lam(jnp.asarray(t)))
+        assert np.isnan(F.F_nu(jnp.asarray(t)))
+
+
+def test_single_phi_call_per_lane_eval(monkeypatch):
+    """One phi call per solver iteration, on all three lanes (find_limits)."""
+    calls = []
+    phi, iom, F = _setup(counter=calls)
+    per_eval = []  # phi calls made by each evaluation of the solver's f
+    solve = limits.chandrupatla
+
+    def spy(f, *args, **kw):
+        def counted(x):
+            n0 = len(calls)
+            out = f(x)
+            per_eval.append(len(calls) - n0)
+            return out
+
+        return solve(counted, *args, **kw)
+
+    monkeypatch.setattr(limits, "chandrupatla", spy)
+    jax.make_jaxpr(lambda i: find_limits(F, i, jnp.asarray(0.0)))(iom)
+    assert per_eval == [1]  # the loop body is traced once: one width-3 call
+
+    tau3 = jnp.asarray([0.5 * float(iom.absnu), float(iom.lam), 3.0 * float(iom.lam)])
+
+    def lanes(t):
+        R3, z3, mult3, I3c = F.lane_coords(t)
+        return R3, z3, mult3, I3c, phi(R3, z3)
+
+    calls.clear()
+    jax.make_jaxpr(lanes)(tau3)
+    assert len(calls) == 1
+    # The selected coordinates give back the branch F's.
+    _, _, mult3, I3c, Phi3 = lanes(tau3)
+    F3 = (iom.E * tau3 - I3c - Phi3 * mult3) * (tau3 - D2) - iom.Lz**2 * tau3 / 2
+    np.testing.assert_allclose(F3[0], F.F_nu(tau3[0]), rtol=1e-13)
+    np.testing.assert_allclose(F3[1:], F.F_lam(tau3[1:]), rtol=1e-13)
 
 
 def test_dF_limits_and_fd():

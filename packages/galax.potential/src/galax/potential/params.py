@@ -11,20 +11,20 @@ __all__ = [
     "CustomParameter",
     "TimeDependentTranslationParameter",
     # Attributes
-    "AbstractParametersAttribute",
-    "ParametersAttribute",
-    "CompositeParametersAttribute",
+    "AbstractParamObjsAttribute",
+    "ParamObjsAttribute",
+    "CompositeParamObjsAttribute",
 ]
 
 from ._src.params import (
     AbstractParameter,
-    AbstractParametersAttribute,
-    CompositeParametersAttribute,
+    AbstractParamObjsAttribute,
+    CompositeParamObjsAttribute,
     ConstantParameter,
     CustomParameter,
     LinearParameter,
     ParameterCallable,
     ParameterField,
-    ParametersAttribute,
+    ParamObjsAttribute,
 )
 from ._src.xfm.translate import TimeDependentTranslationParameter

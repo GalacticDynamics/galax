@@ -122,7 +122,7 @@ class MultipoleTestMixin:
         @jax.jit
         def init_potential_evaluate() -> None:
             inner_pot = pot.__class__(
-                **pot.parameters, units=pot.units, l_max=pot.l_max
+                **pot.param_objs, units=pot.units, l_max=pot.l_max
             )
             inner_pot.potential(x, t=0)
 

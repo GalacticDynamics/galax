@@ -26,7 +26,7 @@ from .io import AbstractInteroperableLibrary, GalaxLibrary, convert_potential
 from .plot import PlotPotentialDescriptor
 from .symmetry import Symmetry
 from galax.potential._src.jax import vectorize_method
-from galax.potential._src.params.attr import ParametersAttribute
+from galax.potential._src.params.attr import ParamObjsAttribute
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.potential.dataclasses import ModuleMeta
@@ -42,7 +42,7 @@ DimT = u.dimension("time")
 class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
     """Abstract Potential Class."""
 
-    parameters: ClassVar = ParametersAttribute(MappingProxyType({}))
+    param_objs: ClassVar = ParamObjsAttribute(MappingProxyType({}))
     plot: ClassVar = PlotPotentialDescriptor()
 
     _: KW_ONLY
@@ -83,11 +83,11 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
         """Initialize the subclass."""
         # Replace the ``parameters`` attribute with a mapping of the values
         paramattr = replace(
-            all_vars(cls)["parameters"],
-            parameters=MappingProxyType(all_parameters(cls)),
+            all_vars(cls)["param_objs"],
+            param_objs=MappingProxyType(all_parameters(cls)),
         )
-        paramattr.__set_name__(cls, "parameters")
-        type(cls).__setattr__(cls, "parameters", paramattr)
+        paramattr.__set_name__(cls, "param_objs")
+        type(cls).__setattr__(cls, "param_objs", paramattr)
 
     ###########################################################################
     # Parsing

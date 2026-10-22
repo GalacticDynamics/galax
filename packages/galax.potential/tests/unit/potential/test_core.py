@@ -39,7 +39,7 @@ class AbstractSinglePotential_Test(AbstractPotential_Test, FieldUnitSystemMixin)
 
         @jax.jit
         def init_potential_evaluate() -> None:
-            inner_pot = replace(pot, **pot.parameters, units=pot.units)
+            inner_pot = replace(pot, **pot.param_objs, units=pot.units)
             inner_pot.potential(x, t=0)
 
         init_potential_evaluate()

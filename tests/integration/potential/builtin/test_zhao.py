@@ -46,7 +46,7 @@ def test_zhao_against_finite_mass_correspondences(func_name, abg, OtherPotential
         gamma=abg[2],
         units="galactic",
     )
-    other = OtherPotential(m_tot=m_tot, r_s=zhao.parameters["r_s"], units="galactic")
+    other = OtherPotential(m_tot=m_tot, r_s=zhao.param_objs["r_s"], units="galactic")
 
     zhao_result = getattr(zhao, func_name)(xyz, u.Quantity(0.0, "Myr"))
     other_result = getattr(other, func_name)(xyz, u.Quantity(0.0, "Myr"))

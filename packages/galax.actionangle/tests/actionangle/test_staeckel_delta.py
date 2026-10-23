@@ -478,9 +478,8 @@ def test_delta_zero_for_every_spherical_builtin(name):
     (`_undeclared`, which also checks every one declares it), so the shortcut
     does not hide the Hessian.
 
-    This needs each potential's Hessian to a few ulp of its magnitude: NFW and
-    Burkert used to give a spurious Delta in the core, and Burkert and gNFW
-    far out.
+    This needs each potential's Hessian to a few ulp of its magnitude, both in
+    the core and far out.
     """
     pot = _every_spherical(u.Q(10.0, "kpc"))[name]
     rng = np.random.default_rng(0)

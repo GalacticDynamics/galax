@@ -103,7 +103,7 @@ class TestGNFWPotential(
 
     # ---------------------------------
     # Regression test: GalacticDynamics/galax#817, fixed by #818.
-    # `Bz_from_hyp2f1` used to blow up to nan at large r/r_s because the
+    # The enclosed mass used to blow up to nan at large r/r_s because the
     # underlying `_2F_1` implementation was only valid for small arguments.
 
     @pytest.mark.parametrize("r", [1.0, 8.0, 50.0, 100.0, 1000.0])

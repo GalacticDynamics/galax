@@ -217,11 +217,6 @@ def _mass_bracket(x: gt.Sz0, /) -> gt.FloatSz0:
     of $4s^2/((1+s)(1+s^2))$, so it is $4x^3 h(x)$ with $h$ analytic and
     $h(0) = 1/3$. Up to $x = 0.8$, $h$ is a degree-20 polynomial fit (2 ulp
     over the range); beyond, the direct sum cancels by less than a factor 10.
-
-    The fit replaces the Taylor series
-    $h = \sum_j x^{4j} (1/(4j+3) - x/(4j+4))$, which needs 42 terms to reach
-    $x = 0.8$. XLA copies the series into every consumer of the enclosed mass,
-    and at that length it made Burkert's Hessian ~50% slower than main's.
     """
     xc = jnp.where(x <= 0.8, x, 0.8)
     c = jnp.asarray(_BRACKET_FIT, dtype=xc.dtype)

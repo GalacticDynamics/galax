@@ -693,7 +693,7 @@ def test_isochrone_float32_si_matches_float64():
     """Scale-free: float32 in SI units, where GM r^2 and L^2 would overflow.
 
     1e6 Msun, since a galaxy's mass in kg (> 3.4e38) is itself past float32,
-    and so bound orbits of < 1 km/s. Before, J_R and J_z were NaN.
+    and so bound orbits of < 1 km/s.
     """
     q, p = [[8.0, 0.0, 1.0], [3.0, 2.0, 2.0]], [[0.0, 0.6, 0.05], [-0.2, 0.4, 0.1]]
 

@@ -207,6 +207,22 @@ def _burkert() -> Spherical:
     )
 
 
+@case("Gaussian")
+def _gaussian() -> Spherical:
+    pot = gp.GaussianPotential(m_tot=M, r_s=RS, units="galactic")
+    m, a = _mp(pot, "m_tot"), _mp(pot, "r_s")
+
+    def mass(r: mp.mpf) -> mp.mpf:
+        return m * mp.gammainc(mp.mpf(1.5), 0, (r / a) ** 2 / 2, regularized=True)
+
+    return Spherical(
+        pot,
+        lambda r: m / ((2 * mp.pi) ** 1.5 * a**3) * mp.exp(-((r / a) ** 2) / 2),
+        mass,
+        a,
+    )
+
+
 def _gnfw(gamma: float) -> Spherical:
     pot = gp.gNFWPotential(m=M, r_s=RS, gamma=gamma, units="galactic")
     m, a, g = _mp(pot, "m"), _mp(pot, "r_s"), mp.mpf(gamma)
@@ -493,6 +509,7 @@ CUSTOM_JVP = {
     "NFW": "r_s",
     "HardCutoffNFW": "r_s",
     "Burkert": "r_s",
+    "Gaussian": "r_s",
     "gNFW0.5": "r_s",
     "Zhao-b": "r_s",
     "PowerLawCutoff": "r_c",

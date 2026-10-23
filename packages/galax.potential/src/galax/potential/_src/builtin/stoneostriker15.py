@@ -135,8 +135,8 @@ _ATAN_TAIL = tuple((-1) ** k / (2 * k + 3) for k in range(16, -1, -1))
 """(y - atan(y)) / y^3 as a polynomial in y^2, highest degree first."""
 
 
-def _x_minus_atan(x: gt.Sz0, /) -> gt.FloatSz0:
-    r"""$x - \tan^{-1}x$, to a few ulp for every $x \geq 0$.
+def _x_minus_atan(x: gt.Sz0, atan_x: gt.Sz0, /) -> gt.FloatSz0:
+    r"""$x - \tan^{-1}x$, to a few ulp for every $x \geq 0$, given $\tan^{-1}x$.
 
     Up to $x = 0.7$ the angle is halved first: with $q = 1 + \sqrt{1 + x^2}$
     and $y = x / q \leq 0.33$, $\tan^{-1}x = 2\tan^{-1}y$, so
@@ -153,7 +153,7 @@ def _x_minus_atan(x: gt.Sz0, /) -> gt.FloatSz0:
     c = jnp.asarray(_ATAN_TAIL, dtype=y.dtype)
     series = jnp.polyval(c, y**2, unroll=len(_ATAN_TAIL))
     small = xc**3 / q**2 + 2 * y**3 * series
-    return jnp.where(x <= 0.7, small, x - jnp.atan(x))  # type: ignore[no-any-return]
+    return jnp.where(x <= 0.7, small, x - atan_x)  # type: ignore[no-any-return]
 
 
 def _atan_difference(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
@@ -164,10 +164,13 @@ def _atan_difference(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $r_c g(r/r_c) - r_h g(r/r_h)$, whose terms instead both grow like $r$ far
     out. The two pairs of terms sum to $2r$, so taking whichever pair sums to
     less than $r$ never cancels by more than the ratio of $r_h$ and $r_c$.
+    Both pairs share the two arctangents.
     """
     r_c, r_h = p["r_c"], p["r_h"]
-    g_c, g_h = r_c * _x_minus_atan(r / r_c), r_h * _x_minus_atan(r / r_h)
-    direct = r_h * jnp.atan2(r, r_h) - r_c * jnp.atan2(r, r_c)
+    x_c, x_h = r / r_c, r / r_h
+    a_c, a_h = jnp.atan(x_c), jnp.atan(x_h)
+    g_c, g_h = r_c * _x_minus_atan(x_c, a_c), r_h * _x_minus_atan(x_h, a_h)
+    direct = r_h * a_h - r_c * a_c
     return jnp.where(g_c + g_h < r, g_c - g_h, direct)  # type: ignore[no-any-return]
 
 

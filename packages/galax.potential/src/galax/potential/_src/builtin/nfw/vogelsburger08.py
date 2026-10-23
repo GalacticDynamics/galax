@@ -71,8 +71,8 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
 
     @ft.partial(jax.jit, inline=True)
     def _r_tilde(self, xyz: gt.BtSz3, t: gt.BBtSz0) -> gt.BtFloatSz0:
-        a_r = self.a_r(t, ustrip=self.units["dimensionless"])
-        r_a = a_r * self.r_s(t, ustrip=self.units["length"])
+        p = self.params(t)
+        r_a = p["a_r"] * p["r_s"]
 
         r_e = self._r_e(xyz, t)
         r = safe_vector_norm(xyz)
@@ -85,10 +85,8 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        m = self.m(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
+        p = self.params(t)
 
         r = self._r_tilde(xyz, t)
         # NFW's radial function of r~, whose derivatives do not cancel.
-        params = {"G": self.constants["G"].value, "m": m, "r_s": r_s}
-        return nfw_potential(params, r)  # type: ignore[no-any-return]
+        return nfw_potential(p, r)  # type: ignore[no-any-return]

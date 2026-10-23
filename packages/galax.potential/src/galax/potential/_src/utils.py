@@ -932,16 +932,11 @@ def parse_pot_to_xyz_t(
 
     """
     if isinstance(q, cxv.RadialPos):
-        # Normalize before comparing. `symmetry` is usually a plain class
-        # attribute, so nothing converts a hand-written string the way a
-        # `ParameterField` converter would. Left unvalidated, a typo compares
-        # unequal and the caller is told their potential is *ambiguous* --
-        # which sends them looking for a direction to pass, when the real
-        # fault is the declaration. `Symmetry` names the valid values.
-        symmetry = Symmetry(pot.symmetry)
-        if symmetry != Symmetry.SPHERICAL:
+        # `pot.symmetry` is a `Symmetry`: `AbstractPotential` converts a
+        # class-level string when the class is defined.
+        if pot.symmetry != Symmetry.SPHERICAL:
             msg = (
-                f"{type(pot).__name__} declares symmetry '{symmetry}'; a "
+                f"{type(pot).__name__} declares symmetry '{pot.symmetry}'; a "
                 f"RadialPos needs '{Symmetry.SPHERICAL}'. Pass a 3D position "
                 "instead, e.g. coordinax.vecs.SphericalPos."
             )

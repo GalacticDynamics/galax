@@ -89,9 +89,10 @@ def test_exposes_expansion_configuration() -> None:
 
 
 def test_params_carries_every_coefficient() -> None:
-    """`_params` is the contract between the class and the functions."""
-    p = _hernquist_potential()._params(u.Q(0.0, "Gyr"))
+    """`params` is the contract between the class and the functions."""
+    p = _hernquist_potential().params(u.Q(0.0, "Gyr"))
     assert set(p) == {
+        "G",
         "r_knots",
         "phi_lm",
         "dphi_lm",
@@ -1101,7 +1102,7 @@ def test_a_time_grid_build_evaluates_at_a_batch_of_times(method: str) -> None:
 
     `_gradient` carries `vectorize_method`, so its body always sees a scalar
     ``t`` and a grid build evaluates fine. `_potential` and `_density` do
-    not: a batched ``t`` reaches `_params`, whose coefficients are
+    not: a batched ``t`` reaches `params`, whose coefficients are
     time-interpolated on a grid and so gain a leading time axis, which the
     expansion's positional ``axis=1`` concat and its broadcasts are not
     written for.

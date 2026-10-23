@@ -38,13 +38,19 @@ from galax.potential._src.symmetry import Symmetry
 
 
 class MultipoleProfileMixin(AbstractSinglePotential):
-    """Supply ``_potential``/``_density`` from ``_params``, ``l_max``, ``lm_keys``.
+    """Supply ``_potential``, ``_gradient`` and ``_density`` from ``params(t)``.
 
+    These evaluate the expansion from ``params``, ``l_max`` and ``lm_keys``.
     Carries the shared evaluation implementation but none of the field
     declarations, so a potential that stores its expansion differently can
-    reuse the numerics by supplying ``_params``, ``l_max`` and ``lm_keys``.
-    Mix it in ahead of the concrete class so that its ``_potential`` and
-    ``_density`` win over `AbstractPotential`'s abstract stubs, the same way
+    reuse the numerics by making ``params(t)`` return the expansion's
+    coefficients (``r_knots``, ``phi_lm``, ``dphi_lm``, ``d2phi_lm``,
+    ``phi_asympt_powers``, ``phi_asympt_scales``, ``rho_residual_lm``,
+    ``drho_residual_lm``, ``rho_alpha`` and ``rho_amplitude``) and supplying
+    ``l_max`` and ``lm_keys``. Declaring a `ParameterField` for each
+    coefficient does that with the default `AbstractPotential.params`.
+    Mix it in ahead of the concrete class so that its ``_potential``,
+    ``_gradient`` and ``_density`` win over `AbstractPotential`'s, the same way
     `LaplacianFromDensityMixin` is used.
     """
 
@@ -56,15 +62,11 @@ class MultipoleProfileMixin(AbstractSinglePotential):
     def lm_keys(self) -> tuple[tuple[int, int], ...]:
         """The (l, m) mode keys, in the order the coefficient columns use."""
 
-    @abc.abstractmethod
-    def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:
-        """Build the parameter dictionary from the potential's fields."""
-
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         return expansion_potential(  # type: ignore[no-any-return]
-            self._params(t),
+            self.params(t),
             xyz,
             self.l_max,
             self.lm_keys,
@@ -87,7 +89,7 @@ class MultipoleProfileMixin(AbstractSinglePotential):
         """
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         return expansion_gradient(  # type: ignore[no-any-return]
-            self._params(t),
+            self.params(t),
             xyz,
             self.l_max,
             self.lm_keys,
@@ -97,7 +99,7 @@ class MultipoleProfileMixin(AbstractSinglePotential):
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
         return expansion_density(  # type: ignore[no-any-return]
-            self._params(t),
+            self.params(t),
             xyz,
             self.l_max,
             self.lm_keys,
@@ -190,27 +192,6 @@ class AbstractMultipoleProfilePotential(MultipoleProfileMixin, AbstractSinglePot
         evaluation path does not defeat the compilation cache.
         """
         return lm_keys(self.l_max, self.symmetry)  # validates `symmetry`
-
-    def _params(self, t: gt.BBtQorVSz0, /) -> gt.Params:
-        """Evaluate the coefficients at ``t``, stripped to this unit system."""
-        t = u.Q.from_(t, self.units["time"])
-        usys = self.units
-        return {
-            "r_knots": self.r_knots(t, ustrip=usys["length"]),
-            "phi_lm": self.phi_lm(t, ustrip=usys["specific energy"]),
-            "dphi_lm": self.dphi_lm(t, ustrip=usys["specific energy"]),
-            "d2phi_lm": self.d2phi_lm(t, ustrip=usys["specific energy"]),
-            "phi_asympt_powers": self.phi_asympt_powers(
-                t, ustrip=usys["dimensionless"]
-            ),
-            "phi_asympt_scales": self.phi_asympt_scales(
-                t, ustrip=usys["specific energy"]
-            ),
-            "rho_residual_lm": self.rho_residual_lm(t, ustrip=usys["mass density"]),
-            "drho_residual_lm": self.drho_residual_lm(t, ustrip=usys["mass density"]),
-            "rho_amplitude": self.rho_amplitude(t, ustrip=usys["mass density"]),
-            "rho_alpha": self.rho_alpha(t, ustrip=usys["dimensionless"]),
-        }
 
 
 def _check_grid_config(n_r: int, l_max: int, /) -> None:

@@ -77,10 +77,19 @@ def test_matches_hand_written_dict() -> None:
     _assert_dicts_close(eval_params(pot, T0), expected)
 
 
-def test_matches_zhao_private_params() -> None:
+def test_matches_hand_written_zhao_dict() -> None:
     """Dimensionless parameters strip against ``units["dimensionless"]``."""
     pot = _zhao()
-    _assert_dicts_close(eval_params(pot, T0), pot._params(T0))
+    udim = pot.units["dimensionless"]
+    expected = {
+        "G": pot.constants["G"].value,
+        "m": pot.m(T0, ustrip=pot.units["mass"]),
+        "r_s": pot.r_s(T0, ustrip=pot.units["length"]),
+        "alpha": pot.alpha(T0, ustrip=udim),
+        "beta": pot.beta(T0, ustrip=udim),
+        "gamma": pot.gamma(T0, ustrip=udim),
+    }
+    _assert_dicts_close(eval_params(pot, T0), expected)
 
 
 def test_ustrip_false_returns_quantities() -> None:

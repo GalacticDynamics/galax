@@ -96,12 +96,8 @@ class TriaxialGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePotenti
         $$ \rho_0 = \frac{m_\mathrm{tot}}{q_1 q_2 (2 \pi)^{3/2} r_s^3} $$
 
         """
-        u1 = self.units["dimensionless"]
-        m_tot = self.m_tot(t, ustrip=self.units["mass"] if ustrip else None)
-        r_s = self.r_s(t, ustrip=self.units["length"] if ustrip else None)
-        q1 = self.q1(t, ustrip=u1 if ustrip else None)
-        q2 = self.q2(t, ustrip=u1 if ustrip else None)
-        return m_tot / (q1 * q2 * (2 * jnp.pi) ** 1.5 * r_s**3)
+        p = self.params(t, ustrip=ustrip)
+        return p["m_tot"] / (p["q1"] * p["q2"] * (2 * jnp.pi) ** 1.5 * p["r_s"] ** 3)
 
     # ==========================================================================
     # Potential energy

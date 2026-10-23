@@ -63,25 +63,20 @@ class LogarithmicPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
         # Compute parameters
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        v_c = self.v_c(t, ustrip=self.units["speed"])
+        p = self.params(t)
 
-        return 0.5 * v_c**2 * jnp.log(r_s**2 + r**2)  # type: ignore[no-any-return]
+        return 0.5 * p["v_c"] ** 2 * jnp.log(p["r_s"] ** 2 + r**2)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
         # Compute parameters
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        v_c = self.v_c(t, ustrip=self.units["speed"])
-        G = self.constants["G"].value
+        p = self.params(t)
 
-        numer = v_c**2 * (3 * r_s**2 + r**2)
-        denom = 4 * jnp.pi * G * (r_s**2 + r**2) ** 2
+        numer = p["v_c"] ** 2 * (3 * p["r_s"] ** 2 + r**2)
+        denom = 4 * jnp.pi * p["G"] * (p["r_s"] ** 2 + r**2) ** 2
         return numer / denom  # type: ignore[no-any-return]
 
 
@@ -136,50 +131,39 @@ class LMJ09LogarithmicPotential(LaplacianFromDensityMixin, AbstractSinglePotenti
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        u1 = self.units["dimensionless"]
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        q1, q2, q3 = self.q1(t, ustrip=u1), self.q2(t, ustrip=u1), self.q3(t, ustrip=u1)
-        phi = self.phi(t, ustrip=self.units["angle"])
-        v_c = self.v_c(t, ustrip=self.units["speed"])
+        p = self.params(t)
 
         # Rotated and scaled coordinates
-        sphi, cphi = jnp.sin(phi), jnp.cos(phi)
+        sphi, cphi = jnp.sin(p["phi"]), jnp.cos(p["phi"])
         x = xyz[..., 0] * cphi + xyz[..., 1] * sphi
         y = -xyz[..., 0] * sphi + xyz[..., 1] * cphi
-        r2 = (x / q1) ** 2 + (y / q2) ** 2 + (xyz[..., 2] / q3) ** 2
+        r2 = (x / p["q1"]) ** 2 + (y / p["q2"]) ** 2 + (xyz[..., 2] / p["q3"]) ** 2
 
         # Potential energy
-        return 0.5 * v_c**2 * jnp.log(r_s**2 + r2)  # type: ignore[no-any-return]
+        return 0.5 * p["v_c"] ** 2 * jnp.log(p["r_s"] ** 2 + r2)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        u1 = self.units["dimensionless"]
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        q1, q2, q3 = self.q1(t, ustrip=u1), self.q2(t, ustrip=u1), self.q3(t, ustrip=u1)
-        phi = self.phi(t, ustrip=self.units["angle"])
-        v_c = self.v_c(t, ustrip=self.units["speed"])
-        G = self.constants["G"].value
+        p = self.params(t)
 
         # Rotated coordinates (bar frame)
-        sphi, cphi = jnp.sin(phi), jnp.cos(phi)
+        sphi, cphi = jnp.sin(p["phi"]), jnp.cos(p["phi"])
         x = xyz[..., 0] * cphi + xyz[..., 1] * sphi
         y = -xyz[..., 0] * sphi + xyz[..., 1] * cphi
         z = xyz[..., 2]
 
-        q1sq, q2sq, q3sq = q1**2, q2**2, q3**2
-        D = q1sq * q2sq * q3sq * r_s**2 + q1sq * q2sq * z**2 + q1sq * q3sq * y**2
+        q1sq, q2sq, q3sq = p["q1"] ** 2, p["q2"] ** 2, p["q3"] ** 2
+        D = q1sq * q2sq * q3sq * p["r_s"] ** 2 + q1sq * q2sq * z**2 + q1sq * q3sq * y**2
         D = D + q2sq * q3sq * x**2
         numer = D * (q1sq * q2sq + q1sq * q3sq + q2sq * q3sq) - 2 * (
             q1sq**2 * q2sq**2 * z**2
             + q1sq**2 * q3sq**2 * y**2
             + q2sq**2 * q3sq**2 * x**2
         )
-        return v_c**2 * numer / (4 * jnp.pi * G * D**2)  # type: ignore[no-any-return]
+        return p["v_c"] ** 2 * numer / (4 * jnp.pi * p["G"] * D**2)  # type: ignore[no-any-return]

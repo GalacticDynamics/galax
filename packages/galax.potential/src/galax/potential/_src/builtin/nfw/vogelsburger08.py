@@ -62,19 +62,18 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
     """`Symmetry.PLANE_REFLECTION`: the potential is even in $x$, $y$ and $z$."""
 
     @ft.partial(jax.jit, inline=True)
-    def _r_e(self, xyz: gt.BtSz3, t: gt.BBtSz0) -> gt.BtFloatSz0:
-        q1sq = self.q1(t, ustrip=self.units["dimensionless"]) ** 2
+    def _r_e(self, xyz: gt.BtSz3, p: gt.Params) -> gt.BtFloatSz0:
+        q1sq = p["q1"] ** 2
         q2sq = 3 - q1sq
         x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
         _result = safe_sqrt(x**2 + y**2 / q1sq + z**2 / q2sq)
         return _result  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit, inline=True)
-    def _r_tilde(self, xyz: gt.BtSz3, t: gt.BBtSz0) -> gt.BtFloatSz0:
-        a_r = self.a_r(t, ustrip=self.units["dimensionless"])
-        r_a = a_r * self.r_s(t, ustrip=self.units["length"])
+    def _r_tilde(self, xyz: gt.BtSz3, p: gt.Params) -> gt.BtFloatSz0:
+        r_a = p["a_r"] * p["r_s"]
 
-        r_e = self._r_e(xyz, t)
+        r_e = self._r_e(xyz, p)
         r = safe_vector_norm(xyz)
         return (r_a + r) * r_e / (r_a + r_e)  # type: ignore[no-any-return]
 
@@ -82,13 +81,10 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        m = self.m(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
+        p = self.params(t)
 
-        r = self._r_tilde(xyz, t)
+        r = self._r_tilde(xyz, p)
         # NFW's radial function of r~, whose derivatives do not cancel.
-        params = {"G": self.constants["G"].value, "m": m, "r_s": r_s}
-        return nfw_potential(params, r)  # type: ignore[no-any-return]
+        return nfw_potential(p, r)  # type: ignore[no-any-return]

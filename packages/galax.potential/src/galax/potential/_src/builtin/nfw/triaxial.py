@@ -89,9 +89,8 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         $$ \rho_0 = \frac{M}{4 \pi r_s^3} $$
 
         """
-        m = self.m(t, ustrip=self.units["mass"] if ustrip else None)
-        r_s = self.r_s(t, ustrip=self.units["length"] if ustrip else None)
-        return m / (4 * jnp.pi * r_s**3)
+        p = self.params(t, ustrip=ustrip)
+        return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)
 
     # ==========================================================================
     # Potential energy

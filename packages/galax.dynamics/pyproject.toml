@@ -22,8 +22,8 @@ classifiers = [
 #
 # `numpy` is imported at module scope by `_src/orbit/base.py` and
 # `_src/solver.py` but is declared nowhere in the repository root, so this floor
-# is DERIVED, not copied: 1.26 is the oldest release supporting Python 3.12,
-# this project's `requires-python` floor. Tracked repo-wide in #920.
+# is DERIVED, not copied: 2.0 is what JAX 0.8 and later require, and gives the
+# Array API names (`np.concat`, ...). Tracked repo-wide in #920.
 dependencies = [
   "boundinstance>=0.1",
   "coordinax>=0.24.3,<0.25",
@@ -37,7 +37,7 @@ dependencies = [
   "jax>=0.7.2",
   "jaxmore>=0.5",
   "jaxtyping>=0.3.3",
-  "numpy>=1.26",
+  "numpy>=2.0",
   "optimistix>=0.0.11",
   "plotting_backends>=0.1",
   "plum>=2.8.0; python_version < '3.14'",

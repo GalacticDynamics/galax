@@ -223,29 +223,28 @@ _OFF_AXIS = np.array(
 )
 
 
-# The same potentials without their `Symmetry.SPHERICAL` declaration, so that
-# Delta goes through eq. 9: the tests of its round-off threshold use these.
-class _UndeclaredHernquist(gp.HernquistPotential):
-    symmetry = gp.Symmetry.NONE
+@ft.cache
+def _undeclared(cls):
+    """``cls`` without its `Symmetry.SPHERICAL` declaration.
 
-
-class _UndeclaredNFW(gp.NFWPotential):
-    symmetry = gp.Symmetry.NONE
-
-
-class _UndeclaredIsochrone(gp.IsochronePotential):
-    symmetry = gp.Symmetry.NONE
+    Delta then goes through eq. 9 instead of the exact-zero shortcut: the tests
+    of eq. 9's round-off threshold, and of the spherical built-ins' Hessians,
+    use these.
+    """
+    assert cls.symmetry is gp.Symmetry.SPHERICAL
+    return type(f"Undeclared{cls.__name__}", (cls,), {"symmetry": gp.Symmetry.NONE})
 
 
 def _sph(kind, units, scale, *, declared=False):
     m, r = u.Q(1e12, "Msun"), u.Q(scale, "kpc")
-    if kind == "hernquist":
-        cls = gp.HernquistPotential if declared else _UndeclaredHernquist
-        return cls(m_tot=m, r_s=r, units=units)
+    cls = {
+        "hernquist": gp.HernquistPotential,
+        "nfw": gp.NFWPotential,
+        "isochrone": gp.IsochronePotential,
+    }[kind]
+    cls = cls if declared else _undeclared(cls)
     if kind == "nfw":
-        cls = gp.NFWPotential if declared else _UndeclaredNFW
         return cls(m=m, r_s=r, units=units)
-    cls = gp.IsochronePotential if declared else _UndeclaredIsochrone
     return cls(m_tot=m, r_s=r, units=units)
 
 
@@ -443,28 +442,40 @@ def _every_spherical(r_s):
     m = u.Q(1e12, "Msun")
     kw = {"units": "galactic"}
     return {
-        "Kepler": gp.KeplerPotential(m_tot=m, **kw),
-        "Plummer": gp.PlummerPotential(m_tot=m, r_s=r_s, **kw),
-        "Hernquist": gp.HernquistPotential(m_tot=m, r_s=r_s, **kw),
-        "Jaffe": gp.JaffePotential(m_tot=m, r_s=r_s, **kw),
-        "Isochrone": gp.IsochronePotential(m_tot=m, r_s=r_s, **kw),
-        "NFW": gp.NFWPotential(m=m, r_s=r_s, **kw),
-        "HardCutoffNFW": gp.HardCutoffNFWPotential(m=m, r_s=r_s, r_t=12.3 * r_s, **kw),
-        "Burkert": gp.BurkertPotential(m=m, r_s=r_s, **kw),
-        "gNFW0.5": gp.gNFWPotential(m=m, r_s=r_s, gamma=0.5, **kw),
-        "gNFW1.5": gp.gNFWPotential(m=m, r_s=r_s, gamma=1.5, **kw),
-        "Zhao": gp.ZhaoPotential(m=m, r_s=r_s, alpha=0.5, beta=4.0, gamma=1.0, **kw),
-        "PowerLawCutoff": gp.PowerLawCutoffPotential(m_tot=m, alpha=1.8, r_c=r_s, **kw),
-        "StoneOstriker15": gp.StoneOstriker15Potential(
+        "Kepler": _undeclared(gp.KeplerPotential)(m_tot=m, **kw),
+        "Plummer": _undeclared(gp.PlummerPotential)(m_tot=m, r_s=r_s, **kw),
+        "Hernquist": _undeclared(gp.HernquistPotential)(m_tot=m, r_s=r_s, **kw),
+        "Jaffe": _undeclared(gp.JaffePotential)(m_tot=m, r_s=r_s, **kw),
+        "Isochrone": _undeclared(gp.IsochronePotential)(m_tot=m, r_s=r_s, **kw),
+        "NFW": _undeclared(gp.NFWPotential)(m=m, r_s=r_s, **kw),
+        "HardCutoffNFW": _undeclared(gp.HardCutoffNFWPotential)(
+            m=m, r_s=r_s, r_t=12.3 * r_s, **kw
+        ),
+        "Burkert": _undeclared(gp.BurkertPotential)(m=m, r_s=r_s, **kw),
+        "gNFW0.5": _undeclared(gp.gNFWPotential)(m=m, r_s=r_s, gamma=0.5, **kw),
+        "gNFW1.5": _undeclared(gp.gNFWPotential)(m=m, r_s=r_s, gamma=1.5, **kw),
+        "Zhao": _undeclared(gp.ZhaoPotential)(
+            m=m, r_s=r_s, alpha=0.5, beta=4.0, gamma=1.0, **kw
+        ),
+        "PowerLawCutoff": _undeclared(gp.PowerLawCutoffPotential)(
+            m_tot=m, alpha=1.8, r_c=r_s, **kw
+        ),
+        "StoneOstriker15": _undeclared(gp.StoneOstriker15Potential)(
             m_tot=m, r_c=0.1 * r_s, r_h=r_s, **kw
         ),
-        "Logarithmic": gp.LogarithmicPotential(v_c=u.Q(200, "km/s"), r_s=r_s, **kw),
+        "Logarithmic": _undeclared(gp.LogarithmicPotential)(
+            v_c=u.Q(200, "km/s"), r_s=r_s, **kw
+        ),
     }
 
 
 @pytest.mark.parametrize("name", _every_spherical(u.Q(10.0, "kpc")))
 def test_delta_zero_for_every_spherical_builtin(name):
     """Delta == 0, exactly, from 1e-8 to 1e8 scale lengths in 64 directions.
+
+    Through eq. 9: each potential has its `SPHERICAL` declaration stripped
+    (`_undeclared`, which also checks every one declares it), so the shortcut
+    does not hide the Hessian.
 
     This needs each potential's Hessian to a few ulp of its magnitude: NFW and
     Burkert used to give a spurious Delta in the core, and Burkert and gNFW

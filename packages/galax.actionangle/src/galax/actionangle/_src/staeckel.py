@@ -72,14 +72,11 @@ def _delta_single(pot: Any, xyz: Array, t: Array) -> Array:
     tol = 1e3 * jnp.finfo(a2_c2.dtype).eps  # type: ignore[no-untyped-call]
     a2_c2 = jnp.where(jnp.abs(a2_c2) < tol * scale, 0.0, a2_c2)
 
-    # NaN rather than a wrong value where the potential's derivatives are not
-    # to be trusted. A potential evaluated near underflow can have subnormal
-    # autodiff intermediates behind outputs that look normal (one form of
-    # Kuzmin-Kutuzov at m = 1e-290 Msun gave a gradient 1% off, and Delta 16
-    # for 2.8). What gives it away is that d2Phi/dRdz, taken along e_R then z
-    # and along e_z then R, then disagree, by ~1e14 eps of the Hessian there,
-    # against <~ 5 eps for every built-in (float32 and float64): cut at
-    # sqrt(eps). A subnormal d2Phi/dRdz has lost its relative precision outright.
+    # NaN where the potential's derivatives are not to be trusted, e.g. from
+    # subnormal autodiff intermediates near underflow. d2Phi/dRdz taken along
+    # e_R then z and along e_z then R must agree to sqrt(eps) of the Hessian
+    # (every built-in agrees to <~ 5 eps, float32 and float64), and must not
+    # be subnormal.
     finfo = jnp.finfo(a2_c2.dtype)  # type: ignore[no-untyped-call]
     d2Phi_dzdR = H_ez[0] * e_R[0] + H_ez[1] * e_R[1]
     h = jnp.max(jnp.abs(jnp.stack([gR, gz, d2Phi_dR2, d2Phi_dz2, d2Phi_dRdz])))

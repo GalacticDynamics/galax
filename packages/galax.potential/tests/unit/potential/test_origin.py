@@ -38,8 +38,8 @@ CUSPY = [
     gp.StoneOstriker15Potential(
         m_tot=M_TOT, r_h=u.Quantity(10.0, "kpc"), r_c=R_S, units="galactic"
     ),
-    # Their autodiff r-derivative used to be 0/0 here (e.g. NFW's
-    # d/dr[log1p(x)/x]); `radial_derivatives` now gives it as G M(r) / r^2.
+    # Naive autodiff of their r-derivative would be 0/0 here (e.g. NFW's
+    # d/dr[log1p(x)/x]); `radial_derivatives` gives it as G M(r) / r^2.
     gp.NFWPotential(m=M_TOT, r_s=R_S, units="galactic"),
     gp.BurkertPotential(m=M_TOT, r_s=R_S, units="galactic"),
 ]

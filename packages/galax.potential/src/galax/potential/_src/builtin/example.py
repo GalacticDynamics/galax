@@ -172,11 +172,10 @@ class HenonHeilesPotential(AbstractSinglePotential):
     ) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        ts2 = self.timescale(t, ustrip=self.units["time"]) ** 2
-        coeff = self.coeff(t, ustrip=self.units["wavenumber"])
+        p = self.params(t)
+        ts2, coeff = p["timescale"] ** 2, p["coeff"]
 
         x2, y = xyz[..., 0] ** 2, xyz[..., 1]
         R2 = x2 + y**2

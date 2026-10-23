@@ -269,30 +269,24 @@ class SCFPotential(AbstractSinglePotential):
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
-        ud = self.units["dimensionless"]
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        Snlm = self.Snlm(t, ustrip=ud)
-        Tnlm = self.Tnlm(t, ustrip=ud)
+        p = self.params(t)
+        m_tot, r_s = p["m_tot"], p["r_s"]
+        Snlm, Tnlm = p["Snlm"], p["Tnlm"]
 
         s, uvec = scaled_radius_and_direction(xyz, r_s)
         phinl = phi_nl(self.nmax, self.lmax, s)
         summation = self._summation(phinl, Snlm, Tnlm, uvec)
 
-        return self.constants["G"].value * m_tot / r_s * summation  # type: ignore[no-any-return]
+        return p["G"] * m_tot / r_s * summation  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
-        ud = self.units["dimensionless"]
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        Snlm = self.Snlm(t, ustrip=ud)
-        Tnlm = self.Tnlm(t, ustrip=ud)
+        p = self.params(t)
+        m_tot, r_s = p["m_tot"], p["r_s"]
+        Snlm, Tnlm = p["Snlm"], p["Tnlm"]
 
         s, uvec = scaled_radius_and_direction(xyz, r_s)
         rhonl = rho_nl(self.nmax, self.lmax, s)

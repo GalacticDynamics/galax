@@ -98,13 +98,10 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        Slm = self.Slm(t, ustrip=self.units["dimensionless"])
-        Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
+        p = self.params(t)
+        m_tot, r_s, Slm, Tlm = p["m_tot"], p["r_s"], p["Slm"], p["Tlm"]
 
         # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
@@ -119,7 +116,7 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
         if is_scalar:
             summation = summation[0]
 
-        _result = self.constants["G"].value * m_tot / r_s * summation
+        _result = p["G"] * m_tot / r_s * summation
         return _result  # type: ignore[no-any-return]
 
 
@@ -161,13 +158,10 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        Slm = self.Slm(t, ustrip=self.units["dimensionless"])
-        Tlm = self.Tlm(t, ustrip=self.units["dimensionless"])
+        p = self.params(t)
+        m_tot, r_s, Slm, Tlm = p["m_tot"], p["r_s"], p["Slm"], p["Tlm"]
 
         # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
@@ -182,7 +176,7 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
         if is_scalar:
             summation = summation[0]
 
-        _result = self.constants["G"].value * m_tot / r_s * summation
+        _result = p["G"] * m_tot / r_s * summation
         return _result  # type: ignore[no-any-return]
 
 
@@ -234,14 +228,11 @@ class MultipolePotential(AbstractMultipolePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
-        u1 = self.units["dimensionless"]
-        m_tot = self.m_tot(t, ustrip=self.units["mass"])
-        r_s = self.r_s(t, ustrip=self.units["length"])
-        ISlm, ITlm = self.ISlm(t, ustrip=u1), self.ITlm(t, ustrip=u1)
-        OSlm, OTlm = self.OSlm(t, ustrip=u1), self.OTlm(t, ustrip=u1)
+        p = self.params(t)
+        m_tot, r_s = p["m_tot"], p["r_s"]
+        ISlm, ITlm, OSlm, OTlm = p["ISlm"], p["ITlm"], p["OSlm"], p["OTlm"]
 
         # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
@@ -257,7 +248,7 @@ class MultipolePotential(AbstractMultipolePotential):
         if is_scalar:
             summation = summation[0]
 
-        _result = self.constants["G"].value * m_tot / r_s * summation
+        _result = p["G"] * m_tot / r_s * summation
         return _result  # type: ignore[no-any-return]
 
 

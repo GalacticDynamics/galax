@@ -271,25 +271,21 @@ class SCFPotential(AbstractSinglePotential):
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         p = self.params(t)
-        m_tot, r_s = p["m_tot"], p["r_s"]
-        Snlm, Tnlm = p["Snlm"], p["Tnlm"]
 
-        s, uvec = scaled_radius_and_direction(xyz, r_s)
+        s, uvec = scaled_radius_and_direction(xyz, p["r_s"])
         phinl = phi_nl(self.nmax, self.lmax, s)
-        summation = self._summation(phinl, Snlm, Tnlm, uvec)
+        summation = self._summation(phinl, p["Snlm"], p["Tnlm"], uvec)
 
-        return p["G"] * m_tot / r_s * summation  # type: ignore[no-any-return]
+        return p["G"] * p["m_tot"] / p["r_s"] * summation  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         p = self.params(t)
-        m_tot, r_s = p["m_tot"], p["r_s"]
-        Snlm, Tnlm = p["Snlm"], p["Tnlm"]
 
-        s, uvec = scaled_radius_and_direction(xyz, r_s)
+        s, uvec = scaled_radius_and_direction(xyz, p["r_s"])
         rhonl = rho_nl(self.nmax, self.lmax, s)
-        summation = self._summation(rhonl, Snlm, Tnlm, uvec)
+        summation = self._summation(rhonl, p["Snlm"], p["Tnlm"], uvec)
 
-        return m_tot / r_s**3 * summation  # type: ignore[no-any-return]
+        return p["m_tot"] / p["r_s"] ** 3 * summation  # type: ignore[no-any-return]

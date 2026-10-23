@@ -101,22 +101,21 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
 
         # Compute parameters
         p = self.params(t)
-        m_tot, r_s, Slm, Tlm = p["m_tot"], p["r_s"], p["Slm"], p["Tlm"]
 
         # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
-        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), r_s)
+        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), p["r_s"])
 
         # Compute the summation over l and m
         terms = [
-            jnp.pow(s, l) * (Slm[l, m] * cYlm + Tlm[l, m] * sYlm)
+            jnp.pow(s, l) * (p["Slm"][l, m] * cYlm + p["Tlm"][l, m] * sYlm)
             for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
         ]
         summation = jnp.sum(jnp.stack(terms), axis=0)
         if is_scalar:
             summation = summation[0]
 
-        _result = p["G"] * m_tot / r_s * summation
+        _result = p["G"] * p["m_tot"] / p["r_s"] * summation
         return _result  # type: ignore[no-any-return]
 
 
@@ -161,22 +160,21 @@ class MultipoleOuterPotential(AbstractMultipolePotential):
 
         # Compute parameters
         p = self.params(t)
-        m_tot, r_s, Slm, Tlm = p["m_tot"], p["r_s"], p["Slm"], p["Tlm"]
 
         # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
-        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), r_s)
+        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), p["r_s"])
 
         # Compute the summation over l and m
         terms = [
-            jnp.pow(s, -(l + 1)) * (Slm[l, m] * cYlm + Tlm[l, m] * sYlm)
+            jnp.pow(s, -(l + 1)) * (p["Slm"][l, m] * cYlm + p["Tlm"][l, m] * sYlm)
             for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
         ]
         summation = jnp.sum(jnp.stack(terms), axis=0)
         if is_scalar:
             summation = summation[0]
 
-        _result = p["G"] * m_tot / r_s * summation
+        _result = p["G"] * p["m_tot"] / p["r_s"] * summation
         return _result  # type: ignore[no-any-return]
 
 
@@ -231,24 +229,22 @@ class MultipolePotential(AbstractMultipolePotential):
 
         # Compute parameters
         p = self.params(t)
-        m_tot, r_s = p["m_tot"], p["r_s"]
-        ISlm, ITlm, OSlm, OTlm = p["ISlm"], p["ITlm"], p["OSlm"], p["OTlm"]
 
         # scaled radius and unit direction
         is_scalar = xyz.ndim == 1
-        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), r_s)
+        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), p["r_s"])
 
         # Compute the summation over l and m
         terms = [
-            jnp.pow(s, l) * (ISlm[l, m] * cYlm + ITlm[l, m] * sYlm)
-            + jnp.pow(s, -l - 1) * (OSlm[l, m] * cYlm + OTlm[l, m] * sYlm)
+            jnp.pow(s, l) * (p["ISlm"][l, m] * cYlm + p["ITlm"][l, m] * sYlm)
+            + jnp.pow(s, -l - 1) * (p["OSlm"][l, m] * cYlm + p["OTlm"][l, m] * sYlm)
             for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
         ]
         summation = jnp.sum(jnp.stack(terms), axis=0)
         if is_scalar:
             summation = summation[0]
 
-        _result = p["G"] * m_tot / r_s * summation
+        _result = p["G"] * p["m_tot"] / p["r_s"] * summation
         return _result  # type: ignore[no-any-return]
 
 

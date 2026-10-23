@@ -175,9 +175,8 @@ class HenonHeilesPotential(AbstractSinglePotential):
 
         # Compute parameters
         p = self.params(t)
-        ts2, coeff = p["timescale"] ** 2, p["coeff"]
 
         x2, y = xyz[..., 0] ** 2, xyz[..., 1]
         R2 = x2 + y**2
-        _result = (R2 / 2 + coeff * (x2 * y - y**3 / 3.0)) / ts2
+        _result = (R2 / 2 + p["coeff"] * (x2 * y - y**3 / 3.0)) / p["timescale"] ** 2
         return _result  # type: ignore[no-any-return]

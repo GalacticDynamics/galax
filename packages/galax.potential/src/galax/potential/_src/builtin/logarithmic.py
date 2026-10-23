@@ -65,9 +65,8 @@ class LogarithmicPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         r = r_spherical(xyz, self.units["length"])
         # Compute parameters
         p = self.params(t)
-        r_s, v_c = p["r_s"], p["v_c"]
 
-        return 0.5 * v_c**2 * jnp.log(r_s**2 + r**2)  # type: ignore[no-any-return]
+        return 0.5 * p["v_c"] ** 2 * jnp.log(p["r_s"] ** 2 + r**2)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
@@ -75,10 +74,9 @@ class LogarithmicPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         r = r_spherical(xyz, self.units["length"])
         # Compute parameters
         p = self.params(t)
-        r_s, v_c, G = p["r_s"], p["v_c"], p["G"]
 
-        numer = v_c**2 * (3 * r_s**2 + r**2)
-        denom = 4 * jnp.pi * G * (r_s**2 + r**2) ** 2
+        numer = p["v_c"] ** 2 * (3 * p["r_s"] ** 2 + r**2)
+        denom = 4 * jnp.pi * p["G"] * (p["r_s"] ** 2 + r**2) ** 2
         return numer / denom  # type: ignore[no-any-return]
 
 
@@ -136,17 +134,15 @@ class LMJ09LogarithmicPotential(LaplacianFromDensityMixin, AbstractSinglePotenti
 
         # Compute parameters
         p = self.params(t)
-        r_s, v_c, phi = p["r_s"], p["v_c"], p["phi"]
-        q1, q2, q3 = p["q1"], p["q2"], p["q3"]
 
         # Rotated and scaled coordinates
-        sphi, cphi = jnp.sin(phi), jnp.cos(phi)
+        sphi, cphi = jnp.sin(p["phi"]), jnp.cos(p["phi"])
         x = xyz[..., 0] * cphi + xyz[..., 1] * sphi
         y = -xyz[..., 0] * sphi + xyz[..., 1] * cphi
-        r2 = (x / q1) ** 2 + (y / q2) ** 2 + (xyz[..., 2] / q3) ** 2
+        r2 = (x / p["q1"]) ** 2 + (y / p["q2"]) ** 2 + (xyz[..., 2] / p["q3"]) ** 2
 
         # Potential energy
-        return 0.5 * v_c**2 * jnp.log(r_s**2 + r2)  # type: ignore[no-any-return]
+        return 0.5 * p["v_c"] ** 2 * jnp.log(p["r_s"] ** 2 + r2)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
@@ -155,21 +151,19 @@ class LMJ09LogarithmicPotential(LaplacianFromDensityMixin, AbstractSinglePotenti
 
         # Compute parameters
         p = self.params(t)
-        r_s, v_c, phi, G = p["r_s"], p["v_c"], p["phi"], p["G"]
-        q1, q2, q3 = p["q1"], p["q2"], p["q3"]
 
         # Rotated coordinates (bar frame)
-        sphi, cphi = jnp.sin(phi), jnp.cos(phi)
+        sphi, cphi = jnp.sin(p["phi"]), jnp.cos(p["phi"])
         x = xyz[..., 0] * cphi + xyz[..., 1] * sphi
         y = -xyz[..., 0] * sphi + xyz[..., 1] * cphi
         z = xyz[..., 2]
 
-        q1sq, q2sq, q3sq = q1**2, q2**2, q3**2
-        D = q1sq * q2sq * q3sq * r_s**2 + q1sq * q2sq * z**2 + q1sq * q3sq * y**2
+        q1sq, q2sq, q3sq = p["q1"] ** 2, p["q2"] ** 2, p["q3"] ** 2
+        D = q1sq * q2sq * q3sq * p["r_s"] ** 2 + q1sq * q2sq * z**2 + q1sq * q3sq * y**2
         D = D + q2sq * q3sq * x**2
         numer = D * (q1sq * q2sq + q1sq * q3sq + q2sq * q3sq) - 2 * (
             q1sq**2 * q2sq**2 * z**2
             + q1sq**2 * q3sq**2 * y**2
             + q2sq**2 * q3sq**2 * x**2
         )
-        return v_c**2 * numer / (4 * jnp.pi * G * D**2)  # type: ignore[no-any-return]
+        return p["v_c"] ** 2 * numer / (4 * jnp.pi * p["G"] * D**2)  # type: ignore[no-any-return]

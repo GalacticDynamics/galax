@@ -90,8 +90,7 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 
         """
         p = self.params(t, ustrip=ustrip)
-        m, r_s = p["m"], p["r_s"]
-        return m / (4 * jnp.pi * r_s**3)
+        return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)
 
     # ==========================================================================
     # Potential energy

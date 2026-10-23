@@ -107,8 +107,7 @@ class AxisymmetricGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePot
 
         """
         p = self.params(t, ustrip=ustrip)
-        m_tot, r_s, q2 = p["m_tot"], p["r_s"], p["q2"]
-        return m_tot / (q2 * (2 * jnp.pi) ** 1.5 * r_s**3)
+        return p["m_tot"] / (p["q2"] * (2 * jnp.pi) ** 1.5 * p["r_s"] ** 3)
 
     # ==========================================================================
     # Potential energy

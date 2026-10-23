@@ -452,6 +452,7 @@ def _every_spherical(r_s):
             m=m, r_s=r_s, r_t=12.3 * r_s, **kw
         ),
         "Burkert": _undeclared(gp.BurkertPotential)(m=m, r_s=r_s, **kw),
+        "Gaussian": _undeclared(gp.GaussianPotential)(m_tot=m, r_s=r_s, **kw),
         "gNFW0.5": _undeclared(gp.gNFWPotential)(m=m, r_s=r_s, gamma=0.5, **kw),
         "gNFW1.5": _undeclared(gp.gNFWPotential)(m=m, r_s=r_s, gamma=1.5, **kw),
         "Zhao": _undeclared(gp.ZhaoPotential)(

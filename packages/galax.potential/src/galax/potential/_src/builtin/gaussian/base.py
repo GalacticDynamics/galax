@@ -12,6 +12,7 @@ __all__ = [
 ]
 
 import functools as ft
+import math
 from dataclasses import KW_ONLY
 
 from typing import final
@@ -33,7 +34,7 @@ from galax.potential._src.base_single import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import r_spherical
+from galax.potential._src.utils import r_spherical, radial_derivatives
 
 
 @final
@@ -211,6 +212,16 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     return rho0 * jnp.exp(-(x**2) / 2)  # type: ignore[no-any-return]
 
 
+def _x_exp(x: gt.BBtSz0, /) -> gt.BBtSz0:
+    r"""$x e^{-x^2/2}$, shared by `mass_enclosed` and `dmass_dr`.
+
+    Further factors of $x$ multiply this, so they give 0 rather than
+    $\infty \cdot 0$ where both a power of $x$ overflows and the exponential
+    underflows.
+    """
+    return x * jnp.exp(-(x**2) / 2)  # type: ignore[no-any-return]
+
+
 @ft.partial(jax.jit)
 def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Enclosed mass for the Gaussian model.
@@ -219,17 +230,44 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     \sqrt{\frac{2}{\pi}} x \exp\left(-\frac{x^2}{2}\right) \right] $$
 
     where $x = r / r_s$ is the dimensionless radius and $m_\mathrm{tot}$ is
-    the total mass.
+    the total mass. The bracket is the regularized incomplete gamma function
+    $P(3/2, z)$ with $z = x^2/2$; its two terms cancel to $\sim x^3$ as
+    $x \to 0$, so up to $x = 1$ it is summed as the series of positive terms
+
+    $$ P(3/2, z) = \frac{x^3 e^{-z}}{\sqrt{2\pi}}
+       \sum_{k \geq 0} \frac{z^k}{(3/2)(5/2) \cdots (k + 3/2)}, $$
+
+    whose 15 terms reach $10^{-17}$ there. Beyond, the direct difference
+    cancels by at most a factor 3.5.
 
     """
     x = r / p["r_s"]
-    m_tot = p["m_tot"]
-    erf_term = jsp.erf(x / jnp.sqrt(2.0))
-    exp_term = jnp.sqrt(2.0 / jnp.pi) * x * jnp.exp(-(x**2) / 2)
-    return m_tot * (erf_term - exp_term)  # type: ignore[no-any-return]
+    z = x**2 / 2
+    xe = _x_exp(x)
+    small = x <= 1
+    c = jnp.asarray(_GAMMA_SERIES, dtype=z.dtype)
+    series = jnp.polyval(c, jnp.where(small, z, 0.5), unroll=len(_GAMMA_SERIES))
+    core = xe * x * x * series / math.sqrt(2 * math.pi)
+    direct = jsp.erf(x / math.sqrt(2)) - math.sqrt(2 / math.pi) * xe
+    return p["m_tot"] * jnp.where(small, core, direct)  # type: ignore[no-any-return]
+
+
+_GAMMA_SERIES = tuple(
+    1 / math.prod(j + 1.5 for j in range(k + 1)) for k in range(14, -1, -1)
+)
+r"""$1 / ((3/2)(5/2) \cdots (k + 3/2))$ for $k \leq 14$, highest degree first."""
 
 
 @ft.partial(jax.jit)
+def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
+    r"""$dM/dr = 4\pi r^2 \rho$, for `radial_derivatives`."""
+    x = r / p["r_s"]
+    dbracket = math.sqrt(2 / math.pi) * _x_exp(x) * x
+    return p["m_tot"] / p["r_s"] * dbracket
+
+
+@ft.partial(jax.jit)
+@radial_derivatives(mass_enclosed, dmass_dr)
 def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Potential for the Gaussian model.
 

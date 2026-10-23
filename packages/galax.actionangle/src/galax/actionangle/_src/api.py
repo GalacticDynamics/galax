@@ -63,10 +63,9 @@ def staeckel_fudge_delta(*args: Any, **kwargs: Any) -> Any:
       potential must not overflow on lengths ~1e20 m.
     - A potential not declaring `~galax.potential.Symmetry.SPHERICAL` whose
       own Hessian is imprecise can give a spurious Δ, 0 or NaN there, and
-      which one can change with batch size or jit. No built-in does: the
-      last, the Gaussian core, is spherical. A potential separable
-      analytically but not in floating point (e.g. an l ≤ 2, m = 0 interior
-      multipole) gives an arbitrary Δ instead of NaN.
+      which one can change with batch size or jit; no built-in does. A
+      potential separable analytically but not in floating point (e.g. an
+      l ≤ 2, m = 0 interior multipole) gives an arbitrary Δ instead of NaN.
     - Δ is not differentiable: the output is wrapped in
       `jax.lax.stop_gradient`.
     - The Staeckel fudge assumes a potential axisymmetric about the z axis

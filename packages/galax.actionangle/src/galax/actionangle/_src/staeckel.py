@@ -99,7 +99,7 @@ def _delta(pot: Any, q: Array, t: Array) -> Array:
     plane, axis and origin included -- without the Hessian, whose round-off
     eq. 9 would otherwise amplify.
     """
-    if Symmetry(pot.symmetry) == Symmetry.SPHERICAL:  # static: no retrace
+    if pot.symmetry == Symmetry.SPHERICAL:  # static: no retrace
         shape = jnp.broadcast_shapes(q.shape[:-1], t.shape)
         return jnp.zeros(shape, dtype=jnp.result_type(q, t))
     f = ft.partial(_delta_single, pot)

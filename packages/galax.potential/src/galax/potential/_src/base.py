@@ -58,7 +58,9 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
         Defaults to `Symmetry.NONE` -- no symmetry asserted. Subclasses
         override this to declare more, which lets callers pass inputs that are
         only well defined under that symmetry (e.g. a
-        `coordinax.vecs.RadialPos`).
+        `coordinax.vecs.RadialPos`). A class attribute may be written as a
+        plain string or `None`; it is converted to a `Symmetry` when the class
+        is defined, so a misspelling fails there.
 
         Examples
         --------
@@ -87,6 +89,15 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
         )
         paramattr.__set_name__(cls, "param_objs")
         type(cls).__setattr__(cls, "param_objs", paramattr)
+
+        # A class-level ``symmetry`` written as a string (or the `None` alias)
+        # becomes a `Symmetry`, so a typo fails here rather than quietly
+        # comparing unequal later. Properties (here, composites, wrappers) and
+        # dataclass fields (`MultipoleProfilePotential`'s, with its own
+        # converter) are not strings and are left alone.
+        symmetry = cls.__dict__.get("symmetry", ...)
+        if symmetry is None or isinstance(symmetry, str):
+            type(cls).__setattr__(cls, "symmetry", Symmetry(symmetry))  # type: ignore[arg-type]
 
     ###########################################################################
     # Parsing

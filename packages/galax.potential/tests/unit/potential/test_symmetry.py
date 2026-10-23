@@ -339,20 +339,20 @@ def test_length_3_quantity_is_still_a_position() -> None:
 
 
 def test_symmetry_may_be_declared_as_a_plain_string() -> None:
-    """A `StrEnum` exists so the plain string works; the gate must honour that.
+    """Declaring `symmetry = "spherical"` is the natural thing to write.
 
-    Declaring `symmetry = "spherical"` is the natural thing to write, and an
-    identity check would reject it while reporting `declares symmetry
-    'spherical'` -- refusing a spherical potential for not being spherical.
+    The class attribute is converted to the `Symmetry` member when the class is
+    defined, so it is the member itself, and the `RadialPos` gate accepts it.
     """
 
     class StrDeclared(gp.KeplerPotential):
         symmetry = "spherical"
 
+    assert StrDeclared.symmetry is gp.Symmetry.SPHERICAL
     pot = StrDeclared(m_tot=u.Q(1e12, "Msun"), units="galactic")
     radial = cx.vecs.RadialPos(r=u.Q(8.0, "kpc"))
 
-    assert pot.symmetry == gp.Symmetry.SPHERICAL
+    assert pot.symmetry is gp.Symmetry.SPHERICAL
     assert jnp.isclose(
         pot.potential(radial, t=0),
         pot.potential(u.Q([8.0, 0.0, 0.0], "kpc"), t=0),
@@ -360,23 +360,19 @@ def test_symmetry_may_be_declared_as_a_plain_string() -> None:
     )
 
 
-def test_misspelled_symmetry_is_reported_as_invalid_not_ambiguous() -> None:
+def test_misspelled_symmetry_fails_when_the_class_is_defined() -> None:
     """A bad declaration must not masquerade as a non-spherical potential.
 
-    `symmetry` is a plain class attribute, so unlike a `ParameterField` there
-    is no converter to catch a typo. Comparing the raw value means a
-    misspelling merely tests unequal, and the caller is told a `RadialPos` is
-    *ambiguous* for their potential -- sending them to find a direction to
-    pass, when the real fault is the spelling. Validate instead.
+    Left as a string, a misspelling would merely compare unequal: a `RadialPos`
+    caller would be told the potential is *ambiguous*, sending them to find a
+    direction to pass, and `staeckel_fudge_delta` would quietly skip its
+    spherical shortcut. Converting at class definition fails at the typo.
     """
-
-    class Misspelled(gp.KeplerPotential):
-        symmetry = "sphericl"
-
-    pot = Misspelled(m_tot=u.Q(1e12, "Msun"), units="galactic")
-
     with pytest.raises(ValueError, match="Unknown symmetry 'sphericl'") as e:
-        pot.potential(cx.vecs.RadialPos(r=u.Q(8.0, "kpc")), t=0)
+
+        class Misspelled(gp.KeplerPotential):
+            symmetry = "sphericl"
+
     assert "spherical" in str(e.value)  # the message names the valid values
 
 
@@ -386,6 +382,7 @@ def test_none_declaration_is_normalized_in_the_ambiguity_message() -> None:
     class NoneDeclared(gp.KeplerPotential):
         symmetry = None
 
+    assert NoneDeclared.symmetry is gp.Symmetry.NONE
     pot = NoneDeclared(m_tot=u.Q(1e12, "Msun"), units="galactic")
 
     with pytest.raises(TypeError, match="declares symmetry 'none'"):

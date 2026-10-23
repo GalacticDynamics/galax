@@ -1,5 +1,7 @@
 """Tests for `staeckel_fudge_delta`."""
 
+import functools as ft
+
 import jax
 import numpy as np
 import pytest
@@ -221,21 +223,93 @@ _OFF_AXIS = np.array(
 )
 
 
-def test_delta_zero_for_spherical_isochrone():
-    pot = gp.IsochronePotential(
-        m_tot=u.Q(1e11, "Msun"), r_s=u.Q(3.0, "kpc"), units="galactic"
-    )
-    delta = staeckel_fudge_delta(pot, jnp.asarray(_OFF_AXIS), jnp.asarray(0.0))
-    assert jnp.all(delta == 0)
+@ft.cache
+def _undeclared(cls):
+    """``cls`` without its `Symmetry.SPHERICAL` declaration.
+
+    Delta then goes through eq. 9 instead of the exact-zero shortcut: the tests
+    of eq. 9's round-off threshold, and of the spherical built-ins' Hessians,
+    use these.
+    """
+    assert cls.symmetry is gp.Symmetry.SPHERICAL
+    return type(f"Undeclared{cls.__name__}", (cls,), {"symmetry": gp.Symmetry.NONE})
 
 
-def _sph(kind, units, scale):
+def _sph(kind, units, scale, *, declared=False):
     m, r = u.Q(1e12, "Msun"), u.Q(scale, "kpc")
-    if kind == "hernquist":
-        return gp.HernquistPotential(m_tot=m, r_s=r, units=units)
+    cls = {
+        "hernquist": gp.HernquistPotential,
+        "nfw": gp.NFWPotential,
+        "isochrone": gp.IsochronePotential,
+    }[kind]
+    cls = cls if declared else _undeclared(cls)
     if kind == "nfw":
-        return gp.NFWPotential(m=m, r_s=r, units=units)
-    return gp.IsochronePotential(m_tot=m, r_s=r, units=units)
+        return cls(m=m, r_s=r, units=units)
+    return cls(m_tot=m, r_s=r, units=units)
+
+
+def _composite(*, declared):
+    return gp.CompositePotential(
+        a=_sph("hernquist", "galactic", 3.0, declared=declared),
+        b=_sph("nfw", "galactic", 20.0, declared=declared),
+    )
+
+
+# Off-axis points, then the plane, the axis and the origin (NaN through eq. 9,
+# 0/0), then the NFW core at 1e-5 r_s, where its Hessian round-off makes the
+# eq. 9 Delta spurious.
+_SPH_PTS = jnp.concat(
+    [
+        jnp.asarray(_OFF_AXIS),
+        jnp.asarray(
+            [[5.0, 2.0, 0.0], [0.0, 0.0, 2.0], [0.0, 0.0, 0.0], [8e-5, 3e-5, 5e-5]]
+        ),
+    ]
+)
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        pytest.param(ft.partial(_sph, k, "galactic", 10.0), id=k)
+        for k in ("hernquist", "isochrone", "nfw")
+    ]
+    + [pytest.param(_composite, id="composite")],
+)
+def test_delta_exactly_zero_for_declared_spherical(make):
+    """Exactly 0 everywhere, even where eq. 9 gives NaN or round-off.
+
+    A composite of spherical parts derives `SPHERICAL`, so it is 0 too. The
+    zeros take the broadcast batch shape of ``q`` and ``t``, and eq. 9's dtype.
+    """
+    pot = make(declared=True)
+    assert pot.symmetry is gp.Symmetry.SPHERICAL
+    q = jnp.asarray(_SPH_PTS)[:, None]
+    delta = staeckel_fudge_delta(pot, q, jnp.asarray([0.0, 1.0]))
+    assert delta.shape == (len(_SPH_PTS), 2)
+    assert jnp.all(delta == 0)
+    # The same potential undeclared is NaN at the plane, axis and origin.
+    general = staeckel_fudge_delta(make(declared=False), q, jnp.asarray([0.0, 1.0]))
+    assert jnp.all(jnp.isnan(general[len(_OFF_AXIS) : len(_OFF_AXIS) + 3]))
+    assert delta.dtype == general.dtype
+
+
+def test_delta_exactly_zero_skips_the_hessian():
+    """No derivative of the potential is traced for a declared-spherical one.
+
+    The NFW potential's log(1 + r / r_s) marks it in the jaxpr: present on the
+    general path, absent on the declared-spherical one.
+    """
+
+    def jaxpr(pot):
+        return str(
+            jax.make_jaxpr(lambda q: staeckel_fudge_delta(pot, q, 0.0))(
+                jnp.ones((3, 3))
+            )
+        )
+
+    assert "log" in jaxpr(_sph("nfw", "galactic", 10.0))
+    assert "log" not in jaxpr(_sph("nfw", "galactic", 10.0, declared=True))
 
 
 @pytest.mark.parametrize("units", ["galactic", PC], ids=["galactic", "pc"])
@@ -270,10 +344,11 @@ def test_delta_threshold_zeroes_tiny_kk_delta():
     assert jnp.all(staeckel_fudge_delta(pot, q, jnp.asarray(0.0)) == 0)
 
 
+@pytest.mark.parametrize("declared", [False, True], ids=["eq9", "declared"])
 @pytest.mark.parametrize("kind", ["hernquist", "isochrone", "nfw"])
-def test_delta_spherical_zero_float32_inputs(kind):
+def test_delta_spherical_zero_float32_inputs(kind, declared):
     """Float32 q and t under x64: the derivatives, and Delta, are float32."""
-    pot = _sph(kind, "galactic", 10.0)
+    pot = _sph(kind, "galactic", 10.0, declared=declared)
     r = jnp.geomspace(1.0, 1000.0, 40, dtype=jnp.float32)
     q = jnp.stack([r * 0.8, r * 0.3, r * 0.5], axis=-1)
     delta = staeckel_fudge_delta(pot, q, jnp.asarray(0.0, dtype=jnp.float32))
@@ -289,15 +364,16 @@ _F32 = pytest.mark.filterwarnings(
 
 
 @_F32
+@pytest.mark.parametrize("declared", [False, True], ids=["eq9", "declared"])
 @pytest.mark.parametrize("kind", ["hernquist", "isochrone", "nfw"])
-def test_delta_spherical_zero_float32(kind):
+def test_delta_spherical_zero_float32(kind, declared):
     """The spherical threshold scales with the working precision.
 
     Here with x64 off, the default a caller gets; the dtype check keeps the
     test honest.
     """
     with jax.enable_x64(False):  # noqa: FBT003
-        pot = _sph(kind, "galactic", 10.0)
+        pot = _sph(kind, "galactic", 10.0, declared=declared)
         r = jnp.geomspace(1.0, 1000.0, 40)
         q = jnp.stack([r * 0.8, r * 0.3, r * 0.5], axis=-1)
         delta = staeckel_fudge_delta(pot, q, jnp.asarray(0.0))
@@ -366,28 +442,40 @@ def _every_spherical(r_s):
     m = u.Q(1e12, "Msun")
     kw = {"units": "galactic"}
     return {
-        "Kepler": gp.KeplerPotential(m_tot=m, **kw),
-        "Plummer": gp.PlummerPotential(m_tot=m, r_s=r_s, **kw),
-        "Hernquist": gp.HernquistPotential(m_tot=m, r_s=r_s, **kw),
-        "Jaffe": gp.JaffePotential(m_tot=m, r_s=r_s, **kw),
-        "Isochrone": gp.IsochronePotential(m_tot=m, r_s=r_s, **kw),
-        "NFW": gp.NFWPotential(m=m, r_s=r_s, **kw),
-        "HardCutoffNFW": gp.HardCutoffNFWPotential(m=m, r_s=r_s, r_t=12.3 * r_s, **kw),
-        "Burkert": gp.BurkertPotential(m=m, r_s=r_s, **kw),
-        "gNFW0.5": gp.gNFWPotential(m=m, r_s=r_s, gamma=0.5, **kw),
-        "gNFW1.5": gp.gNFWPotential(m=m, r_s=r_s, gamma=1.5, **kw),
-        "Zhao": gp.ZhaoPotential(m=m, r_s=r_s, alpha=0.5, beta=4.0, gamma=1.0, **kw),
-        "PowerLawCutoff": gp.PowerLawCutoffPotential(m_tot=m, alpha=1.8, r_c=r_s, **kw),
-        "StoneOstriker15": gp.StoneOstriker15Potential(
+        "Kepler": _undeclared(gp.KeplerPotential)(m_tot=m, **kw),
+        "Plummer": _undeclared(gp.PlummerPotential)(m_tot=m, r_s=r_s, **kw),
+        "Hernquist": _undeclared(gp.HernquistPotential)(m_tot=m, r_s=r_s, **kw),
+        "Jaffe": _undeclared(gp.JaffePotential)(m_tot=m, r_s=r_s, **kw),
+        "Isochrone": _undeclared(gp.IsochronePotential)(m_tot=m, r_s=r_s, **kw),
+        "NFW": _undeclared(gp.NFWPotential)(m=m, r_s=r_s, **kw),
+        "HardCutoffNFW": _undeclared(gp.HardCutoffNFWPotential)(
+            m=m, r_s=r_s, r_t=12.3 * r_s, **kw
+        ),
+        "Burkert": _undeclared(gp.BurkertPotential)(m=m, r_s=r_s, **kw),
+        "gNFW0.5": _undeclared(gp.gNFWPotential)(m=m, r_s=r_s, gamma=0.5, **kw),
+        "gNFW1.5": _undeclared(gp.gNFWPotential)(m=m, r_s=r_s, gamma=1.5, **kw),
+        "Zhao": _undeclared(gp.ZhaoPotential)(
+            m=m, r_s=r_s, alpha=0.5, beta=4.0, gamma=1.0, **kw
+        ),
+        "PowerLawCutoff": _undeclared(gp.PowerLawCutoffPotential)(
+            m_tot=m, alpha=1.8, r_c=r_s, **kw
+        ),
+        "StoneOstriker15": _undeclared(gp.StoneOstriker15Potential)(
             m_tot=m, r_c=0.1 * r_s, r_h=r_s, **kw
         ),
-        "Logarithmic": gp.LogarithmicPotential(v_c=u.Q(200, "km/s"), r_s=r_s, **kw),
+        "Logarithmic": _undeclared(gp.LogarithmicPotential)(
+            v_c=u.Q(200, "km/s"), r_s=r_s, **kw
+        ),
     }
 
 
 @pytest.mark.parametrize("name", _every_spherical(u.Q(10.0, "kpc")))
 def test_delta_zero_for_every_spherical_builtin(name):
     """Delta == 0, exactly, from 1e-8 to 1e8 scale lengths in 64 directions.
+
+    Through eq. 9: each potential has its `SPHERICAL` declaration stripped
+    (`_undeclared`, which also checks every one declares it), so the shortcut
+    does not hide the Hessian.
 
     This needs each potential's Hessian to a few ulp of its magnitude: NFW and
     Burkert used to give a spurious Delta in the core, and Burkert and gNFW

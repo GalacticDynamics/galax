@@ -25,8 +25,8 @@ classifiers = [
 #
 # `numpy` and `quax-blocks` are imported directly by this portion but are
 # declared nowhere in the repository root, so these two floors are DERIVED, not
-# copied: `numpy>=2.0` is what jax>=0.8 requires, and gives the Array API names
-# (`np.concat`, ...); `quax-blocks>=0.5` is the version `uv.lock`
+# copied: `numpy>=2.0` is what JAX 0.8 and later require, and gives the Array
+# API names (`np.concat`, ...); `quax-blocks>=0.5` is the version `uv.lock`
 # resolves, and its `NumpyMathMixin` is a base class of the public
 # `ConstantParameter`. The root's omission is tracked separately.
 dependencies = [

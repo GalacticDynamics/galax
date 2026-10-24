@@ -822,9 +822,11 @@ def test_a_core_at_the_overflow_radius_degrades_no_further(
     inner mass without bound. An unanchored solve drops the band instead and
     under-counts, which is bounded by the band's true mass.
 
-    It is a narrow resonance, and that is the point of parametrizing over it.
-    Measured float32 against float64 at :math:`\gamma = 2.95`, this branch
-    against an unanchored build:
+    The rows below sample where the density's curvature is still visible to
+    the gate. They are not the whole problem: it is not a narrow resonance,
+    and a core far under the overflow radius is worse in relative terms (see
+    the family comment above `_FAMILY`). Measured float32 against float64 at
+    :math:`\gamma = 2.95`, this branch against an unanchored build:
 
     ======================= ============ ============ =======
     ``rc`` / overflow radius  anchored     unanchored   ratio
@@ -839,8 +841,8 @@ def test_a_core_at_the_overflow_radius_degrades_no_further(
     agree to the bit. At 1.0 a usable 1.2% answer becomes a 143% one.
 
     No gate on the retained samples can fix this, because the evidence is
-    gone. This test exists so the resonance cannot deepen unnoticed, and so
-    the 3.0 row cannot start anchoring.
+    gone. This test exists so the regime it samples cannot deepen unnoticed,
+    and so the 3.0 row cannot start anchoring.
     """
     gamma, beta, alpha, rs, amp, n_r = 2.95, 5.0, 1.0, 50.0, 1e17, 8
     r_overflow = (float(jnp.finfo(jnp.float32).max) / amp) ** (-1.0 / gamma)
@@ -970,8 +972,17 @@ def test_anchoring_rescues_a_near_divergent_cusp() -> None:
 # overflow radius) rather than by any grid. Over 291 such densities run
 # through `build_expansion` on this branch and on an unanchored build, three
 # regressed past 1.5x -- worst 4.21x -- and all three were cored. 167 improved
-# by more than 2x, best 1.4e4x. So the hand-picked 4.4x really is near the
-# family's ceiling, and the ceiling only exists where a core hides.
+# by more than 2x, best 1.4e4x.
+#
+# That is NOT the ceiling. The family does not sample cores or breaks far
+# under the overflow radius, which is where anchoring loses most. A targeted
+# sweep (float32, [1e-4, 1e4], n_r = 64, unit amplitude) measured, anchored
+# against unanchored: a cored cusp at gamma = 2.99 with rc = 1e-13 is 2.7
+# against 1.9e-2 (140x), 3.4 against 0.17 at rc = 1e-15 (20x), and still 2.6
+# against 0.32 at rc = 1e-18 (8x); a broken power law (gamma 2.9 outside, 0.5
+# inside, break at 1e-13) is 1.2e-1 against 2.1e-4 (570x). Below about
+# rc = 1e-17 the float32 samples equal a pure cusp's, so no gate can tell the
+# two apart; build in float64 if the density has structure there.
 #
 # Bounds are 2x the measured value, rounded up. A failure here means the
 # family's behaviour moved, which is worth a look even when the new number is

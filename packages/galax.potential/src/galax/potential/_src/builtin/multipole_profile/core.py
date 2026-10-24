@@ -564,6 +564,34 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             is ``< 1``, ``r_min <= 0``, or ``r_min >= r_max``; or if ``t`` is
             more than 1-D, or is a 1-D grid with fewer than two entries or one
             that is not strictly increasing and finite.
+
+        Notes
+        -----
+        The build solves on a grid padded well beyond ``[r_min, r_max]`` and
+        samples ``rho`` there. Where ``rho`` is not representable in the
+        working dtype those samples are zeroed, and the inner tail is
+        extrapolated to the origin as the power law fitted to the first
+        representable knots. For a cusp ``rho = A r**-gamma`` that happens
+        below about ``(A / finfo.max)**(1 / gamma)``: 5e-14 for ``A = 1`` and
+        ``gamma = 2.9`` in float32. For a cusp the extrapolation is exact, and
+        it is what keeps ``gamma`` near 3 accurate in float32.
+
+        It is an assumption, and the build cannot check it, because nothing
+        below the overflow radius survives to compare against. A core or a
+        break *below* that radius is treated as a cusp and its inner mass is
+        over-counted. The float32 samples above the radius are then
+        indistinguishable from a pure cusp's, so the data cannot reveal it.
+        The error grows as ``gamma`` approaches 3, where the tail carries
+        about ``1 / (3 - gamma)`` of the mass: measured over ``[1e-4, 1e4]``
+        it is about 10% at ``gamma = 2.9``, 40% at 2.95, and over 100% at
+        2.99. It needs a feature roughly ten decades below a bracket starting
+        at ``1e-4`` (at unit amplitude), so a physical core is not affected.
+        If the density does have structure there, build in float64, whose
+        overflow radius is about ``1e-100`` and zeroes nothing.
+
+        Separately, the anchor sits eight knots above the last zeroed sample,
+        so on a very coarse grid (``n_r`` of 7 or fewer) it is too far in to
+        help and the build is no better than without it.
         """
         _check_grid_config(n_r, l_max)
 
@@ -737,6 +765,11 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             ``n_r < 4``, ``l_max < 0``, ``n_theta`` or ``n_phi`` is given and
             is ``< 1``, ``r_min <= 0``, ``r_min >= r_max``, or ``t`` is
             rejected by `from_density`.
+
+        Notes
+        -----
+        The caveat about densities that overflow the working dtype under the
+        padded grid applies here too; see `from_density`.
         """
         # Only a single-time build cannot track a varying source; a time grid
         # is precisely how one is tracked, so the check is conditional on it.

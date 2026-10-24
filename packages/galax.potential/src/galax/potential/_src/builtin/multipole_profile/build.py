@@ -304,9 +304,12 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     is the truth. Where it is not -- a core under the overflow radius is the
     case to worry about -- the fit reports perfect confidence from an absence
     of data and the extrapolated cusp over-counts the inner mass. Worst
-    measured is 119x an unanchored build, turning a usable 1.2e-02 into 1.4,
-    and it is a narrow resonance in how close the core sits to that radius.
-    See the anchoring gate in `solve_poisson_profiles`.
+    measured is 140x an unanchored build for a core (gamma = 2.99) and 570x
+    for a broken power law. It is not a narrow resonance: a core well under
+    the overflow radius leaves float32 samples identical to a pure cusp's, so
+    the excess persists (8x at rc = 1e-18) and the data cannot reveal it. See
+    the anchoring gate in `solve_poisson_profiles` and the Notes of
+    `MultipoleProfilePotential.from_density`.
 
     Without this, one unrepresentable sample took out the whole build. The
     projection turns ``inf`` into ``inf`` at :math:`l = 0` and ``nan`` above

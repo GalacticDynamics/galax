@@ -282,11 +282,11 @@ def solve_poisson_profiles(
     ``first_ok`` has one integer-valued entry per mode: the index of the first
     knot whose ``rho_lm`` can be trusted, with everything below it standing
     for samples the caller could not represent and zeroed. The inner tail is
-    then anchored at that knot (plus `_ANCHOR_MARGIN` where ``rho_gl`` is
-    absent) instead of at knot 0, where the zeroed samples would switch it
-    off. Omitting it, or an anchor the gate rejects, gives the unanchored
-    solve. The profiles at knots below the anchor are not meaningful, since
-    their inner integral is dropped, so the caller must discard them, as
+    then anchored `_ANCHOR_MARGIN` knots above that one (on either path)
+    instead of at knot 0, where the zeroed samples would switch it off.
+    Omitting it, or an anchor the gate rejects, gives the unanchored solve.
+    The profiles at knots below the anchor are not meaningful, since their
+    inner integral is dropped, so the caller must discard them, as
     `build_expansion` does. Nothing validates ``first_ok``.
 
     Anchoring models ``[0, r_anchor]`` as the power law fitted at the anchor.

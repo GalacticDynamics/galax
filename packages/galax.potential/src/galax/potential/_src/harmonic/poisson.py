@@ -276,6 +276,24 @@ def solve_poisson_profiles(
         trace time, since both are shape errors; the second matters because
         a mismatched ``rho_gl`` broadcasts rather than failing, and would
         otherwise return finite numbers from the wrong integrals.
+
+    Notes
+    -----
+    ``first_ok`` has one integer-valued entry per mode: the index of the first
+    knot whose ``rho_lm`` can be trusted, with everything below it standing
+    for samples the caller could not represent and zeroed. The inner tail is
+    then anchored at that knot (plus `_ANCHOR_MARGIN` where ``rho_gl`` is
+    absent) instead of at knot 0, where the zeroed samples would switch it
+    off. Omitting it, or an anchor the gate rejects, gives the unanchored
+    solve. The profiles at knots below the anchor are not meaningful, since
+    their inner integral is dropped, so the caller must discard them, as
+    `build_expansion` does. Nothing validates ``first_ok``.
+
+    Anchoring models ``[0, r_anchor]`` as the power law fitted at the anchor.
+    That is a prior and not a measurement: a core or break inside the zeroed
+    band is invisible to it and is over-counted as a cusp. See
+    `MultipoleProfilePotential.from_density` for the size of the effect and
+    the float64 workaround.
     """
     # Three knots is what the boundary slope fits need -- `rho_col[tri]`
     # inward, `rho_col[-3:]` outward. A short grid does not fail on its own:
@@ -529,10 +547,14 @@ def solve_poisson_profiles(
         # with `|s1 - s0|` at round-off, which is maximal confidence drawn
         # from an absence of data.
         #
-        # The worst such density puts its *core* at the overflow radius: a
-        # narrow resonance where anchoring is up to 119x worse than not
-        # anchoring, pinned by `_FAMILY` and the resonance test in
-        # `test_build.py` and tracked in #958.
+        # The worst such density hides a core or break under the overflow
+        # radius. Measured float32, [1e-4, 1e4]: a core at gamma = 2.99 is up
+        # to 140x worse than not anchoring, and a broken power law up to 570x.
+        # It is not a narrow resonance: once the core is well under the
+        # overflow radius the samples above it are identical to a pure cusp's,
+        # so the excess stays (still 8x at rc = 1e-18) and no gate can remove
+        # it. Pinned by `_FAMILY` and the core test in `test_build.py`, and
+        # tracked in #958.
         #
         # The fallback is `i0 = 0`, not merely dropping the tail: anchoring
         # also zeroes every panel below the anchor, including panels over

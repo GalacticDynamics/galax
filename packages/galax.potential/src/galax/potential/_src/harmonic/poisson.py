@@ -553,7 +553,7 @@ def solve_poisson_profiles(
         # It is not a narrow resonance: once the core is well under the
         # overflow radius the samples above it are identical to a pure cusp's,
         # so the excess stays (still 8x at rc = 1e-18) and no gate can remove
-        # it. Pinned by `_FAMILY` and the core test in `test_build.py`, and
+        # it. Pinned by `_FAMILY` and the core test in `test_build_sweeps.py`, and
         # tracked in #958.
         #
         # The fallback is `i0 = 0`, not merely dropping the tail: anchoring

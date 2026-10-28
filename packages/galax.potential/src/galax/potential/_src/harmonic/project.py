@@ -206,14 +206,17 @@ def harmonic_coeffs(
     is called once per radius on the full angular grid.
 
     Differentiating through it is safe where ``rho_fn`` overflows. A radius at
-    which the density is not finite, or is zero everywhere, is one the caller
-    of this function discards, so the coefficients there are treated as
+    which the density is not finite, or is zero everywhere while it is not at
+    other radii, is one the caller of this function discards, so the
+    coefficients there are treated as
     constants and ``rho_fn`` is differentiated at a representable radius
     instead. Otherwise the zero cotangent would meet an infinite derivative
     inside ``rho_fn`` (``0 * inf``) and every float32 gradient would be `nan`.
     The values are unchanged. A radius whose value is finite and non-zero is
     differentiated as usual, so a density whose own derivative overflows there
     still gives a non-finite gradient; see `MultipoleProfilePotential.from_density`.
+    A density that is zero at *every* radius is differentiated as usual, so the
+    gradient with respect to an amplitude of exactly zero is kept.
     """
     uvec, weights = angular_grid(n_theta, n_phi)
     Y = real_ylm(l_max, keys, uvec)  # (n_modes, n_theta, n_phi)
@@ -232,14 +235,19 @@ def harmonic_coeffs(
     ) -> tuple[Float[Array, "n_r n_modes"], Array]:
         uvec, Y, weights = grid
 
-        def at_radius(r: Float[Array, ""]) -> tuple[Float[Array, "n_modes"], Array]:
+        def at_radius(
+            r: Float[Array, ""],
+        ) -> tuple[Float[Array, "n_modes"], Array, Array]:
             rho = rho_cc(r * uvec, t, *consts)  # (n_theta, n_phi)
             coeffs = jnp.einsum("kij,ij,ij->k", Y, rho, weights)
-            # A radius whose density is not finite, or is zero everywhere, has
-            # nothing the caller's parameters can change.
-            return coeffs, jnp.all(jnp.isfinite(rho)) & jnp.any(rho != 0)
+            return coeffs, jnp.all(jnp.isfinite(rho)), jnp.any(rho != 0)
 
-        return jax.vmap(at_radius)(r)
+        coeffs, finite, nonzero = jax.vmap(at_radius)(r)
+        # A radius whose density is not finite, or is zero while others are
+        # not, is one the caller's parameters cannot usefully change. If the
+        # density is zero at every radius (an amplitude of exactly 0) nothing
+        # was discarded, and the tangent is kept.
+        return coeffs, finite & (nonzero | ~jnp.any(nonzero))
 
     @jax.custom_jvp
     def project(

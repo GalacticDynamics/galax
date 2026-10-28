@@ -321,3 +321,24 @@ def test_harmonic_coeffs_gradient_is_finite_where_the_density_overflows() -> Non
         assert jnp.isfinite(grad), grad
         # Linear in A, so the gradient is the value.
         assert jnp.allclose(grad, value, rtol=1e-5), (grad, value)
+
+
+def test_harmonic_coeffs_amplitude_gradient_survives_an_all_zero_density() -> None:
+    """The gradient at an amplitude of exactly zero is not masked off.
+
+    REGRESSION: a row whose density is zero is treated as discarded, which must
+    not apply when *every* row is zero -- ``d(A f)/dA = f`` there.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([1e-2, 1.0, 1e3])
+
+    def total(A):
+        def rho(xyz, t):
+            return A * jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(c)
+
+    expected = total(jnp.asarray(1.0))  # linear in A
+    assert jnp.allclose(jax.grad(total)(jnp.asarray(0.0)), expected, rtol=1e-6)

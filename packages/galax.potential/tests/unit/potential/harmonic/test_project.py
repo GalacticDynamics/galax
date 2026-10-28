@@ -1,5 +1,6 @@
 """Tests for the angular projection machinery."""
 
+import functools as ft
 import math
 
 import jax
@@ -291,3 +292,32 @@ def test_harmonic_coeffs_recovers_a_single_mode(target: tuple[int, int]) -> None
     assert jnp.allclose(got[:, j], r**-1.5, rtol=1e-12)
     others = jnp.delete(got, j, axis=1)
     assert jnp.max(jnp.abs(others)) < 1e-12 * jnp.max(jnp.abs(r**-1.5))
+
+
+def test_harmonic_coeffs_gradient_is_finite_where_the_density_overflows() -> None:
+    """A gradient through radii that overflow in float32 is finite, and exact.
+
+    REGRESSION: ``A * r**-2.9`` is ``inf`` below about ``5e-14`` in float32, and
+    the caller drops those rows. The cotangent for them is zero, but it met the
+    infinite derivative inside the density (``0 * inf``), so the gradient with
+    respect to ``A`` was `nan` however the result was masked afterwards.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def kept(A, r):
+        def rho(xyz, t):
+            return A * jnp.linalg.norm(xyz, axis=-1) ** -2.9
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(jnp.where(jnp.isfinite(c), c, 0.0))
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        A = jnp.asarray(1.0)
+        r = jnp.asarray([1e-20, 1e-16, 1e-14, 1e-6, 1e-2, 1.0, 1e3])
+        kept = ft.partial(kept, r=r)
+        value, grad = kept(A), jax.grad(kept)(A)
+        assert value.dtype == jnp.float32
+        assert jnp.isfinite(grad), grad
+        # Linear in A, so the gradient is the value.
+        assert jnp.allclose(grad, value, rtol=1e-5), (grad, value)

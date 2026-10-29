@@ -197,7 +197,11 @@ def _hoist_consts(
     flat = jaxpr.replace(  # type: ignore[no-untyped-call]
         constvars=[], invars=[*jaxpr.constvars, *jaxpr.invars]
     )
-    call = jax.extend.core.jaxpr_as_fun(jax.extend.core.ClosedJaxpr(flat, ()))
+    # The hook's isolated mypy env types `jax.extend.core` differently.
+    closed_flat = jax.extend.core.ClosedJaxpr(  # type: ignore[attr-defined,unused-ignore]
+        flat, ()
+    )
+    call = jax.extend.core.jaxpr_as_fun(closed_flat)
 
     def converted(xyz: Any, t: Any, *consts: Any) -> Any:
         (out,) = call(*consts, xyz, t)

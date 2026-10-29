@@ -350,8 +350,7 @@ def _batch_w6s(pot, n=24):
     return jnp.asarray(w6s)
 
 
-@pytest.mark.parametrize("name", ["mn", "kk"])
-def test_taylor_coeffs_batch_matches_per_lane(name):
+def test_taylor_coeffs_batch_matches_per_lane():
     """`taylor_coeffs_batch`: per-lane values and gradients, both branches.
 
     With room for every candidate in one chunk and without (two chunks),
@@ -359,12 +358,13 @@ def test_taylor_coeffs_batch_matches_per_lane(name):
     coefficients and the gradient of a masked sum agree to 1e-14, and the
     non-candidate lanes are NaN. The compacted gradient's scratch memory
     stays near the per-lane program's (measured 1.1x): without the
-    per-lane checkpoint the cond kept its branches' residuals (4x).
+    per-lane checkpoint the cond kept its branches' residuals (4x). On MN
+    only: KK takes the same branches, and each case is 6 compiles (memory).
     """
-    pot = {"mn": _mn, "kk": _kk}[name]()
+    pot = _mn()
     phi = _phi(pot)
     w6s = _batch_w6s(pot)
-    d2s = jnp.full(len(w6s), MN_D2 if name == "mn" else D2)
+    d2s = jnp.full(len(w6s), MN_D2)
 
     def per_lane(w6s):
         lim = jax.vmap(lambda w, d: _live_limits(pot, w, d)[0])(w6s, d2s)

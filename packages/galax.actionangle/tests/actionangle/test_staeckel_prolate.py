@@ -289,7 +289,9 @@ def test_dF_limits_and_fd():
         np.testing.assert_allclose(F.dF_nu(jnp.asarray(tau)), fd1, rtol=1e-7)
 
 
-@pytest.mark.parametrize("name", ["kk", "mn", "nfw", "mw2022"])
+# Only a cusp puts a hazard at the limit sites; the smooth ones (KK, MN,
+# MW2022) kill nothing NFW does not, at 3x the compile.
+@pytest.mark.parametrize("name", ["nfw"])
 def test_dF_limit_sites_grad_nan_free(name):
     """See `check_dF_limit_sites`."""
     check_dF_limit_sites(name)

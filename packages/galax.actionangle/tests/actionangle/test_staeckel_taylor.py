@@ -24,6 +24,8 @@ from ._helpers import (
     _param_jacs,
     _phi,
     _w6s,
+    kk_delta,
+    kk_turning_points,
 )
 from galax.actionangle._src import _staeckel_limits as limits
 from galax.actionangle._src._staeckel_limits import (
@@ -350,6 +352,12 @@ def _batch_w6s(pot, n=24):
     return jnp.asarray(w6s)
 
 
+def _taylor_lane(phi, w6, d2, lim):
+    """`taylor_coeffs` as the batch calls it per lane (with ``iom``: polished)."""
+    iom = integrals_of_motion(phi, w6, d2)
+    return taylor_coeffs(make_F(phi, iom), lim, iom)
+
+
 def test_taylor_coeffs_batch_matches_per_lane():
     """`taylor_coeffs_batch`: per-lane values and gradients, both branches.
 
@@ -368,11 +376,7 @@ def test_taylor_coeffs_batch_matches_per_lane():
 
     def per_lane(w6s):
         lim = jax.vmap(lambda w, d: _live_limits(pot, w, d)[0])(w6s, d2s)
-        tay = jax.vmap(
-            lambda w, d, l: taylor_coeffs(
-                make_F(phi, integrals_of_motion(phi, w, d)), l
-            )
-        )(w6s, d2s, lim)
+        tay = jax.vmap(lambda w, d, l: _taylor_lane(phi, w, d, l))(w6s, d2s, lim)
         return tay
 
     def batched(w6s, size):
@@ -486,7 +490,7 @@ def test_shell_tangent_on_the_taylor_lanes(name):
     """attach_tangents(shell=False) + taylor_coeffs_batch(shell=True).
 
     The shell lanes' double-root tangent moves from every lane's tangent
-    pass to the compacted Taylor lanes: the limits (plus ``shell_t``) and
+    pass to the compacted Taylor lanes: the batch's limits and
     the coefficients have the default path's values and gradients (1e-14).
     Circular orbits (shells), near-circular and generic lanes. Reverse mode
     on kk; a fixed-direction jvp on mn (half the compile memory for CI).
@@ -501,9 +505,8 @@ def test_shell_tangent_on_the_taylor_lanes(name):
             w6s, d2s
         )
         t = taylor_coeffs_batch(phi, w6s, d2s, lim, shell=shell)
-        lo, hi = lim.lam_min + t.shell_t, lim.lam_max + t.shell_t
         c = [jnp.where(t.use_l, x, 0.0) for x in (t.c2, t.c3, t.c4)]
-        return jnp.stack([lo, hi, *c]), lim.shell
+        return jnp.stack([t.lam_min, t.lam_max, *c]), lim.shell
 
     v = jax.random.normal(jax.random.key(0), w6s.shape)
     vals = {}
@@ -518,3 +521,113 @@ def test_shell_tangent_on_the_taylor_lanes(name):
     np.testing.assert_allclose(vals[True][0], vals[False][0], rtol=1e-14, atol=0)
     g0, g1 = vals[False][1], vals[True][1]
     np.testing.assert_array_less(np.abs(g1 - g0), 1e-14 * np.max(np.abs(g0)) + 1e-300)
+
+
+_POLISH_ES = (1e-4, 3e-5, 1e-5, 3e-6, 1e-6, 3e-7, 1e-7)  # w/lam ~ 2.4 e
+_POLISH_GATE_ES = (4.0e-4, 4.3e-4)  # w/lam just inside and outside the gate
+
+
+def _polish_case():
+    """KK near-circular lanes, two at the polish gate, then generic lanes.
+
+    The last lane is generic: it is the chunks' fill lane. Returns (w6s,
+    d2s, lam, run), run(w6s, size) -> (Taylor, the input Limits).
+    """
+    pot = _kk()
+    phi = _phi(pot)
+    R0 = 6.0
+    vc = float(jnp.sqrt(R0 * jax.grad(lambda r: phi(r, 0.0 * r))(R0)))
+    es = _POLISH_ES + _POLISH_GATE_ES
+    near = [[R0, 0.0, 0.0, e * vc, vc, 0.3 * e * vc] for e in es]
+    w6s = jnp.concat([jnp.asarray(near), _w6s(6, seed=4)])
+    d2s = jnp.full(len(w6s), kk_delta(pot) ** 2)
+    lam = jax.vmap(lambda w, d: integrals_of_motion(phi, w, d).lam)(w6s, d2s)
+
+    def run(w6s, size=None):
+        lim = jax.vmap(lambda w, d: _live_limits(pot, w, d)[0])(w6s, d2s)
+        return taylor_coeffs_batch(phi, w6s, d2s, lim, size), lim
+
+    return pot, w6s, np.asarray(lam), run
+
+
+def test_polish_near_circular_roots():
+    """The batch Newton-polishes near-circular lambda roots (w < POLISH lam).
+
+    `find_limits` is roundoff-limited there (F's maximum is ~ (w/lam)^2 of
+    its terms): ~1e-2 of the extent at w/lam = 2.4e-7 on KK. The batch
+    polishes on the Taylor nest's quartic, anchored on F(lam) from the
+    momenta, to ~1e-9 of the extent (one ulp of lam is 1e-9 there) against
+    KK's exact roots (decimal F). One chunk and several give the same roots;
+    generic lanes (not candidates) keep the input limits bitwise; at the
+    gate the polish moves a root by < 1e-8 of the extent, so the limits are
+    continuous across it.
+    """
+    pot, w6s, lam, run = _polish_case()
+    n_near, n_gate = len(_POLISH_ES), len(_POLISH_GATE_ES)
+    t1, lim = jax.jit(run)(w6s)  # K = 16 > N: one chunk
+    t4, _ = jax.jit(lambda w: run(w, 4))(w6s)
+    lo, hi = np.asarray(t1.lam_min), np.asarray(t1.lam_max)
+    lo0, hi0 = np.asarray(lim.lam_min), np.asarray(lim.lam_max)
+    np.testing.assert_array_equal(np.asarray(t4.lam_min), lo)
+    np.testing.assert_array_equal(np.asarray(t4.lam_max), hi)
+
+    ref = np.array([kk_turning_points(pot, w, exact=True)[:2] for w in w6s[:n_near]])
+    ext = ref[:, 1] - ref[:, 0]
+    w_rel = ext / lam[:n_near]
+    assert w_rel.max() < 3e-4, w_rel
+    assert w_rel.min() < 3e-7, w_rel
+    err = np.abs(np.stack([lo[:n_near], hi[:n_near]], 1) - ref) / ext[:, None]
+    assert np.all(err < 1e-8), err
+
+    gen = slice(n_near + n_gate, None)
+    assert not np.any(np.asarray(t1.use_l | t1.use_n)[gen])  # not candidates
+    np.testing.assert_array_equal(lo[gen], lo0[gen])
+    np.testing.assert_array_equal(hi[gen], hi0[gen])
+    np.testing.assert_array_equal(np.asarray(t1.m)[gen], 0.5 * (lo0 + hi0)[gen])
+
+    gi, go = n_near, n_near + 1
+    w_gate = (hi0 - lo0) / lam
+    assert w_gate[gi] < limits.POLISH < w_gate[go], w_gate[gi : go + 1]
+    for k, (a, a0) in enumerate(((lo, lo0), (hi, hi0))):
+        assert 0 < abs(a[gi] - a0[gi]) < 1e-8 * (hi0 - lo0)[gi], k
+        assert a[go] == a0[go], k
+
+
+def test_polish_tangents():
+    """Polished roots: tangents at the polished root, generic lanes bitwise.
+
+    A jvp along one fixed direction (no jacrev: CI compile memory) against
+    central differences of the polished roots, on the lanes with h << w
+    (the roots are ~ sqrt in the epicyclic amplitude): to 1e-5, where the
+    solver's roundoff (1e-6 of the extent at w/lam = 2.4e-5) would put the
+    differences off by ~1e-2. On the generic lanes the batch's limits have
+    the input limits' jvp and vjp, bitwise.
+    """
+    _, w6s, _, run = _polish_case()
+    n_fd, gen = 4, slice(len(_POLISH_ES) + len(_POLISH_GATE_ES), None)
+
+    def f(w):
+        t, lim = run(w)
+        return jnp.stack([t.lam_min, t.lam_max, lim.lam_min, lim.lam_max])
+
+    key0, key1 = jax.random.split(jax.random.key(0))
+    scale = jnp.concat([jnp.full(3, 6.0), jnp.full(3, 0.2)])
+    v = jax.random.normal(key0, w6s.shape) * scale
+    jvp = jax.jit(lambda w: jax.jvp(f, (w,), (v,)))
+    out, d = (np.asarray(x) for x in jvp(w6s))
+    assert np.all(np.isfinite(d)), d
+    h = 1e-9
+    fd = (np.asarray(jvp(w6s + h * v)[0]) - np.asarray(jvp(w6s - h * v)[0])) / (2 * h)
+    for r in (0, 1):
+        np.testing.assert_allclose(d[r, :n_fd], fd[r, :n_fd], rtol=1e-5)
+    np.testing.assert_array_equal(d[:2, gen], d[2:, gen])
+
+    ct = jnp.zeros_like(out).at[:2, gen].set(jax.random.normal(key1, (2, 6)))
+
+    @jax.jit
+    def vjps(w):
+        _, back = jax.vjp(f, w)
+        return back(ct)[0], back(jnp.roll(ct, 2, axis=0))[0]
+
+    g_batch, g_lim = vjps(w6s)
+    np.testing.assert_array_equal(np.asarray(g_batch), np.asarray(g_lim))

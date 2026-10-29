@@ -16,6 +16,7 @@ __all__ = [
     "kk_turning_points",
 ]
 
+import decimal
 import functools as ft
 
 import jax
@@ -114,7 +115,7 @@ def kk_delta(pot: gp.KuzminKutuzovPotential, t: float = 0.0) -> float:
 
 
 def kk_turning_points(
-    pot: gp.KuzminKutuzovPotential, w6: np.ndarray
+    pot: gp.KuzminKutuzovPotential, w6: np.ndarray, *, exact: bool = False
 ) -> tuple[float, float, float]:
     """Exact (lam_min, lam_max, nu_max) of a KK orbit at t=0, in numpy.
 
@@ -122,43 +123,55 @@ def kk_turning_points(
     (lam - nu), and both momenta vanish where F(tau) = (E tau + G(tau) - K)
     (tau - D2) - Lz^2 tau / 2 = 0. The separation constant K follows from
     F(lam) = (lam - nu)^2 lamdot^2 / (8 lam). Needs Lz != 0 and R > 0.
+
+    With ``exact`` the integrals and F are evaluated in 40-digit decimals
+    (at float64 tau): the roots are then right to the last ulp, where
+    float64 F's roundoff moves a near-circular orbit's lambda roots by up
+    to ~1e-2 of the extent (w ~ 1e-7 lam).
     """
-    t = u.Q(0.0, pot.units["time"])
-    GM = float(pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"]))
-    c2 = float(pot.c(t, ustrip=pot.units["length"])) ** 2
-    D2 = kk_delta(pot) ** 2
-    x, y, z, vx, vy, vz = (float(v) for v in np.asarray(w6))
-    R = np.hypot(x, y)
-    vR, Lz = (x * vx + y * vy) / R, x * vy - y * vx
-    S, dif = R * R + z * z + D2, R * R + z * z - D2
-    sqD = np.sqrt(dif**2 + 4 * R * R * D2)
-    # lam - D2 without cancellation (it rounds to 0 for R ~ 1e-8 |z| < Delta)
-    lmd = 0.5 * (sqD + dif) if dif >= 0 else 2 * D2 * R * R / (sqD - dif)
-    lam, nu = D2 + lmd, 2 * D2 * z * z / (S + sqD)
-    lamdot = (2 * R * lam * vR + 2 * z * lmd * vz) / sqD
+    num = decimal.Decimal if exact else float
+    sqrt = (lambda a: a.sqrt()) if exact else np.sqrt
+    hypot = (lambda a, b: (a * a + b * b).sqrt()) if exact else np.hypot
+    with decimal.localcontext(prec=40):
+        t = u.Q(0.0, pot.units["time"])
+        GM = num(
+            float(pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"]))
+        )
+        c2 = num(float(pot.c(t, ustrip=pot.units["length"]))) ** 2
+        D2 = num(kk_delta(pot)) ** 2
+        x, y, z, vx, vy, vz = (num(float(v)) for v in np.asarray(w6))
+        R = hypot(x, y)
+        vR, Lz = (x * vx + y * vy) / R, x * vy - y * vx
+        S, dif = R * R + z * z + D2, R * R + z * z - D2
+        sqD = sqrt(dif**2 + 4 * R * R * D2)
+        # lam - D2 without cancellation (it rounds to 0 for R ~ 1e-8 |z| < Delta)
+        lmd = (sqD + dif) / 2 if dif >= 0 else 2 * D2 * R * R / (sqD - dif)
+        lam, nu = D2 + lmd, 2 * D2 * z * z / (S + sqD)
+        lamdot = (2 * R * lam * vR + 2 * z * lmd * vz) / sqD
 
-    def G(tau: float) -> float:
-        return GM * np.sqrt(tau + c2)
+        def G(tau):
+            return GM * sqrt(tau + c2)
 
-    E = -(G(lam) - G(nu)) / (lam - nu) + 0.5 * (vx * vx + vy * vy + vz * vz)
-    Flam = (lam - nu) ** 2 * lamdot**2 / (8 * lam)
-    K = E * lam + G(lam) - (Flam + Lz**2 * lam / 2) / lmd
+        E = -(G(lam) - G(nu)) / (lam - nu) + (vx * vx + vy * vy + vz * vz) / 2
+        Flam = (lam - nu) ** 2 * lamdot**2 / (8 * lam)
+        K = E * lam + G(lam) - (Flam + Lz**2 * lam / 2) / lmd
 
-    def F(tau: float) -> float:
-        return (E * tau + G(tau) - K) * (tau - D2) - Lz**2 * tau / 2
+        def F(tau) -> float:
+            tau = num(float(tau))
+            return float((E * tau + G(tau) - K) * (tau - D2) - Lz**2 * tau / 2)
 
-    hi = 2 * lam
-    while F(hi) >= 0:
-        hi *= 2
-    # F(lam) ~ 0 by roundoff near a turning point (or lam = D2): split the
-    # brackets at the first point above lam where F > 0
-    grid = lam + (hi - lam) * np.logspace(-14, 0, 300)
-    mid = grid[np.argmax([F(t) > 0 for t in grid])]
-    return (
-        float(bisect(F, D2, mid)),
-        float(bisect(F, mid, hi)),
-        float(bisect(F, nu, D2)),
-    )
+        hi = 2 * lam
+        while F(hi) >= 0:
+            hi *= 2
+        # F(lam) ~ 0 by roundoff near a turning point (or lam = D2): split the
+        # brackets at the first point above lam where F > 0
+        grid = [lam + (hi - lam) * num(g) for g in np.logspace(-14, 0, 300)]
+        mid = grid[np.argmax([F(t) > 0 for t in grid])]
+        return (
+            float(bisect(F, D2, mid)),
+            float(bisect(F, mid, hi)),
+            float(bisect(F, nu, D2)),
+        )
 
 
 # ---------------------------------------------------------------------------

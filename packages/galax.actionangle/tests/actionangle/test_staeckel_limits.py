@@ -826,9 +826,10 @@ def test_edge_lam_min_near_axis_kk():
     Every such point is at the lambda edge. lam_min - D2 (1e-12..2e-10, set by
     L_z) is now right to 2 ulp of D2 against KK's exact roots; lam itself
     (gala) was up to ~70x lam_min - D2. With L_z ~ 1e-12 the root is D2 to an
-    ulp. With L_z = 0 it is D2 exactly (F(D2) = 0); those edge lanes are not
-    pinned, and the model's root fell an ulp or a few below D2 (3 of 120
-    lanes): the edge value is floored at D2. Their tangents stay finite.
+    ulp. With L_z = 0 it is D2 exactly (F(D2) = 0), and the model's root
+    fell an ulp or a few below D2 (3 of 120 lanes): an edge root at or below
+    D2 is pinned there (``lmin_pinned``), with D2's tangent. Their tangents
+    stay finite.
     """
     pot = _kk()
     rng = np.random.default_rng(5)

@@ -54,7 +54,8 @@ class Limits(NamedTuple):
     shell: Array  # lam_max - lam_min < D2 MINIMUM_RANGE: both set to lam
     planar: Array  # nu_max < D2 MINIMUM_RANGE: set to 0
     nu_pinned: Array  # L_z = 0 box/tube decision set nu_max to 0 or D2
-    lmin_pinned: Array  # lam_min set to D2 by a decision, not a root
+    # lam_min set to D2: an L_z = 0 decision, or an edge root at or below D2
+    lmin_pinned: Array
     snapped: Array  # double root (see find_limits): lam_min = lam_max = lam
     # The origin of the lam_max lane's variable (F > 0 there), not the phase
     # point's lambda; lam where that lane is not solved (edge, snapped).
@@ -530,8 +531,14 @@ def attach_tangents(lim: Limits, F: Fset, Fz: Fset, *, shell: bool = True) -> Li
     tangent needs F' and F'' through a second-order nest on every lane, and
     shell lanes are a subset of the Taylor candidates, so
     `taylor_coeffs_batch` (``shell=True``) adds it on the compacted lanes
-    and returns it as ``Taylor.shell_t`` (-6 to -11% MN, -13 to -33% MW2022
-    value and gradient).
+    (-6 to -11% MN, -13 to -33% MW2022 value and gradient). Pass it these
+    limits only: limits from the default ``shell=True`` would get the
+    shell tangent twice.
+
+    The limits are final only after `taylor_coeffs_batch`: it also
+    Newton-polishes the near-circular lambda roots (`_polish`), which are
+    roundoff-limited here, and returns the final limits as
+    ``Taylor.lam_min`` and ``Taylor.lam_max``.
     """
     D2 = F.D2
     sg = jax.lax.stop_gradient
@@ -558,9 +565,11 @@ def attach_tangents(lim: Limits, F: Fset, Fz: Fset, *, shell: bool = True) -> Li
 NEAR_SHELL = 1e-2  # w < NEAR_SHELL hi: quartic-Taylor Q on the lambda branch
 NEAR_PLANAR = 1e-4  # nu_max < NEAR_PLANAR D2: candidate for the even-Taylor nu Q
 NEAR_PLANAR_SERIES = 3e-5  # ... used iff |F4| nu_max < NEAR_PLANAR_SERIES |F2|
+POLISH = 1e-3  # w < POLISH lam: Newton-polish the lambda roots (`_polish`)
+N_POLISH = 3  # Newton steps on the quartic
 # A series must match F itself to this (+ F's roundoff) to be used. The
 # quartic's own truncation reaches ~4e-7 of F at w/4 by the w = 1e-2 hi switch
-# (MW2022), hence the looser near-shell bound; a kink is off by >~1e-3.
+# (MW2022), hence the looser near-shell bound; a resolvable kink is off by >~1e-3.
 SERIES_CHECK_N, SERIES_CHECK_L = 1e-8, 1e-6
 
 
@@ -575,9 +584,11 @@ class Taylor(NamedTuple):
     use_n: Array  # near-planar: Q = -(F2 + F4 (hi + u^2))
     F2: Array  # F(u) = F0 + F2 u^2 + F4 u^4 on the nu branch
     F4: Array
-    # the shell lanes' double-root tangent (0 in value), from
-    # `taylor_coeffs_batch(..., shell=True)`; 0 everywhere else
-    shell_t: Array
+    # The final limits: the input's, Newton-polished where near-circular
+    # (with ``iom``, as in the batch) and, from `taylor_coeffs_batch(...,
+    # shell=True)`, with the shell lanes' double-root tangent.
+    lam_min: Array
+    lam_max: Array
 
 
 def _derivs(f: Callable[[Array], Array], x: Array, n: int) -> tuple[Array, ...]:
@@ -612,7 +623,7 @@ def _candidates(lim: Limits, D2: Array) -> tuple[Array, Array, Array]:
     return m, near_l, near_n
 
 
-def taylor_coeffs(F: Fset, lim: Limits) -> Taylor:
+def taylor_coeffs(F: Fset, lim: Limits, iom: IOM | None = None) -> Taylor:
     """Coefficients of the Q-form Taylor regimes, from nested jvps of live F.
 
     c2..c4 are the tau-Taylor coefficients of F_lam at m = (lam_min+lam_max)/2
@@ -629,14 +640,26 @@ def taylor_coeffs(F: Fset, lim: Limits) -> Taylor:
     near the axis, where the direct quadrature loses up to ~1e-4 to
     cancellation, and keeps lanes whose nu-line runs through or near a cusp
     (F2, F4 up to ~1e100 there: NFW, MW2022's halo) on the direct quadrature.
+
+    With ``iom`` (the live integrals F is built from) the near-circular
+    lambda roots are Newton-polished first (`_polish`), and m and c2..c4
+    follow the polished limits (returned as ``lam_min``, ``lam_max``).
     """
     m, use_l, near_n = _candidates(lim, F.D2)
     ok = jnp.isfinite(m) & (m > F.D2)
     c = _coeffs(F, jnp.where(ok, m, 2 * F.D2))
     c2, c3, c4 = (jnp.where(ok, c[k], jnp.nan) for k in range(3))
+    if iom is not None:
+        lim, near = _polish(F, iom, lim, m, c)
+        # m and c2, c3 at the polished midpoint: the quartic, shifted by dm
+        m_p = 0.5 * (lim.lam_min + lim.lam_max)
+        dm = jnp.where(near, m_p - m, 0.0)
+        c2 = jnp.where(near, c2 + dm * (3 * c3 + 6 * dm * c4), c2)
+        c3 = jnp.where(near, c3 + 4 * dm * c4, c3)
+        m = jnp.where(near, m_p, m)
     sg = jax.lax.stop_gradient
     F2, F4 = sg(c[3]), sg(c[4])
-    ok_n, ok_l = _series_match(F, lim, sg(m), sg(c[:3]), F2, F4)
+    ok_n, ok_l = _series_match(F, lim, sg(m), sg(jnp.stack([c2, c3, c4])), F2, F4)
     use_n = (
         near_n
         & jnp.isfinite(F2)
@@ -644,7 +667,56 @@ def taylor_coeffs(F: Fset, lim: Limits) -> Taylor:
         & (jnp.abs(F4) * sg(lim.nu_max) < NEAR_PLANAR_SERIES * jnp.abs(F2))
         & ok_n
     )
-    return Taylor(use_l & ok_l, m, c2, c3, c4, use_n, c[3], c[4], jnp.zeros_like(m))
+    return Taylor(
+        use_l & ok_l, m, c2, c3, c4, use_n, c[3], c[4], lim.lam_min, lim.lam_max
+    )
+
+
+def _polish(F: Fset, iom: IOM, lim: Limits, m: Array, c: Array) -> tuple[Limits, Array]:
+    """Near-circular lambda roots, Newton-polished on F's quartic at m.
+
+    Where w = lam_max - lam_min < POLISH lam (not shell, snapped or pinned)
+    `find_limits` is roundoff-limited: F's maximum is ~(w/lam)^2 of its
+    terms, and the roots are off by up to ~1e-2 of the extent at w/lam =
+    2e-7. ``c`` (`_coeffs` at m) is F's quartic about m; its constant is
+    anchored on F(lam) from the momenta (exact and >= 0, as for the edge),
+    and N_POLISH Newton steps from the solver's roots reach ~1e-9 of the
+    extent there (the ulp of lam), against KK's and a generic Staeckel
+    potential's exact roots. At the gate the quartic's truncation is far
+    below the solver's error. The simple-root tangent is reattached at the
+    polished root. Returns (the limits, the polished-lane flag); the other
+    lanes' limits are returned as given.
+    """
+    sg = jax.lax.stop_gradient
+    lo0, hi0, m0, lam = sg(lim.lam_min), sg(lim.lam_max), sg(m), sg(iom.lam)
+    f_mom = sg((iom.lam - iom.absnu) ** 2 * iom.lamdot**2 / (8 * iom.lam))
+    a1, a2, a3, a4 = sg(c[5]), sg(c[0]), sg(c[1]), sg(c[2])
+    xl = lam - m0
+    a0 = f_mom - xl * (a1 + xl * (a2 + xl * (a3 + xl * a4)))
+
+    def dp(x: Array) -> Array:
+        return a1 + x * (2 * a2 + x * (3 * a3 + x * 4 * a4))
+
+    x = jnp.stack([lo0, hi0]) - m0
+    for _ in range(N_POLISH):
+        x = x - (a0 + x * (a1 + x * (a2 + x * (a3 + x * a4)))) / dp(x)
+    L = m0 + x
+    # on the solver's side of lam (f_mom = 0 puts a root at lam itself)
+    L = jnp.stack([jnp.where(L[0] > lam, lam, L[0]), jnp.where(L[1] < lam, lam, L[1])])
+    near = (
+        (hi0 - lo0 < POLISH * lam)
+        & ~lim.shell
+        & ~lim.snapped
+        & ~lim.lmin_pinned
+        & jnp.all(jnp.isfinite(L))
+    )
+    L = jnp.where(near, L, jnp.stack([lo0, hi0]))
+    t = -_over(_tang_at(F.F_lam, L, F.D2, 2 * F.D2), dp(L - m0))
+    lim = lim._replace(
+        lam_min=jnp.where(near, L[0] + t[0], lim.lam_min),
+        lam_max=jnp.where(near, L[1] + t[1], lim.lam_max),
+    )
+    return lim, near
 
 
 def _series_match(
@@ -660,8 +732,10 @@ def _series_match(
     or SERIES_CHECK_L (near-shell, of F) plus SNAP_NOISE x F's roundoff there
     (`Fset.F_noise`); NaN fails. Smooth potentials pass (MN, MW2022, MN3Exp:
     no lane rejected over w/hi up to the switch and the near-planar sweeps);
-    a kink fails by orders of magnitude (Kuzmin's |u| term: 1.0; a hard
-    cutoff inside a near-circular orbit: 0.1-0.3).
+    a resolvable kink fails by orders of magnitude (Kuzmin's |u| term: 1.0;
+    a hard cutoff inside a near-circular orbit: 0.1-0.3). A weak kink can
+    pass: a cut halo of mass <= 1e8 leaves Q off by up to ~1e-5 and the
+    J-proxy by up to ~5e-7.
     """
     sg = jax.lax.stop_gradient
     lo, hi = sg(lim.lam_min), sg(lim.lam_max)
@@ -682,7 +756,7 @@ def _series_match(
 
 
 def _coeffs(F: Fset, x: Array) -> Array:
-    """(c2, c3, c4) of F_lam at x and (F2, F4) of F_nu_u at u = 0, stacked.
+    """(c2, c3, c4) of F_lam at x, (F2, F4) of F_nu_u at u = 0, F_lam'(x).
 
     Both jvp nests are written in this one function with one stacked
     output, and plain autodiff runs through it. Consumers must read the
@@ -693,9 +767,9 @@ def _coeffs(F: Fset, x: Array) -> Array:
     `jax.custom_jvp` wrapper gave bitwise the same reverse-mode derivatives
     and no gain, so there is none.
     """
-    _, _, d2, d3, d4 = _derivs(F.F_lam, x, 4)
+    _, d1, d2, d3, d4 = _derivs(F.F_lam, x, 4)
     _, _, u2, _, u4 = _derivs(F.F_nu_u, jnp.zeros_like(x), 4)
-    return jnp.stack([d2 / 2, d3 / 6, d4 / 24, u2 / 2, u4 / 24])
+    return jnp.stack([d2 / 2, d3 / 6, d4 / 24, u2 / 2, u4 / 24, d1])
 
 
 def taylor_coeffs_batch(
@@ -722,10 +796,16 @@ def taylor_coeffs_batch(
     lane is `taylor_coeffs`' value and derivative; on the other lanes the
     coefficients are NaN and the flags False (m is always set).
 
-    With ``shell=True``, ``lim`` comes from ``attach_tangents(...,
-    shell=False)``: the shell lanes' double-root tangent (shell lanes are
-    candidates) is added to their limits here, before the coefficients, and
-    returned as ``shell_t``; the caller adds it to lam_min and lam_max.
+    The limits are final only here: ``Taylor.lam_min`` and ``lam_max``
+    (``m`` their midpoint). On the candidates the near-circular lambda roots
+    are Newton-polished (`_polish`, w < POLISH lam), at O(candidates) cost;
+    the other lanes return the input limits bitwise (values and both
+    derivative modes).
+
+    With ``shell=True``, ``lim`` must come from ``attach_tangents(...,
+    shell=False)`` (default limits would get the shell tangent twice): the
+    shell lanes' double-root tangent (shell lanes are candidates) is added
+    to their limits here, before the coefficients.
 
     Under an outer ``vmap`` the conds become selects and every chunk runs:
     correct, but without the saving. Call it on the flat batch.
@@ -741,17 +821,16 @@ def taylor_coeffs_batch(
     # its branches' residuals of the 4th-order nest (~50 kB/pt on MW2022).
     @jax.checkpoint
     def one(w: Array, d2: Array, lim1: Limits) -> Taylor:
-        F = make_F(phi, integrals_of_motion(phi, w, d2))
-        if not shell:
-            return taylor_coeffs(F, lim1)
-        dsh = _double_tangent(F, F, lim1)  # F'' is stop-gradiented there
-        lim1 = lim1._replace(lam_min=lim1.lam_min + dsh, lam_max=lim1.lam_max + dsh)
-        return taylor_coeffs(F, lim1)._replace(shell_t=dsh)
+        iom = integrals_of_motion(phi, w, d2)
+        F = make_F(phi, iom)
+        if shell:
+            dsh = _double_tangent(F, F, lim1)  # F'' is stop-gradiented there
+            lim1 = lim1._replace(lam_min=lim1.lam_min + dsh, lam_max=lim1.lam_max + dsh)
+        return taylor_coeffs(F, lim1, iom)
 
     def nan_taylor(n: int) -> Taylor:
         nans, false = jnp.full(n, jnp.nan, m.dtype), jnp.zeros(n, bool)
-        zeros = jnp.zeros(n, m.dtype)
-        return Taylor(false, nans, nans, nans, nans, false, nans, nans, zeros)
+        return Taylor(false, nans, nans, nans, nans, false, nans, nans, nans, nans)
 
     idx = jnp.nonzero(cand, size=n_ch * K, fill_value=N)[0].reshape(n_ch, K)
 
@@ -770,8 +849,9 @@ def taylor_coeffs_batch(
 
     _, ts = jax.lax.scan(chunk, None, (jnp.arange(n_ch), idx))
     flat = idx.reshape(-1)
-    out = Taylor._make(
+    # the other lanes: the input limits and their midpoint
+    base = nan_taylor(N)._replace(m=m, lam_min=lim.lam_min, lam_max=lim.lam_max)
+    return Taylor._make(
         a.at[flat].set(x.reshape(-1), mode="drop")
-        for a, x in zip(nan_taylor(N), ts, strict=True)
+        for a, x in zip(base, ts, strict=True)
     )
-    return out._replace(m=m)

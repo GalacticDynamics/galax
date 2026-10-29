@@ -183,6 +183,29 @@ def angular_grid(
     return uvec, weights
 
 
+def _hoist_consts(
+    fun: Callable[..., Any], *args: Any
+) -> tuple[Callable[..., Any], list[Any]]:
+    """Like `jax.closure_convert`, but hoists every closed-over value.
+
+    `jax.closure_convert` hoists only the inexact values being differentiated.
+    A traced integer or bool stays closed over, which a `jax.custom_jvp` rule
+    cannot capture.
+    """
+    closed = jax.make_jaxpr(fun)(*args)
+    jaxpr = closed.jaxpr
+    flat = jaxpr.replace(  # type: ignore[no-untyped-call]
+        constvars=[], invars=[*jaxpr.constvars, *jaxpr.invars]
+    )
+    call = jax.extend.core.jaxpr_as_fun(jax.extend.core.ClosedJaxpr(flat, ()))
+
+    def converted(xyz: Any, t: Any, *consts: Any) -> Any:
+        (out,) = call(*consts, xyz, t)
+        return out
+
+    return converted, list(closed.consts)
+
+
 @ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))
 def harmonic_coeffs(
     rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]],
@@ -216,7 +239,10 @@ def harmonic_coeffs(
     differentiated as usual, so a density whose own derivative overflows there
     still gives a non-finite gradient; see `MultipoleProfilePotential.from_density`.
     A density that is zero at *every* radius is differentiated as usual, so the
-    gradient with respect to an amplitude of exactly zero is kept.
+    gradient with respect to an amplitude of exactly zero is kept. A radius
+    where it is zero while it is not elsewhere is masked even if a parameter
+    would make it non-zero (a zero-amplitude component whose support does not
+    overlap the rest has a zero gradient there).
     """
     uvec, weights = angular_grid(n_theta, n_phi)
     Y = real_ylm(l_max, keys, uvec)  # (n_modes, n_theta, n_phi)
@@ -225,7 +251,7 @@ def harmonic_coeffs(
     # scale radius). `custom_jvp` needs them as explicit arguments, so hoist
     # them out of the closure. The angular grid is passed explicitly too: under
     # `jit` it is itself a tracer, which a custom rule must not close over.
-    rho_cc, consts = jax.closure_convert(rho_fn, r_knots[0] * uvec, t)
+    rho_cc, consts = _hoist_consts(rho_fn, r_knots[0] * uvec, t)
 
     def evaluate(
         consts: tuple[Array, ...],
@@ -280,7 +306,11 @@ def harmonic_coeffs(
         _, d_out = jax.jvp(
             evaluate_rows,
             (consts, t, r_eval),
-            (d_consts, d_t, jnp.where(ok, d_r, 0.0)),
+            (
+                d_consts,
+                d_t,
+                d_r if d_r.dtype == jax.dtypes.float0 else jnp.where(ok, d_r, 0.0),
+            ),
         )
         return out, jnp.where(ok[:, None], d_out, 0.0)
 

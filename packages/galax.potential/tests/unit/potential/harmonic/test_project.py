@@ -342,3 +342,40 @@ def test_harmonic_coeffs_amplitude_gradient_survives_an_all_zero_density() -> No
 
     expected = total(jnp.asarray(1.0))  # linear in A
     assert jnp.allclose(jax.grad(total)(jnp.asarray(0.0)), expected, rtol=1e-6)
+
+
+def test_harmonic_coeffs_grad_with_a_traced_integer_closure() -> None:
+    """A traced integer closed over by the density does not break ``jit(grad)``.
+
+    REGRESSION: `jax.closure_convert` leaves it closed over, and the custom
+    rule could not capture the tracer.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([0.5, 1.0, 2.0])
+
+    def total(A, n):
+        def rho(xyz, t):
+            return A * jnp.linalg.norm(xyz, axis=-1) ** n * (1 + xyz[..., 2])
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(c)
+
+    A = jnp.asarray(1.0)
+    grad = jax.jit(jax.grad(total))(A, jnp.asarray(2))
+    assert jnp.allclose(grad, total(A, jnp.asarray(2)), rtol=1e-6)  # linear in A
+
+
+def test_harmonic_coeffs_jacfwd_with_integer_radii() -> None:
+    """Integer radii (a ``float0`` tangent) are accepted."""
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([1, 2, 3])
+
+    def coeffs(A):
+        def rho(xyz, t):
+            return A * jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+        return harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+
+    assert jnp.allclose(jax.jacfwd(coeffs)(jnp.asarray(1.0)), coeffs(1.0), rtol=1e-6)

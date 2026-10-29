@@ -488,7 +488,8 @@ def test_shell_tangent_on_the_taylor_lanes(name):
     The shell lanes' double-root tangent moves from every lane's tangent
     pass to the compacted Taylor lanes: the limits (plus ``shell_t``) and
     the coefficients have the default path's values and gradients (1e-14).
-    Circular orbits (shells), near-circular and generic lanes.
+    Circular orbits (shells), near-circular and generic lanes. Reverse mode
+    on kk; a fixed-direction jvp on mn (half the compile memory for CI).
     """
     pot = {"mn": _mn, "kk": _kk}[name]()
     phi = _phi(pot)
@@ -504,10 +505,13 @@ def test_shell_tangent_on_the_taylor_lanes(name):
         c = [jnp.where(t.use_l, x, 0.0) for x in (t.c2, t.c3, t.c4)]
         return jnp.stack([lo, hi, *c]), lim.shell
 
+    v = jax.random.normal(jax.random.key(0), w6s.shape)
     vals = {}
     for shell in (False, True):
         out, sh = jax.jit(lambda w, s=shell: run(w, s))(w6s)
-        g = jax.jit(jax.grad(lambda w, s=shell: jnp.sum(run(w, s)[0])))(w6s)
+        f = lambda w, s=shell: jnp.sum(run(w, s)[0])
+        d = jax.grad(f) if name == "kk" else lambda w, f=f: jax.jvp(f, (w,), (v,))[1]
+        g = jax.jit(d)(w6s)
         vals[shell] = np.asarray(out), np.asarray(g)
         jax.clear_caches()
     assert sh.sum() >= 4  # shells present

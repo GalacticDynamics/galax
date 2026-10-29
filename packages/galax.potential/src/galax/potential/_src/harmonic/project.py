@@ -15,6 +15,10 @@ from jaxtyping import Array, Float
 from typing import Any, assert_never, cast
 
 import jax
+from jax.extend.core import (  # type: ignore[attr-defined,unused-ignore]
+    ClosedJaxpr,
+    jaxpr_as_fun,
+)
 
 import quaxed.numpy as jnp
 
@@ -197,11 +201,7 @@ def _hoist_consts(
     flat = jaxpr.replace(  # type: ignore[no-untyped-call]
         constvars=[], invars=[*jaxpr.constvars, *jaxpr.invars]
     )
-    # The hook's isolated mypy env types `jax.extend.core` differently.
-    closed_flat = jax.extend.core.ClosedJaxpr(  # type: ignore[attr-defined,unused-ignore]
-        flat, ()
-    )
-    call = jax.extend.core.jaxpr_as_fun(closed_flat)
+    call = jaxpr_as_fun(ClosedJaxpr(flat, ()))
 
     def converted(xyz: Any, t: Any, *consts: Any) -> Any:
         (out,) = call(*consts, xyz, t)

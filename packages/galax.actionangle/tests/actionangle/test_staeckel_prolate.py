@@ -388,7 +388,7 @@ def test_iom_flags_degenerate_scales():
     np.testing.assert_array_equal(np.asarray(J)[~np.asarray(valid)], 0.0)
 
 
-@pytest.mark.parametrize("dtype", [jnp.float32, jnp.float16])
+@pytest.mark.parametrize("dtype", [jnp.float32, jnp.float16, jnp.int64, jnp.bool_])
 def test_core_rejects_non_float64(dtype):
     """The core needs float64: D2 (1 -+ 1e-15), MINIMUM_RANGE and exp(230).
 

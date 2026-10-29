@@ -142,12 +142,12 @@ def integrals_of_motion(
 
     The core needs float64 (``jax_enable_x64``): its offsets D2 (1 -+ 1e-15),
     MINIMUM_RANGE = 1e-10 and the exp(230) guard are below float32's
-    resolution or range. A floating ``w6`` or ``D2`` of any other precision
-    raises a TypeError (it is not upcast: Phi would still be evaluated in it).
+    resolution or range. A ``w6`` or ``D2`` of any other dtype raises a
+    TypeError (it is not upcast: Phi would still be evaluated in it).
     """
     w6, D2 = jnp.asarray(w6), jnp.asarray(D2)
     for x in (w6, D2):
-        if jnp.issubdtype(x.dtype, jnp.floating) and x.dtype != jnp.float64:
+        if x.dtype != jnp.float64:
             msg = f"the Staeckel core needs float64 (jax_enable_x64), got {x.dtype}"
             raise TypeError(msg)
     r2 = w6[0] ** 2 + w6[1] ** 2 + w6[2] ** 2

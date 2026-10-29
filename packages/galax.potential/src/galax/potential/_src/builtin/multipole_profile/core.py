@@ -573,6 +573,17 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         Separately, the anchor sits eight knots above the last zeroed sample,
         so on a very coarse grid (``n_r`` of 7 or fewer) it is too far in to
         help and the build is no better than without it.
+
+        **Gradients.** `jax.grad` through the build is finite in float32 wherever
+        the density's own derivative is representable at the samples the build
+        uses. A density written as ``A / (x**g * (1 + x)**h)`` is not: JAX's
+        derivative of the quotient forms ``1 / den**2``, which underflows once the
+        density nears the dtype's maximum, so its gradient with respect to a scale
+        radius is `nan` in float32 for a steep cusp, while the gradient with respect
+        to ``A`` is exact. Written as
+        ``exp(log(A) - g * log(x) - h * log1p(x))`` both are finite and agree with
+        float64 to about 1e-5 (``gamma`` 2.5 and 2.9, brackets to ``[1e-6, 1e6]``).
+        Second derivatives in float32 are not covered.
         """
         _check_grid_config(n_r, l_max)
 

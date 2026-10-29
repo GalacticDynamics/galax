@@ -12,9 +12,13 @@ import math
 
 from collections.abc import Callable
 from jaxtyping import Array, Float
-from typing import assert_never, cast
+from typing import Any, assert_never, cast
 
 import jax
+from jax.extend.core import (  # type: ignore[attr-defined,unused-ignore]
+    ClosedJaxpr,
+    jaxpr_as_fun,
+)
 
 import quaxed.numpy as jnp
 
@@ -183,6 +187,29 @@ def angular_grid(
     return uvec, weights
 
 
+def _hoist_consts(
+    fun: Callable[..., Any], *args: Any
+) -> tuple[Callable[..., Any], list[Any]]:
+    """Like `jax.closure_convert`, but hoists every closed-over value.
+
+    `jax.closure_convert` hoists only the inexact values being differentiated.
+    A traced integer or bool stays closed over, which a `jax.custom_jvp` rule
+    cannot capture.
+    """
+    closed = jax.make_jaxpr(fun)(*args)
+    jaxpr = closed.jaxpr
+    flat = jaxpr.replace(  # type: ignore[no-untyped-call]
+        constvars=[], invars=[*jaxpr.constvars, *jaxpr.invars]
+    )
+    call = jaxpr_as_fun(ClosedJaxpr(flat, ()))
+
+    def converted(xyz: Any, t: Any, *consts: Any) -> Any:
+        (out,) = call(*consts, xyz, t)
+        return out
+
+    return converted, list(closed.consts)
+
+
 @ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))
 def harmonic_coeffs(
     rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]],
@@ -204,14 +231,91 @@ def harmonic_coeffs(
     ``rho_fn`` takes ``(xyz, t)`` with ``xyz`` of shape ``(..., 3)`` and must
     broadcast over the leading axes -- the `galax` ``_density`` signature. It
     is called once per radius on the full angular grid.
+
+    Differentiating through it is safe where ``rho_fn`` overflows. A radius at
+    which the density is not finite, or is zero everywhere while it is not at
+    other radii, is one the caller of this function discards, so the
+    coefficients there are treated as
+    constants and ``rho_fn`` is differentiated at a representable radius
+    instead. Otherwise the zero cotangent would meet an infinite derivative
+    inside ``rho_fn`` (``0 * inf``) and every float32 gradient would be `nan`.
+    The values are unchanged. A radius whose value is finite and non-zero is
+    differentiated as usual, so a density whose own derivative overflows there
+    still gives a non-finite gradient; see `MultipoleProfilePotential.from_density`.
+    A density that is zero at *every* radius is differentiated as usual, so the
+    gradient with respect to an amplitude of exactly zero is kept. A radius
+    where it is zero while it is not elsewhere is masked even if a parameter
+    would make it non-zero (a zero-amplitude component whose support does not
+    overlap the rest has a zero gradient there).
     """
     uvec, weights = angular_grid(n_theta, n_phi)
     Y = real_ylm(l_max, keys, uvec)  # (n_modes, n_theta, n_phi)
 
-    def at_radius(r: Float[Array, ""]) -> Float[Array, "n_modes"]:
-        rho = rho_fn(r * uvec, t)  # (n_theta, n_phi)
-        return cast(
-            'Float[Array, "n_modes"]', jnp.einsum("kij,ij,ij->k", Y, rho, weights)
-        )
+    # `rho_fn` may close over the values being differentiated (an amplitude, a
+    # scale radius). `custom_jvp` needs them as explicit arguments, so hoist
+    # them out of the closure. The angular grid is passed explicitly too: under
+    # `jit` it is itself a tracer, which a custom rule must not close over.
+    rho_cc, consts = _hoist_consts(rho_fn, r_knots[0] * uvec, t)
 
-    return jax.vmap(at_radius)(r_knots)
+    def evaluate(
+        consts: tuple[Array, ...],
+        t: gt.BBtSz0,
+        r: Float[Array, "n_r"],
+        grid: tuple[Array, Array, Array],
+    ) -> tuple[Float[Array, "n_r n_modes"], Array]:
+        uvec, Y, weights = grid
+
+        def at_radius(
+            r: Float[Array, ""],
+        ) -> tuple[Float[Array, "n_modes"], Array, Array]:
+            rho = rho_cc(r * uvec, t, *consts)  # (n_theta, n_phi)
+            coeffs = jnp.einsum("kij,ij,ij->k", Y, rho, weights)
+            return coeffs, jnp.all(jnp.isfinite(rho)), jnp.any(rho != 0)
+
+        coeffs, finite, nonzero = jax.vmap(at_radius)(r)
+        # A radius whose density is not finite, or is zero while others are
+        # not, is one the caller's parameters cannot usefully change. If the
+        # density is zero at every radius (an amplitude of exactly 0) nothing
+        # was discarded, and the tangent is kept.
+        return coeffs, finite & (nonzero | ~jnp.any(nonzero))
+
+    @jax.custom_jvp
+    def project(
+        consts: tuple[Array, ...],
+        t: gt.BBtSz0,
+        r: Float[Array, "n_r"],
+        grid: tuple[Array, Array, Array],
+    ) -> Float[Array, "n_r n_modes"]:
+        return evaluate(consts, t, r, grid)[0]
+
+    @project.defjvp
+    def project_jvp(primals: tuple[Any, ...], tangents: tuple[Any, ...]) -> Any:
+        # The derivative of `rho_fn` at an overflowed sample is `inf` or `nan`,
+        # and zeroing the result afterwards does not help: the zero cotangent
+        # still meets that derivative (`0 * inf`) inside `rho_fn`. A `where`
+        # on the output of `rho_fn` is therefore too late, and one inside it is
+        # not ours to write. So the tangent is taken at a radius where the
+        # density is representable, and masked off for the radii that were not.
+        # That includes a density that underflowed to exactly zero while an
+        # intermediate (`x**gamma`) overflowed: its value is a finite 0 but its
+        # derivative is `0 * inf`. The value is unchanged either way.
+        consts, t, r, grid = primals
+        d_consts, d_t, d_r, _ = tangents
+        out, ok = evaluate(consts, t, r, grid)
+
+        def evaluate_rows(c: Any, t_: Any, r_: Any) -> Any:
+            return evaluate(c, t_, r_, grid)[0]
+
+        r_eval = jnp.where(ok, r, r[jnp.argmax(ok)])
+        _, d_out = jax.jvp(
+            evaluate_rows,
+            (consts, t, r_eval),
+            (
+                d_consts,
+                d_t,
+                d_r if d_r.dtype == jax.dtypes.float0 else jnp.where(ok, d_r, 0.0),
+            ),
+        )
+        return out, jnp.where(ok[:, None], d_out, 0.0)
+
+    return project(tuple(consts), t, r_knots, (uvec, Y, weights))

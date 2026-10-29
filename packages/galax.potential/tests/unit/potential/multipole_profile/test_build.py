@@ -741,3 +741,112 @@ def test_anchoring_rescues_a_near_divergent_cusp() -> None:
 
     # Unanchored is 8.1e-01 here; anchoring reaches 2.7e-02.
     assert err < 1e-1, err
+
+
+def _grad_build(rho_of, n_r: int = 64):
+    """``phi_lm.sum()`` as a function of ``(A, s)``, for ``rho_of(A, s)``."""
+    keys = lm_keys(0, "spherical")
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def total(p):
+        return build_expansion(
+            rho_of(p[0], p[1]),
+            jnp.geomspace(1e-4, 1e4, n_r),
+            0,
+            keys,
+            n_theta,
+            n_phi,
+            jnp.asarray(0.0),
+            jnp.asarray(1.0),
+        )["phi_lm"].sum()
+
+    return total
+
+
+def _log_dehnen(gamma):
+    """Dehnen-like cusp ``A / (x**g (1 + x)**(4 - g))``, ``x = r / s``, in log form.
+
+    Written this way its derivative stays representable where the density is
+    large, which ``A / (x**g * ...)`` does not (see `from_density`'s Notes).
+    """
+
+    def rho_of(A, s):
+        def rho(xyz, t):
+            x = safe_vector_norm(xyz) / s
+            return jnp.exp(
+                jnp.log(A) - gamma * jnp.log(x) - (4.0 - gamma) * jnp.log1p(x)
+            )
+
+        return rho
+
+    return rho_of
+
+
+@pytest.mark.parametrize("gamma", [1.0, 2.5, 2.9])
+def test_float32_gradients_through_a_build_whose_pad_overflows(gamma) -> None:
+    """The amplitude and scale-radius gradients are finite and match float64.
+
+    REGRESSION: every one of these was `nan` in float32. The padded grid
+    samples the density where it overflows (``gamma = 2.5`` reaches ``inf``
+    near ``1e-16``), `_drop_nonfinite` zeroes those samples, and the zero
+    cotangent then met the infinite derivative inside the caller's own density:
+    ``0 * inf``. A ``where`` applied afterwards cannot help, and one inside the
+    density is not ours to write, so `harmonic_coeffs` now differentiates
+    ``rho_fn`` at a representable radius for the radii the build discards.
+
+    The outer pad needed the same: there the density underflows to a finite
+    zero, but its derivative through ``x**g`` is ``0 * inf``. Measured against
+    float64, over this grid and ``[1e-6, 1e6]``, ``n_r`` of 16 and 64: 4e-8 to
+    1.4e-5.
+    """
+    total = _grad_build(_log_dehnen(gamma))
+
+    ref = jnp.asarray(jax.grad(total)(jnp.asarray([1.0, 1.0])), dtype=float)
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = jax.grad(total)(jnp.asarray([1.0, 1.0]))
+        assert got.dtype == jnp.float32
+        assert jnp.all(jnp.isfinite(got)), got
+        f32 = jnp.asarray(got, dtype=float)
+
+    err = float(jnp.max(jnp.abs(f32 - ref) / jnp.abs(ref)))
+    assert err < 1e-4, err
+
+
+def test_float32_forward_mode_agrees_with_reverse_mode_through_the_build() -> None:
+    """``jacfwd`` and ``jacrev`` agree, so the rule is a consistent derivative."""
+    total = _grad_build(_log_dehnen(2.9))
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        p = jnp.asarray([1.0, 1.0])
+        fwd, rev = jax.jacfwd(total)(p), jax.jacrev(total)(p)
+        assert jnp.all(jnp.isfinite(fwd)), fwd
+        assert jnp.allclose(fwd, rev, rtol=1e-4), (fwd, rev)
+
+
+def test_the_amplitude_gradient_survives_a_density_with_no_scale_gradient() -> None:
+    """``A / (x**g (1 + x)**h)`` has an exact ``dA`` even when its ``ds`` is `nan`.
+
+    JAX differentiates the quotient through ``1 / den**2``, which underflows
+    for ``gamma = 2.9`` once the density nears the dtype's maximum, so the
+    gradient with respect to the scale radius is not representable and stays
+    non-finite (the Notes of `from_density` say so). The amplitude enters
+    linearly, so its gradient must equal the value itself, and must not be lost
+    with it.
+    """
+    gamma = 2.9
+
+    def rho_of(A, s):
+        def rho(xyz, t):
+            x = safe_vector_norm(xyz) / s
+            return A / (x**gamma * (1.0 + x) ** (4.0 - gamma))
+
+        return rho
+
+    total = _grad_build(rho_of)
+    with jax.enable_x64(False):  # noqa: FBT003
+        p = jnp.asarray([1.0, 1.0])
+        value, grad = total(p), jax.grad(total)(p)
+        assert jnp.isfinite(grad[0]), grad
+        assert jnp.allclose(grad[0], value, rtol=1e-5), (grad[0], value)

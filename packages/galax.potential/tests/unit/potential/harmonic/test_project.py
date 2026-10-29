@@ -1,5 +1,6 @@
 """Tests for the angular projection machinery."""
 
+import functools as ft
 import math
 
 import jax
@@ -291,3 +292,90 @@ def test_harmonic_coeffs_recovers_a_single_mode(target: tuple[int, int]) -> None
     assert jnp.allclose(got[:, j], r**-1.5, rtol=1e-12)
     others = jnp.delete(got, j, axis=1)
     assert jnp.max(jnp.abs(others)) < 1e-12 * jnp.max(jnp.abs(r**-1.5))
+
+
+def test_harmonic_coeffs_gradient_is_finite_where_the_density_overflows() -> None:
+    """A gradient through radii that overflow in float32 is finite, and exact.
+
+    REGRESSION: ``A * r**-2.9`` is ``inf`` below about ``5e-14`` in float32, and
+    the caller drops those rows. The cotangent for them is zero, but it met the
+    infinite derivative inside the density (``0 * inf``), so the gradient with
+    respect to ``A`` was `nan` however the result was masked afterwards.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def kept(A, r):
+        def rho(xyz, t):
+            return A * jnp.linalg.norm(xyz, axis=-1) ** -2.9
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(jnp.where(jnp.isfinite(c), c, 0.0))
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        A = jnp.asarray(1.0)
+        r = jnp.asarray([1e-20, 1e-16, 1e-14, 1e-6, 1e-2, 1.0, 1e3])
+        kept = ft.partial(kept, r=r)
+        value, grad = kept(A), jax.grad(kept)(A)
+        assert value.dtype == jnp.float32
+        assert jnp.isfinite(grad), grad
+        # Linear in A, so the gradient is the value.
+        assert jnp.allclose(grad, value, rtol=1e-5), (grad, value)
+
+
+def test_harmonic_coeffs_amplitude_gradient_survives_an_all_zero_density() -> None:
+    """The gradient at an amplitude of exactly zero is not masked off.
+
+    REGRESSION: a row whose density is zero is treated as discarded, which must
+    not apply when *every* row is zero -- ``d(A f)/dA = f`` there.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([1e-2, 1.0, 1e3])
+
+    def total(A):
+        def rho(xyz, t):
+            return A * jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(c)
+
+    expected = total(jnp.asarray(1.0))  # linear in A
+    assert jnp.allclose(jax.grad(total)(jnp.asarray(0.0)), expected, rtol=1e-6)
+
+
+def test_harmonic_coeffs_grad_with_a_traced_integer_closure() -> None:
+    """A traced integer closed over by the density does not break ``jit(grad)``.
+
+    REGRESSION: `jax.closure_convert` leaves it closed over, and the custom
+    rule could not capture the tracer.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([0.5, 1.0, 2.0])
+
+    def total(A, n):
+        def rho(xyz, t):
+            return A * jnp.linalg.norm(xyz, axis=-1) ** n * (1 + xyz[..., 2])
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(c)
+
+    A = jnp.asarray(1.0)
+    grad = jax.jit(jax.grad(total))(A, jnp.asarray(2))
+    assert jnp.allclose(grad, total(A, jnp.asarray(2)), rtol=1e-6)  # linear in A
+
+
+def test_harmonic_coeffs_jacfwd_with_integer_radii() -> None:
+    """Integer radii (a ``float0`` tangent) are accepted."""
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([1, 2, 3])
+
+    def coeffs(A):
+        def rho(xyz, t):
+            return A * jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+        return harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+
+    assert jnp.allclose(jax.jacfwd(coeffs)(jnp.asarray(1.0)), coeffs(1.0), rtol=1e-6)

@@ -574,16 +574,29 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         so on a very coarse grid (``n_r`` of 7 or fewer) it is too far in to
         help and the build is no better than without it.
 
-        **Gradients.** `jax.grad` through the build is finite in float32 wherever
-        the density's own derivative is representable at the samples the build
-        uses. A density written as ``A / (x**g * (1 + x)**h)`` is not: JAX's
-        derivative of the quotient forms ``1 / den**2``, which underflows once the
-        density nears the dtype's maximum, so its gradient with respect to a scale
-        radius is `nan` in float32 for a steep cusp, while the gradient with respect
-        to ``A`` is exact. Written as
-        ``exp(log(A) - g * log(x) - h * log1p(x))`` both are finite and agree with
-        float64 to about 1e-5 (``gamma`` 2.5 and 2.9, brackets to ``[1e-6, 1e6]``).
-        Second derivatives in float32 are not covered.
+        **Gradients.** `jax.grad` through the build is finite in float32, also for
+        a steep cusp whose padded samples overflow, and agrees with float64 to
+        about 1e-5 (``gamma`` up to 2.9, brackets to ``[1e-6, 1e6]``). The
+        derivatives of the density are formed explicitly, and an entry JAX
+        cannot form is replaced rather than propagated. For a density written as
+        ``A / (x**g * (1 + x)**h)``, whose derivative JAX forms through
+        ``1 / den**2`` (which overflows long before the density does), the
+        replacement is a central difference, good to a few 1e-6.
+
+        The same holds for second derivatives, `jax.hessian`, with these limits.
+        Written as ``exp(log(A) - g * log(x) - h * log1p(x))`` they agree with
+        float64 to about 1e-5. Written as the quotient they are not reliable in
+        float32: JAX's second derivative underflows ``1 / den**3`` without
+        saying so, and the result can be wrong or `nan`; use the log form. A
+        cusp whose padded density reaches within a factor of two of the dtype's
+        maximum (~3e38 in float32; 1.3e38 is fine) still gives a non-finite
+        Hessian; moving the bracket moves the pad.
+
+        A derivative the dtype cannot represent at all is taken as zero where
+        the build discards the sample (it does for the innermost ones), so a
+        gradient through a sample the build *uses* but cannot represent is
+        finite but incomplete. That needs a sample the anchor keeps to sit within
+        a factor of a few of the dtype's maximum.
         """
         _check_grid_config(n_r, l_max)
 

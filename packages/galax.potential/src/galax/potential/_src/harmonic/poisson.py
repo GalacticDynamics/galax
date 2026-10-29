@@ -120,6 +120,23 @@ effect at all, since `build_expansion` clamps the anchor to ``lo``: at
 """
 
 
+def _log_rel(x: Float[Array, "..."], floor: float, /) -> Float[Array, "..."]:
+    r"""``log(|x| + floor)``, less a constant that is the same for every entry.
+
+    The slopes this feeds are differences of logs, so the constant cancels.
+    What it buys is the second derivative: ``d2 log|x| = -(dx / x)^2`` is
+    formed as ``dx^2 * (1 / x^2)``, and once ``|x|`` passes ~1e19 in float32
+    the first factor overflows while the second underflows to zero -- an
+    ``inf * 0``. Dividing by a power of two near the largest entry keeps both
+    factors ordinary. The scale is a power of two so the division is exact,
+    and it carries no gradient.
+    """
+    a = jnp.abs(x) + floor
+    ref = jax.lax.stop_gradient(jnp.exp2(jnp.floor(jnp.log2(jnp.max(a)))))
+    out: Array = jnp.log(a / ref)
+    return out
+
+
 def _log_floor(x: Float[Array, "..."], /) -> float:
     r"""Smallest density this module will treat as non-zero.
 
@@ -485,7 +502,7 @@ def solve_poisson_profiles(
         i0 = jnp.where(i0 <= log_r.shape[0] - 3, i0, 0)
         tri = i0 + jnp.arange(3)
         log_r_in = log_r[tri]
-        log_rho_in = jnp.log(jnp.abs(rho_col[tri]) + floor)
+        log_rho_in = _log_rel(rho_col[tri], floor)
         slopes_in = jnp.diff(log_rho_in) / jnp.diff(log_r_in)
         # Anchor only when doing so beats not doing so. Both sides are
         # known here, so this is a break-even test rather than a threshold.
@@ -574,7 +591,7 @@ def solve_poisson_profiles(
         )
         tri = i0 + jnp.arange(3)
         log_r_in = log_r[tri]
-        log_rho_in = jnp.log(jnp.abs(rho_col[tri]) + floor)
+        log_rho_in = _log_rel(rho_col[tri], floor)
         alpha_in = jnp.mean(jnp.diff(log_rho_in) / jnp.diff(log_r_in))
         exp_in = alpha_in + l + 3.0
         safe_in = jnp.where(jnp.abs(exp_in) > _SLOPE_TOL, exp_in, _SLOPE_TOL)
@@ -644,7 +661,7 @@ def solve_poisson_profiles(
         )
 
         # -- outer tail (r_max -> inf), rho_lm ~ A_out r^alpha_out ----------
-        log_rho_out = jnp.log(jnp.abs(rho_col[-3:]) + floor)
+        log_rho_out = _log_rel(rho_col[-3:], floor)
         alpha_out = jnp.mean(jnp.diff(log_rho_out) / jnp.diff(log_r[-3:]))
         active_out = jnp.abs(rho_col[-1]) > 0.0
         denom = l - alpha_out - 2.0

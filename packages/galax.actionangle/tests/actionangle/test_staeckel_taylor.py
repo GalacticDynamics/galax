@@ -490,8 +490,10 @@ def test_shell_tangent_on_the_taylor_lanes(name):
     """attach_tangents(shell=False) + taylor_coeffs_batch(shell=True).
 
     The shell lanes' double-root tangent moves from every lane's tangent
-    pass to the compacted Taylor lanes: the batch's limits and
-    the coefficients have the default path's values and gradients (1e-14).
+    pass to the compacted Taylor lanes: the batch's limits, m and the
+    coefficients have the default path's values and gradients (1e-14; m on
+    the shell lanes lacked the shell tangent before the batch returned the
+    limits).
     Circular orbits (shells), near-circular and generic lanes. Reverse mode
     on kk; a fixed-direction jvp on mn (half the compile memory for CI).
     """
@@ -506,7 +508,7 @@ def test_shell_tangent_on_the_taylor_lanes(name):
         )
         t = taylor_coeffs_batch(phi, w6s, d2s, lim, shell=shell)
         c = [jnp.where(t.use_l, x, 0.0) for x in (t.c2, t.c3, t.c4)]
-        return jnp.stack([t.lam_min, t.lam_max, *c]), lim.shell
+        return jnp.stack([t.lam_min, t.lam_max, t.m, *c]), lim.shell
 
     v = jax.random.normal(jax.random.key(0), w6s.shape)
     vals = {}

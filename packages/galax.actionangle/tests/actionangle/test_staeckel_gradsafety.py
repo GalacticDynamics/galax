@@ -9,7 +9,9 @@ from ._helpers import check_grad_safety
 # closures' limit sites are checked in test_staeckel_prolate.
 
 
-@pytest.mark.parametrize("name", ["kk", "mn", "nfw"])
+# MN is smooth like KK and makes every kill KK did (memory: KK compiled
+# the largest transient of the suite, +2.3 GB).
+@pytest.mark.parametrize("name", ["mn", "nfw"])
 def test_grad_safety(name):
     """See `check_grad_safety`; on MN also `check_circular_fwd_rev`."""
     check_grad_safety(name, circular=name == "mn")

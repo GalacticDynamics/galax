@@ -592,3 +592,18 @@ def test_log_rel_has_the_slopes_of_log_abs_and_a_finite_second_derivative() -> N
         assert jnp.isfinite(d2), d2
         # Scale-free: the slope does not depend on `a`, so its derivatives vanish.
         assert abs(d2) < 1e-5, d2
+
+
+def test_log_rel_keeps_the_plain_log_when_a_window_has_a_hard_zero() -> None:
+    """A window mixing a large entry with a zero is not rescaled.
+
+    REGRESSION: dividing by the power-of-two scale flushed the zero entry to
+    nothing, so ``log`` gave ``-inf``, the slope fit `nan`, and a `nan`
+    cotangent reached rows whose coefficient is exactly zero.
+    """
+    for dtype in (jnp.float32, jnp.float64):
+        x = jnp.asarray([1.0e3, 0.0, 0.0], dtype=dtype)
+        floor = _log_floor(x)
+        got = _log_rel(x, floor)
+        assert jnp.all(jnp.isfinite(got)), got
+        assert jnp.allclose(jnp.diff(got), jnp.diff(jnp.log(jnp.abs(x) + floor)))

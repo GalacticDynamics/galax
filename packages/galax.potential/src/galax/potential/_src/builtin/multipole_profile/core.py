@@ -581,7 +581,8 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         cannot form is replaced rather than propagated. For a density written as
         ``A / (x**g * (1 + x)**h)``, whose derivative JAX forms through
         ``1 / den**2`` (which overflows long before the density does), the
-        replacement is a central difference, good to a few 1e-6.
+        replacement is a central difference: about 1e-4 per entry and 1e-5 on the
+        gradient.
 
         The same holds for second derivatives, `jax.hessian`, with these limits.
         Written as ``exp(log(A) - g * log(x) - h * log1p(x))`` they agree with

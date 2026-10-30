@@ -130,9 +130,16 @@ def _log_rel(x: Float[Array, "..."], floor: float, /) -> Float[Array, "..."]:
     ``inf * 0``. Dividing by a power of two near the largest entry keeps both
     factors ordinary. The scale is a power of two so the division is exact,
     and it carries no gradient.
+
+    Only when it fits: a window that mixes a large entry with a hard zero spans
+    more than the dtype's range, and scaling would flush the zero to nothing
+    (``log 0``). That window keeps the plain log; its slope is meaningless
+    either way, and the caller's gates discard it.
     """
     a = jnp.abs(x) + floor
     ref = jax.lax.stop_gradient(jnp.exp2(jnp.floor(jnp.log2(jnp.max(a)))))
+    fits = jax.lax.stop_gradient(jnp.min(a) / ref >= jnp.finfo(a.dtype).tiny)
+    ref = jnp.where(fits, ref, 1.0)
     out: Array = jnp.log(a / ref)
     return out
 

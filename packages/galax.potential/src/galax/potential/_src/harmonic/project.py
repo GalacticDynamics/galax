@@ -211,35 +211,44 @@ def _hoist_consts(
     return converted, list(closed.consts)
 
 
-_MAX_PARAMS = 32
-"""Most differentiable inputs `harmonic_coeffs` forms derivative columns for."""
+_MAX_PARAMS = 128
+"""Most differentiable scalars `harmonic_coeffs` forms derivative columns for."""
 
 _FD_CHUNK = 32
 """Rows the central-difference fallback evaluates at a time."""
 
 
+def _leaf_columns(g: Callable[[list[Array]], Any], leaves: list[Array], i: int) -> Any:
+    """Return ``g``'s derivative in each element of ``leaves[i]``, on a new axis."""
+    leaf = leaves[i]
+
+    def gi(x: Array) -> Any:
+        return g([*leaves[:i], x, *leaves[i + 1 :]])
+
+    def tangent(basis: Array) -> Any:
+        return jax.jvp(gi, (leaf,), (basis,))[1]
+
+    if leaf.size == 1:
+        return tangent(jnp.ones_like(leaf))[..., None]
+    zero = jnp.zeros_like(leaf).reshape(-1)
+    basis = jax.vmap(lambda e: zero.at[e].set(1).reshape(leaf.shape))(
+        jnp.arange(leaf.size)
+    )
+    return jnp.moveaxis(jax.vmap(tangent)(basis), 0, -1)
+
+
 def _columns(g: Callable[[list[Array]], Any], /) -> Callable[[list[Array]], Any]:
     """Append one axis to ``g``'s output: its derivative in each scalar input.
 
-    Each column is its own `jax.jvp` over one array, with every other input
-    held constant, so their tangents are symbolic zeros. `jax.jacfwd`
-    materialises them as zero vectors instead, and ``0 * inf`` then spoils a
-    column that does not depend on the overflowing input at all.
+    Each array gets its own `jax.jvp`, batched over its elements, with every
+    other input held constant, so their tangents are symbolic zeros.
+    `jax.jacfwd` materialises them as zero vectors instead, and ``0 * inf``
+    then spoils a column that does not depend on the overflowing input at all.
     """
 
     def dg(leaves: list[Array]) -> Any:
-        cols: list[Any] = []
-        for i, leaf in enumerate(leaves):
-
-            def gi(x: Array, i: int = i) -> Any:
-                return g([*leaves[:i], x, *leaves[i + 1 :]])
-
-            zero = jnp.zeros_like(leaf).reshape(-1)
-            cols.extend(
-                jax.jvp(gi, (leaf,), (zero.at[e].set(1).reshape(leaf.shape),))[1]
-                for e in range(leaf.size)
-            )
-        return jnp.stack(cols, axis=-1)
+        cols = [_leaf_columns(g, leaves, i) for i in range(len(leaves))]
+        return jnp.concat(cols, axis=-1)
 
     return dg
 
@@ -290,18 +299,22 @@ class _DerivativeChain:
         return jax.vmap(lambda z: g(self.split(z)))(Z)
 
     def central(self, k: int, Z: Array, aux: Any) -> Any:
-        """Central differences of the ``(k - 1)``-th derivative, per column."""
-        h = float(jnp.finfo(Z.dtype).eps) ** (1 / 3)
-        cols: list[Any] = []
-        for j in range(Z.shape[1]):
-            zj = jnp.abs(Z[:, j])
-            eps = h * jnp.where(zj > 0, zj, 1.0)
-            hi = self.impl(k - 1, Z.at[:, j].add(eps), aux)
-            lo = self.impl(k - 1, Z.at[:, j].add(-eps), aux)
-            cols.append((hi - lo) / (2 * eps.reshape((-1,) + (1,) * k)))
-        return jnp.stack(cols, axis=-1)
+        """Central differences of the ``(k - 1)``-th derivative, per column.
 
-    def repair(self, k: int, Z: Array, aux: Any, need: Array) -> Any:
+        All ``2 * n_columns`` perturbations of every row go through one call, so
+        the lower order is traced once, not once per column.
+        """
+        n_rows, n_cols = Z.shape
+        h = float(jnp.finfo(Z.dtype).eps) ** (1 / 3)
+        step = h * jnp.where(Z != 0, jnp.abs(Z), 1.0)  # (n_rows, n_cols)
+        shift = jnp.eye(n_cols, dtype=Z.dtype)[:, None, :] * step.T[:, :, None]
+        both = jnp.concat([Z + shift, Z - shift])  # (2 n_cols, n_rows, n_cols)
+        out = self.impl(k - 1, both.reshape(-1, n_cols), aux)
+        hi, lo = out.reshape(2, n_cols, n_rows, *out.shape[1:])
+        step = step.T.reshape((n_cols, n_rows) + (1,) * (out.ndim - 1))
+        return jnp.moveaxis((hi - lo) / (2 * step), 0, -1)
+
+    def repair(self, k: int, Z: Array, aux: Any, need: Array, dtype: Any) -> Any:
         """``central`` on the rows where ``need`` is set, a chunk at a time.
 
         Few rows need it, so evaluating them all (or running both branches of a
@@ -314,13 +327,13 @@ class _DerivativeChain:
         def body(state: tuple[Array, Array]) -> tuple[Array, Array]:
             todo, fd = state
             (idx,) = jnp.nonzero(todo, size=chunk, fill_value=n_rows)
-            rows = self.central(k, Z[jnp.minimum(idx, n_rows - 1)], aux)
+            rows = self.central(k, Z[jnp.minimum(idx, n_rows - 1)], aux).astype(dtype)
             return todo.at[idx].set(False, mode="drop"), fd.at[idx].set(
                 rows, mode="drop"
             )
 
         todo = jnp.any(need, axis=tuple(range(1, need.ndim)))
-        fd0 = jnp.zeros(need.shape, dtype=Z.dtype)
+        fd0 = jnp.zeros(need.shape, dtype=dtype)
         _, fd = jax.lax.while_loop(lambda s: jnp.any(s[0]), body, (todo, fd0))
         return fd
 
@@ -332,7 +345,7 @@ class _DerivativeChain:
         v = self.value(Z, aux)[(...,) + (None,) * k]
         bad = ~jnp.isfinite(D)
         need = bad & jnp.isfinite(v) & (v != 0)
-        fd = self.repair(k, Z, aux, need)
+        fd = self.repair(k, Z, aux, need, D.dtype)
         D = jnp.where(bad, jnp.where(need & jnp.isfinite(fd), fd, 0.0), D)
         return jnp.where(jnp.isfinite(v), D, 0.0)
 

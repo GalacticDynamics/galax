@@ -10,6 +10,7 @@ import scipy.special as sps
 
 import quaxed.numpy as jnp
 
+import galax.potential._src.harmonic.project as project
 from galax.potential._src.harmonic.project import (
     angular_grid,
     default_angular_resolution,
@@ -472,9 +473,9 @@ def test_harmonic_coeffs_replaces_a_spurious_overflow_with_a_difference() -> Non
     assert jnp.allclose(got, ref, rtol=1e-4), (got, ref)
 
 
-@pytest.mark.parametrize("n", [3, 40])  # below and above `_MAX_PARAMS`
+@pytest.mark.parametrize("n", [3, 40])
 def test_harmonic_coeffs_gradient_wrt_an_array_closure(n) -> None:
-    """A density closing over an array has its gradient, with or without columns."""
+    """A density closing over an array has its gradient."""
     keys = lm_keys(0, Symmetry.SPHERICAL)
     n_theta, n_phi = default_angular_resolution(0)
     r = jnp.asarray([0.5, 1.0, 2.0])
@@ -491,3 +492,49 @@ def test_harmonic_coeffs_gradient_wrt_an_array_closure(n) -> None:
     got = jax.grad(total)(jnp.ones(n))
     expected = jax.vmap(total)(jnp.eye(n))  # linear in c
     assert jnp.allclose(got, expected, rtol=1e-6), (got, expected)
+
+
+def test_harmonic_coeffs_gradient_wrt_an_array_closure_past_the_column_cap(
+    monkeypatch,
+) -> None:
+    """Past ``_MAX_PARAMS`` the density is differentiated as written, correctly."""
+    monkeypatch.setattr(project, "_MAX_PARAMS", 2)
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([0.5, 1.0, 2.0])
+    k = jnp.arange(1, 5.0)
+
+    def total(c):
+        def rho(xyz, t):
+            m = jnp.linalg.norm(xyz, axis=-1)
+            return jnp.sum(c * jnp.exp(-k * m[..., None]), axis=-1)
+
+        out = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(out)
+
+    got = jax.grad(total)(jnp.ones(4))
+    assert jnp.allclose(got, jax.vmap(total)(jnp.eye(4)), rtol=1e-6)
+
+
+def test_harmonic_coeffs_float32_gradient_with_many_closed_over_scalars() -> None:
+    """A 40-element closure does not lose the float32 overflow protection.
+
+    REGRESSION: past 32 scalars the rule fell back to plain differentiation,
+    which gave `nan` where fewer scalars gave a finite gradient.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def total(p, r):
+        def rho(xyz, t):
+            m = jnp.linalg.norm(xyz, axis=-1)
+            return p[0] * m**-2.9 * jnp.exp(-m) + 1e-3 * jnp.sum(p[1:]) * jnp.exp(-m)
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(jnp.where(jnp.isfinite(c), c, 0.0))
+
+    radii = [1e-20, 1e-16, 1e-6, 1e-2, 1.0]
+    with jax.enable_x64(False):  # noqa: FBT003
+        grad = jax.grad(total)(jnp.ones(40), jnp.asarray(radii))
+        assert grad.dtype == jnp.float32
+        assert jnp.all(jnp.isfinite(grad)), grad

@@ -21,6 +21,7 @@ from ._helpers import (
     _live_limits,
     _mn,
     _near_circular_w6s,
+    _nfw,
     _param_jacs,
     _phi,
     _w6s,
@@ -443,6 +444,14 @@ def test_use_n_off_where_F_has_a_kink():
         assert bool(tay.use_n) is use, pot
 
 
+def _mn_cut():
+    """MN + a hard-cutoff NFW (r_t = 8): F'' jumps at r_t."""
+    cut = gp.HardCutoffNFWPotential(
+        m=u.Q(1e12, "Msun"), r_s=u.Q(15.0, "kpc"), r_t=u.Q(8.0, "kpc"), units="galactic"
+    )
+    return gp.CompositePotential(disk=_mn(), halo=cut)
+
+
 def test_use_l_off_where_F_has_a_kink():
     """MN + a hard-cutoff NFW (r_t = 8), near-circular at R = 8 (w/lam ~ 6e-3).
 
@@ -451,10 +460,7 @@ def test_use_l_off_where_F_has_a_kink():
     it off; MN alone keeps it.
     """
     mn = _mn()
-    cut = gp.HardCutoffNFWPotential(
-        m=u.Q(1e12, "Msun"), r_s=u.Q(15.0, "kpc"), r_t=u.Q(8.0, "kpc"), units="galactic"
-    )
-    for pot, use in ((gp.CompositePotential(disk=mn, halo=cut), False), (mn, True)):
+    for pot, use in ((_mn_cut(), False), (mn, True)):
         phi = _phi(pot)
         vc = float(
             jnp.sqrt(8.0 * jax.grad(lambda r, f=phi: f(r, jnp.asarray(0.0)))(8.0))
@@ -636,3 +642,54 @@ def test_polish_tangents():
     g_batch, g_lim = vjps(w6s)
     jax.clear_caches()  # the file's peak memory (CI)
     np.testing.assert_array_equal(np.asarray(g_batch), np.asarray(g_lim))
+
+
+@pytest.mark.parametrize("case", ["kink", "nfw_core"])
+def test_polish_keeps_roots_of_F(case):
+    """A polished root is kept only where it is a root of F itself.
+
+    The quartic at m cannot see a kink: on `test_use_l_off_where_F_has_a_kink`'s
+    potential (r_t = 8 inside a near-circular orbit at R = 8, w/lam ~ 3e-4
+    and 3e-6) its root moved lam_min by 12% of the extent (|F|/noise 6e6).
+    Nor does it converge where w ~ lam - D2, below POLISH lam: NFW's cusp
+    with a fixed Delta^2 = 4 at R = 0.02, 0.05 (roots off by up to 2e-3,
+    |F|/noise 1e9). At the batch's limits |F| is within SNAP_NOISE of F's
+    roundoff, and a rejected root is the solver's, bitwise.
+    """
+    if case == "kink":
+        pot, d2, R0s, es, f_phi = _mn_cut(), MN_D2, (8.0, 8.0), (1e-4, 1e-6), 1.0
+    else:
+        pot, d2, R0s, es, f_phi = _nfw(), 4.0, (0.02, 0.05), (0.3, 0.3), 0.9
+    phi = _phi(pot)
+    vc = [float(jnp.sqrt(R * jax.grad(lambda r: phi(r, 0.0 * r))(R))) for R in R0s]
+    w6s = jnp.asarray(
+        [
+            [R, 0.0, 0.0, e * v, f_phi * v, 0.3 * e * v]
+            for R, e, v in zip(R0s, es, vc, strict=True)
+        ]
+    )
+    d2s = jnp.full(len(w6s), d2)
+
+    @jax.jit
+    def run(w6s):
+        lim = jax.vmap(lambda w, d: _live_limits(pot, w, d)[0])(w6s, d2s)
+        t = taylor_coeffs_batch(phi, w6s, d2s, lim)
+
+        def resid(w, d, taus):
+            iom = integrals_of_motion(phi, w, d)
+            f, noise = make_F(phi, iom).F_noise(taus)
+            return jnp.abs(f) / noise, iom.lam
+
+        L = jnp.stack([t.lam_min, t.lam_max], 1)
+        return lim, L, *jax.vmap(resid)(w6s, d2s, L)
+
+    lim, *out = run(w6s)
+    L, r, lam = (np.asarray(a) for a in out)
+    jax.clear_caches()  # the file's peak memory (CI)
+    L0 = np.stack([np.asarray(lim.lam_min), np.asarray(lim.lam_max)], 1)
+    assert np.all((L0[:, 1] - L0[:, 0]) / lam < limits.POLISH), L0  # polish candidates
+    assert np.all(r <= limits.SNAP_NOISE), r
+    if case == "kink":  # the kink is below m: lam_min is the solver's
+        np.testing.assert_array_equal(L[:, 0], L0[:, 0])
+    else:  # no root of the quartic is a root of F
+        np.testing.assert_array_equal(L, L0)

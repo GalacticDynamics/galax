@@ -683,9 +683,20 @@ def _polish(F: Fset, iom: IOM, lim: Limits, m: Array, c: Array) -> tuple[Limits,
     and N_POLISH Newton steps from the solver's roots reach ~1e-9 of the
     extent there (the ulp of lam), against KK's and a generic Staeckel
     potential's exact roots. At the gate the quartic's truncation is far
-    below the solver's error. The simple-root tangent is reattached at the
-    polished root. Returns (the limits, the polished-lane flag); the other
-    lanes' limits are returned as given.
+    below the solver's error on a smooth F far from the foci.
+
+    The quartic can miss F's root, in two ways: a kink between m and the
+    root (a hard cutoff inside a near-circular orbit: lam_min moved by 23%
+    of the extent), and a lane near the foci, where the gate passes on w <<
+    lam but w ~ lam - D2 is past the quartic's convergence (a cusp with a
+    fixed Delta: NFW's and MW2022's inner lanes, roots off by up to ~1e-2).
+    So each polished root is kept only where |F| there is within SNAP_NOISE
+    of F's roundoff (`Fset.F_noise`, one F per root), and is otherwise the
+    solver's: per root, as a kink on one side leaves the other side's
+    quartic, and its root and slope, F's. The simple-root tangent is
+    reattached at the polished root. Returns (the limits, the polished-lane
+    flag); the other lanes' limits are returned as given. Snapped lanes
+    (w/lam ~1e-7 and below) are not polished yet (a follow-up).
     """
     sg = jax.lax.stop_gradient
     lo0, hi0, m0, lam = sg(lim.lam_min), sg(lim.lam_max), sg(m), sg(iom.lam)
@@ -697,26 +708,33 @@ def _polish(F: Fset, iom: IOM, lim: Limits, m: Array, c: Array) -> tuple[Limits,
     def dp(x: Array) -> Array:
         return a1 + x * (2 * a2 + x * (3 * a3 + x * 4 * a4))
 
-    x = jnp.stack([lo0, hi0]) - m0
+    L0 = jnp.stack([lo0, hi0])
+    x = L0 - m0
     for _ in range(N_POLISH):
         x = x - (a0 + x * (a1 + x * (a2 + x * (a3 + x * a4)))) / dp(x)
     L = m0 + x
-    # on the solver's side of lam (f_mom = 0 puts a root at lam itself)
+    # on the solver's side of lam (f_mom = 0 puts a root at lam itself). The
+    # residual check below does not replace this: a step past lam converges
+    # to F's other root, which passes it
     L = jnp.stack([jnp.where(L[0] > lam, lam, L[0]), jnp.where(L[1] < lam, lam, L[1])])
+    fL, nL = (sg(a) for a in F.F_noise(L))
     near = (
         (hi0 - lo0 < POLISH * lam)
+        & jnp.isfinite(m0)
+        & (m0 > F.D2)  # c is F's quartic only inside the lambda branch
         & ~lim.shell
         & ~lim.snapped
         & ~lim.lmin_pinned
-        & jnp.all(jnp.isfinite(L))
+        & jnp.isfinite(L)
+        & (jnp.abs(fL) <= SNAP_NOISE * nL)  # a root of F itself; NaN fails
     )
-    L = jnp.where(near, L, jnp.stack([lo0, hi0]))
+    L = jnp.where(near, L, L0)
     t = -_over(_tang_at(F.F_lam, L, F.D2, 2 * F.D2), dp(L - m0))
     lim = lim._replace(
-        lam_min=jnp.where(near, L[0] + t[0], lim.lam_min),
-        lam_max=jnp.where(near, L[1] + t[1], lim.lam_max),
+        lam_min=jnp.where(near[0], L[0] + t[0], lim.lam_min),
+        lam_max=jnp.where(near[1], L[1] + t[1], lim.lam_max),
     )
-    return lim, near
+    return lim, jnp.any(near)
 
 
 def _series_match(

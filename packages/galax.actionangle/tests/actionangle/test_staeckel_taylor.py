@@ -568,6 +568,7 @@ def test_polish_near_circular_roots():
     n_near, n_gate = len(_POLISH_ES), len(_POLISH_GATE_ES)
     t1, lim = jax.jit(run)(w6s)  # K = 16 > N: one chunk
     t4, _ = jax.jit(lambda w: run(w, 4))(w6s)
+    jax.clear_caches()  # the file's peak memory (CI)
     lo, hi = np.asarray(t1.lam_min), np.asarray(t1.lam_max)
     lo0, hi0 = np.asarray(lim.lam_min), np.asarray(lim.lam_max)
     np.testing.assert_array_equal(np.asarray(t4.lam_min), lo)
@@ -620,6 +621,7 @@ def test_polish_tangents():
     assert np.all(np.isfinite(d)), d
     h = 1e-9
     fd = (np.asarray(jvp(w6s + h * v)[0]) - np.asarray(jvp(w6s - h * v)[0])) / (2 * h)
+    jax.clear_caches()  # the file's peak memory (CI)
     for r in (0, 1):
         np.testing.assert_allclose(d[r, :n_fd], fd[r, :n_fd], rtol=1e-5)
     np.testing.assert_array_equal(d[:2, gen], d[2:, gen])
@@ -632,4 +634,5 @@ def test_polish_tangents():
         return back(ct)[0], back(jnp.roll(ct, 2, axis=0))[0]
 
     g_batch, g_lim = vjps(w6s)
+    jax.clear_caches()  # the file's peak memory (CI)
     np.testing.assert_array_equal(np.asarray(g_batch), np.asarray(g_lim))

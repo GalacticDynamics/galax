@@ -13,6 +13,7 @@ __all__ = [
     "check_dF_limit_sites",
     "check_grad_safety",
     "kk_delta",
+    "kk_lambda_roots_decimal",
     "kk_turning_points",
 ]
 
@@ -114,6 +115,41 @@ def kk_delta(pot: gp.KuzminKutuzovPotential, t: float = 0.0) -> float:
     return float(qnp.sqrt(a**2 - c**2))
 
 
+def _kk_F(pot, w6, num, sqrt, hypot):
+    """(F, D2, lam, nu) of a KK orbit at t=0 (see `kk_turning_points`).
+
+    In ``num`` arithmetic (float, or decimals in the caller's context);
+    ``w6`` may hold decimals, which are kept as given.
+    """
+    t = u.Q(0.0, pot.units["time"])
+    GM = num(float(pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"])))
+    c2 = num(float(pot.c(t, ustrip=pot.units["length"]))) ** 2
+    D2 = num(kk_delta(pot)) ** 2
+    x, y, z, vx, vy, vz = (
+        v if isinstance(v, decimal.Decimal) else num(float(v)) for v in np.asarray(w6)
+    )
+    R = hypot(x, y)
+    vR, Lz = (x * vx + y * vy) / R, x * vy - y * vx
+    S, dif = R * R + z * z + D2, R * R + z * z - D2
+    sqD = sqrt(dif**2 + 4 * R * R * D2)
+    # lam - D2 without cancellation (it rounds to 0 for R ~ 1e-8 |z| < Delta)
+    lmd = (sqD + dif) / 2 if dif >= 0 else 2 * D2 * R * R / (sqD - dif)
+    lam, nu = D2 + lmd, 2 * D2 * z * z / (S + sqD)
+    lamdot = (2 * R * lam * vR + 2 * z * lmd * vz) / sqD
+
+    def G(tau):
+        return GM * sqrt(tau + c2)
+
+    E = -(G(lam) - G(nu)) / (lam - nu) + (vx * vx + vy * vy + vz * vz) / 2
+    Flam = (lam - nu) ** 2 * lamdot**2 / (8 * lam)
+    K = E * lam + G(lam) - (Flam + Lz**2 * lam / 2) / lmd
+
+    def F(tau):
+        return (E * tau + G(tau) - K) * (tau - D2) - Lz**2 * tau / 2
+
+    return F, D2, lam, nu
+
+
 def kk_turning_points(
     pot: gp.KuzminKutuzovPotential, w6: np.ndarray, *, exact: bool = False
 ) -> tuple[float, float, float]:
@@ -133,32 +169,10 @@ def kk_turning_points(
     sqrt = (lambda a: a.sqrt()) if exact else np.sqrt
     hypot = (lambda a, b: (a * a + b * b).sqrt()) if exact else np.hypot
     with decimal.localcontext(prec=40):
-        t = u.Q(0.0, pot.units["time"])
-        GM = num(
-            float(pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"]))
-        )
-        c2 = num(float(pot.c(t, ustrip=pot.units["length"]))) ** 2
-        D2 = num(kk_delta(pot)) ** 2
-        x, y, z, vx, vy, vz = (num(float(v)) for v in np.asarray(w6))
-        R = hypot(x, y)
-        vR, Lz = (x * vx + y * vy) / R, x * vy - y * vx
-        S, dif = R * R + z * z + D2, R * R + z * z - D2
-        sqD = sqrt(dif**2 + 4 * R * R * D2)
-        # lam - D2 without cancellation (it rounds to 0 for R ~ 1e-8 |z| < Delta)
-        lmd = (sqD + dif) / 2 if dif >= 0 else 2 * D2 * R * R / (sqD - dif)
-        lam, nu = D2 + lmd, 2 * D2 * z * z / (S + sqD)
-        lamdot = (2 * R * lam * vR + 2 * z * lmd * vz) / sqD
-
-        def G(tau):
-            return GM * sqrt(tau + c2)
-
-        E = -(G(lam) - G(nu)) / (lam - nu) + (vx * vx + vy * vy + vz * vz) / 2
-        Flam = (lam - nu) ** 2 * lamdot**2 / (8 * lam)
-        K = E * lam + G(lam) - (Flam + Lz**2 * lam / 2) / lmd
+        Fn, D2, lam, nu = _kk_F(pot, w6, num, sqrt, hypot)
 
         def F(tau) -> float:
-            tau = num(float(tau))
-            return float((E * tau + G(tau) - K) * (tau - D2) - Lz**2 * tau / 2)
+            return float(Fn(num(float(tau))))
 
         hi = 2 * lam
         while F(hi) >= 0:
@@ -172,6 +186,42 @@ def kk_turning_points(
             float(bisect(F, mid, hi)),
             float(bisect(F, nu, D2)),
         )
+
+
+def kk_lambda_roots_decimal(
+    pot: gp.KuzminKutuzovPotential, w6
+) -> tuple[decimal.Decimal, decimal.Decimal]:
+    """KK's (lam_min, lam_max) in 40-digit decimals, never rounded to float.
+
+    ``w6`` may hold decimals (a phase point off the float grid): central
+    differences of these roots at w6 +- h v, h ~ 1e-15, are the roots'
+    derivative to ~1e-15, where float roots (`kk_turning_points`) resolve
+    a near-circular orbit's to ~1e-2 at best. Bisected in decimals about
+    lam, where F = F(lam) > 0 (needs lamdot != 0).
+    """
+    with decimal.localcontext(prec=40):
+        F, D2, lam, _ = _kk_F(
+            pot,
+            w6,
+            decimal.Decimal,
+            lambda a: a.sqrt(),
+            lambda a, b: (a * a + b * b).sqrt(),
+        )
+        hi = 2 * lam
+        while F(hi) >= 0:
+            hi *= 2
+
+        def bis(a, b):
+            neg_a = F(a) < 0
+            for _ in range(160):  # 2^-160 of the bracket: past 40 digits
+                mid = (a + b) / 2
+                if (F(mid) < 0) == neg_a:
+                    a = mid
+                else:
+                    b = mid
+            return (a + b) / 2
+
+        return bis(D2, lam), bis(lam, hi)
 
 
 # ---------------------------------------------------------------------------

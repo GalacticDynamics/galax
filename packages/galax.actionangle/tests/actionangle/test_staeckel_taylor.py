@@ -1,5 +1,6 @@
 """Tests for the Staeckel-fudge Taylor coefficients of the Q-form regimes."""
 
+import decimal
 import math
 
 import jax
@@ -26,6 +27,7 @@ from ._helpers import (
     _phi,
     _w6s,
     kk_delta,
+    kk_lambda_roots_decimal,
     kk_turning_points,
 )
 from galax.actionangle._src import _staeckel_limits as limits
@@ -565,10 +567,10 @@ def test_polish_near_circular_roots():
     its terms): ~1e-2 of the extent at w/lam = 2.4e-7 on KK. The batch
     polishes on the Taylor nest's quartic, anchored on F(lam) from the
     momenta, to ~1e-9 of the extent (one ulp of lam is 1e-9 there) against
-    KK's exact roots (decimal F). One chunk and several give the same roots;
-    generic lanes (not candidates) keep the input limits bitwise; at the
-    gate the polish moves a root by < 1e-8 of the extent, so the limits are
-    continuous across it.
+    KK's exact roots (decimal F). One chunk and several give the same roots
+    to roundoff; generic lanes (not candidates) keep the input limits
+    bitwise; at the gate the polish moves a root by < 1e-8 of the extent,
+    so the limits are continuous across it.
     """
     pot, w6s, lam, run = _polish_case()
     n_near, n_gate = len(_POLISH_ES), len(_POLISH_GATE_ES)
@@ -577,8 +579,9 @@ def test_polish_near_circular_roots():
     jax.clear_caches()  # the file's peak memory (CI)
     lo, hi = np.asarray(t1.lam_min), np.asarray(t1.lam_max)
     lo0, hi0 = np.asarray(lim.lam_min), np.asarray(lim.lam_max)
-    np.testing.assert_array_equal(np.asarray(t4.lam_min), lo)
-    np.testing.assert_array_equal(np.asarray(t4.lam_max), hi)
+    # the chunks' vmap widths differ: equal to roundoff (measured 1.3e-15)
+    np.testing.assert_allclose(np.asarray(t4.lam_min), lo, rtol=4e-15)
+    np.testing.assert_allclose(np.asarray(t4.lam_max), hi, rtol=4e-15)
 
     ref = np.array([kk_turning_points(pot, w, exact=True)[:2] for w in w6s[:n_near]])
     ext = ref[:, 1] - ref[:, 0]
@@ -606,14 +609,16 @@ def test_polish_tangents():
     """Polished roots: tangents at the polished root, generic lanes bitwise.
 
     A jvp along one fixed direction (no jacrev: CI compile memory) against
-    central differences of the polished roots, on the lanes with h << w
-    (the roots are ~ sqrt in the epicyclic amplitude): to 1e-5, where the
-    solver's roundoff (1e-6 of the extent at w/lam = 2.4e-5) would put the
-    differences off by ~1e-2. On the generic lanes the batch's limits have
-    the input limits' jvp and vjp, bitwise.
+    KK's exact root derivative: central differences, h = 1e-15, of the
+    roots in 40-digit decimals (`kk_lambda_roots_decimal`), never rounded
+    to float. To 1e-7 (measured <= 5e-9) on every near-circular lane; the
+    tangent at the unpolished root is off by up to 2e-2 at w/lam = 2.4e-7
+    (1e-3 at 2.4e-6). On the generic lanes the batch's limits have the
+    input limits' jvp and vjp, bitwise.
     """
-    _, w6s, _, run = _polish_case()
-    n_fd, gen = 4, slice(len(_POLISH_ES) + len(_POLISH_GATE_ES), None)
+    pot, w6s, _, run = _polish_case()
+    n_near = len(_POLISH_ES)
+    gen = slice(n_near + len(_POLISH_GATE_ES), None)
 
     def f(w):
         t, lim = run(w)
@@ -622,14 +627,20 @@ def test_polish_tangents():
     key0, key1 = jax.random.split(jax.random.key(0))
     scale = jnp.concat([jnp.full(3, 6.0), jnp.full(3, 0.2)])
     v = jax.random.normal(key0, w6s.shape) * scale
-    jvp = jax.jit(lambda w: jax.jvp(f, (w,), (v,)))
-    out, d = (np.asarray(x) for x in jvp(w6s))
-    assert np.all(np.isfinite(d)), d
-    h = 1e-9
-    fd = (np.asarray(jvp(w6s + h * v)[0]) - np.asarray(jvp(w6s - h * v)[0])) / (2 * h)
+    out, d = (np.asarray(x) for x in jax.jit(lambda w: jax.jvp(f, (w,), (v,)))(w6s))
     jax.clear_caches()  # the file's peak memory (CI)
-    for r in (0, 1):
-        np.testing.assert_allclose(d[r, :n_fd], fd[r, :n_fd], rtol=1e-5)
+    assert np.all(np.isfinite(d)), d
+    h = decimal.Decimal("1e-15")
+    for i in range(n_near):
+        w0, dv = ([decimal.Decimal(float(a)) for a in x[i]] for x in (w6s, v))
+        rp, rm = (
+            kk_lambda_roots_decimal(
+                pot, [a + sg * h * b for a, b in zip(w0, dv, strict=True)]
+            )
+            for sg in (1, -1)
+        )
+        ref = [float((p - q) / (2 * h)) for p, q in zip(rp, rm, strict=True)]
+        np.testing.assert_allclose(d[:2, i], ref, rtol=1e-7, err_msg=str(i))
     np.testing.assert_array_equal(d[:2, gen], d[2:, gen])
 
     ct = jnp.zeros_like(out).at[:2, gen].set(jax.random.normal(key1, (2, 6)))

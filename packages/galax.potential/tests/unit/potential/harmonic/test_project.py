@@ -10,6 +10,7 @@ import scipy.special as sps
 
 import quaxed.numpy as jnp
 
+import galax.potential._src.harmonic.project as project
 from galax.potential._src.harmonic.project import (
     angular_grid,
     default_angular_resolution,
@@ -379,3 +380,237 @@ def test_harmonic_coeffs_jacfwd_with_integer_radii() -> None:
         return harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
 
     assert jnp.allclose(jax.jacfwd(coeffs)(jnp.asarray(1.0)), coeffs(1.0), rtol=1e-6)
+
+
+def test_harmonic_coeffs_gradient_survives_a_zero_row_with_disjoint_support() -> None:
+    """A zero-amplitude component keeps its gradient where others are non-zero.
+
+    REGRESSION: a row whose density is zero while other rows are not was masked
+    whole, so ``d/dA`` of ``A * [r < 3] + B * [r > 3]`` at ``A = 0`` was 0
+    instead of the coefficient of ``[r < 3]``.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([0.5, 1.0, 2.0, 4.0, 8.0, 16.0])
+
+    def total(A):
+        def rho(xyz, t):
+            m = jnp.linalg.norm(xyz, axis=-1)
+            return A * jnp.where(m < 3, 1.0, 0.0) + jnp.where(m > 3, 1.0, 0.0)
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(c)
+
+    expected = total(jnp.asarray(1.0)) - total(jnp.asarray(0.0))  # linear in A
+    assert expected > 0
+    assert jnp.allclose(jax.grad(total)(jnp.asarray(0.0)), expected, rtol=1e-6)
+
+
+def test_harmonic_coeffs_hessian_is_finite_where_the_density_overflows() -> None:
+    """``jax.hessian`` through radii that overflow in float32 is finite and exact.
+
+    A guard for the projection alone: the end-to-end regression (a build whose
+    pad overflows) is in ``multipole_profile/test_build.py``.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    radii = [1e-20, 1e-16, 1e-14, 1e-6, 1e-2, 1.0, 1e3]
+    keep = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]  # the rows float32 can represent
+
+    def kept(p, r, mask):
+        def rho(xyz, t):
+            m = jnp.linalg.norm(xyz, axis=-1)
+            return p[0] * m ** -p[1] * jnp.exp(-m)
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(jnp.where(mask[:, None] > 0, c, 0.0))
+
+    ref = jax.hessian(kept)(
+        jnp.asarray([1.0, 2.9]), jnp.asarray(radii), jnp.asarray(keep)
+    )
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+    with jax.enable_x64(False):  # noqa: FBT003
+        hess = jax.hessian(kept)(
+            jnp.asarray([1.0, 2.9]), jnp.asarray(radii), jnp.asarray(keep)
+        )
+        assert hess.dtype == jnp.float32
+        assert jnp.all(jnp.isfinite(hess)), hess
+        got = jnp.asarray(hess, dtype=float)
+
+    assert jnp.allclose(got, ref, rtol=1e-3, atol=1e-3 * jnp.max(jnp.abs(ref))), (
+        got,
+        ref,
+    )
+
+
+def test_harmonic_coeffs_replaces_a_spurious_overflow_with_a_difference() -> None:
+    """The scale-radius gradient of a quotient density is finite and matches float64.
+
+    REGRESSION: ``A / x**g`` differentiates through ``1 / x**(2 g)``, which
+    overflows long before the density does, so the gradient was `nan` at a
+    sample whose value is finite and whose true derivative is ordinary.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    radii = [1e-12, 1e-10, 1e-8, 1e-4, 1e-2, 1.0]
+
+    def total(p, r):
+        def rho(xyz, t):
+            x = jnp.linalg.norm(xyz, axis=-1) / p[1]
+            return p[0] / (x**2.9 * (1.0 + x) ** 1.1)
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(c)
+
+    ref = jax.grad(total)(jnp.asarray([1.0, 1.0]), jnp.asarray(radii))
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = jax.grad(total)(jnp.asarray([1.0, 1.0]), jnp.asarray(radii))
+        assert got.dtype == jnp.float32
+        assert jnp.all(jnp.isfinite(got)), got
+        got = jnp.asarray(got, dtype=float)
+
+    assert jnp.allclose(got, ref, rtol=1e-4), (got, ref)
+
+
+@pytest.mark.parametrize("n", [3, 40])
+def test_harmonic_coeffs_gradient_wrt_an_array_closure(n) -> None:
+    """A density closing over an array has its gradient."""
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([0.5, 1.0, 2.0])
+    k = jnp.arange(1, n + 1.0)
+
+    def total(c):
+        def rho(xyz, t):
+            m = jnp.linalg.norm(xyz, axis=-1)
+            return jnp.sum(c * jnp.exp(-k * m[..., None]), axis=-1)
+
+        out = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(out)
+
+    got = jax.grad(total)(jnp.ones(n))
+    expected = jax.vmap(total)(jnp.eye(n))  # linear in c
+    assert jnp.allclose(got, expected, rtol=1e-6), (got, expected)
+
+
+def test_harmonic_coeffs_gradient_wrt_an_array_closure_past_the_column_cap(
+    monkeypatch,
+) -> None:
+    """Past ``_MAX_PARAMS`` the density is differentiated as written, correctly."""
+    monkeypatch.setattr(project, "_MAX_PARAMS", 2)
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([0.5, 1.0, 2.0])
+    k = jnp.arange(1, 5.0)
+
+    def total(c):
+        def rho(xyz, t):
+            m = jnp.linalg.norm(xyz, axis=-1)
+            return jnp.sum(c * jnp.exp(-k * m[..., None]), axis=-1)
+
+        out = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(out)
+
+    got = jax.grad(total)(jnp.ones(4))
+    assert jnp.allclose(got, jax.vmap(total)(jnp.eye(4)), rtol=1e-6)
+
+
+def test_harmonic_coeffs_float32_gradient_with_many_closed_over_scalars() -> None:
+    """A 40-element closure does not lose the float32 overflow protection.
+
+    REGRESSION: past 32 scalars the rule fell back to plain differentiation,
+    which gave `nan` where fewer scalars gave a finite gradient.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def total(p, r):
+        def rho(xyz, t):
+            m = jnp.linalg.norm(xyz, axis=-1)
+            return p[0] * m**-2.9 * jnp.exp(-m) + 1e-3 * jnp.sum(p[1:]) * jnp.exp(-m)
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(jnp.where(jnp.isfinite(c), c, 0.0))
+
+    radii = [1e-20, 1e-16, 1e-6, 1e-2, 1.0]
+    with jax.enable_x64(False):  # noqa: FBT003
+        grad = jax.grad(total)(jnp.ones(40), jnp.asarray(radii))
+        assert grad.dtype == jnp.float32
+        assert jnp.all(jnp.isfinite(grad)), grad
+
+
+def test_harmonic_coeffs_gradient_with_an_empty_array_closure() -> None:
+    """A density closing over a zero-size float array still differentiates.
+
+    REGRESSION: the per-array columns indexed a basis of length zero.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([0.3, 1.0, 2.5])
+    empty = jnp.zeros((0,))
+
+    def total(s):
+        def rho(xyz, t):
+            return s * jnp.exp(-jnp.linalg.norm(xyz, axis=-1)) + jnp.sum(empty)
+
+        out = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(out)
+
+    assert jnp.allclose(jax.grad(total)(2.0), total(1.0), rtol=1e-6)
+
+
+def test_harmonic_coeffs_does_not_differentiate_a_concrete_table(monkeypatch) -> None:
+    """A closed-over lookup table gets no derivative columns.
+
+    REGRESSION: every float constant counted, so a table cost time and memory
+    quadratic in its size and, past ``_MAX_PARAMS``, lost the float32 overflow
+    protection (here: `nan`).
+    """
+    monkeypatch.setattr(project, "_MAX_PARAMS", 4)
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def kept(A, r):
+        def rho(xyz, t):
+            m = jnp.linalg.norm(xyz, axis=-1)
+            return A * m**-2.9 * jnp.exp(-m) * jnp.mean(table)
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(jnp.where(jnp.isfinite(c), c, 0.0))
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        table = jnp.linspace(1.0, 2.0, 50)
+        A = jnp.asarray(1.0)
+        r = jnp.asarray([1e-20, 1e-16, 1e-6, 1e-2, 1.0])
+        grad = jax.grad(kept)(A, r)
+        assert jnp.isfinite(grad), grad
+        assert jnp.allclose(grad, kept(A, r), rtol=1e-5)
+
+
+def test_harmonic_coeffs_repair_step_follows_the_parameter_precision() -> None:
+    """With x64 on, float32 parameters repair with a float32-sized step.
+
+    REGRESSION: the step came from the promoted column dtype (float64, because
+    ``t`` is), and was too small for a density evaluated in float32: the
+    repaired entries were ~8e-3 off.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    radii = np.array([1e-12, 1e-10, 1e-8, 1e-4, 1e-2, 1.0])
+
+    def total(p, r):
+        def rho(xyz, t):
+            x = jnp.linalg.norm(xyz.astype(jnp.float32), axis=-1) / p[1]
+            return p[0] / (x**2.9 * (1.0 + x) ** 1.1)
+
+        t = jnp.asarray(0.0, dtype=jnp.float64)
+        return harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, t)[:, 0]
+
+    ref = jax.jacfwd(total)(jnp.ones(2), jnp.asarray(radii))
+    got = jax.jacfwd(total)(
+        jnp.ones(2, dtype=jnp.float32), jnp.asarray(radii, dtype=jnp.float32)
+    )
+    assert got.dtype == jnp.float64  # promoted by `t`
+    err = jnp.max(jnp.abs(got[:3, :2] / ref[:3, :2] - 1))
+    assert err < 1e-4, err

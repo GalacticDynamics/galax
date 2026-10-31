@@ -19,6 +19,7 @@ from jax.extend.core import (  # type: ignore[attr-defined,unused-ignore]
     ClosedJaxpr,
     jaxpr_as_fun,
 )
+from jax.flatten_util import ravel_pytree
 
 import quaxed.numpy as jnp
 
@@ -210,6 +211,171 @@ def _hoist_consts(
     return converted, list(closed.consts)
 
 
+_MAX_PARAMS = 128
+"""Most differentiable scalars `harmonic_coeffs` forms derivative columns for."""
+
+_FD_CHUNK = 32
+"""Rows the central-difference fallback evaluates at a time."""
+
+
+def _leaf_columns(g: Callable[[list[Array]], Any], leaves: list[Array], i: int) -> Any:
+    """Return ``g``'s derivative in each element of ``leaves[i]``, on a new axis."""
+    leaf = leaves[i]
+    if leaf.size == 0:
+        out = jax.eval_shape(g, leaves)
+        return jnp.zeros((*out.shape, 0), dtype=out.dtype)
+
+    def gi(x: Array) -> Any:
+        return g([*leaves[:i], x, *leaves[i + 1 :]])
+
+    def tangent(basis: Array) -> Any:
+        return jax.jvp(gi, (leaf,), (basis,))[1]
+
+    if leaf.size == 1:
+        return tangent(jnp.ones_like(leaf))[..., None]
+    zero = jnp.zeros_like(leaf).reshape(-1)
+    basis = jax.vmap(lambda e: zero.at[e].set(1).reshape(leaf.shape))(
+        jnp.arange(leaf.size)
+    )
+    return jnp.moveaxis(jax.vmap(tangent)(basis), 0, -1)
+
+
+def _columns(g: Callable[[list[Array]], Any], /) -> Callable[[list[Array]], Any]:
+    """Append one axis to ``g``'s output: its derivative in each scalar input.
+
+    Each array gets its own `jax.jvp`, batched over its elements, with every
+    other input held constant, so their tangents are symbolic zeros.
+    `jax.jacfwd` materialises them as zero vectors instead, and ``0 * inf``
+    then spoils a column that does not depend on the overflowing input at all.
+    """
+
+    def dg(leaves: list[Array]) -> Any:
+        cols = [_leaf_columns(g, leaves, i) for i in range(len(leaves))]
+        return jnp.concat(cols, axis=-1)
+
+    return dg
+
+
+class _DerivativeChain:
+    """The ``k``-th derivative of ``f_leaves`` for every row, for any ``k``.
+
+    ``Z`` has one row per radius and one column per differentiable scalar, the
+    radius last; ``split`` turns a row into the list of arrays that
+    ``f_leaves(leaves, aux)`` takes.
+
+    ``self(0, Z, aux)`` is the value. ``self(k, Z, aux)`` for ``k >= 1`` is the
+    derivative tensor with ``k`` trailing axes of length ``Z.shape[1]``, and
+    each order is a `jax.custom_jvp` whose rule is the next order contracted
+    with the input tangent. Differentiating one therefore never differentiates
+    ``f_leaves`` itself, so a derivative that is not finite is repaired here,
+    once, and a zero cotangent never meets it (``0 * inf``). The orders are
+    built lazily, one per differentiation.
+
+    An entry that is not finite is repaired as follows:
+
+    * the coefficient is not finite: the whole row is zero;
+    * the coefficient is zero: the entry is zero (an underflowed product);
+    * otherwise the entry is a central difference of the ``(k - 1)``-th
+      derivative, or zero if that is not finite either.
+    """
+
+    def __init__(
+        self,
+        f_leaves: Callable[..., Any],
+        split: Callable[[Array], list[Array]],
+        eps: float,
+    ) -> None:
+        self.f_leaves = f_leaves
+        self.split = split
+        self.eps = eps  # the coarsest precision among the parameters
+        self.cache: dict[int, Callable[..., Any]] = {}
+
+    def __call__(self, k: int, Z: Array, aux: Any) -> Any:
+        if k not in self.cache:
+            self.cache[k] = self._order(k)
+        return self.cache[k](Z, aux)
+
+    def value(self, Z: Array, aux: Any) -> Any:
+        return jax.vmap(lambda z: self.f_leaves(self.split(z), aux))(Z)
+
+    def raw(self, k: int, Z: Array, aux: Any) -> Any:
+        """Return the derivative as JAX forms it, `nan` and all."""
+        g: Callable[..., Any] = ft.partial(self.f_leaves, aux=aux)
+        for _ in range(k):
+            g = _columns(g)
+        return jax.vmap(lambda z: g(self.split(z)))(Z)
+
+    def central(self, k: int, Z: Array, aux: Any) -> Any:
+        """Central differences of the ``(k - 1)``-th derivative, per column.
+
+        All ``2 * n_columns`` perturbations of every row go through one call, so
+        the lower order is traced once, not once per column.
+        """
+        n_rows, n_cols = Z.shape
+        h = self.eps ** (1 / 3)
+        step = h * jnp.where(Z != 0, jnp.abs(Z), 1.0)  # (n_rows, n_cols)
+        shift = jnp.eye(n_cols, dtype=Z.dtype)[:, None, :] * step.T[:, :, None]
+        both = jnp.concat([Z + shift, Z - shift])  # (2 n_cols, n_rows, n_cols)
+        out = self.impl(k - 1, both.reshape(-1, n_cols), aux)
+        hi, lo = out.reshape(2, n_cols, n_rows, *out.shape[1:])
+        step = step.T.reshape((n_cols, n_rows) + (1,) * (out.ndim - 1))
+        return jnp.moveaxis((hi - lo) / (2 * step), 0, -1)
+
+    def repair(self, k: int, Z: Array, aux: Any, need: Array, dtype: Any) -> Any:
+        """``central`` on the rows where ``need`` is set, a chunk at a time.
+
+        Few rows need it, so evaluating them all (or running both branches of a
+        `lax.cond`, which is what `vmap` turns it into) would cost more than
+        the derivative it repairs.
+        """
+        n_rows = Z.shape[0]
+        chunk = min(n_rows, _FD_CHUNK)
+
+        def body(state: tuple[Array, Array]) -> tuple[Array, Array]:
+            todo, fd = state
+            (idx,) = jnp.nonzero(todo, size=chunk, fill_value=n_rows)
+            rows = self.central(k, Z[jnp.minimum(idx, n_rows - 1)], aux).astype(dtype)
+            return todo.at[idx].set(False, mode="drop"), fd.at[idx].set(
+                rows, mode="drop"
+            )
+
+        todo = jnp.any(need, axis=tuple(range(1, need.ndim)))
+        fd0 = jnp.zeros(need.shape, dtype=dtype)
+        _, fd = jax.lax.while_loop(lambda s: jnp.any(s[0]), body, (todo, fd0))
+        return fd
+
+    def impl(self, k: int, Z: Array, aux: Any) -> Any:
+        """Return the order-``k`` tensor, repaired."""
+        if k == 0:
+            return self.value(Z, aux)
+        D = self.raw(k, Z, aux)
+        v = self.value(Z, aux)[(...,) + (None,) * k]
+        bad = ~jnp.isfinite(D)
+        need = bad & jnp.isfinite(v) & (v != 0)
+        fd = self.repair(k, Z, aux, need, D.dtype)
+        D = jnp.where(bad, jnp.where(need & jnp.isfinite(fd), fd, 0.0), D)
+        return jnp.where(jnp.isfinite(v), D, 0.0)
+
+    def _order(self, k: int) -> Callable[..., Any]:
+        @jax.custom_jvp
+        def G(Z: Array, aux: Any) -> Any:
+            return self.impl(k, Z, aux)
+
+        @G.defjvp
+        def G_jvp(primals: tuple[Any, ...], tangents: tuple[Any, ...]) -> Any:
+            Z, aux = primals
+            D = self(k + 1, Z, aux)
+            dZ = tangents[0].reshape((Z.shape[0], 1) + (1,) * k + (Z.shape[1],))
+            # A row with no non-zero derivative is dead: the caller discarded
+            # it, and its cotangent may be anything (`nan`, `inf`). Select it
+            # away on a primal-only mask; `nan * 0` would not.
+            dead = ~jnp.any(D != 0, axis=-1)
+            tangent = jnp.where(dead, 0.0, jnp.sum(D * dZ, axis=-1))
+            return self.impl(k, Z, aux), tangent
+
+        return G
+
+
 @ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))
 def harmonic_coeffs(
     rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]],
@@ -232,90 +398,73 @@ def harmonic_coeffs(
     broadcast over the leading axes -- the `galax` ``_density`` signature. It
     is called once per radius on the full angular grid.
 
-    Differentiating through it is safe where ``rho_fn`` overflows. A radius at
-    which the density is not finite, or is zero everywhere while it is not at
-    other radii, is one the caller of this function discards, so the
-    coefficients there are treated as
-    constants and ``rho_fn`` is differentiated at a representable radius
-    instead. Otherwise the zero cotangent would meet an infinite derivative
-    inside ``rho_fn`` (``0 * inf``) and every float32 gradient would be `nan`.
-    The values are unchanged. A radius whose value is finite and non-zero is
-    differentiated as usual, so a density whose own derivative overflows there
-    still gives a non-finite gradient; see `MultipoleProfilePotential.from_density`.
-    A density that is zero at *every* radius is differentiated as usual, so the
-    gradient with respect to an amplitude of exactly zero is kept. A radius
-    where it is zero while it is not elsewhere is masked even if a parameter
-    would make it non-zero (a zero-amplitude component whose support does not
-    overlap the rest has a zero gradient there).
+    Differentiating through it is safe where ``rho_fn`` over- or underflows.
+    The derivatives are formed explicitly, one column per differentiable
+    scalar (and one for the radius), and an entry that is not finite is
+    repaired rather than propagated:
+
+    * where the coefficient is not finite, the whole row is zero;
+    * where the coefficient is zero, an entry that is not finite is zero (an
+      underflowed ``0 * inf``), but a finite one is kept, so a zero-amplitude
+      component has its gradient;
+    * where the coefficient is finite and non-zero, an entry that is not
+      finite is a central difference (``A / x**g`` differentiates through
+      ``1 / x**(2 g)``, which overflows long before the density does), and zero
+      if that is not finite either: a derivative the dtype cannot represent,
+      at a sample the radial build discards.
+
+    The same holds for every higher derivative. A column is differentiated
+    with the others held constant, so an overflow in one does not reach the
+    rest -- except between the elements of one closed-over array. The values
+    are unchanged. Only values being traced get a column; a concrete array (a
+    lookup table) and integers do not. With more than ``_MAX_PARAMS``
+    differentiable scalars the columns are not formed and ``rho_fn`` is
+    differentiated as written.
+
+    The central difference is only as accurate as the function is flat over
+    its step (``eps**(1/3)`` of the value, taking ``eps`` from the coarsest
+    parameter dtype): ~1e-4 for an amplitude or a scale radius, ~2% for an
+    exponent over tens of decades in radius.
     """
     uvec, weights = angular_grid(n_theta, n_phi)
     Y = real_ylm(l_max, keys, uvec)  # (n_modes, n_theta, n_phi)
 
     # `rho_fn` may close over the values being differentiated (an amplitude, a
-    # scale radius). `custom_jvp` needs them as explicit arguments, so hoist
-    # them out of the closure. The angular grid is passed explicitly too: under
-    # `jit` it is itself a tracer, which a custom rule must not close over.
+    # scale radius). Hoist them out of the closure so they are explicit inputs
+    # to the rule, and split off the ones with no tangent: integers, and
+    # concrete arrays (a lookup table), which no transformation is tracing.
     rho_cc, consts = _hoist_consts(rho_fn, r_knots[0] * uvec, t)
+    args = [*consts, t]
+    diff = [
+        jnp.issubdtype(a.dtype, jnp.inexact) and isinstance(a, jax.core.Tracer)
+        for a in consts
+    ] + [jnp.issubdtype(t.dtype, jnp.inexact)]
+    flat, unravel = ravel_pytree([a for a, d in zip(args, diff, strict=True) if d])
+    n_r, n_p = r_knots.shape[0], flat.shape[0]
+    # Rows are independent: row `i` is a function of the parameters and of
+    # `r_knots[i]` alone, so its derivative has `n_p + 1` columns, not `n_r`.
+    Z = jnp.concat([jnp.broadcast_to(flat, (n_r, n_p)), r_knots[:, None]], axis=1)
+    aux = ((uvec, Y, weights), [a for a, d in zip(args, diff, strict=True) if not d])
 
-    def evaluate(
-        consts: tuple[Array, ...],
-        t: gt.BBtSz0,
-        r: Float[Array, "n_r"],
-        grid: tuple[Array, Array, Array],
-    ) -> tuple[Float[Array, "n_r n_modes"], Array]:
-        uvec, Y, weights = grid
+    def split(z: Array) -> list[Array]:
+        return [*unravel(z[:-1]), z[-1]]
 
-        def at_radius(
-            r: Float[Array, ""],
-        ) -> tuple[Float[Array, "n_modes"], Array, Array]:
-            rho = rho_cc(r * uvec, t, *consts)  # (n_theta, n_phi)
-            coeffs = jnp.einsum("kij,ij,ij->k", Y, rho, weights)
-            return coeffs, jnp.all(jnp.isfinite(rho)), jnp.any(rho != 0)
+    def f_leaves(leaves: list[Array], aux: Any) -> Any:
+        (uvec, Y, weights), fixed = aux
+        *diff_leaves, r = leaves
+        it_diff, it_fixed = iter(diff_leaves), iter(fixed)
+        *cs, t_ = (next(it_diff) if d else next(it_fixed) for d in diff)
+        rho = rho_cc(r * uvec, t_, *cs)  # (n_theta, n_phi)
+        return jnp.einsum("kij,ij,ij->k", Y, rho, weights)
 
-        coeffs, finite, nonzero = jax.vmap(at_radius)(r)
-        # A radius whose density is not finite, or is zero while others are
-        # not, is one the caller's parameters cannot usefully change. If the
-        # density is zero at every radius (an amplitude of exactly 0) nothing
-        # was discarded, and the tangent is kept.
-        return coeffs, finite & (nonzero | ~jnp.any(nonzero))
-
-    @jax.custom_jvp
-    def project(
-        consts: tuple[Array, ...],
-        t: gt.BBtSz0,
-        r: Float[Array, "n_r"],
-        grid: tuple[Array, Array, Array],
-    ) -> Float[Array, "n_r n_modes"]:
-        return evaluate(consts, t, r, grid)[0]
-
-    @project.defjvp
-    def project_jvp(primals: tuple[Any, ...], tangents: tuple[Any, ...]) -> Any:
-        # The derivative of `rho_fn` at an overflowed sample is `inf` or `nan`,
-        # and zeroing the result afterwards does not help: the zero cotangent
-        # still meets that derivative (`0 * inf`) inside `rho_fn`. A `where`
-        # on the output of `rho_fn` is therefore too late, and one inside it is
-        # not ours to write. So the tangent is taken at a radius where the
-        # density is representable, and masked off for the radii that were not.
-        # That includes a density that underflowed to exactly zero while an
-        # intermediate (`x**gamma`) overflowed: its value is a finite 0 but its
-        # derivative is `0 * inf`. The value is unchanged either way.
-        consts, t, r, grid = primals
-        d_consts, d_t, d_r, _ = tangents
-        out, ok = evaluate(consts, t, r, grid)
-
-        def evaluate_rows(c: Any, t_: Any, r_: Any) -> Any:
-            return evaluate(c, t_, r_, grid)[0]
-
-        r_eval = jnp.where(ok, r, r[jnp.argmax(ok)])
-        _, d_out = jax.jvp(
-            evaluate_rows,
-            (consts, t, r_eval),
-            (
-                d_consts,
-                d_t,
-                d_r if d_r.dtype == jax.dtypes.float0 else jnp.where(ok, d_r, 0.0),
-            ),
-        )
-        return out, jnp.where(ok[:, None], d_out, 0.0)
-
-    return project(tuple(consts), t, r_knots, (uvec, Y, weights))
+    if n_p > _MAX_PARAMS:
+        plain: Array = jax.vmap(lambda z: f_leaves(split(z), aux))(Z)
+        return plain
+    traced = [r_knots, *(a for a, d in zip(args, diff, strict=True) if d)]
+    eps = max(
+        float(jnp.finfo(a.dtype).eps)
+        for a in traced
+        if jnp.issubdtype(a.dtype, jnp.inexact)
+    )
+    out: Array = _DerivativeChain(f_leaves, split, eps)(0, Z, aux)
+    return out

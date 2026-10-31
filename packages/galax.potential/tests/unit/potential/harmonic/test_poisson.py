@@ -8,6 +8,7 @@ import quaxed.numpy as jnp
 from galax.potential._src.harmonic.poisson import (
     _active_tol,
     _log_floor,
+    _log_rel,
     gl_log_nodes,
     solve_poisson_lm,
     solve_poisson_profiles,
@@ -567,3 +568,42 @@ def test_the_inner_tail_is_exact_when_anchored_above_dropped_samples(l) -> None:
     # discriminate: 4.0e-08 and 4.0e-07 here against 4.1e-06 and 1.9e-06 at
     # margin 4.
     assert err < _MARGIN_BOUND[l], (l, err)
+
+
+def test_log_rel_has_the_slopes_of_log_abs_and_a_finite_second_derivative() -> None:
+    """``_log_rel`` differs from ``log|x| + floor`` by a constant, and is stable.
+
+    REGRESSION: ``d2 log|x| = -(dx / x)**2`` was formed as ``dx**2 * (1 / x**2)``,
+    which is ``inf * 0`` once ``|x|`` passes ~1e19 in float32.
+    """
+    x64 = jnp.asarray([3.0e30, 1.0e30, 4.0e29])
+    floor = 1e-30
+    got = _log_rel(x64, floor)
+    want = jnp.log(jnp.abs(x64) + floor)
+    assert jnp.allclose(jnp.diff(got), jnp.diff(want), rtol=1e-12)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        x = jnp.asarray([3.0e30, 1.0e30, 4.0e29])
+
+        def slope(a):
+            return jnp.diff(_log_rel(a * x, 1e-30))[0]
+
+        d2 = jax.jacfwd(jax.jacfwd(slope))(jnp.asarray(1.0))
+        assert jnp.isfinite(d2), d2
+        # Scale-free: the slope does not depend on `a`, so its derivatives vanish.
+        assert abs(d2) < 1e-5, d2
+
+
+def test_log_rel_keeps_the_plain_log_when_a_window_has_a_hard_zero() -> None:
+    """A window mixing a large entry with a zero is not rescaled.
+
+    REGRESSION: dividing by the power-of-two scale flushed the zero entry to
+    nothing, so ``log`` gave ``-inf``, the slope fit `nan`, and a `nan`
+    cotangent reached rows whose coefficient is exactly zero.
+    """
+    for dtype in (jnp.float32, jnp.float64):
+        x = jnp.asarray([1.0e3, 0.0, 0.0], dtype=dtype)
+        floor = _log_floor(x)
+        got = _log_rel(x, floor)
+        assert jnp.all(jnp.isfinite(got)), got
+        assert jnp.allclose(jnp.diff(got), jnp.diff(jnp.log(jnp.abs(x) + floor)))

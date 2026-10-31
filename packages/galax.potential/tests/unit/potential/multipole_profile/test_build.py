@@ -801,7 +801,7 @@ def test_float32_gradients_through_a_build_whose_pad_overflows(gamma) -> None:
     """
     total = _grad_build(_log_dehnen(gamma))
 
-    ref = jnp.asarray(jax.grad(total)(jnp.asarray([1.0, 1.0])), dtype=float)
+    ref = jax.grad(total)(jnp.asarray([1.0, 1.0]))
     assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
 
     with jax.enable_x64(False):  # noqa: FBT003
@@ -843,7 +843,7 @@ def test_the_plain_quotient_gradient_is_finite_and_matches_float64() -> None:
         return rho
 
     total = _grad_build(rho_of)
-    ref = jnp.asarray(jax.grad(total)(jnp.asarray([1.0, 1.0])), dtype=float)
+    ref = jax.grad(total)(jnp.asarray([1.0, 1.0]))
     assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
     with jax.enable_x64(False):  # noqa: FBT003
         p = jnp.asarray([1.0, 1.0])
@@ -868,7 +868,7 @@ def test_float32_hessian_through_a_build_whose_pad_overflows(gamma) -> None:
     """
     total = _grad_build(_log_dehnen(gamma))
     p = jnp.asarray([1.0, 1.0])
-    ref = jnp.asarray(jax.hessian(total)(p), dtype=float)
+    ref = jax.hessian(total)(p)
     assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
 
     with jax.enable_x64(False):  # noqa: FBT003

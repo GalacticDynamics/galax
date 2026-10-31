@@ -581,17 +581,29 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         cannot form is replaced rather than propagated. For a density written as
         ``A / (x**g * (1 + x)**h)``, whose derivative JAX forms through
         ``1 / den**2`` (which overflows long before the density does), the
-        replacement is a central difference: about 1e-4 per entry and 1e-5 on the
-        gradient.
+        replacement is a central difference: about 1e-4 per entry and 2e-5 on
+        the gradient with respect to an amplitude or a scale radius. The error
+        grows with how fast the density changes over the step, so for a traced
+        exponent (``g`` above) over tens of decades in radius the gradient can
+        be off by ~2%, finite and wrong; write the density in log form.
+        A value whose derivative the repair cannot isolate is repaired with the
+        others: a closed-over array holding both an amplitude and a scale radius
+        loses an amplitude of exactly zero, where separate scalars keep it.
+        Only values being traced get columns, so a lookup table costs nothing,
+        but each differentiable scalar adds a forward pass: the gradient is
+        ~1-2x the cost of a plain one for a few parameters and ~4-6x for 100, and
+        past 128 the derivatives are not formed at all.
 
         The same holds for second derivatives, `jax.hessian`, with these limits.
         Written as ``exp(log(A) - g * log(x) - h * log1p(x))`` they agree with
-        float64 to about 1e-5. Written as the quotient they are not reliable in
+        float64 to about 5e-5 normwise. Written as the quotient they are not reliable in
         float32: JAX's second derivative underflows ``1 / den**3`` without
         saying so, and the result can be wrong or `nan`; use the log form. A
         cusp whose padded density reaches within a factor of two of the dtype's
         maximum (~3e38 in float32; 1.3e38 is fine) still gives a non-finite
-        Hessian; moving the bracket moves the pad.
+        Hessian; moving the bracket moves the pad. Reverse-mode gradients
+        through a ``log`` degrade earlier, from ~3e37. A Hessian costs 1.5-4x a
+        plain one to run and ~2x to compile, more where the repair runs.
 
         A derivative the dtype cannot represent at all is taken as zero where
         the build discards the sample (it does for the innermost ones), so a

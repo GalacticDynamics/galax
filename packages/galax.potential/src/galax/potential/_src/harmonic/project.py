@@ -221,6 +221,9 @@ _FD_CHUNK = 32
 def _leaf_columns(g: Callable[[list[Array]], Any], leaves: list[Array], i: int) -> Any:
     """Return ``g``'s derivative in each element of ``leaves[i]``, on a new axis."""
     leaf = leaves[i]
+    if leaf.size == 0:
+        out = jax.eval_shape(g, leaves)
+        return jnp.zeros((*out.shape, 0), dtype=out.dtype)
 
     def gi(x: Array) -> Any:
         return g([*leaves[:i], x, *leaves[i + 1 :]])
@@ -277,10 +280,14 @@ class _DerivativeChain:
     """
 
     def __init__(
-        self, f_leaves: Callable[..., Any], split: Callable[[Array], list[Array]]
+        self,
+        f_leaves: Callable[..., Any],
+        split: Callable[[Array], list[Array]],
+        eps: float,
     ) -> None:
         self.f_leaves = f_leaves
         self.split = split
+        self.eps = eps  # the coarsest precision among the parameters
         self.cache: dict[int, Callable[..., Any]] = {}
 
     def __call__(self, k: int, Z: Array, aux: Any) -> Any:
@@ -305,7 +312,7 @@ class _DerivativeChain:
         the lower order is traced once, not once per column.
         """
         n_rows, n_cols = Z.shape
-        h = float(jnp.finfo(Z.dtype).eps) ** (1 / 3)
+        h = self.eps ** (1 / 3)
         step = h * jnp.where(Z != 0, jnp.abs(Z), 1.0)  # (n_rows, n_cols)
         shift = jnp.eye(n_cols, dtype=Z.dtype)[:, None, :] * step.T[:, :, None]
         both = jnp.concat([Z + shift, Z - shift])  # (2 n_cols, n_rows, n_cols)
@@ -408,19 +415,30 @@ def harmonic_coeffs(
 
     The same holds for every higher derivative. A column is differentiated
     with the others held constant, so an overflow in one does not reach the
-    rest. The values are unchanged. With more than ``_MAX_PARAMS``
+    rest -- except between the elements of one closed-over array. The values
+    are unchanged. Only values being traced get a column; a concrete array (a
+    lookup table) and integers do not. With more than ``_MAX_PARAMS``
     differentiable scalars the columns are not formed and ``rho_fn`` is
     differentiated as written.
+
+    The central difference is only as accurate as the function is flat over
+    its step (``eps**(1/3)`` of the value, taking ``eps`` from the coarsest
+    parameter dtype): ~1e-4 for an amplitude or a scale radius, ~2% for an
+    exponent over tens of decades in radius.
     """
     uvec, weights = angular_grid(n_theta, n_phi)
     Y = real_ylm(l_max, keys, uvec)  # (n_modes, n_theta, n_phi)
 
     # `rho_fn` may close over the values being differentiated (an amplitude, a
     # scale radius). Hoist them out of the closure so they are explicit inputs
-    # to the rule, and split off the ones with no tangent.
+    # to the rule, and split off the ones with no tangent: integers, and
+    # concrete arrays (a lookup table), which no transformation is tracing.
     rho_cc, consts = _hoist_consts(rho_fn, r_knots[0] * uvec, t)
     args = [*consts, t]
-    diff = [jnp.issubdtype(a.dtype, jnp.inexact) for a in args]
+    diff = [
+        jnp.issubdtype(a.dtype, jnp.inexact) and isinstance(a, jax.core.Tracer)
+        for a in consts
+    ] + [jnp.issubdtype(t.dtype, jnp.inexact)]
     flat, unravel = ravel_pytree([a for a, d in zip(args, diff, strict=True) if d])
     n_r, n_p = r_knots.shape[0], flat.shape[0]
     # Rows are independent: row `i` is a function of the parameters and of
@@ -442,5 +460,11 @@ def harmonic_coeffs(
     if n_p > _MAX_PARAMS:
         plain: Array = jax.vmap(lambda z: f_leaves(split(z), aux))(Z)
         return plain
-    out: Array = _DerivativeChain(f_leaves, split)(0, Z, aux)
+    traced = [r_knots, *(a for a, d in zip(args, diff, strict=True) if d)]
+    eps = max(
+        float(jnp.finfo(a.dtype).eps)
+        for a in traced
+        if jnp.issubdtype(a.dtype, jnp.inexact)
+    )
+    out: Array = _DerivativeChain(f_leaves, split, eps)(0, Z, aux)
     return out

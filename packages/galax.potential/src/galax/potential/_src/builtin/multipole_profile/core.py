@@ -590,11 +590,15 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
           ``log`` degrade from ~3e37.
         - A closed-over array holding an amplitude and a scale radius loses an
           amplitude of exactly zero; separate scalars keep it.
-        - Only traced floats get derivative columns (a lookup table closed over
-          as a concrete array has none; one passed as a `jax.jit` argument does),
-          each adding a forward pass: the gradient costs ~1-2x a plain one for
-          a few parameters and ~4-6x for 100, and past 128 the derivatives are
-          not repaired. A Hessian costs 1.5-4x to run and ~2x to compile.
+        - Only traced floats get derivative columns, each adding a forward pass.
+          A table closed over as a concrete array has none; one passed as a
+          `jax.jit` argument has one per element, at a cost quadratic in its
+          size, so close over it. Against a plain gradient the cost is ~0.6-1.6x
+          for up to three parameters; at 100 scalars the run time is similar but
+          compiling takes ~7x, and one 100-element array runs ~3.5x. Past 128
+          traced floats (counting ``t``) the derivatives are not repaired. A
+          log-form Hessian costs 1.5-2.5x to run and ~1.5-2x to compile; 3-12x
+          where the repair runs.
         - A derivative the dtype cannot represent is taken as zero where the
           build discards the sample. A gradient through a used sample within a
           factor of a few of the dtype's maximum is finite but incomplete.

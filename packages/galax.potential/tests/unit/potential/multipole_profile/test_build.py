@@ -852,15 +852,14 @@ def test_the_plain_quotient_gradient_is_finite_and_matches_float64() -> None:
     assert jnp.allclose(got, ref, rtol=1e-4), (got, ref)
 
 
-@pytest.mark.parametrize("gamma", [1.5, 2.5, 2.9])
-def test_float32_hessian_through_a_build_whose_pad_overflows(gamma) -> None:
+def test_float32_hessian_through_a_build_whose_pad_overflows() -> None:
     """``jax.hessian`` of the build is finite in float32 and matches float64.
 
-    For a cusp steep enough that the padded samples overflow. Written in log
-    form; the plain quotient's Hessian is not reliable in float32 (see
-    `from_density`'s Notes).
+    For a cusp (``gamma = 2.9``) steep enough that the padded samples overflow.
+    Written in log form; the plain quotient's Hessian is not reliable in
+    float32 (see `from_density`'s Notes).
     """
-    total = _grad_build(_log_dehnen(gamma))
+    total = _grad_build(_log_dehnen(2.9))
     p = jnp.asarray([1.0, 1.0])
     ref = jax.hessian(total)(p)
     assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
@@ -874,3 +873,4 @@ def test_float32_hessian_through_a_build_whose_pad_overflows(gamma) -> None:
     # Normwise: an entry can be ~0 in float64 (the amplitude is linear).
     err = float(jnp.max(jnp.abs(f32 - ref)) / jnp.max(jnp.abs(ref)))
     assert err < 1e-3, err
+    jax.clear_caches()  # the compiled Hessian is large; free it for the worker

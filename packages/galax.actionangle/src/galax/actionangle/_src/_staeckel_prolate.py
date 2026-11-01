@@ -235,12 +235,26 @@ def _semi_tau(s: Array, lam_pos: Array) -> tuple[Array, Array, Array]:
     return jnp.exp(jnp.where(beyond, jnp.log(lam_pos), logt)), beyond, ok
 
 
-def _F_semi_val(iom: IOM, tau: Array, Phi: Array, mult: Array, I: Array) -> Array:
-    """F/tau^2 without forming F or tau^2 (cannot overflow); NaN for bad tau."""
+def _F_semi_val(
+    iom: IOM,
+    sem: tuple[Array, Array, Array],
+    Phi: Array,
+    mult: Array,
+    I: Array,
+    phi_inf: Array,
+) -> Array:
+    """F/tau^2 on the lambda_max lane, ``sem`` = `_semi_tau`'s (tau, beyond, ok).
+
+    Formed without F or tau^2 (cannot overflow); E - phi_inf past the guard
+    (``beyond``) and NaN for a non-finite s or a bad tau. `make_F`'s
+    ``F_semi`` and `find_limits`' lambda_max lane both use it.
+    """
+    tau, beyond, ok_s = sem
     ok = jnp.isfinite(tau) & (tau > 0)
     t = jnp.where(ok, tau, iom.D2)
     F = (iom.E - I / t - Phi * mult / t) * (1 - iom.D2 / t) - iom.Lz**2 / (2 * t)
-    return jnp.where(ok, F, jnp.nan)
+    F = jnp.where(ok, F, jnp.nan)
+    return jnp.where(ok_s, jnp.where(beyond, iom.E - phi_inf, F), jnp.nan)
 
 
 class Fset(NamedTuple):
@@ -257,7 +271,6 @@ class Fset(NamedTuple):
     F_noise: Callable[[Array], tuple[Array, Array]]  # (F, its roundoff scale)
     phi: Callable[[Array, Array], Array]  # the potential the closures use
     D2: Array  # focal distance^2
-    rho: Array  # R of the nu-line at u = 0 (z = 0): sqrt(lam - D2)
 
 
 def make_F(phi: Callable[[Array, Array], Array], iom: IOM) -> Fset:  # noqa: C901
@@ -366,10 +379,9 @@ def make_F(phi: Callable[[Array, Array], Array], iom: IOM) -> Fset:  # noqa: C90
         return _F_val(iom, tau, Phi, mult, I), noise
 
     def F_semi(s: Array, lam_pos: Array, phi_inf: Array) -> Array:
-        tau, beyond, ok = _semi_tau(s, lam_pos)
-        R, z, mult, I = lane_coords(tau)
-        val = _F_semi_val(iom, tau, phi(R, z), mult, I)
-        return jnp.where(ok, jnp.where(beyond, iom.E - phi_inf, val), jnp.nan)
+        sem = _semi_tau(s, lam_pos)
+        R, z, mult, I = lane_coords(sem[0])
+        return _F_semi_val(iom, sem, phi(R, z), mult, I, phi_inf)
 
     return Fset(
         F_lam,
@@ -383,5 +395,4 @@ def make_F(phi: Callable[[Array, Array], Array], iom: IOM) -> Fset:  # noqa: C90
         F_noise,
         phi,
         D2,
-        iom.rho,
     )

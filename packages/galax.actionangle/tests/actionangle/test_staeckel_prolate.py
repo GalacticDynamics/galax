@@ -10,12 +10,14 @@ import unxt as u
 from ._helpers import (
     AXIS_W6,
     D2,
+    MID_W6,
+    _jac_both,
     _kk,
     _mn,
+    _nfw,
     _phi,
     _setup,
     _w6s,
-    check_dF_limit_sites,
 )
 from galax.actionangle._src import _staeckel_limits as limits
 from galax.actionangle._src._staeckel_limits import (
@@ -35,7 +37,7 @@ def _Rz_grid():
     return jnp.asarray(R), jnp.asarray(z)
 
 
-def test_prolsph_roundtrip():
+def test_prolsph_roundtrip_and_sigma():
     R, z = _Rz_grid()
     p = jax.vmap(prolsph, (0, 0, None))(R, z, D2)
     np.testing.assert_allclose(p.lam * p.absnu / D2, z**2, rtol=1e-14, atol=0)
@@ -48,21 +50,8 @@ def test_prolsph_roundtrip():
     np.testing.assert_allclose(p.lmd * p.dmn / D2, R**2, rtol=1e-14, atol=0)
     assert np.all(p.lam >= D2)
     assert np.all((p.absnu >= 0) & (p.absnu <= D2))
-
-
-def test_sigma_sign_and_smoothness():
-    R, z = _Rz_grid()
-    p = jax.vmap(prolsph, (0, 0, None))(R, z, D2)
     np.testing.assert_array_equal(np.sign(p.sigma), np.sign(z))
     assert prolsph(jnp.asarray(2.0), jnp.asarray(0.0), D2).sigma == 0
-
-    for Ri in (0.0, 0.5, 2.0, 10.0):
-        for jac in (jax.jacfwd, jax.jacrev):
-            dsdz = jac(lambda z_, R_=Ri: prolsph(jnp.asarray(R_), z_, D2).sigma)(
-                jnp.asarray(0.0)
-            )
-            assert np.isfinite(dsdz)
-            assert dsdz > 0
     # continuous across the |nu| = D2/2 branch switch
     zs = jnp.linspace(1.9, 2.1, 2001)
     sig = jax.vmap(lambda z_: prolsph(jnp.asarray(0.0), z_, D2).sigma)(zs)
@@ -70,13 +59,18 @@ def test_sigma_sign_and_smoothness():
 
 
 @pytest.mark.parametrize("jac", [jax.jacfwd, jax.jacrev])
-@pytest.mark.parametrize(
-    "Rz", [(2.0, 0.0), (0.0, 1.0), (0.0, -2.0), (0.0, 0.0), (0.0, 5.0), (1e-3, 0.0)]
-)
-def test_prolsph_grad_nan_free_axis_plane(jac, Rz):
-    J = jac(lambda Rz_: prolsph(Rz_[0], Rz_[1], D2))(jnp.asarray(Rz))
+def test_prolsph_grad_nan_free_axis_plane(jac):
+    """On the axis and in the plane: finite derivatives, and dsigma/dz > 0 at z = 0."""
+    Rz = jnp.asarray(
+        [
+            *[(0.0, 1.0), (0.0, -2.0), (0.0, 5.0)],  # the axis
+            *[(R, 0.0) for R in (0.0, 1e-3, 0.5, 2.0, 10.0)],  # the plane
+        ]
+    )
+    J = jax.jit(jax.vmap(jac(lambda Rz_: prolsph(Rz_[0], Rz_[1], D2))))(Rz)
     for leaf in jax.tree.leaves(J):
         assert np.all(np.isfinite(leaf)), J
+    assert np.all(np.asarray(J.sigma)[3:, 1] > 0)
 
 
 def _cpp_reference(phi, w6, D2):
@@ -131,8 +125,12 @@ def _cpp_reference(phi, w6, D2):
     return ref, f_tau
 
 
-@pytest.mark.parametrize("pot", [_kk(), _mn()], ids=["kk", "mn"])
-def test_F_vanishes_consistency(pot):
+# I3: the Cartesian kinetic term equals the C++ cylindrical one (MN to
+# 1e-14; KK measured 1.1e-14)
+@pytest.mark.parametrize(
+    ("pot", "rtol_I3"), [(_kk(), 1e-12), (_mn(), 1e-14)], ids=["kk", "mn"]
+)
+def test_F_vanishes_consistency(pot, rtol_I3):
     phi = _phi(pot)
     iom_fn = jax.jit(lambda w: integrals_of_motion(phi, w, D2))
     for w6 in _w6s(12):
@@ -140,7 +138,8 @@ def test_F_vanishes_consistency(pot):
         F = make_F(phi, iom)
         ref, f_tau = _cpp_reference(phi, w6, D2)
         for k in ("E", "Lz", "I3", "flam", "fnu", "lam", "absnu", "lamdot"):
-            np.testing.assert_allclose(getattr(iom, k), ref[k], rtol=1e-12, err_msg=k)
+            rtol = rtol_I3 if k == "I3" else 1e-12
+            np.testing.assert_allclose(getattr(iom, k), ref[k], rtol=rtol, err_msg=k)
         # sigma-dot = nudot / (2 sqrt|nu|)
         np.testing.assert_allclose(
             iom.sigdot, ref["nudot"] / (2 * np.sqrt(ref["absnu"])), rtol=1e-12
@@ -291,10 +290,35 @@ def test_dF_limits_and_fd():
 
 # Only a cusp puts a hazard at the limit sites; the smooth ones (KK, MN,
 # MW2022) kill nothing NFW does not, at 3x the compile.
-@pytest.mark.parametrize("name", ["nfw"])
-def test_dF_limit_sites_grad_nan_free(name):
-    """See `check_dF_limit_sites`."""
-    check_dF_limit_sites(name)
+def test_dF_limit_sites_grad_nan_free():
+    """F and F' at the tau = D2 and u = 0 limit sites and at the phase point.
+
+    At z = 0 the lambda-side F'(D2) limit term sits at Phi(0, sigma = 0), the
+    origin, unless kept off the axis: both modes finite, equal (NFW's cusp).
+    """
+    phi = _phi(_nfw())
+
+    def f(w):
+        iom = integrals_of_motion(phi, w, D2)
+        F = make_F(phi, iom)
+        d2 = jnp.asarray(D2)
+        out = jnp.stack(
+            [
+                F.dF_lam(d2),
+                F.dF_nu(d2),
+                F.dF_nu(jnp.asarray(0.0)),
+                F.F_lam(d2),
+                F.F_nu(jnp.asarray(0.0)),
+                F.F_lam(iom.lam),
+                F.F_nu(iom.absnu),
+                F.dF_lam(iom.lam),
+            ]
+        )
+        return out, out
+
+    w6s = jnp.stack([_w6s(1)[0], AXIS_W6, MID_W6])
+    _, _, vals = _jac_both(f, w6s)
+    assert np.all(np.isfinite(vals))
 
 
 @pytest.mark.parametrize("pot", [_kk(), _mn()], ids=["kk", "mn"])
@@ -316,16 +340,6 @@ def test_I3_grad_on_axis_matches_fd(pot):
     x, y, z, vx, vy, vz = np.asarray(AXIS_W6)
     np.testing.assert_allclose(fd[:2], [-z * vz * vx, -z * vz * vy], rtol=1e-6)
     np.testing.assert_allclose(g, fd, rtol=1e-6, atol=1e-10)
-
-
-def test_I3_kinetic_form_unchanged():
-    """The Cartesian kinetic term equals the C++ cylindrical one, to 1e-14."""
-    phi = _phi(_mn())
-    for w6 in _w6s(12):
-        ref, _ = _cpp_reference(phi, w6, D2)
-        np.testing.assert_allclose(
-            integrals_of_motion(phi, w6, D2).I3, ref["I3"], rtol=1e-14
-        )
 
 
 def test_kk_closed_form_F_and_staeckel_constant():
@@ -373,6 +387,7 @@ def test_iom_flags_degenerate_scales():
         ([0.0, 0.0, 0.0, 0.05, 0.2, 0.03], 1e-90, True),  # the origin
         ([0.0, 0.0, 0.0, 0.05, 0.2, 0.03], 1e-150, False),
         (gen, 1e-300, False),  # 1e-301 of R^2 + z^2
+        ([100.0, 0.0, 0.0, 0.05, 0.2, 0.03], 1e-98, False),  # 1e-102 of R^2 + z^2
         (gen, 5e-324, False),  # subnormal
         ([1e60, 0.0, 1e60, 0.05, 0.2, 0.03], 4.0, False),  # R^2 + z^2 > 1e100
         (gen, 1e101, False),

@@ -852,6 +852,42 @@ def test_the_plain_quotient_gradient_is_finite_and_matches_float64() -> None:
     assert jnp.allclose(got, ref, rtol=1e-4), (got, ref)
 
 
+def test_float32_gradient_at_a_zero_amplitude_closed_over_in_an_array() -> None:
+    """The gradient at ``A = 0`` is the shape function's, also from one array.
+
+    REGRESSION: with ``(A, s)`` closed over as one array, the tangent of ``s``
+    is a materialised zero, and ``0 * inf`` turned the shape's derivative into
+    `nan` wherever it overflows. At ``A = 0`` every coefficient is zero, which
+    the repair left alone, so those entries were zeroed and the gradient came
+    back 2% short (``gamma = 2.6``). A zero parameter is now repaired like any other.
+    """
+    gamma = 2.6
+
+    def total(p):
+        def rho(xyz, t):
+            x = safe_vector_norm(xyz) / p[1]
+            return p[0] / (x**gamma * (1.0 + x) ** (4.0 - gamma))
+
+        return build_expansion(
+            rho,
+            jnp.geomspace(1e-4, 1e4, 32),
+            0,
+            lm_keys(0, "spherical"),
+            *default_angular_resolution(0),
+            jnp.asarray(0.0),
+            jnp.asarray(1.0),
+        )["phi_lm"].sum()
+
+    ref = jax.grad(total)(jnp.asarray([0.0, 1.0]))
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = jax.grad(total)(jnp.asarray([0.0, 1.0]))
+        assert got.dtype == jnp.float32
+        f32 = jnp.asarray(got, dtype=float)
+
+    assert jnp.allclose(f32, ref, rtol=1e-3), (f32, ref)
+
+
 def test_float32_hessian_through_a_build_whose_pad_overflows() -> None:
     """``jax.hessian`` of the build is finite in float32 and matches float64.
 

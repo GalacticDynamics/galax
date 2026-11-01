@@ -617,3 +617,20 @@ def test_harmonic_coeffs_with_all_integer_inputs() -> None:
         rho, jnp.asarray([1, 2, 3]), 0, keys, n_theta, n_phi, jnp.asarray(0)
     )
     assert jnp.all(jnp.isfinite(got))
+
+
+def test_harmonic_coeffs_with_python_and_numpy_scalar_closures() -> None:
+    """Python and NumPy scalars in the density closure are held fixed."""
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+    r = jnp.asarray([0.3, 1.0, 2.5])
+    k = 2.0 * 3 * True * np.float32(1.5) * np.int64(2)
+
+    def total(s):
+        def rho(xyz, t):
+            return s * k * jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
+
+        out = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(out)
+
+    assert jnp.allclose(jax.grad(total)(2.0), total(1.0), rtol=1e-6)

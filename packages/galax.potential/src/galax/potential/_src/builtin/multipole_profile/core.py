@@ -583,26 +583,28 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
           (~1e-4 per entry), so the gradient with respect to an exponent over
           tens of decades in radius can be off by ~2%, finite and wrong.
         - Hessian (`jax.hessian`, forward-over-reverse, or reverse-over-reverse
-          as ``grad(grad(...))``): ~5e-5 normwise for a
-          density written in log form, ``exp(log(A) - g * log(x) - h * log1p(x))``.
-          Not reliable for the plain quotient ``A / (x**g * (1 + x)**h)`` in
-          float32 (wrong or `nan`). Can be non-finite when the padded density
-          approaches the dtype's maximum (~3e38 in float32). Reverse-mode
+          as ``grad(grad(...))``): ~1e-5 normwise for a density in log form,
+          ``exp(log(A) - g * log(x) - h * log1p(x))``, and ~1e-3 for the plain
+          quotient ``A / (x**g * (1 + x)**h)``, in the monopole builds tested
+          (``gamma`` 2.9, bracket ``[1e-4, 1e4]``, ``A`` of 0.03 or more). Third
+          derivatives are finite but noisier (up to ~0.5 for ``gamma`` 2.9).
+        - A used sample within a factor of ``~1/A`` of the dtype's maximum
+          (~3e38 in float32) has a derivative that overflows and is taken as
+          zero. The result is then finite but wrong, up to a sign flip in the
+          gradient and orders of magnitude in the Hessian. Reverse-mode
           gradients through a ``log`` degrade from ~3e37.
         - A closed-over array holding an amplitude and a scale radius loses an
           amplitude of exactly zero; separate scalars keep it.
         - Only traced floats get derivative columns, each adding a forward pass.
           A table closed over as a concrete array has none; one passed as a
           `jax.jit` argument has one per element, at a cost quadratic in its
-          size, so close over it. Against a plain gradient the cost is ~0.6-1.6x
-          for up to three parameters; at 100 scalars the run time is similar but
-          compiling takes ~7x, and one 100-element array runs ~3.5x. Past 128
-          traced floats (counting ``t``) the derivatives are not repaired. A
-          log-form Hessian costs 1.5-2.5x to run and ~1.5-2x to compile; 3-12x
-          where the repair runs.
-        - A derivative the dtype cannot represent is taken as zero where the
-          build discards the sample. A gradient through a used sample within a
-          factor of a few of the dtype's maximum is finite but incomplete.
+          size, so close over it. Past 128 traced floats (counting ``t``) the
+          derivatives are not repaired.
+        - Cost depends on the density. Against a plain gradient, a gradient
+          with up to three parameters takes ~0.5-2x to run. A Hessian takes
+          ~1.5-4x to run and ~1.3-3x to compile, and 4-12x (reverse-over-reverse
+          6-9x) where the repair runs. At 100 scalars, compiling takes 2-7x
+          longer; a 100-element array takes 3-25x longer to run.
         """
         _check_grid_config(n_r, l_max)
 

@@ -16,6 +16,8 @@ import pytest
 _trim = (
     getattr(ctypes.CDLL(None), "malloc_trim", None) if sys.platform == "linux" else None
 )
+if _trim is not None:  # int malloc_trim(size_t pad)
+    _trim.argtypes, _trim.restype = [ctypes.c_size_t], ctypes.c_int
 
 
 @pytest.fixture(autouse=True)

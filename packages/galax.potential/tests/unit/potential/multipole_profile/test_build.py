@@ -877,11 +877,7 @@ def test_float32_hessian_through_a_build_whose_pad_overflows() -> None:
 
 
 def test_float32_reverse_over_reverse_through_a_build_whose_pad_overflows() -> None:
-    """``grad(grad(...))`` of the build is finite in float32 and matches float64.
-
-    REGRESSION: it was `nan`. The rule's primal output was formed by `impl`, so
-    an outer reverse pass differentiated its raw, `nan`-bearing derivatives.
-    """
+    """``grad(grad(...))`` of the build is finite in float32 and matches float64."""
     total = _grad_build(_log_dehnen(2.9))
 
     def second(s):

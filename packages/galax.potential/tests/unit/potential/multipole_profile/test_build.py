@@ -893,3 +893,46 @@ def test_float32_reverse_over_reverse_through_a_build_whose_pad_overflows() -> N
 
     assert abs(float(got) - float(ref)) < 1e-3 * abs(float(ref)), (got, ref)
     jax.clear_caches()  # the compiled second derivative is large; free it
+
+
+def test_float32_third_derivative_through_a_build_whose_pad_overflows() -> None:
+    """The third derivative in the exponent is finite and matches float64.
+
+    REGRESSION: it was finite and wrong, up to 0.48 normwise (sign included).
+    The deepest padded rows had a finite density but a third derivative past
+    the dtype's maximum, which is taken as zero, while their first and second
+    derivatives were kept. The inner tail is fitted to the rows just above the
+    deepest overflowing sample, and a fit in log space cancels the derivative
+    orders against one another; with one of them missing, the cancellation
+    leaves ~``log(r)**3`` in place of zero. The build now treats a sample
+    within ``log(max)**3`` of the maximum as unrepresentable, so the tail is
+    fitted where all three orders exist. Measured against float64:
+    4e-5 here (``n_r`` 64), 3e-9 for ``gamma`` 2.5.
+    """
+
+    def total(g):
+        def rho(xyz, t):
+            x = safe_vector_norm(xyz)
+            return jnp.exp(-g * jnp.log(x) - (4.0 - g) * jnp.log1p(x))
+
+        return build_expansion(
+            rho,
+            jnp.geomspace(1e-4, 1e4, 64),
+            0,
+            lm_keys(0, "spherical"),
+            *default_angular_resolution(0),
+            jnp.asarray(0.0),
+            jnp.asarray(1.0),
+        )["phi_lm"].sum()
+
+    third = jax.grad(jax.grad(jax.grad(total)))
+    ref = third(jnp.asarray(2.9))
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = third(jnp.asarray(2.9))
+        assert got.dtype == jnp.float32
+        assert jnp.isfinite(got), got
+
+    assert abs(float(got) - float(ref)) < 1e-3 * abs(float(ref)), (got, ref)
+    jax.clear_caches()  # the compiled third derivative is large; free it

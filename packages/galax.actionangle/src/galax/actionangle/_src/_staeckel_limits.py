@@ -568,7 +568,8 @@ NEAR_PLANAR_SERIES = 3e-5  # ... used iff |F4| nu_max < NEAR_PLANAR_SERIES |F2|
 POLISH = 1e-3  # w < POLISH lam: Newton-polish the lambda roots (`_polish`)
 N_POLISH = 3  # Newton steps on the quartic
 POLISH_SLOPE = 1e-5  # ... kept where F' there is the quartic's to this: a kink
-# just inside a root is off by ~2.3 t; at 1e-3 a kept root was worse than the solver's
+# just inside a root is off by ~k t (k = dF''/F'', 2.3 for a hard NFW cut on MN);
+# at 1e-3 a kept root was worse than the solver's
 # A series must match F itself to this (+ F's roundoff) to be used. The
 # quartic's own truncation reaches ~4e-7 of F at w/4 by the w = 1e-2 hi switch
 # (MW2022), hence the looser near-shell bound; a resolvable kink is off by >~1e-3.
@@ -693,18 +694,20 @@ def _polish(F: Fset, iom: IOM, lim: Limits, m: Array, c: Array) -> tuple[Limits,
     F's roundoff. A kink just inside the root, within ~sqrt(16 noise /
     dF'') of it (F is C1 at a hard cutoff, F'' jumps by dF''), does not:
     |F| there is within roundoff, but the quartic is the inner piece's, its
-    slope off by ~2.3 t (t = (kink - root) / extent) and its root by ~0.4
-    t^2 of the extent. And a lane near the foci, where the gate passes on w
-    << lam but w ~ lam - D2 is past the quartic's convergence (a cusp with a
-    fixed Delta: NFW's and MW2022's inner lanes, roots off by up to ~1e-2).
+    slope off by ~k t (t = (kink - root) / extent, k = dF''/F'', 2.3 for a
+    hard NFW cut on MN) and its root by ~k t^2 / 6 of the extent. And a
+    lane near the foci, where the gate passes on w << lam but w ~ lam - D2
+    is past the quartic's convergence (a cusp with a fixed Delta: NFW's and
+    MW2022's inner lanes, roots off by up to ~1e-2).
     So each polished root is kept only where it is on its own side of m,
     |F| there is within SNAP_NOISE of F's roundoff, and F' there is the
     quartic's to POLISH_SLOPE (`Fset.F_noise` and its jvp: ~2 F per root);
     it is otherwise the solver's. Per root: a kink on one side leaves the
-    other side's quartic, and its root and slope, F's. Smooth lanes away
-    from the foci match to <~6e-9; near them to ~7e-4 (MW2022's inner lanes
-    with a fixed Delta: 4% of their roots are the solver's, at w/lam 1e-5
-    to 1e-3, where it is good to ~2e-6 of the extent or better).
+    other side's quartic, and its root and slope, F's. On smooth lanes P'
+    and F' agree to <~6e-9 relative away from the foci; near them to ~7e-4
+    (MW2022's inner lanes with a fixed Delta: 4% of their roots are the
+    solver's, at w/lam 1e-5 to 1e-3, where it is good to ~2e-6 of the
+    extent or better).
     The simple-root tangent is reattached at the polished root with F'
     there (KK: within 5.5e-9 of the exact tangent). Returns (the limits,
     the polished-lane flag); the other lanes' limits are returned as given.
@@ -743,6 +746,7 @@ def _polish(F: Fset, iom: IOM, lim: Limits, m: Array, c: Array) -> tuple[Limits,
         # there) converges to F's other root, which passes the checks below
         & (jnp.stack([-x[0], x[1]]) > 0)
         & (jnp.abs(fL) <= SNAP_NOISE * nL)  # a root of F itself; NaN fails
+        & jnp.isfinite(dfL)  # inf <= inf would pass the slope check
         & (jnp.abs(dp(x) - dfL) <= POLISH_SLOPE * jnp.abs(dfL))  # and of P's slope
     )
     L = jnp.where(near, L, L0)

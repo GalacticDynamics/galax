@@ -28,7 +28,11 @@ from .expansion import expansion_density, expansion_gradient, expansion_potentia
 from .interp import time_interpolated_parameter
 from galax.potential._src.base import AbstractPotential, default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
-from galax.potential._src.harmonic import default_angular_resolution, lm_keys
+from galax.potential._src.harmonic import (
+    LogDensity,
+    default_angular_resolution,
+    lm_keys,
+)
 from galax.potential._src.harmonic.asympt import _ln_huge
 from galax.potential._src.jax import vectorize_method
 from galax.potential._src.params.base import AbstractParameter
@@ -427,9 +431,10 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
     @classmethod
     def from_density(
         cls,
-        rho: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]],
+        rho: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]] | None = None,
         /,
         *,
+        log_rho: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]] | None = None,
         r_min: Any,
         r_max: Any,
         n_r: int = 512,
@@ -458,6 +463,18 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             the Poisson solve together with :math:`G`. ``xyz`` has shape
             ``(..., 3)`` and the callable must broadcast over the leading axes,
             matching `galax`'s own ``_density`` contract.
+        log_rho : Callable, optional
+            The natural log of the density, in place of ``rho`` (give one of
+            the two). Same arguments and broadcasting; it returns
+            ``log(rho)`` for ``rho`` in ``units["mass density"]``, and
+            ``-inf`` where the density is zero. The density must be
+            non-negative.
+
+            It makes derivatives of the build, in float32 above all, exact
+            where those of ``rho`` need repair: see the **Gradients** note.
+            Write it as a sum of logs, ``log(A) - g * (log(r) - log(s))``
+            rather than ``log(A / (r / s)**g)``, so that its own reverse
+            pass stays in range.
         r_min, r_max : Quantity
             Inner and outer radii bracketing the region of interest. These are
             build-time grid configuration and must be concrete: like ``n_r``,
@@ -577,6 +594,26 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         **Gradients.** `jax.grad` and `jax.hessian` through the build are finite
         in float32, also for a steep cusp whose padded samples overflow.
 
+        Pass ``log_rho`` for the exact kind. Its derivatives need no repair, in
+        forward or reverse mode and at any order, so they stay in range where
+        those of ``rho`` overflow. Against float64, for a Dehnen cusp of
+        ``gamma`` 2.9 over ``[1e-4, 1e4]`` at ``n_r`` 48, in float32:
+
+        ======== ======== ======== ======== ========
+        amp      gradient Hessian  rev-rev  third
+        ======== ======== ======== ======== ========
+        1        2e-6     7e-6     7e-6     2e-5
+        1e-3     3e-6     1e-5     1e-5     7e-4
+        ======== ======== ======== ======== ========
+
+        (normwise, for ``(A, s, gamma)``). With ``rho`` the gradient at an
+        amplitude of 1e-3 has the wrong sign and the Hessian is ``nan`` or off
+        by 1e4, as below. The function must have a finite derivative where it
+        represents the density: a norm of a vector that is traced (a
+        flattening) loses its third derivative below a radius of ~1e-8 in
+        float32, the cost of a ``log`` of a small number. The rest of this
+        note is about ``rho``.
+
         - Gradient: agrees with float64 to <5e-5 for an amplitude or a scale
           radius (``gamma`` up to 2.9, brackets to ``[1e-6, 1e6]``). A density
           derivative that is not finite is replaced by a central difference
@@ -677,6 +714,10 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         # though it were one.
         on_time_grid = _check_build_times(t_)
 
+        if (rho is None) == (log_rho is None):
+            msg = "give exactly one of `rho` and `log_rho`"
+            raise TypeError(msg)
+
         # `build_expansion` takes `rho_fn` as a jit static argument, so jax hashes
         # it. An equinox bound method (e.g. `some_pot._density`) closes over
         # array-valued parameters and is unhashable, raising "Non-hashable static
@@ -684,14 +725,12 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         # per call is a fresh hash, so wrapping unconditionally would force a full
         # recompilation (~1 s) even when the caller passes a plain module-level
         # function repeatedly.
+        fn: Any = rho if log_rho is None else log_rho
         try:
-            hash(rho)
+            hash(fn)
         except TypeError:
-            rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]] = (
-                lambda xyz, tt: rho(xyz, tt)
-            )
-        else:
-            rho_fn = rho
+            fn = ft.partial(lambda f, xyz, tt: f(xyz, tt), fn)
+        rho_fn: Any = fn if log_rho is None else LogDensity(fn)
 
         G_ = jnp.asarray(consts["G"].decompose(usys).value)
 

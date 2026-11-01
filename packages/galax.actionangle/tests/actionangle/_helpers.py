@@ -20,6 +20,8 @@ __all__ = [
 import decimal
 import functools as ft
 
+from collections.abc import Callable
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -115,7 +117,16 @@ def kk_delta(pot: gp.KuzminKutuzovPotential, t: float = 0.0) -> float:
     return float(qnp.sqrt(a**2 - c**2))
 
 
-def _kk_F(pot, w6, num, sqrt, hypot):
+Num = float | decimal.Decimal
+
+
+def _kk_F(
+    pot: gp.KuzminKutuzovPotential,
+    w6: np.ndarray,
+    num: Callable[[float], Num],
+    sqrt: Callable[[Num], Num],
+    hypot: Callable[[Num, Num], Num],
+) -> tuple[Callable[[Num], Num], Num, Num, Num]:
     """(F, D2, lam, nu) of a KK orbit at t=0 (see `kk_turning_points`).
 
     In ``num`` arithmetic (float, or decimals in the caller's context);

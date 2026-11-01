@@ -540,8 +540,8 @@ _POLISH_GATE_ES = (4.0e-4, 4.3e-4)  # w/lam just inside and outside the gate
 def _polish_case():
     """KK near-circular lanes, two at the polish gate, then generic lanes.
 
-    The last lane is generic: it is the chunks' fill lane. Returns (w6s,
-    d2s, lam, run), run(w6s, size) -> (Taylor, the input Limits).
+    The last lane is generic: it is the chunks' fill lane. Returns (pot,
+    w6s, lam, run), run(w6s, size) -> (Taylor, the input Limits).
     """
     pot = _kk()
     phi = _phi(pot)
@@ -655,20 +655,37 @@ def test_polish_tangents():
     np.testing.assert_array_equal(np.asarray(g_batch), np.asarray(g_lim))
 
 
-@pytest.mark.parametrize("case", ["kink", "nfw_core"])
+# An NFW core lane (Delta^2 = 4, w/lam ~ 1e-10, lam at 0.21 of the extent): a
+# Newton step from lam_max crosses lam and converges onto lam_min's side
+_NFW_CROSSING_W6 = [
+    0.019946933287217975, 0.0, 0.0, -1.1041964811188601e-08,
+    0.014108493496219409, 0.002895135797033265,
+]  # fmt: skip
+
+
+@pytest.mark.parametrize("case", ["kink", "kink_root", "nfw_core"])
 def test_polish_keeps_roots_of_F(case):
     """A polished root is kept only where it is a root of F itself.
 
     The quartic at m cannot see a kink: on `test_use_l_off_where_F_has_a_kink`'s
     potential (r_t = 8 inside a near-circular orbit at R = 8, w/lam ~ 3e-4
     and 3e-6) its root moved lam_min by 12% of the extent (|F|/noise 6e6).
-    Nor does it converge where w ~ lam - D2, below POLISH lam: NFW's cusp
-    with a fixed Delta^2 = 4 at R = 0.02, 0.05 (roots off by up to 2e-3,
-    |F|/noise 1e9). At the batch's limits |F| is within SNAP_NOISE of F's
-    roundoff, and a rejected root is the solver's, bitwise.
+    A kink just inside a root, (kink - root) / extent = t = -1e-3 and -5e-2
+    (w/lam 2.7e-4 to 2.7e-7): F is C1 there, |F| at the quartic's root
+    stays within roundoff, but its slope is the inner piece's (off by ~2.3
+    |t|): lam_max's tangent was off by up to 0.5, its position by up to 4e-2
+    of the extent (12x the solver's). Nor does the quartic converge where w
+    ~ lam - D2, below POLISH lam: NFW's cusp with a fixed Delta^2 = 4 at R =
+    0.02, 0.05 (roots off by up to 2e-3, |F|/noise 1e9); and a Newton step
+    past lam converged to lam_min's root (clamped to lam: the extent fell to
+    0.21). At the batch's limits |F| is within SNAP_NOISE of F's roundoff,
+    and a rejected root is the solver's, bitwise.
     """
     if case == "kink":
         pot, d2, R0s, es, f_phi = _mn_cut(), MN_D2, (8.0, 8.0), (1e-4, 1e-6), 1.0
+    elif case == "kink_root":  # R0 from a 60-digit root of the fudge F
+        R0s = (7.999432605653223, 7.999994872766397, 7.9999994872767015)
+        pot, d2, es, f_phi = _mn_cut(), MN_D2, (1e-4, 1e-6, 1e-7), 1.0
     else:
         pot, d2, R0s, es, f_phi = _nfw(), 4.0, (0.02, 0.05), (0.3, 0.3), 0.9
     phi = _phi(pot)
@@ -678,6 +695,7 @@ def test_polish_keeps_roots_of_F(case):
             [R, 0.0, 0.0, e * v, f_phi * v, 0.3 * e * v]
             for R, e, v in zip(R0s, es, vc, strict=True)
         ]
+        + ([_NFW_CROSSING_W6] if case == "nfw_core" else [])
     )
     d2s = jnp.full(len(w6s), d2)
 
@@ -702,5 +720,9 @@ def test_polish_keeps_roots_of_F(case):
     assert np.all(r <= limits.SNAP_NOISE), r
     if case == "kink":  # the kink is below m: lam_min is the solver's
         np.testing.assert_array_equal(L[:, 0], L0[:, 0])
+        assert np.all(L[:, 1] != L0[:, 1])  # the other side is polished
+    elif case == "kink_root":  # the kink is just inside lam_max: the solver's
+        np.testing.assert_array_equal(L[:, 1], L0[:, 1])
+        assert np.all(L[:, 0] != L0[:, 0])
     else:  # no root of the quartic is a root of F
         np.testing.assert_array_equal(L, L0)

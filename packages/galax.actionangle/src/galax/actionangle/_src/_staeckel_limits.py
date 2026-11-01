@@ -567,6 +567,8 @@ NEAR_PLANAR = 1e-4  # nu_max < NEAR_PLANAR D2: candidate for the even-Taylor nu 
 NEAR_PLANAR_SERIES = 3e-5  # ... used iff |F4| nu_max < NEAR_PLANAR_SERIES |F2|
 POLISH = 1e-3  # w < POLISH lam: Newton-polish the lambda roots (`_polish`)
 N_POLISH = 3  # Newton steps on the quartic
+POLISH_SLOPE = 1e-5  # ... kept where F' there is the quartic's to this: a kink
+# just inside a root is off by ~2.3 t; at 1e-3 a kept root was worse than the solver's
 # A series must match F itself to this (+ F's roundoff) to be used. The
 # quartic's own truncation reaches ~4e-7 of F at w/4 by the w = 1e-2 hi switch
 # (MW2022), hence the looser near-shell bound; a resolvable kink is off by >~1e-3.
@@ -685,18 +687,30 @@ def _polish(F: Fset, iom: IOM, lim: Limits, m: Array, c: Array) -> tuple[Limits,
     potential's exact roots. At the gate the quartic's truncation is far
     below the solver's error on a smooth F far from the foci.
 
-    The quartic can miss F's root, in two ways: a kink between m and the
-    root (a hard cutoff inside a near-circular orbit: lam_min moved by 23%
-    of the extent), and a lane near the foci, where the gate passes on w <<
-    lam but w ~ lam - D2 is past the quartic's convergence (a cusp with a
+    The quartic can miss F's root, in three ways. A kink between m and the
+    root that moves it (a hard cutoff inside a near-circular orbit: lam_min
+    moved by 23% of the extent) leaves |F| at the quartic's root far above
+    F's roundoff. A kink just inside the root, within ~sqrt(16 noise /
+    dF'') of it (F is C1 at a hard cutoff, F'' jumps by dF''), does not:
+    |F| there is within roundoff, but the quartic is the inner piece's, its
+    slope off by ~2.3 t (t = (kink - root) / extent) and its root by ~0.4
+    t^2 of the extent. And a lane near the foci, where the gate passes on w
+    << lam but w ~ lam - D2 is past the quartic's convergence (a cusp with a
     fixed Delta: NFW's and MW2022's inner lanes, roots off by up to ~1e-2).
-    So each polished root is kept only where |F| there is within SNAP_NOISE
-    of F's roundoff (`Fset.F_noise`, one F per root), and is otherwise the
-    solver's: per root, as a kink on one side leaves the other side's
-    quartic, and its root and slope, F's. The simple-root tangent is
-    reattached at the polished root. Returns (the limits, the polished-lane
-    flag); the other lanes' limits are returned as given. Snapped lanes
-    (w/lam ~1e-7 and below) are not polished yet (a follow-up).
+    So each polished root is kept only where it is on its own side of m,
+    |F| there is within SNAP_NOISE of F's roundoff, and F' there is the
+    quartic's to POLISH_SLOPE (`Fset.F_noise` and its jvp: ~2 F per root);
+    it is otherwise the solver's. Per root: a kink on one side leaves the
+    other side's quartic, and its root and slope, F's. Smooth lanes away
+    from the foci match to <~6e-9; MW2022's and NFW's inner lanes up to
+    ~7e-4, and those past POLISH_SLOPE are the solver's (at w/lam >~1e-5).
+    The simple-root tangent is reattached at the polished root with F'
+    there (KK: within 5.5e-9 of the exact tangent). Returns (the limits,
+    the polished-lane flag); the other lanes' limits are returned as given.
+    Snapped lanes (F's maximum within SNAP_NOISE of its roundoff,
+    `_noise_snap`: w/lam ~1e-7 and below away from the foci; near them,
+    where lam - D2 is small, lanes down to w/lam ~1e-10 are not snapped and
+    are polished) are not polished yet (a follow-up).
     """
     sg = jax.lax.stop_gradient
     lo0, hi0, m0, lam = sg(lim.lam_min), sg(lim.lam_max), sg(m), sg(iom.lam)
@@ -713,11 +727,9 @@ def _polish(F: Fset, iom: IOM, lim: Limits, m: Array, c: Array) -> tuple[Limits,
     for _ in range(N_POLISH):
         x = x - (a0 + x * (a1 + x * (a2 + x * (a3 + x * a4)))) / dp(x)
     L = m0 + x
-    # on the solver's side of lam (f_mom = 0 puts a root at lam itself). The
-    # residual check below does not replace this: a step past lam converges
-    # to F's other root, which passes it
-    L = jnp.stack([jnp.where(L[0] > lam, lam, L[0]), jnp.where(L[1] < lam, lam, L[1])])
-    fL, nL = (sg(a) for a in F.F_noise(L))
+    # F and F' at the polished roots: one jvp (F_noise is one phi call)
+    (fL, nL), (dfL, _) = jax.jvp(F.F_noise, (L,), (jnp.ones_like(L),))
+    fL, nL, dfL = sg(fL), sg(nL), sg(dfL)
     near = (
         (hi0 - lo0 < POLISH * lam)
         & jnp.isfinite(m0)
@@ -726,10 +738,14 @@ def _polish(F: Fset, iom: IOM, lim: Limits, m: Array, c: Array) -> tuple[Limits,
         & ~lim.snapped
         & ~lim.lmin_pinned
         & jnp.isfinite(L)
+        # each on its own side of m: a step past lam (f_mom ~ 0 puts a root
+        # there) converges to F's other root, which passes the checks below
+        & (jnp.stack([-x[0], x[1]]) > 0)
         & (jnp.abs(fL) <= SNAP_NOISE * nL)  # a root of F itself; NaN fails
+        & (jnp.abs(dp(x) - dfL) <= POLISH_SLOPE * jnp.abs(dfL))  # and of P's slope
     )
     L = jnp.where(near, L, L0)
-    t = -_over(_tang_at(F.F_lam, L, F.D2, 2 * F.D2), dp(L - m0))
+    t = -_over(_tang_at(F.F_lam, L, F.D2, 2 * F.D2), dfL)
     lim = lim._replace(
         lam_min=jnp.where(near[0], L[0] + t[0], lim.lam_min),
         lam_max=jnp.where(near[1], L[1] + t[1], lim.lam_max),

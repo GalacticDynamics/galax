@@ -801,7 +801,7 @@ def test_float32_gradients_through_a_build_whose_pad_overflows(gamma) -> None:
     """
     total = _grad_build(_log_dehnen(gamma))
 
-    ref = jnp.asarray(jax.grad(total)(jnp.asarray([1.0, 1.0])), dtype=float)
+    ref = jax.grad(total)(jnp.asarray([1.0, 1.0]))
     assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
 
     with jax.enable_x64(False):  # noqa: FBT003
@@ -825,15 +825,10 @@ def test_float32_forward_mode_agrees_with_reverse_mode_through_the_build() -> No
         assert jnp.allclose(fwd, rev, rtol=1e-4), (fwd, rev)
 
 
-def test_the_amplitude_gradient_survives_a_density_with_no_scale_gradient() -> None:
-    """``A / (x**g (1 + x)**h)`` has an exact ``dA`` even when its ``ds`` is `nan`.
+def test_the_plain_quotient_gradient_is_finite_and_matches_float64() -> None:
+    """``A / (x**g (1 + x)**h)`` has finite ``dA`` and ``ds`` that match float64.
 
-    JAX differentiates the quotient through ``1 / den**2``, which underflows
-    for ``gamma = 2.9`` once the density nears the dtype's maximum, so the
-    gradient with respect to the scale radius is not representable and stays
-    non-finite (the Notes of `from_density` say so). The amplitude enters
-    linearly, so its gradient must equal the value itself, and must not be lost
-    with it.
+    The amplitude enters linearly, so ``dA`` equals the value.
     """
     gamma = 2.9
 
@@ -845,8 +840,56 @@ def test_the_amplitude_gradient_survives_a_density_with_no_scale_gradient() -> N
         return rho
 
     total = _grad_build(rho_of)
+    ref = jax.grad(total)(jnp.asarray([1.0, 1.0]))
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
     with jax.enable_x64(False):  # noqa: FBT003
         p = jnp.asarray([1.0, 1.0])
         value, grad = total(p), jax.grad(total)(p)
-        assert jnp.isfinite(grad[0]), grad
+        assert jnp.all(jnp.isfinite(grad)), grad
         assert jnp.allclose(grad[0], value, rtol=1e-5), (grad[0], value)
+        got = jnp.asarray(grad, dtype=float)
+
+    assert jnp.allclose(got, ref, rtol=1e-4), (got, ref)
+
+
+def test_float32_hessian_through_a_build_whose_pad_overflows() -> None:
+    """``jax.hessian`` of the build is finite in float32 and matches float64.
+
+    For a cusp (``gamma = 2.9``) steep enough that the padded samples overflow.
+    Written in log form; the plain quotient's Hessian is not reliable in
+    float32 (see `from_density`'s Notes).
+    """
+    total = _grad_build(_log_dehnen(2.9))
+    p = jnp.asarray([1.0, 1.0])
+    ref = jax.hessian(total)(p)
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = jax.hessian(total)(jnp.asarray([1.0, 1.0]))
+        assert got.dtype == jnp.float32
+        assert jnp.all(jnp.isfinite(got)), got
+        f32 = jnp.asarray(got, dtype=float)
+
+    # Normwise: an entry can be ~0 in float64 (the amplitude is linear).
+    err = float(jnp.max(jnp.abs(f32 - ref)) / jnp.max(jnp.abs(ref)))
+    assert err < 1e-3, err
+    jax.clear_caches()  # the compiled Hessian is large; free it for the worker
+
+
+def test_float32_reverse_over_reverse_through_a_build_whose_pad_overflows() -> None:
+    """``grad(grad(...))`` of the build is finite in float32 and matches float64."""
+    total = _grad_build(_log_dehnen(2.9))
+
+    def second(s):
+        return jax.grad(jax.grad(lambda s: total(jnp.stack([jnp.ones_like(s), s]))))(s)
+
+    ref = second(1.0)
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = second(1.0)
+        assert got.dtype == jnp.float32
+        assert jnp.isfinite(got), got
+
+    assert abs(float(got) - float(ref)) < 1e-3 * abs(float(ref)), (got, ref)
+    jax.clear_caches()  # the compiled second derivative is large; free it

@@ -2,6 +2,7 @@
 
 import jax
 import numpy as np
+import pytest
 
 import quaxed.numpy as jnp
 
@@ -30,70 +31,59 @@ def _solve(f=_f, a=None, b=None, fa=None, fb=None, x0=None, done0=None, n_iter=1
     return solve(f, a, b, fa, fb, x0, done0, n_iter)
 
 
-def test_chandrupatla_roots():
-    x = _solve()
-    np.testing.assert_allclose(x, ROOTS, rtol=1e-14, atol=0)
+def _nan_beyond(x):  # lane 0 is NaN beyond 0.6; its first trial (0.65) lands there
+    y = _f(x)
+    return y.at[0].set(jnp.where(x[0] > 0.6, jnp.nan, y[0]))
 
 
-def test_chandrupatla_interpolates():
-    """Superlinear: 8 iterations suffice (bisection would need ~50)."""
-    x = _solve(n_iter=8)
-    np.testing.assert_allclose(x, ROOTS, rtol=1e-14, atol=0)
+def _settled(x):  # lane 2: f(0) = 0, NaN at its held midpoint trial 1.0
+    return _f(x).at[2].set(jnp.where(x[2] == 1.0, jnp.nan, x[2]))
 
 
-def test_chandrupatla_roots_off_centre_start():
-    x = _solve(x0=jnp.asarray([0.9, 0.1, 0.999]))
-    np.testing.assert_allclose(x, ROOTS, rtol=1e-14, atol=0)
+def _neg_f(x):  # decreasing, so f(1) < 0 is consistent with fb = -inf
+    return -_f(x)
 
 
-def test_chandrupatla_no_bracket_nan():
-    a = jnp.asarray([0.0, 0.9, 0.0])  # lane 1: f(0.9) > 0 and f(1) > 0
-    x = _solve(a=a)
-    assert np.isnan(x[1])
-    np.testing.assert_allclose(np.asarray(x)[[0, 2]], ROOTS[[0, 2]], rtol=1e-14, atol=0)
+# (solve kwargs, {lane: expected}); the other lanes are ROOTS to 1e-14
+_LANES = {
+    "off_centre_start": ({"x0": [0.9, 0.1, 0.999]}, {}),
+    "x0_sanitized": ({"x0": [np.nan, -1.0, 1.0]}, {}),  # NaN, outside, endpoint
+    "inf_endpoint": ({"f": _neg_f, "fb": [-np.inf] * 3}, {}),
+    "no_bracket": ({"a": [0.0, 0.9, 0.0]}, {1: np.nan}),  # f(0.9), f(1) > 0
+    "nan_endpoint": ({"fa": [-0.3, -0.5, np.nan]}, {2: np.nan}),
+    "nan_f_poisons_lane": (
+        {"f": _nan_beyond, "fb": list(_f(jnp.ones(3))), "x0": [0.65, 0.5, 0.5]},
+        {0: np.nan},
+    ),
+    "root_at_endpoint": ({"b": [0.3, 1.0, 1.0]}, {0: 0.3}),
+    "done_lane_untouched": (
+        {"x0": [0.123, 0.5, 0.5], "done0": [True, False, False]},
+        {0: 0.123},
+    ),
+    # a lane settled at init (f(a) = 0) whose held trial gives NaN keeps a
+    "settled_lane_not_poisoned": (
+        {"f": _settled, "b": [1.0, 1.0, 2.0]},  # lane 2: stand-in bracket [0, 2]
+        {2: 0.0},
+    ),
+}
 
 
-def test_chandrupatla_nan_endpoint_nan():
-    fa = _f(jnp.zeros(3)).at[2].set(jnp.nan)
-    x = _solve(fa=fa)
-    assert np.isnan(x[2])
-    np.testing.assert_allclose(x[:2], ROOTS[:2], rtol=1e-14, atol=0)
+@pytest.mark.parametrize("case", list(_LANES))
+def test_chandrupatla_lanes(case):
+    kw, special = _LANES[case]
+    kw = {k: v if callable(v) else jnp.asarray(v) for k, v in kw.items()}
+    x = np.asarray(_solve(**kw))
+    rest = [i for i in range(3) if i not in special]
+    np.testing.assert_allclose(x[rest], ROOTS[rest], rtol=1e-14, atol=0)
+    for i, v in special.items():
+        np.testing.assert_array_equal(x[i], v)
 
 
-def test_chandrupatla_inf_endpoint():
-    fb = jnp.full(3, -jnp.inf)
-
-    def f(x):  # decreasing, so f(1) < 0 is consistent with fb = -inf
-        assert x.shape == (3,)
-        return -_f(x)
-
-    x = _solve(f=f, fb=fb)
-    np.testing.assert_allclose(x, ROOTS, rtol=1e-14, atol=0)
-
-
-def test_chandrupatla_root_at_endpoint():
-    x = _solve(b=jnp.asarray([0.3, 1.0, 1.0]))
-    np.testing.assert_array_equal(x[0], 0.3)
-    np.testing.assert_allclose(x[1:], ROOTS[1:], rtol=1e-14, atol=0)
-
-
-def test_chandrupatla_done_lane_untouched():
-    x0 = jnp.asarray([0.123, 0.5, 0.5])
-    done0 = jnp.asarray([True, False, False])
-    x = _solve(x0=x0, done0=done0)
-    np.testing.assert_array_equal(x[0], 0.123)
-    np.testing.assert_allclose(x[1:], ROOTS[1:], rtol=1e-14, atol=0)
-
-
-def test_safe_div_value():
+def test_safe_div():
+    """0 where b = 0, with a NaN-free gradient."""
     np.testing.assert_array_equal(
         safe_div(jnp.asarray([1.0, 3.0]), jnp.asarray([0.0, 2.0])), [0.0, 1.5]
     )
-
-
-def test_safe_div_grad_nan_free():
-    g = jax.grad(lambda x: safe_div(x, 0.0))(1.0)
-    assert g == 0.0
     ga, gb = jax.grad(safe_div, argnums=(0, 1))(1.0, 0.0)
     assert ga == 0.0
     assert gb == 0.0
@@ -105,27 +95,12 @@ def test_tang():
     assert jax.grad(lambda y: tang(y) ** 2 + tang(3.0 * y))(x) == 3.0
 
 
-def test_chandrupatla_nan_f_poisons_lane():
-    def f(x):  # lane 0 is NaN beyond 0.6; its first trial (0.65) lands there
-        y = _f(x)
-        return y.at[0].set(jnp.where(x[0] > 0.6, jnp.nan, y[0]))
+def test_chandrupatla_interpolates_and_holds():
+    """Superlinear, and a converged lane is held at a fixed trial point.
 
-    x = _solve(f=f, fb=_f(jnp.ones(3)), x0=jnp.asarray([0.65, 0.5, 0.5]))
-    assert np.isnan(x[0])
-    np.testing.assert_allclose(x[1:], ROOTS[1:], rtol=1e-14, atol=0)
-
-
-def test_chandrupatla_x0_sanitized():
-    x0 = jnp.asarray([jnp.nan, -1.0, 1.0])  # NaN, outside, on the endpoint
-    x = _solve(x0=x0)
-    np.testing.assert_allclose(x, ROOTS, rtol=1e-14, atol=0)
-
-
-def test_chandrupatla_converged_lane_held():
-    """A lane that converges early is held at a fixed trial point.
-
-    `f` is still called on every lane each iteration, but a converged lane's
-    trial point and result no longer change.
+    8 iterations reach the roots to 1e-14 (bisection would need ~50), and 16
+    give the same result: `f` is still called on every lane each iteration,
+    but a converged lane's trial point and result no longer change.
     """
     calls = []
 
@@ -134,41 +109,13 @@ def test_chandrupatla_converged_lane_held():
         return _f(x)
 
     x8 = _solve(f=f, n_iter=8)
+    np.testing.assert_allclose(x8, ROOTS, rtol=1e-14, atol=0)
     calls.clear()
     x16 = _solve(f=f, n_iter=16)
     np.testing.assert_array_equal(x8, x16)
     # After convergence (≤ 7 iterations here) each lane's trial point repeats.
     late = np.stack(calls[-8:])
     np.testing.assert_array_equal(late, np.broadcast_to(late[0], late.shape))
-
-
-def test_chandrupatla_inf_endpoint_jacrev_nan_free():
-    fb = jnp.full(3, -jnp.inf)
-
-    def solve(a, b, fa, x0):
-        def f(x):
-            return -_f(x)
-
-        return chandrupatla(f, a, b, fa, fb, x0, jnp.zeros(3, dtype=bool))
-
-    a, b = jnp.zeros(3), jnp.ones(3)
-    jac = jax.jacrev(solve, argnums=(0, 1, 2, 3))(a, b, -_f(a), 0.5 * (a + b))
-    for j in jac:
-        assert np.all(np.isfinite(j))
-
-
-def test_chandrupatla_settled_lane_not_poisoned():
-    """A lane settled at init (f(a) = 0) whose held trial gives NaN keeps a."""
-    b = jnp.asarray([1.0, 1.0, 2.0])  # lane 2: stand-in bracket [0, 2]
-
-    def f(x):  # lane 2 is NaN at its held midpoint trial
-        return _f(x).at[2].set(jnp.where(x[2] == 1.0, jnp.nan, x[2]))
-
-    fa = f(jnp.zeros(3))
-    assert fa[2] == 0
-    x = _solve(f=f, b=b, fa=fa, fb=f(b))
-    np.testing.assert_array_equal(x[2], 0.0)
-    np.testing.assert_allclose(x[:2], ROOTS[:2], rtol=1e-14, atol=0)
 
 
 def test_chandrupatla_bisection_converges_to_4_ulp():
@@ -187,12 +134,16 @@ def test_chandrupatla_bisection_converges_to_4_ulp():
 
 
 def test_chandrupatla_result_carries_no_gradient():
-    """The root is stop-gradient: callers reattach the implicit-function tangent."""
+    """The root is stop-gradient: callers reattach the implicit-function tangent.
 
-    def solve(a, b, x0):
-        return chandrupatla(_f, a, b, _f(a), _f(b), x0, jnp.zeros(3, dtype=bool))
+    Zero (so also NaN-free) in both modes, with an ``-inf`` endpoint.
+    """
+    fb = jnp.full(3, -jnp.inf)
+
+    def solve(a, b, fa, x0):
+        return chandrupatla(_neg_f, a, b, fa, fb, x0, jnp.zeros(3, dtype=bool))
 
     a, b = jnp.zeros(3), jnp.ones(3)
     for jac in (jax.jacfwd, jax.jacrev):
-        for j in jac(solve, argnums=(0, 1, 2))(a, b, 0.5 * (a + b)):
+        for j in jac(solve, argnums=(0, 1, 2, 3))(a, b, _neg_f(a), 0.5 * (a + b)):
             np.testing.assert_array_equal(j, 0.0)

@@ -1,6 +1,6 @@
 """Helpers for the action-angle module."""
 
-__all__ = ["chandrupatla", "safe_div", "safe_sqrt", "tang"]
+__all__ = ["chandrupatla", "clamp", "safe_div", "safe_sqrt", "tang"]
 
 import functools as ft
 
@@ -21,6 +21,12 @@ def safe_div(a: jax.Array, b: jax.Array, /) -> jax.Array:
     """Divide `a / b`, giving 0 where `b == 0`, with a NaN-free gradient."""
     zero = b == 0
     return jnp.where(zero, 0.0, a / jnp.where(zero, 1.0, b))
+
+
+@ft.partial(jax.jit, inline=True)
+def clamp(x: jax.Array, lo: jax.Array, hi: jax.Array, /) -> jax.Array:
+    """``x`` clamped to [lo, hi] (lo where x < lo, hi where x > hi; NaN kept)."""
+    return jnp.where(x < lo, lo, jnp.where(x > hi, hi, x))
 
 
 @ft.partial(jax.jit, inline=True)
@@ -107,7 +113,7 @@ def chandrupatla(
             x3 - x1, x2 - x1
         ) * safe_div(g1, g3 - g1) * safe_div(g2, g3 - g2)
         t_new = jnp.where(interp, t_iq, 0.5)
-        t_new = jnp.where(t_new < tl, tl, jnp.where(t_new > 1 - tl, 1 - tl, t_new))
+        t_new = clamp(t_new, tl, 1 - tl)
 
         done = done | conv | bad
         return (x1, f1, x2, f2, x3, f3, jnp.where(done, t, t_new), done, bad)

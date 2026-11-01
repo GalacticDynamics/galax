@@ -374,9 +374,18 @@ def _first_ok(order: int, lo: int, /) -> Callable[[Array], Array]:
         if order < _MIN_ORDER:
             return plain
         huge = float(jnp.finfo(rho.dtype).max)
-        headroom = deepest(jnp.abs(rho) > huge / math.log(huge) ** order)
-        headroom = jnp.maximum(plain, headroom)
-        out: Array = jnp.where(headroom + _ANCHOR_MARGIN + 3 <= lo, headroom, plain)
+
+        def reach(k: int) -> Array:
+            out: Array = jnp.maximum(
+                plain, deepest(jnp.abs(rho) > huge / math.log(huge) ** k)
+            )
+            return out
+
+        # Whether the pad can hold the anchor is decided at the deepest order, so
+        # the orders fall back together rather than one sitting by the caller's
+        # knots while the next is plain.
+        fits = reach(_MAX_ORDER) + _ANCHOR_MARGIN + 3 <= lo
+        out: Array = jnp.where(fits, reach(order), plain)
         return out
 
     @first_ok.defjvp

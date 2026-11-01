@@ -359,7 +359,9 @@ class _DerivativeChain:
             # away on a primal mask, since their cotangent may be nan or inf.
             dead = ~jnp.any(D != 0, axis=-1)
             tangent = jnp.where(dead, 0.0, jnp.sum(D * dZ, axis=-1))
-            return self.impl(k, Z, aux), tangent
+            # The primal goes through `G` so an outer reverse pass differentiates
+            # it by this rule, not through `impl`'s raw (nan-bearing) derivatives.
+            return self(k, Z, aux), tangent
 
         return G
 

@@ -874,3 +874,26 @@ def test_float32_hessian_through_a_build_whose_pad_overflows() -> None:
     err = float(jnp.max(jnp.abs(f32 - ref)) / jnp.max(jnp.abs(ref)))
     assert err < 1e-3, err
     jax.clear_caches()  # the compiled Hessian is large; free it for the worker
+
+
+def test_float32_reverse_over_reverse_through_a_build_whose_pad_overflows() -> None:
+    """``grad(grad(...))`` of the build is finite in float32 and matches float64.
+
+    REGRESSION: it was `nan`. The rule's primal output was formed by `impl`, so
+    an outer reverse pass differentiated its raw, `nan`-bearing derivatives.
+    """
+    total = _grad_build(_log_dehnen(2.9))
+
+    def second(s):
+        return jax.grad(jax.grad(lambda s: total(jnp.stack([jnp.ones_like(s), s]))))(s)
+
+    ref = second(1.0)
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        got = second(1.0)
+        assert got.dtype == jnp.float32
+        assert jnp.isfinite(got), got
+
+    assert abs(float(got) - float(ref)) < 1e-3 * abs(float(ref)), (got, ref)
+    jax.clear_caches()  # the compiled second derivative is large; free it

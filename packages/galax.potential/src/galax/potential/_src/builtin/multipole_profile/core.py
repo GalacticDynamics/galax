@@ -582,13 +582,13 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
           derivative that is not finite is replaced by a central difference
           (~1e-4 per entry), so the gradient with respect to an exponent over
           tens of decades in radius can be off by ~2%, finite and wrong.
-        - Hessian (`jax.hessian`, or forward-over-reverse): ~5e-5 normwise for a
+        - Hessian (`jax.hessian`, forward-over-reverse, or reverse-over-reverse
+          as ``grad(grad(...))``): ~5e-5 normwise for a
           density written in log form, ``exp(log(A) - g * log(x) - h * log1p(x))``.
           Not reliable for the plain quotient ``A / (x**g * (1 + x)**h)`` in
           float32 (wrong or `nan`). Can be non-finite when the padded density
           approaches the dtype's maximum (~3e38 in float32). Reverse-mode
-          gradients through a ``log`` degrade from ~3e37. Reverse-over-reverse
-          (``grad(grad(...))``) is `nan` in float32.
+          gradients through a ``log`` degrade from ~3e37.
         - A closed-over array holding an amplitude and a scale radius loses an
           amplitude of exactly zero; separate scalars keep it.
         - Only traced floats get derivative columns, each adding a forward pass.
